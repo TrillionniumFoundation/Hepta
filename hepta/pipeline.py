@@ -183,9 +183,15 @@ def hsir_analysis(analysis: Analysis) -> dict:
         return {"schema": "hepta.hsir.export.v0", "ok": False,
                 "status": "rejected", "validation": analysis.report, "hsir": None}
     from .semantic_ir import lower_checked_program
-    snapshot = lower_checked_program(
-        analysis.program, analysis.checked,
-        project_sha256=getattr(analysis.project, "identity", None))
+    try:
+        snapshot = lower_checked_program(
+            analysis.program, analysis.checked,
+            project_sha256=getattr(analysis.project, "identity", None))
+    except (TypeError, ValueError, OverflowError, RecursionError) as exc:
+        return {"schema": "hepta.hsir.export.v0", "ok": False,
+                "status": "rejected", "hsir": None, "validation": analysis.report,
+                "diagnostics": [{"code": "E_HSIR_LOWER", "phase": "semantic-ir",
+                                 "message": str(exc)}]}
     return {"schema": "hepta.hsir.export.v0", "ok": bool(analysis.report["ok"]),
             "status": analysis.report["status"],
             "hsir": snapshot, "validation": analysis.report}
