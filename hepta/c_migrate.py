@@ -201,6 +201,57 @@ def _function(decl: dict, model: dict) -> dict:
     return {"name": name, "source": source, "params": args, "returns": ret}
 
 
+def _ast_dicts(value):
+    """Visit dictionaries in original JSON serialization order, without recursion."""
+    pending = [value]
+    while pending:
+        item = pending.pop()
+        if isinstance(item, dict):
+            yield item
+            pending.extend(reversed(list(item.values())))
+        elif isinstance(item, list):
+            pending.extend(reversed(item))
+
+
+def _restore_location_files(root: dict) -> None:
+    # Clang JSONNodeDumper elides repeated physical filenames across the whole
+    # output stream, including spelling/expansion and nested statement locations.
+    # includedFrom.file and presumedFile are NOT that physical-file state.
+    last_file = None
+    for item in _ast_dicts(root):
+        if all(key in item for key in ("offset", "col", "tokLen")):
+            if "file" in item:
+                last_file = item["file"]
+            elif last_file is not None:
+                item["file"] = last_file
+
+
+def _main_declarations(root: dict, src: Path, source_size: int):
+    _restore_location_files(root)
+    for node in root.get("inner", []):
+        location = node.get("loc") or node.get("range", {}).get("begin", {})
+        location = location.get("expansionLoc", location)
+        filename = location.get("file")
+        if not filename:
+            if not location and node.get("isImplicit"):
+                continue  # Compiler-provided declarations have no source location.
+            raise MigrationRejected("E_C_SOURCE_LOCATION", "Cannot establish declaration source origin")
+        if Path(filename).resolve() != src:
+            continue  # Header declarations remain external to the scalar pilot.
+        # This detects AST-visible expansions, not every preprocessed token:
+        # operator-token macros can be absent from the JSON AST and remain an
+        # explicitly unresolved unsupported-source enforcement boundary.
+        if any("expansionLoc" in item or "spellingLoc" in item for item in _ast_dicts(node)):
+            raise MigrationRejected("E_C_MACRO", "AST-visible macro-dependent main declaration is unsupported")
+        begin, end = (node.get("range", {}).get(key, {}) for key in ("begin", "end"))
+        offsets = (begin.get("offset"), end.get("offset"))
+        if (any(type(value) is not int for value in offsets)
+                or not (0 <= offsets[0] <= offsets[1] < source_size)
+                or any(not loc.get("file") or Path(loc["file"]).resolve() != src for loc in (begin, end))):
+            raise MigrationRejected("E_C_SOURCE_LOCATION", "Main declaration lacks a valid physical source range")
+        yield node
+
+
 def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> dict:
     """Return explicit migration evidence; never write a partial conversion."""
     src, dest = Path(path).resolve(), Path(output).absolute()
@@ -237,18 +288,7 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
         })
         declarations = []
         unsupported_toplevel = []
-        active_file = None
-        for node in root.get("inner", []):
-            node_file = node.get("loc", {}).get("file")
-            if node_file:
-                active_file = Path(node_file).resolve()
-            loc = node.get("loc", {})
-            if active_file != src:
-                continue
-            begin = node.get("range", {}).get("begin", {}).get("offset")
-            end = node.get("range", {}).get("end", {}).get("offset")
-            if not isinstance(begin, int) or not isinstance(end, int) or not (0 <= begin <= end < len(source)):
-                continue
+        for node in _main_declarations(root, src, len(source)):
             if node.get("kind") == "FunctionDecl" and any(
                     x.get("kind") == "CompoundStmt" for x in node.get("inner", [])):
                 declarations.append(node)
