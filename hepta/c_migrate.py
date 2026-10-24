@@ -163,6 +163,11 @@ def _function(decl: dict, model: dict) -> dict:
     typ = decl.get("type", {}).get("qualType", "")
     if "(" not in typ:
         raise MigrationRejected("E_C_FUNCTION", "Missing C function signature")
+    # Clang can encode ABI attributes only in the function type, without
+    # an Attr child (for example ms_abi/vectorcall). Accept only a plain
+    # return-type/parameter-list shape; never erase an unlowered convention.
+    if not re.fullmatch(r"[^()]+\([^()]*\)", typ):
+        raise MigrationRejected("E_C_ATTRIBUTE", "Function type attributes or calling conventions require explicit ABI lowering")
     if typ.endswith("()") or decl.get("storageClass") or decl.get("inline") or decl.get("isImplicit"):
         raise MigrationRejected("E_C_FUNCTION", "Unprototyped, static, inline or implicit functions are unsupported")
     ret = _typ(typ.split("(", 1)[0], model)
