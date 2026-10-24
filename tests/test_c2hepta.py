@@ -95,6 +95,27 @@ class C2HeptaImport(unittest.TestCase):
         self.assertEqual(self.convert("int f(int *x){return *x;}")["status"], "rejected")
         self.assertEqual(first, self.out.read_bytes(), "failed conversion must not replace a previous artifact")
 
+    def test_nonexistent_source_has_explicit_rejection_report(self):
+        result = migrate(self.path / "missing.c", self.out, self.report)
+        self.assertEqual(result["status"], "rejected")
+        self.assertIn("cannot read C input", result["reason"])
+        self.assertIsNone(result["source_sha256"])
+        self.assertTrue(self.report.exists())
+        self.assertFalse(self.out.exists())
+
+    def test_large_input_and_output_symlink_reject(self):
+        self.assertEqual(self.convert(" " * 256001)["status"], "rejected")
+        self.out.symlink_to(self.path / "missing.hepta")
+        self.assertEqual(self.convert("int f(int x){return x;} ")["status"], "rejected")
+        self.assertTrue(self.out.is_symlink())
+        self.assertFalse((self.path / "missing.hepta").exists())
+
+    def test_native_gate_without_frontend_fails_closed(self):
+        self.src.write_text("int f(int x){return x;}", encoding="utf-8")
+        result = migrate(self.src, self.out, self.report, verify_native=True, rustc="/no/such/rustc")
+        self.assertEqual(result["status"], "rejected")
+        self.assertFalse(self.out.exists())
+
     def test_differential_c_defined_scalar_domain(self):
         if not shutil.which("gcc"):
             self.fail("GCC required for C differential check")
