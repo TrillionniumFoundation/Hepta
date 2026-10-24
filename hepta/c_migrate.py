@@ -201,12 +201,90 @@ def _function(decl: dict, model: dict) -> dict:
     return {"name": name, "source": source, "params": args, "returns": ret}
 
 
+def _ast_objects(node: dict):
+    """Visit JSON objects in Clang's emitted property order."""
+    pending = [node]
+    while pending:
+        value = pending.pop()
+        if isinstance(value, dict):
+            yield value
+            pending.extend(reversed(list(value.values())))
+        elif isinstance(value, list):
+            pending.extend(reversed(value))
+
+
+def _physical_location_files(root: dict) -> dict[int, Path | None]:
+    # Clang's JSONNodeDumper elides repeated physical filenames globally,
+    # including within spelling/expansion locations and child expressions.
+    # Reconstruct them in emitted order; presumedFile/includedFrom can be
+    # forged by #line/GNU linemarkers and are not physical file identities.
+    files, current = {}, None
+    for value in _ast_objects(root):
+        if isinstance(value.get("offset"), int) and "col" in value:
+            if value.get("file"):
+                current = Path(value["file"]).resolve()
+            files[id(value)] = current
+    return files
+
+
+def _active_declarations(root: dict, src: Path, source_size: int) -> list[dict]:
+    """Account for the active TU, not only nodes with main-file byte ranges.
+
+    Header type declarations supply canonical types but no migrated runtime
+    state. Every other explicit declaration must be lowered or rejected.
+    AST-visible macro/foreign locations in a function remain unsupported.
+    Operator/punctuation tokens may have no AST location: this is not a full
+    token-origin audit or frozen preprocessor-input certificate.
+    Inactive branches/unused macros are absent from Clang's semantic AST.
+    """
+    declarations, unsupported = [], []
+    physical_files = _physical_location_files(root)
+    for node in root.get("inner", []):
+        kind = node.get("kind")
+        loc = node.get("loc", {})
+        if kind == "TypedefDecl" and node.get("isImplicit") and not loc:
+            continue  # Compiler-injected typedefs, not a source declaration.
+        # Spelling may live in a macro definition's header while expansion is
+        # in the main file. Never use spellingLoc to exempt that declaration.
+        effective = loc.get("expansionLoc", loc)
+        physical_file = physical_files.get(id(effective))
+        in_header = physical_file is not None and physical_file != src
+        if (in_header and kind in {"TypedefDecl", "RecordDecl", "EnumDecl"}
+                and not any(physical_files.get(id(value)) == src
+                            for value in _ast_objects(node))):
+            continue  # Context only; _typ still rejects unsupported used types.
+        if (not in_header and kind == "FunctionDecl" and any(
+                child.get("kind") == "CompoundStmt" for child in node.get("inner", []))):
+            objects = list(_ast_objects(node))
+            if any({"expansionLoc", "spellingLoc"}.intersection(value) for value in objects):
+                raise MigrationRejected("E_C_MACRO", "AST-visible macro location in a function requires explicit source provenance")
+            if any(physical_files.get(id(value)) not in {None, src} for value in objects):
+                raise MigrationRejected("E_C_LOCATION", "AST-visible foreign location in a function requires explicit source provenance")
+            begin_loc = node.get("range", {}).get("begin", {})
+            end_loc = node.get("range", {}).get("end", {})
+            begin, end = begin_loc.get("offset"), end_loc.get("offset")
+            offset = loc.get("offset")
+            if (not isinstance(begin, int) or not isinstance(end, int)
+                    or not isinstance(offset, int)
+                    or not (0 <= begin <= offset <= end < source_size)
+                    or any(physical_files.get(id(place)) != src
+                           for place in (loc, begin_loc, end_loc))):
+                raise MigrationRejected("E_C_LOCATION", "Cannot establish main-file function source range")
+            declarations.append(node)
+        else:
+            unsupported.append(f"{kind}: {node.get('name', '<anonymous>')}")
+    if unsupported:
+        raise MigrationRejected("E_C_TOPLEVEL", "Unsupported active declarations: " + ", ".join(unsupported[:12]))
+    return declarations
+
+
 def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> dict:
     """Return explicit migration evidence; never write a partial conversion."""
     src, dest = Path(path).resolve(), Path(output).absolute()
     report = {"schema": "hepta.migrate-c.v0", "ok": False, "status": "rejected",
               "profile": "strict_scalar_pilot", "source": str(src), "output": str(dest),
               "source_equivalence_proved": False, "whole_language_soundness_proved": False,
+              "declaration_scope": "active_translation_unit", "preprocessing_inputs_frozen": False,
               "native_validation": "not_run", "converted": [], "rejected": []}
     try:
         if (src == dest or not src.is_file() or src.suffix != ".c"
@@ -235,31 +313,7 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
             for node in root.get("inner", [])
             if node.get("kind") == "TypedefDecl" and node.get("name") in _STDINT_NAMES
         })
-        declarations = []
-        unsupported_toplevel = []
-        active_file = None
-        for node in root.get("inner", []):
-            node_file = node.get("loc", {}).get("file")
-            if node_file:
-                active_file = Path(node_file).resolve()
-            loc = node.get("loc", {})
-            if active_file != src:
-                continue
-            begin = node.get("range", {}).get("begin", {}).get("offset")
-            end = node.get("range", {}).get("end", {}).get("offset")
-            if not isinstance(begin, int) or not isinstance(end, int) or not (0 <= begin <= end < len(source)):
-                continue
-            if node.get("kind") == "FunctionDecl" and any(
-                    x.get("kind") == "CompoundStmt" for x in node.get("inner", [])):
-                declarations.append(node)
-            else:
-                # The pilot claims a whole-translation-unit conversion.
-                # Globals, typedefs and prototypes may carry ABI/linkage state:
-                # never accept the file and silently omit those declarations.
-                unsupported_toplevel.append(f"{node.get('kind')}: {node.get('name', '<anonymous>')}")
-        if unsupported_toplevel:
-            raise MigrationRejected("E_C_TOPLEVEL", "Unsupported source declarations: " +
-                                    ", ".join(unsupported_toplevel[:12]))
+        declarations = _active_declarations(root, src, len(source))
         if not declarations:
             raise MigrationRejected("E_C_NO_FUNCTIONS", "No ordinary C function definitions found")
         translated = []
