@@ -152,6 +152,20 @@ class CppBridgeTests(unittest.TestCase):
         self.assertFalse(report["ok"])
         self.assertFalse(self.cpp.exists())
 
+    def test_inherited_class_is_rejected_as_out_of_subset(self):
+        self.header.write_text("""
+            #include <stdint.h>
+            class Base { public: virtual ~Base() = default; };
+            class Derived : public Base {
+              public: Derived() {} ~Derived() = default;
+              int32_t get() { return 1; }
+            };
+        """)
+        report = self.bridge("Derived")
+        self.assertFalse(report["ok"], report)
+        self.assertIn("E_CPP_HIERARCHY", [d["code"] for d in report["diagnostics"]])
+        self.assertFalse(self.cpp.exists())
+
     def test_no_overwrite_or_partial_outputs(self):
         self.hepta.write_text("do not change")
         report = self.bridge()
