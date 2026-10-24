@@ -4,11 +4,17 @@ on:
   push:
     branches:
       - feat/hepta-p0-p1-verified-ir-20261024
+      - feat/hepta-hmir-cfg-p0-qualification-20261024
+  pull_request:
+    branches:
+      - main
+      - feat/hepta-p0-p1-verified-ir-20261024
   workflow_dispatch:
 
+# Full source-bound qualification must not be cancelled by newer commits.
 concurrency:
-  group: hepta-dev-qualification
-  cancel-in-progress: true
+  group: hepta-qualified-${{ github.workflow }}-${{ github.sha }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
