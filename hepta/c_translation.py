@@ -245,6 +245,10 @@ class CTranslator:
             raise MigrationRejected("E_C_FUNCTION", "main, varargs and unprototyped functions are unsupported")
         if any(child.get("kind") not in {"ParmVarDecl", "CompoundStmt", "FullComment"} for child in node.get("inner", [])):
             raise MigrationRejected("E_C_ATTRIBUTE", "Function attributes need separate ABI qualification")
+        # Clang can put calling conventions solely in the function type,
+        # including attributes inherited from an earlier declaration.
+        if not re.fullmatch(r"[^()]+\([^()]*\)", node["type"]["qualType"]):
+            raise MigrationRejected("E_C_ATTRIBUTE", "Function type attributes or calling conventions require explicit ABI lowering")
         ret = self.typ(node["type"]["qualType"].split("(", 1)[0].strip(), model=model, unit=unit)
         contract = self.contracts["functions"].get(name, {"slices": {}})
         if not isinstance(contract, dict) or set(contract) != {"slices"} or not isinstance(contract["slices"], dict):
