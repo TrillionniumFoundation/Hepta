@@ -70,6 +70,13 @@ jobs:
             'llvm-19-dev=1:19.1.7-3+b1'
             'gcc-14=14.2.0-19'
             'g++-14=14.2.0-19'
+            'gcc=4:14.2.0-1'
+            'g++=4:14.2.0-1'
+            'python3=3.13.5-1'
+            'python-is-python3=3.13.3-1'
+            'python3.13=3.13.5-2+deb13u5'
+            'python3-venv=3.13.5-1'
+            'python3-zstandard=0.23.0-4'
             'git=1:2.47.3-0+deb13u1'
             'ca-certificates=20250419'
             'libbz2-1.0=1.0.8-6'
@@ -124,10 +131,51 @@ jobs:
           printf '{"schema":"hepta.workflow-source.v1","expected_head_sha":"%s","checkout_head_sha":"%s","event_sha":"%s"}\n' \
             "$HEPTA_QUALIFICATION_HEAD_SHA" "$actual_head" "$GITHUB_SHA" > artifacts/workflow-source.json
           test "$actual_head" = "$HEPTA_QUALIFICATION_HEAD_SHA"
-      - name: Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+      - name: Verify pinned distro Python and clean-environment compiler selectors
+        run: |
+          python - <<'PYTHON'
+          import hashlib
+          import json
+          from pathlib import Path
+          import shutil
+          import subprocess
+          import sys
+          import zstandard
+          from experiments.agent_eval.sandbox import clean_environment
+
+          if sys.version_info[:3] != (3, 13, 5) or zstandard.__version__ != '0.23.0':
+              raise SystemExit('Unexpected pinned Debian Python or zstandard version')
+          executable = Path(sys.executable).resolve(strict=True)
+          if executable != Path('/usr/bin/python3.13'):
+              raise SystemExit('The Python selector is not the pinned distro interpreter')
+          clean = clean_environment()
+          for name in ('python', 'python3'):
+              selected = shutil.which(name, path=clean['PATH'])
+              if not selected or Path(selected).resolve(strict=True) != executable:
+                  raise SystemExit('Wrong clean-environment Python selector: ' + name)
+          python_probe = subprocess.run(
+              [str(executable), '-c', 'import json, sys, zstandard; print(json.dumps([sys.version, zstandard.__version__]))'],
+              env=clean, capture_output=True, text=True, timeout=30, check=True)
+          selectors = {}
+          files = {str(executable): hashlib.sha256(executable.read_bytes()).hexdigest()}
+          for name in ('cc', 'gcc', 'g++'):
+              selected = shutil.which(name, path=clean['PATH'])
+              if not selected:
+                  raise SystemExit('Missing clean-environment compiler: ' + name)
+              resolved = Path(selected).resolve(strict=True)
+              expected = Path('/usr/bin/x86_64-linux-gnu-' + ('g++' if name == 'g++' else 'gcc') + '-14')
+              version = subprocess.check_output([selected, '-dumpfullversion'], env=clean, text=True, timeout=30).strip()
+              if resolved != expected or version != '14.2.0':
+                  raise SystemExit('Wrong clean-environment compiler: ' + name)
+              selectors[name] = {'path': selected, 'resolved': str(resolved), 'version': version}
+              files[str(resolved)] = hashlib.sha256(resolved.read_bytes()).hexdigest()
+          receipt = {'schema': 'hepta.clean-environment-runtime.v1', 'python': sys.version,
+                     'python_executable': str(executable), 'zstandard': zstandard.__version__,
+                     'clean_environment': clean, 'python_clean_probe': json.loads(python_probe.stdout),
+                     'compiler_selectors': selectors, 'files_sha256': files,
+                     'scope': 'distro runtime availability under the unchanged sanitized environment; not provider or namespace qualification'}
+          Path('artifacts/debian-toolchain/clean-environment-runtime.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          PYTHON
       - name: Build and bind exact same-instance Clang frontend
         run: |
           set -euo pipefail
@@ -191,8 +239,6 @@ jobs:
                      'scope': 'exact installed compiler/header and resolved linked-library files; not whole-system hermeticity'}
           Path('artifacts/debian-toolchain/frontend-environment.json').write_text(json.dumps(receipt, indent=2) + '\n')
           PYTHON
-      - name: Verification archive dependency
-        run: python -m pip install zstandard
       - name: Install SHA-256-locked Rust 1.90.0 toolchain and cross stdlibs
         run: python tools/bootstrap_toolchain.py
       - name: Select and verify the bootstrapped Rust compiler
