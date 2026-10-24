@@ -126,6 +126,8 @@ class HeaderParser:
     def __init__(self, text):
         declarations, self.macros = preprocess_subset(text)
         self.structs, self.tags, self.aliases, self.prototypes = {}, {}, {}, []
+        # C struct tags do not enter the ordinary typedef namespace.
+        self.struct_typedefs = set()
         for chunk in split_top(tokens(declarations), ";"):
             if not chunk:
                 continue
@@ -148,6 +150,8 @@ class HeaderParser:
                 if not fields:
                     reject("LAYOUT", "Empty structs have no portable supported C layout")
                 self.structs[name] = {"c_name": name if typedef else "struct " + tag, "fields": fields}
+                if typedef:
+                    self.struct_typedefs.add(name)
                 if tag:
                     self.tags[tag] = name
             elif chunk[0] == "typedef":
@@ -172,6 +176,13 @@ class HeaderParser:
         self.resolving = set()
 
     def declaration(self, items, *, field=False, allow_unnamed=False):
+        name, base, _ = self._qualified_declaration(items, field=field,
+                                                    allow_unnamed=allow_unnamed)
+        return name, base
+
+    def _qualified_declaration(self, items, *, field=False, allow_unnamed=False):
+        # Top-level const is not represented by a Hepta value Type, but must
+        # survive typedef expansion: a later '*' makes it pointee const.
         items = list(items)
         if any(x in items for x in {"volatile", "restrict", "_Atomic", "_Bool", "bool"}):
             reject("QUALIFIER", "volatile/restrict/atomic/bool types require semantics not supported by this importer")
@@ -200,7 +211,7 @@ class HeaderParser:
                 base = self.primitive_types[spelling]
         else:
             name = items.pop(0)
-            if name in self.structs:
+            if name in self.struct_typedefs:
                 base = Type(name)
             elif name in self.primitive_types:
                 base = self.primitive_types[name]
@@ -208,8 +219,12 @@ class HeaderParser:
                 if name in self.resolving:
                     reject("TYPEDEF", "Recursive typedef")
                 self.resolving.add(name)
-                _, base = self.declaration(self.aliases[name], allow_unnamed=True)
-                self.resolving.remove(name)
+                try:
+                    _, base, alias_const = self._qualified_declaration(
+                        self.aliases[name], allow_unnamed=True)
+                finally:
+                    self.resolving.remove(name)
+                base_const = base_const or alias_const
             else:
                 reject("TYPE", f"Unknown C type {name}")
         if items and items[0] == "const":
@@ -237,7 +252,7 @@ class HeaderParser:
             reject("DECLARATOR", "Unsupported or ambiguous declarator: " + " ".join(items))
         for size in reversed(dimensions):
             base = Type("array", (base,), size)
-        return name, base
+        return name, base, base_const
 
 
 def import_header(path, *, cc=None, module="c_imported", contracts=None) -> ImportResult:
