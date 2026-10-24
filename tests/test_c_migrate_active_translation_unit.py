@@ -39,13 +39,13 @@ class ActiveTranslationUnitTests(unittest.TestCase):
         return result
 
     def test_macro_global_after_function_cannot_disappear(self):
-        self.rejected("int pure(int x){return x;}\n#define G int hidden=7;\nG\n")
+        self.rejected("int pure(int x){return x;}\n#define G int hidden=7;\nG\n", code="E_C_MACRO")
 
     def test_first_macro_global_cannot_disappear(self):
-        self.rejected("#define G int hidden=7;\nG\nint pure(int x){return x;}\n")
+        self.rejected("#define G int hidden=7;\nG\nint pure(int x){return x;}\n", code="E_C_MACRO")
 
     def test_nested_macro_global_cannot_disappear(self):
-        self.rejected("int pure(int x){return x;}\n#define G(n) int n=7;\n#define OUTER G(hidden)\nOUTER\n")
+        self.rejected("int pure(int x){return x;}\n#define G(n) int n=7;\n#define OUTER G(hidden)\nOUTER\n", code="E_C_MACRO")
 
     def test_header_global_before_function_cannot_disappear(self):
         self.rejected('#include "state.h"\nint pure(int x){return x;}\n',
@@ -62,7 +62,7 @@ class ActiveTranslationUnitTests(unittest.TestCase):
 
     def test_macro_defined_in_header_and_expanded_in_main_is_rejected(self):
         self.rejected('#include "types.h"\nint pure(int x){return x;}\nG\n',
-                      headers={"types.h": "#define G int hidden=7;\n"})
+                      headers={"types.h": "#define G int hidden=7;\n"}, code="E_C_MACRO")
 
     def test_header_prototype_is_not_silently_omitted(self):
         self.rejected('#include "api.h"\nint pure(int x){return x;}\n',
@@ -82,7 +82,7 @@ class ActiveTranslationUnitTests(unittest.TestCase):
 
     def test_main_macro_typedef_does_not_masquerade_as_header_context(self):
         self.rejected('#include "types.h"\nTYPE\nint pure(int x){return x;}\n',
-                      headers={"types.h": "#define TYPE typedef int Number;\n"})
+                      headers={"types.h": "#define TYPE typedef int Number;\n"}, code="E_C_MACRO")
 
     def test_inactive_main_global_and_unused_macro_remain_allowed(self):
         self.accepted("#define UNUSED int hidden=7;\n#if 0\nUNUSED\n#endif\nint pure(int x){return x;}\n")
@@ -146,8 +146,10 @@ class ActiveTranslationUnitTests(unittest.TestCase):
 
     def test_ast_lowered_operator_tokens_match_defined_native_inputs(self):
         # Clang JSON need not expose origins of operator/punctuation tokens.
-        # These forms remain supported AST operations, not a token-provenance
-        # certificate or a claim that every source macro has been rejected.
+        # Historical #20 accepted all three and demonstrated these finite C
+        # semantics. The composed policy now rejects the active OP macro while
+        # retaining its exact fixture and original-C oracle, not a miscompile
+        # claim. Include-only operator/punctuation positives remain unchanged.
         from hepta.c_backend import emit_c
         from hepta.checker import check
         from hepta.parser import parse
@@ -163,6 +165,17 @@ class ActiveTranslationUnitTests(unittest.TestCase):
         for source, headers in sources:
             with self.subTest(source=source):
                 self.out.unlink(missing_ok=True)
+                if source.startswith("#define OP"):
+                    self.rejected(source, code="E_C_MACRO", headers=headers)
+                    # Preserve the historical defined-input original C oracle.
+                    unit = self.root / "original-macro.c"
+                    binary = self.root / "original-macro"
+                    unit.write_text(source + driver)
+                    build = subprocess.run(["gcc", "-std=c11", "-O2", str(unit), "-o", str(binary)],
+                                           capture_output=True, text=True, timeout=30)
+                    self.assertEqual(build.returncode, 0, build.stderr)
+                    self.assertEqual(subprocess.run([str(binary)], timeout=10).returncode, 0)
+                    continue
                 result = self.accepted(source, headers)
                 self.assertFalse(result["preprocessing_inputs_frozen"])
                 self.assertFalse(result["source_equivalence_proved"])
