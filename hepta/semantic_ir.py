@@ -69,8 +69,21 @@ class _Encoder:
         raise TypeError(f"HSIR rejects unrecognized syntax value {type(node).__name__}")
 
 
-def _type_has_raw(typ: Type) -> bool:
-    return typ.name in {"raw_const", "raw_mut"} or any(_type_has_raw(t) for t in typ.args)
+def _type_has_raw(typ: Type, nominal_fields: dict[str, tuple[Type, ...]]) -> bool:
+    # This is a conservative signature inventory, not a pointer-safety proof.
+    # Inspect arguments even for previously expanded nominal declarations:
+    # Box<u32> and Box<raw const u8> have the same name but different boundaries.
+    pending = [typ]
+    expanded = set()
+    while pending:
+        current = pending.pop()
+        if current.name in {"raw_const", "raw_mut"}:
+            return True
+        pending.extend(current.args)
+        if current.name not in expanded:
+            expanded.add(current.name)
+            pending.extend(nominal_fields.get(current.name, ()))
+    return False
 
 
 def lower_checked_program(program: Program, checked: Any, *, project_sha256: str | None = None) -> dict[str, Any]:
@@ -82,11 +95,16 @@ def lower_checked_program(program: Program, checked: Any, *, project_sha256: str
     """
     if not checked.ok:
         raise ValueError("Cannot lower a program rejected by Hepta's frontend checker")
+    nominal_fields = {s.name: tuple(field.type for field in s.fields)
+                      for s in program.structs}
+    nominal_fields.update({e.name: tuple(field for variant in e.variants
+                                      for field in variant.fields)
+                           for e in program.enums})
     enc = _Encoder(checked.expr_types, [])
     functions = []
     external_obligations = []
     for fn in program.functions:
-        raw_boundary = any(_type_has_raw(p.type) for p in fn.params) or _type_has_raw(fn.return_type)
+        raw_boundary = any(_type_has_raw(p.type, nominal_fields) for p in fn.params) or _type_has_raw(fn.return_type, nominal_fields)
         if fn.extern_c or raw_boundary or "unsafe" in fn.effects or "ffi" in fn.effects:
             external_obligations.append({"function": fn.name,
                 "reasons": [k for k, yes in (("foreign_function", fn.extern_c),
