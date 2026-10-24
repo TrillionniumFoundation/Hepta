@@ -79,16 +79,14 @@ class MacroProvenanceTests(unittest.TestCase):
         self.assertTrue(result['ok'], result)
 
     def test_missing_main_range_is_not_silently_omitted(self):
-        real_run = c_migrate._run
-        def missing_range(args, **kwargs):
-            result = real_run(args, **kwargs)
-            if '-ast-dump=json' in args:
-                ast = json.loads(result)
-                fn = next(n for n in ast['inner'] if n.get('name') == 'last')
-                fn['range'].pop('begin')
-                return json.dumps(ast)
-            return result
-        with patch.object(c_migrate, '_run', side_effect=missing_range):
+        from hepta import c_frontend
+        real_frontend = c_frontend.scalar_frontend
+        def missing_range(*args):
+            ast, model = real_frontend(*args)
+            fn = next(n for n in ast['inner'] if n.get('name') == 'last')
+            fn['range'].pop('begin')
+            return ast, model
+        with patch.object(c_frontend, 'scalar_frontend', side_effect=missing_range):
             self.rejected('int first(int x){return x;}\nint last(int x){return x;}\n',
                           'E_C_SOURCE_LOCATION')
 
