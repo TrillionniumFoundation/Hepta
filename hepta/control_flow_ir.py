@@ -113,13 +113,17 @@ class _FunctionCFG:
             if id(node) not in self.types:
                 raise ValueError("HMIR refuses an expression without frontend type evidence")
             stack.extend(reversed(node.children))
-        return {
-            "kind": expr.kind,
-            "value": _source_value(expr.value),
-            "type": str(self.types[id(expr)]),
-            "span": _span(expr.span),
-            "ownership_sites": _syntactic_ownership(expr),
-        }
+        def encode(node: Expr) -> dict[str, Any]:
+            return {
+                "kind": node.kind,
+                "value": _source_value(node.value),
+                "type": str(self.types[id(node)]),
+                "span": _span(node.span),
+                "args": [encode(child) for child in node.children],
+            }
+        result = encode(expr)
+        result["ownership_sites"] = _syntactic_ownership(expr)
+        return result
 
     def sequence(self, statements: list[Stmt], start: str) -> str | None:
         current: str | None = start
