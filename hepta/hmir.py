@@ -227,10 +227,112 @@ class _CFG:
                 "inferred_effects": sorted(self.checked.effects.get(self.fn.name, ())) }
 
 
+
+def validate_cfg_ssa(graph: dict) -> None:
+    """Independently reject malformed edges, phi arity and non-dominating reads.
+
+    This is structural IR validation, NOT equivalence to the Hepta source,
+    formal type soundness, alias safety, or machine-code validation.
+    """
+    blocks = graph["blocks"]
+    names = [b["id"] for b in blocks]
+    if not names or names != [f"b{i}" for i in range(len(names))] or graph["entry"] != "b0":
+        raise ValueError("invalid ordered basic block identities")
+    preds = {b: [] for b in names}
+    edges = {b: [] for b in names}
+    for b in blocks:
+        term = b["terminator"]
+        op = term["op"]
+        targets = ([term["target"]] if op == "jump" else
+                   [term["true"], term["false"]] if op == "branch" else
+                   [] if op == "return" else None)
+        if targets is None or len(targets) != len(set(targets)):
+            raise ValueError("invalid CFG terminator")
+        for dst in targets:
+            if dst not in preds:
+                raise ValueError("edge targets nonexistent block")
+            preds[dst].append(b["id"])
+            edges[b["id"]].append(dst)
+    seen, todo = set(), ["b0"]
+    while todo:
+        cur = todo.pop()
+        if cur not in seen:
+            seen.add(cur)
+            todo.extend(edges[cur])
+    if seen != set(names):
+        raise ValueError("CFG contains unreachable blocks")
+    for b in blocks:
+        expected = sorted(preds[b["id"]], key=lambda s: int(s[1:]))
+        if b["predecessors"] != expected:
+            raise ValueError("predecessor list disagrees with terminator edges")
+    dom = {name: ({name} if name == "b0" else set(names)) for name in names}
+    for _ in range(len(names) + 1):
+        nxt = {}
+        for name in names:
+            if name == "b0":
+                nxt[name] = {name}
+            else:
+                parents = preds[name]
+                nxt[name] = {name} | set.intersection(*(dom[p] for p in parents))
+        if nxt == dom:
+            break
+        dom = nxt
+    else:
+        raise ValueError("dominance did not converge")
+    definitions: dict[str, tuple[str, int]] = {}
+    def define(ident: str, block: str, order: int) -> None:
+        if not isinstance(ident, str) or ident in definitions:
+            raise ValueError("duplicate or invalid SSA definition")
+        definitions[ident] = (block, order)
+    for param in graph["parameters"]:
+        define(param["ssa"], "b0", -2)
+    for b in blocks:
+        for phi in b["phi"]:
+            if phi["op"] != "phi":
+                raise ValueError("unexpected phi instruction")
+            if [x["from"] for x in phi["inputs"]] != preds[b["id"]]:
+                raise ValueError("phi inputs must match each predecessor")
+            define(phi["ssa"], b["id"], -1)
+        for index, inst in enumerate(b["instructions"]):
+            if inst["op"] != "define":
+                raise ValueError("unsupported instruction in scalar IR")
+            define(inst["ssa"], b["id"], index)
+    def verify_expr(expr: dict | None, site: str, order: int) -> None:
+        if expr is None:
+            return
+        if expr["op"] == "read":
+            ident = expr.get("ssa")
+            if ident not in definitions:
+                raise ValueError("SSA read references missing definition")
+            origin, position = definitions[ident]
+            if origin not in dom[site] or (origin == site and position >= order):
+                raise ValueError("SSA read is not dominated by its definition")
+        for arg in expr.get("args", ()):
+            verify_expr(arg, site, order)
+    for b in blocks:
+        for phi in b["phi"]:
+            for incoming in phi["inputs"]:
+                ident = incoming["ssa"]
+                if ident not in definitions:
+                    raise ValueError("phi references missing SSA definition")
+                origin, _ = definitions[ident]
+                if origin not in dom[incoming["from"]]:
+                    raise ValueError("phi edge use not dominated by SSA definition")
+        for i, inst in enumerate(b["instructions"]):
+            verify_expr(inst["value"], b["id"], i)
+        term = b["terminator"]
+        if term["op"] == "branch":
+            verify_expr(term["condition"], b["id"], len(b["instructions"]))
+        if term["op"] == "return":
+            verify_expr(term["value"], b["id"], len(b["instructions"]))
+
+
 def lower_checked_cfg(program: Any, checked: Any, *, project_sha256: str | None = None) -> dict:
     if not checked.ok:
         raise ValueError("HMIR requires an accepted Hepta program")
     graphs = [_CFG(fn, checked).lower() for fn in program.functions]
+    for graph in graphs:
+        validate_cfg_ssa(graph)
     payload = {"schema": SCHEMA, "profile": "scalar_cfg_ssa_pilot_not_backend_input",
                "source_sha256": hashlib.sha256(program.source.encode("utf-8")).hexdigest(),
                "project_sha256": project_sha256, "functions": graphs,
