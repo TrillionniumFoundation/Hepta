@@ -12,7 +12,7 @@ ARMS = {
     'rust_plain': {'language': 'rust', 'semantic_tools': False},
     'rust_semantic': {'language': 'rust', 'semantic_tools': True},
     'hepta_plain': {'language': 'hepta', 'semantic_tools': False},
-    'hepta_protocol': {'language': 'hepta', 'semantic_tools': True},
+    'hepta_protocol': {'language': 'hepta', 'semantic_tools': True, 'backend': 'hepta.workspace/hepta.patch.v4'},
 }
 MAX_SOURCE_BYTES = 256 * 1024
 
@@ -72,6 +72,7 @@ def task_request(task, language):
     editable = sorted(name for name in files if name.endswith(extension) and name != 'main' + extension)
     base = snapshot_id(files)
     return {'task_id': task, 'language': language, 'files': files, 'editable': editable,
+            'interface_policy': 'migrate' if task in {'api_migration', 'owned_result'} else 'preserve',
             'entry': 'main' + extension, 'base_sha256': base,
             'taskset_sha256': manifest['taskset_sha256'],
             'task_sha256': digest(canonical({'taskset': manifest['taskset_sha256'], 'task': task,

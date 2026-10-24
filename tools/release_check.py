@@ -97,17 +97,63 @@ def require_qualification(name, evidence):
         if not evidence.get("adversarial_checks") or any(c.get("ok") is not True for c in evidence["adversarial_checks"]):
             raise ValueError("Resource IR adversarial rejection controls did not qualify")
     elif name == "crossfile_agent_fixtures":
+        from experiments.crossfile_eval.tasks import ARMS, LANGUAGES, TASK_IDS
+        from experiments.crossfile_eval.workspace_evidence import validate_workspace_record
         if (evidence.get("actual_ai_model_runs") != 0 or evidence.get("provider_tokens") != 0
                 or evidence.get("ai_comparison_eligible") is not False
                 or evidence.get("fixture_runs") != 20 or evidence.get("starter_runs") != 10
+                or evidence.get("production_workspace_v4_runs") != 5 or evidence.get("workspace_errors") != []
                 or evidence.get("hidden_native_cases_passed") != 1248
                 or len(evidence.get("runs", [])) != 20 or len(evidence.get("starters", [])) != 10):
             raise ValueError("Cross-file fixture qualification must cover all four arms and retain its non-AI scope")
+        if ({(r.get("task_id"), r.get("arm")) for r in evidence["runs"]}
+                != {(task, arm) for task in TASK_IDS for arm in ARMS}
+                or {(r.get("task_id"), r.get("language")) for r in evidence["starters"]}
+                != {(task, language) for task in TASK_IDS for language in LANGUAGES}):
+            raise ValueError("Every task, study arm and starter must appear exactly once")
         if any(r.get("status") != "fixture_scored" or r.get("score", {}).get("ok") is not True for r in evidence.get("runs", [])):
             raise ValueError("A cross-file fixture failed or did not run")
         if any(r.get("starter_compiles_without_new_contract", {}).get("ok") is not True
                or r.get("starter_fails_target_oracle") is not True for r in evidence["starters"]):
             raise ValueError("A starter failed to compile or already passed its target oracle")
+        for run in evidence["runs"]:
+            if run["arm"] == "hepta_protocol":
+                validate_workspace_record(run, require_committed=True)
+    elif name == "production_workspace_namespace":
+        from experiments.crossfile_eval.tasks import TASK_IDS
+        from experiments.crossfile_eval.workspace_evidence import validate_workspace_record
+        if (evidence.get("run_kind") != "trusted_namespace_workspace_qualification"
+                or evidence.get("environment", {}).get("available") is not True
+                or evidence.get("fixture_mode") is not False or evidence.get("isolation") != "allowlisted_namespace_capsules"
+                or evidence.get("actual_ai_model_runs") != 0 or evidence.get("provider_tokens") != 0
+                or evidence.get("provider_receipts") != [] or evidence.get("ai_comparison_eligible") is not False
+                or evidence.get("planned_workspace_fixtures") != 5 or evidence.get("strict_workspace_v4_runs") != 5
+                or evidence.get("hidden_native_cases_passed") != 312 or len(evidence.get("runs", [])) != 5
+                or {r.get("task_id") for r in evidence["runs"]} != set(TASK_IDS)
+                or evidence.get("claims", {}).get("strict_hidden_test_namespace_isolation_exercised") is not True):
+            raise ValueError("All five actual namespace workspace transactions must qualify without AI receipts")
+        for run in evidence["runs"]:
+            score = run.get("score", {})
+            if (run.get("status") != "qualified" or run.get("actual_ai_model_runs") != 0
+                    or run.get("arm") != "hepta_protocol" or run.get("fixture_mode") is not False
+                    or run.get("isolation") != "allowlisted_namespace_capsules"
+                    or run.get("session", {}).get("namespace_required") is not True
+                    or any(event.get("namespace_required") is not True for event in run.get("session", {}).get("events", []))
+                    or run.get("provider_receipts") != [] or score.get("ok") is not True
+                    or score.get("compiled") is not True or score.get("native_status") != "exited"
+                    or score.get("native_returncode") != 0 or score.get("source_sha256") != run.get("submitted_sha256")):
+                raise ValueError("A namespace workspace task lacks successful native hidden evaluation")
+            validate_workspace_record(run, require_committed=True)
+    elif name == "strict_namespace_execution":
+        required = {"startup", "namespace_identity", "capabilities_dropped", "empty_proc",
+                    "parent_paths_unreadable", "credentials_not_inherited", "host_network_unreachable",
+                    "system_files_read_only", "hepta_rust_native", "workspace_native_profile"}
+        checks = evidence.get("checks", {})
+        if (evidence.get("qualified") is not True or evidence.get("status") != "qualified"
+                or evidence.get("ai_comparison_eligible") is not False
+                or set(checks) != required
+                or any(checks[name].get("status") != "passed" for name in required)):
+            raise ValueError("Every real namespace, boundary and native execution check must pass")
 
 
 def main():
@@ -130,6 +176,7 @@ def main():
               "open_production_blockers": [f"P{i:02d}" for i in range(1, 13)]}
     commands = [
         ("unit_and_integration", [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"], 420),
+        ("strict_namespace_execution", [sys.executable, "tools/validate_sandbox.py", "--output", next_stage + "/sandbox.json"], 120),
         ("parser_example", [sys.executable, "-m", "hepta", "run", "examples/parser.hepta", "--json"], 60),
         ("ownership_example", [sys.executable, "-m", "hepta", "run", "examples/ownership.hepta", "--json"], 60),
         ("tasks_example", [sys.executable, "-m", "hepta", "run", "examples/tasks.hepta", "--json"], 60),
@@ -148,6 +195,7 @@ def main():
         ("aarch64_execution", [sys.executable, "tools/validate_cross.py", "--output", "artifacts/cross-execution.json"], 120),
         ("agent_evaluator_fixtures", [sys.executable, "-m", "experiments.agent_eval", "qualify-fixtures", "--output", fixture_output], 240),
         ("crossfile_agent_fixtures", [sys.executable, "-m", "experiments.crossfile_eval", "qualify-fixtures", "--output", next_stage + "/crossfile_agent.json"], 360),
+        ("production_workspace_namespace", [sys.executable, "-m", "experiments.crossfile_eval", "qualify-workspace", "--execution-context", "release_check.py in caller-selected host execution context; namespace requirements enforced", "--output", next_stage + "/workspace_namespace.json"], 240),
     ]
     evidence_outputs = {
         "bounded_concurrency": "evidence/groups/native_validation.json",
@@ -162,6 +210,8 @@ def main():
         "upstream_c_modules": next_stage + "/upstream_c.json",
         "cpp_library_interop": next_stage + "/cpp.json",
         "crossfile_agent_fixtures": next_stage + "/crossfile_agent.json",
+        "strict_namespace_execution": next_stage + "/sandbox.json",
+        "production_workspace_namespace": next_stage + "/workspace_namespace.json",
     }
     for name, command, timeout in commands:
         started = time.monotonic()
@@ -195,7 +245,9 @@ def main():
                     if evidence.get("ok") is not True:
                         raise ValueError("Required native qualification did not report ok=true")
                 else:
-                    expected = "qualified_fixtures_only" if name in {"agent_evaluator_fixtures", "crossfile_agent_fixtures"} else "passed"
+                    expected = ("qualified_fixtures_only" if name in {"agent_evaluator_fixtures", "crossfile_agent_fixtures"}
+                                else "qualified_workspace_fixtures_only" if name == "production_workspace_namespace"
+                                else "qualified" if name == "strict_namespace_execution" else "passed")
                     if evidence.get("status") != expected:
                         raise ValueError(f"Expected evidence status {expected!r}, got {evidence.get('status')!r}")
                 require_qualification(name, evidence)
@@ -203,7 +255,7 @@ def main():
                     "sha256": hashlib.sha256(evidence_bytes).hexdigest(),
                     "bytes": len(evidence_bytes), "gate": name,
                 }
-            except (OSError, ValueError) as exc:
+            except (OSError, ValueError, KeyError, TypeError) as exc:
                 gate["status"] = "failed"
                 gate["reason"] = str(exc)
         report["gates"].append(gate)

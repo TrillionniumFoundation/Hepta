@@ -23,7 +23,7 @@ whole-compiler soundness, or universal performance superiority over Rust.
 | C | Host ABI declarations/probes; compilation-database capture; bounded module translation; complete active-declaration inventory; explicit buffer contracts and restricted allocation/free migration |
 | C++ | Direct scalar/POD calls, checked call-scoped spans, dynamically protected handles, C++ template instantiation, exception/thread/destructor contracts |
 | Agent tools | Snapshot-bound semantic edits, explicit interface migration, whole-import-graph native validation, crash-recoverable publication and source-level native diagnostics |
-| Evaluation | Five cross-file tasks in a four-arm Rust/Hepta study, independent native oracles, receipt/cost accounting, measured bridge costs, Rust performance controls and formal-core checks |
+| Evaluation | Five cross-file tasks in a four-arm Rust/Hepta study, real workspace v4 in the fourth arm, strict namespace qualification, frozen adapter identity, receipt/cost accounting and independent native oracles |
 
 See [ownership and returned borrows](docs/OWNED_TYPES.md),
 [C project migration](docs/C_MIGRATION.md),
@@ -91,7 +91,9 @@ compiler identity, native toolchain and target profile.
 python -m unittest discover -s tests -v
 python -m hepta resource-ir examples/owned/main.hepta
 python -m tools.validate_resources --output /tmp/resource-evidence.json
+python tools/validate_sandbox.py --output /tmp/namespace-evidence.json
 python -m experiments.crossfile_eval qualify-fixtures --output /tmp/crossfile-fixtures.json
+python -m experiments.crossfile_eval qualify-workspace --output /tmp/workspace-evidence.json
 python tools/release_check.py
 ```
 
@@ -101,6 +103,23 @@ Native tests, allocator failure injection, ABI execution, observed machine
 code, timings, and abstract formal proofs have different scopes. The
 [blocker ledger](docs/BLOCKERS.md) keeps these boundaries explicit.
 
-Real model comparisons require an explicitly configured, metered provider
-adapter and a working isolated execution environment. Trusted fixture runs
-test the evaluator and native tasks; they are not AI productivity evidence.
+The [OpenAI reference adapter](tools/provider_adapter/README.md) implements
+real usage receipts, explicit failed attempts, and standalone export. Its
+transport tests are offline. Real model comparisons require explicitly
+configured model revisions, API access and budgets, plus a qualified isolated
+execution environment. No real model comparison has been run. Trusted fixture
+runs and strict namespace script runs test the evaluator and native tasks;
+they are not AI productivity evidence.
+
+The original integration qualification is preserved in
+[evidence/next_stage](evidence/next_stage/manifest.json). Qualification after
+the production v4 experiment integration is retained in
+[evidence/production_v4](evidence/production_v4/manifest.json). The subsequent
+complete qualification, including the provider HTTP response-completion fix,
+is in [evidence/production_v4_final](evidence/production_v4_final/manifest.json).
+Each archive binds its own exact source snapshot, logs and native evidence.
+
+The [credential-free runtime audit](evidence/audits/provider-runtime-022ed82.json)
+loaded the system CA store inside the adapter capsule, but DNS resolution of
+the API host failed in both parent and capsule. TLS/HTTP access and actual
+provider accounting therefore remain unqualified in this environment.

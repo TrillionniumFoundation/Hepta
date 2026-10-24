@@ -5,9 +5,11 @@ import math
 
 from experiments.agent_eval.harness import Budget, EvalError, validate_usage
 from ._private.oracles import hidden_cases
+from .adapter_binding import frozen_config
 from .plan import sample_id, verify_plan
 from .records import seal_record, verify_record
 from .tasks import ARMS, TASK_IDS, snapshot_id, task_request, validate_files
+from .workspace_evidence import validate_workspace_record
 
 
 def _finite_nonnegative(value):
@@ -20,6 +22,7 @@ def _facts(plan, report, coordinates):
     issues, success, attested, usage_valid = [], False, False, False
     if any(report.get(key) != value for key, value in {
         'schema': 'hepta.crossfile_run.v1', 'run_kind': 'provider_adapter_run',
+        'protocol': plan['protocol'], 'adapter': frozen_config(plan, model),
         'model': model, 'task_id': task, 'arm': arm, 'language': ARMS[arm]['language'], 'replicate': replicate,
         'plan_sha256': plan['plan_sha256'], 'evaluator_sha256': plan['evaluator_sha256'],
         'compiler': plan['compiler'], 'budget': plan['budget'], 'budget_sha256': Budget(**plan['budget']).sha256,
@@ -58,6 +61,7 @@ def _facts(plan, report, coordinates):
             score = report['score']
             if not isinstance(score, dict) or type(score.get('ok')) is not bool:
                 raise ValueError('invalid native score')
+            if arm == 'hepta_protocol': validate_workspace_record(report, require_committed=score['ok'])
             if score['ok']:
                 total = len(hidden_cases(task))
                 if (score.get('compiled') is not True or score.get('passed') != total or score.get('total') != total
@@ -84,6 +88,8 @@ def _facts(plan, report, coordinates):
 
 def compare(plan, reports, cost_records=()):
     verify_plan(plan)
+    if not plan['provider_ready'] and reports:
+        raise ValueError('E_ADAPTER_CONFIG: an unconfigured plan cannot contain provider runs')
     planned = {sample_id(plan, plan['models'][s['model_index']], s['task'], s['arm'], s['replicate']):
                (plan['models'][s['model_index']], s['task'], s['arm'], s['replicate']) for s in plan['schedule']}
     received, duplicates, issues = {}, set(), []
@@ -195,4 +201,7 @@ def compare(plan, reports, cost_records=()):
                         'provider_receipts_independently_verified': False,
                         'statistical_scope': 'descriptive paired five-task pilot; tasks are not a random population sample; no significance or general productivity claim',
                         'claims': {'hepta_advantage_established': False, 'general_productivity_advantage_established': False,
-                                   'production_workspace_v4_exercised': False}})
+                                   'production_workspace_v4_exercised': any(f['attested_attempt']
+                                       and f['status'] == 'provider_scored'
+                                       and f['report'].get('claims', {}).get('production_workspace_v4_exercised') is True
+                                       for f in facts.values())}})

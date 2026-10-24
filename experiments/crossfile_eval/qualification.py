@@ -14,6 +14,7 @@ from .records import seal_record
 from .runner import evaluate
 from .scoring import check_candidate, compiler_identity, score_candidate
 from .tasks import ARMS, LANGUAGES, TASK_IDS, task_request, trusted_reference, verify_manifest
+from .workspace_evidence import validate_workspace_record
 
 
 def qualify_fixtures(rustc=None):
@@ -34,7 +35,16 @@ def qualify_fixtures(rustc=None):
                 command = write_fixture(directory, request, reference)
                 runs.append(evaluate(task, arm, directory, command, FIXTURE_MODEL, kind='fixture',
                                      fixture_qualification=True, budget=budget, rustc=rustc))
-    qualified = (all(s['starter_compiles_without_new_contract']['ok'] and s['starter_fails_target_oracle'] for s in starters)
+    production = [r for r in runs if r['arm'] == 'hepta_protocol']
+    workspace_errors = []
+    workspace_runs = 0
+    for report in production:
+        try:
+            if validate_workspace_record(report, require_committed=True): workspace_runs += 1
+        except (ValueError, TypeError, KeyError) as exc:
+            workspace_errors.append(report['task_id'] + ': ' + str(exc))
+    qualified = (workspace_runs == len(TASK_IDS) and not workspace_errors
+                 and all(s['starter_compiles_without_new_contract']['ok'] and s['starter_fails_target_oracle'] for s in starters)
                  and all(r['status'] == 'fixture_scored' and r['score']['ok'] for r in runs))
     sandbox = probe_sandbox()
     return seal_record({'schema': 'hepta.crossfile_fixture_qualification.v1',
@@ -43,12 +53,13 @@ def qualify_fixtures(rustc=None):
                         'taskset_sha256': verify_manifest()['taskset_sha256'], 'evaluator_sha256': evaluator_hash(),
                         'compiler': compiler_identity(rustc), 'actual_ai_model_runs': 0, 'provider_tokens': 0,
                         'fixture_runs': len(runs), 'starter_runs': len(starters),
+                        'production_workspace_v4_runs': workspace_runs, 'workspace_errors': workspace_errors,
                         'hidden_native_cases_passed': sum(r['score']['passed'] for r in runs if r.get('score')),
                         'ai_comparison_eligible': False, 'human_seconds': None, 'monetary_cost_usd': None,
                         'environment': sandbox,
-                        'provider_qualification_blockers': ['No external metered provider adapter and exact model revisions supplied.'] +
+                        'provider_qualification_blockers': ['No authenticated metered provider runs with operator-selected exact revisions recorded.'] +
                             ([] if sandbox['available'] else ['Namespace isolation probe failed: ' + sandbox['reason']]),
                         'claims': {'measured_ai_productivity': False, 'hepta_advantage_established': False,
                                    'strict_hidden_test_namespace_isolation_exercised': False,
-                                   'production_workspace_v4_exercised': False},
+                                   'production_workspace_v4_exercised': workspace_runs == len(TASK_IDS)},
                         'starters': starters, 'runs': runs})

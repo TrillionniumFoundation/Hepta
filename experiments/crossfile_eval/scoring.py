@@ -15,8 +15,65 @@ from experiments.agent_eval.sandbox import run_bounded
 from experiments.agent_eval.scoring import compiler_identity as base_compiler_identity
 
 from ._private.oracles import contract_probe, expected, hidden_cases
-from .semantic import nodes
 from .tasks import ROOT, canonical, digest, snapshot_id, validate_files
+
+
+def python_read_only():
+    """Expose only interpreter prefixes outside the sandbox's system mounts."""
+    system = [Path(p).resolve() for p in ('/usr', '/bin', '/lib', '/lib64') if Path(p).exists()]
+    prefixes = {Path(sys.prefix).resolve(), Path(sys.base_prefix).resolve()}
+    extra = [p for p in prefixes if not any(p == base or p.is_relative_to(base) for base in system)]
+    for prefix in extra:
+        if prefix == Path('/') or ROOT.is_relative_to(prefix):
+            raise ValueError('E_PYTHON_PREFIX: refusing to mount a broad interpreter prefix containing evaluator inputs')
+    return [str(p) for p in sorted(extra)]
+
+
+def rust_profile_arguments(selected):
+    prefix = Path(selected).resolve().parent.parent
+    args = ['--sysroot', str(prefix)] if (prefix / 'lib/rustlib').is_dir() else []
+    gcc = shutil.which('gcc')
+    if not gcc: raise ValueError('E_TOOLCHAIN: gcc is required as the explicit host linker')
+    # The toolchain's lld wrapper consults /proc/self/exe. Choose the installed
+    # GNU linker explicitly in both modes so an empty procfs changes no flags.
+    args += ['-C', 'linker=' + str(Path(gcc).resolve()), '-C', 'link-arg=-fuse-ld=bfd']
+    return args
+
+
+def _copy_frontend_support(directory):
+    if not (directory / 'hepta').exists():
+        shutil.copytree(Path(hepta.__file__).parent, directory / 'hepta',
+                        ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
+    support = directory / 'study_support'
+    support.mkdir(exist_ok=True)
+    (support / '__init__.py').write_text('')
+    for name in ('tasks.py', 'semantic.py'):
+        shutil.copyfile(ROOT / name, support / name)
+    shutil.copyfile(ROOT / '_study_frontend.py', directory / 'study_frontend.py')
+
+
+def _run_study_frontend(directory, request, operation, *, fixture, timeout, contracts=False, edits=None):
+    _copy_frontend_support(directory)
+    message = {'request': request, 'operation': operation, 'contracts': contracts}
+    if edits is not None: message['edits'] = edits
+    process = run_bounded([sys.executable, str(directory / 'study_frontend.py')], cwd=directory,
+                          timeout=max(0.001, timeout), input_bytes=canonical(message), fixture=fixture,
+                          read_only=python_read_only(), max_output=2 * 1024 * 1024)
+    if process['status'] != 'exited' or process['returncode']:
+        return {'ok': False, 'status': process['status'], 'diagnostics': process['stderr'][:32768]}
+    try: return json.loads(process['stdout'])
+    except ValueError: return {'ok': False, 'diagnostics': 'invalid study frontend response'}
+
+
+def study_frontend(request, files, operation='profile', *, fixture=False, timeout=30.0, edits=None):
+    files = validate_files(request, files)
+    with tempfile.TemporaryDirectory(prefix='hepta-crossfile-profile-') as temporary:
+        directory = Path(temporary)
+        for name, source in files.items():
+            path = directory / 'candidate' / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(source)
+        return _run_study_frontend(directory, request, operation, fixture=fixture, timeout=timeout, edits=edits)
 
 
 def _native_tool(name):
@@ -32,10 +89,12 @@ def _native_tool(name):
 
 def compiler_identity(rustc=None):
     identity = base_compiler_identity(rustc)
-    identity.update(gcc=_native_tool('gcc'), gxx=_native_tool('g++'),
+    identity.update(gcc=_native_tool('gcc'), gxx=_native_tool('g++'), archiver=_native_tool('ar'),
                     native_instrumentation='byte_layout_allocator_and_linker_pthread_wrap_v2_separate_candidate_crate',
                     ffi_profile='c11_cpp17_static_objects_exceptions_caught_at_c_abi',
-                    target_support='linux_pthreads_gnu_linker_host_only')
+                    target_support='linux_pthreads_gnu_linker_host_only',
+                    native_support_link='ar_rcs_static_whole_archive_before_runtime_libraries')
+    identity['crossfile_rust_argv'] = rust_profile_arguments(find_rustc(rustc))
     return identity
 
 
@@ -45,20 +104,17 @@ def compile_candidate(request, files, directory, *, rustc=None, fixture=False, t
     selected = Path(find_rustc(rustc)).resolve()
     directory = Path(directory)
     source_hash = snapshot_id(files)
-    try:
-        for name in request['editable']:
-            indexed = nodes(request['language'], files[name], name)
-            if contracts and request['task_id'] == 'api_migration' and any(n['symbol'] == 'subtotal' for n in indexed):
-                return {'ok': False, 'stage': 'contract', 'status': 'rejected',
-                        'diagnostics': 'E_API_CONTRACT: obsolete subtotal declaration remains'}
-    except ValueError as exc:
-        return {'ok': False, 'stage': 'study_profile', 'status': 'rejected', 'diagnostics': str(exc)}
     candidate = directory / 'candidate'
     candidate.mkdir(parents=True, exist_ok=True)
     for name, source in files.items():
         path = candidate / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(source)
+    source_profile = _run_study_frontend(directory, request, 'profile', fixture=fixture,
+                                        timeout=deadline - time.monotonic(), contracts=contracts)
+    if not source_profile['ok']:
+        return {'ok': False, 'stage': 'study_profile', 'status': source_profile.get('status', 'rejected'),
+                'diagnostics': source_profile.get('diagnostics')}
     probe = contract_probe(request['task_id'], request['language']) if contracts else ''
     entry = candidate / request['entry']
     entry.write_text(files[request['entry']] + probe)
@@ -68,10 +124,8 @@ def compile_candidate(request, files, directory, *, rustc=None, fixture=False, t
                            fixture=fixture, read_only=reads, max_output=1024 * 1024)
 
     if request['language'] == 'hepta':
-        shutil.copytree(Path(hepta.__file__).parent, directory / 'hepta',
-                        ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
         shutil.copyfile(ROOT / '_frontend.py', directory / 'frontend.py')
-        front = run([sys.executable, str(directory / 'frontend.py')])
+        front = run([sys.executable, str(directory / 'frontend.py')], reads=python_read_only())
         if front['status'] != 'exited' or front['returncode']:
             return {'ok': False, 'stage': 'frontend', 'status': front['status'], 'diagnostics': front['stderr'][:32768]}
         try: checked = json.loads(front['stdout'])
@@ -91,6 +145,7 @@ def compile_candidate(request, files, directory, *, rustc=None, fixture=False, t
     library = directory / 'libcf_submission.rlib'
     profile = ['--edition', '2021', '-C', 'opt-level=3', '-C', 'overflow-checks=yes',
                '-C', 'panic=abort', '-C', 'codegen-units=1', '--remap-path-prefix', str(directory) + '=/candidate']
+    profile += rust_profile_arguments(selected)
     built = run([str(selected), '--crate-name', 'cf_submission', '--crate-type', 'rlib', *profile,
                  str(directory / 'submission.rs'), '-o', str(library)], reads=[selected.parent.parent])
     if built['status'] != 'exited' or built['returncode'] or not library.is_file():
@@ -115,10 +170,21 @@ def compile_candidate(request, files, directory, *, rustc=None, fixture=False, t
         if built['status'] != 'exited' or built['returncode']:
             return {'ok': False, 'stage': 'native_support', 'status': built['status'], 'diagnostics': built['stderr'][:32768]}
         objects.append(output)
+    # GNU ld must see our pthread observation definitions before libgcc's
+    # split-stack wrapper of the same symbol. A named whole static archive
+    # enters rustc's native-library section before runtime libraries; late raw
+    # link-arg objects would make GNU ld pull its own wrapper first. No symbol
+    # is discarded or multiply defined to hide instrumentation failures.
+    archive = directory / 'libcf_native_support.a'
+    archiver = shutil.which('ar')
+    if not archiver: raise ValueError('E_TOOLCHAIN: ar is required for native observation support')
+    built = run([archiver, 'rcs', str(archive), *[str(obj) for obj in objects]])
+    if built['status'] != 'exited' or built['returncode'] or not archive.is_file():
+        return {'ok': False, 'stage': 'native_archive', 'status': built['status'], 'diagnostics': built['stderr'][:32768]}
     output = directory / 'candidate_program'
     command = [str(selected), '--crate-name', 'crossfile_driver', '--crate-type', 'bin', *profile,
                '--extern', 'cf_submission=' + str(library), str(directory / 'driver.rs'), '-o', str(output)]
-    for obj in objects: command += ['-C', 'link-arg=' + str(obj)]
+    command += ['-L', 'native=' + str(directory), '-l', 'static:+whole-archive=cf_native_support']
     command += ['-C', 'link-arg=-Wl,--wrap=pthread_create', '-C', 'link-arg=-Wl,--wrap=pthread_join', '-l', 'stdc++']
     built = run(command, reads=[selected.parent.parent])
     if built['status'] != 'exited' or built['returncode'] or not output.is_file():
@@ -126,6 +192,8 @@ def compile_candidate(request, files, directory, *, rustc=None, fixture=False, t
     return {'ok': True, 'source_sha256': source_hash, 'rust_sha256': digest(rust_source.encode()),
             'artifact_sha256': digest(output.read_bytes()), 'executable': str(output),
             'candidate_rlib_sha256': digest(library.read_bytes()),
+            'interface_sha256': source_profile['interface_sha256'],
+            'interface_basis': source_profile['interface_basis'],
             'native_objects_sha256': [digest(obj.read_bytes()) for obj in objects],
             'compile_seconds': round(time.monotonic() - (deadline - timeout), 6)}
 

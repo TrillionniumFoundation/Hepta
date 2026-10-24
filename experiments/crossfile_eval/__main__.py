@@ -10,6 +10,7 @@ from experiments.agent_eval.harness import Budget
 from experiments.agent_eval.sandbox import probe_sandbox
 from .plan import make_plan, verify_plan
 from .qualification import qualify_fixtures
+from .workspace_qualification import qualify_workspace
 from .records import cost_record, seal_record, write_append_only
 from .reporting import compare
 from .runner import evaluate, replay
@@ -29,6 +30,7 @@ def main(argv=None):
     plan = sub.add_parser('plan')
     plan.add_argument('--models', required=True, help='JSON array of at least two exact provider/name/revision identities')
     plan.add_argument('--budget')
+    plan.add_argument('--adapter-configs', help='JSON array freezing one public adapter configuration per exact model')
     plan.add_argument('--replicates', type=int, default=1)
     plan.add_argument('--rustc')
     plan.add_argument('--output', required=True)
@@ -52,6 +54,11 @@ def main(argv=None):
     qualify = sub.add_parser('qualify-fixtures')
     qualify.add_argument('--rustc')
     qualify.add_argument('--output', required=True)
+    workspace = sub.add_parser('qualify-workspace', help='Actual production v4 fixture transactions inside strict namespaces')
+    workspace.add_argument('--rustc')
+    workspace.add_argument('--execution-context', default='unspecified_operator_environment',
+                           help='Public operator annotation of the outer execution environment; not an attestation')
+    workspace.add_argument('--output', required=True)
     cost = sub.add_parser('cost')
     cost.add_argument('--run', required=True)
     cost.add_argument('--human-seconds', type=float)
@@ -74,7 +81,8 @@ def main(argv=None):
         elif args.operation == 'probe': result = probe_sandbox()
         elif args.operation == 'plan':
             result = make_plan(read(args.models), Budget(**read(args.budget)) if args.budget else None,
-                               args.replicates, rustc=args.rustc)
+                               args.replicates, rustc=args.rustc,
+                               adapter_configs=read(args.adapter_configs) if args.adapter_configs else None)
         elif args.operation == 'run':
             frozen = verify_plan(read(args.plan), rustc=args.rustc, current_environment=True)
             if not 0 <= args.model_index < len(frozen['models']): raise ValueError('E_MODEL: model-index outside plan')
@@ -83,6 +91,8 @@ def main(argv=None):
         elif args.operation == 'compare':
             result = compare(read(args.plan), [read(p) for p in args.reports], [read(p) for p in args.costs])
         elif args.operation == 'qualify-fixtures': result = qualify_fixtures(args.rustc)
+        elif args.operation == 'qualify-workspace':
+            result = qualify_workspace(args.rustc, execution_context=args.execution_context)
         elif args.operation == 'cost':
             result = cost_record(read(args.run), human_seconds=args.human_seconds, human_observer=args.human_observer,
                                  monetary_cost_usd=args.usd, price_source=args.price_source, note=args.note)

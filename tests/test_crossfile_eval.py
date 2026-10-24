@@ -15,6 +15,7 @@ from unittest.mock import patch
 from hepta.backend import find_rustc
 from experiments.agent_eval.harness import Budget
 from experiments.crossfile_eval.__main__ import main
+from experiments.crossfile_eval.adapter_binding import actual_config
 from experiments.crossfile_eval._private.oracles import expected, hidden_cases
 from experiments.crossfile_eval.fixtures.adapters import FIXTURE_MODEL, write_fixture
 from experiments.crossfile_eval.plan import make_plan, sample_id, verify_plan
@@ -141,7 +142,8 @@ pub fn f<'a>(x: &'a str) -> &'a str {
 
     def test_arm_capabilities_are_explicit(self):
         for arm, profile in ARMS.items():
-            session = StudySession(task_request('defect_repair', profile['language']), arm, fixture=True)
+            session = StudySession(task_request('defect_repair', profile['language']), arm, fixture=True, rustc=require_native())
+            self.addCleanup(session.close)
             unauthorized = 'replace_files' if profile['semantic_tools'] else 'query_nodes'
             with self.assertRaisesRegex(ValueError, 'E_TOOL'):
                 session.execute(unauthorized, {}, 1)
@@ -159,6 +161,8 @@ class CrossfileNativeTests(unittest.TestCase):
         self.assertEqual(q['status'], 'qualified_fixtures_only')
         self.assertEqual((q['fixture_runs'], q['hidden_native_cases_passed']), (20, 1248))
         self.assertEqual((q['actual_ai_model_runs'], q['provider_tokens']), (0, 0))
+        self.assertEqual(q['production_workspace_v4_runs'],5)
+        self.assertTrue(q['claims']['production_workspace_v4_exercised'])
         self.assertFalse(q['ai_comparison_eligible'])
         self.assertIsNone(q['human_seconds'])
         for run in q['runs']:
@@ -167,6 +171,9 @@ class CrossfileNativeTests(unittest.TestCase):
             self.assertTrue(run['score']['ok'])
             self.assertEqual(run['usage']['provider_calls'], [])
             self.assertFalse(run['ai_comparison_eligible'])
+            self.assertIsNotNone(run['initialization_seconds'])
+            self.assertGreaterEqual(run['agent_wall_seconds'],run['initialization_seconds'])
+            self.assertEqual(run['claims']['production_workspace_v4_exercised'],run['arm']=='hepta_protocol')
             expected_tools = ['query_nodes', 'replace_nodes', 'public_test'] if ARMS[run['arm']]['semantic_tools'] else ['replace_files', 'public_test']
             self.assertEqual([t['tool'] for t in run['tools']], expected_tools)
 
@@ -203,7 +210,8 @@ class CrossfileNativeTests(unittest.TestCase):
             request = task_request('defect_repair', lang)
             session = StudySession(request, arm, rustc=self.rustc, fixture=True)
             path = 'search.' + ('rs' if lang == 'rust' else 'hepta')
-            node = next(n for n in nodes(lang, request['files'][path], path) if n['kind'] == 'body')
+            self.addCleanup(session.close)
+            node = next(n for n in session.execute('query_nodes', {}, 10)['nodes'][path] if n['kind'] == 'body')
             result = session.execute('replace_nodes', {'expected_version': session.version, 'edits': [
                 {'op': 'replace_body', 'target': path, 'node': node['id'], 'replacement': '{ return missing_value; }'}]}, 10)
             self.assertFalse(result['ok'])
@@ -301,13 +309,21 @@ class CrossfilePlanAndAccountingTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.rustc = require_native()
+        cls.adapter_temporary = tempfile.TemporaryDirectory(prefix='hepta-plan-unit-test-')
+        cls.addClassCleanup(cls.adapter_temporary.cleanup)
+        cls.adapter_dir = Path(cls.adapter_temporary.name)
+        (cls.adapter_dir / 'test.py').write_text('# Explicit offline-only unit-test bundle.\n')
+        cls.command = ['/usr/bin/python3', '{adapter}/test.py']
+        cls.config, _ = actual_config(cls.adapter_dir, cls.command)
         cls.plan = make_plan(MODELS, Budget(input_tokens=100, output_tokens=100, total_tokens=200,
-                                          wall_seconds=30, tool_calls=4), rustc=cls.rustc)
+                                          wall_seconds=30, tool_calls=4), rustc=cls.rustc,
+                             adapter_configs=[{'model': model, **cls.config} for model in MODELS])
 
     def blocked(self, task='defect_repair', arm='rust_plain'):
         with patch('experiments.crossfile_eval.runner.probe_sandbox', return_value={'available': False, 'reason': 'unit-test unavailable'}), \
-             patch('experiments.crossfile_eval.runner.JsonAdapter', side_effect=AssertionError('must never spawn')):
-            return evaluate(task, arm, '/absent/adapter', ['missing'], MODELS[0], plan=self.plan, rustc=self.rustc)
+             patch('experiments.crossfile_eval.runner.JsonAdapter', side_effect=AssertionError('must never spawn')), \
+             patch('experiments.crossfile_eval.runner.StudySession', side_effect=AssertionError('must never initialize')):
+            return evaluate(task, arm, self.adapter_dir, self.command, MODELS[0], plan=self.plan, rustc=self.rustc)
 
     def test_preregistered_full_matrix_and_exact_revision_and_compiler(self):
         self.assertEqual(len(self.plan['schedule']), 40)

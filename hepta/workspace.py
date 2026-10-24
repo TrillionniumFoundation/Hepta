@@ -349,7 +349,7 @@ def _nodes(source, path):
 def inspect_workspace(store):
     snapshot = pin(store)
     root = Path(snapshot["root"])
-    nodes = {p: _nodes((root / p).read_text(), p)
+    nodes = {p: _nodes((root / p).read_bytes().decode("utf-8"), p)
              for p in snapshot["manifest"]["validated_sources"]}
     return {"schema": SCHEMA, "ok": True, "snapshot": snapshot, "nodes": nodes,
             "operations": ["replace_body", "replace_function", "replace_expression", "replace_statement", "replace_struct", "replace_enum"],

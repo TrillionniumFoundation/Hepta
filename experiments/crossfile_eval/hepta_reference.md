@@ -18,7 +18,13 @@ cooperative cancellation. Tasks cannot escape their creating scope. Array/slice
 indexes are checked. FFI calls require `unsafe { ... }` and ffi/unsafe effects;
 repr(C) structs and scalar signatures are checked against the supported ABI.
 
-The semantic arm uses the same function/body/declaration edit intersection as
-Rust, exact snapshot IDs, and complete native validation before atomic in-memory
-publication. This study protocol is not the persistent production v4 workspace
-store; it does not exercise expression edits, crash recovery, or durable CAS.
+The semantic arm exposes the same function/body/declaration operations as
+Rust, using actual production workspace-v4 node IDs. Every edit binds the
+current workspace version and interface. Preparation validates the whole graph;
+the task contract is independently compiled before the same request commits.
+The production store persists across child processes; recover and a final pin
+supply the submitted source. Expression/statement edits are outside this study's
+public operation set. Initialization and all validation/recovery consume the
+common wall budget. `interface_policy` in the task says whether declaration
+interfaces may change; API/owned-Result tasks permit migration, other tasks
+preserve their interfaces. The plain arm uses checked in-memory file updates.

@@ -6,7 +6,7 @@
 
 ## 已实现的增量及验收条件
 
-这些项目在本版本有实际代码、正反例和可重放入口。是否通过最终统一快照，以 `artifacts/release-validation.json` 引用的报告为准；已归档的本轮报告位于 `evidence/next_stage/`。
+这些项目在本版本有实际代码、正反例和可重放入口。是否通过最终统一快照，以 `artifacts/release-validation.json` 引用的报告为准；最终归档位于 `evidence/production_v4_final/`，`evidence/next_stage/` 和 `evidence/production_v4/` 保留先前源码快照的报告。
 
 | ID | 已实现范围 | 验收入口 / 证据 |
 | --- | --- | --- |
@@ -29,7 +29,9 @@
 | M17 | 编译数据库捕获、跨 TU C 模块迁移、结构/循环/调用、缓冲区与受限分配释放配对、完整声明分母 | qualify_c_migration.py、qualify_c_algorithms.py；冻结且未修改的第三方 compare-int/hash-int 模块 |
 | M18 | C++ 直接调用、调用期借用、动态 handle 和 C++ 侧模板实例化，异常/析构/线程/重入/分配器契约 | validate_cpp.py；实际 std::vector/std::string、双向调用、异常与生命周期负例、六项分开计时 |
 | M19 | 不可变项目版本、语义节点编辑、跨文件接口迁移、单引用一致发布与恢复、源级 Rust 诊断映射 | test_workspace.py、test_source_map.py；真实进程中断、写者竞态、stale 身份、发布后 I/O 状态 |
-| M20 | 五种跨文件任务 × Rust/Hepta × 普通/语义工具四臂评测器 | experiments.crossfile_eval；全部计划分母、未知人工成本保留 null、receipt 跨样本唯一、失败已知费用前缀保留 |
+| M20 | 五种跨文件任务 × Rust/Hepta × 普通/语义工具四臂评测器；第四臂实际生产 v4 prepare/commit/recover/pin | experiments.crossfile_eval；20 参考脚本、5 个严格隔离 v4 任务；全部计划分母、receipt 跨样本唯一、失败费用保留 |
+| M21 | 严格 namespace 的实际隔离和原生工具链资格 | validate_sandbox.py；10 项真实边界与执行检查，保留 user/pid/ipc/net 隔离和 capability 清零 |
+| M22 | 独立 OpenAI 计量适配器、bundle 导出、plan 冻结适配器身份、显式失败与费用完整性 | tools/provider_adapter；离线 HTTP/导出/子进程测试；无实际 API 调用，未知费用不归零 |
 
 M07 不等于全进程内存/CPU 上限。M10 的 QEMU 运行不等于真机或独立外部 C 编译器的跨平台 ABI 资格。M11/M16 没有证明真实编译器与抽象模型的精化关系；M16 尚不覆盖并发 IR。M12/M19 不证明补丁功能等价。M13 不证明普遍快于 Rust。M17 只迁移明确接受的 C 子集，M18 不重写外部 C++ 实现。M14/M20 的实际 AI 模型运行数仍为 **0**。
 
@@ -46,11 +48,13 @@ M07 不等于全进程内存/CPU 上限。M10 的 QEMU 运行不等于真机或�
 | P07 | OPEN / HARDWARE_REQUIRED — no_std 对象路径存在 | 板卡启动入口、链接脚本、MMIO/DMA/IRQ、设备协议、真实板卡资格 |
 | P08 | OPEN / HARDWARE_REQUIRED — GPU 尚未实现 | 地址空间、kernel 与同步语义、GPU 后端、驱动互操作、真实设备性能与正确性 |
 | P09 | PARTIAL / OPEN_RESEARCH — 六核心对照及原始样本可重放 | 代表性应用/服务/内存/尾延迟基准、公平调优、多机器重复；C 后端已观测回退需逐项优化 |
-| P10 | FRAMEWORK_READY / ENVIRONMENT_REQUIRED — 五个跨文件任务、同等工具范围的 2×2 框架及 native oracle 资格可执行 | 可用隔离环境、实际 provider 适配器和明确模型版本、多个模型/seed 的完整计量；独立未公开任务、更大项目、完整生产 v4 协议的额外对照 |
+| P10 | FRAMEWORK_READY / MODEL_ACCESS_REQUIRED — 五任务 2×2、真实生产 v4 第四臂、严格隔离及计量 OpenAI adapter 已实现 | API 网络连通性、明确可用模型修订、凭据和预算；多个模型/seed 的完整实际计量、独立未公开任务和更大项目；逐任务崩溃注入的额外对照 |
 | P11 | PARTIAL — 独立 C11/GCC 子集后端、生成 Rust 诊断到源节点的精确映射已可运行 | 完整语言覆盖、后端一致性、优化回归门槛、DWARF/调试器验证；独立机器码后端尚未实现 |
 | P12 | PARTIAL — 本地内容锁、版本化工具协议、公开仓库 | 注册表/版本求解、兼容性与迁移工具、发布签名和持续平台维护、生产标准库/文档体系 |
 
-P10 当前 namespace sandbox 探测失败，生产 provider 模式在启动适配器前拒绝。可信 fixture 使用显式的进程分离路径，`ai_comparison_eligible=false`；不能当成真实模型成绩。具体环境失败原因保留在资格报告中。
+P10 的 namespace 与适配器实现 blocker 已有实际执行/离线测试入口。严格 namespace 资格必须在支持的宿主真实运行；不支持的环境依然在启动适配器前拒绝。可信 fixture 与严格隔离的脚本资格均保持 `ai_comparison_eligible=false`，不能当成真实模型成绩。尚未配置模型访问条件，实际 AI 运行数仍为 0。
+
+适配器无凭据运行时审查确认 CA 加载和校验配置，但父环境与胶囊均无法解析 API 域名；TLS 握手和 HTTP 请求没有完成，记录于 `evidence/audits/provider-runtime-022ed82.json`。该网络前置条件不能用离线 HTTP 测试代替。
 
 ## 本轮集成审查修复
 
@@ -68,5 +72,8 @@ P10 当前 namespace sandbox 探测失败，生产 provider 模式在启动适�
 - provider receipt 按 `(provider, request_id)` 在整个计划矩阵中去重；无效后续 tool frame 不抹掉此前已验证的模型费用前缀。
 - C 导入分离 tag/typedef 名字空间并保留 const 层级；实际 native probe 先验证 typedef，再验证函数存在及原型兼容，拒绝被预定义/include guard 隐藏的虚假 ABI。
 - HSIR 沿 nominal/generic/array 类型保留 raw-pointer 外部义务；该修复保证审计清单完整，不冒充外部代码安全证明。具体反例与修复见 `C_IMPORT_SAFETY_INTEGRATION.md`。
+- workspace 节点查询保留原始 UTF-8/CRLF 字节，查询身份与实际应用同源；原生回归验证替换后字节及旧 pinned 版本不变。
+- 四臂 plan 冻结每个模型的适配器配置；生产 v4 的 prepare 与 commit 复用同一请求，独立任务检查在发布之前执行，未知发布结果终止尝试。
+- 显式 provider abort 不运行隐藏评分；失败可以保留完整已知收费，也可以仅有已验证费用下界，二者不会混为零成本。
 
 准确的测试数、当前编译器身份、性能样本和运行结果，以最终验收报告及其绑定的证据为准。任何未执行、未知或环境阻塞项目均保持其真实状态。

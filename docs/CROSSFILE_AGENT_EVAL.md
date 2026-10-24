@@ -14,7 +14,7 @@ from the semantic-edit-tool factor with four preregistered arms:
 | `rust_plain` | Rust | Read files, replace complete editable files, compile, public tests |
 | `rust_semantic` | Rust | Read files, query function/body/declaration nodes, replace those nodes, compile, public tests |
 | `hepta_plain` | Hepta | The same plain-file interface |
-| `hepta_protocol` | Hepta | The same semantic operation set and snapshot/validation rules |
+| `hepta_protocol` | Hepta | The same public semantic operation set, executed by the production `hepta.workspace` / `hepta.patch.v4` store |
 
 All four arms share nominal input/output/total token caps, wall-time caps,
 observed protocol tool-call caps, native profiles, task instructions, public
@@ -84,12 +84,51 @@ remain enabled, optimization is `-O3`, and panic behavior is abort in both arms.
 
 ## Equal semantic tools and their limits
 
-`StudySession` implements a separate `hepta.crossfile_study.v1` protocol. Every
-snapshot identifies the complete map of file paths and source hashes. A mutation
-must name the exact current version. It prepares all edits, runs complete native
-validation, and publishes the entire map with one parent-process assignment only
-if validation succeeds. A partial API migration, stale node, overlapping edit,
-scope escape, or compiler failure leaves the current map unchanged.
+The public JSONL envelope is `hepta.crossfile_study.v2`. Both semantic arms
+expose the same function/body/declaration operations and exact current-version
+preconditions. Plain arms replace complete editable files. The task authorizes
+interface migration only for `api_migration` and `owned_result`; the other tasks
+preserve their declaration interfaces in all four arms. Hepta uses the actual
+production interface representation, including borrowed return modes. Rust
+conservatively compares the bounded declaration signature tokens.
+
+Rust sessions and Hepta plain sessions prepare a complete candidate, run native
+validation and publish a checked in-memory map. The Hepta protocol arm creates
+an actual production workspace in a separate persistent capsule. Each operation
+runs in a new bounded child process; the store survives between those processes:
+
+1. `workspace.initialize` captures the public bundle and validates its complete
+   source graph with the selected native toolchain.
+2. `inspect_workspace` supplies real production node IDs. The common
+   `replace_declaration` operation maps to the corresponding production
+   function/struct/enum replacement.
+3. `apply_workspace_patch(apply=False)` prepares an immutable native-validated
+   snapshot without changing `CURRENT`. The request binds the original version,
+   interface hash, authorized interface policy and native profile.
+4. The independent task compiler checks that exact prepared source map, including
+   the new API client contract. The trusted contract probe is never written into
+   the production store.
+5. The identical v4 request is submitted with `apply=True`. Prepared and committed
+   version IDs must match. Production fsync/journal/CURRENT publication provides
+   the actual consistency boundary; the coordinator cannot substitute a cached
+   source assignment for publication.
+6. A separate process calls `recover`. After the adapter exits, another `pin`
+   reads the final published bytes, which become the sole scoring input.
+
+The namespace gate precedes initialization. Initialization, source inspection,
+preparation, native task validation, publication, recovery and final pin share
+one wall deadline; setup does not reset the budget. `initialization_seconds`,
+`validation_seconds`, per-RPC timings and `agent_wall_seconds` record that cost.
+The start frame also reports the remaining budget after initialization. Hidden
+scoring is evaluator overhead outside the interaction deadline.
+
+A failed preview or task contract leaves `CURRENT` unchanged. A child timeout or
+uncertain commit is a fatal attempt error. It cannot be reported as a successful
+rollback followed by continued edits against stale parent state. Read/pin checks
+keep the parent cache consistent with the store. Reports distinguish the source
+content hash (`submitted_sha256`) from the production snapshot version
+(`submitted_version`), whose identity also includes the entry and native profile.
+Exact UTF-8 source bytes, including CRLF line endings, are retained.
 
 The public semantic operations are the same for both languages:
 
@@ -120,13 +159,21 @@ local declarations and macros; rustc remains authoritative. Both Rust arms use
 this same bounded source profile, so the plain arm is not granted an unbounded
 language profile that the semantic arm cannot represent.
 
-The `hepta_protocol` arm exercises this intersection, **not the complete
-production `hepta.patch.v4` workspace store**. It does not measure expression or
-statement edits, on-disk atomic CURRENT publication, crash recovery, durable
-compare-and-swap, or production workspace inspection. Its report explicitly
-sets `production_workspace_v4_exercised` to false. A later experiment that uses
-additional production capabilities needs a new, clearly different plan; these
-results must not silently be relabeled as that experiment.
+The fourth arm now exercises production initialization, inspection, semantic
+edits, interface migration, whole-graph native validation, durable publication,
+recovery and final pin. `production_workspace_v4_exercised` becomes true only
+when recorded preparation, publication, recovery and final pin actually complete.
+`workspace_evidence.py` cross-checks the request hashes, version chain, native
+profiles, validation receipts, journal and final source identity. A label alone
+cannot satisfy the qualification gate.
+
+The five tasks do not exercise expression/statement edits or deliberately kill a
+transaction during publication. The production store has separate real
+process-death regression tests. Task qualification demonstrates persistence
+across RPC worker exits and actual recovery calls; it does not relabel those
+normal exits as crash injection. The temporary store is removed after the sample.
+Historical v1 study evidence remains evidence of its original in-memory protocol;
+it is not retroactively evidence of production v4.
 
 ## Provider protocol and isolation
 
@@ -140,7 +187,7 @@ entry command is an argv JSON array, for example:
 The runner copies this bundle into a fresh capsule and communicates over JSONL.
 The start frame contains only the public task, source files, editable paths,
 references, exact model identity, budget, available tools and current version.
-The adapter emits a tool frame or one final frame. Every frame must repeat
+The adapter emits tool frames, one final frame, or an explicit abort frame. Every frame must repeat
 `request_id`, `task_sha256`, `base_sha256`, `model` and `adapter_kind` from the
 request, and provide cumulative usage:
 
@@ -187,9 +234,31 @@ contain another unvalidated source submission. The hidden native oracle runs
 after the adapter is closed. Failed compilation, abort, invalid output, timeout,
 and missing output cannot be scored as success.
 
+The start frame advertises `capabilities.abort_frame: true`. An abort echoes the
+same frozen identities and carries `kind: "abort"`, `usage`, `usage_complete`,
+and `error: {"code": "E_STABLE_CODE", "message": "fixed non-sensitive text"}`.
+`usage` may be the last valid cumulative receipt prefix or null. Null does not
+erase previously validated costs and cannot mean zero cost. Abort consumes no
+extra public tool call and always ends in `attempt_failed`, without hidden
+scoring. Arbitrary provider error text is not persisted; the coordinator records
+the stable code and its own fixed explanation.
+
+An abort may set `usage_complete: true` only when it supplies valid nonempty
+receipts and has no pending/unverified provider request. A complete paid response
+that cannot produce a usable edit can therefore retain its known complete cost
+while failing the task. Valid over-cap receipts are also retained before the
+attempt fails. No receipt, malformed usage, or a
+`pending_provider_request: {client_request_id, request_id, receipt_verified:false}`
+keeps total costs incomplete. Pending metadata is never counted as a receipt.
+Completeness remains adapter-attested, as with ordinary final frames.
+
 Provider mode requires functioning bubblewrap namespaces for the adapter,
 frontend, compiler and candidate execution. It fails closed before invoking the
-adapter if the probe fails. There is **no provider-mode bypass switch**. Fixture
+adapter or a workspace if the probe fails. Both languages' candidate parsing,
+indexing, materialization and compilation run in bounded child capsules; no
+candidate parser runs in the trusted parent. The workspace capsule contains only
+the Hepta package, a narrow RPC helper, and the public source/store. The adapter
+capsule is separate. There is **no provider-mode bypass switch**. Fixture
 qualification is a separately marked trusted-script mode with process separation
 only and zero provider receipts. A fixture cannot report model tokens or become
 AI-comparison-eligible. Environment variables are cleared except explicitly
@@ -203,10 +272,18 @@ release of this pilot prevents future benchmark contamination.
 ## Running and freezing an experiment
 
 Use an installed **Rust 1.90.0** via `RUSTC` or `--rustc`; GCC and G++ are also
-required. The manifest freezes the starters, references, native support, public
+required, together with GNU `ar` and the GNU linker. Native support uses a whole
+static archive ahead of runtime libraries so pthread observation symbols are
+resolved consistently. The explicit sysroot, GNU linker arguments and archive
+profile are recorded in compiler identity. No procfs mount is required.
+The manifest freezes the starters, references, native support, public
 cases, private oracle and language references. Plans freeze the taskset,
 evaluator sources, native compiler identities, supported host profile and shared
-budget. A changed compiler or experiment implementation requires a new plan.
+budget. V2 plans also freeze one adapter configuration per exact model, shared
+by that model across all arms: bundle hash, argv, executable hash, passed
+environment **names**, and network choice. Credentials never enter the plan.
+The isolated copied bundle is rehashed before execution. An unconfigured plan
+has `provider_ready:false` and cannot start provider samples. A changed compiler or experiment implementation requires a new plan.
 Compiler identity is the recorded binaries/version/profile, not a hash of the
 entire operating system and every runtime library.
 
@@ -214,7 +291,9 @@ entire operating system and every runtime library.
 python -m experiments.crossfile_eval verify
 python -m experiments.crossfile_eval probe
 python -m experiments.crossfile_eval qualify-fixtures --output qualification-001.json
-python -m experiments.crossfile_eval plan --models exact-models.json --replicates 3 --output plan-001.json
+python -m experiments.crossfile_eval qualify-workspace --output workspace-qualification-001.json
+python -m experiments.crossfile_eval plan --models exact-models.json \
+  --adapter-configs adapter-configs.json --replicates 3 --output plan-001.json
 python -m experiments.crossfile_eval run --plan plan-001.json --model-index 0 \
   --task owned_result --arm rust_semantic --replicate 0 \
   --adapter-dir /absolute/provider-adapter --command adapter-command.json \
@@ -222,6 +301,26 @@ python -m experiments.crossfile_eval run --plan plan-001.json --model-index 0 \
 python -m experiments.crossfile_eval compare --plan plan-001.json \
   --reports run-001.json --output comparison-001.json
 ```
+
+`adapter-configs.json` is an array, one entry per model, with exactly these fields:
+
+```json
+{
+  "model": {"provider":"PROVIDER", "name":"MODEL", "revision":"EXACT_REVISION"},
+  "bundle_sha256": "ACTUAL_64_HEX_CONTENT_HASH",
+  "command": ["/usr/bin/python3", "{adapter}/provider_adapter.py"],
+  "executable_sha256": "ACTUAL_64_HEX_EXECUTABLE_HASH",
+  "passed_environment_names": ["PROVIDER_API_KEY"],
+  "network_requested": true
+}
+```
+
+These placeholders illustrate the shape and cannot be submitted as hashes or
+provider evidence. The reference OpenAI adapter exporter in
+`tools/provider_adapter/README.md` creates the actual standalone bundle and
+configuration, with metadata outside the bundle to avoid a self-referential
+hash. Model identities are operator supplied. No API credentials or real model
+runs are bundled with this repository.
 
 At least two distinct exact provider model identities are required by the plan.
 One replicate produces 40 planned cells: two models × five tasks × four arms.
@@ -292,28 +391,52 @@ This implementation reports descriptive outcomes and costs, without population
 significance claims, a general productivity claim, or a claim that either
 language is faster than Rust. Both use rustc for final native code generation.
 
-## Current evidence
+## Qualification and historical evidence
 
-`experiments/crossfile_eval/evidence/fixture_qualification_20261024_2.json` records
-20 successful reference-script qualification runs, ten compiled failing
-starters, and 1,248 passing private native input executions. All provider token
-counts and AI-run counts are zero. Human time and monetary cost are null.
+The appended records are
+`experiments/crossfile_eval/evidence/fixture_qualification_v4_20261024.json`
+and `experiments/crossfile_eval/evidence/workspace_qualification_v4_20261024.json`.
+They freeze their own taskset, evaluator and compiler identities. The first uses
+the explicitly marked trusted process-separation fixture mode; the second uses
+real namespace isolation for every frontend/workspace/native child.
 
-The earlier `fixture_qualification_20261024.json` is retained as historical
-evidence, not rewritten. A subsequent independent audit demonstrated that its
-shared-crate driver allowed Rust submissions to set allocator counters and that
-cross-sample receipt reuse was not rejected. Its evaluator/taskset IDs differ
-from the corrected experiment. `qualification_review_20261024.json` records
-that supersession; only the new qualification describes the corrected runner.
+The new `qualify-fixtures` command requires 20 successful reference-script runs,
+ten compiled starters that fail the target tests, 1,248 passing private native
+input executions and **five validated production v4 transaction traces**. All
+provider token counts and AI-run counts remain zero. Human time and monetary
+cost remain null. The final source/evaluator/toolchain identities belong to the
+new qualification; earlier evidence is retained without modification.
 
-In the recorded environment the namespace probe is unavailable; the report
-retains the exact probe error. No externally configured metered provider adapter
-and exact model identities have been supplied. Consequently no real four-arm AI
-comparison has been run, and no Hepta productivity advantage has been established.
+`qualify-workspace` separately requires all five Hepta tasks to execute their
+actual persistent protocol chain under `fixture=False` namespace isolation,
+followed by 312 passing private native inputs. It creates no provider adapter,
+no fake provider receipt and no model call. An unavailable namespace produces
+`environment_blocked` with the probe error; there is no fixture-mode fallback.
+`--execution-context` can annotate the outer operator environment. This annotation
+is explicitly not automatic host attestation.
 
-`tests/test_crossfile_eval.py` verifies these native fixtures plus real leak,
-infallible-allocation abort, missing-cleanup, fake-native-call and fake-thread
-negative cases. It also covers edit scope, transactional rejection, stale IDs,
-compiler identity, provider gating, missing denominators, synthetic receipt
-validation and append-only records. Synthetic receipts exist only inside unit
-tests and are never published as AI experiment evidence.
+The managed default outer command sandbox in this session rejects namespace
+creation with `NETLINK_ROUTE: Operation not permitted`. Authorized commands
+outside that outer sandbox can create the required separate namespaces; the
+successful qualification still uses the unchanged restrictive bubblewrap policy,
+empty `/proc`, narrow read-only interpreter/toolchain mounts, no network, and no
+host project/credential mounts. A successful probe in that context does not mean
+the default outer context works. Each qualification records its actual probe and
+whether every workspace RPC required namespace isolation.
+
+The historical `fixture_qualification_20261024_2.json` records the corrected
+in-memory v1 study: 20 reference runs, ten failing starters, 1,248 passing inputs,
+and zero AI calls. The still-earlier `fixture_qualification_20261024.json` is
+retained but was superseded after an independent audit found shared-crate
+allocator-counter access and cross-sample receipt reuse. The accompanying
+`qualification_review_20261024.json` records that correction. Neither historical
+record is relabeled as production-v4 evidence.
+
+`tests/test_crossfile_eval.py` preserves real leak, infallible-allocation abort,
+missing-cleanup, fake-native-call, fake-thread and counter-spoof negative tests.
+`tests/test_crossfile_protocol_v2.py` adds actual persistent transactions, failed
+partial migrations, failed target contracts, fresh final pins, CRLF identities,
+fatal transport failure, frozen adapter configuration and abort-cost accounting.
+Synthetic receipts exist only in offline unit tests and are never published as
+AI experiment evidence. No real four-arm AI comparison has yet run, and no Hepta
+productivity advantage has been established.

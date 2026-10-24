@@ -410,8 +410,12 @@ def toolchain_info(rustc: str) -> dict:
             or fields.get("release") != RUST_VERSION or not fields.get("host")
             or not fields.get("commit-hash")):
         raise HeptaError(Diagnostic("E_TOOLCHAIN_IDENTITY", "This prototype requires the pinned rustc " + RUST_VERSION + " with a complete -vV identity", notes=[p.stdout[:1000]], phase="backend"))
+    prefix = Path(rustc).resolve().parent.parent
+    sysroot = prefix if (prefix / "lib" / "rustlib").is_dir() else None
     return {"path": rustc, "version": p.stdout.strip(), "host": fields.get("host"),
-            "executable_sha256": sha256(Path(rustc).read_bytes())}
+            "executable_sha256": sha256(Path(rustc).read_bytes()),
+            "sysroot": str(sysroot) if sysroot else None,
+            "sysroot_discovery": "verified_compiler_prefix" if sysroot else "compiler_default"}
 
 
 def compile_rust(source: str, *, rustc: str | None = None, target: str | None = None,
@@ -419,6 +423,20 @@ def compile_rust(source: str, *, rustc: str | None = None, target: str | None = 
                  check_only: bool = False, optimize: bool = True, link_args: list[str] | None = None) -> dict:
     compiler = find_rustc(rustc)
     info = toolchain_info(compiler)
+    # Rust normally discovers its sysroot through its executable location.
+    # An isolated empty-/proc environment needs that location made explicit.
+    # Keep the conventional-prefix check narrow; nonstandard host wrappers
+    # retain their existing compiler-managed sysroot discovery.
+    sysroot = info["sysroot"]
+    linker = None
+    if (target is None and not check_only and not link_args
+            and crate_type in {"bin", "cdylib", "dylib", "proc-macro"}
+            and not shutil.which("cc")):
+        # On Debian-like hosts cc can be an /etc/alternatives symlink. Do not
+        # mount host /etc into the sandbox to follow it; use visible GCC.
+        visible_gcc = shutil.which("gcc")
+        if visible_gcc:
+            linker = str(Path(visible_gcc).resolve())
     artifact = Path(output).resolve() if output is not None else None
     if artifact:
         artifact.parent.mkdir(parents=True, exist_ok=True)
@@ -434,6 +452,10 @@ def compile_rust(source: str, *, rustc: str | None = None, target: str | None = 
                "--crate-type=" + native_type, "-C", "opt-level=" + ("3" if optimize else "0"),
                "-C", "overflow-checks=yes", "-C", "panic=abort", "-C", "codegen-units=1",
                "--error-format=json", "-o", str(native_out)]
+        if sysroot:
+            cmd += ["--sysroot", str(sysroot)]
+        if linker:
+            cmd += ["-C", "linker=" + linker]
         if target:
             cmd += ["--target", target]
         if check_only:
@@ -442,6 +464,12 @@ def compile_rust(source: str, *, rustc: str | None = None, target: str | None = 
             cmd += ["--emit=obj"]
         for arg in link_args or []:
             cmd += ["-C", "link-arg=" + arg]
+        flags = ["edition=2021", "opt-level=" + ("3" if optimize else "0"),
+                 "overflow-checks=yes", "panic=abort", "codegen-units=1"]
+        if sysroot:
+            flags.append("sysroot=" + sysroot)
+        if linker:
+            flags.append("linker=" + linker)
         try:
             p = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
         except subprocess.TimeoutExpired:
@@ -462,9 +490,10 @@ def compile_rust(source: str, *, rustc: str | None = None, target: str | None = 
         diagnostics = map_diagnostics(source, diagnostics, generated_path=str(generated))
         result = {"ok": p.returncode == 0, "status": "rustc_checked" if p.returncode == 0 else "rejected",
                   "diagnostics": diagnostics, "toolchain": info, "target": target or info["host"],
-                  "flags": ["edition=2021", "opt-level=" + ("3" if optimize else "0"), "overflow-checks=yes", "panic=abort", "codegen-units=1"],
+                  "flags": flags,
                   "crate_type": crate_type, "rust_sha256": sha256(source.encode()), "check_only": check_only,
                   "rustc_crate_type": native_type,
+                  "sysroot": str(sysroot) if sysroot else None, "linker": linker,
                   "link_args": link_args or []}
         if p.returncode == 0 and (not native_out.is_file() or native_out.stat().st_size == 0):
             result["ok"] = False

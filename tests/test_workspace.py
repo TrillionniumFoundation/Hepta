@@ -1,4 +1,5 @@
 """Native validation and actual process-death tests for version publication."""
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -57,6 +58,26 @@ class WorkspaceTests(unittest.TestCase):
         stale = apply_workspace_patch(self.store, request, apply=True, rustc=self.rustc)
         self.assertFalse(stale["ok"])
         self.assertEqual(stale["diagnostics"][0]["code"], "E_STALE_PROJECT")
+
+    def test_crlf_query_nodes_apply_to_exact_snapshot_bytes(self):
+        for path in self.root.glob("*.hepta"):
+            path.write_bytes(path.read_bytes().replace(b"\n", b"\r\n"))
+        self.store = Path(self.temp.name) / "crlf-store"
+        initialized = initialize(self.store, self.root, "main.hepta", rustc=self.rustc)
+        self.assertTrue(initialized["ok"], initialized)
+        view = inspect_workspace(self.store)
+        original = (Path(view["snapshot"]["root"]) / "main.hepta").read_bytes()
+        node = next(n for n in view["nodes"]["main.hepta"] if n["kind"] == "body")
+        self.assertEqual(node["source_sha256"], hashlib.sha256(original).hexdigest())
+        replacement = "{\r\n    return api::value(9);\r\n}"
+        request = self.request([("main.hepta", "body", "main", replacement)])
+        result = apply_workspace_patch(self.store, request, apply=True, rustc=self.rustc)
+        self.assertTrue(result["ok"], result)
+        self.assertTrue(result["applied"])
+        source = original.decode("utf-8")
+        expected = (source[:node["start"]] + replacement + source[node["end"]:]).encode("utf-8")
+        self.assertEqual((Path(pin(self.store)["root"]) / "main.hepta").read_bytes(), expected)
+        self.assertEqual((Path(pin(self.store, view["snapshot"]["version"])["root"]) / "main.hepta").read_bytes(), original)
 
     def test_unmigrated_call_site_rejected_without_publication(self):
         before = pin(self.store)["version"]

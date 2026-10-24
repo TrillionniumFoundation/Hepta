@@ -13,3 +13,9 @@ declaration query/replace operations as Hepta. The Rust declaration index is a
 strict bounded token/delimiter scanner for this fixture profile, not a complete
 Rust AST/type server. Every accepted multi-file update must pass native rustc.
 Plain arms replace complete editable file contents and use the same validation.
+
+The task's `interface_policy` applies to both Rust arms: the API and owned-Result
+tasks authorize declaration changes; other tasks preserve signatures and type
+declarations. The bounded index compares signature tokens conservatively, while
+rustc checks typing and borrowing. Indexing/materialization run in bounded child
+capsules. Initialization, compilation and public tests use one shared wall cap.

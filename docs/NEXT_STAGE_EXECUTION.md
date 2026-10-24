@@ -5,12 +5,16 @@
 源码快照。实现当前有限范围、通过验收、证明普遍性质，是三种不同结论。
 
 统一入口为 `python tools/release_check.py`。它要求非空单元/集成测试且零跳过，
-随后执行原生示例、资源 IR、两个 C 资格工具、C++ 库、ABI、并发、性能、Lean、
-AArch64 和两套评测夹具资格。任何必要子项未运行、失败或超时都不能使外层通过。
+随后执行严格 namespace 隔离、原生示例、资源 IR、两个 C 资格工具、C++ 库、ABI、
+并发、性能、Lean、AArch64、两套评测夹具资格及真实隔离的生产 workspace 闭环。
+任何必要子项未运行、失败或超时都不能使外层通过。
 运行前后源码快照必须完全相同。新四阶段资格使用独立时间戳输出路径。
 
 `artifacts/release-validation.json` 是本地运行的总索引；本轮通过后的原始 JSON 与
-日志归档在 `evidence/next_stage/`，其中索引记录原始相对路径、文件哈希与归档位置。
+日志按源码快照归档：`evidence/next_stage/` 保留最初的四阶段集成资格，
+`evidence/production_v4/` 保留实际 v4 评测接入后的首次资格，
+`evidence/production_v4_final/` 记录进一步修复 HTTP 响应完成处理后的完整资格。
+每个索引都记录原始相对路径、文件哈希与归档位置。旧快照的通过结果不代替修改后的验收。
 `whole_project_blockers_closed=false` 保留完整生产目标尚未实现的事实。
 
 ## 1. 真实资源结构与独立检查
@@ -84,10 +88,18 @@ token 与整体性能优势没有测量时保持未知，不能从机器执行�
 防止覆盖新版本。真实进程中断测试覆盖发布前后，恢复不会擅自发布未提交候选。
 生成 Rust 诊断只映射到确实包含该诊断范围的源节点；运行时支持代码不伪造源位置。
 
-四臂评测是独立的有限 study 协议，两种语言使用同等语义操作。Rust 的语义索引是
-明确受限的 lexer/分隔符索引，不冒充完整 rust-analyzer。两种工具条件使用相同
-可表示源码范围。Hepta study 臂没有测量完整生产 v4 的持久化/崩溃恢复优势，报告
-中的 `production_workspace_v4_exercised` 为 false。
+四臂评测通过有限的 study v2 协议暴露两种语言同等的 function/body/declaration
+操作范围。Rust 的语义索引是明确受限的 lexer/分隔符索引，不冒充完整 rust-analyzer。
+Hepta 第四臂实际调用生产 `hepta.workspace`：独立子进程中的持久化 store 先
+prepare，经过任务接口原生检查，再用完全相同的补丁和 CAS 条件 commit，随后
+recover、重新 pin；最终候选来自确认发布的版本。初始验证、工具验证和最终 pin
+都占用共同的 wall budget；发布状态不明会终止尝试，不伪称回滚并继续评分。
+
+`production_workspace_v4_exercised` 只在真实初始化、检查、提交、恢复、最终 pin
+均完成时成立。完整二十组参考脚本中要求五次这样的 v4 闭环；另有五任务严格
+namespace 执行资格，直接验证生产隔离路径。实验没有在每个任务内注入进程崩溃，
+也没有给第四臂额外的 expression/statement 操作；这些范围与生产协议自身的独立
+测试分别报告。所有语义前端都在有界子进程内处理候选代码。
 
 五项任务覆盖跨文件 API、资源 Result、实际 C/C++ 库调用、真实线程取消与 join、
 跨模块边界缺陷修复。十个 starter 均能按原接口编译且未通过新目标；二十个四臂
@@ -95,13 +107,23 @@ token 与整体性能优势没有测量时保持未知，不能从机器执行�
 
 可信 driver 与候选分别编译为不同 crate，避免候选修改资源计数器。provider receipt
 在整个计划矩阵中去重；失败、超时、不完整和重复样本均保留在计划分母中。失败前
-已验证的费用前缀保留，未知总费用与人工修正时间为 null。旧审查前夹具报告被保留
-并明确 supersede，新报告绑定修正后的 taskset 与 evaluator 身份。
+已验证的费用前缀保留，未知总费用与人工修正时间为 null。显式 abort 保留真实
+失败状态：合法收据覆盖全部实际请求时，失败也可有完整已知费用；丢失响应、缺少
+usage 或有 pending request 时，总费用仍为未知。plan 绑定每个模型的 adapter
+目录哈希、命令、解释器哈希、环境变量名称和网络配置，同一模型的四臂不能换适配器。
+旧审查前夹具报告被保留并明确 supersede，新报告绑定修正后的 taskset 与 evaluator 身份。
 
-**当前真实模型运行数为 0。** 本环境无法建立要求的 namespace 隔离，也没有配置
-带计量的 provider adapter、凭据与具体模型修订。生产 provider 模式在启动适配器前
-拒绝；可信参考脚本只用于验证评测器，不转换成 AI 成绩。获得这些外部条件后，应
-创建新 plan，运行完整四臂矩阵并记录全部成本；现有夹具成绩不能证明 Agent 收益。
+严格隔离资格检查 namespace 身份、清零 capabilities、空 `/proc`、父进程私有
+路径/凭据不可见、宿主网络不可达、系统挂载只读，以及 Hepta/Rust 原生执行与
+workspace profile。通过依赖当前宿主允许建立这些 namespace；受限宿主仍须拒绝，
+不会自动降级为可信 fixture。具体配置见 `SANDBOX_QUALIFICATION.md`。
+
+**当前真实模型运行数为 0。** 已实现带真实 HTTP usage/request-id 记账的独立
+OpenAI 适配器、导出器与离线传输测试，见 `tools/provider_adapter/README.md`。
+当前仍没有显式配置的 API 凭据、至少两个可用且固定的模型修订及运行预算；父环境
+和适配器胶囊的 API 域名解析也失败，尚未验证 TLS 握手与实际 HTTP 连接。没有
+执行真实 API 请求。适配器测试和可信参考脚本只验证实现，不能转换成 AI 成绩。
+模型/预算配置齐备后必须创建新 plan，运行全部四臂矩阵；现有资格不能证明 Agent 收益。
 
 ## 仍保留的完整目标
 
