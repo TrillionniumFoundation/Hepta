@@ -19,6 +19,7 @@ import tempfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from hepta.migration_ir import Expr, Function, IRValidationError, Stmt, check_function, emit_function, function_hash  # noqa: E402
+from tools.clang_transport import run_clang  # noqa: E402
 
 TYPES = {"int": "i32", "unsigned int": "u32"}
 IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z_0-9]*\Z", re.ASCII)
@@ -182,18 +183,18 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
             raise UnsupportedC("preprocessor directives/macros require a future source model")
         if not shutil.which(clang):
             raise UnsupportedC("clang executable unavailable")
-        version = subprocess.run([clang, "--version"], capture_output=True, text=True, timeout=10, check=True)
+        version = run_clang([clang, "--version"], text=True, timeout=10, check=True)
         info["clang"] = version.stdout.splitlines()[0]
-        target = subprocess.run([clang, "-dumpmachine"], capture_output=True, text=True, timeout=10, check=True)
+        target = run_clang([clang, "-dumpmachine"], text=True, timeout=10, check=True)
         info["target"] = target.stdout.strip()
-        defines = subprocess.run([clang, "-std=c11", "-dM", "-E", "-x", "c", "-"], input=b"",
-                                 capture_output=True, timeout=10, check=True).stdout
+        defines = run_clang([clang, "-std=c11", "-dM", "-E", "-x", "c", "-"], input=b"",
+                            timeout=10, check=True).stdout
         if not re.search(rb"(?m)^#define __SIZEOF_INT__ 4$", defines) or not re.search(rb"(?m)^#define __CHAR_BIT__ 8$", defines):
             raise UnsupportedC("the Clang target's int/char width is unsupported")
-        run = subprocess.run([clang, "-x", "c", "-std=c11", "-Wall", "-Wextra", "-Werror",
+        run = run_clang([clang, "-x", "c", "-std=c11", "-Wall", "-Wextra", "-Werror",
                               "-pedantic-errors", "-Wno-newline-eof", "-fsyntax-only", "-Xclang", "-ast-dump=json",
                               "-fno-color-diagnostics", str(source.resolve())],
-                             capture_output=True, timeout=20, check=False)
+                             timeout=20, check=False)
         if run.returncode or len(run.stdout) > 8_000_000:
             raise UnsupportedC("Clang rejected source or AST exceeds size limit: " + run.stderr.decode("utf-8", "replace")[:600])
         tree = json.loads(run.stdout)
