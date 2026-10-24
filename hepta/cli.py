@@ -62,7 +62,7 @@ def main(argv=None) -> int:
         if cmd in {"build", "run"}:
             p.add_argument("--link-arg", action="append", default=[])
         if cmd == "patch":
-            p.add_argument("--request", required=True, help="Path to a hepta.patch.v1 JSON request")
+            p.add_argument("--request", required=True, help="Path to a v1/v2 or multi-file preview v3 patch JSON request")
             p.add_argument("--apply", action="store_true", help="Atomically apply after native validation")
     args = parser.parse_args(argv)
     try:
@@ -101,7 +101,10 @@ def main(argv=None) -> int:
             if args.backend != "rust" or args.locked:
                 raise ValueError("patch currently validates with the Rust backend; regenerate the package lock after an applied edit")
             request = json.loads(Path(args.request).read_text())
-            if isinstance(request, dict) and request.get("schema") == "hepta.patch.v2":
+            if isinstance(request, dict) and request.get("schema") == "hepta.patch.v3.preview":
+                from .protocol_v3 import preview_project_patch
+                result = preview_project_patch(file, request, apply=args.apply, rustc=args.rustc, target=args.target)
+            elif isinstance(request, dict) and request.get("schema") == "hepta.patch.v2":
                 from .protocol import apply_project_patch
                 result = apply_project_patch(file, request, apply=args.apply, rustc=args.rustc, target=args.target)
             else:
