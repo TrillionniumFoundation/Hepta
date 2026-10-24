@@ -81,3 +81,17 @@ production-scale qualification.
 Do not set whole_project_blockers_closed true until the original P01–P12
 ledger has actual qualifying evidence for every item, and P0–P7 acceptance
 here also has independent source-bound receipts.
+
+## Stacked follow-up: CFG v0 and C++ reentrant handle bridge
+
+- A versioned `hepta.cfg.v0` export adds checked typed expressions, explicit
+  branch/loop/match edges and unsafe-region marks. Limits and graph validation
+  fail closed; no claim of SSA, provenance, independent borrows or native proof.
+- C++ bridge registry locking is separated from per-object method calls.
+  A per-entry recursive mutex and shared method lifetime allow handle
+  reentrancy and independent-object concurrency while retaining stale-handle
+  detection and conservative external code trust assumptions.
+- New tests exercise CFG negative cases and compiled C++ reentrancy, parallel
+  objects and concurrent method calls; these changes require exact-head CI
+  results before being labelled qualified.
+- Original P01–P12 production blockers and P0–P7 full acceptance are open.

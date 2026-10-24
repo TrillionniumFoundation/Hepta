@@ -195,3 +195,23 @@ def hsir_analysis(analysis: Analysis) -> dict:
     return {"schema": "hepta.hsir.export.v0", "ok": bool(analysis.report["ok"]),
             "status": analysis.report["status"],
             "hsir": snapshot, "validation": analysis.report}
+
+
+def cfg_analysis(analysis: Analysis) -> dict:
+    """Export checked structured control flow without upgrading proof claims."""
+    if analysis.program is None or analysis.checked is None or not analysis.checked.ok:
+        return {"schema": "hepta.cfg.export.v0", "ok": False,
+                "status": "rejected", "validation": analysis.report, "cfg": None}
+    from .flow_ir import FlowLowerError, lower_checked_cfg
+    try:
+        snapshot = lower_checked_cfg(
+            analysis.program, analysis.checked,
+            project_sha256=getattr(analysis.project, "identity", None))
+    except (FlowLowerError, TypeError, ValueError, OverflowError, RecursionError) as exc:
+        return {"schema": "hepta.cfg.export.v0", "ok": False,
+                "status": "rejected", "cfg": None, "validation": analysis.report,
+                "diagnostics": [{"code": "E_CFG_LOWER", "phase": "flow-ir",
+                                 "message": str(exc)}]}
+    return {"schema": "hepta.cfg.export.v0", "ok": bool(analysis.report["ok"]),
+            "status": analysis.report["status"], "cfg": snapshot,
+            "validation": analysis.report}
