@@ -122,6 +122,18 @@ class ControlFlowIRTests(unittest.TestCase):
         self.assertFalse(hmir["claims"]["automatic_drop_lowering"])
         self.assert_graph(hmir)
 
+    def test_nested_expression_operands_and_types_are_retained(self):
+        hmir = self.lower(
+            "fn f(a: u64, b: u64) -> u64 effects {} "
+            "{ return wrapping_add(a, b); }")
+        expression = self.blocks(hmir)[0]["terminator"]["expression"]
+        self.assertEqual(expression["kind"], "call")
+        self.assertEqual(expression["value"], "wrapping_add")
+        self.assertEqual(len(expression["args"]), 2)
+        self.assertEqual([x["value"] for x in expression["args"]], ["a", "b"])
+        self.assertEqual([x["type"] for x in expression["args"]], ["u64", "u64"])
+        self.assert_graph(hmir)
+
     def test_extern_is_never_disguised_as_safe_cfg(self):
         hmir = self.lower(
             'extern "C" fn legacy(p: raw const u8) -> u64 effects {ffi, unsafe};')
