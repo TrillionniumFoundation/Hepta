@@ -1,0 +1,86 @@
+module representative;
+
+// Native C caller contracts: all buffers are valid for their stated lengths;
+// histogram output has 256 writable u64 entries and does not overlap input;
+// binary-search data is sorted. These raw-pointer obligations are not proved.
+export "C" fn hepta_fnv1a(data: raw const u8, count: usize) -> u64
+effects { unsafe }
+resources { heap_allocations = 0; may_block = false; may_spawn = false; }
+{
+    let mut hash: u64 = 14695981039346656037;
+    let mut i: usize = 0;
+    unsafe {
+        while i < count {
+            hash = wrapping_mul(hash ^ (load(data, i) as u64), 1099511628211);
+            i = wrapping_add(i, 1);
+        }
+    }
+    return hash;
+}
+
+export "C" fn hepta_histogram(data: raw const u8, count: usize, bins: raw mut u64) -> u64
+effects { unsafe, write }
+resources { heap_allocations = 0; may_block = false; may_spawn = false; }
+{
+    let mut i: usize = 0;
+    unsafe {
+        while i < 256 {
+            store(bins, i, 0);
+            i = wrapping_add(i, 1);
+        }
+        i = 0;
+        while i < count {
+            let bin: usize = load(data, i) as usize;
+            store(bins, bin, wrapping_add(load(bins, bin), 1));
+            i = wrapping_add(i, 1);
+        }
+        i = 0;
+        let mut checksum: u64 = 0;
+        while i < 256 {
+            checksum = wrapping_add(checksum, wrapping_mul(load(bins, i), i as u64));
+            i = wrapping_add(i, 1);
+        }
+        return checksum;
+    }
+}
+
+export "C" fn hepta_dot(left: raw const u64, right: raw const u64, count: usize) -> u64
+effects { unsafe }
+resources { heap_allocations = 0; may_block = false; may_spawn = false; }
+{
+    let mut total: u64 = 0;
+    let mut i: usize = 0;
+    unsafe {
+        while i < count {
+            total = wrapping_add(total, wrapping_mul(load(left, i), load(right, i)));
+            i = wrapping_add(i, 1);
+        }
+    }
+    return total;
+}
+
+export "C" fn hepta_binary_search(data: raw const u64, count: usize, queries: raw const u64, query_count: usize) -> u64
+effects { unsafe, panic }
+resources { heap_allocations = 0; may_block = false; may_spawn = false; }
+{
+    let mut checksum: u64 = 0;
+    let mut query: usize = 0;
+    unsafe {
+        while query < query_count {
+            let key: u64 = load(queries, query);
+            let mut low: usize = 0;
+            let mut high: usize = count;
+            while low < high {
+                let mid: usize = wrapping_add(low, wrapping_sub(high, low) >> 1);
+                if load(data, mid) < key {
+                    low = wrapping_add(mid, 1);
+                } else {
+                    high = mid;
+                }
+            }
+            checksum = wrapping_add(checksum, low as u64);
+            query = wrapping_add(query, 1);
+        }
+    }
+    return checksum;
+}

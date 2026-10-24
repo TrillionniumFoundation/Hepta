@@ -8,7 +8,8 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import Iterator
 
-from .ast import Diagnostic, Expr, Function, HeptaError, Param, Program, Span, Stmt, Struct, Type
+from .ast import (Diagnostic, Enum, EnumVariant, Expr, Function, HeptaError, Import,
+                  MatchArm, Param, Pattern, Program, Span, Stmt, Struct, Type)
 from .lexer import Token, tokenize
 
 
@@ -34,6 +35,7 @@ class Parser:
         self.tokens = tokenize(source, path)
         self.position = 0
         self.depth = 0
+        self.qualified_expressions: list[tuple[str, Span]] = []
 
     @property
     def current(self) -> Token:
@@ -79,25 +81,70 @@ class Parser:
     def parse(self) -> Program:
         name = "main"
         if self._take("module"):
-            name = self._expect("IDENT", "Expected a module name").value
+            name = self._path()
             self._expect(";")
+        imports: list[Import] = []
+        while self._take("import"):
+            start = self.previous.span
+            imported = self._path()
+            alias = self._expect("IDENT", "Expected an import alias").value if self._take("as") else imported.split("::")[-1]
+            end = self._expect(";").span
+            imports.append(Import(imported, alias, _cover(start, end)))
         structs: list[Struct] = []
+        enums: list[Enum] = []
         functions: list[Function] = []
         while not self._at("EOF"):
-            if self.current.kind in ("struct", "repr"):
+            following = self.tokens[min(self.position + 1, len(self.tokens) - 1)].kind
+            if self.current.kind in ("struct", "repr") or self._at("pub") and following in ("struct", "repr"):
                 structs.append(self._struct())
+            elif self._at("enum") or self._at("pub") and following == "enum":
+                enums.append(self._enum())
             elif self.current.kind in ("pub", "export", "fn", "extern"):
                 functions.append(self._function())
             else:
-                self._error("Expected a struct or function declaration")
+                self._error("Expected a struct, enum, or function declaration")
+        namespaces = {item.alias for item in imports} | {item.name for item in enums + structs} | {"Result"}
+        for path, span in self.qualified_expressions:
+            if path.split("::")[0] not in namespaces:
+                self._error(f"Qualified name {path} requires a declared import or enum namespace",
+                            Token("", None, span), "E_PARSE_NAMESPACE")
         self._validate_tree_depth(functions)
-        return Program(name, structs, functions, self.source, self.path)
+        return Program(name, structs, functions, self.source, self.path, enums, imports)
+
+    def _path(self) -> str:
+        parts = [self._expect("IDENT", "Expected a name").value]
+        while self._take("::"):
+            parts.append(self._expect("IDENT", "Expected a name after '::'").value)
+        return "::".join(parts)
+
+    def _field_name(self) -> Token:
+        # A new statement keyword must not invalidate existing C field names.
+        if self._at("match"):
+            return self._advance()
+        return self._expect("IDENT", "Expected a field name")
+
+    def _type_params(self) -> tuple[str, ...]:
+        if not self._take("<"):
+            return ()
+        params = [self._expect("IDENT", "Expected a generic parameter").value]
+        while self._take(","):
+            params.append(self._expect("IDENT", "Expected a generic parameter").value)
+        self._type_close()
+        return tuple(params)
+
+    def _type_args(self) -> tuple[Type, ...]:
+        self._expect("<")
+        args = [self._type()]
+        while self._take(","):
+            args.append(self._type())
+        self._type_close()
+        return tuple(args)
 
     def _validate_tree_depth(self, functions: list[Function]) -> None:
         # Pratt parsing handles a long left-associative chain iteratively, so
         # parser call depth alone cannot protect recursive downstream passes.
         # Walk the completed syntax tree iteratively before exposing it.
-        pending: list[tuple[Stmt | Expr, int]] = [
+        pending: list[tuple[Stmt | Expr | MatchArm, int]] = [
             (stmt, 1) for fn in functions for stmt in (fn.body or [])
         ]
         while pending:
@@ -107,16 +154,19 @@ class Parser:
                             Token("", None, node.span), "E_PARSE_DEPTH")
             if isinstance(node, Expr):
                 pending.extend((child, depth + 1) for child in node.children)
+            elif isinstance(node, MatchArm):
+                pending.extend((child, depth + 1) for child in node.body)
             else:
                 for value in node.data.values():
                     if isinstance(value, Expr):
                         pending.append((value, depth + 1))
                     elif isinstance(value, list):
                         pending.extend((child, depth + 1) for child in value
-                                       if isinstance(child, (Stmt, Expr)))
+                                       if isinstance(child, (Stmt, Expr, MatchArm)))
 
     def _struct(self) -> Struct:
         start = self.current.span
+        public = bool(self._take("pub"))
         repr_c = False
         if self._take("repr"):
             self._expect("(")
@@ -127,17 +177,40 @@ class Parser:
             repr_c = True
         self._expect("struct")
         name = self._expect("IDENT", "Expected a struct name").value
+        type_params = self._type_params()
         self._expect("{")
         fields: list[Param] = []
         while not self._at("}"):
-            field = self._expect("IDENT", "Expected a field name")
+            field = self._field_name()
             self._expect(":")
             field_type = self._type()
             fields.append(Param(field.value, field_type, span=_cover(field.span, self.previous.span)))
             if not self._take(","):
                 break
         end = self._expect("}", "Expected ',' or '}' after a struct field").span
-        return Struct(name, fields, repr_c, _cover(start, end))
+        return Struct(name, fields, repr_c, _cover(start, end), type_params, public)
+
+    def _enum(self) -> Enum:
+        start = self.current.span
+        public = bool(self._take("pub"))
+        self._expect("enum")
+        name = self._expect("IDENT", "Expected an enum name").value
+        type_params = self._type_params()
+        self._expect("{")
+        variants: list[EnumVariant] = []
+        while not self._at("}"):
+            token = self._expect("IDENT", "Expected an enum variant")
+            fields: list[Type] = []
+            if self._take("("):
+                fields.append(self._type())
+                while self._take(","):
+                    fields.append(self._type())
+                self._expect(")")
+            variants.append(EnumVariant(token.value, fields, _cover(token.span, self.previous.span)))
+            if not self._take(","):
+                break
+        end = self._expect("}", "Expected ',' or '}' after an enum variant").span
+        return Enum(name, variants, type_params, public, _cover(start, end))
 
     def _abi(self) -> None:
         abi = self._expect("STRING", 'Expected the ABI literal "C"')
@@ -158,6 +231,7 @@ class Parser:
                 self._abi()
         self._expect("fn")
         name = self._expect("IDENT", "Expected a function name").value
+        type_params = self._type_params()
         self._expect("(")
         params: list[Param] = []
         while not self._at(")"):
@@ -186,7 +260,7 @@ class Parser:
             body, body_span = self._block()
             end = body_span
         return Function(name, params, return_type, effects, body, public, extern_c,
-                        export_c, resources, _cover(start, end), body_span)
+                        export_c, resources, _cover(start, end), body_span, type_params)
 
     def _effects(self) -> set[str]:
         self._expect("effects", "Every function requires an explicit effects clause")
@@ -252,13 +326,11 @@ class Parser:
                     self._error("A raw pointer type requires 'const' or 'mut'")
                 mode = self._advance().value
                 return Type("raw_" + mode, (self._type(),))
-            name = self._expect("IDENT", "Expected a type name")
-            if name.value in {"Buffer", "Task"}:
-                self._expect("<", f"{name.value} requires an element type: {name.value}<T>")
-                element = self._type()
-                self._type_close()
-                return Type(name.value, (element,))
-            return Type(name.value)
+            name = self._path()
+            args = self._type_args() if self._at("<") else ()
+            if name in {"Buffer", "Task", "Sender"} and len(args) != 1:
+                self._error(f"{name} requires exactly one element type: {name}<T>")
+            return Type(name, args)
 
     def _block(self) -> tuple[list[Stmt], Span]:
         with self._nested():
@@ -309,6 +381,30 @@ class Parser:
         if self._take("unsafe"):
             body, end = self._block()
             return Stmt("unsafe", {"body": body}, _cover(start, end))
+        if self._take("match"):
+            expr = self._expr(allow_struct=False)
+            self._expect("{")
+            arms: list[MatchArm] = []
+            while not self._at("}"):
+                arm_start = self.current.span
+                path = self._path()
+                parts = path.rsplit("::", 1)
+                if len(parts) != 2:
+                    self._error("Match patterns require Enum::Variant", Token("", None, arm_start))
+                bindings: list[str] = []
+                if self._take("("):
+                    bindings.append(self._expect("IDENT", "Expected a payload binding or '_'").value)
+                    while self._take(","):
+                        bindings.append(self._expect("IDENT", "Expected a payload binding or '_'").value)
+                    self._expect(")")
+                pattern = Pattern(parts[0], parts[1], bindings, _cover(arm_start, self.previous.span))
+                self._expect("=>")
+                body, arm_end = self._block()
+                arms.append(MatchArm(pattern, body, _cover(arm_start, arm_end)))
+                if not self._take(","):
+                    break
+            end = self._expect("}", "Expected ',' or '}' after a match arm").span
+            return Stmt("match", {"expr": expr, "arms": arms}, _cover(start, end))
         target = self._expr()
         if self._take("="):
             if target.kind not in ("name", "field", "index"):
@@ -330,7 +426,7 @@ class Parser:
                     self._advance()
                     args = self._expressions(")")
                     end = self._expect(")").span
-                    left = Expr("call", left.value, args, _cover(left.span, end))
+                    left = Expr("call", left.value, args, _cover(left.span, end), left.type_args)
                     continue
                 if self._take("["):
                     index = self._expr()
@@ -338,7 +434,7 @@ class Parser:
                     left = Expr("index", children=[left, index], span=_cover(left.span, end))
                     continue
                 if self._take("."):
-                    field = self._expect("IDENT", "Expected a field name after '.'")
+                    field = self._field_name()
                     left = Expr("field", field.value, [left], _cover(left.span, field.span))
                     continue
                 if self._at("as") and _CAST >= minimum:
@@ -376,20 +472,32 @@ class Parser:
             operand = self._expr(_UNARY, allow_struct)
             return Expr("unary", token.value, [operand], _cover(token.span, operand.span))
         if token.kind == "IDENT":
+            parts = [token.value]
+            type_args: tuple[Type, ...] = ()
+            while self._take("::"):
+                if self._at("<"):
+                    if type_args:
+                        self._error("Only one explicit generic argument list is supported")
+                    type_args = self._type_args()
+                else:
+                    parts.append(self._expect("IDENT", "Expected a name or '<' after '::'").value)
+            name = "::".join(parts)
+            if len(parts) > 1:
+                self.qualified_expressions.append((name, _cover(token.span, self.previous.span)))
             if allow_struct and self._take("{"):
                 fields: list[str] = []
                 values: list[Expr] = []
                 while not self._at("}"):
-                    field = self._expect("IDENT", "Expected a struct field name")
+                    field = self._field_name()
                     self._expect(":")
                     fields.append(field.value)
                     values.append(self._expr())
                     if not self._take(","):
                         break
                 end = self._expect("}", "Expected ',' or '}' after a field value").span
-                return Expr("struct", {"name": token.value, "fields": fields},
-                            values, _cover(token.span, end))
-            return Expr("name", token.value, span=token.span)
+                return Expr("struct", {"name": name, "fields": fields},
+                            values, _cover(token.span, end), type_args)
+            return Expr("name", name, span=_cover(token.span, self.previous.span), type_args=type_args)
         if token.kind == "(":
             expr = self._expr()
             end = self._expect(")").span

@@ -1,0 +1,43 @@
+module admission_budgets;
+
+fn producer(data: take Buffer<u8>, token: read Cancellation, output: read Sender<u64>) -> u64
+effects { alloc, block, panic, write } {
+    let count = len(data);
+    for i in 0..count { let accepted = group_send(read output, 1); }
+    release(move data);
+    return count as u64;
+}
+
+fn main() -> Unit effects { alloc, block, panic, spawn, write, io } {
+    let mut tasks = task_group(2, 128, 1);
+    assert(group_spawn(mut tasks, producer, move buffer(4)));
+    assert(group_spawn(mut tasks, producer, move buffer(4)));
+    assert(!group_spawn(mut tasks, producer, move buffer(0)));
+    let task_report = group_drain_and_join(move tasks);
+    assert(task_report.accepted_tasks == 2);
+    assert(task_report.rejected_tasks == 1);
+    assert(task_report.completed_tasks == 2);
+    assert(task_report.discarded == 8);
+
+    let mut payload = task_group(3, 8, 1);
+    assert(group_spawn(mut payload, producer, move buffer(4)));
+    assert(group_spawn(mut payload, producer, move buffer(4)));
+    assert(!group_spawn(mut payload, producer, move buffer(1)));
+    let byte_report = group_drain_and_join(move payload);
+    assert(byte_report.accepted_tasks == 2);
+    assert(byte_report.rejected_tasks == 1);
+    assert(byte_report.input_bytes == 8);
+    assert(byte_report.completed_tasks == 2);
+
+    let mut zero = task_group(0, 0, 1);
+    assert(!group_spawn(mut zero, producer, move buffer(0)));
+    let zero_report = group_drain_and_join(move zero);
+    assert(zero_report.completed_tasks == 0);
+    assert(zero_report.rejected_tasks == 1);
+    assert(zero_report.joined);
+    print_i64(task_report.accepted_tasks as i64);
+    print_i64(task_report.rejected_tasks as i64);
+    print_i64(byte_report.input_bytes as i64);
+    print_i64(byte_report.rejected_tasks as i64);
+    print_i64(zero_report.completed_tasks as i64);
+}

@@ -57,6 +57,7 @@ class Expr:
     value: Any = None
     children: list[Expr] = field(default_factory=list)
     span: Span = field(default_factory=Span)
+    type_args: tuple[Type, ...] = ()
 
 
 @dataclass
@@ -80,6 +81,46 @@ class Struct:
     fields: list[Param]
     repr_c: bool = False
     span: Span = field(default_factory=Span)
+    type_params: tuple[str, ...] = ()
+    public: bool = False
+
+
+@dataclass
+class EnumVariant:
+    name: str
+    fields: list[Type] = field(default_factory=list)
+    span: Span = field(default_factory=Span)
+
+
+@dataclass
+class Enum:
+    name: str
+    variants: list[EnumVariant]
+    type_params: tuple[str, ...] = ()
+    public: bool = False
+    span: Span = field(default_factory=Span)
+
+
+@dataclass
+class Pattern:
+    enum_name: str
+    variant: str
+    bindings: list[str] = field(default_factory=list)
+    span: Span = field(default_factory=Span)
+
+
+@dataclass
+class MatchArm:
+    pattern: Pattern
+    body: list[Stmt]
+    span: Span = field(default_factory=Span)
+
+
+@dataclass
+class Import:
+    name: str
+    alias: str
+    span: Span = field(default_factory=Span)
 
 
 @dataclass
@@ -95,6 +136,7 @@ class Function:
     resources: dict[str, Any] = field(default_factory=dict)
     span: Span = field(default_factory=Span)
     body_span: Span = field(default_factory=Span)
+    type_params: tuple[str, ...] = ()
 
 
 @dataclass
@@ -104,3 +146,5 @@ class Program:
     functions: list[Function]
     source: str
     path: str = "<input>"
+    enums: list[Enum] = field(default_factory=list)
+    imports: list[Import] = field(default_factory=list)

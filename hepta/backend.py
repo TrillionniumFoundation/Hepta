@@ -8,12 +8,14 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from dataclasses import fields, is_dataclass
 from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 
 from .ast import Diagnostic, Expr, Function, HeptaError, Program, Span, Stmt, Type
+from .runtime_concurrency import GROUP_RUNTIME, GROUP_TYPE_NAMES
 
 
 RUST_VERSION = "1.90.0"
@@ -27,7 +29,13 @@ def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def rust_type(t: Type) -> str:
+def rust_type(t: Type, type_params: set[str] | frozenset[str] = frozenset()) -> str:
+    if t.name in type_params:
+        return "G_" + t.name
+    if t.name == "TaskGroup":
+        return "HeptaTaskGroup"
+    if t.name == "Sender":
+        return "HeptaSender"
     if t.name == "Task":
         return "HeptaTask"
     if t.name == "Cancellation":
@@ -37,14 +45,15 @@ def rust_type(t: Type) -> str:
     if t.name in PRIMITIVES:
         return t.name
     if t.name == "array":
-        return f"[{rust_type(t.args[0])}; {t.length}]"
+        return f"[{rust_type(t.args[0], type_params)}; {t.length}]"
     if t.name == "slice":
-        return f"[{rust_type(t.args[0])}]"
+        return f"[{rust_type(t.args[0], type_params)}]"
     if t.name == "Buffer":
-        return f"std::vec::Vec<{rust_type(t.args[0])}>"
+        return f"std::vec::Vec<{rust_type(t.args[0], type_params)}>"
     if t.name in ("raw_const", "raw_mut"):
-        return f"*{'const' if t.name == 'raw_const' else 'mut'} {rust_type(t.args[0])}"
-    return "H_" + t.name
+        return f"*{'const' if t.name == 'raw_const' else 'mut'} {rust_type(t.args[0], type_params)}"
+    name = "core::result::Result" if t.name == "Result" else "H_" + t.name
+    return name + ("<" + ", ".join(rust_type(arg, type_params) for arg in t.args) + ">" if t.args else "")
 
 
 def c_decl(t: Type, name: str, const: bool = False) -> str:
@@ -68,6 +77,20 @@ class Emitter:
         self.no_std = no_std
         self.crate_type = crate_type
         self.params: dict[str, str] = {}
+        self.type_params: set[str] = set()
+
+    def typ(self, typ: Type) -> str:
+        return rust_type(typ, self.type_params)
+
+    def constructor(self, typ: Type) -> str:
+        return self.typ(typ).replace("<", "::<", 1)
+
+    def generics(self, params: tuple[str, ...]) -> str:
+        return "<" + ", ".join("G_" + name + ": core::marker::Copy" for name in params) + ">" if params else ""
+
+    @staticmethod
+    def variant_name(enum_name: str, variant_name: str) -> str:
+        return variant_name if enum_name == "Result" else "V_" + variant_name
 
     def expr(self, e: Expr) -> str:
         kind = e.kind
@@ -86,15 +109,18 @@ class Emitter:
         if kind == "array":
             return "[" + ", ".join(self.expr(x) for x in e.children) + "]"
         if kind == "struct":
-            return "H_" + e.value["name"] + " { " + ", ".join(
+            return self.constructor(typ) + " { " + ", ".join(
                 "h_" + name + ": " + self.expr(value)
                 for name, value in zip(e.value["fields"], e.children)) + " }"
+        if kind == "variant":
+            name = self.constructor(typ) + "::" + self.variant_name(e.value["enum"], e.value["variant"])
+            return name + ("(" + ", ".join(self.expr(child) for child in e.children) + ")" if e.children else "")
         if kind == "field":
             return f"({self.expr(e.children[0])}).h_{e.value}"
         if kind == "index":
             return f"({self.expr(e.children[0])})[{self.expr(e.children[1])}]"
         if kind == "cast":
-            return f"({self.expr(e.children[0])} as {rust_type(e.value)})"
+            return f"({self.expr(e.children[0])} as {self.typ(e.value)})"
         if kind == "binary":
             return f"({self.expr(e.children[0])} {e.value} {self.expr(e.children[1])})"
         if kind == "unary":
@@ -110,7 +136,17 @@ class Emitter:
         if kind == "call":
             if e.value == "spawn":
                 return "__hepta_rt_spawn(h_" + e.children[0].value + ", " + self.expr(e.children[1]) + ")"
+            if e.value == "group_spawn":
+                return "__hepta_group_spawn(" + self.expr(e.children[0]) + ", h_" + e.children[1].value + ", " + self.expr(e.children[2]) + ")"
             args = [self.expr(x) for x in e.children]
+            group_calls = {"task_group": "__hepta_group_new", "group_send": "__hepta_group_send",
+                           "group_receive": "__hepta_group_receive", "group_seal": "__hepta_group_seal",
+                           "group_snapshot": "__hepta_group_snapshot", "group_fail": "__hepta_group_fail"}
+            if e.value in group_calls:
+                return group_calls[e.value] + "(" + ", ".join(args) + ")"
+            if e.value in {"group_join", "group_drain_and_join", "group_cancel_and_join"}:
+                mode = {"group_join": 0, "group_drain_and_join": 1, "group_cancel_and_join": 2}[e.value]
+                return "__hepta_group_join(" + args[0] + ", " + str(mode) + "u8)"
             if e.value in {"join", "cancel_and_join"}:
                 return "__hepta_rt_join(" + args[0] + ", " + ("true" if e.value == "cancel_and_join" else "false") + ")"
             if e.value == "cancelled":
@@ -134,7 +170,8 @@ class Emitter:
                 return f"(*({args[0]}).add({args[1]}))"
             if e.value == "store":
                 return f"{{ *({args[0]}).add({args[1]}) = {args[2]}; }}"
-            return "h_" + e.value + "(" + ", ".join(args) + ")"
+            generics = "::<" + ", ".join(self.typ(t) for t in e.type_args) + ">" if e.type_args else ""
+            return "h_" + e.value + generics + "(" + ", ".join(args) + ")"
         raise HeptaError(Diagnostic("E_BACKEND_AST", f"Unsupported expression {kind}", e.span, phase="lower"))
 
     def block(self, body: list[Stmt], level: int = 0) -> str:
@@ -145,7 +182,7 @@ class Emitter:
             d = s.data
             if s.kind == "let":
                 t = d.get("type") or self.checked.expr_types.get(id(d["expr"]))
-                annotation = ": " + rust_type(t) if t else ""
+                annotation = ": " + self.typ(t) if t else ""
                 line = "let " + ("mut " if d.get("mutable") else "") + "h_" + d["name"] + annotation + " = " + self.expr(d["expr"]) + ";"
             elif s.kind == "assign":
                 line = self.expr(d["target"]) + " = " + self.expr(d["expr"]) + ";"
@@ -157,6 +194,16 @@ class Emitter:
                 line = "if " + self.expr(d["condition"]) + " " + self.block(d["then"], level + 1)
                 if d.get("else"):
                     line += " else " + self.block(d["else"], level + 1)
+            elif s.kind == "match":
+                typ = self.checked.expr_types[id(d["expr"])]
+                line = "match " + self.expr(d["expr"]) + " {\n"
+                for arm in d["arms"]:
+                    pattern = arm.pattern
+                    path = ("core::result::Result" if typ.name == "Result" else "H_" + typ.name) + "::" + self.variant_name(typ.name, pattern.variant)
+                    if pattern.bindings:
+                        path += "(" + ", ".join("_" if name == "_" else "h_" + name for name in pattern.bindings) + ")"
+                    line += "    " * (level + 2) + path + " => " + self.block(arm.body, level + 2) + ",\n"
+                line += prefix + "}"
             elif s.kind == "for":
                 line = "for h_" + d["name"] + " in " + self.expr(d["start"]) + ".." + self.expr(d["end"]) + " " + self.block(d["body"], level + 1)
             elif s.kind == "while":
@@ -170,7 +217,7 @@ class Emitter:
         return "\n".join(lines)
 
     def param(self, p) -> str:
-        t = rust_type(p.type)
+        t = self.typ(p.type)
         if p.mode == "read":
             t = "&" + t
         elif p.mode == "mut":
@@ -178,26 +225,51 @@ class Emitter:
         return "h_" + p.name + ": " + t
 
     def emit(self) -> str:
-        lines = ["// Generated by Hepta 0.1.0 from checked AST; do not edit.",
+        # Runtime types can occur only in an enum payload or an explicit
+        # generic argument, even when no expression produces that type.
+        all_types: list[Type] = []
+        pending = [self.program, *self.checked.expr_types.values()]
+        while pending:
+            value = pending.pop()
+            if isinstance(value, Type):
+                all_types.append(value)
+                pending.extend(value.args)
+            elif is_dataclass(value):
+                pending.extend(getattr(value, item.name) for item in fields(value))
+            elif isinstance(value, dict):
+                pending.extend(value.values())
+            elif isinstance(value, (list, tuple)):
+                pending.extend(value)
+        lines = ["// Generated by Hepta 0.2.0 from checked AST; do not edit.",
                  "#![allow(non_camel_case_types, unused, unused_parens)]"]
         if self.no_std:
-            if any(t.name == "Buffer" for t in self.checked.expr_types.values()) or any("io" in e or "alloc" in e or "spawn" in e for e in self.checked.effects.values()):
+            if any(t.name == "Buffer" for t in all_types) or any("io" in e or "alloc" in e or "spawn" in e for e in self.checked.effects.values()):
                 raise HeptaError(Diagnostic("E_NO_STD", "This unit requires hosted allocation, I/O, or tasks", phase="lower"))
             if self.crate_type == "bin":
                 raise HeptaError(Diagnostic("E_NO_STD_ENTRY", "Bare-metal entrypoints are not implemented; build a no_std object or library", phase="lower"))
             lines.append("#![no_std]")
-        if any(t.name in {"Task", "Cancellation"} for t in self.checked.expr_types.values()) or any(p.type.name == "Cancellation" for f in self.program.functions for p in f.params):
+        uses_groups = any(t.name in GROUP_TYPE_NAMES for t in all_types)
+        if uses_groups or any(t.name in {"Task", "Cancellation"} for t in all_types):
             if self.no_std:
                 raise HeptaError(Diagnostic("E_NO_STD", "Hosted tasks require the optional thread runtime", phase="lower"))
             lines.append(TASK_RUNTIME)
+        if uses_groups:
+            lines.append(GROUP_RUNTIME)
         for st in self.program.structs:
+            self.type_params = set(st.type_params)
             if st.repr_c:
                 lines.append("#[repr(C)]")
             lines.append("#[derive(Clone, Copy)]")
-            lines.append("pub struct H_" + st.name + " { " + ", ".join("pub h_" + f.name + ": " + rust_type(f.type) for f in st.fields) + " }")
+            lines.append("pub struct H_" + st.name + self.generics(st.type_params) + " { " + ", ".join("pub h_" + f.name + ": " + self.typ(f.type) for f in st.fields) + " }")
+        for enum in self.program.enums:
+            self.type_params = set(enum.type_params)
+            lines.append("#[derive(Clone, Copy)]")
+            variants = [self.variant_name(enum.name, variant.name) + ("(" + ", ".join(self.typ(t) for t in variant.fields) + ")" if variant.fields else "") for variant in enum.variants]
+            lines.append("pub enum H_" + enum.name + self.generics(enum.type_params) + " { " + ", ".join(variants) + " }")
         for fn in self.program.functions:
             self.params = {p.name: p.mode for p in fn.params}
-            signature = "fn h_" + fn.name + "(" + ", ".join(self.param(p) for p in fn.params) + ") -> " + rust_type(fn.return_type)
+            self.type_params = set(fn.type_params)
+            signature = "fn h_" + fn.name + self.generics(fn.type_params) + "(" + ", ".join(self.param(p) for p in fn.params) + ") -> " + self.typ(fn.return_type)
             if fn.extern_c:
                 lines.append('extern "C" { #[link_name = ' + json.dumps(fn.name) + "] pub " + signature + "; }")
             else:
@@ -245,7 +317,7 @@ def emit_rust(program: Program, checked, no_std=False, crate_type="rlib") -> str
 
 def emit_header(program: Program) -> str:
     guard = "HEPTA_" + program.name.upper() + "_H"
-    lines = ["/* Generated by Hepta 0.1.0. ABI is target-specific. */", f"#ifndef {guard}", f"#define {guard}",
+    lines = ["/* Generated by Hepta 0.2.0. ABI is target-specific. */", f"#ifndef {guard}", f"#define {guard}",
              "#include <stdint.h>", "#include <stddef.h>", '#ifdef __cplusplus\nextern "C" {\n#endif']
     structs = {s.name: s for s in program.structs if s.repr_c}
     for name in structs:

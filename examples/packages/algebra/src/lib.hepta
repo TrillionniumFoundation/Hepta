@@ -1,0 +1,21 @@
+module algebra;
+
+pub enum Failure { Empty }
+
+pub fn identity<T>(value: T) -> T effects {} {
+    return value;
+}
+
+pub fn sum(input: read [u64]) -> Result<u64, Failure>
+effects { panic }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    if len(read input) == 0 {
+        return Result::Err(Failure::Empty);
+    }
+    let mut total: u64 = 0;
+    for index in 0..len(read input) {
+        total = wrapping_add(total, input[index]);
+    }
+    return Result::Ok(total);
+}

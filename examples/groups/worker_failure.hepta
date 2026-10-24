@@ -1,0 +1,47 @@
+module worker_failure;
+
+fn producer(data: take Buffer<u8>, token: read Cancellation, output: read Sender<u64>) -> u64
+effects { alloc, block, panic, write } {
+    let count = len(data);
+    if count == 1 {
+        // Capacity is one. The second send cannot finish before the parent
+        // starts draining, after every worker has been admitted.
+        let first = group_send(read output, 1);
+        let second = group_send(read output, 1);
+        group_fail(read output, 17);
+    } else {
+        let mut running = true;
+        let mut i: usize = 0;
+        while i < count && running {
+            running = group_send(read output, 1);
+            i = wrapping_add(i, 1);
+        }
+    }
+    release(move data);
+    return count as u64;
+}
+
+fn main() -> Unit effects { alloc, block, panic, spawn, write, io } {
+    let mut group = task_group(4, 193, 1);
+    assert(group_spawn(mut group, producer, move buffer(1)));
+    for i in 0..3 { assert(group_spawn(mut group, producer, move buffer(64))); }
+    group_seal(mut group);
+    let mut value: u64 = 0;
+    while group_receive(read group, mut value) {}
+    let report = group_join(move group);
+    assert(report.failed);
+    assert(report.failure_code == 17);
+    assert(report.cancelled);
+    assert(report.joined);
+    assert(report.accepted_tasks == 4);
+    assert(report.completed_tasks == 4);
+    assert(report.active_tasks == 0);
+    assert(report.waiting_senders == 0);
+    assert(report.received >= 2);
+    assert(report.sum == 193);
+    print_i64(report.failure_code as i64);
+    print_i64(report.completed_tasks as i64);
+    print_i64(report.active_tasks as i64);
+    print_i64(report.waiting_senders as i64);
+    print_i64(report.received as i64);
+}

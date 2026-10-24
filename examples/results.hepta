@@ -1,0 +1,28 @@
+module results;
+
+struct Box<T> { value: T }
+
+fn boxed<T, E>(input: Result<T, E>) -> Result<Box<T>, E> effects {} {
+    match input {
+        Result::Ok(value) => { return Result::Ok(Box { value: value }); },
+        Result::Err(error) => { return Result::Err(error); },
+    }
+}
+
+fn divide(left: i64, right: i64) -> Result<i64, u8> effects {panic} {
+    if right == 0 { return Result::Err(1); }
+    return Result::Ok(left / right);
+}
+
+fn main() -> Unit effects {panic} {
+    let success = boxed::<i64, u8>(divide(84, 2));
+    match success {
+        Result::Ok(answer) => { assert(answer.value == 42); },
+        Result::Err(_) => { assert(false); },
+    }
+    let failure = boxed::<i64, u8>(divide(84, 0));
+    match failure {
+        Result::Ok(_) => { assert(false); },
+        Result::Err(code) => { assert(code == 1); },
+    }
+}

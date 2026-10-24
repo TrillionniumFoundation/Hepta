@@ -1,0 +1,14 @@
+module app;
+import algebra;
+
+fn main() -> i32 effects { panic } {
+    let values: [u64; 4] = [1, 2, 3, 4];
+    let result = algebra::sum(read values);
+    match result {
+        Result::Ok(total) => {
+            let checked = algebra::identity::<u64>(total);
+            if checked == 10 { return 0; } else { return 1; }
+        },
+        Result::Err(error) => { return 2; }
+    }
+}

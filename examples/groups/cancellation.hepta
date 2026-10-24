@@ -1,0 +1,34 @@
+module group_cancellation;
+
+fn producer(data: take Buffer<u8>, token: read Cancellation, output: read Sender<u64>) -> u64
+effects { alloc, block, panic, write } {
+    let count = len(data);
+    let mut running = true;
+    while !cancelled(read token) && running {
+        running = group_send(read output, 1);
+    }
+    release(move data);
+    return count as u64;
+}
+
+fn main() -> Unit effects { alloc, block, panic, spawn, write, io } {
+    let mut group = task_group(4, 256, 1);
+    for i in 0..4 { assert(group_spawn(mut group, producer, move buffer(64))); }
+    // At least one worker is blocked on a full queue before cancellation.
+    while group_snapshot(read group).waiting_senders == 0 {}
+    let report = group_cancel_and_join(move group);
+    assert(report.cancelled);
+    assert(report.joined);
+    assert(report.completed_tasks == 4);
+    assert(report.active_tasks == 0);
+    assert(report.waiting_senders == 0);
+    assert(report.queued == 0);
+    assert(report.discarded == 1);
+    assert(report.sum == 256);
+    assert(!report.failed);
+    print_i64(report.completed_tasks as i64);
+    print_i64(report.active_tasks as i64);
+    print_i64(report.waiting_senders as i64);
+    print_i64(report.discarded as i64);
+    print_i64(report.sum as i64);
+}

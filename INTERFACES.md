@@ -1,31 +1,80 @@
-# Hepta bootstrap compiler shared implementation contract
+# Hepta 0.2 compiler interfaces
 
-All implementation is under this standalone project. Python standard library only for the bootstrap frontend; generated programs are native Rust-compiled code. This is a prototype, not a claim of a completed production language. All passes consume `hepta.ast`.
+This file describes the current internal pass boundary. The implemented language
+contract is [docs/SPEC.md](docs/SPEC.md); named JSON schemas are described in
+[docs/AGENT_PROTOCOL.md](docs/AGENT_PROTOCOL.md). The frontend uses the Python
+standard library. Native outputs do not depend on Python. Internal Python APIs
+and AST shapes are not a stable public compatibility promise.
 
-## Grammar v0.1
+## Source and graph
 
-`module name;` optional. `struct Name { field: Type, ... }`; `repr(C) struct Name ...`.
-`[pub] [export "C"] fn name(params) -> Type effects { effect, ... } [resources { key = literal; ... }] { statements }`
-`extern "C" fn name(params) -> Type effects { ffi, ... };`
-All function declarations require an explicit effects clause. Parameter `x: read Type`, `x: mut Type`, `x: take Type`, or `x: Type`.
-Types: integer types, f32/f64, bool, Unit, structs, `[T; integer]`, `[T]`, `Buffer<T>`, `raw const T`, `raw mut T`.
-Statements: typed/inferred `let [mut] x [: Type] = expression;`, assignment to name/field/index, `return [expression];`, `for i in start..end { ... }`, `while expr { ... }`, `if expr { ... } else { ... }`, `unsafe { ... }`, expression statement. Semicolon required except blocks.
-Expressions: integer/float/bool literals; names; ordinary named calls; unary `-`, `!`, `read`, `mut`, `move`; binary operators; array literal; index; field; `expr as Type`; `Name { field: expr, ... }`.
-No arbitrary Rust escape or macros. Unknown syntax/types/functions/effects fail closed. Field access does not allow method calls.
+`parse(source, path) -> Program` consumes a closed syntax model from `hepta.ast`.
+No source fragment is spliced into native output. `Program` contains structures,
+functions, enums and imports. Generic declaration parameters and expression type
+arguments are explicit AST fields. Match patterns/arms are dataclasses; visitors
+must traverse their bodies and type positions, not just dictionaries/lists.
 
-## AST shapes
+`hepta.modules` resolves standalone or package imports, validates public access,
+reserves generated identifiers, flattens declared names mechanically and retains
+per-file spans. `LoadedProject` carries source bytes, lexical path bindings,
+module/import-edge mappings, package state and project identity. Project identity
+includes resolved edges as well as bytes; revalidation checks symlink bindings.
+`hepta.packages` handles local-only manifests and exact content locks. C import
+metadata and visible in-package original headers participate in validation.
 
-Expr kinds: `int` value integer; `float` value float; `bool` value bool; `name` value str; `call` value function str children args; `unary` value operator children [operand]; `binary` value operator children [lhs,rhs]; `array` children elements; `index` children [base,index]; `field` value field children [base]; `cast` value Type children [expr]; `struct` value {name: str, fields: list[str]} children values in order.
-Stmt: `let` data name,type (Type or None),mutable,expr; `assign` target,expr; `return` expr (or None); `for` name,start,end,body; `while` condition,body; `if` condition,then,else; `unsafe` body; `expr` expr.
-Parser: `parse(source: str, path='<input>') -> Program`, raises HeptaError with precise Diagnostic for lexical/parse failures. No source splicing into generated Rust.
+## Frontend checks
 
-## Checker interface
+`check(program) -> CheckResult` reports diagnostics, inferred expression types,
+transitive effects, external assumptions and resource contracts. It checks all
+function bodies, including unused generic functions. Generics and ADT payloads
+are constrained to the implemented Copy profile. C boundaries accept only the
+explicit ABI-compatible type set. No undeclared native namespace is reachable.
 
-`check(program: Program) -> CheckResult` with fields diagnostics: list[Diagnostic], effects: dict[str,set[str]], expr_types: dict[int,Type] (key=id(expr)), assumptions: list[dict]. `.ok` property. Resolve all declared funcs/structs, duplicates, unknown names. Validate C-compatible boundary types (primitive numeric/pointer/repr(C) aggregate; no bool/Unit fields/slice/Buffer at C boundary; Unit fn return allowed). Validate exact effects, computes transitive call effects. Allowed effects: alloc, panic, io, block, spawn, ffi, unsafe, write. Local mutation does not produce write; mutation of borrowed inputs does. Unsafe operations need explicit unsafe block, and unsafe/ffi effects.
-All arithmetic overflow checks always enabled in generated Rust. Integer +/-/*, divide/modulo and indexing are conservatively panic effects. Explicit wrapping intrinsics avoid arithmetic panic. Rust backend will also check types/borrows; frontend must report its checked scope accurately and never call a frontend-only result complete borrow validation.
-Builtins: `len(x)->usize`; `wrapping_add/sub/mul(a,b)` same integer; `buffer(n)->Buffer<u8>` effects alloc,panic; `release(move x)->Unit` for Buffer; `assert(bool)->Unit` effect panic; `print_i64(i64)->Unit` io; `load(ptr,index)`/`store(ptr,index,val)` unsafe; `ptr_read(read slice)` / `ptr_mut(mut slice)` -> raw pointer unsafe; `size_of(Type)` not in v0.1 grammar (use ABI C harness); `min/max(a,b)` same integer; `abs` not supported. `buffer` elements zero-initialized. Buffer is linear; requires take mode for owning params and `move` at owning calls/return. Borrow modes never consume. Resource checker tracks movement on all normal exits, branches, loops; no reassignment of linear values and no unsupported nested linear values. Rust compiler authoritative for lifetime/borrow checks.
-Resource clauses supported: heap_allocations=0, may_block=false, may_suspend=false (no suspend supported), may_spawn=false. Reject unsupported numeric bounds instead of treating as proved.
+Effects are `alloc`, `panic`, `io`, `block`, `spawn`, `ffi`, `unsafe`, `write`.
+Mutation of borrowed inputs/raw memory requires `write`; local assignment does
+not. Unsafe operations and calls to unsafe/foreign functions require an explicit
+unsafe block. Deallocation is allocator interaction and carries `alloc`.
+Static resource clauses support `heap_allocations=0` and
+`may_block/may_suspend/may_spawn=false`. Task-group numeric admission contracts
+are a separate runtime facility, not a process-wide heap bound.
 
-## Owners
+Linear Buffer/Task/TaskGroup values must be consumed on modeled normal paths.
+Match, branching, loops and early returns participate in resource flow. The
+runtime uses aborting panic; process failure and nontermination do not receive
+an eventual-cleanup theorem.
 
-Parser agent: lexer.py, parser.py, parser tests only. Checker agent: checker.py, checker tests only. Root: ast.py, backend.py, cli.py, protocol.py, __init__.py, packaging, docs. Validation agent: toolchain setup, tools/validate.py, benchmarks/, examples/ffi/, tests/test_native.py. Do not overwrite other owner files without messaging.
+## Native paths
+
+`analyze_project` accepts a directory, manifest or source, loads the graph and
+runs the selected path. The Rust path checks declarations/effects/linear flow in
+Hepta and submits generated Rust to the pinned real rustc for final type/borrow
+validation. Successful native validation requires toolchain identity and a
+nonempty output. `frontend_only` is a distinct incomplete state.
+
+`emit_c` and `compile_c` implement direct AST-to-C11/GCC for the documented
+64-bit scalar/array/structure/borrowed-slice subset. Its conservative borrow
+analysis is independent of rustc. Unsupported ADTs/generic declarations/hosted
+task runtime reject. Reports do not label C validation as Rust borrow checking.
+Both paths retain their toolchain, flags, target and output identities.
+
+C header import probes actual types/layouts/integer constants, emits public C
+structures and external declarations, and writes paired metadata. Recorded ABI
+facts do not prove the foreign implementation's ownership, effects or lifetime
+contracts. Arbitrary FFI and raw pointers retain explicit caller obligations.
+
+## Agent changes and evidence
+
+`apply_project_patch` implements one-body `hepta.patch.v2` changes bound to a
+loaded project and source/interface identities. Full graph validation precedes
+application; original content, lexical bindings, edges and package state must
+still match. All participating Hepta sources use sorted cooperative locks shared
+with v1, followed by recheck and atomic target replacement. Non-cooperating
+editors are outside this lock protocol. Contracts are preserved, but functional
+equivalence and external side-effect rollback are not established.
+
+`tools/release_check.py` binds all gates to an unchanged source snapshot and
+hashes generated evidence separately. Formal proofs describe explicit abstract
+models, not an unproved correspondence with these Python passes. Agent evaluator
+fixtures and real provider runs are distinct evidence classes. Unknown,
+unsupported, environment-blocked and not-run qualifications never become passed
+because some other backend or fixture succeeded.

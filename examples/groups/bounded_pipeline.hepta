@@ -1,0 +1,47 @@
+module bounded_pipeline;
+
+fn producer(data: take Buffer<u8>, token: read Cancellation, output: read Sender<u64>) -> u64
+effects { alloc, block, panic, write } {
+    let count = len(data);
+    let mut running = true;
+    let mut i: usize = 0;
+    while i < count && running {
+        running = group_send(read output, 1);
+        i = wrapping_add(i, 1);
+    }
+    release(move data);
+    return count as u64;
+}
+
+fn main() -> Unit effects { alloc, block, panic, spawn, write, io } {
+    let mut group = task_group(8, 32768, 4);
+    for i in 0..8 {
+        assert(group_spawn(mut group, producer, move buffer(4096)));
+    }
+    // Observe real backpressure before beginning to drain the bounded queue.
+    while group_snapshot(read group).waiting_senders == 0 {}
+    group_seal(mut group);
+    let mut value: u64 = 0;
+    let mut total: u64 = 0;
+    while group_receive(read group, mut value) {
+        total = wrapping_add(total, value);
+    }
+    let report = group_join(move group);
+    assert(total == 32768);
+    assert(report.accepted_tasks == 8);
+    assert(report.completed_tasks == 8);
+    assert(report.input_bytes == 32768);
+    assert(report.peak_queued <= 4);
+    assert(report.send_waits > 0);
+    assert(report.received == 32768);
+    assert(report.active_tasks == 0);
+    assert(report.waiting_senders == 0);
+    assert(report.joined);
+    assert(!report.failed);
+    print_i64(total as i64);
+    print_i64(report.completed_tasks as i64);
+    print_i64(report.peak_queued as i64);
+    print_i64(report.send_waits as i64);
+    print_i64(report.input_bytes as i64);
+    print_i64(report.active_tasks as i64);
+}

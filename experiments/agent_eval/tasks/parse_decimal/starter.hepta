@@ -1,0 +1,5 @@
+repr(C) struct ParseResult { value: u64, consumed: usize, status: u32 }
+export "C" fn evaluate(input: raw const u8, n: usize) -> ParseResult effects {unsafe,panic,write}
+/* AGENT_BODY_BEGIN */
+{ return ParseResult { value: 0, consumed: 0, status: 1 }; }
+/* AGENT_BODY_END */

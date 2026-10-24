@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 from . import __version__
-from .ast import HeptaError, Program
+from .ast import Diagnostic, HeptaError, Program, Span
 from .backend import compile_rust, emit_rust, emit_header, sha256
 from .parser import parse
 from .checker import check
@@ -15,10 +15,16 @@ from .checker import check
 
 def interface(program: Program) -> dict:
     return {"module": program.name,
-            "structs": [{"name": s.name, "repr_c": s.repr_c,
+            "imports": [{"name": i.name, "alias": i.alias} for i in getattr(program, "imports", [])],
+            "structs": [{"name": s.name, "repr_c": s.repr_c, "public": getattr(s, "public", False),
+                         "type_params": list(getattr(s, "type_params", ())),
                          "fields": [{"name": f.name, "type": str(f.type)} for f in s.fields]}
                         for s in program.structs],
+            "enums": [{"name": e.name, "public": e.public, "type_params": list(e.type_params),
+                       "variants": [{"name": v.name, "fields": [str(t) for t in v.fields]} for v in e.variants]}
+                      for e in getattr(program, "enums", [])],
             "functions": [{"name": f.name, "params": [{"name": p.name, "mode": p.mode, "type": str(p.type)} for p in f.params],
+                           "type_params": list(getattr(f, "type_params", ())),
                            "returns": str(f.return_type), "effects": sorted(f.effects),
                            "resources": f.resources, "public": f.public, "export_c": f.export_c,
                            "extern_c": f.extern_c} for f in program.functions]}
@@ -41,10 +47,13 @@ class Analysis:
     program: Program | None = None
     checked: object | None = None
     rust: str | None = None
+    project: object | None = None
+    c: str | None = None
 
 
 def analyze(source: str, path: str = "<input>", *, rustc=None, target=None,
-            no_std=False, native=True, crate_type="rlib") -> Analysis:
+            no_std=False, native=True, crate_type="rlib", loaded_project=None,
+            backend="rust", cc=None) -> Analysis:
     report = {"schema": "hepta.check.v1", "compiler_version": __version__,
               "compiler_sha256": compiler_hash(), "source_sha256": sha256(source.encode()),
               "path": path, "ok": False, "status": "rejected", "diagnostics": [],
@@ -54,7 +63,18 @@ def analyze(source: str, path: str = "<input>", *, rustc=None, target=None,
               "bounded_cancellation_latency_proved": False, "deadlock_freedom_proved": False}}
     result = Analysis(report)
     try:
-        program = parse(source, path)
+        program = loaded_project.program if loaded_project is not None else parse(source, path)
+        if loaded_project is None and getattr(program, "imports", []):
+            if path == "<input>":
+                raise HeptaError(Diagnostic("E_IMPORT_UNRESOLVED", "Imports require a source file or package context", Span(path=path), phase="module"))
+            from .modules import load_project
+            loaded_project = load_project(path, source_overrides={path: source})
+            program = loaded_project.program
+        result.project = loaded_project
+        if loaded_project is not None:
+            report["project"] = loaded_project.report()
+            if loaded_project.c_imports and target is not None:
+                raise HeptaError(Diagnostic("E_C_IMPORT_TARGET", "C imports have native-host probe facts; cross-target reuse requires a target-specific import profile", Span(path=path), phase="module"))
         result.program = program
         report["checks"]["syntax"] = "passed"
         report["interface_sha256"] = interface_hash(program)
@@ -63,23 +83,36 @@ def analyze(source: str, path: str = "<input>", *, rustc=None, target=None,
         report["diagnostics"] += [d.to_dict() for d in checked.diagnostics]
         report["effects"] = {k: sorted(v) for k, v in checked.effects.items()}
         report["assumptions"] = checked.assumptions
+        report["resource_contracts"] = checked.resource_contracts
         if not checked.ok:
             report["checks"]["types_effects_resources"] = "rejected"
             return result
         report["checks"]["types_effects_resources"] = "passed_in_supported_subset"
         if any(s.repr_c for s in program.structs) or any(f.extern_c or f.export_c for f in program.functions):
             emit_header(program)  # Reject unrepresentable C declaration dependencies.
-        generated = emit_rust(program, checked, no_std, crate_type)
-        result.rust = generated
-        report["rust_sha256"] = sha256(generated.encode())
+        if backend not in {"rust", "c"}:
+            raise HeptaError(Diagnostic("E_BACKEND", "Unknown compiler backend", Span(path=path), phase="backend"))
+        if backend == "c":
+            if target is not None or no_std:
+                raise HeptaError(Diagnostic("E_C_PROFILE", "The C backend currently supports host compilation only", Span(path=path), phase="backend"))
+            from .c_backend import emit_c, compile_c
+            c_crate_type = "obj" if crate_type == "rlib" else crate_type
+            generated = emit_c(program, checked, crate_type=c_crate_type)
+            result.c = generated
+            report["c_sha256"] = sha256(generated.encode())
+        else:
+            generated = emit_rust(program, checked, no_std, crate_type)
+            result.rust = generated
+            report["rust_sha256"] = sha256(generated.encode())
         report["profile"] = {"no_std": no_std, "crate_type": crate_type, "overflow_checks": True, "panic": "abort"}
         if native:
-            backend = compile_rust(generated, rustc=rustc, target=target, crate_type=crate_type, check_only=True)
-            report["backend"] = backend
-            report["diagnostics"] += backend["diagnostics"]
-            report["checks"]["rust_borrows_types"] = backend["status"]
-            report["ok"] = backend["ok"]
-            report["status"] = "checked_with_external_assumptions" if backend["ok"] and report["assumptions"] else ("checked" if backend["ok"] else backend["status"])
+            native_report = (compile_c(generated, cc=cc, crate_type=c_crate_type, check_only=True) if backend == "c"
+                             else compile_rust(generated, rustc=rustc, target=target, crate_type=crate_type, check_only=True))
+            report["backend"] = native_report
+            report["diagnostics"] += native_report["diagnostics"]
+            report["checks"]["rust_borrows_types" if backend == "rust" else "c_types_codegen"] = native_report["status"]
+            report["ok"] = native_report["ok"]
+            report["status"] = "checked_with_external_assumptions" if native_report["ok"] and report["assumptions"] else ("checked" if native_report["ok"] else native_report["status"])
         else:
             report["ok"] = True
             report["status"] = "frontend_only"
@@ -89,18 +122,33 @@ def analyze(source: str, path: str = "<input>", *, rustc=None, target=None,
         return result
 
 
+def analyze_project(path, *, locked=False, source_overrides=None, **options):
+    from .modules import load_project
+    project = load_project(path, locked=locked, source_overrides=source_overrides)
+    source = project.source_bytes[str(project.entry)].decode("utf-8")
+    result = analyze(source, str(project.entry), loaded_project=project, **options)
+    # Overrides are candidate in-memory source, not an assertion that the disk
+    # already contains the candidate. All other files must remain unchanged.
+    if not project.unchanged(except_paths=(source_overrides or {}).keys()):
+        result.report["ok"] = False
+        result.report["status"] = "rejected"
+        result.report["diagnostics"].append(Diagnostic("E_MODULE_RACE", "Source graph changed during validation", Span(path=str(project.entry)), phase="module").to_dict())
+    return result
+
+
 def inspect_analysis(analysis: Analysis) -> dict:
     out = dict(analysis.report)
     out["schema"] = "hepta.inspect.v1"
     if analysis.program:
         out["interface"] = interface(analysis.program)
-        out["symbols"] = [{"name": f.name, "start": f.span.start, "end": f.span.end,
+        out["symbols"] = [{"name": f.name, "path": f.span.path, "start": f.span.start, "end": f.span.end,
                            "body_start": f.body_span.start, "body_end": f.body_span.end,
                            "calls": sorted(_calls(f.body or []))} for f in analysis.program.functions]
     return out
 
 
 def _calls(body):
+    from dataclasses import fields, is_dataclass
     from .ast import Expr, Stmt
     found = set()
     def visit(x):
@@ -117,5 +165,9 @@ def _calls(body):
         elif isinstance(x, (list, tuple)):
             for value in x:
                 visit(value)
+        elif is_dataclass(x):
+            for field in fields(x):
+                if field.name != "span":
+                    visit(getattr(x, field.name))
     visit(body)
     return found

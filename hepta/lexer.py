@@ -18,7 +18,7 @@ KEYWORDS = frozenset({
     "module", "struct", "repr", "pub", "export", "extern", "fn",
     "effects", "resources", "let", "return", "for", "in", "while",
     "if", "else", "unsafe", "read", "mut", "take", "move", "as",
-    "raw", "const", "true", "false",
+    "raw", "const", "true", "false", "enum", "match", "import",
 })
 
 
@@ -178,7 +178,7 @@ class Lexer:
 
     def tokenize(self) -> list[Token]:
         result: list[Token] = []
-        pairs = {"->", "..", "==", "!=", "<=", ">=", "&&", "||", "<<", ">>"}
+        pairs = {"->", "..", "==", "!=", "<=", ">=", "&&", "||", "<<", ">>", "::", "=>"}
         singles = set("{}()[],:;=+-*/%!<>.&|^")
         while self.position < len(self.source):
             ch = self._peek()

@@ -1,0 +1,5 @@
+# Checked decimal parser with separators
+
+Parse an unsigned decimal byte sequence with an optional leading plus and underscores strictly between decimal digits. Leading zeroes are valid. Reject whitespace, minus, non-ASCII/non-digit bytes, missing digits, leading/trailing underscores, and repeated underscores. Return ParseResult(value,consumed,status): status 0 means success, value is the exact u64 and consumed=n; status 1 means syntax error, value=0 and consumed is the index of the first invalid byte (an underscore whose next byte is not a digit is itself invalid); empty input has consumed=0 and a lone plus has consumed=1. Status 2 means overflow, value=0 and consumed is the first digit index that would exceed u64::MAX. Report the earliest encountered error while scanning left to right. Preserve input; null is permitted when n=0.
+
+Replace only the marked function body. Keep all signatures, types, exported names, and declared effects unchanged. Return one complete replacement block including braces. Standard library only; no external packages. Tests call the native C ABI with valid regions satisfying the contract.
