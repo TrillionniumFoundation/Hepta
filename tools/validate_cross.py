@@ -42,6 +42,25 @@ def sha(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def aarch64_elf_identity(executable: Path) -> str:
+    """Identify the cross-compiled ELF without a host `file` dependency.
+
+    Check architecture/type rather than treating a filename or tool exit status
+    as evidence that QEMU executed the intended AArch64 artifact.
+    """
+    with executable.open("rb") as binary:
+        header = binary.read(20)
+    if (len(header) != 20 or header[:4] != b"\x7fELF"
+            or header[4:7] != b"\x02\x01\x01"):
+        raise RuntimeError("AArch64 cross-output must be a little-endian ELF64 v1 binary")
+    elf_type = int.from_bytes(header[16:18], "little")
+    machine = int.from_bytes(header[18:20], "little")
+    if elf_type not in (2, 3) or machine != 183:
+        raise RuntimeError("AArch64 cross-output has an unsupported ELF type or machine")
+    kind = "executable" if elf_type == 2 else "position-independent executable"
+    return f"{executable}: ELF64 little-endian AArch64 {kind} (validated header)"
+
+
 def validate(qemu, output):
     compiler = find_rustc()
     rust_info = toolchain_info(compiler)
@@ -76,7 +95,7 @@ def validate(qemu, output):
             cases.append({"case": name, "source_sha256": sha(text.encode()), "generated_rust_sha256": sha(checked.rust.encode()),
                           "artifact_sha256": sha(executable.read_bytes()), "returncode": execution.returncode,
                           "status": "passed" if expected_success else "failed_as_expected",
-                          "object_identity": subprocess.run(["file", str(executable)], capture_output=True, text=True, check=True).stdout.strip()})
+                          "object_identity": aarch64_elf_identity(executable)})
     if compiler_hash() != identity:
         raise RuntimeError("Compiler changed during cross execution")
     report = {"schema": "hepta.cross-execution.v1", "status": "passed", "target": TARGET,
