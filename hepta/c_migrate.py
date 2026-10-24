@@ -16,6 +16,7 @@ import subprocess
 import tempfile
 
 _IDENT = re.compile(r"[A-Za-z_][A-Za-z_0-9]*\Z")
+_STDINT_NAMES = {"int32_t", "uint32_t", "int64_t", "uint64_t"}
 _TYPES = {"int32_t": "i32", "uint32_t": "u32", "int64_t": "i64", "uint64_t": "u64",
           "int": "i32", "unsigned int": "u32", "long long": "i64", "unsigned long long": "u64",
           "long": "i64", "unsigned long": "u64"}
@@ -58,6 +59,12 @@ def _data_model(clang: str) -> dict:
 
 def _typ(qual: str, model: dict) -> str:
     qual = qual.strip()
+    if qual in _STDINT_NAMES and "typedef_types" in model:
+        # Familiar spellings are not a type guarantee: included headers may
+        # legally give these identifiers different underlying integer types.
+        qual = model["typedef_types"].get(qual, "")
+        if qual in _STDINT_NAMES:
+            raise MigrationRejected("E_C_TYPE", "Clang did not supply a canonical builtin typedef type")
     resolved = _TYPES.get(qual)
     if resolved is None or (qual in {"long", "unsigned long"} and model["sizeof_long"] != 8):
         raise MigrationRejected("E_C_TYPE", f"Unsupported or target-dependent C type: {qual}")
@@ -215,6 +222,18 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
         root = json.loads(ast_json)
         if root.get("kind") != "TranslationUnitDecl":
             raise MigrationRejected("E_C_AST", "Clang did not return a translation unit")
+        # This per-migration context leaves the separate C++ bridge caller of
+        # _typ unchanged; it has its own parser and qualification boundary.
+        # Function signatures keep typedef spellings even when parameter and
+        # expression nodes expose desugaredQualType. Resolve the existing four
+        # supported aliases from this exact Clang translation unit, including
+        # headers, so return-only aliases cannot bypass canonical type checking.
+        model = dict(model, typedef_types={
+            node["name"]: node.get("type", {}).get("desugaredQualType",
+                                                  node.get("type", {}).get("qualType", ""))
+            for node in root.get("inner", [])
+            if node.get("kind") == "TypedefDecl" and node.get("name") in _STDINT_NAMES
+        })
         declarations = []
         active_file = None
         for node in root.get("inner", []):
