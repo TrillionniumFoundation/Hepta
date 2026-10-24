@@ -70,5 +70,25 @@ class SemanticIRTests(unittest.TestCase):
         self.assertIsNone(exported["hsir"])
 
 
+    def test_cli_exports_hsir_without_claiming_native_success(self):
+        import json
+        from pathlib import Path
+        import subprocess
+        import sys
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "source.hepta"
+            source.write_text(self.A, encoding="utf-8")
+            proc = subprocess.run(
+                [sys.executable, "-m", "hepta", "hsir", str(source), "--frontend-only"],
+                capture_output=True, text=True, timeout=20)
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            report = json.loads(proc.stdout)
+            self.assertEqual(report["schema"], "hepta.hsir.export.v0")
+            self.assertEqual(report["status"], "frontend_only")
+            self.assertTrue(report["hsir"]["sha256"])
+            self.assertFalse(report["hsir"]["claims"]["native_borrow_validation"])
+
+
 if __name__ == "__main__":
     unittest.main()
