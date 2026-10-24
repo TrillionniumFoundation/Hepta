@@ -73,10 +73,16 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str) -> tuple
     kind = node.get("kind")
     inner = node.get("inner", [])
     if kind in {"ImplicitCastExpr", "ParenExpr"}:
-        if kind == "ImplicitCastExpr" and node.get("castKind") not in _CASTS:
-            raise MigrationRejected("E_C_CAST", "Integral/pointer/other C implicit casts need explicit migration semantics")
         if len(inner) != 1:
             raise MigrationRejected("E_C_AST", "Malformed Clang cast/parenthesis")
+        if kind == "ImplicitCastExpr":
+            cast = node.get("castKind")
+            if cast == "IntegralCast" and inner[0].get("kind") == "IntegerLiteral" and _decl_type(node, model) == expected:
+                # Only compile-time constants provably representable in the target
+                # type may undergo automatic widening/promotion in this pilot.
+                return _expr(inner[0], args, model, expected)
+            if cast not in _CASTS:
+                raise MigrationRejected("E_C_CAST", "C integer/pointer casts require a checked target representation")
         return _expr(inner[0], args, model, expected)
     if kind == "IntegerLiteral":
         try:
