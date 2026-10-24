@@ -117,7 +117,7 @@ jobs:
       - name: Record and verify the tested source head
         shell: bash
         run: |
-          actual_head=$(git rev-parse HEAD)
+          actual_head=$(git -c safe.directory="$PWD" rev-parse HEAD)
           mkdir -p artifacts
           mkdir -p artifacts/debian-toolchain
           cp "$HEPTA_TOOL_EVIDENCE"/*.log "$HEPTA_TOOL_EVIDENCE"/*.txt "$HEPTA_TOOL_EVIDENCE"/*.tsv "$HEPTA_TOOL_EVIDENCE"/*.sha256 "$HEPTA_TOOL_EVIDENCE/InRelease" artifacts/debian-toolchain/
