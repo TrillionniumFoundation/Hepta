@@ -269,7 +269,19 @@ def import_header(path, *, cc=None, module="c_imported", contracts=None) -> Impo
     if version.returncode or target.returncode:
         reject("TOOLCHAIN", "Cannot identify the C compiler")
     probe = ["#include <stdint.h>", "#include <stddef.h>", "#include <limits.h>", "#include <stdio.h>",
-             "#include " + json.dumps(str(header)), "int main(void) {"]
+             "#include " + json.dumps(str(header))]
+    # The subset parser does not evaluate preprocessor conditions. Confirm
+    # every parsed prototype exists with its declared type in the compiler's
+    # actual header environment, before introducing the probe's own main.
+    for declaration, parameters in parser.prototypes:
+        if len(declaration) < 2 or not re.fullmatch(r"[A-Za-z_]\w*", declaration[-1]):
+            reject("PROTOTYPE", "Unsupported function declaration in native prototype probe")
+        name = declaration[-1]
+        result_type = " ".join(declaration[:-1])
+        parameter_types = ", ".join(" ".join(p) for p in parameters)
+        probe.append(f'_Static_assert(__builtin_types_compatible_p(__typeof__(&{name}), '
+                     f'{result_type} (*)({parameter_types})), "imported C prototype mismatch");')
+    probe.append("int main(void) {")
     for spelling in PRIMITIVES:
         signed = f"(({spelling})-1 < ({spelling})0)"
         probe.append(f'printf("P|{spelling}|%zu|%zu|%d\\n", sizeof({spelling}), _Alignof({spelling}), {signed});')
