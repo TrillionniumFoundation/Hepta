@@ -61,7 +61,8 @@ class ClangMigrationTests(unittest.TestCase):
         self.c.write_text("int shared = 7; int f(int x) {return x + shared;}\n")
         result = migrate_c(self.c, self.hepta)
         self.assertFalse(result["ok"])
-        self.assertIn("E_C_REF", [x["code"] for x in result["rejected"]])
+        # Global state is rejected at whole-TU preflight, before expression lowering.
+        self.assertIn("E_C_TOPLEVEL", [x["code"] for x in result["rejected"]])
         self.assertFalse(self.hepta.exists())
 
     def test_unsupported_cast_rejected_without_writing(self):
