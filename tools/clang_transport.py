@@ -24,7 +24,7 @@ def run_clang(
 
     Only empty stdin is supported (the caller's -dM probe requires it).
     A dedicated POSIX session keeps descendant termination out of our own
-    process group. Timeout/size/error cleanup kills the *whole* group.
+    process group. Cleanup kills remaining descendants even on success.
     """
     if os.name != "posix":
         raise subprocess.SubprocessError("isolated Clang capture requires POSIX")
@@ -36,7 +36,6 @@ def run_clang(
         args, stdin=subprocess.PIPE if input is not None else subprocess.DEVNULL,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True,
     )
-    cleanup_group = True
     try:
         if proc.stdin is not None:
             proc.stdin.close()
@@ -70,14 +69,14 @@ def run_clang(
         result = subprocess.CompletedProcess(args, status, stdout, stderr)
         if check:
             result.check_returncode()
-        cleanup_group = False
         return result
     finally:
-        if cleanup_group:
-            try:
-                os.killpg(proc.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
+        # Always tear down the dedicated group: a successful driver may have
+        # spawned children which closed the inherited output pipes.
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
         proc.wait()
         proc.stdout.close()
         proc.stderr.close()

@@ -52,5 +52,35 @@ class ClangTransportTests(unittest.TestCase):
             self.assertTrue(not_running(), "orphan descendant remained live after timeout")
 
 
+    def test_success_kills_descendant_with_closed_stdio(self):
+        """A daemonized compiler child must not survive a successful parent exit."""
+        with tempfile.TemporaryDirectory() as tmp:
+            pidfile = Path(tmp) / "child-pid"
+            code = (
+                "import subprocess,sys; child=subprocess.Popen("
+                "[sys.executable,'-c','import time;time.sleep(30)'],"
+                "stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,"
+                "stderr=subprocess.DEVNULL);"
+                "open(sys.argv[1],'w').write(str(child.pid))"
+            )
+            result = run_clang([sys.executable, "-c", code, str(pidfile)], timeout=3, check=True)
+            self.assertEqual(result.returncode, 0)
+            child = int(pidfile.read_text())
+
+            def not_running():
+                try:
+                    return Path(f"/proc/{child}/stat").read_text().split()[2] in {"Z", "X"}
+                except FileNotFoundError:
+                    return True
+
+            for _ in range(20):
+                if not_running():
+                    break
+                time.sleep(.05)
+            if not not_running():
+                os.kill(child, signal.SIGKILL)
+            self.assertTrue(not_running(), "orphan descendant survived successful parent exit")
+
+
 if __name__ == "__main__":
     unittest.main()
