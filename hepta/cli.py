@@ -43,7 +43,7 @@ def main(argv=None) -> int:
     importer.add_argument("--output", "-o", required=True)
     importer.add_argument("--module", default="c_imported")
     importer.add_argument("--cc")
-    for cmd in ["check", "inspect", "hsir", "emit", "header", "build", "run", "patch"]:
+    for cmd in ["check", "inspect", "hsir", "hmir", "emit", "header", "build", "run", "patch"]:
         p = sub.add_parser(cmd)
         p.add_argument("source")
         p.add_argument("--rustc")
@@ -55,7 +55,7 @@ def main(argv=None) -> int:
         if cmd != "patch":
             p.add_argument("--no-std", action="store_true")
             p.add_argument("--crate-type", choices=["bin", "staticlib", "cdylib", "rlib", "obj"], default="bin" if cmd in {"build", "run"} else "rlib")
-        if cmd in {"check", "inspect", "hsir"}:
+        if cmd in {"check", "inspect", "hsir", "hmir"}:
             p.add_argument("--frontend-only", action="store_true", help="Explicitly skip native/borrow checks; output cannot be treated as a complete check")
         if cmd in {"emit", "header", "build"}:
             p.add_argument("--output", "-o")
@@ -122,6 +122,11 @@ def main(argv=None) -> int:
         if args.command == "hsir":
             output_json(hsir_analysis(result))
             return 0 if result.report["ok"] else 1
+        if args.command == "hmir":
+            from .hmir import hmir_analysis
+            exported = hmir_analysis(result)
+            output_json(exported)
+            return 0 if exported["ok"] else 1
         if not result.report["ok"] or args.command == "check":
             output_json(result.report)
             return 0 if result.report["ok"] else 1
