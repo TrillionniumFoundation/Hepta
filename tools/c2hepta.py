@@ -18,7 +18,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from hepta.hsir import Expr, Function, IRValidationError, Stmt, check_function, emit_function, function_hash  # noqa: E402
+from hepta.migration_ir import Expr, Function, IRValidationError, Stmt, check_function, emit_function, function_hash  # noqa: E402
 
 TYPES = {"int": "i32", "unsigned int": "u32"}
 IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z_0-9]*\Z", re.ASCII)
