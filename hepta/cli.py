@@ -28,6 +28,10 @@ def main(argv=None) -> int:
     doctor.add_argument("--rustc")
     lock = sub.add_parser("lock", help="Lock local package source and dependency bytes")
     lock.add_argument("package", nargs="?", default=".")
+    migrator = sub.add_parser("migrate-c", help="Strict Clang-AST conversion of safe scalar C functions")
+    migrator.add_argument("source")
+    migrator.add_argument("--output", "-o", required=True)
+    migrator.add_argument("--clang", default="clang")
     importer = sub.add_parser("import-c", help="Import the supported C header subset using real compiler probes")
     importer.add_argument("header")
     importer.add_argument("--output", "-o", required=True)
@@ -60,6 +64,11 @@ def main(argv=None) -> int:
             from .packages import write_lock
             output_json(write_lock(args.package))
             return 0
+        if args.command == "migrate-c":
+            from .c_migrate import migrate_c
+            result = migrate_c(args.source, args.output, clang=args.clang)
+            output_json(result)
+            return 0 if result["ok"] else 1
         if args.command == "import-c":
             from .c_import import import_header
             imported = import_header(args.header, cc=args.cc, module=args.module)
