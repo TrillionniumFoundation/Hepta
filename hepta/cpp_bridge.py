@@ -60,6 +60,19 @@ def _header_class(header: Path, class_name: str, clang: str) -> dict:
 
 
 def _class_methods(decl: dict, model: dict) -> list[dict]:
+    # The wrapper spells types in global scope, outside the original class.
+    # A familiar local alias can therefore become a different global stdint
+    # type and silently convert at the method call or result assignment.
+    # Scan private aliases too: a public signature can legally use them.
+    shadowed = {member.get("name") for member in decl.get("inner", [])
+                if member.get("kind") in {"TypedefDecl", "TypeAliasDecl"}
+                and member.get("name") in {"int32_t", "uint32_t", "int64_t", "uint64_t"}}
+
+    def scalar_type(qual: str) -> str:
+        if qual.strip() in shadowed:
+            raise MigrationRejected("E_CPP_ALIAS_SCOPE", "Class-local scalar alias requires explicit scope-aware lowering")
+        return _typ(qual, model)
+
     access = "public" if decl.get("tagUsed") == "struct" else "private"
     ctor = False
     dtor = False
@@ -94,13 +107,13 @@ def _class_methods(decl: dict, model: dict) -> list[dict]:
         t = member.get("type", {}).get("qualType", "")
         if "(" not in t or "..." in t:
             raise MigrationRejected("E_CPP_METHOD", "Missing non-variadic scalar method type")
-        ret = _typ(t.split("(", 1)[0], model)
+        ret = scalar_type(t.split("(", 1)[0])
         params = [p for p in member.get("inner", []) if p.get("kind") == "ParmVarDecl"]
         if len(params) > 16:
             raise MigrationRejected("E_CPP_METHOD", "Too many method arguments")
         args = []
         for index, p in enumerate(params):
-            args.append((f"arg{index}", _typ(p.get("type", {}).get("qualType", ""), model),
+            args.append((f"arg{index}", scalar_type(p.get("type", {}).get("qualType", "")),
                          p.get("type", {}).get("qualType", "")))
         methods.append({"name": name, "ret": ret,
                         "c_return": t.split("(", 1)[0].strip(), "args": args})
