@@ -326,6 +326,110 @@ def lower_control_flow_program(program: Program, checked: Any,
     return payload
 
 
+_UNPROVED_CLAIMS = (
+    "ssa_constructed", "independent_borrow_validation",
+    "pointer_provenance_proved", "automatic_drop_lowering",
+    "runtime_resource_bounds_proved", "native_codegen_validated",
+    "translation_correctness_proved", "whole_language_soundness_proved",
+)
+
+
+def verify_control_flow_snapshot(
+    snapshot: dict[str, Any],
+    *, expected_source_sha256: str | None = None,
+    expected_project_sha256: str | None = None,
+) -> dict[str, Any]:
+    """Independently check the bounded JSON graph shape and content digest.
+
+    Hash integrity is not authentication; this does not establish compiler
+    soundness, equivalence, borrow validity, or pointer safety. Callers should
+    supply the independently trusted source/project identities.
+    """
+    if not isinstance(snapshot, dict) or set(snapshot) != {
+        "schema", "profile", "source_sha256", "project_sha256", "functions",
+        "foreign_assumptions", "claims", "sha256",
+    } or snapshot["schema"] != SCHEMA:
+        raise ValueError("HMIR verifier: unsupported schema or fields")
+    digest = snapshot["sha256"]
+    body = {key: value for key, value in snapshot.items() if key != "sha256"}
+    if not isinstance(digest, str) or digest != _sha(body):
+        raise ValueError("HMIR verifier: content digest mismatch")
+    if (expected_source_sha256 is not None and
+            snapshot["source_sha256"] != expected_source_sha256):
+        raise ValueError("HMIR verifier: source snapshot mismatch")
+    if (expected_project_sha256 is not None and
+            snapshot["project_sha256"] != expected_project_sha256):
+        raise ValueError("HMIR verifier: project snapshot mismatch")
+    claims = snapshot["claims"]
+    if (not isinstance(claims, dict) or claims.get("frontend_checked") is not True
+            or any(claims.get(key) is not False for key in _UNPROVED_CLAIMS)):
+        raise ValueError("HMIR verifier: unsupported safety claim")
+    functions = snapshot["functions"]
+    if not isinstance(functions, list):
+        raise ValueError("HMIR verifier: function collection is not a list")
+    for fn in functions:
+        if not isinstance(fn, dict) or not isinstance(fn.get("name"), str):
+            raise ValueError("HMIR verifier: malformed function")
+        blocks = fn.get("blocks")
+        if fn.get("extern_c") is True:
+            if fn.get("entry") is not None or blocks != []:
+                raise ValueError("HMIR verifier: foreign body was fabricated")
+            continue
+        if (fn.get("extern_c") is not False or fn.get("entry") != "b0" or
+                not isinstance(blocks, list) or not blocks):
+            raise ValueError("HMIR verifier: invalid entry")
+        ids = [block.get("id") if isinstance(block, dict) else None
+               for block in blocks]
+        if ids != [f"b{idx}" for idx in range(len(blocks))]:
+            raise ValueError("HMIR verifier: block ID or order violation")
+        graph: dict[str, list[str]] = {}
+        for block in blocks:
+            if not isinstance(block.get("instructions"), list):
+                raise ValueError("HMIR verifier: malformed instruction list")
+            term = block.get("terminator")
+            if not isinstance(term, dict):
+                raise ValueError("HMIR verifier: missing terminator")
+            op, targets = term.get("operation"), term.get("targets")
+            if not isinstance(targets, list):
+                raise ValueError("HMIR verifier: malformed successor list")
+            arity = {"jump": 1, "branch": 2, "range_branch": 2,
+                     "return": 0, "unit_fallthrough": 0}
+            if op in arity:
+                if len(targets) != arity[op]:
+                    raise ValueError("HMIR verifier: invalid terminator arity")
+            elif op == "switch_enum":
+                if not targets:
+                    raise ValueError("HMIR verifier: empty enum switch")
+            else:
+                raise ValueError("HMIR verifier: unsupported terminator")
+            if op == "branch" and [t.get("role") for t in targets
+                                    if isinstance(t, dict)] != ["true", "false"]:
+                raise ValueError("HMIR verifier: invalid branch roles")
+            if op == "range_branch" and [t.get("role") for t in targets
+                                          if isinstance(t, dict)] != ["next_item", "exhausted"]:
+                raise ValueError("HMIR verifier: invalid range roles")
+            if not all(isinstance(t, dict) and isinstance(t.get("role"), str)
+                       and t.get("to") in ids for t in targets):
+                raise ValueError("HMIR verifier: invalid edge")
+            if op == "switch_enum" and len({t["role"] for t in targets}) != len(targets):
+                raise ValueError("HMIR verifier: duplicate enum case")
+            graph[block["id"]] = [t["to"] for t in targets]
+        visited: set[str] = set()
+        pending = ["b0"]
+        while pending:
+            node = pending.pop()
+            if node in visited:
+                continue
+            visited.add(node)
+            pending.extend(graph[node])
+        if visited != set(ids):
+            raise ValueError("HMIR verifier: unreachable blocks")
+    return {"schema": "hepta.hmir.structural.verify.v0", "ok": True,
+            "scope": "digest_and_cfg_shape_only",
+            "native_or_semantic_correctness_proved": False,
+            "sha256": digest}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Hepta P1 structural CFG exporter")
     parser.add_argument("source")
