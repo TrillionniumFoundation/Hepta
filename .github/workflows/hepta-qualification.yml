@@ -1,0 +1,39 @@
+name: Hepta qualified full gates
+
+on:
+  push:
+    branches:
+      - feat/hepta-p0-p1-verified-ir-20261024
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release-qualification:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout frozen source snapshot
+        uses: actions/checkout@v4
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verification archive dependency
+        run: python -m pip install zstandard
+      - name: Install SHA-256-locked Rust 1.90.0 toolchain and cross stdlibs
+        run: python tools/bootstrap_toolchain.py
+      - name: Install SHA-256-locked Lean and QEMU tools
+        run: python tools/bootstrap_verification.py
+      - name: Re-run all thirteen 0.2 release gates including new tests
+        run: python tools/release_check.py
+      - name: Preserve failures and all raw evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hepta-release-evidence
+          path: |
+            artifacts/
+            evidence/
+          if-no-files-found: warn
