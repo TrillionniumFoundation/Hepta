@@ -28,6 +28,12 @@ def main(argv=None) -> int:
     doctor.add_argument("--rustc")
     lock = sub.add_parser("lock", help="Lock local package source and dependency bytes")
     lock.add_argument("package", nargs="?", default=".")
+    cpp = sub.add_parser("bridge-cpp", help="Checked C ABI bridge for one C++ scalar class")
+    cpp.add_argument("header")
+    cpp.add_argument("--class", dest="class_name", required=True)
+    cpp.add_argument("--output", "-o", required=True)
+    cpp.add_argument("--hepta-output", required=True)
+    cpp.add_argument("--clang", default="clang++")
     migrator = sub.add_parser("migrate-c", help="Strict Clang-AST conversion of safe scalar C functions")
     migrator.add_argument("source")
     migrator.add_argument("--output", "-o", required=True)
@@ -64,6 +70,11 @@ def main(argv=None) -> int:
             from .packages import write_lock
             output_json(write_lock(args.package))
             return 0
+        if args.command == "bridge-cpp":
+            from .cpp_bridge import bridge_cpp
+            result = bridge_cpp(args.header, args.class_name, args.output, args.hepta_output, clang=args.clang)
+            output_json(result)
+            return 0 if result["ok"] else 1
         if args.command == "migrate-c":
             from .c_migrate import migrate_c
             result = migrate_c(args.source, args.output, clang=args.clang)
