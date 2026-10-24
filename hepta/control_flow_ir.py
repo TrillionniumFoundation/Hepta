@@ -118,6 +118,7 @@ class _FunctionCFG:
                 "kind": node.kind,
                 "value": _source_value(node.value),
                 "type": str(self.types[id(node)]),
+                "type_args": [str(t) for t in node.type_args],
                 "span": _span(node.span),
                 "args": [encode(child) for child in node.children],
             }
