@@ -22,7 +22,7 @@ C_KEYWORDS = {"auto", "break", "case", "char", "const", "continue", "default", "
 CPP_KEYWORDS = {"alignas", "alignof", "and", "and_eq", "asm", "atomic_cancel", "atomic_commit", "atomic_noexcept", "bitand", "bitor", "bool", "catch", "char8_t", "char16_t", "char32_t", "class", "compl", "concept", "consteval", "constexpr", "constinit", "const_cast", "co_await", "co_return", "co_yield", "decltype", "delete", "dynamic_cast", "explicit", "export", "false", "friend", "mutable", "namespace", "new", "noexcept", "not", "not_eq", "nullptr", "operator", "or", "or_eq", "private", "protected", "public", "reflexpr", "reinterpret_cast", "requires", "static_assert", "static_cast", "synchronized", "template", "this", "thread_local", "throw", "true", "try", "typeid", "typename", "using", "virtual", "wchar_t", "xor", "xor_eq"}
 C_TYPEDEF_NAMES = {"size_t", "ptrdiff_t", "wchar_t", "max_align_t", "intptr_t", "uintptr_t", "intmax_t", "uintmax_t"} | {f"{prefix}{middle}{bits}_t" for prefix in ("int", "uint") for middle in ("", "_least", "_fast") for bits in (8, 16, 32, 64)}
 C_HEADER_MACRO = re.compile(r"(?:U?INT[A-Z0-9_]*_(?:MAX|MIN|C)|SIZE_MAX|PTRDIFF_.*|SIG_ATOMIC_.*|WCHAR_.*|WINT_.*)\Z")
-BUILTINS = {"len", "wrapping_add", "wrapping_sub", "wrapping_mul", "buffer", "release", "assert", "print_i64", "load", "store", "ptr_read", "ptr_mut", "min", "max", "spawn", "join", "cancel_and_join", "cancelled"} | GROUP_BUILTINS
+BUILTINS = {"len", "wrapping_add", "wrapping_sub", "wrapping_mul", "buffer", "try_buffer", "release", "drop", "assert", "print_i64", "load", "store", "ptr_read", "ptr_mut", "min", "max", "spawn", "join", "cancel_and_join", "cancelled"} | GROUP_BUILTINS
 LINEAR = {"Buffer", "Task", "TaskGroup"}
 ERROR = Type("<error>")
 UNIT = Type("Unit")
@@ -31,6 +31,7 @@ USIZE = Type("usize")
 I64 = Type("i64")
 F64 = Type("f64")
 BUFFER_U8 = Type("Buffer", (Type("u8"),))
+BUFFER_RESULT = Type("Result", (BUFFER_U8, Type("u8")))
 TASK_U64 = Type("Task", (Type("u64"),))
 CANCELLATION = Type("Cancellation")
 RESERVED_TYPES = PRIMITIVES | BUILTINS | GROUP_TYPE_NAMES | {"Buffer", "Task", "Cancellation", "Result", "array", "slice", "raw_const", "raw_mut"}
@@ -43,6 +44,64 @@ def substitute_type(typ: Type, mapping: dict[str, Type]) -> Type:
     return Type(typ.name, tuple(substitute_type(arg, mapping) for arg in typ.args), typ.length)
 
 
+def _contains_capability(typ: Type, names: set[str], structs: dict[str, Struct],
+                         enums: dict[str, Enum], seen: frozenset[str] = frozenset()) -> bool:
+    """Conservatively inspect concrete arguments and nominal payloads iteratively.
+
+    Nominal names stop recursive declarations from exhausting Python's stack.
+    Arguments are inspected even in pointer/phantom positions: those positions
+    cannot be used to hide resource or scoped runtime capabilities in this
+    bounded language profile.
+    """
+    pending = [typ]
+    visited = set(seen)
+    while pending:
+        current = pending.pop()
+        if current.name in names:
+            return True
+        pending.extend(current.args)
+        if current.name in visited:
+            continue
+        visited.add(current.name)
+        decl = structs.get(current.name) or enums.get(current.name)
+        if decl is not None:
+            mapping = dict(zip(decl.type_params, current.args))
+            payloads = [f.type for f in decl.fields] if isinstance(decl, Struct) else [t for v in decl.variants for t in v.fields]
+            pending.extend(substitute_type(t, mapping) for t in payloads)
+    return False
+
+
+def is_owned_type(program: Program, typ: Type) -> bool:
+    """Public resource classification for checked AST consumers and verifiers.
+
+    Classification is not validation: arrays/pointers containing resources and
+    nested task handles are still rejected separately by the checker.
+    """
+    return _contains_capability(typ, LINEAR, {s.name: s for s in program.structs},
+                                {e.name: e for e in program.enums})
+
+
+def place_path(expr: Expr) -> tuple[str, tuple[str, ...]] | None:
+    """Named place identity; '*' represents an index with unproved overlap."""
+    path = []
+    while expr.kind in {"field", "index"} and expr.children:
+        path.append(str(expr.value) if expr.kind == "field" else "*")
+        expr = expr.children[0]
+    return (expr.value, tuple(reversed(path))) if expr.kind == "name" else None
+
+
+def places_overlap(left: tuple[str, tuple[str, ...]], right: tuple[str, tuple[str, ...]]) -> bool:
+    if left[0] != right[0]:
+        return False
+    for a, b in zip(left[1], right[1]):
+        if "*" in {a, b}:
+            return True
+        if a != b:
+            return False
+    # Equal paths, or one path naming an ancestor of the other, overlap.
+    return True
+
+
 @dataclass
 class CheckResult:
     diagnostics: list[Diagnostic] = field(default_factory=list)
@@ -50,6 +109,7 @@ class CheckResult:
     expr_types: dict[int, Type] = field(default_factory=dict)
     assumptions: list[dict] = field(default_factory=list)
     resource_contracts: list[dict] = field(default_factory=list)
+    owned_types: set[Type] = field(default_factory=set)
 
     @property
     def ok(self) -> bool:
@@ -93,6 +153,8 @@ class _Checker:
 
     def remember(self, expr: Expr, typ: Type) -> Type:
         self.result.expr_types[id(expr)] = typ
+        if self.contains_linear(typ):
+            self.result.owned_types.add(typ)
         return typ
 
     def effect(self, *effects: str) -> None:
@@ -114,32 +176,20 @@ class _Checker:
         return self.contains_capability(typ, {"Cancellation"}, seen)
 
     def contains_capability(self, typ: Type, names: set[str], seen: frozenset[str] = frozenset()) -> bool:
-        pending = [typ]
-        visited = set(seen)
-        while pending:
-            current = pending.pop()
-            if current.name in names:
-                return True
-            pending.extend(current.args)
-            if current.name in visited:
-                continue
-            visited.add(current.name)
-            if current.name in self.structs:
-                pending.extend(field.type for field in self.structs[current.name].fields)
-            elif current.name in self.enums:
-                pending.extend(field for variant in self.enums[current.name].variants for field in variant.fields)
-        return False
+        return _contains_capability(typ, names, self.structs, self.enums, seen)
 
     def contains_sender(self, typ: Type, seen: frozenset[str] = frozenset()) -> bool:
         return self.contains_capability(typ, {"Sender"}, seen)
 
-    def generic_arguments(self, params: tuple[str, ...], args: tuple[Type, ...], span: Span) -> dict[str, Type]:
+    def generic_arguments(self, params: tuple[str, ...], args: tuple[Type, ...], span: Span, *, allow_owned: bool = False) -> dict[str, Type]:
         if len(params) != len(args):
             self.error("E_GENERIC_ARITY", f"expected {len(params)} explicit type argument(s), found {len(args)}", span)
         for arg in args:
             self.valid_type(arg, span)
-            if self.contains_linear(arg) or self.contains_cancellation(arg) or self.contains_sender(arg) or arg.name == "slice":
-                self.error("E_GENERIC_COPY", f"generic arguments must be sized Copy values; {arg} is not supported", span)
+            scoped = self.contains_capability(arg, {"Task", "TaskGroup"})
+            if (self.contains_linear(arg) and not allow_owned) or scoped or self.contains_cancellation(arg) or self.contains_sender(arg) or arg.name == "slice":
+                detail = "sized values without scoped runtime capabilities" if allow_owned else "sized Copy values"
+                self.error("E_GENERIC_COPY", f"generic arguments must be {detail}; {arg} is not supported", span)
         return {name: args[index] if index < len(args) else ERROR for index, name in enumerate(params)}
 
     def declaration_parameters(self, params: tuple[str, ...], span: Span, fields: list[Type] | None = None) -> None:
@@ -169,6 +219,36 @@ class _Checker:
         typ = Type(name, args)
         self.valid_type(typ, span)
         return typ
+
+    def valid_owned_payload_shapes(self, typ: Type, span: Span) -> bool:
+        """Instantiation must not hide resources in unsupported containers.
+
+        Declarations such as Box<T> { values: [T; 2] } are valid for Copy T,
+        but substituting Buffer must still trigger the array restriction.
+        The finite (nominal, owned-argument mask) worklist also handles recursive
+        declarations without recursive Python traversal or expanding forever.
+        """
+        pending = [typ]
+        visited: set[tuple[str, tuple[bool, ...]]] = set()
+        good = True
+        while pending:
+            current = pending.pop()
+            if current.name in {"array", "slice", "Buffer", "raw_const", "raw_mut"}:
+                if any(self.contains_linear(arg) for arg in current.args):
+                    self.error("E_NESTED_LINEAR", f"instantiated payload {current} hides resources in an unsupported container", span)
+                    good = False
+                continue
+            decl = self.structs.get(current.name) or self.enums.get(current.name)
+            if decl is None:
+                continue
+            key = (current.name, tuple(self.contains_linear(arg) for arg in current.args))
+            if key in visited:
+                continue
+            visited.add(key)
+            mapping = dict(zip(decl.type_params, current.args))
+            payloads = [f.type for f in decl.fields] if isinstance(decl, Struct) else [t for v in decl.variants for t in v.fields]
+            pending.extend(substitute_type(t, mapping) for t in payloads)
+        return good
 
     def valid_type(self, typ: Type, span: Span, *, allow_slice: bool = False, allow_cancellation: bool = False, allow_sender: bool = False) -> bool:
         name = typ.name
@@ -222,11 +302,11 @@ class _Checker:
         if name in self.structs or name in self.enums:
             decl = self.structs.get(name) or self.enums[name]
             previous_errors = len(self.result.diagnostics)
-            self.generic_arguments(decl.type_params, typ.args, span)
+            self.generic_arguments(decl.type_params, typ.args, span, allow_owned=True)
             if typ.length is not None:
                 self.error("E_TYPE_FORM", f"{name} cannot take an array length", span)
-            if self.contains_linear(typ):
-                self.error("E_NESTED_LINEAR", f"type {name} contains a linear resource", span)
+            if self.contains_capability(typ, {"Task", "TaskGroup"}):
+                self.error("E_NESTED_LINEAR", f"type {name} contains a scoped task resource", span)
                 return False
             if self.contains_cancellation(typ):
                 self.error("E_CANCELLATION_TYPE", f"type {name} contains a Cancellation capability", span)
@@ -234,6 +314,7 @@ class _Checker:
             if self.contains_sender(typ):
                 self.error("E_SENDER_TYPE", f"type {name} contains a Sender capability", span)
                 return False
+            self.valid_owned_payload_shapes(typ, span)
             return len(self.result.diagnostics) == previous_errors
         self.error("E_UNKNOWN_TYPE", f"unknown type {typ}", span)
         return False
@@ -347,8 +428,8 @@ class _Checker:
                     self.error("E_DUPLICATE", f"duplicate field {member.name} in {struct.name}", member.span)
                 seen.add(member.name)
                 self.valid_type(member.type, member.span)
-                if self.contains_linear(member.type):
-                    self.error("E_NESTED_LINEAR", f"field {struct.name}.{member.name} contains a linear resource", member.span)
+                if self.contains_capability(member.type, {"Task", "TaskGroup"}):
+                    self.error("E_NESTED_LINEAR", f"field {struct.name}.{member.name} contains a scoped task resource", member.span)
                 if member.mode != "value":
                     self.error("E_FIELD_MODE", "struct fields cannot carry parameter ownership modes", member.span)
                 if struct.repr_c:
@@ -366,8 +447,8 @@ class _Checker:
                 seen_variants.add(variant.name)
                 for typ in variant.fields:
                     self.valid_type(typ, variant.span)
-                    if self.contains_linear(typ):
-                        self.error("E_NESTED_LINEAR", f"variant {enum.name}::{variant.name} contains a linear resource", variant.span)
+                    if self.contains_capability(typ, {"Task", "TaskGroup"}):
+                        self.error("E_NESTED_LINEAR", f"variant {enum.name}::{variant.name} contains a scoped task resource", variant.span)
                     if self.contains_cancellation(typ):
                         self.error("E_CANCELLATION_TYPE", f"variant {enum.name}::{variant.name} contains a Cancellation capability", variant.span)
                     if self.contains_sender(typ):
@@ -380,8 +461,16 @@ class _Checker:
                 self.error("E_GENERIC_BOUNDARY", "generic functions cannot be C boundary symbols or main entrypoints", fn.span)
             for effect in fn.effects - EFFECTS:
                 self.error("E_UNKNOWN_EFFECT", f"unknown effect {effect}", fn.span)
-            self.valid_type(fn.return_type, fn.span)
-            if fn.return_type.name in {"Task", "TaskGroup"}:
+            if fn.return_mode not in {"value", "read", "mut"}:
+                self.error("E_RETURN_MODE", f"unsupported return mode {fn.return_mode}", fn.span)
+            self.valid_type(fn.return_type, fn.span, allow_slice=fn.return_mode in {"read", "mut"})
+            if fn.return_mode in {"read", "mut"}:
+                origins = [p for p in fn.params if p.mode in {"read", "mut"}]
+                if len(origins) != 1:
+                    self.error("E_BORROW_RETURN_SOURCE", "a borrowed return requires exactly one read/mut source parameter", fn.span)
+                elif fn.return_mode == "mut" and origins[0].mode != "mut":
+                    self.error("E_READ_ONLY", "a mutable borrowed return requires a mutable source parameter", fn.span)
+            if self.contains_capability(fn.return_type, {"Task", "TaskGroup"}):
                 self.error("E_TASK_SCOPE", "Task/TaskGroup handles cannot escape through a function return; join them in their creating scope", fn.span)
             seen: set[str] = set()
             for param in fn.params:
@@ -391,14 +480,16 @@ class _Checker:
                 if param.mode not in {"value", "read", "mut", "take"}:
                     self.error("E_PARAMETER_MODE", f"unknown parameter mode {param.mode}", param.span)
                 self.valid_type(param.type, param.span, allow_slice=param.mode in {"read", "mut"}, allow_cancellation=param.mode == "read", allow_sender=param.mode == "read")
-                if param.type.name == "Buffer" and param.mode == "value":
-                    self.error("E_LINEAR_MODE", f"owning Buffer parameter {param.name} must use take", param.span)
+                if self.contains_linear(param.type) and param.mode == "value":
+                    self.error("E_LINEAR_MODE", f"owning resource parameter {param.name} must use take", param.span)
                 if param.type == UNIT:
                     self.error("E_UNIT_PARAMETER", "Unit parameters are not supported", param.span)
-                if param.type.name in {"Task", "TaskGroup"}:
+                if self.contains_capability(param.type, {"Task", "TaskGroup"}):
                     self.error("E_TASK_SCOPE", "Task/TaskGroup parameters are unsupported; handles remain local until joined", param.span)
             if fn.extern_c or fn.export_c:
                 self.c_identifier(fn.name, fn.span, "symbol")
+                if fn.return_mode != "value":
+                    self.error("E_C_ABI", "borrowed returns do not have a C ABI in this profile", fn.span)
                 if not self.c_type(fn.return_type, position="return"):
                     self.error("E_C_ABI", f"return type {fn.return_type} is not supported at a C boundary", fn.span)
                 for param in fn.params:
@@ -438,14 +529,26 @@ class _Checker:
         binding = _Binding(self.next_binding, name, typ, mutable, mode, span)
         env[name] = binding
         self.bindings[binding.ident] = binding
-        if typ.name in LINEAR and mode not in {"read", "mut"}:
+        if self.contains_linear(typ) and mode not in {"read", "mut"}:
             live.add(binding.ident)
         return binding
 
     def live_error(self, live: set[int], span: Span, context: str) -> None:
         if live:
             names = ", ".join(self.bindings[i].name for i in sorted(live))
-            self.error("E_LINEAR_UNCONSUMED", f"unconsumed linear owner(s) on {context}: {names}", span, "consume Buffer with release/take/return or Task with join/cancel_and_join on every normal exit")
+            self.error("E_LINEAR_UNCONSUMED", f"unconsumed linear owner(s) on {context}: {names}", span, "consume resource values with release/drop/take/return or consuming match, and task handles with join/cancel_and_join, on every normal exit")
+
+    def require_transfer(self, expr: Expr, typ: Type, *, context: str, fresh: bool = True) -> None:
+        """A resource place never becomes an implicit copy or implicit move."""
+        if not self.contains_linear(typ):
+            return
+        if self.returned_borrow_mode(expr) is not None:
+            self.error("E_MOVE_BORROW", f"{context} cannot take ownership of a borrowed function result", expr.span)
+            return
+        explicit = expr.kind == "unary" and expr.value == "move"
+        created = expr.kind in {"call", "struct", "variant"}
+        if not explicit and not (fresh and created):
+            self.error("E_MOVE_REQUIRED", f"{context} of an owned value requires an explicit move or fresh result", expr.span)
 
     def hint(self, expr: Expr, env: dict[str, _Binding]) -> Type | None:
         if expr.kind == "name" and expr.value in env:
@@ -467,6 +570,8 @@ class _Checker:
                 return USIZE
             if expr.value == "buffer":
                 return BUFFER_U8
+            if expr.value == "try_buffer":
+                return BUFFER_RESULT
             if expr.value == "spawn":
                 return TASK_U64
             if expr.value in {"join", "cancel_and_join"}:
@@ -513,8 +618,7 @@ class _Checker:
             actual = self.expr(child, env, live, unsafe_depth, field_type)
             if field_type is not None:
                 self.compatible(actual, field_type, child.span)
-            if self.contains_linear(actual):
-                self.error("E_NESTED_LINEAR", "linear resources cannot be enum payloads", child.span)
+            self.require_transfer(child, actual, context="enum payload initialization")
             if self.contains_cancellation(actual):
                 self.error("E_CANCELLATION_TYPE", "Cancellation capabilities cannot be enum payloads", child.span)
             if self.contains_sender(actual):
@@ -531,19 +635,39 @@ class _Checker:
         return F64 if any(e.kind == "float" for e in expressions) else I64
 
     def root_binding(self, expr: Expr, env: dict[str, _Binding]) -> _Binding | None:
+        while True:
+            if expr.kind in {"field", "index"} and expr.children:
+                expr = expr.children[0]
+                continue
+            fn = self.functions.get(expr.value) if expr.kind == "call" else None
+            if fn is not None and fn.return_mode in {"read", "mut"}:
+                origins = [i for i, p in enumerate(fn.params) if p.mode in {"read", "mut"}]
+                if len(origins) == 1 and origins[0] < len(expr.children):
+                    arg = expr.children[origins[0]]
+                    if arg.kind == "unary" and arg.value in {"read", "mut"} and arg.children:
+                        expr = arg.children[0]
+                        continue
+            break
+        return env.get(expr.value) if expr.kind == "name" else None
+
+    def returned_borrow_mode(self, expr: Expr) -> str | None:
         while expr.kind in {"field", "index"} and expr.children:
             expr = expr.children[0]
-        return env.get(expr.value) if expr.kind == "name" else None
+        fn = self.functions.get(expr.value) if expr.kind == "call" else None
+        return fn.return_mode if fn is not None and fn.return_mode in {"read", "mut"} else None
 
     def lvalue(self, expr: Expr, env: dict[str, _Binding], live: set[int], unsafe_depth: int, *, mutable: bool) -> Type:
         typ = self.expr(expr, env, live, unsafe_depth)
         binding = self.root_binding(expr, env)
-        if binding is None or expr.kind not in {"name", "field", "index"}:
+        returned = self.returned_borrow_mode(expr)
+        if binding is None or (expr.kind not in {"name", "field", "index"} and returned is None):
             self.error("E_LVALUE", "a named place is required here", expr.span)
         elif mutable and not (binding.mutable or binding.mode == "mut"):
             self.error("E_IMMUTABLE", f"{binding.name} is not mutable", expr.span)
         if mutable and binding is not None and binding.mode == "read":
             self.error("E_READ_ONLY", f"cannot mutate read parameter {binding.name}", expr.span)
+        if mutable and returned == "read":
+            self.error("E_READ_ONLY", "cannot mutate through a read function result", expr.span)
         return typ
 
     def borrow(self, expr: Expr, mode: str, expected: Type | None, env: dict[str, _Binding], live: set[int], unsafe_depth: int) -> Type:
@@ -567,7 +691,7 @@ class _Checker:
             self.error("E_MOVE_REQUIRED", f"take parameter {param.name} requires explicit move", expr.span)
         typ = self.expr(expr, env, live, unsafe_depth, param.type)
         self.compatible(typ, param.type, expr.span)
-        if typ.name in LINEAR and param.mode != "take":
+        if self.contains_linear(typ) and param.mode != "take":
             self.error("E_LINEAR_USE", "linear resources require explicit ownership or borrowing modes", expr.span)
         return typ
 
@@ -620,7 +744,7 @@ class _Checker:
                 self.error("E_UNKNOWN_NAME", f"unknown name {expr.value}", expr.span)
             else:
                 typ = binding.type
-                if typ.name in LINEAR and binding.mode not in {"read", "mut"} and binding.ident not in live:
+                if self.contains_linear(typ) and binding.mode not in {"read", "mut"} and binding.ident not in live:
                     self.error("E_USE_AFTER_MOVE", f"linear resource {binding.name} has already been moved", expr.span)
         elif kind == "call":
             if expr.value in BUILTINS:
@@ -662,14 +786,16 @@ class _Checker:
                     self.error("E_CANCELLATION_TYPE", "Cancellation capabilities cannot be moved or owned", expr.span)
                 if typ.name == "Sender":
                     self.error("E_SENDER_TYPE", "Sender capabilities cannot be moved or owned", expr.span)
-                if typ.name in LINEAR:
-                    if child.kind == "name" and child.value in env:
+                if self.contains_linear(typ):
+                    if self.returned_borrow_mode(child) is not None:
+                        self.error("E_MOVE_BORROW", "cannot move a borrowed function result", expr.span)
+                    elif child.kind == "name" and child.value in env:
                         binding = env[child.value]
                         if binding.mode in {"read", "mut"}:
                             self.error("E_MOVE_BORROW", f"cannot move borrowed resource {binding.name}", expr.span)
                         else:
                             live.discard(binding.ident)
-                    elif child.kind != "call":
+                    elif child.kind not in {"call", "struct", "variant"}:
                         self.error("E_MOVE_PLACE", "resource move requires an owner name or a fresh function result", expr.span)
             elif expr.value in {"-", "!"}:
                 child = expr.children[0]
@@ -772,6 +898,8 @@ class _Checker:
                     self.error("E_UNKNOWN_FIELD", f"type {base} has no field {expr.value}", expr.span)
                 else:
                     typ = substitute_type(member.type, dict(zip(struct.type_params, base.args)))
+                    if self.contains_linear(base) and self.root_binding(expr.children[0], env) is None:
+                        self.error("E_LINEAR_TEMPORARY", "bind a fresh resource aggregate before projecting a field and consume it explicitly", expr.span)
         elif kind == "cast":
             if len(expr.children) != 1 or not isinstance(expr.value, Type):
                 self.error("E_AST", "cast requires one operand and a type", expr.span)
@@ -816,8 +944,7 @@ class _Checker:
                         actual = self.expr(child, env, live, unsafe_depth, member_type)
                         if member:
                             self.compatible(actual, member_type, child.span)
-                        if self.contains_linear(actual):
-                            self.error("E_NESTED_LINEAR", "linear resources cannot be stored in struct fields", child.span)
+                        self.require_transfer(child, actual, context="struct field initialization")
                         if self.contains_cancellation(actual):
                             self.error("E_CANCELLATION_TYPE", "Cancellation capabilities cannot be stored in struct fields", child.span)
                         if self.contains_sender(actual):
@@ -835,7 +962,7 @@ class _Checker:
         args = expr.children
         if name in GROUP_BUILTINS:
             return self.group_builtin(expr, env, live, unsafe_depth)
-        arity = {"len": 1, "wrapping_add": 2, "wrapping_sub": 2, "wrapping_mul": 2, "buffer": 1, "release": 1, "assert": 1, "print_i64": 1, "load": 2, "store": 3, "ptr_read": 1, "ptr_mut": 1, "min": 2, "max": 2, "spawn": 2, "join": 1, "cancel_and_join": 1, "cancelled": 1}[name]
+        arity = {"len": 1, "wrapping_add": 2, "wrapping_sub": 2, "wrapping_mul": 2, "buffer": 1, "try_buffer": 1, "release": 1, "drop": 1, "assert": 1, "print_i64": 1, "load": 2, "store": 3, "ptr_read": 1, "ptr_mut": 1, "min": 2, "max": 2, "spawn": 2, "join": 1, "cancel_and_join": 1, "cancelled": 1}[name]
         if len(args) != arity:
             self.error("E_ARITY", f"{name} expects {arity} argument(s), found {len(args)}", expr.span)
             for arg in args:
@@ -888,17 +1015,19 @@ class _Checker:
                 if self.root_binding(place, env) is None or live != before:
                     self.error("E_LINEAR_TEMPORARY", "len borrows a named Buffer; it cannot consume or discard an owner", args[0].span)
             return USIZE
-        if name == "buffer":
+        if name in {"buffer", "try_buffer"}:
             actual = self.expr(args[0], env, live, unsafe_depth, USIZE)
             self.compatible(actual, USIZE, args[0].span)
-            self.effect("alloc", "block", "panic")
-            return BUFFER_U8
-        if name == "release":
+            self.effect("alloc", "block")
+            if name == "buffer":
+                self.effect("panic")
+            return BUFFER_U8 if name == "buffer" else BUFFER_RESULT
+        if name in {"release", "drop"}:
             if args[0].kind != "unary" or args[0].value != "move":
-                self.error("E_MOVE_REQUIRED", "release requires an explicit move", args[0].span)
+                self.error("E_MOVE_REQUIRED", f"{name} requires an explicit move", args[0].span)
             typ = self.expr(args[0], env, live, unsafe_depth)
-            if typ.name != "Buffer":
-                self.error("E_BUILTIN_TYPE", f"release requires a Buffer, found {typ}", expr.span)
+            if not self.contains_linear(typ) or self.contains_capability(typ, {"Task", "TaskGroup"}):
+                self.error("E_BUILTIN_TYPE", f"{name} requires a Buffer or owned data aggregate; task handles must be joined, found {typ}", expr.span)
             self.effect("alloc", "block")
             return UNIT
         if name in {"assert", "print_i64"}:
@@ -1050,11 +1179,7 @@ class _Checker:
             typ = declared or actual
             if declared is not None:
                 self.compatible(actual, declared, expr.span)
-            if typ.name in LINEAR:
-                if expr.kind != "call" and not (expr.kind == "unary" and expr.value == "move"):
-                    self.error("E_MOVE_REQUIRED", "linear resource initialization requires a fresh result or explicit move", expr.span)
-            elif self.contains_linear(typ):
-                self.error("E_NESTED_LINEAR", "nested linear ownership is unsupported", stmt.span)
+            self.require_transfer(expr, typ, context="resource initialization")
             if self.contains_cancellation(typ):
                 self.error("E_CANCELLATION_TYPE", "Cancellation capabilities cannot be copied into local value bindings", stmt.span)
             if self.contains_sender(typ):
@@ -1062,7 +1187,7 @@ class _Checker:
             if typ.name == "slice":
                 self.error("E_UNSIZED", "slice values cannot be local owned bindings", stmt.span)
             binding = self.bind(data["name"], typ, bool(data.get("mutable")), "value", stmt.span, env, live)
-            if typ.name in LINEAR:
+            if self.contains_linear(typ):
                 local_owners.add(binding.ident)
         elif stmt.kind == "assign":
             target = data["target"]
@@ -1081,6 +1206,18 @@ class _Checker:
         elif stmt.kind == "return":
             assert self.current is not None
             expr = data.get("expr")
+            if self.current.return_mode in {"read", "mut"}:
+                if expr is None:
+                    self.error("E_BORROW_RETURN_SOURCE", "a borrowed return requires an explicit source place", stmt.span)
+                else:
+                    self.borrow(expr, self.current.return_mode, self.current.return_type, env, live, unsafe_depth)
+                    place = expr.children[0] if expr.kind == "unary" and expr.children else expr
+                    origin = self.root_binding(place, env)
+                    sources = [p for p in self.current.params if p.mode in {"read", "mut"}]
+                    if len(sources) != 1 or origin is None or origin.name != sources[0].name or origin.mode not in {"read", "mut"}:
+                        self.error("E_BORROW_RETURN_SOURCE", "returned borrow must originate in the unique borrowed input, never a local or owned parameter", stmt.span)
+                self.live_error(live, stmt.span, "borrowed return")
+                return _Flow(live, False)
             if expr is None:
                 actual = UNIT
             else:
@@ -1088,6 +1225,8 @@ class _Checker:
             self.compatible(actual, self.current.return_type, stmt.span)
             if self.current.return_type.name == "Buffer" and (expr is None or expr.kind != "unary" or expr.value != "move"):
                 self.error("E_MOVE_REQUIRED", "returning a Buffer requires explicit move", stmt.span)
+            elif expr is not None:
+                self.require_transfer(expr, actual, context="return")
             self.live_error(live, stmt.span, "return")
             return _Flow(live, False)
         elif stmt.kind == "expr":
@@ -1114,6 +1253,7 @@ class _Checker:
             return _Flow(set(), False)
         elif stmt.kind == "match":
             typ = self.expr(data["expr"], env, live, unsafe_depth)
+            self.require_transfer(data["expr"], typ, context="consuming match")
             enum = self.enums.get(typ.name)
             if enum is None:
                 self.error("E_MATCH_TYPE", f"match requires an enum value, found {typ}", data["expr"].span)
@@ -1136,13 +1276,21 @@ class _Checker:
                 if len(fields) != len(pattern.bindings):
                     self.error("E_PATTERN_ARITY", f"pattern expects {len(fields)} payload binding(s), found {len(pattern.bindings)}", pattern.span)
                 arm_env = dict(env)
+                arm_live = set(live)
+                arm_owners: set[int] = set()
                 for index, name in enumerate(pattern.bindings):
-                    if name == "_":
-                        continue
                     field_type = substitute_type(fields[index], mapping) if index < len(fields) else ERROR
-                    self.bind(name, field_type, False, "value", pattern.span, arm_env, set(live))
-                flow = self.block(arm.body, arm_env, live, unsafe_depth)
+                    if name == "_":
+                        if self.contains_linear(field_type):
+                            self.error("E_LINEAR_DISCARD", "an owned match payload must be bound and explicitly consumed", pattern.span)
+                        continue
+                    binding = self.bind(name, field_type, False, "value", pattern.span, arm_env, arm_live)
+                    if self.contains_linear(field_type):
+                        arm_owners.add(binding.ident)
+                flow = self.block(arm.body, arm_env, arm_live, unsafe_depth)
                 if flow.normal:
+                    self.live_error(flow.live & arm_owners, arm.span, "match arm exit")
+                    flow.live -= arm_owners
                     continuing.append(flow)
             missing = set(variants) - covered
             if missing:

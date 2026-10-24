@@ -1,0 +1,25 @@
+import buffers;
+
+fn main() -> Unit effects {alloc, block, panic, write} {
+    let result = buffers::create(32, 64, 9);
+    match move result {
+        Result::Ok(packet) => {
+            let mut writable = buffers::forward(move packet);
+            buffers::fill(mut writable, 7);
+            assert(buffers::checksum(read writable) == 224);
+            assert(writable.tag == 9);
+            buffers::close(move writable);
+        },
+        Result::Err(error) => { assert(false); },
+    }
+    match buffers::create(65, 64, 0) {
+        Result::Ok(unexpected) => { buffers::close(move unexpected); assert(false); },
+        Result::Err(error) => {
+            match error {
+                buffers::BuildError::Empty => { assert(false); },
+                buffers::BuildError::AboveLimit => {},
+                buffers::BuildError::AllocationFailed => { assert(false); },
+            }
+        },
+    }
+}

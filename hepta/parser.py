@@ -247,6 +247,7 @@ class Parser:
                 break
         self._expect(")", "Expected ',' or ')' after a parameter")
         self._expect("->", "Functions require an explicit return type after '->'")
+        return_mode = self._advance().value if self.current.kind in {"read", "mut"} else "value"
         return_type = self._type()
         effects = self._effects()
         resources: dict = {}
@@ -260,7 +261,7 @@ class Parser:
             body, body_span = self._block()
             end = body_span
         return Function(name, params, return_type, effects, body, public, extern_c,
-                        export_c, resources, _cover(start, end), body_span, type_params)
+                        export_c, resources, _cover(start, end), body_span, type_params, return_mode)
 
     def _effects(self) -> set[str]:
         self._expect("effects", "Every function requires an explicit effects clause")

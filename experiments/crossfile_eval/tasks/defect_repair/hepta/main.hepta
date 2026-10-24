@@ -1,0 +1,8 @@
+import data;
+import search;
+pub fn task(a: i64, b: i64) -> i64 effects {panic,write} {
+    if a < 0 || a > 64 { return -1; }
+    let mut values: [i64; 64] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    data::fill(mut values, a as usize);
+    return search::locate(read values, a as usize, b) as i64;
+}

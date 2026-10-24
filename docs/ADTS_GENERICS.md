@@ -34,12 +34,11 @@ Construct values with `Event::Idle`, `Event::Point(4, 7)`, or
 types are checked. Enum names and variants occupy resolved source namespaces;
 they are never copied into Rust as arbitrary source fragments.
 
-All enum payloads in this implementation must be sized, recursively Copy
-values. They may include primitives, arrays, Copy structs, other enums, or
-supported raw pointer types. They cannot contain Buffer, Task, TaskGroup,
-Cancellation, Sender, or any nested form of these ownership or control capabilities. Resource
-containing ADTs require a future ownership extension; this release rejects
-them rather than erasing their obligations.
+Enum payloads are sized. They may contain Copy values or owned Buffer-bearing
+values. Owned payloads require consuming matches, explicit ownership transfer,
+and discharge on all normal exits; see [OWNED_TYPES.md](OWNED_TYPES.md) for
+the implemented resource rules. Task, TaskGroup, Cancellation and Sender
+remain scoped runtime capabilities and cannot be hidden inside an ADT.
 
 ## Match semantics
 
@@ -49,13 +48,13 @@ Unknown variants, duplicate arms, missing arms, wrong enum names, and payload
 arity errors produce positioned diagnostics before native validation.
 
 Payload names introduce immutable bindings visible only in their arm. A `_`
-payload ignores that field. It is possible to write `Result::Err(_)`; a `_`
+payload ignores a Copy field. Ignoring an owned payload is rejected. It is possible to write `Result::Err(_)` for a Copy error; a `_`
 catch-all arm is not supported. Guards, nested patterns, alternatives, integer
 patterns, match expressions, and implicit arm return values are also not
 supported. Each arm must use the same statement syntax as a function body.
 
-Matching a `read` parameter copies the selected payload values. This is valid
-under the Copy-only payload restriction. No reference escapes from a pattern.
+Matching a `read` parameter copies selected Copy payloads. Owned enum values
+use a consuming match and produce fresh payload obligations. No reference escapes from a pattern.
 Native Rust checking still validates aliasing of surrounding read/mut calls.
 
 Effect inference visits every arm, including arms whose contents appear
@@ -82,8 +81,10 @@ fn choose<T>(value: read Maybe<T>, fallback: T) -> T effects {} {
 }
 ```
 
-Every declared type parameter has an implicit `Copy` and sized bound. There is
-no trait declaration syntax. Generic code can move or copy a parameter, borrow
+Generic **function** type parameters have an implicit `Copy` and sized bound.
+Generic data declarations can also be instantiated with supported owned values;
+their concrete ownership follows the payloads. There is no trait declaration
+syntax. Generic function code can move or copy a parameter, borrow
 it for a call, access known generic struct fields, construct or match known
 generic enums, and pass it to another explicitly instantiated generic function.
 Generic code cannot assume numeric, equality, ordering, or other operator
@@ -124,9 +125,10 @@ still apply, including limits on pathological recursive instantiation.
 
 ## Built-in Result
 
-`Result<T, E>` is a reserved, two-parameter Copy enum with `Ok(T)` and `Err(E)`
-variants. It lowers to `core::result::Result<T, E>` and works in the supported
-no_std profile:
+`Result<T, E>` is a reserved, two-parameter enum with `Ok(T)` and `Err(E)`
+variants. It is Copy when both parameters are Copy; supported owning payloads
+make the concrete Result an owner. It lowers to `core::result::Result<T, E>`;
+Copy instances work in the supported no_std profile:
 
 ```hepta
 fn divide(a: i64, b: i64) -> Result<i64, u8> effects {panic} {
@@ -137,8 +139,8 @@ fn divide(a: i64, b: i64) -> Result<i64, u8> effects {panic} {
 
 Both success and failure cases must be handled by an exhaustive match. There
 is no `?` operator or implicit exception effect. `Result<Buffer<u8>, E>` and
-other resource-containing instantiations are rejected by the current Copy
-bound. Result values may be nested inside generic structs/enums. Explicit
+supported resource-containing instantiations use the explicit consumption rules
+in [OWNED_TYPES.md](OWNED_TYPES.md). Result values may be nested inside generic structs/enums. Explicit
 constructors use `Result::<u64, u32>::Ok(9)` when no expected type exists.
 
 ## Layout, ABI, and resource limits

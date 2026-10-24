@@ -5,13 +5,17 @@ on:
     branches:
       - feat/hepta-p0-p1-verified-ir-20261024
       - feat/hepta-agent-safe-cfg-cpp-20261024
+      - feat/hepta-safe-migration-agent-20261024
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
-# Superseded runs on one branch cancel each other, but a stacked PR must not
-# cancel another branch's independent qualification evidence.
+# Qualify the PR head, not GitHub's synthetic merge commit. Different source
+# versions retain independent runs even when they share a branch or PR.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -20,9 +24,21 @@ jobs:
   release-qualification:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    env:
+      HEPTA_QUALIFICATION_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - name: Checkout frozen source snapshot
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_QUALIFICATION_HEAD_SHA }}
+      - name: Record and verify the tested source head
+        shell: bash
+        run: |
+          actual_head=$(git rev-parse HEAD)
+          mkdir -p artifacts
+          printf '{"schema":"hepta.workflow-source.v1","expected_head_sha":"%s","checkout_head_sha":"%s","event_sha":"%s"}\n' \
+            "$HEPTA_QUALIFICATION_HEAD_SHA" "$actual_head" "$GITHUB_SHA" > artifacts/workflow-source.json
+          test "$actual_head" = "$HEPTA_QUALIFICATION_HEAD_SHA"
       - name: Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -33,13 +49,13 @@ jobs:
         run: python tools/bootstrap_toolchain.py
       - name: Install SHA-256-locked Lean and QEMU tools
         run: python tools/bootstrap_verification.py
-      - name: Re-run all thirteen 0.2 release gates including new tests
+      - name: Run all current native and experiment qualification gates
         run: python tools/release_check.py
       - name: Preserve failures and all raw evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: hepta-release-evidence
+          name: hepta-release-evidence-${{ env.HEPTA_QUALIFICATION_HEAD_SHA }}
           path: |
             artifacts/
             evidence/

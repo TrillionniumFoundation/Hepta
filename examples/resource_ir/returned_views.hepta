@@ -1,0 +1,45 @@
+// Resource-IR qualification: the native Rust gate remains required.
+struct Packet { data: Buffer<u8>, trailer: Buffer<u8> }
+
+fn bytes(packet: read Packet) -> read [u8] effects {} {
+    return read packet.data;
+}
+
+fn forwarded(packet: read Packet) -> read [u8] effects {} {
+    return read bytes(read packet);
+}
+
+fn writable(packet: mut Packet) -> mut [u8] effects {} {
+    return mut packet.data;
+}
+
+fn head(data: mut [u8]) -> mut u8 effects {panic} {
+    return mut data[0];
+}
+
+fn assign(byte: mut u8, value: u8) -> Unit effects {write} {
+    byte = value;
+}
+
+fn copy_first(destination: mut [u8], source: read [u8]) -> Unit effects {panic, write} {
+    destination[0] = source[0];
+}
+
+fn checksum(data: read [u8]) -> u64 effects {panic} {
+    let mut result: u64 = 0;
+    for index in 0..len(data) {
+        result = wrapping_add(result, data[index] as u64);
+    }
+    return result;
+}
+
+fn main() -> Unit effects {alloc, block, panic, write} {
+    let mut packet = Packet { data: buffer(4), trailer: buffer(2) };
+    writable(mut packet)[1] = 9;
+    assign(mut head(mut writable(mut packet)), 7);
+    copy_first(mut packet.trailer, read packet.data);
+    assert(packet.trailer[0] == 7);
+    assert(len(forwarded(read packet)) == 4);
+    assert(checksum(read forwarded(read packet)) == 16);
+    drop(move packet);
+}

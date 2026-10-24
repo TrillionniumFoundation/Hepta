@@ -16,6 +16,7 @@ import subprocess
 import tempfile
 
 from .ast import Diagnostic, HeptaError, Type
+from .checker import place_path, places_overlap
 
 SCALARS = {"u8": "uint8_t", "i8": "int8_t", "u16": "uint16_t", "i16": "int16_t",
            "u32": "uint32_t", "i32": "int32_t", "u64": "uint64_t", "i64": "int64_t",
@@ -39,6 +40,8 @@ class CEmitter:
             fail("E_C_BACKEND_SUBSET", "ADT lowering is not yet supported by the C backend")
         if any(getattr(item, "type_params", ()) for item in [*program.structs, *program.functions]):
             fail("E_C_BACKEND_SUBSET", "Generic declarations require an explicit monomorphization pass before C lowering")
+        if any(getattr(fn, "return_mode", "value") != "value" for fn in program.functions):
+            fail("E_C_BACKEND_SUBSET", "Borrowed returns require lifetime-aware C lowering, which is not implemented")
         self.program, self.checked, self.crate_type = program, checked, crate_type
         self.structs = {s.name: s for s in program.structs}
         self.functions = {f.name: f for f in program.functions}
@@ -135,13 +138,13 @@ class CEmitter:
         borrowed = []
         for arg, param in zip(call.children, fn.params):
             if param.mode in {"read", "mut"}:
-                root = self.root(arg)
-                if root is None:
+                place = place_path(arg.children[0]) if arg.kind == "unary" and arg.children else None
+                if place is None:
                     fail("E_C_BORROW", "C borrow arguments require named places", arg.span)
-                for old_root, old_mode in borrowed:
-                    if old_root == root and "mut" in {old_mode, param.mode}:
-                        fail("E_C_BORROW", "Overlapping borrows of the same root are rejected conservatively", arg.span)
-                borrowed.append((root, param.mode))
+                for old_place, old_mode in borrowed:
+                    if places_overlap(old_place, place) and "mut" in {old_mode, param.mode}:
+                        fail("E_C_BORROW", "Overlapping borrows are rejected; distinct named struct fields are disjoint", arg.span)
+                borrowed.append((place, param.mode))
         if borrowed:
             def visit(e):
                 if e.kind == "call" and e.value in self.functions:

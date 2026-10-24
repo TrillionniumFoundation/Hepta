@@ -1,0 +1,26 @@
+name: Hepta C migration adversarial checks
+on:
+  push:
+    branches:
+      - dot/hepta-p3-adversarial-gates-20261024
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  c-migration-rejection:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compiler versions
+        run: |
+          clang --version
+          gcc --version
+          python3 --version
+      - name: Run C migration positive and adversarial gates
+        run: |
+          python3 -m unittest discover -s tests -p test_c_migrate.py -v
+          python3 -m unittest discover -s tests -p test_c_migrate_adversarial.py -v
+      - name: Run C++ bridge tests
+        run: python3 -m unittest discover -s tests -p test_cpp_bridge.py -v

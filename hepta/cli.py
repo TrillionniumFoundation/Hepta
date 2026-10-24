@@ -12,7 +12,7 @@ import tempfile
 from . import __version__
 from .ast import HeptaError
 from .backend import compile_rust, emit_header, find_rustc, toolchain_info
-from .pipeline import analyze, analyze_project, inspect_analysis, hsir_analysis, cfg_analysis
+from .pipeline import analyze, analyze_project, inspect_analysis, hsir_analysis, cfg_analysis, resource_ir_analysis
 from .protocol import apply_patch
 
 
@@ -34,16 +34,45 @@ def main(argv=None) -> int:
     cpp.add_argument("--output", "-o", required=True)
     cpp.add_argument("--hepta-output", required=True)
     cpp.add_argument("--clang", default="clang++")
+    cpp_contract = sub.add_parser("bridge-cpp-contract", help="Native-checked direct, borrowed and handle C++ interface contracts")
+    cpp_contract.add_argument("header")
+    cpp_contract.add_argument("--contract", required=True)
+    cpp_contract.add_argument("--output-dir", required=True)
+    cpp_contract.add_argument("--cxx", default="c++")
+    cpp_contract.add_argument("--rustc")
     migrator = sub.add_parser("migrate-c", help="Strict Clang-AST conversion of safe scalar C functions")
     migrator.add_argument("source")
     migrator.add_argument("--output", "-o", required=True)
     migrator.add_argument("--clang", default="clang")
+    project_migrator = sub.add_parser("migrate-c-project", help="Capture a C compilation database and migrate its supported complete declaration set")
+    project_migrator.add_argument("database")
+    project_migrator.add_argument("--output", "-o", required=True)
+    project_migrator.add_argument("--contracts")
+    project_migrator.add_argument("--clang", default="clang")
+    project_migrator.add_argument("--rustc")
+    project_migrator.add_argument("--frontend-only", action="store_true", help="Explicitly skip native validation")
     importer = sub.add_parser("import-c", help="Import the supported C header subset using real compiler probes")
     importer.add_argument("header")
     importer.add_argument("--output", "-o", required=True)
     importer.add_argument("--module", default="c_imported")
     importer.add_argument("--cc")
-    for cmd in ["check", "inspect", "hsir", "cfg", "emit", "header", "build", "run", "patch"]:
+    workspace = sub.add_parser("workspace", help="Pinned immutable project snapshots and crash-recoverable Agent commits")
+    actions = workspace.add_subparsers(dest="workspace_action", required=True)
+    for action in ("init", "inspect", "pin", "patch", "recover"):
+        w = actions.add_parser(action)
+        w.add_argument("store")
+        if action == "init":
+            w.add_argument("--root", required=True)
+            w.add_argument("--entry", required=True)
+        if action in {"init", "patch"}:
+            w.add_argument("--rustc")
+            w.add_argument("--target")
+        if action == "patch":
+            w.add_argument("--request", required=True)
+            w.add_argument("--apply", action="store_true")
+        if action == "pin":
+            w.add_argument("--version")
+    for cmd in ["check", "inspect", "hsir", "cfg", "hmir", "resource-ir", "emit", "header", "build", "run", "patch"]:
         p = sub.add_parser(cmd)
         p.add_argument("source")
         p.add_argument("--rustc")
@@ -55,7 +84,7 @@ def main(argv=None) -> int:
         if cmd != "patch":
             p.add_argument("--no-std", action="store_true")
             p.add_argument("--crate-type", choices=["bin", "staticlib", "cdylib", "rlib", "obj"], default="bin" if cmd in {"build", "run"} else "rlib")
-        if cmd in {"check", "inspect", "hsir", "cfg"}:
+        if cmd in {"check", "inspect", "hsir", "cfg", "hmir", "resource-ir"}:
             p.add_argument("--frontend-only", action="store_true", help="Explicitly skip native/borrow checks; output cannot be treated as a complete check")
         if cmd in {"emit", "header", "build"}:
             p.add_argument("--output", "-o")
@@ -66,6 +95,22 @@ def main(argv=None) -> int:
             p.add_argument("--apply", action="store_true", help="Atomically apply after native validation")
     args = parser.parse_args(argv)
     try:
+        if args.command == "workspace":
+            from .workspace import initialize, inspect_workspace, pin, apply_workspace_patch, recover
+            if args.workspace_action == "init":
+                result = initialize(args.store, args.root, args.entry, rustc=args.rustc, target=args.target)
+            elif args.workspace_action == "inspect":
+                result = inspect_workspace(args.store)
+            elif args.workspace_action == "pin":
+                result = {"ok": True, "snapshot": pin(args.store, args.version)}
+            elif args.workspace_action == "recover":
+                result = recover(args.store)
+            else:
+                request = json.loads(Path(args.request).read_bytes())
+                result = apply_workspace_patch(args.store, request, apply=args.apply,
+                                               rustc=args.rustc, target=args.target)
+            output_json(result)
+            return 0 if result.get("ok") else 1
         if args.command == "lock":
             from .packages import write_lock
             output_json(write_lock(args.package))
@@ -75,9 +120,23 @@ def main(argv=None) -> int:
             result = bridge_cpp(args.header, args.class_name, args.output, args.hepta_output, clang=args.clang)
             output_json(result)
             return 0 if result["ok"] else 1
+        if args.command == "bridge-cpp-contract":
+            from .cpp_contracts import bridge_cpp_contracts
+            result = bridge_cpp_contracts(args.header, args.contract, args.output_dir,
+                                          cxx=args.cxx, rustc=args.rustc)
+            output_json(result)
+            return 0 if result["ok"] else 1
         if args.command == "migrate-c":
             from .c_migrate import migrate_c
             result = migrate_c(args.source, args.output, clang=args.clang)
+            output_json(result)
+            return 0 if result["ok"] else 1
+        if args.command == "migrate-c-project":
+            from .c_migrate import migrate_c_project
+            contracts = json.loads(Path(args.contracts).read_bytes()) if args.contracts else None
+            result = migrate_c_project(args.database, args.output, contracts=contracts,
+                                       clang=args.clang, rustc=args.rustc,
+                                       verify_native=not args.frontend_only)
             output_json(result)
             return 0 if result["ok"] else 1
         if args.command == "import-c":
@@ -124,6 +183,15 @@ def main(argv=None) -> int:
             return 0 if result.report["ok"] else 1
         if args.command == "cfg":
             exported = cfg_analysis(result)
+            output_json(exported)
+            return 0 if exported["ok"] else 1
+        if args.command == "hmir":
+            from .hmir import hmir_analysis
+            exported = hmir_analysis(result)
+            output_json(exported)
+            return 0 if exported["ok"] else 1
+        if args.command == "resource-ir":
+            exported = resource_ir_analysis(result)
             output_json(exported)
             return 0 if exported["ok"] else 1
         if not result.report["ok"] or args.command == "check":

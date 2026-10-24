@@ -137,6 +137,9 @@ class Function:
     span: Span = field(default_factory=Span)
     body_span: Span = field(default_factory=Span)
     type_params: tuple[str, ...] = ()
+    # Borrowed returns are tied to the unique read/mut input. They are places
+    # for immediate use/reborrowing, not first-class local reference values.
+    return_mode: str = "value"
 
 
 @dataclass

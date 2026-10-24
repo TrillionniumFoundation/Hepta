@@ -198,8 +198,11 @@ def lower_checked_cfg(program: Program, checked: Any, *,
         raise FlowLowerError("Cannot lower a rejected program")
     functions = []
     for fn in program.functions:
+        signature = {"params": [{"name": p.name, "mode": p.mode, "type": str(p.type)} for p in fn.params],
+                     "returns": str(fn.return_type), "return_mode": getattr(fn, "return_mode", "value")}
         if fn.body is None:
             functions.append({"name": fn.name, "path": fn.span.path,
+                              "signature": signature,
                               "external": True, "effects": sorted(
                                   checked.effects.get(fn.name, ())),
                               "graph": None})
@@ -217,6 +220,7 @@ def lower_checked_cfg(program: Program, checked: Any, *,
             })
         builder.validate()
         functions.append({"name": fn.name, "path": fn.span.path,
+                          "signature": signature,
                           "external": False, "effects": sorted(
                               checked.effects.get(fn.name, ())),
                           "graph": {"entry": entry, "blocks": builder.blocks}})

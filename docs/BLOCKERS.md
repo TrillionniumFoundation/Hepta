@@ -6,7 +6,7 @@
 
 ## 已实现的增量及验收条件
 
-这些项目在本版本有实际代码、正反例和可重放入口。是否通过最终统一快照，以 `artifacts/release-validation.json` 引用的报告为准。
+这些项目在本版本有实际代码、正反例和可重放入口。是否通过最终统一快照，以 `artifacts/release-validation.json` 引用的报告为准；已归档的本轮报告位于 `evidence/next_stage/`。
 
 | ID | 已实现范围 | 验收入口 / 证据 |
 | --- | --- | --- |
@@ -24,24 +24,30 @@
 | M12 | 图快照绑定的 Agent 函数体修改协议 | 项目/接口身份、路径重绑定、跨图锁、v1/v2 共享锁和竞态回归 |
 | M13 | 六个核心的独立 Rust 性能对照，四算法另含 C 后端 | 正确性 oracle、全部计时样本、逐函数机器码比较与回退记录 |
 | M14 | 冻结配对 Agent 评测器与可信夹具资格 | 四任务 × 两语言；统一预算、收据校验、native 隐藏评分、重放 |
+| M15 | 资源载荷 ADT、`Result<Owned, Error>`、fallible Buffer、递归 drop、单源返回借用和字段借用 | test_owned_types.py、test_borrowed_returns.py；真实分配器拒绝、提前返回、取消/失败及 owned 库执行 |
+| M16 | 与前端分离的显式资源/loan CFG 验证器 | test_resource_ir.py、独立 JSON CLI、validate_resources.py；两个真实源项目、七个图变异拒绝对照 |
+| M17 | 编译数据库捕获、跨 TU C 模块迁移、结构/循环/调用、缓冲区与受限分配释放配对、完整声明分母 | qualify_c_migration.py、qualify_c_algorithms.py；冻结且未修改的第三方 compare-int/hash-int 模块 |
+| M18 | C++ 直接调用、调用期借用、动态 handle 和 C++ 侧模板实例化，异常/析构/线程/重入/分配器契约 | validate_cpp.py；实际 std::vector/std::string、双向调用、异常与生命周期负例、六项分开计时 |
+| M19 | 不可变项目版本、语义节点编辑、跨文件接口迁移、单引用一致发布与恢复、源级 Rust 诊断映射 | test_workspace.py、test_source_map.py；真实进程中断、写者竞态、stale 身份、发布后 I/O 状态 |
+| M20 | 五种跨文件任务 × Rust/Hepta × 普通/语义工具四臂评测器 | experiments.crossfile_eval；全部计划分母、未知人工成本保留 null、receipt 跨样本唯一、失败已知费用前缀保留 |
 
-M07 不等于全进程内存/CPU 上限。M10 的 QEMU 运行不等于真机或独立外部 C 编译器的跨平台 ABI 资格。M11 没有证明真实编译器对应抽象模型。M12 不证明功能等价。M13 不证明普遍快于 Rust。M14 的实际 AI 模型运行数仍为 **0**。
+M07 不等于全进程内存/CPU 上限。M10 的 QEMU 运行不等于真机或独立外部 C 编译器的跨平台 ABI 资格。M11/M16 没有证明真实编译器与抽象模型的精化关系；M16 尚不覆盖并发 IR。M12/M19 不证明补丁功能等价。M13 不证明普遍快于 Rust。M17 只迁移明确接受的 C 子集，M18 不重写外部 C++ 实现。M14/M20 的实际 AI 模型运行数仍为 **0**。
 
 ## 完整目标中的剩余 blocker
 
 | ID | 状态与已完成部分 | 仍需关闭的条件 |
 | --- | --- | --- |
-| P01 | PARTIAL — 模块、Result、ADT、Copy 泛型和本地库已实现 | 资源载荷 ADT、通用生命周期/trait 设计、较大多包项目的一致语义与标准库 |
-| P02 | PARTIAL / OPEN_RESEARCH — 11 个抽象核心定理已检查 | 指针 provenance / 别名 / 生命周期形式化、核心类型健全性、真实 AST 与双后端降级精化、unsafe/FFI 条件 |
+| P01 | PARTIAL — 资源载荷 ADT、Result、单源返回借用、字段借用、有限 Copy 函数泛型与本地库已实现 | 通用生命周期/trait 设计、存储引用和部分字段移动、较大多包项目的一致语义与标准库 |
+| P02 | PARTIAL / OPEN_RESEARCH — 11 个抽象核心定理、独立资源/loan CFG 检查已实现 | 指针 provenance / 别名 / 生命周期形式化、核心类型健全性、真实 AST 与资源 IR/双后端降级精化、并发资源 IR、unsafe/FFI 条件 |
 | P03 | PARTIAL — 组内三类数值预算与取消/失败协议可执行 | 分配器/线程栈/worker 新分配/FFI 统一计费、嵌套任务树、全局预算、可证明的故障与恢复边界 |
 | P04 | PARTIAL — channel、背压、任务组、协作取消已实现 | 异步 I/O、select/调度器、超时与结构化任务树、真实网络服务负载、长期运行与故障注入 |
-| P05 | PARTIAL — 头文件导入、简单整数宏、普通结构与函数可用 | inline/函数式宏、packed、bitfields、varargs、复杂预处理、异步/保留回调与跨线程外部生命周期 |
+| P05 | PARTIAL — 完整活动声明盘点的 C 模块迁移、受限分配模式与三档 C++ 接口已有原生资格 | 任意 C/C++ 的自动安全重写；inline/函数式宏、packed、bitfields、varargs、复杂预处理；异步/保留回调与跨线程外部生命周期证明 |
 | P06 | PARTIAL / ENVIRONMENT_REQUIRED — 多目标对象与 AArch64 QEMU 通过 | Windows/AArch64 等真实宿主、各自 C 编译器/链接器双向执行、持续平台矩阵 |
 | P07 | OPEN / HARDWARE_REQUIRED — no_std 对象路径存在 | 板卡启动入口、链接脚本、MMIO/DMA/IRQ、设备协议、真实板卡资格 |
 | P08 | OPEN / HARDWARE_REQUIRED — GPU 尚未实现 | 地址空间、kernel 与同步语义、GPU 后端、驱动互操作、真实设备性能与正确性 |
 | P09 | PARTIAL / OPEN_RESEARCH — 六核心对照及原始样本可重放 | 代表性应用/服务/内存/尾延迟基准、公平调优、多机器重复；C 后端已观测回退需逐项优化 |
-| P10 | FRAMEWORK_READY / ENVIRONMENT_REQUIRED — 评测器及 oracle 资格可执行 | 可用隔离环境、实际 provider 适配器和明确模型版本、多个模型/seed 的完整计量；独立未公开任务、工具同等能力的 2×2 对照和更大项目 |
-| P11 | PARTIAL — 独立 C11/GCC 子集后端已可运行 | 完整语言覆盖、后端一致性、优化回归门槛、源级调试信息与调试器验证；独立机器码后端尚未实现 |
+| P10 | FRAMEWORK_READY / ENVIRONMENT_REQUIRED — 五个跨文件任务、同等工具范围的 2×2 框架及 native oracle 资格可执行 | 可用隔离环境、实际 provider 适配器和明确模型版本、多个模型/seed 的完整计量；独立未公开任务、更大项目、完整生产 v4 协议的额外对照 |
+| P11 | PARTIAL — 独立 C11/GCC 子集后端、生成 Rust 诊断到源节点的精确映射已可运行 | 完整语言覆盖、后端一致性、优化回归门槛、DWARF/调试器验证；独立机器码后端尚未实现 |
 | P12 | PARTIAL — 本地内容锁、版本化工具协议、公开仓库 | 注册表/版本求解、兼容性与迁移工具、发布签名和持续平台维护、生产标准库/文档体系 |
 
 P10 当前 namespace sandbox 探测失败，生产 provider 模式在启动适配器前拒绝。可信 fixture 使用显式的进程分离路径，`ai_comparison_eligible=false`；不能当成真实模型成绩。具体环境失败原因保留在资格报告中。
@@ -56,5 +62,11 @@ P10 当前 namespace sandbox 探测失败，生产 provider 模式在启动适�
 - 模块验证、dry-run、提交前复核均绑定同一依赖图；源文件路径绑定与内容一起复核。
 - 重叠项目和旧 v1 协议共享按序取得的源文件锁；部分取得失败会释放已取得的锁。
 - C 导入带公开结构、配对元数据、源码/主机身份及可见原始头文件哈希检查；未经验证的跨目标复用拒绝。
+- workspace 拒绝版本目录重定向；初始和后续发布遇到 I/O 错误时保留已发布/未知状态并要求恢复，不把可能完成的提交报告成未应用。
+- 资源 IR 拒绝同一 loan 同时占用 mut/read 参数；覆盖 Copy 枚举后使旧 variant fact 失效；未知操作、伪造类型身份和未经证明的 claim 升级均拒绝。
+- Rust 跨文件候选编译为独立 rlib，不能通过模块祖先访问可信 driver 的分配/释放计数器；原始伪造反例现为编译拒绝。
+- provider receipt 按 `(provider, request_id)` 在整个计划矩阵中去重；无效后续 tool frame 不抹掉此前已验证的模型费用前缀。
+- C 导入分离 tag/typedef 名字空间并保留 const 层级；实际 native probe 先验证 typedef，再验证函数存在及原型兼容，拒绝被预定义/include guard 隐藏的虚假 ABI。
+- HSIR 沿 nominal/generic/array 类型保留 raw-pointer 外部义务；该修复保证审计清单完整，不冒充外部代码安全证明。具体反例与修复见 `C_IMPORT_SAFETY_INTEGRATION.md`。
 
 准确的测试数、当前编译器身份、性能样本和运行结果，以最终验收报告及其绑定的证据为准。任何未执行、未知或环境阻塞项目均保持其真实状态。

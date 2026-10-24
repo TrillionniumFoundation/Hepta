@@ -26,12 +26,26 @@ def _class_model(clang: str) -> dict:
 
 
 def _header_class(header: Path, class_name: str, clang: str) -> dict:
+    # Filter inside Clang before serializing: modern <atomic>/<vector> headers
+    # otherwise produce tens of MB of irrelevant JSON. The filter is a name
+    # substring, so exact name, source and declaration-kind checks still apply.
     text = _run([clang, "-x", "c++-header", "-std=c++20", "-fsyntax-only", "-Werror",
-                 "-Xclang", "-ast-dump=json", str(header)])
-    ast = json.loads(text)
+                 "-Xclang", "-ast-dump=json", "-Xclang",
+                 "-ast-dump-filter=" + class_name, str(header)])
+    # A filtered dump can be several concatenated JSON documents. Do not
+    # assume one TranslationUnitDecl or search nested template records.
+    decoder = json.JSONDecoder()
+    declarations = []
+    rest = text.lstrip()
+    while rest:
+        decl, end = decoder.raw_decode(rest)
+        declarations.append(decl)
+        if len(declarations) > 4096:
+            raise MigrationRejected("E_CPP_CLASS", "Too many filtered C++ declarations")
+        rest = rest[end:].lstrip()
     candidates = []
     active_file = None
-    for decl in ast.get("inner", []):
+    for decl in declarations:
         locfile = decl.get("loc", {}).get("file")
         if locfile:
             active_file = Path(locfile).resolve()
@@ -122,7 +136,9 @@ def _generate_cpp(header: Path, cls: str, methods: list[dict]) -> str:
         "        std::lock_guard<std::mutex> lock(hepta_registry_mutex);",
         "        if (hepta_next_handle == 0) return 4;",
         "        auto handle = hepta_next_handle++;",
-        "        auto inserted = hepta_objects.emplace(handle, std::move(entry));",
+        "        // Retain a local owner if map allocation fails: foreign destruction",
+        "        // must happen after the registry lock is released, even on failure.",
+        "        auto inserted = hepta_objects.emplace(handle, entry);",
         "        if (!inserted.second) return 4;",
         "        *out = handle;", "        return 0;",
         "    } catch (...) { return 3; }", "}",
@@ -245,3 +261,8 @@ def bridge_cpp(header: str | Path, class_name: str, cpp_output: str | Path,
     except (MigrationRejected, ValueError, json.JSONDecodeError) as exc:
         report["diagnostics"].append({"code": getattr(exc, "code", "E_CPP_INPUT"), "message": str(exc)})
         return report
+
+
+# The declarative bridge is a separate route; the original AST class importer
+# remains available with its existing schema and compatibility restrictions.
+from .cpp_contracts import bridge_cpp_contracts  # noqa: E402,F401

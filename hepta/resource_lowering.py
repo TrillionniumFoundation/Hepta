@@ -1,0 +1,474 @@
+"""Lower checked Hepta syntax into the independently checked resource CFG.
+
+This pass is a conservative, explicitly unproved abstraction. Scalars have
+abstract values; owned aggregate transfers and loans are explicit operations.
+The generated resource graph is not used by either native code generator.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+import hashlib
+
+from .ast import Type
+from .checker import is_owned_type, substitute_type
+from .resource_ir import SCHEMA, ResourceIRError, _CLAIMS, _EXTERNAL_REQUIREMENTS, verify_resource_ir
+
+
+_PRIMITIVES = {"i8", "i16", "i32", "i64", "i128", "isize", "u8", "u16", "u32", "u64", "u128", "usize", "f32", "f64", "bool", "Unit"}
+_SCALAR_BUILTINS = {"wrapping_add", "wrapping_sub", "wrapping_mul", "min", "max", "assert", "print_i64"}
+
+
+def _unsupported(message: str) -> None:
+    raise ResourceIRError("E_RIR_LOWER_UNSUPPORTED", message)
+
+
+@dataclass
+class _Value:
+    id: str | None
+    type: Type
+    kind: str = "value"
+    mode: str = "value"
+
+
+class _Types:
+    def __init__(self, program):
+        self.program = program
+        self.structs = {s.name: s for s in program.structs}
+        self.enums = {e.name: e for e in program.enums}
+        self.table = {}
+
+    def add(self, typ: Type) -> str:
+        key = str(typ)
+        if key in self.table:
+            return key
+        if typ.name in _PRIMITIVES and not typ.args:
+            self.table[key] = {"kind": "scalar", "name": typ.name}
+        elif typ.name in {"Buffer", "array", "slice"}:
+            if len(typ.args) != 1 or typ.name == "Buffer" and typ.args[0] != Type("u8"):
+                _unsupported("Only the concrete Buffer<u8> and copied-element arrays/slices are modelled")
+            element = self.add(typ.args[0])
+            self.table[key] = {"kind": "buffer" if typ.name == "Buffer" else typ.name, "element": element}
+            if typ.name == "array":
+                self.table[key]["length"] = typ.length
+        elif typ.name == "Result":
+            if len(typ.args) != 2:
+                _unsupported("Result requires two concrete arguments")
+            args = [self.add(t) for t in typ.args]
+            self.table[key] = {"kind": "enum", "name": "Result", "args": args,
+                               "variants": [{"name": "Ok", "fields": [args[0]]}, {"name": "Err", "fields": [args[1]]}]}
+        elif typ.name in self.structs or typ.name in self.enums:
+            declaration = self.structs.get(typ.name) or self.enums[typ.name]
+            if len(declaration.type_params) != len(typ.args):
+                _unsupported("Resource lowering requires concrete aggregate type arguments")
+            args = [self.add(t) for t in typ.args]
+            mapping = dict(zip(declaration.type_params, typ.args))
+            if typ.name in self.structs:
+                self.table[key] = {"kind": "struct", "name": typ.name, "args": args, "fields": []}
+                self.table[key]["fields"] = [{"name": p.name, "type": self.add(substitute_type(p.type, mapping))} for p in declaration.fields]
+            else:
+                self.table[key] = {"kind": "enum", "name": typ.name, "args": args, "variants": []}
+                self.table[key]["variants"] = [{"name": v.name, "fields": [self.add(substitute_type(t, mapping)) for t in v.fields]} for v in declaration.variants]
+        else:
+            _unsupported(f"Resource lowering has no semantics for {typ}; raw pointers, tasks and unresolved generics are rejected")
+        return key
+
+    def owned(self, typ: Type) -> bool:
+        return is_owned_type(self.program, typ)
+
+    def fields(self, typ: Type, variant: str | None = None) -> list[Type]:
+        if typ.name == "Result":
+            return [typ.args[0] if variant == "Ok" else typ.args[1]]
+        declaration = self.structs.get(typ.name) or self.enums[typ.name]
+        mapping = dict(zip(declaration.type_params, typ.args))
+        if variant is None:
+            return [substitute_type(f.type, mapping) for f in declaration.fields]
+        return [substitute_type(t, mapping) for v in declaration.variants if v.name == variant for t in v.fields]
+
+
+class _FunctionLowerer:
+    def __init__(self, program, checked, fn, types: _Types, signatures: dict):
+        self.program, self.checked, self.fn, self.types, self.signatures = program, checked, fn, types, signatures
+        self.local_counter = self.loan_counter = 0
+        self.blocks = []
+        self.locals = []
+        self.env: dict[str, _Value] = {}
+        self.out = signatures[fn.name]
+        for param, signature in zip(fn.params, self.out["params"]):
+            self.env[param.name] = _Value(signature["id"], param.type, "owner" if param.mode == "take" else "value", param.mode)
+        self.current = self.new_block()
+        self.out["entry"] = self.current["id"]
+
+    def typ(self, expr) -> Type:
+        typ = self.checked.expr_types.get(id(expr))
+        if typ is None:
+            _unsupported("Expression type is missing from this exact checked AST")
+        self.types.add(typ)
+        return typ
+
+    def new_block(self) -> dict:
+        block = {"id": "b" + str(len(self.blocks)), "ops": [], "term": None}
+        self.blocks.append(block)
+        return block
+
+    def slot(self, typ: Type, *, mutable: bool = False) -> _Value:
+        key = self.types.add(typ)
+        sid = "v" + str(self.local_counter)
+        self.local_counter += 1
+        self.locals.append({"id": sid, "type": key, "mutable": mutable})
+        return _Value(sid, typ, "owner" if self.types.owned(typ) else "value")
+
+    def loan_id(self) -> str:
+        lid = "l" + str(self.loan_counter)
+        self.loan_counter += 1
+        return lid
+
+    def emit(self, op: str, **fields) -> None:
+        if self.current is None:
+            _unsupported("Unreachable source statements cannot be lowered")
+        self.current["ops"].append({"op": op, **fields})
+
+    def finish(self, op: str, **fields) -> None:
+        if self.current is None or self.current["term"] is not None:
+            _unsupported("Invalid source control flow")
+        self.current["term"] = {"op": op, **fields}
+        self.current = None
+
+    def copy_value(self, value: _Value) -> _Value:
+        if value.kind == "borrow" and not self.types.owned(value.type) and value.type.name != "slice":
+            self.emit("use", loan=value.id, mode="read")
+            self.end(value)
+            return self.slot(value.type)
+        if value.kind != "value":
+            _unsupported("An owned/borrowed value cannot be erased into an abstract scalar")
+        return value
+
+    def place(self, expr) -> dict:
+        if expr.kind == "name" and expr.value in self.env:
+            return {"root": self.env[expr.value].id, "path": []}
+        if expr.kind == "field":
+            result = self.place(expr.children[0])
+            result["path"].append(str(expr.value))
+            return result
+        if expr.kind == "index":
+            result = self.place(expr.children[0])
+            self.copy_value(self.expression(expr.children[1]))
+            result["path"].append("*")
+            return result
+        _unsupported("Borrowed places require a named root, a known field, or a conservative index")
+
+    def borrow(self, expr, mode: str, expected: Type | None = None) -> _Value:
+        if expr.kind == "unary" and expr.value in {"read", "mut"}:
+            expr = expr.children[0]
+        typ = expected or self.typ(expr)
+        self.types.add(typ)
+        if expr.kind == "call":
+            value = self.expression(expr)
+            if value.kind != "borrow" or mode == "mut" and value.mode != "mut":
+                _unsupported("Borrow call result must retain a compatible borrowed mode")
+            return value
+        place = self.place(expr)
+        lid = self.loan_id()
+        self.emit("borrow", id=lid, place=place, mode=mode, type=str(typ))
+        return _Value(lid, typ, "borrow", mode)
+
+    def end(self, value: _Value) -> None:
+        if value.kind == "borrow":
+            self.emit("end_borrow", id=value.id)
+
+    def expression(self, expr) -> _Value:
+        typ = self.typ(expr)
+        kind = expr.kind
+        if kind in {"int", "float", "bool", "string"}:
+            if self.types.owned(typ):
+                _unsupported("An abstract literal cannot create an owner")
+            return self.slot(typ)
+        if kind == "name":
+            if expr.value not in self.env:
+                _unsupported("Unknown local expression")
+            value = self.env[expr.value]
+            if self.types.owned(typ):
+                _unsupported("Owned names require explicit move or borrowing")
+            self.emit("use", place={"root": value.id, "path": []}, mode="read")
+            return value
+        if kind == "unary":
+            if expr.value == "move":
+                child = expr.children[0]
+                if child.kind != "name" or child.value not in self.env or not self.types.owned(typ):
+                    _unsupported("Only whole named owners can move in this profile")
+                result = self.slot(typ)
+                self.emit("move", src=self.env[child.value].id, dest=result.id)
+                return result
+            if expr.value in {"read", "mut"}:
+                return self.borrow(expr, expr.value, typ)
+            self.copy_value(self.expression(expr.children[0]))
+            return self.slot(typ)
+        if kind == "binary" and expr.value in {"&&", "||"}:
+            condition = self.copy_value(self.expression(expr.children[0]))
+            right, skip, join = self.new_block(), self.new_block(), self.new_block()
+            self.finish("branch", condition=condition.id,
+                        then=right["id"] if expr.value == "&&" else skip["id"],
+                        **{"else": skip["id"] if expr.value == "&&" else right["id"]})
+            self.current = right
+            self.copy_value(self.expression(expr.children[1]))
+            self.finish("jump", target=join["id"])
+            self.current = skip
+            self.finish("jump", target=join["id"])
+            self.current = join
+            return self.slot(typ)
+        if kind in {"binary", "cast", "array"}:
+            for child in expr.children:
+                self.copy_value(self.expression(child))
+            return self.slot(typ)
+        if kind in {"field", "index"}:
+            if self.types.owned(typ):
+                _unsupported("Partial owned-field moves are not modelled")
+            # Normal named projections preserve field-disjointness. A view
+            # returned by a call retains its conservative input-region loan.
+            base = expr
+            while base.kind in {"field", "index"}:
+                base = base.children[0]
+            if base.kind == "call":
+                view = self.expression(base)
+                if view.kind != "borrow":
+                    _unsupported("Projection from temporary aggregate values is outside this profile")
+                cursor = expr
+                while cursor.kind in {"field", "index"}:
+                    if cursor.kind == "index":
+                        self.copy_value(self.expression(cursor.children[1]))
+                    cursor = cursor.children[0]
+                self.emit("use", loan=view.id, mode="read")
+                self.end(view)
+            else:
+                self.emit("use", place=self.place(expr), mode="read")
+            return self.slot(typ)
+        if kind in {"struct", "variant"}:
+            values = [self.expression(child) for child in expr.children]
+            values = [self.copy_value(v) if v.kind == "borrow" else v for v in values]
+            variant = expr.value["variant"] if kind == "variant" else None
+            if kind == "struct":
+                ordered = dict(zip(expr.value["fields"], values))
+                values = [ordered[f.name] for f in self.types.structs[typ.name].fields]
+            result = self.slot(typ)
+            self.emit("pack", dest=result.id, variant=variant, fields=[v.id for v in values])
+            return result
+        if kind == "call":
+            return self.call(expr, typ)
+        _unsupported(f"Unsupported expression {kind}")
+
+    def call(self, expr, typ: Type) -> _Value:
+        name, args = expr.value, expr.children
+        if name in {"buffer", "try_buffer"}:
+            for arg in args:
+                self.copy_value(self.expression(arg))
+            result = self.slot(typ)
+            self.emit("acquire", dest=result.id, kind=name)
+            return result
+        if name in {"release", "drop"}:
+            owner = self.expression(args[0])
+            if owner.kind != "owner":
+                _unsupported("Drop requires an explicit owned transfer")
+            self.emit("drop", src=owner.id)
+            return _Value(None, Type("Unit"))
+        if name == "len":
+            view = self.borrow(args[0], "read")
+            self.emit("use", loan=view.id, mode="read")
+            self.end(view)
+            return self.slot(typ)
+        if name in _SCALAR_BUILTINS:
+            for arg in args:
+                self.copy_value(self.expression(arg))
+            return _Value(None, typ) if typ.name == "Unit" else self.slot(typ)
+        if name not in self.signatures:
+            _unsupported(f"Builtin {name} has no resource transition model (tasks, raw memory and concurrency are excluded)")
+        callee = self.signatures[name]
+        values, call_args = [], []
+        for arg, param in zip(args, callee["params"]):
+            if param["mode"] in {"read", "mut"}:
+                original = next(f for f in self.program.functions if f.name == name)
+                param_index = len(values)
+                value = self.borrow(arg, param["mode"], original.params[param_index].type)
+            else:
+                value = self.expression(arg)
+                if param["mode"] == "value":
+                    value = self.copy_value(value)
+                if value.kind != ("owner" if param["mode"] == "take" else "value"):
+                    _unsupported("Call argument cannot erase ownership or references")
+            values.append(value)
+            call_args.append({"kind": value.kind, "id": value.id})
+        ret = callee["returns"]
+        if ret["mode"] == "value":
+            result = _Value(None, typ) if typ.name == "Unit" else self.slot(typ)
+            result_loan = None
+        else:
+            result = _Value(self.loan_id(), typ, "borrow", ret["mode"])
+            result_loan = result.id
+        self.emit("foreign" if callee["external"] else "call", function=name, args=call_args,
+                  result=None if result_loan else result.id, result_loan=result_loan,
+                  obligation=callee["obligation"])
+        for param, value in zip(callee["params"], values):
+            if value.kind == "borrow" and not (result_loan and ret["origin"] == param["id"]):
+                self.end(value)
+        return result
+
+    def statements(self, body: list, binding_env: dict[str, _Value] | None = None) -> None:
+        previous = self.env
+        if binding_env is not None:
+            self.env = binding_env
+        for statement in body:
+            if self.current is None:
+                _unsupported("Checked source contains an unreachable statement")
+            data = statement.data
+            if statement.kind == "let":
+                value = self.expression(data["expr"])
+                if value.kind == "borrow":
+                    value = self.copy_value(value)
+                typ = data.get("type") or value.type
+                binding = self.slot(typ, mutable=bool(data["mutable"]))
+                if value.kind == "owner":
+                    self.emit("move", src=value.id, dest=binding.id)
+                self.env[data["name"]] = binding
+            elif statement.kind == "assign":
+                base = data["target"]
+                while base.kind in {"field", "index"}:
+                    base = base.children[0]
+                if base.kind == "call":
+                    view = self.expression(base)
+                    if view.kind != "borrow" or view.mode != "mut":
+                        _unsupported("Assignment through a returned view requires a mutable loan")
+                    cursor = data["target"]
+                    while cursor.kind in {"field", "index"}:
+                        if cursor.kind == "index":
+                            self.copy_value(self.expression(cursor.children[1]))
+                        cursor = cursor.children[0]
+                    self.copy_value(self.expression(data["expr"]))
+                    self.emit("use", loan=view.id, mode="write")
+                    self.end(view)
+                else:
+                    place = self.place(data["target"])
+                    self.copy_value(self.expression(data["expr"]))
+                    self.emit("use", place=place, mode="write")
+            elif statement.kind == "expr":
+                value = self.expression(data["expr"])
+                if value.kind == "borrow":
+                    value = self.copy_value(value)
+                if value.kind != "value":
+                    _unsupported("An expression statement cannot discard an owner or loan")
+            elif statement.kind == "return":
+                expr = data["expr"]
+                if self.fn.return_mode in {"read", "mut"}:
+                    value = self.borrow(expr, self.fn.return_mode, self.fn.return_type)
+                    if value.mode != self.fn.return_mode:
+                        _unsupported("Mode-changing returned call views need an explicit reborrow model")
+                    self.finish("return", value=None, loan=value.id)
+                else:
+                    value = self.expression(expr) if expr is not None else _Value(None, Type("Unit"))
+                    if value.kind == "borrow":
+                        value = self.copy_value(value)
+                    self.finish("return", value=value.id, loan=None)
+            elif statement.kind == "unsafe":
+                self.statements(data["body"], dict(self.env))
+            elif statement.kind == "if":
+                condition = self.copy_value(self.expression(data["condition"]))
+                yes, no = self.new_block(), self.new_block()
+                self.finish("branch", condition=condition.id, then=yes["id"], **{"else": no["id"]})
+                continuation = []
+                for block, source in ((yes, data["then"]), (no, data.get("else", []))):
+                    self.current = block
+                    self.statements(source, dict(self.env))
+                    if self.current is not None:
+                        continuation.append(self.current)
+                self.current = None
+                if continuation:
+                    join = self.new_block()
+                    for block in continuation:
+                        block["term"] = {"op": "jump", "target": join["id"]}
+                    self.current = join
+            elif statement.kind == "match":
+                value = self.expression(data["expr"])
+                arms = [(self.new_block(), arm) for arm in data["arms"]]
+                self.finish("switch", src=value.id, cases=[{"variant": arm.pattern.variant, "target": block["id"]} for block, arm in arms])
+                continuation = []
+                for block, arm in arms:
+                    self.current = block
+                    fields = self.types.fields(value.type, arm.pattern.variant)
+                    bindings = [self.slot(t) for t in fields]
+                    self.emit("unpack", src=value.id, variant=arm.pattern.variant, dests=[v.id for v in bindings])
+                    env = dict(self.env)
+                    env.update((name, binding) for name, binding in zip(arm.pattern.bindings, bindings) if name != "_")
+                    self.statements(arm.body, env)
+                    if self.current is not None:
+                        continuation.append(self.current)
+                self.current = None
+                if continuation:
+                    join = self.new_block()
+                    for block in continuation:
+                        block["term"] = {"op": "jump", "target": join["id"]}
+                    self.current = join
+            elif statement.kind in {"for", "while"}:
+                env = dict(self.env)
+                if statement.kind == "for":
+                    self.copy_value(self.expression(data["start"]))
+                    bound = self.copy_value(self.expression(data["end"]))
+                    env[data["name"]] = self.slot(bound.type)
+                header, loop, after = self.new_block(), self.new_block(), self.new_block()
+                self.finish("jump", target=header["id"])
+                self.current = header
+                condition = self.copy_value(self.expression(data["condition"])) if statement.kind == "while" else self.slot(Type("bool"))
+                self.finish("branch", condition=condition.id, then=loop["id"], **{"else": after["id"]})
+                self.current = loop
+                self.statements(data["body"], env)
+                if self.current is not None:
+                    self.finish("jump", target=header["id"])
+                self.current = after
+            else:
+                _unsupported(f"Unsupported statement {statement.kind}")
+        if binding_env is not None:
+            self.env = previous
+
+    def lower(self) -> dict:
+        self.statements(self.fn.body)
+        if self.current is not None:
+            if self.fn.return_type != Type("Unit"):
+                _unsupported("A non-Unit body without an explicit modeled return is unsupported")
+            self.finish("return", value=None, loan=None)
+        self.out["locals"], self.out["blocks"] = self.locals, self.blocks
+        return self.out
+
+
+def lower_resource_ir(program, checked, *, project_sha256: str | None = None) -> dict:
+    """Translate this checked AST and require the independent verifier to pass.
+
+    `checked` must belong to the same AST objects. Their correspondence and the
+    source-to-IR abstraction remain obligations of the caller/implementation.
+    """
+    if not getattr(checked, "ok", False):
+        raise ResourceIRError("E_RIR_LOWER_REJECTED", "Cannot lower a rejected frontend result")
+    types = _Types(program)
+    for primitive in ("Unit", "bool", "usize"):
+        types.add(Type(primitive))
+    signatures, obligations = {}, {}
+    for fn in program.functions:
+        if fn.type_params or fn.resources:
+            _unsupported("Generic function bodies and task/resource runtime clauses require another lowering profile")
+        params = [{"id": "p" + str(i), "type": types.add(p.type), "mode": p.mode} for i, p in enumerate(fn.params)]
+        origins = [p["id"] for p in params if p["mode"] in {"read", "mut"}]
+        signature = {"name": fn.name, "params": params,
+                     "returns": {"type": types.add(fn.return_type), "mode": fn.return_mode,
+                                 "origin": origins[0] if fn.return_mode != "value" and len(origins) == 1 else None},
+                     "external": fn.extern_c, "obligation": "foreign:" + fn.name if fn.extern_c else None,
+                     "locals": [], "entry": None, "blocks": []}
+        signatures[fn.name] = signature
+        if fn.extern_c:
+            obligations[signature["obligation"]] = {"function": fn.name, "status": "assumed_not_verified", "requirements": list(_EXTERNAL_REQUIREMENTS)}
+    for fn in program.functions:
+        if not fn.extern_c:
+            _FunctionLowerer(program, checked, fn, types, signatures).lower()
+    doc = {"schema": SCHEMA, "source_sha256": hashlib.sha256(program.source.encode()).hexdigest(),
+           "project_sha256": project_sha256, "value_semantics": "copied_values_abstract_not_executable",
+           "types": types.table, "functions": list(signatures.values()), "obligations": obligations,
+           "claims": dict(_CLAIMS)}
+    validation = verify_resource_ir(doc)
+    if not validation["ok"]:
+        error = validation["diagnostics"][0]
+        raise ResourceIRError(error["code"], f"Resource lowering failed independent verification in {error.get('function')}:{error.get('block')}: {error['message']}")
+    return doc

@@ -8,13 +8,14 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from dataclasses import fields, is_dataclass
+from dataclasses import asdict, fields, is_dataclass
 from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 
 from .ast import Diagnostic, Expr, Function, HeptaError, Program, Span, Stmt, Type
+from .checker import is_owned_type
 from .runtime_concurrency import GROUP_RUNTIME, GROUP_TYPE_NAMES
 
 
@@ -78,6 +79,7 @@ class Emitter:
         self.crate_type = crate_type
         self.params: dict[str, str] = {}
         self.type_params: set[str] = set()
+        self.functions = {f.name: f for f in program.functions}
 
     def typ(self, typ: Type) -> str:
         return rust_type(typ, self.type_params)
@@ -85,8 +87,8 @@ class Emitter:
     def constructor(self, typ: Type) -> str:
         return self.typ(typ).replace("<", "::<", 1)
 
-    def generics(self, params: tuple[str, ...]) -> str:
-        return "<" + ", ".join("G_" + name + ": core::marker::Copy" for name in params) + ">" if params else ""
+    def generics(self, params: tuple[str, ...], *, copy_bound: bool = True) -> str:
+        return "<" + ", ".join("G_" + name + (": core::marker::Copy" if copy_bound else "") for name in params) + ">" if params else ""
 
     @staticmethod
     def variant_name(enum_name: str, variant_name: str) -> str:
@@ -157,7 +159,9 @@ class Emitter:
                 return f"({args[0]}).{e.value}({args[1]})"
             if e.value == "buffer":
                 return f"std::vec![0u8; {args[0]}]"
-            if e.value == "release":
+            if e.value == "try_buffer":
+                return f"__hepta_try_buffer({args[0]})"
+            if e.value in {"release", "drop"}:
                 return f"core::mem::drop({args[0]})"
             if e.value == "assert":
                 return f"assert!({args[0]})"
@@ -171,7 +175,9 @@ class Emitter:
             if e.value == "store":
                 return f"{{ *({args[0]}).add({args[1]}) = {args[2]}; }}"
             generics = "::<" + ", ".join(self.typ(t) for t in e.type_args) + ">" if e.type_args else ""
-            return "h_" + e.value + generics + "(" + ", ".join(args) + ")"
+            call = "h_" + e.value + generics + "(" + ", ".join(args) + ")"
+            fn = self.functions.get(e.value)
+            return "(*" + call + ")" if fn is not None and fn.return_mode in {"read", "mut"} else call
         raise HeptaError(Diagnostic("E_BACKEND_AST", f"Unsupported expression {kind}", e.span, phase="lower"))
 
     def block(self, body: list[Stmt], level: int = 0) -> str:
@@ -179,6 +185,7 @@ class Emitter:
         lines = ["{"]
         for s in body:
             prefix = "    " * (level + 1)
+            lines.append(prefix + "// hepta-source: " + json.dumps({"event": "begin", "kind": "statement", "span": asdict(s.span)}, ensure_ascii=True, separators=(",", ":")))
             d = s.data
             if s.kind == "let":
                 t = d.get("type") or self.checked.expr_types.get(id(d["expr"]))
@@ -213,6 +220,7 @@ class Emitter:
             else:
                 raise HeptaError(Diagnostic("E_BACKEND_AST", f"Unsupported statement {s.kind}", s.span, phase="lower"))
             lines.append(prefix + line)
+            lines.append(prefix + '// hepta-source: {"event":"end"}')
         lines.append(indent + "}")
         return "\n".join(lines)
 
@@ -255,27 +263,34 @@ class Emitter:
             lines.append(TASK_RUNTIME)
         if uses_groups:
             lines.append(GROUP_RUNTIME)
+        if any(t.name == "Buffer" for t in all_types):
+            lines.append(BUFFER_RUNTIME)
         for st in self.program.structs:
             self.type_params = set(st.type_params)
             if st.repr_c:
                 lines.append("#[repr(C)]")
-            lines.append("#[derive(Clone, Copy)]")
-            lines.append("pub struct H_" + st.name + self.generics(st.type_params) + " { " + ", ".join("pub h_" + f.name + ": " + self.typ(f.type) for f in st.fields) + " }")
+            if not is_owned_type(self.program, Type(st.name)):
+                lines.append("#[derive(Clone, Copy)]")
+            lines.append("pub struct H_" + st.name + self.generics(st.type_params, copy_bound=False) + " { " + ", ".join("pub h_" + f.name + ": " + self.typ(f.type) for f in st.fields) + " }")
         for enum in self.program.enums:
             self.type_params = set(enum.type_params)
-            lines.append("#[derive(Clone, Copy)]")
+            if not is_owned_type(self.program, Type(enum.name)):
+                lines.append("#[derive(Clone, Copy)]")
             variants = [self.variant_name(enum.name, variant.name) + ("(" + ", ".join(self.typ(t) for t in variant.fields) + ")" if variant.fields else "") for variant in enum.variants]
-            lines.append("pub enum H_" + enum.name + self.generics(enum.type_params) + " { " + ", ".join(variants) + " }")
+            lines.append("pub enum H_" + enum.name + self.generics(enum.type_params, copy_bound=False) + " { " + ", ".join(variants) + " }")
         for fn in self.program.functions:
             self.params = {p.name: p.mode for p in fn.params}
             self.type_params = set(fn.type_params)
-            signature = "fn h_" + fn.name + self.generics(fn.type_params) + "(" + ", ".join(self.param(p) for p in fn.params) + ") -> " + self.typ(fn.return_type)
+            return_prefix = "&" if fn.return_mode == "read" else "&mut " if fn.return_mode == "mut" else ""
+            signature = "fn h_" + fn.name + self.generics(fn.type_params) + "(" + ", ".join(self.param(p) for p in fn.params) + ") -> " + return_prefix + self.typ(fn.return_type)
+            lines.append("// hepta-source: " + json.dumps({"event": "begin", "kind": "declaration", "span": asdict(fn.span)}, ensure_ascii=True, separators=(",", ":")))
             if fn.extern_c:
                 lines.append('extern "C" { #[link_name = ' + json.dumps(fn.name) + "] pub " + signature + "; }")
             else:
                 if fn.export_c:
                     lines.append("#[export_name = " + json.dumps(fn.name) + "]")
                 lines.append(("pub " if fn.public or fn.export_c else "") + ('extern "C" ' if fn.export_c else "") + signature + " " + self.block(fn.body or []))
+            lines.append('// hepta-source: {"event":"end"}')
         if self.crate_type == "bin":
             main = next((f for f in self.program.functions if f.name == "main" and f.body is not None), None)
             if main is None or main.params or main.return_type.name not in {"Unit", "i32"}:
@@ -284,6 +299,20 @@ class Emitter:
         if self.no_std and self.crate_type in {"staticlib", "cdylib", "obj"}:
             lines.append("#[panic_handler] fn hepta_abort(_: &core::panic::PanicInfo<'_>) -> ! { loop { core::hint::spin_loop(); } }")
         return "\n".join(lines) + "\n"
+
+
+BUFFER_RUNTIME = r'''
+fn __hepta_try_buffer(size: usize) -> core::result::Result<std::vec::Vec<u8>, u8> {
+    let mut bytes = std::vec::Vec::new();
+    if bytes.try_reserve_exact(size).is_err() {
+        return Err(1u8);
+    }
+    // Successful reservation proves capacity >= size. u8 initialization cannot
+    // call user code or allocate again; no uninitialized bytes are exposed.
+    bytes.resize(size, 0u8);
+    Ok(bytes)
+}
+'''
 
 
 TASK_RUNTIME = r'''
@@ -429,6 +458,8 @@ def compile_rust(source: str, *, rustc: str | None = None, target: str | None = 
                 diagnostics.append({"code": (d.get("code") or {}).get("code", "E_RUSTC"),
                                     "message": d.get("message", "backend error"), "phase": "backend",
                                     "rendered": d.get("rendered"), "generated_spans": d.get("spans", [])})
+        from .source_map import map_diagnostics
+        diagnostics = map_diagnostics(source, diagnostics, generated_path=str(generated))
         result = {"ok": p.returncode == 0, "status": "rustc_checked" if p.returncode == 0 else "rejected",
                   "diagnostics": diagnostics, "toolchain": info, "target": target or info["host"],
                   "flags": ["edition=2021", "opt-level=" + ("3" if optimize else "0"), "overflow-checks=yes", "panic=abort", "codegen-units=1"],

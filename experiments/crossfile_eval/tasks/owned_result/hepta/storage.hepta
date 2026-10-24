@@ -1,0 +1,6 @@
+module storage;
+pub struct Packet { bytes: Buffer<u8> }
+pub fn make(n: usize) -> Packet effects {alloc,block,panic,write} {
+    return Packet {bytes: move buffer(n)};
+}
+pub fn close(packet: take Packet) -> Unit effects {alloc,block} { drop(move packet); }

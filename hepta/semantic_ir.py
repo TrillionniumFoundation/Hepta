@@ -69,8 +69,21 @@ class _Encoder:
         raise TypeError(f"HSIR rejects unrecognized syntax value {type(node).__name__}")
 
 
-def _type_has_raw(typ: Type) -> bool:
-    return typ.name in {"raw_const", "raw_mut"} or any(_type_has_raw(t) for t in typ.args)
+def _type_has_raw(typ: Type, nominal_fields: dict[str, tuple[Type, ...]]) -> bool:
+    # This is a conservative signature inventory, not a pointer-safety proof.
+    # Inspect arguments even for previously expanded nominal declarations:
+    # Box<u32> and Box<raw const u8> have the same name but different boundaries.
+    pending = [typ]
+    expanded = set()
+    while pending:
+        current = pending.pop()
+        if current.name in {"raw_const", "raw_mut"}:
+            return True
+        pending.extend(current.args)
+        if current.name not in expanded:
+            expanded.add(current.name)
+            pending.extend(nominal_fields.get(current.name, ()))
+    return False
 
 
 def lower_checked_program(program: Program, checked: Any, *, project_sha256: str | None = None) -> dict[str, Any]:
@@ -82,11 +95,16 @@ def lower_checked_program(program: Program, checked: Any, *, project_sha256: str
     """
     if not checked.ok:
         raise ValueError("Cannot lower a program rejected by Hepta's frontend checker")
+    nominal_fields = {s.name: tuple(field.type for field in s.fields)
+                      for s in program.structs}
+    nominal_fields.update({e.name: tuple(field for variant in e.variants
+                                      for field in variant.fields)
+                           for e in program.enums})
     enc = _Encoder(checked.expr_types, [])
     functions = []
     external_obligations = []
     for fn in program.functions:
-        raw_boundary = any(_type_has_raw(p.type) for p in fn.params) or _type_has_raw(fn.return_type)
+        raw_boundary = any(_type_has_raw(p.type, nominal_fields) for p in fn.params) or _type_has_raw(fn.return_type, nominal_fields)
         if fn.extern_c or raw_boundary or "unsafe" in fn.effects or "ffi" in fn.effects:
             external_obligations.append({"function": fn.name,
                 "reasons": [k for k, yes in (("foreign_function", fn.extern_c),
@@ -102,6 +120,7 @@ def lower_checked_program(program: Program, checked: Any, *, project_sha256: str
             "params": [{"name": p.name, "mode": p.mode, "type": str(p.type),
                         "span": _span(p.span)} for p in fn.params],
             "returns": str(fn.return_type),
+            "return_mode": getattr(fn, "return_mode", "value"),
             "declared_effects": sorted(fn.effects),
             "inferred_effects": sorted(checked.effects.get(fn.name, ())),
             "resources": enc.value(fn.resources),
@@ -126,6 +145,7 @@ def lower_checked_program(program: Program, checked: Any, *, project_sha256: str
         "external_obligations": external_obligations,
         "foreign_assumptions": enc.value(checked.assumptions),
         "resource_contracts": enc.value(checked.resource_contracts),
+        "owned_types": sorted(str(t) for t in getattr(checked, "owned_types", ())),
         "claims": {"native_borrow_validation": False,
                    "translation_correctness_proved": False,
                    "whole_language_soundness_proved": False,

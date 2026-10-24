@@ -1,0 +1,28 @@
+name: Hepta HSIR and C migration checks
+on:
+  push:
+    branches:
+      - dot/hsir-c2hepta-p0-p3-20261024
+  workflow_dispatch:
+
+concurrency:
+  group: hepta-migration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  migration-and-frontend:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify compilers
+        run: |
+          python3 --version
+          clang --version
+          gcc --version
+      - name: Run c2hepta and HSIR suite
+        run: python3 -m unittest discover -s tests -p test_c2hepta.py -v
+      - name: Run entire Python test suite
+        run: python3 -m unittest discover -s tests -p 'test_*.py' -v

@@ -191,14 +191,15 @@ def _function(decl: dict, model: dict) -> dict:
 
 def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> dict:
     """Return explicit migration evidence; never write a partial conversion."""
-    src, dest = Path(path).resolve(), Path(output).resolve()
+    src, dest = Path(path).resolve(), Path(output).absolute()
     report = {"schema": "hepta.migrate-c.v0", "ok": False, "status": "rejected",
               "profile": "strict_scalar_pilot", "source": str(src), "output": str(dest),
               "source_equivalence_proved": False, "whole_language_soundness_proved": False,
               "native_validation": "not_run", "converted": [], "rejected": []}
     try:
-        if src == dest or not src.is_file() or src.suffix != ".c" or dest.suffix != ".hepta":
-            raise MigrationRejected("E_C_PATH", "Require an existing .c source and a distinct .hepta destination")
+        if (src == dest or not src.is_file() or src.suffix != ".c"
+                or dest.suffix != ".hepta" or dest.is_symlink()):
+            raise MigrationRejected("E_C_PATH", "Require existing .c source and distinct non-symlink .hepta destination")
         source = src.read_bytes()
         if len(source) > 256_000:
             raise MigrationRejected("E_C_SIZE", "Pilot source exceeds 256 KB")
@@ -211,13 +212,12 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
         if root.get("kind") != "TranslationUnitDecl":
             raise MigrationRejected("E_C_AST", "Clang did not return a translation unit")
         declarations = []
+        unsupported_toplevel = []
         active_file = None
         for node in root.get("inner", []):
             node_file = node.get("loc", {}).get("file")
             if node_file:
                 active_file = Path(node_file).resolve()
-            if node.get("kind") != "FunctionDecl" or not any(x.get("kind") == "CompoundStmt" for x in node.get("inner", [])):
-                continue
             loc = node.get("loc", {})
             if active_file != src:
                 continue
@@ -225,7 +225,17 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
             end = node.get("range", {}).get("end", {}).get("offset")
             if not isinstance(begin, int) or not isinstance(end, int) or not (0 <= begin <= end < len(source)):
                 continue
-            declarations.append(node)
+            if node.get("kind") == "FunctionDecl" and any(
+                    x.get("kind") == "CompoundStmt" for x in node.get("inner", [])):
+                declarations.append(node)
+            else:
+                # The pilot claims a whole-translation-unit conversion.
+                # Globals, typedefs and prototypes may carry ABI/linkage state:
+                # never accept the file and silently omit those declarations.
+                unsupported_toplevel.append(f"{node.get('kind')}: {node.get('name', '<anonymous>')}")
+        if unsupported_toplevel:
+            raise MigrationRejected("E_C_TOPLEVEL", "Unsupported source declarations: " +
+                                    ", ".join(unsupported_toplevel[:12]))
         if not declarations:
             raise MigrationRejected("E_C_NO_FUNCTIONS", "No ordinary C function definitions found")
         translated = []
@@ -265,11 +275,16 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
                 f.write(program)
                 f.flush()
                 os.fsync(f.fileno())
-            # O_EXCL prevents accidentally overwriting a concurrent writer.
-            with dest.open("x", encoding="utf-8") as final:
-                final.write(staged.read_text(encoding="utf-8"))
-                final.flush()
-                os.fsync(final.fileno())
+            # Atomic same-filesystem hard-link publication: the completely
+            # written, fsynced staged inode becomes visible in one operation.
+            # os.link fails without replacing a concurrent existing name.
+            # This is NOT a multi-file transaction or proof of crash durability.
+            try:
+                os.link(staged, dest)
+            except FileExistsError as exc:
+                raise MigrationRejected("E_C_EXISTS", "Destination appeared during conversion") from exc
+            except OSError as exc:
+                raise MigrationRejected("E_C_PUBLISH", "Atomic publish unavailable: " + str(exc)) from exc
         finally:
             if staged is not None:
                 staged.unlink(missing_ok=True)
@@ -281,3 +296,16 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
     except (MigrationRejected, UnicodeError, json.JSONDecodeError) as exc:
         report["rejected"].append({"code": getattr(exc, "code", "E_C_INPUT"), "message": str(exc)})
         return report
+
+
+def migrate_c_project(database: str | Path, output_directory: str | Path, *,
+                      contracts: dict | None = None, clang: str = "clang",
+                      rustc: str | None = None, verify_native: bool = False) -> dict:
+    """Migrate the bounded project profile; see docs/C_MIGRATION.md.
+
+    This separate entry point preserves the original fail-closed scalar pilot.
+    It returns a complete declaration inventory and explicit pointer contracts.
+    """
+    from .c_migration_project import migrate_project
+    return migrate_project(database, output_directory, contracts=contracts,
+                           clang=clang, rustc=rustc, verify_native=verify_native)

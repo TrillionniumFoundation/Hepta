@@ -1,0 +1,14 @@
+module service;
+import storage;
+pub fn process(n: usize, abort_after_create: bool) -> i64 effects {alloc,block,panic,write} {
+    match storage::make(n) {
+        Result::Err(code) => { return -(code as i64); },
+        Result::Ok(packet) => {
+            if abort_after_create { storage::close(move packet); return -2; }
+            let mut value: i64 = 0;
+            for i in 0..len(packet.bytes) { value = value + packet.bytes[i] as i64; }
+            storage::close(move packet);
+            return value;
+        },
+    }
+}
