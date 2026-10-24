@@ -40,6 +40,8 @@ def _header_class(header: Path, class_name: str, clang: str) -> dict:
             candidates.append(decl)
     if len(candidates) != 1:
         raise MigrationRejected("E_CPP_CLASS", "Expected exactly one complete, top-level, non-template class in this header")
+    if candidates[0].get("bases") or candidates[0].get("definitionData", {}).get("isAbstract"):
+        raise MigrationRejected("E_CPP_HIERARCHY", "Inheritance and abstract C++ classes are not in the bridge subset")
     return candidates[0]
 
 
