@@ -25,7 +25,7 @@ Lean 4.19.0, QEMU and a pinned, unchanged project source snapshot.
 
 ## P1/P3 experimental slice
 
-The new `hepta.hsir` module is a deliberately restricted, validated expression
+The new `hepta.migration_ir` module is a deliberately restricted, validated expression
 IR, not the final whole-language IR. It supports copy-only i32/u32 values,
 pure parameter references, literals, checked signed arithmetic, wrapping
 unsigned arithmetic, scalar comparisons, return statements, and total if/else.
