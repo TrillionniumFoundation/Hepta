@@ -15,7 +15,8 @@ execution covers the recorded inputs, configuration, platform and compiler.
 
 ## Entry points and replay
 
-The existing scalar pilot `migrate_c` remains available. The project API is:
+The existing scalar pilot `migrate_c` remains available with the required
+[pinned same-instance frontend](C_SCALAR_FRONTEND.md). The project API is:
 
 ```python
 from hepta.c_migrate import migrate_c_project

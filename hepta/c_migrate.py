@@ -267,11 +267,12 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
         if len(source) > 256_000:
             raise MigrationRejected("E_C_SIZE", "Pilot source exceeds 256 KB")
         report["source_sha256"] = hashlib.sha256(source).hexdigest()
-        model = _data_model(clang)
+        from .c_frontend import FrontendError, scalar_frontend
+        try:
+            root, model = scalar_frontend(src, source, clang)
+        except FrontendError as exc:
+            raise MigrationRejected(exc.code, str(exc)) from exc
         report["target_model"] = model
-        ast_json = _run([clang, "-std=c11", "-fsyntax-only", "-Werror",
-                        "-Xclang", "-ast-dump=json", str(src)])
-        root = json.loads(ast_json)
         if root.get("kind") != "TranslationUnitDecl":
             raise MigrationRejected("E_C_AST", "Clang did not return a translation unit")
         # This per-migration context leaves the separate C++ bridge caller of
