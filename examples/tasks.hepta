@@ -1,0 +1,43 @@
+module structured_tasks;
+
+fn sum_worker(data: take Buffer<u8>, cancel: read Cancellation) -> u64
+effects { alloc, block, panic }
+{
+    let mut total: u64 = 0;
+    for i in 0..len(read data) {
+        if cancelled(read cancel) {
+            release(move data);
+            return total;
+        }
+        total = wrapping_add(total, data[i] as u64);
+    }
+    release(move data);
+    return total;
+}
+
+// Deliberately waits for cancellation. The parent must request it and join.
+// Cancellation is cooperative; this example makes no wall-clock bound claim.
+fn cancellation_worker(data: take Buffer<u8>, cancel: read Cancellation) -> u64
+effects { alloc, block }
+{
+    while !cancelled(read cancel) { }
+    release(move data);
+    return 7;
+}
+
+fn main() -> i32 effects { alloc, block, spawn, panic } {
+    let mut input: Buffer<u8> = buffer(4);
+    input[0] = 10;
+    input[1] = 20;
+    input[2] = 30;
+    input[3] = 40;
+    let task: Task<u64> = spawn(sum_worker, move input);
+    let total: u64 = join(move task);
+    assert(total == 100);
+
+    let pending_data: Buffer<u8> = buffer(8);
+    let pending: Task<u64> = spawn(cancellation_worker, move pending_data);
+    let cancelled_result: u64 = cancel_and_join(move pending);
+    assert(cancelled_result == 7);
+    return 0;
+}

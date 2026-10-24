@@ -1,0 +1,35 @@
+module packet_parser;
+
+// Explicit result record: no dynamic allocation, even on short input.
+struct DecodedU32 {
+    ok: bool,
+    value: u32,
+    consumed: usize,
+}
+
+pub fn decode_u32_le(input: read [u8]) -> DecodedU32
+effects { panic }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    if len(read input) < 4 {
+        return DecodedU32 { ok: false, value: 0, consumed: 0 };
+    }
+    let value: u32 = (input[0] as u32)
+        | ((input[1] as u32) << 8)
+        | ((input[2] as u32) << 16)
+        | ((input[3] as u32) << 24);
+    return DecodedU32 { ok: true, value: value, consumed: 4 };
+}
+
+fn main() -> i32 effects { panic } {
+    let input: [u8; 4] = [120, 86, 52, 18];
+    let decoded: DecodedU32 = decode_u32_le(read input);
+    assert(decoded.ok);
+    assert(decoded.value == 305419896);
+    assert(decoded.consumed == 4);
+    let short: [u8; 2] = [1, 2];
+    let missing: DecodedU32 = decode_u32_le(read short);
+    assert(!missing.ok);
+    assert(missing.consumed == 0);
+    return 0;
+}

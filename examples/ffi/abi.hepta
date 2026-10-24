@@ -1,0 +1,48 @@
+module abi_validation;
+
+repr(C) struct AbiRecord {
+    tag: u32,
+    count: u64,
+    score: f64,
+}
+
+repr(C) struct AbiPair {
+    low: u32,
+    high: u32,
+}
+
+repr(C) struct AbiFloatPair {
+    x: f64,
+    y: f64,
+}
+
+extern "C" fn c_add(a: i32, b: i32) -> i32 effects { ffi, unsafe };
+extern "C" fn c_record(value: AbiRecord) -> AbiRecord effects { ffi, unsafe };
+
+export "C" fn hepta_make_record(tag: u32, count: u64, score: f64) -> AbiRecord effects {} {
+    return AbiRecord { tag: tag, count: count, score: score };
+}
+
+export "C" fn hepta_echo_record(value: AbiRecord) -> AbiRecord effects {} {
+    return value;
+}
+
+export "C" fn hepta_echo_pair(value: AbiPair) -> AbiPair effects {} {
+    return value;
+}
+
+export "C" fn hepta_echo_float_pair(value: AbiFloatPair) -> AbiFloatPair effects {} {
+    return value;
+}
+
+export "C" fn hepta_call_c_add(a: i32, b: i32) -> i32 effects { ffi, unsafe } {
+    unsafe {
+        return c_add(a, b);
+    }
+}
+
+export "C" fn hepta_call_c_record(value: AbiRecord) -> AbiRecord effects { ffi, unsafe } {
+    unsafe {
+        return c_record(value);
+    }
+}

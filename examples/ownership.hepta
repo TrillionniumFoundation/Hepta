@@ -1,0 +1,21 @@
+module ownership;
+
+fn consume(data: take Buffer<u8>) -> u64 effects { alloc, block, panic } {
+    let mut total: u64 = 0;
+    for i in 0..len(read data) {
+        total = wrapping_add(total, data[i] as u64);
+    }
+    release(move data);
+    return total;
+}
+
+fn main() -> i32 effects { alloc, block, panic } {
+    let mut data: Buffer<u8> = buffer(4);
+    data[0] = 10;
+    data[1] = 20;
+    data[2] = 30;
+    data[3] = 40;
+    let total: u64 = consume(move data);
+    assert(total == 100);
+    return 0;
+}

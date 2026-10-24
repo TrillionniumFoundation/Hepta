@@ -1,0 +1,32 @@
+module kernels;
+
+// Preconditions at this C boundary: pointers designate count initialized u64s;
+// copy destination is writable and does not overlap its source. The raw-pointer
+// obligations are a caller contract; Hepta v0.1 does not prove external memory.
+export "C" fn hepta_sum(data: raw const u64, count: usize) -> u64
+effects { unsafe }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    let mut sum: u64 = 0;
+    let mut index: usize = 0;
+    unsafe {
+        while index < count {
+            sum = wrapping_add(sum, load(data, index));
+            index = wrapping_add(index, 1);
+        }
+    }
+    return sum;
+}
+
+export "C" fn hepta_copy(destination: raw mut u64, source: raw const u64, count: usize) -> Unit
+effects { unsafe, write }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    let mut index: usize = 0;
+    unsafe {
+        while index < count {
+            store(destination, index, load(source, index));
+            index = wrapping_add(index, 1);
+        }
+    }
+}

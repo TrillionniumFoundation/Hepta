@@ -1,0 +1,37 @@
+module borrowed_kernels;
+
+// This path exercises safe checked slices, independently of the raw-pointer ABI
+// benchmark. Bounds-check panic is declared; both kernels forbid allocation.
+fn safe_sum(data: read [u64]) -> u64
+effects { panic }
+resources { heap_allocations = 0; may_block = false; may_spawn = false; }
+{
+    let mut total: u64 = 0;
+    let mut index: usize = 0;
+    while index < len(data) {
+        total = wrapping_add(total, data[index]);
+        index = wrapping_add(index, 1);
+    }
+    return total;
+}
+
+fn safe_copy(destination: mut [u64], source: read [u64]) -> Unit
+effects { write, panic }
+resources { heap_allocations = 0; may_block = false; may_spawn = false; }
+{
+    assert(len(destination) == len(source));
+    let mut index: usize = 0;
+    while index < len(source) {
+        destination[index] = source[index];
+        index = wrapping_add(index, 1);
+    }
+}
+
+fn main() -> Unit effects { panic, write } {
+    let source: [u64; 5] = [0, 1, 2, 3, 18446744073709551615];
+    let mut destination: [u64; 5] = [0, 0, 0, 0, 0];
+    safe_copy(mut destination, read source);
+    assert(safe_sum(read source) == 5);
+    assert(safe_sum(read destination) == 5);
+    assert(destination[4] == source[4]);
+}
