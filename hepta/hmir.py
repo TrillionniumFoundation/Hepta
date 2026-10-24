@@ -90,6 +90,8 @@ class _CFG:
         elif symbol not in self.symbols:
             raise HMIRUnsupported("assignment to unknown local")
         value = self.expr(expr)
+        if self.defs >= 4096:
+            raise HMIRUnsupported("SSA definition count exceeds 4096")
         self.defs += 1
         self.blocks[block]["instructions"].append({"op": "define", "symbol": symbol,
             "ssa": f"%v{self.defs}", "type": self.symbols[symbol], "value": value, "span": _span(span)})
@@ -332,7 +334,10 @@ def lower_checked_cfg(program: Any, checked: Any, *, project_sha256: str | None 
         raise ValueError("HMIR requires an accepted Hepta program")
     graphs = [_CFG(fn, checked).lower() for fn in program.functions]
     for graph in graphs:
-        validate_cfg_ssa(graph)
+        try:
+            validate_cfg_ssa(graph)
+        except ValueError as exc:
+            raise HMIRUnsupported(f"generated SSA failed structural validation: {exc}") from exc
     payload = {"schema": SCHEMA, "profile": "scalar_cfg_ssa_pilot_not_backend_input",
                "source_sha256": hashlib.sha256(program.source.encode("utf-8")).hexdigest(),
                "project_sha256": project_sha256, "functions": graphs,
