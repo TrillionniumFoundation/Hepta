@@ -1,0 +1,41 @@
+name: Hepta P1 structural CFG checks
+
+on:
+  push:
+    branches:
+      - feat/hepta-p1-cfg-hmir-20261024
+  pull_request:
+    branches:
+      - feat/hepta-p0-p1-verified-ir-20261024
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hepta-p1-cfg-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cfg-frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Syntax compile
+        run: python -m compileall -q hepta/control_flow_ir.py tests/test_control_flow_ir.py
+      - name: CFG and HSIR frontend regressions
+        run: python -m unittest tests.test_control_flow_ir tests.test_semantic_ir -v
+      - name: Export real sample without false native claim
+        run: |
+          python -m hepta.control_flow_ir examples/results.hepta --frontend-only > /tmp/hmir.json
+          python - <<'PY'
+          import json
+          d = json.load(open("/tmp/hmir.json", encoding="utf-8"))
+          assert d["ok"] and d["status"] == "frontend_only"
+          assert d["hmir"]["claims"]["ssa_constructed"] is False
+          assert d["hmir"]["claims"]["native_codegen_validated"] is False
+          assert d["hmir"]["claims"]["translation_correctness_proved"] is False
+          PY

@@ -26,7 +26,7 @@ semantic equivalence, Rust performance parity, or trustworthy foreign code.
 | Stage | Implemented increment | Completion status and remaining acceptance |
 |---|---|---|
 | P0 | Exact release provenance and a pinned full-gate workflow | PARTIAL: branch rerun needs completed logs and receipts |
-| P1 | hepta.hsir.v0 deterministic typed-AST interchange; project identity, inferred/declared effects, resources, spans, explicit unknowns and foreign obligations | PARTIAL: no independent optimizer MIR, lifetime/alias proof, resource-carrying ADTs or lowering proof |
+| P1 | hepta.hsir.v0 typed-AST interchange; new read-only hepta.hmir.cfg.v0 structural CFG with joins, enum switches, loop backedges, typed-expression trees and *unproved* move/borrow/release sites | PARTIAL: CFG is descriptive, not SSA or executable MIR; no independent borrow/alias/provenance proof, resource-carrying ADTs or backend refinement |
 | P2 | C target-size facts in Clang-based migration; original 0.2 host C ABI remains reference | PARTIAL: Windows/ARM64 C/C++ real-host ABI tests and hardware models still required |
 | P3 | hepta migrate-c: strict Clang-AST scalar function subset, host model, whole-input rejection, frontend checks and native differential-test harness | PARTIAL: pointer ownership, globals, aggregates, macros, headers, C projects, cross-target qualification open |
 | P4 | hepta bridge-cpp: public non-template class with explicit zero-arg ctor/dtor and scalar methods; exception status mapping; mutex-protected opaque integer handles and stale-handle rejection | PARTIAL: C++ templates, inheritance, virtual dispatch, overloading, nontrivial ABI layouts, callbacks, full exception guarantees and foreign internals not qualified |
@@ -60,6 +60,8 @@ All commands below must be executed on a host with supported native compilers.
 
     python -m unittest discover -s tests -v
     python -m hepta hsir examples/results.hepta --frontend-only
+    python -m unittest tests.test_control_flow_ir tests.test_semantic_ir -v
+    python -m hepta.control_flow_ir examples/results.hepta --frontend-only
     python -m hepta migrate-c path/to/source.c --output build/source.hepta
     python -m hepta bridge-cpp path/to/library.hpp --class Counter --output build/bridge.cpp --hepta-output build/bridge.hepta
     python tools/release_check.py
