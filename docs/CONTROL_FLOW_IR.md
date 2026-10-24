@@ -44,6 +44,19 @@ checker and the Program supplied by an arbitrary Python caller come from
 the same source; the CLI relies on the project loader and the standard
 `analyze_project` pipeline for their shared provenance.
 
+## Read-only structural verification
+
+`verify_control_flow_snapshot(hmir, expected_source_sha256=...,
+expected_project_sha256=...)` validates the canonical content digest,
+block IDs, successor arities and roles, edge targets, reachable blocks, and
+non-fabricated foreign bodies. It **rejects** all attempts to promote the
+explicitly unproved claims, even if a caller recomputes the checksum.
+
+Callers must supply independently trusted source/project identities.
+A checksum can detect accidental modification, but it cannot authenticate an
+adversary who also controls the checksum; graph validation cannot establish
+the correctness of the original frontend or any executable translation.
+
 ## Explicitly not implemented
 
 | Required P1 property | CFG v0 status | Closing criterion |
