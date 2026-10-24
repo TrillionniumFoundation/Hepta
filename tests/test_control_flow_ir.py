@@ -1,6 +1,7 @@
 """P1 CFG exporter: shape, determinism, fail-closed boundaries and CLI."""
 from __future__ import annotations
 
+import copy
 import json
 from pathlib import Path
 import subprocess
@@ -9,7 +10,8 @@ import tempfile
 import unittest
 
 from hepta.checker import check
-from hepta.control_flow_ir import lower_control_flow_program
+from hepta.control_flow_ir import (lower_control_flow_program,
+                                  verify_control_flow_snapshot, _sha)
 from hepta.parser import parse
 
 
@@ -156,6 +158,48 @@ class ControlFlowIRTests(unittest.TestCase):
         self.assertFalse(rejected.ok)
         with self.assertRaisesRegex(ValueError, "rejected"):
             lower_control_flow_program(broken, rejected)
+
+    def test_snapshot_verifier_checks_digest_identity_and_graph(self):
+        hmir = self.lower(
+            "fn f(flag: bool) -> u64 effects {} "
+            "{ if flag { return 1; } else { return 2; } }")
+        result = verify_control_flow_snapshot(
+            hmir, expected_source_sha256=hmir["source_sha256"],
+            expected_project_sha256="fixed-graph")
+        self.assertTrue(result["ok"])
+        self.assertFalse(result["native_or_semantic_correctness_proved"])
+
+        with self.assertRaisesRegex(ValueError, "project snapshot"):
+            verify_control_flow_snapshot(
+                hmir, expected_project_sha256="different-project")
+
+        changed = copy.deepcopy(hmir)
+        changed["functions"][0]["blocks"][0]["terminator"]["targets"][0]["to"] = "b999"
+        with self.assertRaisesRegex(ValueError, "content digest"):
+            verify_control_flow_snapshot(changed)
+        changed["sha256"] = _sha({key: val for key, val in changed.items()
+                                  if key != "sha256"})
+        with self.assertRaisesRegex(ValueError, "invalid edge"):
+            verify_control_flow_snapshot(changed)
+
+    def test_snapshot_verifier_does_not_accept_forged_proof_claim(self):
+        hmir = self.lower("fn f(n: u64) -> u64 effects {} { return n; }")
+        forged = copy.deepcopy(hmir)
+        forged["claims"]["ssa_constructed"] = True
+        forged["sha256"] = _sha({k: v for k, v in forged.items()
+                                  if k != "sha256"})
+        with self.assertRaisesRegex(ValueError, "unsupported safety claim"):
+            verify_control_flow_snapshot(forged)
+
+    def test_snapshot_verifier_rejects_fabricated_ffi_body(self):
+        hmir = self.lower(
+            'extern "C" fn legacy(p: raw const u8) -> u64 effects {ffi, unsafe};')
+        forged = copy.deepcopy(hmir)
+        forged["functions"][0]["entry"] = "b0"
+        forged["sha256"] = _sha({k: v for k, v in forged.items()
+                                  if k != "sha256"})
+        with self.assertRaisesRegex(ValueError, "foreign body"):
+            verify_control_flow_snapshot(forged)
 
     def test_cli_frontend_only_does_not_claim_native_validation(self):
         with tempfile.TemporaryDirectory() as temp:
