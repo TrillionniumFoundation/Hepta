@@ -7,6 +7,7 @@ on:
       - feat/hepta-agent-safe-cfg-cpp-20261024
       - feat/hepta-safe-migration-agent-20261024
       - dot/fix-c-migration-provenance-20261024
+      - dot/qualify-project-c-types-20261024
   pull_request:
     branches:
       - main
@@ -23,11 +24,85 @@ permissions:
 
 jobs:
   release-qualification:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
+    container:
+      image: debian@sha256:4876fdea29cac1a33a3195f1eb1952feb1fca7dd6dd00be3e2f1879cf20d34d2
+      options: --platform linux/amd64
+    defaults:
+      run:
+        shell: bash
     timeout-minutes: 60
     env:
       HEPTA_QUALIFICATION_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
+      - name: Prepare exact Debian compiler environment without host changes
+        run: |
+          set -euo pipefail
+          test "$(dpkg --print-architecture)" = amd64
+          test "$(. /etc/os-release; printf '%s' "$VERSION_CODENAME")" = trixie
+          available=$(df --output=avail -B1 "$RUNNER_TEMP" | tail -1)
+          test "$available" -ge 12884901888
+          evidence="$RUNNER_TEMP/hepta-debian-tools"
+          mkdir -p "$evidence/lists/partial" "$evidence/archives/partial" "$evidence/bin"
+          printf '%s\n' 'deb [signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] http://snapshot.debian.org/archive/debian/20261020T000000Z/ trixie main' > "$evidence/sources.list"
+          apt_options=(-o "Dir::Etc::sourcelist=$evidence/sources.list" -o Dir::Etc::sourceparts=- -o "Dir::State::lists=$evidence/lists" -o "Dir::Cache::archives=$evidence/archives" -o Acquire::Languages=none -o APT::Get::List-Cleanup=0)
+          # HTTP transport is authenticated by Debian's existing signed Release
+          # trust plus this independently retained exact InRelease hash. Never
+          # disable signature/expiry verification or add a new trusted key.
+          apt-get "${apt_options[@]}" update 2>&1 | tee "$evidence/apt-update.log"
+          releases=("$evidence"/lists/*_InRelease)
+          test "${#releases[@]}" -eq 1
+          printf '%s  %s\n' 0584fba32e13e0ab8285fb16c27adea1ec03a73669c18702821094fd6ca86675 "${releases[0]}" | sha256sum -c -
+          cp "${releases[0]}" "$evidence/InRelease"
+          packages=(
+            'clang-19=1:19.1.7-3+b1'
+            'libclang-cpp19=1:19.1.7-3+b1'
+            'libllvm19=1:19.1.7-3+b1'
+            'libclang-common-19-dev=1:19.1.7-3+b1'
+            'libclang-19-dev=1:19.1.7-3+b1'
+            'llvm-19-dev=1:19.1.7-3+b1'
+            'gcc-14=14.2.0-19'
+            'g++-14=14.2.0-19'
+            'git=1:2.47.3-0+deb13u1'
+            'ca-certificates=20250419'
+            'libbz2-1.0=1.0.8-6'
+            'libsqlite3-0=3.46.1-7+deb13u2'
+            'liblzma5=5.8.1-1+deb13u1'
+            'libreadline8t64=8.2-6'
+            'libffi8=3.4.8-2'
+            'libncursesw6=6.5+20250216-2'
+            'libgdbm6t64=1.24-2'
+            'libuuid1=2.41.5-0+deb13u1'
+            'zlib1g=1:1.3.dfsg+really1.3.1-1+b1'
+          )
+          apt-get "${apt_options[@]}" --yes --no-install-recommends --print-uris install "${packages[@]}" > "$evidence/download-plan.txt"
+          bytes=0
+          while read -r uri name size rest; do
+            if [[ "$uri" == \'* ]]; then
+              [[ "$size" =~ ^[0-9]+$ ]]
+              bytes=$((bytes + size))
+            fi
+          done < "$evidence/download-plan.txt"
+          test "$bytes" -gt 0
+          test "$bytes" -le 536870912
+          printf '%s\n' "$bytes" > "$evidence/planned-download-bytes.txt"
+          DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" --yes --no-install-recommends --download-only install "${packages[@]}" 2>&1 | tee "$evidence/apt-download.log"
+          sha256sum "$evidence"/archives/*.deb > "$evidence/package-archives.sha256"
+          # Packages remain byte-bound by the authenticated, frozen index.
+          DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" --yes --no-install-recommends --no-download install "${packages[@]}" 2>&1 | tee "$evidence/apt-install.log"
+          dpkg-query -W -f='${Package}\t${Version}\t${Architecture}\n' | sort > "$evidence/installed-packages.tsv"
+          for spec in "${packages[@]}"; do
+            name=${spec%%=*}
+            expected=${spec#*=}
+            test "$(dpkg-query -W -f='${Version}' "$name")" = "$expected"
+          done
+          ln -s /usr/bin/clang-19 "$evidence/bin/clang"
+          ln -s /usr/bin/clang++-19 "$evidence/bin/clang++"
+          ln -s /usr/bin/gcc-14 "$evidence/bin/gcc"
+          ln -s /usr/bin/g++-14 "$evidence/bin/g++"
+          ln -s /usr/bin/gcc-14 "$evidence/bin/cc"
+          printf '%s\n' "$evidence/bin" >> "$GITHUB_PATH"
+          printf 'HEPTA_TOOL_EVIDENCE=%s\n' "$evidence" >> "$GITHUB_ENV"
       - name: Checkout frozen source snapshot
         uses: actions/checkout@v4
         with:
@@ -37,17 +112,119 @@ jobs:
         run: |
           actual_head=$(git rev-parse HEAD)
           mkdir -p artifacts
+          mkdir -p artifacts/debian-toolchain
+          cp "$HEPTA_TOOL_EVIDENCE"/*.log "$HEPTA_TOOL_EVIDENCE"/*.txt "$HEPTA_TOOL_EVIDENCE"/*.tsv "$HEPTA_TOOL_EVIDENCE"/*.sha256 "$HEPTA_TOOL_EVIDENCE/InRelease" artifacts/debian-toolchain/
           printf '{"schema":"hepta.workflow-source.v1","expected_head_sha":"%s","checkout_head_sha":"%s","event_sha":"%s"}\n' \
             "$HEPTA_QUALIFICATION_HEAD_SHA" "$actual_head" "$GITHUB_SHA" > artifacts/workflow-source.json
           test "$actual_head" = "$HEPTA_QUALIFICATION_HEAD_SHA"
       - name: Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
+      - name: Build and bind exact same-instance Clang frontend
+        run: |
+          set -euo pipefail
+          test "$(clang --version | head -1)" = 'Debian clang version 19.1.7 (3+b1)'
+          test "$(gcc -dumpfullversion)" = 14.2.0
+          test "$(g++ -dumpfullversion)" = 14.2.0
+          helper="$RUNNER_TEMP/hepta-debian-tools/bin/hepta-c-frontend"
+          python tools/build_c_frontend.py \
+            --include /usr/lib/llvm-19/include \
+            --clang-library /usr/lib/x86_64-linux-gnu/libclang-cpp.so.19.1 \
+            --llvm-library /usr/lib/x86_64-linux-gnu/libLLVM.so.19.1 \
+            --cxx /usr/bin/g++-14 --output "$helper"
+          printf 'HEPTA_C_FRONTEND=%s\n' "$helper" >> "$GITHUB_ENV"
+          export HEPTA_C_FRONTEND="$helper"
+          cp "$helper.build.json" artifacts/debian-toolchain/frontend-build.json
+          ldd "$helper" > artifacts/debian-toolchain/frontend-ldd.txt
+          ! grep -q 'not found' artifacts/debian-toolchain/frontend-ldd.txt
+          python - <<'PYTHON'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import shutil
+          import subprocess
+          import tempfile
+          from hepta.c_frontend import scalar_frontend
+
+          selected = {name: str(Path(shutil.which(name)).resolve(strict=True))
+                      for name in ('clang', 'clang++', 'gcc', 'g++')}
+          selected['frontend'] = str(Path(os.environ['HEPTA_C_FRONTEND']).resolve(strict=True))
+          def sha256(path):
+              with Path(path).open('rb') as stream:
+                  return hashlib.file_digest(stream, 'sha256').hexdigest()
+
+          hashes = {}
+          for directory in (Path('/usr/lib/llvm-19/include'), Path('/usr/lib/llvm-19/lib/clang/19/include')):
+              if not directory.is_dir():
+                  raise SystemExit('Missing compiler header root: ' + str(directory))
+              for path in sorted(directory.rglob('*')):
+                  if path.is_file():
+                      hashes[str(path)] = sha256(path)
+          for path in selected.values():
+              hashes[path] = sha256(path)
+          for line in Path('artifacts/debian-toolchain/frontend-ldd.txt').read_text().splitlines():
+              parts = line.split()
+              path = parts[2] if len(parts) > 2 and parts[1] == '=>' else parts[0] if parts else ''
+              if path.startswith('/'):
+                  resolved = Path(path).resolve(strict=True)
+                  hashes[str(resolved)] = sha256(resolved)
+          with tempfile.TemporaryDirectory() as temp:
+              source = Path(temp) / 'probe.c'
+              content = b'int probe(int x) { return x; }\n'
+              source.write_bytes(content)
+              tree, model = scalar_frontend(source, content, selected['clang'])
+              if tree.get('kind') != 'TranslationUnitDecl':
+                  raise SystemExit('Frontend protocol probe did not parse the source')
+          receipt = {'schema': 'hepta.debian-frontend-environment.v1',
+                     'container_amd64_digest': 'sha256:4876fdea29cac1a33a3195f1eb1952feb1fca7dd6dd00be3e2f1879cf20d34d2',
+                     'snapshot': '20261020T000000Z', 'selectors': selected,
+                     'source_probe_model': model, 'files_sha256': hashes,
+                     'scope': 'exact installed compiler/header and resolved linked-library files; not whole-system hermeticity'}
+          Path('artifacts/debian-toolchain/frontend-environment.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          PYTHON
       - name: Verification archive dependency
         run: python -m pip install zstandard
       - name: Install SHA-256-locked Rust 1.90.0 toolchain and cross stdlibs
         run: python tools/bootstrap_toolchain.py
+      - name: Select and verify the bootstrapped Rust compiler
+        shell: bash
+        run: |
+          python - <<'PYTHON'
+          import json
+          import os
+          from pathlib import Path
+          import shutil
+          import subprocess
+          from hepta.backend import find_rustc, toolchain_info
+          from tools.validate import rustc_path
+
+          prefix = (Path.cwd().resolve().parent / "toolchains/rust-1.90.0").resolve(strict=True)
+          rustc = (prefix / "bin/rustc").resolve(strict=True)
+          rustc.relative_to(prefix)
+          info = toolchain_info(str(rustc))
+          if info["host"] != "x86_64-unknown-linux-gnu":
+              raise SystemExit("Unexpected pinned Rust host: " + info["host"])
+          sysroot = Path(subprocess.check_output(
+              [str(rustc), "--print", "sysroot"], text=True, timeout=30).strip()).resolve(strict=True)
+          if sysroot != prefix:
+              raise SystemExit("Pinned Rust sysroot does not match the bootstrapped prefix")
+          os.environ["RUSTC"] = str(rustc)
+          os.environ["PATH"] = str(prefix / "bin") + os.pathsep + os.environ["PATH"]
+          selected = {"backend": find_rustc(), "native_validator": rustc_path(),
+                      "PATH": shutil.which("rustc")}
+          if any(not path or Path(path).resolve() != rustc for path in selected.values()):
+              raise SystemExit("A compiler selector did not select the pinned Rust compiler")
+          receipt = {"schema": "hepta.workflow-toolchain.v1", "rustc": info,
+                     "sysroot": str(sysroot), "selectors": selected}
+          Path("artifacts/workflow-toolchain.json").write_text(json.dumps(receipt, indent=2) + "\n")
+          print(json.dumps(receipt, indent=2))
+          with open(os.environ["GITHUB_ENV"], "a") as env_file:
+              env_file.write("RUSTC=" + str(rustc) + "\n")
+          with open(os.environ["GITHUB_PATH"], "a") as path_file:
+              path_file.write(str(prefix / "bin") + "\n")
+          PYTHON
       - name: Install SHA-256-locked Lean and QEMU tools
         run: python tools/bootstrap_verification.py
       - name: Run all current native and experiment qualification gates
@@ -59,5 +236,10 @@ jobs:
           name: hepta-release-evidence-${{ env.HEPTA_QUALIFICATION_HEAD_SHA }}
           path: |
             artifacts/
+            ${{ runner.temp }}/hepta-debian-tools/*.log
+            ${{ runner.temp }}/hepta-debian-tools/*.txt
+            ${{ runner.temp }}/hepta-debian-tools/*.tsv
+            ${{ runner.temp }}/hepta-debian-tools/*.sha256
+            ${{ runner.temp }}/hepta-debian-tools/InRelease
             evidence/
           if-no-files-found: warn
