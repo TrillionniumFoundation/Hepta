@@ -189,6 +189,23 @@ def _function(decl: dict, model: dict) -> dict:
     return {"name": name, "source": source, "params": args, "returns": ret}
 
 
+
+def _require_frozen_preprocessing(source: bytes) -> None:
+    """Only the fixed stdint system header is accepted without a header CAS.
+
+    Any source macro, local include, conditional compilation, digraph,
+    trigraph or physical line splice would make Clang translation depend on
+    untracked preprocessing state. Fail closed instead of declaring the C
+    translation unit complete. This is a deliberate strict-subset limitation.
+    """
+    if b"??=" in source or b"%:" in source or re.search(rb"\\\r?\n", source):
+        raise MigrationRejected("E_C_PREPROCESSOR", "Preprocessor digraph/trigraph or line splice is unsupported")
+    for line in source.splitlines():
+        if b"#" in line and not re.fullmatch(
+                rb"[ \t]*#[ \t]*include[ \t]*<stdint\.h>[ \t]*", line):
+            raise MigrationRejected("E_C_PREPROCESSOR", "Only a literal #include <stdint.h> is supported")
+
+
 def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> dict:
     """Return explicit migration evidence; never write a partial conversion."""
     src, dest = Path(path).resolve(), Path(output).absolute()
@@ -204,6 +221,7 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
         if len(source) > 256_000:
             raise MigrationRejected("E_C_SIZE", "Pilot source exceeds 256 KB")
         report["source_sha256"] = hashlib.sha256(source).hexdigest()
+        _require_frozen_preprocessing(source)
         model = _data_model(clang)
         report["target_model"] = model
         ast_json = _run([clang, "-std=c11", "-fsyntax-only", "-Werror",
