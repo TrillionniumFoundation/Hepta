@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import selectors
+import signal
 import shutil
 import subprocess
 import time
@@ -20,7 +21,10 @@ class FrontendError(ValueError):
 def _capture(args):
     """Bound both pipes while running; never buffer unbounded subprocess output."""
     try:
-        with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
+        # A failed or completed driver must not leave compiler grandchildren
+        # holding pipe FDs (or burning resources) after the direct child exits.
+        with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              start_new_session=(os.name == 'posix')) as proc:
             chunks = {proc.stdout: bytearray(), proc.stderr: bytearray()}
             try:
                 with selectors.DefaultSelector() as selector:
@@ -47,7 +51,14 @@ def _capture(args):
                     raise FrontendError('E_CLANG_REJECT', chunks[proc.stderr][-5000:].decode('utf-8', errors='replace'))
                 return bytes(chunks[proc.stdout]).decode('utf-8')
             finally:
-                if proc.poll() is None:
+                if os.name == 'posix':
+                    # Kill the isolated process group even if its leader exited:
+                    # inherited stdout/stderr FDs can otherwise keep us hung.
+                    try:
+                        os.killpg(proc.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                elif proc.poll() is None:
                     proc.kill()
                 proc.wait()
     except (OSError, UnicodeError) as exc:
