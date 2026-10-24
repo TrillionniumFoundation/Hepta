@@ -4,10 +4,13 @@ on:
   push:
     branches:
       - feat/hepta-p0-p1-verified-ir-20261024
+      - feat/hepta-agent-safe-cfg-cpp-20261024
   workflow_dispatch:
 
+# Superseded runs on one branch cancel each other, but a stacked PR must not
+# cancel another branch's independent qualification evidence.
 concurrency:
-  group: hepta-dev-qualification
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:

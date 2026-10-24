@@ -98,6 +98,114 @@ class CppBridgeTests(unittest.TestCase):
         self.assertEqual(fn["destroy"](handle.value), 2)
         self.assertEqual(fn["value"](handle.value, ctypes.byref(result)), 2)
 
+    def test_reentrant_method_can_reenter_same_bridge_handle(self):
+        self.header.write_text("""
+            #include <stdint.h>
+            extern "C" int32_t hepta_cpp_Reentrant_value(uint64_t, int32_t*) noexcept;
+            class Reentrant {
+              public:
+                Reentrant() {}
+                ~Reentrant() = default;
+                int32_t value() { return 41; }
+                int32_t again(uint64_t handle) {
+                    int32_t result = 0;
+                    int32_t status = hepta_cpp_Reentrant_value(handle, &result);
+                    return status == 0 ? result + 1 : -99;
+                }
+            };
+        """)
+        report = self.bridge("Reentrant")
+        self.assertTrue(report["ok"], report)
+        output = self.root / "reentrant.so"
+        p = subprocess.run(["clang++", "-std=c++20", "-O2", "-fPIC", "-shared",
+                            "-pthread", str(self.cpp), "-o", str(output)],
+                           capture_output=True, text=True, timeout=60)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        # Isolate the foreign invocation so an accidental bridge deadlock
+        # cannot hang the entire test runner.
+        probe = """
+import ctypes, sys
+lib = ctypes.CDLL(sys.argv[1])
+new = lib.hepta_cpp_Reentrant_new
+new.argtypes = [ctypes.POINTER(ctypes.c_uint64)]
+new.restype = ctypes.c_int32
+again = lib.hepta_cpp_Reentrant_again
+again.argtypes = [ctypes.c_uint64, ctypes.c_uint64, ctypes.POINTER(ctypes.c_int32)]
+again.restype = ctypes.c_int32
+destroy = lib.hepta_cpp_Reentrant_destroy
+destroy.argtypes = [ctypes.c_uint64]
+destroy.restype = ctypes.c_int32
+handle = ctypes.c_uint64()
+out = ctypes.c_int32(-1)
+assert new(ctypes.byref(handle)) == 0
+assert again(handle.value, handle.value, ctypes.byref(out)) == 0
+assert out.value == 42
+assert destroy(handle.value) == 0
+"""
+        p = subprocess.run([sys.executable, "-c", probe, str(output)],
+                           capture_output=True, text=True, timeout=8)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+
+    def test_distinct_objects_execute_without_global_method_lock(self):
+        self.header.write_text("""
+            #include <stdint.h>
+            #include <atomic>
+            #include <chrono>
+            #include <thread>
+            class Concurrent {
+              public:
+                Concurrent() {}
+                ~Concurrent() = default;
+                int32_t rendezvous() {
+                    static std::atomic<int> entered{0};
+                    entered.fetch_add(1);
+                    auto until = std::chrono::steady_clock::now() +
+                                 std::chrono::seconds(3);
+                    while (entered.load() < 2 &&
+                           std::chrono::steady_clock::now() < until) {
+                        std::this_thread::yield();
+                    }
+                    return entered.load();
+                }
+            };
+        """)
+        report = self.bridge("Concurrent")
+        self.assertTrue(report["ok"], report)
+        output = self.root / "concurrent.so"
+        p = subprocess.run(["clang++", "-std=c++20", "-O2", "-fPIC", "-shared",
+                            "-pthread", str(self.cpp), "-o", str(output)],
+                           capture_output=True, text=True, timeout=60)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        lib = ctypes.CDLL(str(output))
+        new = lib.hepta_cpp_Concurrent_new
+        new.argtypes = [ctypes.POINTER(ctypes.c_uint64)]
+        new.restype = ctypes.c_int32
+        call = lib.hepta_cpp_Concurrent_rendezvous
+        call.argtypes = [ctypes.c_uint64, ctypes.POINTER(ctypes.c_int32)]
+        call.restype = ctypes.c_int32
+        destroy = lib.hepta_cpp_Concurrent_destroy
+        destroy.argtypes = [ctypes.c_uint64]
+        destroy.restype = ctypes.c_int32
+        handles = [ctypes.c_uint64(), ctypes.c_uint64()]
+        for handle in handles:
+            self.assertEqual(new(ctypes.byref(handle)), 0)
+        results = [None, None]
+        barrier = threading.Barrier(2)
+        def worker(i):
+            barrier.wait(timeout=5)
+            out = ctypes.c_int32()
+            status = call(handles[i].value, ctypes.byref(out))
+            results[i] = (status, out.value)
+        threads = [threading.Thread(target=worker, args=(i,)) for i in range(2)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=10)
+        self.assertFalse(any(t.is_alive() for t in threads), "bridge call hung")
+        self.assertEqual(results, [(0, 2), (0, 2)])
+        for handle in handles:
+            self.assertEqual(destroy(handle.value), 0)
+
     def test_cpp_exceptions_become_nonzero_status_without_writing_output(self):
         self.header.write_text("""
             #include <stdint.h>
