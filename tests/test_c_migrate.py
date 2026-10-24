@@ -16,6 +16,7 @@ C_SOURCE = """
 #include <stdint.h>
 int32_t add(int32_t x, int32_t y) { return x + y; }
 uint64_t xor_mask(uint64_t x, uint64_t y) { return x ^ y; }
+uint64_t add_wrap(uint64_t x, uint64_t y) { return x + y; }
 int32_t clamp_positive(int32_t x) {
     if (x < 0) { return 0; }
     return x;
@@ -37,7 +38,7 @@ class ClangMigrationTests(unittest.TestCase):
         result = migrate_c(self.c, self.hepta)
         self.assertTrue(result["ok"], result)
         self.assertEqual(result["status"], "frontend_checked_not_native_qualified")
-        self.assertEqual(len(result["converted"]), 3)
+        self.assertEqual(len(result["converted"]), 4)
         self.assertEqual(result["target_model"]["sizeof_int"], 4)
         self.assertFalse(result["source_equivalence_proved"])
         self.assertEqual(result["native_validation"], "not_run")
@@ -46,6 +47,7 @@ class ClangMigrationTests(unittest.TestCase):
         self.assertTrue(checked.report["ok"], checked.report)
         self.assertIn('export "C" fn add', source)
         self.assertIn('export "C" fn clamp_positive', source)
+        self.assertIn("wrapping_add(x, y)", source)
 
     def test_pointer_function_refuses_entire_input(self):
         self.c.write_text(C_SOURCE + "\nint32_t pointer(int32_t* p) {return *p;}\n")
@@ -104,6 +106,8 @@ class ClangMigrationTests(unittest.TestCase):
             "xor_mask": (ctypes.c_uint64, [ctypes.c_uint64, ctypes.c_uint64],
                          [(0, 0), (15, 7), (2**64 - 1, 0xA5A5), (2**63, 2**63-1)]),
             "clamp_positive": (ctypes.c_int32, [ctypes.c_int32], [(-100,), (-1,), (0,), (10,)]),
+            "add_wrap": (ctypes.c_uint64, [ctypes.c_uint64, ctypes.c_uint64],
+                         [(0, 0), (2**64 - 1, 1), (2**63, 2**63)]),
         }
         for name, (restype, argtypes, rows) in cases.items():
             cfn, hfn = getattr(c_lib, name), getattr(h_lib, name)
