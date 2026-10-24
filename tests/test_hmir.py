@@ -70,7 +70,7 @@ class HMIRTests(unittest.TestCase):
             self.lower(src)
 
     def test_rejects_all_writes_to_memory(self):
-        src = ("fn change(x: mut [u8]) -> Unit effects {write} { x[0] = 4; }")
+        src = ("fn change(x: mut [u8]) -> Unit effects {panic, write} { x[0] = 4; }")
         with self.assertRaises(HMIRUnsupported):
             self.lower(src)
 
