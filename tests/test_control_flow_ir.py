@@ -114,8 +114,8 @@ class ControlFlowIRTests(unittest.TestCase):
         hmir = self.lower(source)
         blocks = self.blocks(hmir)
         events = [event for block in blocks for inst in block["instructions"]
-                  for event in inst["expression"]["ownership_sites"]
-                  if inst.get("expression") is not None]
+                  if inst.get("expression") is not None
+                  for event in inst["expression"]["ownership_sites"]]
         self.assertIn("move", [event["operation"] for event in events])
         self.assertIn("explicit_release_call", [event["operation"] for event in events])
         self.assertTrue(all(e["proof"] == "syntactic_site_only" for e in events))
