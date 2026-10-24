@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 from hepta.checker import check
-from hepta.hmir import HMIRUnsupported, lower_checked_cfg
+from hepta.hmir import HMIRUnsupported, lower_checked_cfg, validate_cfg_ssa
 from hepta.parser import parse
 
 
@@ -81,6 +81,32 @@ class HMIRTests(unittest.TestCase):
         self.assertFalse(checked.ok)
         with self.assertRaises(ValueError):
             lower_checked_cfg(p, checked)
+
+    def test_validator_catches_corrupt_phi_predecessor(self):
+        source = ("fn choose(a: i64, b: i64, flag: bool) -> i64 effects {} { "
+                  "let mut n: i64 = a; if flag { n = b; } else { n = a; } return n; }")
+        graph = self.lower(source)["functions"][0]
+        join = next(b for b in graph["blocks"] if b["phi"])
+        join["phi"][0]["inputs"].pop()
+        with self.assertRaisesRegex(ValueError, "phi inputs"):
+            validate_cfg_ssa(graph)
+
+    def test_validator_catches_non_dominating_ssa_read(self):
+        source = ("fn choose(a: i64, b: i64, flag: bool) -> i64 effects {} { "
+                  "let mut n: i64 = a; if flag { n = b; } else { n = a; } return n; }")
+        graph = self.lower(source)["functions"][0]
+        ret = next(b for b in graph["blocks"] if b["terminator"]["op"] == "return")
+        branch = next(b for b in graph["blocks"] if any(i["ssa"] == "%v2" for i in b["instructions"]))
+        self.assertNotEqual(ret["id"], branch["id"])
+        ret["terminator"]["value"]["ssa"] = "%v2"
+        with self.assertRaisesRegex(ValueError, "not dominated"):
+            validate_cfg_ssa(graph)
+
+    def test_validator_catches_undefined_ssa(self):
+        graph = self.lower("fn f(x: i64) -> i64 effects {} { return x; }")["functions"][0]
+        graph["blocks"][0]["terminator"]["value"]["ssa"] = "%unknown"
+        with self.assertRaisesRegex(ValueError, "missing definition"):
+            validate_cfg_ssa(graph)
 
     def test_cli_frontend_only_never_masquerades_as_native(self):
         src = "fn identity(x: i64) -> i64 effects {} { return x; }"
