@@ -153,6 +153,11 @@ def _atomic_write(path: Path, content: str) -> None:
 
 
 def migrate(source: Path, output: Path, report: Path, clang: str = "clang", verify_native: bool = False, rustc: str | None = None) -> dict:
+    # main() already guards this, but direct library callers must be safe too:
+    # otherwise writing the JSON report can replace the original C input or
+    # replace successful generated output if two names address one path.
+    if len({source.resolve(), output.resolve(), report.resolve()}) != 3:
+        raise ValueError("source, output and report paths must be distinct")
     try:
         original = source.read_bytes()
         read_error = None
