@@ -153,13 +153,24 @@ def _atomic_write(path: Path, content: str) -> None:
 
 
 def migrate(source: Path, output: Path, report: Path, clang: str = "clang", verify_native: bool = False, rustc: str | None = None) -> dict:
-    original = source.read_bytes()
-    digest = hashlib.sha256(original).hexdigest()
+    try:
+        original = source.read_bytes()
+        read_error = None
+    except OSError as exc:
+        original = None
+        read_error = str(exc)
+    digest = hashlib.sha256(original).hexdigest() if original is not None else None
     info = {"schema": "hepta.c2hepta.v0", "source": str(source.resolve()),
             "source_sha256": digest, "status": "rejected", "safety": "not_qualified",
             "functions": [], "frontend_validation": "not_run", "backend_validation": "not_run", "clang": "not_run"}
     converted: list[Function] = []
     try:
+        if read_error is not None:
+            raise UnsupportedC("cannot read C input: " + read_error)
+        if len(original) > 256_000:
+            raise UnsupportedC("pilot input limit is 256 KB")
+        if output.is_symlink() or report.is_symlink():
+            raise UnsupportedC("symlink output/report paths are not accepted")
         if source.suffix != ".c":
             raise UnsupportedC("only C11 .c translation units are supported")
         if re.search(rb"(?m)^\s*#", original):
@@ -232,6 +243,8 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
                     note="This is a finite syntax translation, NOT a proof of semantic equivalence, native compilation, or whole-language soundness.")
     except (UnsupportedC, IRValidationError, OSError, subprocess.SubprocessError, ValueError) as exc:
         info["reason"] = str(exc)
+    if report.is_symlink():
+        raise ValueError("refusing to overwrite a symlink report path")
     _atomic_write(report, json.dumps(info, sort_keys=True, indent=2) + "\n")
     return info
 
