@@ -117,6 +117,9 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str) -> tuple
             raise MigrationRejected("E_C_BITWISE", "Signed C bitwise operations require target-specific semantics")
         left, _ = _expr(inner[0], args, model, expected)
         right, _ = _expr(inner[1], args, model, expected)
+        if op in _ARITH and expected.startswith("u"):
+            builtin = {"+": "wrapping_add", "-": "wrapping_sub", "*": "wrapping_mul"}[op]
+            return f"{builtin}({left}, {right})", expected
         return f"({left} {op} {right})", expected
     raise MigrationRejected("E_C_EXPRESSION", f"Unsupported C expression: {kind}")
 
@@ -202,12 +205,15 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
         if root.get("kind") != "TranslationUnitDecl":
             raise MigrationRejected("E_C_AST", "Clang did not return a translation unit")
         declarations = []
+        active_file = None
         for node in root.get("inner", []):
+            node_file = node.get("loc", {}).get("file")
+            if node_file:
+                active_file = Path(node_file).resolve()
             if node.get("kind") != "FunctionDecl" or not any(x.get("kind") == "CompoundStmt" for x in node.get("inner", [])):
                 continue
             loc = node.get("loc", {})
-            file = loc.get("file")
-            if file and Path(file).resolve() != src:
+            if active_file != src:
                 continue
             begin = node.get("range", {}).get("begin", {}).get("offset")
             end = node.get("range", {}).get("end", {}).get("offset")
@@ -231,6 +237,8 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
             report["status"] = "unsupported_source"
             return report
         program = "module c_migrated;\n\n" + "\n".join(x["source"] for x in translated)
+        if src.read_bytes() != source:
+            raise MigrationRejected("E_C_SOURCE_RACE", "C source changed during Clang analysis")
         from .checker import check
         from .parser import parse
         checked = check(parse(program, str(dest)))
