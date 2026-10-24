@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 import unittest
 
-from hepta.hsir import Expr, Function, IRValidationError, Stmt, check_function, emit_function
+from hepta.migration_ir import Expr, Function, IRValidationError, Stmt, check_function, emit_function
 from tools.c2hepta import migrate
 
 
