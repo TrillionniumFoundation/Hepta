@@ -148,6 +148,11 @@ def generate_cpp_bridge(path: str | Path, *, clangxx: str = "clang++",
             prototypes.append(f"int {wrapper}({formal});")
     if not seen:
         raise MigrationRejected("E_CPP_BRIDGE_EMPTY: No supported functions")
+    # C++ declarations following a generated extern "C" wrapper may resolve
+    # to that wrapper instead of the intended, separately mangled original.
+    # Such an error *links and runs*, but silently changes behavior.
+    if any("hepta_cxx_" + name in seen for name in seen):
+        raise MigrationRejected("E_CPP_BRIDGE_SYMBOL: wrapper name collides with original declaration")
     prototypes += ["#ifdef __cplusplus", "}", "#endif", ""]
     if original.read_bytes() != data:
         raise MigrationRejected("E_CPP_BRIDGE_RACE: Source changed during Clang analysis")
