@@ -11,7 +11,7 @@ from pathlib import Path
 import tempfile
 
 from .cfg import lower_hsir_cfg
-from .hsir import lower_checked_program
+from .hsir import lower_checked_program, verify_checked_source_projection
 from .llvm_ssa_backend import LLVMSSARejected, compile_scalar_ssa_llvm, emit_scalar_ssa_llvm
 from .llvm_ssa_target import _TARGETS, compile_ssa_target_object
 from .pipeline import analyze_project
@@ -43,6 +43,7 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
             "native_rust_reference_required": True,
             "independent_scalar_ssa_structure_checked": False,
             "native_ssa_cfg_origin_rechecked": False,
+            "semantic_source_projection_rechecked": False,
             "native_artifact_compiled": False,
             "target_program_executed": False,
             "foreign_c_abi_qualified": False,
@@ -73,6 +74,8 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
         if not project.unchanged():
             raise LLVMSSARejected("E_LLVM_SSA_STALE: source graph changed before semantic projection")
         scalar_hsir = lower_checked_program(analyzed.program, analyzed.checked)
+        semantic_origin = verify_checked_source_projection(analyzed.program, analyzed.checked, scalar_hsir)
+        result["claims"]["semantic_source_projection_rechecked"] = True
         cfg = lower_hsir_cfg(scalar_hsir)
         ssa = lower_cfg_scalar_ssa(cfg)
         verification = verify_scalar_ssa(ssa, cfg)
@@ -83,7 +86,8 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
         result["identities"] = {
             "source_sha256": analyzed.report.get("source_sha256"),
             "compiler_sha256": analyzed.report.get("compiler_sha256"),
-            "canonical_source_semantic_sha256": scalar_hsir.as_dict()["source_semantic_sha256"],
+            "canonical_source_semantic_sha256": semantic_origin["canonical_sha256"],
+            "semantic_origin_receipt_schema": semantic_origin["schema"],
             "derived_scalar_hsir_sha256": scalar_hsir.sha256,
             "cfg_sha256": cfg.sha256,
             "canonical_ssa_sha256": ssa.sha256,
