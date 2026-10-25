@@ -166,6 +166,122 @@ def _qualified_header(data: bytes, target: str) -> bool:
     return False
 
 
+def _defined_exports(data: bytes, target: str) -> frozenset[str]:
+    """Inspect defined, externally visible function symbols in a native object.
+
+    The artifact must first pass the bounded ELF/COFF/Mach-O structural gates.
+    A valid object header alone does not establish that LLVM emitted requested
+    functions. This is a symbol-inventory check, not semantic or ABI proof.
+    """
+    if target not in _TARGETS or not _qualified_header(data, target):
+        return frozenset()
+    fmt, _ = _TARGETS[target]
+    found: set[str] = set()
+
+    def u16(at: int) -> int:
+        return int.from_bytes(data[at:at + 2], "little")
+
+    def u32(at: int) -> int:
+        return int.from_bytes(data[at:at + 4], "little")
+
+    def u64(at: int) -> int:
+        return int.from_bytes(data[at:at + 8], "little")
+
+    def string(at: int, end: int) -> str | None:
+        if not 0 <= at < end <= len(data):
+            return None
+        nul = data.find(b"\0", at, end)
+        if nul < 0:
+            return None
+        try:
+            return data[at:nul].decode("ascii")
+        except UnicodeDecodeError:
+            return None
+
+    if fmt == "ELF64":
+        table, sections = u64(40), u16(60)
+        for index in range(sections):
+            entry = table + 64 * index
+            if u32(entry + 4) != 2:  # SHT_SYMTAB
+                continue
+            link, entry_size = u32(entry + 40), u64(entry + 56)
+            symbols_at, symbol_bytes = u64(entry + 24), u64(entry + 32)
+            if link >= sections or entry_size != 24 or symbol_bytes % 24:
+                return frozenset()
+            strings = table + 64 * link
+            if u32(strings + 4) != 3:  # SHT_STRTAB
+                return frozenset()
+            string_at, string_bytes = u64(strings + 24), u64(strings + 32)
+            for symbol in range(symbols_at, symbols_at + symbol_bytes, 24):
+                name_at, info, section = u32(symbol), data[symbol + 4], u16(symbol + 6)
+                if (name_at >= string_bytes or info & 0x0f != 2
+                        or info >> 4 not in (1, 2)  # STB_GLOBAL/STB_WEAK
+                        or not 0 < section < sections):
+                    continue
+                name = string(string_at + name_at, string_at + string_bytes)
+                if name:
+                    found.add(name)
+        return frozenset(found)
+
+    if fmt == "COFF":
+        count, at = u32(12), u32(8)
+        strings = at + 18 * count
+        if (not count or count > 1_000_000 or at < 20 + 40 * u16(2)
+                or strings + 4 > len(data)):
+            return frozenset()
+        string_size = u32(strings)
+        if string_size < 4 or strings + string_size > len(data):
+            return frozenset()
+        index = 0
+        while index < count:
+            symbol = at + 18 * index
+            section = int.from_bytes(data[symbol + 12:symbol + 14], "little", signed=True)
+            typ, storage, aux = u16(symbol + 14), data[symbol + 16], data[symbol + 17]
+            if index + 1 + aux > count:
+                return frozenset()
+            if storage == 2 and typ & 0x20 and 0 < section <= u16(2):
+                if data[symbol:symbol + 4] == b"\0" * 4:
+                    offset = u32(symbol + 4)
+                    name = (string(strings + offset, strings + string_size)
+                            if 4 <= offset < string_size else None)
+                else:
+                    try:
+                        name = data[symbol:symbol + 8].split(b"\0", 1)[0].decode("ascii")
+                    except UnicodeDecodeError:
+                        name = None
+                if name:
+                    found.add(name)
+            index += 1 + aux
+        return frozenset(found)
+
+    if fmt == "MACHO64":
+        command = 32
+        symbol_table = None
+        for _ in range(u32(16)):
+            operation, size = u32(command), u32(command + 4)
+            if operation == 2:  # LC_SYMTAB
+                symbol_table = (u32(command + 8), u32(command + 12),
+                                u32(command + 16), u32(command + 20))
+            command += size
+        if symbol_table is None:
+            return frozenset()
+        at, count, strings, string_size = symbol_table
+        if count > 1_000_000:
+            return frozenset()
+        for index in range(count):
+            entry = at + 16 * index
+            name_at, kind, section = u32(entry), data[entry + 4], data[entry + 5]
+            if (name_at >= string_size or kind & 0x0e != 0x0e
+                    or not kind & 1 or section == 0):  # N_SECT | N_EXT
+                continue
+            name = string(strings + name_at, strings + string_size)
+            # Darwin's external C symbol spelling includes one leading '_'.
+            if name and name.startswith("_"):
+                found.add(name[1:])
+        return frozenset(found)
+    return frozenset()
+
+
 def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
                               output: str | Path, clang="clang") -> dict:
     """Produce an identified .o on one exact target without link or execution."""
@@ -199,6 +315,11 @@ def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
         data = artifact.read_bytes() if artifact.is_file() else b""
         if not _qualified_header(data, target):
             raise LLVMSSARejected("E_LLVM_SSA_TARGET_IDENTITY: wrong/empty ELF, COFF or Mach-O machine/file type")
+        exports = _defined_exports(data, target)
+        missing = set(ir.functions) - exports
+        if missing:
+            raise LLVMSSARejected("E_LLVM_SSA_SYMBOLS: requested defined exports absent: "
+                                  + ", ".join(sorted(missing)))
         try:
             os.link(artifact, destination)
         except FileExistsError as exc:
@@ -209,6 +330,7 @@ def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
         "target": target, "object_format": _TARGETS[target][0],
         "machine": _TARGETS[target][1],
         "functions": list(ir.functions),
+        "verified_defined_exports": sorted(set(ir.functions)),
         "llvm_ir_sha256": ir.sha256, "ssa_sha256": ir.source_ssa_sha256,
         "structural_ssa_verification_sha256": ir.verification_sha256,
         "artifact_sha256": sha256(destination.read_bytes()).hexdigest(),
