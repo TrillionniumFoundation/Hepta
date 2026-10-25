@@ -168,6 +168,58 @@ extern "C" unsigned long long cpp_right64(unsigned long long v,unsigned long lon
                     with self.subTest(name=name, value=value, bits=bits):
                         self.assertEqual(lhs(value, bits), rhs(value, bits))
 
+    def test_cpp20_independent_shift_rhs_native_differential(self):
+        self.src.write_text("""
+unsigned int left_s32(unsigned int value,int bits) noexcept {return value << bits;}
+unsigned int right_u64(unsigned int value,unsigned long long bits) noexcept {return value >> bits;}
+unsigned long long left_s32_wide(unsigned long long value,int bits) noexcept {return value << bits;}
+unsigned long long right_literal(unsigned long long value) noexcept {return value >> 7;}
+""")
+        report = migrate_cpp(self.src, self.dst)
+        self.assertTrue(report["ok"], report)
+        self.assertFalse(report["cpp_abi_preserved"])
+        translated = self.dst.read_text()
+        self.assertIn("value << (bits as u32)", translated)
+        self.assertIn("value >> (bits as u32)", translated)
+        self.assertIn("value << (bits as u64)", translated)
+        self.assertIn("value >> (7 as u64)", translated)
+        self.assertEqual(analyze(translated, str(self.dst), native=False).report["status"], "frontend_only")
+        wrapper = self.root / "mixed-shift-wrap.cc"
+        wrapper.write_text("""
+unsigned int left_s32(unsigned int,int) noexcept;
+unsigned int right_u64(unsigned int,unsigned long long) noexcept;
+unsigned long long left_s32_wide(unsigned long long,int) noexcept;
+unsigned long long right_literal(unsigned long long) noexcept;
+extern "C" unsigned int cpp_left_s32(unsigned int a,int b){return left_s32(a,b);}
+extern "C" unsigned int cpp_right_u64(unsigned int a,unsigned long long b){return right_u64(a,b);}
+extern "C" unsigned long long cpp_left_s32_wide(unsigned long long a,int b){return left_s32_wide(a,b);}
+extern "C" unsigned long long cpp_right_literal(unsigned long long a){return right_literal(a);}
+""")
+        original, hepta = self.root / "mixed-shift-original.so", self.root / "mixed-shift-hepta.so"
+        old_build = subprocess.run(["clang++", "-std=c++20", "-O2", "-fPIC", "-shared",
+                                    str(self.src), str(wrapper), "-o", str(original)],
+                                   capture_output=True, text=True, timeout=45)
+        self.assertEqual(old_build.returncode, 0, old_build.stderr)
+        new_build = subprocess.run([sys.executable, "-m", "hepta", "build", str(self.dst),
+                                    "--backend", "c", "--crate-type", "cdylib", "-o", str(hepta)],
+                                   capture_output=True, text=True, timeout=90)
+        self.assertEqual(new_build.returncode, 0, new_build.stdout + new_build.stderr)
+        old, new = ctypes.CDLL(str(original)), ctypes.CDLL(str(hepta))
+        for name, ret, count_type, values, counts in (
+                ("left_s32", ctypes.c_uint32, ctypes.c_int32, (0, 1, 2**31, 2**32-1), (0, 1, 7, 31)),
+                ("right_u64", ctypes.c_uint32, ctypes.c_uint64, (0, 1, 2**31, 2**32-1), (0, 1, 7, 31)),
+                ("left_s32_wide", ctypes.c_uint64, ctypes.c_int32, (0, 1, 2**63, 2**64-1), (0, 1, 7, 63)),
+                ("right_literal", ctypes.c_uint64, None, (0, 1, 2**63, 2**64-1), (0,))):
+            lhs, rhs = getattr(old, "cpp_" + name), getattr(new, name)
+            for fn in (lhs, rhs):
+                fn.argtypes = [ret] + ([count_type] if count_type is not None else [])
+                fn.restype = ret
+            for value in values:
+                for count in counts:
+                    args = (value, count) if count_type is not None else (value,)
+                    with self.subTest(name=name, args=args):
+                        self.assertEqual(lhs(*args), rhs(*args))
+
     def test_signed_cpp_shift_rejected(self):
         self.src.write_text("int bad(int x,int b) noexcept {return x << b;}")
         migrated = migrate_cpp(self.src, self.dst)

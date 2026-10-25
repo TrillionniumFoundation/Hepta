@@ -148,8 +148,28 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str,
         # Signed shifts have different implementation/overflow obligations.
         if op in _SHIFTS and not expected.startswith("u"):
             raise MigrationRejected("E_C_SHIFT_SIGNED", "Signed C/C++ shifts require a separate defined-behavior proof")
-        left, _ = _expr(inner[0], args, model, expected, locals)
-        right, _ = _expr(inner[1], args, model, expected, locals)
+        if op in _SHIFTS:
+            # C11/C++20 promote the two operands independently: the left
+            # operand determines the result type, but the shift count may be
+            # an int/i32, u32, i64 or u64. A shared expected type silently
+            # rejects valid mixed-width callers (and invites wrong casts).
+            if _decl_type(node, model) != expected or _decl_type(inner[0], model) != expected:
+                raise MigrationRejected("E_C_SHIFT_PROMOTION",
+                                        "Shift result/left promotions are outside the defined scalar profile")
+            left, _ = _expr(inner[0], args, model, expected, locals)
+            count_type = _decl_type(inner[1], model)
+            if count_type not in {"i32", "u32", "i64", "u64"}:
+                raise MigrationRejected("E_C_SHIFT_COUNT", "Unsupported C shift count type")
+            right, _ = _expr(inner[1], args, model, count_type, locals)
+            # Hepta's current shift checker expects the same integer type on
+            # each side. On C-defined counts [0,width) this cast is exact;
+            # negative or oversized counts are already undefined in C/C++,
+            # and are not claimed equivalent to Hepta's checked panic.
+            if count_type != expected:
+                right = f"({right} as {expected})"
+        else:
+            left, _ = _expr(inner[0], args, model, expected, locals)
+            right, _ = _expr(inner[1], args, model, expected, locals)
         if op in _ARITH and expected.startswith("u"):
             builtin = {"+": "wrapping_add", "-": "wrapping_sub", "*": "wrapping_mul"}[op]
             return f"{builtin}({left}, {right})", expected
