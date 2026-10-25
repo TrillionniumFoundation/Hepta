@@ -33,14 +33,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Record exact source identity
+      - name: Fail closed unless checkout is the exact PR source head
+        shell: bash
+        env:
+          HEPTA_EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          git rev-parse HEAD
-          git status --porcelain
+          set -euo pipefail
+          actual=$(git rev-parse HEAD)
+          dirty=$(git status --porcelain)
+          mkdir -p artifacts
+          printf 'expected=%s\nactual=%s\nclean=%s\n' "$HEPTA_EXPECTED_HEAD_SHA" "$actual" "$([ -z "$dirty" ] && echo true || echo false)" > artifacts/qualification-source-commit.txt
+          test "$actual" = "$HEPTA_EXPECTED_HEAD_SHA"
+          test -z "$dirty"
           python --version
           gcc --version | head -1
           clang --version | head -1
