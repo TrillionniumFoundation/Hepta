@@ -157,9 +157,16 @@ def _function(f: dict, original: dict, graph: dict) -> dict:
                 _reject("E_SSA_VERIFY_PHI", "duplicate PHI for same variable in one block")
             phi_names.add(result["variable"])
         for index, (item, before_item) in enumerate(zip(instr, old_instr)):
-            if item.get("operation") != before_item.get("operation") or item.get("span") != before_item.get("span"):
+            if (item.get("operation") != before_item.get("operation")
+                    or _canonical_contract(item.get("span")) !=
+                       _canonical_contract(before_item.get("span"))):
                 _reject("E_SSA_VERIFY_ORIGIN", "instruction kind/span changed")
-            if _unmark(item.get("ssa_value")) != before_item["fields"].get("expr"):
+            # False == 0 and True == 1 in Python. Rehashed hostile SSA could
+            # replace a checked integer literal with a boolean and still
+            # pass native dict equality, incorrectly claiming source identity.
+            # Canonical JSON retains the literal's actual type and shape.
+            if (_canonical_contract(_unmark(item.get("ssa_value"))) !=
+                    _canonical_contract(before_item["fields"].get("expr"))):
                 _reject("E_SSA_VERIFY_ORIGIN", "instruction expression changed")
             raw_target = (before_item["fields"].get("name") if item["operation"] == "let" else
                           before_item["fields"].get("target", {}).get("value") if item["operation"] == "assign" else None)
@@ -168,7 +175,8 @@ def _function(f: dict, original: dict, graph: dict) -> dict:
                     _reject("E_SSA_VERIFY_DEF", "unexpected definition on expression statement")
             else:
                 add(item.get("definition"), bid, index, raw_target)
-        if _unmark(b.get("terminator")) != old.get("terminator"):
+        if (_canonical_contract(_unmark(b.get("terminator"))) !=
+                _canonical_contract(old.get("terminator"))):
             _reject("E_SSA_VERIFY_ORIGIN", "terminator changed")
     if f.get("definitions") != len(defs) or f.get("phi_count") != sum(len(b["phis"]) for b in blocks):
         _reject("E_SSA_VERIFY_COUNT", "reported definition/PHI count differs")

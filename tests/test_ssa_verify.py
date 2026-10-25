@@ -82,6 +82,26 @@ class SSAVerificationTests(unittest.TestCase):
         with self.assertRaisesRegex(SSAVerificationRejected, "ORIGIN"):
             verify_scalar_ssa(encoded(x), cfg)
 
+    def test_resealed_ssa_bool_integer_literal_cannot_impersonate_source(self):
+        # Python container equality considers 0 == False and 1 == True.
+        # SSA source-origin verification must compare exact serialized types.
+        cfg, ssa = self.fixture()
+        forged = ssa.as_dict()
+        forged.pop("sha256")
+        forged["functions"][0]["blocks"][0]["instructions"][0]["ssa_value"]["value"] = False
+        with self.assertRaisesRegex(SSAVerificationRejected, "ORIGIN"):
+            verify_scalar_ssa(encoded(forged), cfg)
+
+        for source_value, forged_value in ((0, False), (1, True)):
+            with self.subTest(source_value=source_value):
+                cfg = snapshot([block(0, kind="return", value=i(source_value))])
+                ssa = lower_cfg_scalar_ssa(cfg)
+                forged = ssa.as_dict()
+                forged.pop("sha256")
+                forged["functions"][0]["blocks"][0]["terminator"]["value"]["value"] = forged_value
+                with self.assertRaisesRegex(SSAVerificationRejected, "ORIGIN"):
+                    verify_scalar_ssa(encoded(forged), cfg)
+
     def test_effect_resource_contract_tamper_rejected_after_rehash(self):
         cfg = snapshot([block(0, kind="return", value=i(3))],
                        effects=["panic"],
