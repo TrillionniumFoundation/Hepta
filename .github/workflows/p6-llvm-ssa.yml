@@ -26,6 +26,7 @@ jobs:
           python -m unittest discover -s tests -p test_ssa_verify.py -v
           python -m unittest discover -s tests -p test_ssa_differential.py -v
           python -m unittest discover -s tests -p test_llvm_ssa_backend.py -v
+          python -m unittest discover -s tests -p test_ssa_native_benchmark.py -v
       - name: Install exact SHA-locked Rust 1.90 native oracle
         run: |
           python tools/bootstrap_toolchain.py --prefix "$RUNNER_TEMP/hepta-rust" --targets
@@ -51,9 +52,26 @@ jobs:
           for n in [-4, 0, 1, 2, 3, 4, 5, 8, 12, 20]:
               assert f(n) == expected(n), n
           PY
+      - name: Record timed Hepta LLVM SSA vs independent native C samples
+        run: |
+          python tools/ssa_native_benchmark.py \
+            --library "$RUNNER_TEMP/hepta-llvm-ssa.so" \
+            --symbol hepta_accumulate \
+            --output artifacts/p6-ssa-perf.json \
+            --iterations 15000 --trials 7 --bound 20
+          python - <<'PY'
+          import json
+          data = json.load(open("artifacts/p6-ssa-perf.json"))
+          assert data["status"] == "completed_host_sample_not_proof"
+          assert len(data["raw_samples"]) == 14
+          assert data["claims"]["whole_language_faster_than_rust_or_c"] is False
+          assert data["claims"]["service_p99_qualified"] is False
+          PY
       - if: always()
         uses: actions/upload-artifact@v4
         with:
           name: hepta-p6-native-ssa-host-evidence
-          path: artifacts/p6-ssa-llvm-report.json
+          path: |
+            artifacts/p6-ssa-llvm-report.json
+            artifacts/p6-ssa-perf.json
           if-no-files-found: warn
