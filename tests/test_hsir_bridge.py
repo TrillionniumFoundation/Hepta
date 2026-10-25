@@ -9,7 +9,8 @@ import unittest
 from hepta.checker import check
 from hepta.parser import parse
 from hepta.semantic_ir import lower_checked_program as canonical_hsir
-from hepta.hsir import HSIRRejected, HSIRSnapshot, from_canonical_snapshot, lower_checked_program
+from hepta.hsir import (CANONICAL_SCHEMA, SCHEMA as SCALAR_HSIR_SCHEMA,
+                        HSIRRejected, HSIRSnapshot, from_canonical_snapshot, lower_checked_program)
 from hepta.cfg import lower_hsir_cfg
 from hepta.ssa import lower_cfg_scalar_ssa
 from hepta.ssa_verify import verify_scalar_ssa
@@ -64,6 +65,34 @@ class HSIRBridgeTests(unittest.TestCase):
         self.assertGreater(ssa.as_dict()["functions"][0]["phi_count"], 0)
         self.assertFalse(bridge.as_dict()["claims"]["source_semantics_refined"])
         self.assertFalse(ssa.as_dict()["claims"]["native_backend_refinement_proven"])
+
+    def test_distinct_versioned_hsir_wire_formats_cannot_be_confused(self):
+        program, checked = _checked(_SOURCE)
+        canonical = canonical_hsir(program, checked)
+        scalar = from_canonical_snapshot(canonical)
+        self.assertEqual(canonical["schema"], CANONICAL_SCHEMA)
+        self.assertEqual(scalar.schema, SCALAR_HSIR_SCHEMA)
+        self.assertEqual(scalar.as_dict()["schema"], SCALAR_HSIR_SCHEMA)
+        self.assertNotEqual(CANONICAL_SCHEMA, SCALAR_HSIR_SCHEMA)
+        self.assertEqual(scalar.as_dict()["source_semantic_sha256"], canonical["sha256"])
+        # A legacy v0 scalar snapshot is never silently treated as a current
+        # scalar SSA input, even with a valid content hash.
+        payload = scalar.as_dict()
+        payload.pop("sha256")
+        payload["schema"] = CANONICAL_SCHEMA
+        encoded = json.dumps(payload, sort_keys=True, ensure_ascii=False,
+                             allow_nan=False, separators=(",", ":"))
+        downgraded = HSIRSnapshot(CANONICAL_SCHEMA, encoded,
+                                  hashlib.sha256(encoded.encode()).hexdigest())
+        with self.assertRaises(HSIRRejected):
+            downgraded.as_dict()
+        with self.assertRaisesRegex(Exception, "versioned scalar HSIR"):
+            lower_hsir_cfg(downgraded)
+        # Passing the canonical dict as if it were a scalar source is also
+        # refused: it is neither the intended adapter input nor CFGSnapshot.
+        with self.assertRaisesRegex(HSIRRejected, "requires canonical"):
+            from_canonical_snapshot(scalar.as_dict())
+        self.assertTrue(lower_hsir_cfg(scalar))
 
     def test_fresh_source_is_deterministic_and_binds_changes(self):
         a, ac = _checked(_SOURCE)
