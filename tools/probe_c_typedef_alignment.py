@@ -253,11 +253,47 @@ def source_hashes():
             for p in sorted((ROOT/directory).rglob('*.py'))}
 
 
+def packet_layout_binding(emitter, generated):
+    """Bind this fixture's Packet to the SAME emitter instance's actual type.
+
+    Never select an ordinal/first aggregate or infer identity from layout sizes.
+    The checked source record, injective type map, emitted declaration and probe
+    function parameter must agree before any generated layout is compiled.
+    """
+    from hepta.ast import Type
+    import re
+    packet = Type("C_Packet")
+    records = [s for s in emitter.program.structs if s.name == "C_Packet"]
+    require(len(records) == 1 and records[0].repr_c and not records[0].type_params,
+            'Expected exactly one concrete repr(C) Packet record')
+    fields = [(f.name, str(f.type)) for f in records[0].fields]
+    require(fields == [('f_lead', 'i8'), ('f_value', 'i32'), ('f_tail', 'i8')],
+            'Packet source fields changed from the fixed scientific fixture')
+    require(emitter.structs.get('C_Packet') is records[0], 'Emitter record identity mismatch')
+    name = emitter.types.get(packet)
+    require(isinstance(name, str) and re.fullmatch(r'[A-Za-z_][A-Za-z_0-9]*', name),
+            'Packet has no emitted C type mapping')
+    require([t for t, value in emitter.types.items() if value == name] == [packet],
+            'Packet C mapping aliases a different source type')
+    declaration = 'typedef struct { int8_t h_f_lead; int32_t h_f_value; int8_t h_f_tail; } ' + name + ';'
+    require(emitter.declarations.count(declaration) == 1 and generated.count(declaration) == 1,
+            'Mapped Packet declaration is absent, duplicated or has wrong fields')
+    functions = [f for f in emitter.program.functions if f.name == 'c_probe']
+    require(len(functions) == 1 and len(functions[0].params) == 1 and functions[0].params[0].type == packet,
+            'Scientific probe no longer accepts the checked Packet type')
+    signature = 'int32_t __hepta_cb_fn_c_probe(' + name + ' h_p_p)'
+    require(signature + ';' in generated and signature + ' {' in generated,
+            'Emitted scientific probe parameter does not use the mapped Packet')
+    return {'hepta_type': str(packet), 'c_type': name, 'fields': fields,
+            'declaration': declaration, 'probe_signature': signature,
+            'generated_sha256': hashlib.sha256(generated.encode()).hexdigest()}
+
+
 def worker():
     from hepta.c_migrate import migrate_c_project
     from hepta.parser import parse
     from hepta.checker import check
-    from hepta.c_backend import emit_c
+    from hepta.c_backend import CEmitter
     import hepta.c_project as project
     import hepta.c_translation as translation
     baseline = source_hashes()
@@ -343,11 +379,15 @@ def worker():
                     program=parse((case/'bundle/source.hepta').read_text())
                     checked=check(program)
                     require(checked.ok,'Actual generated source failed frontend')
-                    (case/'generated.c').write_text(emit_c(program,checked,crate_type='obj'))
+                    emitter = CEmitter(program, checked, 'obj')
+                    generated = emitter.emit()
+                    binding = packet_layout_binding(emitter, generated)
+                    (case/'generated.c').write_text(generated)
+                    write(case/'generated-type-binding.json', binding)
                     prefix='#include <stddef.h>\n#include <stdio.h>\n'
                     suffix='int main(void) { printf("%zu %zu %zu %zu\\n", sizeof(TYPE), _Alignof(TYPE), offsetof(TYPE, VALUE), offsetof(TYPE, TAIL)); return 0; }\n'
                     (case/'original-layout.c').write_text(prefix+'#include "input.c"\n'+suffix.replace('TYPE','struct Packet').replace('VALUE','value').replace('TAIL','tail'))
-                    (case/'generated-layout.c').write_text(prefix+'#include "generated.c"\n'+suffix.replace('TYPE','__hepta_cb_type_C_Packet').replace('VALUE','h_f_value').replace('TAIL','h_f_tail'))
+                    (case/'generated-layout.c').write_text(prefix+'#include "generated.c"\n'+suffix.replace('TYPE',binding['c_type']).replace('VALUE','h_f_value').replace('TAIL','h_f_tail'))
                     rust=(case/'bundle/generated.rs').read_text()
                     rust+='\nfn main() { println!("{} {} {} {}", std::mem::size_of::<H_C_Packet>(), std::mem::align_of::<H_C_Packet>(), std::mem::offset_of!(H_C_Packet, h_f_value), std::mem::offset_of!(H_C_Packet, h_f_tail)); }\n'
                     (case/'generated-layout.rs').write_text(rust)
