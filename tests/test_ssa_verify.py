@@ -135,6 +135,22 @@ class SSAVerificationTests(unittest.TestCase):
         with self.assertRaisesRegex(SSAVerificationRejected, "REACHING"):
             verify_scalar_ssa(encoded(forged), cfg)
 
+    def test_rehashed_unused_scalar_retag_rejected_against_source(self):
+        cfg = snapshot([
+            block(0, [let("unused", i(1))], kind="return", value=i(7))])
+        ssa = lower_cfg_scalar_ssa(cfg)
+        self.assertTrue(verify_scalar_ssa(ssa, cfg).as_dict())
+        forged = ssa.as_dict()
+        forged.pop("sha256")
+        fn = forged["functions"][0]
+        # The source local is i32. Its output is deliberately unused, so
+        # a verifier that checks use types but never source types accepts a
+        # newly hashed forged u32 SSA definition.
+        fn["scalar_types"]["unused"] = "u32"
+        fn["blocks"][0]["instructions"][0]["definition"]["type"] = "u32"
+        with self.assertRaisesRegex(SSAVerificationRejected, "SOURCE_TYPE"):
+            verify_scalar_ssa(encoded(forged), cfg)
+
     def test_duplicate_definition_wrong_count(self):
         cfg, ssa = self.fixture()
         x = ssa.as_dict()
