@@ -15,7 +15,8 @@ from typing import Any
 
 from .semantic_ir import lower_checked_program as _lower_canonical
 
-SCHEMA = "hepta.hsir.v0"
+CANONICAL_SCHEMA = "hepta.hsir.v0"
+SCHEMA = "hepta.hsir.scalar.v1"
 _STATUS = "checked_frontend_snapshot_not_proved"
 _SCALARS = frozenset({"bool", "i8", "i16", "i32", "i64", "i128", "isize",
                       "u8", "u16", "u32", "u64", "u128", "usize", "f32", "f64"})
@@ -329,8 +330,8 @@ def from_canonical_snapshot(source: dict[str, Any]) -> HSIRSnapshot:
     derived snapshot. No structurally unsupported node is silently omitted.
     This is an integrity and subset check, not independent type validation.
     """
-    if not isinstance(source, dict) or source.get("schema") != SCHEMA:
-        _reject("requires canonical hepta.hsir.v0")
+    if not isinstance(source, dict) or source.get("schema") != CANONICAL_SCHEMA:
+        _reject("requires canonical hepta.hsir.v0, not a derived scalar snapshot")
     parent_digest = source.get("sha256")
     if not isinstance(parent_digest, str) or _HASH.fullmatch(parent_digest) is None:
         _reject("missing canonical snapshot identity")
