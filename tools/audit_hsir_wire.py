@@ -63,8 +63,37 @@ def load(path: str) -> dict:
     return result
 
 
+def unwrap(record: dict) -> tuple[dict, str]:
+    """Separate CLI presentation metadata from the signed HSIR wire payload.
+
+    PR #14 emits an hsir.export.v0 wrapper; PR #36 adds reference_validation
+    to a valid HSIRSnapshot.as_dict() *after* computing its digest. Neither
+    sidecar is proof of compiler validity and neither enters the payload hash.
+    """
+    if not isinstance(record, dict):
+        raise HSIRWireRejected("E_HSIR_NOT_OBJECT")
+    if record.get("schema") == "hepta.hsir.export.v0":
+        if (set(record) != {"schema", "ok", "status", "hsir", "validation"}
+                or type(record["ok"]) is not bool
+                or not isinstance(record["status"], str)
+                or not isinstance(record["validation"], dict)
+                or not isinstance(record["hsir"], dict)
+                or record["hsir"].get("profile") !=
+                    "checked_typed_ast_not_verified_mir"):
+            raise HSIRWireRejected("E_HSIR_EXPORT_ENVELOPE")
+        return record["hsir"], "pr14_export_unbound_validation"
+    if record.get("schema") == SCHEMA and "reference_validation" in record:
+        if (not isinstance(record["reference_validation"], dict)
+                or record.get("status") != "checked_frontend_snapshot_not_proved"):
+            raise HSIRWireRejected("E_HSIR_SIDECAR_ENVELOPE")
+        return {k: v for k, v in record.items() if k != "reference_validation"}, \
+               "pr36_cli_unbound_reference_validation"
+    return record, "raw_snapshot"
+
+
 def fingerprint(record: dict) -> dict:
-    if not isinstance(record, dict) or record.get("schema") != SCHEMA:
+    record, envelope = unwrap(record)
+    if record.get("schema") != SCHEMA:
         raise HSIRWireRejected("E_HSIR_SCHEMA")
     name, profile = None, None
     for candidate, settings in PROFILES.items():
@@ -110,6 +139,8 @@ def fingerprint(record: dict) -> dict:
     if supplied != actual:
         raise HSIRWireRejected("E_HSIR_DIGEST_MISMATCH")
     return {"wire_profile": name, "schema": SCHEMA,
+            "presentation_envelope": envelope,
+            "external_validation_metadata_unbound_to_payload": envelope != "raw_snapshot",
             "source_sha256": record["source_sha256"],
             "project_identity_present": bool(record.get("project_sha256")),
             "sha256": supplied, "checked_native": False,
