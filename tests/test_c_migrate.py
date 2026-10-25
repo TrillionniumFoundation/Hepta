@@ -7,7 +7,9 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
+import hepta.c_migrate as strict_migrator
 from hepta.c_migrate import migrate_c
 from hepta.pipeline import analyze
 
@@ -164,6 +166,37 @@ int sum_for(int n) {
         result = migrate_c(self.c, self.hepta)
         self.assertFalse(result["ok"])
         self.assertFalse(self.hepta.exists())
+
+    def test_header_macro_preprocessing_is_source_bound(self):
+        header = self.directory / "values.h"
+        header.write_text("#define DELTA 3\n")
+        self.c.write_text('#include "values.h"\nint shifted(int x) { return x + DELTA; }\n')
+        report = migrate_c(self.c, self.hepta)
+        self.assertTrue(report["ok"], report)
+        self.assertRegex(report["preprocessed_sha256"], r"^[0-9a-f]{64}$")
+        self.assertIn("shifted", self.hepta.read_text())
+
+    def test_header_mutation_between_clang_capture_and_publication_rejected(self):
+        header = self.directory / "values.h"
+        header.write_text("#define DELTA 3\n")
+        self.c.write_text('#include "values.h"\nint shifted(int x) { return x + DELTA; }\n')
+        original_run = strict_migrator._run
+        counts = {"preprocess": 0}
+
+        def mutate_after_preprocessing(argv, **kwargs):
+            output = original_run(argv, **kwargs)
+            if "-E" in argv and "-P" in argv and "-std=c11" in argv:
+                counts["preprocess"] += 1
+                if counts["preprocess"] == 1:
+                    header.write_text("#define DELTA 4\n")
+            return output
+
+        with patch.object(strict_migrator, "_run", side_effect=mutate_after_preprocessing):
+            report = migrate_c(self.c, self.hepta)
+        self.assertFalse(report["ok"], report)
+        self.assertFalse(self.hepta.exists())
+        self.assertEqual(counts["preprocess"], 2)
+        self.assertIn("E_C_PREPROCESS_RACE", [x["code"] for x in report["rejected"]])
 
     def test_preexisting_output_is_not_overwritten(self):
         self.hepta.write_text("keep untouched", encoding="utf-8")

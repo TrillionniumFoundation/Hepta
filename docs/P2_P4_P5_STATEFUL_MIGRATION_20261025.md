@@ -66,3 +66,18 @@ a strict C++20 counted-for fixture. Its generated Hepta is checked to contain
 the normalized while/step form before canonical HSIR/CFG/SSA/LLVM processing.
 Clang++ original/C wrapper, Hepta/C and LLVM SSA execution remain separate.
 Like the other tests, this targets finite defined-input semantics only.
+
+## P2 strict C preprocessor snapshot identity
+
+The strict C single-file migration now records a Clang C11 preprocessed
+source digest before AST capture and re-runs Clang -E -P immediately before
+no-replace publication. Its report binds the preprocessed SHA-256, so a
+local-header macro edit during conversion fails with E_C_PREPROCESS_RACE
+even if the .c file itself is unchanged. Tests include a real source
+that includes a macro header plus a deliberate header mutation.
+
+This is an incremental TOCTOU defense, not a hermetic C build graph,
+complete transitive dependency manifest, or protection from noncooperating
+filesystem writes in the final instant before the no-replace link.
+Use the existing compile_commands.json project migrator for full configuration
+capture, multi-TU coverage and per-header dependency/identity evidence.

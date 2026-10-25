@@ -331,6 +331,14 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
         report["source_sha256"] = hashlib.sha256(source).hexdigest()
         model = _data_model(clang)
         report["target_model"] = model
+        # A strict single-file source snapshot is insufficient when included
+        # headers/macros influence the actual Clang AST. Bind a real -E/-P
+        # preprocessing snapshot to the same compiler/target, then compare it
+        # again before publishing any generated Hepta. This is not a complete
+        # compilation database or external-header provenance attestation.
+        preprocess_cmd = [clang, "-std=c11", "-E", "-P", str(src)]
+        preprocessed_sha256 = hashlib.sha256(_run(preprocess_cmd).encode("utf-8")).hexdigest()
+        report["preprocessed_sha256"] = preprocessed_sha256
         ast_json = _run([clang, "-std=c11", "-fsyntax-only", "-Werror",
                         "-Xclang", "-ast-dump=json", str(src)])
         root = json.loads(ast_json)
@@ -400,6 +408,10 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
                 f.write(program)
                 f.flush()
                 os.fsync(f.fileno())
+            if src.read_bytes() != source:
+                raise MigrationRejected("E_C_SOURCE_RACE", "C source changed before publication")
+            if hashlib.sha256(_run(preprocess_cmd).encode("utf-8")).hexdigest() != preprocessed_sha256:
+                raise MigrationRejected("E_C_PREPROCESS_RACE", "Clang preprocessed source/headers changed before publication")
             # Atomic same-filesystem hard-link publication: the completely
             # written, fsynced staged inode becomes visible in one operation.
             # os.link fails without replacing a concurrent existing name.
