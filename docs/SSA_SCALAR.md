@@ -60,3 +60,17 @@ semantics/native/memory-safety proof claims. Run:
 
 This is an independent implementation pass for SSA structural validation,
 not an independent execution semantics or formally verified compiler.
+
+## Finite independent execution oracle
+
+tests/test_ssa_differential.py contains a deliberately bounded interpreter
+for the source-CFG scalar profile and a separate interpreter for SSA/PHI.
+Compare both for a complete two-way branch and 99 mixed fixed/seeded loop
+inputs, including an inner branch and multiple PHI sites. A deliberately
+corrupted SSA operand must produce a different result (negative control).
+
+This qualifies only those finite fixture inputs and the test interpreters:
+it cannot establish semantic equivalence with rustc/LLVM or soundness of
+unbounded programs. It does not allow skipped real native gates to be PASS.
+
+    python -m unittest discover -s tests -p test_ssa_differential.py -v
