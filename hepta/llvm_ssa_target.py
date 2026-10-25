@@ -46,8 +46,11 @@ def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
                              text=True, timeout=10, check=False)
     if version.returncode or not version.stdout.strip():
         raise LLVMSSARejected("E_LLVM_SSA_TOOLCHAIN: missing compiler identity")
-    destination = Path(output).resolve()
-    if destination.exists() or not destination.parent.is_dir():
+    # Do not dereference a dangling destination symlink: resolving the final
+    # component would silently publish the object to the symlink target.
+    # os.link below is no-replace, including when a new symlink races us.
+    destination = Path(output).absolute()
+    if destination.is_symlink() or destination.exists() or not destination.parent.is_dir():
         raise LLVMSSARejected("E_LLVM_SSA_OUTPUT: destination exists or directory is missing")
     with tempfile.TemporaryDirectory(prefix=".hepta-ssa-target-", dir=destination.parent) as folder:
         source = Path(folder) / "module.ll"
