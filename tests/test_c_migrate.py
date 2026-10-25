@@ -1,6 +1,8 @@
 """Clang-backed C->Hepta strict scalar pilot: positive and negative gates."""
 import ctypes
 import json
+import os
+from unittest.mock import patch
 from pathlib import Path
 import shutil
 import subprocess
@@ -156,6 +158,50 @@ int sum_for(int n) {
                 self.assertFalse(report["ok"], report)
                 self.assertFalse(self.hepta.exists())
                 self.assertTrue(report["rejected"])
+
+    def test_source_race_during_staging_refuses_publication(self):
+        original_fsync = os.fsync
+        def mutate(fd):
+            original_fsync(fd)
+            self.c.write_text("int32_t add(int32_t x, int32_t y) {return x-y;}\n",
+                              encoding="utf-8")
+        with patch("hepta.c_migrate.os.fsync", side_effect=mutate):
+            result = migrate_c(self.c, self.hepta)
+        self.assertFalse(result["ok"], result)
+        self.assertIn("E_C_SOURCE_RACE", [r["code"] for r in result["rejected"]])
+        self.assertFalse(self.hepta.exists())
+
+    def test_header_macro_race_during_staging_refuses_publication(self):
+        include = self.directory / "definitions.h"
+        include.write_text("#define VALUE 3\n")
+        self.c.write_text('#include "definitions.h"\nint f(int x) {return x+VALUE;}\n')
+        original_fsync = os.fsync
+        def mutate_header(fd):
+            original_fsync(fd)
+            include.write_text("#define VALUE 4\n")
+        with patch("hepta.c_migrate.os.fsync", side_effect=mutate_header):
+            result = migrate_c(self.c, self.hepta)
+        self.assertFalse(result["ok"], result)
+        self.assertIn("E_C_PREPROCESS_RACE", [r["code"] for r in result["rejected"]])
+        self.assertFalse(self.hepta.exists())
+
+    def test_source_alias_retarget_during_publish_is_rejected(self):
+        original = self.directory / "actual.c"
+        original.write_text("int f(int x) {return x+1;}\n")
+        replacement = self.directory / "replacement.c"
+        replacement.write_text("int f(int x) {return x+2;}\n")
+        alias = self.directory / "source.c"
+        alias.symlink_to(original)
+        old_fsync = os.fsync
+        def retarget(fd):
+            old_fsync(fd)
+            alias.unlink()
+            alias.symlink_to(replacement)
+        with patch("hepta.c_migrate.os.fsync", side_effect=retarget):
+            result = migrate_c(alias, self.hepta)
+        self.assertFalse(result["ok"], result)
+        self.assertIn("E_C_SOURCE_RACE", [r["code"] for r in result["rejected"]])
+        self.assertFalse(self.hepta.exists())
 
     def test_unsupported_cast_rejected_without_writing(self):
         self.c.write_text("unsigned long long f(unsigned long long x) {return (unsigned int)x;}\n")

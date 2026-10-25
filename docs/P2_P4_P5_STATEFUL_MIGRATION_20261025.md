@@ -56,3 +56,21 @@ statement ordering for this subset. The converter rejects for-declared locals,
 unmodeled evaluation. This is still L1 candidate translation; original C/C++
 defined-input behavior requires differential checking, not an equivalence
 claim. Both C and C++ reuse the exact same lowering function.
+
+## Publication identity and macro drift
+
+Strict C11 single-file L1 now pins both the original source SHA-256 and the
+actual Clang `-std=c11 -E -P` preprocessed text digest, with identical Clang
+arguments used for capture and pre-publication rechecks. This defends against
+included header or local macro drift in the interval between AST capture and
+no-replace output publication. Both C and C++ L1 converters also revalidate
+the caller's original lexical source-file binding, not only the resolved inode
+contents, immediately before publishing. Deterministic test races rewrite the
+.c file, a included macro header, and source symlink targets after staging.
+All are required to reject without producing an output file.
+
+These tests do not constitute a hermetic build-system attestation, nor a
+cross-process atomic file-transaction guarantee against noncooperating writers.
+C11 single-file translation remains a fixed-configuration pilot; for arbitrary
+compile command flags and multi-file provenance use the existing captured
+`migrate_c_project` entry point.

@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import ctypes
 import json
+import os
+from unittest.mock import patch
 from pathlib import Path
 import shutil
 import subprocess
@@ -186,6 +188,24 @@ int sum_for(int n) noexcept {
                 self.assertFalse(report["ok"], report)
                 self.assertEqual(report["rejected"][0]["code"], "E_CPP2HEPTA_PREPROCESSOR")
                 self.assertFalse(self.dst.exists())
+
+    def test_lexical_source_alias_change_before_publish_rejected(self):
+        original = self.root / "actual.cc"
+        original.write_text(self._GOOD)
+        replacement = self.root / "replacement.cc"
+        replacement.write_text("int f(int x) noexcept {return x+2;}\n")
+        alias = self.root / "source.cc"
+        alias.symlink_to(original)
+        old_fsync = os.fsync
+        def rebind(fd):
+            old_fsync(fd)
+            alias.unlink()
+            alias.symlink_to(replacement)
+        with patch("hepta.cpp2hepta.os.fsync", side_effect=rebind):
+            report = migrate_cpp(alias, self.dst)
+        self.assertFalse(report["ok"], report)
+        self.assertIn("E_CPP2HEPTA_RACE", [r["code"] for r in report["rejected"]])
+        self.assertFalse(self.dst.exists())
 
     def test_dangling_output_alias_and_existing_source_are_not_replaced(self):
         self.src.write_text(self._GOOD)
