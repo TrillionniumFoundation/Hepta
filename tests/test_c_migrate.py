@@ -51,6 +51,50 @@ class ClangMigrationTests(unittest.TestCase):
         self.assertIn('export "C" fn clamp_positive', source)
         self.assertIn("wrapping_add(x, y)", source)
 
+    def test_unsigned_shift_c11_vs_hepta_c_native_defined_domain(self):
+        self.c.write_text("""
+unsigned int shl32(unsigned int value, unsigned int bits) { return value << bits; }
+unsigned int shr32(unsigned int value, unsigned int bits) { return value >> bits; }
+unsigned long long shl64(unsigned long long value, unsigned long long bits) { return value << bits; }
+""")
+        report = migrate_c(self.c, self.hepta)
+        self.assertTrue(report["ok"], report)
+        self.assertFalse(report["source_equivalence_proved"])
+        text = self.hepta.read_text()
+        self.assertIn("value << bits", text)
+        self.assertIn("value >> bits", text)
+        self.assertEqual(analyze(text, str(self.hepta), native=False).report["status"], "frontend_only")
+        original, converted = self.directory / "shifts-original.so", self.directory / "shifts-hepta.so"
+        compile_c = subprocess.run(["gcc", "-std=c11", "-O2", "-shared", "-fPIC", str(self.c),
+                                    "-o", str(original)], capture_output=True, text=True, timeout=30)
+        self.assertEqual(compile_c.returncode, 0, compile_c.stderr)
+        compiled = subprocess.run([sys.executable, "-m", "hepta", "build", str(self.hepta),
+                                   "--backend", "c", "--crate-type", "cdylib", "-o", str(converted)],
+                                  capture_output=True, text=True, timeout=90)
+        self.assertEqual(compiled.returncode, 0, compiled.stdout + compiled.stderr)
+        left, right = ctypes.CDLL(str(original)), ctypes.CDLL(str(converted))
+        profiles = {
+            "shl32": (ctypes.c_uint32, 32, (0, 1, 2**31, 2**32-1)),
+            "shr32": (ctypes.c_uint32, 32, (0, 1, 2**31, 2**32-1)),
+            "shl64": (ctypes.c_uint64, 64, (0, 1, 2**63, 2**64-1)),
+        }
+        for name, (typ, width, values) in profiles.items():
+            lhs, rhs = getattr(left, name), getattr(right, name)
+            for fn in (lhs, rhs):
+                fn.argtypes = [typ, typ]
+                fn.restype = typ
+            for bits in (0, 1, 7, width - 1):
+                for value in values:
+                    with self.subTest(name=name, value=value, bits=bits):
+                        self.assertEqual(lhs(value, bits), rhs(value, bits))
+
+    def test_signed_shift_is_still_rejected_without_publication(self):
+        self.c.write_text("int unsafe_shift(int value, int bits) { return value << bits; }")
+        result = migrate_c(self.c, self.hepta)
+        self.assertFalse(result["ok"], result)
+        self.assertIn("E_C_SHIFT_SIGNED", [d["code"] for d in result["rejected"]])
+        self.assertFalse(self.hepta.exists())
+
     def test_pointer_function_refuses_entire_input(self):
         self.c.write_text(C_SOURCE + "\nint32_t pointer(int32_t* p) {return *p;}\n")
         result = migrate_c(self.c, self.hepta)
