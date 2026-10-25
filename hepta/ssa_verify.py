@@ -21,6 +21,14 @@ _SSA_FUNCTION_FIELDS = frozenset({
     "phi_count", "declared_effects", "inferred_transitive_effects",
     "resource_contract",
 })
+# A verifier that ignores unreviewed nested metadata can accidentally approve
+# a future source/owner/effect meaning which the current SSA model cannot
+# represent. Keep this finite scalar wire format explicitly closed.
+_SSA_BLOCK_FIELDS = frozenset({"id", "phis", "instructions", "terminator"})
+_SSA_PHI_FIELDS = frozenset({"result", "incoming"})
+_SSA_PHI_EDGE_FIELDS = frozenset({"from", "ssa_ref"})
+_SSA_DEFINITION_FIELDS = frozenset({"variable", "ssa_name", "type", "defined_in"})
+_SSA_INSTRUCTION_FIELDS = frozenset({"operation", "ssa_value", "span"})
 # This verifier owns its expectations independently of the SSA producer.
 # A valid self-resealed digest must never authorize elevated proof flags.
 _SSA_TOP_FIELDS = frozenset({
@@ -106,8 +114,9 @@ def _function(f: dict, original: dict, graph: dict) -> dict:
     if not isinstance(blocks, list) or not isinstance(before, list) or len(blocks) != len(before):
         _reject("E_SSA_VERIFY_BLOCKS", "block count differs")
     expected_ids = [b["id"] for b in before]
-    if [b.get("id") for b in blocks] != expected_ids:
-        _reject("E_SSA_VERIFY_BLOCKS", "block identities/order differ")
+    if (any(not isinstance(b, dict) or set(b) != _SSA_BLOCK_FIELDS for b in blocks)
+            or [b["id"] for b in blocks] != expected_ids):
+        _reject("E_SSA_VERIFY_BLOCKS", "SSA basic-block schema or identities differ")
     if f.get("entry") != original.get("entry"):
         _reject("E_SSA_VERIFY_ENTRY", "entry block changed")
     dom = {k: set(v) for k, v in graph["dominators"].items()}
@@ -119,8 +128,8 @@ def _function(f: dict, original: dict, graph: dict) -> dict:
     version_numbers = {}
 
     def add(defn, block, order, expected_name=None, expected_type=None):
-        if not isinstance(defn, dict):
-            _reject("E_SSA_VERIFY_DEF", "missing definition metadata")
+        if not isinstance(defn, dict) or set(defn) != _SSA_DEFINITION_FIELDS:
+            _reject("E_SSA_VERIFY_DEF", "missing or unreviewed definition metadata")
         name, version, ty = defn.get("variable"), defn.get("ssa_name"), defn.get("type")
         if (not isinstance(name, str) or scalar_types.get(name) != ty or
                 not isinstance(version, str) or re.fullmatch(re.escape(name) + r"@[0-9]+", version) is None):
@@ -149,17 +158,32 @@ def _function(f: dict, original: dict, graph: dict) -> dict:
         old_instr = old.get("instructions")
         if not isinstance(phi, list) or not isinstance(instr, list) or len(instr) != len(old_instr):
             _reject("E_SSA_VERIFY_INSTRUCTIONS", "source instruction count disagrees")
+        # The entry has no predecessors. A re-sealed zero-input PHI there can
+        # otherwise appear to define a value which has no source execution.
+        # The producer's pruned scalar profile places PHIs only at joins.
+        if phi and (bid == f["entry"] or len(preds[bid]) < 2):
+            _reject("E_SSA_VERIFY_PHI", "PHI requires a real multi-predecessor join")
         phi_names = set()
         for p in phi:
-            result = p.get("result") if isinstance(p, dict) else None
+            if (not isinstance(p, dict) or set(p) != _SSA_PHI_FIELDS
+                    or not isinstance(p.get("incoming"), list)):
+                _reject("E_SSA_VERIFY_PHI", "malformed or unreviewed PHI metadata")
+            result = p["result"]
             add(result, bid, -1)
             if result["variable"] in phi_names:
                 _reject("E_SSA_VERIFY_PHI", "duplicate PHI for same variable in one block")
             phi_names.add(result["variable"])
         for index, (item, before_item) in enumerate(zip(instr, old_instr)):
+            if (not isinstance(item, dict)
+                    or set(item) not in (_SSA_INSTRUCTION_FIELDS,
+                                         _SSA_INSTRUCTION_FIELDS | {"definition"})):
+                _reject("E_SSA_VERIFY_INSTRUCTIONS", "unreviewed scalar instruction metadata")
             if item.get("operation") != before_item.get("operation") or item.get("span") != before_item.get("span"):
                 _reject("E_SSA_VERIFY_ORIGIN", "instruction kind/span changed")
-            if _unmark(item.get("ssa_value")) != before_item["fields"].get("expr"):
+            source_expr = before_item["fields"].get("expr")
+            if not isinstance(source_expr, dict) or not isinstance(item.get("ssa_value"), dict):
+                _reject("E_SSA_VERIFY_EXPRESSION", "scalar instruction must retain its typed initializer")
+            if _unmark(item["ssa_value"]) != source_expr:
                 _reject("E_SSA_VERIFY_ORIGIN", "instruction expression changed")
             raw_target = (before_item["fields"].get("name") if item["operation"] == "let" else
                           before_item["fields"].get("target", {}).get("value") if item["operation"] == "assign" else None)
@@ -167,7 +191,13 @@ def _function(f: dict, original: dict, graph: dict) -> dict:
                 if "definition" in item:
                     _reject("E_SSA_VERIFY_DEF", "unexpected definition on expression statement")
             else:
-                add(item.get("definition"), bid, index, raw_target)
+                source_type = source_expr.get("result_type")
+                if not isinstance(source_type, dict) or not isinstance(source_type.get("type"), str):
+                    _reject("E_SSA_VERIFY_TYPE", "original scalar initializer has no checked type")
+                # Check independently: matching the SSA symbol table is NOT
+                # enough when both it and the definition were re-signed.
+                add(item.get("definition"), bid, index, raw_target,
+                    expected_type=source_type["type"])
         if _unmark(b.get("terminator")) != old.get("terminator"):
             _reject("E_SSA_VERIFY_ORIGIN", "terminator changed")
     if f.get("definitions") != len(defs) or f.get("phi_count") != sum(len(b["phis"]) for b in blocks):
@@ -206,9 +236,10 @@ def _function(f: dict, original: dict, graph: dict) -> dict:
         bid = b["id"]
         for phi in b["phis"]:
             phis += 1
-            incoming = phi.get("incoming")
-            if not isinstance(incoming, list) or [x.get("from") for x in incoming] != sorted(preds[bid]):
-                _reject("E_SSA_VERIFY_PHI", "PHI predecessors do not match CFG")
+            incoming = phi["incoming"]
+            if (any(not isinstance(x, dict) or set(x) != _SSA_PHI_EDGE_FIELDS for x in incoming)
+                    or [x["from"] for x in incoming] != sorted(preds[bid])):
+                _reject("E_SSA_VERIFY_PHI", "PHI predecessors or input schema do not match CFG")
             for edge in incoming:
                 pred = edge["from"]
                 ref = edge.get("ssa_ref")

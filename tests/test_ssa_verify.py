@@ -123,6 +123,54 @@ class SSAVerificationTests(unittest.TestCase):
                 with self.assertRaisesRegex(SSAVerificationRejected, "CLAIMS"):
                     verify_scalar_ssa(encoded(forged), cfg)
 
+    def test_resealed_zero_input_entry_phi_cannot_create_a_value(self):
+        cfg = snapshot([block(0, kind="return", value=n("x"))],
+                       params=[("x", "i32")])
+        payload = lower_cfg_scalar_ssa(cfg).as_dict()
+        payload.pop("sha256")
+        function = payload["functions"][0]
+        block0 = function["blocks"][0]
+        block0["phis"] = [{
+            "result": {"variable": "x", "ssa_name": "x@1",
+                       "type": "i32", "defined_in": "b0000"},
+            "incoming": [],
+        }]
+        block0["terminator"]["value"]["ssa_ref"] = "x@1"
+        function["definitions"] += 1
+        function["phi_count"] += 1
+        with self.assertRaisesRegex(SSAVerificationRejected, "PHI"):
+            verify_scalar_ssa(encoded(payload), cfg)
+
+    def test_resealed_wrong_dead_local_definition_type_rejected(self):
+        cfg = snapshot([block(0, [let("x", i(7))],
+                              kind="return", value=i(8))])
+        payload = lower_cfg_scalar_ssa(cfg).as_dict()
+        payload.pop("sha256")
+        function = payload["functions"][0]
+        # Both SSA declarations agree with each other, but disagree with
+        # the actual checked i32 initializer. x is deliberately never read.
+        function["scalar_types"]["x"] = "u64"
+        function["blocks"][0]["instructions"][0]["definition"]["type"] = "u64"
+        with self.assertRaisesRegex(SSAVerificationRejected, "TYPE"):
+            verify_scalar_ssa(encoded(payload), cfg)
+
+    def test_resealed_nested_ssa_metadata_cannot_hide_semantics(self):
+        cfg, valid = self.fixture()
+        for name, mutate in {
+            "block_extra_owner": lambda f: f["blocks"][0].update(loan_owner="forged"),
+            "instruction_extra_drop": lambda f: f["blocks"][0]["instructions"][0].update(drop_owner=True),
+            "definition_extra_effect": lambda f: f["blocks"][0]["instructions"][0]["definition"].update(ffi=True),
+            "phi_extra_contract": lambda f: f["blocks"][3]["phis"][0].update(proof_status="certified"),
+            "phi_edge_extra_unsafe": lambda f: f["blocks"][3]["phis"][0]["incoming"][0].update(unsafe=True),
+        }.items():
+            with self.subTest(case=name):
+                payload = valid.as_dict()
+                payload.pop("sha256")
+                mutate(payload["functions"][0])
+                with self.assertRaisesRegex(SSAVerificationRejected,
+                                            "(BLOCKS|INSTRUCTIONS|DEF|PHI)"):
+                    verify_scalar_ssa(encoded(payload), cfg)
+
     def test_duplicate_definition_wrong_count(self):
         cfg, ssa = self.fixture()
         x = ssa.as_dict()
