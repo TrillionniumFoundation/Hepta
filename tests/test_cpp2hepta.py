@@ -112,6 +112,18 @@ int inferred(int x) noexcept { auto y=x; return y; }
                     with self.subTest(name=name, args=args):
                         self.assertEqual(reference_fn(*args), hepta_fn(*args))
 
+    def test_dangling_output_symlink_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / 'reference.cc'
+            source.write_text('int f(int n) noexcept { return n + 1; }')
+            target = root / 'alias.hepta'
+            redirected = root / 'unintended.hepta'
+            target.symlink_to(redirected)
+            self.assertEqual(main([str(source), '-o', str(target)]), 1)
+            self.assertTrue(target.is_symlink())
+            self.assertFalse(redirected.exists())
+
     def test_cli_no_overwrite_and_no_partial_output(self):
         with tempfile.TemporaryDirectory() as tmp:
             orig = Path(tmp) / 'start.cc'
