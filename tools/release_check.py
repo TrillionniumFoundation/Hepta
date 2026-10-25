@@ -27,6 +27,20 @@ def snapshot():
     return {"sha256": identity, "files": files}
 
 
+def _unittest_passed_count(stderr: str) -> int:
+    """Accept only the terminal, non-skipped standard unittest success summary.
+
+    unittest sends its summary to stderr. Searching the first occurrence in
+    stdout + stderr instead trusts text that arbitrary tests can print, and
+    could count a forged positive before the real zero-test/skip summary.
+    """
+    match = re.search(
+        r"(?m)^Ran ([0-9]+) tests? in [0-9]+(?:\.[0-9]+)?s\r?\n\r?\nOK\r?\n?\Z",
+        stderr,
+    )
+    return int(match.group(1)) if match else 0
+
+
 def require_qualification(name, evidence):
     """An outer success must not hide a required inner check marked not_run."""
     if name == "native_and_performance":
@@ -115,14 +129,20 @@ def main():
         gate.update({"seconds": round(time.monotonic() - started, 3), "log": str(log.relative_to(ROOT)),
                      "log_sha256": hashlib.sha256(log.read_bytes()).hexdigest()})
         if name == "unit_and_integration":
-            match = re.search(r"Ran (\d+) tests", text)
-            if match:
-                gate["test_count"] = int(match.group(1))
-            skipped = re.search(r"skipped=(\d+)", text)
+            # Timed-out commands have no CompletedProcess; preserve unknown_timeout.
+            stderr = p.stderr if gate["status"] != "unknown_timeout" else ""
+            gate["test_count"] = _unittest_passed_count(stderr)
+            # Preserve genuine skipped counts in the final unittest footer.
+            skipped = re.search(
+                r"(?m)^OK \([^\n]*skipped=(\d+)[^\n]*\)\r?\n?\Z", stderr,
+            )
             gate["skipped"] = int(skipped.group(1)) if skipped else 0
-            if not gate.get("test_count") or gate["skipped"]:
+            if gate["status"] == "passed" and not gate["test_count"]:
                 gate["status"] = "failed"
-                gate["reason"] = "Release qualification requires an actual nonempty suite with zero skips"
+                gate["reason"] = (
+                    "Release qualification requires a nonempty terminal unittest "
+                    "OK summary with zero skips on stderr"
+                )
         if gate["status"] == "passed" and name in evidence_outputs:
             evidence_path = ROOT / evidence_outputs[name]
             try:
