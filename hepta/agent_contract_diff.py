@@ -29,6 +29,21 @@ _CLAIM_KEYS = frozenset({
 })
 
 
+def _same_json_value(left: Any, right: Any) -> bool:
+    """Compare complete contracts without Python's bool/int type coercion.
+
+    Python considers False == 0 and True == 1. Native-checked contract
+    metadata is serialized as JSON where those types are intentionally
+    different, so never use Python collection equality for a semantic diff.
+    Reject noncanonical input instead of quietly omitting a reported change.
+    """
+    try:
+        return _stable_json(left) == _stable_json(right)
+    except (TypeError, ValueError, OverflowError, RecursionError) as exc:
+        raise WorkspaceError("E_AGENT_DIFF_CONTRACT",
+                             "Noncanonical typed function or foreign contract") from exc
+
+
 def _inventory(report: dict[str, Any], version: str) -> dict[tuple[str, str], dict]:
     if (not isinstance(report, dict) or report.get("ok") is not True
             or report.get("schema") != "hepta.agent-semantics.v1"
@@ -57,6 +72,10 @@ def _inventory(report: dict[str, Any], version: str) -> dict[tuple[str, str], di
     for fn in report["functions"]:
         if not isinstance(fn, dict) or any(k not in fn for k in _TRACKED):
             raise WorkspaceError("E_AGENT_DIFF_FUNCTION", "Malformed function contract")
+        # Validate all compared fields even when no before/after delta exists.
+        # NaN, Infinity, invalid nested objects and recursive values cannot
+        # be silently treated as an unchanged native-checked contract.
+        _same_json_value({key: fn[key] for key in _TRACKED}, {})
         path, name = fn.get("path"), fn.get("name")
         if (not isinstance(path, str) or not path or not isinstance(name, str) or not name
                 or PurePosixPath(path).is_absolute() or "\\" in path
@@ -101,7 +120,8 @@ def compare_pinned_contracts(
         elif current is None:
             changes.append({"path": path, "name": name, "change": "removed", "changed_fields": list(_TRACKED)})
         else:
-            fields = [field for field in _TRACKED if previous[field] != current[field]]
+            fields = [field for field in _TRACKED
+                      if not _same_json_value(previous[field], current[field])]
             if fields:
                 changes.append({"path": path, "name": name,
                                 "change": "contract_modified", "changed_fields": fields})
@@ -126,9 +146,12 @@ def compare_pinned_contracts(
         "before_interface_sha256": before["interface_sha256"],
         "after_interface_sha256": after["interface_sha256"],
         "interface_identity_changed": before["interface_sha256"] != after["interface_sha256"],
-        "validated_source_set_changed": before["validated_sources"] != after["validated_sources"],
-        "external_obligations_changed": before["external_obligations"] != after["external_obligations"],
-        "foreign_assumptions_changed": before["foreign_assumptions"] != after["foreign_assumptions"],
+        "validated_source_set_changed": not _same_json_value(
+            before["validated_sources"], after["validated_sources"]),
+        "external_obligations_changed": not _same_json_value(
+            before["external_obligations"], after["external_obligations"]),
+        "foreign_assumptions_changed": not _same_json_value(
+            before["foreign_assumptions"], after["foreign_assumptions"]),
         "reported_contract_changes": changes,
         "claims": {
             "both_snapshots_prevalidated_at_publication": True,

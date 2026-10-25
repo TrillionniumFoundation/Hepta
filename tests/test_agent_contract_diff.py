@@ -163,6 +163,32 @@ class AgentContractDiffTests(unittest.TestCase):
         with self.assertRaisesRegex(WorkspaceError, "Duplicate"):
             self.compare(a, b)
 
+    def test_false_and_zero_are_different_function_contracts(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        a["functions"][0]["resources"] = {"heap_allocations": 0, "may_block": False}
+        b["functions"][0]["resources"] = {"heap_allocations": False, "may_block": 0}
+        b["functions"][0]["public"] = 0
+        result = self.compare(a, b)
+        self.assertEqual(result["reported_contract_changes"][0]["changed_fields"],
+                         ["resources", "public"])
+        self.assertFalse(result["claims"]["functional_equivalence_proved"])
+
+    def test_false_and_zero_are_different_foreign_obligations(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        a["external_obligations"] = [{"foreign_pointer_live": False}]
+        b["external_obligations"] = [{"foreign_pointer_live": 0}]
+        a["foreign_assumptions"] = [{"allowed_calls": 0}]
+        b["foreign_assumptions"] = [{"allowed_calls": False}]
+        result = self.compare(a, b)
+        self.assertTrue(result["external_obligations_changed"])
+        self.assertTrue(result["foreign_assumptions_changed"])
+
+    def test_noncanonical_nested_contract_is_not_reported_unchanged(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        b["functions"][0]["resources"] = {"max_runtime": float("nan")}
+        with self.assertRaisesRegex(WorkspaceError, "Noncanonical"):
+            self.compare(a, b)
+
     def test_receipt_claims_cannot_be_elevated(self):
         a, b = self.report(self.BEFORE), self.report(self.AFTER)
         b["claims"]["functional_equivalence_proved"] = True
