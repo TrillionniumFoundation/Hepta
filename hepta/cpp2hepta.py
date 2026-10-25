@@ -63,13 +63,29 @@ def migrate_cpp(source_file: str | Path, destination_file: str | Path, *,
         text = original.decode("utf-8")
         # Without the actual C++ build flags, includes/conditionals/macros are
         # not a reproducible source graph and must never be silently omitted.
-        if re.search(r"(?m)^\s*#", text):
+        # Phase-2 splicing can split the %: digraph. Conservatively exclude
+        # directive introducers anywhere, including comments/string tokens:
+        # this bounded profile has no preprocessing lexer or source graph.
+        normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+        spliced = re.sub(r"\\\n", "", normalized)
+        if "#" in spliced or "%:" in spliced or re.search(r"\b_Pragma\b", spliced):
             raise MigrationRejected("E_CPP2HEPTA_PREPROCESSOR", "Build-dependent preprocessing requires a real C++ project migrator")
         model = _model(clangxx)
         tree = json.loads(_run([clangxx, "-x", "c++", "-std=c++20", "-Werror", "-fsyntax-only",
                                 "-Xclang", "-ast-dump=json", str(source)]))
         if not isinstance(tree, dict) or tree.get("kind") != "TranslationUnitDecl":
             raise MigrationRejected("E_CPP2HEPTA_AST", "Clang++ AST root was not a translation unit")
+        # Builtin macros need no directive in the input. Reject Clang's
+        # expansion provenance before lowering can erase it into a literal.
+        pending = [tree]
+        while pending:
+            value = pending.pop()
+            if isinstance(value, dict):
+                if "expansionLoc" in value or "spellingLoc" in value:
+                    raise MigrationRejected("E_CPP2HEPTA_PREPROCESSOR", "Macro expansion requires a reproducible C++ source graph")
+                pending.extend(value.values())
+            elif isinstance(value, list):
+                pending.extend(value)
         defs = []
         invalid = []
         for node in tree.get("inner", []):

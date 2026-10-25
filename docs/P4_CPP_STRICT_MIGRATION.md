@@ -25,3 +25,11 @@ and includes selected stdlib/Boost calls; it is not source migration.
 L2 requires checked dynamic memory rules and measured costs.
 L3 would require actual complete static memory-safety evidence.
 All broad C++ class/RAII/virtual/template/STL migration is still OPEN.
+
+The no-preprocessing boundary is deliberately conservative: after C++
+line-ending normalization and backslash-newline splicing, any `#` or `%:`
+directive introducer or `_Pragma` operator rejects
+(including occurrences inside comments or literals). Clang AST macro
+expansion provenance also rejects, including builtin macros such as
+`__LINE__` and `__COUNTER__` without source directives. This is not a
+preprocessor lexer or a reproducible multi-file build-graph implementation.
