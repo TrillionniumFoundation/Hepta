@@ -56,16 +56,18 @@ class CRecordViewTranslator(CTranslator):
         self.initialized_fields = set()
         self.initializer_pointer_fields = set()
 
-    def field_type(self, record: str, field: dict) -> str:
+    def field_type(self, record: str, field: dict, *, unit: int | None = None) -> str:
         name = field.get("name")
         specification = self.views.get(record, {}).get(name)
         if specification is None:
-            return super().field_type(record, field)
+            return super().field_type(record, field, unit=unit)
+        unit = self.current.get("unit", 0) if unit is None else unit
+        self._check_typedef_attributes(field["type"].get("qualType", ""), unit)
         raw = field["type"].get("desugaredQualType", field["type"].get("qualType", ""))
         pointer = re.fullmatch(r"([^*]+?)\s*\*", raw)
         if pointer is None or re.search(r"\b(?:const|volatile|restrict|_Atomic)\b", raw):
             raise MigrationRejected("E_C_VIEW_FIELD", "Record buffers require one unqualified primitive pointer")
-        element = self.typ(pointer[1])
+        element = self.typ(pointer[1], unit=unit)
         if element not in NUMBER:
             raise MigrationRejected("E_C_VIEW_FIELD", "Record buffer elements must be primitive numeric values")
         specification["element"] = element
@@ -105,8 +107,10 @@ class CRecordViewTranslator(CTranslator):
             record_type = None
             if pointer:
                 try:
-                    record_type = self.typ(pointer[2], model=model)
-                except MigrationRejected:
+                    record_type = self.typ(pointer[2], model=model, unit=unit)
+                except MigrationRejected as exc:
+                    if exc.code == "E_C_ATTRIBUTE":
+                        raise
                     pass
             if record_type and record_type.startswith("C_") and record_type[2:] in self.views:
                 pname = child.get("name", "")

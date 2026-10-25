@@ -82,6 +82,8 @@ class CTranslator:
         self.record_nodes: dict[str, dict] = {}
         self.records: dict[str, list[tuple[str, str]]] = {}
         self.aliases: dict[str, str] = {}
+        self.typedef_types: dict[int, dict[str, dict]] = {}
+        self.typedef_declarations: dict[int, dict[str, list[dict]]] = {}
         self.functions: dict[str, dict] = {}
         self.declarations: list[tuple[int, dict, dict]] = []
         self.current: dict = {}
@@ -89,35 +91,67 @@ class CTranslator:
         self.binding_modes: dict[str, str] = {}
         self.counter = 0
 
-    def typ(self, data: dict | str, *, model: dict | None = None) -> str:
+    def _check_typedef_attributes(self, name: str, unit: int) -> None:
+        # Canonical scalar types do not retain declaration-level ABI attributes
+        # such as aligned. Check every redeclaration and the spelled alias chain
+        # before using desugaredQualType. Unreferenced system aliases stay context.
+        pending, seen = [name], set()
+        while pending:
+            name = re.sub(r"\bconst\b", "", pending.pop()).strip()
+            # Attribute lookup follows spelled pointer pointees too. This is
+            # metadata validation only; callers still validate pointer shapes.
+            if name.endswith("*"):
+                pending.append(name[:-1].strip())
+            if name in seen:
+                continue  # The existing type resolver still rejects cyclic types.
+            seen.add(name)
+            for declaration in self.typedef_declarations.get(unit, {}).get(name, []):
+                if any(child.get("kind", "").endswith("Attr") for child in declaration.get("inner", [])):
+                    raise MigrationRejected("E_C_ATTRIBUTE", "Typedef attributes require explicit ABI lowering: " + name)
+                # Type nodes and nonsemantic FullComment children are not attributes.
+                pending.append(declaration["type"]["qualType"])
+
+    def typ(self, data: dict | str, *, model: dict | None = None,
+            unit: int | None = None, seen: frozenset[str] = frozenset()) -> str:
         qual = data if isinstance(data, str) else data.get("qualType", "")
         if any(token in qual for token in ("volatile", "restrict", "_Atomic", "[", "(", "*")):
             raise MigrationRejected("E_C_TYPE", "Unsupported value type: " + qual)
         qual = re.sub(r"\bconst\b", "", qual).strip()
-        model = model or self.current.get("model") or self.capture["configurations"][0]["model"]
+        unit = self.current.get("unit", 0) if unit is None else unit
+        self._check_typedef_attributes(qual, unit)
+        model = model or self.capture["configurations"][unit]["model"]
         types = {"void": "Unit", "_Bool": "bool", "char": "u8" if model["char_unsigned"] else "i8",
                  "signed char": "i8", "unsigned char": "u8", "short": "i16", "unsigned short": "u16",
                  "int": "i32", "unsigned int": "u32", "long": "i" + str(model["long_bits"]),
                  "unsigned long": "u" + str(model["long_bits"]), "long long": "i64", "unsigned long long": "u64",
-                 "size_t": "usize", "ptrdiff_t": "isize", "float": "f32", "double": "f64"}
-        types.update({f"{s}int{w}_t": f"{'u' if s else 'i'}{w}" for s in ("", "u") for w in (8, 16, 32, 64)})
-        if qual in self.aliases:
-            return self.aliases[qual]
-        if qual in types:
+                 "float": "f32", "double": "f64"}
+        canonical = data.get("desugaredQualType") if isinstance(data, dict) else None
+        if canonical and canonical != qual:
+            resolved = self.typ(canonical, model=model, unit=unit, seen=seen)
+        elif qual in types:
             return types[qual]
-        if qual.startswith("struct ") and qual[7:] in self.record_nodes:
+        elif qual.startswith("struct ") and qual[7:] in self.record_nodes:
             return "C_" + ident(qual[7:])
-        if isinstance(data, dict) and data.get("desugaredQualType") and data["desugaredQualType"] != qual:
-            return self.typ(data["desugaredQualType"], model=model)
-        raise MigrationRejected("E_C_TYPE", "Unmodeled value type: " + qual)
+        else:
+            declaration = self.typedef_types.get(unit, {}).get(qual)
+            if declaration is None or qual in seen:
+                raise MigrationRejected("E_C_TYPE", "Unmodeled or cyclic value type: " + qual)
+            resolved = self.typ(declaration, model=model, unit=unit, seen=seen | {qual})
+        # Preserve size aliases only after their actual target width/sign has
+        # been established. Familiar spellings are never canonical evidence.
+        if qual == "size_t" and resolved == "u" + str(model["pointer_bits"]):
+            return "usize"
+        if qual == "ptrdiff_t" and resolved == "i" + str(model["pointer_bits"]):
+            return "isize"
+        return resolved
 
     @staticmethod
     def _position(node: dict) -> dict:
         loc = node.get("loc") or node.get("range", {}).get("begin", {})
         return loc.get("expansionLoc", loc.get("spellingLoc", loc))
 
-    def field_type(self, record: str, field: dict) -> str:
-        return self.typ(field["type"])
+    def field_type(self, record: str, field: dict, *, unit: int | None = None) -> str:
+        return self.typ(field["type"], unit=unit)
 
     def collect(self) -> None:
         deferred_errors = []
@@ -127,6 +161,15 @@ class CTranslator:
                                      "-Werror", "-fsyntax-only", "-Xclang", "-ast-dump=json", config["source"]], directory))
             if tree.get("kind") != "TranslationUnitDecl":
                 raise MigrationRejected("E_C_AST", "Clang did not produce a translation unit")
+            # Include system typedefs as type context, not translated declarations.
+            self.typedef_types[config["index"]] = {
+                node["name"]: node["type"] for node in tree.get("inner", [])
+                if node.get("kind") == "TypedefDecl" and node.get("name") and node.get("type")}
+            declarations: dict[str, list[dict]] = {}
+            for node in tree.get("inner", []):
+                if node.get("kind") == "TypedefDecl" and node.get("name") and node.get("type"):
+                    declarations.setdefault(node["name"], []).append(node)
+            self.typedef_declarations[config["index"]] = declarations
             active_file = None
             for node in tree.get("inner", []):
                 loc = self._position(node)
@@ -165,14 +208,16 @@ class CTranslator:
             code, message = deferred_errors[0]
             raise MigrationRejected(code, message)
         # Register aliases before field types, including typedef struct aliases.
-        unresolved = [(node, item) for _, node, item in self.declarations if node["kind"] == "TypedefDecl"]
+        unresolved = [(unit, node, item) for unit, node, item in self.declarations if node["kind"] == "TypedefDecl"]
         for _ in range(len(unresolved) + 1):
             left = []
-            for node, item in unresolved:
+            for unit, node, item in unresolved:
+                # Preserve attribute errors outside unresolved-type retry.
+                self._check_typedef_attributes(node["name"], unit)
                 try:
-                    value = self.typ(node["type"])
+                    value = self.typ(node["type"], unit=unit)
                 except MigrationRejected:
-                    left.append((node, item))
+                    left.append((unit, node, item))
                     continue
                 name = ident(node["name"])
                 if name in self.aliases and self.aliases[name] != value:
@@ -182,9 +227,9 @@ class CTranslator:
             if not left:
                 break
             if len(left) == len(unresolved):
-                raise MigrationRejected("E_C_TYPEDEF", "Unresolved typedefs: " + ", ".join(node["name"] for node, _ in left))
+                raise MigrationRejected("E_C_TYPEDEF", "Unresolved typedefs: " + ", ".join(node["name"] for _, node, _ in left))
             unresolved = left
-        for _, node, item in self.declarations:
+        for unit, node, item in self.declarations:
             if node["kind"] != "RecordDecl":
                 continue
             if item["status"] == "record_forward_pending":
@@ -198,7 +243,7 @@ class CTranslator:
                     continue
                 if field.get("kind") != "FieldDecl" or field.get("isBitfield") or any(child.get("kind") != "FullComment" for child in field.get("inner", [])):
                     raise MigrationRejected("E_C_RECORD", "Packed, attributed, anonymous and bitfield records are unsupported")
-                fields.append(("f_" + ident(field["name"]), self.field_type(node["name"], field)))
+                fields.append(("f_" + ident(field["name"]), self.field_type(node["name"], field, unit=unit)))
             if not fields:
                 raise MigrationRejected("E_C_RECORD", "Empty C record unsupported")
             name = "C_" + node["name"]
@@ -244,7 +289,7 @@ class CTranslator:
             raise MigrationRejected("E_C_FUNCTION", "main, varargs and unprototyped functions are unsupported")
         if any(child.get("kind") not in {"ParmVarDecl", "CompoundStmt", "FullComment"} for child in node.get("inner", [])):
             raise MigrationRejected("E_C_ATTRIBUTE", "Function attributes need separate ABI qualification")
-        ret = self.typ(node["type"]["qualType"].split("(", 1)[0].strip(), model=model)
+        ret = self.typ(node["type"]["qualType"].split("(", 1)[0].strip(), model=model, unit=unit)
         contract = self.contracts["functions"].get(name, {"slices": {}})
         if not isinstance(contract, dict) or set(contract) != {"slices"} or not isinstance(contract["slices"], dict):
             raise MigrationRejected("E_C_CONTRACT", "Each function contract contains only slices")
@@ -273,14 +318,14 @@ class CTranslator:
                     raise MigrationRejected("E_C_POINTER_CONTRACT", "A const C pointer cannot become a mutable slice")
                 if c_void and not isinstance(specification["element"], str):
                     raise MigrationRejected("E_C_POINTER_CONTRACT", "void pointers require a concrete C element type")
-                elem = self.typ(specification["element"] if c_void else pointer[2].strip(), model=model)
+                elem = self.typ(specification["element"] if c_void else pointer[2].strip(), model=model, unit=unit)
                 if elem not in NUMBER:
                     raise MigrationRejected("E_C_POINTER_CONTRACT", "Only primitive element slices are supported")
                 params.append({"name": pname, "id": child["id"], "type": elem, "pointer": True,
                                "mode": specification["access"], "length": specification["length"], "c_const": bool(pointer[1]),
                                "c_void": c_void, "contract_selector": selector})
             else:
-                params.append({"name": pname, "id": child["id"], "type": self.typ(child["type"], model=model), "pointer": False, "mode": "value"})
+                params.append({"name": pname, "id": child["id"], "type": self.typ(child["type"], model=model, unit=unit), "pointer": False, "mode": "value"})
         pointers = [p for p in params if p["pointer"]]
         if set(contract["slices"]) != used_contract_keys:
             raise MigrationRejected("E_C_CONTRACT", "Slice contract does not exactly match pointer parameters")

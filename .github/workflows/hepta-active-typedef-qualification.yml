@@ -1,0 +1,205 @@
+# Two contexts on one exact source head; focused success is not a full-gate pass.
+name: Isolated active typedef attribute qualification
+'on':
+  push:
+    branches:
+    - dot/qualify-active-typedef-attributes-20261025
+permissions:
+  contents: read
+concurrency:
+  group: hepta-active-typedef-${{ github.sha }}
+  cancel-in-progress: false
+jobs:
+  active-release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      HEPTA_QUALIFICATION_HEAD_SHA: ${{ github.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+    - name: Checkout frozen source snapshot
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ env.HEPTA_QUALIFICATION_HEAD_SHA }}
+        persist-credentials: false
+    - name: Record and verify the tested source head
+      shell: bash
+      run: "actual_head=$(git rev-parse HEAD)\nmkdir -p artifacts\nprintf '{\"schema\":\"hepta.workflow-source.v1\",\"expected_head_sha\"\
+        :\"%s\",\"checkout_head_sha\":\"%s\",\"event_sha\":\"%s\"}\\n' \\\n  \"$HEPTA_QUALIFICATION_HEAD_SHA\" \"$actual_head\"\
+        \ \"$GITHUB_SHA\" > artifacts/workflow-source.json\ntest \"$actual_head\" = \"$HEPTA_QUALIFICATION_HEAD_SHA\"\n"
+    - name: Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    - name: Verification archive dependency
+      run: python -m pip install zstandard
+    - name: Native compilers and required namespace runtime
+      run: 'sudo apt-get update
+
+        sudo apt-get install --yes bubblewrap gcc g++ clang gdb libboost-dev qemu-system-arm
+
+        '
+    - name: Install SHA-256-locked Rust 1.90.0 toolchain and cross stdlibs
+      run: python tools/bootstrap_toolchain.py
+    - &id001
+      name: Select and verify the bootstrapped Rust compiler
+      shell: bash
+      run: "python - <<'PYTHON'\nimport json\nimport os\nfrom pathlib import Path\nimport shutil\nimport subprocess\nfrom\
+        \ hepta.backend import find_rustc, toolchain_info\nfrom tools.validate import rustc_path\n\nprefix = (Path.cwd().resolve().parent\
+        \ / \"toolchains/rust-1.90.0\").resolve(strict=True)\nrustc = (prefix / \"bin/rustc\").resolve(strict=True)\nrustc.relative_to(prefix)\n\
+        info = toolchain_info(str(rustc))\nif info[\"host\"] != \"x86_64-unknown-linux-gnu\":\n    raise SystemExit(\"Unexpected\
+        \ pinned Rust host: \" + info[\"host\"])\nsysroot = Path(subprocess.check_output(\n    [str(rustc), \"--print\", \"\
+        sysroot\"], text=True, timeout=30).strip()).resolve(strict=True)\nif sysroot != prefix:\n    raise SystemExit(\"Pinned\
+        \ Rust sysroot does not match the bootstrapped prefix\")\nos.environ[\"RUSTC\"] = str(rustc)\nos.environ[\"PATH\"\
+        ] = str(prefix / \"bin\") + os.pathsep + os.environ[\"PATH\"]\nselected = {\"backend\": find_rustc(), \"native_validator\"\
+        : rustc_path(),\n            \"PATH\": shutil.which(\"rustc\")}\nif any(not path or Path(path).resolve() != rustc\
+        \ for path in selected.values()):\n    raise SystemExit(\"A compiler selector did not select the pinned Rust compiler\"\
+        )\nreceipt = {\"schema\": \"hepta.workflow-toolchain.v1\", \"rustc\": info,\n           \"sysroot\": str(sysroot),\
+        \ \"selectors\": selected}\nPath(\"artifacts/workflow-toolchain.json\").write_text(json.dumps(receipt, indent=2) +\
+        \ \"\\n\")\nprint(json.dumps(receipt, indent=2))\nwith open(os.environ[\"GITHUB_ENV\"], \"a\") as env_file:\n    env_file.write(\"\
+        RUSTC=\" + str(rustc) + \"\\n\")\nwith open(os.environ[\"GITHUB_PATH\"], \"a\") as path_file:\n    path_file.write(str(prefix\
+        \ / \"bin\") + \"\\n\")\nPYTHON\n"
+    - name: Install SHA-256-locked Lean and QEMU tools
+      run: python tools/bootstrap_verification.py
+    - name: Verify unchanged controls and actual active runtime dependencies
+      run: "set -euo pipefail\npython - <<'PYTHON'\nimport hashlib, json\nfrom pathlib import Path\npins=json.loads(Path('tools/c_typedef_port_controls.json').read_text())\n\
+        for name,expected in pins['files_sha256'].items():\n    if hashlib.sha256(Path(name).read_bytes()).hexdigest()!=expected:\n\
+        \        raise SystemExit('Wrong source/control: '+name)\nPYTHON\nmkdir -p artifacts/active-environment\nfor name\
+        \ in python clang gcc g++ gdb bwrap qemu-system-arm; do\n  command -v \"$name\" > \"artifacts/active-environment/$name.path\"\
+        \n  \"$name\" --version > \"artifacts/active-environment/$name.version\" 2>&1\ndone\nqemu-system-arm --version | head\
+        \ -1 | grep -E '^QEMU emulator version 8[.]2[.]2 '\ndpkg-query -W -f='${Package}\\t${Version}\\t${Architecture}\\\
+        n' | sort > artifacts/active-environment/packages.tsv\n# No namespace/security configuration is changed. Existing\
+        \ gates fail closed.\n"
+    - name: Run all current native and experiment qualification gates
+      run: python tools/qualify_c_typedef_port.py
+    - name: Preserve failures and all raw evidence
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: hepta-active-36-gates-${{ github.sha }}
+        path: 'artifacts/
+
+          evidence/
+
+          '
+        if-no-files-found: error
+  focused-typedef:
+    runs-on: ubuntu-22.04
+    container:
+      image: debian@sha256:4876fdea29cac1a33a3195f1eb1952feb1fca7dd6dd00be3e2f1879cf20d34d2
+      options: --platform linux/amd64
+    defaults:
+      run:
+        shell: bash
+    timeout-minutes: 45
+    env:
+      HEPTA_QUALIFICATION_HEAD_SHA: ${{ github.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+    - name: Prepare exact Debian compiler environment without host changes
+      run: "set -euo pipefail\nevidence=\"$RUNNER_TEMP/hepta-debian-tools\"\nprintf 'HEPTA_TOOL_EVIDENCE=%s\\n' \"$evidence\"\
+        \ >> \"$GITHUB_ENV\"\nmkdir -p \"$evidence\"\ndpkg-query -W -f='${Package}\\t${Version}\\t${Architecture}\\n' | sort\
+        \ > \"$evidence/base-packages.tsv\"\n# The immutable official image already supplies this newer library.\n# Retain\
+        \ it exactly; never downgrade it to the main snapshot's u1.\ntest \"$(dpkg-query -W -f='${Version}' liblzma5)\" =\
+        \ '5.8.1-1+deb13u2'\ntest \"$(dpkg --print-architecture)\" = amd64\ntest \"$(. /etc/os-release; printf '%s' \"$VERSION_CODENAME\"\
+        )\" = trixie\navailable=$(df --output=avail -B1 \"$RUNNER_TEMP\" | tail -1)\ntest \"$available\" -ge 12884901888\n\
+        evidence=\"$RUNNER_TEMP/hepta-debian-tools\"\nmkdir -p \"$evidence/lists/partial\" \"$evidence/archives/partial\"\
+        \ \"$evidence/bin\"\nprintf '%s\\n' 'deb [signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] http://snapshot.debian.org/archive/debian/20261020T000000Z/\
+        \ trixie main' > \"$evidence/sources.list\"\napt_options=(-o \"Dir::Etc::sourcelist=$evidence/sources.list\" -o Dir::Etc::sourceparts=-\
+        \ -o \"Dir::State::lists=$evidence/lists\" -o \"Dir::Cache::archives=$evidence/archives\" -o Acquire::Languages=none\
+        \ -o APT::Get::List-Cleanup=0)\n# HTTP transport is authenticated by Debian's existing signed Release\n# trust plus\
+        \ this independently retained exact InRelease hash. Never\n# disable signature/expiry verification or add a new trusted\
+        \ key.\napt-get \"${apt_options[@]}\" update 2>&1 | tee \"$evidence/apt-update.log\"\nreleases=(\"$evidence\"/lists/*_InRelease)\n\
+        test \"${#releases[@]}\" -eq 1\nprintf '%s  %s\\n' 0584fba32e13e0ab8285fb16c27adea1ec03a73669c18702821094fd6ca86675\
+        \ \"${releases[0]}\" | sha256sum -c -\ncp \"${releases[0]}\" \"$evidence/InRelease\"\npackages=(\n  'clang-19=1:19.1.7-3+b1'\n\
+        \  'libclang-cpp19=1:19.1.7-3+b1'\n  'libllvm19=1:19.1.7-3+b1'\n  'libclang-common-19-dev=1:19.1.7-3+b1'\n  'libclang-19-dev=1:19.1.7-3+b1'\n\
+        \  'llvm-19-dev=1:19.1.7-3+b1'\n  'gcc-14=14.2.0-19'\n  'g++-14=14.2.0-19'\n  'gcc=4:14.2.0-1'\n  'g++=4:14.2.0-1'\n\
+        \  'python3=3.13.5-1'\n  'python-is-python3=3.13.3-1'\n  'python3.13=3.13.5-2+deb13u5'\n  'python3-venv=3.13.5-1'\n\
+        \  'python3-zstandard=0.23.0-4'\n  'git=1:2.47.3-0+deb13u1'\n  'file=1:5.46-5'\n  'ca-certificates=20250419'\n  'libbz2-1.0=1.0.8-6'\n\
+        \  'libsqlite3-0=3.46.1-7+deb13u2'\n  'libreadline8t64=8.2-6'\n  'libffi8=3.4.8-2'\n  'libncursesw6=6.5+20250216-2'\n\
+        \  'libgdbm6t64=1.24-2'\n  'libuuid1=2.41.5-0+deb13u1'\n  'zlib1g=1:1.3.dfsg+really1.3.1-1+b1'\n)\napt-get \"${apt_options[@]}\"\
+        \ --yes --no-install-recommends --print-uris install \"${packages[@]}\" 2>&1 | tee \"$evidence/download-plan.txt\"\
+        \nbytes=0\nwhile read -r uri name size rest; do\n  if [[ \"$uri\" == \\'* ]]; then\n    [[ \"$size\" =~ ^[0-9]+$ ]]\n\
+        \    bytes=$((bytes + size))\n  fi\ndone < \"$evidence/download-plan.txt\"\ntest \"$bytes\" -gt 0\ntest \"$bytes\"\
+        \ -le 536870912\nprintf '%s\\n' \"$bytes\" > \"$evidence/planned-download-bytes.txt\"\nDEBIAN_FRONTEND=noninteractive\
+        \ apt-get \"${apt_options[@]}\" --yes --no-install-recommends --download-only install \"${packages[@]}\" 2>&1 | tee\
+        \ \"$evidence/apt-download.log\"\nsha256sum \"$evidence\"/archives/*.deb > \"$evidence/package-archives.sha256\"\n\
+        # Packages remain byte-bound by the authenticated, frozen index.\nDEBIAN_FRONTEND=noninteractive apt-get \"${apt_options[@]}\"\
+        \ --yes --no-install-recommends --no-download install \"${packages[@]}\" 2>&1 | tee \"$evidence/apt-install.log\"\n\
+        dpkg-query -W -f='${Package}\\t${Version}\\t${Architecture}\\n' | sort > \"$evidence/installed-packages.tsv\"\nfor\
+        \ spec in \"${packages[@]}\"; do\n  name=${spec%%=*}\n  expected=${spec#*=}\n  test \"$(dpkg-query -W -f='${Version}'\
+        \ \"$name\")\" = \"$expected\"\ndone\ntest \"$(dpkg-query -W -f='${Version}' liblzma5)\" = '5.8.1-1+deb13u2'\nln -s\
+        \ /usr/bin/clang-19 \"$evidence/bin/clang\"\nln -s /usr/bin/clang++-19 \"$evidence/bin/clang++\"\nln -s /usr/bin/gcc-14\
+        \ \"$evidence/bin/gcc\"\nln -s /usr/bin/g++-14 \"$evidence/bin/g++\"\nln -s /usr/bin/gcc-14 \"$evidence/bin/cc\"\n\
+        printf '%s\\n' \"$evidence/bin\" >> \"$GITHUB_PATH\"\nprintf 'HEPTA_TOOL_EVIDENCE=%s\\n' \"$evidence\" >> \"$GITHUB_ENV\"\
+        \n"
+    - name: Checkout frozen source snapshot
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ env.HEPTA_QUALIFICATION_HEAD_SHA }}
+        persist-credentials: false
+    - name: Record and verify the tested source head
+      shell: bash
+      run: "actual_head=$(git -c safe.directory=\"$PWD\" rev-parse HEAD)\nmkdir -p artifacts\nmkdir -p artifacts/debian-toolchain\n\
+        cp \"$HEPTA_TOOL_EVIDENCE\"/*.log \"$HEPTA_TOOL_EVIDENCE\"/*.txt \"$HEPTA_TOOL_EVIDENCE\"/*.tsv \"$HEPTA_TOOL_EVIDENCE\"\
+        /*.sha256 \"$HEPTA_TOOL_EVIDENCE/InRelease\" artifacts/debian-toolchain/\nprintf '{\"schema\":\"hepta.workflow-source.v1\"\
+        ,\"expected_head_sha\":\"%s\",\"checkout_head_sha\":\"%s\",\"event_sha\":\"%s\"}\\n' \\\n  \"$HEPTA_QUALIFICATION_HEAD_SHA\"\
+        \ \"$actual_head\" \"$GITHUB_SHA\" > artifacts/workflow-source.json\ntest \"$actual_head\" = \"$HEPTA_QUALIFICATION_HEAD_SHA\"\
+        \n"
+    - name: Verify pinned distro Python and clean-environment compiler selectors
+      run: "python - <<'PYTHON'\nimport hashlib\nimport json\nfrom pathlib import Path\nimport shutil\nimport subprocess\n\
+        import sys\nimport zstandard\nfrom experiments.agent_eval.sandbox import clean_environment\n\nif sys.version_info[:3]\
+        \ != (3, 13, 5) or zstandard.__version__ != '0.23.0':\n    raise SystemExit('Unexpected pinned Debian Python or zstandard\
+        \ version')\nexecutable = Path(sys.executable).resolve(strict=True)\nif executable != Path('/usr/bin/python3.13'):\n\
+        \    raise SystemExit('The Python selector is not the pinned distro interpreter')\nclean = clean_environment()\nfor\
+        \ name in ('python', 'python3'):\n    selected = shutil.which(name, path=clean['PATH'])\n    if not selected or Path(selected).resolve(strict=True)\
+        \ != executable:\n        raise SystemExit('Wrong clean-environment Python selector: ' + name)\npython_probe = subprocess.run(\n\
+        \    [str(executable), '-c', 'import json, sys, zstandard; print(json.dumps([sys.version, zstandard.__version__]))'],\n\
+        \    env=clean, capture_output=True, text=True, timeout=30, check=True)\nselectors = {}\nfiles = {str(executable):\
+        \ hashlib.sha256(executable.read_bytes()).hexdigest()}\nfor name in ('cc', 'gcc', 'g++'):\n    selected = shutil.which(name,\
+        \ path=clean['PATH'])\n    if not selected:\n        raise SystemExit('Missing clean-environment compiler: ' + name)\n\
+        \    resolved = Path(selected).resolve(strict=True)\n    expected = Path('/usr/bin/x86_64-linux-gnu-' + ('g++' if\
+        \ name == 'g++' else 'gcc') + '-14')\n    version = subprocess.check_output([selected, '-dumpfullversion'], env=clean,\
+        \ text=True, timeout=30).strip()\n    if resolved != expected or version != '14.2.0':\n        raise SystemExit('Wrong\
+        \ clean-environment compiler: ' + name)\n    selectors[name] = {'path': selected, 'resolved': str(resolved), 'version':\
+        \ version}\n    files[str(resolved)] = hashlib.sha256(resolved.read_bytes()).hexdigest()\nreceipt = {'schema': 'hepta.clean-environment-runtime.v1',\
+        \ 'python': sys.version,\n           'python_executable': str(executable), 'zstandard': zstandard.__version__,\n \
+        \          'clean_environment': clean, 'python_clean_probe': json.loads(python_probe.stdout),\n           'compiler_selectors':\
+        \ selectors, 'files_sha256': files,\n           'scope': 'distro runtime availability under the unchanged sanitized\
+        \ environment; not provider or namespace qualification'}\nPath('artifacts/debian-toolchain/clean-environment-runtime.json').write_text(json.dumps(receipt,\
+        \ indent=2) + '\\n')\nPYTHON\n"
+    - name: Install SHA-256-locked Rust 1.90.0 toolchain and cross stdlibs
+      run: python tools/bootstrap_toolchain.py
+    - *id001
+    - name: Verify focused source/control hashes
+      run: "set -euo pipefail\ngit -c safe.directory=\"$PWD\" diff --exit-code HEAD -- . ':(exclude)artifacts' ':(exclude)evidence'\
+        \ ':(exclude)build'\nset -euo pipefail\npython - <<'PYTHON'\nimport hashlib, json\nfrom pathlib import Path\npins=json.loads(Path('tools/c_typedef_port_controls.json').read_text())\n\
+        for name,expected in pins['files_sha256'].items():\n    if hashlib.sha256(Path(name).read_bytes()).hexdigest()!=expected:\n\
+        \        raise SystemExit('Wrong source/control: '+name)\nPYTHON\n"
+      id: focused-admission
+    - name: Original six-case oracle; unchanged fixtures and layout controls
+      run: python tools/probe_c_typedef_alignment.py
+      timeout-minutes: 10
+    - name: Actual typed pointer AST and separate C/Rust layouts
+      if: ${{ !cancelled() && steps.focused-admission.outcome == 'success' }}
+      run: python tools/probe_c_record_typedef_attributes.py
+      timeout-minutes: 12
+    - name: Retain focused raw evidence and setup failures
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: hepta-active-typedef-focused-${{ github.sha }}
+        path: 'artifacts/
+
+          ${{ env.HEPTA_TOOL_EVIDENCE }}/*.log
+
+          ${{ env.HEPTA_TOOL_EVIDENCE }}/*.txt
+
+          ${{ env.HEPTA_TOOL_EVIDENCE }}/*.tsv
+
+          ${{ env.HEPTA_TOOL_EVIDENCE }}/*.sha256
+
+          ${{ env.HEPTA_TOOL_EVIDENCE }}/InRelease
+
+          '
+        if-no-files-found: error
