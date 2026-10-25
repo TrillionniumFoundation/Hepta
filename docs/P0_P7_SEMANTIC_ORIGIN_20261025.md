@@ -79,3 +79,66 @@ For native suites use the actual pinned toolchain. Preserve exact source hashes,
 tool identities, positive and adversarial results, failures, skips and blockers.
 
 Additional new target-object symbol integration tests are committed on this branch but are not included in the 7/7 local self-contained count. PR #109 donated hepta/object_structure.py and hepta/object_symbols.py as unchanged Git blobs, verified against donor blob SHA identities.
+
+
+## P1 follow-up: exact type/shape and resource source binding
+
+New code on this stacked candidate extends P1 **without** introducing a second
+semantic encoder or upgrading any source-refinement proof flag.
+
+- The existing independent scalar SSA verifier now checks typed expression
+  origin by canonical JSON equality (which distinguishes integer 0/1 from
+  boolean false/true), rather than Python dictionary equality.
+- The derived scalar HSIR requires literal bool proof flags and function
+  visibility, not integers that Python considers equal to booleans.
+- SSA Block, Instruction, Definition, PHI, PHI Edge, Function and top-level
+  claims are closed inventories; unknown owner/drop/effect metadata fails
+  before entering the native compiler.
+- Source CFG predecessor structure is rechecked for every PHI. In particular,
+  zero-input PHIs in entry blocks and single-predecessor non-join PHIs reject.
+- SSA/CFG intake enforces bounded canonical JSON, no duplicate keys and no
+  NaN/Infinity; tampered snapshots cannot be laundered by rehashing.
+- LLVM strict origin now regenerates deterministic scalar SSA from the exact
+  typed CFG before re-emitting LLVM, so even a structurally accepted
+  noncanonical SSA cannot claim native origin.
+- The existing resource-lowering owner is preserved. A new
+  verify_resource_source_origin re-runs the sole canonical source encoder,
+  checks the exact re-lowered Resource IR against the supplied graph with
+  canonical type-faithful JSON comparison, validates source/project identities
+  and reruns the independent resource verifier. A normal hepta resource-ir
+  source export records source_binding_verified=true only after this check.
+  Data-only hepta.resource_ir CLI output remains source_binding_verified=false.
+  Both continue to declare source_to_ir_refinement_proved=false and
+  native_codegen_uses_resource_ir=false.
+
+New regression sources:
+- tests/test_ssa_verify.py: forged 0/False and 1/True, signed duplicate JSON
+  keys, NaN, invalid entry PHI, unreviewed nested metadata and proof claims;
+- tests/test_hsir_bridge.py: forged derived claims and function visibility;
+- tests/test_llvm_ssa_origin_gate.py: rehashed noncanonical PHI order;
+- tests/test_resource_source_origin.py: rehashed resource source/project
+  identity, stale checked source, valid exact-source receipt;
+- tests/test_resource_ir_cli.py: source export vs data-only qualification.
+
+**Execution status:** These repository-integrated regression tests are added
+but NOT marked passed on this branch until run on one immutable exact HEAD.
+The isolated 7/7 locally run LLVM-grammar tests remain valid only for their
+exact two unchanged Git file blobs. A new workflow was added for pinned
+native origin/resource checks, but a queued workflow is not a pass.
+
+P0/P1 production blockers still include whole-program ownership, borrow/drop
+and pointer provenance semantics, full-language and native backend refinement,
+a complete Rust compiler core, ABI-qualified C/C++ migration, real Agent
+comparisons and physical hardware. No step above proves universal memory
+safety or general Rust performance parity.
+
+## Next exact-head commands
+
+    python -m unittest tests.test_hsir_bridge tests.test_ssa_verify tests.test_ssa_scalar tests.test_ssa_reaching -v
+    python -m unittest tests.test_llvm_ir_profile_contract tests.test_llvm_ssa_origin_gate tests.test_llvm_ssa_backend tests.test_llvm_ssa_target tests.test_llvm_ssa_integration -v
+    python -m unittest tests.test_resource_source_origin tests.test_resource_ir tests.test_resource_ir_cli -v
+    python -m unittest discover -s tests -v
+
+The full suite may require other toolchains and platform-specific environments;
+retain not-run/unsupported states explicitly. Never promote the temporary
+scalar-source origin receipt to a C++ ABI, GPU or formal soundness proof.
