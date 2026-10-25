@@ -1,0 +1,44 @@
+name: Hepta P2 GCC Clang bidirectional host ABI
+
+on:
+  push:
+    branches:
+      - codex/hepta-p1-structural-cfg-20261024
+  pull_request:
+    branches:
+      - codex/hepta-hsir-c-migration-20261024
+
+permissions:
+  contents: read
+
+jobs:
+  abi-host:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Bootstrap sha256-locked Rust 1.90.0
+        run: |
+          python tools/bootstrap_toolchain.py --targets
+          echo "RUSTC=$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/bin/rustc" >> "$GITHUB_ENV"
+      - name: Qualify Hepta native C ABI with GCC and Clang
+        run: |
+          python tools/abi_fuzz.py --cc gcc --output artifacts/abi-matrix-gcc-checked.json
+          python tools/abi_fuzz.py --cc clang --output artifacts/abi-matrix-clang-checked.json
+          python - <<'PY'
+          import json
+          for cc in ("gcc", "clang"):
+              path = f"artifacts/abi-matrix-{cc}-checked.json"
+              data = json.load(open(path, encoding="utf-8"))
+              assert data["status"] == "passed", path
+              assert data.get("matrix", {}).get("status") == "passed", path
+          PY
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hepta-host-abi-gcc-clang
+          path: artifacts/abi-matrix-*-checked.json
+          if-no-files-found: warn
