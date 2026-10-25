@@ -82,8 +82,8 @@ Capture records every listed translation unit, its normalized frontend
 arguments, dependency paths and SHA-256 digests, preprocessed digest, predefined
 macro digest, selected Clang executable digest, compiler version and target.
 Both `-M` and `-MM` dependency sets are retained to distinguish system input from
-project input. Before publishing, capture rechecks source and header bytes,
-reruns dependency discovery and preprocessing, and rejects changes. This catches
+project input. Before publishing, capture rechecks the selected compiler identity and target, source and header bytes,
+reruns dependency discovery, preprocessing, both predefined-macro inventories and the separate ABI-model probe, and rejects changes. This catches
 changed includes and a newly selected header even when the previously selected
 header's contents remain unchanged. It is not a hermetic build-system or
 compiler-binary attestation.

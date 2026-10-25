@@ -105,6 +105,13 @@ def verify_capture(capture: dict) -> None:
     compiler = capture["compiler"]
     if digest(Path(compiler["path"]).read_bytes()) != compiler["executable_sha256"]:
         raise MigrationRejected("E_C_BUILD_CHANGED", "Selected compiler changed")
+    # The same binary may report a different driver/target identity under a
+    # changed runtime environment. Do not silently replay stale target facts.
+    directory = Path(capture["database"]["path"]).parent
+    version = invoke([compiler["path"], "--version"], directory).splitlines()
+    target = invoke([compiler["path"], "-dumpmachine"], directory).strip()
+    if version[:1] != [compiler["version"]] or target != compiler["target"]:
+        raise MigrationRejected("E_C_BUILD_CHANGED", "Selected compiler target or identity changed")
     # Hashing previously resolved paths alone would miss a retargeted include
     # symlink or a newly selected header. Re-resolve the dependency graph and
     # preprocess bytes as well; fail closed if either identity has changed.
@@ -118,6 +125,16 @@ def verify_capture(capture: dict) -> None:
         preprocessed = invoke([compiler["path"], *flags, "-E", str(source)], directory)
         if digest(preprocessed.encode()) != config["preprocessed_sha256"]:
             raise MigrationRejected("E_C_BUILD_CHANGED", "Preprocessed configuration changed")
+        # Macro inventories and ABI model flags are distinct from a TU's
+        # preprocessed bytes. A changed *unused* predefined macro can alter a
+        # future translated declaration or invalidate recorded target facts.
+        current_macros = invoke([compiler["path"], *flags, "-dM", "-E", "-x", "c", "-"],
+                                directory, stdin="")
+        current_abi_macros = invoke([compiler["path"], *config["abi_model_arguments"],
+                                     "-dM", "-E", "-x", "c", "-"], directory, stdin="")
+        if (digest(current_macros.encode()) != config["predefined_macros_sha256"]
+                or digest(current_abi_macros.encode()) != config["abi_predefined_macros_sha256"]):
+            raise MigrationRejected("E_C_BUILD_CHANGED", "Predefined or ABI macro model changed")
 
 
 def capture_project(database: str | Path, *, clang: str = "clang") -> dict:

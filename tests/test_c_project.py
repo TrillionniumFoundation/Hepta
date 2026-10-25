@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from hepta.c_migrate import MigrationRejected, migrate_c_project
 from hepta.c_project import capture_project, verify_capture
@@ -59,6 +60,27 @@ class CProjectMigrationTests(unittest.TestCase):
         (self.root / "inc.h").write_text("#define LOCAL_FACTOR 4\n")
         with self.assertRaisesRegex(MigrationRejected, "changed"):
             verify_capture(capture)
+
+    def test_macro_model_identity_rechecked_even_when_source_preprocessing_is_equal(self):
+        # Only the compiler's -dM transcript changes; the source, dependency
+        # list and ordinary -E output remain bit-for-bit the same.
+        from hepta import c_project
+        self.project({"input.c": "int f(int x){return x;}"}, ["-DUSER_FLAG=1"])
+        capture = capture_project(self.database, clang=self.clang)
+        verify_capture(capture)
+        original_invoke = c_project.invoke
+        for changed in ("frontend", "abi"):
+            with self.subTest(changed=changed):
+                def forged_macros(args, directory, *, stdin=None):
+                    result = original_invoke(args, directory, stdin=stdin)
+                    has_user_flag = "-DUSER_FLAG=1" in args
+                    if "-dM" in args and has_user_flag == (changed == "frontend"):
+                        result += "\\n#define HEPTA_UNRECORDED_MACRO 1\\n"
+                    return result
+                with patch("hepta.c_project.invoke", side_effect=forged_macros):
+                    with self.assertRaisesRegex(MigrationRejected, "macro model changed") as error:
+                        verify_capture(capture)
+                    self.assertEqual(error.exception.code, "E_C_BUILD_CHANGED")
 
     def test_unmodeled_build_flags_are_not_silently_discarded(self):
         self.project({"input.c": "int f(int x){return x;}"}, ["-fwrapv"])
