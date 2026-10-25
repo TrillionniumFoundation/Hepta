@@ -30,12 +30,15 @@ disable this constraint.
 
 ## Actual verification completed locally
 
-Python 3.13.5, Linux x86_64: 6/6 standalone
-`tests.test_native_output_guard` tests passed, including a genuine Clang
-object, a 64-MiB+1 sparse file, empty file, live/dangling symlinks,
+Python 3.13.5, Linux x86_64: 7/7 standalone
+`tests.test_native_output_guard` tests passed, including real Clang
+objects for five ELF/COFF/Mach-O targets, a 64-MiB+1 sparse file,
+empty file, live/dangling symlinks,
 FIFO, exact budget boundary and streaming hash. GitHub blobs for
 `hepta/native_output_guard.py` and `tests/test_native_output_guard.py`
-exactly matched the tested local `git hash-object` SHAs.
+exactly matched the tested local `git hash-object` SHAs; the expanded
+seven-test file has blob `00f0293e05048b32729b00dd6716ff914762d7a8`.
+All five real cross-object byte-format checks passed locally, not platform execution.
 
 An additional in-repository `tests.test_llvm_native_output_limits`
 exercises actual SSA emitter-backed API calls with an intentional fake

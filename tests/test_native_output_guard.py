@@ -71,6 +71,29 @@ class NativeArtifactBudgetTests(unittest.TestCase):
                     read_native_artifact(self.root / "missing", max_bytes=budget)
 
     @unittest.skipUnless(shutil.which("clang"), "Real Clang required")
+    def test_real_cross_target_objects_stay_bounded(self):
+        source = self.root / "cross.ll"
+        source.write_text("define i32 @hepta_guard(i32 %x) {\nentry:\n %v = add i32 %x, 1\n ret i32 %v\n}\n")
+        for target, signature in (
+            ("x86_64-unknown-linux-gnu", b"\x7fELF"),
+            ("aarch64-unknown-linux-gnu", b"\x7fELF"),
+            ("x86_64-pc-windows-msvc", b"\x64\x86"),
+            ("x86_64-apple-darwin", b"\xcf\xfa\xed\xfe"),
+            ("aarch64-apple-darwin", b"\xcf\xfa\xed\xfe"),
+        ):
+            with self.subTest(target=target):
+                native = self.root / (target + ".o")
+                run = subprocess.run(["clang", "--target=" + target, "-x", "ir", "-O3",
+                                      "-c", str(source), "-o", str(native)],
+                                     capture_output=True, text=True, timeout=20)
+                self.assertEqual(run.returncode, 0, run.stderr)
+                actual = read_native_artifact(native)
+                self.assertTrue(actual.startswith(signature))
+                self.assertEqual(digest_regular_binary(native), sha256(actual).hexdigest())
+                with self.assertRaisesRegex(NativeOutputRejected, "SIZE"):
+                    read_native_artifact(native, max_bytes=len(actual) - 1)
+
+    @unittest.skipUnless(shutil.which("clang"), "Real Clang required")
     def test_real_clang_object_is_accepted(self):
         source = self.root / "source.ll"
         source.write_text("define i32 @hepta_guard(i32 %x) {\nentry:\n %v = add i32 %x, 1\n ret i32 %v\n}\n")
