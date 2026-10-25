@@ -87,6 +87,25 @@ class HSIRBridgeTests(unittest.TestCase):
         with self.assertRaises(HSIRRejected):
             HSIRSnapshot(snap.schema, snap.canonical_json, "0" * 64).as_dict()
 
+    def test_resealed_but_elided_or_unreviewed_semantics_rejected(self):
+        a, ac = _checked(_SOURCE)
+        canonical = canonical_hsir(a, ac)
+        changes = {
+            "missing_external_obligations": lambda obj: obj.pop("external_obligations"),
+            "missing_owned_types": lambda obj: obj.pop("owned_types"),
+            "missing_foreign_assumptions": lambda obj: obj.pop("foreign_assumptions"),
+            "unknown_semantic_field": lambda obj: obj.update(new_proof_claim=True),
+            "falsey_external_inventory": lambda obj: obj.update(foreign_assumptions=0),
+            "hidden_owned_type": lambda obj: obj["owned_types"].append("Buffer<u8>"),
+            "missing_proof_claims": lambda obj: obj.update(claims={}),
+        }
+        for name, change in changes.items():
+            with self.subTest(name=name):
+                source = copy.deepcopy(canonical)
+                change(source)
+                with self.assertRaises(HSIRRejected):
+                    from_canonical_snapshot(_reseal(source))
+
     def test_refuses_c_ffis_generic_types_or_resource_ownership(self):
         a, ac = _checked(_SOURCE)
         canonical = canonical_hsir(a, ac)

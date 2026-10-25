@@ -63,7 +63,10 @@ def migrate_cpp(source_file: str | Path, destination_file: str | Path, *,
         text = original.decode("utf-8")
         # Without the actual C++ build flags, includes/conditionals/macros are
         # not a reproducible source graph and must never be silently omitted.
-        if re.search(r"(?m)^\s*#", text):
+        # C++ digraph %: is an alternative '#' preprocessing token. Directives
+        # can also appear after comments or be assembled by a line splice.
+        # This bounded L1 profile does not capture preprocessor state.
+        if "#" in text or "%:" in text or re.search(r"\\\r?\n", text):
             raise MigrationRejected("E_CPP2HEPTA_PREPROCESSOR", "Build-dependent preprocessing requires a real C++ project migrator")
         model = _model(clangxx)
         tree = json.loads(_run([clangxx, "-x", "c++", "-std=c++20", "-Werror", "-fsyntax-only",

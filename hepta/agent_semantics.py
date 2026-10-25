@@ -5,13 +5,14 @@ native validation. This entry point intentionally cannot publish or patch.
 """
 from __future__ import annotations
 
+from hashlib import sha256
 from pathlib import Path
 import re
 
 from .checker import check
 from .modules import load_project
 from .pipeline import compiler_hash
-from .semantic_ir import lower_checked_program
+from .semantic_ir import _stable_json, lower_checked_program
 from .workspace import WorkspaceError, inspect_workspace
 
 _HASH = re.compile(r"[0-9a-f]{64}\Z")
@@ -39,10 +40,12 @@ def inspect_pinned_semantics(store: str | Path, *,
     if not isinstance(meta, dict):
         raise WorkspaceError("E_AGENT_PIN", "Missing source-bound validation manifest")
     native = meta.get("validation", {})
+    native_checks = native.get("checks") if isinstance(native, dict) else None
     if (meta.get("compiler_sha256") != compiler_hash()
             or not isinstance(native, dict) or native.get("ok") is not True
             or native.get("status") not in {"checked", "checked_with_external_assumptions"}
-            or native.get("checks", {}).get("rust_borrows_types") != "rustc_checked"):
+            or not isinstance(native_checks, dict)
+            or native_checks.get("rust_borrows_types") != "rustc_checked"):
         raise WorkspaceError("E_AGENT_VALIDATION", "Published source lacks current-compiler Rust-qualified evidence")
     # Do not load a new mutable editor checkout or follow CURRENT a second time.
     graph = load_project(Path(snapshot["entry"]))
@@ -59,6 +62,22 @@ def inspect_pinned_semantics(store: str | Path, *,
             or not isinstance(hsir.get("sha256"), str)
             or not _HASH.fullmatch(hsir["sha256"])):
         raise WorkspaceError("E_AGENT_SEMANTICS", "Canonical HSIR lacks required checked-source identity")
+    # Digest must authenticate the full canonical payload, not just be a 64-hex string.
+    # Reuse the sole semantic encoder's serializer; do not create a second IR authority.
+    claims = hsir.get("claims")
+    prototype_claims = {"native_borrow_validation", "translation_correctness_proved",
+                        "whole_language_soundness_proved", "foreign_contracts_proved"}
+    if (hsir.get("profile") != "checked_typed_ast_not_verified_mir"
+            or not isinstance(claims, dict) or set(claims) != prototype_claims
+            or any(value is not False for value in claims.values())):
+        raise WorkspaceError("E_AGENT_SEMANTICS", "Canonical HSIR profile/claims mismatch")
+    try:
+        payload = {k: v for k, v in hsir.items() if k != "sha256"}
+        observed_digest = sha256(_stable_json(payload)).hexdigest()
+    except (TypeError, ValueError) as exc:
+        raise WorkspaceError("E_AGENT_SEMANTICS", "Canonical HSIR cannot be serialized") from exc
+    if observed_digest != hsir["sha256"]:
+        raise WorkspaceError("E_AGENT_SEMANTICS", "Canonical HSIR content checksum mismatch")
     if not graph.unchanged():
         raise WorkspaceError("E_AGENT_RACE", "Pinned import graph changed after semantic inspection")
     return {

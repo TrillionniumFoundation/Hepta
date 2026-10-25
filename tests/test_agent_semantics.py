@@ -36,6 +36,11 @@ class AgentSemanticTests(unittest.TestCase):
         self.checked = SimpleNamespace(ok=True)
         self.hsir = {
             "schema": "hepta.hsir.v0",
+            "profile": "checked_typed_ast_not_verified_mir",
+            "claims": {"native_borrow_validation": False,
+                       "translation_correctness_proved": False,
+                       "whole_language_soundness_proved": False,
+                       "foreign_contracts_proved": False},
             "project_sha256": self.VERSION,
             "all_expressions_typed": True, "untyped_expressions": [],
             "sha256": self.SEMANTIC, "source_sha256": "e" * 64,
@@ -49,6 +54,12 @@ class AgentSemanticTests(unittest.TestCase):
             }],
             "external_obligations": [], "foreign_assumptions": [],
         }
+        self._reseal_hsir()
+
+    def _reseal_hsir(self):
+        self.SEMANTIC = agent_semantics.sha256(agent_semantics._stable_json(
+            {k: v for k, v in self.hsir.items() if k != "sha256"})).hexdigest()
+        self.hsir["sha256"] = self.SEMANTIC
 
     def _inspect(self, **kwargs):
         with (patch.object(agent_semantics, "inspect_workspace", return_value=self.snapshot),
@@ -84,6 +95,24 @@ class AgentSemanticTests(unittest.TestCase):
               patch.object(agent_semantics, "compiler_hash", return_value=self.COMPILER)):
             with self.assertRaisesRegex(WorkspaceError, "Rust-qualified"):
                 agent_semantics.inspect_pinned_semantics("store")
+
+    def test_malformed_native_receipt_rejected(self):
+        self.snapshot["snapshot"]["manifest"]["validation"]["checks"] = None
+        with (patch.object(agent_semantics, "inspect_workspace", return_value=self.snapshot),
+              patch.object(agent_semantics, "compiler_hash", return_value=self.COMPILER)):
+            with self.assertRaisesRegex(WorkspaceError, "Rust-qualified"):
+                agent_semantics.inspect_pinned_semantics("store")
+
+    def test_modified_semantic_payload_rejected(self):
+        self.hsir["functions"][0]["returns"] = "u64"
+        with self.assertRaisesRegex(WorkspaceError, "checksum"):
+            self._inspect()
+
+    def test_forged_proof_claim_rejected_even_if_rehashed(self):
+        self.hsir["claims"]["whole_language_soundness_proved"] = True
+        self._reseal_hsir()
+        with self.assertRaisesRegex(WorkspaceError, "profile/claims"):
+            self._inspect()
 
     def test_compiler_identity_change_rejected(self):
         self.snapshot["snapshot"]["manifest"]["compiler_sha256"] = "f" * 64

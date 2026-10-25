@@ -68,6 +68,20 @@ int clamp(int x) noexcept {
                 self.assertFalse(self.dst.exists())
         self.assertTrue(len(negative) >= 9)
 
+    def test_hidden_preprocessor_forms_never_publish(self):
+        sources = [
+            '%:define FLAG 1\nint f(int a) noexcept {return a + FLAG;}',
+            '/*comment*/ #define FLAG 1\nint f(int a) noexcept {return a + FLAG;}',
+            '%\\' + '\n:define FLAG 1\nint f(int a) noexcept {return a + FLAG;}',
+        ]
+        for source in sources:
+            with self.subTest(source=source):
+                self.src.write_text(source)
+                report = migrate_cpp(self.src, self.dst)
+                self.assertFalse(report["ok"], report)
+                self.assertEqual(report["rejected"][0]["code"], "E_CPP2HEPTA_PREPROCESSOR")
+                self.assertFalse(self.dst.exists())
+
     def test_dangling_output_alias_and_existing_source_are_not_replaced(self):
         self.src.write_text(self._GOOD)
         target = self.root / "redirected.hepta"
