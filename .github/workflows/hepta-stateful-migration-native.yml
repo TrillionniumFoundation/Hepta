@@ -1,0 +1,38 @@
+name: Hepta P2/P4/P5 stateful native migration
+on:
+  push:
+    branches:
+      - codex/hepta-p2-p4-stateful-migration-20261025
+  pull_request:
+    branches:
+      - codex/hepta-p4-p6-guardrails-20261025
+permissions:
+  contents: read
+jobs:
+  stateful-migration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      EXACT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ env.EXACT_SHA }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Assert exact source HEAD
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXACT_SHA"
+          test -z "$(git status --porcelain)"
+      - name: Install pinned Rust and inspect native compilers
+        run: |
+          clang --version
+          clang++ --version
+          gcc --version
+          python tools/bootstrap_toolchain.py --prefix "$RUNNER_TEMP/hepta-rust" --targets
+          echo "RUSTC=$RUNNER_TEMP/hepta-rust/bin/rustc" >> "$GITHUB_ENV"
+      - name: Source migration and direct LLVM/native differential gates
+        run: |
+          python -m unittest tests.test_c_migrate tests.test_cpp2hepta_l1 tests.test_stateful_migration_llvm -v
