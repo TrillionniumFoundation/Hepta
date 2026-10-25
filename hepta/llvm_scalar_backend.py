@@ -310,6 +310,12 @@ def compile_scalar_llvm(ir: ScalarIR, *, clang: str = "clang", output: str | Pat
     if (not isinstance(ir.text, str) or not isinstance(ir.sha256, str)
             or sha256(ir.text.encode("utf-8")).hexdigest() != ir.sha256):
         raise LLVMScalarRejected("E_LLVM_IR_IDENTITY: modified LLVM IR rejected")
+    # Functions advertised in the release receipt must match actual LLVM
+    # definitions, rather than an independently mutable metadata tuple.
+    actual = re.findall(r"(?m)^define i32 @([A-Za-z_][A-Za-z0-9_]*)\(", ir.text)
+    if (not isinstance(ir.functions, tuple) or len(actual) != len(set(actual))
+            or tuple(sorted(actual)) != ir.functions):
+        raise LLVMScalarRejected("E_LLVM_IR_IDENTITY: declared functions do not match LLVM IR")
     clang_path = shutil.which(clang)
     if not clang_path:
         raise LLVMScalarRejected("E_LLVM_TOOLCHAIN: clang is unavailable")
