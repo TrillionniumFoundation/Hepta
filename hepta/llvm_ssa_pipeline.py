@@ -11,7 +11,6 @@ from pathlib import Path
 import tempfile
 
 from .cfg import lower_hsir_cfg
-from .hmir import HMIRRejected
 from .hsir import lower_checked_program
 from .llvm_ssa_backend import LLVMSSARejected, compile_scalar_ssa_llvm, emit_scalar_ssa_llvm
 from .llvm_ssa_target import _TARGETS, compile_ssa_target_object
