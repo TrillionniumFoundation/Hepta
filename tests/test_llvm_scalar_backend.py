@@ -82,7 +82,7 @@ class LLVMScalarBackendTests(unittest.TestCase):
         with self.assertRaisesRegex(LLVMScalarRejected, "E_LLVM_LITERAL"):
             emit_scalar_llvm(_seal(mutated))
 
-    @unittest.skipUnless(shutil.which("clang") and shutil.which("gcc"), "LLVM Clang and GCC required")
+    @unittest.skipUnless(sys.platform.startswith("linux") and shutil.which("clang") and shutil.which("gcc"), "Linux, LLVM Clang and GCC required")
     def test_host_llvm_abi_matches_independent_c_for_defined_inputs(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -131,6 +131,33 @@ f(2147483647,1)
             child = subprocess.run([sys.executable, "-c", script, str(root / "hepta_llvm.so")],
                                    capture_output=True, timeout=10)
             self.assertEqual(child.returncode, -signal.SIGABRT)
+
+    def test_cli_does_not_bypass_reference_native_gate(self):
+        try:
+            from hepta.cli import main
+        except ImportError:
+            self.skipTest("full Hepta CLI not mounted here")
+        from contextlib import redirect_stdout
+        from io import StringIO
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "scalar.hepta"
+            source.write_text("module scalar;", encoding="utf-8")
+            output = Path(tmp) / "scalar.so"
+            rejected = SimpleNamespace(report={"ok": False, "status": "rejected", "diagnostics": []})
+            with patch("hepta.cli.analyze_project", return_value=rejected) as analyze, patch(
+                "hepta.llvm_scalar_backend.compile_scalar_llvm",
+                side_effect=AssertionError("LLVM must not run without rustc validation")
+            ) as native:
+                with redirect_stdout(StringIO()):
+                    code = main(["build-llvm-scalar", str(source), "-o", str(output),
+                                 "--rustc", "/nonexistent/rustc"])
+            self.assertEqual(code, 1)
+            self.assertFalse(output.exists())
+            self.assertTrue(analyze.called)
+            self.assertTrue(analyze.call_args.kwargs["native"])
+            native.assert_not_called()
 
     def test_integration_with_actual_parser_checker_when_available(self):
         try:
