@@ -1,5 +1,21 @@
 # P4: Strict C++ L1 source migration using existing C lowering
 
+## Strict i32/u32/i64/u64 value signature extension
+
+The strict Clang++20 L1 subset now admits by-value `int`, `unsigned int`,
+`long long` and `unsigned long long` parameters/returns for the already
+supported standalone `noexcept` functions. The *same* C-shaped scalar
+lowerer handles typed arithmetic and unsigned modular wrap. Mixed signatures
+may be accepted only when their specific expression types are proven by that
+lowerer; unmodeled promotions, pointers, overloads, RAII, exceptions and
+preprocessing still reject. Signed overflowing inputs remain outside original
+C++ defined behavior. Generated exports use explicit C ABI, not C++ mangling.
+
+A real C++ original-vs-Hepta/C differential regression is required before
+this candidate can be classified beyond L1. No new native/full-project
+qualification or source-equivalence proof is claimed for this draft.
+
+
 This additive prototype is stacked on PR #43, preserving the PR #14
 `hepta.c_migrate._function` rules as the only C-style scalar
 expression/statement lowering authority. It does NOT copy PR #36's

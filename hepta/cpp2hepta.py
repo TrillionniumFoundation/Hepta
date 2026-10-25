@@ -22,7 +22,10 @@ from .parser import parse
 
 _PROFILE = "cpp20-noexcept-i32-free-functions-canonical-c-scalar-l1"
 _MAX_SOURCE = 256_000
-_FUNCTION = re.compile(r"int \((?:int(?:, int)*)?\) noexcept\Z")
+# Only homogeneous-size scalar ABI forms already modeled by the shared C lowerer.
+# Overflowing signed C++ arithmetic remains outside the defined-input domain.
+_CPP_SCALAR = r"(?:int|unsigned int|long long|unsigned long long)"
+_FUNCTION = re.compile(rf"{_CPP_SCALAR} \\((?:{_CPP_SCALAR}(?:, {_CPP_SCALAR})*)?\\) noexcept\\Z")
 _IDENT = re.compile(r"[A-Za-z_][A-Za-z_0-9]*\Z")
 
 
