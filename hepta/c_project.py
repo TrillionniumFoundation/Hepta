@@ -66,7 +66,12 @@ def _flags(argv: list[str], source: Path, directory: Path) -> tuple[list[str], l
             forwarded.append(value)
         elif value in {"-std=c99", "-std=c11", "-std=c17"}:
             forwarded.append(value)
-        elif value in {"-c", "-g", "-g0", "-g1", "-g2", "-g3", "-O0", "-O1", "-O2", "-O3", "-Os", "-Oz", "-Wall", "-Wextra", "-Werror", "-pedantic", "-pedantic-errors", "-fPIC", "-fpic"}:
+        elif value in {"-O0", "-O1", "-O2", "-O3", "-Os", "-Oz", "-fPIC", "-fpic"}:
+            # These affect predefined macros and therefore active declarations,
+            # dependencies and expressions even in preprocessing/AST-only runs.
+            # Retain original ordering: later options can override earlier ones.
+            forwarded.append(value)
+        elif value in {"-c", "-g", "-g0", "-g1", "-g2", "-g3", "-Wall", "-Wextra", "-Werror", "-pedantic", "-pedantic-errors"}:
             omitted.append({"argument": value, "reason": "driver_output_or_diagnostic_flag"})
         elif value == "-o":
             if i >= len(argv):

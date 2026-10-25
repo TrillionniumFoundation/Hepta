@@ -57,10 +57,14 @@ The database's compiler command is parsed as data; it is never executed through
 a shell. The explicitly selected Clang performs preprocessing and AST capture.
 Compiler wrappers, response files, plugin flags and unknown options are
 rejected. Accepted compile standards are explicit C99, C11 and C17. Includes
-and macro definitions are preserved; output, optimization and diagnostic flags
-that do not belong to this semantic frontend invocation are recorded with the
-reason for omission. Semantic options such as `-fwrapv` are not silently
-discarded. Multiple configurations for one source must be qualified in separate
+and macro definitions are preserved. Accepted optimization (`-O0`, `-O1`,
+`-O2`, `-O3`, `-Os`, `-Oz`) and PIC (`-fpic`, `-fPIC`) options are also
+preserved in their original order in dependency discovery, preprocessing,
+predefined-macro capture, AST collection and final capture verification. These
+options affect predefined macros and can change the active program, even when
+no object code is emitted. Output and omitted diagnostic/debug flags are
+recorded with their omission reason. Other semantic options such as `-fwrapv`
+are rejected, not silently discarded. Multiple configurations for one source must be qualified in separate
 complete database runs.
 
 To reproduce the native differential qualification:
