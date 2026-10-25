@@ -7,6 +7,7 @@ on:
       - feat/hepta-agent-safe-cfg-cpp-20261024
       - feat/hepta-safe-migration-agent-20261024
       - audit/pr14-pin-rustc-selector-20261025
+      - audit/pr128-bwrap-restricted-userns-20261025
   pull_request:
     branches:
       - main
@@ -49,7 +50,22 @@ jobs:
       - name: Native compilers and required namespace runtime
         run: |
           sudo apt-get update
-          sudo apt-get install --yes bubblewrap gcc g++ clang gdb libboost-dev qemu-system-arm
+          sudo apt-get install --yes bubblewrap apparmor-profiles apparmor-utils gcc g++ clang gdb libboost-dev qemu-system-arm
+          # Keep Ubuntu's global user-namespace AppArmor restriction enabled.
+          # Allow only distro bubblewrap to construct the isolated namespaces;
+          # the restricted profile denies capability inheritance to children.
+          test -f /usr/share/apparmor/extra-profiles/bwrap-userns-restrict
+          sudo install -m 0644 /usr/share/apparmor/extra-profiles/bwrap-userns-restrict /etc/apparmor.d/bwrap-userns-restrict
+          sudo apparmor_parser -r /etc/apparmor.d/bwrap-userns-restrict
+          python - <<'PYTHON'
+          import json
+          from experiments.agent_eval.sandbox import probe_sandbox
+          probe_sandbox.cache_clear()
+          observed = probe_sandbox()
+          print(json.dumps(observed, sort_keys=True))
+          if not observed["available"]:
+              raise SystemExit("E_SANDBOX_UNAVAILABLE: restricted bwrap profile did not enable namespaces")
+          PYTHON
       - name: Install SHA-256-locked Rust 1.90.0 toolchain and cross stdlibs
         run: python tools/bootstrap_toolchain.py
       - name: Select and verify the bootstrapped Rust compiler
