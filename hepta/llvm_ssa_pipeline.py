@@ -42,6 +42,7 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
         "claims": {
             "native_rust_reference_required": True,
             "independent_scalar_ssa_structure_checked": False,
+            "native_ssa_cfg_origin_rechecked": False,
             "native_artifact_compiled": False,
             "target_program_executed": False,
             "foreign_c_abi_qualified": False,
@@ -82,6 +83,9 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
         result["identities"] = {
             "source_sha256": analyzed.report.get("source_sha256"),
             "compiler_sha256": analyzed.report.get("compiler_sha256"),
+            "canonical_source_semantic_sha256": scalar_hsir.as_dict()["source_semantic_sha256"],
+            "derived_scalar_hsir_sha256": scalar_hsir.sha256,
+            "cfg_sha256": cfg.sha256,
             "canonical_ssa_sha256": ssa.sha256,
             "structural_verification_sha256": verification.sha256,
             "llvm_ir_sha256": ir.sha256,
@@ -91,8 +95,10 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
             raise LLVMSSARejected("E_LLVM_SSA_STALE: graph changed before native backend")
         with tempfile.TemporaryDirectory(prefix=".hepta-llvm-source-", dir=dest.parent) as directory:
             stage = Path(directory) / ("candidate.o" if target is not None else "candidate.so")
-            native = (compile_ssa_target_object(ir, target=target, clang=clang, output=stage)
-                      if target is not None else compile_scalar_ssa_llvm(ir, clang=clang, output=stage))
+            native = (compile_ssa_target_object(ir, target=target, clang=clang, output=stage,
+                                               ssa=ssa, cfg=cfg)
+                      if target is not None else compile_scalar_ssa_llvm(
+                          ir, clang=clang, output=stage, ssa=ssa, cfg=cfg))
             # Backend receipts cannot elevate an object-only or host-compile
             # result to a soundness proof. Bind status, source IR and verifier
             # identity to the exact artifact being staged.
@@ -107,6 +113,7 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
                     or native.get("llvm_source_profile") != ir.profile
                     or native.get("ssa_sha256") != ssa.sha256
                     or native.get(proof_key) != verification.sha256
+                    or native.get("ssa_cfg_origin_rechecked") is not True
                     or not isinstance(native.get("claims"), dict)
                     or native["claims"].get(forbidden_claim) is not False
                     or (target is not None and native.get("target") != target)):
@@ -126,6 +133,7 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
         result["native_backend"] = dict(native)
         result["native_backend"]["output"] = str(dest)
         result["native_backend"]["artifact_sha256"] = sha256(artifact).hexdigest()
+        result["claims"]["native_ssa_cfg_origin_rechecked"] = True
         result["claims"]["native_artifact_compiled"] = True
         result["ok"] = True
         result["status"] = ("cross_object_only_not_executed" if target is not None
