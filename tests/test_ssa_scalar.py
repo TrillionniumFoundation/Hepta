@@ -141,6 +141,41 @@ class SSATests(unittest.TestCase):
         with self.assertRaisesRegex(SSARejected, "EFFECT"):
             lower_cfg_scalar_ssa(unsafe)
 
+    def test_rehashed_cfg_invalid_types_operators_and_effects_reject_deterministically(self):
+        base = snapshot([
+            block(0, kind="return", value=expr("binary", "+", "i32", n("a"), n("b")))
+        ], params=[("a", "i32"), ("b", "i32")], effects=["panic"])
+        clean = json.loads(base.canonical_json)
+        import copy
+        mutations = {
+            "parameter_type_array": lambda d: d["functions"][0]["param_types"][0]["type"].update(type=["i32"]),
+            "binary_op_array": lambda d: d["functions"][0]["blocks"][0]["terminator"]["value"].update(value=["+"]),
+            "expression_kind_array": lambda d: d["functions"][0]["blocks"][0]["terminator"]["value"].update(operation=["binary"]),
+            "effect_list_nested": lambda d: d["functions"][0].update(inferred_transitive_effects=[["panic"]]),
+            "effect_string": lambda d: d["functions"][0].update(inferred_transitive_effects="panic"),
+            "extra_type_field": lambda d: d["functions"][0]["return_type"].update(unreviewed_ownership=True),
+        }
+        for case, mutate in mutations.items():
+            with self.subTest(case=case):
+                changed = copy.deepcopy(clean)
+                mutate(changed)
+                source = json.dumps(changed, sort_keys=True, separators=(",", ":"))
+                rejected = CFGSnapshot("hepta.cfg.v0", source, sha256(source.encode()).hexdigest())
+                with self.assertRaises(SSARejected):
+                    lower_cfg_scalar_ssa(rejected)
+
+    def test_rehashed_cfg_nan_literal_fails_before_ssa_output(self):
+        base = snapshot([block(0, kind="return", value=i(3))])
+        corrupted = json.loads(base.canonical_json)
+        corrupted["functions"][0]["blocks"][0]["terminator"]["value"] = expr(
+            "float", float("nan"), "f64")
+        # Python's JSON reader normally admits the nonstandard NaN token.
+        source = json.dumps(corrupted, sort_keys=True, separators=(",", ":"))
+        self.assertIn("NaN", source)
+        forged = CFGSnapshot("hepta.cfg.v0", source, sha256(source.encode()).hexdigest())
+        with self.assertRaises(SSARejected):
+            lower_cfg_scalar_ssa(forged)
+
     def test_snapshot_tampering_rejected(self):
         cfg = snapshot([block(0, kind="return", value=i(3))])
         bad = CFGSnapshot(cfg.schema, cfg.canonical_json, "0" * 64)

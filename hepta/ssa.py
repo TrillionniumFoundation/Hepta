@@ -11,6 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from hashlib import sha256
 import json
+import math
 
 from .cfg import CFGSnapshot
 from .cfg_analysis import CFGAnalysisRejected, analyze_cfg
@@ -43,7 +44,12 @@ _MAX_DEFINITIONS = 8192
 
 
 def _type(value: object, context: str) -> str:
-    if not isinstance(value, dict) or value.get("type") not in _SCALAR or value.get("args") or value.get("length") is not None:
+    # A rehashed CFG can be attacker-authored; JSON arrays are unhashable and
+    # must produce a stable SSA diagnostic instead of leaking TypeError.
+    if (not isinstance(value, dict) or set(value) != {"type", "args", "length"}
+            or not isinstance(value.get("type"), str)
+            or value["type"] not in _SCALAR
+            or value.get("args") != [] or value.get("length") is not None):
         raise SSARejected(f"E_SSA_TYPE: unsupported {context} type")
     return value["type"]
 
@@ -56,12 +62,14 @@ def _expr(expr: object, *, version_of=None, expected_types=None, depth=0) -> tup
     kind, operands, value = expr.get("operation"), expr.get("operands"), expr.get("value")
     if not isinstance(operands, list) or expr.get("type_args") not in ([], None):
         raise SSARejected("E_SSA_EXPRESSION: unrecognized operands or generic arguments")
+    if not isinstance(kind, str):
+        raise SSARejected("E_SSA_UNSUPPORTED: expression operation must be a string")
     arity = {"name": 0, "int": 0, "float": 0, "bool": 0, "binary": 2, "unary": 1, "cast": 1}.get(kind)
     if arity is None or len(operands) != arity:
         raise SSARejected(f"E_SSA_UNSUPPORTED: expression operation {kind!r}")
-    if kind == "binary" and value not in _BINARY:
+    if kind == "binary" and (not isinstance(value, str) or value not in _BINARY):
         raise SSARejected(f"E_SSA_UNSUPPORTED: binary operator {value!r}")
-    if kind == "unary" and value not in {"-", "!"}:
+    if kind == "unary" and (not isinstance(value, str) or value not in {"-", "!"}):
         raise SSARejected(f"E_SSA_UNSUPPORTED: effectful unary operator {value!r}")
     if kind == "cast":
         if _type(value, "cast target") != ty:
@@ -81,8 +89,15 @@ def _expr(expr: object, *, version_of=None, expected_types=None, depth=0) -> tup
         raise SSARejected("E_SSA_LITERAL: malformed integer")
     if kind == "bool" and not isinstance(value, bool):
         raise SSARejected("E_SSA_LITERAL: malformed boolean")
-    if kind == "float" and not isinstance(value, (int, float)):
-        raise SSARejected("E_SSA_LITERAL: malformed floating literal")
+    if kind == "float":
+        if type(value) not in (int, float):
+            raise SSARejected("E_SSA_LITERAL: malformed floating literal")
+        try:
+            finite = math.isfinite(value)
+        except (ValueError, OverflowError, TypeError):
+            finite = False
+        if not finite:
+            raise SSARejected("E_SSA_LITERAL: nonfinite or oversized floating literal")
     if kind in {"int", "bool", "float"} and value is None:
         raise SSARejected("E_SSA_LITERAL: missing literal")
     children, read = [], set()
@@ -98,7 +113,7 @@ def _expr(expr: object, *, version_of=None, expected_types=None, depth=0) -> tup
 
 def _validated_assignment(inst: dict, types: dict[str, str], mutability: dict[str, bool]) -> tuple[str | None, dict | None]:
     kind = inst.get("operation")
-    if kind not in {"let", "assign", "expr"}:
+    if not isinstance(kind, str) or kind not in {"let", "assign", "expr"}:
         raise SSARejected(f"E_SSA_UNSUPPORTED: instruction {kind!r}")
     f = inst.get("fields")
     if not isinstance(f, dict) or f.get("expr") is None:
@@ -131,8 +146,10 @@ def _term_expr(term: dict) -> dict | None:
     kind = term.get("kind")
     if kind == "branch":
         value = term.get("condition")
-        if not isinstance(value, dict) or value.get("result_type", {}).get("type") != "bool":
+        if (not isinstance(value, dict) or not isinstance(value.get("result_type"), dict)
+                or value["result_type"].get("type") != "bool"):
             raise SSARejected("E_SSA_CONDITION: branch requires a typed bool")
+        _type(value["result_type"], "branch condition")
         return value
     if kind == "return":
         return term.get("value")
@@ -149,8 +166,10 @@ def _run_function(fn: dict, analysis: dict) -> dict:
     params = fn.get("param_types", [])
     if not isinstance(params, list):
         raise SSARejected("E_SSA_PARAMETERS: malformed signature")
-    if set(fn.get("inferred_transitive_effects", [])) - _ALLOWED_EFFECTS:
-        raise SSARejected("E_SSA_EFFECT: effectful functions outside pure scalar profile")
+    effects = fn.get("inferred_transitive_effects", [])
+    if (not isinstance(effects, list) or any(not isinstance(effect, str) for effect in effects)
+            or set(effects) - _ALLOWED_EFFECTS):
+        raise SSARejected("E_SSA_EFFECT: malformed or effectful function outside pure scalar profile")
     return_type = fn.get("return_type")
     unit_return = return_type == {"type": "Unit", "args": [], "length": None}
     if not unit_return:
@@ -316,6 +335,10 @@ def _run_function(fn: dict, analysis: dict) -> dict:
             "phi_count": sum(len(b["phis"]) for b in result_blocks.values())}
 
 
+def _reject_nonfinite_json(token: str):
+    raise SSARejected(f"E_SSA_INPUT: nonfinite JSON constant {token!r}")
+
+
 def lower_cfg_scalar_ssa(cfg: CFGSnapshot) -> SSASnapshot:
     """SSA over deliberately pure scalar CFGs; no fallback on unsupported IR."""
     if not isinstance(cfg, CFGSnapshot) or cfg.schema != "hepta.cfg.v0":
@@ -324,13 +347,17 @@ def lower_cfg_scalar_ssa(cfg: CFGSnapshot) -> SSASnapshot:
         raise SSARejected("E_SSA_INPUT: CFG SHA-256 mismatch")
     try:
         analysis = analyze_cfg(cfg).as_dict()
-        payload = json.loads(cfg.canonical_json)
+        payload = json.loads(cfg.canonical_json, parse_constant=_reject_nonfinite_json)
         by_name = {f["name"]: f for f in analysis["functions"]}
         if len(by_name) != len(analysis["functions"]):
             raise SSARejected("E_SSA_FUNCTION: duplicate function name")
         functions = [_run_function(f, by_name[f["name"]]) for f in payload["functions"]]
     except CFGAnalysisRejected as exc:
         raise SSARejected("E_SSA_CFG: invalid structural control flow: " + str(exc)) from exc
+    except SSARejected:
+        raise
+    except (TypeError, ValueError, AttributeError, KeyError, OverflowError) as exc:
+        raise SSARejected("E_SSA_INPUT: malformed source-bound CFG") from exc
     output = {"schema": "hepta.ssa.scalar.v0", "status": "scalar_ssa_subset_not_backend_qualified",
               "source_cfg_sha256": cfg.sha256, "source_analysis_sha256": analysis["sha256"],
               "functions": functions,
