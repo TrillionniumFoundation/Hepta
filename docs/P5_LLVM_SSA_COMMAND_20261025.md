@@ -43,3 +43,12 @@ receipt. A deliberately wrong reported digest rejects without creating
 the requested output file. This is a bounded artifact-publication
 integrity check, not a guarantee against noncooperating filesystem
 writers after publication or arbitrary malicious compiler behavior.
+
+## Backend receipt must describe exactly the emitted IR and proof scope
+
+The source command additionally checks the native backend status profile,
+LLVM/SSA/independent verification digests, artifact size, exact cross-object
+target where applicable, and explicit **false** semantic-refinement proof
+claims. A backend record with a valid hash but elevated proof claims cannot
+make the source command succeed. Negative tests use an intentionally forged
+native receipt to demonstrate nonpublication.

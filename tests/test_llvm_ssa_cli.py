@@ -5,6 +5,7 @@ No passing test grants full backend refinement or memory-model proof.
 from __future__ import annotations
 
 import ctypes
+from hashlib import sha256
 import json
 import os
 from pathlib import Path
@@ -73,6 +74,26 @@ class LLVMSSASourceCLITests(unittest.TestCase):
                                             rustc=os.environ.get("RUSTC"))
         self.assertFalse(outcome["ok"], outcome)
         self.assertIn("E_LLVM_SSA_ARTIFACT", outcome["diagnostics"][0]["code"])
+        self.assertFalse(self.output.exists())
+
+    @unittest.skipUnless(shutil.which("clang") and (os.environ.get("RUSTC") or shutil.which("rustc")),
+                         "Native Clang and pinned Rust are required")
+    def test_forged_native_status_or_proof_scope_never_publishes(self):
+        def fake_native(ir, *, clang, output):
+            payload = b"plausible but unqualified object"
+            Path(output).write_bytes(payload)
+            return {"status": "native_host_compiled_unqualified",
+                    "artifact_sha256": sha256(payload).hexdigest(),
+                    "artifact_bytes": len(payload),
+                    "llvm_ir_sha256": ir.sha256,
+                    "ssa_sha256": ir.source_ssa_sha256,
+                    "ssa_verification_sha256": ir.verification_sha256,
+                    "claims": {"backend_refinement_proven": True}}
+        with patch("hepta.llvm_ssa_pipeline.compile_scalar_ssa_llvm", side_effect=fake_native):
+            report = build_llvm_ssa_source(self.source, self.output,
+                                           rustc=os.environ.get("RUSTC"))
+        self.assertFalse(report["ok"])
+        self.assertEqual(report["diagnostics"][0]["code"], "E_LLVM_SSA_RECEIPT")
         self.assertFalse(self.output.exists())
 
     @unittest.skipUnless(shutil.which("clang") and (os.environ.get("RUSTC") or shutil.which("rustc")),
