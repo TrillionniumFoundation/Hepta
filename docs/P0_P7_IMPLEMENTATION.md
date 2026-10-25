@@ -16,6 +16,7 @@ A successful reference release is *not* automatically a successful qualification
 
 - **P2 — Independent host C ABI:** `tools/abi_host_probe.py` executes a 16-way GCC/Clang producer-consumer matrix at -O0/-O2 on the available host, verifies nested structures, callbacks, scalar calling convention and a seeded fault control. Evidence is `artifacts/host-abi-gcc-clang-20261024.json`, bound to the generator's SHA. This is *not* a Hepta or cross-target qualification.
 - **P1 — HSIR v0:** `hepta.hsir` serializes a checker-accepted source AST into a deterministic typed semantic snapshot. It preserves type metadata, argument modes, declared/transitive effects, resource clauses, C ABI direction and explicit external assumptions. It rejects missing inferred expression types and checker errors. It does **not** replace Rust lowering, model loan identities, prove pointer provenance, or establish Rust/C lowering refinement.
+- **P5 — C++20 integer source migration bootstrap:** `hepta.cpp2hepta` invokes real Clang++ AST and emits L1 Hepta candidates for isolated `noexcept int(int...)` free functions and locally inferred int variables, with strict rejection of unsupported classes, templates, overloads, headers, pointers and global state. Native validation, differential behavior, C++ ABI equivalence and full P5 remain **open**; C++ mangled symbol names are deliberately not preserved. Tests: `tests/test_cpp2hepta.py` (3 local passing tests).
 - **P4 — C++ bridge bootstrap:** `hepta.cpp_bridge` uses actual Clang++ C++20 ASTs to produce L0 C wrappers for unoverloaded `noexcept int(int...)` free functions, plus C header and non-qualification manifest. GCC C callers have linked and executed against Clang++ wrapper/original on the available host; constructors, destructors, exceptions and C++ ABI profiles remain unimplemented.
 - **P3 — Clang AST C migrator:** `hepta.c2hepta` accepts an intentionally restricted standalone C11 signed `int` function subset; performs an actual Clang semantic parse; transforms local variables, arithmetic, comparisons, if/else, and bounded-form while/for constructs; and rejects all unsupported syntax. Every output is tagged **L1 / candidate_unverified** and declares C UB, ABI, native validation, and differential-testing obligations. It never labels a generated candidate fully safe or equivalent merely because it parsed.
 
@@ -28,7 +29,7 @@ A successful reference release is *not* automatically a successful qualification
 | P2 | Portable C ABI profiles and real GCC/Clang/MSVC bidirectional host runs | GCC/Clang host C/C 16/16 and negative control passed; **Hepta cross-target gate open** |
 | P3 | Real C project source migration, build, differential fuzz and verified migration levels L0–L3 | Clang subset L1 candidate; **larger projects/L2/L3 open** |
 | P4 | Verified C++ bridge including exceptions, destructors and ABI profiles | Narrow L0 C bridge tested locally; **full P4 open** |
-| P5 | C++ migration including template, class, RAII/STL, L1–L3 evidence | **Open** |
+| P5 | C++ migration including template, class, RAII/STL, L1–L3 evidence | Strict C++20 integer-function L1 candidate tested locally; **full P5 open** |
 | P6 | LLVM/MLIR backend with semantics, memory, CPU/RSS and p95/p99 regressions | **Open** |
 | P7 | Multi-file agent protocol v3, soundness, physical hardware and real-model independent benchmarks | **Open** |
 
@@ -40,8 +41,10 @@ Original Hepta 0.2 P01–P12 blockers in `docs/BLOCKERS.md` also remain open; no
 python -m unittest discover -s tests -p 'test_hsir.py' -v
 python -m unittest discover -s tests -p 'test_c2hepta.py' -v
 python -m unittest discover -s tests -p 'test_cpp_bridge.py' -v
+python -m unittest discover -s tests -p 'test_cpp2hepta.py' -v
 python -m hepta hsir examples/parser.hepta > /tmp/parser-hsir.json
 python -m hepta migrate-c examples/interop/c11_small.c -o /tmp/standalone.hepta
+python -m hepta migrate-cpp examples/interop/cpp_noexcept.cc -o /tmp/cpp_migrated.hepta
 python -m hepta check /tmp/standalone.hepta
 python tools/abi_host_probe.py --output /tmp/host-abi.json
 python tools/abi_fuzz.py --cc clang --output /tmp/abi-matrix-clang.json
