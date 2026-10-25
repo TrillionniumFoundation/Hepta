@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 import json
 
-from .hsir import HSIRSnapshot, lower_checked_program
+from .hsir import HSIRSnapshot, SCHEMA as SCALAR_HSIR_SCHEMA, lower_checked_program
 
 
 class CFGRejected(ValueError):
@@ -232,8 +232,8 @@ def lower_hsir_cfg(snapshot: HSIRSnapshot) -> CFGSnapshot:
 
     Checksums detect changes; they do not attest a trusted compiler run.
     """
-    if not isinstance(snapshot, HSIRSnapshot) or snapshot.schema != "hepta.hsir.v0":
-        raise CFGRejected("E_CFG_INPUT: requires HSIR v0 snapshot")
+    if not isinstance(snapshot, HSIRSnapshot) or snapshot.schema != SCALAR_HSIR_SCHEMA:
+        raise CFGRejected("E_CFG_INPUT: requires the versioned scalar HSIR snapshot")
     if sha256(snapshot.canonical_json.encode("utf-8")).hexdigest() != snapshot.sha256:
         raise CFGRejected("E_CFG_INPUT: HSIR snapshot digest mismatch")
     # Validation is structural as well as content-hash-bound. A directly
