@@ -10,6 +10,8 @@ Do not execute Clang on untrusted code without an OS sandbox.
 from __future__ import annotations
 
 import argparse
+import ctypes
+import errno
 from dataclasses import dataclass
 from hashlib import sha256
 import json
@@ -18,6 +20,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 
 from .c2hepta import MAX_AST_BYTES, MAX_SOURCE_BYTES, MigrationRejected, _children, _ident
@@ -175,6 +178,58 @@ def generate_cpp_bridge(path: str | Path, *, clangxx: str = "clang++",
     return CppBridge(result, header, report)
 
 
+
+def _publish_directory_no_replace(staged: Path, target: Path) -> None:
+    """Publish a completed directory atomically and never replace any path.
+
+    Linux renameat2(RENAME_NOREPLACE) is mandatory; an ordinary os.rename can
+    replace an empty destination directory after a concurrent create. The
+    parent fd pins the actual target directory against symlink retargeting.
+    Unsupported platforms fail closed rather than exposing half a bundle.
+    """
+    if not sys.platform.startswith("linux"):
+        raise MigrationRejected("E_CPP_BRIDGE_ATOMIC: Linux renameat2 required")
+    parent = target.parent
+    if staged.parent.parent != parent:
+        raise MigrationRejected("E_CPP_BRIDGE_ATOMIC: staging must use the target filesystem")
+    try:
+        libc = ctypes.CDLL(None, use_errno=True)
+        renameat2 = libc.renameat2
+    except (OSError, AttributeError) as exc:
+        raise MigrationRejected("E_CPP_BRIDGE_ATOMIC: renameat2 unavailable") from exc
+    renameat2.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int,
+                          ctypes.c_char_p, ctypes.c_uint]
+    renameat2.restype = ctypes.c_int
+    flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_CLOEXEC", 0)
+    directory_fd = os.open(parent, flags)
+    try:
+        source_name = (staged.parent.name + "/" + staged.name).encode()
+        destination_name = os.fsencode(target.name)
+        if not target.name or target.name in {".", ".."}:
+            raise MigrationRejected("E_CPP_BRIDGE_OUTPUT: invalid output directory")
+        if renameat2(directory_fd, source_name, directory_fd, destination_name, 1) != 0:
+            error = ctypes.get_errno()
+            if error == errno.EEXIST:
+                raise MigrationRejected("E_CPP_BRIDGE_OUTPUT: Output path already exists")
+            raise MigrationRejected("E_CPP_BRIDGE_ATOMIC: renameat2: " + os.strerror(error))
+    finally:
+        os.close(directory_fd)
+
+
+def _stage_bundle(staged: Path, result: CppBridge) -> None:
+    staged.mkdir(mode=0o700)
+    payloads = {
+        "bridge.cc": result.source,
+        "bridge.h": result.c_header,
+        "manifest.json": json.dumps(result.report, indent=2, sort_keys=True) + "\n",
+    }
+    for name, payload in payloads.items():
+        with (staged / name).open("x", encoding="utf-8") as handle:
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Generate narrow L0 C++ -> C ABI wrappers")
     parser.add_argument("source")
@@ -184,25 +239,19 @@ def main(argv: list[str] | None = None) -> int:
                         default="noexcept_only")
     args = parser.parse_args(argv)
     try:
-        target = Path(args.output_dir).resolve()
-        if target.exists():
-            raise MigrationRejected("E_CPP_BRIDGE_OUTPUT: Output directory must not exist")
+        # Resolve existing parents, but do not follow the destination leaf:
+        # a preexisting dangling symlink must be rejected, not redirected.
+        requested = Path(os.path.abspath(args.output_dir))
+        target = requested.parent.resolve() / requested.name
+        if target.exists() or target.is_symlink():
+            raise MigrationRejected("E_CPP_BRIDGE_OUTPUT: Output path already exists")
         target.parent.mkdir(parents=True, exist_ok=True)
         result = generate_cpp_bridge(args.source, clangxx=args.clangxx,
                                      exception_mode=args.exception_mode)
-        # A no-replace rename of a nonempty directory is available via Linux
-        # renameat2; this portable prototype instead requires a dedicated
-        # output directory and explicitly calls out non-atomic publication.
-        target.mkdir(exist_ok=False)
-        try:
-            (target / "bridge.cc").write_text(result.source)
-            (target / "bridge.h").write_text(result.c_header)
-            (target / "manifest.json").write_text(json.dumps(result.report, indent=2, sort_keys=True) + "\n")
-        except OSError:
-            for f in target.iterdir():
-                f.unlink(missing_ok=True)
-            target.rmdir()
-            raise
+        with tempfile.TemporaryDirectory(prefix=".cpp-bridge-stage-", dir=target.parent) as temporary:
+            staged = Path(temporary) / "bundle"
+            _stage_bundle(staged, result)
+            _publish_directory_no_replace(staged, target)
         print(json.dumps({**result.report, "output_dir": str(target)}, indent=2, sort_keys=True))
         return 0
     except (MigrationRejected, OSError, ValueError, subprocess.SubprocessError) as exc:
