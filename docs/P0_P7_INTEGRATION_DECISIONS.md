@@ -73,3 +73,65 @@ own ledger keeps the broader P01–P12 blockers open and actual model trials at
 zero. Neither that report nor isolated #36/#37 tests automatically qualify a
 new integration SHA. Do not alter the production blocker ledger until gates
 are actually run and evidence is bound to the exact final source.
+
+
+## Executed 2026-10-25 P0/P1 integration gate increment
+
+A GitHub object-tree inventory was captured at the exact pinned heads above and
+stored in evidence/integration/p0-frozen-heads-20261025.json.
+Compared with main 0.2: PR #14 changes 1065 paths, PR #36 changes 35, and
+PR #37 changes 61. PR #14/#36 and PR #14/#37 have five shared changed paths
+each; all five have different final objects. PR #36/#37 share 34 changed
+paths, with 23 identical final objects and 11 different final objects.
+GitHub compare reported main as the common ancestor of all three heads.
+This is metadata-only source identity evidence, not a merge result.
+
+The old path-only auditor has been upgraded to hepta.integration-audit.v2.
+It reads exact Git tree object IDs and modes and reports identical-vs-different
+objects without hiding rename/delete edges. It classifies paths sharing a
+semantic role across different filenames, including semantic_ir.py and
+hsir.py, hmir.py versus cfg.py/ssa.py, two C migrators, C++ bridge
+components and Agent transaction implementations. Its output is always
+manual-review-only. Missing objects and path/tampering errors reject.
+
+**Verified HSIR wire-version collision:** PR #14
+hepta/semantic_ir.py and PR #36 hepta/hsir.py both export the
+literal hepta.hsir.v0 but use incompatible envelopes. The first uses
+profile=checked_typed_ast_not_verified_mir, module, project_sha256,
+external_obligations and an embedded payload sha256. The second uses
+status=checked_frontend_snapshot_not_proved, program,
+external_assumptions, typed_expression_count, and a separate
+HSIRSnapshot canonical-JSON hash. They also carry different explicit
+unproved safety claim names. Reusing the version label is **not** a safe
+forward/backward-compatible schema transition.
+
+tools/audit_hsir_wire.py independently reads serialized exports with
+duplicate-key rejection, verifies the profile-specific canonical SHA-256,
+source identity and unproved claim fields, and refuses to mark different
+envelopes compatible. Exit 3 denotes a validly digested schema collision;
+exit 2 means invalid input or an unavailable output; exit 0 means only
+same wire format, **not** semantic equivalence or safe merge. Use:
+
+    python tools/audit_hsir_wire.py --left /tmp/pr14-hsir.json \
+      --right /tmp/pr36-hsir.json --output /tmp/hsir-wire-review.json
+
+A real producer-generated snapshot from *each* head and a mapping
+implementation have not yet been tested in one compiler runtime. The
+canonical schema version and any lossless, independently checked mapping
+remain P1 blockers. Never remove unknown obligations or silently promote a
+foreign assumption to proved during conversion.
+
+**Local targeted test result:** python -m unittest discover -s tests
+-p 'test_*audit.py' -v passed **14/14** in an isolated Python 3.13.5
+working directory, including a newly created native Git repository used for
+rename and byte-object identity checks. Four exact Git blob identities for
+the tested files were independently fetched from the updated PR head and
+match the local tested bytes. This session did **not** fetch the entire Hepta
+worktree or run Rust/Clang/Lean/QEMU/real model qualification. Remote CI and
+final production P0–P7 gates are not inferred from these focused tests.
+
+**Still required to close P0/P1:** select a single canonical typed snapshot
+and version it, compare all fields and consumer APIs, add real producer and
+consumer integration fixtures, prove or independently test source-to-IR
+preservation, and rerun native and resource-negative suites on the new
+integration SHA.
