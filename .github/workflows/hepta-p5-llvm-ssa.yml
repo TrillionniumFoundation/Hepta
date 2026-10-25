@@ -1,0 +1,36 @@
+name: Hepta P5 LLVM SSA integration (scoped)
+on:
+  push:
+    branches:
+      - dot/hepta-p5-llvm-ssa-integrated-20261025
+  pull_request:
+    branches:
+      - dot/hepta-p0-p1-semantic-bridge-20261025
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-ssa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Require exact source identity
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          test -z "$(git status --porcelain)"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Ensure actual LLVM host compiler
+        run: clang --version
+      - name: Install checksum pinned Rust source oracle
+        run: |
+          python tools/bootstrap_toolchain.py --prefix "$RUNNER_TEMP/hepta-rust" --targets
+          echo "RUSTC=$RUNNER_TEMP/hepta-rust/bin/rustc" >> "$GITHUB_ENV"
+      - name: Test source-to-LLVM and native host execution
+        run: |
+          python -m unittest tests.test_ssa_differential tests.test_llvm_ssa_backend tests.test_llvm_ssa_target tests.test_llvm_ssa_integration -v
