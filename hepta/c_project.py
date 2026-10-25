@@ -66,11 +66,11 @@ def _flags(argv: list[str], source: Path, directory: Path) -> tuple[list[str], l
             forwarded.append(value)
         elif value in {"-std=c99", "-std=c11", "-std=c17"}:
             forwarded.append(value)
-        elif value in {"-funsigned-char", "-fsigned-char"}:
-            # Plain-char signedness is semantic and enters the probed model;
-            # never discard this flag as a code-generation preference.
+        elif value in {"-funsigned-char", "-fsigned-char", "-O0", "-O1", "-O2", "-O3", "-Os", "-Oz", "-fPIC", "-fpic"}:
+            # Preserve accepted preprocessing-semantic options in original order.
+            # Optimization/PIC affect macros; char flags also enter the ABI model.
             forwarded.append(value)
-        elif value in {"-c", "-g", "-g0", "-g1", "-g2", "-g3", "-O0", "-O1", "-O2", "-O3", "-Os", "-Oz", "-Wall", "-Wextra", "-Werror", "-pedantic", "-pedantic-errors", "-fPIC", "-fpic"}:
+        elif value in {"-c", "-g", "-g0", "-g1", "-g2", "-g3", "-Wall", "-Wextra", "-Werror", "-pedantic", "-pedantic-errors"}:
             omitted.append({"argument": value, "reason": "driver_output_or_diagnostic_flag"})
         elif value == "-o":
             if i >= len(argv):
