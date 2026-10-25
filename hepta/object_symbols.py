@@ -199,6 +199,7 @@ def inspect_object_symbols(data: bytes, fmt: str, machine: int) -> dict[str, fro
                 # N_SECT/N_EXT alone does not identify executable code.
                 # This strict scalar backend only emits __TEXT,__text.
                 if (sectname != b"__text" or segname != b"__TEXT" or
+                        flags & 0xff != 0 or  # S_REGULAR, not ZEROFILL or another special section
                         not (flags & (0x80000000 | 0x400)) or
                         not length or not start <= value < start + length):
                     raise ObjectSymbolsRejected(
