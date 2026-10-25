@@ -35,7 +35,8 @@ def _inventory(report: dict[str, Any], version: str) -> dict[tuple[str, str], di
             or report.get("status") != "published_native_prevalidated_read_only"
             or report.get("workspace_version") != version):
         raise WorkspaceError("E_AGENT_DIFF_PIN", "Expected a native-prevalidated pinned semantic report")
-    for key in ("compiler_sha256", "source_semantic_sha256", "source_sha256", "interface_sha256"):
+    for key in ("compiler_sha256", "source_semantic_sha256", "source_sha256",
+                "source_graph_sha256", "interface_sha256"):
         digest = report.get(key)
         if not isinstance(digest, str) or _HASH.fullmatch(digest) is None:
             raise WorkspaceError("E_AGENT_DIFF_ID", "Missing or invalid bound digest: " + key)
@@ -112,7 +113,13 @@ def compare_pinned_contracts(
         "after_semantic_sha256": after["source_semantic_sha256"],
         "before_source_sha256": before["source_sha256"],
         "after_source_sha256": after["source_sha256"],
-        "source_identity_changed": before["source_sha256"] != after["source_sha256"],
+        "before_graph_sha256": before["source_graph_sha256"],
+        "after_graph_sha256": after["source_graph_sha256"],
+        # An imported module can change while the entry's source SHA stays
+        # unchanged. The loader's full source graph + import-edge digest is
+        # the only meaningful cross-workspace source-change comparator.
+        "source_identity_changed": before["source_graph_sha256"] != after["source_graph_sha256"],
+        "entry_source_changed": before["source_sha256"] != after["source_sha256"],
         "before_interface_sha256": before["interface_sha256"],
         "after_interface_sha256": after["interface_sha256"],
         "interface_identity_changed": before["interface_sha256"] != after["interface_sha256"],
