@@ -53,7 +53,8 @@ class SSA_LLVM_IR:
     def check_identity(self) -> None:
         if (self.profile not in {"hepta.llvm-ssa-i32.v0", "hepta.llvm-ssa-scalar32.v1"} or
                 not isinstance(self.text, str) or
-                sha256(self.text.encode()).hexdigest() != self.sha256):
+                len(self.text.encode("utf-8")) > _MAX_OUTPUT or
+                sha256(self.text.encode("utf-8")).hexdigest() != self.sha256):
             raise LLVMSSARejected("E_LLVM_SSA_IDENTITY: altered or invalid LLVM source")
         # v1's source-sign information must travel *inside* the hashed LLVM
         # text. Retagging signed IR as unsigned is not a trusted conversion.
@@ -83,7 +84,8 @@ def _word32(typ):
         return None
     if typ.get("args") != [] or typ.get("length") is not None:
         return None
-    return typ["type"] if typ["type"] in {"i32", "u32"} else None
+    name = typ["type"]
+    return name if isinstance(name, str) and name in {"i32", "u32"} else None
 
 
 def _reg(version):
