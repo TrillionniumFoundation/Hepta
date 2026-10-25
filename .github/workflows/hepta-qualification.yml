@@ -58,6 +58,23 @@ jobs:
           python -m hepta doctor --rustc "$RUSTC"
       - name: Qualify all original prototype gates on current source
         run: python tools/release_check.py
+      - name: Compile actual Hepta HSIR SSA/LLVM i32 fixture after rustc validation
+        run: |
+          python -m hepta build-llvm-scalar examples/llvm_scalar.hepta \
+            --rustc "$RUSTC" --output artifacts/hepta-llvm-scalar-ci.so \
+            > artifacts/llvm-scalar-ci.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.load(open('artifacts/llvm-scalar-ci.json'))
+          assert report['ok'] is True
+          assert report['reference_validation']['ok'] is True
+          assert report['status'] == 'native_host_compiled_unqualified'
+          assert set(report['build']['functions']) == {'checked_add', 'min2', 'choose'}
+          assert Path('artifacts/hepta-llvm-scalar-ci.so').stat().st_size > 0
+          assert report['build']['claims']['backend_semantics_proved'] is False
+          assert report['build']['claims']['whole_p6_gate_closed'] is False
+          PY
       - name: Qualify new C++ exception boundary
         run: python tools/verify_cpp_bridge_host.py --output artifacts/cpp-bridge-host-ci.json
       - name: Qualify alternate Clang C ABI
