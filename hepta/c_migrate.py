@@ -136,11 +136,24 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str,
         if actual != "bool":
             raise MigrationRejected("E_C_LOGICAL", "Logical operand must be a checked Boolean expression")
         return f"(!{operand})", "bool"
-    if kind == "UnaryOperator" and node.get("opcode") in {"+", "-"} and len(inner) == 1:
+    if kind == "UnaryOperator" and node.get("opcode") in {"+", "-", "~"} and len(inner) == 1:
+        op = node["opcode"]
+        # The integral promotions of narrower C integer types change the
+        # width/representation of ~ and -; this profile only admits exact
+        # u32/u64 (or signed +/-) operations whose result is already checked.
+        if _decl_type(node, model) != expected:
+            raise MigrationRejected("E_C_UNARY_PROMOTION", "C unary expression has an unmodeled promotion")
         rendered, typ = _expr(inner[0], args, model, expected, locals)
-        if node["opcode"] == "-" and expected.startswith("u"):
-            raise MigrationRejected("E_C_UNSIGNED_NEG", "Unsigned negation needs modular-C semantics")
-        return f"({node['opcode']}{rendered})", typ
+        if op == "~":
+            if not expected.startswith("u"):
+                raise MigrationRejected("E_C_BITWISE", "Signed bitwise complement is not in the portable profile")
+            # Hepta integer ! is fixed-width bitwise NOT, not Boolean negation.
+            return f"(!{rendered})", typ
+        if op == "-" and expected.startswith("u"):
+            # Unsigned C negation is well-defined modulo 2^N, not checked
+            # signed arithmetic. Reuse the existing zero-cost builtin.
+            return f"wrapping_sub(0, {rendered})", typ
+        return f"({op}{rendered})", typ
     if kind == "BinaryOperator" and len(inner) == 2:
         op = node.get("opcode")
         if op in _LOGICAL:

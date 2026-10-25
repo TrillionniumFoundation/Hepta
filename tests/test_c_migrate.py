@@ -51,6 +51,47 @@ class ClangMigrationTests(unittest.TestCase):
         self.assertIn('export "C" fn clamp_positive', source)
         self.assertIn("wrapping_add(x, y)", source)
 
+    def test_unsigned_unary_modular_and_complement_vs_native_c(self):
+        self.c.write_text("""
+unsigned int neg32(unsigned int x) { return -x; }
+unsigned int bitnot32(unsigned int x) { return ~x; }
+unsigned long long neg64(unsigned long long x) { return -x; }
+unsigned long long bitnot64(unsigned long long x) { return ~x; }
+""")
+        migrated = migrate_c(self.c, self.hepta)
+        self.assertTrue(migrated["ok"], migrated)
+        source = self.hepta.read_text()
+        self.assertIn("wrapping_sub(0, x)", source)
+        self.assertIn("(!x)", source)
+        self.assertEqual(analyze(source, str(self.hepta), native=False).report["status"], "frontend_only")
+        original, native = self.directory / "unary-original.so", self.directory / "unary-hepta.so"
+        a = subprocess.run(["gcc", "-std=c11", "-O2", "-shared", "-fPIC", str(self.c), "-o", str(original)],
+                           capture_output=True, text=True, timeout=30)
+        self.assertEqual(a.returncode, 0, a.stderr)
+        b = subprocess.run([sys.executable, "-m", "hepta", "build", str(self.hepta),
+                            "--backend", "c", "--crate-type", "cdylib", "-o", str(native)],
+                           capture_output=True, text=True, timeout=90)
+        self.assertEqual(b.returncode, 0, b.stdout + b.stderr)
+        old, translated = ctypes.CDLL(str(original)), ctypes.CDLL(str(native))
+        for name, typ, cases in (
+            ("neg32", ctypes.c_uint32, (0, 1, 2**31, 2**32-1)),
+            ("bitnot32", ctypes.c_uint32, (0, 1, 2**31, 2**32-1)),
+            ("neg64", ctypes.c_uint64, (0, 1, 2**63, 2**64-1)),
+            ("bitnot64", ctypes.c_uint64, (0, 1, 2**63, 2**64-1))):
+            left, right = getattr(old, name), getattr(translated, name)
+            for fn in (left, right):
+                fn.argtypes, fn.restype = [typ], typ
+            for x in cases:
+                with self.subTest(fn=name, x=x):
+                    self.assertEqual(left(x), right(x))
+
+    def test_signed_bitwise_complement_stays_rejected(self):
+        self.c.write_text("int unsafe_bits(int x){return ~x;}")
+        result = migrate_c(self.c, self.hepta)
+        self.assertFalse(result["ok"], result)
+        self.assertIn("E_C_BITWISE", [entry["code"] for entry in result["rejected"]])
+        self.assertFalse(self.hepta.exists())
+
     def test_divmod_shortcircuit_c11_vs_hepta_c_defined_domain(self):
         self.c.write_text("""
 int safe_div(int a,int b) { return a / b; }

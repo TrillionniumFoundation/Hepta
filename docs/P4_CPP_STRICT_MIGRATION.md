@@ -90,3 +90,13 @@ is retained in generated Hepta. Implicit integer truthiness, calls, user effects
 and unreviewed casts still reject rather than translating speculatively.
 Native C11 and C++20 original-vs-Hepta/C differential tests are added, but do
 not prove universal source equivalence or L2/L3 safety.
+
+## Unsigned unary arithmetic and bitwise complement
+
+The same canonical C/C++ expression lowerer now preserves source `-u32/-u64`
+by emitting `wrapping_sub(0, operand)` and unsigned `~u32/~u64` through
+Hepta's fixed-width integer `!operand`. Strict operand and result types are
+required. Signed `~`, narrow-integer promotions and nonliteral casts remain
+explicitly unsupported. Generated Hepta/C native differential regressions
+exercise wraparound edge values in C11 and C++20. These are L1 candidate
+checks, not universal source equivalence or an ABI/safety certification.

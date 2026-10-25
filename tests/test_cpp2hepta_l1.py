@@ -74,6 +74,45 @@ int clamp(int x) noexcept {
         self.assertEqual(first_hash, migrate_cpp(self.src, self.dst)["output_sha256"])
 
     @unittest.skipUnless(shutil.which("gcc"), "GCC needed for Hepta/C native differential")
+    def test_cpp20_unsigned_unary_modular_operations(self):
+        self.src.write_text("""
+unsigned int uneg(unsigned int x) noexcept { return -x; }
+unsigned long long unot(unsigned long long x) noexcept { return ~x; }
+""")
+        result = migrate_cpp(self.src, self.dst)
+        self.assertTrue(result["ok"], result)
+        generated = self.dst.read_text()
+        self.assertIn("wrapping_sub(0, x)", generated)
+        self.assertIn("(!x)", generated)
+        self.assertEqual(analyze(generated, str(self.dst), native=False).report["status"], "frontend_only")
+        bridge = self.root / "unary_bridge.cc"
+        bridge.write_text("""
+unsigned int uneg(unsigned int) noexcept;
+unsigned long long unot(unsigned long long) noexcept;
+extern "C" unsigned int original_uneg(unsigned int x){return uneg(x);}
+extern "C" unsigned long long original_unot(unsigned long long x){return unot(x);}
+""")
+        original, native = self.root / "unary_cpp.so", self.root / "unary_hepta.so"
+        a = subprocess.run(["clang++", "-std=c++20", "-O2", "-fPIC", "-shared",
+                            str(self.src), str(bridge), "-o", str(original)],
+                           capture_output=True, text=True, timeout=45)
+        self.assertEqual(a.returncode, 0, a.stderr)
+        b = subprocess.run([sys.executable, "-m", "hepta", "build", str(self.dst),
+                            "--backend", "c", "--crate-type", "cdylib", "-o", str(native)],
+                           capture_output=True, text=True, timeout=90)
+        self.assertEqual(b.returncode, 0, b.stdout + b.stderr)
+        old, converted = ctypes.CDLL(str(original)), ctypes.CDLL(str(native))
+        for source_name, name, typ, inputs in (
+            ("original_uneg", "uneg", ctypes.c_uint32, (0, 1, 2**31, 2**32-1)),
+            ("original_unot", "unot", ctypes.c_uint64, (0, 1, 2**63, 2**64-1))):
+            left, right = getattr(old, source_name), getattr(converted, name)
+            for fn in (left, right):
+                fn.argtypes, fn.restype = [typ], typ
+            for x in inputs:
+                with self.subTest(fn=name, x=x):
+                    self.assertEqual(left(x), right(x))
+
+    @unittest.skipUnless(shutil.which("gcc"), "GCC needed for Hepta/C native differential")
     def test_cpp20_divmod_shortcircuit_original_vs_hepta_native(self):
         self.src.write_text("""
 int cpp_div(int a,int b) noexcept { return a / b; }
