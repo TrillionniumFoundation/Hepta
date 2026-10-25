@@ -130,7 +130,7 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str,
         # Accept logical negation only when its operand is itself a checked
         # Boolean/comparison expression. General C integer truthiness remains
         # outside this profile; !x must not turn into a guessed Hepta cast.
-        if expected != "bool" or _decl_type(node, model) != "i32":
+        if expected != "bool" or node.get("type", {}).get("qualType") not in {"int", "bool"}:
             raise MigrationRejected("E_C_LOGICAL", "Logical negation requires a Boolean condition")
         operand, actual = _expr(inner[0], args, model, "bool", locals)
         if actual != "bool":
@@ -147,7 +147,7 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str,
             # C/C++ logical operators return int/bool, respectively. Accept
             # only pure comparison/Boolean operands and retain their original
             # left-to-right short-circuit behavior through Hepta && / ||.
-            if expected != "bool" or _decl_type(node, model) not in {"i32", "u32"}:
+            if expected != "bool" or node.get("type", {}).get("qualType") not in {"int", "bool"}:
                 raise MigrationRejected("E_C_LOGICAL", "Logical operations are supported only as Boolean conditions")
             left, left_type = _expr(inner[0], args, model, "bool", locals)
             right, right_type = _expr(inner[1], args, model, "bool", locals)
@@ -172,20 +172,11 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str,
             if (_decl_type(node, model) != expected
                     or _decl_type(inner[0], model) != expected
                     or _decl_type(inner[1], model) != expected):
-                # Unsuffixed integer literals may be widened by Clang. Their
-                # IntegralCast is handled by the existing exact-value gate,
-                # but implicit signedness/width changes never get guessed.
-                if (_decl_type(node, model) != expected
-                        or _decl_type(inner[0], model) != expected):
-                    raise MigrationRejected("E_C_DIVMOD_PROMOTION",
-                                            "Division operands/result need an exact checked scalar representation")
-                rhs = inner[1]
-                if (rhs.get("kind") != "ImplicitCastExpr"
-                        or rhs.get("castKind") != "IntegralCast"
-                        or len(rhs.get("inner", [])) != 1
-                        or rhs["inner"][0].get("kind") != "IntegerLiteral"):
-                    raise MigrationRejected("E_C_DIVMOD_PROMOTION",
-                                            "Implicit division conversion is outside the exact-literal profile")
+                raise MigrationRejected("E_C_DIVMOD_PROMOTION",
+                                        "Division operands/result need the exact checked scalar type")
+            # Clang may already have an IntegralCast on a representable
+            # literal. The existing _expr cast gate checks that case; any
+            # unmodeled promotions still reject rather than changing signedness.
         if op in _BITS and expected.startswith("i"):
             raise MigrationRejected("E_C_BITWISE", "Signed C bitwise operations require target-specific semantics")
         # Division and modulo are evaluated once per operand and use Hepta's
