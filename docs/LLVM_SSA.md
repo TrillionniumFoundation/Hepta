@@ -88,3 +88,29 @@ Important qualification limits:
   never a passing benchmark or a language-wide performance claim.
 
 Full P6 production and P01–P12 acceptance remain open.
+
+## P2/P6 target-object pilot (no target execution)
+
+The separate `hepta.llvm_ssa_target.compile_ssa_target_object` consumes a
+verified `SSA_LLVM_IR` and invokes real Clang with explicit `--target` to
+produce a relocatable object on the destination filesystem:
+
+| Triple | Object profile | Verified header identity |
+| --- | --- | --- |
+| `x86_64-unknown-linux-gnu` | little-endian ELF64 relocatable | machine 62 |
+| `aarch64-unknown-linux-gnu` | little-endian ELF64 relocatable | machine 183 |
+| `x86_64-pc-windows-msvc` | COFF x64 | machine 0x8664 |
+
+The object profile accepts precisely these targets; no target link, call
+or emulation is performed, and the output refuses overwrite. Artifacts
+carry the target triple, actual machine type, LLVM IR identity, prior SSA
+verification identity, Clang identity and object hash.
+
+    python -m hepta build-llvm-ssa examples/ssa_llvm.hepta \
+      --target aarch64-unknown-linux-gnu --output /tmp/hepta-ssa-arm64.o
+    python -m unittest discover -s tests -p test_llvm_ssa_target.py -v
+
+Cross-compilation alone does not prove target-layout ABI compatibility,
+runtime memory safety, Windows exception integration, successful linking,
+or physical device execution. No target feature is silently qualified
+by checking an ELF/COFF header. Full P2/P6 production gates remain open.
