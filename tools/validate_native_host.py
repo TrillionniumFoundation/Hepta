@@ -64,7 +64,12 @@ def run_host(*, cc=None, rustc=None, expected_system=None, expected_machine=None
     if not analysis.report["ok"]:
         raise RuntimeError(json.dumps(analysis.report))
     with tempfile.TemporaryDirectory(prefix="hepta-native-host-") as td:
-        directory = Path(td)
+        # Windows may return the 8.3 short-path spelling RUNNER~1 here.
+        # rustc's validated artifact path uses Path.resolve(), which expands
+        # that name to runneradmin. Canonicalize *before* constructing any
+        # commands so the trace and the artifact receipt have exact identity.
+        # This preserves strict bytewise argv comparisons in validate_report.
+        directory = Path(td).resolve(strict=True)
         header = emit_header(analysis.program)
         (directory / "matrix.h").write_text(header)
         cfile = directory / "matrix.c"
@@ -200,8 +205,18 @@ def validate_report(report):
         executable = str(directory / ("host-matrix" + optimization + extension))
         expected = [cc["path"], "-std=c11", optimization, "-Wall", "-Wextra", "-Werror", "-pedantic-errors", "-DABI_LAYOUT", cfile, native["artifact"], "-o", executable]
         built, executed = commands[2 + index*2:4 + index*2]
-        require(built["argv"] == expected and built["returncode"] == 0 and executed["argv"] == [executable] and executed["returncode"] == 0,
-                "host compile/link/run trace differs")
+        if (built["argv"] != expected or built["returncode"] != 0
+                or executed["argv"] != [executable] or executed["returncode"] != 0):
+            # Keep exact bytes in the diagnostic. Case, separators and OS-specific
+            # path identities must not be normalized without an ABI-specific
+            # justification: a relaxed equality could certify the wrong binary.
+            mismatch = {"profile": optimization,
+                        "expected_compile": expected, "actual_compile": built["argv"],
+                        "expected_execute": [executable], "actual_execute": executed["argv"],
+                        "compile_returncode": built["returncode"],
+                        "execute_returncode": executed["returncode"]}
+            raise ValueError("host compile/link/run trace differs: "
+                             + json.dumps(mismatch, sort_keys=True)[:4000])
         require(strict_equal(json.loads(executed["stdout"]), executions[index]["observed"]), "raw host execution observation differs")
     bad_executable = str(directory / ("wrong" + extension))
     require(commands[6]["argv"] == [cc["path"], "-std=c11", "-O2", "-DABI_LAYOUT", cfile, native["artifact"], "-o", bad_executable]
@@ -218,13 +233,27 @@ def main():
     parser.add_argument("--expected-machine", choices=["x86_64", "aarch64"])
     parser.add_argument("--output", type=Path, default=ROOT / "artifacts/native-host.json")
     args = parser.parse_args()
+    observed = None
     try:
         report = run_host(cc=args.cc, rustc=args.rustc, expected_system=args.expected_system, expected_machine=args.expected_machine)
+        observed = report
         validate_report(report)
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:
         report = {"schema": "hepta.native-host.v1", "status": "failed", "error": str(exc),
                   "host": {"system": platform.system(), "machine": platform.machine()},
                   "claims": {"cross_host_results_inferred": False}}
+        if observed is not None:
+            # A completed but rejected run is NOT evidence of qualification.
+            # Retain the unqualified raw command transcript so Windows/macOS
+            # mismatches can be diagnosed without changing verification rules.
+            report["unqualified_observations"] = {
+                "commands": observed.get("commands", []),
+                "c_compiler": observed.get("c_compiler"),
+                "native_object_artifact": observed.get("native_object", {}).get("artifact"),
+                "executions": observed.get("executions"),
+                "negative_control": observed.get("negative_control"),
+                "source_sha256": observed.get("source_sha256"),
+            }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     print(json.dumps({"status": report["status"], "output": str(args.output), "error": report.get("error")}))
