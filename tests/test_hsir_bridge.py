@@ -87,6 +87,31 @@ class HSIRBridgeTests(unittest.TestCase):
         with self.assertRaises(HSIRRejected):
             HSIRSnapshot(snap.schema, snap.canonical_json, "0" * 64).as_dict()
 
+    def test_resealed_derived_snapshot_cannot_bypass_scalar_schema(self):
+        program, checked = _checked(_SOURCE)
+        snap = lower_checked_program(program, checked)
+        baseline = snap.as_dict()
+        self.assertTrue(lower_hsir_cfg(snap))
+        for name, mutate in {
+            "elevated_claim": lambda x: x["claims"].update(pointer_provenance_proved=True),
+            "extra_function_metadata": lambda x: x["functions"][0].update(implicit_unsafe=True),
+            "missing_statement_field": lambda x: x["functions"][0]["body"][0]["fields"].pop("mutable"),
+            "injected_nested_effect": lambda x: x["functions"][0]["body"][2]["fields"]["body"][0]["fields"].update(ffi=True),
+            "hidden_expression": lambda x: x.update(typed_expression_count=0),
+            "unknown_top_level": lambda x: x.update(pointer_proof=True),
+        }.items():
+            with self.subTest(case=name):
+                payload = copy.deepcopy(baseline)
+                payload.pop("sha256")
+                mutate(payload)
+                encoded = json.dumps(payload, sort_keys=True, ensure_ascii=False,
+                                     allow_nan=False, separators=(",", ":"))
+                forged = HSIRSnapshot(snap.schema, encoded, hashlib.sha256(encoded.encode()).hexdigest())
+                with self.assertRaises(HSIRRejected):
+                    forged.as_dict()
+                with self.assertRaises(HSIRRejected):
+                    lower_hsir_cfg(forged)
+
     def test_resealed_but_elided_or_unreviewed_semantics_rejected(self):
         a, ac = _checked(_SOURCE)
         canonical = canonical_hsir(a, ac)
