@@ -59,7 +59,7 @@ def _inventory(report: dict[str, Any], version: str) -> dict[tuple[str, str], di
             raise WorkspaceError("E_AGENT_DIFF_FUNCTION", "Malformed function contract")
         path, name = fn.get("path"), fn.get("name")
         if (not isinstance(path, str) or not path or not isinstance(name, str) or not name
-                or PurePosixPath(path).is_absolute() or "\\\\" in path
+                or PurePosixPath(path).is_absolute() or "\\" in path
                 or any(part in ("", ".", "..") for part in path.split("/"))
                 or path not in report["validated_sources"]):
             raise WorkspaceError("E_AGENT_DIFF_FUNCTION", "Missing or unvalidated relative function origin")
