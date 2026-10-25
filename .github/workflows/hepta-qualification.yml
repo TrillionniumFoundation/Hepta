@@ -62,6 +62,17 @@ jobs:
         run: python tools/verify_cpp_bridge_host.py --output artifacts/cpp-bridge-host-ci.json
       - name: Qualify alternate Clang C ABI
         run: python tools/abi_fuzz.py --cc clang --output artifacts/abi-matrix-clang-ci.json
+      - name: Cross-target C ABI layout object probes (not execution)
+        run: |
+          python tools/cross_target_abi_probe.py --output artifacts/abi-cross-target-ci.json
+          python - <<'PY'
+          import json
+          r = json.load(open('artifacts/abi-cross-target-ci.json'))
+          assert r['status'] == 'passed' and len(r['cases']) == 3
+          assert all(x['status'] == 'passed' and x['deliberate_layout_fault_rejected'] for x in r['cases'])
+          assert r['claims']['cross_target_execution_verified'] is False
+          assert r['claims']['hepta_abi_equivalence_verified'] is False
+          PY
       - name: Gate no unexpected skipped test cases
         run: |
           python - <<'PY'
