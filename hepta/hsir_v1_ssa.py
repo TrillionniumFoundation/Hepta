@@ -17,7 +17,8 @@ class V1SSARejected(ValueError):
 
 
 def lower_verified_v1_scalar_ssa(envelope: dict, *, source_text: str | None = None,
-                                  source_path: str | None = None) -> dict:
+                                  source_path: str | None = None,
+                                  verified_project_sha256: str | None = None) -> dict:
     """Recheck exact source for PR14; preserve existing frozen-v0 path.
 
     PR14's source-bound typed display fields can never be blindly cast into
@@ -39,7 +40,8 @@ def lower_verified_v1_scalar_ssa(envelope: dict, *, source_text: str | None = No
             raise V1SSARejected("E_V1_SSA_SOURCE_REQUIRED: external source-bound producer requires exact checked bytes/path")
         from .hsir_v1_source_bound import SourceBoundRejected, recheck_source_bound
         try:
-            snapshot = recheck_source_bound(envelope, source_text, source_path)
+            snapshot = recheck_source_bound(envelope, source_text, source_path,
+                                            verified_project_sha256=verified_project_sha256)
         except SourceBoundRejected as exc:
             raise V1SSARejected("E_V1_SSA_SOURCE_RECHECK: " + str(exc)) from exc
     elif profile == "frozen_snapshot_v0":
