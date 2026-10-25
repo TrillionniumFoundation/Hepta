@@ -148,7 +148,12 @@ def main(argv: list[str] | None = None) -> int:
     opts = parser.parse_args(argv)
     try:
         original = Path(opts.source).resolve(strict=True)
-        destination = Path(opts.output).resolve()
+        # Keep the requested final path instead of following dangling output
+        # symlinks. The atomic hardlink must never redirect to an alias target.
+        requested = Path(os.path.abspath(opts.output))
+        destination = requested.parent.resolve() / requested.name
+        if destination.is_symlink():
+            raise MigrationRejected('E_CPP2HEPTA_OUTPUT: output symlink refused')
         if original == destination or destination.suffix != '.hepta':
             raise MigrationRejected('E_CPP2HEPTA_OUTPUT: separate .hepta file required')
         translated = convert_cpp(original, clangxx=opts.clangxx, module=opts.module)
