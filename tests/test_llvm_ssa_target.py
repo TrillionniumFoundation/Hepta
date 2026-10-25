@@ -48,6 +48,25 @@ class LLVMSSATargetTests(unittest.TestCase):
             compile_ssa_target_object(self.ir, target="x86_64-unknown-linux-gnu", output=path)
         self.assertEqual(path.read_bytes(), b"untouched")
 
+    def test_dangling_output_symlink_cannot_redirect_publication(self):
+        unintended_dir = self.root / "unintended"
+        unintended_dir.mkdir()
+        unintended = unintended_dir / "object.o"
+        alias = self.root / "requested.o"
+        alias.symlink_to(unintended)
+        self.assertTrue(alias.is_symlink())
+        self.assertFalse(unintended.exists())
+        with self.assertRaisesRegex(LLVMSSARejected, "E_LLVM_SSA_OUTPUT"):
+            compile_ssa_target_object(self.ir, target="x86_64-unknown-linux-gnu",
+                                      output=alias)
+        self.assertTrue(alias.is_symlink())
+        self.assertFalse(unintended.exists())
+        regular = self.root / "regular.o"
+        evidence = compile_ssa_target_object(self.ir, target="x86_64-unknown-linux-gnu",
+                                             output=regular)
+        self.assertEqual(evidence["artifact_bytes"], regular.stat().st_size)
+        self.assertTrue(_qualified_header(regular.read_bytes(), "x86_64-unknown-linux-gnu"))
+
     def test_modified_ir_fails_before_compilation(self):
         from dataclasses import replace
         forged = replace(self.ir, sha256="0"*64)

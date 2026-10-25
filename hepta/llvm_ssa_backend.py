@@ -232,8 +232,10 @@ def compile_scalar_ssa_llvm(ir: SSA_LLVM_IR, *, clang: str = "clang", output: st
     version = subprocess.run([str(compiler), "--version"], capture_output=True, text=True, timeout=10)
     if version.returncode or not version.stdout.strip():
         raise LLVMSSARejected("E_LLVM_SSA_TOOLCHAIN: compiler identity unavailable")
-    target = Path(output).resolve()
-    if target.exists():
+    # Do not resolve the output leaf: a dangling symlink could publish
+    # the compiled library to a different pathname.
+    target = Path(output).absolute()
+    if target.is_symlink() or target.exists():
         raise LLVMSSARejected("E_LLVM_SSA_OUTPUT: refusing to overwrite existing artifact")
     target.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=".hepta-ssa-llvm-", dir=target.parent) as folder:
@@ -244,7 +246,7 @@ def compile_scalar_ssa_llvm(ir: SSA_LLVM_IR, *, clang: str = "clang", output: st
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=45, check=False)
         if result.returncode or not library.is_file() or library.stat().st_size == 0:
             raise LLVMSSARejected("E_LLVM_SSA_NATIVE: clang compilation failed: " + result.stderr[:1800])
-        if target.exists():
+        if target.is_symlink() or target.exists():
             raise LLVMSSARejected("E_LLVM_SSA_OUTPUT: destination created during build")
         os.link(library, target)
     return {"schema": "hepta.llvm-ssa-host.v0", "status": "native_host_compiled_unqualified",
