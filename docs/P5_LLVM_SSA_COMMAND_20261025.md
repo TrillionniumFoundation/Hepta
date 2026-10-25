@@ -52,3 +52,22 @@ target where applicable, and explicit **false** semantic-refinement proof
 claims. A backend record with a valid hash but elevated proof claims cannot
 make the source command succeed. Negative tests use an intentionally forged
 native receipt to demonstrate nonpublication.
+
+## P5 narrow unsigned 32-bit support (2026-10-25)
+
+The direct SSA/LLVM emitter now admits a **homogeneous** `u32` function
+profile as well as its historical signed `i32` profile. Both produce native
+LLVM `i32` values, but the *source type* controls semantics: unsigned
+`ult/ule/ugt/uge` comparison predicates and unsigned checked
+`uadd/usub/umul.with.overflow.i32` intrinsics replace the signed forms
+where appropriate. Unchecked unsigned wrap is not silently introduced:
+ordinary Hepta integer arithmetic still aborts on overflow. Mixed-sign
+parameters, locals, returns and PHIs reject.
+
+All-`i32` programs retain the historical
+`hepta.llvm-ssa-i32.v0` IR profile. A module with `u32` functions
+uses explicit `hepta.llvm-ssa-scalar32.v1`. Runtime tests include real
+native Clang shared libraries, unsigned comparison boundary cases,
+deliberate overflow abort, and a pinned Rust source-reference execution
+path. **This does not qualify an independent general LLVM backend, C++ ABI,
+cross-target execution, resource-bearing SSA or whole-language soundness.**
