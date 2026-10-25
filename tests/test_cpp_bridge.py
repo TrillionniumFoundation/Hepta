@@ -1,5 +1,6 @@
 """C++ bridge qualifies only a small, explicitly unsafe external ABI subset."""
 import ctypes
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -7,8 +8,9 @@ import sys
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 
-from hepta.cpp_bridge import bridge_cpp
+from hepta.cpp_bridge import _publish_pair, bridge_cpp
 
 
 HEADER = """
@@ -272,6 +274,35 @@ assert destroy(handle.value) == 0
         report = self.bridge("Derived")
         self.assertFalse(report["ok"], report)
         self.assertIn("E_CPP_HIERARCHY", [d["code"] for d in report["diagnostics"]])
+        self.assertFalse(self.cpp.exists())
+
+    def test_staging_fsync_failure_leaves_no_visible_output(self):
+        with patch("hepta.cpp_bridge.os.fsync", side_effect=OSError("injected disk fault")):
+            with self.assertRaises(OSError):
+                _publish_pair(self.cpp, "cpp contents", self.hepta, "hepta contents")
+        self.assertFalse(self.cpp.exists())
+        self.assertFalse(self.hepta.exists())
+
+    def test_second_link_failure_rolls_back_only_own_published_output(self):
+        actual_link = os.link
+        calls = [0]
+        def fail_second(source, destination, *args, **kwargs):
+            calls[0] += 1
+            if calls[0] == 2:
+                raise OSError("injected second destination failure")
+            return actual_link(source, destination, *args, **kwargs)
+        with patch("hepta.cpp_bridge.os.link", side_effect=fail_second):
+            with self.assertRaises(OSError):
+                _publish_pair(self.cpp, "cpp contents", self.hepta, "hepta contents")
+        self.assertEqual(calls[0], 2)
+        self.assertFalse(self.cpp.exists())
+        self.assertFalse(self.hepta.exists())
+
+    def test_existing_second_destination_is_never_overwritten(self):
+        self.hepta.write_text("existing")
+        with self.assertRaises(FileExistsError):
+            _publish_pair(self.cpp, "candidate", self.hepta, "replacement")
+        self.assertEqual(self.hepta.read_text(), "existing")
         self.assertFalse(self.cpp.exists())
 
     def test_no_overwrite_or_partial_outputs(self):
