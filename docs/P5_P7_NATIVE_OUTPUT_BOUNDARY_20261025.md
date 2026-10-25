@@ -59,3 +59,14 @@ Reproduce:
     python -m unittest tests.test_native_output_guard -v
     python -m unittest tests.test_llvm_native_output_limits -v
     python -m unittest tests.test_llvm_ssa_backend tests.test_llvm_ssa_target -v
+
+## End-to-end source entrypoint hardening
+
+The top-level `hepta.llvm_ssa_pipeline.build_llvm_ssa_source` previously
+called unbounded `stage.read_bytes()` even if its child LLVM backend
+respected an artifact cap. It now reuses `read_native_artifact` before
+publication, matches the staged hash and byte count to the native receipt,
+and re-fingerprints the published path through bounded streaming.
+An explicit over-budget forged-native-receipt regression is committed in
+`tests.test_llvm_ssa_cli`; its real native rustc gate remains necessary.
+These additional tests were not run locally in the partial checkout.

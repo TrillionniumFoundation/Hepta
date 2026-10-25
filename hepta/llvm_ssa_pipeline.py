@@ -14,6 +14,8 @@ from .cfg import lower_hsir_cfg
 from .hsir import lower_checked_program
 from .llvm_ssa_backend import LLVMSSARejected, compile_scalar_ssa_llvm, emit_scalar_ssa_llvm
 from .llvm_ssa_target import _TARGETS, compile_ssa_target_object
+from .native_output_guard import (MAX_NATIVE_ARTIFACT_BYTES, NativeOutputRejected,
+                                  digest_regular_binary, read_native_artifact)
 from .pipeline import analyze_project
 from .ssa import lower_cfg_scalar_ssa
 from .ssa_verify import verify_scalar_ssa
@@ -112,18 +114,30 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
             # Validate real staged bytes *before* external publication. An
             # incorrect compiler receipt must never leave a published output
             # even if the command subsequently reports rejection.
-            artifact = stage.read_bytes() if stage.is_file() else b""
-            if (not artifact or sha256(artifact).hexdigest() != native.get("artifact_sha256")
+            try:
+                artifact = read_native_artifact(stage)
+            except NativeOutputRejected as exc:
+                raise LLVMSSARejected("E_LLVM_SSA_ARTIFACT: " + str(exc)) from exc
+            if (sha256(artifact).hexdigest() != native.get("artifact_sha256")
                     or len(artifact) != native.get("artifact_bytes")):
                 raise LLVMSSARejected("E_LLVM_SSA_ARTIFACT: staged native bytes differ from compiler receipt")
             if not project.unchanged():
                 raise LLVMSSARejected("E_LLVM_SSA_STALE: graph changed during native compilation")
             if dest.is_symlink() or dest.exists():
                 raise LLVMSSARejected("E_LLVM_SSA_OUTPUT: concurrent destination publication")
-            os.link(stage, dest)  # same filesystem, no overwrite
+            try:
+                os.link(stage, dest)  # same filesystem, no overwrite
+            except FileExistsError as exc:
+                raise LLVMSSARejected("E_LLVM_SSA_OUTPUT: concurrent destination publication") from exc
+            try:
+                published_sha256 = digest_regular_binary(dest, max_bytes=MAX_NATIVE_ARTIFACT_BYTES)
+            except NativeOutputRejected as exc:
+                raise LLVMSSARejected("E_LLVM_SSA_ARTIFACT: " + str(exc)) from exc
+            if published_sha256 != sha256(artifact).hexdigest():
+                raise LLVMSSARejected("E_LLVM_SSA_ARTIFACT: published bytes differ from validated stage")
         result["native_backend"] = dict(native)
         result["native_backend"]["output"] = str(dest)
-        result["native_backend"]["artifact_sha256"] = sha256(artifact).hexdigest()
+        result["native_backend"]["artifact_sha256"] = published_sha256
         result["claims"]["native_artifact_compiled"] = True
         result["ok"] = True
         result["status"] = ("cross_object_only_not_executed" if target is not None
