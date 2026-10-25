@@ -33,7 +33,33 @@ def main(argv=None) -> int:
     importer.add_argument("--output", "-o", required=True)
     importer.add_argument("--module", default="c_imported")
     importer.add_argument("--cc")
-    for cmd in ["check", "inspect", "emit", "header", "build", "run", "patch"]:
+    migrator = sub.add_parser("migrate-c", help="Fail-closed Clang AST C11 to Hepta L1 candidate")
+    migrator.add_argument("source")
+    migrator.add_argument("--output", "-o", required=True)
+    migrator.add_argument("--clang", default="clang")
+    migrator.add_argument("--module", default="c_migrated")
+    cpp_migration = sub.add_parser("migrate-cpp", help="Fail-closed Clang++ C++20 to Hepta L1 candidate")
+    cpp_migration.add_argument("source")
+    cpp_migration.add_argument("--output", "-o", required=True)
+    cpp_migration.add_argument("--clangxx", default="clang++")
+    cpp_migration.add_argument("--module", default="cpp_migrated")
+    bridge = sub.add_parser("bridge-cpp", help="Generate narrow L0 C++ to C ABI wrappers")
+    bridge.add_argument("source")
+    bridge.add_argument("--clangxx", default="clang++")
+    bridge.add_argument("--output-dir", required=True)
+    bridge.add_argument("--exception-mode", choices=["noexcept_only", "catch_status"],
+                        default="noexcept_only")
+    llvm_scalar = sub.add_parser("build-llvm-scalar", help="Build strict HSIR i32 profile through LLVM, after rustc validation")
+    llvm_scalar.add_argument("source")
+    llvm_scalar.add_argument("--output", "-o", required=True)
+    llvm_scalar.add_argument("--rustc")
+    llvm_scalar.add_argument("--clang", default="clang")
+    llvm_scalar.add_argument("--locked", action="store_true")
+    llvm_scalar.add_argument("--target", choices=[
+        "x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu",
+        "x86_64-pc-windows-msvc"
+    ], help="Cross-compile a machine object only; target execution and ABI remain unqualified")
+    for cmd in ["check", "inspect", "hsir", "emit", "header", "build", "run", "patch"]:
         p = sub.add_parser(cmd)
         p.add_argument("source")
         p.add_argument("--rustc")
@@ -72,6 +98,41 @@ def main(argv=None) -> int:
             manifest.write_text(json.dumps(imported.manifest, indent=2, sort_keys=True) + "\n")
             output_json({"schema": "hepta.import-c.v1", "ok": True, "output": str(dest), "manifest": str(manifest), "validation": imported.manifest})
             return 0
+        if args.command == "migrate-c":
+            from .c2hepta import main as migrate_c_main
+            return migrate_c_main([args.source, "--output", args.output,
+                                   "--clang", args.clang, "--module", args.module])
+        if args.command == "migrate-cpp":
+            from .cpp2hepta import main as migrate_cpp_main
+            return migrate_cpp_main([args.source, "--output", args.output,
+                                     "--clangxx", args.clangxx, "--module", args.module])
+        if args.command == "bridge-cpp":
+            from .cpp_bridge import main as bridge_cpp_main
+            return bridge_cpp_main([args.source, "--output-dir", args.output_dir,
+                                    "--clangxx", args.clangxx,
+                                    "--exception-mode", args.exception_mode])
+        if args.command == "build-llvm-scalar":
+            # Never qualify a new backend merely from a frontend-only result.
+            # The pinned real rustc reference must complete its native check.
+            from .hsir import lower_checked_program
+            from .llvm_scalar_backend import emit_scalar_llvm, compile_scalar_llvm, compile_scalar_object
+            reference = analyze_project(Path(args.source).resolve(),
+                                        rustc=args.rustc, native=True,
+                                        backend="rust", locked=args.locked,
+                                        crate_type="cdylib")
+            if not reference.report["ok"]:
+                output_json(reference.report)
+                return 1
+            hsir = lower_checked_program(reference.program, reference.checked)
+            code = emit_scalar_llvm(hsir)
+            build = (compile_scalar_object(code, clang=args.clang, target=args.target, output=args.output)
+                     if args.target is not None
+                     else compile_scalar_llvm(code, clang=args.clang, output=args.output))
+            output_json({"schema": "hepta.build-llvm-scalar.v1" if args.target else "hepta.build-llvm-scalar.v0",
+                         "ok": True, "status": build["status"],
+                         "reference_scope": "host_rust_reference_not_target_execution",
+                         "reference_validation": reference.report, "build": build})
+            return 0
         if args.command == "doctor":
             info = toolchain_info(find_rustc(args.rustc))
             output_json({"schema": "hepta.doctor.v1", "ok": True, "toolchain": info})
@@ -93,6 +154,22 @@ def main(argv=None) -> int:
                                  backend=args.backend, cc=args.cc, locked=args.locked)
         file = result.project.entry
         protected = {Path(p) for p in result.project.sources}
+        if args.command == "hsir":
+            if args.backend != "rust":
+                raise ValueError("HSIR v0 requires the real Rust reference backend")
+            if not result.report["ok"]:
+                output_json(result.report)
+                return 1
+            from .hsir import lower_checked_program
+            snapshot = lower_checked_program(result.program, result.checked).as_dict()
+            snapshot["reference_validation"] = {
+                "status": result.report["status"],
+                "compiler_sha256": result.report["compiler_sha256"],
+                "checks": result.report["checks"],
+                "backend": result.report.get("backend"),
+            }
+            output_json(snapshot)
+            return 0
         if args.command == "inspect":
             output_json(inspect_analysis(result))
             return 0 if result.report["ok"] else 1

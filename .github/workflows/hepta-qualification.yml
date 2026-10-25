@@ -1,0 +1,152 @@
+name: Hepta qualified source snapshot
+
+on:
+  pull_request:
+    paths:
+      - "hepta/**"
+      - "tests/**"
+      - "tools/**"
+      - "formal/**"
+      - "examples/**"
+      - "benchmarks/**"
+      - "experiments/**"
+      - "docs/**"
+      - "toolchain-lock.json"
+      - ".github/workflows/hepta-qualification.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Do not leave dozens of obsolete 55-minute qualification runs queued while
+# a language-security branch is iterating. Only the newest PR head qualifies.
+concurrency:
+  group: hepta-qualification-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-and-safety:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Record exact source identity
+        run: |
+          git rev-parse HEAD
+          git status --porcelain
+          python --version
+          gcc --version | head -1
+          clang --version | head -1
+      - name: Install fixed validation dependencies
+        run: |
+          python -m pip install --disable-pip-version-check 'zstandard>=0.22,<1'
+          python tools/bootstrap_toolchain.py
+          python tools/bootstrap_verification.py
+          echo "RUSTC=$(realpath ../toolchains/rust-1.90.0/bin/rustc)" >> "$GITHUB_ENV"
+          echo "LEAN=$(realpath ../toolchains/lean-4.19.0/bin/lean)" >> "$GITHUB_ENV"
+          echo "QEMU_AARCH64=$(realpath ../toolchains/qemu-8.2.2/qemu-aarch64-static)" >> "$GITHUB_ENV"
+      - name: Verify pinned rustc identity
+        run: |
+          "$RUSTC" -vV
+          python -m hepta doctor --rustc "$RUSTC"
+      - name: Qualify all original prototype gates on current source
+        run: python tools/release_check.py
+      - name: Compile actual Hepta HSIR SSA/LLVM i32 fixture after rustc validation
+        run: |
+          python -m hepta build-llvm-scalar examples/llvm_scalar.hepta \
+            --rustc "$RUSTC" --output artifacts/hepta-llvm-scalar-ci.so \
+            > artifacts/llvm-scalar-ci.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.load(open('artifacts/llvm-scalar-ci.json'))
+          assert report['ok'] is True
+          assert report['reference_validation']['ok'] is True
+          assert report['status'] == 'native_host_compiled_unqualified'
+          assert set(report['build']['functions']) == {'checked_add', 'min2', 'choose'}
+          assert Path('artifacts/hepta-llvm-scalar-ci.so').stat().st_size > 0
+          assert report['build']['claims']['backend_semantics_proved'] is False
+          assert report['build']['claims']['whole_p6_gate_closed'] is False
+          PY
+      - name: Compile three cross-target Hepta LLVM machine objects (not execution)
+        run: |
+          for target in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu x86_64-pc-windows-msvc; do
+            python -m hepta build-llvm-scalar examples/llvm_scalar.hepta \
+              --rustc "$RUSTC" --target "$target" \
+              --output "artifacts/hepta-llvm-$target.o" \
+              > "artifacts/llvm-cross-$target.json"
+          done
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          targets = ('x86_64-unknown-linux-gnu', 'aarch64-unknown-linux-gnu', 'x86_64-pc-windows-msvc')
+          for target in targets:
+              report = json.load(open(f'artifacts/llvm-cross-{target}.json'))
+              assert report['status'] == 'cross_object_only_unqualified'
+              assert report['reference_validation']['ok'] is True
+              assert report['reference_scope'] == 'host_rust_reference_not_target_execution'
+              build = report['build']
+              assert build['target'] == target
+              assert set(build['functions']) == {'checked_add', 'min2', 'choose'}
+              assert build['claims']['target_execution_verified'] is False
+              assert build['claims']['foreign_c_abi_verified'] is False
+              assert build['claims']['backend_semantics_proved'] is False
+              assert Path(build['output']).stat().st_size > 0
+          PY
+      - name: Produce exact-source LLVM scalar qualification receipt
+        run: |
+          python tools/verify_llvm_subset_host.py \
+            --output artifacts/llvm-subset-ci.json
+          python - <<'PY'
+          import json
+          r = json.load(open('artifacts/llvm-subset-ci.json'))
+          assert r['test_result']['status'] == 'passed'
+          assert r['test_result']['skipped'] == 0
+          assert r['claims']['host_llvm_differential_tested'] is True
+          assert r['claims']['x86_aarch64_windows_target_objects_tested'] is True
+          assert r['claims']['backend_semantics_proved'] is False
+          assert r['claims']['whole_p6_gate_closed'] is False
+          PY
+      - name: Qualify new C++ exception boundary
+        run: python tools/verify_cpp_bridge_host.py --output artifacts/cpp-bridge-host-ci.json
+      - name: Qualify alternate Clang C ABI
+        run: python tools/abi_fuzz.py --cc clang --output artifacts/abi-matrix-clang-ci.json
+      - name: Cross-target C ABI layout object probes (not execution)
+        run: |
+          python tools/cross_target_abi_probe.py --output artifacts/abi-cross-target-ci.json
+          python - <<'PY'
+          import json
+          r = json.load(open('artifacts/abi-cross-target-ci.json'))
+          assert r['status'] == 'passed' and len(r['cases']) == 3
+          assert all(x['status'] == 'passed' and x['deliberate_layout_fault_rejected'] for x in r['cases'])
+          assert r['claims']['cross_target_execution_verified'] is False
+          assert r['claims']['hepta_abi_equivalence_verified'] is False
+          PY
+      - name: Gate no unexpected skipped test cases
+        run: |
+          python - <<'PY'
+          import json
+          r = json.load(open("artifacts/release-validation.json"))
+          assert r["status"] == "passed", "release evidence is not qualified"
+          unit = next(x for x in r["gates"] if x["name"] == "unit_and_integration")
+          assert unit["skipped"] == 0
+          assert r["snapshot_unchanged"] is True
+          print("source_sha256", r["source_snapshot"]["sha256"])
+          print("test_count", unit["test_count"])
+          print("whole_project_blockers_closed", r["whole_project_blockers_closed"])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hepta-qualification-${{ github.sha }}
+          path: |
+            artifacts/
+            evidence/groups/
+          retention-days: 14
