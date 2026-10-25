@@ -16,7 +16,10 @@ incorrect or unavailable reference compiler fails the command.
 
 The entire original v0 producer is retained in the signed v1 integration
 envelope. Its exact SHA-256 and source SHA-256 are checked. The source path
-must match exactly, including the span paths. Import/module graphs, resources,
+must match exactly, including the span paths. A PR #14 CLI export typically
+records project_sha256. When present, the reloaded PR #37 project identity
+must match that hash exactly; no imported hash can attest itself. Different
+project-loader identities or unavailable project state reject. Import/module graphs, resources,
 external obligations, owned types, volatile accesses and unknown assumptions
 are prohibited in this narrow migration profile.
 
@@ -54,7 +57,7 @@ The original frozen_snapshot_v0 consumer path remains unchanged.
 
 ## Tests and qualification
 
-tests/test_source_bound_scalar_consumer.py adds 12 integration/negative
+tests/test_source_bound_scalar_consumer.py adds 13 integration/negative
 cases using the actual PR #37 parser/checker/CFG/SSA: a loop+if PHI program,
 deterministic identities, source-byte mismatch, missing source, forged
 expression type/effect/ownership with correctly recomputed producer/v1
@@ -82,3 +85,9 @@ instead of presenting malformed or duplicate-key HSIR as an unrelated
 E_DRIVER failure. A new regression stubs only the native analyze_project
 result and supplies duplicate JSON keys to the actual CLI. The test is
 native-toolchain-independent but has not been executed in this session.
+
+
+The latest profile includes a test for project-bound producer identities:
+missing/mismatched independent loader SHA must reject, while equal identities
+are allowed to proceed to the same node-for-node scalar checker. This is an
+exact identity check, not general cross-version project compatibility.
