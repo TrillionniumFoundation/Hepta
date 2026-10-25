@@ -427,3 +427,36 @@ def _walk_expressions(obj: Any):
 def lower_checked_program(program: Any, checked: Any) -> HSIRSnapshot:
     """Reference frontend checker -> single canonical semantic IR -> scalar adapter."""
     return from_canonical_snapshot(_lower_canonical(program, checked))
+
+def verify_checked_source_projection(program: Any, checked: Any,
+                                    snapshot: HSIRSnapshot) -> dict:
+    """Re-derive the scalar view from the *same* sole canonical producer.
+
+    This source-identity gate catches rehashed scalar snapshots submitted as
+    though they came from the checked AST. It neither independently proves
+    source semantics nor verifies the native LLVM backend.
+    """
+    if not isinstance(snapshot, HSIRSnapshot):
+        raise HSIRRejected("E_HSIR_SOURCE_ORIGIN: typed scalar snapshot required")
+    canonical = _lower_canonical(program, checked)
+    expected = from_canonical_snapshot(canonical)
+    if snapshot != expected:
+        raise HSIRRejected("E_HSIR_SOURCE_ORIGIN: derived snapshot differs from checked source")
+    payload = snapshot.as_dict()
+    if payload.get("source_semantic_sha256") != canonical["sha256"]:
+        raise HSIRRejected("E_HSIR_SOURCE_ORIGIN: canonical semantic digest disagrees")
+    return {
+        "schema": "hepta.hsir.source-origin.v1",
+        "status": "exact_source_rederived_not_semantic_refinement_proof",
+        "canonical_schema": CANONICAL_SCHEMA,
+        "canonical_sha256": canonical["sha256"],
+        "derived_schema": SCHEMA,
+        "derived_sha256": snapshot.sha256,
+        "source_sha256": canonical["source_sha256"],
+        "claims": {
+            "canonical_semantic_producer_unique": True,
+            "checked_source_projection_rederived": True,
+            "whole_language_soundness_proven": False,
+            "native_backend_refinement_proven": False,
+        },
+    }
