@@ -47,6 +47,29 @@ int clamp(int x) noexcept {
         self.dst.unlink()
         self.assertEqual(first_hash, migrate_cpp(self.src, self.dst)["output_sha256"])
 
+    def test_complete_active_toplevel_declaration_inventory(self):
+        self.src.write_text(self._GOOD)
+        accepted = migrate_cpp(self.src, self.dst)
+        self.assertTrue(accepted["ok"], accepted)
+        self.assertTrue(accepted["top_level_inventory_complete"])
+        self.assertEqual(accepted["top_level_declaration_count"], 2)
+        self.assertEqual(accepted["top_level_L1_candidates"], 2)
+        self.assertEqual(accepted["top_level_unsupported"], 0)
+        self.assertEqual([e["status"] for e in accepted["top_level_declarations"]],
+                         ["L1_ast_candidate", "L1_ast_candidate"])
+        self.dst.unlink()
+        self.src.write_text("struct Unconverted { int value; };\n" + self._GOOD)
+        rejected = migrate_cpp(self.src, self.dst)
+        self.assertFalse(rejected["ok"], rejected)
+        self.assertTrue(rejected["top_level_inventory_complete"])
+        self.assertEqual(rejected["top_level_declaration_count"], 3)
+        self.assertEqual(rejected["top_level_L1_candidates"], 2)
+        self.assertEqual(rejected["top_level_unsupported"], 1)
+        self.assertEqual(rejected["converted"], [])
+        self.assertFalse(self.dst.exists())
+        self.assertEqual(rejected["top_level_declarations"][0]["kind"], "CXXRecordDecl")
+        self.assertEqual(rejected["top_level_declarations"][0]["status"], "unsupported")
+
     def test_unsafe_cpp_constructs_never_partially_publish(self):
         negative = [
             'class Foo { public: int x; }; int f(int a) noexcept {return a;}',

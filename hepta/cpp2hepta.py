@@ -52,12 +52,16 @@ def migrate_cpp(source_file: str | Path, destination_file: str | Path, *,
               "behavioral_equivalence_proved": False,
               "whole_language_memory_safety_proved": False,
               "foreign_cpp_memory_safe": False,
-              "native_validation": "not_run", "differential_validation": "not_run"}
+              "native_validation": "not_run", "differential_validation": "not_run",
+              "top_level_inventory_complete": False, "top_level_declarations": [],
+              "top_level_declaration_count": 0, "top_level_L1_candidates": 0,
+              "top_level_unsupported": 0}
     try:
         if (source.suffix not in {".cc", ".cpp", ".cxx"} or not source.is_file()
                 or source == output or output.suffix != ".hepta" or output.is_symlink()):
             raise MigrationRejected("E_CPP2HEPTA_PATH", "Require existing C++ source and distinct ordinary .hepta output")
         original = source.read_bytes()
+        report["source_sha256"] = sha256(original).hexdigest()
         if len(original) > _MAX_SOURCE:
             raise MigrationRejected("E_CPP2HEPTA_SIZE", "Source is outside bounded AST pilot")
         text = original.decode("utf-8")
@@ -75,15 +79,25 @@ def migrate_cpp(source_file: str | Path, destination_file: str | Path, *,
             raise MigrationRejected("E_CPP2HEPTA_AST", "Clang++ AST root was not a translation unit")
         defs = []
         invalid = []
+        inventory = []
         for node in tree.get("inner", []):
             location = node.get("loc", {})
-            # Builtin type declarations do not have a source offset.
+            begin = node.get("range", {}).get("begin", {})
+            # Builtins have neither source location nor a source range.
+            # A source-range-bearing declaration with missing loc cannot
+            # be discarded while claiming complete active-TU coverage.
             if not isinstance(location.get("offset"), int):
+                if isinstance(begin.get("offset"), int) and 0 <= begin["offset"] < len(original):
+                    raise MigrationRejected("E_CPP2HEPTA_LOCATION", "Clang source-range declaration lacks location")
                 continue
-            start = node.get("range", {}).get("begin", {}).get("offset")
+            start = begin.get("offset")
             end = node.get("range", {}).get("end", {}).get("offset")
             if not isinstance(start, int) or not isinstance(end, int) or not (0 <= start <= end < len(original)):
                 raise MigrationRejected("E_CPP2HEPTA_LOCATION", "Clang source declaration cannot be accounted for")
+            item = {"kind": node.get("kind"), "name": node.get("name"),
+                    "start_byte": start, "end_byte": end,
+                    "status": "unsupported"}
+            inventory.append(item)
             if node.get("kind") != "FunctionDecl":
                 invalid.append({"kind": node.get("kind"), "name": node.get("name")})
                 continue
@@ -107,6 +121,15 @@ def migrate_cpp(source_file: str | Path, destination_file: str | Path, *,
                 invalid.append({"kind": "missing_or_multiple_body", "name": node.get("name")})
                 continue
             defs.append(node)
+            item["status"] = "L1_ast_candidate"
+        # The denominator is the active, source-located *top-level* Clang AST
+        # inventory of one accepted standalone C++20 configuration. It is not
+        # all inactive #if branches, class members or multi-TU project coverage.
+        report.update({"top_level_inventory_complete": True,
+                       "top_level_declarations": inventory,
+                       "top_level_declaration_count": len(inventory),
+                       "top_level_L1_candidates": len(defs),
+                       "top_level_unsupported": len(invalid)})
         if invalid:
             raise MigrationRejected("E_CPP2HEPTA_TOPLEVEL", "Unsupported active C++ declarations: "+json.dumps(invalid[:12]))
         if not defs:
