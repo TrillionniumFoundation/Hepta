@@ -22,21 +22,64 @@ _TARGETS = {"x86_64-unknown-linux-gnu": ("ELF64", 62),
 
 
 def _qualified_header(data: bytes, target: str) -> bool:
+    """Fail closed on a *bounded object-file structure*, not just its magic.
+
+    A 20/32/64-byte forged header cannot qualify as a native object. This
+    verifies relocatable object shape and section/load-command table extents;
+    it is NOT instruction authenticity, symbol ABI or target execution.
+    """
+    if not isinstance(data, bytes) or target not in _TARGETS:
+        return False
     fmt, machine = _TARGETS[target]
+    length = len(data)
+
+    def u16(pos: int) -> int:
+        return int.from_bytes(data[pos:pos + 2], "little")
+
+    def u32(pos: int) -> int:
+        return int.from_bytes(data[pos:pos + 4], "little")
+
+    def u64(pos: int) -> int:
+        return int.from_bytes(data[pos:pos + 8], "little")
+
     if fmt == "ELF64":
-        return (len(data) >= 64 and data[:4] == b"\x7fELF"
-                and data[4:6] == b"\x02\x01"
-                and data[16:18] == b"\x01\x00"
-                and int.from_bytes(data[18:20], "little") == machine)
+        if (length < 64 or data[:6] != b"\x7fELF\x02\x01"
+                or data[6] != 1 or u16(16) != 1 or u16(18) != machine
+                or u16(52) != 64):
+            return False
+        section_offset, section_size, count = u64(40), u16(58), u16(60)
+        return (section_offset >= 64 and section_size == 64
+                and 0 < count <= 4096
+                and section_offset + section_size * count <= length)
     if fmt == "COFF":
-        return (len(data) >= 20 and int.from_bytes(data[:2], "little") == machine
-                and int.from_bytes(data[2:4], "little") > 0)
+        if length < 60 or u16(0) != machine:
+            return False
+        count = u16(2)
+        if (not 0 < count <= 4096 or u16(16) != 0
+                or 20 + 40 * count > length):
+            return False
+        symbols, entries = u32(8), u32(12)
+        return (entries == 0 or
+                (symbols >= 20 + 40 * count and
+                 symbols + 18 * entries <= length))
     if fmt == "MACHO64":
-        # Little-endian MH_MAGIC_64, 64-bit CPU subtype and MH_OBJECT only.
-        # Linking and execution are deliberately outside the object gate.
-        return (len(data) >= 32 and data[:4] == b"\xcf\xfa\xed\xfe"
-                and int.from_bytes(data[4:8], "little") == machine
-                and int.from_bytes(data[12:16], "little") == 1)
+        if (length < 40 or data[:4] != b"\xcf\xfa\xed\xfe"
+                or u32(4) != machine or u32(12) != 1
+                or u32(28) != 0):
+            return False
+        commands, command_bytes = u32(16), u32(20)
+        if (not 0 < commands <= 512 or command_bytes < commands * 8
+                or 32 + command_bytes > length):
+            return False
+        offset, end = 32, 32 + command_bytes
+        for _ in range(commands):
+            if offset + 8 > end:
+                return False
+            size = u32(offset + 4)
+            if size < 8 or size % 8 or offset + size > end:
+                return False
+            offset += size
+        return offset == end
     return False
 
 

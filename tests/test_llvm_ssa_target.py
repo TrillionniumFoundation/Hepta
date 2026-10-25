@@ -41,17 +41,60 @@ class LLVMSSATargetTests(unittest.TestCase):
                 self.assertFalse(evidence["claims"]["foreign_c_abi_qualified"])
 
     def test_reject_macho_wrong_machine_or_wrong_file_type(self):
-        # Accept only Mach-O 64-bit MH_OBJECT for the exact requested CPU.
+        # A header alone is insufficient; require actual load-command structure.
         header = (b"\xcf\xfa\xed\xfe" + (0x01000007).to_bytes(4, "little")
                   + (3).to_bytes(4, "little") + (1).to_bytes(4, "little")
                   + b"\x00" * 16)
-        self.assertTrue(_qualified_header(header, "x86_64-apple-darwin"))
-        self.assertFalse(_qualified_header(header, "aarch64-apple-darwin"))
-        linked = header[:12] + (2).to_bytes(4, "little") + header[16:]
-        self.assertFalse(_qualified_header(linked, "x86_64-apple-darwin"))
-        self.assertFalse(_qualified_header(header[:16], "x86_64-apple-darwin"))
-        big_endian = b"\xfe\xed\xfa\xcf" + header[4:]
-        self.assertFalse(_qualified_header(big_endian, "x86_64-apple-darwin"))
+        self.assertFalse(_qualified_header(header, "x86_64-apple-darwin"))
+
+        path = self.root / "macho-actual.o"
+        compile_ssa_target_object(self.ir, target="x86_64-apple-darwin", output=path)
+        original = path.read_bytes()
+        self.assertTrue(_qualified_header(original, "x86_64-apple-darwin"))
+        self.assertFalse(_qualified_header(original, "aarch64-apple-darwin"))
+        cases = []
+        changed = bytearray(original)
+        changed[12:16] = (2).to_bytes(4, "little")  # MH_EXECUTE, not MH_OBJECT
+        cases.append(bytes(changed))
+        changed = bytearray(original)
+        changed[20:24] = (len(original) + 1).to_bytes(4, "little")
+        cases.append(bytes(changed))
+        changed = bytearray(original)
+        changed[16:20] = (0).to_bytes(4, "little")
+        cases.append(bytes(changed))
+        changed = bytearray(original)
+        changed[36:40] = (4).to_bytes(4, "little")  # Invalid load cmd size
+        cases.append(bytes(changed))
+        cases.extend([original[:40], original[:32]])
+        for case in cases:
+            with self.subTest(length=len(case)):
+                self.assertFalse(_qualified_header(case, "x86_64-apple-darwin"))
+
+    def test_reject_elf_and_coff_truncated_section_or_symbol_tables(self):
+        for target in ("x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"):
+            with self.subTest(target=target):
+                path = self.root / (target + "-shape.o")
+                compile_ssa_target_object(self.ir, target=target, output=path)
+                valid = path.read_bytes()
+                self.assertTrue(_qualified_header(valid, target))
+                damaged = bytearray(valid)
+                if "linux" in target:
+                    damaged[40:48] = (len(valid) + 100).to_bytes(8, "little")
+                    self.assertFalse(_qualified_header(bytes(damaged), target))
+                    damaged = bytearray(valid)
+                    damaged[58:60] = (8).to_bytes(2, "little")
+                    self.assertFalse(_qualified_header(bytes(damaged), target))
+                    damaged = bytearray(valid)
+                    damaged[16:18] = (2).to_bytes(2, "little")  # Executable != relocatable
+                    self.assertFalse(_qualified_header(bytes(damaged), target))
+                else:
+                    damaged[2:4] = (4096).to_bytes(2, "little")
+                    self.assertFalse(_qualified_header(bytes(damaged), target))
+                    damaged = bytearray(valid)
+                    damaged[8:12] = (len(valid) + 100).to_bytes(4, "little")
+                    damaged[12:16] = (1).to_bytes(4, "little")
+                    self.assertFalse(_qualified_header(bytes(damaged), target))
+                self.assertFalse(_qualified_header(valid[:40], target))
 
     def test_wrong_target_unknown_or_overwrite_rejects(self):
         path = self.root / "object.o"
