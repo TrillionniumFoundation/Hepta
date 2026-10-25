@@ -1,0 +1,43 @@
+name: Hepta P0-P5 strict source origin (exact SHA)
+on:
+  push:
+    branches:
+      - agent/hepta-p0-p7-llvm-provenance-20261025
+  pull_request:
+    branches:
+      - assistant/hepta-p1-reaching-ssa-verification-20261025
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-origin:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      HEPTA_EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ env.HEPTA_EXPECTED_SHA }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Check immutable source and compiler availability
+        run: |
+          test "$(git rev-parse HEAD)" = "$HEPTA_EXPECTED_SHA"
+          test -z "$(git status --porcelain)"
+          python --version
+          clang --version
+      - name: Bootstrap exact pinned Rust reference
+        run: |
+          python tools/bootstrap_toolchain.py --prefix "$RUNNER_TEMP/hepta-rust" --targets
+          echo "RUSTC=$RUNNER_TEMP/hepta-rust/bin/rustc" >> "$GITHUB_ENV"
+      - name: Execute strict origin, closed LLVM grammar and semantic regressions
+        run: |
+          python -m unittest tests.test_llvm_ir_profile_contract tests.test_llvm_ssa_origin_gate tests.test_semantic_source_origin -v
+          python -m unittest tests.test_hsir_bridge tests.test_ssa_verify tests.test_ssa_scalar tests.test_ssa_reaching tests.test_llvm_ssa_backend tests.test_llvm_ssa_target -v
+          python -m unittest tests.test_resource_source_origin tests.test_resource_ir tests.test_resource_ir_cli -v
+      - name: Execute source-to-LLVM native integration
+        run: |
+          python -m unittest tests.test_llvm_ssa_integration tests.test_llvm_ssa_cli -v

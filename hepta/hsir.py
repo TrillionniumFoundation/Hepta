@@ -225,7 +225,13 @@ def _validate_derived_node(value: Any, depth: int = 0) -> int:
 
 
 def _validate_derived_snapshot(obj: dict) -> None:
-    if set(obj) != _DERIVED_FIELDS or obj.get("claims") != _DERIVED_CLAIMS:
+    claims = obj.get("claims")
+    # Python considers False == 0 and True == 1. A rehashed integer claim
+    # must not masquerade as proof or as canonical-encoder authority.
+    if (set(obj) != _DERIVED_FIELDS or not isinstance(claims, dict)
+            or set(claims) != set(_DERIVED_CLAIMS)
+            or any(claims[key] is not expected
+                   for key, expected in _DERIVED_CLAIMS.items())):
         _reject("derived snapshot inventory/claims differ from reviewed scalar subset")
     if (not isinstance(obj.get("source_sha256"), str)
             or _HASH.fullmatch(obj["source_sha256"]) is None
@@ -244,6 +250,7 @@ def _validate_derived_snapshot(obj: dict) -> None:
     for fn in obj["functions"]:
         if (not isinstance(fn, dict) or set(fn) != _DERIVED_FUNCTION_FIELDS
                 or not isinstance(fn.get("name"), str)
+                or type(fn.get("public")) is not bool
                 or fn.get("type_parameters") != []
                 or not isinstance(fn.get("direction"), str)
                 or fn.get("direction") not in {"local", "export"}
@@ -427,3 +434,36 @@ def _walk_expressions(obj: Any):
 def lower_checked_program(program: Any, checked: Any) -> HSIRSnapshot:
     """Reference frontend checker -> single canonical semantic IR -> scalar adapter."""
     return from_canonical_snapshot(_lower_canonical(program, checked))
+
+def verify_checked_source_projection(program: Any, checked: Any,
+                                    snapshot: HSIRSnapshot) -> dict:
+    """Re-derive the scalar view from the *same* sole canonical producer.
+
+    This source-identity gate catches rehashed scalar snapshots submitted as
+    though they came from the checked AST. It neither independently proves
+    source semantics nor verifies the native LLVM backend.
+    """
+    if not isinstance(snapshot, HSIRSnapshot):
+        raise HSIRRejected("E_HSIR_SOURCE_ORIGIN: typed scalar snapshot required")
+    canonical = _lower_canonical(program, checked)
+    expected = from_canonical_snapshot(canonical)
+    if snapshot != expected:
+        raise HSIRRejected("E_HSIR_SOURCE_ORIGIN: derived snapshot differs from checked source")
+    payload = snapshot.as_dict()
+    if payload.get("source_semantic_sha256") != canonical["sha256"]:
+        raise HSIRRejected("E_HSIR_SOURCE_ORIGIN: canonical semantic digest disagrees")
+    return {
+        "schema": "hepta.hsir.source-origin.v1",
+        "status": "exact_source_rederived_not_semantic_refinement_proof",
+        "canonical_schema": CANONICAL_SCHEMA,
+        "canonical_sha256": canonical["sha256"],
+        "derived_schema": SCHEMA,
+        "derived_sha256": snapshot.sha256,
+        "source_sha256": canonical["source_sha256"],
+        "claims": {
+            "canonical_semantic_producer_unique": True,
+            "checked_source_projection_rederived": True,
+            "whole_language_soundness_proven": False,
+            "native_backend_refinement_proven": False,
+        },
+    }

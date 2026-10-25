@@ -179,6 +179,31 @@ class HSIRBridgeTests(unittest.TestCase):
                 with self.assertRaises(HSIRRejected):
                     from_canonical_snapshot(_reseal(changed))
 
+    def test_derived_hsir_claims_and_visibility_require_real_booleans(self):
+        p, checked = _checked(_SOURCE)
+        snapshot = lower_checked_program(p, checked)
+        baseline = snapshot.as_dict()
+        baseline.pop("sha256")
+        for claim, value in (("pointer_provenance_proved", 0),
+                             ("canonical_semantics_still_authoritative", 1)):
+            with self.subTest(claim=claim):
+                payload = copy.deepcopy(baseline)
+                payload["claims"][claim] = value
+                wire = json.dumps(payload, sort_keys=True, ensure_ascii=False,
+                                  allow_nan=False, separators=(",", ":"))
+                attacker = HSIRSnapshot(snapshot.schema, wire,
+                                        hashlib.sha256(wire.encode()).hexdigest())
+                with self.assertRaisesRegex(HSIRRejected, "claims"):
+                    attacker.as_dict()
+        payload = copy.deepcopy(baseline)
+        payload["functions"][0]["public"] = int(payload["functions"][0]["public"])
+        wire = json.dumps(payload, sort_keys=True, ensure_ascii=False,
+                          allow_nan=False, separators=(",", ":"))
+        attacker = HSIRSnapshot(snapshot.schema, wire,
+                                hashlib.sha256(wire.encode()).hexdigest())
+        with self.assertRaisesRegex(HSIRRejected, "unsupported ownership"):
+            attacker.as_dict()
+
     def test_resealed_derived_expression_and_statement_shapes_rejected(self):
         p, checked = _checked(_SOURCE)
         base = lower_checked_program(p, checked).as_dict()

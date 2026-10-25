@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import hashlib
+import json
 
 from .ast import Type
 from .checker import _contains_capability, LINEAR, substitute_type, return_origin_index
@@ -544,3 +545,63 @@ def lower_resource_ir(program, checked, *, project_sha256: str | None = None) ->
         error = validation["diagnostics"][0]
         raise ResourceIRError(error["code"], f"Resource lowering failed independent verification in {error.get('function')}:{error.get('block')}: {error['message']}")
     return doc
+
+
+def verify_resource_source_origin(program, checked, graph, *,
+                                  project_sha256: str | None = None) -> dict:
+    """Rebuild the exact resource abstraction from checked source.
+
+    Independently verifying a JSON graph establishes only the graph's own
+    invariants. An arbitrary graph's source_sha256 field is self-asserted:
+    this entrypoint binds it to the unique canonical Hepta source encoder
+    and an exact deterministic re-lowering from the checked AST.
+
+    This is a source *identity* check, not a source-to-IR proof, and still
+    requires the selected native toolchain to validate executable semantics.
+    """
+    from .semantic_ir import lower_checked_program as canonical_source_ir
+
+    if not isinstance(graph, dict):
+        raise ResourceIRError("E_RIR_SOURCE_ORIGIN", "expected a typed resource graph record")
+    canonical = canonical_source_ir(program, checked, project_sha256=project_sha256)
+    if (canonical.get("all_expressions_typed") is not True
+            or canonical.get("untyped_expressions")
+            or not isinstance(canonical.get("claims"), dict)
+            or any(value is not False for value in canonical["claims"].values())):
+        raise ResourceIRError("E_RIR_SOURCE_ORIGIN", "canonical source is unqualified")
+
+    expected = lower_resource_ir(program, checked, project_sha256=project_sha256)
+    try:
+        actual_wire = json.dumps(graph, sort_keys=True, ensure_ascii=False,
+                                 allow_nan=False, separators=(",", ":"))
+        expected_wire = json.dumps(expected, sort_keys=True, ensure_ascii=False,
+                                   allow_nan=False, separators=(",", ":"))
+    except (TypeError, ValueError, RecursionError, OverflowError) as exc:
+        raise ResourceIRError("E_RIR_SOURCE_ORIGIN", "invalid resource graph encoding") from exc
+    if actual_wire != expected_wire:
+        raise ResourceIRError(
+            "E_RIR_SOURCE_ORIGIN",
+            "resource IR differs from canonical checked-source lowering")
+    if (graph.get("source_sha256") != canonical.get("source_sha256")
+            or graph.get("project_sha256") != canonical.get("project_sha256")):
+        raise ResourceIRError("E_RIR_SOURCE_ORIGIN", "canonical source/project identity changed")
+    validation = verify_resource_ir(graph)
+    if validation.get("ok") is not True:
+        raise ResourceIRError("E_RIR_SOURCE_ORIGIN", "independent resource proof rejected exact source graph")
+    return {
+        "schema": "hepta.resource.source-origin.v1",
+        "status": "exact_source_rederived_not_resource_semantics_proof",
+        "canonical_hsir_schema": canonical["schema"],
+        "canonical_hsir_sha256": canonical["sha256"],
+        "resource_ir_schema": graph["schema"],
+        "resource_ir_sha256": validation["ir_sha256"],
+        "source_sha256": canonical["source_sha256"],
+        "project_sha256": canonical["project_sha256"],
+        "claims": {
+            "checked_source_rederived": True,
+            "resource_ir_data_verified": True,
+            "source_to_ir_refinement_proved": False,
+            "native_codegen_uses_resource_ir": False,
+            "whole_language_soundness_proved": False,
+        },
+    }

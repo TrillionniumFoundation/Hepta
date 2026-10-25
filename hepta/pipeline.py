@@ -236,19 +236,26 @@ def resource_ir_analysis(analysis: Analysis) -> dict:
     """Export and independently validate the bounded resource abstraction."""
     report = {"schema": "hepta.resource-ir.export.v1", "ok": False,
               "status": "rejected", "resource_ir": None, "verifier": None,
+              "source_binding_verified": False, "source_origin": None,
               "validation": analysis.report}
     if analysis.program is None or analysis.checked is None or not analysis.checked.ok:
         return report
     from .resource_ir import ResourceIRError, verify_resource_ir
-    from .resource_lowering import lower_resource_ir
+    from .resource_lowering import lower_resource_ir, verify_resource_source_origin
     try:
         graph = lower_resource_ir(analysis.program, analysis.checked,
                                   project_sha256=getattr(analysis.project, "identity", None))
         # The verifier consumes data, not checker object identities.
         verification = verify_resource_ir(json.loads(json.dumps(graph)))
+        if verification.get("ok") is not True:
+            raise ResourceIRError("E_RIR_SOURCE_ORIGIN", "independent resource graph verifier rejected source")
+        origin = verify_resource_source_origin(
+            analysis.program, analysis.checked, graph,
+            project_sha256=getattr(analysis.project, "identity", None))
         report.update(resource_ir=graph, verifier=verification,
-                      ok=bool(analysis.report["ok"] and verification["ok"]),
-                      status=analysis.report["status"] if verification["ok"] else "rejected")
+                      source_binding_verified=True, source_origin=origin,
+                      ok=bool(analysis.report["ok"]),
+                      status=analysis.report["status"])
     except (ResourceIRError, ValueError, TypeError, OverflowError, RecursionError) as exc:
         report["diagnostics"] = [{"phase": "resource-ir", "code": getattr(exc, "code", "E_RIR_LOWER"),
                                    "message": str(exc)}]

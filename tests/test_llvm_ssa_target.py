@@ -3,11 +3,13 @@ from __future__ import annotations
 
 from pathlib import Path
 import shutil
+import subprocess
 import tempfile
 import unittest
 
 from hepta.llvm_ssa_backend import LLVMSSARejected, emit_scalar_ssa_llvm
-from hepta.llvm_ssa_target import compile_ssa_target_object, _qualified_header
+from hepta.llvm_ssa_target import compile_ssa_target_object, _qualified_header, _TARGETS
+from hepta.object_symbols import inspect_object_symbols
 from hepta.ssa import lower_cfg_scalar_ssa
 from tests.test_llvm_ssa_backend import LLVMSSATests
 
@@ -39,6 +41,11 @@ class LLVMSSATargetTests(unittest.TestCase):
                 self.assertTrue(_qualified_header(output.read_bytes(), target))
                 self.assertFalse(evidence["claims"]["target_program_executed"])
                 self.assertFalse(evidence["claims"]["foreign_c_abi_qualified"])
+                self.assertTrue(evidence["object_structure_qualified"])
+                self.assertTrue(evidence["object_symbols_qualified"])
+                self.assertEqual(evidence["defined_export_symbols"], list(self.ir.functions))
+                self.assertTrue(set(evidence["undefined_external_symbols"]) <= {"abort"})
+                self.assertFalse(evidence["ssa_cfg_origin_rechecked"])
 
     def test_reject_macho_wrong_machine_or_wrong_file_type(self):
         # Accept only Mach-O 64-bit MH_OBJECT for the exact requested CPU.
@@ -87,6 +94,35 @@ class LLVMSSATargetTests(unittest.TestCase):
                     self.assertGreater(int.from_bytes(data[32 + 64:32 + 68], "little"), 0)
                     data[32 + 72 + 40:32 + 72 + 48] = (len(data) + 1024).to_bytes(8, "little")
                 self.assertFalse(_qualified_header(bytes(data), target))
+
+    def test_direct_clang_rehashed_object_import_and_symbol_name_inventory(self):
+        # Parser must notice malicious extra external calls even when the
+        # target object's machine header and sections are otherwise valid.
+        path = self.root / "hostile.ll"
+        path.write_text("""\
+declare i32 @puts(ptr)
+define i32 @hepta_symbol_target(i32 %x) {
+entry:
+  %r = call i32 @puts(ptr null)
+  ret i32 %x
+}
+""")
+        for target, (fmt, machine) in _TARGETS.items():
+            with self.subTest(target=target):
+                dest = self.root / ("hostile-" + target + ".o")
+                result = subprocess.run(
+                    ["clang", "--target=" + target, "-x", "ir", "-O3", "-c",
+                     str(path), "-o", str(dest)],
+                    capture_output=True, text=True, timeout=45)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                binary = dest.read_bytes()
+                symbols = inspect_object_symbols(binary, fmt, machine)
+                self.assertIn("hepta_symbol_target", symbols["defined"])
+                self.assertIn("puts", symbols["undefined"])
+                self.assertFalse(symbols["undefined"] <= {"abort"})
+                mutated = binary.replace(b"hepta_symbol_target", b"hepta_symbol_targex")
+                self.assertNotIn("hepta_symbol_target",
+                                 inspect_object_symbols(mutated, fmt, machine)["defined"])
 
     def test_wrong_target_unknown_or_overwrite_rejects(self):
         path = self.root / "object.o"
