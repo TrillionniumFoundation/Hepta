@@ -49,6 +49,20 @@ A successful reference release is *not* automatically a successful qualification
   included 103 extra branch inputs and negative control-flow cases. The actual
   Hepta parser/checker/HSIR branch integration is a required current-head test.
   This is not general SSA/phi, arbitrary CFG or whole-language refinement.
+- **P6 — finite SSA and cross-target object expansion (2026-10-25):**
+  `hepta.llvm_scalar_backend` now accepts a strict three-statement
+  mutable-`i32` / `if/else` definite-assignment / return profile and
+  generates a `phi i32` with the real overflow-checked continuation labels
+  as predecessors. The local compiler executed an 804-input GCC differential,
+  structural negative controls and a forged-symbol-manifest rejection.
+  `compile_scalar_object` now accepts three explicit Clang targets
+  (x86_64 Linux, AArch64 Linux, Windows x64 MSVC) with real emitted ELF/COFF
+  architecture inspection and no-overwrite publication. Four cross-object
+  tests passed locally. The public CLI `build-llvm-scalar --target` still
+  requires a pinned *host* Rust reference check, not target execution.
+  P6 formal refinement, complete CFG/borrow behavior and target ABI remain
+  **open**. The PR qualification workflow includes both host LLVM and
+  all three target object builds.
 - **P6 — independent scalar LLVM/Clang native pilot:** `hepta.llvm_scalar_backend` lowers a closed, pretyped `i32` subset directly from HSIR to LLVM IR. Signed arithmetic uses explicit overflow detection and abort; forbidden effects and ownership modes reject. A GCC C reference and LLVM native library were compared on 100 seeded valid inputs per operation, plus wrapping and overflow-child negative tests. On the local isolated subset, three P6 tests passed and two required full compiler integration tests were skipped; the new `build-llvm-scalar` CLI requires real pinned rustc validation before lowering. This is **not** a whole-language LLVM backend, production performance qualification, or P6 gate closure.
 - **P4 host-only qualification receipt:** `artifacts/cpp-bridge-exception-host-20261024.json` captures GCC/Clang executable identity, source hashes and five actual exception/RAII tests. The host-only script is `tools/verify_cpp_bridge_host.py`; it deliberately reports `whole_p4_gate_closed=false`.
 
@@ -62,7 +76,7 @@ A successful reference release is *not* automatically a successful qualification
 | P3 | Real C project source migration, build, differential fuzz and verified migration levels L0–L3 | Clang subset L1 candidate; **larger projects/L2/L3 open** |
 | P4 | Verified C++ bridge including exceptions, destructors and ABI profiles | Narrow L0 C bridge plus opt-in catch/status and RAII host tests; **full P4 open** |
 | P5 | C++ migration including template, class, RAII/STL, L1–L3 evidence | Strict C++20 integer-function L1 candidate; native C++/Hepta differential test added but not qualified; **full P5 open** |
-| P6 | LLVM/MLIR backend with semantics, memory, CPU/RSS and p95/p99 regressions | Direct LLVM i32 expression/if-else CFG, effect consistency and host differential; **full P6 open** |
+| P6 | LLVM/MLIR backend with semantics, memory, CPU/RSS and p95/p99 regressions | Direct LLVM i32 return/if-else/one-local SSA, host differential, and three cross-target objects; **full P6 open** |
 | P7 | Multi-file agent protocol v3, soundness, physical hardware and real-model independent benchmarks | **Open** |
 
 Original Hepta 0.2 P01–P12 blockers in `docs/BLOCKERS.md` also remain open; no existing blocker is silently closed by this ledger. P6–P7 require additional target machines and controlled provider/hardware environments.
@@ -77,6 +91,8 @@ count as pass.
 python tools/cross_target_abi_probe.py --output artifacts/abi-cross-target.json
 python -m unittest discover -s tests -p test_cross_target_abi_probe.py -v
 python -m unittest discover -s tests -p test_llvm_scalar_backend.py -v
+python -m unittest discover -s tests -p test_llvm_scalar_phi.py -v
+python -m unittest discover -s tests -p test_llvm_scalar_targets.py -v
 python -m unittest discover -s tests -p test_cpp2hepta.py -v
 ```
 
