@@ -43,10 +43,12 @@ def main(argv=None) -> int:
     cpp_migration.add_argument("--output", "-o", required=True)
     cpp_migration.add_argument("--clangxx", default="clang++")
     cpp_migration.add_argument("--module", default="cpp_migrated")
-    bridge = sub.add_parser("bridge-cpp", help="Generate narrow L0 noexcept C++ to C ABI wrappers")
+    bridge = sub.add_parser("bridge-cpp", help="Generate narrow L0 C++ to C ABI wrappers")
     bridge.add_argument("source")
     bridge.add_argument("--clangxx", default="clang++")
     bridge.add_argument("--output-dir", required=True)
+    bridge.add_argument("--exception-mode", choices=["noexcept_only", "catch_status"],
+                        default="noexcept_only")
     for cmd in ["check", "inspect", "hsir", "emit", "header", "build", "run", "patch"]:
         p = sub.add_parser(cmd)
         p.add_argument("source")
@@ -97,7 +99,8 @@ def main(argv=None) -> int:
         if args.command == "bridge-cpp":
             from .cpp_bridge import main as bridge_cpp_main
             return bridge_cpp_main([args.source, "--output-dir", args.output_dir,
-                                    "--clangxx", args.clangxx])
+                                    "--clangxx", args.clangxx,
+                                    "--exception-mode", args.exception_mode])
         if args.command == "doctor":
             info = toolchain_info(find_rustc(args.rustc))
             output_json({"schema": "hepta.doctor.v1", "ok": True, "toolchain": info})
