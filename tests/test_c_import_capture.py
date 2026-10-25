@@ -1,6 +1,7 @@
 """P3 C importer uses bounded native compiler/probe output capture."""
 from __future__ import annotations
 
+import ctypes
 from pathlib import Path
 import shutil
 import tempfile
@@ -38,7 +39,7 @@ class HeaderProbeBudgetTests(unittest.TestCase):
                            side_effect=CaptureRejected(reason, "rejected")):
                     with self.assertRaises(HeptaError) as error:
                         _native_process(["gcc", "--version"], timeout=30)
-                self.assertIn("E_C_IMPORT_PROBE_CAPTURE", str(error.exception))
+                self.assertEqual(error.exception.diagnostic.code, "E_C_IMPORT_PROBE_CAPTURE")
                 self.assertIn(reason, str(error.exception))
 
     @unittest.skipUnless(shutil.which("gcc"), "Real GCC native C probe required")
@@ -58,7 +59,7 @@ class HeaderProbeBudgetTests(unittest.TestCase):
             actual = _native_process([str(executable)], timeout=30,
                                      stdout_limit=4_000_000)
             self.assertEqual(actual.returncode, 0)
-            self.assertRegex(actual.stdout, r"^P\\|int\\|4\\|4\\|1\\n$")
+            self.assertEqual(actual.stdout, f"P|int|{ctypes.sizeof(ctypes.c_int)}|{ctypes.alignment(ctypes.c_int)}|1\\n")
 
 
 if __name__ == "__main__":
