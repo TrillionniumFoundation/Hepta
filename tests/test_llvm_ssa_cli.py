@@ -63,6 +63,20 @@ class LLVMSSASourceCLITests(unittest.TestCase):
 
     @unittest.skipUnless(shutil.which("clang") and (os.environ.get("RUSTC") or shutil.which("rustc")),
                          "Native Clang and pinned Rust are required")
+    def test_corrupt_native_digest_does_not_publish_any_artifact(self):
+        def fake_native(ir, *, clang, output):
+            Path(output).write_bytes(b"wrong compiled artifact")
+            return {"status": "native_host_compiled_unqualified",
+                    "artifact_sha256": "0" * 64}
+        with patch("hepta.llvm_ssa_pipeline.compile_scalar_ssa_llvm", side_effect=fake_native):
+            outcome = build_llvm_ssa_source(self.source, self.output,
+                                            rustc=os.environ.get("RUSTC"))
+        self.assertFalse(outcome["ok"], outcome)
+        self.assertIn("E_LLVM_SSA_ARTIFACT", outcome["diagnostics"][0]["code"])
+        self.assertFalse(self.output.exists())
+
+    @unittest.skipUnless(shutil.which("clang") and (os.environ.get("RUSTC") or shutil.which("rustc")),
+                         "Native Clang and pinned Rust are required")
     def test_exact_checked_source_to_native_llvm_and_cli(self):
         report = build_llvm_ssa_source(self.source, self.output, rustc=os.environ.get("RUSTC"))
         self.assertTrue(report["ok"], report)

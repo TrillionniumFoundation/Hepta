@@ -34,3 +34,12 @@ fall back to Rust or C when direct LLVM rejects a construct.
 **P5 remains partial.** Acceptance requires a unified source/IR refinement
 argument, real cross-toolchain ABI testing, performance data, general typed
 ownership/provenance/effect lowering, and the unchanged source HEAD full gates.
+
+## No publication of invalid compiler receipts
+
+The staged candidate object/shared library is hashed **before** final
+hard-link publication and checked against the native backend's artifact
+receipt. A deliberately wrong reported digest rejects without creating
+the requested output file. This is a bounded artifact-publication
+integrity check, not a guarantee against noncooperating filesystem
+writers after publication or arbitrary malicious compiler behavior.
