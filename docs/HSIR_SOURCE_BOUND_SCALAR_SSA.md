@@ -58,7 +58,7 @@ authorization. The original CLI and legacy SSA paths remain unchanged.
 A local isolated Python environment ran:
     python -m unittest test_hsir_scalar_bridge test_hsir_scalar_differential
 
-Result: **25/25 passing**. Of these, 22 test exact AST shape and
+Result: **27/27 passing** in the final local run, comprising 22 mapping/negative tests, 3 Python differential tests and 2 native C control tests. Of these, 22 test exact AST shape and
 fail-closed rejection of ownership, FFI, resource, generic and
 unmodeled expressions. Three independently interpret source-bound
 and translated scalar ASTs on 60 bounded integer inputs, verify a
@@ -84,3 +84,21 @@ with safe migration; P5 complete LLVM backend plus meaningful
 memory and latency benchmarks; P6 real-model Agent tests;
 P7 real hardware, long-run performance and recovery. All remain
 open and whole_project_blockers_closed=false.
+
+
+## Further executed independent native C controls
+
+A separate hand-written C11 loop/branch reference (not an automatic C-to-Hepta
+translation) was compiled using GCC 14.2 and Clang 17, each with -std=c11,
+-O2, -Wall, -Wextra, -Werror, -shared, and -fPIC. Each native executable
+function was called across the same 60 defined integer inputs (-10..49)
+and compared with the translated scalar AST evaluator. Both matched.
+An intentionally incorrect C program (+2 instead of +1 for the then branch)
+was independently compiled and detected as a mismatch.
+
+The final local Python run included
+tests/test_hsir_scalar_native_oracle.py and passed 27 tests total.
+The exact uploaded Git blobs for the four locally tested files, the
+compiler identities, the finite denominator, and explicit limits are
+preserved in evidence/p1-sourcebound-scalar-local-20261025.json.
+No Hepta LLVM/native binary or real Rust compiler was executed here.
