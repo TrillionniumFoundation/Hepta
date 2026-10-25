@@ -118,6 +118,40 @@ class WorkspaceTests(unittest.TestCase):
         request["edits"][0]["node"] = "0" * 64
         self.assertEqual(apply_workspace_patch(self.store, request, rustc=self.rustc)["diagnostics"][0]["code"], "E_PATCH_NODE")
 
+    def test_ambiguous_workspace_json_metadata_rejected(self):
+        snapshot = pin(self.store)
+        head_path = self.store / "CURRENT"
+        manifest_path = self.store / "versions" / snapshot["version"] / "snapshot.json"
+        original_head, original_manifest = head_path.read_bytes(), manifest_path.read_bytes()
+        try:
+            version = snapshot["version"]
+            mutations = {
+                "duplicate_current_version": (head_path,
+                    '{"schema":"hepta.workspace.v1","version":"' + version +
+                    '","version":"' + version + '"}'),
+                "nonfinite_current_value": (head_path,
+                    '{"schema":"hepta.workspace.v1","version":"' + version +
+                    '","unreviewed":NaN}'),
+                "duplicate_nested_manifest_field": (manifest_path,
+                    original_manifest.decode("utf-8").replace(
+                        '"functional_equivalence_proved":false',
+                        '"functional_equivalence_proved":false,"functional_equivalence_proved":true')),
+                "nonfinite_manifest_claim": (manifest_path,
+                    original_manifest.decode("utf-8").replace(
+                        '"functional_equivalence_proved":false',
+                        '"functional_equivalence_proved":false,"score":Infinity')),
+            }
+            for name, (file, content) in mutations.items():
+                with self.subTest(name=name):
+                    file.write_text(content)
+                    with self.assertRaisesRegex(WorkspaceError, "E_WORKSPACE_JSON|Duplicate|Non-finite"):
+                        pin(self.store)
+                    file.write_bytes(original_head if file == head_path else original_manifest)
+        finally:
+            head_path.write_bytes(original_head)
+            manifest_path.write_bytes(original_manifest)
+        self.assertEqual(pin(self.store)["version"], snapshot["version"])
+
     def test_snapshot_tampering_detected(self):
         p = Path(pin(self.store)["root"]) / "api.hepta"
         p.write_text(p.read_text() + "\n// changed\n")
