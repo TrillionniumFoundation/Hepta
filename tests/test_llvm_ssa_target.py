@@ -41,17 +41,28 @@ class LLVMSSATargetTests(unittest.TestCase):
                 self.assertFalse(evidence["claims"]["foreign_c_abi_qualified"])
 
     def test_reject_macho_wrong_machine_or_wrong_file_type(self):
-        # Accept only Mach-O 64-bit MH_OBJECT for the exact requested CPU.
-        header = (b"\xcf\xfa\xed\xfe" + (0x01000007).to_bytes(4, "little")
-                  + (3).to_bytes(4, "little") + (1).to_bytes(4, "little")
-                  + b"\x00" * 16)
-        self.assertTrue(_qualified_header(header, "x86_64-apple-darwin"))
-        self.assertFalse(_qualified_header(header, "aarch64-apple-darwin"))
-        linked = header[:12] + (2).to_bytes(4, "little") + header[16:]
+        # A 32-byte Mach-O prefix is not a complete object. Exercise the
+        # strict load-command and payload checks using an actual Clang object.
+        incomplete = (b"\xcf\xfa\xed\xfe" + (0x01000007).to_bytes(4, "little")
+                      + (3).to_bytes(4, "little") + (1).to_bytes(4, "little")
+                      + b"\x00" * 16)
+        self.assertFalse(_qualified_header(incomplete, "x86_64-apple-darwin"))
+
+        output = self.root / "mach-o-header-guards.o"
+        compile_ssa_target_object(self.ir, target="x86_64-apple-darwin", output=output)
+        data = output.read_bytes()
+        self.assertTrue(_qualified_header(data, "x86_64-apple-darwin"))
+        self.assertFalse(_qualified_header(data, "aarch64-apple-darwin"))
+
+        linked = data[:12] + (2).to_bytes(4, "little") + data[16:]
         self.assertFalse(_qualified_header(linked, "x86_64-apple-darwin"))
-        self.assertFalse(_qualified_header(header[:16], "x86_64-apple-darwin"))
-        big_endian = b"\xfe\xed\xfa\xcf" + header[4:]
+        self.assertFalse(_qualified_header(data[:16], "x86_64-apple-darwin"))
+        big_endian = b"\xfe\xed\xfa\xcf" + data[4:]
         self.assertFalse(_qualified_header(big_endian, "x86_64-apple-darwin"))
+
+        command_end = 32 + int.from_bytes(data[20:24], "little")
+        self.assertGreater(command_end, 32)
+        self.assertFalse(_qualified_header(data[:command_end - 1], "x86_64-apple-darwin"))
 
     def test_wrong_target_unknown_or_overwrite_rejects(self):
         path = self.root / "object.o"
