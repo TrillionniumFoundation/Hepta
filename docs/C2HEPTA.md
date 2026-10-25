@@ -1,6 +1,6 @@
 # `c2hepta` — bounded C11 Clang AST migration, first prototype
 
-This migration tool is *not* a C source transpiler or a proof that an arbitrary C/C++ program can be made safe. It is the first compile-database-independent, strict subset stage in P3. The C++ P4/P5 work is not implemented. The tool uses the real Clang AST, not regular-expression replacements of source code. Input must be a standalone C11 file: headers, macros, globals, pointers and external functions are deliberately rejected.
+This migration tool is *not* a C source transpiler or a proof that an arbitrary C/C++ program can be made safe. It is the first compile-database-independent, strict subset stage in P3. A separate narrow C++ L0 bridge prototype now exists as `hepta bridge-cpp` (see [CPP_BRIDGE.md](CPP_BRIDGE.md)); full P4/P5 C++ semantics remain open. The tool uses the real Clang AST, not regular-expression replacements of source code. Input must be a standalone C11 file: headers, macros, globals, pointers and external functions are deliberately rejected.
 
 ## Accepted first profile
 
