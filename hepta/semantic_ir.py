@@ -117,6 +117,7 @@ def lower_checked_program(program: Program, checked: Any, *, project_sha256: str
             "declaration_span": _span(fn.span), "body_span": _span(fn.body_span),
             "public": fn.public, "extern_c": fn.extern_c, "export_c": fn.export_c,
             "type_params": list(fn.type_params),
+            "type_bounds": {name: fn.type_bounds.get(name, "Copy") for name in fn.type_params},
             "params": [{"name": p.name, "mode": p.mode, "type": str(p.type),
                         "span": _span(p.span)} for p in fn.params],
             "returns": str(fn.return_type),

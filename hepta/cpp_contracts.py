@@ -19,6 +19,7 @@ from .c_migrate import MigrationRejected, _IDENT
 
 
 SCHEMA = "hepta.cpp-contract.v1"
+SCHEMA_V2 = "hepta.cpp-contract.v2"
 _QUALIFIED = re.compile(r"[A-Za-z_][A-Za-z_0-9]*(?:::[A-Za-z_][A-Za-z_0-9]*)*\Z")
 _SCALARS = {
     "i8": ("std::int8_t", "int8_t"), "u8": ("std::uint8_t", "uint8_t"),
@@ -64,7 +65,7 @@ def _array(value: object, context: str, maximum: int = 32) -> list:
 
 def _validate(contract: object) -> dict:
     c = _fields(contract, {"schema", "module", "pod_types", "functions", "handles"}, "contract")
-    if c["schema"] != SCHEMA:
+    if c["schema"] not in {SCHEMA, SCHEMA_V2}:
         _reject("Unsupported C++ contract schema")
     _name(c["module"], "module name")
     pods = {}
@@ -89,6 +90,26 @@ def _validate(contract: object) -> dict:
     types = set(_SCALARS) | set(pods)
     symbols = set()
 
+    def parameters_(params: object, *, constructor: bool = False) -> None:
+        used = set()
+        # Constructor wrappers introduce these locals in the invocation scope.
+        # V1 callable parameter acceptance is unchanged.
+        reserved = {"out", "handle"} | ({"entry", "registry", "lock"} if constructor else set())
+        for p in _array(params, "parameters", 16):
+            if not isinstance(p, dict):
+                _reject("Each parameter must be an object")
+            mode = _choice(p.get("mode"), {"value", "const_ref", "borrow_const", "borrow_mut"}, "parameter mode")
+            reference = mode.startswith("borrow_") or mode == "const_ref"
+            _fields(p, {"name", "type", "mode"} | ({"retention"} if reference else set()), "parameter")
+            _name(p["name"], "parameter name")
+            _choice(p["type"], set(_SCALARS) if mode.startswith("borrow_") else types, "parameter type")
+            if reference and p["retention"] != "call_only":
+                _reject("Borrowed storage may not be retained; this remains a foreign obligation")
+            generated = {p["name"], p["name"] + "_len"} if mode.startswith("borrow_") else {p["name"]}
+            if generated & (used | reserved):
+                _reject("Duplicate, generated or reserved parameter name")
+            used |= generated
+
     def callable_(fn: dict, *, method: bool = False) -> None:
         expected = {"name", "params", "returns", "exception"}
         expected |= {"cpp_method", "const", "return_mode"} if method else {
@@ -111,21 +132,7 @@ def _validate(contract: object) -> dict:
             _choice(fn["threading"], {"any_thread", "caller_synchronized"}, "threading")
             _choice(fn["reentrancy"], {"allowed", "caller_prevents"}, "reentrancy")
             _choice(fn["allocation"], {"none_declared", "cpp_internal"}, "allocation")
-        used = set()
-        for p in _array(fn["params"], "parameters", 16):
-            if not isinstance(p, dict):
-                _reject("Each parameter must be an object")
-            mode = _choice(p.get("mode"), {"value", "const_ref", "borrow_const", "borrow_mut"}, "parameter mode")
-            reference = mode.startswith("borrow_") or mode == "const_ref"
-            _fields(p, {"name", "type", "mode"} | ({"retention"} if reference else set()), "parameter")
-            _name(p["name"], "parameter name")
-            _choice(p["type"], set(_SCALARS) if mode.startswith("borrow_") else types, "parameter type")
-            if reference and p["retention"] != "call_only":
-                _reject("Borrowed storage may not be retained; this remains a foreign obligation")
-            generated = {p["name"], p["name"] + "_len"} if mode.startswith("borrow_") else {p["name"]}
-            if generated & (used | {"out", "handle"}):
-                _reject("Duplicate, generated or reserved parameter name")
-            used |= generated
+        parameters_(fn["params"])
 
     for f in _array(c["functions"], "functions"):
         callable_(f)
@@ -134,7 +141,7 @@ def _validate(contract: object) -> dict:
         symbols.add(f["name"])
     for h in _array(c["handles"], "handles", 8):
         _fields(h, {"name", "cpp_type", "template_args", "threading", "reentrancy",
-                    "allocator", "destruction", "methods"}, "handle")
+                    "allocator", "destruction", "methods"} | ({"constructors"} if c["schema"] == SCHEMA_V2 else set()), "handle")
         _name(h["name"], "handle name")
         _name(h["cpp_type"], "C++ handle type", qualified=True)
         for t in _array(h["template_args"], "template arguments", 4):
@@ -146,10 +153,24 @@ def _validate(contract: object) -> dict:
         methods = _array(h["methods"], "methods")
         if not methods:
             _reject("A handle needs at least one method")
-        names = {"new", "destroy"}
+        names = {"destroy"}
+        if c["schema"] == SCHEMA_V2:
+            constructors = _array(h["constructors"], "constructors", 8)
+            if not constructors:
+                _reject("A v2 handle needs at least one explicit constructor contract")
+            for constructor in constructors:
+                _fields(constructor, {"name", "params", "exception"}, "constructor")
+                _name(constructor["name"], "constructor export name")
+                _choice(constructor["exception"], {"noexcept", "catch_status"}, "constructor exception policy")
+                parameters_(constructor["params"], constructor=True)
+                if constructor["name"] in names:
+                    _reject("Duplicate or reserved constructor export name")
+                names.add(constructor["name"])
+        else:
+            names.add("new")
         for m in methods:
             callable_(m, method=True)
-            if m["name"] in names:
+            if m["name"] in names or m["name"] == "new":
                 _reject("Duplicate or reserved handle method name")
             names.add(m["name"])
         exported = {h["name"] + "_" + n for n in names}
@@ -190,6 +211,7 @@ class _Generator:
         self.hp = ["module " + contract["module"] + ";",
                    "// All foreign calls remain explicitly unsafe; no C++ safety proof is claimed."]
         self.costs = []
+        self.constructor_checks = []
 
     def cpp_type(self, typ: str, *, abi: bool = False) -> str:
         return _cpp_type(typ, self.pods, abi=abi, prefix=self.prefix)
@@ -332,21 +354,50 @@ class _Generator:
             name, obj = self.prefix + h["name"], _concrete(h["cpp_type"], h["template_args"])
             entry, registry, get = name + "_entry", name + "_registry", name + "_registry_get"
             self.cpp += ["namespace {", f"using {name}_object = {obj};",
-                         f"static_assert(std::is_default_constructible_v<{obj}> && std::is_nothrow_destructible_v<{obj}>);",
+                         f"static_assert(std::is_nothrow_destructible_v<{obj}>);",
                          f"struct {entry} {{ std::recursive_mutex mutex; std::shared_ptr<{obj}> object; std::shared_ptr<const std::uint8_t> creator; unsigned active = 0; }};",
                          f"struct {registry} {{ std::mutex mutex; std::unordered_map<std::uint64_t, std::shared_ptr<{entry}>> objects; }};",
                          "// Process-lifetime registry avoids destroying abandoned affine objects on an arbitrary shutdown thread.",
                          f"{registry}& {get}() {{ static auto* r = new {registry}; return *r; }}",
                          f"struct {name}_active {{ {entry}& e; explicit {name}_active({entry}& v): e(v) {{ ++e.active; }} ~{name}_active() {{ --e.active; }} }};", "}"]
-            self.cpp += [self.declare(name + "_new", "i32", ["std::uint64_t* out"], ["uint64_t* out"], ["out: raw mut u64"], {"ffi", "unsafe", "write", "alloc", "block"}),
-                         "    if (!out) return 1;", "    if (reinterpret_cast<std::uintptr_t>(out) % alignof(std::uint64_t)) return 8;",
-                         "    try {", f"        auto entry = std::make_shared<{entry}>();",
-                         f"        entry->object = std::make_shared<{obj}>();",
-                         *([f"        entry->creator = {self.prefix}thread_token();"] if h["threading"] == "creator_thread" else []),
-                         f"        auto handle = {self.prefix}allocate_handle();", "        if (!handle) return 4;",
-                         f"        auto& registry = {get}();", "        std::lock_guard<std::mutex> lock(registry.mutex);",
-                         "        if (!registry.objects.emplace(handle, entry).second) return 4;",
-                         "        *out = handle;", "        return 0;", "    } catch (...) { return 3; }", "}"]
+            constructors = h.get("constructors", [{"name": "new", "params": [], "exception": "catch_status"}])
+            for constructor in constructors:
+                symbol = name + "_" + constructor["name"]
+                arguments = [self.cpp_arg_type(p) for p in constructor["params"]]
+                trait_types = ", ".join([obj, *arguments])
+                self.cpp += [f"static_assert(std::is_constructible_v<{trait_types}>);"]
+                if constructor["exception"] == "noexcept":
+                    self.cpp += [f"static_assert(std::is_nothrow_constructible_v<{trait_types}>);"]
+                # Constructor traits check a typed construction expression;
+                # C++ has no constructor address to compare as an exact ABI
+                # signature. make_shared forwards the same argument categories.
+                callable_constructor = {**constructor, "returns": "u64"}
+                params = self.parameters(callable_constructor, handle=False, checked=True)
+                self.cpp += [self.declare(symbol, "i32", *params, {"ffi", "unsafe", "write", "alloc", "block"})]
+                self.cpp += self.checks(callable_constructor)
+                self.cpp += ["    try {", f"        auto entry = std::make_shared<{entry}>();",
+                             f"        entry->object = std::make_shared<{obj}>({', '.join(self.cpp_arg(p) for p in constructor['params'])});",
+                             *([f"        entry->creator = {self.prefix}thread_token();"] if h["threading"] == "creator_thread" else []),
+                             f"        auto handle = {self.prefix}allocate_handle();", "        if (!handle) return 4;",
+                             f"        auto& registry = {get}();", "        std::lock_guard<std::mutex> lock(registry.mutex);",
+                             "        if (!registry.objects.emplace(handle, entry).second) return 4;",
+                             "        *out = handle;", "        return 0;", "    } catch (...) { return 3; }", "}"]
+                verification = {"symbol": symbol, "cpp_type": obj, "argument_types": arguments,
+                                "declared_exception": constructor["exception"],
+                                "construction_check": "native_constructibility_with_declared_argument_categories",
+                                "exact_constructor_parameter_signature_proved": False,
+                                "nothrow_object_construction_checked": constructor["exception"] == "noexcept",
+                                "wrapper_allocation_exception_boundary": "catch_status",
+                                "borrow_retention_proved": False}
+                self.constructor_checks.append(verification)
+                self.costs.append({"symbol": symbol, "route": "handle_create",
+                                   "allocation": "entry_and_object_shared_owners_plus_registry_node_and_possible_bucket_growth",
+                                   "foreign_constructor_allocations": "unverified", "registry_lifetime": "process",
+                                   "constructor_exception": constructor["exception"], "exception_boundary": "catch_status",
+                                   "wrapper_input_buffer_copy_bytes": 0,
+                                   "foreign_input_copy": "constructor_dependent_unverified",
+                                   "borrow_retention_proved": False,
+                                   "output_write": "only_after_successful_registry_insertion"})
             # Obtain and release the registry mutex before taking the per-object
             # mutex. No generated path holds the registry while running C++ code.
             lookup = [f"        auto& registry = {get}();", f"        std::shared_ptr<{entry}> entry;", "        {",
@@ -394,11 +445,8 @@ class _Generator:
                                    "wrapper_shared_owner_copies": 2, "input_buffer_copy_bytes": 0,
                                    "foreign_allocation": "method_dependent_unverified",
                                    "exception_boundary": "catch_status", "threading": h["threading"], "reentrancy": h["reentrancy"]})
-            self.costs += [{"symbol": name + "_new", "route": "handle_create",
-                            "allocation": "entry_and_object_shared_owners_plus_registry_node_and_possible_bucket_growth",
-                            "foreign_constructor_allocations": "unverified", "registry_lifetime": "process"},
-                           {"symbol": name + "_destroy", "route": "handle_destroy", "destruction": h["destruction"],
-                            "deallocation": "same_C++_shared_owner_module", "abandoned_handles": "not_automatically_reclaimed"}]
+            self.costs.append({"symbol": name + "_destroy", "route": "handle_destroy", "destruction": h["destruction"],
+                               "deallocation": "same_C++_shared_owner_module", "abandoned_handles": "not_automatically_reclaimed"})
 
     def render(self) -> tuple[str, str, str]:
         self.pods_()
@@ -438,6 +486,7 @@ def bridge_cpp_contracts(header: str | Path, contract: dict | str | Path,
             _reject("Need an existing header and a new, nonsymlink output directory", "E_CPP_PATH")
         raw_contract = contract if isinstance(contract, dict) else json.loads(Path(contract).read_text(encoding="utf-8"))
         c = _validate(raw_contract)
+        report["contract_schema"] = c["schema"]
         header_bytes = src.read_bytes()
         if len(header_bytes) > 256_000:
             _reject("Header exceeds 256 KB", "E_CPP_SIZE")
@@ -478,7 +527,8 @@ def bridge_cpp_contracts(header: str | Path, contract: dict | str | Path,
                            "compiler_user_header_dependencies": depfile,
                            "transitive_dependency_lock": "not_established_rebuild_from_current_headers_required",
                            "hepta_validation": checked.report, "status_codes": STATUS,
-                           "cost_accounting": generator.costs, "abi": "selected_C++_compiler_host_C_ABI",
+                           "cost_accounting": generator.costs, "constructor_checks": generator.constructor_checks,
+                           "abi": "selected_C++_compiler_host_C_ABI",
                            "assumptions": ["Foreign code respects declared effects, reentrancy and synchronization requirements.",
                                            "Borrowed pointers name live initialized aligned allocations of the stated extent with valid aliasing.",
                                            "Foreign code does not retain call_only pointers, spans or const references, or create data races through aliases.",

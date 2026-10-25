@@ -1,9 +1,10 @@
 # Independently checked resource and loan IR
 
-`hepta.resource-ir.v1` is a typed JSON control-flow graph with explicit resource
+`hepta.resource-ir.v2` is a typed JSON control-flow graph with explicit resource
 transitions. `hepta/resource_ir.py` verifies that graph without importing the
 Hepta parser, source checker or source AST. This is additional checking of a
 resource abstraction. It does not replace the existing native Rust gate.
+The standalone verifier also accepts concrete legacy v1 graphs.
 
 `hepta/resource_lowering.py` translates a successfully checked AST into the
 graph; the pipeline invokes the independent verifier. The translator is ordinary Python
@@ -20,6 +21,11 @@ concrete structs, enums and `Result` containing owned data are owned. A JSON
 `Buffer` identities, concrete aggregate arguments, complete typed payloads and
 function signatures are checked. Recursive value types and unsupported type
 kinds are rejected.
+
+Generic function parameters are opaque, function-scoped Copy or Owned types.
+Every generic body is verified, including uninstantiated declarations. Calls
+carry type arguments whose scopes, constraints and substituted aggregate shapes
+are checked independently. `OWNED_GENERICS.md` details that finite profile.
 
 Each function has parameter modes, a typed return signature, local storage,
 an entry block, basic blocks and explicit terminators. The verifier propagates
@@ -94,11 +100,13 @@ and index access, temporary `read`/`mut` borrows, calls, returned views,
 `if`, short-circuit booleans, early return, `for` and `while`. Loop bodies
 must return to the header with the same owner and loan state. All imported
 functions in the resolved project are translated and checked.
+Finite Copy/Owned function constraints and whole fresh-owner transfers are
+also modelled; the IR does not rely on concrete specialization sampling.
 
 Unsupported constructs fail with `E_RIR_LOWER_UNSUPPORTED`, or a more
 specific resource-verifier diagnostic when a produced graph violates the
 model. These include raw pointers, tasks/channels/concurrency, task resource
-clauses, generic function bodies, unresolved generic types, partial moves
+clauses, unbound or unsupported generic constraints, partial moves
 out of owned fields, first-class stored references, unmodeled builtins,
 projection from temporary nonborrowed aggregates, and mode-changing borrowed
 returns that need an explicit reborrow transition. Concrete generic
@@ -179,18 +187,34 @@ graph, verifies the serialized graph in a fresh process without importing
 `hepta.parser` or `hepta.checker`, then compiles and runs the source using the
 existing Rust backend. The binary is not generated from the resource graph.
 
-The committed host result is `evidence/resources/native_qualification.json`:
+The earlier concrete-only host qualification remains archived under
+`evidence/production_v4_final/qualifications/independent_resource_ir.json`.
+The current qualifier executes all three projects below; the latest complete
+release report must bind its results to the source snapshot being assessed.
 
 | Project | Functions | Reachable blocks | Normal/early exits | Resource operations | Native result |
 | --- | ---: | ---: | ---: | ---: | --- |
 | `examples/owned/main.hepta` plus imported `buffers.hepta` | 6 | 30 | 9 | 60 | exit 0 |
 | `examples/resource_ir/returned_views.hepta` | 8 | 11 | 8 | 46 | exit 0 |
+| `examples/owned_generics/main.hepta` plus imported `operations.hepta` | 7 | 18 | 10 | 71 | exit 0 |
 
 The report records source hashes, Rust compiler identity, native validation,
-artifact digests and seven rejected mutations of graphs lowered from these
+artifact digests and eleven rejected mutations of graphs lowered from these
 actual projects. The unit suite additionally covers missing foreign
 obligations, unequal branch states, duplicate owned payload transfers,
 read/read reuse, known-disjoint fields, prefix overlap, conservative indices,
 live loans at return, raw-pointer rejection and malicious type/claim changes.
+The generic library includes six checked abstract generic bodies and sixteen
+generic calls; added attacks include missing type arguments, false constraints,
+escaped parameters and removal of a generic destructor. Unit regressions also
+reject false substituted aggregate layouts and leaks in uncalled generic bodies.
 These observations qualify the tested profile; they are not a proof of the
 translator or a universal memory-safety theorem.
+
+The CLI retains each serialized graph beside its report in a fresh
+`<report-stem>.graphs/` directory. Each project records the file digest, byte
+count and canonical JSON identity actually returned by the independent
+verifier. Final release archives include these graph files, so inspecting or
+rechecking the independently validated IR does not require trusting a textual
+success summary or regenerating the graph. Neither existing reports nor
+their graph directories are overwritten.

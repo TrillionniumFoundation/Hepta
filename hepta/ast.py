@@ -140,6 +140,9 @@ class Function:
     # Borrowed returns are tied to the unique read/mut input. They are places
     # for immediate use/reborrowing, not first-class local reference values.
     return_mode: str = "value"
+    # Function-only finite capability constraints. Missing entries retain the
+    # historical Copy constraint; Owned means a checked, sized resource value.
+    type_bounds: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass

@@ -87,8 +87,8 @@ class Emitter:
     def constructor(self, typ: Type) -> str:
         return self.typ(typ).replace("<", "::<", 1)
 
-    def generics(self, params: tuple[str, ...], *, copy_bound: bool = True) -> str:
-        return "<" + ", ".join("G_" + name + (": core::marker::Copy" if copy_bound else "") for name in params) + ">" if params else ""
+    def generics(self, params: tuple[str, ...], *, copy_bound: bool = True, bounds: dict[str, str] | None = None) -> str:
+        return "<" + ", ".join("G_" + name + (": core::marker::Copy" if copy_bound and (bounds or {}).get(name, "Copy") == "Copy" else "") for name in params) + ">" if params else ""
 
     @staticmethod
     def variant_name(enum_name: str, variant_name: str) -> str:
@@ -143,7 +143,10 @@ class Emitter:
             args = [self.expr(x) for x in e.children]
             group_calls = {"task_group": "__hepta_group_new", "group_send": "__hepta_group_send",
                            "group_receive": "__hepta_group_receive", "group_seal": "__hepta_group_seal",
-                           "group_snapshot": "__hepta_group_snapshot", "group_fail": "__hepta_group_fail"}
+                           "group_snapshot": "__hepta_group_snapshot", "group_fail": "__hepta_group_fail",
+                           "group_send_timeout": "__hepta_group_send_timeout",
+                           "group_receive_timeout": "__hepta_group_receive_timeout",
+                           "group_cancel": "__hepta_group_cancel"}
             if e.value in group_calls:
                 return group_calls[e.value] + "(" + ", ".join(args) + ")"
             if e.value in {"group_join", "group_drain_and_join", "group_cancel_and_join"}:
@@ -282,7 +285,7 @@ class Emitter:
             self.params = {p.name: p.mode for p in fn.params}
             self.type_params = set(fn.type_params)
             return_prefix = "&" if fn.return_mode == "read" else "&mut " if fn.return_mode == "mut" else ""
-            signature = "fn h_" + fn.name + self.generics(fn.type_params) + "(" + ", ".join(self.param(p) for p in fn.params) + ") -> " + return_prefix + self.typ(fn.return_type)
+            signature = "fn h_" + fn.name + self.generics(fn.type_params, bounds=fn.type_bounds) + "(" + ", ".join(self.param(p) for p in fn.params) + ") -> " + return_prefix + self.typ(fn.return_type)
             lines.append("// hepta-source: " + json.dumps({"event": "begin", "kind": "declaration", "span": asdict(fn.span)}, ensure_ascii=True, separators=(",", ":")))
             if fn.extern_c:
                 lines.append('extern "C" { #[link_name = ' + json.dumps(fn.name) + "] pub " + signature + "; }")

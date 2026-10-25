@@ -201,7 +201,10 @@ class ProductionWorkspaceSession(FileStudySession):
         started = time.monotonic()
         checked = check_candidate(self.request, candidate, rustc=self.rustc, fixture=self.fixture,
                                   timeout=self._remaining(deadline))
-        self.validation_seconds += time.monotonic() - started
+        checked_seconds = time.monotonic() - started
+        self.validation_seconds += checked_seconds
+        self.events.append({'operation': 'task_native_check', 'namespace_required': not self.fixture,
+                            'elapsed_seconds': round(checked_seconds, 6), 'result': checked})
         if not checked['ok']:
             return {'ok': False, 'applied': False, 'version': before, 'validation': checked,
                     'prepared_workspace_version': prepared_version,

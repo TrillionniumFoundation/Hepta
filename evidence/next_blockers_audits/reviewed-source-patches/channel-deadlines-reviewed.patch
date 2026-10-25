@@ -1,0 +1,593 @@
+diff --git a/docs/BOUNDED_CONCURRENCY.md b/docs/BOUNDED_CONCURRENCY.md
+index 48a1e4f..9a50efb 100644
+--- a/docs/BOUNDED_CONCURRENCY.md
++++ b/docs/BOUNDED_CONCURRENCY.md
+@@ -81,8 +81,11 @@ that an arbitrary worker terminates.
+ | `task_group(tasks, bytes, slots)` | Creates the local group and its fixed channel storage. Returns `TaskGroup`. |
+ | `group_spawn(mut group, producer, move data)` | Attempts admission and launches a real OS thread. Returns `bool`; input is consumed in either case. |
+ | `group_send(read output, value)` | Blocks while the ring is full. Returns `false` after group cancellation or failure closes the channel. |
++| `group_send_timeout(read output, value, milliseconds)` | Uses one monotonic deadline while waiting for queue capacity. Returns `Result<bool,u8>` as specified below. |
+ | `group_seal(mut group)` | Ends admission. Existing workers continue. Calling it again is harmless. |
+ | `group_receive(read group, mut value)` | Requires a sealed group. Blocks for a value, returning `true` after updating the `u64` destination. Returns `false` when the channel is closed and drained, leaving the destination unchanged. |
++| `group_receive_timeout(read group, mut value, milliseconds)` | Requires sealing and uses one monotonic deadline while waiting for a value. Leaves the destination unchanged on closure or timeout. |
++| `group_cancel(mut group)` | Seals admission, requests cooperative cancellation, closes/discards the channel and wakes waiters. The group remains owned and must still be joined. Repeated calls are harmless. |
+ | `group_join(move group)` | Requires a drained channel, joins every admitted worker, and returns `GroupReport`. An undrained channel fails a guard rather than blocking its own producers indefinitely. |
+ | `group_drain_and_join(move group)` | Seals, explicitly discards remaining messages while draining, joins every admitted worker, and returns `GroupReport`. |
+ | `group_cancel_and_join(move group)` | Requests cancellation, closes the channel, discards queued messages, wakes blocked channel operations, joins every admitted worker, and returns `GroupReport`. |
+@@ -111,6 +114,38 @@ Use `group_cancel_and_join` when stopping before normal channel completion.
+ Neither operation forcibly terminates a worker that ignores cancellation or is
+ stuck in unrelated computation.
+ 
++### Channel deadlines
++
++The duration argument is a `u64` number of milliseconds. Both timed operations
++return `Result<bool,u8>`:
++
++| Outcome | Meaning |
++| --- | --- |
++| `Result::Ok(true)` | Exactly one value was sent or received. |
++| `Result::Ok(false)` | The operation observed a closed channel; a receive also requires that the channel is drained. |
++| `Result::Err(1)` | The operation observed its deadline while the queue predicate still prevented progress. No value was sent and no receive destination was changed. |
++| `Result::Err(2)` | The host monotonic clock could not represent the requested deadline; no queue mutation occurred. |
++
++Zero milliseconds polls readiness under the mutex. Ready or closed state takes
++precedence over deadline expiry when the operation checks the queue. A timeout
++does not cancel the group, consume its join obligation, or discard its queue.
++Call `group_cancel(mut group)` explicitly if the application chooses to stop;
++then consume it with a join operation. This separates a channel timeout from
++the application's cancellation decision.
++
++The deadline is computed once before acquiring the mutex. Spurious condition
++variable wakeups recompute the **remaining** duration and cannot restart the
++full timeout. `GroupReport.send_timeouts` and `.receive_timeouts` count actual
++deadline outcomes, while `waiting_senders` returns to zero when waits finish.
++There is no hard real-time bound: scheduling, mutex acquisition/reacquisition
++and a subsequent join can take longer, and workers must still cooperate. This
++matches the [Rust condition-variable timing contract](https://doc.rust-lang.org/std/sync/struct.Condvar.html#method.wait_timeout).
++
++`examples/groups/timeouts.hepta` exercises zero-duration send/receive polls,
++one real receive wait, unchanged output on failure, idempotent cancellation and
++cleanup of an owned aggregate in a cancelled worker. Native runtime tests also
++inject spurious notifications and cancel a sender waiting on a long deadline.
++
+ The effect upper bounds are conservative. Group creation and snapshot operations
+ declare `alloc, block, panic`; channel mutation and joins also declare `write`;
+ admission adds `spawn`. The implementation uses safe Rust synchronization but
+@@ -163,6 +198,8 @@ The native validation builds and executes these checked-in sources:
+   on a full queue; all four workers finish with zero active tasks or waiters.
+ - `examples/groups/worker_failure.hepta`: nonzero application failure closes the
+   queue, requests sibling cancellation, and joins all four admitted workers.
++- `examples/groups/timeouts.hepta`: separately observed send/receive timeouts,
++  a successful poll, and explicit cancellation followed by complete joining.
+ 
+ The JSON pins source, compiler, generated Rust, native artifact, and toolchain
+ identities, and includes actual exit codes and per-run counters. Timings are
+diff --git a/docs/SPEC.md b/docs/SPEC.md
+index e519c77..505f5f3 100644
+--- a/docs/SPEC.md
++++ b/docs/SPEC.md
+@@ -318,8 +318,11 @@ and obey the same transitive worker-effect restrictions as ordinary tasks.
+ | Operation | Semantics |
+ | --- | --- |
+ | `group_send(read sender, value)` | Blocks while full; returns false after closure/cancellation/failure. |
++| `group_send_timeout(read sender, value, milliseconds)` | Timed send returning `Result<bool,u8>`; one monotonic deadline across wakeups. |
+ | `group_seal(mut group)` | Ends admission. |
+ | `group_receive(read group, mut value)` | Requires sealing; receives into a u64 destination or returns false when closed and drained. |
++| `group_receive_timeout(read group, mut value, milliseconds)` | Timed receive; unchanged destination on timeout or closed/drained channel. |
++| `group_cancel(mut group)` | Closes/discards the channel and requests cooperative cancellation; preserves the obligation to join. |
+ | `group_join(move group)` | Requires a drained channel and joins all admitted workers. |
+ | `group_drain_and_join(move group)` | Seals, discards remaining messages while draining, then joins. |
+ | `group_cancel_and_join(move group)` | Requests cancellation, closes/discards queued messages, wakes channel waiters, and joins. |
+@@ -333,6 +336,12 @@ aborts the process; `group_fail` does not contain panics or forcibly terminate
+ workers. OS thread-creation errors are handled by rejecting the admission and
+ releasing transferred input.
+ 
++Timed operations accept `u64` milliseconds and return `Ok(true)` on progress,
++`Ok(false)` on closure, `Err(1)` on observed timeout, or `Err(2)` for an
++unrepresentable host deadline. Zero duration polls readiness. Timeout itself
++does not cancel or consume the group. Mutex scheduling and joining are not
++hard real-time bounded; see [BOUNDED_CONCURRENCY.md](BOUNDED_CONCURRENCY.md).
++
+ `resource_contracts` reports these budgets as
+ `scope=one_runtime_instance` and
+ `enforcement=runtime_admission_and_fixed_queue`. They exclude other groups,
+diff --git a/examples/groups/timeouts.hepta b/examples/groups/timeouts.hepta
+new file mode 100644
+index 0000000..1d07e8a
+--- /dev/null
++++ b/examples/groups/timeouts.hepta
+@@ -0,0 +1,75 @@
++module group_timeouts;
++
++fn producer(data: take Buffer<u8>, token: read Cancellation,
++            output: read Sender<u64>) -> u64
++effects {alloc, block, panic, write} {
++    match group_send_timeout(read output, 41, 0) {
++        Result::Ok(sent) => { assert(sent); },
++        Result::Err(_) => { assert(false); },
++    }
++    match group_send_timeout(read output, 99, 0) {
++        Result::Ok(_) => { assert(false); },
++        Result::Err(code) => { assert(code == 1); },
++    }
++    release(move data);
++    return 1;
++}
++
++struct Pending { data: Buffer<u8> }
++
++fn wait_for_cancel(data: take Buffer<u8>, token: read Cancellation,
++                   output: read Sender<u64>) -> u64
++effects {alloc, block, panic, write} {
++    let pending = Pending {data: move data};
++    while !cancelled(read token) {}
++    match group_send_timeout(read output, 99, 1000) {
++        Result::Ok(sent) => { assert(!sent); },
++        Result::Err(_) => { assert(false); },
++    }
++    drop(move pending);
++    return 2;
++}
++
++fn main() -> Unit effects {alloc, block, panic, write, spawn, io} {
++    let mut sends = task_group(1, 8, 1);
++    assert(group_spawn(mut sends, producer, move buffer(8)));
++    group_seal(mut sends);
++    while group_snapshot(read sends).active_tasks != 0 {}
++    let mut value: u64 = 17;
++    match group_receive_timeout(read sends, mut value, 0) {
++        Result::Ok(received) => { assert(received); assert(value == 41); },
++        Result::Err(_) => { assert(false); },
++    }
++    match group_receive_timeout(read sends, mut value, 0) {
++        Result::Ok(received) => { assert(!received); assert(value == 41); },
++        Result::Err(_) => { assert(false); },
++    }
++    let sent = group_join(move sends);
++    assert(sent.send_timeouts == 1);
++    assert(sent.receive_timeouts == 0);
++    assert(sent.received == 1);
++    assert(sent.waiting_senders == 0);
++
++    let mut receives = task_group(1, 16, 1);
++    assert(group_spawn(mut receives, wait_for_cancel, move buffer(16)));
++    group_seal(mut receives);
++    match group_receive_timeout(read receives, mut value, 5) {
++        Result::Ok(_) => { assert(false); },
++        Result::Err(code) => { assert(code == 1); assert(value == 41); },
++    }
++    group_cancel(mut receives);
++    group_cancel(mut receives);
++    let stopped = group_join(move receives);
++    assert(stopped.receive_timeouts == 1);
++    assert(stopped.completed_tasks == 1);
++    assert(stopped.active_tasks == 0);
++    assert(stopped.cancelled);
++    assert(stopped.joined);
++    assert(stopped.sum == 2);
++    print_i64(sent.send_timeouts as i64);
++    print_i64(stopped.receive_timeouts as i64);
++    print_i64(sent.received as i64);
++    print_i64(stopped.completed_tasks as i64);
++    print_i64(stopped.active_tasks as i64);
++    print_i64(stopped.sum as i64);
++}
+diff --git a/hepta/backend.py b/hepta/backend.py
+index c79559b..6c9511f 100644
+--- a/hepta/backend.py
++++ b/hepta/backend.py
+@@ -143,7 +143,10 @@ class Emitter:
+             args = [self.expr(x) for x in e.children]
+             group_calls = {"task_group": "__hepta_group_new", "group_send": "__hepta_group_send",
+                            "group_receive": "__hepta_group_receive", "group_seal": "__hepta_group_seal",
+-                           "group_snapshot": "__hepta_group_snapshot", "group_fail": "__hepta_group_fail"}
++                           "group_snapshot": "__hepta_group_snapshot", "group_fail": "__hepta_group_fail",
++                           "group_send_timeout": "__hepta_group_send_timeout",
++                           "group_receive_timeout": "__hepta_group_receive_timeout",
++                           "group_cancel": "__hepta_group_cancel"}
+             if e.value in group_calls:
+                 return group_calls[e.value] + "(" + ", ".join(args) + ")"
+             if e.value in {"group_join", "group_drain_and_join", "group_cancel_and_join"}:
+diff --git a/hepta/checker.py b/hepta/checker.py
+index f440abe..8d6ac04 100644
+--- a/hepta/checker.py
++++ b/hepta/checker.py
+@@ -584,6 +584,8 @@ class _Checker:
+                 return REPORT
+             if expr.value in {"group_spawn", "group_send", "group_receive"}:
+                 return BOOL
++            if expr.value in {"group_send_timeout", "group_receive_timeout"}:
++                return Type("Result", (BOOL, Type("u8")))
+         if expr.kind == "unary" and expr.children:
+             return self.hint(expr.children[0], env)
+         if expr.kind == "field" and expr.children:
+@@ -1071,7 +1073,8 @@ class _Checker:
+         arity = {"task_group": 3, "group_spawn": 3, "group_send": 2,
+                  "group_receive": 2, "group_seal": 1, "group_join": 1,
+                  "group_drain_and_join": 1, "group_cancel_and_join": 1,
+-                 "group_snapshot": 1, "group_fail": 2}[name]
++                 "group_snapshot": 1, "group_fail": 2, "group_cancel": 1,
++                 "group_send_timeout": 3, "group_receive_timeout": 3}[name]
+         if len(args) != arity:
+             self.error("E_ARITY", f"{name} expects {arity} argument(s), found {len(args)}", expr.span)
+             for arg in args:
+@@ -1124,20 +1127,26 @@ class _Checker:
+             self.argument(args[0], Param("group", GROUP, "take", args[0].span), env, live, unsafe_depth)
+             self.effect("alloc", "block", "panic", "write")
+             return REPORT
+-        if name in {"group_send", "group_fail"}:
++        if name in {"group_send", "group_send_timeout", "group_fail"}:
+             self.borrow(args[0], "read", SENDER, env, live, unsafe_depth)
+             actual = self.expr(args[1], env, live, unsafe_depth, Type("u64"))
+             self.compatible(actual, Type("u64"), args[1].span)
+             if name == "group_fail" and args[1].kind == "int" and args[1].value == 0:
+                 self.error("E_GROUP_FAILURE_CODE", "group_fail requires a nonzero error code", args[1].span)
++            if name == "group_send_timeout":
++                actual = self.expr(args[2], env, live, unsafe_depth, Type("u64"))
++                self.compatible(actual, Type("u64"), args[2].span)
+             self.effect("alloc", "block", "panic", "write")
+-            return BOOL if name == "group_send" else UNIT
+-        if name == "group_receive":
++            return Type("Result", (BOOL, Type("u8"))) if name == "group_send_timeout" else (BOOL if name == "group_send" else UNIT)
++        if name in {"group_receive", "group_receive_timeout"}:
+             self.borrow(args[0], "read", GROUP, env, live, unsafe_depth)
+             self.borrow(args[1], "mut", Type("u64"), env, live, unsafe_depth)
++            if name == "group_receive_timeout":
++                actual = self.expr(args[2], env, live, unsafe_depth, Type("u64"))
++                self.compatible(actual, Type("u64"), args[2].span)
+             self.effect("alloc", "block", "panic", "write")
+-            return BOOL
+-        if name == "group_seal":
++            return Type("Result", (BOOL, Type("u8"))) if name == "group_receive_timeout" else BOOL
++        if name in {"group_seal", "group_cancel"}:
+             self.borrow(args[0], "mut", GROUP, env, live, unsafe_depth)
+             self.effect("alloc", "block", "panic", "write")
+             return UNIT
+diff --git a/hepta/runtime_concurrency.py b/hepta/runtime_concurrency.py
+index 8553e62..c097f3b 100644
+--- a/hepta/runtime_concurrency.py
++++ b/hepta/runtime_concurrency.py
+@@ -8,7 +8,8 @@ from .ast import Param, Struct, Type
+ GROUP_BUILTINS = {
+     "task_group", "group_spawn", "group_send", "group_receive", "group_seal",
+     "group_join", "group_drain_and_join", "group_cancel_and_join",
+-    "group_snapshot", "group_fail",
++    "group_snapshot", "group_fail", "group_send_timeout", "group_receive_timeout",
++    "group_cancel",
+ }
+ GROUP_TYPE_NAMES = {"TaskGroup", "Sender", "GroupReport"}
+ GROUP = Type("TaskGroup")
+@@ -20,6 +21,7 @@ REPORT_FIELDS = [
+     ("spawn_failures", "usize"), ("input_bytes", "usize"),
+     ("queued", "usize"), ("peak_queued", "usize"),
+     ("send_waits", "usize"), ("waiting_senders", "usize"),
++    ("send_timeouts", "usize"), ("receive_timeouts", "usize"),
+     ("received", "usize"), ("discarded", "usize"),
+     ("task_limit", "usize"), ("input_byte_limit", "usize"),
+     ("queue_capacity", "usize"), ("sum", "u64"),
+@@ -40,6 +42,7 @@ pub struct H_GroupReport {
+     pub h_spawn_failures: usize, pub h_input_bytes: usize,
+     pub h_queued: usize, pub h_peak_queued: usize,
+     pub h_send_waits: usize, pub h_waiting_senders: usize,
++    pub h_send_timeouts: usize, pub h_receive_timeouts: usize,
+     pub h_received: usize, pub h_discarded: usize,
+     pub h_task_limit: usize, pub h_input_byte_limit: usize,
+     pub h_queue_capacity: usize, pub h_sum: u64,
+@@ -71,6 +74,7 @@ fn __hepta_group_new(tasks: usize, bytes: usize, slots: usize) -> HeptaTaskGroup
+         h_accepted_tasks: 0, h_rejected_tasks: 0, h_completed_tasks: 0,
+         h_active_tasks: 0, h_spawn_failures: 0, h_input_bytes: 0,
+         h_queued: 0, h_peak_queued: 0, h_send_waits: 0,
++        h_send_timeouts: 0, h_receive_timeouts: 0,
+         h_waiting_senders: 0, h_received: 0, h_discarded: 0,
+         h_task_limit: tasks, h_input_byte_limit: bytes,
+         h_queue_capacity: slots, h_sum: 0, h_failed: false,
+@@ -138,23 +142,46 @@ fn __hepta_group_spawn(
+         }
+     }
+ }
+-fn __hepta_group_send(sender: &HeptaSender, value: u64) -> bool {
++fn __hepta_group_send_wait(
++    sender: &HeptaSender, value: u64, deadline: Option<std::time::Instant>,
++) -> core::result::Result<bool, u8> {
+     let shared = &sender.shared;
+     let mut state = shared.state.lock().expect("Hepta group state poisoned");
+     while state.len == state.ring.len() && !state.closed {
++        let remaining = if let Some(until) = deadline {
++            let now = std::time::Instant::now();
++            if now >= until {
++                state.report.h_send_timeouts = state.report.h_send_timeouts.saturating_add(1);
++                return Err(1);
++            }
++            Some(until.duration_since(now))
++        } else { None };
+         state.report.h_send_waits = state.report.h_send_waits.saturating_add(1);
+         state.report.h_waiting_senders += 1;
+-        state = shared.writable.wait(state).expect("Hepta group state poisoned");
++        state = if let Some(remaining) = remaining {
++            shared.writable.wait_timeout(state, remaining).expect("Hepta group state poisoned").0
++        } else {
++            shared.writable.wait(state).expect("Hepta group state poisoned")
++        };
+         state.report.h_waiting_senders -= 1;
+     }
+-    if state.closed { return false; }
++    if state.closed { return Ok(false); }
+     let index = (state.head + state.len) % state.ring.len();
+     state.ring[index] = value;
+     state.len += 1;
+     state.report.h_queued = state.len;
+     state.report.h_peak_queued = core::cmp::max(state.report.h_peak_queued, state.len);
+     shared.readable.notify_one();
+-    true
++    Ok(true)
++}
++fn __hepta_group_send(sender: &HeptaSender, value: u64) -> bool {
++    // No deadline means the wait operation cannot return a timeout error.
++    __hepta_group_send_wait(sender, value, None).expect("Hepta untimed send failed")
++}
++fn __hepta_group_send_timeout(sender: &HeptaSender, value: u64, millis: u64)
++    -> core::result::Result<bool, u8> {
++    let until = std::time::Instant::now().checked_add(std::time::Duration::from_millis(millis)).ok_or(2u8)?;
++    __hepta_group_send_wait(sender, value, Some(until))
+ }
+ fn __hepta_group_seal(group: &mut HeptaTaskGroup) {
+     let mut state = group.shared.state.lock().expect("Hepta group state poisoned");
+@@ -165,13 +192,26 @@ fn __hepta_group_seal(group: &mut HeptaTaskGroup) {
+         group.shared.writable.notify_all();
+     }
+ }
+-fn __hepta_group_receive_inner(group: &HeptaTaskGroup, output: &mut u64, discard: bool) -> bool {
++fn __hepta_group_receive_wait(
++    group: &HeptaTaskGroup, output: &mut u64, discard: bool,
++    deadline: Option<std::time::Instant>,
++) -> core::result::Result<bool, u8> {
+     let mut state = group.shared.state.lock().expect("Hepta group state poisoned");
+     assert!(state.sealed, "Hepta group_receive requires group_seal before consumption");
+     while state.len == 0 && !state.closed {
+-        state = group.shared.readable.wait(state).expect("Hepta group state poisoned");
++        state = if let Some(until) = deadline {
++            let now = std::time::Instant::now();
++            if now >= until {
++                state.report.h_receive_timeouts = state.report.h_receive_timeouts.saturating_add(1);
++                return Err(1);
++            }
++            group.shared.readable.wait_timeout(state, until.duration_since(now))
++                .expect("Hepta group state poisoned").0
++        } else {
++            group.shared.readable.wait(state).expect("Hepta group state poisoned")
++        };
+     }
+-    if state.len == 0 { return false; }
++    if state.len == 0 { return Ok(false); }
+     *output = state.ring[state.head];
+     state.head = (state.head + 1) % state.ring.len();
+     state.len -= 1;
+@@ -179,11 +219,31 @@ fn __hepta_group_receive_inner(group: &HeptaTaskGroup, output: &mut u64, discard
+     if discard { state.report.h_discarded = state.report.h_discarded.saturating_add(1); }
+     else { state.report.h_received = state.report.h_received.saturating_add(1); }
+     group.shared.writable.notify_one();
+-    true
++    Ok(true)
++}
++fn __hepta_group_receive_inner(group: &HeptaTaskGroup, output: &mut u64, discard: bool) -> bool {
++    __hepta_group_receive_wait(group, output, discard, None).expect("Hepta untimed receive failed")
+ }
+ fn __hepta_group_receive(group: &HeptaTaskGroup, output: &mut u64) -> bool {
+     __hepta_group_receive_inner(group, output, false)
+ }
++fn __hepta_group_receive_timeout(group: &HeptaTaskGroup, output: &mut u64, millis: u64)
++    -> core::result::Result<bool, u8> {
++    let until = std::time::Instant::now().checked_add(std::time::Duration::from_millis(millis)).ok_or(2u8)?;
++    __hepta_group_receive_wait(group, output, false, Some(until))
++}
++fn __hepta_group_cancel(group: &mut HeptaTaskGroup) {
++    let mut state = group.shared.state.lock().expect("Hepta group state poisoned");
++    state.sealed = true;
++    state.report.h_cancelled = true;
++    state.closed = true;
++    group.shared.cancel.store(true, std::sync::atomic::Ordering::Release);
++    state.report.h_discarded = state.report.h_discarded.saturating_add(state.len);
++    state.len = 0;
++    state.report.h_queued = 0;
++    group.shared.readable.notify_all();
++    group.shared.writable.notify_all();
++}
+ fn __hepta_group_snapshot(group: &HeptaTaskGroup) -> H_GroupReport {
+     group.shared.state.lock().expect("Hepta group state poisoned").report
+ }
+@@ -207,15 +267,7 @@ fn __hepta_group_join(mut group: HeptaTaskGroup, mode: u8) -> H_GroupReport {
+         let mut ignored = 0u64;
+         while __hepta_group_receive_inner(&group, &mut ignored, true) {}
+     } else if mode == 2 {
+-        let mut state = group.shared.state.lock().expect("Hepta group state poisoned");
+-        state.report.h_cancelled = true;
+-        state.closed = true;
+-        group.shared.cancel.store(true, std::sync::atomic::Ordering::Release);
+-        state.report.h_discarded = state.report.h_discarded.saturating_add(state.len);
+-        state.len = 0;
+-        state.report.h_queued = 0;
+-        group.shared.readable.notify_all();
+-        group.shared.writable.notify_all();
++        __hepta_group_cancel(&mut group);
+     } else {
+         let state = group.shared.state.lock().expect("Hepta group state poisoned");
+         assert!(state.closed && state.len == 0,
+diff --git a/tests/test_group_timeouts.py b/tests/test_group_timeouts.py
+new file mode 100644
+index 0000000..0c1a5cc
+--- /dev/null
++++ b/tests/test_group_timeouts.py
+@@ -0,0 +1,153 @@
++"""Native deadline, channel-state and cancellation ownership regressions."""
++from pathlib import Path
++import subprocess
++import tempfile
++import unittest
++
++from hepta.backend import GROUP_RUNTIME, TASK_RUNTIME, compile_rust
++from hepta.pipeline import analyze
++from tests import test_task_groups as group_tests
++from tools.validate_groups import run_scenario
++
++RUSTC = group_tests.RUSTC
++
++
++class TimeoutChecks(unittest.TestCase):
++    def reject(self, source, code):
++        result = analyze(source, native=False).report
++        self.assertFalse(result['ok'], result)
++        self.assertIn(code, {d['code'] for d in result['diagnostics']}, result)
++
++    def test_timeout_preserves_typed_result_and_declared_effects(self):
++        source = '''fn send(s:read Sender<u64>)->Result<bool,u8> effects {} {
++            return group_send_timeout(read s,1,1);
++        }'''
++        self.reject(source, 'E_EFFECT')
++        source = source.replace('effects {}', 'effects {alloc,block,panic,write}')
++        result = analyze(source, native=False).report
++        self.assertTrue(result['ok'], result)
++
++    def test_timeout_arity_and_duration_type(self):
++        self.reject('fn f(s:read Sender<u64>)->Unit effects {alloc,block,panic,write} {group_send_timeout(read s,1);}', 'E_ARITY')
++        self.reject('fn f(s:read Sender<u64>)->Unit effects {alloc,block,panic,write} {group_send_timeout(read s,1,true);}', 'E_TYPE')
++
++    def test_cancel_does_not_discharge_join_obligation(self):
++        self.reject('fn f()->Unit effects {alloc,block,panic,write} {let mut g=task_group(0,0,1);group_cancel(mut g);}', 'E_LINEAR_UNCONSUMED')
++
++    def test_timeout_cannot_overwrite_immutable_output(self):
++        self.reject('fn f()->Unit effects {alloc,block,panic,write} {let mut g=task_group(0,0,1);group_seal(mut g);let x:u64=0;group_receive_timeout(read g,mut x,0);group_join(move g);}', 'E_IMMUTABLE')
++
++    def test_cancel_requires_mutable_group(self):
++        self.reject('fn f()->Unit effects {alloc,block,panic,write} {let g=task_group(0,0,1);group_cancel(mut g);group_join(move g);}', 'E_IMMUTABLE')
++
++
++@unittest.skipUnless(RUSTC, 'requires the native Rust reference compiler')
++class TimeoutNativeTests(unittest.TestCase):
++    def execute(self, source):
++        return group_tests.NativeGroupTests.execute(self, source)
++
++    def runtime(self, source):
++        with tempfile.TemporaryDirectory(prefix='hepta-timeout-runtime-') as directory:
++            output = Path(directory) / 'run'
++            built = compile_rust('#![allow(dead_code)]\n' + TASK_RUNTIME + GROUP_RUNTIME + source,
++                                 rustc=RUSTC, crate_type='bin', output=output)
++            self.assertTrue(built['ok'], built)
++            executed = subprocess.run([output], capture_output=True, text=True, timeout=15)
++            self.assertEqual(executed.returncode, 0, executed.stderr)
++
++    def test_language_timeouts_zero_poll_and_owned_cancel_cleanup(self):
++        evidence = run_scenario('timeouts', rustc=RUSTC)
++        self.assertEqual(evidence['runs'][0]['metrics'], {
++            'send_timeouts': 1, 'receive_timeouts': 1, 'received': 1,
++            'completed_tasks': 1, 'active_tasks': 0, 'worker_result_sum': 2})
++
++    def test_timeout_still_requires_sealed_group(self):
++        executed = self.execute('fn main()->Unit effects {alloc,block,panic,write} {let g=task_group(0,0,1);let mut x:u64=0;group_receive_timeout(read g,mut x,0);group_cancel_and_join(move g);}')
++        self.assertNotEqual(executed.returncode, 0)
++        self.assertIn('requires group_seal', executed.stderr)
++
++    def test_nonzero_send_timeout_releases_waiter_and_does_not_publish_value(self):
++        self.runtime(r'''
++fn main() {
++    let mut group=__hepta_group_new(0,0,1);
++    let sender=HeptaSender{shared:std::sync::Arc::clone(&group.shared)};
++    assert_eq!(__hepta_group_send_timeout(&sender,41,0),Ok(true));
++    assert_eq!(__hepta_group_send_timeout(&sender,99,5),Err(1));
++    let report=__hepta_group_snapshot(&group);
++    assert_eq!(report.h_send_timeouts,1);
++    assert_eq!(report.h_waiting_senders,0);
++    assert_eq!(report.h_queued,1);
++    __hepta_group_seal(&mut group);
++    let mut value=17;
++    assert_eq!(__hepta_group_receive_timeout(&group,&mut value,0),Ok(true));
++    assert_eq!(value,41);
++    assert_eq!(__hepta_group_receive_timeout(&group,&mut value,0),Ok(false));
++    assert_eq!(__hepta_group_send_timeout(&sender,99,0),Ok(false));
++    let report=__hepta_group_join(group,0);
++    assert_eq!(report.h_received,1);
++    assert_eq!(report.h_queued,0);
++}
++''')
++
++    def test_cancellation_wakes_timed_sender_without_waiting_for_deadline(self):
++        self.runtime(r'''
++fn worker(data:Vec<u8>,_:&HeptaCancellation,sender:&HeptaSender)->u64 {
++    assert!(__hepta_group_send(sender,41));
++    assert_eq!(__hepta_group_send_timeout(sender,99,60000),Ok(false));
++    drop(data); 7
++}
++fn main() {
++    let mut group=__hepta_group_new(1,8,1);
++    assert!(__hepta_group_spawn(&mut group,worker,vec![0;8]));
++    while __hepta_group_snapshot(&group).h_waiting_senders!=1 {std::thread::yield_now();}
++    __hepta_group_cancel(&mut group);
++    __hepta_group_cancel(&mut group);
++    let report=__hepta_group_join(group,0);
++    assert!(report.h_cancelled && report.h_joined);
++    assert_eq!(report.h_discarded,1);
++    assert_eq!(report.h_send_timeouts,0);
++    assert_eq!(report.h_waiting_senders,0);
++    assert_eq!(report.h_active_tasks,0);
++    assert_eq!(report.h_sum,7);
++}
++''')
++
++    def test_spurious_wakes_do_not_restart_receive_deadline(self):
++        self.runtime(r'''
++fn worker(data:Vec<u8>,cancel:&HeptaCancellation,_:&HeptaSender)->u64 {
++    while !cancel.flag.load(std::sync::atomic::Ordering::Acquire) {std::thread::yield_now();}
++    drop(data); 0
++}
++fn main() {
++    let mut group=__hepta_group_new(1,1,1);
++    assert!(__hepta_group_spawn(&mut group,worker,vec![0]));
++    __hepta_group_seal(&mut group);
++    let shared=std::sync::Arc::clone(&group.shared);
++    let stop=std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
++    let stop_waker=std::sync::Arc::clone(&stop);
++    let waker=std::thread::spawn(move || {
++        let until=std::time::Instant::now()+std::time::Duration::from_secs(3);
++        while std::time::Instant::now()<until && !stop_waker.load(std::sync::atomic::Ordering::Acquire) {
++            shared.readable.notify_all();
++            std::thread::sleep(std::time::Duration::from_millis(1));
++        }
++    });
++    let start=std::time::Instant::now(); let mut value=47;
++    assert_eq!(__hepta_group_receive_timeout(&group,&mut value,20),Err(1));
++    let elapsed=start.elapsed();
++    stop.store(true,std::sync::atomic::Ordering::Release); waker.join().unwrap();
++    // A generous watchdog detects restarted deadlines; this is not a language
++    // promise of a one-second real-time deadline on arbitrary hosts.
++    assert!(elapsed<std::time::Duration::from_secs(2),"deadline restarted: {:?}",elapsed);
++    assert_eq!(value,47);
++    __hepta_group_cancel(&mut group);
++    let report=__hepta_group_join(group,0);
++    assert_eq!(report.h_receive_timeouts,1);
++    assert_eq!(report.h_received,0);
++    assert_eq!(report.h_active_tasks,0);
++}
++''')
++
++
++if __name__ == '__main__':
++    unittest.main()
+diff --git a/tools/validate_groups.py b/tools/validate_groups.py
+index 86ad785..9ee998e 100644
+--- a/tools/validate_groups.py
++++ b/tools/validate_groups.py
+@@ -29,6 +29,7 @@ SCENARIOS = {
+     "admission_budgets": ["admitted_tasks", "task_budget_rejections", "admitted_input_bytes", "input_budget_rejections", "zero_budget_completed"],
+     "cancellation": ["completed_tasks", "active_tasks", "waiting_senders", "discarded_values", "worker_result_sum"],
+     "worker_failure": ["failure_code", "completed_tasks", "active_tasks", "waiting_senders", "received_before_close"],
++    "timeouts": ["send_timeouts", "receive_timeouts", "received", "completed_tasks", "active_tasks", "worker_result_sum"],
+ }
+ 
+ 
+@@ -91,6 +92,7 @@ def main(argv=None) -> int:
+                    "Input-byte budgets count cumulative admitted Buffer lengths, not worker allocations or RSS.",
+                    "Task limits count total admissions for the group's lifetime; completed slots are not recycled.",
+                    "Cancellation and group_fail are cooperative; arbitrary worker termination is not proved.",
++                   "Channel timeouts use one monotonic deadline; mutex scheduling and subsequent joins are not wall-clock bounded.",
+                    "panic=abort remains process-fatal; cooperative error reporting is not panic containment.",
+                    "Observed elapsed times are not latency bounds or Rust performance superiority evidence."],
+         "scenarios": [run_scenario(name, rustc=compiler, repeats=args.repeats) for name in SCENARIOS],

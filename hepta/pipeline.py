@@ -25,6 +25,7 @@ def interface(program: Program) -> dict:
                       for e in getattr(program, "enums", [])],
             "functions": [{"name": f.name, "params": [{"name": p.name, "mode": p.mode, "type": str(p.type)} for p in f.params],
                            "type_params": list(getattr(f, "type_params", ())),
+                           "type_bounds": {name: f.type_bounds.get(name, "Copy") for name in f.type_params},
                            "returns": str(f.return_type), "return_mode": getattr(f, "return_mode", "value"),
                            "effects": sorted(f.effects),
                            "resources": f.resources, "public": f.public, "export_c": f.export_c,
@@ -54,7 +55,7 @@ class Analysis:
 
 def analyze(source: str, path: str = "<input>", *, rustc=None, target=None,
             no_std=False, native=True, crate_type="rlib", loaded_project=None,
-            backend="rust", cc=None) -> Analysis:
+            backend="rust", cc=None, c_optimization="default") -> Analysis:
     report = {"schema": "hepta.check.v1", "compiler_version": __version__,
               "compiler_sha256": compiler_hash(), "source_sha256": sha256(source.encode()),
               "path": path, "ok": False, "status": "rejected", "diagnostics": [],
@@ -93,6 +94,8 @@ def analyze(source: str, path: str = "<input>", *, rustc=None, target=None,
             emit_header(program)  # Reject unrepresentable C declaration dependencies.
         if backend not in {"rust", "c"}:
             raise HeptaError(Diagnostic("E_BACKEND", "Unknown compiler backend", Span(path=path), phase="backend"))
+        if c_optimization not in {"default", "unroll"} or (backend != "c" and c_optimization != "default"):
+            raise HeptaError(Diagnostic("E_C_OPTIMIZATION", "A named C optimization profile requires --backend c", Span(path=path), phase="backend"))
         if backend == "c":
             if target is not None or no_std:
                 raise HeptaError(Diagnostic("E_C_PROFILE", "The C backend currently supports host compilation only", Span(path=path), phase="backend"))
@@ -106,8 +109,10 @@ def analyze(source: str, path: str = "<input>", *, rustc=None, target=None,
             result.rust = generated
             report["rust_sha256"] = sha256(generated.encode())
         report["profile"] = {"no_std": no_std, "crate_type": crate_type, "overflow_checks": True, "panic": "abort"}
+        if backend == "c":
+            report["profile"]["c_optimization"] = c_optimization
         if native:
-            native_report = (compile_c(generated, cc=cc, crate_type=c_crate_type, check_only=True) if backend == "c"
+            native_report = (compile_c(generated, cc=cc, crate_type=c_crate_type, check_only=True, optimization_profile=c_optimization) if backend == "c"
                              else compile_rust(generated, rustc=rustc, target=target, crate_type=crate_type, check_only=True))
             report["backend"] = native_report
             report["diagnostics"] += native_report["diagnostics"]

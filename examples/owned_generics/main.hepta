@@ -1,0 +1,24 @@
+module owned_generics;
+import operations as owned;
+
+struct Packet<T> { data: T, tag: u32 }
+
+fn main() -> Unit effects {alloc, block, panic} {
+  let success = owned::finish::<Buffer<u8>, u8>(move buffer(7), true, 11);
+  let chosen = owned::recover::<Buffer<u8>, u8>(move success, move buffer(5));
+  assert(len(owned::view::<Buffer<u8>>(read chosen)) == 7);
+  owned::dispose::<Buffer<u8>>(move chosen);
+
+  let failure = owned::finish::<Buffer<u8>, u8>(move buffer(13), false, 19);
+  let recovered = owned::recover::<Buffer<u8>, u8>(move failure, move buffer(17));
+  assert(len(owned::view::<Buffer<u8>>(read recovered)) == 17);
+  owned::dispose::<Buffer<u8>>(move recovered);
+
+  let packet: Packet<Buffer<u8>> = Packet { data: buffer(23), tag: 29 };
+  let outcome = owned::choose::<Packet<Buffer<u8>>, Buffer<u8>>(
+      move packet, move buffer(31), false);
+  match move outcome {
+    Result::Ok(unexpected) => { owned::dispose::<Packet<Buffer<u8>>>(move unexpected); assert(false); },
+    Result::Err(error) => { assert(len(error) == 31); owned::dispose::<Buffer<u8>>(move error); }
+  }
+}

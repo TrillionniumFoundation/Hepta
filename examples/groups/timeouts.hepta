@@ -1,0 +1,75 @@
+module group_timeouts;
+
+fn producer(data: take Buffer<u8>, token: read Cancellation,
+            output: read Sender<u64>) -> u64
+effects {alloc, block, panic, write} {
+    match group_send_timeout(read output, 41, 0) {
+        Result::Ok(sent) => { assert(sent); },
+        Result::Err(_) => { assert(false); },
+    }
+    match group_send_timeout(read output, 99, 0) {
+        Result::Ok(_) => { assert(false); },
+        Result::Err(code) => { assert(code == 1); },
+    }
+    release(move data);
+    return 1;
+}
+
+struct Pending { data: Buffer<u8> }
+
+fn wait_for_cancel(data: take Buffer<u8>, token: read Cancellation,
+                   output: read Sender<u64>) -> u64
+effects {alloc, block, panic, write} {
+    let pending = Pending {data: move data};
+    while !cancelled(read token) {}
+    match group_send_timeout(read output, 99, 1000) {
+        Result::Ok(sent) => { assert(!sent); },
+        Result::Err(_) => { assert(false); },
+    }
+    drop(move pending);
+    return 2;
+}
+
+fn main() -> Unit effects {alloc, block, panic, write, spawn, io} {
+    let mut sends = task_group(1, 8, 1);
+    assert(group_spawn(mut sends, producer, move buffer(8)));
+    group_seal(mut sends);
+    while group_snapshot(read sends).active_tasks != 0 {}
+    let mut value: u64 = 17;
+    match group_receive_timeout(read sends, mut value, 0) {
+        Result::Ok(received) => { assert(received); assert(value == 41); },
+        Result::Err(_) => { assert(false); },
+    }
+    match group_receive_timeout(read sends, mut value, 0) {
+        Result::Ok(received) => { assert(!received); assert(value == 41); },
+        Result::Err(_) => { assert(false); },
+    }
+    let sent = group_join(move sends);
+    assert(sent.send_timeouts == 1);
+    assert(sent.receive_timeouts == 0);
+    assert(sent.received == 1);
+    assert(sent.waiting_senders == 0);
+
+    let mut receives = task_group(1, 16, 1);
+    assert(group_spawn(mut receives, wait_for_cancel, move buffer(16)));
+    group_seal(mut receives);
+    match group_receive_timeout(read receives, mut value, 5) {
+        Result::Ok(_) => { assert(false); },
+        Result::Err(code) => { assert(code == 1); assert(value == 41); },
+    }
+    group_cancel(mut receives);
+    group_cancel(mut receives);
+    let stopped = group_join(move receives);
+    assert(stopped.receive_timeouts == 1);
+    assert(stopped.completed_tasks == 1);
+    assert(stopped.active_tasks == 0);
+    assert(stopped.cancelled);
+    assert(stopped.joined);
+    assert(stopped.sum == 2);
+    print_i64(sent.send_timeouts as i64);
+    print_i64(stopped.receive_timeouts as i64);
+    print_i64(sent.received as i64);
+    print_i64(stopped.completed_tasks as i64);
+    print_i64(stopped.active_tasks as i64);
+    print_i64(stopped.sum as i64);
+}

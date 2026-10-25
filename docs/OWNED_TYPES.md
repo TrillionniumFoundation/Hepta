@@ -3,7 +3,8 @@
 This extension implements Buffer-bearing structs, enums, generic data types,
 and `Result<Buffer<u8>, E>` in the Rust-backed hosted profile. It replaces the
 earlier Copy-only restriction on **data type instantiations** described in
-`ADTS_GENERICS.md`. Generic **functions** retain their implicit Copy constraint.
+`ADTS_GENERICS.md`. Generic **functions** default to Copy and can explicitly
+declare the finite `Owned` constraint described in `OWNED_GENERICS.md`.
 Native checks and builds still run the pinned Rust 1.90.0 compiler. Frontend
 acceptance alone is not a complete borrow proof or a native execution result.
 
@@ -55,8 +56,9 @@ whole struct.
 Generic data declarations need no unconditional Copy bound. A generic data
 type with Copy payloads remains Copy; an instantiation with Buffer payloads is
 owned. Concrete declarations that contain Buffer never derive Copy. Generic
-functions such as `identity<T>(x: T)` still require Copy type arguments; this
-release does not pretend to implement ownership-polymorphic function bodies.
+functions such as `identity<T>(x: T)` still require Copy type arguments.
+`identity<T: Owned>(x: take T)` instead checks its body with an owner obligation;
+it can transfer Buffer-bearing data without erasing its resource protocol.
 
 ## Consuming matches
 

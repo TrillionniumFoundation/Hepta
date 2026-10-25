@@ -24,7 +24,8 @@ from hepta.resource_lowering import lower_resource_ir
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = {"owned_library": ROOT / "examples/owned/main.hepta",
-            "returned_views": ROOT / "examples/resource_ir/returned_views.hepta"}
+            "returned_views": ROOT / "examples/resource_ir/returned_views.hepta",
+            "owned_generics": ROOT / "examples/owned_generics/main.hepta"}
 
 
 def _first(document: dict, opname: str, function_suffix: str | None = None):
@@ -77,8 +78,41 @@ def adversarial_checks(owned: dict, views: dict) -> list[dict]:
     return checks
 
 
-def qualify_resources(directory: Path, *, rustc: str | None = None) -> dict:
+def generic_adversarial_checks(generics: dict) -> list[dict]:
+    checks = []
+
+    def expect(name, document, expected):
+        result = verify_resource_ir(document)
+        actual = result["diagnostics"][0]["code"] if result["diagnostics"] else None
+        checks.append({"case": name, "expected": expected, "actual": actual,
+                       "ok": not result["ok"] and actual == expected})
+
+    doc = copy.deepcopy(generics)
+    call = _first(doc, "call", "main")[2]
+    call["type_args"][0] = "u8"
+    expect("owned_generic_replaced_with_copy_argument", doc, "E_RIR_GENERIC")
+    doc = copy.deepcopy(generics)
+    del _first(doc, "call", "main")[2]["type_args"]
+    expect("generic_call_arguments_omitted", doc, "E_RIR_GENERIC")
+    doc = copy.deepcopy(generics)
+    block, index, _ = _first(doc, "drop", "dispose")
+    del block["ops"][index]
+    expect("abstract_generic_destructor_omitted", doc, "E_RIR_LEAK")
+    doc = copy.deepcopy(generics)
+    call = _first(doc, "call", "main")[2]
+    callee = next(fn for fn in doc["functions"] if fn["name"] == call["function"])
+    call["type_args"][0] = callee["type_params"][0]
+    expect("callee_type_parameter_escapes_to_main", doc, "E_RIR_GENERIC")
+    return checks
+
+
+def qualify_resources(directory: Path, *, rustc: str | None = None,
+                      retain_graphs: Path | None = None) -> dict:
     directory.mkdir(parents=True, exist_ok=True)
+    if retain_graphs is not None:
+        # Each report owns a fresh graph directory. Never silently replace the
+        # serialized input attached to an earlier independent verification.
+        retain_graphs.mkdir(parents=True, exist_ok=False)
     result = {"schema": "hepta.resource-qualification.v1", "ok": False,
               "generated_at_utc": datetime.now(timezone.utc).isoformat(),
               "platform": {"system": platform.system(), "machine": platform.machine()},
@@ -106,6 +140,16 @@ def qualify_resources(directory: Path, *, rustc: str | None = None) -> dict:
         if standalone.returncode:
             raise RuntimeError("Standalone verifier rejected graph: " + standalone.stdout + standalone.stderr)
         row["resource_verifier"] = json.loads(standalone.stdout)
+        graph_bytes = graph_path.read_bytes()
+        canonical = hashlib.sha256(json.dumps(graph, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+        if row["resource_verifier"].get("ir_sha256") != canonical:
+            raise RuntimeError("Standalone verifier identity differs from its serialized resource graph")
+        if retain_graphs is not None:
+            retained_path = retain_graphs / graph_path.name
+            with retained_path.open("xb") as retained:
+                retained.write(graph_bytes)
+            row["resource_ir"] = {"path": str(retained_path), "sha256": hashlib.sha256(graph_bytes).hexdigest(),
+                                  "canonical_sha256": canonical, "bytes": len(graph_bytes)}
         row["inputs"] = {str(Path(p).relative_to(ROOT)): hashlib.sha256(data).hexdigest()
                          for p, data in analysis.project.source_bytes.items()}
         binary = directory / (name + ".bin")
@@ -119,6 +163,7 @@ def qualify_resources(directory: Path, *, rustc: str | None = None) -> dict:
         if execution.returncode:
             return result
     result["adversarial_checks"] = adversarial_checks(documents["owned_library"], documents["returned_views"])
+    result["adversarial_checks"] += generic_adversarial_checks(documents["owned_generics"])
     result["ok"] = all(check["ok"] for check in result["adversarial_checks"])
     return result
 
@@ -132,7 +177,8 @@ def main() -> int:
         parser.error("Refusing to overwrite an existing qualification")
     with tempfile.TemporaryDirectory(prefix="hepta-resource-native-") as td:
         try:
-            report = qualify_resources(Path(td), rustc=args.rustc)
+            report = qualify_resources(Path(td), rustc=args.rustc,
+                                       retain_graphs=args.output.with_suffix(".graphs"))
         except (OSError, RuntimeError, ResourceIRError, subprocess.TimeoutExpired) as exc:
             report = {"schema": "hepta.resource-qualification.v1", "ok": False, "error": str(exc)}
     args.output.parent.mkdir(parents=True, exist_ok=True)

@@ -41,8 +41,11 @@ def current_record():
             'journal_sha256': workspace.digest(journal) if journal else None}
 
 
-def main():
-    message = json.loads(sys.stdin.read())
+def main(message=None, *, _checkpoint=None):
+    # _checkpoint is an in-process test hook, never a field accepted from an
+    # adapter message. Only the separately copied trusted crash worker uses it.
+    if message is None:
+        message = json.loads(sys.stdin.read())
     operation = message['operation']
     if operation == 'initialize':
         result = workspace.initialize(STORE, Path('bundle'), message['entry'], rustc=message['rustc'])
@@ -51,7 +54,8 @@ def main():
         result = workspace.inspect_workspace(STORE)
         api = 'inspect_workspace'
     elif operation in {'prepare', 'commit'}:
-        result = workspace.apply_workspace_patch(STORE, message['patch'], apply=operation == 'commit', rustc=message['rustc'])
+        result = workspace.apply_workspace_patch(STORE, message['patch'], apply=operation == 'commit',
+                                                 rustc=message['rustc'], _checkpoint=_checkpoint)
         api = 'apply_workspace_patch'
     elif operation == 'recover':
         result = workspace.recover(STORE)
@@ -91,8 +95,9 @@ def main():
     print(json.dumps(out))
 
 
-try:
-    main()
-except (workspace.WorkspaceError, HeptaError, ValueError, KeyError, TypeError, OSError, RecursionError) as exc:
-    print(json.dumps({'ok': False, 'operation': 'rpc_error', 'diagnostics': str(exc),
-                      'publication_state': 'unverified', 'error_type': type(exc).__name__}))
+if __name__ == '__main__':
+    try:
+        main()
+    except (workspace.WorkspaceError, HeptaError, ValueError, KeyError, TypeError, OSError, RecursionError) as exc:
+        print(json.dumps({'ok': False, 'operation': 'rpc_error', 'diagnostics': str(exc),
+                          'publication_state': 'unverified', 'error_type': type(exc).__name__}))

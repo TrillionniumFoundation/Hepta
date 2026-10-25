@@ -13,7 +13,8 @@ import json
 import re
 
 
-SCHEMA = "hepta.resource-ir.v1"
+SCHEMA = "hepta.resource-ir.v2"
+LEGACY_SCHEMA = "hepta.resource-ir.v1"
 _SCALARS = {"i8", "i16", "i32", "i64", "i128", "isize", "u8", "u16", "u32", "u64", "u128", "usize", "f32", "f64", "bool", "Unit"}
 _EXTERNAL_REQUIREMENTS = ["abi", "aliasing", "effects", "lifetime", "ownership"]
 _CLAIMS = {"source_to_ir_refinement_proved": False, "native_codegen_uses_this_ir": False,
@@ -82,6 +83,7 @@ class _Verifier:
         self.doc = doc
         self.types: dict = {}
         self.owned: dict[str, bool] = {}
+        self.type_parameters: dict[str, frozenset[str]] = {}
         self.functions: dict = {}
         self.assumptions: dict = {}
         self.function = ""
@@ -90,6 +92,7 @@ class _Verifier:
         self.params: dict[str, dict] = {}
         self.operation_count = 0
         self.static_operation_count = 0
+        self.generic_calls_checked = 0
 
     def type_(self, name: object) -> dict:
         name = _id(name)
@@ -112,6 +115,15 @@ class _Verifier:
                 _fields(typ, {"kind", "name"}, "scalar type")
                 if typ["name"] not in _SCALARS or tid != typ["name"]:
                     _fail("E_RIR_TYPE", "Scalar identity must name a supported primitive")
+            elif kind == "parameter":
+                _fields(typ, {"kind", "function", "name", "bound"}, "type parameter")
+                if self.doc["schema"] != SCHEMA:
+                    _fail("E_RIR_SCHEMA", "Generic resource types require resource IR v2")
+                owner, name = _id(typ["function"]), _id(typ["name"])
+                if any(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", part) is None for part in (owner, name)):
+                    _fail("E_RIR_TYPE", "Generic owners and names must be plain identifiers")
+                if typ["bound"] not in {"Copy", "Owned"} or tid != "@" + owner + "::" + name:
+                    _fail("E_RIR_GENERIC", "Generic identity and finite Copy/Owned constraint must agree")
             elif kind in {"buffer", "slice", "array"}:
                 _fields(typ, {"kind", "element"} | ({"length"} if kind == "array" else set()), "sequence type")
                 element = _id(typ["element"])
@@ -177,7 +189,9 @@ class _Verifier:
             kind = self.types[tid]["kind"]
             if kind in {"slice", "array"} and any(children):
                 _fail("E_RIR_TYPE", "Resource-bearing arrays/slices are unsupported")
-            self.owned[tid] = kind == "buffer" or any(children)
+            self.owned[tid] = kind == "buffer" or kind == "parameter" and self.types[tid]["bound"] == "Owned" or any(children)
+            self.type_parameters[tid] = (frozenset({tid}) if kind == "parameter" else
+                                         frozenset().union(*(self.type_parameters[child] for child in dependencies[tid])))
             active.remove(tid)
             return self.owned[tid]
 
@@ -194,16 +208,27 @@ class _Verifier:
                 _fail("E_RIR_EXTERNAL", "External obligations must explicitly retain all unproved requirements")
             _id(obligation["function"])
         for fn in _list(self.doc["functions"], 512):
-            _fields(fn, {"name", "params", "returns", "external", "obligation", "locals", "entry", "blocks"}, "function")
+            _fields(fn, {"name", "params", "returns", "external", "obligation", "locals", "entry", "blocks"} |
+                    ({"type_params"} if "type_params" in fn else set()), "function")
             name = _id(fn["name"])
             if name in self.functions:
                 _fail("E_RIR_FUNCTION", "Duplicate function")
             self.functions[name] = fn
+            declared = _list(fn.get("type_params", []), 64)
+            if declared and self.doc["schema"] != SCHEMA:
+                _fail("E_RIR_SCHEMA", "Generic functions require resource IR v2")
+            if len(set(_id(t) for t in declared)) != len(declared):
+                _fail("E_RIR_GENERIC", "Generic parameter identities must be unique")
+            for tid in declared:
+                descriptor = self.type_(tid)
+                if descriptor["kind"] != "parameter" or descriptor["function"] != name:
+                    _fail("E_RIR_GENERIC", "Function must bind its own declared type parameters")
             params = {}
             for p in _list(fn["params"], 128):
                 _fields(p, {"id", "type", "mode"}, "parameter")
                 pid = _id(p["id"])
                 self.type_(p["type"])
+                self.check_type_scope(p["type"], fn)
                 _mode(p["mode"], {"value", "take", "read", "mut"})
                 if pid in params:
                     _fail("E_RIR_FUNCTION", "Duplicate parameter")
@@ -216,6 +241,7 @@ class _Verifier:
                 params[pid] = p
             ret = _fields(fn["returns"], {"type", "mode", "origin"}, "return signature")
             self.type_(ret["type"])
+            self.check_type_scope(ret["type"], fn)
             _mode(ret["mode"], {"value", "read", "mut"})
             if ret["mode"] == "value":
                 if ret["origin"] is not None or self.types[ret["type"]]["kind"] == "slice":
@@ -227,6 +253,8 @@ class _Verifier:
             if type(fn["external"]) is not bool:
                 _fail("E_RIR_FUNCTION", "external must be boolean")
             if fn["external"]:
+                if declared:
+                    _fail("E_RIR_GENERIC", "External generic functions have no modelled ABI")
                 oid = fn["obligation"]
                 if not isinstance(oid, str) or oid not in self.doc["obligations"] or self.doc["obligations"][oid]["function"] != name:
                     _fail("E_RIR_EXTERNAL", "External declaration is missing its obligation")
@@ -238,6 +266,58 @@ class _Verifier:
         for oid, obligation in self.doc["obligations"].items():
             if oid not in self.assumptions:
                 _fail("E_RIR_EXTERNAL", "Unbound external obligation")
+        for tid, descriptor in self.types.items():
+            if descriptor["kind"] == "parameter":
+                owner = self.functions.get(descriptor["function"])
+                if owner is None or tid not in owner.get("type_params", []):
+                    _fail("E_RIR_GENERIC", "Unbound type parameter declaration")
+
+    def check_type_scope(self, tid: str, fn: dict) -> None:
+        self.type_(tid)
+        if not self.type_parameters[tid] <= set(fn.get("type_params", [])):
+            _fail("E_RIR_GENERIC", "A type parameter escaped its declaring function")
+
+    def instantiate(self, tid: str, mapping: dict[str, str], depth: int = 0,
+                    memo: dict[str, str] | None = None) -> str:
+        """Substitute a call signature and verify each instantiated type shape.
+
+        The existing table is not trusted to give a generic instantiation the
+        right fields. For example Box<Buffer> cannot silently substitute a
+        scalar payload for the declared Box<T>. This does not prove source
+        refinement; it checks the supplied graph's own polymorphic contract.
+        """
+        if depth > 128:
+            _fail("E_RIR_LIMIT", "Generic substitution exceeds type depth budget")
+        if not self.type_parameters[tid] & mapping.keys():
+            return tid
+        if tid in mapping:
+            return mapping[tid]
+        if memo is None:
+            memo = {}
+        if tid in memo:
+            return memo[tid]
+        desc = self.type_(tid)
+        kind = desc["kind"]
+        if kind in {"scalar", "parameter"}:
+            return tid
+        sub = lambda child: self.instantiate(child, mapping, depth + 1, memo)
+        expected = dict(desc)
+        if kind in {"buffer", "array", "slice"}:
+            element = sub(desc["element"])
+            expected["element"] = element
+            result = "Buffer<" + element + ">" if kind == "buffer" else "[" + element + "]" if kind == "slice" else f"[{element}; {desc['length']}]"
+        else:
+            args = [sub(child) for child in desc["args"]]
+            expected["args"] = args
+            result = desc["name"] + ("<" + ", ".join(args) + ">" if args else "")
+            if kind == "struct":
+                expected["fields"] = [{"name": field["name"], "type": sub(field["type"])} for field in desc["fields"]]
+            else:
+                expected["variants"] = [{"name": variant["name"], "fields": [sub(child) for child in variant["fields"]]} for variant in desc["variants"]]
+        if self.type_(result) != expected:
+            _fail("E_RIR_GENERIC", "Instantiated aggregate layout differs from the declared generic shape")
+        memo[tid] = result
+        return result
 
     def slot(self, sid: object) -> dict:
         sid = _id(sid)
@@ -331,7 +411,7 @@ class _Verifier:
                   "use": {"loan" if "loan" in op else "place", "mode"}}
         if not isinstance(name, str) or name not in fields:
             _fail("E_RIR_OP", f"Unknown operation {name}")
-        _fields(op, fields[name] | {"op"}, "operation")
+        _fields(op, fields[name] | {"op"} | ({"type_args"} if name in {"call", "foreign"} and "type_args" in op else set()), "operation")
         return name
 
     def operation(self, op: dict, state: _State) -> None:
@@ -425,12 +505,29 @@ class _Verifier:
             _fail("E_RIR_CALL", "Call kind does not match a declared function")
         if op["obligation"] != callee["obligation"]:
             _fail("E_RIR_EXTERNAL", "Call omitted or changed its external obligation")
+        type_args = _list(op.get("type_args", []), 64)
+        type_params = callee.get("type_params", [])
+        if len(type_args) != len(type_params):
+            _fail("E_RIR_GENERIC", "Call must supply exactly the declared type arguments")
+        if type_params:
+            self.generic_calls_checked += 1
+        mapping = {}
+        for parameter, actual in zip(type_params, type_args):
+            actual = _id(actual)
+            descriptor = self.type_(actual)
+            self.check_type_scope(actual, self.functions[self.function])
+            bound = self.types[parameter]["bound"]
+            if descriptor["kind"] == "slice" or self.owned[actual] != (bound == "Owned"):
+                _fail("E_RIR_GENERIC", "Type argument violates its sized Copy/Owned constraint")
+            mapping[parameter] = actual
+        params = [{**param, "type": self.instantiate(param["type"], mapping)} for param in callee["params"]]
+        ret = {**callee["returns"], "type": self.instantiate(callee["returns"]["type"], mapping)}
         args = _list(op["args"], 128)
         if len(args) != len(callee["params"]):
             _fail("E_RIR_CALL", "Call arity differs")
         origin_loan = None
         seen_loans = {}
-        for arg, param in zip(args, callee["params"]):
+        for arg, param in zip(args, params):
             _fields(arg, {"kind", "id"}, "call argument")
             sid = _id(arg["id"])
             mode = param["mode"]
@@ -454,7 +551,6 @@ class _Verifier:
                     state.variants.pop(sid, None)
                 else:
                     self.access(sid, (), "read", state)
-        ret = callee["returns"]
         if ret["mode"] == "value":
             if op["result_loan"] is not None:
                 _fail("E_RIR_CALL", "Value call cannot create a loan")
@@ -577,6 +673,7 @@ class _Verifier:
             _fields(local, {"id", "type", "mutable"}, "local slot")
             sid = _id(local["id"])
             self.type_(local["type"])
+            self.check_type_scope(local["type"], fn)
             if sid in self.slots or type(local["mutable"]) is not bool or self.types[local["type"]]["kind"] == "slice":
                 _fail("E_RIR_SLOT", "Duplicate/invalid local or owned unsized slice")
             self.slots[sid] = local
@@ -625,7 +722,7 @@ class _Verifier:
 
     def run(self) -> dict:
         _fields(self.doc, {"schema", "source_sha256", "project_sha256", "value_semantics", "types", "functions", "obligations", "claims"}, "resource IR")
-        if self.doc["schema"] != SCHEMA or self.doc["value_semantics"] != "copied_values_abstract_not_executable":
+        if self.doc["schema"] not in {SCHEMA, LEGACY_SCHEMA} or self.doc["value_semantics"] != "copied_values_abstract_not_executable":
             _fail("E_RIR_SCHEMA", "Unsupported resource IR profile")
         if self.doc["claims"] != _CLAIMS or any(type(v) is not bool for v in self.doc["claims"].values()):
             _fail("E_RIR_CLAIM", "Resource IR cannot claim source refinement, native use or foreign soundness")
@@ -639,6 +736,8 @@ class _Verifier:
         return {"schema": "hepta.resource-ir-validation.v1", "ok": True,
                 "status": "resource_cfg_verified_with_external_assumptions" if self.assumptions else "resource_cfg_verified",
                 "functions": reports, "operations_checked": self.operation_count,
+                "generic_functions_checked": sum(bool(fn.get("type_params")) for fn in self.functions.values()),
+                "generic_calls_checked": self.generic_calls_checked,
                 "owned_types": sorted(k for k, v in self.owned.items() if v),
                 "external_obligations": self.assumptions, "diagnostics": [], "claims": dict(_CLAIMS)}
 
@@ -662,7 +761,7 @@ def main(argv=None) -> int:
     from pathlib import Path
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("graph", type=Path, help="A hepta.resource-ir.v1 JSON graph")
+    parser.add_argument("graph", type=Path, help="A hepta.resource-ir.v2 JSON graph (legacy v1 accepted)")
     args = parser.parse_args(argv)
 
     def unique_fields(pairs):

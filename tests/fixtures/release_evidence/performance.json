@@ -1,0 +1,3205 @@
+{
+  "builds": {
+    "hepta_c": {
+      "artifact": "/tmp/hepta-representative-m7hocrzm/hepta_c.o",
+      "artifact_bytes": 1840,
+      "artifact_sha256": "879c6e5f451ba936002ba2ccbacb93528eea80cae0723ed3d71dc4abe8de0764",
+      "backend": "c11-gcc",
+      "check_only": false,
+      "crate_type": "obj",
+      "diagnostics": [],
+      "flags": [
+        "-std=c11",
+        "-O3",
+        "-fexcess-precision=standard",
+        "-ffp-contract=off",
+        "-fno-strict-aliasing",
+        "-Wall",
+        "-Wextra",
+        "-Werror=implicit-function-declaration",
+        "-Werror=incompatible-pointer-types"
+      ],
+      "link_args": [],
+      "ok": true,
+      "optimization_profile": "default",
+      "rustc_used": false,
+      "source_sha256": "f10509e6f2bd67fcefc41fe90145c5724f8d3df1d65adb2f363f49e94dfa8e45",
+      "status": "gcc_checked",
+      "target": "x86_64-linux-gnu",
+      "toolchain": {
+        "executable_sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26",
+        "path": "/usr/bin/gcc",
+        "version": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+      },
+      "validation_artifact_sha256": "879c6e5f451ba936002ba2ccbacb93528eea80cae0723ed3d71dc4abe8de0764"
+    },
+    "hepta_c_unroll": {
+      "artifact": "/tmp/hepta-representative-m7hocrzm/hepta_c_unroll.o",
+      "artifact_bytes": 2656,
+      "artifact_sha256": "d3de8b2a76f3112e052a0fb8b8572c056f132c6b4994c8817fb06b6c1d15125f",
+      "backend": "c11-gcc",
+      "check_only": false,
+      "crate_type": "obj",
+      "diagnostics": [],
+      "flags": [
+        "-std=c11",
+        "-O3",
+        "-fexcess-precision=standard",
+        "-ffp-contract=off",
+        "-fno-strict-aliasing",
+        "-Wall",
+        "-Wextra",
+        "-Werror=implicit-function-declaration",
+        "-Werror=incompatible-pointer-types",
+        "-funroll-loops"
+      ],
+      "link_args": [],
+      "ok": true,
+      "optimization_profile": "unroll",
+      "rustc_used": false,
+      "source_sha256": "f10509e6f2bd67fcefc41fe90145c5724f8d3df1d65adb2f363f49e94dfa8e45",
+      "status": "gcc_checked",
+      "target": "x86_64-linux-gnu",
+      "toolchain": {
+        "executable_sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26",
+        "path": "/usr/bin/gcc",
+        "version": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+      },
+      "validation_artifact_sha256": "d3de8b2a76f3112e052a0fb8b8572c056f132c6b4994c8817fb06b6c1d15125f"
+    },
+    "hepta_rust": {
+      "build": {
+        "artifact": "/tmp/hepta-representative-m7hocrzm/hepta_rust.o",
+        "artifact_bytes": 2520,
+        "artifact_sha256": "681950da3d9eccb5c14abcf8756a81c15ecc08d442b22fe27b242d3ef83013d1",
+        "check_only": false,
+        "crate_type": "obj",
+        "diagnostics": [],
+        "flags": [
+          "edition=2021",
+          "opt-level=3",
+          "overflow-checks=yes",
+          "panic=abort",
+          "codegen-units=1",
+          "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+        ],
+        "link_args": [],
+        "linker": null,
+        "ok": true,
+        "rust_sha256": "90f96dff6e7b433b8a3b391db603470514da26b5757453f98af4a632b41ad05c",
+        "rustc_crate_type": "lib",
+        "status": "rustc_checked",
+        "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+          "host": "x86_64-unknown-linux-gnu",
+          "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+          "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+          "sysroot_discovery": "verified_compiler_prefix",
+          "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+        },
+        "validation_artifact_sha256": "681950da3d9eccb5c14abcf8756a81c15ecc08d442b22fe27b242d3ef83013d1"
+      },
+      "ok": true,
+      "schema": "hepta.build.v1",
+      "validation": {
+        "assumptions": [
+          {
+            "function": "hepta_fnv1a",
+            "kind": "unsafe_obligation",
+            "line": 14,
+            "operation": "load",
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+            "status": "not_proved_by_frontend"
+          },
+          {
+            "function": "hepta_histogram",
+            "kind": "unsafe_obligation",
+            "line": 28,
+            "operation": "store",
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+            "status": "not_proved_by_frontend"
+          },
+          {
+            "function": "hepta_histogram",
+            "kind": "unsafe_obligation",
+            "line": 33,
+            "operation": "load",
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+            "status": "not_proved_by_frontend"
+          },
+          {
+            "function": "hepta_histogram",
+            "kind": "unsafe_obligation",
+            "line": 34,
+            "operation": "store",
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+            "status": "not_proved_by_frontend"
+          },
+          {
+            "function": "hepta_histogram",
+            "kind": "unsafe_obligation",
+            "line": 34,
+            "operation": "load",
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+            "status": "not_proved_by_frontend"
+          },
+          {
+            "function": "hepta_histogram",
+            "kind": "unsafe_obligation",
+            "line": 40,
+            "operation": "load",
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+            "status": "not_proved_by_frontend"
+          },
+          {
+            "function": "hepta_dot",
+            "kind": "unsafe_obligation",
+            "line": 55,
+            "operation": "load",
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+            "status": "not_proved_by_frontend"
+          },
+          {
+            "function": "hepta_dot",
+            "kind": "unsafe_obligation",
+            "line": 55,
+            "operation": "load",
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+            "status": "not_proved_by_frontend"
+          },
+          {
+            "function": "hepta_binary_search",
+            "kind": "unsafe_obligation",
+            "line": 70,
+            "operation": "load",
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+            "status": "not_proved_by_frontend"
+          },
+          {
+            "function": "hepta_binary_search",
+            "kind": "unsafe_obligation",
+            "line": 75,
+            "operation": "load",
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+            "status": "not_proved_by_frontend"
+          }
+        ],
+        "backend": {
+          "check_only": true,
+          "crate_type": "obj",
+          "diagnostics": [],
+          "flags": [
+            "edition=2021",
+            "opt-level=3",
+            "overflow-checks=yes",
+            "panic=abort",
+            "codegen-units=1",
+            "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+          ],
+          "link_args": [],
+          "linker": null,
+          "ok": true,
+          "rust_sha256": "90f96dff6e7b433b8a3b391db603470514da26b5757453f98af4a632b41ad05c",
+          "rustc_crate_type": "lib",
+          "status": "rustc_checked",
+          "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+            "host": "x86_64-unknown-linux-gnu",
+            "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+            "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+            "sysroot_discovery": "verified_compiler_prefix",
+            "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+          },
+          "validation_artifact_sha256": "1cf631ea36e264640d7fed82bbdc4ee77744a556ff4877fc54b9c4f1da76d7fe"
+        },
+        "checks": {
+          "rust_borrows_types": "rustc_checked",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "bfda682563f70a99d6c7c3e2de11c614b70c277785cb50f5a5047f93f32c803d",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "hepta_binary_search": [
+            "panic",
+            "unsafe"
+          ],
+          "hepta_dot": [
+            "unsafe"
+          ],
+          "hepta_fnv1a": [
+            "unsafe"
+          ],
+          "hepta_histogram": [
+            "unsafe",
+            "write"
+          ]
+        },
+        "interface_sha256": "508a232dca75d79d3bd4a6b18dae6100b56e21522c385dff54ea99bfc1b7653e",
+        "ok": true,
+        "path": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+        "profile": {
+          "crate_type": "obj",
+          "no_std": true,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "project": {
+          "c_imports": [],
+          "entry": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+          "locked": false,
+          "modules": [
+            {
+              "imports": {},
+              "module": "representative",
+              "path": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+              "symbols": {
+                "hepta_binary_search": "hepta_binary_search",
+                "hepta_dot": "hepta_dot",
+                "hepta_fnv1a": "hepta_fnv1a",
+                "hepta_histogram": "hepta_histogram"
+              }
+            }
+          ],
+          "package": null,
+          "path_bindings": {
+            "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta"
+          },
+          "schema": "hepta.module-graph.v1",
+          "sha256": "15f0ff56c98188f39bba4c8ec28496c87d2e863373ba1bb07987e7f87d3336c8",
+          "sources": {
+            "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta": "87fc435abdcaca6cf742dc1c79347ae15c4897ae8d5ef3e2cee3afb327954fb5"
+          }
+        },
+        "resource_contracts": [],
+        "rust_sha256": "90f96dff6e7b433b8a3b391db603470514da26b5757453f98af4a632b41ad05c",
+        "schema": "hepta.check.v1",
+        "source_sha256": "87fc435abdcaca6cf742dc1c79347ae15c4897ae8d5ef3e2cee3afb327954fb5",
+        "status": "checked_with_external_assumptions"
+      }
+    },
+    "independent_rust_flags": [
+      "--edition=2021",
+      "-C",
+      "opt-level=3",
+      "-C",
+      "overflow-checks=yes",
+      "-C",
+      "panic=abort",
+      "-C",
+      "codegen-units=1"
+    ],
+    "undefined_symbols": {
+      "hepta_c": [],
+      "hepta_c_unroll": [],
+      "hepta_rust": [
+        "                 U memset"
+      ],
+      "rust": [
+        "                 U memset"
+      ]
+    }
+  },
+  "correctness": {
+    "counts": [
+      1,
+      3,
+      31,
+      255,
+      257,
+      4099
+    ],
+    "implementations": [
+      "hepta_rust",
+      "rust",
+      "hepta_c",
+      "hepta_c_unroll"
+    ],
+    "kernels": [
+      "fnv1a",
+      "histogram",
+      "dot",
+      "binary_search"
+    ],
+    "search_oracle": "sorted-query linear merge over a table with duplicates and gaps",
+    "status": "passed",
+    "zero_length_also_checked": true
+  },
+  "function_bytes": {
+    "functions": {
+      "binary_search": {
+        "identical_function_bytes": true,
+        "implementations": {
+          "hepta_rust": {
+            "bytes": 108,
+            "sha256": "61576c34fc217376effb5c4a73966cb07e0081eeb2c2ae001be8ccd2c4d0f77d"
+          },
+          "rust": {
+            "bytes": 108,
+            "sha256": "61576c34fc217376effb5c4a73966cb07e0081eeb2c2ae001be8ccd2c4d0f77d"
+          }
+        }
+      },
+      "dot": {
+        "identical_function_bytes": true,
+        "implementations": {
+          "hepta_rust": {
+            "bytes": 214,
+            "sha256": "90e7612c48a4b1f530d85f3ab516350a0cfb06c046399371fbefa2957885d955"
+          },
+          "rust": {
+            "bytes": 214,
+            "sha256": "90e7612c48a4b1f530d85f3ab516350a0cfb06c046399371fbefa2957885d955"
+          }
+        }
+      },
+      "fnv1a": {
+        "identical_function_bytes": true,
+        "implementations": {
+          "hepta_rust": {
+            "bytes": 167,
+            "sha256": "59fb71a4d79c3f5bc632cad69c87daa8b2d6c85313afdb78df72597909eea0a6"
+          },
+          "rust": {
+            "bytes": 167,
+            "sha256": "59fb71a4d79c3f5bc632cad69c87daa8b2d6c85313afdb78df72597909eea0a6"
+          }
+        }
+      },
+      "histogram": {
+        "identical_function_bytes": true,
+        "implementations": {
+          "hepta_rust": {
+            "bytes": 364,
+            "sha256": "067dff56c90a9cd5d365ceb74985521c9ec06eae81e5636b2b10cb8555fd2b0c"
+          },
+          "rust": {
+            "bytes": 364,
+            "sha256": "067dff56c90a9cd5d365ceb74985521c9ec06eae81e5636b2b10cb8555fd2b0c"
+          }
+        }
+      }
+    },
+    "scope": "Function text sections only, not complete object or relocation equivalence",
+    "status": "completed"
+  },
+  "measurements": {
+    "all_observed_slowdowns": [
+      {
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "kernel": "fnv1a",
+        "observed_median_time_ratio": 1.005429131783944
+      },
+      {
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "kernel": "histogram",
+        "observed_median_time_ratio": 1.045413135147433
+      },
+      {
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "kernel": "histogram",
+        "observed_median_time_ratio": 1.0464190669156823
+      },
+      {
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "kernel": "dot",
+        "observed_median_time_ratio": 1.3369790835044442
+      },
+      {
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "kernel": "binary_search",
+        "observed_median_time_ratio": 1.0281046045883449
+      },
+      {
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "kernel": "fnv1a",
+        "observed_median_time_ratio": 1.0098614236791108
+      },
+      {
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "kernel": "fnv1a",
+        "observed_median_time_ratio": 1.0032506041546825
+      },
+      {
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "kernel": "histogram",
+        "observed_median_time_ratio": 1.0692900735782376
+      },
+      {
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "kernel": "histogram",
+        "observed_median_time_ratio": 1.0524955168727954
+      },
+      {
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "kernel": "dot",
+        "observed_median_time_ratio": 1.0355102537657879
+      },
+      {
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "kernel": "dot",
+        "observed_median_time_ratio": 1.599978500752384
+      },
+      {
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "kernel": "binary_search",
+        "observed_median_time_ratio": 1.06904675214805
+      }
+    ],
+    "cpu_affinity": 0,
+    "interpretation": "Ratios above 1 are slower observed times. All samples and slowdowns are retained; shared-host noise and compiler differences preclude universal superiority claims.",
+    "samples": [
+      {
+        "elapsed_ns": 86669587,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.291477486,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 77931183,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.16126512,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 76675851,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.142559215,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 76734408,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.143431783,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 76134079,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.134486184,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 75349324,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.122792423,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 74243566,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.106315345,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 75481361,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.124759927,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 76547421,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.140645459,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 74557262,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.110989779,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 74586775,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.111429557,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 75879741,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.130696252,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 75566527,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.126029,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 74947720,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.116808057,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 75098764,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.119058788,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 74642768,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.112263918,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 74483061,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.109884098,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 75234705,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.121084467,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 74897165,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.116054729,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 73911233,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.101363197,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 78431744,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.16872406,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 77965914,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.161782652,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 77601064,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.156345963,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 78217998,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.165538996,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 77006652,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.147488534,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 77023287,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.147736415,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 76841678,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.14503023,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 76879804,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 16384,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.145598352,
+        "queries": 0,
+        "reference_checksum": 14469518253046212360,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 22712071,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.338436231,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 23806083,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.35473828,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 22018984,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.32810843,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 23783198,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.354397267,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 22507998,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.335395306,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 24136803,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.359666392,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 21983671,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.327582225,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 23501961,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.350206509,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 22750047,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.339002118,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 31615441,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.471106783,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 22268433,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.33182551,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 24413057,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.363782898,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 21355570,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.318222791,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 21624989,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.322237447,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 22966538,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.342228085,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 22712100,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.338436663,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 22695526,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.338189691,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 21876712,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.325988412,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 23307934,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.347315282,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 31799603,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.47385101,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 24491684,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.364954531,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 32398982,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.482782453,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 24579940,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.366269648,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 25108603,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.374147341,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 24048542,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.358351201,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 23738678,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.353733867,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 23866442,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.355637699,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 32463417,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 16384,
+        "kernel": "histogram",
+        "ns_per_operation": 0.48374261,
+        "queries": 0,
+        "reference_checksum": 523163,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 37805849,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.56335105,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 28832603,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.429639265,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 21807787,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.324961349,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 25255469,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.376335815,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 38396263,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.572148904,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 22896510,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.341184586,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 31238351,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.465487704,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 25152036,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.374794543,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 28753456,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.428459883,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 26828531,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.399776265,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 38453548,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.573002517,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 21956997,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.327184752,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 23480957,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.349893525,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 29156914,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.434471875,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 37410392,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.557458282,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 27047956,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.403045952,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 39099827,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.582632825,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 25875007,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.38556765,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 22600392,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.336772084,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 28761518,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.428580016,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 29443518,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.438742608,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 38851657,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.578934804,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 21907934,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.326453656,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 24061722,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.358547598,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 39392042,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.586987168,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 24901725,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.371064618,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 23796399,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.354593977,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 22644254,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 16384,
+        "kernel": "dot",
+        "ns_per_operation": 0.337425679,
+        "queries": 0,
+        "reference_checksum": 13936606746779608536,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 14686116,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 14.005771637,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 12455235,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 11.878237724,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 13608151,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 12.977744102,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 14450978,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 13.781526566,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 13527892,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 12.901203156,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 13793845,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 13.154835701,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 12630553,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 12.045433998,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 13822658,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 13.182313919,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 13625425,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 12.994217873,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 13656182,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 13.023550034,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 14379071,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 13.712950706,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 12087450,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 11.527490616,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 14692286,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 14.011655807,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 15195399,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 14.491461754,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 12816459,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 12.222727776,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 13875516,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 13.232723236,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 13986000,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 13.338088989,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 15345472,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 14.63458252,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 15024117,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 14.32811451,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 12753966,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 12.163129807,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 13970867,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 13.323657036,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 14257072,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 13.596603394,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 12018097,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 11.461350441,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 14917438,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 14.226377487,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 14166297,
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 13.510033607,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 14961633,
+        "elements": 4096,
+        "implementation": "rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 14.268525124,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 11712996,
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 11.170383453,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 14292773,
+        "elements": 4096,
+        "implementation": "hepta_c_unroll",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 13.63065052,
+        "queries": 2048,
+        "reference_checksum": 4157209,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 81979943,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.221596345,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 76885884,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.145688951,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 77073381,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.148482874,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 77539621,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.155430391,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 76926895,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.146300063,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 76600841,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.141441479,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 79152057,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.17945756,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 77298914,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.151843578,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 77502195,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.154872701,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 76748140,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.143636405,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 76416590,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.138695925,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 78046722,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.162986785,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 102321359,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.524707064,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 75933564,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.131498277,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 77840987,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.159921095,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 78692938,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.172616154,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 79117155,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.17893748,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 78911361,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.17587091,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 83702157,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.247259334,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 81174721,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.209597602,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 85205441,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.269660011,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 75462738,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.124482423,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 84474174,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.258763283,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 77754124,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.158626735,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 79630235,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.186582968,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 77739889,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.158414617,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 75136155,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.119615957,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 78266477,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 256,
+        "kernel": "fnv1a",
+        "ns_per_operation": 1.16626139,
+        "queries": 0,
+        "reference_checksum": 9676100127730419875,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 20863929,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.310896769,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 23610945,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.351830497,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 22310279,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.332449064,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 22426843,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.334186003,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 19535172,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.291096747,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 20300245,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.302497223,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 21115431,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.314644441,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 20514122,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.305684239,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 20149242,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.300247103,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 21638386,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.322437078,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 21840044,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.325442016,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 20039378,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.298610002,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 19681900,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.293283165,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 21367825,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.318405405,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 23891330,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.356008559,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 19770310,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.294600576,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 20178004,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.30067569,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 21517557,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.320636585,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 22074601,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.328937188,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 20973582,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.312530726,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 21483547,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.320129797,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 22442156,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.334414184,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 22734398,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.338768929,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 21727267,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.323761508,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 23320125,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.347496942,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 25654289,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.382278696,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 24391936,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.36346817,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 26655953,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 256,
+        "kernel": "histogram",
+        "ns_per_operation": 0.397204652,
+        "queries": 0,
+        "reference_checksum": 33488792,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 43512691,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.648389623,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 30788948,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.458791077,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 29447503,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.438801989,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 29912431,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.445729956,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 45558788,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.678878844,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 31612698,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.471065909,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 27955810,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.416574031,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 23063295,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.343669876,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 26035173,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.38795431,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 25466652,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.379482687,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 35323670,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.526363701,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 62949026,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.938013583,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 24443653,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.364238814,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 25936626,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.386485845,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 39676407,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.591224536,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 23969279,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.35717009,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 30211785,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.450190678,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 38712719,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.576864466,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 23052139,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.343503639,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 27895571,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.4156764,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 45499667,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.677997872,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 28437674,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.423754364,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 27356792,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.407647967,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 36191260,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.539291799,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 32903605,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.490301922,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 59178928,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.881834745,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 27026015,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.402719006,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 25003352,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 256,
+        "kernel": "dot",
+        "ns_per_operation": 0.372578979,
+        "queries": 0,
+        "reference_checksum": 14826505215544488533,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 22164202,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 21.137430191,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 20309412,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 19.368564606,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 27748402,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 26.462938309,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 22271611,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 21.239863396,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 0
+      },
+      {
+        "elapsed_ns": 22326012,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 21.291744232,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 20739339,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 19.778574944,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 22171323,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 21.144221306,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 21229747,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 20.246264458,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 1
+      },
+      {
+        "elapsed_ns": 20240180,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 19.302539825,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 21517463,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 20.520651817,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 29851060,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 28.46818924,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 20715024,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 19.755386353,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 2
+      },
+      {
+        "elapsed_ns": 20556819,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 19.604510307,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 20451893,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 19.504445076,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 22420292,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 21.381656647,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 21357887,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 20.368468285,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 3
+      },
+      {
+        "elapsed_ns": 19856911,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 18.937026024,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 20724518,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 19.764440536,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 21246923,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 20.262644768,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 20157968,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 19.224136353,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 4
+      },
+      {
+        "elapsed_ns": 20145479,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 19.212225914,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 20514666,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 19.564310074,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 20812839,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 19.848670006,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 19898844,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 18.977016449,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 5
+      },
+      {
+        "elapsed_ns": 19980505,
+        "elements": 262144,
+        "implementation": "hepta_c_unroll",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 19.054894447,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 21667476,
+        "elements": 262144,
+        "implementation": "rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 20.663715363,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 20361359,
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 19.418105125,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 6
+      },
+      {
+        "elapsed_ns": 21000397,
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "iterations": 512,
+        "kernel": "binary_search",
+        "ns_per_operation": 20.027539253,
+        "queries": 2048,
+        "reference_checksum": 266309695,
+        "trial": 6
+      }
+    ],
+    "seed": 20261024,
+    "status": "completed",
+    "summary": [
+      {
+        "elements": 4096,
+        "implementations": {
+          "hepta_c": {
+            "max_ns_per_operation": 1.161782652,
+            "median_ns_per_operation": 1.124759927,
+            "min_ns_per_operation": 1.111429557
+          },
+          "hepta_c_unroll": {
+            "max_ns_per_operation": 1.291477486,
+            "median_ns_per_operation": 1.140645459,
+            "min_ns_per_operation": 1.101363197
+          },
+          "hepta_rust": {
+            "max_ns_per_operation": 1.16872406,
+            "median_ns_per_operation": 1.122792423,
+            "min_ns_per_operation": 1.110989779
+          },
+          "rust": {
+            "max_ns_per_operation": 1.165538996,
+            "median_ns_per_operation": 1.134486184,
+            "min_ns_per_operation": 1.109884098
+          }
+        },
+        "kernel": "fnv1a",
+        "operation": "element",
+        "time_relative_to_independent_rust": {
+          "hepta_c": 0.9914267294417751,
+          "hepta_c_unroll": 1.005429131783944,
+          "hepta_rust": 0.989692460635554
+        }
+      },
+      {
+        "elements": 4096,
+        "implementations": {
+          "hepta_c": {
+            "max_ns_per_operation": 0.48374261,
+            "median_ns_per_operation": 0.354397267,
+            "min_ns_per_operation": 0.338189691
+          },
+          "hepta_c_unroll": {
+            "max_ns_per_operation": 0.482782453,
+            "median_ns_per_operation": 0.35473828,
+            "min_ns_per_operation": 0.342228085
+          },
+          "hepta_rust": {
+            "max_ns_per_operation": 0.366269648,
+            "median_ns_per_operation": 0.33182551,
+            "min_ns_per_operation": 0.322237447
+          },
+          "rust": {
+            "max_ns_per_operation": 0.47385101,
+            "median_ns_per_operation": 0.339002118,
+            "min_ns_per_operation": 0.318222791
+          }
+        },
+        "kernel": "histogram",
+        "operation": "element",
+        "time_relative_to_independent_rust": {
+          "hepta_c": 1.045413135147433,
+          "hepta_c_unroll": 1.0464190669156823,
+          "hepta_rust": 0.978830197161187
+        }
+      },
+      {
+        "elements": 4096,
+        "implementations": {
+          "hepta_c": {
+            "max_ns_per_operation": 0.586987168,
+            "median_ns_per_operation": 0.573002517,
+            "min_ns_per_operation": 0.557458282
+          },
+          "hepta_c_unroll": {
+            "max_ns_per_operation": 0.349893525,
+            "median_ns_per_operation": 0.336772084,
+            "min_ns_per_operation": 0.324961349
+          },
+          "hepta_rust": {
+            "max_ns_per_operation": 0.465487704,
+            "median_ns_per_operation": 0.38556765,
+            "min_ns_per_operation": 0.354593977
+          },
+          "rust": {
+            "max_ns_per_operation": 0.438742608,
+            "median_ns_per_operation": 0.428580016,
+            "min_ns_per_operation": 0.371064618
+          }
+        },
+        "kernel": "dot",
+        "operation": "element",
+        "time_relative_to_independent_rust": {
+          "hepta_c": 1.3369790835044442,
+          "hepta_c_unroll": 0.7857857842816451,
+          "hepta_rust": 0.8996398236169741
+        }
+      },
+      {
+        "elements": 4096,
+        "implementations": {
+          "hepta_c": {
+            "max_ns_per_operation": 12.222727776,
+            "median_ns_per_operation": 11.878237724,
+            "min_ns_per_operation": 11.170383453
+          },
+          "hepta_c_unroll": {
+            "max_ns_per_operation": 14.63458252,
+            "median_ns_per_operation": 13.712950706,
+            "min_ns_per_operation": 13.182313919
+          },
+          "hepta_rust": {
+            "max_ns_per_operation": 14.32811451,
+            "median_ns_per_operation": 13.232723236,
+            "min_ns_per_operation": 12.977744102
+          },
+          "rust": {
+            "max_ns_per_operation": 14.268525124,
+            "median_ns_per_operation": 13.338088989,
+            "min_ns_per_operation": 12.901203156
+          }
+        },
+        "kernel": "binary_search",
+        "operation": "query",
+        "time_relative_to_independent_rust": {
+          "hepta_c": 0.8905501930445998,
+          "hepta_c_unroll": 1.0281046045883449,
+          "hepta_rust": 0.9921003861132659
+        }
+      },
+      {
+        "elements": 262144,
+        "implementations": {
+          "hepta_c": {
+            "max_ns_per_operation": 1.269660011,
+            "median_ns_per_operation": 1.16626139,
+            "min_ns_per_operation": 1.138695925
+          },
+          "hepta_c_unroll": {
+            "max_ns_per_operation": 1.247259334,
+            "median_ns_per_operation": 1.158626735,
+            "min_ns_per_operation": 1.131498277
+          },
+          "hepta_rust": {
+            "max_ns_per_operation": 1.524707064,
+            "median_ns_per_operation": 1.145688951,
+            "min_ns_per_operation": 1.124482423
+          },
+          "rust": {
+            "max_ns_per_operation": 1.258763283,
+            "median_ns_per_operation": 1.154872701,
+            "min_ns_per_operation": 1.119615957
+          }
+        },
+        "kernel": "fnv1a",
+        "operation": "element",
+        "time_relative_to_independent_rust": {
+          "hepta_c": 1.0098614236791108,
+          "hepta_c_unroll": 1.0032506041546825,
+          "hepta_rust": 0.9920478248450691
+        }
+      },
+      {
+        "elements": 262144,
+        "implementations": {
+          "hepta_c": {
+            "max_ns_per_operation": 0.382278696,
+            "median_ns_per_operation": 0.334186003,
+            "min_ns_per_operation": 0.305684239
+          },
+          "hepta_c_unroll": {
+            "max_ns_per_operation": 0.397204652,
+            "median_ns_per_operation": 0.328937188,
+            "min_ns_per_operation": 0.314644441
+          },
+          "hepta_rust": {
+            "max_ns_per_operation": 0.36346817,
+            "median_ns_per_operation": 0.30067569,
+            "min_ns_per_operation": 0.291096747
+          },
+          "rust": {
+            "max_ns_per_operation": 0.347496942,
+            "median_ns_per_operation": 0.312530726,
+            "min_ns_per_operation": 0.293283165
+          }
+        },
+        "kernel": "histogram",
+        "operation": "element",
+        "time_relative_to_independent_rust": {
+          "hepta_c": 1.0692900735782376,
+          "hepta_c_unroll": 1.0524955168727954,
+          "hepta_rust": 0.9620676144335326
+        }
+      },
+      {
+        "elements": 262144,
+        "implementations": {
+          "hepta_c": {
+            "max_ns_per_operation": 0.938013583,
+            "median_ns_per_operation": 0.677997872,
+            "min_ns_per_operation": 0.576864466
+          },
+          "hepta_c_unroll": {
+            "max_ns_per_operation": 0.445729956,
+            "median_ns_per_operation": 0.379482687,
+            "min_ns_per_operation": 0.343503639
+          },
+          "hepta_rust": {
+            "max_ns_per_operation": 0.539291799,
+            "median_ns_per_operation": 0.438801989,
+            "min_ns_per_operation": 0.364238814
+          },
+          "rust": {
+            "max_ns_per_operation": 0.471065909,
+            "median_ns_per_operation": 0.423754364,
+            "min_ns_per_operation": 0.35717009
+          }
+        },
+        "kernel": "dot",
+        "operation": "element",
+        "time_relative_to_independent_rust": {
+          "hepta_c": 1.599978500752384,
+          "hepta_c_unroll": 0.8955251420136406,
+          "hepta_rust": 1.0355102537657879
+        }
+      },
+      {
+        "elements": 262144,
+        "implementations": {
+          "hepta_c": {
+            "max_ns_per_operation": 21.239863396,
+            "median_ns_per_operation": 19.764440536,
+            "min_ns_per_operation": 19.418105125
+          },
+          "hepta_c_unroll": {
+            "max_ns_per_operation": 28.46818924,
+            "median_ns_per_operation": 21.144221306,
+            "min_ns_per_operation": 19.054894447
+          },
+          "hepta_rust": {
+            "max_ns_per_operation": 21.291744232,
+            "median_ns_per_operation": 19.504445076,
+            "min_ns_per_operation": 18.937026024
+          },
+          "rust": {
+            "max_ns_per_operation": 20.663715363,
+            "median_ns_per_operation": 19.778574944,
+            "min_ns_per_operation": 18.977016449
+          }
+        },
+        "kernel": "binary_search",
+        "operation": "query",
+        "time_relative_to_independent_rust": {
+          "hepta_c": 0.9992853677254292,
+          "hepta_c_unroll": 1.06904675214805,
+          "hepta_rust": 0.9861400596971138
+        }
+      }
+    ],
+    "trials": 7
+  },
+  "schema": "hepta.representative-benchmarks.v1",
+  "status": "passed"
+}

@@ -78,6 +78,8 @@ def main(argv=None) -> int:
         p.add_argument("--rustc")
         p.add_argument("--cc")
         p.add_argument("--backend", choices=["rust", "c"], default="rust")
+        p.add_argument("--c-opt", choices=["default", "unroll"], default="default",
+                       help="Explicit C optimization profile; unroll may trade code size and other workloads for loop throughput")
         p.add_argument("--target")
         p.add_argument("--locked", action="store_true")
         p.add_argument("--json", action="store_true", help="Machine-readable results (default for checks/builds)")
@@ -157,7 +159,7 @@ def main(argv=None) -> int:
             return 0
         file = Path(args.source).resolve()
         if args.command == "patch":
-            if args.backend != "rust" or args.locked:
+            if args.backend != "rust" or args.locked or args.c_opt != "default":
                 raise ValueError("patch currently validates with the Rust backend; regenerate the package lock after an applied edit")
             request = json.loads(Path(args.request).read_text())
             if isinstance(request, dict) and request.get("schema") == "hepta.patch.v3.preview":
@@ -172,7 +174,7 @@ def main(argv=None) -> int:
             return 0 if result["ok"] else 1
         result = analyze_project(file, rustc=args.rustc, target=args.target, no_std=args.no_std,
                                  native=not getattr(args, "frontend_only", False), crate_type=args.crate_type,
-                                 backend=args.backend, cc=args.cc, locked=args.locked)
+                                 backend=args.backend, cc=args.cc, locked=args.locked, c_optimization=args.c_opt)
         file = result.project.entry
         protected = {Path(p) for p in result.project.sources}
         if args.command == "inspect":
@@ -216,7 +218,8 @@ def main(argv=None) -> int:
                 raise ValueError("Output cannot overwrite a Hepta source in the module graph")
             if args.backend == "c":
                 from .c_backend import compile_c
-                native = compile_c(result.c, cc=args.cc, crate_type=args.crate_type, output=dest, link_args=args.link_arg)
+                native = compile_c(result.c, cc=args.cc, crate_type=args.crate_type, output=dest, link_args=args.link_arg,
+                                   optimization_profile=args.c_opt)
             else:
                 native = compile_rust(result.rust, rustc=args.rustc, target=args.target, crate_type=args.crate_type,
                                       output=dest, link_args=args.link_arg)
@@ -228,7 +231,8 @@ def main(argv=None) -> int:
             with tempfile.TemporaryDirectory(prefix="hepta-run-") as td:
                 if args.backend == "c":
                     from .c_backend import compile_c
-                    native = compile_c(result.c, cc=args.cc, crate_type="bin", output=Path(td) / "program", link_args=args.link_arg)
+                    native = compile_c(result.c, cc=args.cc, crate_type="bin", output=Path(td) / "program", link_args=args.link_arg,
+                                       optimization_profile=args.c_opt)
                 else:
                     native = compile_rust(result.rust, rustc=args.rustc, target=args.target, crate_type="bin",
                                           output=Path(td) / "program", link_args=args.link_arg)

@@ -83,8 +83,13 @@ equivalent libc++ version macro from the compiler actually used.
 
 ## Contract schema and verification
 
-The version is `hepta.cpp-contract.v1`; the checked-in example is a complete
-schema example. Unknown fields and unsupported types are errors. Names are
+The original `hepta.cpp-contract.v1` remains supported. The
+`examples/cpp/stdlib` descriptor is a complete v1 example. V2 adds explicit,
+bounded constructor argument lists and named constructor entry points; see
+[CPP_CONSTRUCTORS.md](CPP_CONSTRUCTORS.md) and `examples/cpp/constructors` for
+actual nondefault Boost.Math construction, STL size/fill constructors, failure
+injection and separately measured lifecycle costs. Unknown fields and
+unsupported types are errors. Names are
 bounded identifiers, with namespace qualification for C++ names; template
 arguments are explicit supported scalar types. Arbitrary C++ expressions are
 not accepted in the descriptor.

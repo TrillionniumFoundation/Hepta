@@ -5,8 +5,10 @@ from __future__ import annotations
 import datetime
 import hashlib
 import json
+import math
 from pathlib import Path
 import re
+import statistics
 import subprocess
 import sys
 import time
@@ -27,7 +29,69 @@ def snapshot():
     return {"sha256": identity, "files": files}
 
 
+def _sha256(value):
+    return isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value) is not None
+
+
+def _integer(value, minimum=0):
+    return type(value) is int and value >= minimum
+
+
+def _number(value, minimum=0):
+    return type(value) in (int, float) and math.isfinite(value) and value >= minimum
+
+
+def _same_number(value, expected):
+    return _number(value) and math.isclose(value, expected, rel_tol=1e-12, abs_tol=1e-12)
+
+
+def _native_build(build, *, status="rustc_checked", check_only=False):
+    if (build.get("ok") is not True or build.get("status") != status
+            or build.get("check_only") is not check_only or build.get("diagnostics") != []
+            or not _sha256(build.get("validation_artifact_sha256"))):
+        return False
+    return check_only or (_integer(build.get("artifact_bytes"), 1)
+                          and _sha256(build.get("artifact_sha256"))
+                          and build["artifact_sha256"] == build["validation_artifact_sha256"])
+
+
+def _frontend_checked(report, *, allow_external=False):
+    expected = {"syntax": "passed", "types_effects_resources": "passed_in_supported_subset", "rust_borrows_types": "rustc_checked"}
+    statuses = {"checked", "checked_with_external_assumptions"} if allow_external else {"checked"}
+    return (report.get("ok") is True and report.get("status") in statuses and report.get("diagnostics") == []
+            and all(report.get("checks", {}).get(key) == value for key, value in expected.items()))
+
+
+def _command_completed(result):
+    return (type(result.get("exit_code")) is int and result["exit_code"] == 0
+            and isinstance(result.get("argv"), list) and bool(result["argv"])
+            and _number(result.get("seconds")))
+
+
+def _strict_json(data):
+    def unique(pairs):
+        value = {}
+        for key, item in pairs:
+            if key in value:
+                raise ValueError("Duplicate JSON field in retained graph: " + key)
+            value[key] = item
+        return value
+
+    def invalid(value):
+        raise ValueError("Nonfinite JSON constant in retained graph: " + value)
+
+    return json.loads(data, object_pairs_hook=unique, parse_constant=invalid)
+
+
 def require_qualification(name, evidence):
+    """Malformed nested evidence fails the gate rather than escaping its report."""
+    try:
+        _require_qualification(name, evidence)
+    except (AttributeError, KeyError, TypeError, IndexError, OverflowError, RecursionError, OSError) as exc:
+        raise ValueError("Malformed nested qualification evidence: " + name) from exc
+
+
+def _require_qualification(name, evidence):
     """An outer success must not hide a required inner check marked not_run."""
     if name == "native_and_performance":
         results = evidence.get("results", {})
@@ -44,6 +108,130 @@ def require_qualification(name, evidence):
                 or evidence.get("function_bytes", {}).get("status") != "completed"
                 or evidence.get("measurements", {}).get("status") != "completed"):
             raise ValueError("Representative correctness/code comparison/timing did not all complete")
+        from tools.benchmark_suite import KERNELS
+        implementations = {"rust", "hepta_rust", "hepta_c", "hepta_c_unroll"}
+        measurements = evidence["measurements"]
+        trials = measurements.get("trials")
+        summary = measurements.get("summary", [])
+        samples = measurements.get("samples", [])
+        correctness = evidence["correctness"]
+        if (evidence.get("schema") != "hepta.representative-benchmarks.v1"
+                or len(correctness.get("implementations", [])) != 4
+                or set(correctness.get("implementations", [])) != implementations
+                or correctness.get("kernels") != list(KERNELS)
+                or correctness.get("counts") != [1, 3, 31, 255, 257, 4099]
+                or correctness.get("zero_length_also_checked") is not True
+                or type(trials) is not int or trials < 3
+                or len(summary) != len(KERNELS) * 2
+                or {(row.get("kernel"), row.get("elements")) for row in summary}
+                    != {(kernel, count) for kernel in KERNELS for count in (4096, 262144)}
+                or any(set(row.get("implementations", {})) != implementations
+                       or set(row.get("time_relative_to_independent_rust", {})) != implementations - {"rust"}
+                       for row in summary)
+                or len(samples) != trials * len(KERNELS) * 2 * len(implementations)
+                or evidence.get("builds", {}).get("hepta_c_unroll", {}).get("optimization_profile") != "unroll"
+                or evidence.get("builds", {}).get("hepta_c", {}).get("optimization_profile") != "default"):
+            raise ValueError("Both explicit C profiles and both Rust paths must retain the full benchmark denominator")
+        builds = evidence["builds"]
+        if (builds.get("hepta_rust", {}).get("ok") is not True
+                or not _frontend_checked(builds["hepta_rust"].get("validation", {}), allow_external=True)
+                or not _native_build(builds["hepta_rust"].get("build", {}))
+                or not _native_build(builds["hepta_c"], status="gcc_checked")
+                or not _native_build(builds["hepta_c_unroll"], status="gcc_checked")
+                or set(builds.get("undefined_symbols", {})) != implementations):
+            raise ValueError("All representative native objects must actually build")
+        functions = evidence["function_bytes"].get("functions", {})
+        if set(functions) != set(KERNELS):
+            raise ValueError("Every representative function must retain its measured text section")
+        for function in functions.values():
+            shapes = function.get("implementations", {})
+            if (set(shapes) != {"rust", "hepta_rust"}
+                    or any(not _integer(s.get("bytes"), 1) or not _sha256(s.get("sha256")) for s in shapes.values())
+                    or function.get("identical_function_bytes") is not (shapes["rust"] == shapes["hepta_rust"])):
+                raise ValueError("Function text identity must agree with both observed byte sections")
+        expected = {(kernel, count, implementation, trial) for kernel in KERNELS
+                    for count in (4096, 262144) for implementation in implementations for trial in range(trials)}
+        identities = [(s.get("kernel"), s.get("elements"), s.get("implementation"), s.get("trial")) for s in samples]
+        if len(set(identities)) != len(expected) or set(identities) != expected:
+            raise ValueError("Every kernel/count/profile/trial must have exactly one raw timing observation")
+        checksums = {}
+        grouped = {}
+        for sample in samples:
+            kernel, count, implementation, trial = (sample[k] for k in ("kernel", "elements", "implementation", "trial"))
+            iterations = 512 if kernel == "binary_search" else (1 << 26) // count
+            queries = 2048 if kernel == "binary_search" else 0
+            operations = iterations * (queries or count)
+            if (not _integer(count, 1) or not _integer(trial)
+                    or type(sample.get("iterations")) is not int or sample["iterations"] != iterations
+                    or type(sample.get("queries")) is not int or sample["queries"] != queries
+                    or not _integer(sample.get("elapsed_ns"), 1)
+                    or not _number(sample.get("ns_per_operation"), 1e-15)
+                    or not math.isclose(sample["ns_per_operation"], sample["elapsed_ns"] / operations, rel_tol=1e-8, abs_tol=1e-9)
+                    or not _integer(sample.get("reference_checksum"))):
+                raise ValueError("Raw benchmark timing must contain finite positive native observations")
+            checksums.setdefault((kernel, count), set()).add(sample["reference_checksum"])
+            grouped.setdefault((kernel, count, implementation), []).append(sample["ns_per_operation"])
+        if any(len(values) != 1 for values in checksums.values()):
+            raise ValueError("Timed native implementations disagree on the reference checksum")
+        slowdowns = {}
+        for row in summary:
+            kernel, count = row["kernel"], row["elements"]
+            if row.get("operation") != ("query" if kernel == "binary_search" else "element"):
+                raise ValueError("Benchmark operation denominator changed")
+            medians = {}
+            for implementation, reported in row["implementations"].items():
+                values = grouped[kernel, count, implementation]
+                actual = {"median_ns_per_operation": statistics.median(values),
+                          "min_ns_per_operation": min(values), "max_ns_per_operation": max(values)}
+                if set(reported) != set(actual) or any(not _same_number(reported[k], v) for k, v in actual.items()):
+                    raise ValueError("Benchmark summary differs from its complete raw samples")
+                medians[implementation] = actual["median_ns_per_operation"]
+            for implementation, ratio in row["time_relative_to_independent_rust"].items():
+                actual = medians[implementation] / medians["rust"]
+                if not _same_number(ratio, actual):
+                    raise ValueError("Benchmark ratio differs from its observed median times")
+                if actual > 1:
+                    slowdowns[kernel, count, implementation] = actual
+        regressions = measurements.get("all_observed_slowdowns", [])
+        if (len(regressions) != len(slowdowns)
+                or {(r.get("kernel"), r.get("elements"), r.get("implementation")) for r in regressions} != set(slowdowns)
+                or any(not _same_number(r.get("observed_median_time_ratio"), slowdowns[r["kernel"], r["elements"], r["implementation"]])
+                       for r in regressions)):
+            raise ValueError("Every observed performance regression must remain in the report")
+    elif name == "bounded_concurrency":
+        from tools.validate_groups import SCENARIOS
+        scenarios = evidence.get("scenarios", [])
+        if (len(scenarios) != len(SCENARIOS) or {s.get("scenario") for s in scenarios} != set(SCENARIOS)
+                or any(s.get("status") != "passed" or len(s.get("runs", [])) != 3
+                       or any(r.get("returncode") != 0 or set(r.get("metrics", {})) != set(SCENARIOS[s["scenario"]])
+                              for r in s.get("runs", [])) for s in scenarios)):
+            raise ValueError("Every bounded-group scenario, including real channel deadlines, must execute three times")
+        fixed = {
+            "bounded_pipeline": {"received_sum": 32768, "completed_tasks": 8, "admitted_input_bytes": 32768, "active_tasks": 0},
+            "admission_budgets": {"admitted_tasks": 2, "task_budget_rejections": 1, "admitted_input_bytes": 8,
+                                  "input_budget_rejections": 1, "zero_budget_completed": 0},
+            "cancellation": {"completed_tasks": 4, "active_tasks": 0, "waiting_senders": 0, "discarded_values": 1, "worker_result_sum": 256},
+            "worker_failure": {"failure_code": 17, "completed_tasks": 4, "active_tasks": 0, "waiting_senders": 0},
+            "timeouts": {"send_timeouts": 1, "receive_timeouts": 1, "received": 1,
+                         "completed_tasks": 1, "active_tasks": 0, "worker_result_sum": 2},
+        }
+        if evidence.get("schema") != "hepta.groups.evidence.v1":
+            raise ValueError("Unknown bounded-group evidence schema")
+        for scenario in scenarios:
+            label = scenario["scenario"]
+            if (any(not _sha256(scenario.get(key)) for key in ("source_sha256", "compiler_sha256", "rust_sha256", "artifact_sha256"))
+                    or scenario.get("backend_validation", {}).get("rust_borrows_types") != "rustc_checked"):
+                raise ValueError("Bounded-group execution lacks native artifact and validation identities")
+            for run in scenario["runs"]:
+                metrics = run["metrics"]
+                if (type(run["returncode"]) is not int or not _number(run.get("elapsed_ms"))
+                        or any(not _integer(n) for n in metrics.values())
+                        or any(metrics[key] != value for key, value in fixed[label].items())
+                        or (label == "bounded_pipeline" and not (1 <= metrics["peak_queued"] <= 4 and metrics["send_waits"] > 0))
+                        # The failing worker sends twice but returns its input
+                        # length (one); received messages and worker sums differ.
+                        or (label == "worker_failure" and not (2 <= metrics["received_before_close"] <= 194))):
+                    raise ValueError("Bounded-group cleanup, budgets, or deadlines contradict the native program's required observations")
     elif name == "formal_core":
         if len(evidence.get("theorems", [])) != 11 or len(evidence.get("negative_mutations", [])) != 2:
             raise ValueError("Expected 11 checked theorems and two rejected negative mutations")
@@ -76,6 +264,112 @@ def require_qualification(name, evidence):
             if (sum(execution.get("differential_cases", {}).values()) != 1046 or len(faults) != 10
                     or any(f.get("c_live_allocations") != 0 or f.get("hepta_live_allocations") != 0 for f in faults)):
                 raise ValueError("C allocation refusal, recovery and cleanup evidence is incomplete")
+    elif name == "stateful_c_module":
+        from tools.qualify_c_ring_buffer import EXPECTED_BLOBS, FLAGS, UPSTREAM_COMMIT
+        migration = evidence.get("migration", {})
+        coverage = migration.get("coverage", {})
+        expected_counts = {"function_converted": 9, "prototype_resolved": 9, "record_converted": 1,
+                           "record_forward_resolved": 1, "type_alias_resolved": 2}
+        upstream = evidence.get("upstream", {})
+        if (evidence.get("schema") != "hepta.c-stateful-upstream-qualification.v1"
+                or evidence.get("ok") is not True or evidence.get("stage") != "complete"
+                or upstream.get("commit") != UPSTREAM_COMMIT
+                or {entry.get("local_path"): entry.get("git_blob") for entry in upstream.get("files", [])} != EXPECTED_BLOBS
+                or evidence.get("build_configuration") != FLAGS
+                or migration.get("ok") is not True or migration.get("native_validation") != "passed"
+                or migration.get("declaration_inventory_complete") is not True
+                or coverage.get("active_project_declarations") != 22
+                or coverage.get("status_counts") != expected_counts):
+            raise ValueError("The frozen stateful C module must retain all 22 active declarations and its actual build configuration")
+        declarations = [d for d in migration.get("declarations", []) if d.get("status") != "system_or_compiler_declaration"]
+        if (len(upstream.get("files", [])) != len(EXPECTED_BLOBS)
+                or any(not _sha256(f.get("sha256")) or not _integer(f.get("bytes"), 1) for f in upstream["files"])
+                or len(declarations) != 22
+                or {status: sum(d.get("status") == status for d in declarations) for status in expected_counts} != expected_counts
+                or len({(d.get("unit"), d.get("file"), d.get("kind"), d.get("name"), d.get("offset"), d.get("status"))
+                        for d in declarations}) != 22
+                or migration.get("frontend_validation") != "passed"
+                or migration.get("status") != "native_built_not_equivalence_proved"
+                or not _native_build(migration.get("native_build", {}))
+                or not _command_completed(evidence.get("original_build", {}))
+                or not _command_completed(evidence.get("performance", {}).get("build", {}))):
+            raise ValueError("The full C declaration inventory and original/translated/timing native builds must exist and succeed")
+        if (any(value is not False for value in migration.get("claims", {}).values())
+                or set(migration.get("claims", {})) != {"all_c_or_cpp_supported", "foreign_pointer_validity_checked", "pointer_contracts_inferred",
+                                                       "source_equivalence_proved", "unlisted_build_configurations_qualified", "whole_language_soundness_proved"}
+                or any(migration.get("record_views", {}).get(flag) is not False for flag in
+                       ("allocation_inference", "ownership_inference", "source_equivalence_proved", "stored_references_added_to_language"))):
+            raise ValueError("C record-view evidence must retain its external assumptions and bounded claims")
+        execution = evidence.get("execution", {})
+        calls = execution.get("calls_by_function", {})
+        boundaries = evidence.get("boundary_controls", [])
+        boundary_names = {"null_record", "misaligned_record", "record_buffer_overlap", "output_buffer_overlap",
+                          "input_buffer_overlap", "extent_overflow", "bad_index", "null_storage", "zero_capacity"}
+        layout = evidence.get("layout_probe", {})
+        wrong = evidence.get("wrong_implementation_control", {})
+        if (execution.get("state_transitions") != 16384 or execution.get("native_differential_calls") != 65544
+                or execution.get("capacities") != [1, 2, 4, 8, 16, 32, 64, 256]
+                or execution.get("steps_per_capacity") != 2048 or execution.get("zero_length_null_slice_calls") != 543
+                or set(calls) != {"init", "queue", "queue_arr", "dequeue", "dequeue_arr", "peek", "is_empty", "is_full", "num_items"}
+                or any(type(n) is not int or n <= 0 for n in calls.values()) or sum(calls.values()) != 65544
+                or len(boundaries) != 9 or {b.get("case") for b in boundaries} != boundary_names
+                or any(b.get("actual_exit") != -6 or b.get("expected_exit") != -6
+                       or b.get("original_C_executed") is not False for b in boundaries)
+                or set(layout) != {"size", "align", "buffer", "buffer_mask", "head_index", "tail_index"}
+                or any(set(item) != {"gcc", "rust"} or item["gcc"] != item["rust"] for item in layout.values())
+                or wrong.get("compiled") is not True or wrong.get("rejected_by_full_oracle") is not True):
+            raise ValueError("Stateful C execution, independent layout probes and native rejection controls must all complete")
+        sizes = {key: value["gcc"] for key, value in layout.items()}
+        expected_checks = {"C/Hepta returns", "independent bounded deque oracle", "all persistent scalar state",
+                           "every backing-store byte", "output sentinels", "unchanged source input", "backing-pointer identity"}
+        if (any(not _integer(value) for value in sizes.values())
+                or any(type(item["rust"]) is not int for item in layout.values())
+                or sizes["align"] < 1 or sizes["align"] & (sizes["align"] - 1)
+                or sizes["size"] < sizes["align"] or sizes["size"] % sizes["align"]
+                or not (sizes["buffer"] == 0 < sizes["buffer_mask"] < sizes["tail_index"] < sizes["head_index"] < sizes["size"])
+                or set(execution.get("checks", [])) != expected_checks or len(execution["checks"]) != len(expected_checks)
+                or execution.get("source_equivalence_proved") is not False
+                or not isinstance(wrong.get("first_mismatch"), str) or not wrong["first_mismatch"]):
+            raise ValueError("C layout and differential evidence must contain concrete independent observations")
+        owner = evidence.get("owned_client", {})
+        owner_calls = owner.get("calls", [])
+        measurements = evidence.get("performance", {}).get("measurements", [])
+        if (owner.get("actual_allocator_refusal") is not True or owner.get("upstream_allocator_migration_claimed") is not False
+                or owner.get("client_kind") != "authored_Hepta_Buffer_owner_of_upstream_caller_owned_storage"
+                or [c.get("result") for c in owner_calls] != [0, 7, -1, 0, -1, 0]
+                or any(c.get("live_allocations_after") != 0 for c in owner_calls)
+                or evidence.get("performance", {}).get("status") != "measured" or len(measurements) != 3
+                or {m.get("case") for m in measurements} != {"single_byte_enqueue_dequeue", "64_byte_enqueue_dequeue", "count_empty_full_queries"}
+                or any(m.get("iterations_per_sample") != 100000 or len(m.get("execution_order", [])) != 14
+                       or set(m.get("samples_nanoseconds", {})) != {"original_C", "Hepta_C_ABI"}
+                       or any(len(samples) != 7 or any(type(n) is not int or n <= 0 for n in samples)
+                              for samples in m.get("samples_nanoseconds", {}).values()) for m in measurements)
+                or evidence.get("cost", {}).get("model_runs") != 0
+                or any(evidence.get(flag) is not False for flag in ("source_equivalence_proved", "foreign_pointer_validity_proved", "performance_parity_claimed", "whole_project_blockers_closed"))
+                or evidence.get("source_snapshot_before") != evidence.get("source_snapshot_after")
+                or evidence.get("source_snapshot_before") != snapshot()):
+            raise ValueError("C ownership, complete cost samples and unchanged-source evidence must retain their bounded claims")
+        expected_owner_calls = [(8, False, 0), (8, True, 7), (65519, False, -1),
+                                (16, False, 0), (65519, True, -1), (32, False, 0)]
+        if (not _native_build(owner.get("native_build", {}))
+                or any(type(call.get("size")) is not int or type(call.get("result")) is not int
+                       or type(call.get("early_return")) is not bool or type(call.get("live_allocations_after")) is not int
+                       for call in owner_calls)
+                or [(call.get("size"), call.get("early_return"), call.get("result")) for call in owner_calls] != expected_owner_calls):
+            raise ValueError("The actual owning client must build and retain allocation refusal, cleanup, early-return and recovery inputs")
+        expected_order = [name for trial in range(7)
+                          for name in (("original_C", "Hepta_C_ABI") if trial % 2 == 0 else ("Hepta_C_ABI", "original_C"))]
+        for measurement in measurements:
+            samples = measurement["samples_nanoseconds"]
+            original = statistics.median(samples["original_C"]) / 100000
+            translated = statistics.median(samples["Hepta_C_ABI"]) / 100000
+            if (measurement["execution_order"] != expected_order
+                    or measurement.get("ABI_calls_per_iteration") != (3 if measurement["case"] == "count_empty_full_queries" else 2)
+                    or not _integer(measurement.get("checksum"))
+                    or not _same_number(measurement.get("original_C_median_ns_per_iteration"), original)
+                    or not _same_number(measurement.get("Hepta_C_ABI_median_ns_per_iteration"), translated)
+                    or not _same_number(measurement.get("observed_Hepta_over_C_ratio"), translated / original)):
+                raise ValueError("C bridge timing order, operation counts and summaries must agree with every retained raw sample")
     elif name == "cpp_library_interop":
         execution = evidence.get("execution", {})
         if (evidence.get("ok") is not True or evidence.get("native_link_qualified") is not True
@@ -83,18 +377,81 @@ def require_qualification(name, evidence):
                 or evidence.get("performance", {}).get("status") != "measured"
                 or len(evidence["performance"].get("measurements", [])) != 6):
             raise ValueError("C++ library execution and separately measured bridge costs must complete")
+    elif name == "cpp_constructor_interop":
+        from tools.validate_cpp_constructors import validate_constructor_qualification
+        validate_constructor_qualification(evidence)
+        if any(row.get("iterations") != 100000 for row in evidence["performance"]["measurements"]):
+            raise ValueError("Release constructor lifecycle and method samples must each retain 100000 native iterations")
     elif name == "independent_resource_ir":
+        from hepta.resource_ir import verify_resource_ir
         projects = evidence.get("projects", [])
-        if evidence.get("ok") is not True or len(projects) != 2:
-            raise ValueError("Expected two natively executed independently resource-verified projects")
+        if (evidence.get("schema") != "hepta.resource-qualification.v1"
+                or any(evidence.get(flag) is not False for flag in
+                       ("native_codegen_uses_resource_ir", "source_to_ir_refinement_proved", "whole_language_soundness_proved"))
+                or evidence.get("ok") is not True or len(projects) != 3
+                or {p.get("name") for p in projects} != {"owned_library", "returned_views", "owned_generics"}):
+            raise ValueError("Expected three natively executed independently resource-verified projects")
+        expected_entries = {"owned_library": "examples/owned/main.hepta",
+                            "returned_views": "examples/resource_ir/returned_views.hepta",
+                            "owned_generics": "examples/owned_generics/main.hepta"}
+        retained_paths = set()
         for project in projects:
-            if (project.get("execution", {}).get("exit_code") != 0
-                    or project.get("native_gate", {}).get("ok") is not True
-                    or project.get("native_build", {}).get("ok") is not True
-                    or project.get("resource_verifier", {}).get("ok") is not True
-                    or project["resource_verifier"].get("frontend_modules_imported") != []):
+            execution = project.get("execution", {})
+            native = project.get("native_gate", {})
+            build = project.get("native_build", {})
+            verifier = project.get("resource_verifier", {})
+            inputs = project.get("inputs", {})
+            if (type(execution.get("exit_code")) is not int or execution["exit_code"] != 0
+                    or not _frontend_checked(native)
+                    or not _native_build(native.get("backend", {}), check_only=True)
+                    or not _native_build(build)
+                    or not _sha256(execution.get("executable_sha256"))
+                    or execution["executable_sha256"] != build["artifact_sha256"]
+                    or native.get("rust_sha256") != build.get("rust_sha256")
+                    or native["backend"].get("rust_sha256") != build.get("rust_sha256")
+                    or verifier.get("ok") is not True or verifier.get("frontend_modules_imported") != []
+                    or project.get("entry") != expected_entries[project["name"]]
+                    or not isinstance(inputs, dict) or not inputs
+                    or any(not _sha256(value) for value in inputs.values())
+                    or inputs.get(project["entry"]) != native.get("source_sha256")):
                 raise ValueError("Resource verification or real native execution did not complete")
-        if not evidence.get("adversarial_checks") or any(c.get("ok") is not True for c in evidence["adversarial_checks"]):
+            retained = project.get("resource_ir", {})
+            if (not isinstance(retained.get("path"), str) or not retained["path"]
+                    or not _integer(retained.get("bytes"), 1) or retained["bytes"] > 16 * 1024 * 1024
+                    or not _sha256(retained.get("sha256")) or not _sha256(retained.get("canonical_sha256"))
+                    or retained["canonical_sha256"] != verifier.get("ir_sha256")):
+                raise ValueError("Each independent resource verification requires its exact retained serialized graph")
+            path = Path(retained["path"])
+            if not path.is_absolute():
+                path = ROOT / path
+            if path.resolve() in retained_paths:
+                raise ValueError("Distinct resource projects cannot silently share one retained graph")
+            retained_paths.add(path.resolve())
+            with path.open("rb") as stream:
+                data = stream.read(16 * 1024 * 1024 + 1)
+            if len(data) != retained["bytes"] or hashlib.sha256(data).hexdigest() != retained["sha256"]:
+                raise ValueError("Retained resource graph bytes differ from the independently checked input")
+            graph = _strict_json(data)
+            canonical = hashlib.sha256(json.dumps(graph, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+            if (canonical != retained["canonical_sha256"] or graph.get("source_sha256") != native.get("source_sha256")
+                    or graph.get("project_sha256") != native.get("project", {}).get("sha256")):
+                raise ValueError("Retained resource graph differs from its native source/project or canonical identity")
+            replay = verify_resource_ir(graph)
+            if replay.get("ok") is not True or {k: v for k, v in verifier.items() if k != "frontend_modules_imported"} != replay:
+                raise ValueError("Independent replay of retained resource graph disagrees with its recorded full verification")
+        generic = next(p for p in projects if p["name"] == "owned_generics")["resource_verifier"]
+        if generic.get("generic_functions_checked") != 6 or generic.get("generic_calls_checked") != 16:
+            raise ValueError("All abstract generic bodies and concrete/abstract generic calls must be independently checked")
+        controls = {"removed_drop": "E_RIR_LEAK", "duplicate_move": "E_RIR_USE_AFTER_MOVE",
+                    "drop_during_loan": "E_RIR_LOAN_CONFLICT", "loop_backedge_changes_loans": "E_RIR_JOIN",
+                    "invalid_enum_payload": "E_RIR_AGGREGATE", "unknown_operation": "E_RIR_OP",
+                    "borrow_escapes_local": "E_RIR_RETURN", "owned_generic_replaced_with_copy_argument": "E_RIR_GENERIC",
+                    "generic_call_arguments_omitted": "E_RIR_GENERIC", "abstract_generic_destructor_omitted": "E_RIR_LEAK",
+                    "callee_type_parameter_escapes_to_main": "E_RIR_GENERIC"}
+        adversarial = evidence.get("adversarial_checks", [])
+        if (len(adversarial) != len(controls) or {c.get("case") for c in adversarial} != set(controls)
+                or any(c.get("ok") is not True or c.get("actual") != controls[c["case"]]
+                       or c.get("expected") != controls[c["case"]] for c in adversarial)):
             raise ValueError("Resource IR adversarial rejection controls did not qualify")
     elif name == "crossfile_agent_fixtures":
         from experiments.crossfile_eval.tasks import ARMS, LANGUAGES, TASK_IDS
@@ -144,6 +501,9 @@ def require_qualification(name, evidence):
                     or score.get("native_returncode") != 0 or score.get("source_sha256") != run.get("submitted_sha256")):
                 raise ValueError("A namespace workspace task lacks successful native hidden evaluation")
             validate_workspace_record(run, require_committed=True)
+    elif name == "production_workspace_crashes":
+        from experiments.crossfile_eval.workspace_crash_evidence import validate_crash_matrix
+        validate_crash_matrix(evidence)
     elif name == "strict_namespace_execution":
         required = {"startup", "namespace_identity", "capabilities_dropped", "empty_proc",
                     "parent_paths_unreadable", "credentials_not_inherited", "host_network_unreachable",
@@ -185,7 +545,9 @@ def main():
         ("independent_resource_ir", [sys.executable, "-m", "tools.validate_resources", "--output", next_stage + "/resources.json"], 120),
         ("c_project_migration", [sys.executable, "tools/qualify_c_migration.py", "--output", next_stage + "/c_project.json"], 120),
         ("upstream_c_modules", [sys.executable, "tools/qualify_c_algorithms.py", "--output", next_stage + "/upstream_c.json"], 120),
+        ("stateful_c_module", [sys.executable, "tools/qualify_c_ring_buffer.py", "--output", next_stage + "/stateful_c.json"], 120),
         ("cpp_library_interop", [sys.executable, "tools/validate_cpp.py", "--iterations", "1000000", "--output", next_stage + "/cpp.json"], 120),
+        ("cpp_constructor_interop", [sys.executable, "tools/validate_cpp_constructors.py", "--iterations", "100000", "--output", next_stage + "/cpp_constructors.json"], 180),
         ("locked_package_example", [sys.executable, "-m", "hepta", "run", "examples/packages/app", "--locked", "--json"], 60),
         ("bounded_concurrency", [sys.executable, "tools/validate_groups.py", "--repeats", "3", "--output", "evidence/groups/native_validation.json"], 180),
         ("abi_matrix", [sys.executable, "tools/abi_fuzz.py", "--output", "artifacts/abi-matrix.json"], 180),
@@ -196,6 +558,7 @@ def main():
         ("agent_evaluator_fixtures", [sys.executable, "-m", "experiments.agent_eval", "qualify-fixtures", "--output", fixture_output], 240),
         ("crossfile_agent_fixtures", [sys.executable, "-m", "experiments.crossfile_eval", "qualify-fixtures", "--output", next_stage + "/crossfile_agent.json"], 360),
         ("production_workspace_namespace", [sys.executable, "-m", "experiments.crossfile_eval", "qualify-workspace", "--execution-context", "release_check.py in caller-selected host execution context; namespace requirements enforced", "--output", next_stage + "/workspace_namespace.json"], 240),
+        ("production_workspace_crashes", [sys.executable, "-m", "experiments.crossfile_eval", "qualify-workspace-crashes", "--execution-context", "release_check.py in caller-selected host execution context; namespace requirements enforced", "--output", next_stage + "/workspace_crashes.json"], 360),
     ]
     evidence_outputs = {
         "bounded_concurrency": "evidence/groups/native_validation.json",
@@ -208,10 +571,13 @@ def main():
         "independent_resource_ir": next_stage + "/resources.json",
         "c_project_migration": next_stage + "/c_project.json",
         "upstream_c_modules": next_stage + "/upstream_c.json",
+        "stateful_c_module": next_stage + "/stateful_c.json",
         "cpp_library_interop": next_stage + "/cpp.json",
+        "cpp_constructor_interop": next_stage + "/cpp_constructors.json",
         "crossfile_agent_fixtures": next_stage + "/crossfile_agent.json",
         "strict_namespace_execution": next_stage + "/sandbox.json",
         "production_workspace_namespace": next_stage + "/workspace_namespace.json",
+        "production_workspace_crashes": next_stage + "/workspace_crashes.json",
     }
     for name, command, timeout in commands:
         started = time.monotonic()
@@ -241,12 +607,13 @@ def main():
             try:
                 evidence_bytes = evidence_path.read_bytes()
                 evidence = json.loads(evidence_bytes)
-                if name in {"independent_resource_ir", "c_project_migration", "upstream_c_modules", "cpp_library_interop"}:
+                if name in {"independent_resource_ir", "c_project_migration", "upstream_c_modules", "stateful_c_module", "cpp_library_interop", "cpp_constructor_interop"}:
                     if evidence.get("ok") is not True:
                         raise ValueError("Required native qualification did not report ok=true")
                 else:
                     expected = ("qualified_fixtures_only" if name in {"agent_evaluator_fixtures", "crossfile_agent_fixtures"}
                                 else "qualified_workspace_fixtures_only" if name == "production_workspace_namespace"
+                                else "qualified_workspace_crash_fixtures_only" if name == "production_workspace_crashes"
                                 else "qualified" if name == "strict_namespace_execution" else "passed")
                     if evidence.get("status") != expected:
                         raise ValueError(f"Expected evidence status {expected!r}, got {evidence.get('status')!r}")

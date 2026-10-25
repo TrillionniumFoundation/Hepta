@@ -302,6 +302,20 @@ python -m experiments.crossfile_eval compare --plan plan-001.json \
   --reports run-001.json --output comparison-001.json
 ```
 
+Per-task process-death qualification is a separate strict command:
+
+```sh
+python -m experiments.crossfile_eval qualify-workspace-crashes --output workspace-crashes-001.json
+```
+
+It exercises all five tasks at both production publication checkpoints, with
+actual child deaths, unchanged historical pins, idempotent recovery,
+same-request retries, and native scoring of the final recovered pin. The ten
+planned cases and 624 native inputs remain in the denominator on failures.
+It remains a trusted scripted infrastructure qualification, with no model
+requests or productivity claim. See [CROSSFILE_CRASH_QUALIFICATION.md](CROSSFILE_CRASH_QUALIFICATION.md)
+for the exact trace, semantic negative controls, and process-death scope.
+
 `adapter-configs.json` is an array, one entry per model, with exactly these fields:
 
 ```json

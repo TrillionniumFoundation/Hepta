@@ -132,6 +132,19 @@ class Parser:
         self._type_close()
         return tuple(params)
 
+    def _function_type_params(self) -> tuple[tuple[str, ...], dict[str, str]]:
+        if not self._take("<"):
+            return (), {}
+        params, bounds = [], {}
+        while True:
+            name = self._expect("IDENT", "Expected a generic parameter").value
+            params.append(name)
+            bounds[name] = self._expect("IDENT", "Expected Copy or Owned constraint").value if self._take(":") else "Copy"
+            if not self._take(","):
+                break
+        self._type_close()
+        return tuple(params), bounds
+
     def _type_args(self) -> tuple[Type, ...]:
         self._expect("<")
         args = [self._type()]
@@ -231,7 +244,7 @@ class Parser:
                 self._abi()
         self._expect("fn")
         name = self._expect("IDENT", "Expected a function name").value
-        type_params = self._type_params()
+        type_params, type_bounds = self._function_type_params()
         self._expect("(")
         params: list[Param] = []
         while not self._at(")"):
@@ -261,7 +274,7 @@ class Parser:
             body, body_span = self._block()
             end = body_span
         return Function(name, params, return_type, effects, body, public, extern_c,
-                        export_c, resources, _cover(start, end), body_span, type_params, return_mode)
+                        export_c, resources, _cover(start, end), body_span, type_params, return_mode, type_bounds)
 
     def _effects(self) -> set[str]:
         self._expect("effects", "Every function requires an explicit effects clause")

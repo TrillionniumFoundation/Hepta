@@ -139,6 +139,7 @@ class _Checker:
         self.structs: dict[str, Struct] = {"GroupReport": report_struct()}
         self.enums: dict[str, Enum] = {"Result": Enum("Result", [EnumVariant("Ok", [Type("$ResultOk")]), EnumVariant("Err", [Type("$ResultErr")])], ("$ResultOk", "$ResultErr"), True)}
         self.type_params: set[str] = set()
+        self.owned_type_params: set[str] = set()
         self.functions: dict[str, Function] = {}
         self.local_effects: dict[str, set[str]] = {}
         self.calls: dict[str, set[str]] = {}
@@ -170,7 +171,7 @@ class _Checker:
         return True
 
     def contains_linear(self, typ: Type, seen: frozenset[str] = frozenset()) -> bool:
-        return self.contains_capability(typ, LINEAR, seen)
+        return self.contains_capability(typ, LINEAR | self.owned_type_params, seen)
 
     def contains_cancellation(self, typ: Type, seen: frozenset[str] = frozenset()) -> bool:
         return self.contains_capability(typ, {"Cancellation"}, seen)
@@ -181,24 +182,34 @@ class _Checker:
     def contains_sender(self, typ: Type, seen: frozenset[str] = frozenset()) -> bool:
         return self.contains_capability(typ, {"Sender"}, seen)
 
-    def generic_arguments(self, params: tuple[str, ...], args: tuple[Type, ...], span: Span, *, allow_owned: bool = False) -> dict[str, Type]:
+    def generic_arguments(self, params: tuple[str, ...], args: tuple[Type, ...], span: Span, *, allow_owned: bool = False,
+                          bounds: dict[str, str] | None = None) -> dict[str, Type]:
         if len(params) != len(args):
             self.error("E_GENERIC_ARITY", f"expected {len(params)} explicit type argument(s), found {len(args)}", span)
-        for arg in args:
+        for index, arg in enumerate(args):
             self.valid_type(arg, span)
             scoped = self.contains_capability(arg, {"Task", "TaskGroup"})
-            if (self.contains_linear(arg) and not allow_owned) or scoped or self.contains_cancellation(arg) or self.contains_sender(arg) or arg.name == "slice":
-                detail = "sized values without scoped runtime capabilities" if allow_owned else "sized Copy values"
+            bound = (bounds or {}).get(params[index], "Copy") if index < len(params) else "Copy"
+            if (self.contains_linear(arg) and not allow_owned and bound != "Owned") or scoped or self.contains_cancellation(arg) or self.contains_sender(arg) or arg.name == "slice":
+                detail = ("sized values without scoped runtime capabilities" if allow_owned else
+                          "sized Owned values without scoped runtime capabilities" if bound == "Owned" else "sized Copy values")
                 self.error("E_GENERIC_COPY", f"generic arguments must be {detail}; {arg} is not supported", span)
+            elif not allow_owned and bound == "Owned" and not self.contains_linear(arg):
+                self.error("E_GENERIC_OWNED", f"Owned parameter requires a sized owned resource value; {arg} is not owned", span)
         return {name: args[index] if index < len(args) else ERROR for index, name in enumerate(params)}
 
-    def declaration_parameters(self, params: tuple[str, ...], span: Span, fields: list[Type] | None = None) -> None:
+    def declaration_parameters(self, params: tuple[str, ...], span: Span, fields: list[Type] | None = None,
+                               bounds: dict[str, str] | None = None) -> None:
         seen: set[str] = set()
         for name in params:
             if name in seen or name in RESERVED_TYPES or name in self.structs or name in self.enums:
                 self.error("E_GENERIC_PARAMETER", f"duplicate or shadowing generic parameter {name}", span)
             seen.add(name)
         self.type_params = set(params)
+        self.owned_type_params = {name for name in params if (bounds or {}).get(name) == "Owned"}
+        for name, bound in (bounds or {}).items():
+            if name not in self.type_params or bound not in {"Copy", "Owned"}:
+                self.error("E_GENERIC_BOUND", f"unsupported constraint {name}: {bound}; expected Copy or Owned", span)
         if fields is not None:
             used: set[str] = set()
             def collect(typ: Type) -> None:
@@ -454,9 +465,10 @@ class _Checker:
                     if self.contains_sender(typ):
                         self.error("E_SENDER_TYPE", f"variant {enum.name}::{variant.name} contains a Sender capability", variant.span)
         self.type_params = set()
+        self.owned_type_params = set()
         self.check_struct_cycles()
         for fn in self.functions.values():
-            self.declaration_parameters(fn.type_params, fn.span)
+            self.declaration_parameters(fn.type_params, fn.span, bounds=fn.type_bounds)
             if fn.type_params and (fn.extern_c or fn.export_c or fn.name == "main"):
                 self.error("E_GENERIC_BOUNDARY", "generic functions cannot be C boundary symbols or main entrypoints", fn.span)
             for effect in fn.effects - EFFECTS:
@@ -507,6 +519,7 @@ class _Checker:
                 self.error("E_MISSING_BODY", f"function {fn.name} requires a body", fn.span)
             self.check_resource_syntax(fn)
         self.type_params = set()
+        self.owned_type_params = set()
 
     def check_resource_syntax(self, fn: Function) -> None:
         for key, value in fn.resources.items():
@@ -584,6 +597,8 @@ class _Checker:
                 return REPORT
             if expr.value in {"group_spawn", "group_send", "group_receive"}:
                 return BOOL
+            if expr.value in {"group_send_timeout", "group_receive_timeout"}:
+                return Type("Result", (BOOL, Type("u8")))
         if expr.kind == "unary" and expr.children:
             return self.hint(expr.children[0], env)
         if expr.kind == "field" and expr.children:
@@ -751,7 +766,7 @@ class _Checker:
                 typ = self.builtin(expr, env, live, unsafe_depth, expected)
             elif expr.value in self.functions:
                 fn = self.functions[expr.value]
-                mapping = self.generic_arguments(fn.type_params, expr.type_args, expr.span)
+                mapping = self.generic_arguments(fn.type_params, expr.type_args, expr.span, bounds=fn.type_bounds)
                 if self.current is not None:
                     self.calls[self.current.name].add(fn.name)
                 if len(expr.children) != len(fn.params):
@@ -1071,7 +1086,8 @@ class _Checker:
         arity = {"task_group": 3, "group_spawn": 3, "group_send": 2,
                  "group_receive": 2, "group_seal": 1, "group_join": 1,
                  "group_drain_and_join": 1, "group_cancel_and_join": 1,
-                 "group_snapshot": 1, "group_fail": 2}[name]
+                 "group_snapshot": 1, "group_fail": 2, "group_cancel": 1,
+                 "group_send_timeout": 3, "group_receive_timeout": 3}[name]
         if len(args) != arity:
             self.error("E_ARITY", f"{name} expects {arity} argument(s), found {len(args)}", expr.span)
             for arg in args:
@@ -1124,20 +1140,26 @@ class _Checker:
             self.argument(args[0], Param("group", GROUP, "take", args[0].span), env, live, unsafe_depth)
             self.effect("alloc", "block", "panic", "write")
             return REPORT
-        if name in {"group_send", "group_fail"}:
+        if name in {"group_send", "group_send_timeout", "group_fail"}:
             self.borrow(args[0], "read", SENDER, env, live, unsafe_depth)
             actual = self.expr(args[1], env, live, unsafe_depth, Type("u64"))
             self.compatible(actual, Type("u64"), args[1].span)
             if name == "group_fail" and args[1].kind == "int" and args[1].value == 0:
                 self.error("E_GROUP_FAILURE_CODE", "group_fail requires a nonzero error code", args[1].span)
+            if name == "group_send_timeout":
+                actual = self.expr(args[2], env, live, unsafe_depth, Type("u64"))
+                self.compatible(actual, Type("u64"), args[2].span)
             self.effect("alloc", "block", "panic", "write")
-            return BOOL if name == "group_send" else UNIT
-        if name == "group_receive":
+            return Type("Result", (BOOL, Type("u8"))) if name == "group_send_timeout" else (BOOL if name == "group_send" else UNIT)
+        if name in {"group_receive", "group_receive_timeout"}:
             self.borrow(args[0], "read", GROUP, env, live, unsafe_depth)
             self.borrow(args[1], "mut", Type("u64"), env, live, unsafe_depth)
+            if name == "group_receive_timeout":
+                actual = self.expr(args[2], env, live, unsafe_depth, Type("u64"))
+                self.compatible(actual, Type("u64"), args[2].span)
             self.effect("alloc", "block", "panic", "write")
-            return BOOL
-        if name == "group_seal":
+            return Type("Result", (BOOL, Type("u8"))) if name == "group_receive_timeout" else BOOL
+        if name in {"group_seal", "group_cancel"}:
             self.borrow(args[0], "mut", GROUP, env, live, unsafe_depth)
             self.effect("alloc", "block", "panic", "write")
             return UNIT
@@ -1365,6 +1387,7 @@ class _Checker:
                 continue
             self.current = fn
             self.type_params = set(fn.type_params)
+            self.owned_type_params = {name for name in fn.type_params if fn.type_bounds.get(name) == "Owned"}
             env: dict[str, _Binding] = {}
             live: set[int] = set()
             for param in fn.params:
@@ -1376,6 +1399,7 @@ class _Checker:
                     self.error("E_MISSING_RETURN", f"function {fn.name} can reach its end without returning {fn.return_type}", fn.span)
         self.current = None
         self.type_params = set()
+        self.owned_type_params = set()
         self.finish_effects()
         return self.result
 

@@ -36,7 +36,12 @@ def migrate_project(database: str | Path, output_directory: str | Path, *,
             raise MigrationRejected("E_C_PROJECT_EXISTS", "Output bundle must be a new non-symlink directory")
         capture = capture_project(database, clang=clang)
         report["build"] = capture
-        translator = CTranslator(capture, contracts)
+        if isinstance(contracts, dict) and contracts.get("schema") == "hepta.c-record-views.v1":
+            from .c_record_views import CRecordViewTranslator
+            translator = CRecordViewTranslator(capture, contracts)
+            report["profile"] = "captured_C_record_views_and_checked_cursor_slices"
+        else:
+            translator = CTranslator(capture, contracts)
         source, bridge, functions = translator.emit()
         report["functions"] = functions
         from .parser import parse
@@ -50,6 +55,8 @@ def migrate_project(database: str | Path, output_directory: str | Path, *,
         report["frontend_validation"] = "passed"
         generated_rust = emit_rust(program, checked, crate_type="cdylib") + "\n" + bridge
         report["contracts"] = translator.contracts
+        if getattr(translator, "allow_record_views", False):
+            report["record_views"] = translator.view_report()
         report["contract_scope"] = {
             "origin": "caller_supplied_not_inferred_or_proved",
             "may_narrow_original_c_input_domain": any(p["pointer"] for fn in functions for p in fn["params"]),
@@ -64,7 +71,8 @@ def migrate_project(database: str | Path, output_directory: str | Path, *,
             "project_input_bytes": sum(item["bytes"] for item in capture["dependencies"] if item["project_input"]),
             "project_input_files": sum(item["project_input"] for item in capture["dependencies"]),
             "compile_configurations": len(capture["configurations"]),
-            "caller_slice_contracts": sum(p["pointer"] for fn in functions for p in fn["params"]),
+            "caller_slice_contracts": sum(p["pointer"] and not p.get("record", False) for fn in functions for p in fn["params"]),
+            "caller_record_view_contracts": sum(p.get("record", False) for fn in functions for p in fn["params"]),
             "generated_hepta_lines": len(source.splitlines()),
             "generated_abi_bridge_lines": len(bridge.splitlines()),
             "manual_review_hours": None, "agent_tokens": None,

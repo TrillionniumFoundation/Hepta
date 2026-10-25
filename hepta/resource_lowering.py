@@ -10,7 +10,7 @@ from dataclasses import dataclass
 import hashlib
 
 from .ast import Type
-from .checker import is_owned_type, substitute_type
+from .checker import _contains_capability, LINEAR, substitute_type
 from .resource_ir import SCHEMA, ResourceIRError, _CLAIMS, _EXTERNAL_REQUIREMENTS, verify_resource_ir
 
 
@@ -36,6 +36,17 @@ class _Types:
         self.structs = {s.name: s for s in program.structs}
         self.enums = {e.name: e for e in program.enums}
         self.table = {}
+        self.parameters = {}
+        self.owned_parameters = set()
+        for fn in program.functions:
+            self.parameters[fn.name] = {}
+            for name in fn.type_params:
+                key = "@" + fn.name + "::" + name
+                bound = fn.type_bounds.get(name, "Copy")
+                self.table[key] = {"kind": "parameter", "function": fn.name, "name": name, "bound": bound}
+                self.parameters[fn.name][name] = Type(key)
+                if bound == "Owned":
+                    self.owned_parameters.add(key)
 
     def add(self, typ: Type) -> str:
         key = str(typ)
@@ -73,7 +84,7 @@ class _Types:
         return key
 
     def owned(self, typ: Type) -> bool:
-        return is_owned_type(self.program, typ)
+        return _contains_capability(typ, LINEAR | self.owned_parameters, self.structs, self.enums)
 
     def fields(self, typ: Type, variant: str | None = None) -> list[Type]:
         if typ.name == "Result":
@@ -92,9 +103,10 @@ class _FunctionLowerer:
         self.blocks = []
         self.locals = []
         self.env: dict[str, _Value] = {}
+        self.mapping = types.parameters[fn.name]
         self.out = signatures[fn.name]
         for param, signature in zip(fn.params, self.out["params"]):
-            self.env[param.name] = _Value(signature["id"], param.type, "owner" if param.mode == "take" else "value", param.mode)
+            self.env[param.name] = _Value(signature["id"], self.resolve(param.type), "owner" if param.mode == "take" else "value", param.mode)
         self.current = self.new_block()
         self.out["entry"] = self.current["id"]
 
@@ -102,8 +114,12 @@ class _FunctionLowerer:
         typ = self.checked.expr_types.get(id(expr))
         if typ is None:
             _unsupported("Expression type is missing from this exact checked AST")
-        self.types.add(typ)
-        return typ
+        return self.resolve(typ)
+
+    def resolve(self, typ: Type) -> Type:
+        resolved = substitute_type(typ, self.mapping)
+        self.types.add(resolved)
+        return resolved
 
     def new_block(self) -> dict:
         block = {"id": "b" + str(len(self.blocks)), "ops": [], "term": None}
@@ -193,6 +209,11 @@ class _FunctionLowerer:
         if kind == "unary":
             if expr.value == "move":
                 child = expr.children[0]
+                if child.kind in {"call", "struct", "variant"} and self.types.owned(typ):
+                    value = self.expression(child)
+                    if value.kind != "owner":
+                        _unsupported("Fresh owner transfer cannot consume a borrowed function result")
+                    return value
                 if child.kind != "name" or child.value not in self.env or not self.types.owned(typ):
                     _unsupported("Only whole named owners can move in this profile")
                 result = self.slot(typ)
@@ -281,12 +302,16 @@ class _FunctionLowerer:
         if name not in self.signatures:
             _unsupported(f"Builtin {name} has no resource transition model (tasks, raw memory and concurrency are excluded)")
         callee = self.signatures[name]
+        original = next(f for f in self.program.functions if f.name == name)
+        type_args = [self.resolve(t) for t in expr.type_args]
+        instantiated = dict(zip(original.type_params, type_args))
         values, call_args = [], []
         for arg, param in zip(args, callee["params"]):
+            param_index = len(values)
+            parameter_type = substitute_type(original.params[param_index].type, instantiated)
+            self.types.add(parameter_type)
             if param["mode"] in {"read", "mut"}:
-                original = next(f for f in self.program.functions if f.name == name)
-                param_index = len(values)
-                value = self.borrow(arg, param["mode"], original.params[param_index].type)
+                value = self.borrow(arg, param["mode"], parameter_type)
             else:
                 value = self.expression(arg)
                 if param["mode"] == "value":
@@ -304,7 +329,7 @@ class _FunctionLowerer:
             result_loan = result.id
         self.emit("foreign" if callee["external"] else "call", function=name, args=call_args,
                   result=None if result_loan else result.id, result_loan=result_loan,
-                  obligation=callee["obligation"])
+                  obligation=callee["obligation"], **({"type_args": [str(t) for t in type_args]} if original.type_params else {}))
         for param, value in zip(callee["params"], values):
             if value.kind == "borrow" and not (result_loan and ret["origin"] == param["id"]):
                 self.end(value)
@@ -322,7 +347,7 @@ class _FunctionLowerer:
                 value = self.expression(data["expr"])
                 if value.kind == "borrow":
                     value = self.copy_value(value)
-                typ = data.get("type") or value.type
+                typ = self.resolve(data["type"]) if data.get("type") is not None else value.type
                 binding = self.slot(typ, mutable=bool(data["mutable"]))
                 if value.kind == "owner":
                     self.emit("move", src=value.id, dest=binding.id)
@@ -356,7 +381,7 @@ class _FunctionLowerer:
             elif statement.kind == "return":
                 expr = data["expr"]
                 if self.fn.return_mode in {"read", "mut"}:
-                    value = self.borrow(expr, self.fn.return_mode, self.fn.return_type)
+                    value = self.borrow(expr, self.fn.return_mode, self.resolve(self.fn.return_type))
                     if value.mode != self.fn.return_mode:
                         _unsupported("Mode-changing returned call views need an explicit reborrow model")
                     self.finish("return", value=None, loan=value.id)
@@ -448,15 +473,18 @@ def lower_resource_ir(program, checked, *, project_sha256: str | None = None) ->
         types.add(Type(primitive))
     signatures, obligations = {}, {}
     for fn in program.functions:
-        if fn.type_params or fn.resources:
-            _unsupported("Generic function bodies and task/resource runtime clauses require another lowering profile")
-        params = [{"id": "p" + str(i), "type": types.add(p.type), "mode": p.mode} for i, p in enumerate(fn.params)]
+        if fn.resources:
+            _unsupported("Task/resource runtime clauses require another lowering profile")
+        mapping = types.parameters[fn.name]
+        params = [{"id": "p" + str(i), "type": types.add(substitute_type(p.type, mapping)), "mode": p.mode} for i, p in enumerate(fn.params)]
         origins = [p["id"] for p in params if p["mode"] in {"read", "mut"}]
         signature = {"name": fn.name, "params": params,
-                     "returns": {"type": types.add(fn.return_type), "mode": fn.return_mode,
+                     "returns": {"type": types.add(substitute_type(fn.return_type, mapping)), "mode": fn.return_mode,
                                  "origin": origins[0] if fn.return_mode != "value" and len(origins) == 1 else None},
                      "external": fn.extern_c, "obligation": "foreign:" + fn.name if fn.extern_c else None,
                      "locals": [], "entry": None, "blocks": []}
+        if fn.type_params:
+            signature["type_params"] = [str(mapping[name]) for name in fn.type_params]
         signatures[fn.name] = signature
         if fn.extern_c:
             obligations[signature["obligation"]] = {"function": fn.name, "status": "assumed_not_verified", "requirements": list(_EXTERNAL_REQUIREMENTS)}

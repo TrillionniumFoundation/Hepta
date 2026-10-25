@@ -16,18 +16,21 @@ whole-compiler soundness, or universal performance superiority over Rust.
 | Area | Current implementation |
 | --- | --- |
 | Ownership | Buffer-bearing structs/enums, `Result<Owned, Error>`, explicit moves and recursive drops, checked normal/early exits, fallible byte allocation |
+| Generics | Finite `Copy` / `Owned` function constraints, checked unused generic bodies, owned aggregate substitution and transfer |
 | Borrowing | Read/mutable parameter modes, disjoint field borrows, single-origin returned borrows, native Rust validation |
-| Resource IR | Independently verified typed JSON CFG, explicit moves/loans/drops, exact resource-state joins and retained foreign obligations |
+| Resource IR | Independently verified typed JSON CFG, opaque generic bodies, explicit moves/loans/drops, exact joins, retained graphs and foreign obligations |
 | Modules | Imports, privacy, local packages, content locks and frozen dependency identities |
-| Concurrency | Hosted tasks, bounded task groups/channels, explicit join, cooperative cancellation and failure reporting |
-| C | Host ABI declarations/probes; compilation-database capture; bounded module translation; complete active-declaration inventory; explicit buffer contracts and restricted allocation/free migration |
-| C++ | Direct scalar/POD calls, checked call-scoped spans, dynamically protected handles, C++ template instantiation, exception/thread/destructor contracts |
+| Concurrency | Hosted tasks, bounded task groups/channels, monotonic send/receive deadlines, explicit cancel/join and cooperative failure reporting |
+| C | Host ABI declarations/probes; compilation-database capture; bounded module translation; complete active-declaration inventory; record/buffer views and restricted allocation/free migration |
+| C++ | Direct scalar/POD calls, checked call-scoped spans, dynamically protected handles, typed constructors, C++ template instantiation, exception/thread/destructor contracts |
 | Agent tools | Snapshot-bound semantic edits, explicit interface migration, whole-import-graph native validation, crash-recoverable publication and source-level native diagnostics |
-| Evaluation | Five cross-file tasks in a four-arm Rust/Hepta study, real workspace v4 in the fourth arm, strict namespace qualification, frozen adapter identity, receipt/cost accounting and independent native oracles |
+| Evaluation | Five cross-file tasks in a four-arm Rust/Hepta study, real workspace v4 and per-task publication deaths, strict namespaces, frozen adapter identity, receipt/cost accounting and independent native oracles |
 
 See [ownership and returned borrows](docs/OWNED_TYPES.md),
 [C project migration](docs/C_MIGRATION.md),
-[C++ interface contracts](docs/CPP_INTEROP.md), and
+[stateful C record views](docs/C_RECORD_VIEWS.md),
+[C++ interface contracts](docs/CPP_INTEROP.md),
+[typed C++ constructors](docs/CPP_CONSTRUCTORS.md), and
 [Agent workspace transactions](docs/AGENT_WORKSPACE.md).
 The [resource IR](docs/RESOURCE_IR.md),
 [four-arm cross-file evaluation](docs/CROSSFILE_AGENT_EVAL.md) and
@@ -60,6 +63,7 @@ python -m hepta bridge-cpp-contract examples/cpp/stdlib/foreign.hpp \
 python tools/qualify_c_migration.py --output /tmp/c-migration-evidence.json
 python tools/qualify_c_algorithms.py --output /tmp/upstream-c-evidence.json
 python tools/validate_cpp.py --output /tmp/cpp-evidence.json
+python tools/validate_cpp_constructors.py --output /tmp/cpp-constructor-evidence.json
 ```
 
 C migration supports the explicitly documented profile and rejects unsupported
@@ -94,11 +98,16 @@ python -m tools.validate_resources --output /tmp/resource-evidence.json
 python tools/validate_sandbox.py --output /tmp/namespace-evidence.json
 python -m experiments.crossfile_eval qualify-fixtures --output /tmp/crossfile-fixtures.json
 python -m experiments.crossfile_eval qualify-workspace --output /tmp/workspace-evidence.json
+python -m experiments.crossfile_eval qualify-workspace-crashes --output /tmp/workspace-crashes.json
+python tools/qualify_c_ring_buffer.py --output /tmp/ring-buffer-evidence.json
 python tools/release_check.py
 ```
 
-Optional fixed Lean/QEMU tools are installed by
+Full release qualification additionally requires a supported Linux x86-64 host
+with working Bubblewrap namespaces, GCC/G++, Clang and Boost development
+headers. Fixed Lean/QEMU tools are installed by
 `tools/bootstrap_verification.py`; Lean extraction also needs `zstandard`.
+The qualification workflow provisions these dependencies and rejects skips.
 Native tests, allocator failure injection, ABI execution, observed machine
 code, timings, and abstract formal proofs have different scopes. The
 [blocker ledger](docs/BLOCKERS.md) keeps these boundaries explicit.
@@ -117,6 +126,9 @@ the production v4 experiment integration is retained in
 [evidence/production_v4](evidence/production_v4/manifest.json). The subsequent
 complete qualification, including the provider HTTP response-completion fix,
 is in [evidence/production_v4_final](evidence/production_v4_final/manifest.json).
+The subsequent finite Owned generics, stateful upstream C module, typed C++
+construction, channel deadline and per-task crash integration is archived in
+[evidence/next_blockers_final](evidence/next_blockers_final/manifest.json).
 Each archive binds its own exact source snapshot, logs and native evidence.
 
 The [credential-free runtime audit](evidence/audits/provider-runtime-022ed82.json)

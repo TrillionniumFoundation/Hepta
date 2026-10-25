@@ -389,7 +389,10 @@ def emit_c(program, checked, *, crate_type="bin") -> str:
 
 
 def compile_c(source: str, *, cc=None, crate_type="bin", output=None, check_only=False,
-              optimize=True, link_args=None, target=None, sanitize=False) -> dict:
+              optimize=True, link_args=None, target=None, sanitize=False,
+              optimization_profile="default") -> dict:
+    if optimization_profile not in {"default", "unroll"} or (optimization_profile != "default" and not optimize):
+        fail("E_C_OPTIMIZATION", "C optimization profile must be default or unroll; unroll requires optimization")
     if target:
         fail("E_C_TARGET", "The C backend currently supports the native GCC target only; use an explicit cross compiler in a future qualified profile")
     if crate_type not in {"bin", "obj", "staticlib", "cdylib"}:
@@ -409,6 +412,8 @@ def compile_c(source: str, *, cc=None, crate_type="bin", output=None, check_only
         cfile, generated = directory / "program.c", directory / "artifact"
         cfile.write_text(source)
         flags = ["-std=c11", "-O3" if optimize else "-O0", "-fexcess-precision=standard", "-ffp-contract=off", "-fno-strict-aliasing", "-Wall", "-Wextra", "-Werror=implicit-function-declaration", "-Werror=incompatible-pointer-types"]
+        if optimization_profile == "unroll":
+            flags.append("-funroll-loops")
         if sanitize:
             flags += ["-fsanitize=undefined", "-fno-sanitize-recover=all"]
         command = [compiler, *flags, str(cfile), "-o", str(generated)]
@@ -432,7 +437,8 @@ def compile_c(source: str, *, cc=None, crate_type="bin", output=None, check_only
                   "backend": "c11-gcc", "rustc_used": False, "target": triple.stdout.strip(),
                   "toolchain": {"path": compiler, "version": version.stdout.strip(), "executable_sha256": _hash(Path(compiler).read_bytes())},
                   "source_sha256": _hash(source.encode()), "flags": flags, "check_only": check_only,
-                  "crate_type": crate_type, "link_args": link_args or []}
+                  "crate_type": crate_type, "link_args": link_args or [],
+                  "optimization_profile": optimization_profile}
         if ok:
             result["validation_artifact_sha256"] = _hash(generated.read_bytes())
             if artifact:

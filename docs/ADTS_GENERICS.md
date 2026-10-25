@@ -81,10 +81,15 @@ fn choose<T>(value: read Maybe<T>, fallback: T) -> T effects {} {
 }
 ```
 
-Generic **function** type parameters have an implicit `Copy` and sized bound.
+Generic **function** type parameters default to a sized `Copy` constraint.
+Explicit `T: Copy` is equivalent; `T: Owned` instead checks a sized resource
+value with explicit movement, borrowing and drop obligations. See
+[OWNED_GENERICS.md](OWNED_GENERICS.md) for the finite constraint rules and the
+independent generic resource verifier.
 Generic data declarations can also be instantiated with supported owned values;
 their concrete ownership follows the payloads. There is no trait declaration
-syntax. Generic function code can move or copy a parameter, borrow
+syntax. Generic function code can move an Owned parameter or copy a Copy
+parameter, borrow
 it for a call, access known generic struct fields, construct or match known
 generic enums, and pass it to another explicitly instantiated generic function.
 Generic code cannot assume numeric, equality, ordering, or other operator

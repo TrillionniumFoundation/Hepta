@@ -127,7 +127,8 @@ The shared frontend supports:
 
 - Signed and unsigned fixed-width integers through 128 bits; `isize`, `usize`,
   `f32`, `f64`, `bool`, and `Unit`.
-- By-value structs, Copy enums, and fixed arrays `[T; N]`.
+- By-value structs and enums, including supported resource payloads, and
+  fixed arrays `[T; N]` with Copy elements.
 - Unsized slices `[T]`, only as `read`/`mut` parameters.
 - Raw pointers `raw const T` and `raw mut T`.
 - Linear `Buffer<T>` owners; the allocation builtin currently constructs only
@@ -143,18 +144,19 @@ frontend acceptance does not imply C-backend support.
 Functions require an explicit return type and `effects { ... }`. Extern
 declarations have no body and end with `;`. Implemented functions may add a
 `resources` clause. Parameter modes are value, `read`, `mut`, and `take`.
-Owned Buffer parameters require `take`. Calls supply explicit `read`, `mut`,
+Owning Buffer and resource-bearing data parameters require `take`. Calls supply explicit `read`, `mut`,
 or `move` syntax for the corresponding modes. Bare reads of a borrowed Copy
 value read its contents; Rust lowering dereferences the parameter borrow.
 
 Local bindings are immutable unless declared `let mut`. Local shadowing is
-rejected. Local reference aliases, returned references, arbitrary lifetime
-parameters, resource-containing aggregates, and owned control capabilities
-are unsupported. Task and TaskGroup handles cannot be user-function
+rejected. Local reference aliases, arbitrary lifetime parameters, stored
+borrowed fields and owned control capabilities are unsupported. A returned
+read/mut view must derive from the unique borrowed input; see `OWNED_TYPES.md`.
+Task and TaskGroup handles cannot be user-function
 parameters or returns. GroupReport cannot be constructed with a source struct
 literal; runtime operations return it, after which it is a normal Copy value.
 
-## 5. Copy generics, enums, and Result
+## 5. Finite generic constraints, enums, and Result
 
 Generic functions, structs, and enums declare type parameters with `<T, E>`:
 
@@ -163,12 +165,17 @@ pub struct Pair<T, E> { left: T, right: E }
 pub enum Maybe<T> { None, Some(T) }
 
 fn identity<T>(value: T) -> T effects {} { return value; }
+fn forward<T: Owned>(value: take T) -> T effects {} { return move value; }
 ```
 
-Every type parameter has an implicit sized `Copy` bound. The compiler checks
-every generic body, even when it is never instantiated. Abstract parameters
-can be copied, borrowed, placed in known generic constructors, matched through
-known enum types, and passed to other generic functions. They do not imply
+Function parameters default to sized `Copy`; explicit `T: Copy` has the same
+meaning. `T: Owned` instead requires a supported sized resource value and
+checks an ownership obligation for every such parameter/local. Generic data
+declarations can be instantiated with either Copy or supported Owned values.
+The compiler checks every generic body, even when it is never instantiated.
+Copy parameters can be copied; Owned parameters require transfer, borrowing or
+drop. Both can be placed in known generic constructors, matched through known
+enum types, and passed to compatible generic functions. Neither implies
 numeric, equality, ordering, or other operator capabilities. Trait declarations,
 specialization, higher-kinded/const/lifetime generics, and higher-order functions
 are not implemented.
@@ -185,16 +192,22 @@ functions are rejected. Compiler monomorphization limits still apply.
 
 Enums have named unit variants or positional payload variants. Unit variants
 omit parentheses. Payload arity and types are checked. Payloads and generic
-arguments cannot contain Buffer, Task, TaskGroup, Cancellation, Sender, or
-nested forms of these capabilities. Linear ADTs are not part of this release.
+arguments may contain Buffer and supported resource-bearing data. Scoped Task,
+TaskGroup, Cancellation and Sender capabilities cannot be stored in data types
+or passed as function type arguments. Resource arrays, resources behind raw
+pointers and nested resource buffers remain unsupported, including through
+generic substitution. Whole owned values must be moved or explicitly dropped;
+partial field moves remain unsupported.
 Recursive by-value layouts are rejected across structs and enums. The layout
 check tracks generic arguments used by value, so supported raw-pointer
 indirection can break a layout cycle; this does not prove pointer validity.
 
-`Result<T, E>` is a reserved Copy enum with `Ok(T)` and `Err(E)` and lowers to
+`Result<T, E>` is a reserved enum with `Ok(T)` and `Err(E)` and lowers to
 `core::result::Result`. It supports explicit constructors and expected-type
-inference. There is no `?` operator or exception propagation. Resource-bearing
-results such as `Result<Buffer<u8>, E>` fail the Copy restriction.
+inference. There is no `?` operator or exception propagation. A Result with an
+owned payload, such as `Result<Buffer<u8>, E>`, is itself an owner even when its
+current variant contains only copied data. `OWNED_GENERICS.md` specifies finite
+constraints and the independently verified generic resource graph profile.
 
 ## 6. Exhaustive statement matching
 
@@ -213,7 +226,9 @@ scoped to one arm; `_` ignores one payload. Missing/duplicate variants,
 wrong enum names, and payload arity errors are rejected.
 
 Matching a borrowed Copy enum copies its selected payload values; patterns do
-not return references. Match expressions, guards, nested or alternative
+not return references. Matching an owned enum consumes it with `match move`;
+each owned payload must be bound and consumed, so `_` cannot discard it.
+Match expressions, guards, nested or alternative
 patterns, integer patterns, and catch-all arms are unsupported. All arms
 participate in effect and ownership checking. Returning arms must discharge
 live owners; every continuing arm must leave the same owners live.
@@ -318,8 +333,11 @@ and obey the same transitive worker-effect restrictions as ordinary tasks.
 | Operation | Semantics |
 | --- | --- |
 | `group_send(read sender, value)` | Blocks while full; returns false after closure/cancellation/failure. |
+| `group_send_timeout(read sender, value, milliseconds)` | Timed send returning `Result<bool,u8>`; one monotonic deadline across wakeups. |
 | `group_seal(mut group)` | Ends admission. |
 | `group_receive(read group, mut value)` | Requires sealing; receives into a u64 destination or returns false when closed and drained. |
+| `group_receive_timeout(read group, mut value, milliseconds)` | Timed receive; unchanged destination on timeout or closed/drained channel. |
+| `group_cancel(mut group)` | Closes/discards the channel and requests cooperative cancellation; preserves the obligation to join. |
 | `group_join(move group)` | Requires a drained channel and joins all admitted workers. |
 | `group_drain_and_join(move group)` | Seals, discards remaining messages while draining, then joins. |
 | `group_cancel_and_join(move group)` | Requests cancellation, closes/discards queued messages, wakes channel waiters, and joins. |
@@ -332,6 +350,12 @@ Unsealed receives and undrained normal joins fail runtime guards. Panic still
 aborts the process; `group_fail` does not contain panics or forcibly terminate
 workers. OS thread-creation errors are handled by rejecting the admission and
 releasing transferred input.
+
+Timed operations accept `u64` milliseconds and return `Ok(true)` on progress,
+`Ok(false)` on closure, `Err(1)` on observed timeout, or `Err(2)` for an
+unrepresentable host deadline. Zero duration polls readiness. Timeout itself
+does not cancel or consume the group. Mutex scheduling and joining are not
+hard real-time bounded; see [BOUNDED_CONCURRENCY.md](BOUNDED_CONCURRENCY.md).
 
 `resource_contracts` reports these budgets as
 `scope=one_runtime_instance` and

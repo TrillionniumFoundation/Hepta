@@ -11,6 +11,7 @@ from experiments.agent_eval.sandbox import probe_sandbox
 from .plan import make_plan, verify_plan
 from .qualification import qualify_fixtures
 from .workspace_qualification import qualify_workspace
+from .workspace_crash_qualification import qualify_workspace_crashes
 from .records import cost_record, seal_record, write_append_only
 from .reporting import compare
 from .runner import evaluate, replay
@@ -59,6 +60,12 @@ def main(argv=None):
     workspace.add_argument('--execution-context', default='unspecified_operator_environment',
                            help='Public operator annotation of the outer execution environment; not an attestation')
     workspace.add_argument('--output', required=True)
+    crashes = sub.add_parser('qualify-workspace-crashes',
+                             help='Actual pre/post publication child deaths for all five tasks, in strict namespaces')
+    crashes.add_argument('--rustc')
+    crashes.add_argument('--execution-context', default='unspecified_operator_environment',
+                         help='Public operator annotation of the outer execution environment; not an attestation')
+    crashes.add_argument('--output', required=True)
     cost = sub.add_parser('cost')
     cost.add_argument('--run', required=True)
     cost.add_argument('--human-seconds', type=float)
@@ -93,6 +100,8 @@ def main(argv=None):
         elif args.operation == 'qualify-fixtures': result = qualify_fixtures(args.rustc)
         elif args.operation == 'qualify-workspace':
             result = qualify_workspace(args.rustc, execution_context=args.execution_context)
+        elif args.operation == 'qualify-workspace-crashes':
+            result = qualify_workspace_crashes(args.rustc, execution_context=args.execution_context)
         elif args.operation == 'cost':
             result = cost_record(read(args.run), human_seconds=args.human_seconds, human_observer=args.human_observer,
                                  monetary_cost_usd=args.usd, price_source=args.price_source, note=args.note)

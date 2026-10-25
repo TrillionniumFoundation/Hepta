@@ -101,10 +101,10 @@ class CTranslator:
                  "unsigned long": "u" + str(model["long_bits"]), "long long": "i64", "unsigned long long": "u64",
                  "size_t": "usize", "ptrdiff_t": "isize", "float": "f32", "double": "f64"}
         types.update({f"{s}int{w}_t": f"{'u' if s else 'i'}{w}" for s in ("", "u") for w in (8, 16, 32, 64)})
-        if qual in types:
-            return types[qual]
         if qual in self.aliases:
             return self.aliases[qual]
+        if qual in types:
+            return types[qual]
         if qual.startswith("struct ") and qual[7:] in self.record_nodes:
             return "C_" + ident(qual[7:])
         if isinstance(data, dict) and data.get("desugaredQualType") and data["desugaredQualType"] != qual:
@@ -115,6 +115,9 @@ class CTranslator:
     def _position(node: dict) -> dict:
         loc = node.get("loc") or node.get("range", {}).get("begin", {})
         return loc.get("expansionLoc", loc.get("spellingLoc", loc))
+
+    def field_type(self, record: str, field: dict) -> str:
+        return self.typ(field["type"])
 
     def collect(self) -> None:
         deferred_errors = []
@@ -144,7 +147,9 @@ class CTranslator:
                     continue
                 self.declarations.append((config["index"], node, item))
                 if kind == "RecordDecl":
-                    if not node.get("completeDefinition") or node.get("tagUsed") != "struct" or name == "<anonymous>":
+                    if not node.get("completeDefinition") and node.get("tagUsed") == "struct" and name != "<anonymous>" and getattr(self, "allow_record_views", False):
+                        item.update(status="record_forward_pending", reason=None)
+                    elif not node.get("completeDefinition") or node.get("tagUsed") != "struct" or name == "<anonymous>":
                         item.update(status="rejected", reason="unsupported_record")
                         deferred_errors.append(("E_C_RECORD", "Only complete named ordinary structs are supported"))
                     else:
@@ -153,6 +158,9 @@ class CTranslator:
                     item.update(status="rejected", reason="unsupported_top_level_declaration")
                     deferred_errors.append(("E_C_TOPLEVEL", f"Unsupported project declaration: {kind} {name}"))
         self.inventory_complete = True
+        models = [config["model"] for config in self.capture["configurations"]]
+        if any(model != models[0] for model in models[1:]):
+            raise MigrationRejected("E_C_PROJECT_MODEL", "All translation units in one bundle must use the same captured C data model, including plain-char signedness")
         if deferred_errors:
             code, message = deferred_errors[0]
             raise MigrationRejected(code, message)
@@ -179,11 +187,18 @@ class CTranslator:
         for _, node, item in self.declarations:
             if node["kind"] != "RecordDecl":
                 continue
+            if item["status"] == "record_forward_pending":
+                if node["name"] not in self.record_nodes:
+                    raise MigrationRejected("E_C_RECORD", "Forward record has no captured complete definition")
+                item.update(status="record_forward_resolved", reason=None)
+                continue
             fields = []
             for field in node.get("inner", []):
-                if field.get("kind") != "FieldDecl" or field.get("isBitfield") or field.get("inner"):
+                if field.get("kind") == "FullComment":
+                    continue
+                if field.get("kind") != "FieldDecl" or field.get("isBitfield") or any(child.get("kind") != "FullComment" for child in field.get("inner", [])):
                     raise MigrationRejected("E_C_RECORD", "Packed, attributed, anonymous and bitfield records are unsupported")
-                fields.append(("f_" + ident(field["name"]), self.typ(field["type"])))
+                fields.append(("f_" + ident(field["name"]), self.field_type(node["name"], field)))
             if not fields:
                 raise MigrationRejected("E_C_RECORD", "Empty C record unsupported")
             name = "C_" + node["name"]

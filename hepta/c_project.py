@@ -66,6 +66,10 @@ def _flags(argv: list[str], source: Path, directory: Path) -> tuple[list[str], l
             forwarded.append(value)
         elif value in {"-std=c99", "-std=c11", "-std=c17"}:
             forwarded.append(value)
+        elif value in {"-funsigned-char", "-fsigned-char"}:
+            # Plain-char signedness is semantic and enters the probed model;
+            # never discard this flag as a code-generation preference.
+            forwarded.append(value)
         elif value in {"-c", "-g", "-g0", "-g1", "-g2", "-g3", "-O0", "-O1", "-O2", "-O3", "-Os", "-Oz", "-Wall", "-Wextra", "-Werror", "-pedantic", "-pedantic-errors", "-fPIC", "-fpic"}:
             omitted.append({"argument": value, "reason": "driver_output_or_diagnostic_flag"})
         elif value == "-o":
@@ -169,7 +173,22 @@ def capture_project(database: str | Path, *, clang: str = "clang") -> dict:
             dependencies[str(path)] = item
         preprocessed = invoke([executable, *flags, "-E", str(source)], directory)
         macros = invoke([executable, *flags, "-dM", "-E", "-x", "c", "-"], directory, stdin="")
-        numeric = dict(re.findall(r"^#define (__[A-Z0-9_]+__) (\d+)$", macros, flags=re.M))
+        # User -D/-U macros may intentionally spell predefined names. They
+        # affect preprocessed source semantics, but cannot attest native ABI
+        # sizes or char signedness. Probe those with the actual semantic
+        # compiler options only, independently of user macro overrides.
+        model_flags = []
+        flag_index = 0
+        while flag_index < len(flags):
+            flag = flags[flag_index]
+            if flag in {"-I", "-isystem", "-iquote", "-D", "-U"}:
+                flag_index += 2
+                continue
+            if flag.startswith("-std=") or flag in {"-funsigned-char", "-fsigned-char"}:
+                model_flags.append(flag)
+            flag_index += 1
+        abi_macros = invoke([executable, *model_flags, "-dM", "-E", "-x", "c", "-"], directory, stdin="")
+        numeric = dict(re.findall(r"^#define (__[A-Z0-9_]+__) (\d+)$", abi_macros, flags=re.M))
         if any(numeric.get(name) != value for name, value in {
             "__CHAR_BIT__": "8", "__SIZEOF_INT__": "4", "__SIZEOF_LONG_LONG__": "8",
             "__SIZEOF_POINTER__": "8", "__SIZEOF_FLOAT__": "4", "__SIZEOF_DOUBLE__": "8",
@@ -182,8 +201,10 @@ def capture_project(database: str | Path, *, clang: str = "clang") -> dict:
                         "local_dependencies": sorted(map(str, local_deps)),
                         "preprocessed_sha256": digest(preprocessed.encode()),
                         "predefined_macros_sha256": digest(macros.encode()),
+                        "abi_predefined_macros_sha256": digest(abi_macros.encode()),
+                        "abi_model_arguments": model_flags,
                         "model": {"long_bits": 8 * int(numeric.get("__SIZEOF_LONG__", "0")),
-                                  "char_unsigned": "#define __CHAR_UNSIGNED__ 1" in macros,
+                                  "char_unsigned": "#define __CHAR_UNSIGNED__ 1" in abi_macros,
                                   "pointer_bits": 64}})
     capture = {"schema": "hepta.c-build.v1", "database": {"path": str(db), "sha256": digest(raw)},
                "compiler": compiler, "configurations": configs,
