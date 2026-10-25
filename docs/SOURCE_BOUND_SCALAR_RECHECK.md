@@ -54,7 +54,7 @@ The original frozen_snapshot_v0 consumer path remains unchanged.
 
 ## Tests and qualification
 
-tests/test_source_bound_scalar_consumer.py adds 10 integration/negative
+tests/test_source_bound_scalar_consumer.py adds 11 integration/negative
 cases using the actual PR #37 parser/checker/CFG/SSA: a loop+if PHI program,
 deterministic identities, source-byte mismatch, missing source, forged
 expression type/effect/ownership with correctly recomputed producer/v1
@@ -72,3 +72,13 @@ not behavioral equivalence, zero runtime cost or Rust-wide performance.
 The P0 branch consolidation, full P1 memory/provenance/lifetime IR,
 P2–P7 platform/migration/performance/Agent qualification, and original
 P01–P12 system blockers remain open.
+
+
+## Agent-facing malformed import diagnostics
+
+The imported-data path now catches HSIRV1Rejected in the standard typed-IR
+error branch and reports status=rejected with the precise E_HSIR_V1_* code,
+instead of presenting malformed or duplicate-key HSIR as an unrelated
+E_DRIVER failure. A new regression stubs only the native analyze_project
+result and supplies duplicate JSON keys to the actual CLI. The test is
+native-toolchain-independent but has not been executed in this session.
