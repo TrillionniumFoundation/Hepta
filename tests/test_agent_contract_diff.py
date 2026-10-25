@@ -28,6 +28,7 @@ class AgentContractDiffTests(unittest.TestCase):
             "validated_sources": ["src/main.hepta"],
             "external_obligations": [],
             "foreign_assumptions": [],
+            "volatile_accesses": [],
             "functions": [{
                 "path": "src/main.hepta", "name": "compute",
                 "return_type": "i32",
@@ -35,6 +36,7 @@ class AgentContractDiffTests(unittest.TestCase):
                 "declared_effects": [], "inferred_effects": [], "resources": {},
                 "public": False, "extern_c": False, "export_c": False,
                 "return_mode": "value", "return_origin": None,
+                "return_lifetime": None,
                 "parameter_lifetimes": [None], "lifetime_params": [],
                 "type_params": [], "type_bounds": {},
             }],
@@ -82,6 +84,7 @@ class AgentContractDiffTests(unittest.TestCase):
         current["export_c"] = True
         current["return_mode"] = "read"
         current["return_origin"] = "x"
+        current["return_lifetime"] = "source"
         current["parameter_lifetimes"] = ["source"]
         current["lifetime_params"] = ["source"]
         current["type_params"] = ["T"]
@@ -89,10 +92,26 @@ class AgentContractDiffTests(unittest.TestCase):
         result = self.compare(a, b)
         self.assertEqual(result["reported_contract_changes"][0]["changed_fields"], [
             "public", "export_c", "return_mode", "return_origin",
-            "parameter_lifetimes", "lifetime_params", "type_params", "type_bounds",
+            "return_lifetime", "parameter_lifetimes", "lifetime_params", "type_params", "type_bounds",
         ])
         self.assertTrue(result["source_identity_changed"])
         self.assertFalse(result["claims"]["functional_equivalence_proved"])
+
+    def test_volatile_site_changes_are_reported_without_claiming_equivalence(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        a["volatile_accesses"] = [{"function": "compute", "operation": "volatile_load",
+                                   "pointer_type": "raw const u32"}]
+        b["volatile_accesses"] = [{"function": "compute", "operation": "volatile_store",
+                                   "pointer_type": "raw mut u32"}]
+        result = self.compare(a, b)
+        self.assertTrue(result["volatile_accesses_changed"])
+        self.assertFalse(result["claims"]["functional_equivalence_proved"])
+
+    def test_missing_volatile_inventory_fails_closed(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        b.pop("volatile_accesses")
+        with self.assertRaisesRegex(WorkspaceError, "Incomplete semantic inventory"):
+            self.compare(a, b)
 
     def test_foreign_contract_elevation_rejected(self):
         a, b = self.report(self.BEFORE), self.report(self.AFTER)
@@ -161,6 +180,32 @@ class AgentContractDiffTests(unittest.TestCase):
         a, b = self.report(self.BEFORE), self.report(self.AFTER)
         b["functions"].append(copy.deepcopy(b["functions"][0]))
         with self.assertRaisesRegex(WorkspaceError, "Duplicate"):
+            self.compare(a, b)
+
+    def test_false_and_zero_are_different_function_contracts(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        a["functions"][0]["resources"] = {"heap_allocations": 0, "may_block": False}
+        b["functions"][0]["resources"] = {"heap_allocations": False, "may_block": 0}
+        b["functions"][0]["public"] = 0
+        result = self.compare(a, b)
+        self.assertEqual(result["reported_contract_changes"][0]["changed_fields"],
+                         ["resources", "public"])
+        self.assertFalse(result["claims"]["functional_equivalence_proved"])
+
+    def test_false_and_zero_are_different_foreign_obligations(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        a["external_obligations"] = [{"foreign_pointer_live": False}]
+        b["external_obligations"] = [{"foreign_pointer_live": 0}]
+        a["foreign_assumptions"] = [{"allowed_calls": 0}]
+        b["foreign_assumptions"] = [{"allowed_calls": False}]
+        result = self.compare(a, b)
+        self.assertTrue(result["external_obligations_changed"])
+        self.assertTrue(result["foreign_assumptions_changed"])
+
+    def test_noncanonical_nested_contract_is_not_reported_unchanged(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        b["functions"][0]["resources"] = {"max_runtime": float("nan")}
+        with self.assertRaisesRegex(WorkspaceError, "Noncanonical"):
             self.compare(a, b)
 
     def test_receipt_claims_cannot_be_elevated(self):

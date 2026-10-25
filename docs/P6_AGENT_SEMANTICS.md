@@ -15,8 +15,9 @@ Result `hepta.agent-semantics.v1` exposes both the entry-file source SHA and the
 
 The result also exposes the canonical HSIR digest,
 function types, parameter ownership modes, declared/inferred Effects,
-resource contracts, spans, v4 node IDs, foreign assumptions and raw pointer
-boundary obligations. Agents can formulate a v4 patch against this frozen
+resource contracts, named return lifetimes, spans, v4 node IDs, foreign
+assumptions, volatile hardware-access sites and raw pointer boundary
+obligations. Agents can formulate a v4 patch against this frozen
 contract with an explicit requested interface policy; the usual complete
 native validation must still occur on the **candidate** before publication.
 
@@ -62,6 +63,10 @@ The two-pin contract diff now treats these attributes as per-function
 tracked contract fields; previously it could see only a coarse project
 interface hash change. Both source and semantic hashes are retained,
 and elevated or incomplete foreign-qualification proof flags reject.
+Canonical JSON comparisons distinguish booleans from integers (unlike
+Python's regular equality). The diff tracks `return_lifetime` and
+`volatile_accesses_changed`; a missing or malformed volatile inventory
+is rejected rather than treated as no hardware obligations.
 Unchanged metadata never proves unchanged behavior; no live project is edited.
 
 ## Read-only Agent workspace query CLI
