@@ -40,8 +40,10 @@ class ScalarSSAHostCABITests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="hepta-ssa-host-abi-") as td:
             root = Path(td)
             correct = root / "libhepta_ssa.so"
-            evidence = compile_scalar_ssa_llvm(native_ir, output=correct)
+            evidence = compile_scalar_ssa_llvm(native_ir, output=correct, ssa=ssa, cfg=cfg)
             self.assertEqual(evidence["status"], "native_host_compiled_unqualified")
+            self.assertTrue(evidence["ssa_cfg_origin_rechecked"],
+                            "Direct C consumers must use SSA/CFG source-rechecked LLVM")
             self.assertFalse(evidence["claims"]["cross_target_abi_qualified"])
 
             wrong_src = root / "wrong.c"
