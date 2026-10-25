@@ -181,6 +181,41 @@ class HSIRBridgeTests(unittest.TestCase):
             with self.subTest(case=label):
                 check_rejection(mutation)
 
+    def test_unhashable_resealed_hsir_metadata_rejects_with_language_error(self):
+        program, checked = _checked(_SOURCE)
+        canonical = canonical_hsir(program, checked)
+        source_mutations = {
+            "unhashable_return": lambda x: x["functions"][0].update(returns=[]),
+            "unhashable_expr_op": lambda x: x["functions"][0]["body"][0]["data"]["expr"].update(op=[]),
+            "unhashable_stmt_op": lambda x: x["functions"][0]["body"][0].update(op=[]),
+        }
+        for label, mutation in source_mutations.items():
+            with self.subTest(source=label):
+                altered = copy.deepcopy(canonical)
+                mutation(altered)
+                with self.assertRaises(HSIRRejected):
+                    from_canonical_snapshot(_reseal(altered))
+
+        parent = lower_checked_program(program, checked).as_dict()
+        derived_mutations = {
+            "unhashable_type": lambda x: x["functions"][0]["return_type"].update(type=[]),
+            "unhashable_operation": lambda x: x["functions"][0]["body"][0]["fields"]["expr"].update(operation=[]),
+            "unhashable_stmt": lambda x: x["functions"][0]["body"][0].update(operation=[]),
+            "unhashable_abi": lambda x: x["functions"][0].update(abi=[]),
+            "unhashable_direction": lambda x: x["functions"][0].update(direction=[]),
+        }
+        for label, mutation in derived_mutations.items():
+            with self.subTest(derived=label):
+                snapshot = copy.deepcopy(parent)
+                snapshot.pop("sha256")
+                mutation(snapshot)
+                encoded = json.dumps(snapshot, sort_keys=True, ensure_ascii=False,
+                                     allow_nan=False, separators=(",", ":"))
+                forged = HSIRSnapshot("hepta.hsir.v0", encoded,
+                                      hashlib.sha256(encoded.encode()).hexdigest())
+                with self.assertRaises(HSIRRejected):
+                    forged.as_dict()
+
     def test_refuses_c_ffis_generic_types_or_resource_ownership(self):
         a, ac = _checked(_SOURCE)
         canonical = canonical_hsir(a, ac)
