@@ -53,3 +53,38 @@ Result state is `native_host_compiled_unqualified` and
 `whole_p6_gate_closed=false`. Real C ABI cross-compiler/hardware qualification,
 LLVM debug info, instruction selection, target matrix, memory/RSS and p99
 regressions remain open.
+
+## P6 scoped performance and process resource receipt
+
+The independent tool `tools/ssa_native_benchmark.py` accepts the actual
+native `build-llvm-ssa` shared-library artifact, builds a separate native
+C function with the same finite loop behavior using the exact host Clang,
+and tests known C-defined inputs before measuring. A separately compiled
+C timing driver invokes each function directly via `dlopen`/`dlsym`, outside
+Python per-call overhead. Trials alternate in seeded pseudo-random order;
+raw elapsed nanoseconds, nanoseconds/call, process peak RSS, compiler binary
+and shared-object SHA-256 identities are saved to a versioned JSON report.
+
+Run (on Linux, with a trusted native binary and a preexisting output folder):
+
+    python -m hepta build-llvm-ssa examples/ssa_llvm.hepta -o /tmp/hepta-ssa.so
+    python tools/ssa_native_benchmark.py \
+      --library /tmp/hepta-ssa.so --symbol hepta_accumulate \
+      --output artifacts/p6-ssa-perf.json --trials 7 --iterations 15000
+    python -m unittest discover -s tests -p test_ssa_native_benchmark.py -v
+
+Important qualification limits:
+
+- This tool **loads and runs native code**. Never run an untrusted generated
+  binary without an externally enforced OS sandbox. The benchmark program
+  and its subprocess time limits are not a sandbox.
+- Measurements apply only to the declared host, bounded function and finite
+  input domain. Different CPU, compiler, flags or affinity may change ratios.
+- Peak RSS is the entire driver process including the dynamic loader and
+  libraries, **not a proof of zero heap allocations in the tested function**.
+- Samples are not application-service p95/p99 latency, not hardware power
+  evidence, and not a statistically qualified Rust/C++ performance advantage.
+- A missing report, failed correctness check or incomplete native compile is
+  never a passing benchmark or a language-wide performance claim.
+
+Full P6 production and P01–P12 acceptance remain open.
