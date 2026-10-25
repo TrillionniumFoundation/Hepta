@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from hepta import source_bound_reconcile as mod
+from hepta.hsir_v1 import integrate_v0, verify_v1
 
 SRC='fn f(a: i32) -> i32 effects {panic} { let mut b: i32 = 0; while b < a { b = b + 1; } return b; }'
 SHA=hashlib.sha256(SRC.encode()).hexdigest()
@@ -34,7 +35,11 @@ SOURCE_BODY=[
 
 
 def make_legacy():
-    return {'imports':[], 'structs':[], 'enums':[], 'external_obligations':[],
+    record = {'schema':'hepta.hsir.v0','profile':'checked_typed_ast_not_verified_mir',
+            'module':'test','source_sha256':SHA,'project_sha256':None,
+            'claims':{'native_borrow_validation':False,'translation_correctness_proved':False,
+                      'whole_language_soundness_proved':False,'foreign_contracts_proved':False},
+            'imports':[], 'structs':[], 'enums':[], 'external_obligations':[],
             'foreign_assumptions':[], 'volatile_accesses':[], 'owned_types':[],
             'resource_contracts':{}, 'all_expressions_typed':True,'untyped_expressions':[],
             'functions':[{'name':'f', 'extern_c':False,'export_c':False,'return_mode':'value',
@@ -42,11 +47,12 @@ def make_legacy():
                           'params':[{'name':'a','mode':'value','type':'i32'}],
                           'returns':'i32', 'declared_effects':['panic'],'inferred_effects':['panic'],
                           'public':False,'body':copy.deepcopy(SOURCE_BODY)}]}
+    record['sha256'] = hashlib.sha256(json.dumps(record,sort_keys=True,
+        separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()).hexdigest()
+    return record
 
 def envelope(legacy=None):
-    return {'producer':{'wire_profile':'source_bound_v0','source_sha256':SHA,
-                        'legacy_sha256':'b'*64},
-            'opaque_producer_payload':legacy or make_legacy(),'sha256':'c'*64}
+    return integrate_v0(legacy or make_legacy())
 
 class Tests(unittest.TestCase):
     def test_simple_ast_normalization(self):
@@ -113,7 +119,9 @@ class Tests(unittest.TestCase):
         class Frozen:
             def as_dict(self):return frozen
         hsir.lower_checked_program=lambda program,checked: Frozen()
-        with patch.dict(sys.modules,{'hepta.pipeline':pipeline,'hepta.hsir':hsir}):
+        with patch.dict(sys.modules,{'hepta.pipeline':pipeline,'hepta.hsir':hsir}), \
+             patch.object(mod,'integrate_v0',return_value={'dummy':'target'}), \
+             patch.object(mod,'lower_verified_v1_scalar_ssa',return_value={'verified':True}):
             out=mod.reconcile_source_bound_to_ssa(envelope(legacy),SRC,path=P,rustc='/explicit/rustc')
         self.assertEqual(out['source_sha256'],SHA)
         self.assertTrue(out['ssa_verified']['verified'])
