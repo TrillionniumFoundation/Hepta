@@ -36,7 +36,7 @@ jobs:
           gcc --version
       - name: Five-target real-Clang function extent and negative controls
         run: |
-          python -m unittest tests.test_object_executable_exports tests.test_llvm_ssa_target -v
+          python -m unittest tests.test_object_executable_exports tests.test_llvm_ssa_target tests.test_llvm_ssa_host_c_abi -v
       - name: Execute reference scalar SSA and LLVM profile regressions
         run: |
           python -m unittest tests.test_llvm_ir_profile_contract tests.test_llvm_ssa_origin_gate tests.test_semantic_source_origin -v
