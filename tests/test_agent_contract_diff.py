@@ -151,6 +151,12 @@ class AgentContractDiffTests(unittest.TestCase):
         with self.assertRaisesRegex(WorkspaceError, "different compiler"):
             self.compare(a, b)
 
+    def test_absolute_function_paths_cannot_impersonate_module_ids(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        b["functions"][0]["path"] = "/store/versions/b/main.hepta"
+        with self.assertRaisesRegex(WorkspaceError, "relative function origin"):
+            self.compare(a, b)
+
     def test_duplicate_function_identity_rejected(self):
         a, b = self.report(self.BEFORE), self.report(self.AFTER)
         b["functions"].append(copy.deepcopy(b["functions"][0]))

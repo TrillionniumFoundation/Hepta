@@ -20,6 +20,7 @@ class AgentSemanticTests(unittest.TestCase):
             "snapshot": {
                 "version": self.VERSION,
                 "entry": "/immutable/versions/tree/main.hepta",
+                "root": "/immutable/versions/tree",
                 "manifest": {
                     "compiler_sha256": self.COMPILER,
                     "interface_sha256": "d" * 64,
@@ -80,6 +81,7 @@ class AgentSemanticTests(unittest.TestCase):
         self.assertEqual(result["source_semantic_sha256"], self.SEMANTIC)
         self.assertEqual(result["source_graph_sha256"], "f" * 64)
         self.assertEqual(result["nodes"], self.snapshot["nodes"])
+        self.assertEqual(result["functions"][0]["path"], "main.hepta")
         self.assertEqual(result["functions"][0]["parameter_modes"], [
             {"name": "a", "mode": "value", "type": "i32"}])
         self.assertTrue(result["functions"][0]["public"])
@@ -122,6 +124,20 @@ class AgentSemanticTests(unittest.TestCase):
         self._reseal_hsir()
         with self.assertRaisesRegex(WorkspaceError, "profile/claims"):
             self._inspect()
+
+    def test_absolute_source_path_is_normalized_across_versions(self):
+        self.hsir["functions"][0]["path"] = "/immutable/versions/tree/main.hepta"
+        self._reseal_hsir()
+        result = self._inspect()
+        self.assertEqual(result["functions"][0]["path"], "main.hepta")
+        for invalid in ("/outside/secret.hepta",
+                        "/immutable/versions/tree/../secret.hepta",
+                        "../secret.hepta", "other.hepta"):
+            with self.subTest(path=invalid):
+                self.hsir["functions"][0]["path"] = invalid
+                self._reseal_hsir()
+                with self.assertRaises(WorkspaceError):
+                    self._inspect()
 
     def test_missing_or_invalid_source_graph_identity_rejected(self):
         for invalid in (None, "", "not-a-digest", True):

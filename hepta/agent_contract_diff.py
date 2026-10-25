@@ -7,7 +7,7 @@ signature never proves behavioral equivalence or unchanged function bodies.
 from __future__ import annotations
 
 from hashlib import sha256
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 from typing import Any
 
@@ -58,8 +58,11 @@ def _inventory(report: dict[str, Any], version: str) -> dict[tuple[str, str], di
         if not isinstance(fn, dict) or any(k not in fn for k in _TRACKED):
             raise WorkspaceError("E_AGENT_DIFF_FUNCTION", "Malformed function contract")
         path, name = fn.get("path"), fn.get("name")
-        if not isinstance(path, str) or not path or not isinstance(name, str) or not name:
-            raise WorkspaceError("E_AGENT_DIFF_FUNCTION", "Missing function origin")
+        if (not isinstance(path, str) or not path or not isinstance(name, str) or not name
+                or PurePosixPath(path).is_absolute() or "\\\\" in path
+                or any(part in ("", ".", "..") for part in path.split("/"))
+                or path not in report["validated_sources"]):
+            raise WorkspaceError("E_AGENT_DIFF_FUNCTION", "Missing or unvalidated relative function origin")
         key = (path, name)
         if key in keys:
             raise WorkspaceError("E_AGENT_DIFF_DUPLICATE", "Duplicate path/function identity")
