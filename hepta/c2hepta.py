@@ -92,9 +92,25 @@ class _Function:
     def _expr(self, node: dict) -> tuple[str, str]:
         kind = node.get("kind")
         if kind in {"ImplicitCastExpr", "ParenExpr"}:
-            if kind == "ImplicitCastExpr" and node.get("castKind") != "LValueToRValue":
-                _reject(node, "C implicit conversion is not proven equivalent")
-            return self.expr(_one(node))
+            if kind == "ParenExpr" or node.get("castKind") == "LValueToRValue":
+                return self.expr(_one(node))
+            operand = _one(node)
+            operand_type = operand.get("type", {}).get("qualType")
+            dest_type = node.get("type", {}).get("qualType")
+            cast = node.get("castKind")
+            # C++ performs int-to-bool casts in logical operands and converts
+            # bool-to-int results in integer contexts. Prove each exact pair;
+            # do not accept arbitrary integral conversions or silently change
+            # expression types in arithmetic contexts.
+            if cast == "IntegralToBoolean" and operand_type == "int" and dest_type == "bool":
+                value, typ = self.expr(operand)
+                if typ == "i32":
+                    return f"({value} != 0)", "bool"
+            if cast == "IntegralCast" and operand_type == "bool" and dest_type == "int":
+                value, typ = self.expr(operand)
+                if typ == "bool":
+                    return value, "bool"  # handled explicitly at int write/return sites
+            _reject(node, "implicit conversion is not proven equivalent")
         if kind == "IntegerLiteral":
             if node.get("type", {}).get("qualType") != "int":
                 _reject(node, "only C int literals are supported")
@@ -159,7 +175,16 @@ class _Function:
                 out.extend(self.statements(child, indent))
             return out
         if kind == "ReturnStmt":
-            return [f"{prefix}return {self._int(_one(stmt))};"]
+            # C comparison/logical results are numeric 0 or 1, unlike Hepta
+            # bool. Preserve that conversion with explicit, short-circuiting
+            # control flow, never an unchecked or implicit ABI cast.
+            value, typ = self.expr(_one(stmt))
+            if typ == "i32":
+                return [f"{prefix}return {value};"]
+            if typ == "bool":
+                return [f"{prefix}if {value} {{", f"{prefix}    return 1;",
+                        f"{prefix}}} else {{", f"{prefix}    return 0;", f"{prefix}}}"]
+            _reject(stmt, "return must be int or a side-effect-free boolean")
         if kind == "DeclStmt":
             children = _children(stmt)
             if len(children) != 1 or children[0].get("kind") != "VarDecl":
@@ -168,9 +193,14 @@ class _Function:
             name = _ident(var.get("name"), var)
             if name in self.known or var.get("type", {}).get("qualType") != "int" or var.get("storageClass"):
                 _reject(var, "only unshadowed int locals are supported")
-            value = self._int(_one(var))
+            value, typ = self.expr(_one(var))
+            if typ not in {"i32", "bool"}:
+                _reject(var, "initializer must be int or a side-effect-free boolean")
             self.known.add(name)
             self.locals.add(name)
+            if typ == "bool":
+                return [f"{prefix}let mut {name}: i32 = 0;", f"{prefix}if {value} {{",
+                        f"{prefix}    {name} = 1;", f"{prefix}}}"]
             return [f"{prefix}let mut {name}: i32 = {value};"]
         if kind == "BinaryOperator" and stmt.get("opcode") == "=":
             children = _children(stmt)
@@ -180,7 +210,12 @@ class _Function:
             name = ref.get("name")
             if name not in self.locals or ref.get("kind") != "VarDecl":
                 _reject(stmt, "parameters and borrowed values cannot be modified")
-            value = self._int(children[1])
+            value, typ = self.expr(children[1])
+            if typ == "bool":
+                return [f"{prefix}if {value} {{", f"{prefix}    {name} = 1;",
+                        f"{prefix}}} else {{", f"{prefix}    {name} = 0;", f"{prefix}}}"]
+            if typ != "i32":
+                _reject(stmt, "assignment must be int or a side-effect-free boolean")
             return [f"{prefix}{name} = {value};"]
         if kind == "CompoundAssignOperator" and stmt.get("opcode") in {"+=", "-=", "*="}:
             children = _children(stmt)
