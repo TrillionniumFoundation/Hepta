@@ -47,17 +47,34 @@ fail with `E_OBJECT_SYMBOL_LOCATION`.
 An isolated local Clang 17 structural *algorithm mirror* executed on the
 same five actual compiler objects: **5/5 authentic object locations accepted,
 5/5 tampered locations rejected**. This is not the full repository test.
-The new integration test file and hardening code are committed, but
+The new integration test files and hardening code are committed, but
 full exact-HEAD GitHub actions have not been confirmed complete.
 
 Run the exact branch with:
 
-    python -m unittest tests.test_object_executable_exports tests.test_llvm_ssa_target -v
+    python -m unittest tests.test_object_executable_exports tests.test_llvm_ssa_target tests.test_llvm_ssa_host_c_abi -v
     python -m unittest tests.test_llvm_ir_profile_contract tests.test_llvm_ssa_origin_gate -v
     python -m unittest discover -s tests -v
 
 The dedicated `hepta-p3-p5-executable-exports.yml` workflow requires
 `git rev-parse HEAD` to equal the workflow's trigger SHA before running.
+
+## Linux host C ABI: actual native caller control
+
+This increment also **reuses** the original
+`tests/test_llvm_ssa_host_c_abi.py` from PR #108 with the strict
+`ssa=ssa, cfg=cfg` source-origin check added. It builds a native LLVM
+library and links actual C11 callers from **GCC and Clang**, each at
+-O0 and -O2. The expected result is compared with the original scalar CFG
+interpreter; an independently compiled intentionally-wrong C implementation
+must fail each caller. This qualifies a *specific Linux native C ABI subset*,
+not general GCC/Clang/MSVC parity or C++ ABI.
+
+An isolated local C-ABI experiment (Clang 17 LLVM library, GCC 14 and
+Clang 17 C consumers, one scalar exported function) executed **4 positive
+link-and-run combinations** and **4 deliberately wrong compiled library
+rejections**. The full Hepta test fixture and the new strict SSA-origin
+integration were committed but **not yet fully executed on this final SHA**.
 
 ## Qualification truth table
 
