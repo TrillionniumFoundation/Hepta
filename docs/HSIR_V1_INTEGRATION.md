@@ -68,3 +68,26 @@ be passed to native codegen. A future consumer adapter must preserve typed
 expressions, effects, control-flow, provenance and loans with independent
 checks. P0 source consolidation, complete P1 semantics, P2–P7 production
 gates and original P01–P12 blockers remain open.
+
+## P1 safety repair: bind resource receipts to actual producer semantics
+
+The independently checked resource-graph entrypoint must not accept a merely
+hash-consistent HSIR payload on the basis of equal source_sha256, project id,
+and function names. An attacker can change a function's declared effects,
+return type or the external obligation inventory, recompute both v0/v1 hashes,
+and preserve all three coarse identity checks. The resource graph would still
+be generated from the original accepted AST; without replay, the receipt could
+bind conflicting descriptions of the *same* source.
+
+The P1 resource integration now runs the original semantic_ir.lower_checked_program
+against the actual checked Program and CheckResult with the same project identity,
+then compares the **entire canonical v0 payload and its SHA-256** with the v1
+producer's embedded source. Disagreement is E_HSIR_RESOURCE_SNAPSHOT_MISMATCH.
+This happens before independent resource CFG generation, and does not infer any
+native safety or compiler refinement from passing the comparison.
+
+Tests in tests/test_hsir_v1_resource.py mutate effects, return type, and
+foreign obligations, recompute valid legacy and v1 identities, and require
+rejection against the unchanged frontend-checked source. This repairs the
+source-to-HSIR binding, not machine pointer provenance, native codegen proofs,
+or the remaining global P0–P7 / P01–P12 production acceptance gates.

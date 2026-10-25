@@ -3,6 +3,7 @@ from pathlib import Path
 import copy
 import hashlib
 import unittest
+from unittest.mock import patch
 
 from hepta.hsir_v1_resource import HSIRResourceRejected, checked_resource_snapshot
 from hepta.pipeline import analyze, analyze_project, hsir_v1_analysis, hsir_v1_resource_analysis
@@ -60,6 +61,55 @@ class HSIRV1ResourceTests(unittest.TestCase):
         envelope["claims"]["source_to_ir_refinement_proved"] = True
         with self.assertRaisesRegex(HSIRResourceRejected, "ENVELOPE"):
             checked_resource_snapshot(analysis, envelope)
+
+    def test_resealed_effect_changes_cannot_bind_to_same_checked_source(self):
+        """A content-valid v1 digest must not authenticate a false effect list."""
+        from hepta.hsir_v1 import integrate_v0, verify_v1
+        from hepta.semantic_ir import _stable_json
+        analysis = self.frontend()
+        original = hsir_v1_analysis(analysis)["hsir"]
+        legacy = copy.deepcopy(original["opaque_producer_payload"])
+        self.assertIn("alloc", legacy["functions"][0]["declared_effects"])
+        legacy["functions"][0]["declared_effects"].remove("alloc")
+        legacy.pop("sha256")
+        legacy["sha256"] = hashlib.sha256(_stable_json(legacy)).hexdigest()
+        forged = integrate_v0(legacy, expected_source_sha256=original["producer"]["source_sha256"])
+        self.assertTrue(verify_v1(forged)["ok"])
+        # Reject before the independent resource lowering path can be invoked.
+        with patch("hepta.resource_lowering.lower_resource_ir") as resource_lower:
+            with self.assertRaisesRegex(HSIRResourceRejected, "SNAPSHOT_MISMATCH"):
+                checked_resource_snapshot(analysis, forged)
+            resource_lower.assert_not_called()
+
+    def test_resealed_external_obligation_changes_are_not_discarded(self):
+        from hepta.hsir_v1 import integrate_v0, verify_v1
+        from hepta.semantic_ir import _stable_json
+        analysis = self.frontend()
+        original = hsir_v1_analysis(analysis)["hsir"]
+        legacy = copy.deepcopy(original["opaque_producer_payload"])
+        legacy["external_obligations"].append({
+            "function": "main", "reasons": ["raw_pointer_signature"],
+            "status": "caller_obligation_not_dischargeable_by_hsir"})
+        legacy.pop("sha256")
+        legacy["sha256"] = hashlib.sha256(_stable_json(legacy)).hexdigest()
+        forged = integrate_v0(legacy, expected_source_sha256=original["producer"]["source_sha256"])
+        self.assertTrue(verify_v1(forged)["ok"])
+        with self.assertRaisesRegex(HSIRResourceRejected, "SNAPSHOT_MISMATCH"):
+            checked_resource_snapshot(analysis, forged)
+
+    def test_resealed_return_type_change_rejected(self):
+        from hepta.hsir_v1 import integrate_v0, verify_v1
+        from hepta.semantic_ir import _stable_json
+        analysis = self.frontend()
+        original = hsir_v1_analysis(analysis)["hsir"]
+        legacy = copy.deepcopy(original["opaque_producer_payload"])
+        legacy["functions"][0]["returns"] = "i64"
+        legacy.pop("sha256")
+        legacy["sha256"] = hashlib.sha256(_stable_json(legacy)).hexdigest()
+        forged = integrate_v0(legacy, expected_source_sha256=original["producer"]["source_sha256"])
+        self.assertTrue(verify_v1(forged)["ok"])
+        with self.assertRaisesRegex(HSIRResourceRejected, "SNAPSHOT_MISMATCH"):
+            checked_resource_snapshot(analysis, forged)
 
     def test_rejected_frontend_never_exposes_binding(self):
         analysis = analyze("fn bad()->i32 effects {} {return false;}", native=False)
