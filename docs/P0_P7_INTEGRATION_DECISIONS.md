@@ -135,3 +135,36 @@ and version it, compare all fields and consumer APIs, add real producer and
 consumer integration fixtures, prove or independently test source-to-IR
 preservation, and rerun native and resource-negative suites on the new
 integration SHA.
+
+
+## Consumer graph verified against the pinned producer commits
+
+Source inspection of the precise Git blobs finds that the collision is not
+isolated to JSON export:
+
+- PR #14: hepta/pipeline.py hsir_analysis calls
+  hepta.semantic_ir.lower_checked_program; hepta/cli.py publishes the
+  resulting hepta.hsir.export.v0 wrapper. HMIR and resource lowering in this
+  branch are separate checked-AST/IR paths, not downstream consumers of
+  PR #36's HSIRSnapshot class.
+- PR #36: hepta/cli.py builds an HSIRSnapshot with
+  hepta.hsir.lower_checked_program and passes it to
+  hepta.llvm_scalar_backend.emit_scalar_llvm. The LLVM reader checks the
+  checked_frontend_snapshot_not_proved marker and scalar/effect limits.
+- PR #37: hepta/cfg.py lower_hsir_cfg requires the PR #36 HSIRSnapshot
+  class and digest/schema/status profile; hepta/ssa.py consumes its CFG,
+  hepta/ssa_verify.py checks SSA against that same CFG, and
+  hepta/llvm_ssa_backend.py consumes both verified SSA and CFG. CLI wires
+  these stages separately from the PR #14 HMIR resource paths.
+
+The CFG input guard means a direct PR #14 dict is expected to **reject** at
+the PR #37 HSIRSnapshot/type-status boundary. That is desirable fail-closed
+behavior, not evidence of cross-branch semantic interoperability.
+
+Next integration deliverable: a versioned canonical v1 snapshot format and
+consumer conformance tests for both producer histories, with explicit typed
+expression, borrow/owner, lifecycle, provenance, external-obligation and
+source/project identity mapping. Unsupported transformations must reject,
+and neither snapshot family may have its unproved claims upgraded implicitly.
+Only after such a mapping is validated should the CFG/SSA/LLVM consumer be
+retargeted. These actions are not completed in this PR.
