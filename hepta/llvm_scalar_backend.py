@@ -132,17 +132,59 @@ class _Function:
             return result
         raise LLVMScalarRejected("E_LLVM_EXPR: unsupported scalar operation " + str(op))
 
-    def build(self, body):
-        if not isinstance(body, list) or len(body) != 1:
-            raise LLVMScalarRejected("E_LLVM_STMT: only one return statement supported")
-        stmt = body[0]
+    def bool_expr(self, expr):
+        if (not isinstance(expr, dict) or expr.get("node") != "expr"
+                or not isinstance(expr.get("result_type"), dict)
+                or expr["result_type"] != {"type": "bool", "args": [], "length": None}):
+            raise LLVMScalarRejected("E_LLVM_CONDITION: checked bool expression required")
+        op, args = expr.get("operation"), expr.get("operands", [])
+        if op == "bool" and args == [] and type(expr.get("value")) is bool:
+            return "true" if expr["value"] else "false"
+        if op != "binary" or len(args) != 2:
+            raise LLVMScalarRejected("E_LLVM_CONDITION: unsupported boolean expression")
+        predicate = {"==": "eq", "!=": "ne", "<": "slt", "<=": "sle",
+                     ">": "sgt", ">=": "sge"}.get(expr.get("value"))
+        if predicate is None:
+            raise LLVMScalarRejected("E_LLVM_CONDITION: only i32 comparisons supported")
+        left, right = self.expr(args[0]), self.expr(args[1])
+        result = self._temp()
+        self.lines.append(f"  {result} = icmp {predicate} i32 {left}, {right}")
+        return result
+
+    def _return(self, stmt):
         if not isinstance(stmt, dict) or stmt.get("node") != "stmt" or stmt.get("operation") != "return":
-            raise LLVMScalarRejected("E_LLVM_STMT: nonreturn statement refused")
-        fields = stmt.get("fields", {})
+            raise LLVMScalarRejected("E_LLVM_STMT: only explicit return arms supported")
+        fields = stmt.get("fields")
         if not isinstance(fields, dict) or set(fields) != {"expr"}:
             raise LLVMScalarRejected("E_LLVM_STMT: return shape not accepted")
-        result = self.expr(fields["expr"])
-        self.lines.append(f"  ret i32 {result}")
+        value = self.expr(fields["expr"])
+        self.lines.append(f"  ret i32 {value}")
+
+    def build(self, body):
+        if not isinstance(body, list) or len(body) != 1:
+            raise LLVMScalarRejected("E_LLVM_STMT: exactly one root statement required")
+        stmt = body[0]
+        if not isinstance(stmt, dict) or stmt.get("node") != "stmt":
+            raise LLVMScalarRejected("E_LLVM_STMT: checked statement required")
+        if stmt.get("operation") == "return":
+            self._return(stmt)
+        elif stmt.get("operation") == "if":
+            fields = stmt.get("fields", {})
+            if not isinstance(fields, dict) or set(fields) != {"condition", "then", "else"}:
+                raise LLVMScalarRejected("E_LLVM_STMT: if must have explicit then/else arms")
+            then_arm, else_arm = fields["then"], fields["else"]
+            if (not isinstance(then_arm, list) or len(then_arm) != 1
+                    or not isinstance(else_arm, list) or len(else_arm) != 1):
+                raise LLVMScalarRejected("E_LLVM_STMT: each if branch must return once")
+            condition = self.bool_expr(fields["condition"])
+            label = self._temp().removeprefix("%")
+            self.lines.append(f"  br i1 {condition}, label %then_{label}, label %else_{label}")
+            self.lines.append(f"then_{label}:")
+            self._return(then_arm[0])
+            self.lines.append(f"else_{label}:")
+            self._return(else_arm[0])
+        else:
+            raise LLVMScalarRejected("E_LLVM_STMT: unsupported root statement")
         return self.lines
 
 
