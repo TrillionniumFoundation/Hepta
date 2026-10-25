@@ -370,11 +370,20 @@ def main(argv: list[str] | None = None) -> int:
         target.parent.mkdir(parents=True, exist_ok=True)
         if target.exists():
             raise MigrationRejected("E_C2HEPTA_OUTPUT: Refusing to overwrite an existing target")
-        # O_EXCL prevents accidental replacement. Do not emit partial source on error.
-        with target.open("x", encoding="utf-8") as handle:
-            handle.write(translated.source)
-            handle.flush()
-            os.fsync(handle.fileno())
+        # Write an invisible candidate first; a same-directory hardlink creates
+        # the final filename atomically and fails if another writer got there.
+        temp_name = None
+        try:
+            with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=target.parent,
+                                             prefix=".c2hepta-", suffix=".tmp", delete=False) as handle:
+                temp_name = handle.name
+                handle.write(translated.source)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.link(temp_name, target)
+        finally:
+            if temp_name is not None:
+                Path(temp_name).unlink(missing_ok=True)
         print(json.dumps({**translated.report, "output": str(target)}, sort_keys=True, indent=2))
         return 0
     except (MigrationRejected, OSError, ValueError, subprocess.SubprocessError) as exc:
