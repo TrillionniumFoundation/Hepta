@@ -81,3 +81,80 @@ complete transitive dependency manifest, or protection from noncooperating
 filesystem writes in the final instant before the no-replace link.
 Use the existing compile_commands.json project migrator for full configuration
 capture, multi-TU coverage and per-header dependency/identity evidence.
+
+
+## Explicit for-initializer declarations with scope hygiene
+
+The shared C11/C++20 scalar migrator can now convert one explicitly initialized
+automatic scalar `for (int i = ...; comparison; increment)` declaration into
+`let mut hepta_for_<source-byte-offset>_i = ...; while (...) {...; increment;}`.
+Each reference is resolved against its exact Clang VarDecl ID. Scoped bindings are
+copied into the loop, so nested and repeated `i` declarations cannot escape
+or shadow parameters in the emitted code. Every generated identifier is checked
+against the original function's declared names; an accidental or adversarial
+collision fails closed rather than silently changing the semantics.
+
+Only scalar automatic declarations, explicit comparisons, ordinary assignments
+or standalone ++/-- steps, and braced bodies are supported. Initializers that
+refer to the future local itself, declarations of multiple variables, static or
+thread-local storage, break/continue/goto, pointer/class/destructor operations
+or extra condition declarations reject. This is L1 candidate translation, not
+proof of complete C++ source or ABI equivalence. Clang and Hepta/C native
+differential tests cover multiple declarations, nested loops, parameter
+shadowing, unsigned semantics, and invalid source controls.
+
+
+## Braced, no-declaration do-while subset
+
+The shared Clang AST scalar lowering additionally recognizes a braced
+`do { body; } while (comparison);` without declarations, return, break,
+continue, goto, for or nested do-loops inside the body. It emits one
+`body` execution followed by `while (comparison) { body }`, preserving
+the source's at-least-once behavior and test-after-body ordering. Body
+duplication is capped at 32 KiB and limited to effect-free scalar operations
+already accepted by the shared converter. Unknown statement kinds reject.
+It does not alter the existing source-only L1 safety tier or claim a
+general control-flow equivalence theorem. C11 and C++20 original-versus-Hepta/C
+native differential tests cover defined-input examples and negative cases.
+
+## Independently executed native do-while oracle
+
+`tools/probe_strict_do_while.py --output /tmp/strict-do-while-oracle.json`
+runs C11 and C++20 Clang native compilers against a fixed, defined-input
+source/normalized pair and wrong-implementation control, then runs UBSan
+comparison binaries. In the recorded Clang 17 local execution there were
+2024 matched scalar calls, 2024 wrong implementations detected and 2258
+UBSan pair calls without a sanitizer failure. See
+`evidence/do_while_native_oracle_20261025.json`. The receipt **does not**
+claim the Hepta parser/checker, native C backend, arbitrary C++ features,
+whole-language safety, or full C++ ABI passed.
+
+## Pure scalar ternary return and assignment
+
+Only Clang `ConditionalOperator` with three operands, an explicit scalar
+comparison condition, and side-effect-free typed scalar branches is accepted
+for a direct function return or assignment to an initialized automatic local.
+The shared lowering converts `return test ? a : b` into two explicit
+`if/else` returns and converts `local = test ? a : b` into two
+`if/else` assignments, preserving short-circuit branch evaluation without
+adding an unmodeled expression feature to Hepta.
+
+GNU omitted-middle ternaries, nested ternaries, calls, side-effecting
+increments in branches, pointer/aggregate expressions, implicit numeric
+conversions not already checked by the strict `_expr` helper, and arbitrary
+expression contexts remain unsupported. This is a narrow L1 candidate
+extension, not source equivalence proof. C11/C++20 native differential
+tests cover min/max-like functions and boundary integer inputs.
+
+## Independent ternary smoke evidence
+
+`tools/probe_strict_ternary.py --output /tmp/ternary-oracle.json`
+compiles separate C11 and C++20 original/normalized scalar functions with
+Clang and checks 5820 finite input cases in total. It also rejects 1496
+outputs from a deliberately incorrect implementation and runs 322404 UBSan
+original/normalized comparison calls. A bounded local Clang 17 record is
+in `evidence/ternary_native_oracle_20261025.json`.
+
+This **does not** execute the Hepta parser, checker, C or LLVM backend;
+the independently verified scalar transformation is narrower than the
+production L2/L3 safety and source-equivalence obligations.

@@ -143,6 +143,162 @@ int sum_for(int n) {
                 self.assertFalse(result["ok"], result)
                 self.assertFalse(self.hepta.exists())
 
+
+    def test_declared_for_unsigned_and_repeated_scoped_names(self):
+        import re
+        self.c.write_text("""
+unsigned int sum_unsigned(unsigned int n) {
+    unsigned int total=0;
+    for(unsigned int i=0; i<n; ++i){ total=total+i; }
+    return total;
+}
+int twice(int n) {
+    int total=0;
+    for(int i=0; i<n; ++i){ total=total+i; }
+    for(int i=0; i<n; ++i){ total=total+i; }
+    return total;
+}
+""")
+        report = migrate_c(self.c, self.hepta)
+        self.assertTrue(report["ok"], report)
+        generated = self.hepta.read_text()
+        self.assertRegex(generated, r"let mut hepta_for_\d+_i: u32 = 0;")
+        names = re.findall(r"let mut (hepta_for_\d+_i): i32 = 0;", generated)
+        self.assertEqual(len(names), 2)
+        self.assertNotEqual(names[0], names[1])
+        self.assertIn("wrapping_add(", generated)
+        self.assertEqual(analyze(generated, str(self.hepta), native=False).report["status"],
+                         "frontend_only")
+        old = self.directory / "declared-original.so"
+        new = self.directory / "declared-hepta.so"
+        subprocess.run(["gcc", "-std=c11", "-O2", "-shared", "-fPIC",
+                        str(self.c), "-o", str(old)], check=True, capture_output=True)
+        built = subprocess.run([sys.executable, "-m", "hepta", "build", str(self.hepta),
+                                "--backend", "c", "--crate-type", "cdylib", "-o", str(new)],
+                               capture_output=True, text=True, timeout=90)
+        self.assertEqual(built.returncode, 0, built.stderr + built.stdout)
+        original, converted = ctypes.CDLL(str(old)), ctypes.CDLL(str(new))
+        for name, signature, cases in (
+                ("sum_unsigned", ctypes.c_uint32, [0, 1, 2, 7, 100, 500]),
+                ("twice", ctypes.c_int32, [-50, -1, 0, 1, 2, 7, 100, 500])):
+            left, right = getattr(original, name), getattr(converted, name)
+            for fn in (left, right):
+                fn.restype = signature
+                fn.argtypes = [signature]
+            for n in cases:
+                with self.subTest(name=name, n=n):
+                    self.assertEqual(left(n), right(n))
+
+    def test_for_with_unsupported_declarations_still_rejects(self):
+        cases = [
+            "int f(int n){int r=0;for(int i; i<n; ++i){r=r+i;}return r;}",
+            "int f(int n){int r=0;for(int i=0,j=0; i<n; ++i){r=r+i;}return r;}",
+            "int f(int n){int r=0;for(static int i=0; i<n; ++i){r=r+i;}return r;}",
+            "int f(int n){int r=0;for(int i=0; i<n; i+=1){r=r+i;}return r;}",
+            "int f(int n){int r=0;for(int i=0; i<n; ++i){continue;}return r;}",
+        ]
+        for code in cases:
+            with self.subTest(code=code):
+                self.c.write_text(code)
+                report = migrate_c(self.c, self.hepta)
+                self.assertFalse(report["ok"], report)
+                self.assertFalse(self.hepta.exists())
+
+
+    def test_do_while_clang_defined_semantics_vs_native_hepta(self):
+        self.c.write_text("""
+int do_sum(int n) {
+    int total=0; int i=0;
+    do { total=total+i; i=i+1; } while(i<n);
+    return total;
+}
+""")
+        report = migrate_c(self.c, self.hepta)
+        self.assertTrue(report["ok"], report)
+        generated = self.hepta.read_text()
+        self.assertIn("while (i < n)", generated)
+        self.assertEqual(generated.count("total = (total + i);"), 2)
+        self.assertEqual(analyze(generated, str(self.hepta), native=False).report["status"],
+                         "frontend_only")
+        reference = self.directory / "do-ref.so"
+        output = self.directory / "do-hepta.so"
+        subprocess.run(["gcc", "-std=c11", "-O2", "-shared", "-fPIC",
+                        str(self.c), "-o", str(reference)], check=True, capture_output=True)
+        built = subprocess.run([sys.executable, "-m", "hepta", "build", str(self.hepta),
+                                "--backend", "c", "--crate-type", "cdylib", "-o", str(output)],
+                               capture_output=True, text=True, timeout=90)
+        self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
+        old, new = ctypes.CDLL(str(reference)).do_sum, ctypes.CDLL(str(output)).do_sum
+        for fn in (old, new):
+            fn.argtypes = [ctypes.c_int32]
+            fn.restype = ctypes.c_int32
+        for n in (-20, -1, 0, 1, 2, 3, 17, 100, 500):
+            self.assertEqual(old(n), new(n), n)
+
+    def test_do_while_unsupported_scopes_reject(self):
+        cases = [
+            "int f(int n){int i=0;do i=i+1;while(i<n);return i;}",
+            "int f(int n){int i=0;do {int j=0;i=i+j;}while(i<n);return i;}",
+            "int f(int n){int i=0;do {i=i+1;continue;}while(i<n);return i;}",
+            "int f(int n){int i=0;do {i=i+1;break;}while(i<n);return i;}",
+            "int f(int n){int i=0;do {return i;}while(i<n);}",
+            "int f(int n){int i=0;do {do{i=i+1;}while(i<n);}while(i<n);return i;}",
+        ]
+        for code in cases:
+            with self.subTest(code=code):
+                self.c.write_text(code)
+                self.hepta.unlink(missing_ok=True)
+                report = migrate_c(self.c, self.hepta)
+                self.assertFalse(report["ok"], report)
+                self.assertFalse(self.hepta.exists())
+
+
+    def test_scalar_ternary_return_and_assignment_native_differential(self):
+        self.c.write_text("""
+int choose(int x, int y) { return x > y ? x : y; }
+int clamp(int x) { int y=0; y = x > 0 ? x : 0; return y; }
+""")
+        result = migrate_c(self.c, self.hepta)
+        self.assertTrue(result["ok"], result)
+        generated = self.hepta.read_text()
+        self.assertIn("if (x > y)", generated)
+        self.assertIn("return x;", generated)
+        self.assertIn("y = 0;", generated)
+        self.assertEqual(analyze(generated, str(self.hepta), native=False).report["status"],
+                         "frontend_only")
+        reference, migrated = self.directory / "ternary-original.so", self.directory / "ternary-hepta.so"
+        subprocess.run(["gcc", "-std=c11", "-O2", "-fPIC", "-shared",
+                        str(self.c), "-o", str(reference)], check=True, capture_output=True)
+        built = subprocess.run([sys.executable, "-m", "hepta", "build", str(self.hepta),
+                                "--backend", "c", "--crate-type", "cdylib", "-o", str(migrated)],
+                               capture_output=True, text=True, timeout=90)
+        self.assertEqual(built.returncode, 0, built.stderr + built.stdout)
+        old, new = ctypes.CDLL(str(reference)), ctypes.CDLL(str(migrated))
+        for name, args in (
+                ("choose", [(1, 0), (-3, -8), (0, 0), (123, 222), (2**31 - 1, -1)]),
+                ("clamp", [(-2**31,), (-10,), (-1,), (0,), (1,), (2**31 - 1,)])):
+            left, right = getattr(old, name), getattr(new, name)
+            for fn in (left, right):
+                fn.argtypes = [ctypes.c_int32] * len(args[0])
+                fn.restype = ctypes.c_int32
+            for row in args:
+                self.assertEqual(left(*row), right(*row), (name, row))
+
+    def test_side_effecting_ternary_rejected_without_output(self):
+        cases = [
+            "int f(int x){return x>0 ? ++x : x;}",
+            "int f(int x){int y=0; y=x>0 ? (y=1) : x; return y;}",
+            "int f(int x){return x>0 ? x++ : 0;}",
+            "int f(int x){return x ?: 0;}",
+        ]
+        for source in cases:
+            with self.subTest(source=source):
+                self.hepta.unlink(missing_ok=True)
+                self.c.write_text(source)
+                report = migrate_c(self.c, self.hepta)
+                self.assertFalse(report["ok"], report)
+                self.assertFalse(self.hepta.exists())
+
     def test_unsupported_scalar_local_shapes_do_not_publish(self):
         cases = [
             "int f(int n) { int x; return n; }",
