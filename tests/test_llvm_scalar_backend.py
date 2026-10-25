@@ -82,6 +82,21 @@ class LLVMScalarBackendTests(unittest.TestCase):
         with self.assertRaisesRegex(LLVMScalarRejected, "E_LLVM_LITERAL"):
             emit_scalar_llvm(_seal(mutated))
 
+    def test_backend_rejects_modified_ir_before_invoking_compiler(self):
+        from hepta.llvm_scalar_backend import ScalarIR
+        legitimate = emit_scalar_llvm(_snapshot())
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "modified.so"
+            invalid = ScalarIR(legitimate.text + "\n", legitimate.sha256,
+                               legitimate.functions)
+            with self.assertRaisesRegex(LLVMScalarRejected, "E_LLVM_IR_IDENTITY"):
+                compile_scalar_llvm(invalid, output=path)
+            self.assertFalse(path.exists())
+            invalid = ScalarIR(legitimate.text, legitimate.sha256,
+                               legitimate.functions, profile="unsupported")
+            with self.assertRaisesRegex(LLVMScalarRejected, "E_LLVM_IR_IDENTITY"):
+                compile_scalar_llvm(invalid, output=path)
+
     def test_checked_arithmetic_cannot_hide_panic_effect(self):
         for effect_field in ("declared_effects", "inferred_transitive_effects"):
             snapshot = _snapshot()
