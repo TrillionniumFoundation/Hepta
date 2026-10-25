@@ -73,6 +73,59 @@ int clamp(int x) noexcept {
         self.dst.unlink()
         self.assertEqual(first_hash, migrate_cpp(self.src, self.dst)["output_sha256"])
 
+    @unittest.skipUnless(shutil.which("gcc"), "GCC needed for Hepta/C native differential")
+    def test_cpp20_divmod_shortcircuit_original_vs_hepta_native(self):
+        self.src.write_text("""
+int cpp_div(int a,int b) noexcept { return a / b; }
+unsigned long long cpp_mod(unsigned long long a,unsigned long long b) noexcept { return a % b; }
+int cpp_guard(int a,int b) noexcept {
+    if (b != 0 && a / b > 2) { return 11; }
+    if (b == 0 || a % b == 0) { return 9; }
+    return 3;
+}
+""")
+        converted = migrate_cpp(self.src, self.dst)
+        self.assertTrue(converted["ok"], converted)
+        self.assertEqual(converted["tier"], "L1")
+        generated = self.dst.read_text()
+        self.assertIn("&&", generated)
+        self.assertIn("||", generated)
+        self.assertIn("a / b", generated)
+        self.assertIn("a % b", generated)
+        self.assertEqual(analyze(generated, str(self.dst), native=False).report["status"], "frontend_only")
+        wrapper = self.root / "divmod_wrapper.cc"
+        wrapper.write_text("""
+int cpp_div(int,int) noexcept;
+unsigned long long cpp_mod(unsigned long long,unsigned long long) noexcept;
+int cpp_guard(int,int) noexcept;
+extern "C" int abi_div(int a,int b){return cpp_div(a,b);}
+extern "C" unsigned long long abi_mod(unsigned long long a,unsigned long long b){return cpp_mod(a,b);}
+extern "C" int abi_guard(int a,int b){return cpp_guard(a,b);}
+""")
+        original, generated_so = self.root / "original_div.so", self.root / "hepta_div.so"
+        c = subprocess.run(["clang++", "-std=c++20", "-O2", "-shared", "-fPIC",
+                            str(self.src), str(wrapper), "-o", str(original)],
+                           capture_output=True, text=True, timeout=45)
+        self.assertEqual(c.returncode, 0, c.stderr)
+        build = subprocess.run([sys.executable, "-m", "hepta", "build", str(self.dst),
+                                "--backend", "c", "--crate-type", "cdylib", "-o", str(generated_so)],
+                               capture_output=True, text=True, timeout=90)
+        self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
+        original_lib, migrated_lib = ctypes.CDLL(str(original)), ctypes.CDLL(str(generated_so))
+        for src, dst, typ, cases in (
+            ("abi_div", "cpp_div", ctypes.c_int32,
+             ((-100, -7), (-100, 7), (100, -7), (100, 7), (-(2**31), 1))),
+            ("abi_mod", "cpp_mod", ctypes.c_uint64,
+             ((2**64 - 1, 9), (2**63, 3), (0, 1), (123456789, 17))),
+            ("abi_guard", "cpp_guard", ctypes.c_int32,
+             ((-100, -7), (100, 7), (0, 7), (42, 0), (-(2**31), 1)))):
+            left, right = getattr(original_lib, src), getattr(migrated_lib, dst)
+            for fn in (left, right):
+                fn.argtypes, fn.restype = [typ, typ], typ
+            for args in cases:
+                with self.subTest(function=dst, args=args):
+                    self.assertEqual(left(*args), right(*args))
+
     @unittest.skipUnless(shutil.which("gcc"), "GCC required for C ABI differential")
     def test_wide_cpp_signatures_native_original_vs_hepta_c(self):
         # Defined inputs only for signed arithmetic; unsigned wrap is exact.

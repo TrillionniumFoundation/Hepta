@@ -21,6 +21,8 @@ _TYPES = {"int32_t": "i32", "uint32_t": "u32", "int64_t": "i64", "uint64_t": "u6
           "int": "i32", "unsigned int": "u32", "long long": "i64", "unsigned long long": "u64",
           "long": "i64", "unsigned long": "u64"}
 _ARITH = {"+", "-", "*"}
+_DIVMOD = {"/", "%"}
+_LOGICAL = {"&&", "||"}
 _BITS = {"&", "|", "^"}
 _SHIFTS = {"<<", ">>"}
 _CMP = {"==", "!=", "<", "<=", ">", ">="}
@@ -124,6 +126,16 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str,
         if actual != expected:
             raise MigrationRejected("E_C_PROMOTION", "C integer promotions require a separate checked lowering")
         return (local[2] if decl.get("kind") == "VarDecl" else name), expected
+    if kind == "UnaryOperator" and node.get("opcode") == "!" and len(inner) == 1:
+        # Accept logical negation only when its operand is itself a checked
+        # Boolean/comparison expression. General C integer truthiness remains
+        # outside this profile; !x must not turn into a guessed Hepta cast.
+        if expected != "bool" or _decl_type(node, model) != "i32":
+            raise MigrationRejected("E_C_LOGICAL", "Logical negation requires a Boolean condition")
+        operand, actual = _expr(inner[0], args, model, "bool", locals)
+        if actual != "bool":
+            raise MigrationRejected("E_C_LOGICAL", "Logical operand must be a checked Boolean expression")
+        return f"(!{operand})", "bool"
     if kind == "UnaryOperator" and node.get("opcode") in {"+", "-"} and len(inner) == 1:
         rendered, typ = _expr(inner[0], args, model, expected, locals)
         if node["opcode"] == "-" and expected.startswith("u"):
@@ -131,6 +143,17 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str,
         return f"({node['opcode']}{rendered})", typ
     if kind == "BinaryOperator" and len(inner) == 2:
         op = node.get("opcode")
+        if op in _LOGICAL:
+            # C/C++ logical operators return int/bool, respectively. Accept
+            # only pure comparison/Boolean operands and retain their original
+            # left-to-right short-circuit behavior through Hepta && / ||.
+            if expected != "bool" or _decl_type(node, model) not in {"i32", "u32"}:
+                raise MigrationRejected("E_C_LOGICAL", "Logical operations are supported only as Boolean conditions")
+            left, left_type = _expr(inner[0], args, model, "bool", locals)
+            right, right_type = _expr(inner[1], args, model, "bool", locals)
+            if (left_type, right_type) != ("bool", "bool"):
+                raise MigrationRejected("E_C_LOGICAL", "Logical operands must have checked Boolean semantics")
+            return f"({left} {op} {right})", "bool"
         if op in _CMP:
             # C comparisons yield int, whereas Hepta comparisons yield bool.
             # This expression is only consumed as a statement condition.
@@ -138,10 +161,36 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str,
             left, _ = _expr(inner[0], args, model, lhs_type, locals)
             right, _ = _expr(inner[1], args, model, lhs_type, locals)
             return f"({left} {op} {right})", "bool"
-        if op not in _ARITH | _BITS | _SHIFTS:
+        if op not in _ARITH | _BITS | _SHIFTS | _DIVMOD:
             raise MigrationRejected("E_C_OPERATOR", f"Unsupported C operator: {op}")
+        if op in _DIVMOD:
+            # C11/C++20 and Hepta truncate signed division toward zero,
+            # and integer remainder follows that quotient. Zero divisors,
+            # and signed MIN / -1, are undefined in C/C++ and checked/aborted
+            # in Hepta. Require Clang's *evaluated* scalar result type rather
+            # than silently losing usual arithmetic conversions.
+            if (_decl_type(node, model) != expected
+                    or _decl_type(inner[0], model) != expected
+                    or _decl_type(inner[1], model) != expected):
+                # Unsuffixed integer literals may be widened by Clang. Their
+                # IntegralCast is handled by the existing exact-value gate,
+                # but implicit signedness/width changes never get guessed.
+                if (_decl_type(node, model) != expected
+                        or _decl_type(inner[0], model) != expected):
+                    raise MigrationRejected("E_C_DIVMOD_PROMOTION",
+                                            "Division operands/result need an exact checked scalar representation")
+                rhs = inner[1]
+                if (rhs.get("kind") != "ImplicitCastExpr"
+                        or rhs.get("castKind") != "IntegralCast"
+                        or len(rhs.get("inner", [])) != 1
+                        or rhs["inner"][0].get("kind") != "IntegerLiteral"):
+                    raise MigrationRejected("E_C_DIVMOD_PROMOTION",
+                                            "Implicit division conversion is outside the exact-literal profile")
         if op in _BITS and expected.startswith("i"):
             raise MigrationRejected("E_C_BITWISE", "Signed C bitwise operations require target-specific semantics")
+        # Division and modulo are evaluated once per operand and use Hepta's
+        # checked integer operators. No new C-defined behavior is claimed
+        # for signed overflow or zero divisors.
         # Unsigned C11/C++20 shifts match Hepta's fixed-width shift for all
         # defined counts (0 <= count < bit width). Hepta aborts for bad counts;
         # those inputs are already undefined in the original C/C++ program.

@@ -73,3 +73,20 @@ spawning or indirect calls. Migrated functions therefore carry explicit
 and `may_spawn=false` Hepta resource clauses, checked by the Hepta frontend.
 These are per-function checked-profile constraints, not process-wide
 C/C++ execution resource bounds or evidence about unconverted foreign code.
+
+## P3/P4 defined-domain division and Boolean short-circuit (2026-10-25)
+
+The canonical strict C/C++ scalar lowerer now accepts same-type integer `/` and
+`%` with Clang-checked operand/result types; only a directly widened
+representable integer literal may use an implicit integral promotion.
+C11/C++20 defined signed division truncates toward zero; both Hepta's checked
+integer division and C reject zero divisors and signed MIN / -1 through
+their respective undefined/abort boundaries. Thus no equivalence is claimed on
+C-undefined inputs.
+
+Boolean conditions can contain pure, explicitly Boolean comparisons combined
+with `&&`, `||` and `!`. The original left-to-right short-circuit order
+is retained in generated Hepta. Implicit integer truthiness, calls, user effects
+and unreviewed casts still reject rather than translating speculatively.
+Native C11 and C++20 original-vs-Hepta/C differential tests are added, but do
+not prove universal source equivalence or L2/L3 safety.
