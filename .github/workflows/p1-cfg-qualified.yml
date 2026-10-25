@@ -50,7 +50,10 @@ jobs:
                   assert d["claims"]["dominators_computed"] is True, path
               assert d["reference_validation"]["status"] in ("checked", "checked_with_external_assumptions"), path
               assert d["claims"]["ssa_constructed"] is False, path
-              assert d["claims"]["backend_semantics_refined"] is False, path
+              if d["schema"] == "hepta.cfg.v0":
+                  assert d["claims"]["backend_semantics_refined"] is False, path
+              else:
+                  assert d["claims"]["backend_refinement_proved"] is False, path
               if d["schema"] == "hepta.cfg.v0":
                   assert d["claims"]["pointer_provenance_proved"] is False, path
               assert d["functions"], path
