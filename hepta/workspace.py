@@ -181,11 +181,36 @@ def _writer(store):
 
 
 def _read_json(path):
+    """Read bounded, unambiguous on-disk metadata for pinned Agent snapshots.
+
+    Python's default JSON accepts duplicate keys (last value wins), NaN and
+    Infinity. None can be allowed to silently change a source/effect contract
+    or make independent readers disagree about a publication receipt.
+    """
     if path.is_symlink():
         fail("E_WORKSPACE_SYMLINK", "Metadata cannot be a symlink")
-    if path.stat().st_size > MAX_BYTES:
+    with path.open("rb") as stream:
+        payload = stream.read(MAX_BYTES + 1)
+    if len(payload) > MAX_BYTES:
         fail("E_WORKSPACE_LIMIT", "Oversized workspace metadata")
-    return json.loads(path.read_bytes())
+
+    def unique_keys(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                fail("E_WORKSPACE_JSON", "Duplicate key in workspace metadata: " + key)
+            result[key] = value
+        return result
+
+    try:
+        record = json.loads(payload.decode("utf-8"), object_pairs_hook=unique_keys,
+                            parse_constant=lambda value: fail(
+                                "E_WORKSPACE_JSON", "Non-finite JSON constant: " + value))
+    except (UnicodeError, json.JSONDecodeError, RecursionError) as exc:
+        fail("E_WORKSPACE_JSON", "Malformed or excessively nested workspace metadata: " + str(exc))
+    if not isinstance(record, dict):
+        fail("E_WORKSPACE_JSON", "Workspace metadata requires a JSON object")
+    return record
 
 
 def pin(store, version=None):
