@@ -1,0 +1,35 @@
+name: Hepta P0/P4/P6 exact-head hardening
+on:
+  push:
+    branches:
+      - codex/hepta-p4-p6-guardrails-20261025
+  pull_request:
+    branches:
+      - dot/hepta-p0-p7-integration-20261025
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  scoped-negative-gates:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ env.EXPECTED_HEAD }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify exact source identity
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain)"
+      - name: Available Clang and GCC
+        run: |
+          clang++ --version
+          gcc --version
+      - name: Run P4/P6 positive and negative tests
+        run: python -m unittest tests.test_cpp2hepta_l1 tests.test_agent_semantics -v
