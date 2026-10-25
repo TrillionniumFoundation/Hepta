@@ -110,7 +110,14 @@ def migrate_project(database: str | Path, output_directory: str | Path, *,
             publish_no_replace(stage, destination)
         return report
     except (MigrationRejected, HeptaError, OSError, ValueError, KeyError, TypeError, RecursionError) as exc:
-        report.update(ok=False, status="rejected")
+        # A rename may have committed even if its final directory fsync or
+        # identity check failed. Never report this as a definitely rejected
+        # migration; clients must inspect the destination before retrying.
+        uncertain_publish = bool(getattr(exc, "publication_may_have_committed", False))
+        report.update(ok=False, status="recovery_required" if uncertain_publish else "rejected")
+        if uncertain_publish:
+            report["publication_may_have_committed"] = True
+            report["publication_recovery_path"] = str(destination)
         report["diagnostics"].append({"code": getattr(exc, "code", "E_C_PROJECT_INPUT"), "message": str(exc)})
         if translator is not None:
             report["declaration_inventory_complete"] = translator.inventory_complete

@@ -22,11 +22,12 @@ class PublishTests(unittest.TestCase):
         self.destination = root / "output"
 
     def test_normal_content_and_manifest_published(self):
+        expected_inode = (self.stage / "source.hepta").stat().st_ino
         publish_no_replace(self.stage, self.destination)
         self.assertEqual((self.destination / "source.hepta").read_text(), "safe")
         self.assertEqual((self.destination / "migration.json").read_text(), "manifest")
-        self.assertEqual((self.destination / "source.hepta").stat().st_ino,
-                         (self.stage / "source.hepta").stat().st_ino)
+        self.assertEqual((self.destination / "source.hepta").stat().st_ino, expected_inode)
+        self.assertFalse(self.stage.exists())
 
     def test_existing_directory_and_dangling_symlink_refused(self):
         self.destination.mkdir()
@@ -41,26 +42,18 @@ class PublishTests(unittest.TestCase):
     def test_rename_and_symlink_swap_cannot_redirect_a_write(self):
         outside = self.destination.parent / "outside"
         outside.mkdir()
-        moved = self.destination.parent / "moved"
-        swapped = [False]
-        original_fstat = os.fstat
-        def before_identity(fd):
-            if not swapped[0] and self.destination.exists():
-                swapped[0] = True
-                self.destination.rename(moved)
-                self.destination.symlink_to(outside, target_is_directory=True)
-            return original_fstat(fd)
-        # Patch fstat instead of link, leaving availability probes unchanged.
-        # This fires immediately after destination_fd has been opened, BEFORE
-        # the first link, and must not redirect any link to the external alias.
-        with patch("hepta.c_project_publish.os.fstat", side_effect=before_identity):
+        import hepta.c_project_publish as pub
+        original = pub._rename_noreplace
+        def plant_symlink_before_commit(parentfd, source, target):
+            self.destination.symlink_to(outside, target_is_directory=True)
+            return original(parentfd, source, target)
+        with patch.object(pub, "_rename_noreplace", side_effect=plant_symlink_before_commit):
             with self.assertRaises(PublicationRejected):
                 publish_no_replace(self.stage, self.destination)
         self.assertFalse((outside / "source.hepta").exists())
         self.assertFalse((outside / "migration.json").exists())
         self.assertTrue(self.destination.is_symlink())
-        self.assertTrue(moved.is_dir())
-        self.assertEqual(list(moved.iterdir()), [])
+        self.assertTrue(self.stage.is_dir())
 
     def test_missing_stage_manifest_fails_before_publication(self):
         (self.stage / "migration.json").unlink()
