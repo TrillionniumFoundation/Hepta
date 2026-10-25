@@ -2,12 +2,16 @@
 from __future__ import annotations
 
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
+import json
+import os
+from unittest.mock import patch
 import shutil
 import subprocess
 import tempfile
 import unittest
 
-from hepta.cpp_bridge import generate_cpp_bridge, main
+from hepta.cpp_bridge import generate_cpp_bridge, main, _publish_directory_no_replace, _stage_bundle
 from hepta.c2hepta import MigrationRejected
 
 
@@ -129,6 +133,65 @@ int main(void) {
                 self.original.write_text(source)
                 with self.assertRaises(MigrationRejected):
                     generate_cpp_bridge(self.original, clangxx=CLANGXX)
+
+    def test_cli_publishes_complete_bundle_and_manifest(self):
+        output = self.root / "complete_bridge"
+        self.assertEqual(main([str(self.original), "--clangxx", CLANGXX,
+                               "--output-dir", str(output)]), 0)
+        self.assertTrue(output.is_dir())
+        self.assertEqual({p.name for p in output.iterdir()},
+                         {"bridge.cc", "bridge.h", "manifest.json"})
+        data = json.loads((output / "manifest.json").read_text())
+        from hashlib import sha256
+        for name, key in [("bridge.cc", "bridge_sha256"), ("bridge.h", "header_sha256")]:
+            self.assertEqual(sha256((output / name).read_bytes()).hexdigest(), data[key])
+        self.assertFalse(list(self.root.glob('.cpp-bridge-stage-*')))
+
+    def test_directory_publish_rejects_concurrent_existing_target(self):
+        if not os.sys.platform.startswith('linux'):
+            self.skipTest('Linux renameat2 no-replace required')
+        with tempfile.TemporaryDirectory(dir=self.root) as directory:
+            stage = Path(directory) / 'bundle'
+            _stage_bundle(stage, generate_cpp_bridge(self.original, clangxx=CLANGXX))
+            target = self.root / 'raced_destination'
+            target.mkdir()
+            (target / 'valuable').write_text('unmodified')
+            with self.assertRaisesRegex(MigrationRejected, 'already exists'):
+                _publish_directory_no_replace(stage, target)
+            self.assertTrue((stage / 'manifest.json').exists())
+            self.assertEqual((target / 'valuable').read_text(), 'unmodified')
+
+    def test_dangling_symlink_cannot_redirect_output(self):
+        redirect = self.root / 'elsewhere'
+        alias = self.root / 'dangling'
+        alias.symlink_to(redirect)
+        self.assertFalse(redirect.exists())
+        self.assertEqual(main([str(self.original), '--output-dir', str(alias),
+                               '--clangxx', CLANGXX]), 1)
+        self.assertTrue(alias.is_symlink())
+        self.assertFalse(redirect.exists())
+
+    def test_write_failure_never_exposes_target_bundle(self):
+        output = self.root / 'broken_bundle'
+        with patch('hepta.cpp_bridge._stage_bundle', side_effect=OSError('simulated disk full')):
+            self.assertEqual(main([str(self.original), '--output-dir', str(output),
+                                   '--clangxx', CLANGXX]), 1)
+        self.assertFalse(output.exists())
+        self.assertFalse(list(self.root.glob('.cpp-bridge-stage-*')))
+
+    def test_concurrent_cli_writers_never_publish_partial_directory(self):
+        if not os.sys.platform.startswith('linux'):
+            self.skipTest('Linux atomic no-replace requires renameat2')
+        output = self.root / 'race_writers'
+        def make():
+            return main([str(self.original), '--output-dir', str(output),
+                         '--clangxx', CLANGXX])
+        with ThreadPoolExecutor(max_workers=2) as ex:
+            outcomes = list(ex.map(lambda _: make(), range(2)))
+        self.assertEqual(sorted(outcomes), [0, 1])
+        self.assertEqual({p.name for p in output.iterdir()},
+                         {'bridge.cc', 'bridge.h', 'manifest.json'})
+        self.assertFalse(list(self.root.glob('.cpp-bridge-stage-*')))
 
     def test_cli_refuses_overwriting_existing_directory(self):
         existing = self.root / "out"
