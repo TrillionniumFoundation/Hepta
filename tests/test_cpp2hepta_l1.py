@@ -343,6 +343,9 @@ int signed_diff(int x, int y) noexcept { return x - y; }
             "int f(int n) noexcept { int x=0;for (static int i=0;i<n;++i){x=x+i;}return x;}",
             "int f(int n) noexcept { int x=0;for (int i=0,j=0;i<n;++i){x=x+i;}return x;}",
             "int f(int n) noexcept { int x=0;for (int i;i<n;++i){x=x+i;}return x;}",
+            "int f(int n) noexcept { int x=0;for (int i=0;i<n;++i){continue;}return x;}",
+            "int f(int n) noexcept { int x=0;for (int i=0;i<n;++i){break;}return x;}",
+            "int f(int n) noexcept { int x=0;for (int i=0;i<n;++i){int j=1;x=x+j;}return x;}",
         ]
         for src in sources:
             with self.subTest(src=src):
