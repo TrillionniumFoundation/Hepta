@@ -33,7 +33,12 @@ def main(argv=None) -> int:
     importer.add_argument("--output", "-o", required=True)
     importer.add_argument("--module", default="c_imported")
     importer.add_argument("--cc")
-    for cmd in ["check", "inspect", "emit", "header", "build", "run", "patch"]:
+    migrator = sub.add_parser("migrate-c", help="Fail-closed Clang AST C11 to Hepta L1 candidate")
+    migrator.add_argument("source")
+    migrator.add_argument("--output", "-o", required=True)
+    migrator.add_argument("--clang", default="clang")
+    migrator.add_argument("--module", default="c_migrated")
+    for cmd in ["check", "inspect", "hsir", "emit", "header", "build", "run", "patch"]:
         p = sub.add_parser(cmd)
         p.add_argument("source")
         p.add_argument("--rustc")
@@ -72,6 +77,10 @@ def main(argv=None) -> int:
             manifest.write_text(json.dumps(imported.manifest, indent=2, sort_keys=True) + "\n")
             output_json({"schema": "hepta.import-c.v1", "ok": True, "output": str(dest), "manifest": str(manifest), "validation": imported.manifest})
             return 0
+        if args.command == "migrate-c":
+            from .c2hepta import main as migrate_c_main
+            return migrate_c_main([args.source, "--output", args.output,
+                                   "--clang", args.clang, "--module", args.module])
         if args.command == "doctor":
             info = toolchain_info(find_rustc(args.rustc))
             output_json({"schema": "hepta.doctor.v1", "ok": True, "toolchain": info})
@@ -93,6 +102,22 @@ def main(argv=None) -> int:
                                  backend=args.backend, cc=args.cc, locked=args.locked)
         file = result.project.entry
         protected = {Path(p) for p in result.project.sources}
+        if args.command == "hsir":
+            if args.backend != "rust":
+                raise ValueError("HSIR v0 requires the real Rust reference backend")
+            if not result.report["ok"]:
+                output_json(result.report)
+                return 1
+            from .hsir import lower_checked_program
+            snapshot = lower_checked_program(result.program, result.checked).as_dict()
+            snapshot["reference_validation"] = {
+                "status": result.report["status"],
+                "compiler_sha256": result.report["compiler_sha256"],
+                "checks": result.report["checks"],
+                "backend": result.report.get("backend"),
+            }
+            output_json(snapshot)
+            return 0
         if args.command == "inspect":
             output_json(inspect_analysis(result))
             return 0 if result.report["ok"] else 1
