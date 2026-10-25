@@ -1,0 +1,989 @@
+{
+  "claims": {
+    "external_contracts_proved": false,
+    "native_codegen_uses_this_ir": false,
+    "scalar_value_semantics_verified": false,
+    "source_to_ir_refinement_proved": false,
+    "termination_proved": false,
+    "whole_language_soundness_proved": false
+  },
+  "functions": [
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "dest": "v0",
+              "op": "take_field",
+              "place": {
+                "path": [
+                  "data"
+                ],
+                "root": "p0"
+              }
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v0"
+          }
+        }
+      ],
+      "entry": "b0",
+      "external": false,
+      "locals": [
+        {
+          "id": "v0",
+          "mutable": false,
+          "type": "@split::T"
+        }
+      ],
+      "name": "split",
+      "obligation": null,
+      "params": [
+        {
+          "id": "p0",
+          "mode": "take",
+          "type": "Chunk<@split::T>"
+        }
+      ],
+      "returns": {
+        "mode": "value",
+        "origin": null,
+        "type": "@split::T"
+      },
+      "type_params": [
+        "@split::T"
+      ]
+    },
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "id": "l0",
+              "mode": "read",
+              "op": "borrow",
+              "place": {
+                "path": [
+                  "data"
+                ],
+                "root": "p0"
+              },
+              "type": "[u8]"
+            }
+          ],
+          "term": {
+            "loan": "l0",
+            "op": "return",
+            "value": null
+          }
+        }
+      ],
+      "entry": "b0",
+      "external": false,
+      "locals": [],
+      "name": "selected",
+      "obligation": null,
+      "params": [
+        {
+          "id": "p0",
+          "mode": "read",
+          "type": "Chunk<Buffer<u8>>"
+        },
+        {
+          "id": "p1",
+          "mode": "read",
+          "type": "[u8]"
+        }
+      ],
+      "returns": {
+        "mode": "read",
+        "origin": "p0",
+        "type": "[u8]"
+      }
+    },
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "dest": "v1",
+              "kind": "buffer",
+              "op": "acquire"
+            },
+            {
+              "dest": "v3",
+              "fields": [
+                "v1",
+                "v2"
+              ],
+              "op": "pack",
+              "variant": null
+            },
+            {
+              "dest": "v5",
+              "kind": "buffer",
+              "op": "acquire"
+            },
+            {
+              "dest": "v6",
+              "fields": [
+                "v3",
+                "v5"
+              ],
+              "op": "pack",
+              "variant": null
+            },
+            {
+              "dest": "v7",
+              "op": "move",
+              "src": "v6"
+            },
+            {
+              "id": "l0",
+              "mode": "read",
+              "op": "borrow",
+              "place": {
+                "path": [
+                  "head"
+                ],
+                "root": "v7"
+              },
+              "type": "Chunk<Buffer<u8>>"
+            },
+            {
+              "id": "l1",
+              "mode": "read",
+              "op": "borrow",
+              "place": {
+                "path": [
+                  "tail"
+                ],
+                "root": "v7"
+              },
+              "type": "[u8]"
+            },
+            {
+              "args": [
+                {
+                  "id": "l0",
+                  "kind": "borrow"
+                },
+                {
+                  "id": "l1",
+                  "kind": "borrow"
+                }
+              ],
+              "function": "selected",
+              "obligation": null,
+              "op": "call",
+              "result": null,
+              "result_loan": "l2"
+            },
+            {
+              "id": "l1",
+              "op": "end_borrow"
+            },
+            {
+              "loan": "l2",
+              "mode": "read",
+              "op": "use"
+            },
+            {
+              "id": "l2",
+              "op": "end_borrow"
+            },
+            {
+              "dest": "v11",
+              "op": "take_field",
+              "place": {
+                "path": [
+                  "head",
+                  "data"
+                ],
+                "root": "v7"
+              }
+            },
+            {
+              "dest": "v12",
+              "op": "move",
+              "src": "v11"
+            },
+            {
+              "dest": "v13",
+              "op": "move",
+              "src": "v12"
+            },
+            {
+              "op": "drop",
+              "src": "v13"
+            },
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "p0"
+              }
+            }
+          ],
+          "term": {
+            "condition": "p0",
+            "else": "b2",
+            "op": "branch",
+            "then": "b1"
+          }
+        },
+        {
+          "id": "b1",
+          "ops": [
+            {
+              "dest": "v14",
+              "op": "take_field",
+              "place": {
+                "path": [
+                  "tail"
+                ],
+                "root": "v7"
+              }
+            },
+            {
+              "op": "drop",
+              "src": "v14"
+            },
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [
+                  "head",
+                  "tag"
+                ],
+                "root": "v7"
+              }
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v15"
+          }
+        },
+        {
+          "id": "b2",
+          "ops": [],
+          "term": {
+            "op": "jump",
+            "target": "b3"
+          }
+        },
+        {
+          "id": "b3",
+          "ops": [
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "p1"
+              }
+            },
+            {
+              "dest": "v16",
+              "kind": "try_buffer",
+              "op": "acquire"
+            }
+          ],
+          "term": {
+            "cases": [
+              {
+                "target": "b4",
+                "variant": "Ok"
+              },
+              {
+                "target": "b5",
+                "variant": "Err"
+              }
+            ],
+            "op": "switch",
+            "src": "v16"
+          }
+        },
+        {
+          "id": "b4",
+          "ops": [
+            {
+              "dests": [
+                "v17"
+              ],
+              "op": "unpack",
+              "src": "v16",
+              "variant": "Ok"
+            },
+            {
+              "dest": "v18",
+              "op": "move",
+              "src": "v17"
+            },
+            {
+              "op": "init_field",
+              "place": {
+                "path": [
+                  "head",
+                  "data"
+                ],
+                "root": "v7"
+              },
+              "src": "v18"
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b6"
+          }
+        },
+        {
+          "id": "b5",
+          "ops": [
+            {
+              "dests": [
+                "v19"
+              ],
+              "op": "unpack",
+              "src": "v16",
+              "variant": "Err"
+            },
+            {
+              "dest": "v20",
+              "op": "take_field",
+              "place": {
+                "path": [
+                  "tail"
+                ],
+                "root": "v7"
+              }
+            },
+            {
+              "op": "drop",
+              "src": "v20"
+            },
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "v19"
+              }
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v21"
+          }
+        },
+        {
+          "id": "b6",
+          "ops": [
+            {
+              "dest": "v22",
+              "op": "take_field",
+              "place": {
+                "path": [
+                  "head"
+                ],
+                "root": "v7"
+              }
+            },
+            {
+              "args": [
+                {
+                  "id": "v22",
+                  "kind": "owner"
+                }
+              ],
+              "function": "split",
+              "obligation": null,
+              "op": "call",
+              "result": "v23",
+              "result_loan": null,
+              "type_args": [
+                "Buffer<u8>"
+              ]
+            },
+            {
+              "dest": "v24",
+              "op": "move",
+              "src": "v23"
+            },
+            {
+              "id": "l3",
+              "mode": "read",
+              "op": "borrow",
+              "place": {
+                "path": [],
+                "root": "v24"
+              },
+              "type": "Buffer<u8>"
+            },
+            {
+              "loan": "l3",
+              "mode": "read",
+              "op": "use"
+            },
+            {
+              "id": "l3",
+              "op": "end_borrow"
+            },
+            {
+              "dest": "v27",
+              "op": "move",
+              "src": "v24"
+            },
+            {
+              "op": "drop",
+              "src": "v27"
+            },
+            {
+              "dest": "v28",
+              "op": "take_field",
+              "place": {
+                "path": [
+                  "tail"
+                ],
+                "root": "v7"
+              }
+            },
+            {
+              "op": "drop",
+              "src": "v28"
+            },
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "v26"
+              }
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v29"
+          }
+        }
+      ],
+      "entry": "b0",
+      "external": false,
+      "locals": [
+        {
+          "id": "v0",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v1",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v2",
+          "mutable": false,
+          "type": "u64"
+        },
+        {
+          "id": "v3",
+          "mutable": false,
+          "type": "Chunk<Buffer<u8>>"
+        },
+        {
+          "id": "v4",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v5",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v6",
+          "mutable": false,
+          "type": "Pair"
+        },
+        {
+          "id": "v7",
+          "mutable": true,
+          "type": "Pair"
+        },
+        {
+          "id": "v8",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v9",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v10",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v11",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v12",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v13",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v14",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v15",
+          "mutable": false,
+          "type": "u64"
+        },
+        {
+          "id": "v16",
+          "mutable": false,
+          "type": "Result<Buffer<u8>, u8>"
+        },
+        {
+          "id": "v17",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v18",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v19",
+          "mutable": false,
+          "type": "u8"
+        },
+        {
+          "id": "v20",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v21",
+          "mutable": false,
+          "type": "u64"
+        },
+        {
+          "id": "v22",
+          "mutable": false,
+          "type": "Chunk<Buffer<u8>>"
+        },
+        {
+          "id": "v23",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v24",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v25",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v26",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v27",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v28",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v29",
+          "mutable": false,
+          "type": "u64"
+        }
+      ],
+      "name": "exercise",
+      "obligation": null,
+      "params": [
+        {
+          "id": "p0",
+          "mode": "value",
+          "type": "bool"
+        },
+        {
+          "id": "p1",
+          "mode": "value",
+          "type": "usize"
+        }
+      ],
+      "returns": {
+        "mode": "value",
+        "origin": null,
+        "type": "u64"
+      }
+    },
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "dest": "v1",
+              "kind": "buffer",
+              "op": "acquire"
+            },
+            {
+              "dest": "v3",
+              "fields": [
+                "v1",
+                "v2"
+              ],
+              "op": "pack",
+              "variant": null
+            },
+            {
+              "dest": "v4",
+              "op": "move",
+              "src": "v3"
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b1"
+          }
+        },
+        {
+          "id": "b1",
+          "ops": [],
+          "term": {
+            "condition": "v8",
+            "else": "b3",
+            "op": "branch",
+            "then": "b2"
+          }
+        },
+        {
+          "id": "b2",
+          "ops": [
+            {
+              "dest": "v9",
+              "op": "take_field",
+              "place": {
+                "path": [
+                  "data"
+                ],
+                "root": "v4"
+              }
+            },
+            {
+              "dest": "v10",
+              "op": "move",
+              "src": "v9"
+            },
+            {
+              "dest": "v11",
+              "op": "move",
+              "src": "v10"
+            },
+            {
+              "op": "drop",
+              "src": "v11"
+            },
+            {
+              "dest": "v13",
+              "kind": "buffer",
+              "op": "acquire"
+            },
+            {
+              "op": "init_field",
+              "place": {
+                "path": [
+                  "data"
+                ],
+                "root": "v4"
+              },
+              "src": "v13"
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b1"
+          }
+        },
+        {
+          "id": "b3",
+          "ops": [
+            {
+              "dest": "v14",
+              "op": "take_field",
+              "place": {
+                "path": [
+                  "data"
+                ],
+                "root": "v4"
+              }
+            },
+            {
+              "op": "drop",
+              "src": "v14"
+            },
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [
+                  "tag"
+                ],
+                "root": "v4"
+              }
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v15"
+          }
+        }
+      ],
+      "entry": "b0",
+      "external": false,
+      "locals": [
+        {
+          "id": "v0",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v1",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v2",
+          "mutable": false,
+          "type": "u64"
+        },
+        {
+          "id": "v3",
+          "mutable": false,
+          "type": "Chunk<Buffer<u8>>"
+        },
+        {
+          "id": "v4",
+          "mutable": true,
+          "type": "Chunk<Buffer<u8>>"
+        },
+        {
+          "id": "v5",
+          "mutable": false,
+          "type": "i64"
+        },
+        {
+          "id": "v6",
+          "mutable": false,
+          "type": "i64"
+        },
+        {
+          "id": "v7",
+          "mutable": false,
+          "type": "i64"
+        },
+        {
+          "id": "v8",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v9",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v10",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v11",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v12",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v13",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v14",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v15",
+          "mutable": false,
+          "type": "u64"
+        }
+      ],
+      "name": "cycles",
+      "obligation": null,
+      "params": [],
+      "returns": {
+        "mode": "value",
+        "origin": null,
+        "type": "u64"
+      }
+    }
+  ],
+  "obligations": {},
+  "project_sha256": "a1d6bd4589eb19bac085e39c2514e03c7b38006fb05b81e4e24aabfce2b6a53e",
+  "schema": "hepta.resource-ir.v3",
+  "source_sha256": "9000a472ce7fe96a8fa980589c4d3a00d1d54a3f7f93ececfe11d7733e059627",
+  "types": {
+    "@split::T": {
+      "bound": "Owned",
+      "function": "split",
+      "kind": "parameter",
+      "name": "T"
+    },
+    "Buffer<u8>": {
+      "element": "u8",
+      "kind": "buffer"
+    },
+    "Chunk<@split::T>": {
+      "args": [
+        "@split::T"
+      ],
+      "fields": [
+        {
+          "name": "data",
+          "type": "@split::T"
+        },
+        {
+          "name": "tag",
+          "type": "u64"
+        }
+      ],
+      "kind": "struct",
+      "name": "Chunk"
+    },
+    "Chunk<Buffer<u8>>": {
+      "args": [
+        "Buffer<u8>"
+      ],
+      "fields": [
+        {
+          "name": "data",
+          "type": "Buffer<u8>"
+        },
+        {
+          "name": "tag",
+          "type": "u64"
+        }
+      ],
+      "kind": "struct",
+      "name": "Chunk"
+    },
+    "Pair": {
+      "args": [],
+      "fields": [
+        {
+          "name": "head",
+          "type": "Chunk<Buffer<u8>>"
+        },
+        {
+          "name": "tail",
+          "type": "Buffer<u8>"
+        }
+      ],
+      "kind": "struct",
+      "name": "Pair"
+    },
+    "Result<Buffer<u8>, u8>": {
+      "args": [
+        "Buffer<u8>",
+        "u8"
+      ],
+      "kind": "enum",
+      "name": "Result",
+      "variants": [
+        {
+          "fields": [
+            "Buffer<u8>"
+          ],
+          "name": "Ok"
+        },
+        {
+          "fields": [
+            "u8"
+          ],
+          "name": "Err"
+        }
+      ]
+    },
+    "Unit": {
+      "kind": "scalar",
+      "name": "Unit"
+    },
+    "[u8]": {
+      "element": "u8",
+      "kind": "slice"
+    },
+    "bool": {
+      "kind": "scalar",
+      "name": "bool"
+    },
+    "i64": {
+      "kind": "scalar",
+      "name": "i64"
+    },
+    "u64": {
+      "kind": "scalar",
+      "name": "u64"
+    },
+    "u8": {
+      "kind": "scalar",
+      "name": "u8"
+    },
+    "usize": {
+      "kind": "scalar",
+      "name": "usize"
+    }
+  },
+  "value_semantics": "copied_values_abstract_not_executable"
+}

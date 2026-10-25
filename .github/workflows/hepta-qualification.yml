@@ -48,7 +48,7 @@ jobs:
       - name: Native compilers and required namespace runtime
         run: |
           sudo apt-get update
-          sudo apt-get install --yes bubblewrap gcc g++ clang gdb libboost-dev
+          sudo apt-get install --yes bubblewrap gcc g++ clang gdb libboost-dev qemu-system-arm
       - name: Install SHA-256-locked Rust 1.90.0 toolchain and cross stdlibs
         run: python tools/bootstrap_toolchain.py
       - name: Install SHA-256-locked Lean and QEMU tools

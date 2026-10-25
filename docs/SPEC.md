@@ -129,7 +129,7 @@ The shared frontend supports:
   `f32`, `f64`, `bool`, and `Unit`.
 - By-value structs and enums, including supported resource payloads, and
   fixed arrays `[T; N]` with Copy elements.
-- Unsized slices `[T]`, only as `read`/`mut` parameters.
+- Unsized slices `[T]`, behind `read`/`mut` parameters, immediate borrowed returns or supported stored-reference fields.
 - Raw pointers `raw const T` and `raw mut T`.
 - Linear `Buffer<T>` owners; the allocation builtin currently constructs only
   `Buffer<u8>`.
@@ -137,6 +137,8 @@ The shared frontend supports:
 - Unconstructible `Cancellation` and `Sender<u64>` capabilities, accepted only
   as `read` parameters.
 - The runtime's ordinary Copy `GroupReport` snapshot type.
+- Lifetime-parameterized shared/mutable borrowed records in the bounded Rust profile.
+- Linear hosted `IoReactor` / `IoRequest` owners and Copy I/O reports.
 
 Backend and ABI profiles further restrict these types. In particular, shared
 frontend acceptance does not imply C-backend support.
@@ -148,9 +150,14 @@ Owning Buffer and resource-bearing data parameters require `take`. Calls supply 
 or `move` syntax for the corresponding modes. Bare reads of a borrowed Copy
 value read its contents; Rust lowering dereferences the parameter borrow.
 
-Local bindings are immutable unless declared `let mut`. Local shadowing is
-rejected. Local reference aliases, arbitrary lifetime parameters, stored
-borrowed fields and owned control capabilities are unsupported. A returned
+Local bindings are immutable unless declared `let mut`. Local shadowing and
+standalone reference local values are rejected. View records may store
+`read 'a T` / `mut 'a T` fields with up to eight named lifetime parameters;
+multiple regions, shared copies, affine mutable views and nested views retain
+native Rust lifetime checking. Outlives clauses, higher-ranked bounds, mixed
+type/lifetime parameters, self-referential ownership, stored capabilities and
+arbitrary storage inside ADTs/arrays remain excluded; see `BORROWED_STORAGE.md`.
+A returned
 read/mut view derives from the unique borrowed input or the input named by
 `-> read/mut Type from parameter`; see `PARTIAL_PLACES.md`.
 Task and TaskGroup handles cannot be user-function
@@ -178,8 +185,10 @@ Copy parameters can be copied; Owned parameters require transfer, borrowing or
 drop. Both can be placed in known generic constructors, matched through known
 enum types, and passed to compatible generic functions. Neither implies
 numeric, equality, ordering, or other operator capabilities. Trait declarations,
-specialization, higher-kinded/const/lifetime generics, and higher-order functions
-are not implemented.
+specialization, higher-kinded/const generics, general lifetime constraints, and
+higher-order functions are not implemented. Explicit bounded record/function
+lifetime parameters are a separate profile and cannot be mixed with these
+type parameters.
 
 Function calls require explicit type arguments, such as
 `identity::<u64>(17)`. Constructors can also be explicit:
@@ -281,6 +290,8 @@ modeled channel operations does.
 | Wrapping arithmetic, `len`, `min`, `max` | None |
 | Raw load, pointer extraction | unsafe |
 | Raw store | unsafe, write |
+| Volatile integer load | unsafe, io |
+| Volatile integer store | unsafe, io, write |
 | `spawn` | alloc, block, spawn, panic, plus worker effects |
 | `join`, `cancel_and_join` | alloc, block, panic |
 | `cancelled` | No modeled allocation/blocking effect; an atomic read |
@@ -368,6 +379,30 @@ allocator overhead, process RSS, CPU time, and cancellation latency. There is
 no general `select`, async executor, or channel type parameter beyond u64.
 See [BOUNDED_CONCURRENCY.md](BOUNDED_CONCURRENCY.md) for the complete API.
 
+### Shared reservations, trees and hosted I/O
+
+`group_select_receive` uses event registration across two groups. Explicitly
+attached groups can share thread/input/queue/requested-stack reservations; the
+same fixed counters do not cover arbitrary worker/FFI allocations or process
+RSS. See `SHARED_RUNTIME.md`.
+
+`group_adopt(mut parent, move child)` transfers the actual child's subtree and
+join ownership into its parent. Admission is bounded to 256 groups and 16
+levels. Refusal still consumes, cancels and joins the child; it can block until
+cooperative workers finish. Cancellation propagates down, failure reaches the
+root and siblings, and both old flat and new tree join interfaces wait for
+descendants. Snapshot reports are observations, not global atomic snapshots.
+`TASK_TREES.md` defines topology locks, effects, budget identity and the
+independent concurrent IR's normal-exit adoption protocol.
+
+The hosted I/O profile has owned `IoReactor` and `IoRequest` values, tokenized
+local socket endpoints, nonblocking operations, an explicit `io_poll` readiness
+pump, monotonic deadlines, cancellation and explicit completion consumption.
+Only `x86_64-unknown-linux-gnu` is admitted. It has fixed metadata/request limits
+and counts actual retained Buffer capacity. `ASYNC_IO.md` specifies refusal,
+partial progress, EOF, shutdown and remaining obligations. This is not
+async/await, TCP/TLS, an executor, or composition with task-tree cancellation.
+
 ## 11. C ABI and native header import
 
 Supported C boundaries include numeric scalars through 64 bits, pointer-sized
@@ -389,6 +424,9 @@ External calls, calls with an unsafe effect, raw loads/stores, and pointer
 extraction require an explicit unsafe block. Reports retain foreign effect/ABI
 assumptions and raw-memory obligations. No ownership, lifetime, thread-safety,
 or hardware-ordering proof is inferred from a C signature.
+An exported or public function with `unsafe`/`ffi` effects is also emitted as
+an unsafe public Rust function. Consuming its generated Rust library must not
+erase these caller obligations. C calling conventions remain unchanged.
 
 `hepta import-c HEADER -o bindings.hepta` parses a restricted declaration
 subset, compiles and executes a native C probe, and emits public C-compatible
@@ -420,10 +458,14 @@ operands are conservatively rejected.
 Integer arithmetic, division/remainder, shifts, wrapping operations, casts,
 and indices use explicit checked/bit-level lowering. Failed checks abort.
 GCC diagnostics and Rust constant-evaluation diagnostics need not coincide.
-The implementation rejects all generic declarations and user ADTs, Result,
-hosted resource/channel runtimes, unsupported zero-sized layouts, pointers to
-arrays, `repr(C)` array fields, and float/integer casts. No silent semantic
-substitution or Rust fallback is permitted.
+The owned C profile additionally supports Buffer-bearing structs/enums, Result,
+finite generic monomorphization, explicit returned borrows and partial named
+field moves/restoration. That profile must pass the independent resource IR
+before C emission; native error/cleanup behavior is qualified separately in
+`C_OWNED_BACKEND.md`. Stored lifetime records and hosted task/group/I/O runtimes,
+unsupported zero-sized layouts, pointers to arrays, `repr(C)` array fields and
+float/integer casts remain rejected. No silent substitution or Rust fallback is
+permitted.
 
 The C compiler API supports bin, object, static-library, and shared-library
 artifacts. Default C `check` analysis uses an object validation artifact rather
@@ -434,14 +476,20 @@ own `c_types_codegen` result and `rustc_used=false`.
 ## 13. Rust no_std and hardware scope
 
 The Rust profile can generate supported no_std objects/libraries and rejects
-hosted allocation, I/O, tasks, and groups. Standalone no_std object/static-library
+hosted allocation, printing, tasks, groups and the hosted I/O reactor. An I/O
+effect alone does not require std: integer volatile access or explicit BSP
+foreign calls may be used in a no_std library. Standalone no_std object/static-library
 profiles use an explicit spin-loop panic handler. This is a non-returning fault
-policy, not a reset policy. Bare-metal binary entrypoints are not implemented.
+policy, not a reset policy. A general bare-metal Hepta binary entrypoint is not
+implemented; a supplied Rust/assembly BSP can link the generated library.
 
 Target compilation, emulated ISA execution, and physical-device execution are
-distinct evidence. The checked-in cross-execution harness does not qualify
-drivers, startup code, DMA, MMIO, interrupts, GPUs, or arbitrary foreign-C
-implementations on every target.
+distinct evidence. `SYSTEM_BOARD.md` specifies the implemented volatile contract
+and the pinned Cortex-M4 QEMU system profile: actual reset, linker/data/BSS
+initialization, UART MMIO and external timer IRQs, with compiled negative
+controls. The AArch64 user-mode harness remains a separate ISA execution gate.
+Neither emulator qualifies physical boards, DMA, interrupt ownership soundness,
+GPUs, hardware timing or arbitrary foreign implementations on every target.
 
 ## 14. Agent transactions, proof scope, and remaining work
 
@@ -457,8 +505,8 @@ translation. They are not proofs about the actual Hepta AST/checker,
 emit_rust/emit_c, raw pointers, FFI, scheduling, or hardware. Normal check/patch
 does not invoke a general functional prover. See [formal/README.md](../formal/README.md).
 
-Remaining work includes linear/resource-containing ADTs, richer trait and
-lifetime systems, closures, async/await, general channels/select, broad C/C++
+Remaining work includes general combinations of stored borrows and ADTs, richer
+trait and lifetime systems, closures, async/await, general channels/select, broad C/C++
 header support, stable generic/enum foreign layouts, verified refinement from
 the abstract proofs to the implementation, a self-hosted compiler, and wider
 production qualification. The executable agent pilot is an evaluation harness;

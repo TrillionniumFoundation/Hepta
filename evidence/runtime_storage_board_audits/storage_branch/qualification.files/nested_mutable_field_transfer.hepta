@@ -1,0 +1,11 @@
+struct Edit<'a>{ data:mut 'a [u8] }
+fn edit<'a>(data:mut 'a Buffer<u8>)->Edit<'a> effects {} {return Edit{data:mut data};}
+fn forward<'a>(value:take Edit<'a>)->Edit<'a> effects {} {return move value;}
+
+struct Nest<'a>{inner:Edit<'a>,tag:u64}
+fn nest<'a>(value:take Edit<'a>)->Nest<'a> effects {} {return Nest{inner:move value,tag:19};}
+fn main()->Unit effects {alloc,block,panic,write} {
+    let mut owner=buffer(4);let outer=nest(move edit(mut owner));
+    let mut inner=forward(move outer.inner);inner.data[1]=37;assert(outer.tag==19);
+    drop(move inner);assert(owner[1]==37);release(move owner);
+}

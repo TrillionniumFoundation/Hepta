@@ -37,6 +37,9 @@ class CEmitter:
     def __init__(self, program, checked, crate_type):
         if not checked.ok:
             fail("E_C_BACKEND_UNCHECKED", "C lowering requires a successful frontend check")
+        from .borrowed_storage import has_borrowed_storage
+        if has_borrowed_storage(program):
+            fail("E_C_BORROW_STORAGE", "Stored-borrow records and explicit lifetimes require the Rust lifetime checker; this C profile is not implemented")
         self.program, self.checked, self.crate_type = program, checked, crate_type
         self.structs = {s.name: s for s in program.structs}
         self.enums = {s.name: s for s in program.enums}
@@ -465,12 +468,18 @@ class CEmitter:
             elif e.value == "print_i64":
                 val = self.value(e.children[0], lines)
                 expression = f'((void)printf("%" PRId64 "\\n", {val}))'
-            elif e.value in {"load", "store"}:
-                if e.value == "store":
+            elif e.value in {"load", "store", "volatile_load", "volatile_store"}:
+                if e.value in {"store", "volatile_store"}:
                     for child in e.children:
                         self.require_nonmutating(child)
                 args = [self.value(x, lines) for x in e.children]
-                expression = f"({args[0]})[{args[1]}]" if e.value == "load" else f"(({args[0]})[{args[1]}] = {args[2]})"
+                if e.value.startswith("volatile_"):
+                    element = self.typ(self.expr_type(e.children[0]).args[0])
+                    const = "const " if e.value == "volatile_load" else ""
+                    place = f"((volatile {const}{element} *)({args[0]}))[{args[1]}]"
+                    expression = place if e.value == "volatile_load" else f"({place} = {args[2]})"
+                else:
+                    expression = f"({args[0]})[{args[1]}]" if e.value == "load" else f"(({args[0]})[{args[1]}] = {args[2]})"
             elif e.value in {"ptr_read", "ptr_mut"}:
                 expression, _ = self.sequence(e.children[0].children[0], lines)
             else:

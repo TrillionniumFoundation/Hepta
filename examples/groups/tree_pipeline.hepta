@@ -1,0 +1,52 @@
+module tree_pipeline;
+
+fn emit(data: take Buffer<u8>, cancel: read Cancellation, out: read Sender<u64>) -> u64
+effects {alloc, block, panic, write} {
+    for i in 0..64 {
+        assert(group_send(read out, i as u64));
+    }
+    let size = len(data) as u64;
+    release(move data);
+    return size;
+}
+
+fn main() -> Unit effects {alloc, block, panic, write, spawn, io} {
+    let mut root = task_group(1, 4, 1);
+    let mut branch = task_group(1, 4, 1);
+    let mut leaf = task_group(1, 4, 1);
+    let mut sibling = task_group(1, 4, 1);
+    let mut observer = task_group(0, 0, 1);
+    assert(group_budget_configure(mut root, 4, 16, 5, 262144, 65536));
+    assert(group_budget_share(mut branch, read root));
+    assert(group_budget_share(mut leaf, read root));
+    assert(group_budget_share(mut sibling, read root));
+    assert(group_budget_share(mut observer, read root));
+    assert(group_spawn(mut root, emit, move buffer(4)));
+    assert(group_spawn(mut branch, emit, move buffer(4)));
+    assert(group_spawn(mut leaf, emit, move buffer(4)));
+    assert(group_spawn(mut sibling, emit, move buffer(4)));
+    assert(group_adopt(mut branch, move leaf));
+    assert(group_adopt(mut root, move branch));
+    assert(group_adopt(mut root, move sibling));
+    let before = group_tree_snapshot(read root);
+    assert(before.groups == 4 && before.depth == 3);
+    assert(before.adopted_groups == 3 && before.accepted_tasks == 4);
+    let done = group_tree_join(move root);
+    assert(done.groups == 4 && done.joined_groups == 4);
+    assert(done.accepted_tasks == 4 && done.completed_tasks == 4);
+    assert(done.active_tasks == 0 && done.queued == 0 && done.waiting_senders == 0);
+    assert(done.discarded == 256 && done.sum == 16);
+    assert(!done.failed && !done.cancelled);
+    let freed = group_budget_snapshot(read observer);
+    assert(freed.attached_groups == 1 && freed.reserved_queue_slots == 1);
+    assert(freed.reserved_threads == 0 && freed.reserved_input_bytes == 0);
+    assert(freed.reserved_requested_stack_bytes == 0);
+    group_join(move observer);
+    print_i64(done.groups as i64);
+    print_i64(done.depth as i64);
+    print_i64(done.joined_groups as i64);
+    print_i64(done.completed_tasks as i64);
+    print_i64(done.discarded as i64);
+    print_i64(done.sum as i64);
+    print_i64(freed.reserved_threads as i64);
+}

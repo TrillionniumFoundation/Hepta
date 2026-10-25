@@ -213,7 +213,7 @@ def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject
         def transform(value, params=frozenset()):
             if isinstance(value, Type):
                 name = value.name if value.name in params else resolve(value.name, "type", Span(path=str(unit.path)))
-                return Type(name, tuple(transform(a, params) for a in value.args), value.length)
+                return Type(name, tuple(transform(a, params) for a in value.args), value.length, value.lifetimes)
             if isinstance(value, Expr):
                 if value.kind in {"name", "call"} and isinstance(value.value, str):
                     if value.kind == "call" or "::" in value.value or value.value in unit.functions:

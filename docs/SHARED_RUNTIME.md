@@ -3,8 +3,11 @@
 This hosted Rust runtime profile adds two concrete facilities: receiving from
 two bounded task-group channels, and a reservation pool shared by explicitly
 attached groups. Each `TaskGroup` remains a local linear owner that must be
-joined. The pool is shared ownership of accounting state; it does not create a
-parent/child task lifetime or implicitly cancel other groups.
+joined, or transferred into a parent through the separate
+[consuming task-tree API](TASK_TREES.md). The pool alone is shared ownership of
+accounting state; it does not create a parent/child lifetime or implicitly cancel
+other groups. The shared-runtime qualifier does not qualify task-tree behavior;
+`validate_task_tree.py` supplies that separate evidence.
 
 ## Receive from two groups
 

@@ -174,7 +174,7 @@ class SharedRuntimeQualificationTests(unittest.TestCase):
             lambda r: r.update(compiler_sha256="0" * 64),
             lambda r: r["source_files"].update({"hepta/runtime_concurrency.py": "0" * 64}),
             lambda r: r["claims"].update(whole_process_resources_bounded=True),
-            lambda r: r["claims"].update(structured_task_tree_implemented=True),
+            lambda r: r["claims"].update(structured_task_tree_qualified_by_this_report=True),
             lambda r: r.update(repeats=True),
             lambda r: r.update(source_cases=[None]),
             lambda r: r["source_cases"].pop(),

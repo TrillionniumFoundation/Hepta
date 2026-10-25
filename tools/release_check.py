@@ -247,11 +247,23 @@ def _require_qualification(name, evidence):
     elif name == "owned_c_backend":
         from tools.validate_c_owned import validate_c_owned_qualification
         validate_c_owned_qualification(evidence)
+    elif name == "stored_borrows":
+        from tools.qualify_borrowed_storage import validate_borrowed_storage_report
+        validate_borrowed_storage_report(evidence)
     elif name == "shared_runtime":
         from tools.validate_shared_runtime import validate_shared_runtime_report
         validate_shared_runtime_report(evidence, minimum_repeats=3)
     elif name == "independent_concurrent_ir":
         from tools.validate_concurrent_ir import validate_report
+        validate_report(evidence)
+    elif name == "structured_task_trees":
+        from tools.validate_task_tree import validate_task_tree_report
+        validate_task_tree_report(evidence, minimum_repeats=3)
+    elif name == "bounded_async_io":
+        from tools.validate_io import validate_io_report
+        validate_io_report(evidence, minimum_repeats=3)
+    elif name == "system_board":
+        from tools.validate_board import validate_report
         validate_report(evidence)
     elif name == "native_host_abi":
         from tools.validate_native_host import validate_report
@@ -568,6 +580,7 @@ def main():
         ("owned_library_example", [sys.executable, "-m", "hepta", "run", "examples/owned/main.hepta", "--json"], 60),
         ("independent_resource_ir", [sys.executable, "-m", "tools.validate_resources", "--output", next_stage + "/resources.json"], 120),
         ("partial_owned_places", [sys.executable, "-m", "tools.qualify_places", "--output", next_stage + "/places.json"], 120),
+        ("stored_borrows", [sys.executable, "tools/qualify_borrowed_storage.py", "--output", next_stage + "/stored_borrows.json"], 120),
         ("owned_c_backend", [sys.executable, "tools/validate_c_owned.py", "--output", next_stage + "/c_owned.json"], 180),
         ("c_project_migration", [sys.executable, "tools/qualify_c_migration.py", "--output", next_stage + "/c_project.json"], 120),
         ("upstream_c_modules", [sys.executable, "tools/qualify_c_algorithms.py", "--output", next_stage + "/upstream_c.json"], 120),
@@ -578,6 +591,8 @@ def main():
         ("bounded_concurrency", [sys.executable, "tools/validate_groups.py", "--repeats", "3", "--output", "evidence/groups/native_validation.json"], 180),
         ("shared_runtime", [sys.executable, "tools/validate_shared_runtime.py", "--repeats", "3", "--output", next_stage + "/shared_runtime.json"], 180),
         ("independent_concurrent_ir", [sys.executable, "tools/validate_concurrent_ir.py", "--output", next_stage + "/concurrent_ir.json"], 180),
+        ("structured_task_trees", [sys.executable, "tools/validate_task_tree.py", "--repeats", "3", "--output", next_stage + "/task_trees.json"], 180),
+        ("bounded_async_io", [sys.executable, "tools/validate_io.py", "--repeats", "3", "--output", next_stage + "/async_io.json"], 180),
         ("abi_matrix", [sys.executable, "tools/abi_fuzz.py", "--output", "artifacts/abi-matrix.json"], 180),
         ("native_host_abi", [sys.executable, "tools/validate_native_host.py", "--expected-system", "Linux", "--expected-machine", "x86_64", "--output", next_stage + "/native_host.json"], 180),
         ("native_debugger", [sys.executable, "tools/validate_debugger.py", "--output", next_stage + "/debugger.json"], 120),
@@ -587,6 +602,7 @@ def main():
         ("formal_core", [sys.executable, "tools/verify_formal.py", "--output", "artifacts/formal-validation.json"], 180),
         ("provenance_and_type_core", [sys.executable, "tools/verify_memory.py", "--output", next_stage + "/memory_proofs.json"], 180),
         ("aarch64_execution", [sys.executable, "tools/validate_cross.py", "--output", "artifacts/cross-execution.json"], 120),
+        ("system_board", [sys.executable, "tools/validate_board.py", "--output", next_stage + "/system_board.json"], 120),
         ("agent_evaluator_fixtures", [sys.executable, "-m", "experiments.agent_eval", "qualify-fixtures", "--output", fixture_output], 240),
         ("crossfile_agent_fixtures", [sys.executable, "-m", "experiments.crossfile_eval", "qualify-fixtures", "--output", next_stage + "/crossfile_agent.json"], 360),
         ("production_workspace_namespace", [sys.executable, "-m", "experiments.crossfile_eval", "qualify-workspace", "--execution-context", "release_check.py in caller-selected host execution context; namespace requirements enforced", "--output", next_stage + "/workspace_namespace.json"], 240),
@@ -603,9 +619,13 @@ def main():
         "agent_evaluator_fixtures": fixture_output,
         "independent_resource_ir": next_stage + "/resources.json",
         "partial_owned_places": next_stage + "/places.json",
+        "stored_borrows": next_stage + "/stored_borrows.json",
         "owned_c_backend": next_stage + "/c_owned.json",
         "shared_runtime": next_stage + "/shared_runtime.json",
         "independent_concurrent_ir": next_stage + "/concurrent_ir.json",
+        "structured_task_trees": next_stage + "/task_trees.json",
+        "bounded_async_io": next_stage + "/async_io.json",
+        "system_board": next_stage + "/system_board.json",
         "native_host_abi": next_stage + "/native_host.json",
         "native_debugger": next_stage + "/debugger.json",
         "provenance_and_type_core": next_stage + "/memory_proofs.json",

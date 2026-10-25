@@ -6,7 +6,7 @@
 
 ## 已实现的增量及验收条件
 
-这些项目在本版本有实际代码、正反例和可重放入口。是否通过最终统一快照，以 `artifacts/release-validation.json` 引用的报告为准；当前归档入口是 `evidence/production_progress_final/`，`evidence/next_blockers_final/`、`evidence/production_v4_final/`、`evidence/next_stage/` 和 `evidence/production_v4/` 保留先前源码快照的报告。
+这些项目在本版本有实际代码、正反例和可重放入口。是否通过最终统一快照，以 `artifacts/release-validation.json` 引用的报告为准；当前集成归档入口是 `evidence/runtime_storage_board_final/`，`evidence/production_progress_final/`、`evidence/next_blockers_final/`、`evidence/production_v4_final/`、`evidence/next_stage/` 和 `evidence/production_v4/` 保留先前源码快照的报告。
 
 | ID | 已实现范围 | 验收入口 / 证据 |
 | --- | --- | --- |
@@ -36,6 +36,10 @@
 | M24 | 两后端调试信息、稳定生成源码及源级映射，实际 GDB 执行 | validate_debugger.py；真实断点、三个局部变量、调用栈、单步和程序继续退出；C 行表与 Rust 显式映射分别记录 |
 | M25 | 可在独立宿主原生运行的双向 ABI 资格和四宿主 CI 请求 | validate_native_host.py；每宿主必须有实际构建、执行、布局和错误实现拒绝报告，工作流配置不算其他宿主已执行 |
 | M26 | 两个自主编写的所有权应用、三种原生编译实现、逐请求延迟和实际分配／释放／拒绝计量 | benchmark_applications.py；240 个独立 Python oracle 请求、30 个分配失败／恢复请求、5,184 个计时请求，完整原始 p50/p95/p99/max 与两种进程内存观测；真实错误二进制须拒绝 |
+| M27 | 显式生命周期参数的共享／可变存储借用 record，多个区域、嵌套 view、跨文件传递和 mut view 的 move/drop | qualify_borrowed_storage.py；5 个合法原生程序、10 个仅编译的真实 Rust 拒绝、前端拒绝和 C/独立 IR 关闭；不是通用 trait/lifetime 系统 |
+| M28 | 256 节点／16 层的真实任务树所有权；后代取消、向根传播失败及旧 join 接口等待后代 | validate_task_tree.py；真实队列互依、adopt/fail 与 spawn/close 竞态、元数据／线程拒绝和恢复、错误运行时拒绝／超时；并发 IR 增加明确 adopt 与 tree join |
+| M29 | 单所有者、显式 poll 的有界非阻塞本地流 I/O，线性完成票据、期限、取消、缓冲区容量与 FD/请求准入 | validate_io.py；实际 socketpair 传输、read/write 部分完成、真实 readiness 等待、EOF/关闭、跨实例/过期 token、EINTR/系统错误和分配/FD 拒绝 |
+| M30 | volatile load/store、公开 Rust unsafe 契约保留，Cortex-M4 复位／链接／UART MMIO／外设 timer IRQ | validate_board.py；4 个完整 ARM ELF、6 次系统模拟器冷启动；错误 IRQ 计算、缺失 IRQ、未复制数据段均实际拒绝；不代表物理板、DMA 或 GPU 资格 |
 
 M07/M23 不等于全进程内存/CPU 上限，未计入任意 worker/FFI 分配和 OS 实际栈取整。M10 的 QEMU 运行不等于真机资格。M11/M16 没有证明真实编译器与抽象模型的精化关系；新增并发 IR 验证有限正常退出协议，尚未与完整 ownership 模型建立组合证明。M12/M19 不证明补丁功能等价。M13/M26 不证明普遍快于 Rust。M26 是三个编译实现、两个手写应用来源，包含计量开销；不是第三方生产服务、长期异步负载或多机器数据。M17 只迁移明确接受的 C 子集，M18 不重写外部 C++ 实现。M14/M20 的实际 AI 模型运行数仍为 **0**。
 
@@ -43,17 +47,17 @@ M07/M23 不等于全进程内存/CPU 上限，未计入任意 worker/FFI 分配�
 
 | ID | 状态与已完成部分 | 仍需关闭的条件 |
 | --- | --- | --- |
-| P01 | PARTIAL — Owned ADT、Result、有限泛型、嵌套命名字段移动／恢复和多个借用输入中的明确返回来源已实现 | 通用生命周期/trait、存储引用、枚举 payload 部分移动、较大多包项目的一致语义与生产标准库 |
+| P01 | PARTIAL — Owned ADT、Result、有限泛型、字段移动／恢复、明确返回来源和受限生命周期 view record 存储借用已实现 | 通用生命周期/trait、outlives/HRTB、存储借用与类型泛型／ADT 的通用组合、枚举 payload 部分移动、较大多包项目一致语义与生产标准库 |
 | P02 | PARTIAL / OPEN_RESEARCH — 30 个抽象模型定理、v3 资源/loan CFG 和有限并发协议 CFG 可独立检查 | 完整类型／别名／生命周期健全性、真实 AST 与 IR/双后端精化、组合并发内存模型、机器 provenance 与 unsafe/FFI 条件；新表达式核心不等于生产类型系统 |
-| P03 | PARTIAL — 组内准入和跨附加组线程／输入／队列／请求栈预留、失败回滚可执行 | 任意分配器/实际线程栈/worker 新分配/FFI 统一计费、嵌套任务树、全局预算、可证明的故障与恢复边界 |
-| P04 | PARTIAL — channel、背压、两组事件驱动 select、协作取消和单调期限已实现 | 异步 I/O、任意多路 select/调度器、结构化任务树、真实网络服务负载和长期运行；期限不构成硬实时或任意 worker 终止保证 |
+| P03 | PARTIAL — 组内与共享预算、真实嵌套任务树、线程／输入／队列／请求栈预留、I/O buffer 容量/槽准入和失败回滚可执行 | 任意分配器/实际线程栈/worker 新分配/FFI 统一计费、树与 I/O 的统一全局预算、可证明的故障与恢复边界 |
+| P04 | PARTIAL — channel、两组事件驱动 select、结构化任务树和显式 poll 本地流 I/O 的期限／取消已实现 | async/await、任意多路 select/调度器、任务树与 I/O 取消的组合、TCP/TLS/文件等服务接口及长期负载；期限不构成硬实时或任意 worker 终止保证 |
 | P05 | PARTIAL — 完整活动声明盘点的 C 模块迁移、受限分配模式、明确合约下的完整有状态环形缓冲区与三档 C++ 接口已有原生资格 | 任意 C/C++ 的自动安全重写；一般 inline/宏与跨配置兼容、packed、bitfields、varargs、复杂预处理；异步/保留回调与跨线程外部生命周期证明 |
 | P06 | PARTIAL / ENVIRONMENT_REQUIRED — 多目标对象、AArch64 QEMU 和当前 Linux x86-64 宿主双向 ABI 有执行；四宿主 CI 入口已增加 | Windows/AArch64/macOS 等宿主各自实际成功报告、持续平台矩阵；queued/pending 工作流不能关闭验收 |
-| P07 | OPEN / HARDWARE_REQUIRED — no_std 对象路径存在 | 板卡启动入口、链接脚本、MMIO/DMA/IRQ、设备协议、真实板卡资格 |
+| P07 | PARTIAL / HARDWARE_REQUIRED — Cortex-M4 显式 BSP、链接脚本、volatile MMIO 和外设 IRQ 已在 QEMU 系统模型执行 | 实体板启动与设备协议、DMA 所有权／cache/coherence、一般中断资源语义及真实板卡资格；模拟器成功不能替代这些条件 |
 | P08 | OPEN / HARDWARE_REQUIRED — GPU 尚未实现 | 地址空间、kernel 与同步语义、GPU 后端、驱动互操作、真实设备性能与正确性 |
 | P09 | PARTIAL / OPEN_RESEARCH — 核心算法对照、两个所有权应用的内存和逐请求尾分位样本可重放 | 更多独立真实应用／异步服务、无计量插桩的长期尾延迟、分配器实用内存与公平调优、多机器重复；全部观察到的 C／Rust 路径回退仍保留，单一配置不承诺普遍获益 |
 | P10 | FRAMEWORK_READY / MODEL_ACCESS_REQUIRED — 五任务 2×2、真实生产 v4 第四臂、逐任务崩溃矩阵、严格隔离及计量 OpenAI adapter 已实现 | API 网络连通性、明确可用模型修订、凭据和预算；多个模型/seed 的完整实际计量、独立未公开任务和更大项目、实际人工修正成本 |
-| P11 | PARTIAL — 独立 C11/GCC 已覆盖 Owned ADT/Result/Buffer/有限泛型；两后端真实 GDB 和 C 行表／Rust 语句映射已执行 | 并发等完整语言覆盖、更多后端一致性、优化回归门槛、优化态／跨平台调试器／类型可视化；独立机器码后端尚未实现 |
+| P11 | PARTIAL — 独立 C11/GCC 已覆盖 Owned ADT/Result/Buffer/有限泛型和 volatile；真实 GDB 与源级映射、公开 Rust unsafe 边界已实现 | 新存储借用／任务树／I/O 等完整后端覆盖、更多后端一致性、优化回归门槛、优化态／跨平台调试器／类型可视化；独立机器码后端尚未实现 |
 | P12 | PARTIAL — 本地内容锁、版本化工具协议、公开仓库 | 注册表/版本求解、兼容性与迁移工具、发布签名和持续平台维护、生产标准库/文档体系 |
 
 P10 的 namespace 与适配器实现 blocker 已有实际执行/离线测试入口。严格 namespace 资格必须在支持的宿主真实运行；不支持的环境依然在启动适配器前拒绝。可信 fixture 与严格隔离的脚本资格均保持 `ai_comparison_eligible=false`，不能当成真实模型成绩。尚未配置模型访问条件，实际 AI 运行数仍为 0。

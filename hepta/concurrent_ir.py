@@ -26,7 +26,7 @@ CLAIMS = {
 }
 GROUP_OPERATIONS = {
     "group_seal", "group_cancel", "group_receive", "group_receive_timeout",
-    "group_snapshot", "group_budget_configure", "group_budget_snapshot",
+    "group_snapshot", "group_budget_configure", "group_budget_snapshot", "group_tree_snapshot",
 }
 SENDER_OPERATIONS = {"group_send", "group_send_timeout", "group_fail"}
 
@@ -64,7 +64,7 @@ def scalar(typ):
     if not isinstance(typ, str) or len(typ) > 256:
         return False
     primitives = {"u8", "u16", "u32", "u64", "u128", "usize", "i8", "i16", "i32", "i64", "i128", "isize", "bool", "f32", "f64", "Unit"}
-    if typ in primitives | {"GroupReport", "GroupBudgetReport"}:
+    if typ in primitives | {"GroupReport", "GroupBudgetReport", "GroupTreeReport"}:
         return True
     if typ.startswith("Result<") and typ.endswith(">"):
         parts = typ[7:-1].split(", ")
@@ -116,7 +116,7 @@ def _verify(document: object) -> dict:
     if not functions:
         fail("E_CIR_FUNCTION", "No functions")
     totals = {"functions": len(functions), "blocks": 0, "operations": 0,
-              "group_spawns": 0, "task_spawns": 0, "normal_exits": 0}
+              "group_spawns": 0, "task_spawns": 0, "group_adoptions": 0, "tree_joins": 0, "normal_exits": 0}
     for fn in functions.values():
         params = {p["id"]: p for p in fn["params"]}
         slots = fn["slots"]
@@ -201,13 +201,30 @@ def _verify(document: object) -> dict:
                     consume(op["input"], "Buffer<u8>")
                     if op["group"] is None:
                         create(op["task"], "Task<u64>")
+                elif kind == "adopt":
+                    fields(op, {"op", "parent", "child", "refusal"})
+                    if op["refusal"] != "cancel_and_join_child_subtree":
+                        fail("E_CIR_ADOPT", "Refused adoption must consume, cancel and join the child subtree")
+                    if op["parent"] == op["child"]:
+                        fail("E_CIR_ALIAS", "A group cannot adopt itself")
+                    use(op["parent"], "TaskGroup", own=True)
+                    # Success transfers the subtree's obligation into this live
+                    # parent owner. Refusal joins it immediately. The parent
+                    # must still reach a join on every normal CFG exit; moves
+                    # preserve that linear owner and cancellation cannot erase it.
+                    # Runtime topology/scheduling/refinement are not proved here.
+                    consume(op["child"], "TaskGroup")
+                    totals["group_adoptions"] += 1
                 elif kind == "join":
                     fields(op, {"op", "src", "mode"})
                     modes = {"join": "Task<u64>", "cancel_and_join": "Task<u64>",
-                             "group_join": "TaskGroup", "group_cancel_and_join": "TaskGroup", "group_drain_and_join": "TaskGroup"}
+                             "group_join": "TaskGroup", "group_cancel_and_join": "TaskGroup", "group_drain_and_join": "TaskGroup",
+                             "group_tree_join": "TaskGroup", "group_tree_cancel_and_join": "TaskGroup"}
                     if op["mode"] not in modes:
                         fail("E_CIR_JOIN", "Unknown join operation")
                     consume(op["src"], modes[op["mode"]])
+                    if op["mode"] in {"group_tree_join", "group_tree_cancel_and_join"}:
+                        totals["tree_joins"] += 1
                 elif kind == "group":
                     fields(op, {"op", "src", "mode"})
                     if op["mode"] not in GROUP_OPERATIONS:

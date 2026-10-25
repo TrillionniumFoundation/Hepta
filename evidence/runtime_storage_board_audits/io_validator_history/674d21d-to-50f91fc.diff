@@ -1,0 +1,487 @@
+diff --git a/docs/ASYNC_IO.md b/docs/ASYNC_IO.md
+index b8b200f467299e9a67249593487a24605bd23046..ec03ca5720bee9e82c9623107e407522b67a9b7d 100644
+--- a/docs/ASYNC_IO.md
++++ b/docs/ASYNC_IO.md
+@@ -2,7 +2,7 @@
+ 
+ Hepta now has a real, caller-driven readiness reactor for **`x86_64-unknown-linux-gnu`, hosted Rust**. Source programs can own a reactor, create private Unix socketpairs, submit multiple owned buffers, wait on native readiness, cancel requests, collect partial results, and close all resources. `examples/io/pipeline.hepta` transfers data through two native socketpairs with four simultaneously admitted requests and cross-file helpers.
+ 
+-This is an asynchronous I/O **profile**, with an explicit pump. It is not an `async`/`await` language implementation, a background executor, arbitrary network or filesystem I/O, or qualified composition with task groups and task trees. Other target architectures, libc environments and operating systems fail at the runtime's target guard. `no_std`, the independent C backend, resource IR and concurrent IR reject these operations. Their existing acceptance of other Hepta programs does not imply I/O coverage.
++This is an asynchronous I/O **profile**, with an explicit pump. It is not an `async`/`await` language implementation, a background executor, arbitrary network or filesystem I/O, or qualified composition with task groups and task trees. Other target architectures, libc environments and operating systems fail at the runtime's target guard. `no_std`, the independent C backend, resource IR, concurrent IR and HMIR reject the I/O profile, including unused I/O declarations. Their existing acceptance of other Hepta programs does not imply I/O coverage.
+ 
+ The source ownership checker and the final Rust compiler both remain required. The sole production `unsafe` operation added here is the `poll(2)` call described below. This qualification does not prove language soundness, backend refinement, pointer provenance in arbitrary FFI, or a whole-process resource bound.
+ 
+@@ -152,7 +152,7 @@ RUSTC=/path/to/rust-1.90.0/bin/rustc python tools/validate_io.py \
+ RUSTC=/path/to/rust-1.90.0/bin/rustc python -m unittest tests.test_io_runtime -v
+ ```
+ 
+-The qualifier runs all three source applications for every repetition, checks 15 invalid/unsupported source profiles, and executes the native controls. Each native trial includes:
++The qualifier runs all three source applications for every repetition, checks 16 invalid/unsupported source profiles, and executes the native controls. Each native trial includes:
+ 
+ - Actual delayed peer readiness with wall-clock, calling-thread CPU and time inside real `poll`; a separate full-socket write waits for the peer to drain and completes through write readiness. The controls require bounded wakeup counts and actual event waits.
+ - Partial read plus EOF, partial-read cancellation with the initialized tail preserved, a broken peer, a partially delivered 2 MiB write cancelled before further progress, ready-before-cancel, and 64 peer-readiness/cancellation races.
+@@ -162,9 +162,9 @@ The qualifier runs all three source applications for every repetition, checks 15
+ - An actual kernel FD-limit refusal by temporarily lowering only the qualification process's soft `RLIMIT_NOFILE`, restoring it before assertions, and then creating a new pair successfully.
+ - Three distinct native metadata allocation refusals, successful subsequent construction, zero-allocation observed ready paths, and identity exhaustion refusal controls.
+ 
+-The standalone validator re-lowers the current source graph and checks compiler/source identities, the module graph, ownership checking, actual optimized native builds, artifact identities, native C object/link flags, exact case denominators and raw per-trial output. It rejects altered scope claims, missing failures/refusals, false timing, omitted trials, boolean counts, inconsistent raw metrics, or metadata-only builds presented as executed binaries. It cannot authenticate arbitrary third-party reports; hashes are identity bindings, not signatures or proofs of execution.
++The standalone validator re-lowers the current source graph and checks compiler/source identities, the module graph, ownership checking, actual optimized native builds, artifact identities, native C object/link flags, exact case denominators and raw per-trial output. It requires the complete expected compiler flag list, with controlled sysroot/linker selection, and binds the C command's executable path to the current compiler binary hash. Every execution records its actual argv, byte size and binary hashes before and after execution, linked to the build record. It rejects altered scope claims, missing failures/refusals, false timing, omitted trials, boolean counts, contradictory flags, inconsistent raw metrics, or metadata-only builds presented as executed binaries. It cannot authenticate arbitrary third-party reports; hashes are identity bindings, not signatures or proofs of execution.
+ 
+-Reports are checkpointed before inspecting execution success. A failed process, timeout or denied syscall therefore stays visible with its raw output and partial denominator. The tool refuses to overwrite an existing report, including a failed attempt. A syscall-filtered environment may permit socketpair creation but deny `send(MSG_NOSIGNAL)` with `EPERM`; such an attempt must remain failed. Running the same actual local-only qualification in an approved environment is separate evidence, never a change to the runtime's I/O semantics. No listener or external network service is used.
++Reports are checkpointed before inspecting execution success. A failed process, timeout or denied syscall therefore stays visible with its output and partial denominator. Child stdout/stderr bytes are retained as base64 with their byte hashes; successful output is separately parsed as strict UTF-8. Non-UTF8 failure/timeout output is retained without replacement decoding, and even an exit-zero process with non-UTF8 output is recorded and rejected. The tool refuses to overwrite an existing report, including a failed attempt. A syscall-filtered environment may permit socketpair creation but deny `send(MSG_NOSIGNAL)` with `EPERM`; such an attempt must remain failed. Running the same actual local-only qualification in an approved environment is separate evidence, never a change to the runtime's I/O semantics. No listener or external network service is used.
+ 
+ ## Work still outside this profile
+ 
+diff --git a/hepta/concurrent_lowering.py b/hepta/concurrent_lowering.py
+index b9de8dd61d16a604c2ac27b598c4348a125290c4..bc1d8a6b90ced3ee6cf36d7f738180860a18b322 100644
+--- a/hepta/concurrent_lowering.py
++++ b/hepta/concurrent_lowering.py
+@@ -324,6 +324,9 @@ class Builder:
+ def lower_concurrent_ir(program, checked, *, project_sha256=None):
+     if not checked.ok:
+         unsupported("Cannot lower a frontend-rejected program")
++    from .runtime_io import has_io_profile
++    if has_io_profile(program):
++        unsupported("The I/O reactor profile, including unused I/O declarations, is outside the concurrent profile")
+     functions = []
+     for fn in program.functions:
+         if fn.body is None or fn.extern_c or fn.export_c or fn.type_params or fn.return_mode != "value":
+diff --git a/hepta/hmir.py b/hepta/hmir.py
+index 22f67759356d3c14d9184b75e2380bbe60fa2e10..fe44730e4247e4b883698185c039b8d42788c0ac 100644
+--- a/hepta/hmir.py
++++ b/hepta/hmir.py
+@@ -232,6 +232,9 @@ class _CFG:
+ def lower_checked_cfg(program: Any, checked: Any, *, project_sha256: str | None = None) -> dict:
+     if not checked.ok:
+         raise ValueError("HMIR requires an accepted Hepta program")
++    from .runtime_io import has_io_profile
++    if has_io_profile(program):
++        raise HMIRUnsupported("The I/O reactor profile, including unused I/O declarations, is outside the scalar HMIR pilot")
+     graphs = [_CFG(fn, checked).lower() for fn in program.functions]
+     payload = {"schema": SCHEMA, "profile": "scalar_cfg_ssa_pilot_not_backend_input",
+                "source_sha256": hashlib.sha256(program.source.encode("utf-8")).hexdigest(),
+diff --git a/hepta/resource_lowering.py b/hepta/resource_lowering.py
+index 05d4a796ff0339b5e8c4876b90050e6e1bff0c5e..13f0cc7f08931a47f6e8480fab93f842bec658d5 100644
+--- a/hepta/resource_lowering.py
++++ b/hepta/resource_lowering.py
+@@ -506,6 +506,9 @@ def lower_resource_ir(program, checked, *, project_sha256: str | None = None) ->
+     """
+     if not getattr(checked, "ok", False):
+         raise ResourceIRError("E_RIR_LOWER_REJECTED", "Cannot lower a rejected frontend result")
++    from .runtime_io import has_io_profile
++    if has_io_profile(program):
++        _unsupported("The I/O reactor profile, including unused I/O declarations, requires another lowering profile")
+     types = _Types(program)
+     for primitive in ("Unit", "bool", "usize"):
+         types.add(Type(primitive))
+diff --git a/hepta/runtime_io.py b/hepta/runtime_io.py
+index b6387b6c05c3191d6f4b3b62b175d33f195572a6..841df2ee9b9f0a505cb360e71432fe141d8c0b92 100644
+--- a/hepta/runtime_io.py
++++ b/hepta/runtime_io.py
+@@ -4,7 +4,9 @@ The reactor owns every admitted descriptor and buffer. Requests are linear
+ completion tickets; cancellation is serialized between pump calls. The sole
+ unsafe production operation is poll(2) on a live Rust-owned pollfd array.
+ """
+-from .ast import Param, Struct, Type
++from dataclasses import fields, is_dataclass
++
++from .ast import Expr, Param, Struct, Type
+ 
+ IO_OWNER_TYPES = {"IoReactor", "IoRequest"}
+ IO_TYPE_NAMES = IO_OWNER_TYPES | {"IoPair", "IoReport"}
+@@ -37,6 +39,26 @@ def io_structs():
+             for name, fields in (("IoPair", IO_PAIR_FIELDS), ("IoReport", IO_REPORT_FIELDS))]
+ 
+ 
++def has_io_profile(program):
++    """Include unused declarations when an independent lowerer lacks this profile."""
++    pending = [program]
++    while pending:
++        item = pending.pop()
++        if isinstance(item, Type):
++            if item.name in IO_TYPE_NAMES:
++                return True
++            pending.extend(item.args)
++        elif is_dataclass(item):
++            if isinstance(item, Expr) and item.kind == "call" and item.value in IO_BUILTINS:
++                return True
++            pending.extend(getattr(item, field.name) for field in fields(item))
++        elif isinstance(item, dict):
++            pending.extend(item.values())
++        elif isinstance(item, (tuple, list)):
++            pending.extend(item)
++    return False
++
++
+ IO_RUNTIME = r'''
+ #[cfg(not(all(target_os = "linux", target_arch = "x86_64", target_env = "gnu", target_pointer_width = "64")))]
+ compile_error!("Hepta bounded I/O reactor requires the qualified x86_64-unknown-linux-gnu hosted profile");
+diff --git a/tests/test_io_runtime.py b/tests/test_io_runtime.py
+index ac406d4978ca055f947dfaa2ee324ebb6ba9ecaf..8a89ea9253131125fbaa028d5bd671806198a6e9 100644
+--- a/tests/test_io_runtime.py
++++ b/tests/test_io_runtime.py
+@@ -1,5 +1,6 @@
+ """Owned source I/O, native cleanup and honest local-readiness qualification."""
+ import copy
++import base64
+ import json
+ from pathlib import Path
+ import subprocess
+@@ -8,6 +9,7 @@ import unittest
+ from unittest.mock import patch
+ 
+ from hepta.backend import compile_rust
++from hepta.hmir import hmir_analysis
+ from hepta.pipeline import analyze, analyze_project, concurrent_ir_analysis, resource_ir_analysis
+ from hepta.runtime_io import IO_BUILTINS, IO_RUNTIME
+ from tests.test_task_groups import RUSTC
+@@ -90,12 +92,16 @@ class IoSourceTests(unittest.TestCase):
+             self.assertIn(excluded, contract["excludes"])
+ 
+     def test_c_and_independent_ir_profiles_fail_closed(self):
+-        current = analyze(VALID, native=False)
+-        for name, result in (("c", analyze(VALID, backend="c", native=False).report),
+-                             ("resource", resource_ir_analysis(current)), ("concurrent", concurrent_ir_analysis(current))):
+-            with self.subTest(profile=name):
+-                self.assertFalse(result["ok"], result)
+-                self.assertTrue(result.get("diagnostics"), result)
++        for source in (VALID, "struct Snapshot{report:IoReport} fn f()->Unit effects {}{}",
++                       "struct Snapshot{pair:IoPair} fn f()->Unit effects {}{}"):
++            current = analyze(source, native=False)
++            self.assertTrue(current.report["ok"], current.report)
++            for name, result in (("c", analyze(source, backend="c", native=False).report),
++                                 ("resource", resource_ir_analysis(current)), ("concurrent", concurrent_ir_analysis(current)),
++                                 ("hmir", hmir_analysis(current))):
++                with self.subTest(profile=name, source=source):
++                    self.assertFalse(result["ok"], result)
++                    self.assertTrue(result.get("diagnostics"), result)
+ 
+     def test_no_std_rejects_even_pure_opaque_io_references(self):
+         source = "fn inspect(io:read IoReactor)->IoReport effects {}{return io_report(read io);}"
+@@ -173,7 +179,7 @@ class IoQualificationTests(unittest.TestCase):
+     def test_actual_readiness_partial_io_and_resource_recovery(self):
+         validate_io_report(self.report)
+         self.assertEqual(len(self.report["source_cases"]), 3)
+-        self.assertEqual(len(self.report["rejections"]), 15)
++        self.assertEqual(len(self.report["rejections"]), 16)
+         observed = self.report["native_controls"]["runs"][0]["metrics"]
+         for key in CONTROLS:
+             self.assertEqual(observed[key], CONTROLS[key])
+@@ -203,12 +209,22 @@ class IoQualificationTests(unittest.TestCase):
+             lambda r: r["source_cases"][0]["build"].update(artifact_bytes=0),
+             lambda r: r["source_cases"][0]["build"].update(artifact_sha256="0" * 64),
+             lambda r: r["source_cases"][0]["build"].update(flags=[]),
++            lambda r: r["source_cases"][0]["build"]["flags"].append("overflow-checks=no"),
++            lambda r: r["source_cases"][0]["build"]["flags"].append("opt-level=0"),
++            lambda r: r["source_cases"][0]["build"]["flags"].append("sysroot=/unqualified"),
++            lambda r: r["source_cases"][0]["build"].update(linker="/unqualified/linker"),
++            lambda r: r["source_cases"][0]["build"].update(artifact="/not-the-executed-program"),
+             lambda r: r["source_cases"][0]["build"].update(link_args=["unverified.o"]),
+             lambda r: r["source_cases"][0]["runs"][0].update(returncode=True),
+             lambda r: r["source_cases"][0]["runs"][0].update(timed_out=True),
+             lambda r: r["source_cases"][0]["runs"][0].update(elapsed_ns=0),
+             lambda r: r["source_cases"][0]["runs"][0].update(stderr="ignored warning"),
+             lambda r: r["source_cases"][0]["runs"][0].update(stdout="success"),
++            lambda r: r["source_cases"][0]["runs"][0].update(argv=["/not-the-executed-program"]),
++            lambda r: r["source_cases"][0]["runs"][0].update(executable_sha256="0" * 64),
++            lambda r: r["source_cases"][0]["runs"][0].update(executable_after_sha256="0" * 64),
++            lambda r: r["source_cases"][0]["runs"][0].update(executable_bytes=True),
++            lambda r: r["source_cases"][0]["runs"][0].update(stdout_base64="non-canonical"),
+             lambda r: r["source_cases"][0]["runs"][0]["metrics"].update(admitted=True),
+             lambda r: r["rejections"].pop(), lambda r: r["rejections"][0]["report"].update(ok=True),
+             lambda r: r["rejections"][0]["report"].update(diagnostics=[]),
+@@ -217,6 +233,9 @@ class IoQualificationTests(unittest.TestCase):
+             lambda r: r["native_controls"].update(c_build=None),
+             lambda r: r["native_controls"]["c_build"].update(object_bytes=False),
+             lambda r: r["native_controls"]["c_build"].update(compiler_sha256=""),
++            lambda r: r["native_controls"]["c_build"].update(compiler_sha256="0" * 64),
++            lambda r: r["native_controls"]["c_build"].update(compiler="/not-the-qualified-compiler"),
++            lambda r: r["native_controls"]["c_build"]["command"].__setitem__(0,"/not-the-qualified-compiler"),
+             lambda r: r["native_controls"]["c_build"].update(command=[]),
+             lambda r: r["native_controls"]["c_build"].update(target="aarch64-linux-gnu"),
+             lambda r: r["native_controls"].update(linked_object_sha256="0" * 64),
+@@ -252,6 +271,7 @@ class IoQualificationTests(unittest.TestCase):
+                 raw[key] = value
+                 run["stdout"] = json.dumps(raw) + "\n"
+                 run["stdout_sha256"] = digest(run["stdout"].encode())
++                run["stdout_base64"] = base64.b64encode(run["stdout"].encode()).decode("ascii")
+                 run["metrics"][key] = value
+                 with self.assertRaises(ValueError):
+                     validate_io_report(changed)
+@@ -259,13 +279,16 @@ class IoQualificationTests(unittest.TestCase):
+     def test_producer_preserves_failures_timeouts_and_existing_reports(self):
+         original_run = subprocess.run
+         with tempfile.TemporaryDirectory(prefix="hepta-io-retention-") as directory:
+-            for timeout in (False, True):
+-                target = Path(directory) / ("timeout.json" if timeout else "failed.json")
++            for label, timeout, returncode, stdout, stderr in (
++                    ("failed", False, 77, b"partial", b"execution refused"),
++                    ("timeout", True, None, b"\xffpartial", b"\xfetimeout evidence"),
++                    ("non_utf8", False, 0, b"\xffpartial", b"")):
++                target = Path(directory) / (label + ".json")
+                 def refuse(command, *args, **kwargs):
+                     if len(command) == 1 and str(command[0]).endswith("/pipeline"):
+                         if timeout:
+-                            raise subprocess.TimeoutExpired(command, 30, output="partial", stderr="timeout evidence")
+-                        return subprocess.CompletedProcess(command, 77, "partial", "execution refused")
++                            raise subprocess.TimeoutExpired(command, 30, output=stdout, stderr=stderr)
++                        return subprocess.CompletedProcess(command, returncode, stdout, stderr)
+                     return original_run(command, *args, **kwargs)
+                 with patch("tools.validate_io.subprocess.run", side_effect=refuse):
+                     with self.assertRaises(QualificationFailed):
+@@ -273,7 +296,13 @@ class IoQualificationTests(unittest.TestCase):
+                 saved = json.loads(target.read_text())
+                 self.assertEqual(saved["status"], "failed")
+                 observed = saved["source_cases"][0]["runs"][0]
+-                self.assertEqual(observed["stdout"], "partial")
++                self.assertEqual(observed["stdout"], "partial" if label == "failed" else None)
++                self.assertEqual(base64.b64decode(observed["stdout_base64"]), stdout)
++                self.assertEqual(base64.b64decode(observed["stderr_base64"]), stderr)
++                self.assertEqual(observed["stdout_sha256"], digest(stdout))
++                self.assertEqual(observed["stderr_sha256"], digest(stderr))
++                self.assertEqual(observed["argv"], [saved["source_cases"][0]["build"]["artifact"]])
++                self.assertEqual(observed["executable_sha256"], saved["source_cases"][0]["build"]["artifact_sha256"])
+                 self.assertIs(observed["timed_out"], timeout)
+                 self.assertNotIn("metrics", observed)
+                 with self.assertRaises(ValueError):
+diff --git a/tools/validate_io.py b/tools/validate_io.py
+index f2fc61382f081c829af320ab4ae407fc71023eb9..558378ba452ade2de94884502cbc8e64cc913e3d 100644
+--- a/tools/validate_io.py
++++ b/tools/validate_io.py
+@@ -9,6 +9,7 @@ an existing output is not overwritten, including an earlier failed attempt.
+ from __future__ import annotations
+ 
+ import argparse
++import base64
+ from datetime import datetime, timezone
+ import hashlib
+ import json
+@@ -28,6 +29,7 @@ if str(ROOT) not in sys.path:
+     sys.path.insert(0, str(ROOT))
+ 
+ from hepta.backend import compile_rust, find_rustc, toolchain_info
++from hepta.hmir import hmir_analysis
+ from hepta.pipeline import analyze, analyze_project, compiler_hash, concurrent_ir_analysis, resource_ir_analysis
+ from hepta.runtime_io import IO_RUNTIME
+ from tools.evidence_checks import is_sha, native_build, normalized_errors, require, strict_equal
+@@ -80,6 +82,8 @@ START = "let mut io=io_reactor(2,2,16);"
+ REQUEST = "let pair=io_local_pair(mut io);let bytes=buffer(8);let request=io_read(mut io,pair.left,move bytes,8,10);"
+ TAKE = "let mut count:usize=0;let mut status:u8=0;let returned=io_take(mut io,move request,mut count,mut status);release(move returned);"
+ VALID = MAIN + START + "io_shutdown(move io);}"
++UNUSED_REPORT = "struct Snapshot{report:IoReport} fn main()->Unit effects {}{}"
++UNUSED_PAIR = "struct Snapshot{pair:IoPair} fn main()->Unit effects {}{}"
+ REJECTIONS = {
+     "unconsumed_reactor": ("frontend", MAIN + START + "}", "E_LINEAR_UNCONSUMED"),
+     "unconsumed_request": ("frontend", MAIN + START + REQUEST + "io_shutdown(move io);}", "E_LINEAR_UNCONSUMED"),
+@@ -97,8 +101,9 @@ REJECTIONS = {
+                   "both(mut io,mut io);io_shutdown(move io);}", "E0499"),
+     "c_backend": ("c", VALID, "E_C_RESOURCE_IR"),
+     "no_std": ("no_std", VALID, "E_NO_STD"),
+-    "resource_ir": ("resource_ir", VALID, "E_RIR_LOWER_UNSUPPORTED"),
+-    "concurrent_ir": ("concurrent_ir", VALID, "E_CIR_LOWER"),
++    "resource_ir": ("resource_ir", UNUSED_REPORT, "E_RIR_LOWER_UNSUPPORTED"),
++    "concurrent_ir": ("concurrent_ir", UNUSED_PAIR, "E_CIR_LOWER"),
++    "hmir": ("hmir", UNUSED_REPORT, "E_HMIR_UNSUPPORTED"),
+ }
+ 
+ 
+@@ -106,6 +111,28 @@ def digest(data: bytes) -> str:
+     return hashlib.sha256(data).hexdigest()
+ 
+ 
++def transcript(stdout: bytes, stderr: bytes) -> dict:
++    """Keep exact bytes even when a failed child emits non-UTF8 diagnostics."""
++    result = {}
++    for name, data in (("stdout", stdout), ("stderr", stderr)):
++        try:
++            result[name] = data.decode("utf-8")
++        except UnicodeDecodeError:
++            result[name] = None
++        result[name + "_base64"] = base64.b64encode(data).decode("ascii")
++        result[name + "_sha256"] = digest(data)
++    return result
++
++
++def current_binary(path, expected_hash, label):
++    require(isinstance(path, str) and Path(path).is_absolute() and is_sha(expected_hash), "missing " + label + " identity")
++    try:
++        actual = digest(Path(path).read_bytes())
++    except OSError as error:
++        raise ValueError(label + " binary is unavailable for identity validation") from error
++    require(actual == expected_hash, label + " binary identity changed")
++
++
+ def identities() -> dict:
+     return {name: digest((ROOT / name).read_bytes()) for name in SOURCE_FILES}
+ 
+@@ -118,6 +145,8 @@ def native_controls_source() -> str:
+ 
+ 
+ def rejection_report(kind: str, source: str, rustc: str) -> dict:
++    if kind == "hmir":
++        return hmir_analysis(analyze(source, native=False))
+     if kind in {"resource_ir", "concurrent_ir"}:
+         analysis = analyze(source, native=False)
+         return (resource_ir_analysis if kind == "resource_ir" else concurrent_ir_analysis)(analysis)
+@@ -186,19 +215,27 @@ def run_qualification(*, rustc=None, cc=None, repeats=3, output=None) -> dict:
+     def run(executable, record, expected=None):
+         record["runs"] = []
+         for trial in range(repeats):
++            executable_bytes = executable.read_bytes()
++            executable_hash = digest(executable_bytes)
++            command = [str(executable)]
+             start = time.monotonic_ns()
+             try:
+-                process = subprocess.run([str(executable)], capture_output=True, text=True, timeout=30)
++                process = subprocess.run(command, capture_output=True, timeout=30)
+                 stdout, stderr, returncode, timeout = process.stdout, process.stderr, process.returncode, False
+             except subprocess.TimeoutExpired as error:
+-                decode = lambda value: value.decode(errors="replace") if isinstance(value, bytes) else value or ""
+-                stdout, stderr, returncode, timeout = decode(error.stdout), decode(error.stderr), None, True
++                stdout, stderr, returncode, timeout = error.stdout or b"", error.stderr or b"", None, True
+             observed = {"trial": trial, "returncode": returncode, "timed_out": timeout,
+-                        "elapsed_ns": time.monotonic_ns() - start, "stdout": stdout, "stderr": stderr,
+-                        "stdout_sha256": digest(stdout.encode()), "stderr_sha256": digest(stderr.encode())}
++                        "elapsed_ns": time.monotonic_ns() - start, "argv": command,
++                        "executable_sha256": executable_hash, "executable_bytes": len(executable_bytes),
++                        **transcript(stdout, stderr)}
++            observed["executable_after_sha256"] = digest(executable.read_bytes()) if executable.is_file() else None
+             record["runs"].append(observed)
+             checkpoint()
+-            require(returncode == 0 and not timeout and not stderr, f"native execution failed: {returncode}: {stderr}")
++            require(command == [record["build"]["artifact"]] and executable_hash == record["build"]["artifact_sha256"]
++                    and observed["executable_after_sha256"] == executable_hash, "executed binary differs from the native build")
++            require(returncode == 0 and not timeout and not stderr, f"native execution failed: {returncode}: {observed['stderr']}")
++            require(isinstance(observed["stdout"], str), "successful child output was not valid UTF-8; original bytes retained")
++            stdout = observed["stdout"]
+             if expected is None:
+                 observed["metrics"] = control_metrics(stdout)
+             else:
+@@ -214,6 +251,7 @@ def run_qualification(*, rustc=None, cc=None, repeats=3, output=None) -> dict:
+                 "I/O qualification requires the pinned Rust 1.90.0 x86_64 GNU toolchain")
+         cc = shutil.which(cc or "gcc")
+         require(cc is not None, "a native GCC-compatible compiler is required")
++        cc = str(Path(cc).resolve())
+         checkpoint()
+         with tempfile.TemporaryDirectory(prefix="hepta-io-qualification-") as directory:
+             temporary = Path(directory)
+@@ -239,7 +277,7 @@ def run_qualification(*, rustc=None, cc=None, repeats=3, output=None) -> dict:
+             obj = temporary / "faults.o"
+             flags = ["-std=c11", "-O2", "-Wall", "-Wextra", "-Werror"]
+             command = [cc, *flags, "-c", str(ROOT / "tools/fixtures/io_faults.c"), "-o", str(obj)]
+-            built = subprocess.run(command, capture_output=True, text=True, timeout=30)
++            built = subprocess.run(command, capture_output=True, timeout=30)
+             controls["c_build"] = {
+                 "command": command, "returncode": built.returncode, "compiler": str(Path(cc).resolve()),
+                 "compiler_sha256": digest(Path(cc).read_bytes()),
+@@ -248,8 +286,7 @@ def run_qualification(*, rustc=None, cc=None, repeats=3, output=None) -> dict:
+                 "source_sha256": report["source_files"]["tools/fixtures/io_faults.c"],
+                 "object_sha256": digest(obj.read_bytes()) if obj.is_file() else None,
+                 "object_bytes": obj.stat().st_size if obj.is_file() else 0,
+-                "stdout": built.stdout, "stderr": built.stderr,
+-                "stdout_sha256": digest(built.stdout.encode()), "stderr_sha256": digest(built.stderr.encode()),
++                **transcript(built.stdout, built.stderr),
+             }
+             checkpoint()
+             require(built.returncode == 0 and controls["c_build"]["object_bytes"] > 0, "native boundary fixture build failed")
+@@ -293,27 +330,44 @@ def validate_io_report(report: dict, *, minimum_repeats=1) -> None:
+     toolchain = report.get("toolchain", {})
+     require(isinstance(toolchain, dict) and toolchain.get("host") == PROFILE and is_sha(toolchain.get("executable_sha256"))
+             and isinstance(toolchain.get("version"), str) and toolchain["version"].startswith("rustc 1.90.0 "), "unqualified native toolchain")
++    current_binary(toolchain.get("path"), toolchain["executable_sha256"], "Rust compiler")
+     require(isinstance(report.get("created_utc"), str) and datetime.fromisoformat(report["created_utc"]).utcoffset() is not None,
+             "missing qualification timestamp")
+ 
+-    def build(value, source_hash, check_only=False):
++    def build(value, source_hash, check_only=False, source_build=False):
+         native_build(value, "rust", check_only=check_only, crate_type="bin", source_sha256=source_hash)
+         require(value.get("target") == PROFILE and value.get("toolchain") == toolchain
+                 and value.get("rustc_crate_type") == ("lib" if check_only else "bin"),
+                 "native toolchain/target changed")
+-        require(all(flag in value["flags"] for flag in ("edition=2021", "opt-level=3", "overflow-checks=yes", "panic=abort", "codegen-units=1")),
+-                "native safety/optimization flags changed")
+-
+-    def runs(values, expected=None):
++        expected_linker = None
++        if source_build and not shutil.which("cc") and shutil.which("gcc"):
++            expected_linker = str(Path(shutil.which("gcc")).resolve())
++        require("sysroot" in value and value["sysroot"] == toolchain.get("sysroot")
++                and "linker" in value and value["linker"] == expected_linker, "native sysroot/linker profile changed")
++        expected_flags = ["edition=2021", "opt-level=3", "overflow-checks=yes", "panic=abort", "codegen-units=1"]
++        if toolchain.get("sysroot"):
++            expected_flags.append("sysroot=" + toolchain["sysroot"])
++        if expected_linker:
++            expected_flags.append("linker=" + expected_linker)
++        require(value["flags"] == expected_flags, "native safety/optimization flags changed or contain contradictions")
++
++    def runs(values, executed_build, expected=None):
+         require(isinstance(values, list) and len(values) == report["repeats"], "trial denominator is incomplete")
+         for trial, value in enumerate(values):
+             require(isinstance(value, dict) and type(value.get("trial")) is int and value["trial"] == trial, "duplicate or out-of-order trial")
+             require(type(value.get("returncode")) is int and value["returncode"] == 0 and value.get("timed_out") is False,
+                     "failed or timed-out execution")
+             require(type(value.get("elapsed_ns")) is int and value["elapsed_ns"] > 0, "missing observed execution duration")
++            require(value.get("argv") == [executed_build["artifact"]]
++                    and value.get("executable_sha256") == executed_build["artifact_sha256"]
++                    and value.get("executable_after_sha256") == executed_build["artifact_sha256"]
++                    and type(value.get("executable_bytes")) is int and value["executable_bytes"] == executed_build["artifact_bytes"],
++                    "execution is not bound to its built binary")
+             stdout = value.get("stdout")
+             require(isinstance(stdout, str) and value.get("stdout_sha256") == digest(stdout.encode())
+-                    and value.get("stderr") == "" and value.get("stderr_sha256") == digest(b""), "native transcript identity differs")
++                    and value.get("stdout_base64") == base64.b64encode(stdout.encode()).decode("ascii")
++                    and value.get("stderr") == "" and value.get("stderr_sha256") == digest(b"")
++                    and value.get("stderr_base64") == "", "native transcript identity differs")
+             if expected is None:
+                 actual = control_metrics(stdout)
+                 require(value["elapsed_ns"] >= actual["blocking_elapsed_ns"] + actual["write_blocking_elapsed_ns"],
+@@ -340,9 +394,9 @@ def validate_io_report(report: dict, *, minimum_repeats=1) -> None:
+         require(analysis.get("checks") == {"rust_borrows_types": "rustc_checked", "syntax": "passed", "types_effects_resources": "passed_in_supported_subset"},
+                 "source checking was incomplete")
+         build(analysis.get("backend"), analysis["rust_sha256"], True)
+-        build(case.get("build"), analysis["rust_sha256"])
++        build(case.get("build"), analysis["rust_sha256"], source_build=True)
+         require(case["build"].get("link_args") == [], "source application linked unqualified code")
+-        runs(case.get("runs"), SCENARIOS[name])
++        runs(case.get("runs"), case["build"], SCENARIOS[name])
+     rejected = report.get("rejections")
+     require(isinstance(rejected, list) and all(isinstance(item, dict) for item in rejected)
+             and [item.get("name") for item in rejected] == list(REJECTIONS), "missing/duplicate rejection controls")
+@@ -352,7 +406,10 @@ def validate_io_report(report: dict, *, minimum_repeats=1) -> None:
+         result = item.get("report", {})
+         require(isinstance(result, dict) and result.get("ok") is False and isinstance(result.get("diagnostics"), list)
+                 and code in {entry.get("code") for entry in result["diagnostics"]}, "rejection was not observed")
+-        if kind in {"resource_ir", "concurrent_ir"}:
++        if kind == "hmir":
++            require(result.get("hmir") is None and result.get("status") == "unsupported_hmir_subset"
++                    and result.get("native_validation") == "not_run", "unsupported I/O HMIR acquired false semantics")
++        elif kind in {"resource_ir", "concurrent_ir"}:
+             require(result.get("verifier") is None and result.get(kind) is None and result.get("validation", {}).get("ok") is True,
+                     "unsupported IR acquired false semantics")
+         else:
+@@ -370,19 +427,22 @@ def validate_io_report(report: dict, *, minimum_repeats=1) -> None:
+     require(isinstance(c, dict) and type(c.get("returncode")) is int and c["returncode"] == 0
+             and c.get("target") in {PROFILE, "x86_64-linux-gnu"} and is_sha(c.get("compiler_sha256"))
+             and isinstance(c.get("version"), str) and bool(c["version"]), "missing native C ABI/control build")
++    current_binary(c.get("compiler"), c["compiler_sha256"], "C compiler")
++    require(str(Path(c["compiler"]).resolve()) == c["compiler"], "C compiler path is not the resolved command identity")
+     require(c.get("flags") == ["-std=c11", "-O2", "-Wall", "-Wextra", "-Werror"]
+             and c.get("source_sha256") == report["source_files"]["tools/fixtures/io_faults.c"]
+             and is_sha(c.get("object_sha256")) and type(c.get("object_bytes")) is int and c["object_bytes"] > 0
+             and controls.get("linked_object_sha256") == c["object_sha256"], "native boundary object identity changed")
+-    require(c.get("stdout") == "" and c.get("stderr") == "" and c.get("stdout_sha256") == digest(b"")
++    require(c.get("stdout") == "" and c.get("stderr") == "" and c.get("stdout_base64") == "" and c.get("stderr_base64") == ""
++            and c.get("stdout_sha256") == digest(b"")
+             and c.get("stderr_sha256") == digest(b""), "native boundary build transcript differs")
+     links = controls["build"].get("link_args")
+     require(isinstance(links, list) and len(links) == 2 and isinstance(links[0], str)
+             and links[0].endswith("/faults.o") and links[1] == "-Wl,--wrap=poll", "native poll boundary fixture was not linked")
+     command = c.get("command")
+-    require(isinstance(command, list) and len(command) == 10 and command[1:6] == c["flags"]
++    require(isinstance(command, list) and len(command) == 10 and command[0] == c["compiler"] and command[1:6] == c["flags"]
+             and command[6:] == ["-c", str(ROOT / "tools/fixtures/io_faults.c"), "-o", links[0]], "C fixture command changed")
+-    runs(controls.get("runs"))
++    runs(controls.get("runs"), controls["build"])
+ 
+ 
+ def main(argv=None):

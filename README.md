@@ -17,10 +17,12 @@ whole-compiler soundness, or universal performance superiority over Rust.
 | --- | --- |
 | Ownership | Buffer-bearing structs/enums, `Result<Owned, Error>`, nested named-field moves and restoration, explicit recursive drops, checked normal/early exits, fallible byte allocation |
 | Generics | Finite `Copy` / `Owned` function constraints, checked unused generic bodies, owned aggregate substitution and transfer |
-| Borrowing | Read/mutable parameter modes, disjoint field borrows, explicit returned origin among several inputs, native Rust validation |
+| Borrowing | Read/mutable parameters, disjoint field borrows, explicit returned origins, bounded lifetime-parameterized stored shared/mutable view records, native Rust region validation |
 | Resource IR | Independent v3 ownership/place CFG plus a separate task/group lifecycle CFG; abstract generic bodies, retained graphs and explicit unproved refinement boundaries |
 | Modules | Imports, privacy, local packages, content locks and frozen dependency identities |
-| Concurrency | Hosted tasks/channels, monotonic deadlines, event-driven two-group selection, shared thread/input/queue/requested-stack reservations, explicit cancel/join and cooperative failure reporting |
+| Concurrency | Hosted tasks/channels, monotonic deadlines, event-driven two-group selection, shared reservations and bounded parent/child task trees with transitive cancel/fail/join |
+| Hosted I/O | Bounded single-owner local-stream reactor, nonblocking reads/writes, explicit poll, deadlines/cancellation and owned completion tickets on qualified Linux x86-64 GNU hosts |
+| Board execution | Volatile integer access, explicit unsafe Rust exports, a linked no_std Cortex-M4 BSP with UART/timer IRQ execution under the pinned QEMU system model |
 | Native backends | Reference Rust plus independent C11 owned ADT/Result/Buffer lowering, bounded monomorphization and a mandatory independent resource gate for its ownership profile |
 | Debugging | Unoptimized debug builds, retained generated sources, C source line tables and Rust statement mapping, actual GDB breakpoint/local/stack/step qualification |
 | C | Host ABI declarations/probes; compilation-database capture; bounded module translation; complete active-declaration inventory; record/buffer views and restricted allocation/free migration |
@@ -38,6 +40,10 @@ The [resource IR](docs/RESOURCE_IR.md),
 [partial owned places](docs/PARTIAL_PLACES.md),
 [concurrent resource protocol](docs/CONCURRENT_IR.md),
 [shared runtime reservations](docs/SHARED_RUNTIME.md),
+[stored borrowed records](docs/BORROWED_STORAGE.md),
+[structured task trees](docs/TASK_TREES.md),
+[bounded hosted I/O](docs/ASYNC_IO.md),
+[Cortex-M4 startup and MMIO](docs/SYSTEM_BOARD.md),
 [owned C backend](docs/C_OWNED_BACKEND.md),
 [native debugging](docs/DEBUGGING.md),
 [owned application costs](docs/APPLICATION_BENCHMARKS.md),
@@ -110,6 +116,10 @@ python -m tools.qualify_places --output /tmp/places-evidence.json
 python tools/validate_c_owned.py --output /tmp/c-owned-evidence.json
 python tools/validate_shared_runtime.py --repeats 3 --output /tmp/shared-runtime-evidence.json
 python tools/validate_concurrent_ir.py --output /tmp/concurrent-ir-evidence.json
+python tools/qualify_borrowed_storage.py --output /tmp/stored-borrows-evidence.json
+python tools/validate_task_tree.py --repeats 3 --output /tmp/task-tree-evidence.json
+python tools/validate_io.py --repeats 3 --output /tmp/async-io-evidence.json
+python tools/validate_board.py --output /tmp/board-evidence.json
 python tools/verify_memory.py --output /tmp/memory-proof-evidence.json
 python tools/validate_native_host.py --output /tmp/native-host-evidence.json
 python tools/validate_debugger.py --output /tmp/debugger-evidence.json
@@ -124,7 +134,7 @@ python tools/release_check.py
 
 Full release qualification additionally requires a supported Linux x86-64 host
 with working Bubblewrap namespaces, GCC/G++, Clang, GDB/child-process debugging and Boost development
-headers. Fixed Lean/QEMU tools are installed by
+headers, local socket writes and QEMU 8.2.2 `qemu-system-arm`. Fixed Lean/QEMU user-mode tools are installed by
 `tools/bootstrap_verification.py`; Lean extraction also needs `zstandard`.
 The qualification workflow provisions these dependencies and rejects skips.
 Native tests, allocator failure injection, ABI execution, observed machine
@@ -151,6 +161,9 @@ construction, channel deadline and per-task crash integration is archived in
 The subsequent partial-place, owned-C, shared-runtime, concurrent-IR,
 provenance/type-core and debugger integration is archived in
 [evidence/production_progress_final](evidence/production_progress_final/manifest.json).
+The subsequent stored-borrow, structured-tree, bounded-I/O and Cortex-M4 system
+execution integration is archived in
+[evidence/runtime_storage_board_final](evidence/runtime_storage_board_final/manifest.json).
 Each archive binds its own exact source snapshot, logs and native evidence.
 
 The [credential-free runtime audit](evidence/audits/provider-runtime-022ed82.json)

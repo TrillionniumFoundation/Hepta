@@ -5,6 +5,7 @@ also share a reservation pool. Neither profile bounds total process heap/RSS,
 worker/FFI allocations, actual OS stack mappings, or CPU time.
 """
 from .ast import Param, Struct, Type
+from .runtime_task_tree import TREE_RUNTIME, TREE_REPORT, tree_report_struct
 
 GROUP_BUILTINS = {
     "task_group", "group_spawn", "group_send", "group_receive", "group_seal",
@@ -13,8 +14,9 @@ GROUP_BUILTINS = {
     "group_cancel",
     "group_select_receive",
     "group_budget_configure", "group_budget_share", "group_budget_snapshot",
+    "group_adopt", "group_tree_snapshot", "group_tree_join", "group_tree_cancel_and_join",
 }
-GROUP_TYPE_NAMES = {"TaskGroup", "Sender", "GroupReport", "GroupBudgetReport"}
+GROUP_TYPE_NAMES = {"TaskGroup", "Sender", "GroupReport", "GroupBudgetReport", "GroupTreeReport"}
 GROUP = Type("TaskGroup")
 SENDER = Type("Sender", (Type("u64"),))
 REPORT = Type("GroupReport")
@@ -89,14 +91,17 @@ struct HeptaGroupState {
     ring: std::vec::Vec<u64>,
     head: usize, len: usize, sealed: bool, closed: bool,
     selectors: std::vec::Vec<std::sync::Weak<HeptaSelectSignal>>,
+    tree_signal: std::sync::Arc<HeptaSelectSignal>,
 }
-// One signal belongs to one select call, so unrelated groups cannot cause
-// repeated wakeups. Group state -> signal is the only nested lock order.
+// A signal belongs to one select call or one consuming tree. Notification
+// takes group state -> signal; waiters release the signal before polling.
 struct HeptaSelectSignal {
     pending: std::sync::Mutex<bool>,
     changed: std::sync::Condvar,
 }
 fn __hepta_select_notify(state: &mut HeptaGroupState) {
+    *state.tree_signal.pending.lock().expect("Hepta tree wake poisoned") = true;
+    state.tree_signal.changed.notify_all();
     state.selectors.retain(|weak| {
         if let Some(signal) = weak.upgrade() {
             *signal.pending.lock().expect("Hepta select state poisoned") = true;
@@ -106,6 +111,7 @@ fn __hepta_select_notify(state: &mut HeptaGroupState) {
     });
 }
 struct HeptaGroupShared {
+    tree: std::sync::Mutex<HeptaGroupTree>,
     state: std::sync::Mutex<HeptaGroupState>,
     readable: std::sync::Condvar,
     writable: std::sync::Condvar,
@@ -133,10 +139,14 @@ fn __hepta_group_new(tasks: usize, bytes: usize, slots: usize) -> HeptaTaskGroup
     };
     HeptaTaskGroup {
         shared: std::sync::Arc::new(HeptaGroupShared {
+            tree: std::sync::Mutex::new(__hepta_tree_new()),
             state: std::sync::Mutex::new(HeptaGroupState {
                 report, ring: std::vec![0u64; slots], head: 0, len: 0,
                 sealed: false, closed: false,
                 selectors: std::vec::Vec::new(),
+                tree_signal: std::sync::Arc::new(HeptaSelectSignal {
+                    pending: std::sync::Mutex::new(false), changed: std::sync::Condvar::new(),
+                }),
             }),
             readable: std::sync::Condvar::new(),
             writable: std::sync::Condvar::new(),
@@ -150,6 +160,8 @@ fn __hepta_group_budget_configure(
     group: &mut HeptaTaskGroup, threads: usize, bytes: usize, slots: usize,
     requested_stack_bytes: usize, worker_stack_request: usize,
 ) -> bool {
+    let tree = group.shared.tree.lock().expect("Hepta group tree poisoned");
+    if !tree.accepting || tree.cancelling || tree.joining || !tree.children.is_empty() { return false; }
     let state = group.shared.state.lock().expect("Hepta group state poisoned");
     if group.budget.is_some() || state.sealed || state.closed || state.report.h_accepted_tasks != 0
         || slots < state.ring.len() || worker_stack_request < 64 * 1024
@@ -170,6 +182,8 @@ fn __hepta_group_budget_configure(
 }
 fn __hepta_group_budget_share(target: &mut HeptaTaskGroup, sponsor: &HeptaTaskGroup) -> bool {
     let budget = match &sponsor.budget { Some(value) => value, None => return false };
+    let tree = target.shared.tree.lock().expect("Hepta group tree poisoned");
+    if !tree.accepting || tree.cancelling || tree.joining || !tree.children.is_empty() { return false; }
     let state = target.shared.state.lock().expect("Hepta group state poisoned");
     if target.budget.is_some() || state.sealed || state.closed || state.report.h_accepted_tasks != 0 { return false; }
     let mut usage = budget.state.lock().expect("Hepta group budget poisoned");
@@ -227,10 +241,13 @@ fn __hepta_group_spawn(
     data: std::vec::Vec<u8>,
 ) -> bool {
     let bytes = data.len();
+    // Keep the admission gate through handle publication/rollback. A racing
+    // failure cannot close a group and miss an accepted native worker.
+    let tree = group.shared.tree.lock().expect("Hepta group tree poisoned");
     {
         let mut state = group.shared.state.lock().expect("Hepta group state poisoned");
         let new_bytes = state.report.h_input_bytes.checked_add(bytes);
-        if state.sealed || state.closed
+        if !tree.accepting || tree.cancelling || tree.joining || state.sealed || state.closed
             || state.report.h_accepted_tasks >= state.report.h_task_limit
             || new_bytes.is_none() || new_bytes.unwrap() > state.report.h_input_byte_limit {
             state.report.h_rejected_tasks = state.report.h_rejected_tasks.saturating_add(1);
@@ -332,6 +349,8 @@ fn __hepta_group_send_timeout(sender: &HeptaSender, value: u64, millis: u64)
     __hepta_group_send_wait(sender, value, Some(until))
 }
 fn __hepta_group_seal(group: &mut HeptaTaskGroup) {
+    let mut tree = group.shared.tree.lock().expect("Hepta group tree poisoned");
+    tree.accepting = false;
     let mut state = group.shared.state.lock().expect("Hepta group state poisoned");
     state.sealed = true;
     if state.report.h_active_tasks == 0 {
@@ -461,63 +480,17 @@ fn __hepta_group_select_receive(
     }
 }
 fn __hepta_group_cancel(group: &mut HeptaTaskGroup) {
-    let mut state = group.shared.state.lock().expect("Hepta group state poisoned");
-    state.sealed = true;
-    state.report.h_cancelled = true;
-    state.closed = true;
-    group.shared.cancel.store(true, std::sync::atomic::Ordering::Release);
-    state.report.h_discarded = state.report.h_discarded.saturating_add(state.len);
-    state.len = 0;
-    state.report.h_queued = 0;
-    group.shared.readable.notify_all();
-    group.shared.writable.notify_all();
-    __hepta_select_notify(&mut state);
+    __hepta_tree_stop(&group.shared, None, true);
 }
 fn __hepta_group_snapshot(group: &HeptaTaskGroup) -> H_GroupReport {
     group.shared.state.lock().expect("Hepta group state poisoned").report
 }
 fn __hepta_group_fail(sender: &HeptaSender, code: u64) {
     assert!(code != 0, "Hepta group_fail requires a nonzero error code");
-    let mut state = sender.shared.state.lock().expect("Hepta group state poisoned");
-    if !state.report.h_failed {
-        state.report.h_failed = true;
-        state.report.h_failure_code = code;
-    }
-    state.report.h_cancelled = true;
-    state.closed = true;
-    sender.shared.cancel.store(true, std::sync::atomic::Ordering::Release);
-    sender.shared.readable.notify_all();
-    sender.shared.writable.notify_all();
-    __hepta_select_notify(&mut state);
+    __hepta_tree_fail(&sender.shared, code);
 }
 fn __hepta_group_join(mut group: HeptaTaskGroup, mode: u8) -> H_GroupReport {
-    // mode 0: already drained; 1: explicitly drain and discard; 2: cancel.
-    __hepta_group_seal(&mut group);
-    if mode == 1 {
-        let mut ignored = 0u64;
-        while __hepta_group_receive_inner(&group, &mut ignored, true) {}
-    } else if mode == 2 {
-        __hepta_group_cancel(&mut group);
-    } else {
-        let state = group.shared.state.lock().expect("Hepta group state poisoned");
-        assert!(state.closed && state.len == 0,
-                "Hepta group_join requires a drained channel; use group_drain_and_join or group_cancel_and_join");
-    }
-    for handle in group.handles.drain(..) {
-        // The production bootstrap profile uses panic=abort. This is not a
-        // promise of panic containment or termination of arbitrary workers.
-        handle.join().expect("Hepta group worker panicked");
-    }
-    let mut state = group.shared.state.lock().expect("Hepta group state poisoned");
-    state.report.h_joined = true;
-    if let Some(budget) = group.budget.take() {
-        let mut usage = budget.state.lock().expect("Hepta group budget poisoned");
-        usage.h_reserved_threads -= state.report.h_accepted_tasks;
-        usage.h_reserved_input_bytes -= state.report.h_input_bytes;
-        usage.h_reserved_requested_stack_bytes -= state.report.h_accepted_tasks * usage.h_worker_stack_request;
-        usage.h_reserved_queue_slots -= state.ring.len();
-        usage.h_attached_groups -= 1;
-    }
-    state.report
+    __hepta_group_join_inner(&mut group, mode);
+    __hepta_group_snapshot(&group)
 }
-'''
+''' + TREE_RUNTIME

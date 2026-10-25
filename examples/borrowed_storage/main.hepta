@@ -1,0 +1,26 @@
+module borrowed_storage_main;
+import library as views;
+
+fn main() -> Unit effects {alloc, block, io, panic, write} {
+    let mut first = buffer(32);
+    let mut second = buffer(17);
+    let edit_first = views::edit(mut first);
+    let filled_first = views::fill(move edit_first, 7);
+    drop(move filled_first);
+    let filled_second = views::fill(move views::edit(mut second), 3);
+    drop(move filled_second);
+
+    let first_view = views::bytes(read first, 9);
+    let copied = first_view;
+    let paired = views::join_views(views::forward(copied), views::bytes(read second, 11));
+    let total = wrapping_add(views::sum(paired.left), views::sum(paired.right));
+    assert(total == 275);
+    assert(first_view.label == 9);
+    assert(paired.right.label == 11);
+
+    let head = views::head(read first, read second);
+    release(move second);
+    assert(head.value == 7);
+    release(move first);
+    print_i64(total as i64);
+}

@@ -506,6 +506,12 @@ def lower_resource_ir(program, checked, *, project_sha256: str | None = None) ->
     """
     if not getattr(checked, "ok", False):
         raise ResourceIRError("E_RIR_LOWER_REJECTED", "Cannot lower a rejected frontend result")
+    from .borrowed_storage import has_borrowed_storage
+    if has_borrowed_storage(program):
+        _unsupported("Stored-borrow records and explicit lifetimes are not represented by this independent resource IR")
+    from .runtime_io import has_io_profile
+    if has_io_profile(program):
+        _unsupported("The I/O reactor profile, including unused I/O declarations, requires another lowering profile")
     types = _Types(program)
     for primitive in ("Unit", "bool", "usize"):
         types.add(Type(primitive))

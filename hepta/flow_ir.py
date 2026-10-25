@@ -10,7 +10,7 @@ import hashlib
 from typing import Any
 
 from .ast import Program, Stmt
-from .semantic_ir import _Encoder, _span, _stable_json
+from .semantic_ir import _Encoder, _span, _stable_json, volatile_accesses
 
 SCHEMA = "hepta.cfg.v0"
 MAX_BLOCKS = 4096
@@ -198,8 +198,9 @@ def lower_checked_cfg(program: Program, checked: Any, *,
         raise FlowLowerError("Cannot lower a rejected program")
     functions = []
     for fn in program.functions:
-        signature = {"params": [{"name": p.name, "mode": p.mode, "type": str(p.type)} for p in fn.params],
-                     "returns": str(fn.return_type), "return_mode": getattr(fn, "return_mode", "value"), "return_origin": fn.return_origin}
+        signature = {"params": [{"name": p.name, "mode": p.mode, "type": str(p.type), **({"lifetime": p.lifetime} if p.lifetime is not None else {})} for p in fn.params],
+                     "returns": str(fn.return_type), "return_mode": getattr(fn, "return_mode", "value"), "return_origin": fn.return_origin,
+                     **({"lifetime_params": list(fn.lifetime_params), "return_lifetime": fn.return_lifetime} if fn.lifetime_params else {})}
         if fn.body is None:
             functions.append({"name": fn.name, "path": fn.span.path,
                               "signature": signature,
@@ -230,6 +231,7 @@ def lower_checked_cfg(program: Program, checked: Any, *,
         "source_sha256": hashlib.sha256(program.source.encode("utf-8")).hexdigest(),
         "project_sha256": project_sha256,
         "functions": functions,
+        "volatile_accesses": volatile_accesses(program, checked),
         "claims": {"ssa": False, "borrow_check_independent": False,
                    "machine_lowering_verified": False,
                    "semantic_equivalence_proved": False,

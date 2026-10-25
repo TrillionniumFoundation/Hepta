@@ -6,7 +6,7 @@ passes may consume it only after they establish and validate their own rules.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields, is_dataclass
 import hashlib
 import json
 from typing import Any
@@ -86,6 +86,30 @@ def _type_has_raw(typ: Type, nominal_fields: dict[str, tuple[Type, ...]]) -> boo
     return False
 
 
+def volatile_accesses(program: Program, checked: Any) -> list[dict[str, Any]]:
+    """Inventory volatile sites; no device, provenance or concurrency proof."""
+    sites = []
+    for fn in program.functions:
+        pending = [fn.body]
+        while pending:
+            value = pending.pop()
+            if isinstance(value, Expr) and value.kind == "call" and value.value in {"volatile_load", "volatile_store"}:
+                sites.append({"function": fn.name, "operation": value.value,
+                              "pointer_type": str(checked.expr_types[id(value.children[0])]),
+                              "result_type": str(checked.expr_types[id(value)]),
+                              "span": _span(value.span),
+                              "status": "external_obligation_not_proved",
+                              "requirements": ["pointer_and_alignment_contract", "access_width_and_target_support",
+                                  "device_mapping_and_nontrapping_access_if_mmio", "no_atomic_or_fence_guarantee"]})
+            if is_dataclass(value):
+                pending.extend(getattr(value, item.name) for item in fields(value) if item.name != "span")
+            elif isinstance(value, dict):
+                pending.extend(value.values())
+            elif isinstance(value, (list, tuple)):
+                pending.extend(value)
+    return sorted(sites, key=lambda site: (site["span"]["path"], site["span"]["start"], site["function"]))
+
+
 def lower_checked_program(program: Program, checked: Any, *, project_sha256: str | None = None) -> dict[str, Any]:
     """Lower only accepted programs into a deterministic, evidence-labelled IR.
 
@@ -103,6 +127,8 @@ def lower_checked_program(program: Program, checked: Any, *, project_sha256: str
     enc = _Encoder(checked.expr_types, [])
     functions = []
     external_obligations = []
+    volatile_sites = volatile_accesses(program, checked)
+    volatile_functions = {site["function"] for site in volatile_sites}
     for fn in program.functions:
         raw_boundary = any(_type_has_raw(p.type, nominal_fields) for p in fn.params) or _type_has_raw(fn.return_type, nominal_fields)
         if fn.extern_c or raw_boundary or "unsafe" in fn.effects or "ffi" in fn.effects:
@@ -110,15 +136,17 @@ def lower_checked_program(program: Program, checked: Any, *, project_sha256: str
                 "reasons": [k for k, yes in (("foreign_function", fn.extern_c),
                            ("raw_pointer_signature", raw_boundary),
                            ("unsafe_effect", "unsafe" in fn.effects),
-                           ("ffi_effect", "ffi" in fn.effects)) if yes],
+                           ("ffi_effect", "ffi" in fn.effects),
+                           ("volatile_access", fn.name in volatile_functions)) if yes],
                 "status": "caller_obligation_not_dischargeable_by_hsir"})
         functions.append({
             "name": fn.name, "path": fn.span.path,
             "declaration_span": _span(fn.span), "body_span": _span(fn.body_span),
             "public": fn.public, "extern_c": fn.extern_c, "export_c": fn.export_c,
             "type_params": list(fn.type_params),
+            **({"lifetime_params": list(fn.lifetime_params), "return_lifetime": fn.return_lifetime} if fn.lifetime_params else {}),
             "type_bounds": {name: fn.type_bounds.get(name, "Copy") for name in fn.type_params},
-            "params": [{"name": p.name, "mode": p.mode, "type": str(p.type),
+            "params": [{"name": p.name, "mode": p.mode, "type": str(p.type), **({"lifetime": p.lifetime} if p.lifetime is not None else {}),
                         "span": _span(p.span)} for p in fn.params],
             "returns": str(fn.return_type),
             "return_mode": getattr(fn, "return_mode", "value"),
@@ -135,6 +163,7 @@ def lower_checked_program(program: Program, checked: Any, *, project_sha256: str
         "project_sha256": project_sha256,
         "imports": [{"name": imp.name, "alias": imp.alias} for imp in program.imports],
         "structs": [{"name": s.name, "repr_c": s.repr_c,
+                     **({"lifetime_params": list(s.lifetime_params)} if s.lifetime_params else {}),
                      "type_params": list(s.type_params), "public": s.public,
                      "fields": [{"name": p.name, "type": str(p.type)} for p in s.fields]}
                     for s in program.structs],
@@ -145,6 +174,7 @@ def lower_checked_program(program: Program, checked: Any, *, project_sha256: str
         "untyped_expressions": enc.missing,
         "all_expressions_typed": not enc.missing,
         "external_obligations": external_obligations,
+        "volatile_accesses": volatile_sites,
         "foreign_assumptions": enc.value(checked.assumptions),
         "resource_contracts": enc.value(checked.resource_contracts),
         "owned_types": sorted(str(t) for t in getattr(checked, "owned_types", ())),

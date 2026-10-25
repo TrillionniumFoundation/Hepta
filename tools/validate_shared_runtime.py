@@ -42,7 +42,7 @@ CONTROLS = {
 }
 CLAIMS = {
     "whole_process_resources_bounded": False, "actual_os_stack_bytes_measured": False,
-    "worker_termination_proved": False, "structured_task_tree_implemented": False,
+    "worker_termination_proved": False, "structured_task_tree_qualified_by_this_report": False,
     "arbitrary_select_arity_implemented": False, "source_to_runtime_refinement_proved": False,
 }
 SOURCE_FILES = ["hepta/runtime_concurrency.py", "tools/validate_shared_runtime.py",

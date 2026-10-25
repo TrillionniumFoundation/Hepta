@@ -232,6 +232,12 @@ class _CFG:
 def lower_checked_cfg(program: Any, checked: Any, *, project_sha256: str | None = None) -> dict:
     if not checked.ok:
         raise ValueError("HMIR requires an accepted Hepta program")
+    from .borrowed_storage import has_borrowed_storage
+    if has_borrowed_storage(program):
+        raise HMIRUnsupported("Stored-borrow records and explicit lifetimes are outside the scalar HMIR pilot")
+    from .runtime_io import has_io_profile
+    if has_io_profile(program):
+        raise HMIRUnsupported("The I/O reactor profile, including unused I/O declarations, is outside the scalar HMIR pilot")
     graphs = [_CFG(fn, checked).lower() for fn in program.functions]
     payload = {"schema": SCHEMA, "profile": "scalar_cfg_ssa_pilot_not_backend_input",
                "source_sha256": hashlib.sha256(program.source.encode("utf-8")).hexdigest(),

@@ -171,8 +171,13 @@ class Builder:
             owner = self.value(args[0])
             self.emit("drop_buffer", src=owner)
             return None
-        if name in {"join", "cancel_and_join", "group_join", "group_cancel_and_join", "group_drain_and_join"}:
+        if name in {"join", "cancel_and_join", "group_join", "group_cancel_and_join", "group_drain_and_join", "group_tree_join", "group_tree_cancel_and_join"}:
             self.emit("join", src=self.value(args[0]), mode=name)
+            return None
+        if name == "group_adopt":
+            parent = self.named(args[0])
+            child = self.value(args[1])
+            self.emit("adopt", parent=parent, child=child, refusal="cancel_and_join_child_subtree")
             return None
         if name in GROUP_OPERATIONS:
             group = self.named(args[0])
@@ -324,6 +329,12 @@ class Builder:
 def lower_concurrent_ir(program, checked, *, project_sha256=None):
     if not checked.ok:
         unsupported("Cannot lower a frontend-rejected program")
+    from .borrowed_storage import has_borrowed_storage
+    if has_borrowed_storage(program):
+        unsupported("Stored-borrow records and explicit lifetimes are not represented by this concurrent IR")
+    from .runtime_io import has_io_profile
+    if has_io_profile(program):
+        unsupported("The I/O reactor profile, including unused I/O declarations, is outside the concurrent profile")
     functions = []
     for fn in program.functions:
         if fn.body is None or fn.extern_c or fn.export_c or fn.type_params or fn.return_mode != "value":

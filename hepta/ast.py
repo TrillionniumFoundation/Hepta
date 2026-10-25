@@ -40,15 +40,19 @@ class Type:
     name: str
     args: tuple[Type, ...] = ()
     length: int | None = None
+    lifetimes: tuple[str, ...] = ()
 
     def __str__(self) -> str:
+        if self.name in ("ref_read", "ref_mut") and len(self.args) == len(self.lifetimes) == 1:
+            return f"{self.name[4:]} '{self.lifetimes[0]} {self.args[0]}"
         if self.name == "slice":
             return f"[{self.args[0]}]"
         if self.name == "array":
             return f"[{self.args[0]}; {self.length}]"
         if self.name in ("raw_const", "raw_mut"):
             return f"raw {'const' if self.name == 'raw_const' else 'mut'} {self.args[0]}"
-        return self.name + ("<" + ", ".join(map(str, self.args)) + ">" if self.args else "")
+        arguments = ["'" + name for name in self.lifetimes] + list(map(str, self.args))
+        return self.name + ("<" + ", ".join(arguments) + ">" if arguments else "")
 
 
 @dataclass
@@ -73,6 +77,7 @@ class Param:
     type: Type
     mode: str = "value"
     span: Span = field(default_factory=Span)
+    lifetime: str | None = None
 
 
 @dataclass
@@ -83,6 +88,7 @@ class Struct:
     span: Span = field(default_factory=Span)
     type_params: tuple[str, ...] = ()
     public: bool = False
+    lifetime_params: tuple[str, ...] = ()
 
 
 @dataclass
@@ -144,6 +150,8 @@ class Function:
     # historical Copy constraint; Owned means a checked, sized resource value.
     type_bounds: dict[str, str] = field(default_factory=dict)
     return_origin: str | None = None
+    lifetime_params: tuple[str, ...] = ()
+    return_lifetime: str | None = None
 
 
 @dataclass

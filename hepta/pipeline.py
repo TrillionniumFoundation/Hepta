@@ -11,6 +11,7 @@ from .ast import Diagnostic, HeptaError, Program, Span
 from .backend import compile_rust, emit_rust, emit_header, sha256
 from .parser import parse
 from .checker import check
+from .borrowed_storage import has_borrowed_storage
 
 
 def interface(program: Program) -> dict:
@@ -18,12 +19,14 @@ def interface(program: Program) -> dict:
             "imports": [{"name": i.name, "alias": i.alias} for i in getattr(program, "imports", [])],
             "structs": [{"name": s.name, "repr_c": s.repr_c, "public": getattr(s, "public", False),
                          "type_params": list(getattr(s, "type_params", ())),
+                         **({"lifetime_params": list(s.lifetime_params)} if s.lifetime_params else {}),
                          "fields": [{"name": f.name, "type": str(f.type)} for f in s.fields]}
                         for s in program.structs],
             "enums": [{"name": e.name, "public": e.public, "type_params": list(e.type_params),
                        "variants": [{"name": v.name, "fields": [str(t) for t in v.fields]} for v in e.variants]}
                       for e in getattr(program, "enums", [])],
-            "functions": [{"name": f.name, "params": [{"name": p.name, "mode": p.mode, "type": str(p.type)} for p in f.params],
+            "functions": [{"name": f.name, "params": [{"name": p.name, "mode": p.mode, "type": str(p.type), **({"lifetime": p.lifetime} if p.lifetime is not None else {})} for p in f.params],
+                           **({"lifetime_params": list(f.lifetime_params), "return_lifetime": f.return_lifetime} if f.lifetime_params else {}),
                            "type_params": list(getattr(f, "type_params", ())),
                            "type_bounds": {name: f.type_bounds.get(name, "Copy") for name in f.type_params},
                            "returns": str(f.return_type), "return_mode": getattr(f, "return_mode", "value"), "return_origin": f.return_origin,
@@ -78,6 +81,10 @@ def analyze(source: str, path: str = "<input>", *, rustc=None, target=None,
             if loaded_project.c_imports and target is not None:
                 raise HeptaError(Diagnostic("E_C_IMPORT_TARGET", "C imports have native-host probe facts; cross-target reuse requires a target-specific import profile", Span(path=path), phase="module"))
         result.program = program
+        if has_borrowed_storage(program):
+            report["borrowed_storage"] = {"profile": "explicit-lifetime-records-v1", "native_lifetimes_required": True,
+                                          "native_lifetimes_checked": False, "independent_resource_ir_supported": False,
+                                          "c_backend_supported": False, "general_lifetime_system_complete": False}
         report["checks"]["syntax"] = "passed"
         report["interface_sha256"] = interface_hash(program)
         checked = check(program)
@@ -118,6 +125,8 @@ def analyze(source: str, path: str = "<input>", *, rustc=None, target=None,
             report["diagnostics"] += native_report["diagnostics"]
             report["checks"]["rust_borrows_types" if backend == "rust" else "c_types_codegen"] = native_report["status"]
             report["ok"] = native_report["ok"]
+            if "borrowed_storage" in report:
+                report["borrowed_storage"]["native_lifetimes_checked"] = backend == "rust" and native_report["ok"] is True
             report["status"] = "checked_with_external_assumptions" if native_report["ok"] and report["assumptions"] else ("checked" if native_report["ok"] else native_report["status"])
         else:
             report["ok"] = True

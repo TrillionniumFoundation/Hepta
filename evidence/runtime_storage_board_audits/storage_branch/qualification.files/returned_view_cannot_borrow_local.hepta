@@ -1,0 +1,5 @@
+struct Value<'a>{item:read 'a u64}
+fn bad<'a>(input:read 'a u64)->Value<'a> effects {} {
+    let local:u64=3;return Value{item:read local};
+}
+fn main()->Unit effects {} {}

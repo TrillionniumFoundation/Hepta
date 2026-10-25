@@ -140,8 +140,15 @@ def compile_candidate(request, files, directory, *, rustc=None, fixture=False, t
     # modules in Rust, so making the submission a driver submodule would expose
     # allocator state and let it forge observations without allocating anything.
     facade = 'h_task' if request['language'] == 'hepta' else 'task'
+    invocation = 'candidate::' + facade + '(a, b)'
+    if request['language'] == 'hepta' and checked.get('entry_unsafe') is True:
+        # This isolated experiment driver is the entry root of the supplied
+        # program, including its explicit native-library assumptions. Preserve
+        # the generated library's unsafe API instead of weakening that API to
+        # accommodate a test harness. No such wrapper is emitted to users.
+        invocation = 'unsafe { ' + invocation + ' }'
     (directory / 'submission.rs').write_text('#[path = "candidate/entry.rs"] pub mod candidate;\n'
-        + 'pub fn evaluate(a: i64, b: i64) -> i64 { candidate::' + facade + '(a, b) }\n')
+        + 'pub fn evaluate(a: i64, b: i64) -> i64 { ' + invocation + ' }\n')
     library = directory / 'libcf_submission.rlib'
     profile = ['--edition', '2021', '-C', 'opt-level=3', '-C', 'overflow-checks=yes',
                '-C', 'panic=abort', '-C', 'codegen-units=1', '--remap-path-prefix', str(directory) + '=/candidate']
