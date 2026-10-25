@@ -81,6 +81,8 @@ def main(argv=None) -> int:
         p.add_argument("--rustc")
         p.add_argument("--cc")
         p.add_argument("--backend", choices=["rust", "c"], default="rust")
+        if cmd == "ssa-v1-verify":
+            p.add_argument("--source-bound-hsir", help="PR14 checked HSIR v0 JSON; requires same exact source bytes/path and native recheck")
         p.add_argument("--target")
         p.add_argument("--locked", action="store_true")
         p.add_argument("--json", action="store_true", help="Machine-readable results (default for checks/builds)")
@@ -214,12 +216,23 @@ def main(argv=None) -> int:
                 from .hsir import lower_checked_program
                 snapshot = lower_checked_program(result.program, result.checked).as_dict()
             elif args.command == "ssa-v1-verify":
+                from hashlib import sha256
                 from .hsir import lower_checked_program
-                from .hsir_v1 import integrate_v0
+                from .hsir_v1 import MAX_BYTES, decode_json, integrate_v0
                 from .hsir_v1_ssa import lower_verified_v1_scalar_ssa
-                legacy = lower_checked_program(result.program, result.checked).as_dict()
-                integrated = integrate_v0(legacy, expected_source_sha256=legacy["source_sha256"])
-                snapshot = lower_verified_v1_scalar_ssa(integrated)
+                if args.source_bound_hsir:
+                    with open(args.source_bound_hsir, "rb") as stream:
+                        raw = stream.read(MAX_BYTES + 1)
+                    legacy = decode_json(raw)
+                    integrated = integrate_v0(
+                        legacy, expected_source_sha256=sha256(result.program.source.encode("utf-8")).hexdigest())
+                    snapshot = lower_verified_v1_scalar_ssa(
+                        integrated, source_text=result.program.source,
+                        source_path=result.program.path)
+                else:
+                    legacy = lower_checked_program(result.program, result.checked).as_dict()
+                    integrated = integrate_v0(legacy, expected_source_sha256=legacy["source_sha256"])
+                    snapshot = lower_verified_v1_scalar_ssa(integrated)
             else:
                 from .cfg import lower_checked_cfg
                 cfg = lower_checked_cfg(result.program, result.checked)
