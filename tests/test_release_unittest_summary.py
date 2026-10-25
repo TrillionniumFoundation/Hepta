@@ -36,7 +36,7 @@ class UnitTestSummaryGateTests(unittest.TestCase):
         self.assertIn("Ran 999 tests", run.stdout)
         self.assertEqual(release_check._unittest_passed_count(run.stderr), 1)
         # This reproduces the original, unsafe first-match behavior.
-        self.assertEqual(int(re.search(r"Ran (\\d+) tests", run.stdout + run.stderr).group(1)), 999)
+        self.assertEqual(int(re.search(r"Ran (\d+) tests", run.stdout + run.stderr).group(1)), 999)
 
     def test_forged_stderr_cannot_override_last_real_summary(self):
         run = self.discover(
@@ -67,11 +67,11 @@ class UnitTestSummaryGateTests(unittest.TestCase):
 
     def test_forged_or_incomplete_output_cannot_be_qualified(self):
         for log in (
-            "Ran 300 tests in 0.001s\\n\\nOK\\nPOSTSCRIPT",
-            "Ran 300 tests in 0.001s\\n\\nOK (skipped=1)\\n",
-            "Ran 300 tests in 0.001s\\n\\nFAILED (errors=1)\\n",
-            "Ran 300 tests in 0.001s\\n",
-            "OK\\n",
+            "Ran 300 tests in 0.001s\n\nOK\nPOSTSCRIPT",
+            "Ran 300 tests in 0.001s\n\nOK (skipped=1)\n",
+            "Ran 300 tests in 0.001s\n\nFAILED (errors=1)\n",
+            "Ran 300 tests in 0.001s\n",
+            "OK\n",
         ):
             with self.subTest(log=log):
                 self.assertEqual(release_check._unittest_passed_count(log), 0)
