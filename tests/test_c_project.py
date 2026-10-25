@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from hepta.c_migrate import MigrationRejected, migrate_c_project
 from hepta.c_project import capture_project, verify_capture
@@ -225,6 +226,31 @@ class CProjectMigrationTests(unittest.TestCase):
             self.assertEqual(function(0), 0)
             self.assertEqual(function(32), sum(range(32)) if name == "owned_malloc_sum" else 0)
             self.assertEqual(function(ctypes.c_size_t(-1).value), -1)
+
+    def test_atomic_commit_then_parent_fsync_failure_requires_recovery(self):
+        # Full migrator + real Clang frontend; native code generation is not
+        # required to test publication status after the atomic rename.
+        self.project({"input.c": "int f(int x){return x;}"})
+        import hepta.c_project_publish as publisher
+        fsync = os.fsync
+        expected_parent_inode = self.root.stat().st_ino
+
+        def fail_parent_fsync(fd):
+            if os.fstat(fd).st_ino == expected_parent_inode:
+                raise OSError(5, "injected final parent fsync failure")
+            return fsync(fd)
+
+        with patch.object(publisher.os, "fsync", side_effect=fail_parent_fsync):
+            report = self.migrate(native=False)
+        self.assertFalse(report["ok"])
+        self.assertEqual(report["status"], "recovery_required")
+        self.assertTrue(report["publication_may_have_committed"])
+        self.assertEqual(report["publication_recovery_path"], str(self.output))
+        self.assertIn("E_C_PROJECT_RECOVERY_REQUIRED",
+                      [item["code"] for item in report["diagnostics"]])
+        self.assertTrue(self.output.is_dir())
+        self.assertTrue(all((self.output / name).is_file() for name in
+                            ("source.hepta", "generated.rs", "bridge.rs", "migration.json")))
 
     def test_existing_output_bundle_is_preserved(self):
         self.project({"input.c": "int f(int x){return x;}"})
