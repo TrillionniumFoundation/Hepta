@@ -1,5 +1,22 @@
 # P4: Strict C++ L1 source migration using existing C lowering
 
+## Bounded unsigned C/C++ shifts (L1, defined-input domain)
+
+The single shared `hepta.c_migrate._expr` scalar lowering now accepts
+`<<` and `>>` only when the checked result and both admitted operands are
+compatible fixed-width **unsigned** scalars. The Hepta operators retain the
+same bit-width wrap/logical shift result for counts in `[0, width)`.
+The original C11/C++20 languages do not define out-of-range shift counts;
+Hepta's checked shift may abort on those inputs without claiming to match
+undefined original behavior. Mixed-width operands, signed shifts, arbitrary
+casts, pointer shifts and complex expressions remain rejected.
+
+Two native differential regression tests compare GCC C11 and Clang++20
+originals to Hepta/C through the normal frontend/independent C backend.
+The separate host-only original C/C++ defined-domain oracle checked
+80 finite cases; this is **not** an executed Hepta compiler proof.
+`whole_project_blockers_closed=false`.
+
 ## Strict i32/u32/i64/u64 value signature extension
 
 The strict Clang++20 L1 subset now admits by-value `int`, `unsigned int`,
