@@ -14,9 +14,9 @@ import struct
 from pathlib import Path
 import re
 import shutil
-import subprocess
 import tempfile
 
+from .clang_capture import CaptureRejected, run_bounded
 from .ast import Diagnostic, HeptaError, Type
 from .checker import EFFECTS, check
 from .parser import parse
@@ -28,6 +28,16 @@ MACRO_TYPES = ["char", "signed char", "unsigned char", "short", "unsigned short"
 
 def reject(code, message):
     raise HeptaError(Diagnostic("E_C_IMPORT_" + code, message, phase="c_import"))
+
+
+def _native_process(argv: list[str], *, timeout: float,
+                    stdout_limit: int = 64_000):
+    """Bounded native probe/toolchain capture; not a C-header sandbox."""
+    try:
+        return run_bounded(argv, timeout=timeout, stdin_limit=0,
+                           stdout_limit=stdout_limit, stderr_limit=512_000)
+    except CaptureRejected as exc:
+        reject("PROBE_CAPTURE", f"{exc.code}: {exc}")
 
 
 def sha(data):
@@ -264,8 +274,8 @@ def import_header(path, *, cc=None, module="c_imported", contracts=None) -> Impo
     compiler = shutil.which(cc or "gcc")
     if not compiler:
         reject("TOOLCHAIN", "GCC is required for native C type and layout probes")
-    version = subprocess.run([compiler, "--version"], capture_output=True, text=True, timeout=30)
-    target = subprocess.run([compiler, "-dumpmachine"], capture_output=True, text=True, timeout=30)
+    version = _native_process([compiler, "--version"], timeout=30)
+    target = _native_process([compiler, "-dumpmachine"], timeout=30)
     if version.returncode or target.returncode:
         reject("TOOLCHAIN", "Cannot identify the C compiler")
     probe = ["#include <stdint.h>", "#include <stddef.h>", "#include <limits.h>", "#include <stdio.h>",
@@ -318,10 +328,11 @@ def import_header(path, *, cc=None, module="c_imported", contracts=None) -> Impo
     with tempfile.TemporaryDirectory(prefix="hepta-c-import-") as td:
         cfile, binary = Path(td) / "probe.c", Path(td) / "probe"
         cfile.write_text(source)
-        p = subprocess.run([compiler, "-std=c11", "-Werror", str(cfile), "-o", str(binary)], capture_output=True, text=True, timeout=120)
+        p = _native_process([compiler, "-std=c11", "-Werror", str(cfile), "-o", str(binary)],
+                            timeout=120)
         if p.returncode:
             reject("PROBE", "Native header/type probe was rejected: " + p.stderr[-6000:])
-        run = subprocess.run([str(binary)], capture_output=True, text=True, timeout=30)
+        run = _native_process([str(binary)], timeout=30, stdout_limit=4_000_000)
         if run.returncode:
             reject("PROBE", "Native C probe execution failed")
         executable_hash = sha(binary.read_bytes())
