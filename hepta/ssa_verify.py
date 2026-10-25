@@ -76,6 +76,55 @@ def _function(f: dict, original: dict, graph: dict) -> dict:
     defs = {}
     version_numbers = {}
 
+    # Reconstruct local source types from the original checked CFG rather than
+    # trusting independently rehashed SSA type/definition inventories. Without
+    # this, an unused local may be silently retagged from i32 to u32 while all
+    # dominance and source-expression checks still report success.
+    def source_type(node, context):
+        if (not isinstance(node, dict) or set(node) != {"type", "args", "length"}
+                or not isinstance(node["type"], str)
+                or node["args"] != [] or node["length"] is not None):
+            _reject("E_SSA_VERIFY_SOURCE_TYPE", f"malformed source {context} type")
+        return node["type"]
+
+    source_types = {}
+    for parameter in original.get("param_types", []):
+        if not isinstance(parameter, dict) or not isinstance(parameter.get("name"), str):
+            _reject("E_SSA_VERIFY_SOURCE_TYPE", "malformed source parameter")
+        name = parameter["name"]
+        if name in source_types:
+            _reject("E_SSA_VERIFY_SOURCE_TYPE", "duplicate source parameter")
+        source_types[name] = source_type(parameter.get("type"), "parameter")
+    for old_block in before:
+        for original_item in old_block["instructions"]:
+            if original_item["operation"] != "let":
+                continue
+            fields = original_item["fields"]
+            name = fields.get("name")
+            ty = source_type(fields["expr"].get("result_type"), "binding initializer")
+            declared = fields.get("type")
+            if (not isinstance(name, str) or not name or name in source_types
+                    or (declared is not None
+                        and source_type(declared, "declared binding") != ty)):
+                _reject("E_SSA_VERIFY_SOURCE_TYPE", "inconsistent source binding")
+            source_types[name] = ty
+    for old_block in before:
+        for original_item in old_block["instructions"]:
+            if original_item["operation"] != "assign":
+                continue
+            fields = original_item["fields"]
+            target = fields.get("target")
+            if (not isinstance(target, dict) or target.get("operation") != "name"
+                    or not isinstance(target.get("value"), str)):
+                _reject("E_SSA_VERIFY_SOURCE_TYPE", "unsupported source assignment")
+            name = target["value"]
+            value_ty = source_type(fields["expr"].get("result_type"), "assignment")
+            target_ty = source_type(target.get("result_type"), "assignment target")
+            if source_types.get(name) != target_ty or value_ty != target_ty:
+                _reject("E_SSA_VERIFY_SOURCE_TYPE", "inconsistent source assignment type")
+    if scalar_types != source_types:
+        _reject("E_SSA_VERIFY_SOURCE_TYPE", "SSA scalar type inventory differs from source CFG")
+
     def add(defn, block, order, expected_name=None, expected_type=None):
         if not isinstance(defn, dict):
             _reject("E_SSA_VERIFY_DEF", "missing definition metadata")
