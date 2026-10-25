@@ -372,6 +372,20 @@ def inspect_workspace(store):
                       for p in project.sources if p.endswith(".hepta"))
     if expected != snapshot["manifest"]["validated_sources"]:
         fail("E_WORKSPACE_IDENTITY", "Validated source inventory differs from pinned import graph")
+    # The immutable content ID binds source files and compiler profile, but
+    # cannot independently authenticate mutable snapshot.json claims. Rebuild
+    # the public interface directly from the pinned graph before exposing
+    # Agent editing identities or cross-version contract diffs.
+    measured_interface = interface_hash(project.program)
+    manifest = snapshot["manifest"]
+    published_validation = manifest.get("validation")
+    if (not isinstance(published_validation, dict)
+            or manifest.get("interface_sha256") != measured_interface
+            or published_validation.get("interface_sha256") != measured_interface):
+        fail("E_WORKSPACE_IDENTITY", "Published interface receipt differs from the pinned source graph")
+    entry_source = (root / manifest["entry"]).read_bytes()
+    if published_validation.get("source_sha256") != digest(entry_source):
+        fail("E_WORKSPACE_IDENTITY", "Published entry source receipt differs from pinned bytes")
     nodes = {p: _nodes((root / p).read_bytes().decode("utf-8"), p)
              for p in snapshot["manifest"]["validated_sources"]}
     return {"schema": SCHEMA, "ok": True, "snapshot": snapshot, "nodes": nodes,

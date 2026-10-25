@@ -154,6 +154,33 @@ class HSIRBridgeTests(unittest.TestCase):
                 with self.assertRaises(HSIRRejected):
                     from_canonical_snapshot(_reseal(changed))
 
+    def test_resealed_derived_expression_and_statement_shapes_rejected(self):
+        p, checked = _checked(_SOURCE)
+        base = lower_checked_program(p, checked).as_dict()
+        def check_rejection(mutate):
+            payload = copy.deepcopy(base)
+            payload.pop("sha256")
+            mutate(payload)
+            encoded = json.dumps(payload, sort_keys=True, ensure_ascii=False,
+                                 allow_nan=False, separators=(",", ":"))
+            forged = HSIRSnapshot("hepta.hsir.v0", encoded,
+                                  hashlib.sha256(encoded.encode()).hexdigest())
+            with self.assertRaises(HSIRRejected):
+                forged.as_dict()
+        cases = {
+            "extra_binary_operand": lambda x: x["functions"][0]["body"][2]["fields"]["condition"]["operands"].append(
+                copy.deepcopy(x["functions"][0]["body"][0]["fields"]["expr"])),
+            "bool_as_integer_literal": lambda x: x["functions"][0]["body"][0]["fields"]["expr"].update(value=True),
+            "changed_let_mutability": lambda x: x["functions"][0]["body"][0]["fields"].update(mutable="yes"),
+            "mangled_while_body": lambda x: x["functions"][0]["body"][2]["fields"].update(body=0),
+            "numeric_condition": lambda x: x["functions"][0]["body"][2]["fields"]["condition"].update(
+                result_type={"type": "i32", "args": [], "length": None}),
+            "malformed_return": lambda x: x["functions"][0]["body"][3]["fields"].update(expr="already_returned"),
+        }
+        for label, mutation in cases.items():
+            with self.subTest(case=label):
+                check_rejection(mutation)
+
     def test_refuses_c_ffis_generic_types_or_resource_ownership(self):
         a, ac = _checked(_SOURCE)
         canonical = canonical_hsir(a, ac)

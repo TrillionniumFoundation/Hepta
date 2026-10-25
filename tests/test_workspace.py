@@ -151,6 +151,32 @@ class WorkspaceTests(unittest.TestCase):
             manifest.write_bytes(original)
         self.assertEqual(inspect_workspace(self.store)["snapshot"]["version"], before["version"])
 
+    def test_resealed_interface_receipt_mismatch_is_rejected_by_agent_reader(self):
+        # Workspace IDs intentionally do not hash metadata claims. A forged
+        # manifest interface or native source receipt must never become an
+        # Agent-visible "unchanged contract" assertion.
+        state = pin(self.store)
+        manifest = self.store / "versions" / state["version"] / "snapshot.json"
+        source = manifest.read_bytes()
+        baseline = json.loads(source)
+        variants = {
+            "interface": lambda x: x.update(interface_sha256="f" * 64),
+            "validation_interface": lambda x: x["validation"].update(interface_sha256="e" * 64),
+            "entry_source": lambda x: x["validation"].update(source_sha256="d" * 64),
+        }
+        try:
+            for name, mutate in variants.items():
+                with self.subTest(name=name):
+                    forged = json.loads(source)
+                    mutate(forged)
+                    manifest.write_text(json.dumps(forged))
+                    self.assertEqual(pin(self.store)["version"], state["version"])
+                    with self.assertRaisesRegex(WorkspaceError, "receipt differs"):
+                        inspect_workspace(self.store)
+        finally:
+            manifest.write_bytes(source)
+        self.assertEqual(inspect_workspace(self.store)["snapshot"]["version"], state["version"])
+
     def test_symlink_input_rejected(self):
         (self.root / "alias.hepta").symlink_to(self.root / "api.hepta")
         with self.assertRaisesRegex(WorkspaceError, "regular files"):

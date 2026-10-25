@@ -83,6 +83,11 @@ _DERIVED_EXPR_FIELDS = frozenset({
     "node", "operation", "result_type", "value", "operands", "type_args", "span",
 })
 _DERIVED_STMT_FIELDS = frozenset({"node", "operation", "fields", "span"})
+# Closed scalar syntax shape: a digest alone cannot give an expression an
+# additional operand, silently change a literal's type, or alter a statement's
+# control-flow structure without independent source verification.
+_SCALAR_EXPR_ARITY = {"name": 0, "int": 0, "float": 0, "bool": 0,
+                      "binary": 2, "unary": 1, "cast": 1}
 
 
 class HSIRRejected(ValueError):
@@ -151,16 +156,63 @@ def _validate_derived_node(value: Any, depth: int = 0) -> int:
         if (set(value) != _DERIVED_EXPR_FIELDS or value.get("operation") not in _EXPR
                 or value.get("type_args") != [] or not isinstance(value.get("operands"), list)):
             _reject("derived scalar expression contains unreviewed semantics")
+        op, operands, literal = value["operation"], value["operands"], value["value"]
+        if len(operands) != _SCALAR_EXPR_ARITY[op]:
+            _reject("derived scalar expression arity differs from checked source syntax")
+        if (op == "name" and (not isinstance(literal, str) or not literal)
+                or op == "int" and type(literal) is not int
+                or op == "float" and type(literal) is not float
+                or op == "bool" and type(literal) is not bool
+                or op in {"binary", "unary"} and not isinstance(literal, str)
+                or op == "cast" and (not isinstance(literal, dict)
+                                     or set(literal) != {"type", "args", "length"})):
+            _reject("derived scalar expression has invalid operation payload")
+        if not isinstance(value["span"], dict):
+            _reject("derived scalar expression is missing its source span")
         _validate_derived_node(value["result_type"], depth + 1)
         _validate_derived_node(value["span"], depth + 1)
-        return (1 + _validate_derived_node(value["value"], depth + 1)
-                + _validate_derived_node(value["operands"], depth + 1))
+        return (1 + _validate_derived_node(literal, depth + 1)
+                + _validate_derived_node(operands, depth + 1))
     if kind == "stmt":
         operation, fields = value.get("operation"), value.get("fields")
         if (set(value) != _DERIVED_STMT_FIELDS
                 or operation not in _STMT_DATA_FIELDS or not isinstance(fields, dict)
                 or set(fields) != _STMT_DATA_FIELDS[operation]):
             _reject("derived scalar statement contains unreviewed semantics")
+        if not isinstance(value["span"], dict):
+            _reject("derived scalar statement is missing its source span")
+        if operation == "let":
+            if (not isinstance(fields["name"], str) or not fields["name"]
+                    or type(fields["mutable"]) is not bool
+                    or (fields["type"] is not None and
+                        (not isinstance(fields["type"], dict)
+                         or set(fields["type"]) != {"type", "args", "length"}))
+                    or not isinstance(fields["expr"], dict)):
+                _reject("derived scalar declaration has invalid binding/type/value")
+        elif operation == "assign":
+            if (not isinstance(fields["target"], dict)
+                    or fields["target"].get("operation") != "name"
+                    or not isinstance(fields["expr"], dict)):
+                _reject("derived scalar assignment is not a supported named place")
+        elif operation == "expr":
+            if not isinstance(fields["expr"], dict):
+                _reject("derived scalar expression statement lacks a value")
+        elif operation == "return":
+            if fields["expr"] is not None and not isinstance(fields["expr"], dict):
+                _reject("derived scalar return has malformed value")
+        elif operation in {"if", "while"}:
+            condition = fields["condition"]
+            if (not isinstance(condition, dict)
+                    or condition.get("result_type") != {"type": "bool", "args": [], "length": None}
+                    or not isinstance(fields["then" if operation == "if" else "body"], list)
+                    or (operation == "if" and not isinstance(fields["else"], list))):
+                _reject("derived scalar branch/loop has invalid condition or block")
+        elif operation == "for":
+            if (not isinstance(fields["name"], str) or not fields["name"]
+                    or not isinstance(fields["start"], dict)
+                    or not isinstance(fields["end"], dict)
+                    or not isinstance(fields["body"], list)):
+                _reject("derived scalar range loop is malformed")
         _validate_derived_node(value["span"], depth + 1)
         return sum(_validate_derived_node(item, depth + 1) for item in fields.values())
     _reject("unreviewed derived scalar node")
