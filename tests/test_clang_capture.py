@@ -36,6 +36,36 @@ class CaptureBudgets(unittest.TestCase):
         self.assertIn("int demo = 7;", r.stdout)
         self.assertIn("int demo = 7;", _run(argv, input_text=input_text))
 
+    @unittest.skipUnless(shutil.which("clang"), "Native Clang required")
+    def test_project_capture_uses_real_cwd_and_clang(self):
+        from hepta.c_project import invoke
+        with tempfile.TemporaryDirectory() as root:
+            directory = Path(root)
+            (directory / "meaning.h").write_text("#define MEANING 42\n")
+            (directory / "project.c").write_text('#include "meaning.h"\nint f(void){return MEANING;}\n')
+            text = invoke([shutil.which("clang"), "-std=c11", "-E", "-P", "project.c"],
+                          directory)
+            self.assertIn("return 42;", text)
+
+    def test_project_capture_preserves_errors_and_quota_codes(self):
+        from hepta import c_project
+        with tempfile.TemporaryDirectory() as root:
+            for capture_code, expected in (
+                ("E_CAPTURE_OUTPUT_SIZE", "E_C_BUILD_SIZE"),
+                ("E_CAPTURE_INPUT_SIZE", "E_C_BUILD_SIZE"),
+                ("E_CAPTURE_TIMEOUT", "E_C_BUILD_TOOL"),
+                ("E_CAPTURE_ENCODING", "E_C_BUILD_TOOL"),
+            ):
+                with self.subTest(code=capture_code):
+                    with patch.object(c_project, "run_bounded",
+                                      side_effect=CaptureRejected(capture_code, "limited")):
+                        with self.assertRaises(MigrationRejected) as caught:
+                            c_project.invoke(["clang", "-dumpmachine"], Path(root))
+                        self.assertEqual(caught.exception.code, expected)
+            with self.assertRaises(MigrationRejected) as caught:
+                c_project.invoke([sys.executable, "-c", "import sys; sys.exit(7)"], Path(root))
+            self.assertEqual(caught.exception.code, "E_C_BUILD_TOOL")
+
     def test_child_nonzero_exit_is_never_success(self):
         r = run_bounded([sys.executable, "-c", "import sys; sys.exit(7)"], timeout=3)
         self.assertEqual(r.returncode, 7)
