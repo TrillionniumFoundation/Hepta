@@ -18,6 +18,7 @@ from .cfg import CFGRejected
 from .cfg_analysis import CFGAnalysisRejected
 from .ssa import SSARejected
 from .ssa_verify import SSAVerificationRejected
+from .llvm_ssa_backend import LLVMSSARejected
 
 
 def output_json(value):
@@ -53,6 +54,12 @@ def main(argv=None) -> int:
     bridge.add_argument("--output-dir", required=True)
     bridge.add_argument("--exception-mode", choices=["noexcept_only", "catch_status"],
                         default="noexcept_only")
+    llvm_ssa = sub.add_parser("build-llvm-ssa", help="Build checked SSA/PHI i32 profile through native LLVM")
+    llvm_ssa.add_argument("source")
+    llvm_ssa.add_argument("--output", "-o", required=True)
+    llvm_ssa.add_argument("--rustc")
+    llvm_ssa.add_argument("--clang", default="clang")
+    llvm_ssa.add_argument("--locked", action="store_true")
     llvm_scalar = sub.add_parser("build-llvm-scalar", help="Build strict HSIR i32 profile through LLVM, after rustc validation")
     llvm_scalar.add_argument("source")
     llvm_scalar.add_argument("--output", "-o", required=True)
@@ -111,6 +118,31 @@ def main(argv=None) -> int:
             return bridge_cpp_main([args.source, "--output-dir", args.output_dir,
                                     "--clangxx", args.clangxx,
                                     "--exception-mode", args.exception_mode])
+        if args.command == "build-llvm-ssa":
+            from .cfg import lower_checked_cfg
+            from .ssa import lower_cfg_scalar_ssa
+            from .llvm_ssa_backend import emit_scalar_ssa_llvm, compile_scalar_ssa_llvm
+            reference = analyze_project(Path(args.source).resolve(),
+                                        rustc=args.rustc, native=True,
+                                        backend="rust", locked=args.locked,
+                                        crate_type="cdylib")
+            if not reference.report["ok"]:
+                output_json(reference.report)
+                return 1
+            dest = Path(args.output).resolve()
+            if dest in {Path(p) for p in reference.project.sources}:
+                raise ValueError("Output cannot overwrite any source in the checked project graph")
+            cfg = lower_checked_cfg(reference.program, reference.checked)
+            ssa = lower_cfg_scalar_ssa(cfg)
+            generated = emit_scalar_ssa_llvm(ssa, cfg)
+            build = compile_scalar_ssa_llvm(generated, clang=args.clang, output=dest)
+            output_json({"schema": "hepta.build-llvm-ssa.v0", "ok": True,
+                         "status": "native_host_compiled_unqualified",
+                         "source_cfg_sha256": cfg.sha256,
+                         "source_ssa_sha256": ssa.sha256,
+                         "structural_verification_sha256": generated.verification_sha256,
+                         "reference_validation": reference.report, "build": build})
+            return 0
         if args.command == "build-llvm-scalar":
             # Never qualify a new backend merely from a frontend-only result.
             # The pinned real rustc reference must complete its native check.
@@ -247,12 +279,12 @@ def main(argv=None) -> int:
     except HeptaError as e:
         output_json({"ok": False, "status": "rejected", "diagnostics": [e.diagnostic.to_dict()]})
         return 1
-    except (CFGRejected, CFGAnalysisRejected, SSARejected, SSAVerificationRejected) as e:
+    except (CFGRejected, CFGAnalysisRejected, SSARejected, SSAVerificationRejected, LLVMSSARejected) as e:
         # Preserve typed semantic rejection codes for Agent tools instead of
         # flattening them to E_DRIVER. No frontend-only/native fallback.
         message = str(e)
         code = message.split(":", 1)[0]
-        if not code.startswith(("E_CFG_", "E_DOM_", "E_SSA_")):
+        if not code.startswith(("E_CFG_", "E_DOM_", "E_SSA_", "E_LLVM_SSA_")):
             code = "E_IR_REJECTED"
         output_json({"ok": False, "status": "rejected",
                      "diagnostics": [{"code": code, "message": message, "phase": "ir"}]})
