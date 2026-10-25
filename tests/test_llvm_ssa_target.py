@@ -22,10 +22,12 @@ class LLVMSSATargetTests(unittest.TestCase):
         self.graph = helper.fixture()
         self.ir = emit_scalar_ssa_llvm(lower_cfg_scalar_ssa(self.graph), self.graph)
 
-    def test_validated_elf_and_coff_cross_objects(self):
+    def test_validated_elf_coff_and_macho_cross_objects(self):
         for target, machine in (("x86_64-unknown-linux-gnu", 62),
                                 ("aarch64-unknown-linux-gnu", 183),
-                                ("x86_64-pc-windows-msvc", 0x8664)):
+                                ("x86_64-pc-windows-msvc", 0x8664),
+                                ("x86_64-apple-darwin", 0x01000007),
+                                ("aarch64-apple-darwin", 0x0100000c)):
             with self.subTest(target=target):
                 output = self.root / (target + ".o")
                 evidence = compile_ssa_target_object(self.ir, target=target, output=output)
@@ -37,6 +39,19 @@ class LLVMSSATargetTests(unittest.TestCase):
                 self.assertTrue(_qualified_header(output.read_bytes(), target))
                 self.assertFalse(evidence["claims"]["target_program_executed"])
                 self.assertFalse(evidence["claims"]["foreign_c_abi_qualified"])
+
+    def test_reject_macho_wrong_machine_or_wrong_file_type(self):
+        # Accept only Mach-O 64-bit MH_OBJECT for the exact requested CPU.
+        header = (b"\xcf\xfa\xed\xfe" + (0x01000007).to_bytes(4, "little")
+                  + (3).to_bytes(4, "little") + (1).to_bytes(4, "little")
+                  + b"\x00" * 16)
+        self.assertTrue(_qualified_header(header, "x86_64-apple-darwin"))
+        self.assertFalse(_qualified_header(header, "aarch64-apple-darwin"))
+        linked = header[:12] + (2).to_bytes(4, "little") + header[16:]
+        self.assertFalse(_qualified_header(linked, "x86_64-apple-darwin"))
+        self.assertFalse(_qualified_header(header[:16], "x86_64-apple-darwin"))
+        big_endian = b"\xfe\xed\xfa\xcf" + header[4:]
+        self.assertFalse(_qualified_header(big_endian, "x86_64-apple-darwin"))
 
     def test_wrong_target_unknown_or_overwrite_rejects(self):
         path = self.root / "object.o"

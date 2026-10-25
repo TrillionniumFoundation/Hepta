@@ -7,7 +7,9 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
+import hepta.c_migrate as strict_migrator
 from hepta.c_migrate import migrate_c
 from hepta.pipeline import analyze
 
@@ -64,11 +66,151 @@ class ClangMigrationTests(unittest.TestCase):
         self.assertIn("E_C_TOPLEVEL", [x["code"] for x in result["rejected"]])
         self.assertFalse(self.hepta.exists())
 
+    def test_strict_c_scalar_state_and_while(self):
+        self.c.write_text("""
+int sum_to(int n) {
+    int total = 0;
+    int i = 0;
+    while (i < n) { total = total + i; i = i + 1; }
+    return total;
+}
+""")
+        result = migrate_c(self.c, self.hepta)
+        self.assertTrue(result["ok"], result)
+        self.assertIn("let mut total: i32 = 0;", self.hepta.read_text())
+        self.assertIn("resources {heap_allocations=0;may_block=false;", self.hepta.read_text())
+        self.assertIn("while (i < n)", self.hepta.read_text())
+        original = self.directory / "liboriginal.so"
+        output = self.directory / "libhepta.so"
+        subprocess.run(["gcc", "-std=c11", "-O2", "-shared", "-fPIC",
+                        str(self.c), "-o", str(original)], check=True, capture_output=True)
+        built = subprocess.run([sys.executable, "-m", "hepta", "build", str(self.hepta),
+                                "--backend", "c", "--crate-type", "cdylib", "-o", str(output)],
+                               capture_output=True, text=True, timeout=90)
+        self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
+        old = ctypes.CDLL(str(original)).sum_to
+        new = ctypes.CDLL(str(output)).sum_to
+        for func in (old, new):
+            func.argtypes = [ctypes.c_int32]
+            func.restype = ctypes.c_int32
+        for n in (-4, 0, 1, 2, 5, 40, 100):
+            self.assertEqual(old(n), new(n), n)
+
+    def test_counted_for_original_c_vs_hepta_native(self):
+        self.c.write_text("""
+int sum_for(int n) {
+    int total = 0;
+    int i = 0;
+    for (i = 0; i < n; i++) { total = total + i; }
+    return total;
+}
+""")
+        migrated = migrate_c(self.c, self.hepta)
+        self.assertTrue(migrated["ok"], migrated)
+        self.assertEqual(migrated["native_validation"], "not_run")
+        generated = self.hepta.read_text()
+        self.assertIn("while (i < n)", generated)
+        self.assertIn("i = (i + 1);", generated)
+        native_c = self.directory / "for_original.so"
+        native_hepta = self.directory / "for_hepta.so"
+        subprocess.run(["gcc", "-std=c11", "-O2", "-shared", "-fPIC",
+                        str(self.c), "-o", str(native_c)], check=True, capture_output=True)
+        result = subprocess.run([sys.executable, "-m", "hepta", "build",
+                                 str(self.hepta), "--backend", "c", "--crate-type",
+                                 "cdylib", "-o", str(native_hepta)],
+                                capture_output=True, text=True, timeout=90)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        old = ctypes.CDLL(str(native_c)).sum_for
+        new = ctypes.CDLL(str(native_hepta)).sum_for
+        for fn in (old, new):
+            fn.argtypes = [ctypes.c_int32]
+            fn.restype = ctypes.c_int32
+        for n in (-8, -1, 0, 1, 2, 17, 100, 1000):
+            self.assertEqual(old(n), new(n), n)
+
+    def test_unsupported_for_syntax_rejected_without_output(self):
+        sources = [
+            "int f(int n){int x=0;for(int i=0;i<n;i++){x=x+i;}return x;}",
+            "int f(int n){int i=0;for(i=0;i<n;i+=1){i=i+1;}return i;}",
+            "int f(int n){int i=0;for(i=0;;i=i+1){if(i>3)return i;}return i;}",
+            "int f(int n){int i=0;for(i=0;i<n;i=i+1)i=i+1;return i;}",
+            "int f(int n){int i=0;for(i=0;i<n;i=i+1){continue;}return i;}",
+        ]
+        for src in sources:
+            with self.subTest(src=src):
+                self.c.write_text(src)
+                result = migrate_c(self.c, self.hepta)
+                self.assertFalse(result["ok"], result)
+                self.assertFalse(self.hepta.exists())
+
+    def test_unsupported_scalar_local_shapes_do_not_publish(self):
+        cases = [
+            "int f(int n) { int x; return n; }",
+            "int f(int n) { int x=0; if (n>0) { int y=n; x=y; } return x; }",
+            "int f(int n) { int x=0; x += 1; return x; }",
+            "int f(int n) { int x=0; x++; return x; }",
+            "int f(int n) { int x=n, y=n; return x; }",
+            "int f(int n) { int x=0; x=n; int y=x; return y; }",
+            "int f(int n) { static int x=0; x=x+n; return x; }",
+        ]
+        for source in cases:
+            with self.subTest(source=source):
+                self.c.write_text(source)
+                report = migrate_c(self.c, self.hepta)
+                self.assertFalse(report["ok"], report)
+                self.assertFalse(self.hepta.exists())
+                self.assertTrue(report["rejected"])
+
     def test_unsupported_cast_rejected_without_writing(self):
         self.c.write_text("unsigned long long f(unsigned long long x) {return (unsigned int)x;}\n")
         result = migrate_c(self.c, self.hepta)
         self.assertFalse(result["ok"])
         self.assertFalse(self.hepta.exists())
+
+    def test_exotic_char_bit_model_rejected_before_ast_capture(self):
+        original = strict_migrator._run
+
+        def forged_non_octet_model(argv, **kwargs):
+            raw = original(argv, **kwargs)
+            if "-dM" in argv and "-E" in argv:
+                self.assertIn("#define __CHAR_BIT__ 8", raw)
+                return raw.replace("#define __CHAR_BIT__ 8", "#define __CHAR_BIT__ 16")
+            return raw
+
+        with patch.object(strict_migrator, "_run", side_effect=forged_non_octet_model):
+            with self.assertRaisesRegex(strict_migrator.MigrationRejected, "E_C_DATA_MODEL"):
+                strict_migrator._data_model("clang")
+
+    def test_header_macro_preprocessing_is_source_bound(self):
+        header = self.directory / "values.h"
+        header.write_text("#define DELTA 3\n")
+        self.c.write_text('#include "values.h"\nint shifted(int x) { return x + DELTA; }\n')
+        report = migrate_c(self.c, self.hepta)
+        self.assertTrue(report["ok"], report)
+        self.assertRegex(report["preprocessed_sha256"], r"^[0-9a-f]{64}$")
+        self.assertIn("shifted", self.hepta.read_text())
+
+    def test_header_mutation_between_clang_capture_and_publication_rejected(self):
+        header = self.directory / "values.h"
+        header.write_text("#define DELTA 3\n")
+        self.c.write_text('#include "values.h"\nint shifted(int x) { return x + DELTA; }\n')
+        original_run = strict_migrator._run
+        counts = {"preprocess": 0}
+
+        def mutate_after_preprocessing(argv, **kwargs):
+            output = original_run(argv, **kwargs)
+            if "-E" in argv and "-P" in argv and "-std=c11" in argv:
+                counts["preprocess"] += 1
+                if counts["preprocess"] == 1:
+                    header.write_text("#define DELTA 4\n")
+            return output
+
+        with patch.object(strict_migrator, "_run", side_effect=mutate_after_preprocessing):
+            report = migrate_c(self.c, self.hepta)
+        self.assertFalse(report["ok"], report)
+        self.assertFalse(self.hepta.exists())
+        self.assertEqual(counts["preprocess"], 2)
+        self.assertIn("E_C_PREPROCESS_RACE", [x["code"] for x in report["rejected"]])
 
     def test_preexisting_output_is_not_overwritten(self):
         self.hepta.write_text("keep untouched", encoding="utf-8")
