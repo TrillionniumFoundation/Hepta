@@ -27,10 +27,19 @@ class HSIRSnapshot:
     sha256: str
 
     def as_dict(self) -> dict:
-        # Never expose an internally mutable payload behind a frozen hash.
-        payload = json.loads(self.canonical_json)
-        payload["sha256"] = self.sha256
-        return payload
+        # Verify the committed identity before exporting a mutable JSON view.
+        # This is an integrity check, not evidence of soundness or an attestation.
+        if not isinstance(self.canonical_json, str) or not isinstance(self.sha256, str):
+            raise HSIRRejected("E_HSIR_SNAPSHOT: malformed snapshot identity")
+        if sha256(self.canonical_json.encode("utf-8")).hexdigest() != self.sha256:
+            raise HSIRRejected("E_HSIR_SNAPSHOT: snapshot content digest mismatch")
+        try:
+            payload = json.loads(self.canonical_json)
+        except ValueError as exc:
+            raise HSIRRejected("E_HSIR_SNAPSHOT: malformed canonical JSON") from exc
+        if not isinstance(payload, dict) or payload.get("schema") != self.schema:
+            raise HSIRRejected("E_HSIR_SNAPSHOT: unexpected snapshot schema")
+        return {**payload, "sha256": self.sha256}
 
 
 class _Encoder:

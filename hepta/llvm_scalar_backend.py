@@ -70,12 +70,16 @@ class _Function:
         self.lines = []
         self.seq = 0
         self.depth = 0
+        self.requires_panic = False
 
     def _temp(self):
         self.seq += 1
         return f"%t{self.seq}"
 
     def _emit_checked(self, kind: str, left: str, right: str):
+        # Checked integer operations trap at runtime. Their caller's effect
+        # contract must acknowledge this even for syntactically valid HSIR.
+        self.requires_panic = True
         pair = self._temp()
         value = self._temp()
         overflow = self._temp()
@@ -179,6 +183,9 @@ def emit_scalar_llvm(snapshot) -> ScalarIR:
         arguments = ", ".join(f"i32 %arg{i}" for i in range(len(params)))
         emitter = _Function(name, params)
         statements = emitter.build(fn.get("body"))
+        if emitter.requires_panic and ("panic" not in fn.get("declared_effects", [])
+                                       or "panic" not in fn.get("inferred_transitive_effects", [])):
+            raise LLVMScalarRejected("E_LLVM_EFFECT: checked arithmetic requires a declared and inferred panic effect")
         lines.extend([f"define i32 @{name}({arguments}) {{", "entry:", *statements, "}"])
     output = "\n".join(lines) + "\n"
     return ScalarIR(output, sha256(output.encode()).hexdigest(), tuple(sorted(names)))

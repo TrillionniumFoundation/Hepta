@@ -82,6 +82,23 @@ class LLVMScalarBackendTests(unittest.TestCase):
         with self.assertRaisesRegex(LLVMScalarRejected, "E_LLVM_LITERAL"):
             emit_scalar_llvm(_seal(mutated))
 
+    def test_checked_arithmetic_cannot_hide_panic_effect(self):
+        for effect_field in ("declared_effects", "inferred_transitive_effects"):
+            snapshot = _snapshot()
+            snapshot["functions"][0][effect_field] = []
+            with self.subTest(effect_field=effect_field):
+                with self.assertRaisesRegex(LLVMScalarRejected, "E_LLVM_EFFECT"):
+                    emit_scalar_llvm(_seal(snapshot))
+        # The wrapping profile remains effect-free, while unary negation also
+        # requires panic for MIN_INT, as does an ordinary checked subtraction.
+        snapshot = _snapshot()
+        snapshot["functions"] = [snapshot["functions"][3]]
+        self.assertIn("define i32 @wrapped_add", emit_scalar_llvm(_seal(snapshot)).text)
+        snapshot["functions"][0]["body"][0]["fields"]["expr"] = _expr(
+            "unary", "-", _expr("name", "a"))
+        with self.assertRaisesRegex(LLVMScalarRejected, "E_LLVM_EFFECT"):
+            emit_scalar_llvm(_seal(snapshot))
+
     @unittest.skipUnless(sys.platform.startswith("linux") and shutil.which("clang") and shutil.which("gcc"), "Linux, LLVM Clang and GCC required")
     def test_host_llvm_abi_matches_independent_c_for_defined_inputs(self):
         with tempfile.TemporaryDirectory() as tmp:
