@@ -122,9 +122,9 @@ remain P1 blockers. Never remove unknown obligations or silently promote a
 foreign assumption to proved during conversion.
 
 **Local targeted test result:** python -m unittest discover -s tests
--p 'test_*audit.py' -v passed **14/14** in an isolated Python 3.13.5
+-p 'test_*audit.py' -v passed **15/15** in an isolated Python 3.13.5
 working directory, including a newly created native Git repository used for
-rename and byte-object identity checks. Four exact Git blob identities for
+rename and byte-object identity checks, plus an adversarial deeply nested HSIR JSON rejection. Four exact Git blob identities for
 the tested files were independently fetched from the updated PR head and
 match the local tested bytes. This session did **not** fetch the entire Hepta
 worktree or run Rust/Clang/Lean/QEMU/real model qualification. Remote CI and
