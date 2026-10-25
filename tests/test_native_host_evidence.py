@@ -43,6 +43,18 @@ class NativeHostFailureEvidenceTests(TestCase):
             self.assertNotIn("frontend", report)
             self.assertNotIn("status", report["unqualified_observations"])
 
+
+    def test_real_temp_directory_canonicalizes_like_native_artifact(self):
+        # On Windows GitHub Runners the default temp path may use 8.3 aliases.
+        # Canonicalizing before emitting clang commands must give the same
+        # spelling used by compile_rust(Path(...).resolve()).
+        import tempfile
+        with tempfile.TemporaryDirectory(prefix="hepta-path-") as tmp:
+            directory = Path(tmp).resolve(strict=True)
+            object_file = directory / ("matrix.obj" if sys.platform == "win32" else "matrix.o")
+            object_file.write_bytes(b"\x00")
+            self.assertEqual(str(object_file), str(object_file.resolve(strict=True)))
+
     def test_execution_failure_without_returned_report_is_still_failed(self):
         with tempfile.TemporaryDirectory() as tmp:
             dest = Path(tmp) / "report.json"
