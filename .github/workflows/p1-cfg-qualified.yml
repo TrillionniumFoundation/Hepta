@@ -25,6 +25,7 @@ jobs:
           python -m compileall -q hepta tests/test_cfg.py
           python -m unittest discover -s tests -p test_cfg.py -v
           python -m unittest discover -s tests -p test_cfg_analysis.py -v
+          python -m unittest discover -s tests -p test_ssa_scalar.py -v
           python -m unittest discover -s tests -p test_hsir.py -v
           python -m unittest discover -s tests -p test_checker.py -v
           python -m unittest discover -s tests -p test_parser.py -v
@@ -39,20 +40,29 @@ jobs:
         run: |
           python -m hepta cfg examples/parser.hepta > "$RUNNER_TEMP/parser-cfg.json"
           python -m hepta cfg-analyze examples/parser.hepta > "$RUNNER_TEMP/parser-cfg-analysis.json"
+          python -m hepta ssa examples/ssa_scalar.hepta > "$RUNNER_TEMP/ssa.json"
           python -m hepta cfg examples/results.hepta > "$RUNNER_TEMP/results-cfg.json"
-          python - "$RUNNER_TEMP/parser-cfg.json" "$RUNNER_TEMP/results-cfg.json" "$RUNNER_TEMP/parser-cfg-analysis.json" <<'PY'
+          python - "$RUNNER_TEMP/parser-cfg.json" "$RUNNER_TEMP/results-cfg.json" "$RUNNER_TEMP/parser-cfg-analysis.json" "$RUNNER_TEMP/ssa.json" <<'PY'
           import json, sys
           for path in sys.argv[1:]:
               d = json.load(open(path, encoding="utf-8"))
-              assert d["schema"] in ("hepta.cfg.v0", "hepta.cfg.analysis.v0"), path
+              assert d["schema"] in ("hepta.cfg.v0", "hepta.cfg.analysis.v0", "hepta.ssa.scalar.v0"), path
+              if d["schema"] == "hepta.ssa.scalar.v0":
+                  assert d["claims"]["scalar_ssa_subset_constructed"] is True, path
+                  assert d["claims"]["whole_language_ssa_complete"] is False, path
+                  assert d["claims"]["borrow_drop_proven"] is False, path
+                  assert any(fn["phi_count"] > 0 for fn in d["functions"]), path
               if d["schema"] == "hepta.cfg.analysis.v0":
                   assert d["claims"]["phi_nodes_generated"] is False, path
                   assert d["claims"]["dominators_computed"] is True, path
               assert d["reference_validation"]["status"] in ("checked", "checked_with_external_assumptions"), path
-              assert d["claims"]["ssa_constructed"] is False, path
+              if d["schema"] != "hepta.ssa.scalar.v0":
+                  assert d["claims"]["ssa_constructed"] is False, path
               if d["schema"] == "hepta.cfg.v0":
                   assert d["claims"]["backend_semantics_refined"] is False, path
-              else:
+              elif d["schema"] == "hepta.ssa.scalar.v0":
+                  assert d["claims"]["native_backend_refinement_proven"] is False, path
+              elif d["schema"] == "hepta.cfg.analysis.v0":
                   assert d["claims"]["backend_refinement_proved"] is False, path
               if d["schema"] == "hepta.cfg.v0":
                   assert d["claims"]["pointer_provenance_proved"] is False, path
