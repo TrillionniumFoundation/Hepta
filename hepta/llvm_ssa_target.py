@@ -218,6 +218,16 @@ def _defined_exports(data: bytes, target: str) -> frozenset[str]:
                         or info >> 4 not in (1, 2)  # STB_GLOBAL/STB_WEAK
                         or not 0 < section < sections):
                     continue
+                # In ET_REL the symbol value is a byte offset into its
+                # section. A named STT_FUNC in .data or beyond .text is not
+                # evidence of a callable instruction entry point.
+                target_section = table + 64 * section
+                kind, flags = u32(target_section + 4), u64(target_section + 8)
+                extent = u64(target_section + 32)
+                value, width = u64(symbol + 8), u64(symbol + 16)
+                if (kind != 1 or not flags & 0x4 or not extent
+                        or value >= extent or width > extent - value):
+                    continue
                 name = string(string_at + name_at, string_at + string_bytes)
                 if name:
                     found.add(name)
@@ -240,6 +250,17 @@ def _defined_exports(data: bytes, target: str) -> frozenset[str]:
             if index + 1 + aux > count:
                 return frozenset()
             if storage == 2 and typ & 0x20 and 0 < section <= u16(2):
+                code_section = 20 + 40 * (section - 1)
+                characteristics = u32(code_section + 36)
+                raw_bytes = u32(code_section + 16)
+                symbol_offset = u32(symbol + 8)
+                # IMAGE_SCN_CNT_CODE and IMAGE_SCN_MEM_EXECUTE must both
+                # hold. An external function label in .data is insufficient.
+                if (not characteristics & 0x20
+                        or not characteristics & 0x20000000
+                        or not raw_bytes or symbol_offset >= raw_bytes):
+                    index += 1 + aux
+                    continue
                 if data[symbol:symbol + 4] == b"\0" * 4:
                     offset = u32(symbol + 4)
                     name = (string(strings + offset, strings + string_size)
@@ -257,8 +278,17 @@ def _defined_exports(data: bytes, target: str) -> frozenset[str]:
     if fmt == "MACHO64":
         command = 32
         symbol_table = None
+        code_sections: dict[int, tuple[int, int, int]] = {}
+        next_section = 0
         for _ in range(u32(16)):
             operation, size = u32(command), u32(command + 4)
+            if operation == 0x19:  # LC_SEGMENT_64
+                for slot in range(u32(command + 64)):
+                    next_section += 1
+                    entry = command + 72 + 80 * slot
+                    code_sections[next_section] = (u64(entry + 32),
+                                                   u64(entry + 40),
+                                                   u32(entry + 64))
             if operation == 2:  # LC_SYMTAB
                 symbol_table = (u32(command + 8), u32(command + 12),
                                 u32(command + 16), u32(command + 20))
@@ -272,7 +302,15 @@ def _defined_exports(data: bytes, target: str) -> frozenset[str]:
             entry = at + 16 * index
             name_at, kind, section = u32(entry), data[entry + 4], data[entry + 5]
             if (name_at >= string_size or kind & 0x0e != 0x0e
-                    or not kind & 1 or section == 0):  # N_SECT | N_EXT
+                    or not kind & 1 or section not in code_sections):  # N_SECT | N_EXT
+                continue
+            address, extent, flags = code_sections[section]
+            value = u64(entry + 8)
+            # Only nonempty regular instruction sections and actual n_value
+            # locations inside their declared extent count as a function.
+            if (flags & 0xff != 0
+                    or not (flags & 0x80000000 or flags & 0x400)
+                    or not extent or not address <= value < address + extent):
                 continue
             name = string(strings + name_at, strings + string_size)
             # Darwin's external C symbol spelling includes one leading '_'.
