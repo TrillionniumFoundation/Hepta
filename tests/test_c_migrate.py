@@ -94,6 +94,51 @@ int sum_to(int n) {
         for n in (-4, 0, 1, 2, 5, 40, 100):
             self.assertEqual(old(n), new(n), n)
 
+    def test_for_induction_reuses_checked_local_and_differential(self):
+        self.c.write_text("""
+int sum_for(int n) {
+    int total = 0;
+    int i = 0;
+    for (i = 0; i < n; i = i + 1) { total = total + i; }
+    return total;
+}
+""")
+        result = migrate_c(self.c, self.hepta)
+        self.assertTrue(result["ok"], result)
+        migrated_source = self.hepta.read_text()
+        self.assertIn("while (i < n)", migrated_source)
+        self.assertIn("i = (i + 1);", migrated_source)
+        original = self.directory / "lib_original_for.so"
+        translated = self.directory / "lib_hepta_for.so"
+        subprocess.run(["gcc", "-std=c11", "-O2", "-shared", "-fPIC",
+                        str(self.c), "-o", str(original)], check=True, capture_output=True)
+        built = subprocess.run([sys.executable, "-m", "hepta", "build", str(self.hepta),
+                                "--backend", "c", "--crate-type", "cdylib", "-o", str(translated)],
+                               capture_output=True, text=True, timeout=90)
+        self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
+        left, right = ctypes.CDLL(str(original)).sum_for, ctypes.CDLL(str(translated)).sum_for
+        for fn in (left, right):
+            fn.argtypes = [ctypes.c_int32]
+            fn.restype = ctypes.c_int32
+        for n in (-9, -1, 0, 1, 2, 9, 100, 1000):
+            with self.subTest(n=n):
+                self.assertEqual(left(n), right(n))
+
+    def test_unsupported_for_shapes_fail_closed(self):
+        cases = [
+            "int f(int n) { int a=0; for(int i=0; i<n; i=i+1) { a=a+i; } return a; }",
+            "int f(int n) { int i=0; for(i=0; i<n; i++) { } return i; }",
+            "int f(int n) { int i=0; for(i=0; i<n; i=i+1) { if(i==3) continue; } return i; }",
+            "int f(int n) { int i=0; for(i=0; i<n; i=i+1) { int z=i; } return i; }",
+            "int f(int n) { int i=0; for(i=0;; i=i+1) {} return i; }",
+        ]
+        for source in cases:
+            with self.subTest(source=source):
+                self.c.write_text(source)
+                report = migrate_c(self.c, self.hepta)
+                self.assertFalse(report["ok"], report)
+                self.assertFalse(self.hepta.exists())
+
     def test_unsupported_scalar_local_shapes_do_not_publish(self):
         cases = [
             "int f(int n) { int x; return n; }",

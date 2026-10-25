@@ -42,3 +42,17 @@ zero modeled allocator interactions and no blocking, suspension or spawn.
 No foreign functions are allowed inside this profile. The clauses are
 validated with the standard frontend, without creating a second
 resource-checking authority or claiming whole-process memory bounds.
+
+## Strict function-prefix for-loop lowering
+
+A further narrowly scoped subset recognizes Clang `ForStmt` with precisely
+five children: direct assignment to an already-initialized function local,
+empty condition-variable slot, explicit Boolean comparison, direct assignment
+increment, and a compound body with no nested declarations, breaks or continues.
+It emits the initializer followed by a Hepta `while` loop whose final
+statement is the checked update assignment, preserving standard for-loop
+statement ordering for this subset. The converter rejects for-declared locals,
+`++`/`--`, compound updates, `continue`, `break`, absent conditions and
+unmodeled evaluation. This is still L1 candidate translation; original C/C++
+defined-input behavior requires differential checking, not an equivalence
+claim. Both C and C++ reuse the exact same lowering function.

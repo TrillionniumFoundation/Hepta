@@ -164,6 +164,29 @@ def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 
         if value_type != local[0]:
             raise MigrationRejected("E_C_ASSIGN", "Assignment type conversion not in checked subset")
         return [f"{indent}{name} = {value};"]
+    if kind == "ForStmt":
+        # Clang's five slots are: initializer, condition-variable placeholder,
+        # condition, increment, and body. Deliberately admit only an assignment
+        # to a previously initialized function-prefix local. For-declared locals,
+        # ++/--, break/continue, omitted conditions and nested declarations need
+        # separate scope/control-flow semantics and MUST fail closed here.
+        if (len(children) != 5 or children[1] != {}
+                or any(children[n].get("kind") != "BinaryOperator"
+                       or children[n].get("opcode") != "=" for n in (0, 3))
+                or children[4].get("kind") != "CompoundStmt"):
+            raise MigrationRejected("E_C_FOR", "Unsupported for-loop scope/condition/update shape")
+        condition, condition_type = _expr(children[2], args, model, "bool", locals)
+        if condition_type != "bool":
+            raise MigrationRejected("E_C_FOR", "For-loop requires an explicit Boolean condition")
+        # Scope equivalence: initialization executes once before the first
+        # condition; update runs once after every normally completed body.
+        # break/continue and any inner declaration are refused by _stmt.
+        lines = _stmt(children[0], args, model, ret, depth, locals)
+        lines.append(f"{indent}while {condition} {{")
+        lines.extend(_stmt(children[4], args, model, ret, depth + 1, locals))
+        lines.extend(_stmt(children[3], args, model, ret, depth + 1, locals))
+        lines.append(f"{indent}}}")
+        return lines
     if kind == "WhileStmt" and len(children) == 2:
         condition, condition_type = _expr(children[0], args, model, "bool", locals)
         if condition_type != "bool":

@@ -146,6 +146,33 @@ extern "C" int cpp_clamp_local(int x) { return clamp_local(x); }
                 with self.subTest(name=name, args=args):
                     self.assertEqual(left(*args), right(*args))
 
+    def test_strict_cpp_for_induction_and_invalid_updates(self):
+        self.src.write_text("""
+int sum_for(int n) noexcept {
+    int total = 0;
+    int i = 0;
+    for (i = 0; i < n; i = i + 1) { total = total + i; }
+    return total;
+}
+""")
+        converted = migrate_cpp(self.src, self.dst)
+        self.assertTrue(converted["ok"], converted)
+        self.assertEqual(converted["tier"], "L1")
+        self.assertIn("while (i < n)", self.dst.read_text())
+        self.assertEqual(analyze(self.dst.read_text(), str(self.dst), native=False).report["status"],
+                         "frontend_only")
+        self.dst.unlink()
+        self.src.write_text("""
+int sum_for(int n) noexcept {
+    int total = 0;
+    for (int i = 0; i < n; ++i) { total = total + i; }
+    return total;
+}
+""")
+        rejected = migrate_cpp(self.src, self.dst)
+        self.assertFalse(rejected["ok"], rejected)
+        self.assertFalse(self.dst.exists())
+
     def test_hidden_preprocessor_forms_never_publish(self):
         sources = [
             '%:define FLAG 1\nint f(int a) noexcept {return a + FLAG;}',
