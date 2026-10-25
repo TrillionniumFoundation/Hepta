@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 import json
 import os
+import platform
 from pathlib import Path
 import re
 import shutil
@@ -237,6 +238,88 @@ def emit_scalar_ssa_llvm(ssa: SSASnapshot, cfg: CFGSnapshot) -> SSA_LLVM_IR:
     return output
 
 
+
+def _host_library_identity(data: bytes) -> bool:
+    """Conservative actual-host shared-library container check.
+
+    Recognizing a target executable container does NOT prove loaded symbols,
+    generated-code semantics, foreign ABI or runtime safety. No fallback to
+    accepting nonempty opaque bytes on an unsupported operating system.
+    """
+    if not isinstance(data, bytes) or len(data) < 64:
+        return False
+    machine = platform.machine().lower()
+    cpu = ({"x86_64": (62, 0x8664, 0x01000007),
+            "amd64": (62, 0x8664, 0x01000007),
+            "aarch64": (183, 0xaa64, 0x0100000c),
+            "arm64": (183, 0xaa64, 0x0100000c)}).get(machine)
+    if cpu is None:
+        return False
+    system = platform.system()
+    if system == "Linux":
+        if (data[:6] != b"\\x7fELF\\x02\\x01" or
+                int.from_bytes(data[16:18], "little") != 3 or
+                int.from_bytes(data[18:20], "little") != cpu[0]):
+            return False
+        program_offset = int.from_bytes(data[32:40], "little")
+        program_size = int.from_bytes(data[54:56], "little")
+        program_count = int.from_bytes(data[56:58], "little")
+        if (program_offset < 64 or program_size != 56
+                or not 1 <= program_count <= 4096
+                or program_offset + program_size * program_count > len(data)):
+            return False
+        loaded = False
+        for index in range(program_count):
+            off = program_offset + index * program_size
+            header = data[off:off + 56]
+            if int.from_bytes(header[:4], "little") == 1:  # PT_LOAD
+                file_offset = int.from_bytes(header[8:16], "little")
+                file_size = int.from_bytes(header[32:40], "little")
+                memory_size = int.from_bytes(header[40:48], "little")
+                if memory_size < file_size or file_offset + file_size > len(data):
+                    return False
+                loaded = True
+        return loaded
+    if system == "Darwin":
+        if (data[:4] != b"\\xcf\\xfa\\xed\\xfe" or
+                int.from_bytes(data[4:8], "little") != cpu[2] or
+                int.from_bytes(data[12:16], "little") != 6):  # MH_DYLIB
+            return False
+        count = int.from_bytes(data[16:20], "little")
+        length = int.from_bytes(data[20:24], "little")
+        if not 1 <= count <= 512 or length < count * 8 or 32 + length > len(data):
+            return False
+        offset, has_segment = 32, False
+        for _ in range(count):
+            if offset + 8 > 32 + length:
+                return False
+            kind = int.from_bytes(data[offset:offset + 4], "little")
+            step = int.from_bytes(data[offset + 4:offset + 8], "little")
+            if step < 8 or step % 8 or offset + step > 32 + length:
+                return False
+            has_segment |= kind == 0x19  # LC_SEGMENT_64
+            offset += step
+        return has_segment and offset == 32 + length
+    if system == "Windows":
+        if data[:2] != b"MZ":
+            return False
+        nt_offset = int.from_bytes(data[60:64], "little")
+        if nt_offset < 64 or nt_offset + 24 > len(data) or data[nt_offset:nt_offset+4] != b"PE\\0\\0":
+            return False
+        coff = nt_offset + 4
+        if int.from_bytes(data[coff:coff+2], "little") != cpu[1]:
+            return False
+        sections = int.from_bytes(data[coff+2:coff+4], "little")
+        optional_bytes = int.from_bytes(data[coff+16:coff+18], "little")
+        flags = int.from_bytes(data[coff+18:coff+20], "little")
+        table = coff + 20 + optional_bytes
+        return (0 < sections <= 4096 and optional_bytes >= 112
+                and data[coff+20:coff+22] == b"\\x0b\\x02"
+                and flags & 0x2000 != 0  # IMAGE_FILE_DLL
+                and table + 40 * sections <= len(data))
+    return False
+
+
 def compile_scalar_ssa_llvm(ir: SSA_LLVM_IR, *, clang: str = "clang", output: str | Path) -> dict:
     """Compile a host shared-library only; link != ABI qualification or proof."""
     ir.check_identity()
@@ -261,6 +344,11 @@ def compile_scalar_ssa_llvm(ir: SSA_LLVM_IR, *, clang: str = "clang", output: st
         result = _clang_run(cmd, timeout=45)
         if result.returncode or not library.is_file() or library.stat().st_size == 0:
             raise LLVMSSARejected("E_LLVM_SSA_NATIVE: clang compilation failed: " + result.stderr[:1800])
+        staged_bytes = library.read_bytes()
+        if not _host_library_identity(staged_bytes):
+            raise LLVMSSARejected("E_LLVM_SSA_NATIVE: compiler produced no qualified host shared-library container")
+        # Hash the staged native bytes before a no-replace publication.
+        staged_hash = sha256(staged_bytes).hexdigest()
         if target.is_symlink() or target.exists():
             raise LLVMSSARejected("E_LLVM_SSA_OUTPUT: destination created during build")
         os.link(library, target)
@@ -268,8 +356,8 @@ def compile_scalar_ssa_llvm(ir: SSA_LLVM_IR, *, clang: str = "clang", output: st
             "output": str(target), "llvm_ir_sha256": ir.sha256,
             "ssa_sha256": ir.source_ssa_sha256,
             "ssa_verification_sha256": ir.verification_sha256,
-            "artifact_sha256": sha256(target.read_bytes()).hexdigest(),
-            "artifact_bytes": target.stat().st_size,
+            "artifact_sha256": staged_hash,
+            "artifact_bytes": len(staged_bytes),
             "toolchain": {"version": version.stdout.splitlines()[0],
                           "compiler_sha256": sha256(compiler.read_bytes()).hexdigest()},
             "claims": {"backend_refinement_proven": False, "cross_target_abi_qualified": False,

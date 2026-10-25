@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import ctypes
 import json
+import platform
 import random
 import shutil
 import subprocess
@@ -11,9 +12,12 @@ import tempfile
 from hashlib import sha256
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
+from hepta.clang_capture import CaptureResult
 from hepta.cfg import CFGSnapshot
-from hepta.llvm_ssa_backend import LLVMSSARejected, emit_scalar_ssa_llvm, compile_scalar_ssa_llvm
+from hepta.llvm_ssa_backend import (LLVMSSARejected, _host_library_identity,
+                                    emit_scalar_ssa_llvm, compile_scalar_ssa_llvm)
 from hepta.ssa import SSARejected, lower_cfg_scalar_ssa
 from tests.test_ssa_differential import nested_loop_fixture, execute_source
 from tests.test_ssa_scalar import snapshot, block, i, n, expr
@@ -92,6 +96,42 @@ class LLVMSSATests(unittest.TestCase):
         self.assertEqual(report["artifact_sha256"], sha256(normal.read_bytes()).hexdigest())
         with self.assertRaisesRegex(LLVMSSARejected, "E_LLVM_SSA_OUTPUT"):
             compile_scalar_ssa_llvm(ir, output=normal)
+
+    @unittest.skipUnless(shutil.which("clang"), "clang required for native format check")
+    def test_native_container_identity_and_wrong_format_rejection(self):
+        cfg = self.fixture()
+        ir = emit_scalar_ssa_llvm(lower_cfg_scalar_ssa(cfg), cfg)
+        output = self.root / "genuine.so"
+        compile_scalar_ssa_llvm(ir, output=output)
+        original = output.read_bytes()
+        self.assertTrue(_host_library_identity(original))
+        self.assertFalse(_host_library_identity(b"not an executable container" * 64))
+        self.assertFalse(_host_library_identity(original[:64]))
+        if platform.system() == "Linux":
+            forged_type = bytearray(original)
+            forged_type[16:18] = (1).to_bytes(2, "little")  # ET_REL, not ET_DYN.
+            self.assertFalse(_host_library_identity(bytes(forged_type)))
+            forged_cpu = bytearray(original)
+            forged_cpu[18:20] = (0).to_bytes(2, "little")
+            self.assertFalse(_host_library_identity(bytes(forged_cpu)))
+            forged_program = bytearray(original)
+            forged_program[32:40] = (len(original) + 100).to_bytes(8, "little")
+            self.assertFalse(_host_library_identity(bytes(forged_program)))
+
+    @unittest.skipUnless(shutil.which("clang"), "clang required for malformed backend output test")
+    def test_compiler_success_with_nonlibrary_bytes_never_publishes(self):
+        cfg = self.fixture()
+        ir = emit_scalar_ssa_llvm(lower_cfg_scalar_ssa(cfg), cfg)
+        final = self.root / "forged.so"
+        def forged_compiler(argv, *, timeout):
+            if "--version" in argv:
+                return CaptureResult(0, "clang fake identity test\\n", "")
+            Path(argv[argv.index("-o") + 1]).write_bytes(b"not a valid shared library")
+            return CaptureResult(0, "", "")
+        with patch("hepta.llvm_ssa_backend._clang_run", side_effect=forged_compiler):
+            with self.assertRaisesRegex(LLVMSSARejected, "E_LLVM_SSA_NATIVE"):
+                compile_scalar_ssa_llvm(ir, output=final)
+        self.assertFalse(final.exists())
 
     @unittest.skipUnless(shutil.which("clang"), "clang required for overflow negative control")
     def test_native_overflow_abort_negative(self):
