@@ -106,6 +106,12 @@ class HSIRSnapshot:
             raise HSIRRejected("E_HSIR_SNAPSHOT: invalid JSON") from exc
         if not isinstance(obj, dict) or obj.get("schema") != SCHEMA or obj.get("status") != _STATUS:
             raise HSIRRejected("E_HSIR_SNAPSHOT: schema/status mismatch")
+        try:
+            canonical = _json(obj)
+        except (TypeError, ValueError) as exc:
+            raise HSIRRejected("E_HSIR_SNAPSHOT: noncanonical or nonfinite snapshot") from exc
+        if canonical != self.canonical_json:
+            raise HSIRRejected("E_HSIR_SNAPSHOT: noncanonical serialized snapshot")
         _validate_derived_snapshot(obj)
         return {**obj, "sha256": self.sha256}
 
