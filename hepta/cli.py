@@ -110,7 +110,11 @@ def main(argv=None) -> int:
             if args.backend != "rust" or args.locked:
                 raise ValueError("patch currently validates with the Rust backend; regenerate the package lock after an applied edit")
             request = json.loads(Path(args.request).read_text())
-            if isinstance(request, dict) and request.get("schema") == "hepta.patch.v2":
+            if isinstance(request, dict) and request.get("schema") == "hepta.patch.preview.v3":
+                from .agent_preview import preview_multi_body_patch
+                result = preview_multi_body_patch(file, request, apply=args.apply,
+                                                  rustc=args.rustc, target=args.target)
+            elif isinstance(request, dict) and request.get("schema") == "hepta.patch.v2":
                 from .protocol import apply_project_patch
                 result = apply_project_patch(file, request, apply=args.apply, rustc=args.rustc, target=args.target)
             else:
