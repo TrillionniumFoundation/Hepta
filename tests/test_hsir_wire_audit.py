@@ -137,5 +137,40 @@ class WireAuditTests(unittest.TestCase):
                                           "--output", str(out)]), 2)
 
 
+    def test_valid_unresolved_ffi_obligation(self):
+        base = source_bound()
+        del base["sha256"]
+        base["external_obligations"] = [{
+            "function": "extern_entry",
+            "reasons": ["foreign_function", "ffi_effect"],
+            "status": "caller_obligation_not_dischargeable_by_hsir",
+        }]
+        self.assertEqual(module.fingerprint(signed(base))["wire_profile"],
+                         "source_bound_dict_v0")
+
+    def test_rehashed_forged_ffi_obligations_rejected(self):
+        expected = {
+            "function": "extern_entry",
+            "reasons": ["foreign_function", "ffi_effect"],
+            "status": "caller_obligation_not_dischargeable_by_hsir",
+        }
+        variants = [
+            [{**expected, "status": "proof_discharged"}],
+            [{**expected, "reasons": []}],
+            [{**expected, "reasons": ["proof_discharged"]}],
+            [{**expected, "function": True}],
+            [{**expected, "proof": True}],
+            [{**expected, "reasons": ["ffi_effect", "ffi_effect"]}],
+            {"entries": [expected]},
+        ]
+        for index, obligations in enumerate(variants):
+            with self.subTest(variant=index):
+                base = source_bound()
+                del base["sha256"]
+                base["external_obligations"] = obligations
+                with self.assertRaisesRegex(module.HSIRWireRejected,
+                                            "E_HSIR_OBLIGATION"):
+                    module.fingerprint(signed(base))
+
 if __name__ == "__main__":
     unittest.main()
