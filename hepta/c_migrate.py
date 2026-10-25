@@ -132,7 +132,7 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str,
         # outside this profile; !x must not turn into a guessed Hepta cast.
         if expected != "bool" or node.get("type", {}).get("qualType") not in {"int", "bool"}:
             raise MigrationRejected("E_C_LOGICAL", "Logical negation requires a Boolean condition")
-        operand, actual = _expr(inner[0], args, model, "bool", locals)
+        operand, actual = _predicate(inner[0], args, model, locals)
         if actual != "bool":
             raise MigrationRejected("E_C_LOGICAL", "Logical operand must be a checked Boolean expression")
         return f"(!{operand})", "bool"
@@ -162,8 +162,8 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str,
             # left-to-right short-circuit behavior through Hepta && / ||.
             if expected != "bool" or node.get("type", {}).get("qualType") not in {"int", "bool"}:
                 raise MigrationRejected("E_C_LOGICAL", "Logical operations are supported only as Boolean conditions")
-            left, left_type = _expr(inner[0], args, model, "bool", locals)
-            right, right_type = _expr(inner[1], args, model, "bool", locals)
+            left, left_type = _predicate(inner[0], args, model, locals)
+            right, right_type = _predicate(inner[1], args, model, locals)
             if (left_type, right_type) != ("bool", "bool"):
                 raise MigrationRejected("E_C_LOGICAL", "Logical operands must have checked Boolean semantics")
             return f"({left} {op} {right})", "bool"
@@ -230,6 +230,41 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str,
     raise MigrationRejected("E_C_EXPRESSION", f"Unsupported C expression: {kind}")
 
 
+def _predicate(node: dict, args: dict[str, str], model: dict,
+               locals: dict[str, _Local]) -> tuple[str, str]:
+    """Convert a restricted side-effect-free C/C++ scalar truth value to bool.
+
+    Strict logical and comparison syntax is delegated to the existing _expr
+    owner, not reimplemented. Integer truthiness has precise source semantics:
+    zero is false, every nonzero value is true. Pointer/foreign conversion,
+    overloads and hidden side effects still fail closed in _expr.
+    """
+    if not isinstance(node, dict):
+        raise MigrationRejected("E_C_PREDICATE", "Malformed predicate AST")
+    kind = node.get("kind")
+    operands = node.get("inner", [])
+    if not isinstance(operands, list):
+        raise MigrationRejected("E_C_PREDICATE", "Malformed predicate operands")
+    if kind in {"ParenExpr", "ImplicitCastExpr"}:
+        if (len(operands) != 1 or (kind == "ImplicitCastExpr" and
+                                  node.get("castKind") not in _CASTS | {"IntegralToBoolean"})):
+            raise MigrationRejected("E_C_PREDICATE", "Unsupported predicate cast")
+        return _predicate(operands[0], args, model, locals)
+    if ((kind == "BinaryOperator" and node.get("opcode") in _CMP | _LOGICAL)
+            or (kind == "UnaryOperator" and node.get("opcode") == "!")):
+        return _expr(node, args, model, "bool", locals)
+    # All other admitted predicates must first be valid scalar values in the
+    # existing source lowerer. No functions, assignment expressions, ++/--,
+    # pointer access or unmodeled integer promotions enter this fallback.
+    typ = _decl_type(node, model)
+    if typ not in {"i32", "u32", "i64", "u64"}:
+        raise MigrationRejected("E_C_PREDICATE", "Unsupported integer truth value")
+    value, actual = _expr(node, args, model, typ, locals)
+    if actual != typ:
+        raise MigrationRejected("E_C_PREDICATE", "Scalar type changed in predicate")
+    return f"({value} != 0)", "bool"
+
+
 def _ternary(node: dict, args: dict[str, str], model: dict, expected: str,
              locals: dict[str, _Local]) -> tuple[str, str, str]:
     """Translate only type-preserving, side-effect-free scalar branches.
@@ -243,7 +278,7 @@ def _ternary(node: dict, args: dict[str, str], model: dict, expected: str,
     children = node.get("inner", [])
     if len(children) != 3 or _decl_type(node, model) != expected:
         raise MigrationRejected("E_C_CONDITIONAL", "Ternary result type is unsupported")
-    condition, condition_type = _expr(children[0], args, model, "bool", locals)
+    condition, condition_type = _predicate(children[0], args, model, locals)
     positive, positive_type = _expr(children[1], args, model, expected, locals)
     negative, negative_type = _expr(children[2], args, model, expected, locals)
     if (condition_type != "bool" or positive_type != expected or negative_type != expected):
@@ -350,7 +385,7 @@ def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 
             initial_lines = _stmt(initial, args, model, ret, depth, locals, reserved_names)
         else:
             raise MigrationRejected("E_C_FOR_SHAPE", "For requires a checked local assignment or declaration")
-        predicate, predicate_type = _expr(condition, args, model, "bool", scoped_locals)
+        predicate, predicate_type = _predicate(condition, args, model, scoped_locals)
         if predicate_type != "bool":
             raise MigrationRejected("E_C_CONDITION", "Only Boolean comparison for conditions are supported")
         lines = initial_lines + [f"{indent}while {predicate} {{"]
@@ -375,7 +410,7 @@ def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 
                                        "BreakStmt", "ContinueStmt", "GotoStmt", "ReturnStmt"}:
                 raise MigrationRejected("E_C_DO_SCOPE", "Do loop has unsupported declarations or jumps")
             stack.extend(item for item in current.get("inner", []) if isinstance(item, dict))
-        rendered, actual = _expr(condition, args, model, "bool", locals)
+        rendered, actual = _predicate(condition, args, model, locals)
         if actual != "bool":
             raise MigrationRejected("E_C_DO_CONDITION", "Only explicit Boolean do-loop comparisons are supported")
         first = _stmt(body, args, model, ret, depth, locals, reserved_names)
@@ -384,7 +419,7 @@ def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 
             raise MigrationRejected("E_C_DO_LIMIT", "Duplicated do-loop body exceeds bounded scalar profile")
         return first + [f"{indent}while {rendered} {{"] + repeated + [f"{indent}}}"]
     if kind == "WhileStmt" and len(children) == 2:
-        condition, condition_type = _expr(children[0], args, model, "bool", locals)
+        condition, condition_type = _predicate(children[0], args, model, locals)
         if condition_type != "bool":
             raise MigrationRejected("E_C_CONDITION", "Only explicit Boolean while conditions are supported")
         body = children[1]
@@ -407,7 +442,7 @@ def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 
             raise MigrationRejected("E_C_RETURN", "C comparison or implicit conversion is not a Hepta integer return")
         return [f"{indent}return {expression};"]
     if kind == "IfStmt" and len(children) in (2, 3):
-        cond, typ = _expr(children[0], args, model, "bool", locals)
+        cond, typ = _predicate(children[0], args, model, locals)
         if typ != "bool":
             raise MigrationRejected("E_C_CONDITION", "C integer truthiness requires an explicit checked conversion")
         result = [f"{indent}if {cond} {{"]
