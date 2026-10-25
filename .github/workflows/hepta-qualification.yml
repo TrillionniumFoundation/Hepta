@@ -100,6 +100,20 @@ jobs:
               assert build['claims']['backend_semantics_proved'] is False
               assert Path(build['output']).stat().st_size > 0
           PY
+      - name: Produce exact-source LLVM scalar qualification receipt
+        run: |
+          python tools/verify_llvm_subset_host.py \
+            --output artifacts/llvm-subset-ci.json
+          python - <<'PY'
+          import json
+          r = json.load(open('artifacts/llvm-subset-ci.json'))
+          assert r['test_result']['status'] == 'passed'
+          assert r['test_result']['skipped'] == 0
+          assert r['claims']['host_llvm_differential_tested'] is True
+          assert r['claims']['x86_aarch64_windows_target_objects_tested'] is True
+          assert r['claims']['backend_semantics_proved'] is False
+          assert r['claims']['whole_p6_gate_closed'] is False
+          PY
       - name: Qualify new C++ exception boundary
         run: python tools/verify_cpp_bridge_host.py --output artifacts/cpp-bridge-host-ci.json
       - name: Qualify alternate Clang C ABI
