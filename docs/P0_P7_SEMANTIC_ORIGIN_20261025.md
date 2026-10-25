@@ -45,8 +45,8 @@ value-level semantics or whole-language soundness.
 
 ## Executed tests and unclosed scope
 
-Local Python 3.13 / Clang 17 executed **6/6** self-contained tests in
-tests/test_llvm_ir_profile_contract.py, including a real Clang native object,
+Local Python 3.13 / Clang 17 executed **7/7** self-contained tests in
+tests/test_llvm_ir_profile_contract.py, including two real Clang native objects (scalar and PHI/backedge),
 and rejected hostile LLVM instructions/CFG profiles. The exact test and
 validator file bytes matched their uploaded Git blob identities.
 
