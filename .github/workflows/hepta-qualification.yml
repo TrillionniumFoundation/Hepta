@@ -18,6 +18,12 @@ on:
 permissions:
   contents: read
 
+# Do not leave dozens of obsolete 55-minute qualification runs queued while
+# a language-security branch is iterating. Only the newest PR head qualifies.
+concurrency:
+  group: hepta-qualification-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   native-and-safety:
     runs-on: ubuntu-24.04
