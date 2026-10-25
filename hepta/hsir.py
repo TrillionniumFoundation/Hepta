@@ -23,11 +23,14 @@ class HSIRRejected(ValueError):
 @dataclass(frozen=True)
 class HSIRSnapshot:
     schema: str
-    payload: dict
+    canonical_json: str
     sha256: str
 
     def as_dict(self) -> dict:
-        return {"schema": self.schema, "sha256": self.sha256, **self.payload}
+        # Never expose an internally mutable payload behind a frozen hash.
+        payload = json.loads(self.canonical_json)
+        payload["sha256"] = self.sha256
+        return payload
 
 
 class _Encoder:
@@ -116,6 +119,6 @@ def lower_checked_program(program: Program, checked: CheckResult) -> HSIRSnapsho
                    "source_semantics_refined": False, "native_backend_equivalence_proved": False},
     }
     payload["typed_expression_count"] = enc.expressions
-    blob = json.dumps({"schema": "hepta.hsir.v0", **payload}, sort_keys=True,
-                      separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode("utf-8")
-    return HSIRSnapshot("hepta.hsir.v0", payload, sha256(blob).hexdigest())
+    canonical = json.dumps({"schema": "hepta.hsir.v0", **payload}, sort_keys=True,
+                           separators=(",", ":"), ensure_ascii=False, allow_nan=False)
+    return HSIRSnapshot("hepta.hsir.v0", canonical, sha256(canonical.encode("utf-8")).hexdigest())
