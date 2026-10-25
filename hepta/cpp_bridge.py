@@ -1,9 +1,11 @@
-"""Experimental P4 C++ -> C ABI wrapper for unoverloaded noexcept int functions.
+"""Experimental P4 C++ -> C ABI wrapper for unoverloaded int functions.
 
-This creates an L0 bridge only: foreign C++ memory safety, allocation, ABI,
-exception and lifetime contracts remain external. No RAII, class, template,
-callback or exception translation is claimed. Do not execute the Clang parser
-on untrusted code without an OS sandbox.
+L0 foreign interop only: native C++ implementation is not validated as safe.
+The default `noexcept_only` profile preserves the v0 wrapper contract. The
+opt-in `catch_status` profile catches C++ exceptions at the C boundary, uses
+an explicit out parameter and returns status, without preserving exception
+identity or claiming ownership, lifetime, or general C++ ABI qualification.
+Do not execute Clang on untrusted code without an OS sandbox.
 """
 from __future__ import annotations
 
@@ -34,8 +36,11 @@ def _reject(node: dict, reason: str) -> None:
                             f"at {loc.get('line', '?')}:{loc.get('col', '?')}: {reason}")
 
 
-def generate_cpp_bridge(path: str | Path, *, clangxx: str = "clang++") -> CppBridge:
+def generate_cpp_bridge(path: str | Path, *, clangxx: str = "clang++",
+                        exception_mode: str = "noexcept_only") -> CppBridge:
     """Generate C-compatible wrapper definitions for a closed source subset."""
+    if exception_mode not in {"noexcept_only", "catch_status"}:
+        raise MigrationRejected("E_CPP_BRIDGE_MODE: Unsupported exception mode")
     original = Path(path).resolve(strict=True)
     data = original.read_bytes()
     if len(data) > MAX_SOURCE_BYTES:
@@ -84,8 +89,10 @@ def generate_cpp_bridge(path: str | Path, *, clangxx: str = "clang++") -> CppBri
         if node.get("kind") != "FunctionDecl":
             _reject(node, "only top-level free functions are supported")
         typ = node.get("type", {}).get("qualType", "")
-        if not re.fullmatch(r"int \((?:(?:int)(?:, int)*)?\) noexcept", typ):
-            _reject(node, "only explicit noexcept int(int...) free functions are supported")
+        pattern = (r"int \((?:int(?:, int)*)?\) noexcept" if exception_mode == "noexcept_only"
+                   else r"int \((?:int(?:, int)*)?\)(?: noexcept)?")
+        if not re.fullmatch(pattern, typ):
+            _reject(node, "only signed int(int...) free functions matching selected exception mode are supported")
         if node.get("storageClass") or node.get("inline") or node.get("constexpr") or node.get("variadic"):
             _reject(node, "special storage/linkage/constexpr/variadic functions are unsupported")
         children = _children(node)
@@ -110,10 +117,28 @@ def generate_cpp_bridge(path: str | Path, *, clangxx: str = "clang++") -> CppBri
         actual = ", ".join(names)
         wrapper = "hepta_cxx_" + name
         extern_formal = ", ".join("int " + n for n in names) or ""
-        source_lines.extend([f"extern int {name}({formal}) noexcept;",
-                             f'extern "C" int {wrapper}({extern_formal}) noexcept {{',
-                             f"    return {name}({actual});", "}", ""])
-        prototypes.append(f"int {wrapper}({formal});")
+        noexcept = " noexcept" if typ.endswith(" noexcept") else ""
+        if exception_mode == "catch_status":
+            # Error/throw leaves *result_out untouched. Status=2 is reserved.
+            with_out = (extern_formal + ", " if extern_formal else "") + "int *result_out"
+            header_formal = (formal + ", " if names else "") + "int *result_out"
+            source_lines.extend([f"extern int {name}({formal}){noexcept};",
+                                 f'extern "C" int {wrapper}({with_out}) noexcept {{',
+                                 "    if (result_out == nullptr) return -1;",
+                                 "    try {",
+                                 f"        int result = {name}({actual});",
+                                 "        *result_out = result;",
+                                 "        return 0;",
+                                 "    } catch (...) {",
+                                 "        return 1;",
+                                 "    }",
+                                 "}", ""])
+            prototypes.append(f"int {wrapper}({header_formal});")
+        else:
+            source_lines.extend([f"extern int {name}({formal}) noexcept;",
+                                 f'extern "C" int {wrapper}({extern_formal}) noexcept {{',
+                                 f"    return {name}({actual});", "}", ""])
+            prototypes.append(f"int {wrapper}({formal});")
     if not seen:
         raise MigrationRejected("E_CPP_BRIDGE_EMPTY: No supported functions")
     prototypes += ["#ifdef __cplusplus", "}", "#endif", ""]
@@ -122,17 +147,25 @@ def generate_cpp_bridge(path: str | Path, *, clangxx: str = "clang++") -> CppBri
     result = "\n".join(source_lines)
     header = "\n".join(prototypes)
     report = {
-        "schema": "hepta.cpp-bridge.v0", "status": "candidate_unverified", "ok": True,
+        "schema": "hepta.cpp-bridge.v1" if exception_mode == "catch_status" else "hepta.cpp-bridge.v0",
+        "status": "candidate_unverified", "ok": True,
         "interop_level": "L0", "foreign_cpp_memory_safe": False,
-        "exception_translation": "not_implemented", "c_abi_qualified": False,
+        "exception_translation": ("status_without_exception_payload" if exception_mode == "catch_status"
+                                  else "not_implemented"),
+        "exception_mode": exception_mode, "c_abi_qualified": False,
+        "exception_crosses_c_abi": False if exception_mode == "catch_status" else "caller_assumed_noexcept",
         "cpp_abi_qualified": False, "runtime_performance_checked": False,
         "clangxx": compiler_version, "symbols": sorted(seen),
         "source_sha256": sha256(data).hexdigest(),
         "bridge_sha256": sha256(result.encode()).hexdigest(),
         "header_sha256": sha256(header.encode()).hexdigest(),
         "assumptions": ["Original source is built separately with a compatible target C++ ABI",
-                        "Every selected foreign function obeys its noexcept contract",
-                        "No classes/templates/overloads/headers/exceptions cross the bridge",
+                        ("C++ exception unwinding is enabled; throw maps to status 1; null output to -1; "
+                         "on failure output is untouched; exception types and values are discarded"
+                         if exception_mode == "catch_status" else
+                         "Every selected foreign function obeys its noexcept contract"),
+                        "No classes/templates/overloads/headers or object pointers cross the bridge",
+                        "Foreign C++ implementation, side effects and object lifetime remain unverified",
                         "Separate actual C and C++ compiler caller/callee tests are required"],
     }
     return CppBridge(result, header, report)
@@ -143,13 +176,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("source")
     parser.add_argument("--clangxx", default="clang++")
     parser.add_argument("--output-dir", required=True)
+    parser.add_argument("--exception-mode", choices=["noexcept_only", "catch_status"],
+                        default="noexcept_only")
     args = parser.parse_args(argv)
     try:
         target = Path(args.output_dir).resolve()
         if target.exists():
             raise MigrationRejected("E_CPP_BRIDGE_OUTPUT: Output directory must not exist")
         target.parent.mkdir(parents=True, exist_ok=True)
-        result = generate_cpp_bridge(args.source, clangxx=args.clangxx)
+        result = generate_cpp_bridge(args.source, clangxx=args.clangxx,
+                                     exception_mode=args.exception_mode)
         # A no-replace rename of a nonempty directory is available via Linux
         # renameat2; this portable prototype instead requires a dedicated
         # output directory and explicitly calls out non-atomic publication.
