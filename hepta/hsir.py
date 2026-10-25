@@ -22,6 +22,18 @@ _SCALARS = frozenset({"bool", "i8", "i16", "i32", "i64", "i128", "isize",
 _TYPES = _SCALARS | {"Unit"}
 _EXPR = frozenset({"name", "int", "float", "bool", "binary", "unary", "cast"})
 _STMT = frozenset({"let", "assign", "expr", "return", "if", "while", "for"})
+# Canonical Stmt.data must be lossless at every nesting level. Reject
+# unexpected keys rather than allowing a new semantic effect to reach the
+# scalar CFG/SSA bridge where it could otherwise be silently ignored.
+_STMT_DATA_FIELDS = {
+    "let": frozenset({"name", "type", "mutable", "expr"}),
+    "assign": frozenset({"target", "expr"}),
+    "expr": frozenset({"expr"}),
+    "return": frozenset({"expr"}),
+    "if": frozenset({"condition", "then", "else"}),
+    "while": frozenset({"condition", "body"}),
+    "for": frozenset({"name", "start", "end", "body"}),
+}
 _HASH = re.compile(r"[0-9a-f]{64}\Z")
 # Fixed upstream v0 semantic inventory, not an alternative AST encoder.
 # An added/missing field requires a review of the scalar projection boundary.
@@ -126,10 +138,13 @@ def _value(value: Any) -> Any:
     if kind == "stmt":
         if set(value) != _STMT_FIELDS:
             _reject("unreviewed scalar statement fields")
-        if value.get("op") not in _STMT or not isinstance(value.get("data"), dict):
-            _reject(f"unhandled statement {value.get('op')!r}")
-        return {"node": "stmt", "operation": value["op"],
-                "fields": _value(value["data"]), "span": value.get("span")}
+        operation, data = value.get("op"), value.get("data")
+        if operation not in _STMT or not isinstance(data, dict):
+            _reject(f"unhandled statement {operation!r}")
+        if set(data) != _STMT_DATA_FIELDS[operation]:
+            _reject(f"unreviewed {operation} statement data fields")
+        return {"node": "stmt", "operation": operation,
+                "fields": _value(data), "span": value.get("span")}
     _reject(f"unhandled semantic node {kind!r}")
 
 

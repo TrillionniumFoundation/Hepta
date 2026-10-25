@@ -116,6 +116,11 @@ class HSIRBridgeTests(unittest.TestCase):
             "parameter_span_missing": lambda x: x["functions"][0]["params"][0].pop("span"),
             "expression_extra_operands": lambda x: x["functions"][0]["body"][0]["data"]["expr"].update(new_unsafe_effect=True),
             "statement_extra_ownership": lambda x: x["functions"][0]["body"][0].update(implicit_drop=True),
+            "let_data_extra_drop": lambda x: x["functions"][0]["body"][0]["data"].update(implicit_drop=True),
+            "let_data_missing_mutability": lambda x: x["functions"][0]["body"][0]["data"].pop("mutable"),
+            "while_data_extra_effect": lambda x: x["functions"][0]["body"][2]["data"].update(implicit_ffi=True),
+            "nested_if_data_extra_effect": lambda x: x["functions"][0]["body"][2]["data"]["body"][0]["data"].update(implicit_spawn=True),
+            "return_data_extra_ownership": lambda x: x["functions"][0]["body"][3]["data"].update(consume_owner=True),
         }
         for name, mutation in mutations.items():
             with self.subTest(name=name):

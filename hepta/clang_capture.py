@@ -11,6 +11,7 @@ sessions and filesystem side effects are outside this control mechanism.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 import os
 from pathlib import Path
 import signal
@@ -73,8 +74,15 @@ def run_bounded(
     if (not isinstance(argv, list) or not argv
             or any(not isinstance(a, str) or not a or "\0" in a for a in argv)):
         raise CaptureRejected("E_CAPTURE_ARGV", "Expected a nonempty executable argv")
-    if (timeout <= 0 or stdout_limit < 0 or stderr_limit < 0 or stdin_limit < 0):
-        raise CaptureRejected("E_CAPTURE_BUDGET", "Capture budgets must be nonnegative and time positive")
+    # Reject NaN/Infinity, booleans, wrong types and impractically long
+    # wall-time budgets before launching a compiler. NaN used to bypass the
+    # deadline comparison and could leave a live process running indefinitely.
+    if (type(timeout) not in (int, float) or not (0 < timeout <= 3600)
+            or not math.isfinite(timeout)
+            or any(type(limit) is not int or limit < 0 for limit in
+                   (stdout_limit, stderr_limit, stdin_limit))):
+        raise CaptureRejected("E_CAPTURE_BUDGET",
+                              "Capture limits must be nonnegative integer bytes and finite time in (0,3600]s")
     try:
         payload = b"" if input_text is None else input_text.encode("utf-8")
     except (AttributeError, UnicodeEncodeError) as exc:
