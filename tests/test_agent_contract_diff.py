@@ -48,15 +48,15 @@ class AgentContractDiffTests(unittest.TestCase):
         }
 
     def compare(self, before, after):
-        with patch.object(agent_contract_diff, "inspect_pinned_semantics",
+        with patch.object(agent_contract_diff, "inspect_historical_semantics",
                           side_effect=[before, after]) as inspection:
             result = agent_contract_diff.compare_pinned_contracts(
                 "immutable/base", "immutable/candidate",
                 expected_before_version=self.BEFORE,
                 expected_after_version=self.AFTER)
             self.assertEqual(inspection.call_args_list, [
-                call("immutable/base", expected_version=self.BEFORE),
-                call("immutable/candidate", expected_version=self.AFTER)])
+                call("immutable/base", version=self.BEFORE),
+                call("immutable/candidate", version=self.AFTER)])
             return result
 
     def test_effect_resource_contract_diff_is_source_bound(self):
@@ -181,8 +181,21 @@ class AgentContractDiffTests(unittest.TestCase):
         with self.assertRaisesRegex(WorkspaceError, "claims"):
             self.compare(a, b)
 
+    def test_same_store_can_compare_old_and_new_immutable_versions(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        with patch.object(agent_contract_diff, "inspect_historical_semantics",
+                          side_effect=[a, b]) as inspection:
+            result = agent_contract_diff.compare_pinned_contracts(
+                "immutable/one-store", "immutable/one-store",
+                expected_before_version=self.BEFORE,
+                expected_after_version=self.AFTER)
+            self.assertEqual(inspection.call_args_list, [
+                call("immutable/one-store", version=self.BEFORE),
+                call("immutable/one-store", version=self.AFTER)])
+            self.assertTrue(result["workspace_snapshot_changed"])
+
     def test_invalid_exact_version_rejected_without_reading_workspace(self):
-        with patch.object(agent_contract_diff, "inspect_pinned_semantics") as read:
+        with patch.object(agent_contract_diff, "inspect_historical_semantics") as read:
             with self.assertRaisesRegex(WorkspaceError, "exact version"):
                 agent_contract_diff.compare_pinned_contracts(
                     "immutable/a", "immutable/b",

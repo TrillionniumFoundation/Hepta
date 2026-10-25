@@ -11,7 +11,7 @@ from pathlib import Path, PurePosixPath
 import re
 from typing import Any
 
-from .agent_semantics import inspect_pinned_semantics
+from .agent_semantics import inspect_historical_semantics
 from .semantic_ir import _stable_json
 from .workspace import WorkspaceError
 
@@ -91,8 +91,10 @@ def compare_pinned_contracts(
     for version in (expected_before_version, expected_after_version):
         if not isinstance(version, str) or _HASH.fullmatch(version) is None:
             raise WorkspaceError("E_AGENT_DIFF_VERSION", "Both exact version digests are required")
-    before = inspect_pinned_semantics(before_store, expected_version=expected_before_version)
-    after = inspect_pinned_semantics(after_store, expected_version=expected_after_version)
+    # v4 retains immutable historical versions; callers may compare two
+    # versions in ONE store even if CURRENT has already moved forward.
+    before = inspect_historical_semantics(before_store, version=expected_before_version)
+    after = inspect_historical_semantics(after_store, version=expected_after_version)
     old = _inventory(before, expected_before_version)
     new = _inventory(after, expected_after_version)
     if before["compiler_sha256"] != after["compiler_sha256"]:

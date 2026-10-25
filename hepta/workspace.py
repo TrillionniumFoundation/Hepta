@@ -346,8 +346,9 @@ def _nodes(source, path):
     return list(unique.values())
 
 
-def inspect_workspace(store):
-    snapshot = pin(store)
+def inspect_workspace(store, *, version=None):
+    """Inspect CURRENT by default, or one explicitly named immutable version."""
+    snapshot = pin(store) if version is None else pin(store, version=version)
     root = Path(snapshot["root"])
     nodes = {p: _nodes((root / p).read_bytes().decode("utf-8"), p)
              for p in snapshot["manifest"]["validated_sources"]}

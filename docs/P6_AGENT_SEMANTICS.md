@@ -93,3 +93,22 @@ dependency-only edit.
 bundle/profile, even when the loaded Hepta graph remains unchanged. The
 reported scope is `loaded_hepta_module_graph_not_full_workspace`: it
 cannot certify arbitrary external-library behavior or source equivalence.
+
+## Historical version inspection without CURRENT rebinding
+
+The existing `inspect_pinned_semantics(store, expected_version=...)` continues
+to inspect CURRENT and reject stale expected-version tokens. It is **not**
+silently reinterpreted as a historical read.
+
+New `inspect_historical_semantics(store, version=<digest>)` calls the same
+canonical, read-only semantic checker but pins the exact retained v4 version
+without reading CURRENT. `workspace.inspect_workspace(store, version=...)`
+delegates to the existing `workspace.pin(store, version=...)` verifier:
+the complete immutable tree, manifest, source graph and native publication
+evidence are still checked. Historical reads cannot publish or patch.
+
+`compare_pinned_contracts` now invokes the historical query for both pins,
+so a single v4 store can compare its old and new immutable versions after
+CURRENT advances. It still checks compiler identity and reports
+`functional_equivalence_proved=false`. Exact-version negatives and
+same-store comparison are included in regression tests.

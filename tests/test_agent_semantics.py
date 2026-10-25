@@ -137,6 +137,24 @@ class AgentSemanticTests(unittest.TestCase):
         with self.assertRaisesRegex(WorkspaceError, "module graph identity"):
             self._inspect()
 
+    def test_historical_version_uses_immutable_pin_without_current(self):
+        with (patch.object(agent_semantics, "inspect_workspace", return_value=self.snapshot) as inspect,
+              patch.object(agent_semantics, "load_project", return_value=self.graph),
+              patch.object(agent_semantics, "check", return_value=self.checked),
+              patch.object(agent_semantics, "compiler_hash", return_value=self.COMPILER),
+              patch.object(agent_semantics, "lower_checked_program", return_value=self.hsir)):
+            report = agent_semantics.inspect_historical_semantics(
+                "immutable/store", version=self.VERSION)
+            inspect.assert_called_once_with("immutable/store", version=self.VERSION)
+            self.assertEqual(report["workspace_version"], self.VERSION)
+            self.assertEqual(report["functions"][0]["path"], "main.hepta")
+
+    def test_historical_version_requires_digest_before_read(self):
+        with patch.object(agent_semantics, "inspect_workspace") as inspect:
+            with self.assertRaisesRegex(WorkspaceError, "exact version digest"):
+                agent_semantics.inspect_historical_semantics("store", version="bad")
+            inspect.assert_not_called()
+
     def test_stale_expected_version_rejected_before_semantic_load(self):
         with (patch.object(agent_semantics, "inspect_workspace", return_value=self.snapshot),
               patch.object(agent_semantics, "load_project") as load):
