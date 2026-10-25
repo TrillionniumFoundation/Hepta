@@ -225,7 +225,13 @@ def _validate_derived_node(value: Any, depth: int = 0) -> int:
 
 
 def _validate_derived_snapshot(obj: dict) -> None:
-    if set(obj) != _DERIVED_FIELDS or obj.get("claims") != _DERIVED_CLAIMS:
+    claims = obj.get("claims")
+    # Python considers False == 0 and True == 1. A rehashed integer claim
+    # must not masquerade as proof or as canonical-encoder authority.
+    if (set(obj) != _DERIVED_FIELDS or not isinstance(claims, dict)
+            or set(claims) != set(_DERIVED_CLAIMS)
+            or any(claims[key] is not expected
+                   for key, expected in _DERIVED_CLAIMS.items())):
         _reject("derived snapshot inventory/claims differ from reviewed scalar subset")
     if (not isinstance(obj.get("source_sha256"), str)
             or _HASH.fullmatch(obj["source_sha256"]) is None
@@ -244,6 +250,7 @@ def _validate_derived_snapshot(obj: dict) -> None:
     for fn in obj["functions"]:
         if (not isinstance(fn, dict) or set(fn) != _DERIVED_FUNCTION_FIELDS
                 or not isinstance(fn.get("name"), str)
+                or type(fn.get("public")) is not bool
                 or fn.get("type_parameters") != []
                 or not isinstance(fn.get("direction"), str)
                 or fn.get("direction") not in {"local", "export"}
