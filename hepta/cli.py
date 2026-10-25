@@ -12,7 +12,7 @@ import tempfile
 from . import __version__
 from .ast import HeptaError
 from .backend import compile_rust, emit_header, find_rustc, toolchain_info
-from .pipeline import analyze, analyze_project, inspect_analysis, hsir_analysis, hsir_v1_analysis, cfg_analysis, resource_ir_analysis, concurrent_ir_analysis
+from .pipeline import analyze, analyze_project, inspect_analysis, hsir_analysis, hsir_v1_analysis, hsir_v1_resource_analysis, cfg_analysis, resource_ir_analysis, concurrent_ir_analysis
 from .protocol import apply_patch
 
 
@@ -72,7 +72,7 @@ def main(argv=None) -> int:
             w.add_argument("--apply", action="store_true")
         if action == "pin":
             w.add_argument("--version")
-    for cmd in ["check", "inspect", "hsir", "hsir-v1", "cfg", "hmir", "resource-ir", "concurrent-ir", "emit", "header", "build", "run", "patch"]:
+    for cmd in ["check", "inspect", "hsir", "hsir-v1", "hsir-v1-resource", "cfg", "hmir", "resource-ir", "concurrent-ir", "emit", "header", "build", "run", "patch"]:
         p = sub.add_parser(cmd)
         p.add_argument("source")
         p.add_argument("--rustc")
@@ -86,7 +86,7 @@ def main(argv=None) -> int:
         if cmd != "patch":
             p.add_argument("--no-std", action="store_true")
             p.add_argument("--crate-type", choices=["bin", "staticlib", "cdylib", "rlib", "obj"], default="bin" if cmd in {"build", "run"} else "rlib")
-        if cmd in {"check", "inspect", "hsir", "hsir-v1", "cfg", "hmir", "resource-ir", "concurrent-ir"}:
+        if cmd in {"check", "inspect", "hsir", "hsir-v1", "hsir-v1-resource", "cfg", "hmir", "resource-ir", "concurrent-ir"}:
             p.add_argument("--frontend-only", action="store_true", help="Explicitly skip native/borrow checks; output cannot be treated as a complete check")
         if cmd in {"emit", "header", "build"}:
             p.add_argument("--output", "-o")
@@ -188,6 +188,10 @@ def main(argv=None) -> int:
             return 0 if result.report["ok"] else 1
         if args.command == "hsir-v1":
             exported = hsir_v1_analysis(result)
+            output_json(exported)
+            return 0 if exported["ok"] else 1
+        if args.command == "hsir-v1-resource":
+            exported = hsir_v1_resource_analysis(result)
             output_json(exported)
             return 0 if exported["ok"] else 1
         if args.command == "cfg":

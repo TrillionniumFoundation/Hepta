@@ -243,6 +243,27 @@ def hsir_v1_analysis(analysis: Analysis) -> dict:
             "native_validity_not_established_by_hsir_v1": True}
 
 
+
+def hsir_v1_resource_analysis(analysis: Analysis) -> dict:
+    """Independently verify owners/loans against the checked project's v1 HSIR."""
+    rejected = {"schema": "hepta.hsir-resource.export.v1", "ok": False,
+                "status": "rejected", "binding": None, "validation": analysis.report}
+    exported = hsir_v1_analysis(analysis)
+    if not exported["ok"]:
+        return rejected
+    try:
+        from .hsir_v1_resource import HSIRResourceRejected, checked_resource_snapshot
+        binding = checked_resource_snapshot(analysis, exported["hsir"])
+    except (HSIRResourceRejected, TypeError, ValueError, KeyError, OverflowError,
+            RecursionError) as exc:
+        return {**rejected, "diagnostics": [{"code": "E_HSIR_RESOURCE_LOWER",
+                  "phase": "resource-ir", "message": str(exc)}]}
+    return {"schema": "hepta.hsir-resource.export.v1",
+            "ok": True, "status": exported["status"],
+            "binding": binding, "validation": analysis.report,
+            "native_validity_not_established_by_resource_binding": True}
+
+
 def cfg_analysis(analysis: Analysis) -> dict:
     """Export checked structured control flow without upgrading proof claims."""
     if analysis.program is None or analysis.checked is None or not analysis.checked.ok:
