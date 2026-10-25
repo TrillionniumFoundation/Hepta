@@ -6,6 +6,7 @@ C++ ABI, cross-target object generation, or hardware execution.
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import hashlib
 import json
 from pathlib import Path
@@ -163,6 +164,8 @@ def run_matrix(directory: Path, gcc: str, clang: str) -> dict:
     if first.returncode or second.returncode or neg.returncode == 0:
         raise RuntimeError("Negative ABI mutation was not correctly detected")
     return {"schema": "hepta.host-c-abi.v1", "status": "passed_host_only",
+            "created_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
+            "generator_sha256": _digest(Path(__file__)),
             "host": {"os": platform.system(), "architecture": platform.machine()},
             "compiler_identity": identity,
             "fixtures_sha256": {name: _digest(directory / name) for name in paths},
