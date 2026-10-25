@@ -23,6 +23,18 @@ _TYPES = _SCALARS | {"Unit"}
 _EXPR = frozenset({"name", "int", "float", "bool", "binary", "unary", "cast"})
 _STMT = frozenset({"let", "assign", "expr", "return", "if", "while", "for"})
 _HASH = re.compile(r"[0-9a-f]{64}\Z")
+# Fixed upstream v0 semantic inventory, not an alternative AST encoder.
+# An added/missing field requires a review of the scalar projection boundary.
+_CANONICAL_FIELDS = frozenset({
+    "schema", "profile", "module", "path", "source_sha256", "project_sha256",
+    "imports", "structs", "enums", "functions", "untyped_expressions",
+    "all_expressions_typed", "external_obligations", "volatile_accesses",
+    "foreign_assumptions", "resource_contracts", "owned_types", "claims", "sha256",
+})
+_CANONICAL_CLAIMS = frozenset({
+    "native_borrow_validation", "translation_correctness_proved",
+    "whole_language_soundness_proved", "foreign_contracts_proved",
+})
 
 
 class HSIRRejected(ValueError):
@@ -118,16 +130,22 @@ def from_canonical_snapshot(source: dict[str, Any]) -> HSIRSnapshot:
     parent = {k: v for k, v in source.items() if k != "sha256"}
     if sha256(_json(parent).encode("utf-8")).hexdigest() != parent_digest:
         _reject("canonical snapshot checksum mismatch")
+    if set(source) != _CANONICAL_FIELDS:
+        _reject("canonical HSIR field inventory differs from reviewed v0 semantics")
     if (source.get("profile") != "checked_typed_ast_not_verified_mir"
             or source.get("all_expressions_typed") is not True
             or source.get("untyped_expressions")):
         _reject("source has not established a fully typed checked AST")
     claims = source.get("claims")
-    if not isinstance(claims, dict) or any(v is not False for v in claims.values()):
+    if (not isinstance(claims, dict) or set(claims) != _CANONICAL_CLAIMS
+            or any(v is not False for v in claims.values())):
         _reject("source claims exceed canonical prototype guarantees")
-    if any(source.get(k) for k in ("imports", "structs", "enums", "external_obligations",
-                                    "foreign_assumptions", "volatile_accesses")):
-        _reject("imports, nominal types and external/volatile obligations need dedicated lowering")
+    # Missing inventories, falsey non-list values and hidden owned types must
+    # never be interpreted as proof that this scalar projection is complete.
+    restricted = ("imports", "structs", "enums", "external_obligations",
+                  "foreign_assumptions", "volatile_accesses", "owned_types")
+    if any(not isinstance(source[k], list) or source[k] for k in restricted):
+        _reject("nominal/owned types or external obligations require dedicated lowering")
     if not isinstance(source.get("functions"), list):
         _reject("missing function inventory")
     if not isinstance(source.get("source_sha256"), str) or _HASH.fullmatch(source["source_sha256"]) is None:

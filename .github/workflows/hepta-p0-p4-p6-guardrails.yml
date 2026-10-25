@@ -1,4 +1,4 @@
-name: Hepta P0/P4/P6 exact-head hardening
+name: Hepta P0/P1/P4/P6 exact-head hardening
 on:
   push:
     branches:
@@ -32,4 +32,4 @@ jobs:
           clang++ --version
           gcc --version
       - name: Run P4/P6 positive and negative tests
-        run: python -m unittest tests.test_cpp2hepta_l1 tests.test_agent_semantics -v
+        run: python -m unittest tests.test_hsir_bridge tests.test_cpp2hepta_l1 tests.test_agent_semantics -v

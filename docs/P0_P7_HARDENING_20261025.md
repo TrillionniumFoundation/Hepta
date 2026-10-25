@@ -3,6 +3,15 @@
 Exact upstream PR #48 commit: e84fba15b347a9e23b0d6e607224031668d8207f.
 This is an incremental Draft contribution, not a language-release qualification.
 
+## P1: canonical HSIR fail-closed admission
+
+The scalar CFG/SSA adapter now requires the complete reviewed canonical HSIR
+v0 top-level field inventory, the complete set of false prototype proof claims,
+and empty, properly typed nominal/foreign/volatile/Owned inventories. Rehashed
+snapshots that omit external obligations or introduce unreviewed semantic fields
+reject; a digest cannot be a substitute for checking the supported subset.
+This adds no new Ownership/Provenance/Drop semantics or whole-language proof.
+
 ## P4: hidden C++ preprocessing
 
 The strict cpp2hepta L1 pilot had rejected lines beginning with # but not the
@@ -25,7 +34,8 @@ native-validation metadata as a structured WorkspaceError.
 
 ## P0: bounded qualification
 
-The exact-head workflow runs the C++ L1 and Agent semantic-inspection test
-suites including the new negative controls. A scoped success is not equivalent
-to the full release gate on the new integration HEAD. None of P0-P7 or P01-P12
+The exact-head workflow runs the HSIR bridge, C++ L1 and Agent semantic-inspection
+test suites including the new negative controls. The existing full pinned release
+workflow is also enabled for this branch. Both must report complete results for
+the *new exact HEAD* before their results can be called passed. None of P0-P7 or P01-P12
 is marked complete by this change. whole_project_blockers_closed=false.
