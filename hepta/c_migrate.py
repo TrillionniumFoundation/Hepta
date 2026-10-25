@@ -31,6 +31,17 @@ class MigrationRejected(ValueError):
         super().__init__(message)
 
 
+class _ParameterTypes(dict):
+    """Keep the public name-to-type map while binding Clang parameter IDs.
+
+    This is a migration input identity check, not a full source-to-IR proof.
+    Serialized candidate reports still expose only the ordinary type mapping.
+    """
+    def __init__(self):
+        super().__init__()
+        self.declaration_ids: dict[str, str] = {}
+
+
 def _run(args: list[str], *, input_text: str | None = None) -> str:
     try:
         proc = subprocess.run(args, input=input_text, capture_output=True, text=True,
@@ -106,7 +117,11 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str,
         decl = node.get("referencedDecl", {})
         name = decl.get("name", "")
         if decl.get("kind") == "ParmVarDecl":
-            actual = args.get(name)
+            # A matching spelling is not enough. Reject a forged, stale or
+            # out-of-scope parameter reference even if its type is unchanged.
+            recorded = getattr(args, "declaration_ids", {}).get(name)
+            actual = args.get(name) if (isinstance(decl.get("id"), str)
+                                        and recorded == decl["id"]) else None
         elif decl.get("kind") == "VarDecl":
             local = locals.get(name)
             actual = local[0] if (local is not None
@@ -118,7 +133,9 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str,
             raise MigrationRejected("E_C_REF", "Reference is not a checked parameter or initialized local")
         if actual != expected:
             raise MigrationRejected("E_C_PROMOTION", "C integer promotions require a separate checked lowering")
-        return name, expected
+        # A for-initializer local is hygienically renamed from its stable
+        # source offset, but its Clang declaration identity must still match.
+        return (local[2] if decl.get("kind") == "VarDecl" and len(local) > 2 else name), expected
     if kind == "UnaryOperator" and node.get("opcode") in {"+", "-"} and len(inner) == 1:
         rendered, typ = _expr(inner[0], args, model, expected, locals)
         if node["opcode"] == "-" and expected.startswith("u"):
@@ -146,6 +163,43 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str,
     raise MigrationRejected("E_C_EXPRESSION", f"Unsupported C expression: {kind}")
 
 
+def _for_decl_initializer(node: dict, args: dict[str, str], model: dict,
+                          locals: dict[str, tuple], depth: int) -> str:
+    """Lower one C/C++ for-init auto scalar with a hygienic Hepta name.
+
+    Source name/id are retained for subsequent AST reference checks. The
+    emitted variable is Copy-only and cannot escape to foreign pointers.
+    Widening its syntactic scope therefore does not add observable lifetime
+    effects. It never changes a user's original parameter/local spelling.
+    """
+    if node.get("kind") != "DeclStmt" or len(node.get("inner", [])) != 1:
+        raise MigrationRejected("E_C_FOR_DECL", "Expected exactly one for-loop local declarator")
+    decl = node["inner"][0]
+    if decl.get("kind") != "VarDecl":
+        raise MigrationRejected("E_C_FOR_DECL", "Expected a Clang VarDecl")
+    if (decl.get("storageClass") is not None or decl.get("tls") is not None
+            or decl.get("constexpr") or decl.get("isConstexpr") or decl.get("inline")):
+        raise MigrationRejected("E_C_LOCAL_STORAGE", "Persistent or special for-loop storage is unsupported")
+    name, identity = decl.get("name"), decl.get("id")
+    offset = decl.get("loc", {}).get("offset")
+    if (not isinstance(name, str) or not _IDENT.fullmatch(name) or name.startswith("__")
+            or not isinstance(identity, str) or not isinstance(offset, int) or offset < 0):
+        raise MigrationRejected("E_C_FOR_DECL", "Missing source-bound for-loop local identity")
+    if decl.get("init") is None or len(decl.get("inner", [])) != 1:
+        raise MigrationRejected("E_C_LOCAL_INIT", "For-loop local requires a scalar initializer")
+    typ = _decl_type(decl, model)
+    # Check the initializer before introducing the newly declared local:
+    # self-referential reads cannot be mistaken for reads of an older owner.
+    expr, actual = _expr(decl["inner"][0], args, model, typ, locals)
+    if actual != typ:
+        raise MigrationRejected("E_C_LOCAL_INIT", "For-loop initializer changes scalar type")
+    emitted = f"hepta_for_{offset}_{name}"
+    if emitted in args or any(k == emitted or
+                              (len(v) > 2 and v[2] == emitted) for k, v in locals.items()):
+        raise MigrationRejected("E_C_FOR_DECL", "Generated local name conflicts with source declarations")
+    locals[name] = (typ, identity, emitted)
+    return f"{'    ' * depth}let mut {emitted}: {typ} = {expr};"
+
 def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 1,
           locals: dict[str, tuple[str, str]] | None = None) -> list[str]:
     locals = {} if locals is None else locals
@@ -165,7 +219,8 @@ def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 
         value, value_type = _expr(children[1], args, model, local[0], locals)
         if value_type != local[0]:
             raise MigrationRejected("E_C_ASSIGN", "Assignment type conversion not in checked subset")
-        return [f"{indent}{name} = {value};"]
+        emitted = local[2] if len(local) > 2 else name
+        return [f"{indent}{emitted} = {value};"]
     if kind == "UnaryOperator" and node.get("opcode") in {"++", "--"} and len(children) == 1:
         # Standalone pre/post increment/decrement has no observed value.
         # Only the exact Clang declaration ID of a validated local is admitted.
@@ -177,12 +232,15 @@ def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 
                 or _decl_type(node, model) != local[0]):
             raise MigrationRejected("E_C_INCREMENT", "Only increment/decrement of an initialized scalar local is supported")
         op = "+" if node["opcode"] == "++" else "-"
+        emitted = local[2] if len(local) > 2 else name
+        # Never replace arbitrary substrings: e.g. 'i' also occurs inside
+        # 'wrapping_add', and text replacement would corrupt the builtin name.
         if local[0].startswith("u"):
             builtin = "wrapping_add" if op == "+" else "wrapping_sub"
-            result = f"{builtin}({name}, 1)"
+            result = f"{builtin}({emitted}, 1)"
         else:
-            result = f"({name} {op} 1)"
-        return [f"{indent}{name} = {result};"]
+            result = f"({emitted} {op} 1)"
+        return [f"{indent}{emitted} = {result};"]
     if kind == "ForStmt":
         # Clang's five slots: initializer, condition-variable declaration,
         # condition, increment, and body. For the strict subset no continue,
@@ -193,19 +251,27 @@ def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 
                 or any(part is None for part in (children[0], children[2], children[3], children[4]))):
             raise MigrationRejected("E_C_FOR_SHAPE", "For requires explicit init, comparison, step and body")
         initial, _, condition, advance, loop_body = children
-        if (initial.get("kind") != "BinaryOperator" or initial.get("opcode") != "="
-                or loop_body.get("kind") != "CompoundStmt"
+        if (loop_body.get("kind") != "CompoundStmt"
                 or not ((advance.get("kind") == "BinaryOperator" and advance.get("opcode") == "=")
                         or (advance.get("kind") == "UnaryOperator"
                             and advance.get("opcode") in {"++", "--"}))):
-            raise MigrationRejected("E_C_FOR_SHAPE", "For requires assignment initializer, scalar step and compound body")
-        initial_lines = _stmt(initial, args, model, ret, depth, locals)
-        predicate, predicate_type = _expr(condition, args, model, "bool", locals)
+            raise MigrationRejected("E_C_FOR_SHAPE", "For requires scalar step and compound body")
+        # A ForStmt init declaration has a private C/C++ scope. Use a fresh
+        # mapping and a source-offset-derived Hepta name, so nested/repeated
+        # 'for (int i = ...)' cannot alias unrelated surrounding locals.
+        loop_locals = dict(locals)
+        if initial.get("kind") == "DeclStmt":
+            initial_lines = [_for_decl_initializer(initial, args, model, loop_locals, depth)]
+        elif initial.get("kind") == "BinaryOperator" and initial.get("opcode") == "=":
+            initial_lines = _stmt(initial, args, model, ret, depth, loop_locals)
+        else:
+            raise MigrationRejected("E_C_FOR_SHAPE", "For initializer must assign or declare a checked scalar")
+        predicate, predicate_type = _expr(condition, args, model, "bool", loop_locals)
         if predicate_type != "bool":
             raise MigrationRejected("E_C_CONDITION", "Only Boolean comparison for conditions are supported")
         lines = initial_lines + [f"{indent}while {predicate} {{"]
-        lines.extend(_stmt(loop_body, args, model, ret, depth + 1, locals))
-        lines.extend(_stmt(advance, args, model, ret, depth + 1, locals))
+        lines.extend(_stmt(loop_body, args, model, ret, depth + 1, loop_locals))
+        lines.extend(_stmt(advance, args, model, ret, depth + 1, loop_locals))
         lines.append(f"{indent}}}")
         return lines
     if kind == "WhileStmt" and len(children) == 2:
@@ -258,12 +324,16 @@ def _function(decl: dict, model: dict) -> dict:
     params = [x for x in parts if x.get("kind") == "ParmVarDecl"]
     if "..." in typ or len(params) > 32:
         raise MigrationRejected("E_C_FUNCTION", "Variadic or oversized C function signature")
-    args = {}
+    args = _ParameterTypes()
     for p in params:
         n = p.get("name", "")
-        if not _IDENT.fullmatch(n) or n in args or n.startswith("__"):
+        if not isinstance(n, str) or not _IDENT.fullmatch(n) or n in args or n.startswith("__"):
             raise MigrationRejected("E_C_NAME", "Unnamed, duplicate or reserved C parameter")
+        identity = p.get("id")
+        if not isinstance(identity, str) or not identity:
+            raise MigrationRejected("E_C_PARAM_ID", "Clang parameter declaration identity is missing")
         args[n] = _decl_type(p, model)
+        args.declaration_ids[n] = identity
     # Deliberately narrow scope recovery: initialized local declarations must
     # be a simple prefix of the function's top-level block. Nested declarations,
     # shadowing, multiple declarators and arbitrary initialization are rejected.

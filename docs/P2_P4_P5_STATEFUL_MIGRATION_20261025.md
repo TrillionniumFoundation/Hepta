@@ -52,9 +52,11 @@ direct scalar assignment or standalone ++/-- step on an initialized local,
 and a compound statement body. The output preserves init/body/step order:
 init; while (condition) { body; step; }. Signed arithmetic may abort on
 otherwise undefined source inputs; unsigned ++/-- use wrapping arithmetic.
-All forms with an initializer declaration, missing condition, nested variable
-declaration, break/continue/goto, compound assignment, or unbraced loop body
-reject, rather than hiding scope/lifetime and control-flow differences.
+The earlier assignment-only restriction was superseded by the scoped
+single-scalar declaration profile described below. Multiple or uninitialized
+for-initializer declarations, nonautomatic storage, missing condition, nested
+body declarations, break/continue/goto, compound assignments and unbraced loop
+bodies still reject rather than silently changing source semantics.
 
 C11 and C++20 finite-domain native ABI differential tests are added.
 Passing those tests is not proof of whole-program L2/L3 source equivalence.
@@ -81,3 +83,52 @@ complete transitive dependency manifest, or protection from noncooperating
 filesystem writes in the final instant before the no-replace link.
 Use the existing compile_commands.json project migrator for full configuration
 capture, multi-TU coverage and per-header dependency/identity evidence.
+
+## Declared for-initializer scopes (P2/P4 follow-up)
+
+The shared AST converter now accepts one explicitly initialized automatic
+scalar VarDecl in a Clang five-slot ForStmt initializer. It checks the source
+declaration's AST ID and lexical location, rejects storage-class/TLS or multiple
+declarators and requires the same restricted Boolean condition, scalar step
+and compound body as assignment-initializer loops.
+
+A stable source-byte-offset-derived Hepta local name avoids reusing the
+source spelling when two disjoint for scopes both declare `i`. A fresh
+lexical mapping retains the Clang VarDecl ID; nested loops may shadow source
+names without conflating ownership. The emitted Copy-only local can live
+through the containing Hepta block because this subset forbids destructors,
+pointers, retained borrows, captured closures and external effects. The
+generated name is deterministic for one frozen input AST, not a C++ ABI symbol.
+
+Native differential tests include repeated `for(int i=...)` in C11 and
+nested `for(int i=...)` in C++20, plus rejected uninitialized or multi-variable
+initializers. Translation remains a strict L1 candidate; no general C/C++
+scope/lifetime equivalence or L2/L3 proof is inferred.
+
+Unsigned for-init locals use the built-in `wrapping_add`/`wrapping_sub` with
+AST-driven emitted names, not whole-string replacement (which could corrupt
+builtin spellings containing the source variable name). Regression tests also
+cover for-declaration shadowing of a function parameter; the parameter must
+retain its own Clang ParmVarDecl identity outside the loop. Local Clang AST
+acceptance alone is not counted as a Hepta native build pass.
+
+## P5 declared-for direct-LLVM acceptance gate
+
+`tests.test_stateful_migration_llvm` now consumes the same strict source
+profile with `for (int i=0;...)` rather than only an assignment-initializer
+loop. The gate explicitly checks the deterministic loop-local name and
+normalized while/step form, then requires the pinned Rust compiler and the
+independent SSA verifier before emitting direct LLVM. The original C++
+wrapper, Hepta/C and native LLVM comparisons remain finite defined-input
+observations. Until they actually run on one exact checked source HEAD,
+this is an executable acceptance criterion, not a qualified backend claim.
+
+## Parameter source-ID admission hardening (P1/P2)
+
+The common scalar lowerer also retains the Clang ParmVarDecl identity for
+each source argument while preserving the outward name-to-type report map.
+Every argument reference must match the exact original declaration ID, not
+merely its name or type. Rehashed/mutated AST reference nodes with correct
+spelling but forged IDs fail before Hepta publication. This is a narrow
+source-provenance invariant, not formal pointer provenance or soundness of
+arbitrary frontend/backend lowering.

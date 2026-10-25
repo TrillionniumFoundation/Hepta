@@ -38,3 +38,24 @@ spawning or indirect calls. Migrated functions therefore carry explicit
 and `may_spawn=false` Hepta resource clauses, checked by the Hepta frontend.
 These are per-function checked-profile constraints, not process-wide
 C/C++ execution resource bounds or evidence about unconverted foreign code.
+
+## Source-level top-level declaration denominator
+
+The strict standalone C++20 L1 report now records `source_sha256` and
+`top_level_declarations` (original source-byte span, Clang kind/name,
+and AST-candidate versus unsupported status). The
+`top_level_inventory_complete` flag becomes true only after the entire
+top-level AST list has been traversed without a source-location loss.
+`top_level_declaration_count`, `top_level_L1_candidates` and
+`top_level_unsupported` are kept even if an unsupported class or
+declaration causes the entire output to reject. A function may be
+an AST candidate yet later fail the canonical scalar lowerer, frontend,
+or native qualification: candidate does not mean converted.
+
+This denominator is one active standalone translation unit under the
+explicit C++20 compiler/configuration, not all C++ declarations in a
+repository, inactive preprocessor branches, class members, dependency
+headers or a compile database. A source-ranged AST declaration with no
+usable source location rejects coverage rather than disappearing silently.
+No partial .hepta file is published when any top-level declaration is
+unsupported.
