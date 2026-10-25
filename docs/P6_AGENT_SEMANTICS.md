@@ -61,3 +61,54 @@ tracked contract fields; previously it could see only a coarse project
 interface hash change. Both source and semantic hashes are retained,
 and elevated or incomplete foreign-qualification proof flags reject.
 Unchanged metadata never proves unchanged behavior; no live project is edited.
+
+## Snapshot-stable module origin (2026-10-25)
+
+The canonical loader reports absolute paths inside the pinned
+`versions/<version>/tree` directory; they legitimately change after each
+publication. Read-only Agent inspection now validates each function origin
+against the same pinned tree root and `validated_sources` manifest, then
+publishes its function path (and declaration span path) as a portable
+project-relative module path. Unbound, escaped, missing or inconsistent spans
+fail closed rather than appearing as an unrelated added/removed function in a
+cross-version contract diff. The canonical HSIR hash continues to authenticate
+the actual source-bound input, not the normalized presentation metadata.
+
+The consumer independently rejects nonportable or non-manifest paths. This
+fixes a contract-identity false positive; it is not a source equivalence,
+workspace integrity or compiler soundness proof. Physical hardware, performance
+and real-model Agent qualification remain open.
+
+## Multi-module source identity scopes (2026-10-25)
+
+`inspect_pinned_semantics` exposes `checked_graph_sha256` from the existing
+`LoadedProject.identity`. It binds the checked Hepta sources and import edges
+by relative names, including portable package state. The canonical
+`source_sha256` covers the entry source text and is insufficient to detect a
+dependency-only edit.
+
+`compare_pinned_contracts` now distinguishes `entry_source_changed`,
+`checked_graph_changed` (also the corrected `source_identity_changed`), and
+`workspace_snapshot_changed`. The last includes the complete v4 pinned
+bundle/profile, even when the loaded Hepta graph remains unchanged. The
+reported scope is `loaded_hepta_module_graph_not_full_workspace`: it
+cannot certify arbitrary external-library behavior or source equivalence.
+
+## Historical version inspection without CURRENT rebinding
+
+The existing `inspect_pinned_semantics(store, expected_version=...)` continues
+to inspect CURRENT and reject stale expected-version tokens. It is **not**
+silently reinterpreted as a historical read.
+
+New `inspect_historical_semantics(store, version=<digest>)` calls the same
+canonical, read-only semantic checker but pins the exact retained v4 version
+without reading CURRENT. `workspace.inspect_workspace(store, version=...)`
+delegates to the existing `workspace.pin(store, version=...)` verifier:
+the complete immutable tree, manifest, source graph and native publication
+evidence are still checked. Historical reads cannot publish or patch.
+
+`compare_pinned_contracts` now invokes the historical query for both pins,
+so a single v4 store can compare its old and new immutable versions after
+CURRENT advances. It still checks compiler identity and reports
+`functional_equivalence_proved=false`. Exact-version negatives and
+same-store comparison are included in regression tests.

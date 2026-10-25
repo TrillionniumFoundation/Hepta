@@ -24,6 +24,7 @@ class AgentContractDiffTests(unittest.TestCase):
             "interface_sha256": "d" * 64,
             "source_semantic_sha256": "e" * 64 if version == self.BEFORE else "f" * 64,
             "source_sha256": "1" * 64 if version == self.BEFORE else "2" * 64,
+            "checked_graph_sha256": "3" * 64 if version == self.BEFORE else "4" * 64,
             "validated_sources": ["src/main.hepta"],
             "external_obligations": [],
             "foreign_assumptions": [],
@@ -47,15 +48,15 @@ class AgentContractDiffTests(unittest.TestCase):
         }
 
     def compare(self, before, after):
-        with patch.object(agent_contract_diff, "inspect_pinned_semantics",
+        with patch.object(agent_contract_diff, "inspect_historical_semantics",
                           side_effect=[before, after]) as inspection:
             result = agent_contract_diff.compare_pinned_contracts(
                 "immutable/base", "immutable/candidate",
                 expected_before_version=self.BEFORE,
                 expected_after_version=self.AFTER)
             self.assertEqual(inspection.call_args_list, [
-                call("immutable/base", expected_version=self.BEFORE),
-                call("immutable/candidate", expected_version=self.AFTER)])
+                call("immutable/base", version=self.BEFORE),
+                call("immutable/candidate", version=self.AFTER)])
             return result
 
     def test_effect_resource_contract_diff_is_source_bound(self):
@@ -91,6 +92,10 @@ class AgentContractDiffTests(unittest.TestCase):
             "parameter_lifetimes", "lifetime_params", "type_params", "type_bounds",
         ])
         self.assertTrue(result["source_identity_changed"])
+        self.assertTrue(result["checked_graph_changed"])
+        self.assertTrue(result["entry_source_changed"])
+        self.assertEqual(result["source_identity_scope"],
+                         "loaded_hepta_module_graph_not_full_workspace")
         self.assertFalse(result["claims"]["functional_equivalence_proved"])
 
     def test_foreign_contract_elevation_rejected(self):
@@ -120,6 +125,44 @@ class AgentContractDiffTests(unittest.TestCase):
                           self.compare(a, b)["reported_contract_changes"]],
                          [("new", "added"), ("old", "removed")])
 
+    def test_dependency_edit_changes_checked_graph_not_entry(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        b["source_sha256"] = a["source_sha256"]
+        result = self.compare(a, b)
+        self.assertFalse(result["entry_source_changed"])
+        self.assertTrue(result["checked_graph_changed"])
+        self.assertTrue(result["source_identity_changed"])
+        self.assertTrue(result["workspace_snapshot_changed"])
+
+    def test_snapshot_only_change_is_not_checked_graph_change(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        b["source_sha256"] = a["source_sha256"]
+        b["checked_graph_sha256"] = a["checked_graph_sha256"]
+        result = self.compare(a, b)
+        self.assertFalse(result["entry_source_changed"])
+        self.assertFalse(result["checked_graph_changed"])
+        self.assertFalse(result["source_identity_changed"])
+        self.assertTrue(result["workspace_snapshot_changed"])
+
+    def test_bad_graph_sha_rejected(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        b["checked_graph_sha256"] = "bad"
+        with self.assertRaisesRegex(WorkspaceError, "bound digest"):
+            self.compare(a, b)
+
+    def test_absolute_snapshot_paths_are_not_comparable_function_keys(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        a["functions"][0]["path"] = (
+            "/store/versions/" + self.BEFORE + "/tree/src/main.hepta")
+        with self.assertRaisesRegex(WorkspaceError, "nonportable"):
+            self.compare(a, b)
+
+    def test_path_missing_from_validated_source_inventory_is_rejected(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        b["validated_sources"] = ["src/other.hepta"]
+        with self.assertRaisesRegex(WorkspaceError, "nonportable"):
+            self.compare(a, b)
+
     def test_different_compiler_fails_closed(self):
         a, b = self.report(self.BEFORE), self.report(self.AFTER)
         b["compiler_sha256"] = "0" * 64
@@ -138,8 +181,21 @@ class AgentContractDiffTests(unittest.TestCase):
         with self.assertRaisesRegex(WorkspaceError, "claims"):
             self.compare(a, b)
 
+    def test_same_store_can_compare_old_and_new_immutable_versions(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        with patch.object(agent_contract_diff, "inspect_historical_semantics",
+                          side_effect=[a, b]) as inspection:
+            result = agent_contract_diff.compare_pinned_contracts(
+                "immutable/one-store", "immutable/one-store",
+                expected_before_version=self.BEFORE,
+                expected_after_version=self.AFTER)
+            self.assertEqual(inspection.call_args_list, [
+                call("immutable/one-store", version=self.BEFORE),
+                call("immutable/one-store", version=self.AFTER)])
+            self.assertTrue(result["workspace_snapshot_changed"])
+
     def test_invalid_exact_version_rejected_without_reading_workspace(self):
-        with patch.object(agent_contract_diff, "inspect_pinned_semantics") as read:
+        with patch.object(agent_contract_diff, "inspect_historical_semantics") as read:
             with self.assertRaisesRegex(WorkspaceError, "exact version"):
                 agent_contract_diff.compare_pinned_contracts(
                     "immutable/a", "immutable/b",

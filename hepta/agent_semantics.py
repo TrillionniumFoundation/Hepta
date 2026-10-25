@@ -10,6 +10,7 @@ from pathlib import Path
 import re
 
 from .checker import check
+from .agent_source_paths import relative_validated_source
 from .modules import load_project
 from .pipeline import compiler_hash
 from .semantic_ir import _stable_json, lower_checked_program
@@ -18,14 +19,15 @@ from .workspace import WorkspaceError, inspect_workspace
 _HASH = re.compile(r"[0-9a-f]{64}\Z")
 
 
-def inspect_pinned_semantics(store: str | Path, *,
-                             expected_version: str | None = None) -> dict:
-    """Return canonical checked AST and patch node IDs bound to the SAME pin.
+def _inspect_semantics(store: str | Path, *, expected_version: str | None,
+                       historical_version: str | None) -> dict:
+    """Inspect exactly one verified snapshot; never load a mutable checkout.
 
-    The v4 reader obtains CURRENT exactly once through inspect_workspace.
-    A later commit cannot rebind this report to different source files.
+    CURRENT-mode follows CURRENT exactly once; historical-mode asks workspace
+    for the specified immutable version without following CURRENT at all.
     """
-    inspected = inspect_workspace(store)
+    inspected = (inspect_workspace(store) if historical_version is None
+                 else inspect_workspace(store, version=historical_version))
     if inspected.get("ok") is not True:
         raise WorkspaceError("E_AGENT_PIN", "A verified workspace pin is required")
     snapshot = inspected.get("snapshot")
@@ -35,7 +37,7 @@ def inspect_pinned_semantics(store: str | Path, *,
     if not isinstance(version, str) or not _HASH.fullmatch(version):
         raise WorkspaceError("E_AGENT_PIN", "Invalid published workspace identity")
     if expected_version is not None and expected_version != version:
-        raise WorkspaceError("E_STALE_PROJECT", "Expected workspace version does not match published CURRENT")
+        raise WorkspaceError("E_STALE_PROJECT", "Expected workspace version does not match pinned snapshot")
     meta = snapshot.get("manifest")
     if not isinstance(meta, dict):
         raise WorkspaceError("E_AGENT_PIN", "Missing source-bound validation manifest")
@@ -51,6 +53,11 @@ def inspect_pinned_semantics(store: str | Path, *,
     graph = load_project(Path(snapshot["entry"]))
     if not graph.unchanged():
         raise WorkspaceError("E_AGENT_RACE", "Pinned import graph changed during semantic inspection")
+    # Unlike source_sha256 (entry text only), this identity binds the complete
+    # loaded Hepta import graph, including imported sources and package state.
+    graph_identity = getattr(graph, "identity", None)
+    if not isinstance(graph_identity, str) or _HASH.fullmatch(graph_identity) is None:
+        raise WorkspaceError("E_AGENT_GRAPH", "Missing source-bound checked module graph identity")
     checked = check(graph.program)
     if not checked.ok:
         raise WorkspaceError("E_AGENT_CHECK", "Pinned source no longer passes the current frontend")
@@ -80,6 +87,28 @@ def inspect_pinned_semantics(store: str | Path, *,
         raise WorkspaceError("E_AGENT_SEMANTICS", "Canonical HSIR content checksum mismatch")
     if not graph.unchanged():
         raise WorkspaceError("E_AGENT_RACE", "Pinned import graph changed after semantic inspection")
+    # The canonical loader's spans contain absolute version-tree paths. Those
+    # change on every v4 publication even when the logical function is stable.
+    # Normalize only against the SAME pinned tree and validated-source manifest,
+    # not a mutable checkout or a newly read CURRENT.
+    portable_functions = []
+    try:
+        for fn in hsir["functions"]:
+            original_path = fn["path"]
+            relative_path = relative_validated_source(
+                original_path, snapshot["root"], meta["validated_sources"])
+            span = fn["declaration_span"]
+            if not isinstance(span, dict) or span.get("path") != original_path:
+                raise ValueError("declaration span disagrees with semantic source")
+            portable_functions.append({
+                **fn, "path": relative_path,
+                "declaration_span": {**span, "path": relative_path},
+            })
+    except (KeyError, TypeError, ValueError) as exc:
+        raise WorkspaceError(
+            "E_AGENT_SOURCE_PATH",
+            "Semantic function origin is not bound to the pinned project: " + str(exc),
+        ) from exc
     return {
         "schema": "hepta.agent-semantics.v1",
         "status": "published_native_prevalidated_read_only",
@@ -89,6 +118,7 @@ def inspect_pinned_semantics(store: str | Path, *,
         "compiler_sha256": meta["compiler_sha256"],
         "source_semantic_sha256": hsir["sha256"],
         "source_sha256": hsir["source_sha256"],
+        "checked_graph_sha256": graph_identity,
         "validated_sources": meta.get("validated_sources"),
         "nodes": inspected.get("nodes"),
         "functions": [{
@@ -108,7 +138,7 @@ def inspect_pinned_semantics(store: str | Path, *,
             "lifetime_params": fn.get("lifetime_params", []),
             "type_params": fn["type_params"],
             "type_bounds": fn["type_bounds"],
-        } for fn in hsir["functions"]],
+        } for fn in portable_functions],
         "external_obligations": hsir.get("external_obligations", []),
         "foreign_assumptions": hsir.get("foreign_assumptions", []),
         "claims": {
@@ -119,3 +149,21 @@ def inspect_pinned_semantics(store: str | Path, *,
             "functional_equivalence_proved": False,
         },
     }
+
+
+def inspect_pinned_semantics(store: str | Path, *,
+                             expected_version: str | None = None) -> dict:
+    """Read CURRENT once and reject a stale expected version, as before."""
+    return _inspect_semantics(store, expected_version=expected_version,
+                              historical_version=None)
+
+
+def inspect_historical_semantics(store: str | Path, *, version: str) -> dict:
+    """Read one explicit, existing, fully validated historical v4 version.
+
+    This does not consult CURRENT, publish a patch, or re-execute rustc.
+    """
+    if not isinstance(version, str) or _HASH.fullmatch(version) is None:
+        raise WorkspaceError("E_AGENT_PIN", "Historical inspection requires an exact version digest")
+    return _inspect_semantics(store, expected_version=version,
+                              historical_version=version)

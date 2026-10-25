@@ -7,11 +7,11 @@ signature never proves behavioral equivalence or unchanged function bodies.
 from __future__ import annotations
 
 from hashlib import sha256
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 from typing import Any
 
-from .agent_semantics import inspect_pinned_semantics
+from .agent_semantics import inspect_historical_semantics
 from .semantic_ir import _stable_json
 from .workspace import WorkspaceError
 
@@ -35,7 +35,8 @@ def _inventory(report: dict[str, Any], version: str) -> dict[tuple[str, str], di
             or report.get("status") != "published_native_prevalidated_read_only"
             or report.get("workspace_version") != version):
         raise WorkspaceError("E_AGENT_DIFF_PIN", "Expected a native-prevalidated pinned semantic report")
-    for key in ("compiler_sha256", "source_semantic_sha256", "source_sha256", "interface_sha256"):
+    for key in ("compiler_sha256", "source_semantic_sha256", "source_sha256",
+                "checked_graph_sha256", "interface_sha256"):
         digest = report.get(key)
         if not isinstance(digest, str) or _HASH.fullmatch(digest) is None:
             raise WorkspaceError("E_AGENT_DIFF_ID", "Missing or invalid bound digest: " + key)
@@ -59,6 +60,14 @@ def _inventory(report: dict[str, Any], version: str) -> dict[tuple[str, str], di
         path, name = fn.get("path"), fn.get("name")
         if not isinstance(path, str) or not path or not isinstance(name, str) or not name:
             raise WorkspaceError("E_AGENT_DIFF_FUNCTION", "Missing function origin")
+        # Stable diff keys must be portable v4 manifest paths, not absolute
+        # versions/<digest>/tree paths or escaped/unknown source names.
+        portable_path = PurePosixPath(path)
+        if (portable_path.is_absolute() or "\\" in path
+                or path != portable_path.as_posix()
+                or ".." in portable_path.parts
+                or path not in report["validated_sources"]):
+            raise WorkspaceError("E_AGENT_DIFF_SOURCE", "Unbound or nonportable function source identity")
         key = (path, name)
         if key in keys:
             raise WorkspaceError("E_AGENT_DIFF_DUPLICATE", "Duplicate path/function identity")
@@ -82,8 +91,10 @@ def compare_pinned_contracts(
     for version in (expected_before_version, expected_after_version):
         if not isinstance(version, str) or _HASH.fullmatch(version) is None:
             raise WorkspaceError("E_AGENT_DIFF_VERSION", "Both exact version digests are required")
-    before = inspect_pinned_semantics(before_store, expected_version=expected_before_version)
-    after = inspect_pinned_semantics(after_store, expected_version=expected_after_version)
+    # v4 retains immutable historical versions; callers may compare two
+    # versions in ONE store even if CURRENT has already moved forward.
+    before = inspect_historical_semantics(before_store, version=expected_before_version)
+    after = inspect_historical_semantics(after_store, version=expected_after_version)
     old = _inventory(before, expected_before_version)
     new = _inventory(after, expected_after_version)
     if before["compiler_sha256"] != after["compiler_sha256"]:
@@ -112,7 +123,13 @@ def compare_pinned_contracts(
         "after_semantic_sha256": after["source_semantic_sha256"],
         "before_source_sha256": before["source_sha256"],
         "after_source_sha256": after["source_sha256"],
-        "source_identity_changed": before["source_sha256"] != after["source_sha256"],
+        "entry_source_changed": before["source_sha256"] != after["source_sha256"],
+        "before_checked_graph_sha256": before["checked_graph_sha256"],
+        "after_checked_graph_sha256": after["checked_graph_sha256"],
+        "checked_graph_changed": before["checked_graph_sha256"] != after["checked_graph_sha256"],
+        "workspace_snapshot_changed": expected_before_version != expected_after_version,
+        "source_identity_changed": before["checked_graph_sha256"] != after["checked_graph_sha256"],
+        "source_identity_scope": "loaded_hepta_module_graph_not_full_workspace",
         "before_interface_sha256": before["interface_sha256"],
         "after_interface_sha256": after["interface_sha256"],
         "interface_identity_changed": before["interface_sha256"] != after["interface_sha256"],
