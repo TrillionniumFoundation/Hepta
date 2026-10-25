@@ -19,7 +19,7 @@ _HASH = re.compile(r"[0-9a-f]{64}\Z")
 _TRACKED = ("return_type", "parameter_modes", "declared_effects",
             "inferred_effects", "resources",
             "public", "extern_c", "export_c", "return_mode", "return_origin",
-            "parameter_lifetimes", "lifetime_params", "type_params", "type_bounds")
+            "return_lifetime", "parameter_lifetimes", "lifetime_params", "type_params", "type_bounds")
 _CLAIM_KEYS = frozenset({
     "native_validation_occurred_at_publication",
     "native_validation_reexecuted_this_query",
@@ -66,6 +66,7 @@ def _inventory(report: dict[str, Any], version: str) -> dict[tuple[str, str], di
     if (not isinstance(report.get("functions"), list)
             or not isinstance(report.get("external_obligations"), list)
             or not isinstance(report.get("foreign_assumptions"), list)
+            or not isinstance(report.get("volatile_accesses"), list)
             or not isinstance(report.get("validated_sources"), list)):
         raise WorkspaceError("E_AGENT_DIFF_INVENTORY", "Incomplete semantic inventory")
     keys = {}
@@ -152,6 +153,8 @@ def compare_pinned_contracts(
             before["external_obligations"], after["external_obligations"]),
         "foreign_assumptions_changed": not _same_json_value(
             before["foreign_assumptions"], after["foreign_assumptions"]),
+        "volatile_accesses_changed": not _same_json_value(
+            before["volatile_accesses"], after["volatile_accesses"]),
         "reported_contract_changes": changes,
         "claims": {
             "both_snapshots_prevalidated_at_publication": True,

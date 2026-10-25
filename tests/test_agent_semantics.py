@@ -57,6 +57,7 @@ class AgentSemanticTests(unittest.TestCase):
                 "type_params": [], "type_bounds": {},
             }],
             "external_obligations": [], "foreign_assumptions": [],
+            "volatile_accesses": [],
         }
         self._reseal_hsir()
 
@@ -88,10 +89,31 @@ class AgentSemanticTests(unittest.TestCase):
         self.assertFalse(result["functions"][0]["export_c"])
         self.assertEqual(result["functions"][0]["return_mode"], "value")
         self.assertIsNone(result["functions"][0]["return_origin"])
+        self.assertIsNone(result["functions"][0]["return_lifetime"])
+        self.assertEqual(result["volatile_accesses"], [])
         self.assertEqual(result["functions"][0]["parameter_lifetimes"], [None])
         self.assertFalse(result["claims"]["native_validation_reexecuted_this_query"])
         self.assertTrue(result["claims"]["native_validation_occurred_at_publication"])
         self.assertFalse(result["claims"]["whole_language_soundness_proved"])
+
+    def test_named_return_lifetime_and_volatile_inventory_exposed(self):
+        self.hsir["functions"][0]["lifetime_params"] = ["a", "b"]
+        self.hsir["functions"][0]["return_lifetime"] = "a"
+        self.hsir["volatile_accesses"] = [{
+            "function": "add", "operation": "volatile_load",
+            "status": "external_obligation_not_proved",
+        }]
+        self._reseal_hsir()
+        result = self._inspect()
+        self.assertEqual(result["functions"][0]["return_lifetime"], "a")
+        self.assertEqual(result["volatile_accesses"][0]["operation"], "volatile_load")
+        self.assertFalse(result["claims"]["all_foreign_contracts_proved"])
+
+    def test_missing_hardware_inventory_rejected_after_rehash(self):
+        self.hsir.pop("volatile_accesses")
+        self._reseal_hsir()
+        with self.assertRaisesRegex(WorkspaceError, "volatile obligation inventory"):
+            self._inspect()
 
     def test_stale_expected_version_rejected_before_semantic_load(self):
         with (patch.object(agent_semantics, "inspect_workspace", return_value=self.snapshot),

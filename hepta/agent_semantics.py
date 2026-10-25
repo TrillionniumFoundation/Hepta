@@ -108,6 +108,13 @@ def inspect_pinned_semantics(store: str | Path, *,
         raise WorkspaceError("E_AGENT_SEMANTICS", "Canonical HSIR content checksum mismatch")
     if not graph.unchanged():
         raise WorkspaceError("E_AGENT_RACE", "Pinned import graph changed after semantic inspection")
+    # Hardware/volatile effects are an independent checked-source inventory.
+    # Silently defaulting a missing list to [] could make an unreviewed
+    # semantic schema extension appear to have no hardware obligations.
+    if (not isinstance(hsir.get("volatile_accesses"), list)
+            or not isinstance(hsir.get("external_obligations"), list)
+            or not isinstance(hsir.get("foreign_assumptions"), list)):
+        raise WorkspaceError("E_AGENT_SEMANTICS", "Missing canonical external or volatile obligation inventory")
     tree_root = Path(snapshot["root"]).resolve()
     expected_modules = meta.get("validated_sources")
     if not isinstance(expected_modules, list) or not all(isinstance(p, str) for p in expected_modules):
@@ -139,13 +146,15 @@ def inspect_pinned_semantics(store: str | Path, *,
             "export_c": fn["export_c"],
             "return_mode": fn["return_mode"],
             "return_origin": fn["return_origin"],
+            "return_lifetime": fn.get("return_lifetime"),
             "parameter_lifetimes": [p.get("lifetime") for p in fn["params"]],
             "lifetime_params": fn.get("lifetime_params", []),
             "type_params": fn["type_params"],
             "type_bounds": fn["type_bounds"],
         } for fn in hsir["functions"]],
-        "external_obligations": hsir.get("external_obligations", []),
-        "foreign_assumptions": hsir.get("foreign_assumptions", []),
+        "external_obligations": hsir["external_obligations"],
+        "foreign_assumptions": hsir["foreign_assumptions"],
+        "volatile_accesses": hsir["volatile_accesses"],
         "claims": {
             "native_validation_occurred_at_publication": True,
             "native_validation_reexecuted_this_query": False,

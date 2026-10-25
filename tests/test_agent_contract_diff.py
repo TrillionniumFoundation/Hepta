@@ -28,6 +28,7 @@ class AgentContractDiffTests(unittest.TestCase):
             "validated_sources": ["src/main.hepta"],
             "external_obligations": [],
             "foreign_assumptions": [],
+            "volatile_accesses": [],
             "functions": [{
                 "path": "src/main.hepta", "name": "compute",
                 "return_type": "i32",
@@ -35,6 +36,7 @@ class AgentContractDiffTests(unittest.TestCase):
                 "declared_effects": [], "inferred_effects": [], "resources": {},
                 "public": False, "extern_c": False, "export_c": False,
                 "return_mode": "value", "return_origin": None,
+                "return_lifetime": None,
                 "parameter_lifetimes": [None], "lifetime_params": [],
                 "type_params": [], "type_bounds": {},
             }],
@@ -82,6 +84,7 @@ class AgentContractDiffTests(unittest.TestCase):
         current["export_c"] = True
         current["return_mode"] = "read"
         current["return_origin"] = "x"
+        current["return_lifetime"] = "source"
         current["parameter_lifetimes"] = ["source"]
         current["lifetime_params"] = ["source"]
         current["type_params"] = ["T"]
@@ -89,10 +92,26 @@ class AgentContractDiffTests(unittest.TestCase):
         result = self.compare(a, b)
         self.assertEqual(result["reported_contract_changes"][0]["changed_fields"], [
             "public", "export_c", "return_mode", "return_origin",
-            "parameter_lifetimes", "lifetime_params", "type_params", "type_bounds",
+            "return_lifetime", "parameter_lifetimes", "lifetime_params", "type_params", "type_bounds",
         ])
         self.assertTrue(result["source_identity_changed"])
         self.assertFalse(result["claims"]["functional_equivalence_proved"])
+
+    def test_volatile_site_changes_are_reported_without_claiming_equivalence(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        a["volatile_accesses"] = [{"function": "compute", "operation": "volatile_load",
+                                   "pointer_type": "raw const u32"}]
+        b["volatile_accesses"] = [{"function": "compute", "operation": "volatile_store",
+                                   "pointer_type": "raw mut u32"}]
+        result = self.compare(a, b)
+        self.assertTrue(result["volatile_accesses_changed"])
+        self.assertFalse(result["claims"]["functional_equivalence_proved"])
+
+    def test_missing_volatile_inventory_fails_closed(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        b.pop("volatile_accesses")
+        with self.assertRaisesRegex(WorkspaceError, "Incomplete semantic inventory"):
+            self.compare(a, b)
 
     def test_foreign_contract_elevation_rejected(self):
         a, b = self.report(self.BEFORE), self.report(self.AFTER)
