@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - codex/hepta-p1-structural-cfg-20261024
+      - dot/pr37-exact-head-qualification-20261025
   pull_request:
     branches:
       - codex/hepta-hsir-c-migration-20261024
+      - codex/hepta-p1-structural-cfg-20261024
 
 permissions:
   contents: read
@@ -17,14 +19,23 @@ jobs:
     timeout-minutes: 55
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - name: Pin exact source revision
+      - name: Verify exact candidate source revision (fail closed)
+        env:
+          EXPECTED_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          echo "GITHUB_SHA=$GITHUB_SHA"
-          git rev-parse HEAD
-          git status --porcelain
+          set -euo pipefail
+          actual="$(git rev-parse --verify HEAD)"
+          printf 'EXPECTED_SOURCE_SHA=%s\nACTUAL_SOURCE_SHA=%s\n' "$EXPECTED_SOURCE_SHA" "$actual"
+          test "$actual" = "$EXPECTED_SOURCE_SHA"
+          test -z "$(git status --porcelain)"
+          mkdir -p artifacts
+          printf '%s\n' "$actual" > artifacts/qualification-source-commit.txt
       - name: Install external proof/execution prerequisites
         run: |
           sudo apt-get update -qq
@@ -47,6 +58,7 @@ jobs:
           name: hepta-exact-head-gate-evidence
           path: |
             artifacts/release-validation.json
+            artifacts/qualification-source-commit.txt
             artifacts/*.log
             artifacts/*validation.json
             artifacts/*benchmarks.json
