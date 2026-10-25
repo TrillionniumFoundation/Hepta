@@ -23,6 +23,7 @@ class AgentContractDiffTests(unittest.TestCase):
             "compiler_sha256": self.COMPILER,
             "interface_sha256": "d" * 64,
             "source_semantic_sha256": "e" * 64 if version == self.BEFORE else "f" * 64,
+            "source_sha256": "1" * 64 if version == self.BEFORE else "2" * 64,
             "validated_sources": ["src/main.hepta"],
             "external_obligations": [],
             "foreign_assumptions": [],
@@ -31,10 +32,15 @@ class AgentContractDiffTests(unittest.TestCase):
                 "return_type": "i32",
                 "parameter_modes": [{"name": "x", "type": "i32", "mode": "value"}],
                 "declared_effects": [], "inferred_effects": [], "resources": {},
+                "public": False, "extern_c": False, "export_c": False,
+                "return_mode": "value", "return_origin": None,
+                "parameter_lifetimes": [None], "lifetime_params": [],
+                "type_params": [], "type_bounds": {},
             }],
             "claims": {
                 "native_validation_occurred_at_publication": True,
                 "native_validation_reexecuted_this_query": False,
+                "all_foreign_contracts_proved": False,
                 "whole_language_soundness_proved": False,
                 "functional_equivalence_proved": False,
             },
@@ -67,6 +73,37 @@ class AgentContractDiffTests(unittest.TestCase):
         self.assertRegex(result["sha256"], r"^[a-f0-9]{64}$")
         self.assertFalse(result["claims"]["functional_equivalence_proved"])
         self.assertFalse(result["claims"]["function_bodies_compared"])
+
+    def test_abi_visibility_return_loan_and_generic_drift_detected(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        current = b["functions"][0]
+        current["public"] = True
+        current["export_c"] = True
+        current["return_mode"] = "read"
+        current["return_origin"] = "x"
+        current["parameter_lifetimes"] = ["source"]
+        current["lifetime_params"] = ["source"]
+        current["type_params"] = ["T"]
+        current["type_bounds"] = {"T": "Copy"}
+        result = self.compare(a, b)
+        self.assertEqual(result["reported_contract_changes"][0]["changed_fields"], [
+            "public", "export_c", "return_mode", "return_origin",
+            "parameter_lifetimes", "lifetime_params", "type_params", "type_bounds",
+        ])
+        self.assertTrue(result["source_identity_changed"])
+        self.assertFalse(result["claims"]["functional_equivalence_proved"])
+
+    def test_foreign_contract_elevation_rejected(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        b["claims"]["all_foreign_contracts_proved"] = True
+        with self.assertRaisesRegex(WorkspaceError, "claims"):
+            self.compare(a, b)
+
+    def test_missing_contract_field_rejected(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        b["functions"][0].pop("return_origin")
+        with self.assertRaisesRegex(WorkspaceError, "Malformed function"):
+            self.compare(a, b)
 
     def test_no_contract_delta_does_not_claim_unchanged_behavior(self):
         result = self.compare(self.report(self.BEFORE), self.report(self.AFTER))

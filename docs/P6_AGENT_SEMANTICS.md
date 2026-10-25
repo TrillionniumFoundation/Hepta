@@ -48,3 +48,16 @@ re-runs rustc nor authorizes a v4 write. See
 
 No production P6 blocker (real models, multiple seeds, agent labor/economics
 and large-project edits) is closed by this additive read-only API.
+
+## P6 semantic contract completeness hardening
+
+Version v1 read-only inspection additionally exposes the checked, canonical
+function visibility and ABI flags (public / extern C / export C), return
+loan mode and origin, per-parameter lifetime names, named lifetimes, and
+generic type parameters/bounds. It does not infer unproved aliases.
+
+The two-pin contract diff now treats these attributes as per-function
+tracked contract fields; previously it could see only a coarse project
+interface hash change. Both source and semantic hashes are retained,
+and elevated or incomplete foreign-qualification proof flags reject.
+Unchanged metadata never proves unchanged behavior; no live project is edited.

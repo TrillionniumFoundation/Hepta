@@ -51,6 +51,9 @@ class AgentSemanticTests(unittest.TestCase):
                 "params": [{"name": "a", "mode": "value", "type": "i32"}],
                 "declared_effects": [], "inferred_effects": [],
                 "resources": {}, "body": [],
+                "public": True, "extern_c": False, "export_c": False,
+                "return_mode": "value", "return_origin": None,
+                "type_params": [], "type_bounds": {},
             }],
             "external_obligations": [], "foreign_assumptions": [],
         }
@@ -78,6 +81,11 @@ class AgentSemanticTests(unittest.TestCase):
         self.assertEqual(result["nodes"], self.snapshot["nodes"])
         self.assertEqual(result["functions"][0]["parameter_modes"], [
             {"name": "a", "mode": "value", "type": "i32"}])
+        self.assertTrue(result["functions"][0]["public"])
+        self.assertFalse(result["functions"][0]["export_c"])
+        self.assertEqual(result["functions"][0]["return_mode"], "value")
+        self.assertIsNone(result["functions"][0]["return_origin"])
+        self.assertEqual(result["functions"][0]["parameter_lifetimes"], [None])
         self.assertFalse(result["claims"]["native_validation_reexecuted_this_query"])
         self.assertTrue(result["claims"]["native_validation_occurred_at_publication"])
         self.assertFalse(result["claims"]["whole_language_soundness_proved"])

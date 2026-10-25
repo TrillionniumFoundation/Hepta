@@ -17,7 +17,16 @@ from .workspace import WorkspaceError
 
 _HASH = re.compile(r"[0-9a-f]{64}\Z")
 _TRACKED = ("return_type", "parameter_modes", "declared_effects",
-            "inferred_effects", "resources")
+            "inferred_effects", "resources",
+            "public", "extern_c", "export_c", "return_mode", "return_origin",
+            "parameter_lifetimes", "lifetime_params", "type_params", "type_bounds")
+_CLAIM_KEYS = frozenset({
+    "native_validation_occurred_at_publication",
+    "native_validation_reexecuted_this_query",
+    "all_foreign_contracts_proved",
+    "whole_language_soundness_proved",
+    "functional_equivalence_proved",
+})
 
 
 def _inventory(report: dict[str, Any], version: str) -> dict[tuple[str, str], dict]:
@@ -26,12 +35,13 @@ def _inventory(report: dict[str, Any], version: str) -> dict[tuple[str, str], di
             or report.get("status") != "published_native_prevalidated_read_only"
             or report.get("workspace_version") != version):
         raise WorkspaceError("E_AGENT_DIFF_PIN", "Expected a native-prevalidated pinned semantic report")
-    for key in ("compiler_sha256", "source_semantic_sha256", "interface_sha256"):
+    for key in ("compiler_sha256", "source_semantic_sha256", "source_sha256", "interface_sha256"):
         digest = report.get(key)
         if not isinstance(digest, str) or _HASH.fullmatch(digest) is None:
             raise WorkspaceError("E_AGENT_DIFF_ID", "Missing or invalid bound digest: " + key)
     claims = report.get("claims")
-    if (not isinstance(claims, dict)
+    if (not isinstance(claims, dict) or set(claims) != _CLAIM_KEYS
+            or claims.get("all_foreign_contracts_proved") is not False
             or claims.get("native_validation_occurred_at_publication") is not True
             or claims.get("native_validation_reexecuted_this_query") is not False
             or claims.get("whole_language_soundness_proved") is not False
@@ -100,6 +110,9 @@ def compare_pinned_contracts(
         "compiler_sha256": before["compiler_sha256"],
         "before_semantic_sha256": before["source_semantic_sha256"],
         "after_semantic_sha256": after["source_semantic_sha256"],
+        "before_source_sha256": before["source_sha256"],
+        "after_source_sha256": after["source_sha256"],
+        "source_identity_changed": before["source_sha256"] != after["source_sha256"],
         "before_interface_sha256": before["interface_sha256"],
         "after_interface_sha256": after["interface_sha256"],
         "interface_identity_changed": before["interface_sha256"] != after["interface_sha256"],
