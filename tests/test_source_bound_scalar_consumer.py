@@ -166,6 +166,34 @@ class SourceBoundScalarTests(unittest.TestCase):
         with self.assertRaisesRegex(V1SSARejected, "EXPRESSION_PROFILE|UNSUPPORTED_EXPR"):
             self.report(sign(doc))
 
+    def test_cli_duplicate_hsir_keys_are_ir_rejection_not_driver_failure(self):
+        import io
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from hepta import cli
+        with TemporaryDirectory() as root:
+            source = Path(root) / "source.hepta"
+            source.write_text(SOURCE)
+            payload = Path(root) / "bad.json"
+            payload.write_text('{"schema":1,"schema":2}')
+            fake = SimpleNamespace(
+                project=SimpleNamespace(entry=source, sources={}),
+                report={"ok": True},
+                program=SimpleNamespace(source=SOURCE, path=str(source)),
+                checked=None,
+            )
+            out = io.StringIO()
+            with patch.object(cli, "analyze_project", return_value=fake):
+                with patch("sys.stdout", out):
+                    rc = cli.main(["ssa-v1-verify", str(source),
+                                   "--source-bound-hsir", str(payload)])
+            self.assertEqual(rc, 1)
+            response = json.loads(out.getvalue())
+            self.assertEqual(response["status"], "rejected")
+            self.assertEqual(response["diagnostics"][0]["code"], "E_HSIR_V1_DUPLICATE_KEY")
+
     def test_cli_exposes_source_bound_option_without_running_compiler(self):
         proc = subprocess.run([sys.executable, "-m", "hepta", "ssa-v1-verify", "--help"],
                               capture_output=True, text=True, timeout=30)
