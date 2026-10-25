@@ -141,6 +141,23 @@ class SourceBoundScalarTests(unittest.TestCase):
         with self.assertRaisesRegex(V1SSARejected, "TYPE_EQUIVALENCE"):
             self.report(sign(doc))
 
+    def test_project_bound_source_requires_independently_matched_identity(self):
+        doc = pr14_shaped_snapshot()
+        doc["project_sha256"] = "c" * 64
+        envelope = integrate_v0(sign(doc))
+        with self.assertRaisesRegex(V1SSARejected, "PROJECT_IDENTITY"):
+            lower_verified_v1_scalar_ssa(
+                envelope, source_text=SOURCE, source_path=PATH)
+        with self.assertRaisesRegex(V1SSARejected, "PROJECT_IDENTITY"):
+            lower_verified_v1_scalar_ssa(
+                envelope, source_text=SOURCE, source_path=PATH,
+                verified_project_sha256="d" * 64)
+        output = lower_verified_v1_scalar_ssa(
+            envelope, source_text=SOURCE, source_path=PATH,
+            verified_project_sha256="c" * 64)
+        self.assertTrue(output["independent_scalar_reparse_checked"])
+        self.assertFalse(output["claims"]["native_codegen_qualified_by_adapter"])
+
     def test_rejects_changed_ownership_even_when_rehashed(self):
         doc = pr14_shaped_snapshot()
         doc["functions"][0]["params"][0]["mode"] = "mut"
