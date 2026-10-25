@@ -116,3 +116,15 @@ already accepted by the shared converter. Unknown statement kinds reject.
 It does not alter the existing source-only L1 safety tier or claim a
 general control-flow equivalence theorem. C11 and C++20 original-versus-Hepta/C
 native differential tests cover defined-input examples and negative cases.
+
+## Independently executed native do-while oracle
+
+`tools/probe_strict_do_while.py --output /tmp/strict-do-while-oracle.json`
+runs C11 and C++20 Clang native compilers against a fixed, defined-input
+source/normalized pair and wrong-implementation control, then runs UBSan
+comparison binaries. In the recorded Clang 17 local execution there were
+2024 matched scalar calls, 2024 wrong implementations detected and 2258
+UBSan pair calls without a sanitizer failure. See
+`evidence/do_while_native_oracle_20261025.json`. The receipt **does not**
+claim the Hepta parser/checker, native C backend, arbitrary C++ features,
+whole-language safety, or full C++ ABI passed.
