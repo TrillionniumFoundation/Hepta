@@ -85,6 +85,16 @@ int accumulate(int n) {
                 with self.assertRaises(MigrationRejected):
                     self.convert(src)
 
+    def test_dangling_output_symlink_cannot_redirect_generated_source(self):
+        src = self.root / 'input.c'
+        src.write_text('int f(int a) { return a; }')
+        output = self.root / 'alias.hepta'
+        redirected = self.root / 'unintended.hepta'
+        output.symlink_to(redirected)
+        self.assertEqual(main([str(src), '-o', str(output), '--clang', CLANG]), 1)
+        self.assertTrue(output.is_symlink())
+        self.assertFalse(redirected.exists())
+
     def test_cli_does_not_overwrite_existing_target(self):
         src = self.root / "input.c"
         src.write_text("int f(int a) { return a; }")
