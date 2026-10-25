@@ -158,6 +158,34 @@ class HSIRBridgeTests(unittest.TestCase):
                 with self.assertRaises(HSIRRejected):
                     from_canonical_snapshot(_reseal(changed))
 
+    def test_resealed_derived_hsir_boolean_claims_are_exact_types(self):
+        a, ac = _checked(_SOURCE)
+        bridge = lower_checked_program(a, ac)
+        baseline = bridge.as_dict()
+        baseline.pop("sha256")
+        for key, forged_value in (
+            ("pointer_provenance_proved", 0),
+            ("canonical_semantics_still_authoritative", 1),
+        ):
+            with self.subTest(claim=key):
+                payload = copy.deepcopy(baseline)
+                payload["claims"][key] = forged_value
+                encoded = json.dumps(payload, sort_keys=True, ensure_ascii=False,
+                                     allow_nan=False, separators=(",", ":"))
+                forged = HSIRSnapshot(bridge.schema, encoded,
+                                      hashlib.sha256(encoded.encode()).hexdigest())
+                with self.assertRaisesRegex(HSIRRejected, "claims"):
+                    forged.as_dict()
+
+        payload = copy.deepcopy(baseline)
+        payload["functions"][0]["public"] = int(payload["functions"][0]["public"])
+        encoded = json.dumps(payload, sort_keys=True, ensure_ascii=False,
+                             allow_nan=False, separators=(",", ":"))
+        forged = HSIRSnapshot(bridge.schema, encoded,
+                              hashlib.sha256(encoded.encode()).hexdigest())
+        with self.assertRaisesRegex(HSIRRejected, "unsupported ownership"):
+            forged.as_dict()
+
     def test_refuses_c_ffis_generic_types_or_resource_ownership(self):
         a, ac = _checked(_SOURCE)
         canonical = canonical_hsir(a, ac)
