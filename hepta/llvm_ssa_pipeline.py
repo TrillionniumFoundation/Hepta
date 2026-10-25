@@ -120,7 +120,12 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
                     or native.get("ssa_cfg_origin_rechecked") is not True
                     or not isinstance(native.get("claims"), dict)
                     or native["claims"].get(forbidden_claim) is not False
-                    or (target is not None and native.get("target") != target)):
+                    or (target is not None and (
+                        native.get("target") != target
+                        or native.get("object_symbols_qualified") is not True
+                        or native.get("defined_export_symbols") != list(ir.functions)
+                        or not isinstance(native.get("undefined_external_symbols"), list)
+                        or any(item != "abort" for item in native["undefined_external_symbols"])))):
                 raise LLVMSSARejected("E_LLVM_SSA_RECEIPT: native backend identity or proof scope mismatch")
             # Validate real staged bytes *before* external publication. An
             # incorrect compiler receipt must never leave a published output
