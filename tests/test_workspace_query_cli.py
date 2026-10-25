@@ -59,6 +59,14 @@ class PinnedWorkspaceQueryCLITests(unittest.TestCase):
             self.assertNotEqual(code, 0)
             self.assertFalse(response.get("ok", False))
 
+    def test_semantics_unknown_schema_rejects_even_if_ok_true(self):
+        with patch.object(agent_semantics, "inspect_pinned_semantics",
+                          return_value={"schema": "unreviewed", "status": "done", "ok": True}):
+            code, response = self.run_cli([
+                "workspace", "semantics", "/pinned/store", "--version", self.BEFORE])
+            self.assertNotEqual(code, 0)
+            self.assertEqual(response["schema"], "unreviewed")
+
     def test_diff_has_no_implicit_truthy_success_for_wrong_schema(self):
         with patch.object(agent_contract_diff, "compare_pinned_contracts",
                           return_value={"schema": "unknown", "status": "passed", "ok": True}) as query:
