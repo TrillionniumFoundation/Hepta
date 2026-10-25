@@ -21,6 +21,14 @@ _SSA_FUNCTION_FIELDS = frozenset({
     "phi_count", "declared_effects", "inferred_transitive_effects",
     "resource_contract",
 })
+# A verifier that ignores unreviewed nested metadata can accidentally approve
+# a future source/owner/effect meaning which the current SSA model cannot
+# represent. Keep this finite scalar wire format explicitly closed.
+_SSA_BLOCK_FIELDS = frozenset({"id", "phis", "instructions", "terminator"})
+_SSA_PHI_FIELDS = frozenset({"result", "incoming"})
+_SSA_PHI_EDGE_FIELDS = frozenset({"from", "ssa_ref"})
+_SSA_DEFINITION_FIELDS = frozenset({"variable", "ssa_name", "type", "defined_in"})
+_SSA_INSTRUCTION_FIELDS = frozenset({"operation", "ssa_value", "span"})
 # This verifier owns its expectations independently of the SSA producer.
 # A valid self-resealed digest must never authorize elevated proof flags.
 _SSA_TOP_FIELDS = frozenset({
@@ -106,8 +114,9 @@ def _function(f: dict, original: dict, graph: dict) -> dict:
     if not isinstance(blocks, list) or not isinstance(before, list) or len(blocks) != len(before):
         _reject("E_SSA_VERIFY_BLOCKS", "block count differs")
     expected_ids = [b["id"] for b in before]
-    if [b.get("id") for b in blocks] != expected_ids:
-        _reject("E_SSA_VERIFY_BLOCKS", "block identities/order differ")
+    if (any(not isinstance(b, dict) or set(b) != _SSA_BLOCK_FIELDS for b in blocks)
+            or [b["id"] for b in blocks] != expected_ids):
+        _reject("E_SSA_VERIFY_BLOCKS", "SSA basic-block schema or identities differ")
     if f.get("entry") != original.get("entry"):
         _reject("E_SSA_VERIFY_ENTRY", "entry block changed")
     dom = {k: set(v) for k, v in graph["dominators"].items()}
@@ -119,8 +128,8 @@ def _function(f: dict, original: dict, graph: dict) -> dict:
     version_numbers = {}
 
     def add(defn, block, order, expected_name=None, expected_type=None):
-        if not isinstance(defn, dict):
-            _reject("E_SSA_VERIFY_DEF", "missing definition metadata")
+        if not isinstance(defn, dict) or set(defn) != _SSA_DEFINITION_FIELDS:
+            _reject("E_SSA_VERIFY_DEF", "missing or unreviewed definition metadata")
         name, version, ty = defn.get("variable"), defn.get("ssa_name"), defn.get("type")
         if (not isinstance(name, str) or scalar_types.get(name) != ty or
                 not isinstance(version, str) or re.fullmatch(re.escape(name) + r"@[0-9]+", version) is None):
@@ -149,17 +158,32 @@ def _function(f: dict, original: dict, graph: dict) -> dict:
         old_instr = old.get("instructions")
         if not isinstance(phi, list) or not isinstance(instr, list) or len(instr) != len(old_instr):
             _reject("E_SSA_VERIFY_INSTRUCTIONS", "source instruction count disagrees")
+        # The entry has no predecessors. A re-sealed zero-input PHI there can
+        # otherwise appear to define a value which has no source execution.
+        # The producer's pruned scalar profile places PHIs only at joins.
+        if phi and (bid == f["entry"] or len(preds[bid]) < 2):
+            _reject("E_SSA_VERIFY_PHI", "PHI requires a real multi-predecessor join")
         phi_names = set()
         for p in phi:
-            result = p.get("result") if isinstance(p, dict) else None
+            if (not isinstance(p, dict) or set(p) != _SSA_PHI_FIELDS
+                    or not isinstance(p.get("incoming"), list)):
+                _reject("E_SSA_VERIFY_PHI", "malformed or unreviewed PHI metadata")
+            result = p["result"]
             add(result, bid, -1)
             if result["variable"] in phi_names:
                 _reject("E_SSA_VERIFY_PHI", "duplicate PHI for same variable in one block")
             phi_names.add(result["variable"])
         for index, (item, before_item) in enumerate(zip(instr, old_instr)):
+            if (not isinstance(item, dict)
+                    or set(item) not in (_SSA_INSTRUCTION_FIELDS,
+                                         _SSA_INSTRUCTION_FIELDS | {"definition"})):
+                _reject("E_SSA_VERIFY_INSTRUCTIONS", "unreviewed scalar instruction metadata")
             if item.get("operation") != before_item.get("operation") or item.get("span") != before_item.get("span"):
                 _reject("E_SSA_VERIFY_ORIGIN", "instruction kind/span changed")
-            if _unmark(item.get("ssa_value")) != before_item["fields"].get("expr"):
+            source_expr = before_item["fields"].get("expr")
+            if not isinstance(source_expr, dict) or not isinstance(item.get("ssa_value"), dict):
+                _reject("E_SSA_VERIFY_EXPRESSION", "scalar instruction must retain its typed initializer")
+            if _unmark(item["ssa_value"]) != source_expr:
                 _reject("E_SSA_VERIFY_ORIGIN", "instruction expression changed")
             raw_target = (before_item["fields"].get("name") if item["operation"] == "let" else
                           before_item["fields"].get("target", {}).get("value") if item["operation"] == "assign" else None)
@@ -167,7 +191,13 @@ def _function(f: dict, original: dict, graph: dict) -> dict:
                 if "definition" in item:
                     _reject("E_SSA_VERIFY_DEF", "unexpected definition on expression statement")
             else:
-                add(item.get("definition"), bid, index, raw_target)
+                source_type = source_expr.get("result_type")
+                if not isinstance(source_type, dict) or not isinstance(source_type.get("type"), str):
+                    _reject("E_SSA_VERIFY_TYPE", "original scalar initializer has no checked type")
+                # Check independently: matching the SSA symbol table is NOT
+                # enough when both it and the definition were re-signed.
+                add(item.get("definition"), bid, index, raw_target,
+                    expected_type=source_type["type"])
         if _unmark(b.get("terminator")) != old.get("terminator"):
             _reject("E_SSA_VERIFY_ORIGIN", "terminator changed")
     if f.get("definitions") != len(defs) or f.get("phi_count") != sum(len(b["phis"]) for b in blocks):
@@ -206,9 +236,10 @@ def _function(f: dict, original: dict, graph: dict) -> dict:
         bid = b["id"]
         for phi in b["phis"]:
             phis += 1
-            incoming = phi.get("incoming")
-            if not isinstance(incoming, list) or [x.get("from") for x in incoming] != sorted(preds[bid]):
-                _reject("E_SSA_VERIFY_PHI", "PHI predecessors do not match CFG")
+            incoming = phi["incoming"]
+            if (any(not isinstance(x, dict) or set(x) != _SSA_PHI_EDGE_FIELDS for x in incoming)
+                    or [x["from"] for x in incoming] != sorted(preds[bid])):
+                _reject("E_SSA_VERIFY_PHI", "PHI predecessors or input schema do not match CFG")
             for edge in incoming:
                 pred = edge["from"]
                 ref = edge.get("ssa_ref")
@@ -234,6 +265,137 @@ def _function(f: dict, original: dict, graph: dict) -> dict:
             "source_effect_resource_sha256": contract_sha256}
 
 
+
+def _verify_reaching_definitions(f: dict, original: dict, graph: dict) -> None:
+    """Independently verify predecessor-specific value flow, not just dominance.
+
+    Dominance alone is insufficient: a pre-branch definition dominates both
+    successors, but is not the value produced by either successor's writes.
+    This restricted verifier handles only the scalar CFG already accepted by
+    the source-bound structural gate. It is not an ownership/provenance proof.
+    """
+    blocks = {b["id"]: b for b in f["blocks"]}
+    originals = {b["id"]: b for b in original["blocks"]}
+    entry = f["entry"]
+    predecessors = graph["predecessors"]
+    successors = graph["successors"]
+    children = {name: [] for name in blocks}
+    for block_id, parent in graph["immediate_dominators"].items():
+        if parent is not None:
+            children[parent].append(block_id)
+
+    # Replay SSA naming over the *independent* dominator tree, taking each
+    # definition only after its initializer has been evaluated.
+    initial = {p["variable"]: p["ssa_name"] for p in f["parameters"]}
+    before, after = {}, {}
+    work = [(entry, initial)]
+    while work:
+        block_id, parent_values = work.pop()
+        local = dict(parent_values)
+        block = blocks[block_id]
+        for phi in block["phis"]:
+            definition = phi["result"]
+            local[definition["variable"]] = definition["ssa_name"]
+        before[block_id] = dict(local)
+        for instruction in block["instructions"]:
+            if "definition" in instruction:
+                definition = instruction["definition"]
+                local[definition["variable"]] = definition["ssa_name"]
+        after[block_id] = local
+        work.extend((child, local) for child in reversed(sorted(children[block_id])))
+    if set(after) != set(blocks):
+        _reject("E_SSA_VERIFY_REACHING", "Dominator traversal omitted a source block")
+
+    def names(node, depth=0) -> set[str]:
+        if node is None:
+            return set()
+        if depth > 64 or not isinstance(node, dict) or node.get("node") != "expr":
+            _reject("E_SSA_VERIFY_REACHING", "Unreviewed source expression in reaching analysis")
+        if node.get("operation") == "name":
+            if not isinstance(node.get("value"), str):
+                _reject("E_SSA_VERIFY_REACHING", "Missing source variable identity")
+            return {node["value"]}
+        operands = node.get("operands")
+        if not isinstance(operands, list):
+            _reject("E_SSA_VERIFY_REACHING", "Malformed expression operands")
+        result = set()
+        for value in operands:
+            result.update(names(value, depth + 1))
+        return result
+
+    # Reconstruct source liveness, independently of the SSA producer. A
+    # non-live variable can legitimately have divergent dead branch values;
+    # a live variable cannot cross the join without a correct PHI.
+    upward, definitions = {}, {}
+    for block_id, source in originals.items():
+        uses, killed = set(), set()
+        for instruction in source["instructions"]:
+            uses.update(names(instruction["fields"]["expr"]) - killed)
+            if instruction["operation"] in {"let", "assign"}:
+                name = (instruction["fields"].get("name")
+                        if instruction["operation"] == "let"
+                        else instruction["fields"].get("target", {}).get("value"))
+                if not isinstance(name, str) or not name:
+                    _reject("E_SSA_VERIFY_REACHING", "Malformed original scalar definition")
+                killed.add(name)
+        term = source["terminator"]
+        if term["kind"] in {"return", "branch"}:
+            uses.update(names(term.get("condition") if term["kind"] == "branch"
+                              else term.get("value")) - killed)
+        upward[block_id], definitions[block_id] = uses, killed
+    live_in = {name: set() for name in blocks}
+    live_out = {name: set() for name in blocks}
+    # Monotone finite sets over the bounded CFG; fail closed on nonconvergence.
+    for _ in range(max(1, len(blocks) * (len(f["scalar_types"]) + 1))):
+        changed = False
+        for block_id in reversed(list(originals)):
+            out = set().union(*(live_in[succ] for succ in successors[block_id]))
+            into = upward[block_id] | (out - definitions[block_id])
+            if live_out[block_id] != out or live_in[block_id] != into:
+                live_out[block_id], live_in[block_id] = out, into
+                changed = True
+        if not changed:
+            break
+    else:
+        _reject("E_SSA_VERIFY_REACHING", "Source liveness did not converge")
+
+    def check_reads(node, current, depth=0):
+        if node is None:
+            return
+        if depth > 64 or not isinstance(node, dict) or node.get("node") != "expr":
+            _reject("E_SSA_VERIFY_REACHING", "Unreviewed SSA expression")
+        if node.get("operation") == "name":
+            if current.get(node.get("value")) != node.get("ssa_ref"):
+                _reject("E_SSA_VERIFY_REACHING", "SSA read skips the most recent definition")
+            return
+        for operand in node.get("operands", []):
+            check_reads(operand, current, depth + 1)
+
+    for block_id, block in blocks.items():
+        current = dict(before[block_id])
+        for instruction in block["instructions"]:
+            check_reads(instruction["ssa_value"], current)
+            if "definition" in instruction:
+                definition = instruction["definition"]
+                current[definition["variable"]] = definition["ssa_name"]
+        term = block["terminator"]
+        if term["kind"] in {"return", "branch"}:
+            check_reads(term.get("value") if term["kind"] == "return"
+                        else term.get("condition"), current)
+        for phi in block["phis"]:
+            var = phi["result"]["variable"]
+            for edge in phi["incoming"]:
+                if after[edge["from"]].get(var) != edge["ssa_ref"]:
+                    _reject("E_SSA_VERIFY_REACHING", "PHI input is not the predecessor's exit definition")
+        if block_id != entry:
+            phi_vars = {p["result"]["variable"] for p in block["phis"]}
+            for var in live_in[block_id] - phi_vars:
+                inherited = before[block_id].get(var)
+                if inherited is None or any(after[pred].get(var) != inherited
+                                            for pred in predecessors[block_id]):
+                    _reject("E_SSA_VERIFY_REACHING", "Live value crosses a join without the required PHI")
+
+
 def verify_scalar_ssa(ssa: SSASnapshot, cfg: CFGSnapshot) -> SSAVerificationSnapshot:
     """Verify SSA dataflow facts against the exact original control flow."""
     if not isinstance(ssa, SSASnapshot) or not isinstance(cfg, CFGSnapshot):
@@ -255,7 +417,9 @@ def verify_scalar_ssa(ssa: SSASnapshot, cfg: CFGSnapshot) -> SSAVerificationSnap
     for f, old, graph in zip(fs, originals, graphs):
         if f.get("name") != old.get("name") or f["name"] != graph["name"]:
             _reject("E_SSA_VERIFY_FUNCTIONS", "function order/name changed")
-        result.append(_function(f, old, graph))
+        verified = _function(f, old, graph)
+        _verify_reaching_definitions(f, old, graph)
+        result.append(verified)
     output = {"schema": "hepta.ssa.verify.v0", "status": "scalar_ssa_structurally_verified",
               "ssa_sha256": ssa.sha256, "cfg_sha256": cfg.sha256, "functions": result,
               "claims": {"single_assignment_checked": True, "ssa_edge_uses_checked": True,

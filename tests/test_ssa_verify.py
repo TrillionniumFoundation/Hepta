@@ -123,6 +123,107 @@ class SSAVerificationTests(unittest.TestCase):
                 with self.assertRaisesRegex(SSAVerificationRejected, "CLAIMS"):
                     verify_scalar_ssa(encoded(forged), cfg)
 
+    def test_resealed_zero_input_entry_phi_cannot_create_a_value(self):
+        cfg = snapshot([block(0, kind="return", value=n("x"))],
+                       params=[("x", "i32")])
+        payload = lower_cfg_scalar_ssa(cfg).as_dict()
+        payload.pop("sha256")
+        function = payload["functions"][0]
+        block0 = function["blocks"][0]
+        block0["phis"] = [{
+            "result": {"variable": "x", "ssa_name": "x@1",
+                       "type": "i32", "defined_in": "b0000"},
+            "incoming": [],
+        }]
+        block0["terminator"]["value"]["ssa_ref"] = "x@1"
+        function["definitions"] += 1
+        function["phi_count"] += 1
+        with self.assertRaisesRegex(SSAVerificationRejected, "PHI"):
+            verify_scalar_ssa(encoded(payload), cfg)
+
+    def test_resealed_wrong_dead_local_definition_type_rejected(self):
+        cfg = snapshot([block(0, [let("x", i(7))],
+                              kind="return", value=i(8))])
+        payload = lower_cfg_scalar_ssa(cfg).as_dict()
+        payload.pop("sha256")
+        function = payload["functions"][0]
+        # Both SSA declarations agree with each other, but disagree with
+        # the actual checked i32 initializer. x is deliberately never read.
+        function["scalar_types"]["x"] = "u64"
+        function["blocks"][0]["instructions"][0]["definition"]["type"] = "u64"
+        with self.assertRaisesRegex(SSAVerificationRejected, "TYPE"):
+            verify_scalar_ssa(encoded(payload), cfg)
+
+    def test_resealed_nested_ssa_metadata_cannot_hide_semantics(self):
+        cfg, valid = self.fixture()
+        for name, mutate in {
+            "block_extra_owner": lambda f: f["blocks"][0].update(loan_owner="forged"),
+            "instruction_extra_drop": lambda f: f["blocks"][0]["instructions"][0].update(drop_owner=True),
+            "definition_extra_effect": lambda f: f["blocks"][0]["instructions"][0]["definition"].update(ffi=True),
+            "phi_extra_contract": lambda f: f["blocks"][3]["phis"][0].update(proof_status="certified"),
+            "phi_edge_extra_unsafe": lambda f: f["blocks"][3]["phis"][0]["incoming"][0].update(unsafe=True),
+        }.items():
+            with self.subTest(case=name):
+                payload = valid.as_dict()
+                payload.pop("sha256")
+                mutate(payload["functions"][0])
+                with self.assertRaisesRegex(SSAVerificationRejected,
+                                            "(BLOCKS|INSTRUCTIONS|DEF|PHI)"):
+                    verify_scalar_ssa(encoded(payload), cfg)
+
+    def test_forged_phi_from_dominating_but_overwritten_value_rejected(self):
+        cfg, ssa = self.fixture()
+        payload = ssa.as_dict()
+        payload.pop("sha256")
+        fn = payload["functions"][0]
+        stale = fn["blocks"][0]["instructions"][0]["definition"]["ssa_name"]
+        # Entry's x@0 dominates both branches but neither branch exits with it.
+        for edge in fn["blocks"][3]["phis"][0]["incoming"]:
+            edge["ssa_ref"] = stale
+        with self.assertRaisesRegex(SSAVerificationRejected, "REACHING"):
+            verify_scalar_ssa(encoded(payload), cfg)
+
+    def test_omitted_live_join_phi_cannot_read_prebranch_value(self):
+        cfg, ssa = self.fixture()
+        payload = ssa.as_dict()
+        payload.pop("sha256")
+        fn = payload["functions"][0]
+        join = fn["blocks"][3]
+        join["phis"] = []
+        join["terminator"]["value"]["ssa_ref"] = (
+            fn["blocks"][0]["instructions"][0]["definition"]["ssa_name"])
+        fn["definitions"] -= 1
+        fn["phi_count"] -= 1
+        # x@0 dominates the join but has been overwritten along BOTH edges.
+        with self.assertRaisesRegex(SSAVerificationRejected, "REACHING"):
+            verify_scalar_ssa(encoded(payload), cfg)
+
+    def test_same_block_stale_read_after_assignment_rejected(self):
+        cfg = snapshot([block(0, [let("x", i(1)), assign("x", i(2))],
+                              kind="return", value=n("x"))])
+        payload = lower_cfg_scalar_ssa(cfg).as_dict()
+        payload.pop("sha256")
+        fn = payload["functions"][0]
+        previous = fn["blocks"][0]["instructions"][0]["definition"]["ssa_name"]
+        fn["blocks"][0]["terminator"]["value"]["ssa_ref"] = previous
+        with self.assertRaisesRegex(SSAVerificationRejected, "REACHING"):
+            verify_scalar_ssa(encoded(payload), cfg)
+
+    def test_live_join_values_and_dead_divergence_are_distinguished(self):
+        cfg, valid = self.fixture()
+        self.assertEqual(verify_scalar_ssa(valid, cfg).as_dict()["functions"][0]["phi_count"], 1)
+
+        # Distinct branch writes do not need a PHI when the value is dead
+        # after the join. Liveness must not demand redundant PHIs.
+        dead = snapshot([
+            block(0, [let("x", i(0))], kind="branch", condition=n("b", "bool"),
+                  **{"then": "b0001", "else": "b0002"}),
+            block(1, [assign("x", i(2))], kind="goto", target="b0003"),
+            block(2, [assign("x", i(3))], kind="goto", target="b0003"),
+            block(3, kind="return", value=i(8))], params=[("b", "bool")])
+        result = verify_scalar_ssa(lower_cfg_scalar_ssa(dead), dead).as_dict()
+        self.assertEqual(result["functions"][0]["phi_count"], 0)
+
     def test_duplicate_definition_wrong_count(self):
         cfg, ssa = self.fixture()
         x = ssa.as_dict()
