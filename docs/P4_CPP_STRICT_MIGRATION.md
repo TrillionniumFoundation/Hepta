@@ -7,7 +7,13 @@ second C-to-Hepta lowerer or claim general C++20 grammar support.
 
 Strict source profile: standalone `.cc`/`.cpp`/`.cxx` files, no
 preprocessing, top-level distinct `noexcept int(int...)` functions,
-only the C lowering's return/if/scalar expression subset. Clang++20
+only the shared C scalar lowering's return/if/scalar expression subset plus
+function-prefix, single-initializer scalar locals, direct scalar assignments
+and explicit Boolean while loops. Local identifiers are checked against their
+Clang declaration IDs; shadowing, nested declarations, uninitialized locals,
+indirect writes, pointer locals, compound assignments and general C++ control
+flow remain outside this L1 profile. New support shares the same _function
+with strict C migration: no second expression lowering authority. Clang++20
 must accept the entire translation unit with warning errors; unsupported
 top-level declarations, defaults, attrs, templates, pointers, classes,
 exceptions or overloaded symbols reject all output. The generated

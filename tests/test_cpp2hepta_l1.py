@@ -57,7 +57,10 @@ int clamp(int x) noexcept {
             '#define FLAG 1\nint f(int a) noexcept {return a+FLAG;}',
             'int shared=4; int f(int a) noexcept{return a+shared;}',
             'template<typename T> T f(T x) noexcept {return x;}',
-            'int f(int a) noexcept { return a; } int g(int a) noexcept { int x = a; return x; }',
+            'int f(int a) noexcept { return a; } int g(int a) noexcept { int x; return a; }',
+            'int f(int a) noexcept { int x = a; int x = 1; return x; }',
+            'int f(int a) noexcept { if (a > 0) { int y = a; return y; } return a; }',
+            'int f(int a) noexcept { int x = a; x += 1; return x; }',
         ]
         for text in negative:
             with self.subTest(text=text):
@@ -67,6 +70,77 @@ int clamp(int x) noexcept {
                 self.assertEqual(result["converted"], [])
                 self.assertFalse(self.dst.exists())
         self.assertTrue(len(negative) >= 9)
+
+    def test_checked_stateful_locals_and_while_translate(self):
+        self.src.write_text("""
+int sum_to(int n) noexcept {
+    int total = 0;
+    int i = 0;
+    while (i < n) { total = total + i; i = i + 1; }
+    return total;
+}
+int clamp_local(int x) noexcept {
+    int y = x;
+    if (y < 0) { y = 0; }
+    return y;
+}
+""")
+        report = migrate_cpp(self.src, self.dst)
+        self.assertTrue(report["ok"], report)
+        self.assertEqual(report["tier"], "L1")
+        self.assertFalse(report["behavioral_equivalence_proved"])
+        self.assertEqual(report["native_validation"], "not_run")
+        generated = self.dst.read_text()
+        self.assertIn("let mut total: i32 = 0;", generated)
+        self.assertIn("while (i < n)", generated)
+        self.assertIn("y = 0;", generated)
+        self.assertEqual(analyze(generated, str(self.dst), native=False).report["status"], "frontend_only")
+
+    @unittest.skipUnless(shutil.which("gcc"), "GCC is needed for C ABI native differential")
+    def test_stateful_cpp_vs_hepta_native_differential(self):
+        self.src.write_text("""
+int sum_to(int n) noexcept {
+    int total = 0;
+    int i = 0;
+    while (i < n) { total = total + i; i = i + 1; }
+    return total;
+}
+int clamp_local(int x) noexcept {
+    int y = x;
+    if (y < 0) { y = 0; }
+    return y;
+}
+""")
+        migrated = migrate_cpp(self.src, self.dst)
+        self.assertTrue(migrated["ok"], migrated)
+        wrapper = self.root / "wrapped.cc"
+        wrapper.write_text("""
+int sum_to(int) noexcept;
+int clamp_local(int) noexcept;
+extern "C" int cpp_sum_to(int n) { return sum_to(n); }
+extern "C" int cpp_clamp_local(int x) { return clamp_local(x); }
+""")
+        original = self.root / "liboriginal.so"
+        result = subprocess.run(["clang++", "-std=c++20", "-O2", "-fPIC", "-shared",
+                                 str(self.src), str(wrapper), "-o", str(original)],
+                                capture_output=True, text=True, timeout=50)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        translated = self.root / "libhepta.so"
+        result = subprocess.run([sys.executable, "-m", "hepta", "build", str(self.dst),
+                                 "--backend", "c", "--crate-type", "cdylib", "-o",
+                                 str(translated)], capture_output=True, text=True, timeout=90)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        cpp, hepta = ctypes.CDLL(str(original)), ctypes.CDLL(str(translated))
+        cases = {"sum_to": [(-10,), (0,), (1,), (2,), (7,), (100,), (1000,)],
+                 "clamp_local": [(-100,), (-1,), (0,), (1,), (1234,)]}
+        for name, args_list in cases.items():
+            left, right = getattr(cpp, "cpp_" + name), getattr(hepta, name)
+            for fn in (left, right):
+                fn.restype = ctypes.c_int32
+                fn.argtypes = [ctypes.c_int32]
+            for args in args_list:
+                with self.subTest(name=name, args=args):
+                    self.assertEqual(left(*args), right(*args))
 
     def test_hidden_preprocessor_forms_never_publish(self):
         sources = [

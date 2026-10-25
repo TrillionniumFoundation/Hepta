@@ -64,6 +64,52 @@ class ClangMigrationTests(unittest.TestCase):
         self.assertIn("E_C_TOPLEVEL", [x["code"] for x in result["rejected"]])
         self.assertFalse(self.hepta.exists())
 
+    def test_strict_c_scalar_state_and_while(self):
+        self.c.write_text("""
+int sum_to(int n) {
+    int total = 0;
+    int i = 0;
+    while (i < n) { total = total + i; i = i + 1; }
+    return total;
+}
+""")
+        result = migrate_c(self.c, self.hepta)
+        self.assertTrue(result["ok"], result)
+        self.assertIn("let mut total: i32 = 0;", self.hepta.read_text())
+        self.assertIn("while (i < n)", self.hepta.read_text())
+        original = self.directory / "liboriginal.so"
+        output = self.directory / "libhepta.so"
+        subprocess.run(["gcc", "-std=c11", "-O2", "-shared", "-fPIC",
+                        str(self.c), "-o", str(original)], check=True, capture_output=True)
+        built = subprocess.run([sys.executable, "-m", "hepta", "build", str(self.hepta),
+                                "--backend", "c", "--crate-type", "cdylib", "-o", str(output)],
+                               capture_output=True, text=True, timeout=90)
+        self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
+        old = ctypes.CDLL(str(original)).sum_to
+        new = ctypes.CDLL(str(output)).sum_to
+        for func in (old, new):
+            func.argtypes = [ctypes.c_int32]
+            func.restype = ctypes.c_int32
+        for n in (-4, 0, 1, 2, 5, 40, 100):
+            self.assertEqual(old(n), new(n), n)
+
+    def test_unsupported_scalar_local_shapes_do_not_publish(self):
+        cases = [
+            "int f(int n) { int x; return n; }",
+            "int f(int n) { int x=0; if (n>0) { int y=n; x=y; } return x; }",
+            "int f(int n) { int x=0; x += 1; return x; }",
+            "int f(int n) { int x=0; x++; return x; }",
+            "int f(int n) { int x=n, y=n; return x; }",
+            "int f(int n) { int x=0; x=n; int y=x; return y; }",
+        ]
+        for source in cases:
+            with self.subTest(source=source):
+                self.c.write_text(source)
+                report = migrate_c(self.c, self.hepta)
+                self.assertFalse(report["ok"], report)
+                self.assertFalse(self.hepta.exists())
+                self.assertTrue(report["rejected"])
+
     def test_unsupported_cast_rejected_without_writing(self):
         self.c.write_text("unsigned long long f(unsigned long long x) {return (unsigned int)x;}\n")
         result = migrate_c(self.c, self.hepta)

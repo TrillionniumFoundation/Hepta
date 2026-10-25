@@ -69,7 +69,12 @@ def _decl_type(node: dict, model: dict) -> str:
     return _typ(t.get("qualType", ""), model)
 
 
-def _expr(node: dict, args: dict[str, str], model: dict, expected: str) -> tuple[str, str]:
+def _expr(node: dict, args: dict[str, str], model: dict, expected: str,
+          locals: dict[str, tuple[str, str]] | None = None) -> tuple[str, str]:
+    # Locals are admitted only through the function-prefix declaration gate.
+    # Clang declaration identity is checked on every read: matching by spelling
+    # alone would accept unrelated or out-of-scope VarDecl nodes.
+    locals = {} if locals is None else locals
     kind = node.get("kind")
     inner = node.get("inner", [])
     if kind in {"ImplicitCastExpr", "ParenExpr"}:
@@ -80,10 +85,10 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str) -> tuple
             if cast == "IntegralCast" and inner[0].get("kind") == "IntegerLiteral" and _decl_type(node, model) == expected:
                 # Only compile-time constants provably representable in the target
                 # type may undergo automatic widening/promotion in this pilot.
-                return _expr(inner[0], args, model, expected)
+                return _expr(inner[0], args, model, expected, locals)
             if cast not in _CASTS:
                 raise MigrationRejected("E_C_CAST", "C integer/pointer casts require a checked target representation")
-        return _expr(inner[0], args, model, expected)
+        return _expr(inner[0], args, model, expected, locals)
     if kind == "IntegerLiteral":
         try:
             value = int(node["value"])
@@ -98,13 +103,22 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str) -> tuple
     if kind == "DeclRefExpr":
         decl = node.get("referencedDecl", {})
         name = decl.get("name", "")
-        if decl.get("kind") != "ParmVarDecl" or name not in args:
-            raise MigrationRejected("E_C_REF", "Only local scalar function parameter reads are migrated")
-        if args[name] != expected:
+        if decl.get("kind") == "ParmVarDecl":
+            actual = args.get(name)
+        elif decl.get("kind") == "VarDecl":
+            local = locals.get(name)
+            actual = local[0] if (local is not None
+                                  and isinstance(decl.get("id"), str)
+                                  and decl["id"] == local[1]) else None
+        else:
+            actual = None
+        if actual is None:
+            raise MigrationRejected("E_C_REF", "Reference is not a checked parameter or initialized local")
+        if actual != expected:
             raise MigrationRejected("E_C_PROMOTION", "C integer promotions require a separate checked lowering")
         return name, expected
     if kind == "UnaryOperator" and node.get("opcode") in {"+", "-"} and len(inner) == 1:
-        rendered, typ = _expr(inner[0], args, model, expected)
+        rendered, typ = _expr(inner[0], args, model, expected, locals)
         if node["opcode"] == "-" and expected.startswith("u"):
             raise MigrationRejected("E_C_UNSIGNED_NEG", "Unsigned negation needs modular-C semantics")
         return f"({node['opcode']}{rendered})", typ
@@ -114,15 +128,15 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str) -> tuple
             # C comparisons yield int, whereas Hepta comparisons yield bool.
             # This expression is only consumed as a statement condition.
             lhs_type = _decl_type(inner[0], model)
-            left, _ = _expr(inner[0], args, model, lhs_type)
-            right, _ = _expr(inner[1], args, model, lhs_type)
+            left, _ = _expr(inner[0], args, model, lhs_type, locals)
+            right, _ = _expr(inner[1], args, model, lhs_type, locals)
             return f"({left} {op} {right})", "bool"
         if op not in _ARITH | _BITS:
             raise MigrationRejected("E_C_OPERATOR", f"Unsupported C operator: {op}")
         if op in _BITS and expected.startswith("i"):
             raise MigrationRejected("E_C_BITWISE", "Signed C bitwise operations require target-specific semantics")
-        left, _ = _expr(inner[0], args, model, expected)
-        right, _ = _expr(inner[1], args, model, expected)
+        left, _ = _expr(inner[0], args, model, expected, locals)
+        right, _ = _expr(inner[1], args, model, expected, locals)
         if op in _ARITH and expected.startswith("u"):
             builtin = {"+": "wrapping_add", "-": "wrapping_sub", "*": "wrapping_mul"}[op]
             return f"{builtin}({left}, {right})", expected
@@ -130,27 +144,52 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str) -> tuple
     raise MigrationRejected("E_C_EXPRESSION", f"Unsupported C expression: {kind}")
 
 
-def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 1) -> list[str]:
+def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 1,
+          locals: dict[str, tuple[str, str]] | None = None) -> list[str]:
+    locals = {} if locals is None else locals
     indent = "    " * depth
     kind = node.get("kind")
     children = node.get("inner", [])
     if kind == "CompoundStmt":
-        return [line for child in children for line in _stmt(child, args, model, ret, depth)]
+        return [line for child in children for line in _stmt(child, args, model, ret, depth, locals)]
+    if kind == "BinaryOperator" and node.get("opcode") == "=" and len(children) == 2:
+        target = children[0]
+        ref = target.get("referencedDecl", {}) if target.get("kind") == "DeclRefExpr" else {}
+        name = ref.get("name")
+        local = locals.get(name)
+        if (local is None or ref.get("kind") != "VarDecl"
+                or ref.get("id") != local[1]):
+            raise MigrationRejected("E_C_ASSIGN", "Only a known initialized scalar local may be assigned")
+        value, value_type = _expr(children[1], args, model, local[0], locals)
+        if value_type != local[0]:
+            raise MigrationRejected("E_C_ASSIGN", "Assignment type conversion not in checked subset")
+        return [f"{indent}{name} = {value};"]
+    if kind == "WhileStmt" and len(children) == 2:
+        condition, condition_type = _expr(children[0], args, model, "bool", locals)
+        if condition_type != "bool":
+            raise MigrationRejected("E_C_CONDITION", "Only explicit Boolean while conditions are supported")
+        body = children[1]
+        if body.get("kind") != "CompoundStmt":
+            raise MigrationRejected("E_C_LOOP", "While loop body requires an explicit compound statement")
+        lines = [f"{indent}while {condition} {{"]
+        lines.extend(_stmt(body, args, model, ret, depth + 1, locals))
+        lines.append(f"{indent}}}")
+        return lines
     if kind == "ReturnStmt" and len(children) == 1:
-        expression, typ = _expr(children[0], args, model, ret)
+        expression, typ = _expr(children[0], args, model, ret, locals)
         if typ != ret:
             raise MigrationRejected("E_C_RETURN", "C comparison or implicit conversion is not a Hepta integer return")
         return [f"{indent}return {expression};"]
     if kind == "IfStmt" and len(children) in (2, 3):
-        cond, typ = _expr(children[0], args, model, "bool")
+        cond, typ = _expr(children[0], args, model, "bool", locals)
         if typ != "bool":
             raise MigrationRejected("E_C_CONDITION", "C integer truthiness requires an explicit checked conversion")
         result = [f"{indent}if {cond} {{"]
-        result.extend(_stmt(children[1], args, model, ret, depth + 1))
+        result.extend(_stmt(children[1], args, model, ret, depth + 1, locals))
         result.append(f"{indent}}}")
         if len(children) == 3:
             result.append(f"{indent}else {{")
-            result.extend(_stmt(children[2], args, model, ret, depth + 1))
+            result.extend(_stmt(children[2], args, model, ret, depth + 1, locals))
             result.append(f"{indent}}}")
         return result
     raise MigrationRejected("E_C_STATEMENT", f"Unsupported C statement: {kind}")
@@ -181,7 +220,39 @@ def _function(decl: dict, model: dict) -> dict:
         if not _IDENT.fullmatch(n) or n in args or n.startswith("__"):
             raise MigrationRejected("E_C_NAME", "Unnamed, duplicate or reserved C parameter")
         args[n] = _decl_type(p, model)
-    rendered = _stmt(body[0], args, model, ret)
+    # Deliberately narrow scope recovery: initialized local declarations must
+    # be a simple prefix of the function's top-level block. Nested declarations,
+    # shadowing, multiple declarators and arbitrary initialization are rejected.
+    # This guarantees every local use is in its declared scope without claiming
+    # support for general C/C++ lexical scopes, lifetimes or definite assignment.
+    locals: dict[str, tuple[str, str]] = {}
+    rendered: list[str] = []
+    saw_executable = False
+    for item in body[0].get("inner", []):
+        if item.get("kind") == "DeclStmt":
+            if saw_executable:
+                raise MigrationRejected("E_C_LOCAL_SCOPE", "Local declarations must precede executable statements")
+            decls = item.get("inner", [])
+            if len(decls) != 1 or decls[0].get("kind") != "VarDecl":
+                raise MigrationRejected("E_C_LOCAL_DECL", "Only single scalar local declarations are supported")
+            var = decls[0]
+            local_name = var.get("name", "")
+            local_id = var.get("id")
+            if (not _IDENT.fullmatch(local_name) or local_name.startswith("__")
+                    or local_name in args or local_name in locals
+                    or not isinstance(local_id, str)):
+                raise MigrationRejected("E_C_LOCAL_NAME", "Local is unnamed, shadowed or lacks Clang identity")
+            if var.get("init") is None or len(var.get("inner", [])) != 1:
+                raise MigrationRejected("E_C_LOCAL_INIT", "Locals require one explicit scalar initializer")
+            local_type = _decl_type(var, model)
+            initial, init_type = _expr(var["inner"][0], args, model, local_type, locals)
+            if init_type != local_type:
+                raise MigrationRejected("E_C_LOCAL_INIT", "Local initializer changes scalar type")
+            rendered.append(f"    let mut {local_name}: {local_type} = {initial};")
+            locals[local_name] = (local_type, local_id)
+        else:
+            saw_executable = True
+            rendered.extend(_stmt(item, args, model, ret, locals=locals))
     if not rendered:
         raise MigrationRejected("E_C_EMPTY", "Empty C function cannot satisfy a scalar return")
     signature = ", ".join(f"{p}: {t}" for p, t in args.items())
