@@ -1,0 +1,65 @@
+{
+  "schema": "hepta.p1.sourcebound-scalar.local-qualification.v1",
+  "date": "2026-10-25",
+  "target_pull_request": 73,
+  "scope": "exact uploaded scalar conversion implementation and synthetic tests; independent native C11 control; no full Hepta compiler / Rust native validation",
+  "branch": "dot/p1-sourcebound-scalar-ssa-20261025",
+  "base_commit": "926401cc371bca7373539491a44b12c00f7dc69b",
+  "test_command": "python -m unittest -v test_hsir_scalar_bridge.py test_hsir_scalar_differential.py test_hsir_scalar_native_oracle.py",
+  "environment": {
+    "python": "3.13.5",
+    "gcc": "Debian 14.2.0-19 (14.2.0)",
+    "clang": "Swift clang version 17.0.0 (LLVM project 10999b6d034fe318f3d56c83bddb6572593a8bb0)"
+  },
+  "tests": {
+    "run": 27,
+    "passed": 27,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "evidence_details": {
+    "typed_scalar_shape_and_rejection_cases": 22,
+    "independent_python_ast_differential_tests": 3,
+    "gcc_clang_native_c_control_tests": 2,
+    "source_and_translated_interpreter_input_domain": {
+      "minimum": -10,
+      "maximum": 49,
+      "count": 60
+    },
+    "native_compilers_executed": [
+      "gcc",
+      "clang"
+    ],
+    "negative_controls": [
+      "translated increment +1 changed to +2",
+      "C11 source branch increment +1 changed to +2"
+    ],
+    "native_compiled_program_is_independent_handwritten_c_reference": true,
+    "actual_hepta_native_binary_compiled": false,
+    "full_coverage_proved": false,
+    "source_to_ir_semantic_equivalence_proved": false
+  },
+  "exact_tested_file_git_blobs": {
+    "hepta/hsir_scalar_bridge.py": "8547826872af153efc89f3e23ca712cb0d2b9930",
+    "tests/test_hsir_scalar_bridge.py": "a6b9372390a8e954b98d3d1ed9fdc9c9d1cdee42",
+    "tests/test_hsir_scalar_differential.py": "1a6bfb96e49abe8b30deed2317cf9e90c615ea85",
+    "tests/test_hsir_scalar_native_oracle.py": "8dd0051a267c1262c0e1794087da6c2f73fc38e9"
+  },
+  "committed_but_not_run": [
+    "tests/test_hsir_sourcebound_ssa.py",
+    "tests/test_hsir_v1_import_cli.py"
+  ],
+  "remaining_blockers": {
+    "P0": "source-level branch reconciliation and whole-repo regression",
+    "P1": "full ownership/lifetime/provenance and source-to-IR/backend refinement; real CFG SSA integration tests still not run",
+    "P2": "general C project migration",
+    "P3": "real multi-platform C/C++ ABI",
+    "P4": "full C++ L0-L3 semantics",
+    "P5": "full independent native LLVM backend and broad performance",
+    "P6": "real model Agent evaluation",
+    "P7": "physical hardware and sustained production qualification"
+  },
+  "whole_project_blockers_closed": false,
+  "remote_ci_status_consulted": false
+}

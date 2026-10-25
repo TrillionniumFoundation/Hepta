@@ -75,6 +75,8 @@ def main(argv=None) -> int:
         "x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu",
         "x86_64-pc-windows-msvc"
     ], help="Cross-compile a machine object only; target execution and ABI remain unqualified")
+    imported_v1 = sub.add_parser("ssa-v1-import", help="Read an external HSIR v1 snapshot for analysis-only scalar SSA; no native validation")
+    imported_v1.add_argument("snapshot")
     for cmd in ["check", "inspect", "hsir", "cfg", "cfg-analyze", "ssa", "ssa-verify", "ssa-v1-verify", "emit", "header", "build", "run", "patch"]:
         p = sub.add_parser(cmd)
         p.add_argument("source")
@@ -98,6 +100,23 @@ def main(argv=None) -> int:
             p.add_argument("--apply", action="store_true", help="Atomically apply after native validation")
     args = parser.parse_args(argv)
     try:
+        if args.command == "ssa-v1-import":
+            from .hsir_v1 import decode_json
+            from .hsir_v1_ssa import lower_verified_v1_scalar_ssa
+            with Path(args.snapshot).open("rb") as stream:
+                record = decode_json(stream.read(32_000_001))
+            if record.get("schema") == "hepta.hsir.integration.export.v1":
+                if (type(record.get("ok")) is not bool or not record["ok"] or
+                        not isinstance(record.get("hsir"), dict)):
+                    raise V1SSARejected("E_V1_SSA_IMPORT_ENVELOPE: invalid producer export")
+                snapshot = record["hsir"]
+            else:
+                snapshot = record
+            analysis = lower_verified_v1_scalar_ssa(snapshot)
+            output_json({"schema": "hepta.ssa.integration.import.v1", "ok": True,
+                         "status": "analysis_only_no_native_check", "native_validation": "not_run",
+                         "analysis": analysis})
+            return 0
         if args.command == "lock":
             from .packages import write_lock
             output_json(write_lock(args.package))
