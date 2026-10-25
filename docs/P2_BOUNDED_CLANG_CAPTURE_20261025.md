@@ -34,3 +34,10 @@ controls do not prove arbitrary source migration safe or equivalent.
 
 Production P0-P7 and P01-P12 blockers remain open. No CI result is required
 to keep work moving, but unrun qualification is not counted as passed.
+
+The focused integration suite `tests.test_clang_capture_integration` also
+checks the real Clang stdout text is unchanged between strict single-TU and
+project capture, maps oversized output to their original `MigrationRejected`
+codes, and verifies timeout cannot produce a frontend-success result. This
+suite is committed for execution in a full Hepta worktree and is not claimed
+as having run on the isolated helper-only copy.
