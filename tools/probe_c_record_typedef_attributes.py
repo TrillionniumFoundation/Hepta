@@ -217,21 +217,30 @@ def worker():
     return 0 if report['ok'] else 1
 
 
-def main():
-    if '--worker' in sys.argv:return worker()
-    owner.require(not OUT.exists(),'Stale typed probe evidence')
-    OUT.mkdir(parents=True)
-    result=owner.supervise([sys.executable,str(Path(__file__).resolve()),'--worker'],timeout=600,max_output=1_000_000)
+def _private_main(private):
+    global OUT
+    OUT=private
+    result=owner.supervise([sys.executable,str(Path(__file__).resolve()),'--worker','--work-root',str(private)],timeout=600,max_output=1_000_000)
     (OUT/'worker.stdout').write_bytes(result.pop('stdout'));(OUT/'worker.stderr').write_bytes(result.pop('stderr'))
     owner.write(OUT/'owned-process-receipt.json',result)
     if not result['cleanup']['confirmed']:
         owner.write(OUT/'UNSEALED.json',{'reason':'Owned cleanup unconfirmed','supervisor':result});return 1
-    files={str(p.relative_to(OUT)):{'bytes':p.stat().st_size,'sha256':owner.sha(p)} for p in sorted(OUT.rglob('*')) if p.is_file()}
+    from tools.c_project_probe_workspace import evidence_files
+    files=evidence_files(OUT,owner.LIMIT)
     total=sum(r['bytes'] for r in files.values());status=result['exit_code'] if total<=owner.LIMIT else 1
     owner.write(OUT/'manifest.json',{'schema':'hepta.typed-typedef-artifacts.v1','exit_code':status,'files':files,'total_bytes':total,'byte_limit':owner.LIMIT,
                 'owned_cleanup_confirmed':True,'expected_head':os.environ.get('HEPTA_QUALIFICATION_HEAD_SHA'),
                 'claims':{'mismatched_abi_calls_executed':False,'whole_project_blockers_closed':False,'actual_ai_model_runs':0}})
     return status
+
+
+def main():
+    global OUT
+    from tools.c_project_probe_workspace import run_private, worker_root
+    if '--worker' in sys.argv:
+        OUT=worker_root(sys.argv)
+        return worker()
+    return run_private(OUT,_private_main,limit=owner.LIMIT)
 
 
 if __name__=='__main__':raise SystemExit(main())

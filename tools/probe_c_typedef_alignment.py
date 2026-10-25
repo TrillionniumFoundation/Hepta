@@ -425,12 +425,10 @@ def worker():
     return 0 if report['ok'] else 1
 
 
-def main():
-    if '--worker' in sys.argv:
-        return worker()
-    require(not OUT.exists(), 'Refuse stale probe evidence directory')
-    OUT.mkdir(parents=True)
-    result = supervise([sys.executable,str(Path(__file__).resolve()),'--worker'])
+def _private_main(private):
+    global OUT
+    OUT = private
+    result = supervise([sys.executable,str(Path(__file__).resolve()),'--worker','--work-root',str(private)])
     (OUT/'worker.stdout').write_bytes(result.pop('stdout'))
     (OUT/'worker.stderr').write_bytes(result.pop('stderr'))
     write(OUT/'owned-process-receipt.json', result)
@@ -439,8 +437,8 @@ def main():
         write(OUT/'UNSEALED.json', {'reason':'Owned cleanup is unknown', 'supervisor':result})
         return 1
     status=result['exit_code']
-    files={str(p.relative_to(OUT)):{'bytes':p.stat().st_size,'sha256':sha(p)}
-           for p in sorted(OUT.rglob('*')) if p.is_file()}
+    from tools.c_project_probe_workspace import evidence_files
+    files=evidence_files(OUT,LIMIT)
     total=sum(f['bytes'] for f in files.values())
     if total > LIMIT:
         status=1
@@ -450,6 +448,15 @@ def main():
         'expected_head':os.environ.get('HEPTA_QUALIFICATION_HEAD_SHA'),
         'claims':{'whole_project_blockers_closed':False,'mismatched_abi_calls_executed':False}})
     return status
+
+
+def main():
+    global OUT
+    from tools.c_project_probe_workspace import run_private, worker_root
+    if '--worker' in sys.argv:
+        OUT = worker_root(sys.argv)
+        return worker()
+    return run_private(OUT, _private_main, limit=LIMIT)
 
 
 if __name__ == '__main__':

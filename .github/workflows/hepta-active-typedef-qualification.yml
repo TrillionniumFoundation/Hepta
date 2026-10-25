@@ -1,4 +1,3 @@
-# Two contexts on one exact source head; focused success is not a full-gate pass.
 name: Isolated active typedef attribute qualification
 'on':
   push:
@@ -177,20 +176,67 @@ jobs:
         for name,expected in pins['files_sha256'].items():\n    if hashlib.sha256(Path(name).read_bytes()).hexdigest()!=expected:\n\
         \        raise SystemExit('Wrong source/control: '+name)\nPYTHON\n"
       id: focused-admission
+    - name: Compiler-free publisher profile and qualification controls
+      id: publisher-profile
+      timeout-minutes: 2
+      run: 'set -euo pipefail
+
+        mkdir -p artifacts/c-project-publisher-profile
+
+        python tools/qualify_c_project_profile.py 2>&1 | tee artifacts/c-project-publisher-profile/normal.log
+
+        python -O tools/qualify_c_project_profile.py 2>&1 | tee artifacts/c-project-publisher-profile/optimized.log
+
+        '
+    - name: Synthetic formal receipt binding controls; no Lean execution
+      id: formal-receipt-controls
+      timeout-minutes: 2
+      run: 'set -euo pipefail
+
+        mkdir -p artifacts/formal-receipt-controls
+
+        python tools/qualify_formal_receipt_controls.py 2>&1 | tee artifacts/formal-receipt-controls/normal.log
+
+        python -O tools/qualify_formal_receipt_controls.py 2>&1 | tee artifacts/formal-receipt-controls/optimized.log
+
+        '
     - name: Original six-case oracle; unchanged fixtures and layout controls
       id: six-case-oracle
       run: python tools/probe_c_typedef_alignment.py
       timeout-minutes: 10
+      if: ${{ !cancelled() && steps.focused-admission.outcome == 'success' && steps.publisher-profile.outcome == 'success'
+        && steps.formal-receipt-controls.outcome == 'success' }}
     - name: Actual typed pointer AST and separate C/Rust layouts
-      if: ${{ !cancelled() && steps.focused-admission.outcome == 'success' && steps.six-case-oracle.outcome == 'success' }}
+      if: ${{ !cancelled() && steps.focused-admission.outcome == 'success' && steps.publisher-profile.outcome == 'success'
+        && steps.six-case-oracle.outcome == 'success' && steps.formal-receipt-controls.outcome == 'success' }}
       run: python tools/probe_c_record_typedef_attributes.py
       timeout-minutes: 12
+      id: typed-oracle
+    - name: Actual native C project through FD-bound publisher
+      id: publisher-native
+      timeout-minutes: 5
+      if: ${{ !cancelled() && steps.focused-admission.outcome == 'success' && steps.publisher-profile.outcome == 'success'
+        && steps.six-case-oracle.outcome == 'success' && steps.typed-oracle.outcome == 'success' && steps.formal-receipt-controls.outcome
+        == 'success' }}
+      run: python tools/probe_c_project_publication.py
     - name: Retain focused raw evidence and setup failures
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: hepta-active-typedef-focused-${{ github.sha }}
-        path: 'artifacts/c-typedef-alignment/
+        path: 'artifacts/c-typedef-alignment-control/
+
+          artifacts/c-record-typedef-attributes-control/
+
+          artifacts/c-project-publication-control/
+
+          artifacts/formal-receipt-controls/
+
+          artifacts/c-project-publisher-profile/
+
+          artifacts/c-project-publication/
+
+          artifacts/c-typedef-alignment/
 
           artifacts/c-record-typedef-attributes/
 

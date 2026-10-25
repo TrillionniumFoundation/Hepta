@@ -106,25 +106,17 @@ def migrate_project(database: str | Path, output_directory: str | Path, *,
                     os.fsync(stream.fileno())
             # The manifest is published last. No claim of a crash-atomic
             # directory transaction is made. No existing name is overwritten.
-            destination.mkdir()
-            created = []
-            try:
-                for path in sorted(stage.iterdir(), key=lambda p: p.name == "migration.json"):
-                    target = destination / path.name
-                    os.link(path, target)
-                    created.append((target, digest(path.read_bytes())))
-            except OSError:
-                for path, expected in reversed(created):
-                    if path.is_file() and digest(path.read_bytes()) == expected:
-                        path.unlink()
-                try:
-                    destination.rmdir()
-                except OSError:
-                    pass
-                raise
+            from .c_project_publish import publish_no_replace
+            expected_publication = dict(report["artifacts"])
+            manifest_bytes = contents["migration.json"].encode()
+            expected_publication["migration.json"] = {
+                "sha256": digest(manifest_bytes), "bytes": len(manifest_bytes)}
+            publish_no_replace(stage, destination, expected=expected_publication)
         return report
     except (MigrationRejected, HeptaError, OSError, ValueError, KeyError, TypeError, RecursionError) as exc:
         report.update(ok=False, status="rejected")
+        if hasattr(exc, "cleanup"):
+            report["publication_cleanup"] = exc.cleanup
         report["diagnostics"].append({"code": getattr(exc, "code", "E_C_PROJECT_INPUT"), "message": str(exc)})
         if translator is not None:
             report["declaration_inventory_complete"] = translator.inventory_complete

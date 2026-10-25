@@ -236,8 +236,68 @@ def _require_qualification(name, evidence):
                         or (label == "worker_failure" and not (2 <= metrics["received_before_close"] <= 194))):
                     raise ValueError("Bounded-group cleanup, budgets, or deadlines contradict the native program's required observations")
     elif name == "formal_core":
-        if len(evidence.get("theorems", [])) != 11 or len(evidence.get("negative_mutations", [])) != 2:
-            raise ValueError("Expected 11 checked theorems and two rejected negative mutations")
+        from tools.verify_formal import negative_sources, reject_known_runtime_failure, require_negative_rejection
+        # Metadata consistency is necessary, not proof that Lean executed. The
+        # release runner must also retain the actual command/exit and source
+        # snapshot; synthetic receipt tests never qualify formal execution.
+        source = (ROOT / "formal/HeptaCore.lean").read_bytes()
+        source_text = source.decode()
+        names = re.findall(r"(?m)^theorem\s+([A-Za-z0-9_]+)", source_text)
+        expected = set(names)
+        source_hash = hashlib.sha256(source).hexdigest()
+        theorems = evidence.get("theorems")
+        allowed_axioms = {"propext", "Quot.sound", "Classical.choice"}
+        if (evidence.get("schema") != "hepta.formal.v2" or evidence.get("status") != "passed"
+                or evidence.get("source") != "formal/HeptaCore.lean"
+                or evidence.get("source_sha256") != source_hash
+                or len(expected) != 11 or not isinstance(theorems, dict) or set(theorems) != expected
+                or any(not isinstance(used, list)
+                       or any(not isinstance(axiom, str) or axiom not in allowed_axioms for axiom in used)
+                       or len(used) != len(set(used)) for used in theorems.values())):
+            raise ValueError("Formal theorem identity, source binding or axioms are invalid")
+        lean = evidence.get("lean")
+        log = evidence.get("kernel_output")
+        pinned_binary = json.loads((ROOT / "formal/toolchain-lock.json").read_text()).get("lean_binary_sha256")
+        if (not isinstance(lean, str) or not lean.startswith("Lean (version 4.19.0,")
+                or not _sha256(pinned_binary) or evidence.get("lean_binary_sha256") != pinned_binary
+                or not isinstance(log, str) or "sorryAx" in log or "error:" in log):
+            raise ValueError("Formal evidence lacks the reported Lean identity or kernel dependency output")
+        reject_known_runtime_failure(log)
+        checks = "\n".join("#print axioms Hepta." + name for name in names)
+        checked_source = source_text + "\n" + checks + "\n"
+        if (type(evidence.get("version_exit_code")) is not int or evidence["version_exit_code"] != 0
+                or type(evidence.get("kernel_exit_code")) is not int or evidence["kernel_exit_code"] != 0
+                or evidence.get("checked_source_sha256") != hashlib.sha256(checked_source.encode()).hexdigest()
+                or evidence.get("kernel_output_sha256") != hashlib.sha256(log.encode()).hexdigest()):
+            raise ValueError("Formal positive command exits or retained source/output identities disagree")
+        dependencies = re.findall(r"'Hepta\.([^']+)' depends on axioms: \[([^\]]*)\]", log)
+        if ({theorem for theorem, _ in dependencies} != expected
+                or any([axiom.strip() for axiom in used.split(",") if axiom.strip()] != theorems[theorem]
+                       for theorem, used in dependencies)):
+            raise ValueError("Formal kernel output disagrees with the complete theorem inventory")
+        claims = {"abstract_core_theorems_checked": True,
+                  "production_compiler_refinement_proved": False, "whole_language_soundness_proved": False,
+                  "ffi_or_hardware_proved": False, "termination_or_bounded_cancellation_proved": False}
+        if (not isinstance(evidence.get("claims"), dict) or set(evidence["claims"]) != set(claims)
+                or any(evidence["claims"][claim] is not value for claim, value in claims.items())):
+            raise ValueError("Formal evidence must preserve its abstract-core-only claim boundary")
+        negatives = evidence.get("negative_mutations")
+        required = {"release_while_borrowed", "unbounded_task_admission"}
+        if (not isinstance(negatives, list) or len(negatives) != len(required)
+                or any(not isinstance(case, dict) for case in negatives)
+                or {case.get("mutation") for case in negatives} != required):
+            raise ValueError("Formal negative mutations are absent or duplicated")
+        try:
+            mutations = negative_sources(source_text)
+        except RuntimeError as exc:
+            raise ValueError("Formal negative mutation source is invalid") from exc
+        for case in negatives:
+            negative_log = case.get("log")
+            require_negative_rejection(case["mutation"], case.get("exit_code"), negative_log)
+            if (case.get("status") != "rejected_as_expected"
+                    or case.get("source_sha256") != hashlib.sha256(mutations[case["mutation"]].encode()).hexdigest()
+                    or case.get("log_sha256") != hashlib.sha256(negative_log.encode()).hexdigest()):
+                raise ValueError("Formal negative source or captured log identity disagrees")
     elif name == "provenance_and_type_core":
         from tools.verify_memory import validate_report
         validate_report(evidence)
