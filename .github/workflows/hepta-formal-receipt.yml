@@ -1,0 +1,33 @@
+name: Hepta P0 formal receipt integrity
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - tools/release_check.py
+      - tests/test_release_qualification.py
+      - formal/HeptaCore.lean
+      - .github/workflows/hepta-formal-receipt.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  formal-receipt-regression:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    env:
+      HEPTA_EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout the exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_EXPECTED_HEAD }}
+      - name: Verify the source revision
+        run: |
+          test "$(git rev-parse HEAD)" = "$HEPTA_EXPECTED_HEAD"
+          test -z "$(git status --porcelain)"
+      - name: Test receipt positive and negative gates
+        run: python3 -m unittest discover -s tests -p test_release_qualification.py -v
