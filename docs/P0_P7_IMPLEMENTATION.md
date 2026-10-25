@@ -86,6 +86,37 @@ A successful reference release is *not* automatically a successful qualification
   current-head completion. The exact queued status and the absence of fixed
   native runner receipts must not be converted into a P0 pass.
 
+## 2026-10-24 follow-up: safety and migration semantics (current branch)
+
+- **P4 — complete atomic bridge bundle:** C++ wrapper `bridge.cc`, `bridge.h`
+  and `manifest.json` are staged privately, then published together with Linux
+  `renameat2(RENAME_NOREPLACE)`, using a parent directory descriptor.
+  No-overwrite, concurrent-writer, dangling-symlink and simulated partial-write
+  negative tests passed locally; systems lacking `renameat2` reject this mode.
+  The original C++ code remains unverified and outside Hepta Safe Core.
+- **P4 — actual silent semantic collision fixed:** The wrapper generator
+  previously accepted original `foo` and `hepta_cxx_foo` declarations.
+  A real Clang++ shared library successfully compiled and linked but
+  `hepta_cxx_hepta_cxx_foo(3)` returned **3** rather than the original
+  function's **103**, because the generated wrapper resolved the wrapper
+  rather than the original C++ declaration. Such collisions now fail closed
+  with `E_CPP_BRIDGE_SYMBOL` before publishing C++ source.
+- **P3/P5 — output path containment:** Both migration CLI tools now reject
+  dangling destination symlinks before opening the output. Existing hardlink
+  no-replace publishing is retained. This guards one concrete output redirect
+  scenario, not a proof of arbitrary adversarial filesystem race freedom.
+- **P3/P5 — strict int/bool conversion:** Real Clang ASTs for comparison and
+  logical expressions can now be lowered to Hepta's explicit typed boolean and
+  conditional integer 0/1 branches at return, local initializer and assignment
+  sites. C++ `int -> bool` / `bool -> int` implicit conversions are accepted
+  only for their validated int32/bool castKind pairs. Unsupported promotions,
+  bool arithmetic, pointers and foreign side effects still reject.
+- **Evidence:** The new `tests/test_migrate_bool_int.py` runs Clang/Clang++
+  source AST conversion and native **original program** 0/1 oracles. The
+  actual C/C++-versus-Hepta cdylib differential test requires the complete
+  pinned Rust toolchain and is not qualified by the partial local checkout.
+  Original P01–P12 and full P0–P7 remain open; no production claim is made.
+
 ## Acceptance gates (the definition of done)
 
 | Stage | Scope and required evidence | Status following this incremental change |
