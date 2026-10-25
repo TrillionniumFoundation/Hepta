@@ -140,6 +140,10 @@ def main(argv=None) -> int:
             if args.workspace_action == "diff":
                 return 0 if (result.get("schema") == "hepta.agent-contract-diff.v1"
                              and result.get("status") == "read_only_contract_diff_not_equivalence") else 1
+            if args.workspace_action == "semantics":
+                return 0 if (result.get("ok") is True
+                             and result.get("schema") == "hepta.agent-semantics.v1"
+                             and result.get("status") == "published_native_prevalidated_read_only") else 1
             return 0 if result.get("ok") is True else 1
         if args.command == "lock":
             from .packages import write_lock
