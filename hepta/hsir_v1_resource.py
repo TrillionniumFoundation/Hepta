@@ -54,6 +54,23 @@ def checked_resource_snapshot(analysis, envelope: dict) -> dict:
     if original_names != projected_names or len(set(original_names)) != len(original_names):
         raise HSIRResourceRejected("E_HSIR_RESOURCE_INVENTORY")
 
+    # A source digest plus function names does not bind a caller-supplied HSIR
+    # to the current checker result. An attacker can alter effects, parameter
+    # ownership, return types or external obligations and recompute both the
+    # v0 and v1 content hashes without changing source_sha256. Rebuild the
+    # *entire* canonical producer payload from this exact checked AST before
+    # accepting its resource-graph binding.
+    from .semantic_ir import lower_checked_program
+    try:
+        expected_hsir = lower_checked_program(
+            program, checked, project_sha256=project)
+    except (ValueError, TypeError, OverflowError, RecursionError) as exc:
+        raise HSIRResourceRejected("E_HSIR_RESOURCE_SOURCE_REPLAY: " + str(exc)) from exc
+    if (envelope["opaque_producer_payload"] != expected_hsir or
+            producer["legacy_sha256"] != expected_hsir["sha256"]):
+        raise HSIRResourceRejected(
+            "E_HSIR_RESOURCE_SNAPSHOT_MISMATCH: submitted HSIR differs from checked AST")
+
     from .resource_lowering import lower_resource_ir
     from .resource_ir import ResourceIRError, verify_resource_ir
 
