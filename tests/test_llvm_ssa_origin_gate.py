@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from hashlib import sha256
+import json
 from pathlib import Path
 import re
 import shutil
@@ -13,8 +14,8 @@ from hepta.llvm_ssa_backend import (
     LLVMSSARejected, compile_scalar_ssa_llvm, emit_scalar_ssa_llvm,
     require_verified_ssa_cfg_origin,
 )
-from hepta.ssa import lower_cfg_scalar_ssa
-from tests.test_ssa_scalar import snapshot, block, n
+from hepta.ssa import SSASnapshot, lower_cfg_scalar_ssa
+from tests.test_ssa_scalar import snapshot, block, n, i, let, assign, expr
 from tests.test_llvm_ssa_backend import exported
 
 
@@ -50,6 +51,37 @@ class LLVMSSAOriginGateTests(unittest.TestCase):
             with self.assertRaisesRegex(LLVMSSARejected, "ORIGIN"):
                 compile_scalar_ssa_llvm(forged, output=destination, ssa=ssa, cfg=cfg)
             self.assertFalse(destination.exists())
+
+    def test_semantically_valid_but_noncanonical_phi_order_fails_origin(self):
+        # The structural verifier may accept a reordered PHI inventory.
+        # Native-origin receipts require the sole deterministic CFG lowering,
+        # not just a self-resealed, plausibly equivalent SSA representation.
+        cfg = exported(snapshot([
+            block(0, [let("x", i(0)), let("y", i(0))],
+                  kind="branch",
+                  condition=expr("binary", ">", "bool", n("limit"), i(0)),
+                  **{"then": "b0001", "else": "b0002"}),
+            block(1, [assign("x", i(2)), assign("y", i(3))],
+                  kind="goto", target="b0003"),
+            block(2, [assign("x", i(4)), assign("y", i(5))],
+                  kind="goto", target="b0003"),
+            block(3, kind="return",
+                  value=expr("binary", "+", "i32", n("x"), n("y"))),
+        ], params=[("limit", "i32")], effects=["panic"]))
+        canonical = lower_cfg_scalar_ssa(cfg)
+        program = canonical.as_dict()
+        program.pop("sha256")
+        phis = program["functions"][0]["blocks"][3]["phis"]
+        self.assertEqual(len(phis), 2)
+        phis.reverse()
+        encoded = json.dumps(program, sort_keys=True, ensure_ascii=False,
+                             allow_nan=False, separators=(",", ":"))
+        forged = SSASnapshot(canonical.schema, encoded,
+                             sha256(encoded.encode()).hexdigest())
+        self.assertNotEqual(forged, canonical)
+        ir = emit_scalar_ssa_llvm(canonical, cfg)
+        with self.assertRaisesRegex(LLVMSSARejected, "ORIGIN"):
+            require_verified_ssa_cfg_origin(ir, ssa=forged, cfg=cfg)
 
     def test_rehashed_arbitrary_memory_operation_rejected_by_profile(self):
         _, _, ir = self.fixture()
