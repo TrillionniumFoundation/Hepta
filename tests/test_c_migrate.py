@@ -101,8 +101,8 @@ int safe_guard(int a,int b) {
     def test_divmod_nontrivial_promotions_and_truthiness_reject(self):
         for source, code in (
             ("int f(int a,unsigned int b){return a / b;}", "E_C_DIVMOD_PROMOTION"),
-            ("int f(int a,int b){if(a && b){return 1;}return 0;}", "E_C_REF"),
-            ("int f(int a){if(!a){return 1;}return 0;}", "E_C_REF"),
+            ("int f(int a,int b){if(a && b){return 1;}return 0;}", "E_C_PROMOTION"),
+            ("int f(int a){if(!a){return 1;}return 0;}", "E_C_PROMOTION"),
         ):
             with self.subTest(source=source):
                 self.c.write_text(source)
