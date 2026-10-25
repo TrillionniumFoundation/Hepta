@@ -56,7 +56,7 @@ def load(path: str) -> dict:
         result = json.loads(raw.decode("utf-8"), object_pairs_hook=pairs_unique,
                             parse_constant=lambda x: (_ for _ in ()).throw(
                                 HSIRWireRejected("E_HSIR_NONFINITE: " + x)))
-    except (UnicodeError, json.JSONDecodeError) as exc:
+    except (UnicodeError, json.JSONDecodeError, RecursionError) as exc:
         raise HSIRWireRejected("E_HSIR_JSON") from exc
     if not isinstance(result, dict):
         raise HSIRWireRejected("E_HSIR_NOT_OBJECT")
@@ -104,7 +104,7 @@ def fingerprint(record: dict) -> dict:
     try:
         canonical = json.dumps(unsigned, sort_keys=True, separators=(",", ":"),
                                ensure_ascii=False, allow_nan=False).encode("utf-8")
-    except (ValueError, TypeError, UnicodeError) as exc:
+    except (ValueError, TypeError, UnicodeError, RecursionError) as exc:
         raise HSIRWireRejected("E_HSIR_NOT_CANONICALIZABLE") from exc
     actual = hashlib.sha256(canonical).hexdigest()
     if supplied != actual:
@@ -141,7 +141,7 @@ def main(argv=None):
             stream.write("\n")
         print(report["wire_layout_status"])
         return 3 if report["same_schema_different_wire_format"] else 0
-    except (HSIRWireRejected, OSError, ValueError) as exc:
+    except (HSIRWireRejected, OSError, ValueError, RecursionError) as exc:
         print("E_HSIR_WIRE_AUDIT: " + str(exc), file=sys.stderr)
         return 2
 
