@@ -75,6 +75,31 @@ jobs:
           assert report['build']['claims']['backend_semantics_proved'] is False
           assert report['build']['claims']['whole_p6_gate_closed'] is False
           PY
+      - name: Compile three cross-target Hepta LLVM machine objects (not execution)
+        run: |
+          for target in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu x86_64-pc-windows-msvc; do
+            python -m hepta build-llvm-scalar examples/llvm_scalar.hepta \
+              --rustc "$RUSTC" --target "$target" \
+              --output "artifacts/hepta-llvm-$target.o" \
+              > "artifacts/llvm-cross-$target.json"
+          done
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          targets = ('x86_64-unknown-linux-gnu', 'aarch64-unknown-linux-gnu', 'x86_64-pc-windows-msvc')
+          for target in targets:
+              report = json.load(open(f'artifacts/llvm-cross-{target}.json'))
+              assert report['status'] == 'cross_object_only_unqualified'
+              assert report['reference_validation']['ok'] is True
+              assert report['reference_scope'] == 'host_rust_reference_not_target_execution'
+              build = report['build']
+              assert build['target'] == target
+              assert set(build['functions']) == {'checked_add', 'min2', 'choose'}
+              assert build['claims']['target_execution_verified'] is False
+              assert build['claims']['foreign_c_abi_verified'] is False
+              assert build['claims']['backend_semantics_proved'] is False
+              assert Path(build['output']).stat().st_size > 0
+          PY
       - name: Qualify new C++ exception boundary
         run: python tools/verify_cpp_bridge_host.py --output artifacts/cpp-bridge-host-ci.json
       - name: Qualify alternate Clang C ABI
