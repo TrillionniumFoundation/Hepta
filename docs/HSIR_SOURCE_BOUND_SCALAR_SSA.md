@@ -86,6 +86,19 @@ P7 real hardware, long-run performance and recovery. All remain
 open and whole_project_blockers_closed=false.
 
 
+## Repeat from a full checkout
+
+The isolated local test command in this report assumes the locally staged test
+modules are directly importable. From the real repository root, run:
+
+    python -m unittest discover -s tests -p 'test_hsir_scalar*.py' -v
+    python -m unittest -v tests.test_hsir_sourcebound_ssa tests.test_hsir_v1_import_cli
+
+The second command depends on a checkout with working CFG/SSA and compiler
+modules, and was **not run** in the environment used for the local 27-test
+record. A missing native toolchain or unsupported schema must be reported as
+not run/rejected, never silently counted as passed.
+
 ## Further executed independent native C controls
 
 A separate hand-written C11 loop/branch reference (not an automatic C-to-Hepta
