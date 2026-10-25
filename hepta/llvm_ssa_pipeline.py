@@ -92,14 +92,35 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
             stage = Path(directory) / ("candidate.o" if target is not None else "candidate.so")
             native = (compile_ssa_target_object(ir, target=target, clang=clang, output=stage)
                       if target is not None else compile_scalar_ssa_llvm(ir, clang=clang, output=stage))
+            # Backend receipts cannot elevate an object-only or host-compile
+            # result to a soundness proof. Bind status, source IR and verifier
+            # identity to the exact artifact being staged.
+            expected_status = ("cross_object_only_not_executed" if target is not None
+                               else "native_host_compiled_unqualified")
+            proof_key = ("structural_ssa_verification_sha256" if target is not None
+                         else "ssa_verification_sha256")
+            forbidden_claim = ("native_backend_semantics_proved" if target is not None
+                               else "backend_refinement_proven")
+            if (not isinstance(native, dict) or native.get("status") != expected_status
+                    or native.get("llvm_ir_sha256") != ir.sha256
+                    or native.get("ssa_sha256") != ssa.sha256
+                    or native.get(proof_key) != verification.sha256
+                    or not isinstance(native.get("claims"), dict)
+                    or native["claims"].get(forbidden_claim) is not False
+                    or (target is not None and native.get("target") != target)):
+                raise LLVMSSARejected("E_LLVM_SSA_RECEIPT: native backend identity or proof scope mismatch")
+            # Validate real staged bytes *before* external publication. An
+            # incorrect compiler receipt must never leave a published output
+            # even if the command subsequently reports rejection.
+            artifact = stage.read_bytes() if stage.is_file() else b""
+            if (not artifact or sha256(artifact).hexdigest() != native.get("artifact_sha256")
+                    or len(artifact) != native.get("artifact_bytes")):
+                raise LLVMSSARejected("E_LLVM_SSA_ARTIFACT: staged native bytes differ from compiler receipt")
             if not project.unchanged():
                 raise LLVMSSARejected("E_LLVM_SSA_STALE: graph changed during native compilation")
             if dest.is_symlink() or dest.exists():
                 raise LLVMSSARejected("E_LLVM_SSA_OUTPUT: concurrent destination publication")
             os.link(stage, dest)  # same filesystem, no overwrite
-        artifact = dest.read_bytes()
-        if not artifact or sha256(artifact).hexdigest() != native.get("artifact_sha256"):
-            raise LLVMSSARejected("E_LLVM_SSA_ARTIFACT: published native bytes differ from staged record")
         result["native_backend"] = dict(native)
         result["native_backend"]["output"] = str(dest)
         result["native_backend"]["artifact_sha256"] = sha256(artifact).hexdigest()

@@ -61,3 +61,25 @@ tracked contract fields; previously it could see only a coarse project
 interface hash change. Both source and semantic hashes are retained,
 and elevated or incomplete foreign-qualification proof flags reject.
 Unchanged metadata never proves unchanged behavior; no live project is edited.
+
+## Read-only Agent workspace query CLI
+
+The existing immutable v4 workspace engine and pinned semantic inspector now
+have command-line operations that do **not** create or modify versions:
+
+```sh
+hepta workspace semantics /path/store --version EXACT_WORKSPACE_SHA256
+hepta workspace diff /path/before-store /path/after-store \
+    --before-version EXACT_BEFORE_SHA256 --after-version EXACT_AFTER_SHA256
+```
+
+`semantics` is a thin binding to `inspect_pinned_semantics`, and `diff`
+invokes `compare_pinned_contracts` with both exact pin identities. Both
+produce versioned JSON and nonzero exit codes on errors. They do not replay
+rustc during the read, grant proof of behavior preservation, patch the
+workspace, or use mutable source checkouts.
+
+The diff exit status does not treat an arbitrary truthy or unknown schema as
+a successful contract comparison. The CLI includes negative tests for
+stale versions and unexpectedly shaped results. True Agent development
+efficiency still requires independent model trials and cost measurements.

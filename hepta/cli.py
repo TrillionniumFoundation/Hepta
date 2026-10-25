@@ -65,7 +65,7 @@ def main(argv=None) -> int:
     importer.add_argument("--cc")
     workspace = sub.add_parser("workspace", help="Pinned immutable project snapshots and crash-recoverable Agent commits")
     actions = workspace.add_subparsers(dest="workspace_action", required=True)
-    for action in ("init", "inspect", "pin", "patch", "recover"):
+    for action in ("init", "inspect", "semantics", "diff", "pin", "patch", "recover"):
         w = actions.add_parser(action)
         w.add_argument("store")
         if action == "init":
@@ -79,6 +79,12 @@ def main(argv=None) -> int:
             w.add_argument("--apply", action="store_true")
         if action == "pin":
             w.add_argument("--version")
+        if action == "semantics":
+            w.add_argument("--version", required=True, help="Exact immutable workspace version SHA-256")
+        if action == "diff":
+            w.add_argument("after_store", help="Second immutable workspace store")
+            w.add_argument("--before-version", required=True)
+            w.add_argument("--after-version", required=True)
     for cmd in ["check", "inspect", "hsir", "cfg", "hmir", "resource-ir", "concurrent-ir", "emit", "header", "build", "run", "patch"]:
         p = sub.add_parser(cmd)
         p.add_argument("source")
@@ -115,6 +121,15 @@ def main(argv=None) -> int:
                 result = inspect_workspace(args.store)
             elif args.workspace_action == "pin":
                 result = {"ok": True, "snapshot": pin(args.store, args.version)}
+            elif args.workspace_action == "semantics":
+                from .agent_semantics import inspect_pinned_semantics
+                result = inspect_pinned_semantics(args.store, expected_version=args.version)
+            elif args.workspace_action == "diff":
+                from .agent_contract_diff import compare_pinned_contracts
+                result = compare_pinned_contracts(
+                    args.store, args.after_store,
+                    expected_before_version=args.before_version,
+                    expected_after_version=args.after_version)
             elif args.workspace_action == "recover":
                 result = recover(args.store)
             else:
@@ -122,7 +137,14 @@ def main(argv=None) -> int:
                 result = apply_workspace_patch(args.store, request, apply=args.apply,
                                                rustc=args.rustc, target=args.target)
             output_json(result)
-            return 0 if result.get("ok") else 1
+            if args.workspace_action == "diff":
+                return 0 if (result.get("schema") == "hepta.agent-contract-diff.v1"
+                             and result.get("status") == "read_only_contract_diff_not_equivalence") else 1
+            if args.workspace_action == "semantics":
+                return 0 if (result.get("ok") is True
+                             and result.get("schema") == "hepta.agent-semantics.v1"
+                             and result.get("status") == "published_native_prevalidated_read_only") else 1
+            return 0 if result.get("ok") is True else 1
         if args.command == "lock":
             from .packages import write_lock
             output_json(write_lock(args.package))
