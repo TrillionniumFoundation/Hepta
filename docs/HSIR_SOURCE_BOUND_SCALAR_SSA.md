@@ -92,7 +92,8 @@ The isolated local test command in this report assumes the locally staged test
 modules are directly importable. From the real repository root, run:
 
     python -m unittest discover -s tests -p 'test_hsir_scalar*.py' -v
-    python -m unittest -v tests.test_hsir_sourcebound_ssa tests.test_hsir_v1_import_cli
+    python -m unittest discover -s tests -p 'test_hsir_sourcebound_ssa.py' -v
+    python -m unittest discover -s tests -p 'test_hsir_v1_import_cli.py' -v
 
 The second command depends on a checkout with working CFG/SSA and compiler
 modules, and was **not run** in the environment used for the local 27-test
