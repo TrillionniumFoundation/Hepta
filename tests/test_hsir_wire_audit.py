@@ -93,6 +93,35 @@ class WireAuditTests(unittest.TestCase):
             with self.assertRaisesRegex(module.HSIRWireRejected, "E_HSIR_JSON"):
                 module.load(str(path))
 
+    def test_pr14_actual_cli_export_envelope(self):
+        envelope = {"schema": "hepta.hsir.export.v0", "ok": True,
+                    "status": "frontend_only", "hsir": source_bound(),
+                    "validation": {"status": "frontend_only"}}
+        result = module.fingerprint(envelope)
+        self.assertEqual(result["wire_profile"], "source_bound_dict_v0")
+        self.assertTrue(result["external_validation_metadata_unbound_to_payload"])
+        self.assertFalse(result["checked_native"])
+
+    def test_pr36_actual_cli_reference_validation_is_unbound(self):
+        payload = {**frozen(), "reference_validation": {"status": "checked"}}
+        result = module.fingerprint(payload)
+        self.assertEqual(result["wire_profile"], "frozen_snapshot_v0")
+        self.assertTrue(result["external_validation_metadata_unbound_to_payload"])
+        self.assertFalse(result["checked_native"])
+        payload["reference_validation"] = {"status": "fake_passed", "claims": {"safe": True}}
+        self.assertEqual(module.fingerprint(payload)["sha256"], result["sha256"])
+
+    def test_pr14_wrapper_cannot_claim_pr36_payload(self):
+        envelope = {"schema": "hepta.hsir.export.v0", "ok": True,
+                    "status": "checked", "hsir": frozen(), "validation": {}}
+        with self.assertRaisesRegex(module.HSIRWireRejected, "EXPORT_ENVELOPE"):
+            module.fingerprint(envelope)
+
+    def test_pr36_invalid_cli_sidecar_shape_rejected(self):
+        payload = {**frozen(), "reference_validation": ["checked"]}
+        with self.assertRaisesRegex(module.HSIRWireRejected, "SIDECAR_ENVELOPE"):
+            module.fingerprint(payload)
+
     def test_real_cli_collision_reports_exit_three(self):
         with tempfile.TemporaryDirectory() as d:
             a, b, out = [pathlib.Path(d) / x for x in ("a.json", "b.json", "out.json")]
