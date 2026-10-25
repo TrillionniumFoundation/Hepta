@@ -1,0 +1,93 @@
+{
+  "created_at": "2026-10-25T02:33:12.368751+00:00",
+  "mutations": {
+    "contradictory_optimization_flag": {
+      "accepted": false,
+      "error": "native safety/optimization flags changed or contain contradictions"
+    },
+    "contradictory_overflow_flag": {
+      "accepted": false,
+      "error": "native safety/optimization flags changed or contain contradictions"
+    },
+    "executed_binary_hash_changed": {
+      "accepted": false,
+      "error": "execution is not bound to its built binary"
+    },
+    "false_c_compiler_argv": {
+      "accepted": false,
+      "error": "C fixture command changed"
+    },
+    "raw_base64_changed": {
+      "accepted": false,
+      "error": "native transcript identity differs"
+    },
+    "unbound_run_artifact_path": {
+      "accepted": false,
+      "error": "execution is not bound to its built binary"
+    }
+  },
+  "production_rust_body_sha256": "930dd1f5f6a6c451d75219c8a5cafedaf06009654bf4c4290308b140be8bed21",
+  "production_rust_body_unchanged_from_native_probe": true,
+  "raw_retention_executions": [
+    {
+      "actual_control_timeout_seconds": 30,
+      "case": "non_utf8_failure",
+      "failed_report": "/workspace/scratch/0817a147930b/Hepta-tree-next/artifacts/io-audit-native/non_utf8_failure-fixed-producer.json",
+      "failed_report_sha256": "3f1ac766f63d5c14f0d0f4078840e73f3831942c32c3539da6a0352a48f42d6b",
+      "injected_process_argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-c",
+        "import os;os.write(1,b'partial\\xff');os.write(2,b'error\\xfe');os._exit(77)"
+      ],
+      "observed_returncode": 77,
+      "observed_timed_out": false,
+      "purpose": "actual local subprocess output/timeout retention injection at the producer boundary; not an application functionality run",
+      "stderr_bytes_hex": "6572726f72fe",
+      "stdout_bytes_hex": "7061727469616cff"
+    },
+    {
+      "actual_control_timeout_seconds": 1,
+      "case": "non_utf8_timeout",
+      "failed_report": "/workspace/scratch/0817a147930b/Hepta-tree-next/artifacts/io-audit-native/non_utf8_timeout-fixed-producer.json",
+      "failed_report_sha256": "e0a32f1267425c92e9d727c3be8f99f1e9518155ca19f66f0917847abb872024",
+      "injected_process_argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-c",
+        "import os,time;os.write(1,b'partial\\xff');os.write(2,b'error\\xfe');time.sleep(10)"
+      ],
+      "observed_returncode": null,
+      "observed_timed_out": true,
+      "purpose": "actual local subprocess output/timeout retention injection at the producer boundary; not an application functionality run",
+      "stderr_bytes_hex": "6572726f72fe",
+      "stdout_bytes_hex": "7061727469616cff"
+    }
+  ],
+  "reviewed_files": {
+    "docs/ASYNC_IO.md": "2d14ac0d5281ec39813228ab7faf3698f642a52be85f4bf594c2620aebc52093",
+    "examples/io/cancellation.hepta": "718d86d8ac602af892955036add2233847ca3b7950cbb1967608373667bf833f",
+    "examples/io/failure_paths.hepta": "20eee9f3bfdc5cf909f48a7d23c1a3e9511f1f4a38c67ce42c5e03bc434f06af",
+    "examples/io/library.hepta": "ae51ab686906db9b2f9717651cc2f644618a74b35e1c4eb0fc99e54a6d337d00",
+    "examples/io/pipeline.hepta": "bdfd4307a3f0799acac1096bc1b16702c731076633dc7767f89802009a134486",
+    "hepta/backend.py": "d404db22b3ff69c64d8990c114c041dbb5a1793f01c7af3c27e6c9f8e0e12161",
+    "hepta/checker.py": "3c8891d1efd33ea373f01ce7ed1dd29d22ee96b07896e367db7c13b0ecc32cb3",
+    "hepta/concurrent_lowering.py": "774fccb26fb347eac12bdf6f1c1d9e54b827578a946cde8a9aa7d4b11545f256",
+    "hepta/hmir.py": "74fc92dc90839bee567f621025075166800b86819b1a3481a927ed380c629137",
+    "hepta/pipeline.py": "0309dd7d4b90c85a51e3c1568e558f4f5f310228f5466c31eafd57d6464c99bf",
+    "hepta/resource_lowering.py": "b707a035169fafd90f15bb0e170d545b90dceb772dbb74d220f6ba79357ce10a",
+    "hepta/runtime_io.py": "eb03f44d0e35c7f1b57f2340122b0f57df5178d83f7b6aa6333f8861babbfcd0",
+    "tests/test_io_runtime.py": "cb56d79f78adcbd435560a681b81e0e33e0d35f3f78a7c3806229126dc972f59",
+    "tools/evidence_checks.py": "720a9f55e73e3af3467918efabf0db8b5ff85da8ab07c3efd115d8b1423bd3d7",
+    "tools/fixtures/io_controls.rs": "52d93fdf2657c69484cbc41dfe264c6415078189bd01d59fd8d7ddc903994c0f",
+    "tools/fixtures/io_faults.c": "da2e17515dea0914f9fa196894583faf960a1047d0a7501f51cad81120f8a299",
+    "tools/validate_io.py": "cc2649304702e692e342bf6c26afe91a0a0703b8d6fdd27860777c799379202b"
+  },
+  "reviewed_head": "674d21d012c2341d2a29bf44ca90d41b2bdfc148",
+  "reviewed_status": " M docs/ASYNC_IO.md\n M hepta/concurrent_lowering.py\n M hepta/hmir.py\n M hepta/resource_lowering.py\n M hepta/runtime_io.py\n M tests/test_io_runtime.py\n M tools/validate_io.py\n",
+  "schema": "hepta.independent-io-audit.repairs.v1",
+  "source_evidence": {
+    "minimum_repeats": 3,
+    "path": "/workspace/scratch/0817a147930b/io-next-evidence/attempt005-audited-qualification.json",
+    "sha256": "88775fff8e7509d222fc73b80b8951fbaf989b3a8e43159f3892b3fd77b3d704",
+    "validated": true
+  }
+}

@@ -8,14 +8,17 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from dataclasses import fields, is_dataclass
+from dataclasses import asdict, fields, is_dataclass
 from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 
 from .ast import Diagnostic, Expr, Function, HeptaError, Program, Span, Stmt, Type
+from .checker import is_owned_type
+from .borrowed_storage import REFERENCE_TYPES
 from .runtime_concurrency import GROUP_RUNTIME, GROUP_TYPE_NAMES
+from .runtime_io import IO_BUILTINS, IO_RUNTIME, IO_TYPE_NAMES
 
 
 RUST_VERSION = "1.90.0"
@@ -29,9 +32,17 @@ def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def rust_lifetime(name):
+    return "'_" if name == "_" else "'h_" + name
+
+
 def rust_type(t: Type, type_params: set[str] | frozenset[str] = frozenset()) -> str:
+    if t.name in REFERENCE_TYPES:
+        return "&" + rust_lifetime(t.lifetimes[0]) + " " + ("mut " if t.name == "ref_mut" else "") + rust_type(t.args[0], type_params)
     if t.name in type_params:
         return "G_" + t.name
+    if t.name in {"IoReactor", "IoRequest"}:
+        return "Hepta" + t.name
     if t.name == "TaskGroup":
         return "HeptaTaskGroup"
     if t.name == "Sender":
@@ -53,7 +64,8 @@ def rust_type(t: Type, type_params: set[str] | frozenset[str] = frozenset()) -> 
     if t.name in ("raw_const", "raw_mut"):
         return f"*{'const' if t.name == 'raw_const' else 'mut'} {rust_type(t.args[0], type_params)}"
     name = "core::result::Result" if t.name == "Result" else "H_" + t.name
-    return name + ("<" + ", ".join(rust_type(arg, type_params) for arg in t.args) + ">" if t.args else "")
+    arguments = [rust_lifetime(lifetime) for lifetime in t.lifetimes] + [rust_type(arg, type_params) for arg in t.args]
+    return name + ("<" + ", ".join(arguments) + ">" if arguments else "")
 
 
 def c_decl(t: Type, name: str, const: bool = False) -> str:
@@ -78,6 +90,9 @@ class Emitter:
         self.crate_type = crate_type
         self.params: dict[str, str] = {}
         self.type_params: set[str] = set()
+        self.functions = {f.name: f for f in program.functions}
+        self.structs = {s.name: s for s in program.structs}
+        self.borrow_origin: str | None = None
 
     def typ(self, typ: Type) -> str:
         return rust_type(typ, self.type_params)
@@ -85,8 +100,9 @@ class Emitter:
     def constructor(self, typ: Type) -> str:
         return self.typ(typ).replace("<", "::<", 1)
 
-    def generics(self, params: tuple[str, ...]) -> str:
-        return "<" + ", ".join("G_" + name + ": core::marker::Copy" for name in params) + ">" if params else ""
+    def generics(self, params: tuple[str, ...], *, copy_bound: bool = True, bounds: dict[str, str] | None = None, borrowed: bool = False, lifetimes=()) -> str:
+        items = (["'hepta_return"] if borrowed else []) + [rust_lifetime(name) for name in lifetimes] + ["G_" + name + (": core::marker::Copy" if copy_bound and (bounds or {}).get(name, "Copy") == "Copy" else "") for name in params]
+        return "<" + ", ".join(items) + ">" if items else ""
 
     @staticmethod
     def variant_name(enum_name: str, variant_name: str) -> str:
@@ -116,7 +132,11 @@ class Emitter:
             name = self.constructor(typ) + "::" + self.variant_name(e.value["enum"], e.value["variant"])
             return name + ("(" + ", ".join(self.expr(child) for child in e.children) + ")" if e.children else "")
         if kind == "field":
-            return f"({self.expr(e.children[0])}).h_{e.value}"
+            projected = f"({self.expr(e.children[0])}).h_{e.value}"
+            base = self.checked.expr_types.get(id(e.children[0]))
+            declaration = self.structs.get(base.name) if base is not None else None
+            member = next((f for f in declaration.fields if f.name == e.value), None) if declaration else None
+            return "(*" + projected + ")" if member is not None and member.type.name in REFERENCE_TYPES else projected
         if kind == "index":
             return f"({self.expr(e.children[0])})[{self.expr(e.children[1])}]"
         if kind == "cast":
@@ -139,11 +159,24 @@ class Emitter:
             if e.value == "group_spawn":
                 return "__hepta_group_spawn(" + self.expr(e.children[0]) + ", h_" + e.children[1].value + ", " + self.expr(e.children[2]) + ")"
             args = [self.expr(x) for x in e.children]
+            if e.value in IO_BUILTINS:
+                return "__hepta_" + e.value + "(" + ", ".join(args) + ")"
             group_calls = {"task_group": "__hepta_group_new", "group_send": "__hepta_group_send",
                            "group_receive": "__hepta_group_receive", "group_seal": "__hepta_group_seal",
-                           "group_snapshot": "__hepta_group_snapshot", "group_fail": "__hepta_group_fail"}
+                           "group_snapshot": "__hepta_group_snapshot", "group_fail": "__hepta_group_fail",
+                           "group_send_timeout": "__hepta_group_send_timeout",
+                           "group_receive_timeout": "__hepta_group_receive_timeout",
+                           "group_select_receive": "__hepta_group_select_receive",
+                           "group_budget_configure": "__hepta_group_budget_configure",
+                           "group_budget_share": "__hepta_group_budget_share",
+                           "group_budget_snapshot": "__hepta_group_budget_snapshot",
+                           "group_cancel": "__hepta_group_cancel",
+                           "group_adopt": "__hepta_group_adopt",
+                           "group_tree_snapshot": "__hepta_group_tree_snapshot"}
             if e.value in group_calls:
                 return group_calls[e.value] + "(" + ", ".join(args) + ")"
+            if e.value in {"group_tree_join", "group_tree_cancel_and_join"}:
+                return "__hepta_group_tree_join(" + args[0] + ", " + ("true" if e.value == "group_tree_cancel_and_join" else "false") + ")"
             if e.value in {"group_join", "group_drain_and_join", "group_cancel_and_join"}:
                 mode = {"group_join": 0, "group_drain_and_join": 1, "group_cancel_and_join": 2}[e.value]
                 return "__hepta_group_join(" + args[0] + ", " + str(mode) + "u8)"
@@ -157,7 +190,9 @@ class Emitter:
                 return f"({args[0]}).{e.value}({args[1]})"
             if e.value == "buffer":
                 return f"std::vec![0u8; {args[0]}]"
-            if e.value == "release":
+            if e.value == "try_buffer":
+                return f"__hepta_try_buffer({args[0]})"
+            if e.value in {"release", "drop"}:
                 return f"core::mem::drop({args[0]})"
             if e.value == "assert":
                 return f"assert!({args[0]})"
@@ -166,12 +201,18 @@ class Emitter:
             if e.value in {"ptr_read", "ptr_mut"}:
                 method = "as_ptr" if e.value == "ptr_read" else "as_mut_ptr"
                 return f"({args[0]}).{method}()"
+            if e.value == "volatile_load":
+                return f"core::ptr::read_volatile(({args[0]}).wrapping_add({args[1]}))"
+            if e.value == "volatile_store":
+                return f"core::ptr::write_volatile(({args[0]}).wrapping_add({args[1]}), {args[2]})"
             if e.value == "load":
                 return f"(*({args[0]}).add({args[1]}))"
             if e.value == "store":
                 return f"{{ *({args[0]}).add({args[1]}) = {args[2]}; }}"
             generics = "::<" + ", ".join(self.typ(t) for t in e.type_args) + ">" if e.type_args else ""
-            return "h_" + e.value + generics + "(" + ", ".join(args) + ")"
+            call = "h_" + e.value + generics + "(" + ", ".join(args) + ")"
+            fn = self.functions.get(e.value)
+            return "(*" + call + ")" if fn is not None and fn.return_mode in {"read", "mut"} else call
         raise HeptaError(Diagnostic("E_BACKEND_AST", f"Unsupported expression {kind}", e.span, phase="lower"))
 
     def block(self, body: list[Stmt], level: int = 0) -> str:
@@ -179,6 +220,7 @@ class Emitter:
         lines = ["{"]
         for s in body:
             prefix = "    " * (level + 1)
+            lines.append(prefix + "// hepta-source: " + json.dumps({"event": "begin", "kind": "statement", "span": asdict(s.span)}, ensure_ascii=True, separators=(",", ":")))
             d = s.data
             if s.kind == "let":
                 t = d.get("type") or self.checked.expr_types.get(id(d["expr"]))
@@ -213,24 +255,29 @@ class Emitter:
             else:
                 raise HeptaError(Diagnostic("E_BACKEND_AST", f"Unsupported statement {s.kind}", s.span, phase="lower"))
             lines.append(prefix + line)
+            lines.append(prefix + '// hepta-source: {"event":"end"}')
         lines.append(indent + "}")
         return "\n".join(lines)
 
     def param(self, p) -> str:
         t = self.typ(p.type)
+        lifetime = rust_lifetime(p.lifetime) + " " if p.lifetime is not None else "'hepta_return " if p.name == self.borrow_origin else ""
         if p.mode == "read":
-            t = "&" + t
+            t = "&" + lifetime + t
         elif p.mode == "mut":
-            t = "&mut " + t
+            t = "&" + lifetime + "mut " + t
         return "h_" + p.name + ": " + t
 
     def emit(self) -> str:
         # Runtime types can occur only in an enum payload or an explicit
         # generic argument, even when no expression produces that type.
         all_types: list[Type] = []
+        uses_hosted_io = False
         pending = [self.program, *self.checked.expr_types.values()]
         while pending:
             value = pending.pop()
+            if isinstance(value, Expr) and value.kind == "call" and value.value == "print_i64":
+                uses_hosted_io = True
             if isinstance(value, Type):
                 all_types.append(value)
                 pending.extend(value.args)
@@ -243,11 +290,18 @@ class Emitter:
         lines = ["// Generated by Hepta 0.2.0 from checked AST; do not edit.",
                  "#![allow(non_camel_case_types, unused, unused_parens)]"]
         if self.no_std:
-            if any(t.name == "Buffer" for t in all_types) or any("io" in e or "alloc" in e or "spawn" in e for e in self.checked.effects.values()):
+            # An I/O effect alone does not imply std: volatile device access
+            # and a BSP's explicit external ABI can operate in a no_std rlib.
+            if uses_hosted_io or any(t.name == "Buffer" for t in all_types) or any("alloc" in e or "spawn" in e for e in self.checked.effects.values()):
                 raise HeptaError(Diagnostic("E_NO_STD", "This unit requires hosted allocation, I/O, or tasks", phase="lower"))
             if self.crate_type == "bin":
                 raise HeptaError(Diagnostic("E_NO_STD_ENTRY", "Bare-metal entrypoints are not implemented; build a no_std object or library", phase="lower"))
             lines.append("#![no_std]")
+        uses_io = any(t.name in IO_TYPE_NAMES for t in all_types)
+        if uses_io:
+            if self.no_std:
+                raise HeptaError(Diagnostic("E_NO_STD", "The bounded I/O reactor requires its Linux hosted runtime", phase="lower"))
+            lines.append(IO_RUNTIME)
         uses_groups = any(t.name in GROUP_TYPE_NAMES for t in all_types)
         if uses_groups or any(t.name in {"Task", "Cancellation"} for t in all_types):
             if self.no_std:
@@ -255,35 +309,68 @@ class Emitter:
             lines.append(TASK_RUNTIME)
         if uses_groups:
             lines.append(GROUP_RUNTIME)
+        if any(t.name == "Buffer" for t in all_types):
+            lines.append(BUFFER_RUNTIME)
         for st in self.program.structs:
             self.type_params = set(st.type_params)
             if st.repr_c:
                 lines.append("#[repr(C)]")
-            lines.append("#[derive(Clone, Copy)]")
-            lines.append("pub struct H_" + st.name + self.generics(st.type_params) + " { " + ", ".join("pub h_" + f.name + ": " + self.typ(f.type) for f in st.fields) + " }")
+            if not is_owned_type(self.program, Type(st.name)):
+                lines.append("#[derive(Clone, Copy)]")
+            lines.append("pub struct H_" + st.name + self.generics(st.type_params, copy_bound=False, lifetimes=st.lifetime_params) + " { " + ", ".join("pub h_" + f.name + ": " + self.typ(f.type) for f in st.fields) + " }")
         for enum in self.program.enums:
             self.type_params = set(enum.type_params)
-            lines.append("#[derive(Clone, Copy)]")
+            if not is_owned_type(self.program, Type(enum.name)):
+                lines.append("#[derive(Clone, Copy)]")
             variants = [self.variant_name(enum.name, variant.name) + ("(" + ", ".join(self.typ(t) for t in variant.fields) + ")" if variant.fields else "") for variant in enum.variants]
-            lines.append("pub enum H_" + enum.name + self.generics(enum.type_params) + " { " + ", ".join(variants) + " }")
+            lines.append("pub enum H_" + enum.name + self.generics(enum.type_params, copy_bound=False) + " { " + ", ".join(variants) + " }")
         for fn in self.program.functions:
             self.params = {p.name: p.mode for p in fn.params}
             self.type_params = set(fn.type_params)
-            signature = "fn h_" + fn.name + self.generics(fn.type_params) + "(" + ", ".join(self.param(p) for p in fn.params) + ") -> " + self.typ(fn.return_type)
+            self.borrow_origin = fn.return_origin if fn.return_lifetime is None else None
+            lifetime = rust_lifetime(fn.return_lifetime) + " " if fn.return_lifetime is not None else "'hepta_return " if self.borrow_origin else ""
+            return_prefix = "&" + lifetime if fn.return_mode == "read" else "&" + lifetime + "mut " if fn.return_mode == "mut" else ""
+            signature = "fn h_" + fn.name + self.generics(fn.type_params, bounds=fn.type_bounds, borrowed=self.borrow_origin is not None, lifetimes=fn.lifetime_params) + "(" + ", ".join(self.param(p) for p in fn.params) + ") -> " + return_prefix + self.typ(fn.return_type)
+            lines.append("// hepta-source: " + json.dumps({"event": "begin", "kind": "declaration", "span": asdict(fn.span)}, ensure_ascii=True, separators=(",", ":")))
             if fn.extern_c:
                 lines.append('extern "C" { #[link_name = ' + json.dumps(fn.name) + "] pub " + signature + "; }")
             else:
                 if fn.export_c:
                     lines.append("#[export_name = " + json.dumps(fn.name) + "]")
-                lines.append(("pub " if fn.public or fn.export_c else "") + ('extern "C" ' if fn.export_c else "") + signature + " " + self.block(fn.body or []))
+                public = fn.public or fn.export_c
+                # The emitted rlib is also a Rust-facing API. A public function
+                # with external unsafe/FFI obligations must not hide them behind
+                # a safe Rust signature, even though Hepta checks its callsites.
+                safety = "unsafe " if public and fn.effects.intersection({"unsafe", "ffi"}) else ""
+                lines.append(("pub " if public else "") + safety + ('extern "C" ' if fn.export_c else "") + signature + " " + self.block(fn.body or []))
+            lines.append('// hepta-source: {"event":"end"}')
         if self.crate_type == "bin":
             main = next((f for f in self.program.functions if f.name == "main" and f.body is not None), None)
             if main is None or main.params or main.return_type.name not in {"Unit", "i32"}:
                 raise HeptaError(Diagnostic("E_ENTRYPOINT", "A binary requires fn main() -> Unit or i32", phase="lower"))
-            lines.append("fn main() { " + ("h_main();" if main.return_type.name == "Unit" else "std::process::exit(h_main());") + " }")
+            call = "h_main()"
+            if (main.public or main.export_c) and main.effects.intersection({"unsafe", "ffi"}):
+                # A binary's private process-entry shim is the trusted root of
+                # its already explicit unsafe program, not a reusable safe API.
+                call = "unsafe { " + call + " }"
+            lines.append("fn main() { " + (call + ";" if main.return_type.name == "Unit" else "std::process::exit(" + call + ");") + " }")
         if self.no_std and self.crate_type in {"staticlib", "cdylib", "obj"}:
             lines.append("#[panic_handler] fn hepta_abort(_: &core::panic::PanicInfo<'_>) -> ! { loop { core::hint::spin_loop(); } }")
         return "\n".join(lines) + "\n"
+
+
+BUFFER_RUNTIME = r'''
+fn __hepta_try_buffer(size: usize) -> core::result::Result<std::vec::Vec<u8>, u8> {
+    let mut bytes = std::vec::Vec::new();
+    if bytes.try_reserve_exact(size).is_err() {
+        return Err(1u8);
+    }
+    // Successful reservation proves capacity >= size. u8 initialization cannot
+    // call user code or allocate again; no uninitialized bytes are exposed.
+    bytes.resize(size, 0u8);
+    Ok(bytes)
+}
+'''
 
 
 TASK_RUNTIME = r'''
@@ -381,21 +468,47 @@ def toolchain_info(rustc: str) -> dict:
             or fields.get("release") != RUST_VERSION or not fields.get("host")
             or not fields.get("commit-hash")):
         raise HeptaError(Diagnostic("E_TOOLCHAIN_IDENTITY", "This prototype requires the pinned rustc " + RUST_VERSION + " with a complete -vV identity", notes=[p.stdout[:1000]], phase="backend"))
+    prefix = Path(rustc).resolve().parent.parent
+    sysroot = prefix if (prefix / "lib" / "rustlib").is_dir() else None
     return {"path": rustc, "version": p.stdout.strip(), "host": fields.get("host"),
-            "executable_sha256": sha256(Path(rustc).read_bytes())}
+            "executable_sha256": sha256(Path(rustc).read_bytes()),
+            "sysroot": str(sysroot) if sysroot else None,
+            "sysroot_discovery": "verified_compiler_prefix" if sysroot else "compiler_default"}
 
 
 def compile_rust(source: str, *, rustc: str | None = None, target: str | None = None,
                  crate_type: str = "rlib", output: str | Path | None = None,
-                 check_only: bool = False, optimize: bool = True, link_args: list[str] | None = None) -> dict:
+                 check_only: bool = False, optimize: bool = True, link_args: list[str] | None = None,
+                 debug_info: bool = False) -> dict:
     compiler = find_rustc(rustc)
     info = toolchain_info(compiler)
+    # Rust normally discovers its sysroot through its executable location.
+    # An isolated empty-/proc environment needs that location made explicit.
+    # Keep the conventional-prefix check narrow; nonstandard host wrappers
+    # retain their existing compiler-managed sysroot discovery.
+    sysroot = info["sysroot"]
+    linker = None
+    if (target is None and not check_only and not link_args
+            and crate_type in {"bin", "cdylib", "dylib", "proc-macro"}
+            and not shutil.which("cc")):
+        # On Debian-like hosts cc can be an /etc/alternatives symlink. Do not
+        # mount host /etc into the sandbox to follow it; use visible GCC.
+        visible_gcc = shutil.which("gcc")
+        if visible_gcc:
+            linker = str(Path(visible_gcc).resolve())
     artifact = Path(output).resolve() if output is not None else None
+    if debug_info and artifact is None:
+        raise HeptaError(Diagnostic("E_DEBUG_OUTPUT", "Debug builds need an explicit output to retain their generated source", phase="backend"))
     if artifact:
         artifact.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=".hepta-native-", dir=artifact.parent if artifact else None) as td:
         generated = Path(td) / "program.rs"
-        generated.write_text(source)
+        retained_debug = None
+        if debug_info:
+            from .debug_info import retain_debug_source
+            generated, retained_debug = retain_debug_source(source, artifact, "rust")
+        else:
+            generated.write_text(source)
         native_out = Path(td) / (artifact.name if artifact else "checked.rmeta")
         # rustc intentionally emits empty/no metadata for bins and staticlibs.
         # A library metadata pass checks the same lowered bodies and borrows;
@@ -405,6 +518,12 @@ def compile_rust(source: str, *, rustc: str | None = None, target: str | None = 
                "--crate-type=" + native_type, "-C", "opt-level=" + ("3" if optimize else "0"),
                "-C", "overflow-checks=yes", "-C", "panic=abort", "-C", "codegen-units=1",
                "--error-format=json", "-o", str(native_out)]
+        if sysroot:
+            cmd += ["--sysroot", str(sysroot)]
+        if debug_info:
+            cmd += ["-C", "debuginfo=2", "-C", "force-frame-pointers=yes"]
+        if linker:
+            cmd += ["-C", "linker=" + linker]
         if target:
             cmd += ["--target", target]
         if check_only:
@@ -413,6 +532,14 @@ def compile_rust(source: str, *, rustc: str | None = None, target: str | None = 
             cmd += ["--emit=obj"]
         for arg in link_args or []:
             cmd += ["-C", "link-arg=" + arg]
+        flags = ["edition=2021", "opt-level=" + ("3" if optimize else "0"),
+                 "overflow-checks=yes", "panic=abort", "codegen-units=1"]
+        if debug_info:
+            flags += ["debuginfo=2", "force-frame-pointers=yes"]
+        if sysroot:
+            flags.append("sysroot=" + sysroot)
+        if linker:
+            flags.append("linker=" + linker)
         try:
             p = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
         except subprocess.TimeoutExpired:
@@ -429,12 +556,17 @@ def compile_rust(source: str, *, rustc: str | None = None, target: str | None = 
                 diagnostics.append({"code": (d.get("code") or {}).get("code", "E_RUSTC"),
                                     "message": d.get("message", "backend error"), "phase": "backend",
                                     "rendered": d.get("rendered"), "generated_spans": d.get("spans", [])})
+        from .source_map import map_diagnostics
+        diagnostics = map_diagnostics(source, diagnostics, generated_path=str(generated))
         result = {"ok": p.returncode == 0, "status": "rustc_checked" if p.returncode == 0 else "rejected",
                   "diagnostics": diagnostics, "toolchain": info, "target": target or info["host"],
-                  "flags": ["edition=2021", "opt-level=" + ("3" if optimize else "0"), "overflow-checks=yes", "panic=abort", "codegen-units=1"],
+                  "flags": flags,
                   "crate_type": crate_type, "rust_sha256": sha256(source.encode()), "check_only": check_only,
                   "rustc_crate_type": native_type,
+                  "sysroot": str(sysroot) if sysroot else None, "linker": linker,
                   "link_args": link_args or []}
+        if debug_info:
+            result["debug_info"] = retained_debug
         if p.returncode == 0 and (not native_out.is_file() or native_out.stat().st_size == 0):
             result["ok"] = False
             result["status"] = "rejected"

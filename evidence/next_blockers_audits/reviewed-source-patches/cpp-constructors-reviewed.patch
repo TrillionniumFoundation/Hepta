@@ -1,0 +1,2346 @@
+diff --git a/docs/CROSSFILE_AGENT_EVAL.md b/docs/CROSSFILE_AGENT_EVAL.md
+index abbb76f..7c50ee6 100644
+--- a/docs/CROSSFILE_AGENT_EVAL.md
++++ b/docs/CROSSFILE_AGENT_EVAL.md
+@@ -302,6 +302,20 @@ python -m experiments.crossfile_eval compare --plan plan-001.json \
+   --reports run-001.json --output comparison-001.json
+ ```
+ 
++Per-task process-death qualification is a separate strict command:
++
++```sh
++python -m experiments.crossfile_eval qualify-workspace-crashes --output workspace-crashes-001.json
++```
++
++It exercises all five tasks at both production publication checkpoints, with
++actual child deaths, unchanged historical pins, idempotent recovery,
++same-request retries, and native scoring of the final recovered pin. The ten
++planned cases and 624 native inputs remain in the denominator on failures.
++It remains a trusted scripted infrastructure qualification, with no model
++requests or productivity claim. See [CROSSFILE_CRASH_QUALIFICATION.md](CROSSFILE_CRASH_QUALIFICATION.md)
++for the exact trace, semantic negative controls, and process-death scope.
++
+ `adapter-configs.json` is an array, one entry per model, with exactly these fields:
+ 
+ ```json
+diff --git a/docs/CROSSFILE_CRASH_QUALIFICATION.md b/docs/CROSSFILE_CRASH_QUALIFICATION.md
+new file mode 100644
+index 0000000..ad9c289
+--- /dev/null
++++ b/docs/CROSSFILE_CRASH_QUALIFICATION.md
+@@ -0,0 +1,123 @@
++# Per-task workspace crash qualification
++
++The cross-file evaluator now has a separate process-death qualification for
++all five frozen Hepta tasks. It uses the production `hepta.patch.v4` workspace
++path, the same native task/API check as the fourth study arm, the actual
++namespace policy, and real `os._exit(71)` deaths in commit workers. A normal
++provider attempt still stops when commit transport leaves publication
++unverified. Recovery in this qualification is a separate trusted operator
++action; it does not turn a failed provider attempt into a successful one or
++erase its recorded usage.
++
++## Run
++
++```sh
++python -m experiments.crossfile_eval qualify-workspace-crashes \
++  --output artifacts/workspace-crashes-001.json
++```
++
++`--rustc` selects an explicit Rust compiler. `--execution-context` is an
++optional public operator annotation of the outer environment, not an automatic
++attestation. The output is append-only: an existing path is rejected. There is
++no CLI fixture option and no weaker-isolation fallback. A host that cannot
++create the required namespaces produces `environment_blocked`, with all ten
++planned cases retained and none marked complete.
++
++The two checkpoints already exist in `hepta.workspace.apply_workspace_patch`:
++
++| Checkpoint | Durable state at child death | Required recovery and exact-request retry |
++| --- | --- | --- |
++| `prepared` | The new immutable version exists and `JOURNAL` is prepared; `CURRENT` still names the old complete version. | Two recoveries both report aborted and preserve the old version. Retrying the identical original expected-head/interface request commits the checked new version. |
++| `published` | `CURRENT` names the new complete version; `JOURNAL` is still prepared. | Two recoveries both report committed and preserve the new version. Retrying the original request rejects `E_STALE_PROJECT`; no second commit acknowledgement is invented. |
++
++The crash worker is copied only into a trusted qualification capsule. It is
++absent from ordinary `ProductionWorkspaceSession` capsules and is not one of
++the public study tools. The normal JSON helper cannot turn a message field
++into the private Python `_checkpoint` callback. The worker itself has no
++hidden inputs, task answers, provider credentials, or arbitrary Python
++evaluation endpoint.
++
++## What each case executes
++
++1. Initialize a native-checked production store from the frozen public task;
++   inspect its actual semantic nodes.
++2. Prepare the reference semantic edits without publishing. Perform the
++   independent native task/API check. Its source, object, and candidate-crate
++   hashes are now recorded as a `task_native_check` trace event in ordinary
++   production workspace sessions as well.
++3. Send the identical checked patch to a new commit child. The trusted hook
++   observes `CURRENT`, `JOURNAL`, and the old pinned version, flushes its fixed
++   marker, and calls `os._exit(71)` at the chosen checkpoint. The parent checks
++   both the marker and the actual child exit status. A normal exit, timeout,
++   malformed response, or missed checkpoint fails qualification.
++4. Retain `unverified_after_commit` as the transport outcome. A separate
++   namespace worker observes the store before recovery. The observation must
++   match the checkpoint marker and contain one complete old or new version.
++5. Recover twice in separate processes and check idempotence. Replay the
++   original patch, including its original CAS preconditions. Require the
++   checkpoint-specific outcome shown above, then recover the final committed
++   state again.
++6. Check that the original pinned version still has every original byte and
++   bound native profile. Take a fresh final production pin; the scored source
++   must equal the prepared candidate. Close all workspace children and remove
++   their temporary store before materializing private scoring inputs in a
++   different capsule.
++7. Build and execute the recovered final candidate against every hidden native
++   case. Initialization, edits, validation, death, recovery, retries, pinning,
++   and native scoring share a frozen 90-second wall deadline per case.
++
++| Frozen task | Actual death points | Hidden native inputs per point | Total inputs |
++| --- | ---: | ---: | ---: |
++| Cross-module API migration | 2 | 75 | 150 |
++| Owned `Result` API migration | 2 | 24 | 48 |
++| C/C++ native bridge | 2 | 56 | 112 |
++| Resource cancellation | 2 | 14 | 28 |
++| Cross-file defect repair | 2 | 143 | 286 |
++| **Required denominator** | **10** | | **624** |
++
++Failures, missed deaths, native failures, and deadline exhaustion remain in
++their task/checkpoint cells. They do not reduce the denominator or become
++zero-cost successful samples.
++
++## Evidence validation
++
++`workspace_crash_evidence.validate_crash_matrix` checks all ten sealed records,
++the exact task matrix, compiler/toolchain and evaluator identity, namespace
++requirements on every RPC, actual death status, immutable file/source hashes,
++the prepared native task gate, publication and journal byte hashes, recovery
++idempotence, identical-request retry, old pins, final source identity, and all
++624 native outcomes. It distinguishes an ordinary successful commit response
++from a committed version recovered after a response-less process death.
++
++The qualification also mutates and **re-seals** sixteen records. The validator
++must reject omitted or duplicated cases, a normal exit relabeled as a crash,
++the wrong checkpoint, missing namespace enforcement, a changed prepared
++source, torn `CURRENT`, a changed old pin, false recovery, a rebased retry,
++acceptance of a stale retry, a different scored source, omitted native cases,
++an erased ambiguous outcome, a fabricated provider run, and erased wall time.
++Re-sealing ensures these controls exercise the semantic checks rather than
++only the record checksum.
++
++The native unit tests use explicit fixture process separation to run on
++restricted development hosts. Their records identify that narrower scope and
++are rejected by the strict qualification validator. They also verify that
++ordinary provider workers cannot inject these deaths, that missing deaths
++fail, and that a host without namespace support never starts a fallback task.
++
++## Limits
++
++- These are trusted scripted reference edits, with **zero actual AI model
++  runs, zero provider requests and no receipts**. They qualify infrastructure;
++  they do not measure model success, manual correction time, billing cost, or
++  language productivity. Human effort and monetary cost remain unmeasured.
++- This closes the previously missing per-task checkpoint-death exercise for
++  the frozen five-task set. It does not qualify every possible application,
++  instruction boundary, I/O failure, filesystem, or concurrent hostile writer.
++- `os._exit` skips normal Python cleanup but does not simulate power loss,
++  storage-controller failure, filesystem corruption, or a machine reboot.
++  The checkpoints occur after the corresponding production fsync operations.
++- Hash seals and recorded traces are reproducibility and consistency checks,
++  not signatures, hardware attestation, or proof against a dishonest operator.
++- Provider receipt accounting and provider-attempt failure policy are
++  unchanged. The qualification neither resumes an interrupted paid model
++  attempt nor retroactively labels one successful.
+diff --git a/examples/cpp/constructors/benchmark.cpp b/examples/cpp/constructors/benchmark.cpp
+new file mode 100644
+index 0000000..4672a55
+--- /dev/null
++++ b/examples/cpp/constructors/benchmark.cpp
+@@ -0,0 +1,70 @@
++#include "bridge.h"
++#include "foreign.hpp"
++#include <chrono>
++#include <cstdint>
++#include <cstdlib>
++#include <iostream>
++
++template<class F> void measure(const char* name, std::uint64_t iterations, F operation) {
++    std::uint64_t checksum = 0;
++    for (std::uint64_t i = 0; i < 1000; ++i) checksum += operation(i);
++    std::cout << "{\"case\":\"" << name << "\",\"iterations\":" << iterations << ",\"samples_ns\":[";
++    for (unsigned sample = 0; sample < 7; ++sample) {
++        auto start = std::chrono::steady_clock::now();
++        for (std::uint64_t i = 0; i < iterations; ++i) checksum += operation(i);
++        auto stop = std::chrono::steady_clock::now();
++        if (sample) std::cout << ',';
++        std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start).count();
++    }
++    std::cout << "],\"checksum\":" << checksum << "}\n";
++}
++
++int main(int argc, char** argv) {
++    std::uint64_t iterations = argc == 2 ? std::strtoull(argv[1], nullptr, 10) : 100000;
++    if (!iterations || iterations > 1000000) return 1;
++    measure("native_vector_create_destroy", iterations, [](std::uint64_t i) {
++        auto count = 8 + i % 8;
++        auto* object = hepta_ctor_example::native_vector_new(count);
++        hepta_ctor_example::native_vector_destroy(object);
++        return count;
++    });
++    measure("handle_vector_create_destroy", iterations, [](std::uint64_t i) {
++        auto count = 8 + i % 8; std::uint64_t handle = 0;
++        if (hepta_cpp_ctors_IntVector_sized(count, &handle) || hepta_cpp_ctors_IntVector_destroy(handle)) std::abort();
++        return count;
++    });
++    measure("native_student_create_destroy", iterations, [](std::uint64_t i) {
++        auto degrees = 1 + i % 32;
++        auto* object = hepta_ctor_example::native_student_new(static_cast<double>(degrees));
++        hepta_ctor_example::native_student_destroy(object);
++        return degrees;
++    });
++    measure("handle_student_create_destroy", iterations, [](std::uint64_t i) {
++        auto degrees = 1 + i % 32; std::uint64_t handle = 0;
++        if (hepta_cpp_ctors_Student_new(static_cast<double>(degrees), &handle) || hepta_cpp_ctors_Student_destroy(handle)) std::abort();
++        return degrees;
++    });
++    auto* native_vector = hepta_ctor_example::native_vector_new(16);
++    auto* native_student = hepta_ctor_example::native_student_new(7);
++    std::uint64_t vector_handle = 0, student_handle = 0;
++    if (hepta_cpp_ctors_IntVector_sized(16, &vector_handle) || hepta_cpp_ctors_Student_new(7, &student_handle)) return 2;
++    measure("native_vector_size", iterations, [&](std::uint64_t) {
++        return hepta_ctor_example::native_vector_size(*native_vector);
++    });
++    measure("handle_vector_size", iterations, [&](std::uint64_t) {
++        std::size_t out = 0;
++        if (hepta_cpp_ctors_IntVector_size(vector_handle, &out)) std::abort();
++        return out;
++    });
++    measure("native_student_degrees", iterations, [&](std::uint64_t) {
++        return static_cast<std::uint64_t>(hepta_ctor_example::native_student_degrees(*native_student));
++    });
++    measure("handle_student_degrees", iterations, [&](std::uint64_t) {
++        double out = 0;
++        if (hepta_cpp_ctors_Student_degrees(student_handle, &out)) std::abort();
++        return static_cast<std::uint64_t>(out);
++    });
++    hepta_ctor_example::native_vector_destroy(native_vector);
++    hepta_ctor_example::native_student_destroy(native_student);
++    return hepta_cpp_ctors_IntVector_destroy(vector_handle) || hepta_cpp_ctors_Student_destroy(student_handle);
++}
+diff --git a/examples/cpp/constructors/consumer.hepta b/examples/cpp/constructors/consumer.hepta
+new file mode 100644
+index 0000000..240615d
+--- /dev/null
++++ b/examples/cpp/constructors/consumer.hepta
+@@ -0,0 +1,56 @@
++module cpp_constructor_consumer;
++import bridge;
++
++export "C" fn hepta_ctor_vector_sized(count: usize, out: raw mut u64) -> i32
++effects {ffi, unsafe, write, alloc, block} {
++    unsafe { return bridge::hepta_cpp_ctors_IntVector_sized(count, out); }
++}
++export "C" fn hepta_ctor_vector_filled(count: usize, value: i64, out: raw mut u64) -> i32
++effects {ffi, unsafe, write, alloc, block} {
++    unsafe { return bridge::hepta_cpp_ctors_IntVector_filled(count, value, out); }
++}
++export "C" fn hepta_ctor_vector_size(handle: u64, out: raw mut usize) -> i32
++effects {ffi, unsafe, write, alloc, block} {
++    unsafe { return bridge::hepta_cpp_ctors_IntVector_size(handle, out); }
++}
++export "C" fn hepta_ctor_vector_at(handle: u64, index: usize, out: raw mut i64) -> i32
++effects {ffi, unsafe, write, alloc, block} {
++    unsafe { return bridge::hepta_cpp_ctors_IntVector_at(handle, index, out); }
++}
++export "C" fn hepta_ctor_vector_destroy(handle: u64) -> i32
++effects {ffi, unsafe, write, alloc, block} {
++    unsafe { return bridge::hepta_cpp_ctors_IntVector_destroy(handle); }
++}
++export "C" fn hepta_ctor_student_new(degrees: f64, out: raw mut u64) -> i32
++effects {ffi, unsafe, write, alloc, block} {
++    unsafe { return bridge::hepta_cpp_ctors_Student_new(degrees, out); }
++}
++export "C" fn hepta_ctor_student_degrees(handle: u64, out: raw mut f64) -> i32
++effects {ffi, unsafe, write, alloc, block} {
++    unsafe { return bridge::hepta_cpp_ctors_Student_degrees(handle, out); }
++}
++export "C" fn hepta_ctor_student_destroy(handle: u64) -> i32
++effects {ffi, unsafe, write, alloc, block} {
++    unsafe { return bridge::hepta_cpp_ctors_Student_destroy(handle); }
++}
++export "C" fn hepta_ctor_span_new(tag: u64, bias: i64, values: raw const i64, count: usize, out: raw mut u64) -> i32
++effects {ffi, unsafe, write, alloc, block} {
++    let config = bridge::Config {tag: tag, bias: bias};
++    unsafe { return bridge::hepta_cpp_ctors_SpanOwner_new(config, values, count, out); }
++}
++export "C" fn hepta_ctor_span_at(handle: u64, index: usize, out: raw mut i64) -> i32
++effects {ffi, unsafe, write, alloc, block} {
++    unsafe { return bridge::hepta_cpp_ctors_SpanOwner_at(handle, index, out); }
++}
++export "C" fn hepta_ctor_span_destroy(handle: u64) -> i32
++effects {ffi, unsafe, write, alloc, block} {
++    unsafe { return bridge::hepta_cpp_ctors_SpanOwner_destroy(handle); }
++}
++export "C" fn hepta_ctor_nothrow_new(value: u64, out: raw mut u64) -> i32
++effects {ffi, unsafe, write, alloc, block} {
++    unsafe { return bridge::hepta_cpp_ctors_NoThrowValue_new(value, out); }
++}
++export "C" fn hepta_ctor_nothrow_destroy(handle: u64) -> i32
++effects {ffi, unsafe, write, alloc, block} {
++    unsafe { return bridge::hepta_cpp_ctors_NoThrowValue_destroy(handle); }
++}
+diff --git a/examples/cpp/constructors/contract.json b/examples/cpp/constructors/contract.json
+new file mode 100644
+index 0000000..a38becc
+--- /dev/null
++++ b/examples/cpp/constructors/contract.json
+@@ -0,0 +1,253 @@
++{
++  "schema": "hepta.cpp-contract.v2",
++  "module": "ctors",
++  "pod_types": [
++    {
++      "name": "Config",
++      "cpp_type": "hepta_ctor_example::Config",
++      "fields": [
++        {
++          "name": "tag",
++          "type": "u64"
++        },
++        {
++          "name": "bias",
++          "type": "i64"
++        }
++      ]
++    }
++  ],
++  "functions": [
++    {
++      "name": "live_span_owners",
++      "cpp_name": "hepta_ctor_example::live_span_owners",
++      "template_args": [],
++      "params": [],
++      "returns": "u64",
++      "exception": "noexcept",
++      "threading": "any_thread",
++      "reentrancy": "allowed",
++      "allocation": "none_declared"
++    },
++    {
++      "name": "live_nothrow_values",
++      "cpp_name": "hepta_ctor_example::live_nothrow_values",
++      "template_args": [],
++      "params": [],
++      "returns": "u64",
++      "exception": "noexcept",
++      "threading": "any_thread",
++      "reentrancy": "allowed",
++      "allocation": "none_declared"
++    }
++  ],
++  "handles": [
++    {
++      "name": "IntVector",
++      "cpp_type": "std::vector",
++      "template_args": [
++        "i64"
++      ],
++      "threading": "serialized",
++      "reentrancy": "reject",
++      "allocator": "cpp_shared_owner",
++      "destruction": "nothrow_defer_inflight",
++      "constructors": [
++        {
++          "name": "sized",
++          "params": [
++            {
++              "name": "count",
++              "type": "usize",
++              "mode": "value"
++            }
++          ],
++          "exception": "catch_status"
++        },
++        {
++          "name": "filled",
++          "params": [
++            {
++              "name": "count",
++              "type": "usize",
++              "mode": "value"
++            },
++            {
++              "name": "value",
++              "type": "i64",
++              "mode": "const_ref",
++              "retention": "call_only"
++            }
++          ],
++          "exception": "catch_status"
++        }
++      ],
++      "methods": [
++        {
++          "name": "size",
++          "cpp_method": "size",
++          "const": true,
++          "params": [],
++          "returns": "usize",
++          "return_mode": "value",
++          "exception": "noexcept"
++        },
++        {
++          "name": "at",
++          "cpp_method": "at",
++          "const": true,
++          "params": [
++            {
++              "name": "index",
++              "type": "usize",
++              "mode": "value"
++            }
++          ],
++          "returns": "i64",
++          "return_mode": "copy_from_reference",
++          "exception": "catch_status"
++        }
++      ]
++    },
++    {
++      "name": "Student",
++      "cpp_type": "boost::math::students_t_distribution",
++      "template_args": [
++        "f64"
++      ],
++      "threading": "serialized",
++      "reentrancy": "reject",
++      "allocator": "cpp_shared_owner",
++      "destruction": "nothrow_defer_inflight",
++      "constructors": [
++        {
++          "name": "new",
++          "params": [
++            {
++              "name": "degrees",
++              "type": "f64",
++              "mode": "value"
++            }
++          ],
++          "exception": "catch_status"
++        }
++      ],
++      "methods": [
++        {
++          "name": "degrees",
++          "cpp_method": "degrees_of_freedom",
++          "const": true,
++          "params": [],
++          "returns": "f64",
++          "return_mode": "value",
++          "exception": "catch_status"
++        }
++      ]
++    },
++    {
++      "name": "SpanOwner",
++      "cpp_type": "hepta_ctor_example::SpanOwner",
++      "template_args": [],
++      "threading": "serialized",
++      "reentrancy": "reject",
++      "allocator": "cpp_shared_owner",
++      "destruction": "nothrow_defer_inflight",
++      "constructors": [
++        {
++          "name": "new",
++          "params": [
++            {
++              "name": "config",
++              "type": "Config",
++              "mode": "value"
++            },
++            {
++              "name": "values",
++              "type": "i64",
++              "mode": "borrow_const",
++              "retention": "call_only"
++            }
++          ],
++          "exception": "catch_status"
++        }
++      ],
++      "methods": [
++        {
++          "name": "size",
++          "cpp_method": "size",
++          "const": true,
++          "params": [],
++          "returns": "usize",
++          "return_mode": "value",
++          "exception": "noexcept"
++        },
++        {
++          "name": "at",
++          "cpp_method": "at",
++          "const": true,
++          "params": [
++            {
++              "name": "index",
++              "type": "usize",
++              "mode": "value"
++            }
++          ],
++          "returns": "i64",
++          "return_mode": "value",
++          "exception": "catch_status"
++        },
++        {
++          "name": "tag",
++          "cpp_method": "tag",
++          "const": true,
++          "params": [],
++          "returns": "u64",
++          "return_mode": "value",
++          "exception": "noexcept"
++        },
++        {
++          "name": "bias",
++          "cpp_method": "bias",
++          "const": true,
++          "params": [],
++          "returns": "i64",
++          "return_mode": "value",
++          "exception": "noexcept"
++        }
++      ]
++    },
++    {
++      "name": "NoThrowValue",
++      "cpp_type": "hepta_ctor_example::NoThrowValue",
++      "template_args": [],
++      "threading": "serialized",
++      "reentrancy": "reject",
++      "allocator": "cpp_shared_owner",
++      "destruction": "nothrow_defer_inflight",
++      "constructors": [
++        {
++          "name": "new",
++          "params": [
++            {
++              "name": "value",
++              "type": "u64",
++              "mode": "value"
++            }
++          ],
++          "exception": "noexcept"
++        }
++      ],
++      "methods": [
++        {
++          "name": "value",
++          "cpp_method": "value",
++          "const": true,
++          "params": [],
++          "returns": "u64",
++          "return_mode": "value",
++          "exception": "noexcept"
++        }
++      ]
++    }
++  ]
++}
+diff --git a/examples/cpp/constructors/foreign.cpp b/examples/cpp/constructors/foreign.cpp
+new file mode 100644
+index 0000000..a7cf61f
+--- /dev/null
++++ b/examples/cpp/constructors/foreign.cpp
+@@ -0,0 +1,24 @@
++#include "foreign.hpp"
++
++namespace hepta_ctor_example {
++namespace {
++std::atomic<std::uint64_t> span_owners{0};
++std::atomic<std::uint64_t> nothrow_values{0};
++}
++SpanOwner::SpanOwner(Config config, std::span<const std::int64_t> values)
++    : config_(config) {
++    if (!values.empty()) values_.assign(values.begin(), values.end());
++    ++span_owners;
++}
++SpanOwner::~SpanOwner() noexcept { --span_owners; }
++NoThrowValue::NoThrowValue(std::uint64_t value) noexcept : value_(value) { ++nothrow_values; }
++NoThrowValue::~NoThrowValue() noexcept { --nothrow_values; }
++std::uint64_t live_span_owners() noexcept { return span_owners.load(); }
++std::uint64_t live_nothrow_values() noexcept { return nothrow_values.load(); }
++IntVector* native_vector_new(std::size_t count) { return new IntVector(count); }
++void native_vector_destroy(IntVector* object) noexcept { delete object; }
++std::size_t native_vector_size(const IntVector& object) noexcept { return object.size(); }
++Student* native_student_new(double degrees) { return new Student(degrees); }
++void native_student_destroy(Student* object) noexcept { delete object; }
++double native_student_degrees(const Student& object) { return object.degrees_of_freedom(); }
++}
+diff --git a/examples/cpp/constructors/foreign.hpp b/examples/cpp/constructors/foreign.hpp
+new file mode 100644
+index 0000000..dc4a31d
+--- /dev/null
++++ b/examples/cpp/constructors/foreign.hpp
+@@ -0,0 +1,55 @@
++#pragma once
++#include <boost/math/distributions/students_t.hpp>
++#include <boost/version.hpp>
++#include <atomic>
++#include <cstddef>
++#include <cstdint>
++#include <span>
++#include <type_traits>
++#include <vector>
++
++namespace hepta_ctor_example {
++using Student = boost::math::students_t_distribution<double>;
++using IntVector = std::vector<std::int64_t>;
++// This is the installed upstream Boost.Math type, not a test replacement.
++static_assert(!std::is_default_constructible_v<Student>);
++static_assert(std::is_constructible_v<Student, double>);
++
++struct Config { std::uint64_t tag; std::int64_t bias; };
++
++// This small class is an authored lifetime/POD/span probe, not an upstream
++// library. Its constructor copies the span before the call ends.
++class SpanOwner {
++    Config config_;
++    IntVector values_;
++public:
++    SpanOwner() = delete;
++    SpanOwner(Config config, std::span<const std::int64_t> values);
++    ~SpanOwner() noexcept;
++    std::size_t size() const noexcept { return values_.size(); }
++    std::int64_t at(std::size_t index) const { return values_.at(index); }
++    std::uint64_t tag() const noexcept { return config_.tag; }
++    std::int64_t bias() const noexcept { return config_.bias; }
++};
++
++// A noexcept object constructor does not make wrapper allocations infallible.
++class NoThrowValue {
++    std::uint64_t value_;
++public:
++    NoThrowValue() = delete;
++    explicit NoThrowValue(std::uint64_t value) noexcept;
++    ~NoThrowValue() noexcept;
++    std::uint64_t value() const noexcept { return value_; }
++};
++std::uint64_t live_span_owners() noexcept;
++std::uint64_t live_nothrow_values() noexcept;
++
++// Separate translation-unit functions keep native lifecycle operations
++// observable with no LTO. Benchmarks do not include the Hepta roundtrip.
++IntVector* native_vector_new(std::size_t count);
++void native_vector_destroy(IntVector* object) noexcept;
++std::size_t native_vector_size(const IntVector& object) noexcept;
++Student* native_student_new(double degrees);
++void native_student_destroy(Student* object) noexcept;
++double native_student_degrees(const Student& object);
++}
+diff --git a/examples/cpp/constructors/harness.cpp b/examples/cpp/constructors/harness.cpp
+new file mode 100644
+index 0000000..6368e22
+--- /dev/null
++++ b/examples/cpp/constructors/harness.cpp
+@@ -0,0 +1,156 @@
++#include "bridge.h"
++#include "hepta.h"
++#include "foreign.hpp"
++#include <array>
++#include <atomic>
++#include <cmath>
++#include <cstdlib>
++#include <iostream>
++#include <limits>
++#include <new>
++#include <stdexcept>
++
++namespace {
++std::atomic<std::int64_t> live_allocations{0};
++thread_local bool observe_allocations = false;
++thread_local std::int64_t fail_after = -1;
++thread_local std::uint64_t allocation_attempts = 0;
++}
++
++// Actual replaceable C++ allocation functions are used by std::make_shared,
++// vector storage and unordered_map insertion. Injection is one-shot so that
++// constructing an exception or diagnosing a failure cannot recursively fail.
++void* operator new(std::size_t bytes) {
++    if (observe_allocations) {
++        ++allocation_attempts;
++        if (fail_after == 0) {
++            observe_allocations = false;
++            throw std::bad_alloc();
++        }
++        if (fail_after > 0) --fail_after;
++    }
++    void* result = std::malloc(bytes ? bytes : 1);
++    if (!result) throw std::bad_alloc();
++    ++live_allocations;
++    return result;
++}
++void operator delete(void* value) noexcept {
++    if (value) { --live_allocations; std::free(value); }
++}
++void* operator new[](std::size_t bytes) { return ::operator new(bytes); }
++void operator delete[](void* value) noexcept { ::operator delete(value); }
++void operator delete(void* value, std::size_t) noexcept { ::operator delete(value); }
++void operator delete[](void* value, std::size_t) noexcept { ::operator delete(value); }
++
++static void require(bool condition, const char* message) {
++    if (!condition) { std::cerr << message << '\n'; std::exit(1); }
++}
++
++static std::uint64_t vector_failure_trials() {
++    std::uint64_t handle = 0;
++    require(hepta_ctor_vector_sized(37, &handle) == 0, "warm vector registry");
++    require(hepta_ctor_vector_destroy(handle) == 0, "warm vector destruction");
++    auto baseline = live_allocations.load();
++    fail_after = -1; allocation_attempts = 0; observe_allocations = true;
++    auto status = hepta_ctor_vector_sized(37, &handle);
++    observe_allocations = false;
++    auto sites = allocation_attempts;
++    require(status == 0 && sites >= 4, "actual vector creation allocation sites observed");
++    require(hepta_ctor_vector_destroy(handle) == 0, "measured vector destruction");
++    require(live_allocations.load() == baseline, "successful vector owner pair balances allocations");
++    for (std::uint64_t site = 0; site < sites; ++site) {
++        handle = 0x123456789abcdef0ULL;
++        fail_after = static_cast<std::int64_t>(site); allocation_attempts = 0; observe_allocations = true;
++        status = hepta_ctor_vector_sized(37, &handle);
++        observe_allocations = false;
++        require(status == 3 && handle == 0x123456789abcdef0ULL, "real allocation refusal preserves output");
++        require(allocation_attempts == site + 1, "exact injected allocation site was reached");
++        require(live_allocations.load() == baseline, "partial construction and registry insertion failure release owners");
++        require(hepta_ctor_vector_sized(37, &handle) == 0, "allocation refusal recovery");
++        std::size_t size = 0;
++        require(hepta_ctor_vector_size(handle, &size) == 0 && size == 37, "recovered vector has intended size");
++        require(hepta_ctor_vector_destroy(handle) == 0, "recovered vector destruction");
++        require(live_allocations.load() == baseline, "recovered allocation pair balances");
++    }
++    return sites;
++}
++
++int main() {
++    std::uint64_t handle = 0;
++    std::size_t size = 0;
++    std::int64_t element = 99;
++    for (std::size_t n : {std::size_t(0), std::size_t(1), std::size_t(7), std::size_t(64)}) {
++        require(hepta_ctor_vector_sized(n, &handle) == 0, "C++ to Hepta to parameterized std::vector constructor");
++        require(hepta_ctor_vector_size(handle, &size) == 0 && size == n, "vector size constructor result");
++        if (n) require(hepta_ctor_vector_at(handle, n - 1, &element) == 0 && element == 0, "vector value initialization");
++        require(hepta_ctor_vector_destroy(handle) == 0, "vector destructor");
++        require(hepta_ctor_vector_destroy(handle) == 2, "no reusable destroyed handle");
++        require(hepta_ctor_vector_filled(n, -7, &handle) == 0, "const-ref scalar constructor parameter");
++        if (n) require(hepta_ctor_vector_at(handle, n - 1, &element) == 0 && element == -7, "fill constructor selects intended overload");
++        require(hepta_ctor_vector_destroy(handle) == 0, "filled vector destructor");
++    }
++    auto vector_baseline = live_allocations.load();
++    handle = 777;
++    require(hepta_ctor_vector_sized((std::numeric_limits<std::size_t>::max)(), &handle) == 3 && handle == 777,
++            "oversized std::vector length exception preserves output");
++    require(live_allocations.load() == vector_baseline, "length failure releases partial owners");
++    bool native_length_error = false;
++    try { hepta_ctor_example::IntVector impossible((std::numeric_limits<std::size_t>::max)()); }
++    catch (const std::length_error&) { native_length_error = true; }
++    require(native_length_error, "underlying installed vector rejects impossible length");
++
++    for (double degrees : {0.5, 1.0, 2.5, 30.0, (std::numeric_limits<double>::infinity)()}) {
++        double result = -1;
++        require(hepta_ctor_student_new(degrees, &handle) == 0, "actual non-default-constructible Boost.Math type");
++        require(hepta_ctor_student_degrees(handle, &result) == 0 && result == degrees, "actual Boost member call");
++        require(hepta_ctor_student_destroy(handle) == 0, "Boost object destruction in its C++ module");
++    }
++    for (double invalid : {0.0, -1.0, (std::numeric_limits<double>::quiet_NaN)()}) {
++        auto baseline = live_allocations.load(); handle = 888;
++        require(hepta_ctor_student_new(invalid, &handle) == 3 && handle == 888, "Boost domain exception preserves handle output");
++        require(live_allocations.load() == baseline, "Boost constructor exception releases partial owners");
++    }
++
++    std::array<std::int64_t, 4> values{-3, 5, 8, 13};
++    require(hepta_ctor_span_new(91, -6, values.data(), values.size(), &handle) == 0, "POD plus call-only span constructor");
++    require(hepta_cpp_ctors_live_span_owners() == 1, "span fixture owner was constructed");
++    values.fill(0);
++    require(hepta_ctor_span_at(handle, 3, &element) == 0 && element == 13, "fixture copied its span during construction");
++    std::uint64_t tag = 0; std::int64_t bias = 0;
++    require(hepta_cpp_ctors_SpanOwner_tag(handle, &tag) == 0 && tag == 91, "POD field conversion tag");
++    require(hepta_cpp_ctors_SpanOwner_bias(handle, &bias) == 0 && bias == -6, "POD field conversion bias");
++    require(hepta_ctor_span_destroy(handle) == 0 && hepta_cpp_ctors_live_span_owners() == 0, "fixture same-module cleanup");
++    require(hepta_ctor_span_new(0, 0, nullptr, 0, &handle) == 0, "empty null span constructor");
++    require(hepta_ctor_span_destroy(handle) == 0, "empty span destructor");
++    handle = 999;
++    require(hepta_ctor_span_new(0, 0, nullptr, 1, &handle) == 1 && handle == 999, "null nonempty span rejected before constructor");
++    require(hepta_ctor_span_new(0, 0, values.data(), (std::numeric_limits<std::size_t>::max)(), &handle) == 7 && handle == 999,
++            "impossible span extent rejected before constructor");
++    alignas(std::int64_t) unsigned char misaligned[32]{};
++    require(hepta_ctor_span_new(0, 0, reinterpret_cast<const std::int64_t*>(misaligned + 1), 1, &handle) == 8 && handle == 999,
++            "misaligned span rejected before constructor");
++    require(hepta_ctor_vector_sized(1, nullptr) == 1, "null handle output rejected");
++    require(hepta_ctor_vector_sized(1, reinterpret_cast<std::uint64_t*>(misaligned + 1)) == 8,
++            "misaligned handle output rejected");
++
++    require(hepta_ctor_nothrow_new(43, &handle) == 0, "noexcept scalar object constructor");
++    std::uint64_t value = 0;
++    require(hepta_cpp_ctors_NoThrowValue_value(handle, &value) == 0 && value == 43, "noexcept constructor value category");
++    require(hepta_ctor_nothrow_destroy(handle) == 0 && hepta_cpp_ctors_live_nothrow_values() == 0, "noexcept object destruction");
++    auto nothrow_baseline = live_allocations.load();
++    handle = 333; fail_after = 0; allocation_attempts = 0; observe_allocations = true;
++    auto status = hepta_ctor_nothrow_new(43, &handle);
++    observe_allocations = false;
++    require(status == 3 && handle == 333 && allocation_attempts == 1, "noexcept constructor still catches wrapper allocation failure");
++    require(live_allocations.load() == nothrow_baseline, "noexcept wrapper refusal leaks no allocation");
++
++    auto allocation_failures = vector_failure_trials();
++    require(hepta_cpp_ctors_live_span_owners() == 0 && hepta_cpp_ctors_live_nothrow_values() == 0, "no fixture objects left live");
++    std::cout << "{\"bidirectional_native\":true,\"boost_version\":" << BOOST_VERSION
++              << ",\"boost_lib_version\":\"" << BOOST_LIB_VERSION
++              << "\",\"boost_nondefault_constructible\":true,\"boost_success_cases\":5,\"boost_domain_failure_cases\":3"
++              << ",\"vector_constructor_cases\":8,\"vector_length_rejected\":true,\"pod_span_constructor\":true,\"span_copy_observed\":true"
++              << ",\"pointer_negative_controls\":5,\"noexcept_wrapper_allocation_failure\":true,\"allocation_failure_sites\":" << allocation_failures
++              << ",\"allocation_recovery_calls\":" << allocation_failures
++              << ",\"warm_registry_live_allocation_delta\":0,\"live_fixture_objects\":0,\"output_preserved_on_failure\":true}\n";
++}
+diff --git a/experiments/crossfile_eval/__main__.py b/experiments/crossfile_eval/__main__.py
+index f0d0385..5351846 100644
+--- a/experiments/crossfile_eval/__main__.py
++++ b/experiments/crossfile_eval/__main__.py
+@@ -11,6 +11,7 @@ from experiments.agent_eval.sandbox import probe_sandbox
+ from .plan import make_plan, verify_plan
+ from .qualification import qualify_fixtures
+ from .workspace_qualification import qualify_workspace
++from .workspace_crash_qualification import qualify_workspace_crashes
+ from .records import cost_record, seal_record, write_append_only
+ from .reporting import compare
+ from .runner import evaluate, replay
+@@ -59,6 +60,12 @@ def main(argv=None):
+     workspace.add_argument('--execution-context', default='unspecified_operator_environment',
+                            help='Public operator annotation of the outer execution environment; not an attestation')
+     workspace.add_argument('--output', required=True)
++    crashes = sub.add_parser('qualify-workspace-crashes',
++                             help='Actual pre/post publication child deaths for all five tasks, in strict namespaces')
++    crashes.add_argument('--rustc')
++    crashes.add_argument('--execution-context', default='unspecified_operator_environment',
++                         help='Public operator annotation of the outer execution environment; not an attestation')
++    crashes.add_argument('--output', required=True)
+     cost = sub.add_parser('cost')
+     cost.add_argument('--run', required=True)
+     cost.add_argument('--human-seconds', type=float)
+@@ -93,6 +100,8 @@ def main(argv=None):
+         elif args.operation == 'qualify-fixtures': result = qualify_fixtures(args.rustc)
+         elif args.operation == 'qualify-workspace':
+             result = qualify_workspace(args.rustc, execution_context=args.execution_context)
++        elif args.operation == 'qualify-workspace-crashes':
++            result = qualify_workspace_crashes(args.rustc, execution_context=args.execution_context)
+         elif args.operation == 'cost':
+             result = cost_record(read(args.run), human_seconds=args.human_seconds, human_observer=args.human_observer,
+                                  monetary_cost_usd=args.usd, price_source=args.price_source, note=args.note)
+diff --git a/experiments/crossfile_eval/_workspace_crash_frontend.py b/experiments/crossfile_eval/_workspace_crash_frontend.py
+new file mode 100644
+index 0000000..00a2082
+--- /dev/null
++++ b/experiments/crossfile_eval/_workspace_crash_frontend.py
+@@ -0,0 +1,64 @@
++"""Trusted qualification worker; this file is never in a provider capsule.
++
++The normal workspace frontend has no JSON fault-injection capability. This
++separate worker uses the production Python test hook at its two existing
++durable-write checkpoints, emits an observation, and dies with os._exit(71).
++It contains no hidden task inputs, provider credentials, or source evaluator.
++"""
++from __future__ import annotations
++
++import json
++import os
++import sys
++
++from hepta import workspace
++from workspace_frontend import STORE, current_record, main as normal_main, snapshot
++
++EXIT_CODE = 71
++CHECKPOINTS = ('prepared', 'published')
++
++
++def metadata(value):
++    return {key: item for key, item in value.items() if key != 'files'}
++
++
++def main():
++    message = json.loads(sys.stdin.read())
++    if message.get('operation') == 'observe':
++        if set(message) != {'operation', 'old_version'}:
++            raise ValueError('E_CRASH_SCHEMA: malformed historical pin observation')
++        print(json.dumps({'ok': True, 'api': 'pin', 'operation': 'observe',
++                          'current_snapshot': snapshot(workspace.pin(STORE)),
++                          'old_pinned_snapshot': snapshot(workspace.pin(STORE, message['old_version'])),
++                          'publication': current_record()}))
++        return
++    if (set(message) != {'operation', 'rustc', 'patch', 'qualification_checkpoint'}
++            or message['operation'] != 'commit' or message['qualification_checkpoint'] not in CHECKPOINTS):
++        raise ValueError('E_CRASH_SCHEMA: require a trusted commit and exact checkpoint')
++    point = message.pop('qualification_checkpoint')
++    patch = message['patch']
++
++    def crash(at):
++        if at != point:
++            return
++        marker = {'schema': 'hepta.workspace_crash_marker.v1', 'checkpoint': at,
++                  'exit_code': EXIT_CODE, 'mechanism': 'os._exit',
++                  'patch_sha256': workspace.digest(workspace.canonical(patch)),
++                  'current_snapshot': metadata(snapshot(workspace.pin(STORE))),
++                  'old_pinned_snapshot': metadata(snapshot(workspace.pin(STORE, patch['expected_version']))),
++                  'publication': current_record()}
++        # flush is essential: os._exit intentionally skips Python cleanup.
++        print(json.dumps(marker), flush=True)
++        os._exit(EXIT_CODE)
++
++    # The same checked/native production path used by normal prepare/commit.
++    # If the checkpoint is not reached this returns normally; the parent must
++    # reject the result as a missing crash, never label it successful injection.
++    normal_main(message, _checkpoint=crash)
++
++
++if __name__ == '__main__':
++    try:
++        main()
++    except (workspace.WorkspaceError, ValueError, KeyError, TypeError, OSError) as exc:
++        print(json.dumps({'ok': False, 'operation': 'crash_rpc_error', 'diagnostics': str(exc)}))
+diff --git a/experiments/crossfile_eval/_workspace_frontend.py b/experiments/crossfile_eval/_workspace_frontend.py
+index cff4894..5203e14 100644
+--- a/experiments/crossfile_eval/_workspace_frontend.py
++++ b/experiments/crossfile_eval/_workspace_frontend.py
+@@ -41,8 +41,11 @@ def current_record():
+             'journal_sha256': workspace.digest(journal) if journal else None}
+ 
+ 
+-def main():
+-    message = json.loads(sys.stdin.read())
++def main(message=None, *, _checkpoint=None):
++    # _checkpoint is an in-process test hook, never a field accepted from an
++    # adapter message. Only the separately copied trusted crash worker uses it.
++    if message is None:
++        message = json.loads(sys.stdin.read())
+     operation = message['operation']
+     if operation == 'initialize':
+         result = workspace.initialize(STORE, Path('bundle'), message['entry'], rustc=message['rustc'])
+@@ -51,7 +54,8 @@ def main():
+         result = workspace.inspect_workspace(STORE)
+         api = 'inspect_workspace'
+     elif operation in {'prepare', 'commit'}:
+-        result = workspace.apply_workspace_patch(STORE, message['patch'], apply=operation == 'commit', rustc=message['rustc'])
++        result = workspace.apply_workspace_patch(STORE, message['patch'], apply=operation == 'commit',
++                                                 rustc=message['rustc'], _checkpoint=_checkpoint)
+         api = 'apply_workspace_patch'
+     elif operation == 'recover':
+         result = workspace.recover(STORE)
+@@ -91,8 +95,9 @@ def main():
+     print(json.dumps(out))
+ 
+ 
+-try:
+-    main()
+-except (workspace.WorkspaceError, HeptaError, ValueError, KeyError, TypeError, OSError, RecursionError) as exc:
+-    print(json.dumps({'ok': False, 'operation': 'rpc_error', 'diagnostics': str(exc),
+-                      'publication_state': 'unverified', 'error_type': type(exc).__name__}))
++if __name__ == '__main__':
++    try:
++        main()
++    except (workspace.WorkspaceError, HeptaError, ValueError, KeyError, TypeError, OSError, RecursionError) as exc:
++        print(json.dumps({'ok': False, 'operation': 'rpc_error', 'diagnostics': str(exc),
++                          'publication_state': 'unverified', 'error_type': type(exc).__name__}))
+diff --git a/experiments/crossfile_eval/workspace_crash_evidence.py b/experiments/crossfile_eval/workspace_crash_evidence.py
+new file mode 100644
+index 0000000..abf7768
+--- /dev/null
++++ b/experiments/crossfile_eval/workspace_crash_evidence.py
+@@ -0,0 +1,319 @@
++"""Semantic checks for the exact task/checkpoint crash matrix.
++
++Hash seals detect changes; they are not signatures or remote attestation. The
++checks below also reject re-sealed records with missing deaths, torn versions,
++invented recovery, missing native cases, or a fabricated provider claim.
++"""
++from __future__ import annotations
++
++import copy
++import functools
++import math
++import re
++
++from hepta.pipeline import compiler_hash
++from .plan import evaluator_hash
++from .records import seal_record, verify_record
++from .tasks import ROOT, TASK_IDS, canonical, digest, task_request, verify_manifest
++
++CHECKPOINTS = ('prepared', 'published')
++CASE_WALL_SECONDS = 90.0
++HIDDEN_CASE_COUNTS = {'api_migration': 75, 'owned_result': 24, 'native_bridge': 56,
++                      'resource_cancel': 14, 'defect_repair': 143}
++TRACE = ('initialize', 'inspect', 'inspect', 'prepare', 'task_native_check', 'commit',
++         'observe', 'recover', 'recover', 'commit', 'recover', 'observe', 'pin')
++CONTROL_IDS = ('missing_case', 'duplicate_case', 'successful_exit_instead_of_death', 'wrong_checkpoint',
++               'namespace_omission', 'prepared_source_mismatch', 'torn_current', 'historical_pin_changed',
++               'false_recovery', 'changed_retry_request', 'stale_retry_accepted', 'native_source_mismatch',
++               'native_cases_omitted', 'ambiguous_outcome_erased', 'provider_claim_forged', 'wall_budget_erased')
++
++
++def _require(condition, message):
++    if not condition:
++        raise ValueError('E_CRASH_EVIDENCE: ' + message)
++
++
++def _sha(value):
++    return isinstance(value, str) and re.fullmatch('[0-9a-f]{64}', value) is not None
++
++
++def _duration(value):
++    return type(value) in (int, float) and math.isfinite(value) and value >= 0
++
++
++def _schema_errors(function):
++    @functools.wraps(function)
++    def checked(*args, **kwargs):
++        try:
++            return function(*args, **kwargs)
++        except (AttributeError, KeyError, TypeError, IndexError) as exc:
++            raise ValueError('E_CRASH_EVIDENCE: malformed nested record') from exc
++    return checked
++
++
++def _non_provider(value):
++    _require(type(value.get('actual_ai_model_runs')) is int and value['actual_ai_model_runs'] == 0
++             and type(value.get('provider_tokens')) is int and value['provider_tokens'] == 0
++             and value.get('provider_receipts') == [] and value.get('ai_comparison_eligible') is False
++             and value.get('human_seconds') is None and value.get('monetary_cost_usd') is None,
++             'scripted crash cases cannot invent model use, receipts or measured costs')
++    for key in ('measured_ai_productivity', 'hepta_advantage_established', 'power_failure_durability_proved'):
++        _require(value.get('claims', {}).get(key) is False, 'unmeasured or unproved claim: ' + key)
++
++
++def _snapshot(value, profile):
++    _require(isinstance(value, dict), 'missing bound snapshot')
++    files = value.get('file_sha256')
++    validation = value.get('validation', {})
++    _require(isinstance(files, dict) and files and all(_sha(sha) for sha in files.values())
++             and _sha(value.get('version')) and _sha(value.get('interface_sha256'))
++             and value.get('source_sha256') == digest(canonical(files)), 'snapshot identities are incomplete or inconsistent')
++    _require(value.get('profile') == profile and value.get('compiler_sha256') == profile['compiler_sha256']
++             and validation.get('ok') is True and validation.get('backend_ok') is True
++             and validation.get('rustc_sha256') == profile['rustc_sha256']
++             and validation.get('backend_flags') == profile['native_flags']
++             and validation.get('backend_target') == profile['native_target']
++             and _sha(validation.get('report_sha256')), 'snapshot lacks its frozen complete native validation')
++
++
++def _publication(value, before, after, current, state):
++    _require(isinstance(value, dict), 'publication evidence missing')
++    head = {'schema': 'hepta.workspace.v1', 'version': current}
++    journal = None if state is None else {'schema': 'hepta.workspace.v1', 'before': before, 'after': after, 'state': state}
++    _require(value.get('current') == head and value.get('journal') == journal,
++             'CURRENT/journal contradict the checkpoint or recovery')
++    _require(value.get('current_sha256') == digest(canonical(head) + b'\n')
++             and value.get('journal_sha256') == (digest(canonical(journal) + b'\n') if journal is not None else None),
++             'publication byte identities differ from their recorded contents')
++
++
++@_schema_errors
++def validate_crash_case(run, *, require_namespace=True):
++    verify_record(run)
++    _require(run.get('schema') == 'hepta.crossfile_workspace_crash_case.v1' and run.get('status') == 'qualified',
++             'actual completed crash case required')
++    _require(run.get('task_id') in TASK_IDS and run.get('checkpoint') in CHECKPOINTS,
++             'unknown task or checkpoint')
++    task, point = run['task_id'], run['checkpoint']
++    request = task_request(task, 'hepta')
++    _require(all(run.get(k) == request[k] for k in ('taskset_sha256', 'task_sha256', 'base_sha256')),
++             'frozen task identity changed')
++    _require(run.get('arm') == 'hepta_protocol' and run.get('language') == 'hepta', 'incorrect task arm')
++    if require_namespace:
++        _require(run.get('run_kind') == 'trusted_namespace_workspace_crash_fixture' and run.get('fixture_mode') is False
++                 and run.get('isolation') == 'allowlisted_namespace_capsules', 'strict crash namespace run required')
++    else:
++        _require(run.get('run_kind') == 'offline_native_crash_unit_test' and run.get('fixture_mode') is True,
++                 'explicit offline unit-test scope required')
++    _non_provider(run)
++    _require(run.get('wall_budget_seconds') == CASE_WALL_SECONDS and _duration(run.get('wall_seconds'))
++             and 0 < run['wall_seconds'] <= CASE_WALL_SECONDS, 'whole case deadline missing or exceeded')
++    session = run.get('session', {})
++    profile = session.get('profile', {})
++    compiler = run.get('compiler', {})
++    _require(profile.get('compiler_sha256') == compiler.get('hepta_compiler_sha256')
++             and profile.get('rustc_sha256') == compiler.get('rustc', {}).get('executable_sha256')
++             and _sha(profile.get('compiler_sha256')) and _sha(profile.get('rustc_sha256')),
++             'workspace profile differs from frozen compiler')
++    initial, prepared = run.get('initial_snapshot'), run.get('prepared_snapshot')
++    _snapshot(initial, profile)
++    _snapshot(prepared, profile)
++    before, after = initial['version'], prepared['version']
++    _require(before != after and initial['source_sha256'] == request['base_sha256']
++             and prepared['source_sha256'] != initial['source_sha256'], 'task changed no source or initial source differs')
++    events = session.get('events')
++    _require(isinstance(events, list) and tuple(e.get('operation') for e in events) == TRACE,
++             'complete ordered crash/recovery/retry/pin trace required')
++    _require(session.get('namespace_required') is require_namespace
++             and all(e.get('namespace_required') is require_namespace for e in events),
++             'every task RPC and native gate must retain its namespace policy')
++    for event in events:
++        _require(_duration(event.get('elapsed_seconds')), 'missing elapsed observation')
++        if event['operation'] == 'task_native_check':
++            continue
++        if 'fault_injection' not in event:
++            _require(event.get('process_status') == 'exited' and event.get('process_returncode') == 0,
++                     'non-fault worker did not finish normally')
++        _require(_sha(event.get('response_sha256')), 'worker response identity missing')
++        for key in ('snapshot', 'current_snapshot', 'old_pinned_snapshot'):
++            if key in event:
++                _snapshot(event[key], profile)
++    initialized, preview, checked, death = events[0], events[3], events[4], events[5]
++    observed, recovered, recovered_again, retried, final_recovery, resolved, final = events[6:]
++    _require(initialized.get('api') == 'initialize' and initialized.get('ok') is True
++             and initialized.get('applied') is True and initialized.get('current_snapshot') == initial,
++             'initial native workspace capture missing')
++    _publication(initialized.get('publication'), before, after, before, None)
++    for inspected in events[1:3]:
++        _require(inspected.get('api') == 'inspect_workspace' and inspected.get('ok') is True
++                 and inspected.get('current_snapshot') == initial, 'actual production node inspection missing')
++    _require(preview.get('api') == 'apply_workspace_patch' and preview.get('ok') is True
++             and preview.get('applied') is False and preview.get('before') == before and preview.get('after') == after
++             and preview.get('snapshot') == prepared and preview.get('current_snapshot') == initial,
++             'native checked prepare must not publish')
++    native = checked.get('result', {})
++    _require(native.get('ok') is True and native.get('source_sha256') == prepared['source_sha256']
++             and all(_sha(native.get(k)) for k in ('artifact_sha256', 'rust_sha256', 'candidate_rlib_sha256')),
++             'independent task/API native check must precede checkpoint death')
++    preconditions = {'schema': 'hepta.patch.v4', 'expected_version': before,
++                     'expected_interface_sha256': initial['interface_sha256'], 'interface_policy': request['interface_policy']}
++    _require(_sha(preview.get('patch_sha256')) and all(e.get('patch_sha256') == preview['patch_sha256']
++             and e.get('patch_preconditions') == preconditions for e in (preview, death, retried)),
++             'prepare, dead commit and retry must bind the identical original request')
++    expected_current = initial if point == 'prepared' else prepared
++    expected_state = 'aborted' if point == 'prepared' else 'committed'
++    _require(death.get('fault_injection') == {'checkpoint': point, 'exit_code': 71, 'mechanism': 'os._exit'}
++             and death.get('process_status') == 'exited' and death.get('process_returncode') == 71
++             and 'ok' not in death and 'applied' not in death,
++             'actual checkpoint death required, never a normal return, timeout or fabricated acknowledgement')
++    marker = death.get('crash_marker', {})
++    _require(marker.get('schema') == 'hepta.workspace_crash_marker.v1' and marker.get('checkpoint') == point
++             and marker.get('exit_code') == 71 and marker.get('mechanism') == 'os._exit'
++             and marker.get('patch_sha256') == preview['patch_sha256']
++             and death.get('crash_marker_sha256') == digest(canonical(marker)), 'actual crash marker differs')
++    _require(marker.get('current_snapshot') == expected_current and marker.get('old_pinned_snapshot') == initial,
++             'checkpoint did not observe one whole current snapshot and the unchanged old pin')
++    _publication(marker.get('publication'), before, after, expected_current['version'], 'prepared')
++    _require(run.get('injected_failure') == {'code': 'E_WORKSPACE_INJECTED_CRASH', 'publication_state': 'unverified_after_commit'},
++             'ambiguous transport outcome must remain unverified before recovery')
++    _require(observed.get('qualification_observation') == 'after_crash' and observed.get('api') == 'pin'
++             and observed.get('ok') is True and observed.get('current_snapshot') == expected_current
++             and observed.get('old_pinned_snapshot') == initial
++             and observed.get('publication') == marker['publication'],
++             'separate post-death process must observe checkpoint state and historical pin unchanged')
++    for recovery in (recovered, recovered_again):
++        _require(recovery.get('api') == 'recover' and recovery.get('ok') is True
++                 and recovery.get('recovery') == expected_state and recovery.get('current_snapshot') == expected_current,
++                 'recovery did not retain the expected complete version or was not idempotent')
++        _publication(recovery.get('publication'), before, after, expected_current['version'], expected_state)
++    _require(recovered['publication'] == recovered_again['publication'], 'idempotent recovery changed durable state')
++    _require(retried.get('api') == 'apply_workspace_patch' and retried.get('current_snapshot') == prepared,
++             'retry must return the final prepared snapshot')
++    retry_summary = {key: retried[key] for key in ('ok', 'applied', 'status', 'before', 'after', 'diagnostics') if key in retried}
++    _require(run.get('retry') == retry_summary, 'retry summary differs from worker outcome')
++    if point == 'prepared':
++        _require(retried.get('ok') is True and retried.get('applied') is True and retried.get('before') == before
++                 and retried.get('after') == after and session.get('committed') is True
++                 and session.get('prepared_workspace_version') == after and session.get('committed_workspace_version') == after,
++                 'pre-publication exact retry must commit once')
++    else:
++        _require(retried.get('ok') is False and retried.get('applied') is False and retried.get('status') == 'rejected'
++                 and [d.get('code') for d in retried.get('diagnostics', [])] == ['E_STALE_PROJECT']
++                 and session.get('committed') is False and session.get('committed_workspace_version') is None,
++                 'post-publication original request must fail stale, without inventing a commit acknowledgement')
++    _publication(retried.get('publication'), before, after, after, 'committed')
++    _require(final_recovery.get('api') == 'recover' and final_recovery.get('ok') is True
++             and final_recovery.get('recovery') == 'committed' and final_recovery.get('current_snapshot') == prepared,
++             'final committed recovery missing')
++    _publication(final_recovery.get('publication'), before, after, after, 'committed')
++    _require(resolved.get('qualification_observation') == 'after_resolution' and resolved.get('api') == 'pin'
++             and resolved.get('ok') is True and resolved.get('current_snapshot') == prepared
++             and resolved.get('old_pinned_snapshot') == initial, 'old pin changed after resolution')
++    _publication(resolved.get('publication'), before, after, after, 'committed')
++    _require(final.get('api') == 'pin' and final.get('ok') is True and final.get('current_snapshot') == prepared
++             and run.get('submitted_version') == after and session.get('workspace_version') == after
++             and run.get('submitted_sha256') == prepared['source_sha256']
++             and session.get('source_sha256') == prepared['source_sha256'], 'final pin and submitted source differ')
++    _publication(final.get('publication'), before, after, after, 'committed')
++    _require(session.get('backend') == 'hepta.workspace/hepta.patch.v4'
++             and all(session.get(k) is True for k in ('initialized', 'inspected', 'recovered', 'final_pinned'))
++             and session.get('initial_workspace_version') == before and session.get('publication_state') == 'recovered_committed'
++             and session.get('qualification_crash') == {'checkpoint': point, 'attempted': True, 'observed': True}
++             and session.get('commit_acknowledgement_scope') == 'normal_success_response_only',
++             'session does not substantiate crash/recovery capability')
++    _require(session.get('production_workspace_v4_exercised') is (point == 'prepared'),
++             'normal commit acknowledgement capability was relabeled after a crash')
++    score = run.get('score', {})
++    _require(run.get('final_pin_before_score') is True and score.get('ok') is True and score.get('compiled') is True
++             and score.get('native_status') == 'exited' and score.get('native_returncode') == 0
++             and score.get('protocol_error') is None and score.get('source_sha256') == prepared['source_sha256']
++             and score.get('total') == HIDDEN_CASE_COUNTS[task] and score.get('passed') == HIDDEN_CASE_COUNTS[task]
++             and score.get('visibility') == 'parent_private_after_adapter_exit'
++             and all(_sha(score.get(k)) for k in ('artifact_sha256', 'rust_sha256', 'candidate_rlib_sha256')),
++             'all native hidden cases must score the final recovered pinned source')
++    _require(_duration(score.get('scoring_seconds')) and _duration(session.get('validation_seconds'))
++             and sum(e['elapsed_seconds'] for e in events) + score['scoring_seconds'] <= run['wall_seconds'] + 0.001,
++             'case wall accounting omitted validation or scoring')
++    _require(run['claims'].get('workspace_crash_recovery_exercised') is True
++             and run['claims'].get('no_torn_snapshot_observed') is True, 'completed case claims differ from evidence')
++    return True
++
++
++@_schema_errors
++def validate_crash_matrix(report, *, require_controls=True):
++    verify_record(report)
++    _require(report.get('schema') == 'hepta.crossfile_workspace_crash_qualification.v1'
++             and report.get('status') == 'qualified_workspace_crash_fixtures_only'
++             and report.get('run_kind') == 'trusted_namespace_workspace_crash_qualification',
++             'complete strict task crash qualification required')
++    _require(report.get('environment', {}).get('available') is True and report.get('fixture_mode') is False
++             and report.get('isolation') == 'allowlisted_namespace_capsules', 'actual namespace support required')
++    _non_provider(report)
++    _require(report.get('taskset_sha256') == verify_manifest()['taskset_sha256']
++             and report.get('evaluator_sha256') == evaluator_hash()
++             and report.get('compiler', {}).get('hepta_compiler_sha256') == compiler_hash(),
++             'qualified taskset/evaluator/compiler snapshot differs from current implementation')
++    expected = [{'task_id': task, 'checkpoint': point} for task in TASK_IDS for point in CHECKPOINTS]
++    runs = report.get('runs')
++    _require(report.get('planned_cases') == expected and isinstance(runs, list) and len(runs) == len(expected)
++             and [{'task_id': run.get('task_id'), 'checkpoint': run.get('checkpoint')} for run in runs] == expected,
++             'every task/checkpoint must occur exactly once, including failed or missing attempts')
++    _require(report.get('qualified_crash_cases') == 10 and report.get('hidden_native_cases_passed') == 624
++             and report.get('case_wall_budget_seconds') == CASE_WALL_SECONDS,
++             'exact complete case/input denominator and frozen wall budget required')
++    _require(report.get('qualification_worker_sha256') == digest((ROOT / '_workspace_crash_frontend.py').read_bytes()),
++             'trusted crash worker identity differs from source')
++    for run in runs:
++        _require(run.get('compiler') == report['compiler'], 'compiler changed within the matrix')
++        validate_crash_case(run)
++        workers = [e for e in run['session']['events'] if 'qualification_worker_sha256' in e]
++        _require(len(workers) == 3 and all(e['qualification_worker_sha256'] == report['qualification_worker_sha256'] for e in workers),
++                 'commit and both observations must use the frozen qualification worker')
++    _require(report.get('claims', {}).get('all_task_checkpoint_crashes_exercised') is True
++             and report.get('claims', {}).get('strict_hidden_test_namespace_isolation_exercised') is True,
++             'whole-matrix capability differs from evidence')
++    if require_controls:
++        controls = report.get('adversarial_controls')
++        _require(isinstance(controls, list) and [c.get('id') for c in controls] == list(CONTROL_IDS)
++                 and all(c.get('rejected') is True and isinstance(c.get('diagnostic'), str) and c['diagnostic']
++                         and _sha(c.get('mutated_record_sha256')) for c in controls),
++                 'all re-sealed semantic negative controls must be rejected')
++    return True
++
++
++def adversarial_controls(report):
++    """Mutate and re-seal: a checksum-only validator would accept these."""
++    validate_crash_matrix(report, require_controls=False)
++    controls = []
++    for name in CONTROL_IDS:
++        changed = copy.deepcopy(report)
++        run = changed['runs'][0]
++        events = run['session']['events']
++        if name == 'missing_case': changed['runs'].pop()
++        elif name == 'duplicate_case': changed['runs'][-1] = copy.deepcopy(changed['runs'][0])
++        elif name == 'successful_exit_instead_of_death': events[5]['process_returncode'] = 0
++        elif name == 'wrong_checkpoint': events[5]['fault_injection']['checkpoint'] = 'published'
++        elif name == 'namespace_omission': events[7]['namespace_required'] = False
++        elif name == 'prepared_source_mismatch': run['prepared_snapshot']['source_sha256'] = '0' * 64
++        elif name == 'torn_current': events[6]['publication']['current']['version'] = run['prepared_snapshot']['version']
++        elif name == 'historical_pin_changed': events[11]['old_pinned_snapshot'] = copy.deepcopy(run['prepared_snapshot'])
++        elif name == 'false_recovery': events[7]['recovery'] = 'committed'
++        elif name == 'changed_retry_request': events[9]['patch_sha256'] = '0' * 64
++        elif name == 'stale_retry_accepted':
++            changed['runs'][1]['session']['events'][9]['ok'] = True
++            changed['runs'][1]['retry']['ok'] = True
++        elif name == 'native_source_mismatch': run['score']['source_sha256'] = run['base_sha256']
++        elif name == 'native_cases_omitted': run['score']['passed'] -= 1
++        elif name == 'ambiguous_outcome_erased': run['injected_failure']['publication_state'] = 'rolled_back'
++        elif name == 'provider_claim_forged': changed['actual_ai_model_runs'] = 1
++        elif name == 'wall_budget_erased': run['wall_seconds'] = 0
++        changed['runs'] = [seal_record(r) for r in changed['runs']]
++        changed = seal_record(changed)
++        try:
++            validate_crash_matrix(changed, require_controls=False)
++        except ValueError as exc:
++            controls.append({'id': name, 'rejected': True, 'diagnostic': str(exc),
++                             'mutated_record_sha256': changed['record_sha256']})
++        else:
++            raise ValueError('E_CRASH_NEGATIVE_CONTROL: accepted ' + name)
++    return controls
+diff --git a/experiments/crossfile_eval/workspace_crash_qualification.py b/experiments/crossfile_eval/workspace_crash_qualification.py
+new file mode 100644
+index 0000000..7114f0b
+--- /dev/null
++++ b/experiments/crossfile_eval/workspace_crash_qualification.py
+@@ -0,0 +1,293 @@
++"""Per-task process-death qualification of production workspace v4.
++
++Only frozen trusted sources are used. There is no adapter and no provider
++usage. Ordinary provider sessions still stop on any ambiguous transport result;
++this operator qualification separately observes and recovers their store.
++"""
++from __future__ import annotations
++
++import copy
++import datetime
++import json
++from pathlib import Path
++import shutil
++import sys
++import time
++
++from experiments.agent_eval.harness import EvalError
++from experiments.agent_eval.sandbox import probe_sandbox, run_bounded
++
++from .plan import evaluator_hash
++from .records import seal_record
++from .scoring import compiler_identity, python_read_only, score_candidate
++from .semantic import nodes
++from .tasks import ROOT, TASK_IDS, canonical, digest, snapshot_id, task_request, trusted_reference, verify_manifest
++from .workspace_session import ProductionWorkspaceSession
++
++CHECKPOINTS = ('prepared', 'published')
++CRASH_EXIT_CODE = 71
++CASE_WALL_SECONDS = 90.0
++
++
++def _metadata(value):
++    return {key: item for key, item in value.items() if key != 'files'}
++
++
++class _CrashQualificationSession(ProductionWorkspaceSession):
++    """Trusted one-shot fault injector, never selected by StudySession."""
++
++    def __init__(self, request, checkpoint, *, rustc=None, fixture=False, timeout=30.0):
++        if checkpoint not in CHECKPOINTS:
++            raise ValueError('E_CRASH_CHECKPOINT: exact production checkpoint required')
++        self.checkpoint = checkpoint
++        self.fault_attempted = self.fault_observed = False
++        self.fault_patch = self.prepared_result = None
++        super().__init__(request, rustc=rustc, fixture=fixture, timeout=timeout)
++        shutil.copyfile(ROOT / '_workspace_crash_frontend.py', self.directory / 'workspace_crash_frontend.py')
++        self.crash_worker_sha256 = digest((self.directory / 'workspace_crash_frontend.py').read_bytes())
++
++    def _fault_worker(self, operation, timeout, **payload):
++        started = time.monotonic()
++        event = {'operation': operation, 'namespace_required': not self.fixture,
++                 'qualification_worker_sha256': self.crash_worker_sha256}
++        if operation == 'commit':
++            event['fault_injection'] = {'checkpoint': self.checkpoint, 'exit_code': CRASH_EXIT_CODE,
++                                       'mechanism': 'os._exit'}
++            event['patch_sha256'] = digest(canonical(payload['patch']))
++            event['patch_preconditions'] = {key: payload['patch'][key] for key in
++                ('schema', 'expected_version', 'expected_interface_sha256', 'interface_policy')}
++        try:
++            process = run_bounded([sys.executable, str(self.directory / 'workspace_crash_frontend.py')],
++                                  cwd=self.directory, input_bytes=canonical({'operation': operation, **payload}),
++                                  timeout=timeout, fixture=self.fixture,
++                                  read_only=[str(Path(self.rustc).parent.parent), *python_read_only()],
++                                  max_output=2 * 1024 * 1024)
++        except (ValueError, OSError) as exc:
++            self.publication_state = 'unverified_after_' + operation
++            event.update(process_status='transport_error', process_returncode=None,
++                         elapsed_seconds=round(time.monotonic() - started, 6))
++            self.events.append(event)
++            raise EvalError('E_WORKSPACE_TRANSPORT', 'Crash qualification worker could not run') from exc
++        elapsed = time.monotonic() - started
++        if operation == 'commit':
++            self.validation_seconds += elapsed
++        event.update(elapsed_seconds=round(elapsed, 6), process_status=process['status'],
++                     process_returncode=process['returncode'], response_sha256=digest(process['stdout'].encode()),
++                     stderr_sha256=digest(process['stderr'].encode()))
++        self.events.append(event)
++        try:
++            result = json.loads(process['stdout'])
++        except ValueError:
++            result = None
++        return process, result, event
++
++    def _rpc(self, operation, timeout, **payload):
++        if operation == 'commit' and not self.fault_attempted:
++            self.fault_attempted = True
++            self.fault_patch = json.loads(canonical(payload['patch']))
++            process, marker, event = self._fault_worker('commit', timeout, rustc=self.rustc,
++                patch=self.fault_patch, qualification_checkpoint=self.checkpoint)
++            self.publication_state = 'unverified_after_commit'
++            if isinstance(marker, dict):
++                event['crash_marker'] = marker
++                event['crash_marker_sha256'] = digest(canonical(marker))
++            if (process['status'] != 'exited' or process['returncode'] != CRASH_EXIT_CODE
++                    or not isinstance(marker, dict) or marker.get('schema') != 'hepta.workspace_crash_marker.v1'
++                    or marker.get('checkpoint') != self.checkpoint or marker.get('mechanism') != 'os._exit'
++                    or marker.get('exit_code') != CRASH_EXIT_CODE
++                    or marker.get('patch_sha256') != event['patch_sha256']):
++                raise EvalError('E_WORKSPACE_CRASH_NOT_OBSERVED', 'Expected production checkpoint death was not observed')
++            self.fault_observed = True
++            raise EvalError('E_WORKSPACE_INJECTED_CRASH', 'Actual checkpoint child exited; publication remains unverified until recovery')
++        result = super()._rpc(operation, timeout, **payload)
++        if operation == 'prepare' and result.get('ok') is True:
++            self.prepared_result = result
++        if 'diagnostics' in result:
++            self.events[-1]['diagnostics'] = result['diagnostics']
++        return result
++
++    def observe(self, timeout, phase):
++        process, result, event = self._fault_worker('observe', timeout, old_version=self.initial_version)
++        event['qualification_observation'] = phase
++        if (process['status'] != 'exited' or process['returncode'] != 0
++                or not isinstance(result, dict) or result.get('ok') is not True):
++            raise EvalError('E_WORKSPACE_OBSERVATION', 'Independent post-crash pin observation failed')
++        # Verify both sets of bytes before retaining just their bound metadata.
++        self._verify_snapshot(result['current_snapshot'])
++        self._verify_snapshot(result['old_pinned_snapshot'])
++        if result['old_pinned_snapshot']['version'] != self.initial_version:
++            raise EvalError('E_WORKSPACE_IDENTITY', 'Old pinned version changed')
++        event.update(api=result['api'], ok=True, publication=result['publication'],
++                     current_snapshot=_metadata(result['current_snapshot']),
++                     old_pinned_snapshot=_metadata(result['old_pinned_snapshot']))
++        return result
++
++    def evidence(self):
++        result = super().evidence()
++        result['qualification_crash'] = {'checkpoint': self.checkpoint,
++                                        'attempted': self.fault_attempted, 'observed': self.fault_observed}
++        # The ordinary committed flag means an acknowledged successful commit.
++        # Post-publication death has no such acknowledgement; CURRENT/recovery
++        # are separate evidence and never retroactively fabricate that reply.
++        result['commit_acknowledgement_scope'] = 'normal_success_response_only'
++        if self.fault_observed:
++            result['not_claimed'].remove('crash_injection_during_task_runs')
++            result['capability_scope'].append('trusted_task_checkpoint_process_death')
++        return result
++
++
++def _reference_edits(session, task, timeout):
++    indexed = session.execute('query_nodes', {}, timeout)
++    reference = trusted_reference(task, 'hepta')
++    edits = []
++    for path in session.request['editable']:
++        old = [n for n in indexed['nodes'][path] if n['kind'] == 'declaration']
++        new = [n for n in nodes('hepta', reference[path], path) if n['kind'] == 'declaration']
++        if len(old) != len(new):
++            raise ValueError('E_CRASH_FIXTURE: frozen declarations differ')
++        edits.extend({'op': 'replace_declaration', 'target': path, 'node': a['id'], 'replacement': b['text']}
++                     for a, b in zip(old, new))
++    return edits
++
++
++def _qualify_case(task, checkpoint, compiler, *, rustc=None, fixture=False):
++    """fixture=True exists only for native unit tests, not the public command."""
++    started, session = time.monotonic(), None
++    deadline = started + CASE_WALL_SECONDS
++    request = task_request(task, 'hepta')
++    run = {'schema': 'hepta.crossfile_workspace_crash_case.v1', 'task_id': task,
++           'checkpoint': checkpoint, 'arm': 'hepta_protocol', 'language': 'hepta',
++           'run_kind': 'offline_native_crash_unit_test' if fixture else 'trusted_namespace_workspace_crash_fixture',
++           'fixture_mode': fixture,
++           'isolation': 'trusted_fixture_process_separation_only' if fixture else 'allowlisted_namespace_capsules',
++           'taskset_sha256': request['taskset_sha256'], 'task_sha256': request['task_sha256'],
++           'base_sha256': request['base_sha256'], 'compiler': compiler,
++           'wall_budget_seconds': CASE_WALL_SECONDS, 'score': None,
++           'actual_ai_model_runs': 0, 'provider_tokens': 0, 'provider_receipts': [],
++           'ai_comparison_eligible': False, 'human_seconds': None, 'monetary_cost_usd': None,
++           'claims': {'workspace_crash_recovery_exercised': False, 'no_torn_snapshot_observed': False,
++                      'measured_ai_productivity': False, 'hepta_advantage_established': False,
++                      'power_failure_durability_proved': False}}
++
++    def remaining():
++        return ProductionWorkspaceSession._remaining(deadline)
++
++    try:
++        session = _CrashQualificationSession(request, checkpoint, rustc=rustc, fixture=fixture, timeout=remaining())
++        initial = copy.deepcopy(session.pinned_metadata)
++        run['initial_snapshot'] = initial
++        edits = _reference_edits(session, task, remaining())
++        try:
++            session.execute('replace_nodes', {'expected_version': session.version, 'edits': edits}, remaining())
++        except EvalError as exc:
++            if exc.code != 'E_WORKSPACE_INJECTED_CRASH':
++                raise
++            run['injected_failure'] = {'code': exc.code, 'publication_state': session.publication_state}
++        else:
++            raise ValueError('E_WORKSPACE_CRASH_NOT_OBSERVED: transaction returned instead of dying')
++        if not session.fault_observed or not session.prepared_result:
++            raise ValueError('E_WORKSPACE_CRASH_NOT_OBSERVED: missing checkpoint or checked preparation')
++        prepared = session.prepared_result
++        prepared_version = prepared['after']
++        if prepared_version == session.initial_version:
++            raise ValueError('E_CRASH_FIXTURE: task must change the initial version')
++        run['prepared_snapshot'] = _metadata(prepared['snapshot'])
++        observed = session.observe(remaining(), 'after_crash')
++        expected_version = session.initial_version if checkpoint == 'prepared' else prepared_version
++        if observed['current_snapshot']['version'] != expected_version:
++            raise ValueError('E_CRASH_PUBLICATION: CURRENT disagrees with the actual checkpoint')
++        if observed['old_pinned_snapshot'] != {**initial, 'files': request['files']}:
++            raise ValueError('E_CRASH_OLD_PIN: original source bytes or metadata changed')
++        expected_recovery = 'aborted' if checkpoint == 'prepared' else 'committed'
++        for _ in range(2):
++            result = session._recover(remaining(), expected_version)
++            if result['recovery'] != expected_recovery:
++                raise ValueError('E_CRASH_RECOVERY: recovery is incorrect or not idempotent')
++        # Replay exactly the same request, including the original expected head
++        # and interface. Only pre-publication death permits this retry to commit.
++        retry = session._rpc('commit', remaining(), patch=session.fault_patch)
++        run['retry'] = {key: retry[key] for key in ('ok', 'applied', 'status', 'before', 'after', 'diagnostics') if key in retry}
++        if checkpoint == 'prepared':
++            if retry.get('ok') is not True or retry.get('applied') is not True or retry.get('after') != prepared_version:
++                raise ValueError('E_CRASH_RETRY: exact pre-publication request did not commit')
++            session._accept(retry['current_snapshot'], prepared_version)
++            session.prepared_version = session.committed_version = prepared_version
++            session.committed = True
++        else:
++            if (retry.get('ok') is not False or retry.get('applied') is not False
++                    or [d.get('code') for d in retry.get('diagnostics', [])] != ['E_STALE_PROJECT']):
++                raise ValueError('E_CRASH_RETRY: published request must reject its stale original precondition')
++            session._accept(retry['current_snapshot'], prepared_version)
++        final_recovery = session._recover(remaining(), prepared_version)
++        if final_recovery['recovery'] != 'committed':
++            raise ValueError('E_CRASH_RECOVERY: final committed journal missing')
++        resolved = session.observe(remaining(), 'after_resolution')
++        if resolved['old_pinned_snapshot'] != {**initial, 'files': request['files']}:
++            raise ValueError('E_CRASH_OLD_PIN: final historical snapshot changed')
++        files = session.finalize(remaining())
++        if snapshot_id(files) != prepared['snapshot']['source_sha256']:
++            raise ValueError('E_CRASH_IDENTITY: final source differs from checked preparation')
++        run.update(submitted_sha256=snapshot_id(files), submitted_version=session.version,
++                   session=session.evidence(), final_pin_before_score=True)
++        # All workspace children are dead and their store is closed before
++        # private native cases are materialized in a different capsule.
++        session.close()
++        run['score'] = score_candidate(request, files, rustc=rustc, fixture=fixture, timeout=remaining())
++        remaining()
++        run['status'] = 'qualified' if run['score']['ok'] else 'native_failed'
++        if run['score']['ok']:
++            run['claims'].update(workspace_crash_recovery_exercised=True, no_torn_snapshot_observed=True)
++    except (EvalError, OSError, ValueError, KeyError, TypeError) as exc:
++        run.update(status='failed', error={'code': getattr(exc, 'code', 'E_CRASH_QUALIFICATION'), 'message': str(exc)})
++    finally:
++        if session:
++            run['session'] = session.evidence()
++            session.close()
++        run['wall_seconds'] = round(time.monotonic() - started, 6)
++    return seal_record(run)
++
++
++def qualify_workspace_crashes(rustc=None, *, execution_context='unspecified_operator_environment'):
++    from .workspace_crash_evidence import adversarial_controls, validate_crash_matrix
++
++    sandbox = probe_sandbox()
++    report = {'schema': 'hepta.crossfile_workspace_crash_qualification.v1',
++              'created_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
++              'run_kind': 'trusted_namespace_workspace_crash_qualification',
++              'taskset_sha256': verify_manifest()['taskset_sha256'], 'evaluator_sha256': evaluator_hash(),
++              'compiler': compiler_identity(rustc), 'environment': sandbox,
++              'operator_execution_context': execution_context,
++              'execution_context_verification': 'operator_annotation_not_automatic_host_attestation',
++              'qualification_worker_sha256': digest((ROOT / '_workspace_crash_frontend.py').read_bytes()),
++              'isolation': 'allowlisted_namespace_capsules', 'fixture_mode': False,
++              'actual_ai_model_runs': 0, 'provider_tokens': 0, 'provider_receipts': [],
++              'ai_comparison_eligible': False, 'human_seconds': None, 'monetary_cost_usd': None,
++              'planned_cases': [{'task_id': task, 'checkpoint': point} for task in TASK_IDS for point in CHECKPOINTS],
++              'case_wall_budget_seconds': CASE_WALL_SECONDS, 'qualified_crash_cases': 0,
++              'hidden_native_cases_passed': 0, 'runs': [], 'adversarial_controls': [],
++              'claims': {'all_task_checkpoint_crashes_exercised': False,
++                         'strict_hidden_test_namespace_isolation_exercised': False,
++                         'measured_ai_productivity': False, 'hepta_advantage_established': False,
++                         'power_failure_durability_proved': False},
++              'scope': 'same_host_process_death_at_two_existing_fsync_checkpoints_not_power_loss_or_arbitrary_instruction_kill'}
++    if not sandbox['available']:
++        return seal_record({**report, 'status': 'environment_blocked', 'error': {
++            'code': 'E_SANDBOX_UNAVAILABLE', 'message': sandbox['reason']}})
++    for case in report['planned_cases']:
++        report['runs'].append(_qualify_case(case['task_id'], case['checkpoint'], report['compiler'], rustc=rustc))
++    qualified = [r for r in report['runs'] if r['status'] == 'qualified']
++    report['qualified_crash_cases'] = len(qualified)
++    report['hidden_native_cases_passed'] = sum(r['score']['passed'] for r in qualified)
++    report['status'] = 'qualified_workspace_crash_fixtures_only' if len(qualified) == len(report['planned_cases']) else 'qualification_failed'
++    if report['status'] != 'qualification_failed':
++        report['claims'].update(all_task_checkpoint_crashes_exercised=True,
++                                strict_hidden_test_namespace_isolation_exercised=True)
++        try:
++            validate_crash_matrix(seal_record(report), require_controls=False)
++            report['adversarial_controls'] = adversarial_controls(seal_record(report))
++            validate_crash_matrix(seal_record(report))
++        except ValueError as exc:
++            report.update(status='qualification_failed', error={'code': 'E_CRASH_EVIDENCE', 'message': str(exc)})
++            report['claims'].update(all_task_checkpoint_crashes_exercised=False,
++                                    strict_hidden_test_namespace_isolation_exercised=False)
++    return seal_record(report)
+diff --git a/experiments/crossfile_eval/workspace_session.py b/experiments/crossfile_eval/workspace_session.py
+index a5e7601..bbe390d 100644
+--- a/experiments/crossfile_eval/workspace_session.py
++++ b/experiments/crossfile_eval/workspace_session.py
+@@ -201,7 +201,10 @@ class ProductionWorkspaceSession(FileStudySession):
+         started = time.monotonic()
+         checked = check_candidate(self.request, candidate, rustc=self.rustc, fixture=self.fixture,
+                                   timeout=self._remaining(deadline))
+-        self.validation_seconds += time.monotonic() - started
++        checked_seconds = time.monotonic() - started
++        self.validation_seconds += checked_seconds
++        self.events.append({'operation': 'task_native_check', 'namespace_required': not self.fixture,
++                            'elapsed_seconds': round(checked_seconds, 6), 'result': checked})
+         if not checked['ok']:
+             return {'ok': False, 'applied': False, 'version': before, 'validation': checked,
+                     'prepared_workspace_version': prepared_version,
+diff --git a/hepta/cpp_contracts.py b/hepta/cpp_contracts.py
+index b09cfd3..6024005 100644
+--- a/hepta/cpp_contracts.py
++++ b/hepta/cpp_contracts.py
+@@ -19,6 +19,7 @@ from .c_migrate import MigrationRejected, _IDENT
+ 
+ 
+ SCHEMA = "hepta.cpp-contract.v1"
++SCHEMA_V2 = "hepta.cpp-contract.v2"
+ _QUALIFIED = re.compile(r"[A-Za-z_][A-Za-z_0-9]*(?:::[A-Za-z_][A-Za-z_0-9]*)*\Z")
+ _SCALARS = {
+     "i8": ("std::int8_t", "int8_t"), "u8": ("std::uint8_t", "uint8_t"),
+@@ -64,7 +65,7 @@ def _array(value: object, context: str, maximum: int = 32) -> list:
+ 
+ def _validate(contract: object) -> dict:
+     c = _fields(contract, {"schema", "module", "pod_types", "functions", "handles"}, "contract")
+-    if c["schema"] != SCHEMA:
++    if c["schema"] not in {SCHEMA, SCHEMA_V2}:
+         _reject("Unsupported C++ contract schema")
+     _name(c["module"], "module name")
+     pods = {}
+@@ -89,6 +90,26 @@ def _validate(contract: object) -> dict:
+     types = set(_SCALARS) | set(pods)
+     symbols = set()
+ 
++    def parameters_(params: object, *, constructor: bool = False) -> None:
++        used = set()
++        # Constructor wrappers introduce these locals in the invocation scope.
++        # V1 callable parameter acceptance is unchanged.
++        reserved = {"out", "handle"} | ({"entry", "registry", "lock"} if constructor else set())
++        for p in _array(params, "parameters", 16):
++            if not isinstance(p, dict):
++                _reject("Each parameter must be an object")
++            mode = _choice(p.get("mode"), {"value", "const_ref", "borrow_const", "borrow_mut"}, "parameter mode")
++            reference = mode.startswith("borrow_") or mode == "const_ref"
++            _fields(p, {"name", "type", "mode"} | ({"retention"} if reference else set()), "parameter")
++            _name(p["name"], "parameter name")
++            _choice(p["type"], set(_SCALARS) if mode.startswith("borrow_") else types, "parameter type")
++            if reference and p["retention"] != "call_only":
++                _reject("Borrowed storage may not be retained; this remains a foreign obligation")
++            generated = {p["name"], p["name"] + "_len"} if mode.startswith("borrow_") else {p["name"]}
++            if generated & (used | reserved):
++                _reject("Duplicate, generated or reserved parameter name")
++            used |= generated
++
+     def callable_(fn: dict, *, method: bool = False) -> None:
+         expected = {"name", "params", "returns", "exception"}
+         expected |= {"cpp_method", "const", "return_mode"} if method else {
+@@ -111,21 +132,7 @@ def _validate(contract: object) -> dict:
+             _choice(fn["threading"], {"any_thread", "caller_synchronized"}, "threading")
+             _choice(fn["reentrancy"], {"allowed", "caller_prevents"}, "reentrancy")
+             _choice(fn["allocation"], {"none_declared", "cpp_internal"}, "allocation")
+-        used = set()
+-        for p in _array(fn["params"], "parameters", 16):
+-            if not isinstance(p, dict):
+-                _reject("Each parameter must be an object")
+-            mode = _choice(p.get("mode"), {"value", "const_ref", "borrow_const", "borrow_mut"}, "parameter mode")
+-            reference = mode.startswith("borrow_") or mode == "const_ref"
+-            _fields(p, {"name", "type", "mode"} | ({"retention"} if reference else set()), "parameter")
+-            _name(p["name"], "parameter name")
+-            _choice(p["type"], set(_SCALARS) if mode.startswith("borrow_") else types, "parameter type")
+-            if reference and p["retention"] != "call_only":
+-                _reject("Borrowed storage may not be retained; this remains a foreign obligation")
+-            generated = {p["name"], p["name"] + "_len"} if mode.startswith("borrow_") else {p["name"]}
+-            if generated & (used | {"out", "handle"}):
+-                _reject("Duplicate, generated or reserved parameter name")
+-            used |= generated
++        parameters_(fn["params"])
+ 
+     for f in _array(c["functions"], "functions"):
+         callable_(f)
+@@ -134,7 +141,7 @@ def _validate(contract: object) -> dict:
+         symbols.add(f["name"])
+     for h in _array(c["handles"], "handles", 8):
+         _fields(h, {"name", "cpp_type", "template_args", "threading", "reentrancy",
+-                    "allocator", "destruction", "methods"}, "handle")
++                    "allocator", "destruction", "methods"} | ({"constructors"} if c["schema"] == SCHEMA_V2 else set()), "handle")
+         _name(h["name"], "handle name")
+         _name(h["cpp_type"], "C++ handle type", qualified=True)
+         for t in _array(h["template_args"], "template arguments", 4):
+@@ -146,10 +153,24 @@ def _validate(contract: object) -> dict:
+         methods = _array(h["methods"], "methods")
+         if not methods:
+             _reject("A handle needs at least one method")
+-        names = {"new", "destroy"}
++        names = {"destroy"}
++        if c["schema"] == SCHEMA_V2:
++            constructors = _array(h["constructors"], "constructors", 8)
++            if not constructors:
++                _reject("A v2 handle needs at least one explicit constructor contract")
++            for constructor in constructors:
++                _fields(constructor, {"name", "params", "exception"}, "constructor")
++                _name(constructor["name"], "constructor export name")
++                _choice(constructor["exception"], {"noexcept", "catch_status"}, "constructor exception policy")
++                parameters_(constructor["params"], constructor=True)
++                if constructor["name"] in names:
++                    _reject("Duplicate or reserved constructor export name")
++                names.add(constructor["name"])
++        else:
++            names.add("new")
+         for m in methods:
+             callable_(m, method=True)
+-            if m["name"] in names:
++            if m["name"] in names or m["name"] == "new":
+                 _reject("Duplicate or reserved handle method name")
+             names.add(m["name"])
+         exported = {h["name"] + "_" + n for n in names}
+@@ -190,6 +211,7 @@ class _Generator:
+         self.hp = ["module " + contract["module"] + ";",
+                    "// All foreign calls remain explicitly unsafe; no C++ safety proof is claimed."]
+         self.costs = []
++        self.constructor_checks = []
+ 
+     def cpp_type(self, typ: str, *, abi: bool = False) -> str:
+         return _cpp_type(typ, self.pods, abi=abi, prefix=self.prefix)
+@@ -332,21 +354,50 @@ class _Generator:
+             name, obj = self.prefix + h["name"], _concrete(h["cpp_type"], h["template_args"])
+             entry, registry, get = name + "_entry", name + "_registry", name + "_registry_get"
+             self.cpp += ["namespace {", f"using {name}_object = {obj};",
+-                         f"static_assert(std::is_default_constructible_v<{obj}> && std::is_nothrow_destructible_v<{obj}>);",
++                         f"static_assert(std::is_nothrow_destructible_v<{obj}>);",
+                          f"struct {entry} {{ std::recursive_mutex mutex; std::shared_ptr<{obj}> object; std::shared_ptr<const std::uint8_t> creator; unsigned active = 0; }};",
+                          f"struct {registry} {{ std::mutex mutex; std::unordered_map<std::uint64_t, std::shared_ptr<{entry}>> objects; }};",
+                          "// Process-lifetime registry avoids destroying abandoned affine objects on an arbitrary shutdown thread.",
+                          f"{registry}& {get}() {{ static auto* r = new {registry}; return *r; }}",
+                          f"struct {name}_active {{ {entry}& e; explicit {name}_active({entry}& v): e(v) {{ ++e.active; }} ~{name}_active() {{ --e.active; }} }};", "}"]
+-            self.cpp += [self.declare(name + "_new", "i32", ["std::uint64_t* out"], ["uint64_t* out"], ["out: raw mut u64"], {"ffi", "unsafe", "write", "alloc", "block"}),
+-                         "    if (!out) return 1;", "    if (reinterpret_cast<std::uintptr_t>(out) % alignof(std::uint64_t)) return 8;",
+-                         "    try {", f"        auto entry = std::make_shared<{entry}>();",
+-                         f"        entry->object = std::make_shared<{obj}>();",
+-                         *([f"        entry->creator = {self.prefix}thread_token();"] if h["threading"] == "creator_thread" else []),
+-                         f"        auto handle = {self.prefix}allocate_handle();", "        if (!handle) return 4;",
+-                         f"        auto& registry = {get}();", "        std::lock_guard<std::mutex> lock(registry.mutex);",
+-                         "        if (!registry.objects.emplace(handle, entry).second) return 4;",
+-                         "        *out = handle;", "        return 0;", "    } catch (...) { return 3; }", "}"]
++            constructors = h.get("constructors", [{"name": "new", "params": [], "exception": "catch_status"}])
++            for constructor in constructors:
++                symbol = name + "_" + constructor["name"]
++                arguments = [self.cpp_arg_type(p) for p in constructor["params"]]
++                trait_types = ", ".join([obj, *arguments])
++                self.cpp += [f"static_assert(std::is_constructible_v<{trait_types}>);"]
++                if constructor["exception"] == "noexcept":
++                    self.cpp += [f"static_assert(std::is_nothrow_constructible_v<{trait_types}>);"]
++                # Constructor traits check a typed construction expression;
++                # C++ has no constructor address to compare as an exact ABI
++                # signature. make_shared forwards the same argument categories.
++                callable_constructor = {**constructor, "returns": "u64"}
++                params = self.parameters(callable_constructor, handle=False, checked=True)
++                self.cpp += [self.declare(symbol, "i32", *params, {"ffi", "unsafe", "write", "alloc", "block"})]
++                self.cpp += self.checks(callable_constructor)
++                self.cpp += ["    try {", f"        auto entry = std::make_shared<{entry}>();",
++                             f"        entry->object = std::make_shared<{obj}>({', '.join(self.cpp_arg(p) for p in constructor['params'])});",
++                             *([f"        entry->creator = {self.prefix}thread_token();"] if h["threading"] == "creator_thread" else []),
++                             f"        auto handle = {self.prefix}allocate_handle();", "        if (!handle) return 4;",
++                             f"        auto& registry = {get}();", "        std::lock_guard<std::mutex> lock(registry.mutex);",
++                             "        if (!registry.objects.emplace(handle, entry).second) return 4;",
++                             "        *out = handle;", "        return 0;", "    } catch (...) { return 3; }", "}"]
++                verification = {"symbol": symbol, "cpp_type": obj, "argument_types": arguments,
++                                "declared_exception": constructor["exception"],
++                                "construction_check": "native_constructibility_with_declared_argument_categories",
++                                "exact_constructor_parameter_signature_proved": False,
++                                "nothrow_object_construction_checked": constructor["exception"] == "noexcept",
++                                "wrapper_allocation_exception_boundary": "catch_status",
++                                "borrow_retention_proved": False}
++                self.constructor_checks.append(verification)
++                self.costs.append({"symbol": symbol, "route": "handle_create",
++                                   "allocation": "entry_and_object_shared_owners_plus_registry_node_and_possible_bucket_growth",
++                                   "foreign_constructor_allocations": "unverified", "registry_lifetime": "process",
++                                   "constructor_exception": constructor["exception"], "exception_boundary": "catch_status",
++                                   "wrapper_input_buffer_copy_bytes": 0,
++                                   "foreign_input_copy": "constructor_dependent_unverified",
++                                   "borrow_retention_proved": False,
++                                   "output_write": "only_after_successful_registry_insertion"})
+             # Obtain and release the registry mutex before taking the per-object
+             # mutex. No generated path holds the registry while running C++ code.
+             lookup = [f"        auto& registry = {get}();", f"        std::shared_ptr<{entry}> entry;", "        {",
+@@ -394,11 +445,8 @@ class _Generator:
+                                    "wrapper_shared_owner_copies": 2, "input_buffer_copy_bytes": 0,
+                                    "foreign_allocation": "method_dependent_unverified",
+                                    "exception_boundary": "catch_status", "threading": h["threading"], "reentrancy": h["reentrancy"]})
+-            self.costs += [{"symbol": name + "_new", "route": "handle_create",
+-                            "allocation": "entry_and_object_shared_owners_plus_registry_node_and_possible_bucket_growth",
+-                            "foreign_constructor_allocations": "unverified", "registry_lifetime": "process"},
+-                           {"symbol": name + "_destroy", "route": "handle_destroy", "destruction": h["destruction"],
+-                            "deallocation": "same_C++_shared_owner_module", "abandoned_handles": "not_automatically_reclaimed"}]
++            self.costs.append({"symbol": name + "_destroy", "route": "handle_destroy", "destruction": h["destruction"],
++                               "deallocation": "same_C++_shared_owner_module", "abandoned_handles": "not_automatically_reclaimed"})
+ 
+     def render(self) -> tuple[str, str, str]:
+         self.pods_()
+@@ -438,6 +486,7 @@ def bridge_cpp_contracts(header: str | Path, contract: dict | str | Path,
+             _reject("Need an existing header and a new, nonsymlink output directory", "E_CPP_PATH")
+         raw_contract = contract if isinstance(contract, dict) else json.loads(Path(contract).read_text(encoding="utf-8"))
+         c = _validate(raw_contract)
++        report["contract_schema"] = c["schema"]
+         header_bytes = src.read_bytes()
+         if len(header_bytes) > 256_000:
+             _reject("Header exceeds 256 KB", "E_CPP_SIZE")
+@@ -478,7 +527,8 @@ def bridge_cpp_contracts(header: str | Path, contract: dict | str | Path,
+                            "compiler_user_header_dependencies": depfile,
+                            "transitive_dependency_lock": "not_established_rebuild_from_current_headers_required",
+                            "hepta_validation": checked.report, "status_codes": STATUS,
+-                           "cost_accounting": generator.costs, "abi": "selected_C++_compiler_host_C_ABI",
++                           "cost_accounting": generator.costs, "constructor_checks": generator.constructor_checks,
++                           "abi": "selected_C++_compiler_host_C_ABI",
+                            "assumptions": ["Foreign code respects declared effects, reentrancy and synchronization requirements.",
+                                            "Borrowed pointers name live initialized aligned allocations of the stated extent with valid aliasing.",
+                                            "Foreign code does not retain call_only pointers, spans or const references, or create data races through aliases.",
+diff --git a/tests/test_cpp_constructors.py b/tests/test_cpp_constructors.py
+new file mode 100644
+index 0000000..a8656c9
+--- /dev/null
++++ b/tests/test_cpp_constructors.py
+@@ -0,0 +1,180 @@
++"""Typed constructor compatibility, real library use, and foreign boundaries."""
++from __future__ import annotations
++
++import copy
++import json
++import os
++from pathlib import Path
++import shutil
++import subprocess
++import tempfile
++import unittest
++
++from hepta.cpp_contracts import bridge_cpp_contracts
++from tools.validate_cpp import EXAMPLE as V1_EXAMPLE
++from tools.validate_cpp_constructors import EXAMPLE, NEGATIVE_CONTROLS, _negative_controls, qualify_cpp_constructors
++
++NATIVE = shutil.which('g++') and shutil.which(os.environ.get('RUSTC', 'rustc'))
++
++
++def parameter(name, typ, mode='value'):
++    value = {'name': name, 'type': typ, 'mode': mode}
++    if mode != 'value': value['retention'] = 'call_only'
++    return value
++
++
++def probe_contract(typ, params, *, exception='catch_status', returns='u64'):
++    return {'schema': 'hepta.cpp-contract.v2', 'module': 'probe', 'pod_types': [], 'functions': [],
++            'handles': [{'name': 'Object', 'cpp_type': 'probe::' + typ, 'template_args': [],
++                         'threading': 'serialized', 'reentrancy': 'reject', 'allocator': 'cpp_shared_owner',
++                         'destruction': 'nothrow_defer_inflight',
++                         'constructors': [{'name': 'new', 'params': params, 'exception': exception}],
++                         'methods': [{'name': 'value', 'cpp_method': 'value', 'const': True, 'params': [],
++                                      'returns': returns, 'return_mode': 'value', 'exception': 'noexcept'}]}]}
++
++
++@unittest.skipUnless(NATIVE, 'C++ constructor tests require g++ and pinned rustc; Boost headers are a required dependency')
++class CppConstructorTests(unittest.TestCase):
++    def setUp(self):
++        self.temp = tempfile.TemporaryDirectory(prefix='hepta-constructor-test-')
++        self.addCleanup(self.temp.cleanup)
++        self.root = Path(self.temp.name)
++
++    def probe(self, header, contract, main=None, name='generated'):
++        source = self.root / (name + '.hpp')
++        source.write_text('#pragma once\n#include <cstdint>\n#include <span>\n#include <stdexcept>\n' + header)
++        destination = self.root / name
++        report = bridge_cpp_contracts(source, contract, destination, cxx='g++')
++        if main is not None:
++            self.assertTrue(report['ok'], report)
++            caller = self.root / (name + '.cpp')
++            caller.write_text('#include "bridge.h"\n#include <cstdlib>\n' + main)
++            exe = self.root / (name + '-native')
++            built = subprocess.run(['g++', '-std=c++20', '-O2', '-pthread', '-Werror', '-I' + str(destination),
++                                    str(destination / 'bridge.cpp'), str(caller), '-o', str(exe)],
++                                   capture_output=True, text=True, timeout=90)
++            self.assertEqual(built.returncode, 0, built.stderr)
++            ran = subprocess.run([str(exe)], capture_output=True, text=True, timeout=15)
++            self.assertEqual(ran.returncode, 0, ran.stdout + ran.stderr)
++        return report
++
++    def test_real_nondefault_boost_and_vector_constructor_roundtrips_and_allocation_refusal(self):
++        report = qualify_cpp_constructors(self.root, benchmark=False, negative_controls=False)
++        self.assertTrue(report['ok'], report)
++        self.assertTrue(report['native_link_qualified'])
++        execution = report['execution']
++        self.assertTrue(execution['boost_nondefault_constructible'])
++        self.assertEqual(execution['boost_success_cases'], 5)
++        self.assertEqual(execution['boost_domain_failure_cases'], 3)
++        self.assertEqual(execution['vector_constructor_cases'], 8)
++        self.assertGreaterEqual(execution['allocation_failure_sites'], 4)
++        self.assertEqual(execution['allocation_recovery_calls'], execution['allocation_failure_sites'])
++        self.assertEqual(execution['warm_registry_live_allocation_delta'], 0)
++        self.assertEqual(execution['live_fixture_objects'], 0)
++        self.assertTrue(execution['span_copy_observed'])
++        self.assertTrue(execution['output_preserved_on_failure'])
++        self.assertTrue(report['headers']['unchanged'])
++        self.assertTrue(any(name.endswith('/boost/math/distributions/students_t.hpp') for name in report['headers']['before']))
++        self.assertFalse(report['exact_constructor_parameter_signature_proved'])
++        self.assertFalse(report['borrow_retention_proved'])
++
++    def test_v1_keeps_implicit_default_constructor_and_original_c_abi(self):
++        report = bridge_cpp_contracts(V1_EXAMPLE / 'foreign.hpp', V1_EXAMPLE / 'contract.json', self.root / 'v1', cxx='g++')
++        self.assertTrue(report['ok'], report)
++        self.assertEqual(report['contract_schema'], 'hepta.cpp-contract.v1')
++        header = (self.root / 'v1/bridge.h').read_text()
++        self.assertIn('hepta_cpp_stdlib_IntVector_new(uint64_t* out)', header)
++        self.assertEqual(report['constructor_checks'][0]['argument_types'], [])
++        v1 = json.loads((V1_EXAMPLE / 'contract.json').read_text())
++        v1['handles'][0]['constructors'] = [{'name': 'new', 'params': [], 'exception': 'catch_status'}]
++        rejected = bridge_cpp_contracts(V1_EXAMPLE / 'foreign.hpp', v1, self.root / 'v1-unknown', cxx='g++')
++        self.assertFalse(rejected['ok'])
++        self.assertEqual(rejected['diagnostics'][0]['code'], 'E_CPP_CONTRACT')
++
++    def test_schema_and_native_constructor_negative_controls_do_not_publish(self):
++        controls = _negative_controls(self.root, 'g++', os.environ.get('RUSTC'))
++        self.assertEqual([r['id'] for r in controls], list(NEGATIVE_CONTROLS))
++        self.assertTrue(all(r['rejected'] for r in controls), controls)
++        self.assertTrue(all(not r['output_directory_created'] for r in controls))
++
++    def test_constructor_categories_match_make_shared_forwarding(self):
++        header = '''namespace probe { struct Category {
++            Category()=delete;
++            explicit Category(std::uint64_t&& input) noexcept : stored(input+1) {}
++            Category(const std::uint64_t&)=delete;
++            std::uint64_t value()const noexcept{return stored;}
++            std::uint64_t stored;
++        }; }'''
++        contract = probe_contract('Category', [parameter('input', 'u64')], exception='noexcept')
++        report = self.probe(header, contract, '''int main(){
++            uint64_t h=0,out=0;
++            if(hepta_cpp_probe_Object_new(7,&h)||hepta_cpp_probe_Object_value(h,&out)||out!=8)return 1;
++            return hepta_cpp_probe_Object_destroy(h);
++        }''')
++        self.assertTrue(report['constructor_checks'][0]['nothrow_object_construction_checked'])
++        changed = copy.deepcopy(contract)
++        changed['handles'][0]['constructors'][0]['params'] = [parameter('input', 'u64', 'const_ref')]
++        rejected = self.probe(header, changed, name='const-ref')
++        self.assertFalse(rejected['ok'])
++        self.assertEqual(rejected['diagnostics'][0]['code'], 'E_CPP_NATIVE')
++
++    def test_implicit_conversion_is_not_mislabeled_exact_constructor_signature(self):
++        report = self.probe('''namespace probe { struct Converting {
++            Converting()=delete; explicit Converting(double input) noexcept:stored(input){}
++            std::uint64_t value()const noexcept{return static_cast<std::uint64_t>(stored);}
++            double stored;
++        }; }''', probe_contract('Converting', [parameter('input', 'u64')], exception='noexcept'), '''int main(){
++            uint64_t h=0,out=0;
++            if(hepta_cpp_probe_Object_new(42,&h)||hepta_cpp_probe_Object_value(h,&out)||out!=42)return 1;
++            return hepta_cpp_probe_Object_destroy(h);
++        }''')
++        self.assertFalse(report['constructor_checks'][0]['exact_constructor_parameter_signature_proved'])
++        self.assertEqual(report['constructor_checks'][0]['construction_check'], 'native_constructibility_with_declared_argument_categories')
++
++    def test_private_constructor_and_ambiguous_overloads_are_native_rejections(self):
++        fixtures = {
++            'Private': 'class Private { Private(std::uint64_t){} public: std::uint64_t value()const noexcept{return 1;} };',
++            'Ambiguous': 'struct Ambiguous { Ambiguous(double){} Ambiguous(float){} std::uint64_t value()const noexcept{return 1;} };',
++        }
++        for typ, source in fixtures.items():
++            with self.subTest(typ=typ):
++                report = self.probe('namespace probe {' + source + '}', probe_contract(typ, [parameter('input', 'u64')]), name=typ)
++                self.assertFalse(report['ok'])
++                self.assertEqual(report['diagnostics'][0]['code'], 'E_CPP_NATIVE')
++                self.assertFalse((self.root / typ).exists())
++
++    def test_external_retention_obligation_cannot_be_proved_by_json_contract(self):
++        # The deliberately bad foreign constructor retains a span despite the
++        # descriptor. The backing array stays live: observe retention without
++        # invoking undefined behavior or claiming that the wrapper detected it.
++        report = self.probe('''namespace probe { struct Retained {
++            explicit Retained(std::span<const std::int64_t> values):stored(values){}
++            std::int64_t value()const noexcept{return stored.empty()?0:stored[0];}
++            std::span<const std::int64_t> stored;
++        }; }''', probe_contract('Retained', [parameter('values', 'i64', 'borrow_const')], returns='i64'), '''int main(){
++            int64_t values[1]={7},out=0;uint64_t h=0;
++            if(hepta_cpp_probe_Object_new(values,1,&h))return 1;
++            values[0]=91;
++            if(hepta_cpp_probe_Object_value(h,&out)||out!=91)return 2;
++            return hepta_cpp_probe_Object_destroy(h);
++        }''')
++        self.assertFalse(report['borrow_retention_proved'])
++        self.assertFalse(report['constructor_checks'][0]['borrow_retention_proved'])
++        self.assertTrue(any('call_only' in assumption for assumption in report['assumptions']))
++
++    def test_constructor_exception_preserves_handle_but_does_not_roll_back_borrowed_writes(self):
++        self.probe('''namespace probe { struct Mutating {
++            explicit Mutating(std::span<std::int64_t> values) {
++                if(!values.empty())values[0]=91;
++                throw std::runtime_error("constructor failure after write");
++            }
++            std::uint64_t value()const noexcept{return 1;}
++        }; }''', probe_contract('Mutating', [parameter('values', 'i64', 'borrow_mut')]), '''int main(){
++            int64_t values[1]={7};uint64_t h=888;
++            auto status=hepta_cpp_probe_Object_new(values,1,&h);
++            return status==3&&h==888&&values[0]==91?0:1;
++        }''')
++
++
++if __name__ == '__main__':
++    unittest.main()
+diff --git a/tests/test_crossfile_workspace_crashes.py b/tests/test_crossfile_workspace_crashes.py
+new file mode 100644
+index 0000000..44a8db4
+--- /dev/null
++++ b/tests/test_crossfile_workspace_crashes.py
+@@ -0,0 +1,163 @@
++"""Actual native checkpoint deaths plus semantic evidence mutation controls.
++
++These unit tests explicitly use fixture process separation. Only the separate
++qualification command can claim strict namespace execution, and it has no
++fixture-mode option and no fallback when namespaces are unavailable.
++"""
++from __future__ import annotations
++
++import copy
++import json
++import os
++import unittest
++from unittest.mock import patch
++
++from hepta.backend import find_rustc
++from experiments.agent_eval.harness import EvalError
++from experiments.crossfile_eval.records import seal_record
++from experiments.crossfile_eval.scoring import compiler_identity
++from experiments.crossfile_eval.tasks import canonical, digest, task_request
++from experiments.crossfile_eval.workspace_session import ProductionWorkspaceSession
++from experiments.crossfile_eval.workspace_crash_qualification import (
++    _CrashQualificationSession, _qualify_case, _reference_edits, qualify_workspace_crashes,
++)
++from experiments.crossfile_eval.workspace_crash_evidence import validate_crash_case
++
++
++def native():
++    try:
++        return find_rustc(os.environ.get('RUSTC'))
++    except Exception as exc:
++        raise unittest.SkipTest('native compiler unavailable: ' + str(exc)) from exc
++
++
++class CrossfileCheckpointDeathTests(unittest.TestCase):
++    @classmethod
++    def setUpClass(cls):
++        cls.rustc = native()
++        cls.compiler = compiler_identity(cls.rustc)
++        cls.cases = {point: _qualify_case('api_migration', point, cls.compiler, rustc=cls.rustc, fixture=True)
++                     for point in ('prepared', 'published')}
++        for point, record in cls.cases.items():
++            if record.get('status') != 'qualified':
++                raise AssertionError((point, record.get('error'), record.get('score')))
++
++    def test_prepublication_death_recovers_old_then_identical_request_commits(self):
++        run = self.cases['prepared']
++        self.assertTrue(validate_crash_case(run, require_namespace=False))
++        events = run['session']['events']
++        self.assertEqual(events[5]['process_returncode'], 71)
++        self.assertEqual(events[7]['recovery'], 'aborted')
++        self.assertEqual(events[8]['recovery'], 'aborted')
++        self.assertEqual(events[6]['current_snapshot'], run['initial_snapshot'])
++        self.assertEqual(events[5]['patch_sha256'], events[9]['patch_sha256'])
++        self.assertTrue(run['retry']['applied'])
++        self.assertEqual(run['score']['passed'], 75)
++
++    def test_postpublication_death_recovers_new_and_rejects_stale_retry(self):
++        run = self.cases['published']
++        self.assertTrue(validate_crash_case(run, require_namespace=False))
++        events = run['session']['events']
++        self.assertEqual(events[5]['process_returncode'], 71)
++        self.assertEqual(events[6]['current_snapshot'], run['prepared_snapshot'])
++        self.assertEqual(events[7]['recovery'], 'committed')
++        self.assertFalse(run['retry']['applied'])
++        self.assertEqual(run['retry']['diagnostics'][0]['code'], 'E_STALE_PROJECT')
++        self.assertFalse(run['session']['committed'])  # no successful reply was received
++        self.assertFalse(run['session']['production_workspace_v4_exercised'])
++        self.assertTrue(run['claims']['workspace_crash_recovery_exercised'])
++        self.assertEqual(events[11]['old_pinned_snapshot'], run['initial_snapshot'])
++
++    def test_process_separation_evidence_cannot_claim_strict_namespaces(self):
++        with self.assertRaisesRegex(ValueError, 'namespace'):
++            validate_crash_case(self.cases['prepared'])
++
++    def test_resealed_semantic_mutations_do_not_pass_as_completed_crashes(self):
++        mutations = {
++            'normal_exit': lambda r: r['session']['events'][5].update(process_returncode=0),
++            'timeout': lambda r: r['session']['events'][5].update(process_status='timeout'),
++            'fake_ack': lambda r: r['session']['events'][5].update(ok=True, applied=True),
++            'wrong_marker_point': lambda r: r['session']['events'][5]['crash_marker'].update(checkpoint='published'),
++            'no_independent_gate': lambda r: r['session']['events'].pop(4),
++            'wrong_gate_source': lambda r: r['session']['events'][4]['result'].update(source_sha256=r['base_sha256']),
++            'wrong_recovery': lambda r: r['session']['events'][7].update(recovery='committed'),
++            'lost_historical_pin': lambda r: r['session']['events'][11].update(old_pinned_snapshot=r['prepared_snapshot']),
++            'retry_rebased': lambda r: r['session']['events'][9]['patch_preconditions'].update(expected_version=r['submitted_version']),
++            'wrong_score_source': lambda r: r['score'].update(source_sha256=r['base_sha256']),
++            'fewer_cases': lambda r: r['score'].update(passed=74, total=74),
++            'fake_model': lambda r: r.update(actual_ai_model_runs=1),
++            'deadline_laundered': lambda r: r.update(wall_seconds=0),
++            'native_failure_hidden': lambda r: r['score'].update(native_returncode=11),
++            'ambiguous_rollback': lambda r: r['injected_failure'].update(publication_state='rolled_back'),
++            'profile_changed': lambda r: r['session']['profile'].update(rustc_sha256='0' * 64),
++            'malformed_session': lambda r: r.update(session=None),
++        }
++        for name, mutate in mutations.items():
++            with self.subTest(name=name):
++                changed = copy.deepcopy(self.cases['prepared'])
++                mutate(changed)
++                if name == 'wrong_marker_point':
++                    event = changed['session']['events'][5]
++                    event['crash_marker_sha256'] = digest(canonical(event['crash_marker']))
++                with self.assertRaises(ValueError):
++                    validate_crash_case(seal_record(changed), require_namespace=False)
++
++    def test_deadline_exhaustion_is_retained_as_failed_not_a_qualified_case(self):
++        with patch('experiments.crossfile_eval.workspace_crash_qualification.CASE_WALL_SECONDS', 0.0):
++            result = _qualify_case('api_migration', 'prepared', self.compiler, rustc=self.rustc, fixture=True)
++        self.assertEqual(result['status'], 'failed')
++        self.assertEqual(result['error']['code'], 'E_WALL_BUDGET')
++        self.assertIsNone(result['score'])
++        self.assertFalse(result['claims']['workspace_crash_recovery_exercised'])
++
++    def test_unsupported_namespace_never_runs_fixture_fallback(self):
++        with patch('experiments.crossfile_eval.workspace_crash_qualification.probe_sandbox',
++                   return_value={'available': False, 'reason': 'unit-test unavailable host'}), \
++             patch('experiments.crossfile_eval.workspace_crash_qualification._qualify_case',
++                   side_effect=AssertionError('must not start a task without namespaces')):
++            result = qualify_workspace_crashes(self.rustc)
++        self.assertEqual(result['status'], 'environment_blocked')
++        self.assertEqual(len(result['planned_cases']), 10)
++        self.assertEqual(result['runs'], [])
++        self.assertEqual(result['actual_ai_model_runs'], 0)
++
++    def test_normal_provider_worker_has_no_fault_injection_capability(self):
++        session = ProductionWorkspaceSession(task_request('defect_repair', 'hepta'), rustc=self.rustc, fixture=True)
++        self.addCleanup(session.close)
++        self.assertFalse((session.directory / 'workspace_crash_frontend.py').exists())
++        indexed = session.execute('query_nodes', {}, 10)
++        edits = _reference_edits(session, 'defect_repair', 10)
++        for edit in edits:
++            node = next(n for n in indexed['nodes'][edit['target']] if n['id'] == edit['node'])
++            edit['op'] = 'replace_' + node['native_kind']
++        request = {'schema': 'hepta.patch.v4', 'expected_version': session.version,
++                   'expected_interface_sha256': session.interface_sha256, 'interface_policy': 'preserve', 'edits': edits}
++        # The normal wire helper ignores this unrecognized field. It cannot
++        # turn a JSON argument into the private Python checkpoint callback.
++        result = session._rpc('commit', 15, patch=request, qualification_checkpoint='published')
++        self.assertTrue(result['ok'], result)
++        self.assertTrue(result['applied'])
++        self.assertEqual(session.events[-1]['process_returncode'], 0)
++
++    def test_missing_crash_is_rejected_even_with_a_copied_good_marker(self):
++        request = {'schema': 'hepta.patch.v4', 'expected_version': '1' * 64,
++                   'expected_interface_sha256': '2' * 64, 'interface_policy': 'preserve', 'edits': []}
++        for status, code in (('exited', 0), ('timeout', 71), ('exited', -9)):
++            with self.subTest(status=status, code=code):
++                session = _CrashQualificationSession(task_request('defect_repair', 'hepta'), 'prepared',
++                                                     rustc=self.rustc, fixture=True)
++                self.addCleanup(session.close)
++                marker = copy.deepcopy(self.cases['prepared']['session']['events'][5]['crash_marker'])
++                marker['patch_sha256'] = digest(canonical(request))
++                with patch('experiments.crossfile_eval.workspace_crash_qualification.run_bounded', return_value={
++                        'status': status, 'returncode': code, 'stdout': json.dumps(marker), 'stderr': ''}):
++                    with self.assertRaises(EvalError) as caught:
++                        session._rpc('commit', 1, patch=request)
++                self.assertEqual(caught.exception.code, 'E_WORKSPACE_CRASH_NOT_OBSERVED')
++                self.assertFalse(session.fault_observed)
++                self.assertEqual(session.publication_state, 'unverified_after_commit')
++                session.close()
++
++
++if __name__ == '__main__':
++    unittest.main()
+diff --git a/tools/validate_cpp_constructors.py b/tools/validate_cpp_constructors.py
+new file mode 100644
+index 0000000..3a7e1d6
+--- /dev/null
++++ b/tools/validate_cpp_constructors.py
+@@ -0,0 +1,186 @@
++"""Qualify typed constructor bridges against installed Boost.Math and STL.
++
++The real libraries remain C++. Authored span/POD/noexcept probes are identified
++separately. Construction/destruction and steady-state methods have separate
++observed timing rows; there is no universal zero-overhead claim.
++"""
++from __future__ import annotations
++
++import argparse
++import copy
++from dataclasses import replace
++from datetime import datetime, timezone
++import hashlib
++import json
++from pathlib import Path
++import platform
++import shlex
++import shutil
++import statistics
++import subprocess
++import sys
++import tempfile
++
++ROOT = Path(__file__).resolve().parents[1]
++sys.path.insert(0, str(ROOT))
++
++from hepta.backend import compile_rust, emit_header
++from hepta.cpp_contracts import bridge_cpp_contracts
++from hepta.pipeline import analyze_project, compiler_hash
++from tools.validate_cpp import _digest, _run
++
++EXAMPLE = ROOT / 'examples/cpp/constructors'
++PAIRS = [('native_vector_create_destroy', 'handle_vector_create_destroy'),
++         ('native_student_create_destroy', 'handle_student_create_destroy'),
++         ('native_vector_size', 'handle_vector_size'),
++         ('native_student_degrees', 'handle_student_degrees')]
++NEGATIVE_CONTROLS = ('empty_constructors', 'retained_constructor_borrow', 'constructor_method_name_collision',
++                     'constructor_local_name_collision', 'missing_borrow_retention', 'false_constructor_noexcept',
++                     'nondefault_type_without_arguments', 'wrong_constructor_arity')
++
++
++def _dependencies(compiler):
++    output = _run([compiler, '-std=c++20', '-M', '-MT', 'hepta_headers', '-x', 'c++', str(EXAMPLE / 'foreign.hpp')]).stdout
++    body = output.replace('\\\n', ' ').split(':', 1)[1]
++    paths = sorted({str(Path(token).resolve()) for token in shlex.split(body)})
++    return {path: _digest(Path(path)) for path in paths}
++
++
++def _negative_controls(root, cxx, rustc):
++    original = json.loads((EXAMPLE / 'contract.json').read_text())
++    results = []
++    for name in NEGATIVE_CONTROLS:
++        contract = copy.deepcopy(original)
++        student, span = contract['handles'][1], contract['handles'][2]
++        if name == 'empty_constructors': student['constructors'] = []
++        elif name == 'retained_constructor_borrow': span['constructors'][0]['params'][1]['retention'] = 'object_lifetime'
++        elif name == 'constructor_method_name_collision': student['constructors'][0]['name'] = 'degrees'
++        elif name == 'constructor_local_name_collision': student['constructors'][0]['params'][0]['name'] = 'entry'
++        elif name == 'missing_borrow_retention': del span['constructors'][0]['params'][1]['retention']
++        elif name == 'false_constructor_noexcept': student['constructors'][0]['exception'] = 'noexcept'
++        elif name == 'nondefault_type_without_arguments': student['constructors'][0]['params'] = []
++        elif name == 'wrong_constructor_arity': student['constructors'][0]['params'].append({'name': 'extra', 'type': 'u64', 'mode': 'value'})
++        expected = 'E_CPP_NATIVE' if name in NEGATIVE_CONTROLS[-3:] else 'E_CPP_CONTRACT'
++        target = root / ('negative-' + name)
++        report = bridge_cpp_contracts(EXAMPLE / 'foreign.hpp', contract, target, cxx=cxx, rustc=rustc)
++        rejected = report.get('ok') is False and not target.exists() and [d.get('code') for d in report.get('diagnostics', [])] == [expected]
++        results.append({'id': name, 'rejected': rejected, 'expected_code': expected,
++                        'output_directory_created': target.exists(), 'diagnostics': report.get('diagnostics'),
++                        'contract_sha256': hashlib.sha256(json.dumps(contract, sort_keys=True).encode()).hexdigest()})
++    return results
++
++
++def qualify_cpp_constructors(directory, *, cxx='g++', rustc=None, benchmark=True, iterations=100000, negative_controls=True):
++    root = Path(directory)
++    root.mkdir(parents=True, exist_ok=True)
++    result = {'schema': 'hepta.cpp-constructor-qualification.v1', 'ok': False,
++              'generated_at_utc': datetime.now(timezone.utc).isoformat(), 'compiler_sha256': compiler_hash(),
++              'scope': 'installed_Boost_Math_Student_and_std_vector_with_separate_authored_constructor_probes',
++              'contract_version': 'hepta.cpp-contract.v2', 'foreign_cpp_library_rewritten': False,
++              'whole_library_memory_safety_proved': False, 'borrow_retention_proved': False,
++              'exact_constructor_parameter_signature_proved': False, 'universal_performance_advantage_proved': False,
++              'actual_ai_model_runs': 0, 'execution': None, 'native_link_qualified': False,
++              'negative_controls': [], 'performance': {'status': 'not_run'}}
++    compiler = shutil.which(cxx)
++    if not compiler:
++        raise ValueError('C++ compiler is unavailable')
++    before_inputs = {str(p.relative_to(ROOT)): _digest(p) for p in sorted(EXAMPLE.iterdir()) if p.is_file()}
++    before_headers = _dependencies(compiler)
++    generated = root / 'bridge'
++    bridge = bridge_cpp_contracts(EXAMPLE / 'foreign.hpp', EXAMPLE / 'contract.json', generated, cxx=cxx, rustc=rustc)
++    result['bridge_generation'] = bridge
++    if not bridge['ok']:
++        return result
++    shutil.copyfile(EXAMPLE / 'consumer.hepta', generated / 'consumer.hepta')
++    checked = analyze_project(generated / 'consumer.hepta', rustc=rustc, crate_type='staticlib')
++    result['hepta_consumer'] = checked.report
++    if not checked.report['ok']:
++        return result
++    exports = replace(checked.program, functions=[f for f in checked.program.functions if f.export_c])
++    (generated / 'hepta.h').write_text(emit_header(exports))
++    library = root / 'consumer.a'
++    native = compile_rust(checked.rust, rustc=rustc, crate_type='staticlib', output=library)
++    result['hepta_native_library'] = native
++    if not native['ok']:
++        return result
++    flags = ['-std=c++20', '-O2', '-fPIC', '-pthread', '-Werror', '-I' + str(generated), '-I' + str(EXAMPLE)]
++    objects = []
++    for source in (generated / 'bridge.cpp', EXAMPLE / 'foreign.cpp', EXAMPLE / 'harness.cpp'):
++        obj = root / (source.stem + '.o')
++        _run([compiler, *flags, '-c', str(source), '-o', str(obj)])
++        objects.append(obj)
++    executable = root / 'cpp-constructor-check'
++    _run([compiler, *(str(p) for p in objects), str(library), '-pthread', '-ldl', '-lm', '-o', str(executable)])
++    run = _run([str(executable)], timeout=30)
++    result.update(execution=json.loads(run.stdout), native_link_qualified=True,
++                  executable_sha256=_digest(executable), build_flags=flags,
++                  object_sha256={p.name: _digest(p) for p in objects},
++                  platform={'system': platform.system(), 'machine': platform.machine(), 'release': platform.release()})
++    if negative_controls:
++        result['negative_controls'] = _negative_controls(root, cxx, rustc)
++    if benchmark:
++        if type(iterations) is not int or not 0 < iterations <= 1000000:
++            raise ValueError('iterations must be in 1..1000000')
++        timing = root / 'cpp-constructor-benchmark'
++        _run([compiler, *flags, str(EXAMPLE / 'benchmark.cpp'), str(root / 'bridge.o'), str(root / 'foreign.o'), '-o', str(timing)])
++        rows = [json.loads(line) for line in _run([str(timing), str(iterations)], timeout=60).stdout.splitlines()]
++        by_name = {row['case']: row for row in rows}
++        if set(by_name) != {name for pair in PAIRS for name in pair} or len(rows) != 8:
++            raise RuntimeError('Constructor benchmark case denominator differs')
++        for row in rows:
++            if row['iterations'] != iterations or len(row['samples_ns']) != 7 or any(type(v) is not int or v <= 0 for v in row['samples_ns']):
++                raise RuntimeError('Constructor benchmark samples incomplete')
++            row['median_ns_per_operation'] = statistics.median(row['samples_ns']) / iterations
++        for base, route in PAIRS:
++            if by_name[base]['checksum'] != by_name[route]['checksum']:
++                raise RuntimeError('Native and bridge benchmark observations differ')
++        result['performance'] = {'status': 'measured', 'benchmark_sha256': _digest(timing), 'measurements': rows,
++            'comparison': [{'baseline': base, 'route': route,
++                            'observed_median_ratio': by_name[route]['median_ns_per_operation'] / by_name[base]['median_ns_per_operation']} for base, route in PAIRS],
++            'scope': 'lifecycle_pairs_and_separate_steady_state_methods',
++            'limitations': ['One host/compiler/library build, sequential case order, seven samples, no LTO.',
++                            'Lifecycle rows include one creation and one destruction; they do not isolate constructor latency alone.',
++                            'Lifecycle rows call no getter; native and bridge allocate the same kind and size of foreign object.',
++                            'Per-method rows exclude object and registry creation/destruction.',
++                            'Warmup precedes measurements; first-use registry and allocation-refusal paths are outside timed loops.',
++                            'No language productivity, whole-library memory safety, or universal performance claim.']}
++    after_headers = _dependencies(compiler)
++    after_inputs = {str(p.relative_to(ROOT)): _digest(p) for p in sorted(EXAMPLE.iterdir()) if p.is_file()}
++    result['inputs'] = before_inputs
++    result['headers'] = {'method': 'selected_C++_compiler_M_including_system_headers_then_SHA256_before_and_after',
++                         'before': before_headers, 'after': after_headers, 'unchanged': before_headers == after_headers,
++                         'snapshot_sha256': hashlib.sha256(json.dumps(before_headers, sort_keys=True, separators=(',', ':')).encode()).hexdigest(),
++                         'scope': 'observed_header_content_snapshot_not_hermetic_compiler_runtime_or_dynamic_library_lock'}
++    result['inputs_unchanged'] = before_inputs == after_inputs
++    result['ok'] = before_inputs == after_inputs and before_headers == after_headers
++    if negative_controls:
++        result['ok'] = result['ok'] and all(c['rejected'] for c in result['negative_controls'])
++    return result
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--output', type=Path, required=True)
++    parser.add_argument('--cxx', default='g++')
++    parser.add_argument('--rustc')
++    parser.add_argument('--iterations', type=int, default=100000)
++    parser.add_argument('--no-benchmark', action='store_true')
++    args = parser.parse_args()
++    if args.output.exists():
++        parser.error('Refusing to overwrite an earlier qualification')
++    with tempfile.TemporaryDirectory(prefix='hepta-cpp-constructors-') as temp:
++        try:
++            result = qualify_cpp_constructors(temp, cxx=args.cxx, rustc=args.rustc,
++                                               benchmark=not args.no_benchmark, iterations=args.iterations)
++        except (OSError, RuntimeError, ValueError, subprocess.TimeoutExpired) as exc:
++            result = {'schema': 'hepta.cpp-constructor-qualification.v1', 'ok': False, 'error': str(exc)}
++    args.output.parent.mkdir(parents=True, exist_ok=True)
++    with args.output.open('x') as stream:
++        json.dump(result, stream, sort_keys=True, indent=2)
++        stream.write('\n')
++    print(json.dumps({'ok': result['ok'], 'output': str(args.output)}))
++    return 0 if result['ok'] else 1
++
++
++if __name__ == '__main__':
++    raise SystemExit(main())

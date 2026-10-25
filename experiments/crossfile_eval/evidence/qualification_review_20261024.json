@@ -1,0 +1,36 @@
+{
+  "actual_ai_model_runs": 0,
+  "current_evaluator_sha256": "d448dd506557e88a920a5c4a7bf665b89a46c8d119542bd2ff5aef0383f3c6c2",
+  "current_record_sha256": "a3e27e01aaea7d12c533d73434d462459a68b7ec1e7a71532316dbb543a7edd1",
+  "current_taskset_sha256": "de45fa4c8b47938473a3cd13ddb45a02161b5c6bfd972026b322d0ad11a275f4",
+  "findings": [
+    {
+      "correction": "Compile submission into a separate rlib crate; the exact exploit now fails native compilation with unresolved counter names.",
+      "finding": "Candidate Rust submodule could directly mutate trusted driver allocator statics, forging all 24 owned-result cases without allocation.",
+      "regression": "test_candidate_cannot_mutate_trusted_driver_allocator_counters"
+    },
+    {
+      "correction": "Global provider/request_id ownership invalidates every affected sample while retaining all planned denominators.",
+      "finding": "A single provider receipt could be recycled across multiple planned samples.",
+      "regression": "test_recycled_provider_receipt_invalidates_every_affected_sample"
+    },
+    {
+      "correction": "Record validated_tool_calls separately; preserve known receipt-prefix costs and leave incomplete totals null.",
+      "finding": "A rejected later tool frame could make a prior valid cost receipt prefix appear invalid.",
+      "regression": "test_rejected_later_tool_frame_preserves_last_validated_cost_prefix"
+    }
+  ],
+  "prior_record_bytes_preserved": true,
+  "record_sha256": "63e2bf6d5650376c25c9843b04051bd78c61ae704c13cf94172f55370f5773ae",
+  "schema": "hepta.crossfile_qualification_review.v1",
+  "status": "superseded_after_independent_adversarial_review",
+  "superseded_record_sha256": "7dadce4125025c720664e630e2aa6fcb89fe670b50d6dbfee9df301c8a43e67c",
+  "superseded_taskset_sha256": "38d87642595864e71817c992926e3e5e8b33e66f1ec7994e38ac3791f2ee1e0a",
+  "verification": {
+    "four_arm_native_fixture_runs_passed": 20,
+    "independent_recheck_of_three_findings": "passed",
+    "new_unit_tests_passed": 34,
+    "private_native_inputs_passed": 1248,
+    "provider_comparison_run": false
+  }
+}

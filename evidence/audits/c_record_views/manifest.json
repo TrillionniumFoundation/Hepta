@@ -1,0 +1,72 @@
+{
+  "claims": {
+    "atomic_rollback_after_algorithm_mutation": false,
+    "pointer_provenance_proved": false,
+    "source_equivalence_proved": false,
+    "whole_project_blockers_closed": false
+  },
+  "discarded_probe": {
+    "files": [
+      "discarded/original_by_value_char_probe.json",
+      "discarded/fixed_by_value_char_probe.json"
+    ],
+    "reason": "Early audit harness declared every by-value char argument as ctypes.c_byte, including unsigned-char C ABIs. That violates ABI sign/zero-extension expectations. These observations are not evidence for or against compiler correctness. Replaced by pointer-based character loads whose pointer ABI is unambiguous."
+  },
+  "files": {
+    "README.md": "fa3ac2813055584b444a80c4e6d6f90cd890e46c79d9f96c53220c6c4aa44c11",
+    "discarded/fixed_by_value_char_probe.json": "3251b1c451f21b07a151e34a7c3e712401671a81e3dabe5dd5de3436958c478e",
+    "discarded/original_by_value_char_probe.json": "07157207cd47495bb34bee895bf3fc7c1d44b6e5cf4f4323463b6b7c9bc36ee7",
+    "fixed_abi_macros.json": "7e3827f2e2ceebca5d5dea6210406938dc349702e3773f9e649bb5642c5d362a",
+    "fixed_alias_writeback.json": "eab4deebe8c2bf5ca9a9313a47cab340045945b1a1b65f5ff1076a34b918c66c",
+    "fixed_cursor_and_inventory.json": "9959a064dc426ca05023cdbbbfe495d4aabcb0fdc747d5263021275d137738ba",
+    "fixed_mixed_models.json": "1ea696990cbfab2a77202425b39c9cd4a8f79fb6a9b2d24bcef9026bbee46a5a",
+    "fixed_native_tests.log": "88acda9809cfb74279344392ccad5631e4ed4a08644dfb492a405efddcaa2d7d",
+    "original_abi_macros.json": "f717d428a948a6d3632d9440aa4df325c8c4c26bdfda2fa0c5431a91b45be36c",
+    "original_alias_writeback.json": "e0afbc21721ef3fb84025661be169aacd2f7766a74ff30d393e298c0c6897a90",
+    "original_cursor_and_inventory.json": "42d7dfd880563a40b9701c67b6362bd3bae072b9ce53c19e22bd5fbf5f81f628",
+    "original_mixed_models.json": "b0da1365db578f4bb44f48630461b36f091aa818bc66f6adc08d7defd789630b",
+    "scripts/abi_macros.py": "387361a890bddd7cd4db9e9420ca04f0ce5ec4581eb3f1c7bb8bd0a3804fcba3",
+    "scripts/alias_writeback.py": "4c9473f27827f5b9eae91ba6e9e392191d8cb7b946f96aaeba9fb326a378d783",
+    "scripts/cursor_and_inventory.py": "5611813057b1db1624540985bcc75c16b6d17a273e5516bb9e168e0bf780a768",
+    "scripts/mixed_models.py": "4d0626517c762d30b5f376517385e0cb3c5efb49e5beda191dce94d91933fbe9"
+  },
+  "fixed_commit": "a149bc579facb80d4e4534892c717ce3dfb40de4",
+  "fixed_tree": "90d9105a1164f473feeb8e0f3cfcaee024fdd36c",
+  "independent_native_tests": {
+    "elapsed_seconds": 16.299,
+    "skips": 0,
+    "tests": 25
+  },
+  "issues": [
+    {
+      "fixed": "Literal, variable and one-past relative-index calls match original C values 13,13,41.",
+      "id": "relative-signed-cursor-index",
+      "original": "Three defined-C relative negative-index calls return values in C but abort in translated native code.",
+      "status": "fixed_and_independently_replayed"
+    },
+    {
+      "fixed": "E_C_PROJECT_MODEL with complete active four-declaration inventory; mixed data-model bundles are outside the supported profile.",
+      "id": "mixed-translation-unit-char-model",
+      "original": "Unsigned/signed char TUs silently share configuration-zero record field interpretation: C -1 vs translated255.",
+      "status": "fail_closed_and_independently_replayed"
+    },
+    {
+      "fixed": "Independent compiler-options-only ABI probe preserves actual signedness and full source macros identity; both spoof cases and flag-like include path control match C.",
+      "id": "user-preprocessor-abi-attestation",
+      "original": "User D/U of __CHAR_UNSIGNED__ misclassifies native signedness; pointer-based byte reads differ from original C.",
+      "status": "fixed_and_independently_replayed"
+    }
+  ],
+  "ok": true,
+  "original_commit": "b25f132bdeabd6ab14e6b62c5fdf87aeb03216ce",
+  "original_tree": "e9f91113635721bb2e3207c7e46ead778a93c87a",
+  "schema": "hepta.c-record-views-independent-review.v1",
+  "unchanged_positive_controls": [
+    "Poisoned preexisting record bytes do not enter complete initialization",
+    "Unsigned field increment preserves C wrapping",
+    "Four numeric overlap preconditions abort before any shared record/backing bytes change",
+    "Read/read aliased storage remains accepted and matches C",
+    "Unused union/global declarations stay in denominator and reject the bundle",
+    "Pointer-changing and partial initializers reject migration"
+  ]
+}

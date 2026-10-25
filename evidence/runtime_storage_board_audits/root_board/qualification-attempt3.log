@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "/workspace/scratch/0817a147930b/Hepta-work/tools/validate_board.py", line 355, in <module>
+    main()
+  File "/workspace/scratch/0817a147930b/Hepta-work/tools/validate_board.py", line 347, in main
+    report = qualify(qemu=args.qemu, rustc=args.rustc)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/0817a147930b/Hepta-work/tools/validate_board.py", line 246, in qualify
+    validate_report(report)
+  File "/workspace/scratch/0817a147930b/Hepta-work/tools/evidence_checks.py", line 39, in checked
+    return function(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/0817a147930b/Hepta-work/tools/validate_board.py", line 266, in validate_report
+    require(rust.get("release") == RUST_VERSION and rust.get("version", "").startswith("rustc " + RUST_VERSION + " "),
+  File "/workspace/scratch/0817a147930b/Hepta-work/tools/evidence_checks.py", line 14, in require
+    raise ValueError(message)
+ValueError: Pinned actual Rust release is required

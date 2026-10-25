@@ -196,6 +196,14 @@ class Lexer:
                 value = self.source[mark[0]:self.position]
                 result.append(Token(value if value in KEYWORDS else "IDENT", value,
                                     self._span(mark)))
+            elif ch == "'":
+                self._advance()
+                if not self._identifier_start(self._peek()):
+                    self._error("E_LEX_CHARACTER", "A lifetime requires an ASCII identifier after apostrophe", mark)
+                start = self.position
+                while self._identifier_continue(self._peek()):
+                    self._advance()
+                result.append(Token("LIFETIME", self.source[start:self.position], self._span(mark)))
             elif "0" <= ch <= "9":
                 result.append(self._number())
             elif ch == '"':

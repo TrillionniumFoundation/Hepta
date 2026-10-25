@@ -1,0 +1,3 @@
+struct View<'a>{ data:read 'a [u8] }
+fn view<'a>(data:read 'a Buffer<u8>)->View<'a> effects {} {return View{data:read data};}
+fn main()->Unit effects {alloc,block,panic}{let x=buffer(1);let a=[view(read x)];release(move x);}

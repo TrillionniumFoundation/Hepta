@@ -1,0 +1,128 @@
+{
+  "claims": {
+    "cancellation_termination_proved": false,
+    "deadlock_freedom_proved": false,
+    "normal_exit_join_obligations_verified": true,
+    "runtime_budget_bounds_proved": false,
+    "runtime_data_race_freedom_proved": false,
+    "source_to_ir_refinement_proved": false,
+    "whole_language_soundness_proved": false,
+    "worker_input_transfer_verified": true
+  },
+  "functions": [
+    {
+      "blocks": [
+        {
+          "id": "bb0",
+          "operations": [
+            {
+              "dest": "v1",
+              "op": "move",
+              "src": "v0"
+            },
+            {
+              "op": "drop_buffer",
+              "src": "v1"
+            }
+          ],
+          "terminator": {
+            "op": "return",
+            "owner": null
+          }
+        }
+      ],
+      "entry": "bb0",
+      "name": "dispose",
+      "params": [
+        {
+          "id": "v0",
+          "mode": "take",
+          "type": "Buffer<u8>"
+        }
+      ],
+      "returns": "usize",
+      "slots": {
+        "v0": "Buffer<u8>",
+        "v1": "Buffer<u8>"
+      }
+    },
+    {
+      "blocks": [
+        {
+          "id": "bb0",
+          "operations": [
+            {
+              "dest": "v0",
+              "op": "create",
+              "type": "Buffer<u8>"
+            },
+            {
+              "dest": "v1",
+              "op": "move",
+              "src": "v0"
+            },
+            {
+              "dest": "v2",
+              "op": "create",
+              "type": "Buffer<u8>"
+            },
+            {
+              "dest": "v3",
+              "op": "move",
+              "src": "v2"
+            },
+            {
+              "op": "borrow",
+              "src": "v1"
+            },
+            {
+              "op": "borrow",
+              "src": "v1"
+            },
+            {
+              "dest": "v4",
+              "op": "move",
+              "src": "v3"
+            },
+            {
+              "arguments": [
+                "v4"
+              ],
+              "dest": null,
+              "function": "dispose",
+              "op": "call"
+            },
+            {
+              "dest": "v5",
+              "op": "move",
+              "src": "v1"
+            },
+            {
+              "op": "drop_buffer",
+              "src": "v5"
+            }
+          ],
+          "terminator": {
+            "op": "return",
+            "owner": null
+          }
+        }
+      ],
+      "entry": "bb0",
+      "name": "f",
+      "params": [],
+      "returns": "Unit",
+      "slots": {
+        "v0": "Buffer<u8>",
+        "v1": "Buffer<u8>",
+        "v2": "Buffer<u8>",
+        "v3": "Buffer<u8>",
+        "v4": "Buffer<u8>",
+        "v5": "Buffer<u8>"
+      }
+    }
+  ],
+  "project_sha256": null,
+  "schema": "hepta.concurrent-ir.v1",
+  "source_sha256": "1c4dfa627f69a5d23e8a6fca7f7413fe71131a29930a37666df398d1befdd58f"
+}

@@ -1,0 +1,71 @@
+{
+  "baseline_cpp_generator_commit": "e8a3b4cb6f1b2f31df73a3fdd68fc9878d809697",
+  "baseline_cpp_generator_tree": "1ea3af0426a2f30fe724d7eab246a61d941a8e6c",
+  "compiler_sha256": "e7110f318c96da79a7dd7e194c75d1e1390b4d1a3eaeda58ad12c654d6b9fd91",
+  "created_at_utc": "2026-10-25T00:15:40.615777+00:00",
+  "files": {
+    "README.md": "f4e2623d9b3bea1d50d8bd38599b643a29d1f775ed959cab431d93e25647b6b7",
+    "allocation_lifetime.json": "19ba87c800bad47526321f4572d8e73ef44debcbeee1f82a4249efbf492c2ebe",
+    "categories_and_v1.json": "3a34e4f8e9b18bf39f8af3d4cafd716532fd02189ff7b31afa1291a9aaecc0f7",
+    "native_tests.log": "30e9825186d6bfc132d433e739061c20ceec1aa3bcbcf3839dfef359f7102536",
+    "scripts/allocation_lifetime.py": "9c9bca61b0fb7c25f969080a8842ea3b6225dc7d3e29c448148f21423d0d5f71",
+    "scripts/categories_and_v1.py": "79f8f2ffac283fb10615dca88ab2faeb64b5197bcf1a8e7fa2af088db085bf05"
+  },
+  "focused_core_blockers_found": [],
+  "implementation_changes": false,
+  "native_host": {
+    "cxx_version": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+    "rustc_version": "rustc 1.90.0 (1159e78c4 2025-09-14)"
+  },
+  "observations": {
+    "allocation_failure_trials": 31,
+    "allocation_replay_native_processes": 54,
+    "constructor_body_exception_trials": 3,
+    "constructor_category_positive_cases": 8,
+    "existing_constructor_test_skips": 0,
+    "existing_constructor_tests": 8,
+    "legacy_Hepta_externs_identical": true,
+    "legacy_native_C_clients": 2,
+    "legacy_public_C_header_identical": true,
+    "native_category_or_noexcept_rejections": 7
+  },
+  "ok": true,
+  "remaining_boundaries": [
+    "Foreign pointer lifetime, provenance, extent, initialization and aliasing remain caller obligations.",
+    "call_only is a foreign promise; retained spans/references are not prevented by the descriptor.",
+    "Exception status preserves the handle output but does not roll back prior foreign side effects or buffer writes.",
+    "Process-lifetime registry infrastructure, retained capacity and abandoned handles retain their existing policy.",
+    "Observed allocation sites are finite host paths; aligned/custom allocation and other standard libraries remain outside this replay.",
+    "Final integrated source qualification is separate from this exact-commit audit."
+  ],
+  "reviewed_commit": "f3bd3ff7d6fdb9fc09e6a88629c2f64fdfdb61b3",
+  "reviewed_source_sha256": {
+    "examples/cpp/constructors/benchmark.cpp": "3fde177cd43becb64ac6f19f9fc29a13d2c698d210754b338bbd63c9186da31f",
+    "examples/cpp/constructors/consumer.hepta": "da43b2572a82ae954eac16808a37d2e9e45c3411c57ccbd00e5258d753a5a3b4",
+    "examples/cpp/constructors/contract.json": "48fe161850726cf542c27d233d48f14f5bfe2a655a1c811a5bec1afd98aaf92d",
+    "examples/cpp/constructors/foreign.cpp": "48972607a1c4fdf5837dbbf12c462c8b9e64d9f40827ab25505ecfd24201acb8",
+    "examples/cpp/constructors/foreign.hpp": "cf565d280476e4770f41cf4ba42f49046426fef0a339c4a69d5c753eacc20dd6",
+    "examples/cpp/constructors/harness.cpp": "fdcce10be9f27a5667d56ec90c7b603f914939e2acb23f88c328d9c1e9efdcae",
+    "examples/cpp/stdlib/benchmark.cpp": "31422a07cd59efbe4031fcda8f685730df17396df8b09ea422ef59c3dad54d7e",
+    "examples/cpp/stdlib/consumer.hepta": "73c3c6635441b3350aac674ab5a0e47e7811541e74b5e6f72dbcc3a763d07e87",
+    "examples/cpp/stdlib/contract.json": "314c6c820a5c457546d01cc53abc3f2d41d7d784e22d54919d476ce8615c31d9",
+    "examples/cpp/stdlib/foreign.cpp": "1088dafc696e443e80f2635a203b30ba660ba4f914b161fe6b1ab69ef05dbb5c",
+    "examples/cpp/stdlib/foreign.hpp": "322c69c2dea9a33d18ce6685ed1f9c4cc44896fff431196e94f1d30182e60698",
+    "examples/cpp/stdlib/harness.cpp": "20845fe1acb59e973801c28ef590cd0f4005c9a55d30d6912d261cdac76659d1",
+    "hepta/cpp_contracts.py": "bcabcc477dc73c5cdfd929825dcf560810ca609c58f43066110c8724ad7e2b6e",
+    "tests/test_cpp_constructors.py": "cf814e73d6ba826f8134efabd52c7e9826ec5fec34e230ce66484850ece1fa02",
+    "tools/validate_cpp_constructors.py": "7d15d86dc4ca85d8df1d934b5a5daa72c11da32ab787051aa46028406a5c929e"
+  },
+  "reviewed_tree": "0ad40528bacf6ef369d4d330bb42f9f15528efd9",
+  "schema": "hepta.cpp-constructors-independent-review.v1",
+  "unproved_claims": {
+    "all_platform_allocation_failure_paths": false,
+    "all_project_blockers_closed": false,
+    "exact_constructor_parameter_signature": false,
+    "foreign_nonretention": false,
+    "foreign_pointer_validity": false,
+    "universal_abi_compatibility": false,
+    "universal_performance_advantage": false,
+    "whole_library_memory_safety": false
+  }
+}

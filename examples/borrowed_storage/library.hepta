@@ -1,0 +1,35 @@
+module borrowed_storage_library;
+
+pub struct Bytes<'a> { data: read 'a [u8], label: u64 }
+pub struct Edit<'a> { data: mut 'a [u8] }
+pub struct Joined<'a, 'b> { left: Bytes<'a>, right: Bytes<'b> }
+pub struct Head<'a> { value: read 'a u8 }
+
+pub fn bytes<'a>(source: read 'a Buffer<u8>, label: u64) -> Bytes<'a> effects {} {
+    return Bytes { data: read source, label: label };
+}
+pub fn forward<'a>(view: Bytes<'a>) -> Bytes<'a> effects {} { return view; }
+pub fn join_views<'a, 'b>(left: Bytes<'a>, right: Bytes<'b>) -> Joined<'a, 'b> effects {} {
+    return Joined { left: left, right: right };
+}
+pub fn edit<'a>(source: mut 'a Buffer<u8>) -> Edit<'a> effects {} {
+    return Edit { data: mut source };
+}
+pub fn fill<'a>(view: take Edit<'a>, value: u8) -> Edit<'a> effects {panic, write} {
+    let mut local = move view;
+    for i in 0..len(local.data) { local.data[i] = value; }
+    return move local;
+}
+pub fn sum<'a>(view: Bytes<'a>) -> u64 effects {panic} {
+    let mut total: u64 = 0;
+    for i in 0..len(view.data) { total = wrapping_add(total, view.data[i] as u64); }
+    return total;
+}
+pub fn first<'a, 'b>(source: read 'a Buffer<u8>, unrelated: read 'b Buffer<u8>)
+    -> read 'a u8 from source effects {panic} {
+    return read source[0];
+}
+pub fn head<'a, 'b>(source: read 'a Buffer<u8>, unrelated: read 'b Buffer<u8>)
+    -> Head<'a> effects {panic} {
+    return Head { value: read first(read source, read unrelated) };
+}

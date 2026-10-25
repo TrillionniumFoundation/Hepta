@@ -1,0 +1,2144 @@
+diff --git a/docs/C_RECORD_VIEWS.md b/docs/C_RECORD_VIEWS.md
+new file mode 100644
+index 0000000..b036abb
+--- /dev/null
++++ b/docs/C_RECORD_VIEWS.md
+@@ -0,0 +1,205 @@
++# Complete stateful C module migration through checked record views
++
++This opt-in migration profile translates a complete pointer-bearing C module
++into a safe Hepta algorithm plus an explicit unsafe C ABI bridge. It extends
++`migrate-c-project`; it does not add raw pointer operations or stored references
++to the generated Hepta core, and it does not infer ownership of foreign memory.
++
++## Qualified upstream and configuration
++
++The frozen module is [AndersKaloer/Ring-Buffer](https://github.com/AndersKaloer/Ring-Buffer)
++at commit `8de8fff55a0baee4fef2a1c6a82d258a27c3c0ba`. The complete,
++unchanged `ringbuffer.c` and `ringbuffer.h`, MIT license and upstream README are
++in `tests/fixtures/c_migration/ring_buffer/`. `UPSTREAM.json` binds the exact Git
++blobs, SHA-256 digests and sizes. A mismatch fails qualification.
++
++The qualified compilation database uses C11, `-DNDEBUG` and `-funsigned-char`.
++Both the original GCC build and the Clang migration capture use these exact
++semantic flags. `NDEBUG` is an explicit build configuration: the upstream
++assertion is disabled by its own header macro in that configuration. Debug
++assertion expansions and other configurations are not silently stripped or
++qualified. Plain-char signedness is retained in preprocessing and measured in
++the compiler data model; it is not discarded as an optimization flag.
++The native ABI probe uses semantic compiler options separately from caller
++`-D`/`-U` macros: spelling `__CHAR_UNSIGNED__` in a user macro cannot change
++the actual native char type. Include-path operands cannot masquerade as compiler
++options. Bundles whose listed translation units have different data models,
++including different plain-char signedness, are rejected after recording the
++complete active declaration inventory.
++
++This is a stateful library with nine functions: initialization/reset, single and
++array queue/dequeue, peek, and three state queries. There are **22 active
++project declarations**, comprising nine function definitions, nine prototypes,
++one record definition, one forward declaration, and two typedefs. All of them
++remain in the output inventory. Every active unsupported declaration rejects
++the whole bundle even when unused. System/compiler declarations are listed
++separately and are not counted as translated project code. Inactive branches
++outside the captured macro configuration remain outside this denominator.
++
++## Translation mechanism
++
++A `hepta.c-record-views.v1` contract has exact `records` and `functions` maps.
++For example, the record held by this library declares one pointer field whose
++extent is the unsigned `buffer_mask` field plus one:
++
++```json
++{
++  "schema": "hepta.c-record-views.v1",
++  "records": {
++    "ring_buffer_t": {
++      "buffers": {
++        "buffer": {"length_field": "buffer_mask", "add": 1}
++      }
++    }
++  },
++  "functions": {
++    "ring_buffer_queue": {
++      "records": {"buffer": {"access": "mut"}},
++      "slices": {}
++    }
++  }
++}
++```
++
++That fragment illustrates the schema; a complete module contract must describe
++every captured function. The frozen fixture contains the complete contract.
++The supported record has one primitive buffer pointer and primitive scalar
++state. Its extent expression is an unsigned field plus zero or one. A function
++may take one such record by pointer and additional primitive slice/scalar
++parameters. The profile rejects by-value pointer-bearing record ABI crossings,
++so the omitted pointer field can never silently change the ABI of a C value.
++
++The translator emits a scalar-only Hepta record. A C record pointer parameter
++becomes a borrowed state record plus an explicit borrowed slice. Accesses to
++scalar fields and buffer elements lower from the captured Clang AST. Internal
++calls pass those borrows; local C pointer cursors become checked `usize`
++offsets into the same borrowed slice. Cursor advancement admits the one-past
++position but never permits dereferencing it. Signed relative indexing widens
++the cursor and C integer index to `i128` before addition, checks the absolute
++index against the declared slice, then narrows to `usize`. Thus `p[-1]` remains
++valid after a cursor advances, including from the one-past position. Negative
++absolute indices, huge unsigned indices and `i64::MIN` cannot wrap into a valid
++position. General `p += n` and decrement statements remain rejected.
++Short-circuit `&&`/`||` preserve C
++sequencing when a right-hand call changes the record. Other unsequenced
++side-effectful arithmetic expressions still reject migration.
++
++C declarations of an uninitialized scalar can be accepted only when a first
++unconditional assignment in the same scope initializes the corresponding Hepta
++binding before use. A read before that assignment or conditional first
++initialization is rejected. No invented zero value is substituted for a C
++uninitialized read. Function-like macros and inline bodies are lowered from
++the captured expanded AST, with dependencies/preprocessed bytes still bound
++to the build snapshot; this is not general source-level macro rewriting.
++
++A constructor's contract additionally maps the record buffer pointer to an
++unchanged mutable slice parameter. Its body must write every record field
++exactly once in straight-line code without reading previous record contents.
++The translator checks those assignments before omitting the pointer store from
++the safe core; the ABI edge performs the original pointer store. The newly
++computed extent must fit the input slice. Subsequent pointer-field writes and
++extent-field writes are rejected. General allocator, reallocation, pointer
++escape, callback, packed/bitfield, volatile and concurrent protocols remain
++outside this profile.
++
++The implementation is structural and parameterized by captured record and
++function declarations. A separate conformance test changes record/field/function
++names and the state-update algorithm; it is not a source-hash recipe containing
++a handwritten implementation of the selected upstream library.
++
++## C ABI and safety boundary
++
++The bridge declares the original `repr(C)` record layout, including its raw
++pointer field, and retains the original exported C function names and
++signatures. It copies scalar state into the safe Hepta record, calls the
++translated function, and writes changed scalar state back. It leaves the
++record's buffer pointer unchanged outside complete initialization.
++
++Before constructing borrowed slices it checks non-null pointers for nonempty
++storage, alignment, representable slice size, address-range overflow, and
++numeric overlap whenever either participating record/buffer/output range is
++mutable. A read-only/read-only alias remains allowed. Empty slices accept a
++null data pointer. An initializer does not read uninitialized old record bytes.
++
++Those checks **do not establish pointer provenance, actual allocation extent,
++initialized storage, foreign lifetime, or exclusion of concurrent accesses**.
++The caller must provide a live valid record and fully initialized backing
++storage for the declared extent, and keep them stable during the call. The
++declared view bounds all permitted pointer arithmetic; an allocation may be
++larger, but storage outside that view is not imported into the safe core. The
++whole-buffer initialization and disjointness contract narrows some source C
++input domains. In particular, the original C library may only read initialized
++queue entries, whereas constructing a Rust slice for the translated call
++requires all of that slice's element storage to be initialized. C's internal
++unsigned arithmetic is preserved as wrapping operations; Hepta adds checked
++memory and cursor operations.
++
++No bridge-wide memory-safety proof or whole-source semantic-equivalence claim
++is made. A bad original algorithm or invalid scalar invariant can still reach
++a checked abort; normal-path resource safety does not promise destructor
++execution after `panic=abort` or process termination.
++
++## Executable acceptance and costs
++
++Run:
++
++```sh
++python tools/qualify_c_ring_buffer.py --output artifacts/c-ring-buffer.json
++```
++
++The qualification builds the complete original module with independent GCC,
++builds the migrated module with the pinned Rust reference backend, and checks:
++
++- 16,384 state transitions across capacities 1, 2, 4, 8, 16, 32, 64 and 256;
++  65,544 paired native API calls, including 543 null/zero-length buffer calls
++  for the frozen default seed. All nine functions are executed.
++- Return values, every scalar state field, every backing-buffer byte, output
++  sentinels, unchanged input storage and backing-pointer identity, against both
++  the original C and an independent bounded-deque oracle.
++- Independent C/Rust probes of record size, alignment and every field offset.
++- Nine native subprocess rejection controls for null/misaligned record,
++  record/buffer and input/output overlap, extent overflow, malformed index,
++  null nonempty storage and zero-capacity initialization. The original C is
++  not executed on these inputs outside the qualified contract.
++- A genuinely mutated generated implementation, built as a native library and
++  rejected by the same stateful oracle.
++- An authored Hepta client which owns the backing `Buffer<u8>` inside a
++  resource-bearing record. Normal completion, an early drop, two actual
++  allocator refusals and subsequent successful recovery all end with zero
++  live allocations. This demonstrates a safe owner of the upstream library's
++  **caller-owned** storage; it does not claim that upstream allocator code was
++  migrated. Persistent allocation/reallocation protocols remain open work.
++
++The native benchmark reports all seven alternating-order samples for three
++workloads: single-byte queue/dequeue, 64-byte array queue/dequeue and three state
++queries. Both routes use the same dynamic-library function-pointer dispatcher.
++It measures core translation, state copying and boundary checks together;
++allocation/startup are outside the timed loops. Actual regressions are retained.
++One shared host, GCC `-O2` versus Hepta's Rust `-O3` reference path, and no LTO or
++affinity control do not establish universal parity or superiority.
++
++The report contains generated core/bridge line counts, elapsed migration and
++qualification time, original compiler identity, complete source snapshots
++before/after, input hashes, native builds and measured costs. Human review
++hours, model tokens and total migration labor remain unmeasured (`null`), not
++zero. Actual model runs remain zero. Intermediate qualification checkpoints
++are retained when a later step fails, and source changes during the run reject
++qualification. Generated derivatives retain the upstream license and notice.
++
++## Independent audit findings retained
++
++The first complete upstream run did not exercise every newly accepted C
++construct. An independent source audit found two additional counterexamples:
++
++1. Converting a negative relative cursor index to `usize` before adding the
++   cursor caused a checked abort for valid `++p; p[-1]` access. The widened,
++   checked absolute-index calculation above fixes this; five original-C/native
++   positive cases and four invalid-position abort cases cover the correction.
++2. Two translation units with opposite plain-char signedness were accepted,
++   while record fields used the first unit's model. The second unit read byte
++   `255` as `255` instead of C's `-1`. The bounded bundle now explicitly rejects
++   differing models while retaining all four declarations in that counterexample.
++
++Related regressions prevent user macros or include-path operands from spoofing
++the independent native ABI probe. Earlier successful finite differentials are
++retained as pre-audit evidence, not substituted for the corrected-source run.
+diff --git a/hepta/c_migration_project.py b/hepta/c_migration_project.py
+index c227af4..82662b9 100644
+--- a/hepta/c_migration_project.py
++++ b/hepta/c_migration_project.py
+@@ -36,7 +36,12 @@ def migrate_project(database: str | Path, output_directory: str | Path, *,
+             raise MigrationRejected("E_C_PROJECT_EXISTS", "Output bundle must be a new non-symlink directory")
+         capture = capture_project(database, clang=clang)
+         report["build"] = capture
+-        translator = CTranslator(capture, contracts)
++        if isinstance(contracts, dict) and contracts.get("schema") == "hepta.c-record-views.v1":
++            from .c_record_views import CRecordViewTranslator
++            translator = CRecordViewTranslator(capture, contracts)
++            report["profile"] = "captured_C_record_views_and_checked_cursor_slices"
++        else:
++            translator = CTranslator(capture, contracts)
+         source, bridge, functions = translator.emit()
+         report["functions"] = functions
+         from .parser import parse
+@@ -50,6 +55,8 @@ def migrate_project(database: str | Path, output_directory: str | Path, *,
+         report["frontend_validation"] = "passed"
+         generated_rust = emit_rust(program, checked, crate_type="cdylib") + "\n" + bridge
+         report["contracts"] = translator.contracts
++        if getattr(translator, "allow_record_views", False):
++            report["record_views"] = translator.view_report()
+         report["contract_scope"] = {
+             "origin": "caller_supplied_not_inferred_or_proved",
+             "may_narrow_original_c_input_domain": any(p["pointer"] for fn in functions for p in fn["params"]),
+@@ -64,7 +71,8 @@ def migrate_project(database: str | Path, output_directory: str | Path, *,
+             "project_input_bytes": sum(item["bytes"] for item in capture["dependencies"] if item["project_input"]),
+             "project_input_files": sum(item["project_input"] for item in capture["dependencies"]),
+             "compile_configurations": len(capture["configurations"]),
+-            "caller_slice_contracts": sum(p["pointer"] for fn in functions for p in fn["params"]),
++            "caller_slice_contracts": sum(p["pointer"] and not p.get("record", False) for fn in functions for p in fn["params"]),
++            "caller_record_view_contracts": sum(p.get("record", False) for fn in functions for p in fn["params"]),
+             "generated_hepta_lines": len(source.splitlines()),
+             "generated_abi_bridge_lines": len(bridge.splitlines()),
+             "manual_review_hours": None, "agent_tokens": None,
+diff --git a/hepta/c_project.py b/hepta/c_project.py
+index 8458f71..2009907 100644
+--- a/hepta/c_project.py
++++ b/hepta/c_project.py
+@@ -66,6 +66,10 @@ def _flags(argv: list[str], source: Path, directory: Path) -> tuple[list[str], l
+             forwarded.append(value)
+         elif value in {"-std=c99", "-std=c11", "-std=c17"}:
+             forwarded.append(value)
++        elif value in {"-funsigned-char", "-fsigned-char"}:
++            # Plain-char signedness is semantic and enters the probed model;
++            # never discard this flag as a code-generation preference.
++            forwarded.append(value)
+         elif value in {"-c", "-g", "-g0", "-g1", "-g2", "-g3", "-O0", "-O1", "-O2", "-O3", "-Os", "-Oz", "-Wall", "-Wextra", "-Werror", "-pedantic", "-pedantic-errors", "-fPIC", "-fpic"}:
+             omitted.append({"argument": value, "reason": "driver_output_or_diagnostic_flag"})
+         elif value == "-o":
+@@ -169,7 +173,22 @@ def capture_project(database: str | Path, *, clang: str = "clang") -> dict:
+             dependencies[str(path)] = item
+         preprocessed = invoke([executable, *flags, "-E", str(source)], directory)
+         macros = invoke([executable, *flags, "-dM", "-E", "-x", "c", "-"], directory, stdin="")
+-        numeric = dict(re.findall(r"^#define (__[A-Z0-9_]+__) (\d+)$", macros, flags=re.M))
++        # User -D/-U macros may intentionally spell predefined names. They
++        # affect preprocessed source semantics, but cannot attest native ABI
++        # sizes or char signedness. Probe those with the actual semantic
++        # compiler options only, independently of user macro overrides.
++        model_flags = []
++        flag_index = 0
++        while flag_index < len(flags):
++            flag = flags[flag_index]
++            if flag in {"-I", "-isystem", "-iquote", "-D", "-U"}:
++                flag_index += 2
++                continue
++            if flag.startswith("-std=") or flag in {"-funsigned-char", "-fsigned-char"}:
++                model_flags.append(flag)
++            flag_index += 1
++        abi_macros = invoke([executable, *model_flags, "-dM", "-E", "-x", "c", "-"], directory, stdin="")
++        numeric = dict(re.findall(r"^#define (__[A-Z0-9_]+__) (\d+)$", abi_macros, flags=re.M))
+         if any(numeric.get(name) != value for name, value in {
+             "__CHAR_BIT__": "8", "__SIZEOF_INT__": "4", "__SIZEOF_LONG_LONG__": "8",
+             "__SIZEOF_POINTER__": "8", "__SIZEOF_FLOAT__": "4", "__SIZEOF_DOUBLE__": "8",
+@@ -182,8 +201,10 @@ def capture_project(database: str | Path, *, clang: str = "clang") -> dict:
+                         "local_dependencies": sorted(map(str, local_deps)),
+                         "preprocessed_sha256": digest(preprocessed.encode()),
+                         "predefined_macros_sha256": digest(macros.encode()),
++                        "abi_predefined_macros_sha256": digest(abi_macros.encode()),
++                        "abi_model_arguments": model_flags,
+                         "model": {"long_bits": 8 * int(numeric.get("__SIZEOF_LONG__", "0")),
+-                                  "char_unsigned": "#define __CHAR_UNSIGNED__ 1" in macros,
++                                  "char_unsigned": "#define __CHAR_UNSIGNED__ 1" in abi_macros,
+                                   "pointer_bits": 64}})
+     capture = {"schema": "hepta.c-build.v1", "database": {"path": str(db), "sha256": digest(raw)},
+                "compiler": compiler, "configurations": configs,
+diff --git a/hepta/c_record_views.py b/hepta/c_record_views.py
+new file mode 100644
+index 0000000..dcb1dd0
+--- /dev/null
++++ b/hepta/c_record_views.py
+@@ -0,0 +1,480 @@
++"""Checked decomposition of pointer-bearing C records into safe borrowed views.
++
++The opt-in profile keeps the original C record ABI at an unsafe generated edge.
++A safe Hepta function receives a scalar-only state record and explicit slices;
++no raw pointer or stored reference enters the translated algorithm. Contracts
++are caller obligations, not ownership/provenance inference. Unmodeled mutation,
++pointer operations, attributes, globals and declarations still reject a bundle.
++"""
++from __future__ import annotations
++
++import copy
++import json
++import re
++
++from .c_allocation import peel, nodes
++from .c_migrate import MigrationRejected
++from .c_translation import CTranslator, Expression, INTEGER, NUMBER, cast, ident, truth
++
++
++class CRecordViewTranslator(CTranslator):
++    allow_record_views = True
++
++    def __init__(self, capture: dict, contracts: dict):
++        if (set(contracts) != {"schema", "records", "functions"}
++                or contracts.get("schema") != "hepta.c-record-views.v1"
++                or not isinstance(contracts["records"], dict)
++                or not isinstance(contracts["functions"], dict)):
++            raise MigrationRejected("E_C_VIEW_CONTRACT", "Expected exact records/functions view contract")
++        self.views = {}
++        for name, specification in contracts["records"].items():
++            ident(name)
++            if not isinstance(specification, dict) or set(specification) != {"buffers"} or not isinstance(specification["buffers"], dict) or len(specification["buffers"]) != 1:
++                raise MigrationRejected("E_C_VIEW_CONTRACT", "Each record view currently requires exactly one buffer field")
++            fields = {}
++            for field, extent in specification["buffers"].items():
++                ident(field)
++                if not isinstance(extent, dict) or set(extent) != {"length_field", "add"} or not isinstance(extent["length_field"], str) or type(extent["add"]) is not int or extent["add"] not in {0, 1}:
++                    raise MigrationRejected("E_C_VIEW_CONTRACT", "Buffer extent must be an unsigned record field plus zero or one")
++                ident(extent["length_field"])
++                fields[field] = dict(extent)
++            self.views[name] = fields
++        if not self.views:
++            raise MigrationRejected("E_C_VIEW_CONTRACT", "At least one record view is required")
++        value_functions = {}
++        for name, specification in contracts["functions"].items():
++            ident(name)
++            if not isinstance(specification, dict) or set(specification) != {"slices", "records"} or not isinstance(specification["records"], dict):
++                raise MigrationRejected("E_C_VIEW_CONTRACT", "Each function requires exact slices/records maps")
++            value_functions[name] = {"slices": specification["slices"]}
++        self.value_contracts = {"schema": "hepta.c-contracts.v1", "functions": value_functions}
++        super().__init__(capture, self.value_contracts)
++        self.contracts = copy.deepcopy(contracts)
++        self.slice_bindings = {}
++        self.record_bindings = {}
++        self.pending_locals = {}
++        self.initialized_fields = set()
++        self.initializer_pointer_fields = set()
++
++    def field_type(self, record: str, field: dict) -> str:
++        name = field.get("name")
++        specification = self.views.get(record, {}).get(name)
++        if specification is None:
++            return super().field_type(record, field)
++        raw = field["type"].get("desugaredQualType", field["type"].get("qualType", ""))
++        pointer = re.fullmatch(r"([^*]+?)\s*\*", raw)
++        if pointer is None or re.search(r"\b(?:const|volatile|restrict|_Atomic)\b", raw):
++            raise MigrationRejected("E_C_VIEW_FIELD", "Record buffers require one unqualified primitive pointer")
++        element = self.typ(pointer[1])
++        if element not in NUMBER:
++            raise MigrationRejected("E_C_VIEW_FIELD", "Record buffer elements must be primitive numeric values")
++        specification["element"] = element
++        return "view:" + element
++
++    def collect(self):
++        super().collect()
++        if set(self.views) - set(self.record_nodes):
++            raise MigrationRejected("E_C_VIEW_CONTRACT", "Record contract names an absent record")
++        for record, buffers in self.views.items():
++            fields = dict(self.records["C_" + record])
++            if any(not typ.startswith("view:") and typ not in NUMBER | {"bool"} for typ in fields.values()):
++                raise MigrationRejected("E_C_VIEW_FIELD", "Record-view state fields must be primitive scalars")
++            for name, specification in buffers.items():
++                if "element" not in specification or fields.get("f_" + specification["length_field"]) not in {"usize", "u64", "u32"}:
++                    raise MigrationRejected("E_C_VIEW_FIELD", "Every buffer field and unsigned length field must exist in the captured record")
++        if set(self.record_nodes) != set(self.views):
++            raise MigrationRejected("E_C_VIEW_CONTRACT", "Every record declaration in a view-profile module needs an explicit view contract")
++        for fn in self.functions.values():
++            if fn["initializer"]:
++                self._validate_initializer(fn)
++
++    def signature(self, node, key, unit, model):
++        name = node["name"]
++        contract = self.contracts["functions"].get(name)
++        if contract is None:
++            raise MigrationRejected("E_C_VIEW_CONTRACT", "Every view-profile function needs an explicit complete contract")
++        value_node = copy.deepcopy(node)
++        record_parameters = {}
++        used = set()
++        ordinal = 0
++        for child in value_node.get("inner", []):
++            if child.get("kind") != "ParmVarDecl":
++                continue
++            raw = child["type"].get("qualType", "")
++            pointer = re.fullmatch(r"(const\s+)?([^*]+?)\s*\*", raw)
++            record_type = None
++            if pointer:
++                try:
++                    record_type = self.typ(pointer[2], model=model)
++                except MigrationRejected:
++                    pass
++            if record_type and record_type.startswith("C_") and record_type[2:] in self.views:
++                pname = child.get("name", "")
++                selectors = [selector for selector in (pname, str(ordinal)) if selector in contract["records"]]
++                if len(selectors) != 1:
++                    raise MigrationRejected("E_C_VIEW_CONTRACT", "Record pointer needs exactly one name or ordinal contract")
++                selector = selectors[0]
++                used.add(selector)
++                spec = contract["records"][selector]
++                if not isinstance(spec, dict) or set(spec) not in ({"access"}, {"access", "initialize"}) or spec.get("access") not in {"read", "mut"}:
++                    raise MigrationRejected("E_C_VIEW_CONTRACT", "Record contract requires read/mut access and optional initialize map")
++                if pointer[1] and spec["access"] == "mut":
++                    raise MigrationRejected("E_C_VIEW_CONTRACT", "const record cannot become mutable")
++                init = spec.get("initialize")
++                if init is not None and (spec["access"] != "mut" or not isinstance(init, dict) or set(init) != set(self.views[record_type[2:]]) or not all(isinstance(value, str) for value in init.values())):
++                    raise MigrationRejected("E_C_VIEW_CONTRACT", "Initializer must map every pointer field to an explicit slice parameter")
++                record_parameters[ordinal] = (record_type, spec, bool(pointer[1]))
++                child["type"] = {"qualType": pointer[2]}
++            ordinal += 1
++        if set(contract["records"]) != used or len(record_parameters) > 1:
++            raise MigrationRejected("E_C_VIEW_CONTRACT", "This profile supports at most one fully contracted record parameter per function")
++        original_contract = self.contracts
++        try:
++            self.contracts = self.value_contracts
++            result = super().signature(value_node, key, unit, model)
++        finally:
++            self.contracts = original_contract
++        if result["return"].startswith("C_") or any(p["type"].startswith("C_") and index not in record_parameters for index, p in enumerate(result["params"])):
++            raise MigrationRejected("E_C_VIEW_VALUE_ABI", "Pointer-bearing records cannot cross by-value ABI boundaries after view decomposition")
++        result["initializer"] = False
++        for index, (typ, spec, const) in record_parameters.items():
++            param = result["params"][index]
++            param.update(pointer=True, record=True, type=typ, mode=spec["access"], c_const=const,
++                         initialize=spec.get("initialize"))
++            if spec.get("initialize") is not None:
++                result["initializer"] = True
++                params_by_name = {p["name"]: p for p in result["params"]}
++                for field, source in spec["initialize"].items():
++                    source_param = params_by_name.get(source)
++                    if source_param is None or not source_param["pointer"] or source_param.get("record") or source_param["mode"] != "mut" or source_param["type"] != self.views[typ[2:]][field].get("element"):
++                        raise MigrationRejected("E_C_VIEW_INIT", "Initializer buffer source must be a compatible mutable slice parameter")
++        result["shape"] = (result["return"], [(p["type"], p["pointer"], p["mode"], p.get("c_const"), p.get("c_void"), p.get("initialize")) for p in result["params"]])
++        return result
++
++    def _validate_initializer(self, fn):
++        if fn["return"] != "Unit":
++            raise MigrationRejected("E_C_VIEW_INIT", "Record initialization must have void return and complete straight-line writes")
++        record = next(p for p in fn["params"] if p.get("initialize") is not None)
++        assigned = set()
++        fields = {name[2:] for name, _ in self.records[record["type"]]}
++        for statement in fn["body"].get("inner", []):
++            if self._void_noop(statement):
++                continue
++            if statement.get("kind") != "BinaryOperator" or statement.get("opcode") != "=" or len(statement.get("inner", [])) != 2:
++                raise MigrationRejected("E_C_VIEW_INIT", "Initializer accepts only one assignment to every record field; assertions must remain in the captured build configuration")
++            left, right = statement["inner"]
++            base = peel(left.get("inner", [{}])[0])
++            if left.get("kind") != "MemberExpr" or not left.get("isArrow") or base.get("referencedDecl", {}).get("id") != record["id"] or left.get("name") in assigned:
++                raise MigrationRejected("E_C_VIEW_INIT", "Initializer must assign each target field exactly once")
++            if any(n.get("referencedDecl", {}).get("id") == record["id"] for n in nodes(right)):
++                raise MigrationRejected("E_C_VIEW_INIT", "Initializer cannot read possibly uninitialized record storage")
++            field = left["name"]
++            if field in record["initialize"]:
++                source = peel(right).get("referencedDecl", {})
++                expected = next(p for p in fn["params"] if p["name"] == record["initialize"][field])
++                if source.get("id") != expected["id"]:
++                    raise MigrationRejected("E_C_VIEW_INIT", "Pointer initialization differs from its declared unchanged slice parameter")
++            assigned.add(field)
++        if assigned != fields:
++            raise MigrationRejected("E_C_VIEW_INIT", "Initializer does not fully initialize every declared field")
++
++    @staticmethod
++    def _void_noop(node):
++        node = peel(node)
++        return node.get("kind") == "CStyleCastExpr" and node.get("castKind") == "ToVoid" and len(node.get("inner", [])) == 1 and peel(node["inner"][0]).get("kind") == "IntegerLiteral"
++
++    def _slice(self, value):
++        info = self.slice_bindings.get(value.text)
++        if not value.typ.startswith("slice:") or info is None:
++            raise MigrationRejected("E_C_VIEW_CURSOR", "Pointer must be a tracked parameter, record buffer or local cursor")
++        return info
++
++    def _member(self, node):
++        base = self.expr(node["inner"][0])
++        parameter = self.record_bindings.get(base.text)
++        if parameter is None:
++            raise MigrationRejected("E_C_VIEW_RECORD", "Arrow operation needs a contracted record parameter")
++        return base, parameter
++
++    def expr(self, node):
++        kind, children = node.get("kind"), node.get("inner", [])
++        if kind == "MemberExpr" and node.get("isArrow") and len(children) == 1:
++            base, param = self._member(node)
++            field = "f_" + ident(node["name"])
++            typ = dict(self.records[param["type"]]).get(field)
++            if typ is None:
++                raise MigrationRejected("E_C_VIEW_RECORD", "Unknown record field")
++            if typ.startswith("view:"):
++                if param.get("initialize") is not None:
++                    raise MigrationRejected("E_C_VIEW_INIT", "Initializer cannot read its old buffer field")
++                return Expression(base.text + "_" + field, "slice:" + typ[5:])
++            return Expression(base.text + "." + field, typ)
++        if kind == "ArraySubscriptExpr" and len(children) == 2:
++            base, index = self.expr(children[0]), self.expr(children[1])
++            info = self._slice(base)
++            if index.typ not in INTEGER or index.side_effect:
++                raise MigrationRejected("E_C_VIEW_CURSOR", "Cursor index must be a pure integer")
++            # C indexes are relative to the cursor, and a negative signed
++            # index can still identify a live earlier element in this view.
++            # All accepted C integers are at most 64 bits. Widen *before*
++            # adding, then check the absolute position before narrowing.
++            return Expression(f"{info['base']}[c_view_index({info['offset']}, ({index.text} as i128), len(read {info['base']}))]", base.typ[6:])
++        if kind == "UnaryOperator" and node.get("opcode") == "*" and len(children) == 1:
++            value = self.expr(children[0])
++            info = self._slice(value)
++            return Expression(f"{info['base']}[{info['offset']}]", value.typ[6:])
++        if kind == "BinaryOperator" and node.get("opcode") in {"&&", "||"} and len(children) == 2:
++            lhs, rhs = truth(self.expr(children[0])), truth(self.expr(children[1]))
++            return Expression(f"({lhs.text} {node['opcode']} {rhs.text})", "bool", lhs.side_effect or rhs.side_effect)
++        if kind == "CallExpr" and children:
++            ref = peel(children[0]).get("referencedDecl", {})
++            target = self.functions.get(f"local_{self.current['unit']}_{ref.get('name')}") or self.functions.get(ref.get("name"))
++            if ref.get("kind") != "FunctionDecl" or target is None or len(children) - 1 != len(target["params"]) or target["initializer"]:
++                raise MigrationRejected("E_C_CALL", "Only captured non-initializing direct calls are allowed in view-profile bodies")
++            arguments = []
++            for child, parameter in zip(children[1:], target["params"]):
++                value = self.expr(child)
++                if value.side_effect:
++                    raise MigrationRejected("E_C_EVALUATION_ORDER", "Nested mutating call arguments require explicit sequencing")
++                if parameter.get("record"):
++                    source = self.record_bindings.get(value.text)
++                    if source is None or source["type"] != parameter["type"] or (parameter["mode"] == "mut" and source["mode"] != "mut"):
++                        raise MigrationRejected("E_C_READ_ONLY", "Record call requires a compatible unchanged borrowed record")
++                    arguments.append(parameter["mode"] + " " + value.text)
++                    for field in self.views[parameter["type"][2:]]:
++                        arguments.append(parameter["mode"] + " " + value.text + "_f_" + field)
++                elif parameter["pointer"]:
++                    info = self._slice(value)
++                    if value.typ != "slice:" + parameter["type"] or parameter["mode"] == "mut" and info["mode"] != "mut":
++                        raise MigrationRejected("E_C_READ_ONLY", "Cannot mutate or reinterpret a borrowed slice")
++                    arguments.extend([parameter["mode"] + " " + info["base"], info["offset"]])
++                else:
++                    arguments.append(cast(value, parameter["type"]).text)
++            side = any(p["mode"] == "mut" for p in target["params"])
++            return Expression(target["hepta_name"] + "(" + ", ".join(arguments) + ")", target["return"], side)
++        return super().expr(node)
++
++    def lvalue(self, node):
++        if node.get("kind") == "MemberExpr" and node.get("isArrow"):
++            _, parameter = self._member(node)
++            if parameter["mode"] != "mut":
++                raise MigrationRejected("E_C_READ_ONLY", "Read-only record view cannot be written")
++            if parameter.get("initialize") is None and node.get("name") in {spec["length_field"] for spec in self.views[parameter["type"][2:]].values()}:
++                raise MigrationRejected("E_C_VIEW_EXTENT_WRITE", "Buffer extent fields are immutable outside complete initialization")
++            result = self.expr(node)
++            if result.typ.startswith("slice:"):
++                raise MigrationRejected("E_C_VIEW_POINTER_WRITE", "Record pointer fields can only be written by their complete initializer")
++            return result
++        if node.get("kind") == "ArraySubscriptExpr" or node.get("kind") == "UnaryOperator" and node.get("opcode") == "*":
++            info = self._slice(self.expr(node["inner"][0]))
++            if info["mode"] != "mut":
++                raise MigrationRejected("E_C_READ_ONLY", "Cannot write a read-only cursor")
++            return self.expr(node)
++        return super().lvalue(node)
++
++    def stmt(self, node, depth=1):
++        kind, children = node.get("kind"), node.get("inner", [])
++        pad = "    " * depth
++        if self._void_noop(node):
++            return []
++        if kind == "DeclStmt":
++            lines = []
++            for child in children:
++                if child.get("kind") != "VarDecl" or child.get("storageClass"):
++                    raise MigrationRejected("E_C_LOCAL", "Only ordinary automatic locals are supported")
++                raw = child.get("type", {}).get("qualType", "")
++                if "*" in raw:
++                    if len(child.get("inner", [])) != 1:
++                        raise MigrationRejected("E_C_VIEW_CURSOR", "A local cursor requires an unchanged slice initializer")
++                    source = self.expr(child["inner"][0])
++                    info = self._slice(source)
++                    # Use the original cast/type checker to prevent element reinterpretation.
++                    pointer = re.fullmatch(r"(const\s+)?([^*]+?)\s*\*", raw)
++                    if pointer is None or self.typ(pointer[2]) != source.typ[6:]:
++                        raise MigrationRejected("E_C_VIEW_CURSOR", "Cursor element type differs from its borrowed storage")
++                    self.counter += 1
++                    name = "cursor_" + ident(child["name"]) + "_" + str(self.counter)
++                    offset = name + "_offset"
++                    lines.append(f"{pad}let mut {offset}: usize = {info['offset']};")
++                    self.bindings[child["id"]] = Expression(name, source.typ)
++                    self.slice_bindings[name] = dict(info, offset=offset, local=True)
++                elif not child.get("inner"):
++                    self.pending_locals[child["id"]] = (child, depth)
++                else:
++                    lines.extend(super().stmt(dict(node, inner=[child]), depth))
++            return lines
++        if kind == "BinaryOperator" and node.get("opcode") == "=" and len(children) == 2:
++            left, right = children
++            ref = left.get("referencedDecl", {})
++            if ref.get("id") in self.pending_locals:
++                child, declared_depth = self.pending_locals.pop(ref["id"])
++                if declared_depth != depth:
++                    raise MigrationRejected("E_C_LOCAL", "Uninitialized scalar must receive its first assignment unconditionally in the same scope")
++                return super().stmt({"kind": "DeclStmt", "inner": [dict(child, inner=[right])]}, depth)
++            if self.current["initializer"] and left.get("kind") == "MemberExpr" and left.get("name") in next(p for p in self.current["params"] if p.get("initialize") is not None)["initialize"]:
++                return []  # Fully checked structural initialization; the ABI edge stores the original pointer.
++        if kind == "UnaryOperator" and node.get("opcode") == "++" and len(children) == 1:
++            value = self.expr(children[0])
++            if value.typ.startswith("slice:"):
++                info = self._slice(value)
++                if not info.get("local"):
++                    raise MigrationRejected("E_C_VIEW_CURSOR", "Only explicit local slice cursors may advance")
++                return [f"{pad}{info['offset']} = {info['offset']} + (1 as usize);",
++                        f"{pad}assert({info['offset']} <= len(read {info['base']}));"]
++        if kind in {"IfStmt", "WhileStmt"}:
++            if len(children) not in ({2, 3} if kind == "IfStmt" else {2}):
++                raise MigrationRejected("E_C_CONTROL", "Unexpected conditional AST")
++            condition = truth(self.expr(children[0]))
++            out = [f"{pad}{'if' if kind == 'IfStmt' else 'while'} {condition.text} {{", *self.stmt(children[1], depth + 1), pad + "}"]
++            if len(children) == 3:
++                out += [pad + "else {", *self.stmt(children[2], depth + 1), pad + "}"]
++            return out
++        return super().stmt(node, depth)
++
++    def emit(self):
++        self.collect()
++        pieces = ["module c_record_views_migrated;",
++                  "// Scalar state plus explicit slices; foreign record/storage contracts remain external.",
++                  "fn c_bool_to_int(value: bool) -> i32 effects {} { if value { return 1; } else { return 0; } }",
++                  "fn c_view_index(offset: usize, index: i128, length: usize) -> usize effects {panic} {\n"
++                  "    let absolute: i128 = (offset as i128) + index;\n"
++                  "    assert(absolute >= 0);\n"
++                  "    assert(absolute < (length as i128));\n"
++                  "    return absolute as usize;\n}"]
++        for name, fields in sorted(self.records.items()):
++            scalars = [(field, typ) for field, typ in fields if not typ.startswith("view:")]
++            if not scalars:
++                raise MigrationRejected("E_C_VIEW_RECORD", "A record view requires nonempty scalar state")
++            pieces.append("pub struct " + name + " { " + ", ".join(f"{field}: {typ}" for field, typ in scalars) + ", }")
++        reports = []
++        for _, fn in sorted(self.functions.items()):
++            self.current, self.bindings, self.binding_modes, self.counter = fn, {}, {}, 0
++            self.slice_bindings, self.record_bindings, self.pending_locals = {}, {}, {}
++            parameters, entry = [], []
++            for param in fn["params"]:
++                pname = "p_" + param["name"]
++                if param.get("record"):
++                    parameters.append(f"{pname}: {param['mode']} {param['type']}")
++                    self.bindings[param["id"]] = Expression(pname, "record:" + param["type"])
++                    self.record_bindings[pname] = param
++                    if param.get("initialize") is None:
++                        for field, specification in self.views[param["type"][2:]].items():
++                            bname = pname + "_f_" + field
++                            parameters.append(f"{bname}: {param['mode']} [{specification['element']}]")
++                            self.slice_bindings[bname] = {"base": bname, "offset": "(0 as usize)", "mode": param["mode"]}
++                            extent = f"({pname}.f_{specification['length_field']} as usize)"
++                            if specification["add"]:
++                                extent = "(" + extent + " + (1 as usize))"
++                            entry.append(f"    assert({extent} <= len(read {bname}));")
++                elif param["pointer"]:
++                    parameters.extend([f"{pname}: {param['mode']} [{param['type']}]", f"{pname}_offset: usize"])
++                    self.bindings[param["id"]] = Expression(pname, "slice:" + param["type"])
++                    self.slice_bindings[pname] = {"base": pname, "offset": pname + "_offset", "mode": param["mode"]}
++                    length = "(1 as usize)" if type(param["length"]) is int else "(p_" + param["length"] + " as usize)"
++                    entry.extend([f"    assert({pname}_offset <= len(read {pname}));",
++                                  f"    assert({length} <= (len(read {pname}) - {pname}_offset));"])
++                else:
++                    parameters.append(f"{pname}: {param['type']}")
++                    vname = "v_" + param["name"]
++                    self.bindings[param["id"]] = Expression(vname, param["type"])
++                    entry.append(f"    let mut {vname}: {param['type']} = {pname};")
++            lines = self.stmt(fn["body"])
++            if fn["initializer"]:
++                record = next(p for p in fn["params"] if p.get("initialize") is not None)
++                for field, specification in self.views[record["type"][2:]].items():
++                    source = "p_" + record["initialize"][field]
++                    extent = f"(p_{record['name']}.f_{specification['length_field']} as usize)"
++                    if specification["add"]:
++                        extent = "(" + extent + " + (1 as usize))"
++                    lines.append(f"    assert({extent} <= (len(read {source}) - {source}_offset));")
++            pieces.append(f"pub fn {fn['hepta_name']}({', '.join(parameters)}) -> {fn['return']} effects {{panic, write}} {{\n" + "\n".join(entry + lines) + "\n}")
++            fn["inventory"].update(status="function_converted", reason=None)
++            reports.append({k: v for k, v in fn.items() if k not in {"body", "node", "inventory", "model", "shape"}})
++            reports[-1]["params"] = [{k: v for k, v in p.items() if k != "id"} for p in fn["params"]]
++        return "\n\n".join(pieces) + "\n", self.bridge(), reports
++
++    def bridge(self):
++        pieces = ["// Caller-unsafe original C ABI. Initialized live disjoint storage is an external obligation.",
++                  "// Numeric interval checks reject overlap; they do not prove provenance or allocation extent.",
++                  "fn __hepta_view_range(address: usize, count: usize, size: usize, align: usize) -> (usize, usize) {\n"
++                  "    if count > (isize::MAX as usize) / size || count != 0 && (address == 0 || address % align != 0) { std::process::abort(); }\n"
++                  "    let bytes = count.checked_mul(size).unwrap_or_else(|| std::process::abort());\n"
++                  "    (address, address.checked_add(bytes).unwrap_or_else(|| std::process::abort()))\n}",
++                  "fn __hepta_view_disjoint(a: (usize, usize), b: (usize, usize)) {\n"
++                  "    if a.0 < a.1 && b.0 < b.1 && a.0 < b.1 && b.0 < a.1 { std::process::abort(); }\n}"]
++        for name, fields in sorted(self.records.items()):
++            lines = []
++            for field, typ in fields:
++                rt = "*mut " + typ[5:] if typ.startswith("view:") else self.rust_type(typ)
++                lines.append(f"    {field}: {rt},")
++            pieces.append("#[repr(C)]\n#[derive(Clone, Copy)]\npub struct __HeptaAbi_" + name + " {\n" + "\n".join(lines) + "\n}")
++        for index, fn in enumerate(sorted(self.functions.values(), key=lambda f: f["key"])):
++            if not fn["external_symbol"]:
++                continue
++            params, prelude, borrows, args, finish, ranges = [], [], [], [], [], []
++            for param in fn["params"]:
++                name, typ = "b_" + param["name"], self.rust_type(param["type"])
++                if param.get("record"):
++                    abi = "__HeptaAbi_" + param["type"]
++                    params.append(f"{name}: *{'const' if param['c_const'] else 'mut'} {abi}")
++                    prelude.append(f"    let r_{name} = __hepta_view_range({name} as usize, 1, core::mem::size_of::<{abi}>(), core::mem::align_of::<{abi}>());")
++                    ranges.append(("r_" + name, param["mode"]))
++                    initial = param.get("initialize") is not None
++                    if not initial:
++                        prelude.append(f"    let a_{name} = unsafe {{ {name}.read() }};")
++                    scalars = [(f, t) for f, t in self.records[param["type"]] if not t.startswith("view:")]
++                    values = ", ".join(f"h_{field}: " + (("false" if field_type == "bool" else "0.0" if field_type in {"f32", "f64"} else "0") if initial else f"a_{name}.{field}") for field, field_type in scalars)
++                    prelude.append(f"    let mut s_{name} = {typ} {{ {values} }};")
++                    args.append(("&mut " if param["mode"] == "mut" else "&") + "s_" + name)
++                    pointer_values = {}
++                    for field, spec in self.views[param["type"][2:]].items():
++                        if initial:
++                            pointer_values["f_" + field] = "b_" + param["initialize"][field]
++                            continue
++                        bname = name + "_f_" + field
++                        expression = f"(a_{name}.f_{spec['length_field']} as usize)"
++                        if spec["add"]:
++                            expression += ".checked_add(1).unwrap_or_else(|| std::process::abort())"
++                        prelude.append(f"    let n_{bname} = {expression};")
++                        prelude.append(f"    let p_{bname} = a_{name}.f_{field};")
++                        self._bridge_slice(bname, "p_" + bname, "n_" + bname, spec["element"], param["mode"], prelude, borrows, ranges)
++                        args.append("s_" + bname)
++                        pointer_values["f_" + field] = f"a_{name}.f_{field}"
++                    if param["mode"] == "mut":
++                        values = ", ".join(f"{field}: " + (pointer_values[field] if field in pointer_values else f"s_{name}.h_{field}") for field, _ in self.records[param["type"]])
++                        finish.append(f"    unsafe {{ {name}.write({abi} {{ {values} }}); }}")
++                elif param["pointer"]:
++                    abi_type = "core::ffi::c_void" if param.get("c_void") else typ
++                    params.append(f"{name}: *{'const' if param['c_const'] else 'mut'} {abi_type}")
++                    size = "1" if type(param["length"]) is int else "b_" + param["length"] + " as usize"
++                    prelude.append(f"    let n_{name} = {size};")
++                    pointer = f"{name}.cast::<{typ}>()" if param.get("c_void") else name
++                    self._bridge_slice(name, pointer, "n_" + name, typ, param["mode"], prelude, borrows, ranges)
++                    args.extend(["s_" + name, "0"])
++                else:
++                    params.append(f"{name}: {typ}")
++                    args.append(name)
++            for i, (left, left_mode) in enumerate(ranges):
++                for right, right_mode in ranges[i + 1:]:
++                    if "mut" in {left_mode, right_mode}:
++                        prelude.append(f"    __hepta_view_disjoint({left}, {right});")
++            body = prelude + borrows + [f"    let result = h_{fn['hepta_name']}({', '.join(args)});"] + finish + ["    result"]
++            pieces.append(f"#[export_name = {json.dumps(fn['name'])}]\npub unsafe extern \"C\" fn __hepta_c_view_export_{index}({', '.join(params)}) -> {self.rust_type(fn['return'])} {{\n" + "\n".join(body) + "\n}")
++        return "\n\n".join(pieces) + "\n"
++
++    @staticmethod
++    def _bridge_slice(name, pointer, length, typ, mode, prelude, borrows, ranges):
++        prelude.append(f"    let r_{name} = __hepta_view_range({pointer} as usize, {length}, core::mem::size_of::<{typ}>(), core::mem::align_of::<{typ}>());")
++        ranges.append(("r_" + name, mode))
++        method = "from_raw_parts_mut" if mode == "mut" else "from_raw_parts"
++        empty = "&mut []" if mode == "mut" else "&[]"
++        borrows.append(f"    let s_{name} = if {length} == 0 {{ {empty} }} else {{ unsafe {{ core::slice::{method}({pointer}, {length}) }} }};")
++
++    def view_report(self):
++        return {"schema": "hepta.c-record-view-report.v1", "records": self.views,
++                "safe_core": "scalar_records_plus_explicit_borrowed_slices_no_raw_pointers",
++                "original_record_abi": "generated_repr_C_caller_unsafe_bridge",
++                "runtime_checks": ["non-null/alignment/representable length", "numeric mutable storage non-overlap", "cursor and element bounds"],
++                "remaining_obligations": ["initialized live record and complete buffer storage", "pointer provenance and allocation extent", "foreign concurrency exclusion", "record extent field validity", "captured build configuration only"],
++                "allocation_inference": False, "ownership_inference": False,
++                "stored_references_added_to_language": False, "source_equivalence_proved": False}
+diff --git a/hepta/c_translation.py b/hepta/c_translation.py
+index 9820ccf..178ebe6 100644
+--- a/hepta/c_translation.py
++++ b/hepta/c_translation.py
+@@ -101,10 +101,10 @@ class CTranslator:
+                  "unsigned long": "u" + str(model["long_bits"]), "long long": "i64", "unsigned long long": "u64",
+                  "size_t": "usize", "ptrdiff_t": "isize", "float": "f32", "double": "f64"}
+         types.update({f"{s}int{w}_t": f"{'u' if s else 'i'}{w}" for s in ("", "u") for w in (8, 16, 32, 64)})
+-        if qual in types:
+-            return types[qual]
+         if qual in self.aliases:
+             return self.aliases[qual]
++        if qual in types:
++            return types[qual]
+         if qual.startswith("struct ") and qual[7:] in self.record_nodes:
+             return "C_" + ident(qual[7:])
+         if isinstance(data, dict) and data.get("desugaredQualType") and data["desugaredQualType"] != qual:
+@@ -116,6 +116,9 @@ class CTranslator:
+         loc = node.get("loc") or node.get("range", {}).get("begin", {})
+         return loc.get("expansionLoc", loc.get("spellingLoc", loc))
+ 
++    def field_type(self, record: str, field: dict) -> str:
++        return self.typ(field["type"])
++
+     def collect(self) -> None:
+         deferred_errors = []
+         for config in self.capture["configurations"]:
+@@ -144,7 +147,9 @@ class CTranslator:
+                     continue
+                 self.declarations.append((config["index"], node, item))
+                 if kind == "RecordDecl":
+-                    if not node.get("completeDefinition") or node.get("tagUsed") != "struct" or name == "<anonymous>":
++                    if not node.get("completeDefinition") and node.get("tagUsed") == "struct" and name != "<anonymous>" and getattr(self, "allow_record_views", False):
++                        item.update(status="record_forward_pending", reason=None)
++                    elif not node.get("completeDefinition") or node.get("tagUsed") != "struct" or name == "<anonymous>":
+                         item.update(status="rejected", reason="unsupported_record")
+                         deferred_errors.append(("E_C_RECORD", "Only complete named ordinary structs are supported"))
+                     else:
+@@ -153,6 +158,9 @@ class CTranslator:
+                     item.update(status="rejected", reason="unsupported_top_level_declaration")
+                     deferred_errors.append(("E_C_TOPLEVEL", f"Unsupported project declaration: {kind} {name}"))
+         self.inventory_complete = True
++        models = [config["model"] for config in self.capture["configurations"]]
++        if any(model != models[0] for model in models[1:]):
++            raise MigrationRejected("E_C_PROJECT_MODEL", "All translation units in one bundle must use the same captured C data model, including plain-char signedness")
+         if deferred_errors:
+             code, message = deferred_errors[0]
+             raise MigrationRejected(code, message)
+@@ -179,11 +187,18 @@ class CTranslator:
+         for _, node, item in self.declarations:
+             if node["kind"] != "RecordDecl":
+                 continue
++            if item["status"] == "record_forward_pending":
++                if node["name"] not in self.record_nodes:
++                    raise MigrationRejected("E_C_RECORD", "Forward record has no captured complete definition")
++                item.update(status="record_forward_resolved", reason=None)
++                continue
+             fields = []
+             for field in node.get("inner", []):
+-                if field.get("kind") != "FieldDecl" or field.get("isBitfield") or field.get("inner"):
++                if field.get("kind") == "FullComment":
++                    continue
++                if field.get("kind") != "FieldDecl" or field.get("isBitfield") or any(child.get("kind") != "FullComment" for child in field.get("inner", [])):
+                     raise MigrationRejected("E_C_RECORD", "Packed, attributed, anonymous and bitfield records are unsupported")
+-                fields.append(("f_" + ident(field["name"]), self.typ(field["type"])))
++                fields.append(("f_" + ident(field["name"]), self.field_type(node["name"], field)))
+             if not fields:
+                 raise MigrationRejected("E_C_RECORD", "Empty C record unsupported")
+             name = "C_" + node["name"]
+diff --git a/tests/fixtures/c_migration/ring_buffer/LICENSE b/tests/fixtures/c_migration/ring_buffer/LICENSE
+new file mode 100644
+index 0000000..4e5491e
+--- /dev/null
++++ b/tests/fixtures/c_migration/ring_buffer/LICENSE
+@@ -0,0 +1,21 @@
++The MIT License (MIT)
++
++Copyright (c) 2014 Anders Kalør
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
+\ No newline at end of file
+diff --git a/tests/fixtures/c_migration/ring_buffer/PROVENANCE.md b/tests/fixtures/c_migration/ring_buffer/PROVENANCE.md
+new file mode 100644
+index 0000000..f7a675a
+--- /dev/null
++++ b/tests/fixtures/c_migration/ring_buffer/PROVENANCE.md
+@@ -0,0 +1,19 @@
++# Frozen upstream stateful ring buffer
++
++Repository: https://github.com/AndersKaloer/Ring-Buffer
++
++Commit: `8de8fff55a0baee4fef2a1c6a82d258a27c3c0ba`
++
++`ringbuffer.c`, `ringbuffer.h`, `LICENSE` and `UPSTREAM_README.md` contain the
++unmodified bytes of the paths recorded in `UPSTREAM.json`. The last file is
++upstream `README.md` under a local disambiguating filename. MIT terms are
++retained in `LICENSE`; generated derivatives retain them too.
++
++`contracts.json` and this provenance note are authored Hepta qualification
++inputs, not files represented as upstream. The contract describes borrowed
++caller-owned storage, not automatic ownership inference. The build captures
++C11, `NDEBUG` and unsigned plain chars. No broader configuration or whole-C
++migration claim follows from this qualification.
++
++See `docs/C_RECORD_VIEWS.md` for the declaration denominator, boundary
++obligations, independent oracle, allocation-owning Hepta caller and cost model.
+diff --git a/tests/fixtures/c_migration/ring_buffer/UPSTREAM.json b/tests/fixtures/c_migration/ring_buffer/UPSTREAM.json
+new file mode 100644
+index 0000000..eb5b0ea
+--- /dev/null
++++ b/tests/fixtures/c_migration/ring_buffer/UPSTREAM.json
+@@ -0,0 +1,36 @@
++{
++  "repository": "https://github.com/AndersKaloer/Ring-Buffer",
++  "commit": "8de8fff55a0baee4fef2a1c6a82d258a27c3c0ba",
++  "license": "MIT",
++  "scope": "complete ringbuffer.c and ringbuffer.h, exact C11 unsigned-char NDEBUG configuration",
++  "files": [
++    {
++      "upstream_path": "ringbuffer.c",
++      "local_path": "ringbuffer.c",
++      "git_blob": "39fbea599e9e2c62561f1cd2e80bb08717e9e656",
++      "sha256": "21fde4113929246e00ad79533f83bb6def2bb154a18c12c2d84159bc61d4c39f",
++      "bytes": 2203
++    },
++    {
++      "upstream_path": "ringbuffer.h",
++      "local_path": "ringbuffer.h",
++      "git_blob": "36da6eb18805853f79f5b558714204517fd969a0",
++      "sha256": "065589a731ffa8367ace4a17885968a53f35e265c7d0d45cdddbe3fa09cfa9e9",
++      "bytes": 4446
++    },
++    {
++      "upstream_path": "LICENSE",
++      "local_path": "LICENSE",
++      "git_blob": "4e5491e49deef7fce4c58480177f501d8cc8dea9",
++      "sha256": "b894277418ceef41a36383e6337978192505f2385f36a6cb8d27cb5c4b4db36d",
++      "bytes": 1079
++    },
++    {
++      "upstream_path": "README.md",
++      "local_path": "UPSTREAM_README.md",
++      "git_blob": "9936f6af274d25abdc0a87f77595df41d49a25d7",
++      "sha256": "163b43e9963400e1afeb55c82ddb8048c27d1ffd73ab64f52ae1c4a44e10bd6c",
++      "bytes": 1325
++    }
++  ]
++}
+diff --git a/tests/fixtures/c_migration/ring_buffer/UPSTREAM_README.md b/tests/fixtures/c_migration/ring_buffer/UPSTREAM_README.md
+new file mode 100644
+index 0000000..9936f6a
+--- /dev/null
++++ b/tests/fixtures/c_migration/ring_buffer/UPSTREAM_README.md
+@@ -0,0 +1,28 @@
++Ring-Buffer
++===========
++
++A simple ring buffer (circular buffer) designed for embedded systems.
++
++Examples are given in [examples/simple.c](examples/simple.c) and [examples/tail.c](examples/tail.c).
++
++The size of the memory buffer must be a power-of-two, and the ring buffer can contain at most `buf_size-1` bytes.
++
++A new ring buffer is created using the ` ring_buffer_init(&ring_buffer, buff, sizeof(buff))` function:
++```c
++char buff[64];
++ring_buffer_t ring_buffer;
++ring_buffer_init(&ring_buffer, buff, sizeof(buff));
++```
++In this case, the buffer size is 64 bytes and the ring buffer can contain 63 bytes.
++
++The module provides the following functions for accessing the ring buffer (documentation can be found in [ringbuffer.h](ringbuffer.h)):
++```c
++void ring_buffer_queue(ring_buffer_t *buffer, char data);
++void ring_buffer_queue_arr(ring_buffer_t *buffer, const char *data, ring_buffer_size_t size);
++uint8_t ring_buffer_dequeue(ring_buffer_t *buffer, char *data);
++ring_buffer_size_t ring_buffer_dequeue_arr(ring_buffer_t *buffer, char *data, ring_buffer_size_t len);
++uint8_t ring_buffer_peek(ring_buffer_t *buffer, char *data, ring_buffer_size_t index);
++uint8_t ring_buffer_is_empty(ring_buffer_t *buffer);
++uint8_t ring_buffer_is_full(ring_buffer_t *buffer);
++ring_buffer_size_t ring_buffer_num_items(ring_buffer_t *buffer);
++```
+diff --git a/tests/fixtures/c_migration/ring_buffer/contracts.json b/tests/fixtures/c_migration/ring_buffer/contracts.json
+new file mode 100644
+index 0000000..474d30a
+--- /dev/null
++++ b/tests/fixtures/c_migration/ring_buffer/contracts.json
+@@ -0,0 +1,115 @@
++{
++  "schema": "hepta.c-record-views.v1",
++  "records": {
++    "ring_buffer_t": {
++      "buffers": {
++        "buffer": {
++          "length_field": "buffer_mask",
++          "add": 1
++        }
++      }
++    }
++  },
++  "functions": {
++    "ring_buffer_init": {
++      "records": {
++        "buffer": {
++          "access": "mut",
++          "initialize": {
++            "buffer": "buf"
++          }
++        }
++      },
++      "slices": {
++        "buf": {
++          "access": "mut",
++          "length": "buf_size"
++        }
++      }
++    },
++    "ring_buffer_queue": {
++      "records": {
++        "buffer": {
++          "access": "mut"
++        }
++      },
++      "slices": {}
++    },
++    "ring_buffer_queue_arr": {
++      "records": {
++        "buffer": {
++          "access": "mut"
++        }
++      },
++      "slices": {
++        "data": {
++          "access": "read",
++          "length": "size"
++        }
++      }
++    },
++    "ring_buffer_dequeue": {
++      "records": {
++        "buffer": {
++          "access": "mut"
++        }
++      },
++      "slices": {
++        "data": {
++          "access": "mut",
++          "length": 1
++        }
++      }
++    },
++    "ring_buffer_dequeue_arr": {
++      "records": {
++        "buffer": {
++          "access": "mut"
++        }
++      },
++      "slices": {
++        "data": {
++          "access": "mut",
++          "length": "len"
++        }
++      }
++    },
++    "ring_buffer_peek": {
++      "records": {
++        "buffer": {
++          "access": "mut"
++        }
++      },
++      "slices": {
++        "data": {
++          "access": "mut",
++          "length": 1
++        }
++      }
++    },
++    "ring_buffer_is_empty": {
++      "records": {
++        "buffer": {
++          "access": "read"
++        }
++      },
++      "slices": {}
++    },
++    "ring_buffer_is_full": {
++      "records": {
++        "buffer": {
++          "access": "read"
++        }
++      },
++      "slices": {}
++    },
++    "ring_buffer_num_items": {
++      "records": {
++        "buffer": {
++          "access": "read"
++        }
++      },
++      "slices": {}
++    }
++  }
++}
+diff --git a/tests/fixtures/c_migration/ring_buffer/ringbuffer.c b/tests/fixtures/c_migration/ring_buffer/ringbuffer.c
+new file mode 100644
+index 0000000..39fbea5
+--- /dev/null
++++ b/tests/fixtures/c_migration/ring_buffer/ringbuffer.c
+@@ -0,0 +1,78 @@
++#include "ringbuffer.h"
++
++/**
++ * @file
++ * Implementation of ring buffer functions.
++ */
++
++void ring_buffer_init(ring_buffer_t *buffer, char *buf, size_t buf_size) {
++  RING_BUFFER_ASSERT(RING_BUFFER_IS_POWER_OF_TWO(buf_size) == 1);
++  buffer->buffer = buf;
++  buffer->buffer_mask = buf_size - 1;
++  buffer->tail_index = 0;
++  buffer->head_index = 0;
++}
++
++void ring_buffer_queue(ring_buffer_t *buffer, char data) {
++  /* Is buffer full? */
++  if(ring_buffer_is_full(buffer)) {
++    /* Is going to overwrite the oldest byte */
++    /* Increase tail index */
++    buffer->tail_index = ((buffer->tail_index + 1) & RING_BUFFER_MASK(buffer));
++  }
++
++  /* Place data in buffer */
++  buffer->buffer[buffer->head_index] = data;
++  buffer->head_index = ((buffer->head_index + 1) & RING_BUFFER_MASK(buffer));
++}
++
++void ring_buffer_queue_arr(ring_buffer_t *buffer, const char *data, ring_buffer_size_t size) {
++  /* Add bytes; one by one */
++  ring_buffer_size_t i;
++  for(i = 0; i < size; i++) {
++    ring_buffer_queue(buffer, data[i]);
++  }
++}
++
++uint8_t ring_buffer_dequeue(ring_buffer_t *buffer, char *data) {
++  if(ring_buffer_is_empty(buffer)) {
++    /* No items */
++    return 0;
++  }
++
++  *data = buffer->buffer[buffer->tail_index];
++  buffer->tail_index = ((buffer->tail_index + 1) & RING_BUFFER_MASK(buffer));
++  return 1;
++}
++
++ring_buffer_size_t ring_buffer_dequeue_arr(ring_buffer_t *buffer, char *data, ring_buffer_size_t len) {
++  if(ring_buffer_is_empty(buffer)) {
++    /* No items */
++    return 0;
++  }
++
++  char *data_ptr = data;
++  ring_buffer_size_t cnt = 0;
++  while((cnt < len) && ring_buffer_dequeue(buffer, data_ptr)) {
++    cnt++;
++    data_ptr++;
++  }
++  return cnt;
++}
++
++uint8_t ring_buffer_peek(ring_buffer_t *buffer, char *data, ring_buffer_size_t index) {
++  if(index >= ring_buffer_num_items(buffer)) {
++    /* No items at index */
++    return 0;
++  }
++
++  /* Add index to pointer */
++  ring_buffer_size_t data_index = ((buffer->tail_index + index) & RING_BUFFER_MASK(buffer));
++  *data = buffer->buffer[data_index];
++  return 1;
++}
++
++extern inline uint8_t ring_buffer_is_empty(ring_buffer_t *buffer);
++extern inline uint8_t ring_buffer_is_full(ring_buffer_t *buffer);
++extern inline ring_buffer_size_t ring_buffer_num_items(ring_buffer_t *buffer);
++
+diff --git a/tests/fixtures/c_migration/ring_buffer/ringbuffer.h b/tests/fixtures/c_migration/ring_buffer/ringbuffer.h
+new file mode 100644
+index 0000000..36da6eb
+--- /dev/null
++++ b/tests/fixtures/c_migration/ring_buffer/ringbuffer.h
+@@ -0,0 +1,144 @@
++#include <inttypes.h>
++#include <stddef.h>
++#include <assert.h>
++/**
++ * @file
++ * Prototypes and structures for the ring buffer module.
++ */
++
++#ifndef RINGBUFFER_H
++#define RINGBUFFER_H
++
++#ifdef __cplusplus
++extern "C"
++{
++#endif
++
++#define RING_BUFFER_ASSERT(x) assert(x)
++
++/**
++ * Checks if the buffer_size is a power of two.
++ * Due to the design only <tt> RING_BUFFER_SIZE-1 </tt> items
++ * can be contained in the buffer.
++ * buffer_size must be a power of two.
++*/
++#define RING_BUFFER_IS_POWER_OF_TWO(buffer_size) ((buffer_size & (buffer_size - 1)) == 0)
++
++/**
++ * The type which is used to hold the size
++ * and the indicies of the buffer.
++ */
++typedef size_t ring_buffer_size_t;
++
++/**
++ * Used as a modulo operator
++ * as <tt> a % b = (a & (b − 1)) </tt>
++ * where \c a is a positive index in the buffer and
++ * \c b is the (power of two) size of the buffer.
++ */
++#define RING_BUFFER_MASK(rb) (rb->buffer_mask)
++
++/**
++ * Simplifies the use of <tt>struct ring_buffer_t</tt>.
++ */
++typedef struct ring_buffer_t ring_buffer_t;
++
++/**
++ * Structure which holds a ring buffer.
++ * The buffer contains a buffer array
++ * as well as metadata for the ring buffer.
++ */
++struct ring_buffer_t {
++  /** Buffer memory. */
++  char *buffer;
++  /** Buffer mask. */
++  ring_buffer_size_t buffer_mask;
++  /** Index of tail. */
++  ring_buffer_size_t tail_index;
++  /** Index of head. */
++  ring_buffer_size_t head_index;
++};
++
++/**
++ * Initializes the ring buffer pointed to by <em>buffer</em>.
++ * This function can also be used to empty/reset the buffer.
++ * The resulting buffer can contain <em>buf_size-1</em> bytes.
++ * @param buffer The ring buffer to initialize.
++ * @param buf The buffer allocated for the ringbuffer.
++ * @param buf_size The size of the allocated ringbuffer.
++ */
++void ring_buffer_init(ring_buffer_t *buffer, char *buf, size_t buf_size);
++
++/**
++ * Adds a byte to a ring buffer.
++ * @param buffer The buffer in which the data should be placed.
++ * @param data The byte to place.
++ */
++void ring_buffer_queue(ring_buffer_t *buffer, char data);
++
++/**
++ * Adds an array of bytes to a ring buffer.
++ * @param buffer The buffer in which the data should be placed.
++ * @param data A pointer to the array of bytes to place in the queue.
++ * @param size The size of the array.
++ */
++void ring_buffer_queue_arr(ring_buffer_t *buffer, const char *data, ring_buffer_size_t size);
++
++/**
++ * Returns the oldest byte in a ring buffer.
++ * @param buffer The buffer from which the data should be returned.
++ * @param data A pointer to the location at which the data should be placed.
++ * @return 1 if data was returned; 0 otherwise.
++ */
++uint8_t ring_buffer_dequeue(ring_buffer_t *buffer, char *data);
++
++/**
++ * Returns the <em>len</em> oldest bytes in a ring buffer.
++ * @param buffer The buffer from which the data should be returned.
++ * @param data A pointer to the array at which the data should be placed.
++ * @param len The maximum number of bytes to return.
++ * @return The number of bytes returned.
++ */
++ring_buffer_size_t ring_buffer_dequeue_arr(ring_buffer_t *buffer, char *data, ring_buffer_size_t len);
++/**
++ * Peeks a ring buffer, i.e. returns an element without removing it.
++ * @param buffer The buffer from which the data should be returned.
++ * @param data A pointer to the location at which the data should be placed.
++ * @param index The index to peek.
++ * @return 1 if data was returned; 0 otherwise.
++ */
++uint8_t ring_buffer_peek(ring_buffer_t *buffer, char *data, ring_buffer_size_t index);
++
++
++/**
++ * Returns whether a ring buffer is empty.
++ * @param buffer The buffer for which it should be returned whether it is empty.
++ * @return 1 if empty; 0 otherwise.
++ */
++inline uint8_t ring_buffer_is_empty(ring_buffer_t *buffer) {
++  return (buffer->head_index == buffer->tail_index);
++}
++
++/**
++ * Returns whether a ring buffer is full.
++ * @param buffer The buffer for which it should be returned whether it is full.
++ * @return 1 if full; 0 otherwise.
++ */
++inline uint8_t ring_buffer_is_full(ring_buffer_t *buffer) {
++  return ((buffer->head_index - buffer->tail_index) & RING_BUFFER_MASK(buffer)) == RING_BUFFER_MASK(buffer);
++}
++
++/**
++ * Returns the number of items in a ring buffer.
++ * @param buffer The buffer for which the number of items should be returned.
++ * @return The number of items in the ring buffer.
++ */
++inline ring_buffer_size_t ring_buffer_num_items(ring_buffer_t *buffer) {
++  return ((buffer->head_index - buffer->tail_index) & RING_BUFFER_MASK(buffer));
++}
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif /* RINGBUFFER_H */
+diff --git a/tests/test_c_record_views.py b/tests/test_c_record_views.py
+new file mode 100644
+index 0000000..57f148c
+--- /dev/null
++++ b/tests/test_c_record_views.py
+@@ -0,0 +1,309 @@
++"""Soundness regressions for complete C record-view module migration."""
++from __future__ import annotations
++
++import copy
++import ctypes
++import json
++import os
++from pathlib import Path
++import shutil
++import subprocess
++import tempfile
++import unittest
++
++from hepta.c_migrate import migrate_c_project
++from tools.qualify_c_ring_buffer import FIXTURE, FLAGS, capture_fixture, run_sequences, boundary_controls, owned_client, layout_probe
++
++
++SOURCE = r'''
++#include <stddef.h>
++/** A borrowed caller-owned byte store. */
++struct State {
++    /** Live initialized bytes. */ unsigned char *data;
++    size_t n;
++    unsigned int head;
++};
++void start(struct State *ctx, unsigned char *data, size_t n) {
++    ctx->data = data;
++    ctx->n = n;
++    ctx->head = 0;
++}
++void tick(struct State *ctx, unsigned char value) {
++    ctx->data[ctx->head] = value;
++    ctx->head = (ctx->head + 1u) % ctx->n;
++}
++unsigned int read_at(struct State *ctx, size_t i) {
++    return ctx->data[i];
++}
++'''
++CONTRACT = {
++    "schema": "hepta.c-record-views.v1",
++    "records": {"State": {"buffers": {"data": {"length_field": "n", "add": 0}}}},
++    "functions": {
++        "start": {"records": {"ctx": {"access": "mut", "initialize": {"data": "data"}}}, "slices": {"data": {"length": "n", "access": "mut"}}},
++        "tick": {"records": {"ctx": {"access": "mut"}}, "slices": {}},
++        "read_at": {"records": {"ctx": {"access": "read"}}, "slices": {}},
++    },
++}
++
++
++class CRecordViewsTests(unittest.TestCase):
++    def setUp(self):
++        self.temp = tempfile.TemporaryDirectory(prefix="hepta-c-record-view-test-")
++        self.addCleanup(self.temp.cleanup)
++        self.root = Path(self.temp.name)
++        self.clang = shutil.which("clang")
++        self.assertIsNotNone(self.clang, "Clang is required for C record-view qualification")
++        self.rustc = os.environ.get("RUSTC")
++        self.counter = 0
++
++    def migrate(self, source=SOURCE, contracts=None, *, native=False, flags=None):
++        self.counter += 1
++        work = self.root / str(self.counter)
++        work.mkdir()
++        (work / "input.c").write_text(source)
++        database = work / "compile_commands.json"
++        database.write_text(json.dumps([{"directory": str(work), "file": "input.c", "arguments": ["clang", "-std=c11", *(flags or []), "-c", "input.c"]}]))
++        result = migrate_c_project(database, work / "translated", contracts=copy.deepcopy(CONTRACT if contracts is None else contracts), clang=self.clang, rustc=self.rustc, verify_native=native)
++        return result, work
++
++    def reject(self, source, code, contracts=None):
++        report, work = self.migrate(source, contracts)
++        self.assertFalse(report["ok"], report)
++        self.assertFalse((work / "translated").exists())
++        self.assertIn(code, [d["code"] for d in report["diagnostics"]], report["diagnostics"])
++        return report
++
++    def test_generic_view_translates_changed_names_and_algorithms(self):
++        report, work = self.migrate(native=True)
++        self.assertTrue(report["ok"], report["diagnostics"])
++        self.assertFalse(report["record_views"]["ownership_inference"])
++        self.assertFalse(report["record_views"]["stored_references_added_to_language"])
++        generated = (work / "translated/source.hepta").read_text()
++        self.assertNotIn("raw ", generated)
++        class State(ctypes.Structure):
++            _fields_ = [("data", ctypes.POINTER(ctypes.c_uint8)), ("n", ctypes.c_size_t), ("head", ctypes.c_uint32)]
++        lib = ctypes.CDLL(str(work / "translated/libtranslated.so"))
++        lib.start.argtypes = [ctypes.POINTER(State), ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t]
++        lib.tick.argtypes = [ctypes.POINTER(State), ctypes.c_uint8]
++        lib.read_at.argtypes, lib.read_at.restype = [ctypes.POINTER(State), ctypes.c_size_t], ctypes.c_uint32
++        data, state = (ctypes.c_uint8 * 4)(), State()
++        lib.start(ctypes.byref(state), data, 4)
++        for value in range(9):
++            lib.tick(ctypes.byref(state), value)
++        self.assertEqual(list(data), [8, 5, 6, 7])
++        self.assertEqual(state.head, 1)
++        self.assertEqual([lib.read_at(ctypes.byref(state), i) for i in range(4)], list(data))
++
++    def test_complete_unmodified_upstream_native_sequence_and_layout(self):
++        database = capture_fixture(self.root)
++        contracts = json.loads((FIXTURE / "contracts.json").read_text())
++        report = migrate_c_project(database, self.root / "translated", contracts=contracts, clang=self.clang, rustc=self.rustc, verify_native=True)
++        self.assertTrue(report["ok"], report["diagnostics"])
++        self.assertEqual(report["coverage"]["active_project_declarations"], 22)
++        self.assertEqual(report["coverage"]["status_counts"], {"function_converted": 9, "prototype_resolved": 9, "record_converted": 1, "record_forward_resolved": 1, "type_alias_resolved": 2})
++        original = self.root / "original.so"
++        compiled = subprocess.run(["gcc", *FLAGS, "-O2", "-shared", "-fPIC", str(self.root / "ringbuffer.c"), "-o", str(original)], capture_output=True, text=True)
++        self.assertEqual(compiled.returncode, 0, compiled.stderr)
++        translated = self.root / "translated/libtranslated.so"
++        result = run_sequences(original, translated, steps=128)
++        self.assertEqual(result["state_transitions"], 1024)
++        self.assertEqual(result["native_differential_calls"], 4104)
++        self.assertGreater(result["zero_length_null_slice_calls"], 0)
++        layout = layout_probe(original, (self.root / "translated/generated.rs").read_text(), self.root, shutil.which("gcc"), self.rustc)
++        self.assertEqual(layout["size"], {"gcc": 32, "rust": 32})
++        self.assertEqual(layout["head_index"], {"gcc": 24, "rust": 24})
++
++    def test_real_overlap_null_extent_and_bounds_controls(self):
++        database = capture_fixture(self.root)
++        report = migrate_c_project(database, self.root / "translated", contracts=json.loads((FIXTURE / "contracts.json").read_text()), clang=self.clang, rustc=self.rustc, verify_native=True)
++        self.assertTrue(report["ok"], report["diagnostics"])
++        results = boundary_controls(self.root / "translated/libtranslated.so")
++        self.assertEqual(len(results), 9)
++        self.assertTrue(all(item["actual_exit"] == -6 for item in results))
++
++    def test_real_owned_client_allocation_refusal_early_drop_recovery(self):
++        database = capture_fixture(self.root)
++        report = migrate_c_project(database, self.root / "translated", contracts=json.loads((FIXTURE / "contracts.json").read_text()), clang=self.clang, rustc=self.rustc, verify_native=True)
++        self.assertTrue(report["ok"], report["diagnostics"])
++        result = owned_client((self.root / "translated/source.hepta").read_text(), self.root, self.rustc)
++        self.assertEqual([call["result"] for call in result["calls"]], [0, 7, -1, 0, -1, 0])
++        self.assertTrue(all(call["live_allocations_after"] == 0 for call in result["calls"]))
++        self.assertFalse(result["upstream_allocator_migration_claimed"])
++
++    def test_unused_unsupported_declaration_still_rejects_complete_module(self):
++        report = self.reject(SOURCE + "\nint unused_global;\n", "E_C_TOPLEVEL")
++        self.assertTrue(report["declaration_inventory_complete"])
++        project = [item for item in report["declarations"] if item["status"] != "system_or_compiler_declaration"]
++        self.assertEqual([item["name"] for item in project], ["State", "start", "tick", "read_at", "unused_global"])
++        self.assertEqual(report["coverage"]["active_project_declarations"], 5)
++
++    def test_by_value_pointer_record_abi_cannot_silently_drop_pointer_field(self):
++        contracts = copy.deepcopy(CONTRACT)
++        contracts["functions"]["copy_state"] = {"slices": {}, "records": {}}
++        self.reject(SOURCE + "\nstruct State copy_state(struct State state){return state;}\n", "E_C_VIEW_VALUE_ABI", contracts)
++
++    def test_initializer_pointer_assignment_must_match_contract(self):
++        self.reject(SOURCE.replace("ctx->data = data;", "ctx->data = data + 1;"), "E_C_VIEW_INIT")
++
++    def test_initializer_must_not_read_old_uninitialized_record(self):
++        self.reject(SOURCE.replace("ctx->head = 0;", "ctx->head = ctx->head;"), "E_C_VIEW_INIT")
++
++    def test_initializer_all_fields_exactly_once_without_conditional_writes(self):
++        for source in (SOURCE.replace("ctx->head = 0;", ""), SOURCE.replace("ctx->head = 0;", "ctx->head = 0; ctx->head = 1;"), SOURCE.replace("ctx->head = 0;", "if(n) ctx->head = 0;")):
++            with self.subTest(source=source):
++                self.reject(source, "E_C_VIEW_INIT")
++
++    def test_pointer_fields_cannot_change_after_initialization(self):
++        self.reject(SOURCE.replace("ctx->data[ctx->head] = value;", "ctx->data = ctx->data;"), "E_C_VIEW_POINTER_WRITE")
++
++    def test_buffer_extent_cannot_change_while_borrowed(self):
++        self.reject(SOURCE.replace("ctx->data[ctx->head] = value;", "ctx->n += 1;"), "E_C_VIEW_EXTENT_WRITE")
++
++    def test_read_record_cannot_write_scalar_or_storage_or_call_mutator(self):
++        for body in ("ctx->head=1; return 0;", "ctx->data[i]=1; return 0;", "tick(ctx,1);return 0;"):
++            with self.subTest(body=body):
++                self.reject(SOURCE.replace("return ctx->data[i];", body), "E_C_READ_ONLY")
++
++    def test_call_result_with_unsequenced_other_operand_is_rejected(self):
++        contracts = copy.deepcopy(CONTRACT)
++        contracts["functions"]["tick"]["records"]["ctx"]["access"] = "mut"
++        source = SOURCE.replace("void tick(", "unsigned int tick(").replace("ctx->head = (ctx->head + 1u) % ctx->n;", "ctx->head = (ctx->head + 1u) % ctx->n; return ctx->head;")
++        source = source.replace("return ctx->data[i];", "return tick(ctx, 1) + ctx->head;")
++        contracts["functions"]["read_at"]["records"]["ctx"]["access"] = "mut"
++        self.reject(source, "E_C_EVALUATION_ORDER", contracts)
++
++    def test_conditional_initialization_does_not_invent_zero_value(self):
++        source = SOURCE.replace("return ctx->data[i];", "unsigned int value; if(i) value=1; return value;")
++        self.reject(source, "E_C_LOCAL")
++
++    def test_read_before_first_assignment_is_rejected(self):
++        self.reject(SOURCE.replace("return ctx->data[i];", "unsigned int value; return value;"), "E_C_REFERENCE")
++
++    def test_signed_relative_cursor_indices_preserve_defined_c_access(self):
++        bodies = [
++            ("unsigned char *p=ctx->data; ++p; return p[-1];", 13),
++            ("unsigned char *p=ctx->data; ++p; int back=-1; return p[back];", 13),
++            ("unsigned char *p=ctx->data; ++p; ++p; ++p; ++p; return p[-1];", 41),
++            ("unsigned char *p=ctx->data; ++p; ++p; ++p; ++p; return p[-4];", 13),
++            ("unsigned char *p=ctx->data; ++p; return p[0];", 23),
++        ]
++        class State(ctypes.Structure):
++            _fields_ = [("data", ctypes.POINTER(ctypes.c_uint8)), ("n", ctypes.c_size_t), ("head", ctypes.c_uint32)]
++        for body, expected in bodies:
++            with self.subTest(body=body):
++                report, work = self.migrate(SOURCE.replace("return ctx->data[i];", body), native=True)
++                self.assertTrue(report["ok"], report["diagnostics"])
++                original = work / "original.so"
++                build = subprocess.run(["gcc", "-std=c11", "-O2", "-shared", "-fPIC", str(work / "input.c"), "-o", str(original)], capture_output=True, text=True)
++                self.assertEqual(build.returncode, 0, build.stderr)
++                observed = []
++                for path in (original, work / "translated/libtranslated.so"):
++                    lib = ctypes.CDLL(str(path))
++                    lib.read_at.argtypes, lib.read_at.restype = [ctypes.POINTER(State), ctypes.c_size_t], ctypes.c_uint32
++                    data = (ctypes.c_uint8 * 4)(13, 23, 37, 41)
++                    state = State(data, 4, 0)
++                    observed.append(lib.read_at(ctypes.byref(state), 0))
++                    self.assertEqual(list(data), [13, 23, 37, 41])
++                self.assertEqual(observed, [expected, expected])
++
++    def test_relative_cursor_checks_before_narrowing_and_dereference(self):
++        script = r'''import ctypes,resource,sys
++resource.setrlimit(resource.RLIMIT_CORE,(0,0))
++class R(ctypes.Structure):
++ _fields_=[('data',ctypes.POINTER(ctypes.c_uint8)),('n',ctypes.c_size_t),('head',ctypes.c_uint32)]
++lib=ctypes.CDLL(sys.argv[1]);lib.read_at.argtypes=[ctypes.POINTER(R),ctypes.c_size_t];lib.read_at.restype=ctypes.c_uint32
++data=(ctypes.c_uint8*4)(13,23,37,41);state=R(data,4,0)
++lib.read_at(ctypes.byref(state),0)
++'''
++        for body in ("unsigned char *p=ctx->data; ++p; return p[-2];",
++                     "unsigned char *p=ctx->data; ++p; ++p; ++p; ++p; return p[0];",
++                     "unsigned char *p=ctx->data; ++p; size_t huge=(size_t)-1; return p[huge];",
++                     "unsigned char *p=ctx->data; ++p; long long back=(-9223372036854775807LL - 1LL); return p[back];"):
++            with self.subTest(body=body):
++                report, work = self.migrate(SOURCE.replace("return ctx->data[i];", body), native=True)
++                self.assertTrue(report["ok"], report["diagnostics"])
++                result = subprocess.run([os.sys.executable, "-c", script, str(work / "translated/libtranslated.so")], capture_output=True, timeout=10)
++                self.assertEqual(result.returncode, -6, result.stderr)
++
++    def test_unmodeled_relative_pointer_mutations_still_fail_closed(self):
++        for body in ("unsigned char *p=ctx->data; p+=1; return p[0];",
++                     "unsigned char *p=ctx->data; ++p; --p; return p[0];"):
++            with self.subTest(body=body):
++                self.reject(SOURCE.replace("return ctx->data[i];", body), "E_C_LVALUE")
++
++    def test_record_attributes_and_volatile_are_not_ignored_as_comments(self):
++        self.reject(SOURCE.replace("struct State {", "struct __attribute__((packed)) State {"), "E_C_RECORD")
++        self.reject(SOURCE.replace("unsigned int head;", "volatile unsigned int head;"), "E_C_TYPE")
++
++    def test_contract_schema_rejects_unknown_fields_and_missing_record(self):
++        invalid = []
++        extra = copy.deepcopy(CONTRACT); extra["trusted"] = True; invalid.append(extra)
++        absent = copy.deepcopy(CONTRACT); absent["records"] = {}; invalid.append(absent)
++        mode = copy.deepcopy(CONTRACT); mode["functions"]["tick"]["records"]["ctx"]["access"] = "owned"; invalid.append(mode)
++        for contract in invalid:
++            with self.subTest(contract=contract):
++                self.reject(SOURCE, "E_C_VIEW_CONTRACT", contract)
++
++    def test_nonexistent_extent_and_unknown_extra_record_are_rejected(self):
++        contract = copy.deepcopy(CONTRACT)
++        contract["records"]["State"]["buffers"]["data"]["length_field"] = "missing"
++        self.reject(SOURCE, "E_C_VIEW_FIELD", contract)
++        self.reject(SOURCE + "\nstruct Extra {int ignored;};\n", "E_C_VIEW_CONTRACT")
++
++    def test_plain_char_flag_is_retained_in_semantic_build_capture(self):
++        source = SOURCE.replace("unsigned char", "char")
++        result, _ = self.migrate(source, flags=["-funsigned-char"])
++        self.assertTrue(result["ok"], result["diagnostics"])
++        config = result["build"]["configurations"][0]
++        self.assertTrue(config["model"]["char_unsigned"])
++        self.assertIn("-funsigned-char", config["frontend_arguments"])
++        self.assertEqual(result["record_views"]["records"]["State"]["data"]["element"], "u8")
++
++    def test_mixed_translation_unit_char_models_fail_with_complete_inventory(self):
++        entries, contracts = [], {"schema": "hepta.c-record-views.v1", "records": {}, "functions": {}}
++        for name, flag in (("A", "-funsigned-char"), ("B", "-fsigned-char")):
++            path = self.root / (name + ".c")
++            path.write_text("#include <stddef.h>\nstruct " + name + "{char *data;size_t n;};int read_" + name + "(struct " + name + " *value){return value->data[0];}\n")
++            entries.append({"directory": str(self.root), "file": path.name, "arguments": ["clang", "-std=c11", flag, "-c", path.name]})
++            contracts["records"][name] = {"buffers": {"data": {"length_field": "n", "add": 0}}}
++            contracts["functions"]["read_" + name] = {"records": {"value": {"access": "read"}}, "slices": {}}
++        database = self.root / "compile_commands.json"
++        database.write_text(json.dumps(entries))
++        report = migrate_c_project(database, self.root / "translated", contracts=contracts, clang=self.clang, rustc=self.rustc, verify_native=True)
++        self.assertFalse(report["ok"])
++        self.assertIn("E_C_PROJECT_MODEL", [d["code"] for d in report["diagnostics"]])
++        self.assertTrue(report["declaration_inventory_complete"])
++        self.assertEqual(report["coverage"]["active_project_declarations"], 4)
++        self.assertEqual({item["name"] for item in report["declarations"] if item["status"] != "system_or_compiler_declaration"}, {"A", "B", "read_A", "read_B"})
++        self.assertFalse((self.root / "translated").exists())
++
++    def test_user_macro_and_include_path_cannot_spoof_native_char_model(self):
++        for flags in (["-D__CHAR_UNSIGNED__=1"], ["-D", "__CHAR_UNSIGNED__=1"], ["-I", "-funsigned-char"]):
++            with self.subTest(flags=flags):
++                source = "int f(char value){return value;}"
++                report, work = self.migrate(source, {"schema": "hepta.c-contracts.v1", "functions": {}}, native=True, flags=flags)
++                self.assertTrue(report["ok"], report["diagnostics"])
++                model = report["build"]["configurations"][0]
++                self.assertFalse(model["model"]["char_unsigned"])
++                self.assertEqual(model["abi_model_arguments"], ["-std=c11"])
++                self.assertEqual(report["functions"][0]["params"][0]["type"], "i8")
++                lib = ctypes.CDLL(str(work / "translated/libtranslated.so"))
++                lib.f.argtypes, lib.f.restype = [ctypes.c_int8], ctypes.c_int32
++                self.assertEqual(lib.f(-1), -1)
++
++    def test_project_typedef_named_size_t_does_not_override_native_abi(self):
++        # typedef names are not C keywords; a project can choose a different
++        # underlying type. It must outrank the convenience std typedef map.
++        source = "typedef unsigned short size_t; size_t f(size_t x){return x;}"
++        result, work = self.migrate(source, {"schema": "hepta.c-contracts.v1", "functions": {}}, native=True)
++        self.assertTrue(result["ok"], result["diagnostics"])
++        self.assertEqual(result["functions"][0]["params"][0]["type"], "u16")
++        self.assertEqual(result["functions"][0]["return"], "u16")
++        lib = ctypes.CDLL(str(work / "translated/libtranslated.so"))
++        lib.f.argtypes, lib.f.restype = [ctypes.c_uint16], ctypes.c_uint16
++        self.assertEqual(lib.f(65535), 65535)
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/tools/fixtures/c_ring_buffer_benchmark.c b/tools/fixtures/c_ring_buffer_benchmark.c
+new file mode 100644
+index 0000000..d3ef611
+--- /dev/null
++++ b/tools/fixtures/c_ring_buffer_benchmark.c
+@@ -0,0 +1,59 @@
++/* Authored qualification harness. The upstream library files stay unchanged. */
++#define _POSIX_C_SOURCE 200809L
++#include "ringbuffer.h"
++#include <dlfcn.h>
++#include <stdint.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <time.h>
++
++static uint64_t ns(void) {
++    struct timespec t;
++    if (clock_gettime(CLOCK_MONOTONIC, &t) != 0) abort();
++    return (uint64_t)t.tv_sec * UINT64_C(1000000000) + (uint64_t)t.tv_nsec;
++}
++static void *symbol(void *library, const char *name) {
++    void *result = dlsym(library, name);
++    if (result == NULL) abort();
++    return result;
++}
++int main(int argc, char **argv) {
++    if (argc != 4) return 2;
++    void *library = dlopen(argv[1], RTLD_NOW | RTLD_LOCAL);
++    if (library == NULL) return 3;
++    unsigned long iterations = strtoul(argv[3], NULL, 10);
++    if (iterations == 0 || iterations > 10000000UL) return 4;
++    unsigned long mode = strtoul(argv[2], NULL, 10);
++    void (*init)(ring_buffer_t *, char *, size_t) = symbol(library, "ring_buffer_init");
++    void (*put)(ring_buffer_t *, char) = symbol(library, "ring_buffer_queue");
++    uint8_t (*get)(ring_buffer_t *, char *) = symbol(library, "ring_buffer_dequeue");
++    void (*puts_)(ring_buffer_t *, const char *, size_t) = symbol(library, "ring_buffer_queue_arr");
++    size_t (*gets_)(ring_buffer_t *, char *, size_t) = symbol(library, "ring_buffer_dequeue_arr");
++    size_t (*count)(ring_buffer_t *) = symbol(library, "ring_buffer_num_items");
++    uint8_t (*empty)(ring_buffer_t *) = symbol(library, "ring_buffer_is_empty");
++    uint8_t (*full)(ring_buffer_t *) = symbol(library, "ring_buffer_is_full");
++    char backing[1024] = {0}, input[64] = {0}, output[64] = {0};
++    for (size_t i = 0; i < 64; ++i) input[i] = (char)i;
++    ring_buffer_t ring;
++    init(&ring, backing, sizeof(backing));
++    uint64_t checksum = 0;
++    uint64_t start = ns();
++    for (unsigned long i = 0; i < iterations; ++i) {
++        if (mode == 0) {
++            put(&ring, (char)i);
++            if (get(&ring, output) != 1) return 5;
++            checksum += (unsigned char)output[0];
++        } else if (mode == 1) {
++            puts_(&ring, input, sizeof(input));
++            if (gets_(&ring, output, sizeof(output)) != sizeof(output)) return 6;
++            checksum += (unsigned char)output[i % sizeof(output)];
++        } else if (mode == 2) {
++            checksum += count(&ring) + empty(&ring) + full(&ring);
++        } else return 7;
++    }
++    uint64_t elapsed = ns() - start;
++    printf("{\"mode\":%lu,\"iterations\":%lu,\"nanoseconds\":%llu,\"checksum\":%llu}\n",
++           mode, iterations, (unsigned long long)elapsed, (unsigned long long)checksum);
++    dlclose(library);
++    return 0;
++}
+diff --git a/tools/qualify_c_ring_buffer.py b/tools/qualify_c_ring_buffer.py
+new file mode 100644
+index 0000000..10d3f7e
+--- /dev/null
++++ b/tools/qualify_c_ring_buffer.py
+@@ -0,0 +1,420 @@
++"""Freeze, translate and execute a complete upstream stateful C ring-buffer.
++
++The unchanged upstream C owns no allocation. Its caller-owned storage becomes
++explicit borrowed Hepta slices, with a separately exercised Buffer owner client.
++Finite differentials, ABI probes and fault controls do not prove equivalence.
++"""
++from __future__ import annotations
++
++import argparse
++from collections import Counter, deque
++import ctypes
++import hashlib
++import json
++import os
++from pathlib import Path
++import random
++import shutil
++import statistics
++import subprocess
++import sys
++import tempfile
++import time
++
++ROOT = Path(__file__).resolve().parents[1]
++sys.path.insert(0, str(ROOT))
++from hepta.backend import compile_rust, emit_rust
++from hepta.checker import check
++from hepta.c_migrate import migrate_c_project
++from hepta.parser import parse
++from tools.qualify_c_migration import command, sha, RUST_FAULT_ALLOCATOR
++
++FIXTURE = ROOT / "tests/fixtures/c_migration/ring_buffer"
++UPSTREAM_COMMIT = "8de8fff55a0baee4fef2a1c6a82d258a27c3c0ba"
++EXPECTED_BLOBS = {'ringbuffer.c': '39fbea599e9e2c62561f1cd2e80bb08717e9e656', 'ringbuffer.h': '36da6eb18805853f79f5b558714204517fd969a0', 'LICENSE': '4e5491e49deef7fce4c58480177f501d8cc8dea9', 'UPSTREAM_README.md': '9936f6af274d25abdc0a87f77595df41d49a25d7'}
++FLAGS = ["-std=c11", "-DNDEBUG", "-funsigned-char"]
++
++
++class Ring(ctypes.Structure):
++    _fields_ = [("buffer", ctypes.POINTER(ctypes.c_uint8)), ("buffer_mask", ctypes.c_size_t),
++                ("tail_index", ctypes.c_size_t), ("head_index", ctypes.c_size_t)]
++
++
++def verify_upstream():
++    metadata = json.loads((FIXTURE / "UPSTREAM.json").read_text())
++    if metadata["commit"] != UPSTREAM_COMMIT or {entry["local_path"]: entry["git_blob"] for entry in metadata["files"]} != EXPECTED_BLOBS:
++        raise RuntimeError("Frozen upstream source identity or complete file inventory changed")
++    for entry in metadata["files"]:
++        data = (FIXTURE / entry["local_path"]).read_bytes()
++        blob = hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
++        if blob != entry["git_blob"] or hashlib.sha256(data).hexdigest() != entry["sha256"] or len(data) != entry["bytes"]:
++            raise RuntimeError("Upstream file changed: " + entry["local_path"])
++    return metadata
++
++
++def capture_fixture(work):
++    metadata = verify_upstream()
++    for entry in metadata["files"]:
++        shutil.copyfile(FIXTURE / entry["local_path"], work / entry["local_path"])
++    database = work / "compile_commands.json"
++    database.write_text(json.dumps([{"directory": str(work), "file": "ringbuffer.c",
++                                     "arguments": ["clang", *FLAGS, "-O2", "-c", "ringbuffer.c"]}]))
++    return database
++
++
++def configure(path):
++    lib = ctypes.CDLL(str(path))
++    record, data, size = ctypes.POINTER(Ring), ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t
++    declarations = {
++        "init": ([record, data, size], None), "queue": ([record, ctypes.c_uint8], None),
++        "queue_arr": ([record, data, size], None), "dequeue": ([record, data], ctypes.c_uint8),
++        "dequeue_arr": ([record, data, size], size), "peek": ([record, data, size], ctypes.c_uint8),
++        "is_empty": ([record], ctypes.c_uint8), "is_full": ([record], ctypes.c_uint8),
++        "num_items": ([record], size)}
++    for name, (arguments, result) in declarations.items():
++        fn = getattr(lib, "ring_buffer_" + name)
++        fn.argtypes, fn.restype = arguments, result
++    return lib
++
++
++def run_sequences(original, translated, *, seed=827203, steps=2048):
++    c, h = configure(original), configure(translated)
++    calls, observations, resets, zero_length = Counter(), 0, 0, 0
++    capacities = [1, 2, 4, 8, 16, 32, 64, 256]
++    for capacity in capacities:
++        cb, hb = (ctypes.c_uint8 * capacity)(), (ctypes.c_uint8 * capacity)()
++        cr, hr = Ring(), Ring()
++        c.ring_buffer_init(ctypes.byref(cr), cb, capacity)
++        h.ring_buffer_init(ctypes.byref(hr), hb, capacity)
++        calls["init"] += 1
++        expected = deque(maxlen=capacity - 1)
++        rng = random.Random(seed + capacity)
++        for step in range(steps):
++            operation = step % 6 if step < 24 else rng.randrange(6)
++            if operation == 0:
++                value = rng.randrange(256)
++                c.ring_buffer_queue(ctypes.byref(cr), value)
++                h.ring_buffer_queue(ctypes.byref(hr), value)
++                expected.append(value)
++                calls["queue"] += 1
++            elif operation == 1:
++                count = 0 if step < 24 else rng.randrange(2 * capacity + 1)
++                values = [rng.randrange(256) for _ in range(count)]
++                source = (ctypes.c_uint8 * count)(*values)
++                ptr = source if count else None
++                c.ring_buffer_queue_arr(ctypes.byref(cr), ptr, count)
++                h.ring_buffer_queue_arr(ctypes.byref(hr), ptr, count)
++                if list(source) != values:
++                    raise AssertionError("Read input mutated")
++                expected.extend(values)
++                calls["queue_arr"] += 1
++                zero_length += count == 0
++            elif operation == 2:
++                co, ho = ctypes.c_uint8(173), ctypes.c_uint8(173)
++                a, b = c.ring_buffer_dequeue(ctypes.byref(cr), ctypes.byref(co)), h.ring_buffer_dequeue(ctypes.byref(hr), ctypes.byref(ho))
++                existed = bool(expected)
++                value = expected.popleft() if existed else 173
++                if (a, co.value) != (b, ho.value) or (b, ho.value) != (int(existed), value):
++                    raise AssertionError(("dequeue", capacity, step, a, b, co.value, ho.value, value))
++                calls["dequeue"] += 1
++            elif operation == 3:
++                count = 0 if step < 24 else rng.randrange(2 * capacity + 1)
++                co, ho = (ctypes.c_uint8 * (count + 2))(*([173] * (count + 2))), (ctypes.c_uint8 * (count + 2))(*([173] * (count + 2)))
++                a = c.ring_buffer_dequeue_arr(ctypes.byref(cr), co if count else None, count)
++                b = h.ring_buffer_dequeue_arr(ctypes.byref(hr), ho if count else None, count)
++                wanted = min(count, len(expected))
++                values = [expected.popleft() for _ in range(wanted)] + [173] * (count + 2 - wanted)
++                if a != b or b != wanted or list(co) != values or list(ho) != values:
++                    raise AssertionError(("dequeue_arr", capacity, step, a, b, wanted))
++                calls["dequeue_arr"] += 1
++                zero_length += count == 0
++            elif operation == 4:
++                index = rng.randrange(capacity + 2)
++                co, ho = ctypes.c_uint8(173), ctypes.c_uint8(173)
++                a = c.ring_buffer_peek(ctypes.byref(cr), ctypes.byref(co), index)
++                b = h.ring_buffer_peek(ctypes.byref(hr), ctypes.byref(ho), index)
++                existed = index < len(expected)
++                value = expected[index] if existed else 173
++                if (a, co.value) != (b, ho.value) or (b, ho.value) != (int(existed), value):
++                    raise AssertionError(("peek", capacity, step))
++                calls["peek"] += 1
++            else:
++                # Reset retains the caller-owned backing storage and its bytes.
++                c.ring_buffer_init(ctypes.byref(cr), cb, capacity)
++                h.ring_buffer_init(ctypes.byref(hr), hb, capacity)
++                expected.clear()
++                calls["init"] += 1
++                resets += 1
++            if (cr.buffer_mask, cr.tail_index, cr.head_index) != (hr.buffer_mask, hr.tail_index, hr.head_index) or bytes(cb) != bytes(hb):
++                raise AssertionError(("persistent state/physical bytes", capacity, step))
++            if ctypes.addressof(cr.buffer.contents) != ctypes.addressof(cb) or ctypes.addressof(hr.buffer.contents) != ctypes.addressof(hb):
++                raise AssertionError("Backing storage pointer changed")
++            for name, wanted in (("num_items", len(expected)), ("is_empty", int(not expected)), ("is_full", int(len(expected) == capacity - 1))):
++                a, b = getattr(c, "ring_buffer_" + name)(ctypes.byref(cr)), getattr(h, "ring_buffer_" + name)(ctypes.byref(hr))
++                if a != b or b != wanted:
++                    raise AssertionError((name, capacity, step, a, b, wanted))
++                calls[name] += 1
++            observations += 1
++    if any(calls[name] == 0 for name in ("init", "queue", "queue_arr", "dequeue", "dequeue_arr", "peek", "is_empty", "is_full", "num_items")):
++        raise AssertionError("Complete function coverage missing")
++    return {"capacities": capacities, "steps_per_capacity": steps, "state_transitions": observations,
++            "native_differential_calls": sum(calls.values()), "calls_by_function": dict(calls),
++            "zero_length_null_slice_calls": zero_length, "resets": resets,
++            "checks": ["C/Hepta returns", "independent bounded deque oracle", "all persistent scalar state", "every backing-store byte", "output sentinels", "unchanged source input", "backing-pointer identity"],
++            "source_equivalence_proved": False}
++
++
++def boundary_controls(translated):
++    script = r'''import ctypes,resource,sys
++resource.setrlimit(resource.RLIMIT_CORE,(0,0))
++class R(ctypes.Structure):
++ _fields_=[('buffer',ctypes.POINTER(ctypes.c_uint8)),('buffer_mask',ctypes.c_size_t),('tail_index',ctypes.c_size_t),('head_index',ctypes.c_size_t)]
++lib=ctypes.CDLL(sys.argv[1]);mode=sys.argv[2]
++p=ctypes.POINTER(R);q=ctypes.POINTER(ctypes.c_uint8)
++lib.ring_buffer_init.argtypes=[p,q,ctypes.c_size_t]
++lib.ring_buffer_queue.argtypes=[p,ctypes.c_uint8]
++lib.ring_buffer_queue_arr.argtypes=[p,q,ctypes.c_size_t]
++lib.ring_buffer_dequeue.argtypes=[p,q]
++b=(ctypes.c_uint8*8)();r=R();lib.ring_buffer_init(ctypes.byref(r),b,8)
++if mode=='null_record':lib.ring_buffer_queue(None,1)
++elif mode=='misaligned_record':lib.ring_buffer_queue(ctypes.cast(ctypes.addressof(r)+1,p),1)
++elif mode=='record_buffer_overlap':r.buffer=ctypes.cast(ctypes.byref(r),q);lib.ring_buffer_queue(ctypes.byref(r),1)
++elif mode=='output_buffer_overlap':lib.ring_buffer_queue(ctypes.byref(r),1);lib.ring_buffer_dequeue(ctypes.byref(r),b)
++elif mode=='input_buffer_overlap':lib.ring_buffer_queue_arr(ctypes.byref(r),b,1)
++elif mode=='extent_overflow':r.buffer_mask=ctypes.c_size_t(-1).value;lib.ring_buffer_queue(ctypes.byref(r),1)
++elif mode=='bad_index':r.head_index=999;lib.ring_buffer_queue(ctypes.byref(r),1)
++elif mode=='null_storage':lib.ring_buffer_init(ctypes.byref(r),None,8)
++elif mode=='zero_capacity':lib.ring_buffer_init(ctypes.byref(r),None,0)
++else:raise RuntimeError(mode)
++'''
++    results = []
++    for mode in ("null_record", "misaligned_record", "record_buffer_overlap", "output_buffer_overlap", "input_buffer_overlap", "extent_overflow", "bad_index", "null_storage", "zero_capacity"):
++        run = subprocess.run([sys.executable, "-c", script, str(translated), mode], capture_output=True, timeout=10)
++        if run.returncode != -6:
++            raise AssertionError((mode, run.returncode, run.stderr[-1000:]))
++        results.append({"case": mode, "expected_exit": -6, "actual_exit": run.returncode,
++                        "original_C_executed": False, "scope": "outside_qualified_view_contract"})
++    return results
++
++
++def owned_client(source, work, rustc):
++    # This is an authored safe caller, not a claim that upstream owns allocations.
++    caller = r'''
++struct RingOwner { state: C_ring_buffer_t, bytes: Buffer<u8>, }
++fn make_ring(size: usize) -> Result<RingOwner, u8> effects {alloc, block, panic, write} {
++    let allocation: Result<Buffer<u8>, u8> = try_buffer(size);
++    match move allocation {
++        Result::Err(error) => { return Result::Err(error); },
++        Result::Ok(storage) => {
++            let mut bytes: Buffer<u8> = move storage;
++            let mut state: C_ring_buffer_t = C_ring_buffer_t {f_buffer_mask: 0, f_tail_index: 0, f_head_index: 0};
++            c_ring_buffer_init(mut state, mut bytes, 0, size);
++            return Result::Ok(RingOwner {state: state, bytes: move bytes});
++        },
++    }
++}
++export "C" fn owned_ring_probe(size: usize, early: u8) -> i32 effects {alloc, block, panic, write} {
++    let made: Result<RingOwner, u8> = make_ring(size);
++    match move made {
++        Result::Err(error) => { return -1; },
++        Result::Ok(owner_value) => {
++            let mut owner: RingOwner = move owner_value;
++            if early != 0 { drop(move owner); return 7; }
++            c_ring_buffer_queue(mut owner.state, mut owner.bytes, 23);
++            let mut output: [u8; 1] = [0];
++            let count: u8 = c_ring_buffer_dequeue(mut owner.state, mut owner.bytes, mut output, 0);
++            assert(count == 1);
++            assert(output[0] == 23);
++            drop(move owner);
++            return 0;
++        },
++    }
++}
++'''
++    program = parse(source + caller, str(work / "owned_client.hepta"))
++    checked = check(program)
++    if not checked.ok:
++        raise AssertionError([d.to_dict() for d in checked.diagnostics])
++    generated = emit_rust(program, checked, crate_type="cdylib") + RUST_FAULT_ALLOCATOR
++    built = compile_rust(generated, output=work / "owned_client.so", rustc=rustc, crate_type="cdylib")
++    if not built["ok"]:
++        raise AssertionError(built)
++    lib = ctypes.CDLL(str(work / "owned_client.so"))
++    lib.owned_ring_probe.argtypes, lib.owned_ring_probe.restype = [ctypes.c_size_t, ctypes.c_uint8], ctypes.c_int32
++    lib.migration_live_allocations.argtypes, lib.migration_live_allocations.restype = [], ctypes.c_long
++    results = []
++    for size, early, expected in ((8, False, 0), (8, True, 7), (65519, False, -1), (16, False, 0), (65519, True, -1), (32, False, 0)):
++        actual = lib.owned_ring_probe(size, early)
++        live = lib.migration_live_allocations()
++        if actual != expected or live != 0:
++            raise AssertionError((size, early, actual, live))
++        results.append({"size": size, "early_return": early, "result": actual, "live_allocations_after": live})
++    return {"client_kind": "authored_Hepta_Buffer_owner_of_upstream_caller_owned_storage", "calls": results,
++            "actual_allocator_refusal": True, "upstream_allocator_migration_claimed": False,
++            "source_sha256": hashlib.sha256(caller.encode()).hexdigest(), "native_build": built}
++
++
++def layout_probe(original, generated, work, compiler, rustc):
++    fields = ["buffer", "buffer_mask", "tail_index", "head_index"]
++    c = '#include "ringbuffer.h"\n#include <stddef.h>\n'
++    c += "size_t probe_size(void){return sizeof(ring_buffer_t);}\nsize_t probe_align(void){return _Alignof(ring_buffer_t);}\n"
++    c += "\n".join(f"size_t probe_{field}(void){{return offsetof(ring_buffer_t,{field});}}" for field in fields)
++    (work / "layout.c").write_text(c)
++    command([compiler, *FLAGS, "-shared", "-fPIC", str(work / "layout.c"), "-o", str(work / "c_layout.so")])
++    rust = generated + '\n#[no_mangle] pub extern "C" fn probe_size()->usize {core::mem::size_of::<__HeptaAbi_C_ring_buffer_t>()}\n#[no_mangle] pub extern "C" fn probe_align()->usize {core::mem::align_of::<__HeptaAbi_C_ring_buffer_t>()}\n'
++    rust += "\n".join(f'#[no_mangle] pub extern "C" fn probe_{field}()->usize {{core::mem::offset_of!(__HeptaAbi_C_ring_buffer_t,f_{field})}}' for field in fields)
++    result = compile_rust(rust, output=work / "rust_layout.so", rustc=rustc, crate_type="cdylib")
++    if not result["ok"]:
++        raise AssertionError(result)
++    c, h = ctypes.CDLL(str(work / "c_layout.so")), ctypes.CDLL(str(work / "rust_layout.so"))
++    probes = {}
++    for field in ("size", "align", *fields):
++        cf, hf = getattr(c, "probe_" + field), getattr(h, "probe_" + field)
++        cf.restype = hf.restype = ctypes.c_size_t
++        a, b = cf(), hf()
++        if a != b:
++            raise AssertionError(("layout", field, a, b))
++        probes[field] = {"gcc": a, "rust": b}
++    return probes
++
++
++def benchmark(original, translated, work, compiler, *, iterations=100000):
++    source = ROOT / "tools/fixtures/c_ring_buffer_benchmark.c"
++    executable = work / "ring-benchmark"
++    build = command([compiler, *FLAGS, "-O2", "-I" + str(work), str(source), "-ldl", "-o", str(executable)])
++    rows = []
++    for mode, name, calls in ((0, "single_byte_enqueue_dequeue", 2), (1, "64_byte_enqueue_dequeue", 2), (2, "count_empty_full_queries", 3)):
++        samples = {"original_C": [], "Hepta_C_ABI": []}
++        checksums = set()
++        order = []
++        for sample in range(7):
++            pair = [("original_C", original), ("Hepta_C_ABI", translated)]
++            if sample % 2:
++                pair.reverse()
++            for label, library in pair:
++                result = json.loads(command([str(executable), str(library), str(mode), str(iterations)])["stdout"])
++                if result["iterations"] != iterations or result["mode"] != mode or result["nanoseconds"] <= 0:
++                    raise AssertionError("Incomplete benchmark output")
++                checksums.add(result["checksum"])
++                samples[label].append(result["nanoseconds"])
++                order.append(label)
++        if len(checksums) != 1:
++            raise AssertionError("Timed routes disagree on checksum")
++        c_median, h_median = (statistics.median(samples[label]) / iterations for label in ("original_C", "Hepta_C_ABI"))
++        rows.append({"case": name, "iterations_per_sample": iterations, "ABI_calls_per_iteration": calls,
++                     "samples_nanoseconds": samples, "execution_order": order, "checksum": checksums.pop(),
++                     "original_C_median_ns_per_iteration": c_median, "Hepta_C_ABI_median_ns_per_iteration": h_median,
++                     "observed_Hepta_over_C_ratio": h_median / c_median})
++    return {"status": "measured", "measurements": rows, "harness_sha256": sha(source), "build": build,
++            "limitations": ["One shared x86-64 host, seven alternating-order samples, no affinity control", "GCC -O2 original and Hepta pinned Rust -O3 checked reference backend; no LTO", "Both routes use the same dlsym function-pointer dispatcher", "Source/core translation, scalar-state copying and pointer/bounds guards are measured together", "Object creation and allocator failure are outside timed loops; no whole-application or hardware superiority claim"]}
++
++
++def checkpoint(report, output, stage):
++    report["stage"] = stage
++    output.parent.mkdir(parents=True, exist_ok=True)
++    output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
++
++
++def qualify(*, clang, rustc, output, seed=827203, steps=2048):
++    started = time.perf_counter()
++    from tools.release_check import snapshot
++    source_before = snapshot()
++    metadata = verify_upstream()
++    compiler = shutil.which("gcc")
++    if not compiler:
++        raise RuntimeError("Independent GCC compiler is required")
++    report = {"schema": "hepta.c-stateful-upstream-qualification.v1", "ok": False,
++              "upstream": metadata, "seed": seed, "build_configuration": FLAGS,
++              "assertions": "NDEBUG captured explicitly; other macro configurations unqualified",
++              "scope": "complete_upstream_stateful_ring_module_not_general_C_ownership_translation",
++              "source_equivalence_proved": False, "whole_project_blockers_closed": False,
++              "source_snapshot_before": source_before,
++              "foreign_pointer_validity_proved": False, "performance_parity_claimed": False,
++              "implementation_files": {name: sha(ROOT / name) for name in ("hepta/c_record_views.py", "hepta/c_translation.py", "hepta/c_migration_project.py", "hepta/c_project.py", "tools/qualify_c_ring_buffer.py")},
++              "original_compiler": {"path": compiler, "sha256": sha(Path(compiler)), "version": command([compiler, "--version"])["stdout"].splitlines()[0]}}
++    checkpoint(report, output, "capture_and_migration")
++    with tempfile.TemporaryDirectory(prefix="hepta-ring-qualification-") as temporary:
++        work = Path(temporary)
++        database = capture_fixture(work)
++        migration = migrate_c_project(database, work / "translated", contracts=json.loads((FIXTURE / "contracts.json").read_text()), clang=clang, rustc=rustc, verify_native=True)
++        report["migration"] = migration
++        checkpoint(report, output, "native_original_build")
++        if not migration["ok"] or not migration["declaration_inventory_complete"]:
++            raise AssertionError(migration["diagnostics"])
++        expected = {"function_converted": 9, "prototype_resolved": 9, "record_converted": 1, "record_forward_resolved": 1, "type_alias_resolved": 2}
++        if migration["coverage"]["active_project_declarations"] != 22 or migration["coverage"]["status_counts"] != expected:
++            raise AssertionError("Complete active declaration denominator changed")
++        original, translated = work / "original.so", work / "translated/libtranslated.so"
++        report["original_build"] = command([compiler, *FLAGS, "-O2", "-shared", "-fPIC", str(work / "ringbuffer.c"), "-o", str(original)])
++        report["execution"] = run_sequences(original, translated, seed=seed, steps=steps)
++        checkpoint(report, output, "adversarial_boundary_controls")
++        report["boundary_controls"] = boundary_controls(translated)
++        checkpoint(report, output, "owned_client")
++        source = (work / "translated/source.hepta").read_text()
++        generated = (work / "translated/generated.rs").read_text()
++        report["owned_client"] = owned_client(source, work, rustc)
++        report["layout_probe"] = layout_probe(original, generated, work, compiler, rustc)
++        checkpoint(report, output, "wrong_implementation_control")
++        # Execute the same full sequence oracle on a genuinely wrong generated
++        # algorithm. A boolean comparison to a fabricated return is insufficient.
++        wrong = source.replace("p_buffer.f_head_index == p_buffer.f_tail_index", "p_buffer.f_head_index != p_buffer.f_tail_index", 1)
++        if wrong == source:
++            raise AssertionError("Wrong-implementation mutation did not bind generated source")
++        p = parse(wrong)
++        c = check(p)
++        if not c.ok:
++            raise AssertionError("Wrong-result control should compile")
++        wrong_build = compile_rust(emit_rust(p, c, crate_type="cdylib") + (work / "translated/bridge.rs").read_text(), output=work / "wrong.so", rustc=rustc, crate_type="cdylib")
++        if not wrong_build["ok"]:
++            raise AssertionError(wrong_build)
++        try:
++            run_sequences(original, work / "wrong.so", seed=seed, steps=24)
++        except AssertionError as error:
++            report["wrong_implementation_control"] = {"compiled": True, "rejected_by_full_oracle": True, "first_mismatch": str(error)}
++        else:
++            raise AssertionError("Wrong implementation escaped stateful oracle")
++        checkpoint(report, output, "bridge_runtime_measurement")
++        report["performance"] = benchmark(original, translated, work, compiler)
++        output.parent.mkdir(parents=True, exist_ok=True)
++        retained = output.parent / "ring-buffer-generated"
++        retained.mkdir(exist_ok=True)
++        report["retained_generated_sources"] = {}
++        for name in ("source.hepta", "bridge.rs"):
++            shutil.copyfile(work / "translated" / name, retained / name)
++            report["retained_generated_sources"][name] = {"path": str(retained / name), "sha256": sha(retained / name)}
++        shutil.copyfile(FIXTURE / "LICENSE", retained / "LICENSE")
++        (retained / "NOTICE").write_text("Generated derivative of AndersKaloer/Ring-Buffer at " + UPSTREAM_COMMIT + ".\nOriginal upstream files are unchanged. See LICENSE for MIT terms.\nThe generated safe core uses caller-supplied record-view contracts, not inferred foreign ownership.\n")
++    report["cost"] = {"elapsed_seconds": time.perf_counter() - started, "manual_review_hours": None, "model_tokens": None,
++                       "generated_core_lines": len(source.splitlines()), "upstream_source_lines": len((FIXTURE / "ringbuffer.c").read_text().splitlines()),
++                       "adapter_runtime_cost_measured": True, "model_runs": 0}
++    report["source_snapshot_after"] = snapshot()
++    if report["source_snapshot_after"] != source_before:
++        checkpoint(report, output, "source_changed_rejected")
++        raise RuntimeError("Implementation source changed during stateful C qualification")
++    report["stage"] = "complete"
++    report["ok"] = True
++    output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
++    return report
++
++
++def main():
++    parser = argparse.ArgumentParser()
++    parser.add_argument("--clang", default="clang")
++    parser.add_argument("--rustc", default=os.environ.get("RUSTC"))
++    parser.add_argument("--output", type=Path, default=ROOT / "artifacts/c-ring-buffer.json")
++    args = parser.parse_args()
++    try:
++        report = qualify(clang=args.clang, rustc=args.rustc, output=args.output)
++        print(json.dumps({"ok": report["ok"], "report": str(args.output), "execution": report["execution"]}, indent=2))
++        return 0
++    except Exception as error:
++        args.output.parent.mkdir(parents=True, exist_ok=True)
++        partial = json.loads(args.output.read_text()) if args.output.is_file() else {"schema": "hepta.c-stateful-upstream-qualification.v1"}
++        partial.update(ok=False, error=str(error))
++        args.output.write_text(json.dumps(partial, indent=2, sort_keys=True) + "\n")
++        print(str(error), file=sys.stderr)
++        return 1
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())

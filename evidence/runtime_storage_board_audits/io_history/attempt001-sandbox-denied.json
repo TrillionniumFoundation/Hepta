@@ -1,0 +1,272 @@
+{
+  "claims": {
+    "arbitrary_io_or_network_protocols_implemented": false,
+    "async_await_language_implemented": false,
+    "background_executor_implemented": false,
+    "c_backend_or_independent_ir_supported": false,
+    "cross_thread_cancellation_implemented": false,
+    "hard_realtime_cancellation_proved": false,
+    "other_platforms_qualified": false,
+    "source_to_ir_or_backend_refinement_proved": false,
+    "task_tree_composition_qualified": false,
+    "whole_process_resources_bounded": false
+  },
+  "compiler_sha256": "a3f72e7349218814b69977173e6dbc5cae855a34d0e69b85cc4c6a7653878f37",
+  "created_utc": "2026-10-25T02:12:15.471972+00:00",
+  "failure": "ValueError: native execution failed: -6: \nthread 'main' panicked at /tmp/hepta-io-qualification-ju5gt544/.hepta-native-5oi1sea5/program.rs:455:5:\nassertion failed: (h_status == 0u8)\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n",
+  "host": {
+    "machine": "x86_64",
+    "pointer_bits": 64,
+    "system": "Linux"
+  },
+  "limits": [
+    "Single-owner, caller-driven readiness pump; no worker per I/O operation and no background executor.",
+    "Private UnixStream pairs only; no filesystem, TCP, listeners, external/raw FD import, async/await or DNS API.",
+    "One pending reader and one pending writer per endpoint; 2..256 ports and 1..1024 occupied request slots.",
+    "Completed uncollected buffers retain slot and Vec-capacity byte reservations until take/wait or shutdown.",
+    "Cancellation prevents future pump syscalls and preserves the transferred prefix; it cannot undo prior effects.",
+    "A consumed foreign admitted ticket cannot access its origin; that origin retains its buffer until shutdown.",
+    "Metadata, preadmission/refused buffers, allocator overhead, kernel buffers, other reactors, RSS and CPU are not the byte budget.",
+    "Fallible fixed metadata admission is checked; ordinary Buffer allocation or unrelated OOM and panic=abort may terminate the process.",
+    "Timing and allocation observations cover the named native controls on this host, not a general latency or allocator proof."
+  ],
+  "native_controls": {},
+  "profile": "x86_64-unknown-linux-gnu",
+  "rejections": [],
+  "repeats": 1,
+  "schema": "hepta.io-reactor.evidence.v1",
+  "source_cases": [
+    {
+      "analysis": {
+        "assumptions": [],
+        "backend": {
+          "check_only": true,
+          "crate_type": "bin",
+          "diagnostics": [],
+          "flags": [
+            "edition=2021",
+            "opt-level=3",
+            "overflow-checks=yes",
+            "panic=abort",
+            "codegen-units=1",
+            "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+          ],
+          "link_args": [],
+          "linker": null,
+          "ok": true,
+          "rust_sha256": "0d77ec5f84d865b7dfd032551c9a4727bc1000bd698077f6cd9434f2addee79d",
+          "rustc_crate_type": "lib",
+          "status": "rustc_checked",
+          "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+            "host": "x86_64-unknown-linux-gnu",
+            "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+            "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+            "sysroot_discovery": "verified_compiler_prefix",
+            "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+          },
+          "validation_artifact_sha256": "003b382cf9c521783b9ded540ebc50e490cdcb678918ad0d435a922165b9abad"
+        },
+        "checks": {
+          "rust_borrows_types": "rustc_checked",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "a3f72e7349218814b69977173e6dbc5cae855a34d0e69b85cc4c6a7653878f37",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "M7d6838b50bb0a769_check": [
+            "panic"
+          ],
+          "M7d6838b50bb0a769_finish": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "write"
+          ],
+          "M7d6838b50bb0a769_queue_read": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "write"
+          ],
+          "M7d6838b50bb0a769_queue_write": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "write"
+          ],
+          "main": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "write"
+          ]
+        },
+        "interface_sha256": "ec50e4d682649e501e5474d75508a30c1ee48612277eb485b718af9fbb0f0df4",
+        "ok": true,
+        "path": "/workspace/scratch/0817a147930b/Hepta-io-next/examples/io/pipeline.hepta",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "project": {
+          "c_imports": [],
+          "entry": "/workspace/scratch/0817a147930b/Hepta-io-next/examples/io/pipeline.hepta",
+          "locked": false,
+          "modules": [
+            {
+              "imports": {},
+              "module": "io_library",
+              "path": "/workspace/scratch/0817a147930b/Hepta-io-next/examples/io/library.hepta",
+              "symbols": {
+                "check": "M7d6838b50bb0a769_check",
+                "finish": "M7d6838b50bb0a769_finish",
+                "queue_read": "M7d6838b50bb0a769_queue_read",
+                "queue_write": "M7d6838b50bb0a769_queue_write"
+              }
+            },
+            {
+              "imports": {
+                "wire": "/workspace/scratch/0817a147930b/Hepta-io-next/examples/io/library.hepta"
+              },
+              "module": "io_pipeline",
+              "path": "/workspace/scratch/0817a147930b/Hepta-io-next/examples/io/pipeline.hepta",
+              "symbols": {
+                "main": "main"
+              }
+            }
+          ],
+          "package": null,
+          "path_bindings": {
+            "/workspace/scratch/0817a147930b/Hepta-io-next/examples/io/library.hepta": "/workspace/scratch/0817a147930b/Hepta-io-next/examples/io/library.hepta",
+            "/workspace/scratch/0817a147930b/Hepta-io-next/examples/io/pipeline.hepta": "/workspace/scratch/0817a147930b/Hepta-io-next/examples/io/pipeline.hepta"
+          },
+          "schema": "hepta.module-graph.v1",
+          "sha256": "e6e349f68fef8e87891c8611809ffb2553902b650e7126a8d26561f2648fd60d",
+          "sources": {
+            "/workspace/scratch/0817a147930b/Hepta-io-next/examples/io/library.hepta": "ae51ab686906db9b2f9717651cc2f644618a74b35e1c4eb0fc99e54a6d337d00",
+            "/workspace/scratch/0817a147930b/Hepta-io-next/examples/io/pipeline.hepta": "bdfd4307a3f0799acac1096bc1b16702c731076633dc7767f89802009a134486"
+          }
+        },
+        "resource_contracts": [
+          {
+            "cancellation": "serialized_at_explicit_pump_boundaries",
+            "configuration_can_be_refused": true,
+            "enforcement": "preallocated_metadata_and_checked_admission",
+            "excludes": [
+              "preadmission_buffers",
+              "refused_submission_buffers",
+              "allocator_metadata",
+              "kernel_socket_buffers",
+              "other_reactors",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "executor": "caller_driven_nonblocking_readiness_pump",
+            "function": "main",
+            "includes_completed_uncollected_requests": true,
+            "kind": "bounded_io_reactor",
+            "limits": {
+              "admitted_buffer_capacity_bytes": 256,
+              "occupied_requests": 4,
+              "owned_ports": 4
+            },
+            "line": 5,
+            "path": "/workspace/scratch/0817a147930b/Hepta-io-next/examples/io/pipeline.hepta",
+            "platform": "x86_64_unknown_linux_gnu_hosted",
+            "scope": "one_reactor_instance"
+          }
+        ],
+        "rust_sha256": "0d77ec5f84d865b7dfd032551c9a4727bc1000bd698077f6cd9434f2addee79d",
+        "schema": "hepta.check.v1",
+        "source_sha256": "bdfd4307a3f0799acac1096bc1b16702c731076633dc7767f89802009a134486",
+        "status": "checked"
+      },
+      "build": {
+        "artifact": "/tmp/hepta-io-qualification-ju5gt544/pipeline",
+        "artifact_bytes": 3893920,
+        "artifact_sha256": "b307797ed618aa97513bbfe181a8a4cb62c15bc9d63b1025a0561ac7d2097a57",
+        "check_only": false,
+        "crate_type": "bin",
+        "diagnostics": [],
+        "flags": [
+          "edition=2021",
+          "opt-level=3",
+          "overflow-checks=yes",
+          "panic=abort",
+          "codegen-units=1",
+          "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+        ],
+        "link_args": [],
+        "linker": null,
+        "ok": true,
+        "rust_sha256": "0d77ec5f84d865b7dfd032551c9a4727bc1000bd698077f6cd9434f2addee79d",
+        "rustc_crate_type": "bin",
+        "status": "rustc_checked",
+        "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+          "host": "x86_64-unknown-linux-gnu",
+          "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+          "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+          "sysroot_discovery": "verified_compiler_prefix",
+          "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+        },
+        "validation_artifact_sha256": "b307797ed618aa97513bbfe181a8a4cb62c15bc9d63b1025a0561ac7d2097a57"
+      },
+      "name": "pipeline",
+      "runs": [
+        {
+          "elapsed_ns": 1002883314,
+          "returncode": -6,
+          "stderr": "\nthread 'main' panicked at /tmp/hepta-io-qualification-ju5gt544/.hepta-native-5oi1sea5/program.rs:455:5:\nassertion failed: (h_status == 0u8)\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n",
+          "stderr_sha256": "c7b6e3c2b032786e15ab5f9e78c112bc4aae53cabd71b00ec7f65cb0825aef77",
+          "stdout": "",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "timed_out": false,
+          "trial": 0
+        }
+      ],
+      "source": "examples/io/pipeline.hepta"
+    }
+  ],
+  "source_files": {
+    "examples/io/cancellation.hepta": "718d86d8ac602af892955036add2233847ca3b7950cbb1967608373667bf833f",
+    "examples/io/failure_paths.hepta": "20eee9f3bfdc5cf909f48a7d23c1a3e9511f1f4a38c67ce42c5e03bc434f06af",
+    "examples/io/library.hepta": "ae51ab686906db9b2f9717651cc2f644618a74b35e1c4eb0fc99e54a6d337d00",
+    "examples/io/pipeline.hepta": "bdfd4307a3f0799acac1096bc1b16702c731076633dc7767f89802009a134486",
+    "hepta/backend.py": "d404db22b3ff69c64d8990c114c041dbb5a1793f01c7af3c27e6c9f8e0e12161",
+    "hepta/checker.py": "3c8891d1efd33ea373f01ce7ed1dd29d22ee96b07896e367db7c13b0ecc32cb3",
+    "hepta/runtime_io.py": "4f82dcfd852d09058ecd4e82162198265335c6a79adc945ab4cb3d972d81bb77",
+    "tools/fixtures/io_controls.rs": "d2d07d5b82cb3d89436d3921d32ebe4827c4df6da055d305daa80d932e54730c",
+    "tools/fixtures/io_faults.c": "fd4b1c3b5a04f4b90b65bce9117016f848141c72a0797dd350834c362fdeef4d",
+    "tools/validate_io.py": "a724a87c0b8dd0336719573b946f94d7fbaf4555320b73b806523a221608f457"
+  },
+  "status": "failed",
+  "toolchain": {
+    "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+    "host": "x86_64-unknown-linux-gnu",
+    "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+    "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+    "sysroot_discovery": "verified_compiler_prefix",
+    "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+  }
+}

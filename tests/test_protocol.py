@@ -23,7 +23,7 @@ from hepta.protocol import apply_patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
-RUSTC = ROOT.parent / "toolchains" / "rust-1.90.0" / "bin" / "rustc"
+RUSTC = Path(os.environ.get("RUSTC", ROOT.parent / "toolchains" / "rust-1.90.0" / "bin" / "rustc"))
 NATIVE_AVAILABLE = RUSTC.is_file() and os.access(RUSTC, os.X_OK)
 BASE = "fn value() -> i64 effects {} { return 7; }\n"
 ALIAS_HELPER = """fn pair(a: mut [u8], b: mut [u8]) -> Unit effects {panic, write} {

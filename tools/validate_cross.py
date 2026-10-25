@@ -28,8 +28,11 @@ fn exit(code: u64) -> ! {
     let mut output = [123u64; 4];
     let expected = [0u64, u64::MAX, 1, 4, 8];
     for count in 0..=4 {
-        hepta_program::h_hepta_copy(output.as_mut_ptr(), input.as_ptr(), count);
-        if hepta_program::h_hepta_sum(output.as_ptr(), count) != expected[count] { exit(10 + count as u64) }
+        // The arrays cover count initialized elements and never overlap.
+        unsafe {
+            hepta_program::h_hepta_copy(output.as_mut_ptr(), input.as_ptr(), count);
+            if hepta_program::h_hepta_sum(output.as_ptr(), count) != expected[count] { exit(10 + count as u64) }
+        }
         for index in 0..count { if output[index] != input[index] { exit(20 + index as u64) } }
         for index in count..4 { if output[index] != 123 { exit(30 + index as u64) } }
     }

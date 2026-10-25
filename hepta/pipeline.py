@@ -11,6 +11,7 @@ from .ast import Diagnostic, HeptaError, Program, Span
 from .backend import compile_rust, emit_rust, emit_header, sha256
 from .parser import parse
 from .checker import check
+from .borrowed_storage import has_borrowed_storage
 
 
 def interface(program: Program) -> dict:
@@ -18,14 +19,18 @@ def interface(program: Program) -> dict:
             "imports": [{"name": i.name, "alias": i.alias} for i in getattr(program, "imports", [])],
             "structs": [{"name": s.name, "repr_c": s.repr_c, "public": getattr(s, "public", False),
                          "type_params": list(getattr(s, "type_params", ())),
+                         **({"lifetime_params": list(s.lifetime_params)} if s.lifetime_params else {}),
                          "fields": [{"name": f.name, "type": str(f.type)} for f in s.fields]}
                         for s in program.structs],
             "enums": [{"name": e.name, "public": e.public, "type_params": list(e.type_params),
                        "variants": [{"name": v.name, "fields": [str(t) for t in v.fields]} for v in e.variants]}
                       for e in getattr(program, "enums", [])],
-            "functions": [{"name": f.name, "params": [{"name": p.name, "mode": p.mode, "type": str(p.type)} for p in f.params],
+            "functions": [{"name": f.name, "params": [{"name": p.name, "mode": p.mode, "type": str(p.type), **({"lifetime": p.lifetime} if p.lifetime is not None else {})} for p in f.params],
+                           **({"lifetime_params": list(f.lifetime_params), "return_lifetime": f.return_lifetime} if f.lifetime_params else {}),
                            "type_params": list(getattr(f, "type_params", ())),
-                           "returns": str(f.return_type), "effects": sorted(f.effects),
+                           "type_bounds": {name: f.type_bounds.get(name, "Copy") for name in f.type_params},
+                           "returns": str(f.return_type), "return_mode": getattr(f, "return_mode", "value"), "return_origin": f.return_origin,
+                           "effects": sorted(f.effects),
                            "resources": f.resources, "public": f.public, "export_c": f.export_c,
                            "extern_c": f.extern_c} for f in program.functions]}
 
@@ -53,7 +58,7 @@ class Analysis:
 
 def analyze(source: str, path: str = "<input>", *, rustc=None, target=None,
             no_std=False, native=True, crate_type="rlib", loaded_project=None,
-            backend="rust", cc=None) -> Analysis:
+            backend="rust", cc=None, c_optimization="default") -> Analysis:
     report = {"schema": "hepta.check.v1", "compiler_version": __version__,
               "compiler_sha256": compiler_hash(), "source_sha256": sha256(source.encode()),
               "path": path, "ok": False, "status": "rejected", "diagnostics": [],
@@ -76,6 +81,10 @@ def analyze(source: str, path: str = "<input>", *, rustc=None, target=None,
             if loaded_project.c_imports and target is not None:
                 raise HeptaError(Diagnostic("E_C_IMPORT_TARGET", "C imports have native-host probe facts; cross-target reuse requires a target-specific import profile", Span(path=path), phase="module"))
         result.program = program
+        if has_borrowed_storage(program):
+            report["borrowed_storage"] = {"profile": "explicit-lifetime-records-v1", "native_lifetimes_required": True,
+                                          "native_lifetimes_checked": False, "independent_resource_ir_supported": False,
+                                          "c_backend_supported": False, "general_lifetime_system_complete": False}
         report["checks"]["syntax"] = "passed"
         report["interface_sha256"] = interface_hash(program)
         checked = check(program)
@@ -92,6 +101,8 @@ def analyze(source: str, path: str = "<input>", *, rustc=None, target=None,
             emit_header(program)  # Reject unrepresentable C declaration dependencies.
         if backend not in {"rust", "c"}:
             raise HeptaError(Diagnostic("E_BACKEND", "Unknown compiler backend", Span(path=path), phase="backend"))
+        if c_optimization not in {"default", "unroll"} or (backend != "c" and c_optimization != "default"):
+            raise HeptaError(Diagnostic("E_C_OPTIMIZATION", "A named C optimization profile requires --backend c", Span(path=path), phase="backend"))
         if backend == "c":
             if target is not None or no_std:
                 raise HeptaError(Diagnostic("E_C_PROFILE", "The C backend currently supports host compilation only", Span(path=path), phase="backend"))
@@ -105,13 +116,17 @@ def analyze(source: str, path: str = "<input>", *, rustc=None, target=None,
             result.rust = generated
             report["rust_sha256"] = sha256(generated.encode())
         report["profile"] = {"no_std": no_std, "crate_type": crate_type, "overflow_checks": True, "panic": "abort"}
+        if backend == "c":
+            report["profile"]["c_optimization"] = c_optimization
         if native:
-            native_report = (compile_c(generated, cc=cc, crate_type=c_crate_type, check_only=True) if backend == "c"
+            native_report = (compile_c(generated, cc=cc, crate_type=c_crate_type, check_only=True, optimization_profile=c_optimization) if backend == "c"
                              else compile_rust(generated, rustc=rustc, target=target, crate_type=crate_type, check_only=True))
             report["backend"] = native_report
             report["diagnostics"] += native_report["diagnostics"]
             report["checks"]["rust_borrows_types" if backend == "rust" else "c_types_codegen"] = native_report["status"]
             report["ok"] = native_report["ok"]
+            if "borrowed_storage" in report:
+                report["borrowed_storage"]["native_lifetimes_checked"] = backend == "rust" and native_report["ok"] is True
             report["status"] = "checked_with_external_assumptions" if native_report["ok"] and report["assumptions"] else ("checked" if native_report["ok"] else native_report["status"])
         else:
             report["ok"] = True
@@ -171,3 +186,92 @@ def _calls(body):
                     visit(getattr(x, field.name))
     visit(body)
     return found
+
+
+def hsir_analysis(analysis: Analysis) -> dict:
+    """Export typed source-graph IR without mistaking it for native validation.
+
+    A rejected frontend has no HSIR.  A frontend-only analysis can have an
+    interchange graph, but must retain its incomplete qualification status.
+    """
+    if analysis.program is None or analysis.checked is None or not analysis.checked.ok:
+        return {"schema": "hepta.hsir.export.v0", "ok": False,
+                "status": "rejected", "validation": analysis.report, "hsir": None}
+    from .semantic_ir import lower_checked_program
+    try:
+        snapshot = lower_checked_program(
+            analysis.program, analysis.checked,
+            project_sha256=getattr(analysis.project, "identity", None))
+    except (TypeError, ValueError, OverflowError, RecursionError) as exc:
+        return {"schema": "hepta.hsir.export.v0", "ok": False,
+                "status": "rejected", "hsir": None, "validation": analysis.report,
+                "diagnostics": [{"code": "E_HSIR_LOWER", "phase": "semantic-ir",
+                                 "message": str(exc)}]}
+    return {"schema": "hepta.hsir.export.v0", "ok": bool(analysis.report["ok"]),
+            "status": analysis.report["status"],
+            "hsir": snapshot, "validation": analysis.report}
+
+
+def cfg_analysis(analysis: Analysis) -> dict:
+    """Export checked structured control flow without upgrading proof claims."""
+    if analysis.program is None or analysis.checked is None or not analysis.checked.ok:
+        return {"schema": "hepta.cfg.export.v0", "ok": False,
+                "status": "rejected", "validation": analysis.report, "cfg": None}
+    from .flow_ir import FlowLowerError, lower_checked_cfg
+    try:
+        snapshot = lower_checked_cfg(
+            analysis.program, analysis.checked,
+            project_sha256=getattr(analysis.project, "identity", None))
+    except (FlowLowerError, TypeError, ValueError, OverflowError, RecursionError) as exc:
+        return {"schema": "hepta.cfg.export.v0", "ok": False,
+                "status": "rejected", "cfg": None, "validation": analysis.report,
+                "diagnostics": [{"code": "E_CFG_LOWER", "phase": "flow-ir",
+                                 "message": str(exc)}]}
+    return {"schema": "hepta.cfg.export.v0", "ok": bool(analysis.report["ok"]),
+            "status": analysis.report["status"], "cfg": snapshot,
+            "validation": analysis.report}
+
+
+def resource_ir_analysis(analysis: Analysis) -> dict:
+    """Export and independently validate the bounded resource abstraction."""
+    report = {"schema": "hepta.resource-ir.export.v1", "ok": False,
+              "status": "rejected", "resource_ir": None, "verifier": None,
+              "validation": analysis.report}
+    if analysis.program is None or analysis.checked is None or not analysis.checked.ok:
+        return report
+    from .resource_ir import ResourceIRError, verify_resource_ir
+    from .resource_lowering import lower_resource_ir
+    try:
+        graph = lower_resource_ir(analysis.program, analysis.checked,
+                                  project_sha256=getattr(analysis.project, "identity", None))
+        # The verifier consumes data, not checker object identities.
+        verification = verify_resource_ir(json.loads(json.dumps(graph)))
+        report.update(resource_ir=graph, verifier=verification,
+                      ok=bool(analysis.report["ok"] and verification["ok"]),
+                      status=analysis.report["status"] if verification["ok"] else "rejected")
+    except (ResourceIRError, ValueError, TypeError, OverflowError, RecursionError) as exc:
+        report["diagnostics"] = [{"phase": "resource-ir", "code": getattr(exc, "code", "E_RIR_LOWER"),
+                                   "message": str(exc)}]
+    return report
+
+
+def concurrent_ir_analysis(analysis: Analysis) -> dict:
+    """Check explicit task/group obligations without upgrading runtime proofs."""
+    report = {"schema": "hepta.concurrent-ir.export.v1", "ok": False,
+              "status": "rejected", "concurrent_ir": None, "verifier": None,
+              "validation": analysis.report}
+    if analysis.program is None or analysis.checked is None or not analysis.checked.ok:
+        return report
+    from .concurrent_ir import ConcurrentIRError, verify_concurrent_ir
+    from .concurrent_lowering import lower_concurrent_ir
+    try:
+        graph = lower_concurrent_ir(analysis.program, analysis.checked,
+                                   project_sha256=getattr(analysis.project, "identity", None))
+        verification = verify_concurrent_ir(json.loads(json.dumps(graph)))
+        report.update(concurrent_ir=graph, verifier=verification,
+                      ok=bool(analysis.report["ok"] and verification["ok"]),
+                      status=analysis.report["status"] if verification["ok"] else "rejected")
+    except (ConcurrentIRError, ValueError, TypeError, OverflowError, RecursionError) as exc:
+        report["diagnostics"] = [{"phase": "concurrent-ir", "code": getattr(exc, "code", "E_CIR_LOWER"),
+                                   "message": str(exc)}]
+    return report

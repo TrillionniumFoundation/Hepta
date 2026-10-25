@@ -1,0 +1,10 @@
+module worker;
+pub fn execute(data: take Buffer<u8>, token: read Cancellation) -> u64 effects {alloc,block,panic} {
+    let cancel = data[0] != 0;
+    if cancel { while !cancelled(read token) {} }
+    let mut value: u64 = 0;
+    for i in 1..len(data) { value = value + data[i] as u64; }
+    release(move data);
+    if cancel { return value + 1000000; }
+    return value;
+}

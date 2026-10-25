@@ -1,0 +1,4509 @@
+{
+  "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+  "invalid_c_acceptances": 3,
+  "invalid_native_execution_attempted": false,
+  "rows": [
+    {
+      "c": {
+        "assumptions": [],
+        "c_sha256": "74311eae8e8d0e4b039e07d5b97ef2d3966def2031b1a76033800a2665be3280",
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "dispose": [
+            "alloc",
+            "block"
+          ],
+          "main": [
+            "alloc",
+            "block",
+            "panic"
+          ]
+        },
+        "interface_sha256": "8d95b6db274987785d283fb55c5cdbc42fb6ce1a77a0d7ce3a0b629e48fcc0ae",
+        "ok": true,
+        "path": "<input>",
+        "profile": {
+          "c_optimization": "default",
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [],
+        "schema": "hepta.check.v1",
+        "source_sha256": "a235acc98a81587e82dd5bf062e51c8eb10c7b51b3fc147afc7e8d18d933c031",
+        "status": "frontend_only"
+      },
+      "c_emitted": true,
+      "category": "accepted",
+      "frontend": {
+        "assumptions": [],
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "dispose": [
+            "alloc",
+            "block"
+          ],
+          "main": [
+            "alloc",
+            "block",
+            "panic"
+          ]
+        },
+        "interface_sha256": "8d95b6db274987785d283fb55c5cdbc42fb6ce1a77a0d7ce3a0b629e48fcc0ae",
+        "ok": true,
+        "path": "<input>",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [],
+        "rust_sha256": "7f2db3b547e445503388d2ba4fe4dfe4ad0248505dcf02a1f63008275399de7b",
+        "schema": "hepta.check.v1",
+        "source_sha256": "a235acc98a81587e82dd5bf062e51c8eb10c7b51b3fc147afc7e8d18d933c031",
+        "status": "frontend_only"
+      },
+      "invalid_native_execution_attempted": false,
+      "name": "index_value_materialized_before_rhs",
+      "resource": {
+        "ok": true,
+        "resource_ir": {
+          "claims": {
+            "external_contracts_proved": false,
+            "native_codegen_uses_this_ir": false,
+            "scalar_value_semantics_verified": false,
+            "source_to_ir_refinement_proved": false,
+            "termination_proved": false,
+            "whole_language_soundness_proved": false
+          },
+          "functions": [
+            {
+              "blocks": [
+                {
+                  "id": "b0",
+                  "ops": [
+                    {
+                      "dest": "v0",
+                      "op": "move",
+                      "src": "p0"
+                    },
+                    {
+                      "op": "drop",
+                      "src": "v0"
+                    }
+                  ],
+                  "term": {
+                    "loan": null,
+                    "op": "return",
+                    "value": "v1"
+                  }
+                }
+              ],
+              "entry": "b0",
+              "external": false,
+              "locals": [
+                {
+                  "id": "v0",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v1",
+                  "mutable": false,
+                  "type": "u8"
+                }
+              ],
+              "name": "dispose",
+              "obligation": null,
+              "params": [
+                {
+                  "id": "p0",
+                  "mode": "take",
+                  "type": "Buffer<u8>"
+                }
+              ],
+              "returns": {
+                "mode": "value",
+                "origin": null,
+                "type": "u8"
+              }
+            },
+            {
+              "blocks": [
+                {
+                  "id": "b0",
+                  "ops": [
+                    {
+                      "dest": "v1",
+                      "kind": "buffer",
+                      "op": "acquire"
+                    },
+                    {
+                      "dest": "v2",
+                      "op": "move",
+                      "src": "v1"
+                    },
+                    {
+                      "dest": "v4",
+                      "kind": "buffer",
+                      "op": "acquire"
+                    },
+                    {
+                      "dest": "v5",
+                      "op": "move",
+                      "src": "v4"
+                    },
+                    {
+                      "mode": "read",
+                      "op": "use",
+                      "place": {
+                        "path": [
+                          "*"
+                        ],
+                        "root": "v5"
+                      }
+                    },
+                    {
+                      "mode": "read",
+                      "op": "use",
+                      "place": {
+                        "path": [],
+                        "root": "v9"
+                      }
+                    },
+                    {
+                      "dest": "v10",
+                      "op": "move",
+                      "src": "v5"
+                    },
+                    {
+                      "args": [
+                        {
+                          "id": "v10",
+                          "kind": "owner"
+                        }
+                      ],
+                      "function": "dispose",
+                      "obligation": null,
+                      "op": "call",
+                      "result": "v11",
+                      "result_loan": null
+                    },
+                    {
+                      "mode": "write",
+                      "op": "use",
+                      "place": {
+                        "path": [
+                          "*"
+                        ],
+                        "root": "v2"
+                      }
+                    },
+                    {
+                      "mode": "read",
+                      "op": "use",
+                      "place": {
+                        "path": [
+                          "*"
+                        ],
+                        "root": "v2"
+                      }
+                    },
+                    {
+                      "dest": "v16",
+                      "op": "move",
+                      "src": "v2"
+                    },
+                    {
+                      "op": "drop",
+                      "src": "v16"
+                    }
+                  ],
+                  "term": {
+                    "loan": null,
+                    "op": "return",
+                    "value": null
+                  }
+                }
+              ],
+              "entry": "b0",
+              "external": false,
+              "locals": [
+                {
+                  "id": "v0",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v1",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v2",
+                  "mutable": true,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v3",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v4",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v5",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v6",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v7",
+                  "mutable": false,
+                  "type": "u8"
+                },
+                {
+                  "id": "v8",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v9",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v10",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v11",
+                  "mutable": false,
+                  "type": "u8"
+                },
+                {
+                  "id": "v12",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v13",
+                  "mutable": false,
+                  "type": "u8"
+                },
+                {
+                  "id": "v14",
+                  "mutable": false,
+                  "type": "u8"
+                },
+                {
+                  "id": "v15",
+                  "mutable": false,
+                  "type": "bool"
+                },
+                {
+                  "id": "v16",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                }
+              ],
+              "name": "main",
+              "obligation": null,
+              "params": [],
+              "returns": {
+                "mode": "value",
+                "origin": null,
+                "type": "Unit"
+              }
+            }
+          ],
+          "obligations": {},
+          "project_sha256": null,
+          "schema": "hepta.resource-ir.v3",
+          "source_sha256": "a235acc98a81587e82dd5bf062e51c8eb10c7b51b3fc147afc7e8d18d933c031",
+          "types": {
+            "Buffer<u8>": {
+              "element": "u8",
+              "kind": "buffer"
+            },
+            "Unit": {
+              "kind": "scalar",
+              "name": "Unit"
+            },
+            "bool": {
+              "kind": "scalar",
+              "name": "bool"
+            },
+            "u8": {
+              "kind": "scalar",
+              "name": "u8"
+            },
+            "usize": {
+              "kind": "scalar",
+              "name": "usize"
+            }
+          },
+          "value_semantics": "copied_values_abstract_not_executable"
+        },
+        "schema": "hepta.resource-ir.export.v1",
+        "status": "frontend_only",
+        "validation": {
+          "assumptions": [],
+          "checks": {
+            "rust_borrows_types": "not_run",
+            "syntax": "passed",
+            "types_effects_resources": "passed_in_supported_subset"
+          },
+          "claims": {
+            "all_programs_faster_than_rust": false,
+            "bounded_cancellation_latency_proved": false,
+            "deadlock_freedom_proved": false,
+            "hardware_execution_verified": false,
+            "whole_language_soundness_proved": false
+          },
+          "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+          "compiler_version": "0.2.0",
+          "diagnostics": [],
+          "effects": {
+            "dispose": [
+              "alloc",
+              "block"
+            ],
+            "main": [
+              "alloc",
+              "block",
+              "panic"
+            ]
+          },
+          "interface_sha256": "8d95b6db274987785d283fb55c5cdbc42fb6ce1a77a0d7ce3a0b629e48fcc0ae",
+          "ok": true,
+          "path": "<input>",
+          "profile": {
+            "crate_type": "bin",
+            "no_std": false,
+            "overflow_checks": true,
+            "panic": "abort"
+          },
+          "resource_contracts": [],
+          "rust_sha256": "7f2db3b547e445503388d2ba4fe4dfe4ad0248505dcf02a1f63008275399de7b",
+          "schema": "hepta.check.v1",
+          "source_sha256": "a235acc98a81587e82dd5bf062e51c8eb10c7b51b3fc147afc7e8d18d933c031",
+          "status": "frontend_only"
+        },
+        "verifier": {
+          "claims": {
+            "external_contracts_proved": false,
+            "native_codegen_uses_this_ir": false,
+            "scalar_value_semantics_verified": false,
+            "source_to_ir_refinement_proved": false,
+            "termination_proved": false,
+            "whole_language_soundness_proved": false
+          },
+          "diagnostics": [],
+          "external_obligations": {},
+          "functions": [
+            {
+              "function": "dispose",
+              "normal_exits": 1,
+              "reachable_blocks": 1,
+              "total_blocks": 1
+            },
+            {
+              "function": "main",
+              "normal_exits": 1,
+              "reachable_blocks": 1,
+              "total_blocks": 1
+            }
+          ],
+          "generic_calls_checked": 0,
+          "generic_functions_checked": 0,
+          "ir_sha256": "7a174ad6de99b6fa59f141554f9d316724d457315bd339f1865e1a38062d7d5d",
+          "ok": true,
+          "operations_checked": 14,
+          "owned_types": [
+            "Buffer<u8>"
+          ],
+          "schema": "hepta.resource-ir-validation.v1",
+          "status": "resource_cfg_verified"
+        }
+      },
+      "rust": {
+        "assumptions": [],
+        "backend": {
+          "check_only": true,
+          "crate_type": "bin",
+          "diagnostics": [],
+          "flags": [
+            "edition=2021",
+            "opt-level=3",
+            "overflow-checks=yes",
+            "panic=abort",
+            "codegen-units=1",
+            "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+          ],
+          "link_args": [],
+          "linker": null,
+          "ok": true,
+          "rust_sha256": "7f2db3b547e445503388d2ba4fe4dfe4ad0248505dcf02a1f63008275399de7b",
+          "rustc_crate_type": "lib",
+          "status": "rustc_checked",
+          "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+            "host": "x86_64-unknown-linux-gnu",
+            "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+            "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+            "sysroot_discovery": "verified_compiler_prefix",
+            "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+          },
+          "validation_artifact_sha256": "57a0f660764190eaa608caec1ed0a40c81b07b3ba3c5a9e40765f6c4ee205b77"
+        },
+        "checks": {
+          "rust_borrows_types": "rustc_checked",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "dispose": [
+            "alloc",
+            "block"
+          ],
+          "main": [
+            "alloc",
+            "block",
+            "panic"
+          ]
+        },
+        "interface_sha256": "8d95b6db274987785d283fb55c5cdbc42fb6ce1a77a0d7ce3a0b629e48fcc0ae",
+        "ok": true,
+        "path": "<input>",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [],
+        "rust_sha256": "7f2db3b547e445503388d2ba4fe4dfe4ad0248505dcf02a1f63008275399de7b",
+        "schema": "hepta.check.v1",
+        "source_sha256": "a235acc98a81587e82dd5bf062e51c8eb10c7b51b3fc147afc7e8d18d933c031",
+        "status": "checked"
+      },
+      "source_sha256": "a235acc98a81587e82dd5bf062e51c8eb10c7b51b3fc147afc7e8d18d933c031",
+      "valid_executions": [
+        {
+          "backend": "c",
+          "build": {
+            "artifact": "/tmp/hepta-order-safe-n0was6st/c",
+            "artifact_bytes": 16312,
+            "artifact_sha256": "4fbda98b04b1e916e2f1e9785b8e519dde2706e63029e879a876e527f8584a30",
+            "backend": "c11-gcc",
+            "check_only": false,
+            "crate_type": "bin",
+            "diagnostics": [],
+            "flags": [
+              "-std=c11",
+              "-O3",
+              "-fexcess-precision=standard",
+              "-ffp-contract=off",
+              "-fno-strict-aliasing",
+              "-Wall",
+              "-Wextra",
+              "-Werror=implicit-function-declaration",
+              "-Werror=incompatible-pointer-types",
+              "-fsanitize=undefined",
+              "-fno-sanitize-recover=all"
+            ],
+            "link_args": [],
+            "ok": true,
+            "optimization_profile": "default",
+            "rustc_used": false,
+            "source_sha256": "74311eae8e8d0e4b039e07d5b97ef2d3966def2031b1a76033800a2665be3280",
+            "status": "gcc_checked",
+            "target": "x86_64-linux-gnu",
+            "toolchain": {
+              "executable_sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26",
+              "path": "/usr/bin/gcc",
+              "version": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+            },
+            "validation_artifact_sha256": "4fbda98b04b1e916e2f1e9785b8e519dde2706e63029e879a876e527f8584a30"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        {
+          "backend": "rust",
+          "build": {
+            "artifact": "/tmp/hepta-order-safe-n0was6st/rust",
+            "artifact_bytes": 3859760,
+            "artifact_sha256": "99f264c41c875ca1b8650c3407a54243f50c883a4453b050d5ab9d43898ff297",
+            "check_only": false,
+            "crate_type": "bin",
+            "diagnostics": [],
+            "flags": [
+              "edition=2021",
+              "opt-level=3",
+              "overflow-checks=yes",
+              "panic=abort",
+              "codegen-units=1",
+              "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+            ],
+            "link_args": [],
+            "linker": null,
+            "ok": true,
+            "rust_sha256": "7f2db3b547e445503388d2ba4fe4dfe4ad0248505dcf02a1f63008275399de7b",
+            "rustc_crate_type": "bin",
+            "status": "rustc_checked",
+            "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+            "target": "x86_64-unknown-linux-gnu",
+            "toolchain": {
+              "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+              "host": "x86_64-unknown-linux-gnu",
+              "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+              "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+              "sysroot_discovery": "verified_compiler_prefix",
+              "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+            },
+            "validation_artifact_sha256": "99f264c41c875ca1b8650c3407a54243f50c883a4453b050d5ab9d43898ff297"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        }
+      ]
+    },
+    {
+      "c": {
+        "assumptions": [],
+        "c_sha256": "a383391951260a10a217816628649dfce315861abcccc80a3b4f23d0bb7dbc7f",
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "dispose": [
+            "alloc",
+            "block"
+          ],
+          "main": [
+            "alloc",
+            "block",
+            "panic"
+          ],
+          "reuse": []
+        },
+        "interface_sha256": "f487efa574d107cc31f60956fe16e41305852ad1836cfc310e65b691084616ec",
+        "ok": true,
+        "path": "<input>",
+        "profile": {
+          "c_optimization": "default",
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [],
+        "schema": "hepta.check.v1",
+        "source_sha256": "d4a55b58a0da908495b70c8077f3ef8027172a2f600beb4087098b1f5034963a",
+        "status": "frontend_only"
+      },
+      "c_emitted": true,
+      "category": "accepted",
+      "frontend": {
+        "assumptions": [],
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "dispose": [
+            "alloc",
+            "block"
+          ],
+          "main": [
+            "alloc",
+            "block",
+            "panic"
+          ],
+          "reuse": []
+        },
+        "interface_sha256": "f487efa574d107cc31f60956fe16e41305852ad1836cfc310e65b691084616ec",
+        "ok": true,
+        "path": "<input>",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [],
+        "rust_sha256": "2a529a3d9d6d951078f3ffa7cdc4a5e287395843331592cd650f9d59f3047514",
+        "schema": "hepta.check.v1",
+        "source_sha256": "d4a55b58a0da908495b70c8077f3ef8027172a2f600beb4087098b1f5034963a",
+        "status": "frontend_only"
+      },
+      "invalid_native_execution_attempted": false,
+      "name": "restore_after_rhs_partial_extraction",
+      "resource": {
+        "ok": true,
+        "resource_ir": {
+          "claims": {
+            "external_contracts_proved": false,
+            "native_codegen_uses_this_ir": false,
+            "scalar_value_semantics_verified": false,
+            "source_to_ir_refinement_proved": false,
+            "termination_proved": false,
+            "whole_language_soundness_proved": false
+          },
+          "functions": [
+            {
+              "blocks": [
+                {
+                  "id": "b0",
+                  "ops": [
+                    {
+                      "dest": "v0",
+                      "op": "move",
+                      "src": "p0"
+                    },
+                    {
+                      "op": "drop",
+                      "src": "v0"
+                    }
+                  ],
+                  "term": {
+                    "loan": null,
+                    "op": "return",
+                    "value": "v1"
+                  }
+                }
+              ],
+              "entry": "b0",
+              "external": false,
+              "locals": [
+                {
+                  "id": "v0",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v1",
+                  "mutable": false,
+                  "type": "u8"
+                }
+              ],
+              "name": "dispose",
+              "obligation": null,
+              "params": [
+                {
+                  "id": "p0",
+                  "mode": "take",
+                  "type": "Buffer<u8>"
+                }
+              ],
+              "returns": {
+                "mode": "value",
+                "origin": null,
+                "type": "u8"
+              }
+            },
+            {
+              "blocks": [
+                {
+                  "id": "b0",
+                  "ops": [
+                    {
+                      "dest": "v0",
+                      "op": "move",
+                      "src": "p0"
+                    }
+                  ],
+                  "term": {
+                    "loan": null,
+                    "op": "return",
+                    "value": "v0"
+                  }
+                }
+              ],
+              "entry": "b0",
+              "external": false,
+              "locals": [
+                {
+                  "id": "v0",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                }
+              ],
+              "name": "reuse",
+              "obligation": null,
+              "params": [
+                {
+                  "id": "p0",
+                  "mode": "take",
+                  "type": "Buffer<u8>"
+                }
+              ],
+              "returns": {
+                "mode": "value",
+                "origin": null,
+                "type": "Buffer<u8>"
+              }
+            },
+            {
+              "blocks": [
+                {
+                  "id": "b0",
+                  "ops": [
+                    {
+                      "dest": "v1",
+                      "kind": "buffer",
+                      "op": "acquire"
+                    },
+                    {
+                      "dest": "v3",
+                      "kind": "buffer",
+                      "op": "acquire"
+                    },
+                    {
+                      "dest": "v4",
+                      "fields": [
+                        "v1",
+                        "v3"
+                      ],
+                      "op": "pack",
+                      "variant": null
+                    },
+                    {
+                      "dest": "v5",
+                      "op": "move",
+                      "src": "v4"
+                    },
+                    {
+                      "dest": "v6",
+                      "op": "take_field",
+                      "place": {
+                        "path": [
+                          "left"
+                        ],
+                        "root": "v5"
+                      }
+                    },
+                    {
+                      "dest": "v7",
+                      "op": "move",
+                      "src": "v6"
+                    },
+                    {
+                      "dest": "v8",
+                      "op": "move",
+                      "src": "v7"
+                    },
+                    {
+                      "args": [
+                        {
+                          "id": "v8",
+                          "kind": "owner"
+                        }
+                      ],
+                      "function": "reuse",
+                      "obligation": null,
+                      "op": "call",
+                      "result": "v9",
+                      "result_loan": null
+                    },
+                    {
+                      "op": "init_field",
+                      "place": {
+                        "path": [
+                          "left"
+                        ],
+                        "root": "v5"
+                      },
+                      "src": "v9"
+                    },
+                    {
+                      "id": "l0",
+                      "mode": "read",
+                      "op": "borrow",
+                      "place": {
+                        "path": [
+                          "left"
+                        ],
+                        "root": "v5"
+                      },
+                      "type": "Buffer<u8>"
+                    },
+                    {
+                      "loan": "l0",
+                      "mode": "read",
+                      "op": "use"
+                    },
+                    {
+                      "id": "l0",
+                      "op": "end_borrow"
+                    },
+                    {
+                      "dest": "v13",
+                      "op": "move",
+                      "src": "v5"
+                    },
+                    {
+                      "op": "drop",
+                      "src": "v13"
+                    },
+                    {
+                      "op": "forget",
+                      "src": "v5"
+                    }
+                  ],
+                  "term": {
+                    "loan": null,
+                    "op": "return",
+                    "value": null
+                  }
+                }
+              ],
+              "entry": "b0",
+              "external": false,
+              "locals": [
+                {
+                  "id": "v0",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v1",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v2",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v3",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v4",
+                  "mutable": false,
+                  "type": "Pair"
+                },
+                {
+                  "id": "v5",
+                  "mutable": true,
+                  "type": "Pair"
+                },
+                {
+                  "id": "v6",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v7",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v8",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v9",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v10",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v11",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v12",
+                  "mutable": false,
+                  "type": "bool"
+                },
+                {
+                  "id": "v13",
+                  "mutable": false,
+                  "type": "Pair"
+                }
+              ],
+              "name": "main",
+              "obligation": null,
+              "params": [],
+              "returns": {
+                "mode": "value",
+                "origin": null,
+                "type": "Unit"
+              }
+            }
+          ],
+          "obligations": {},
+          "project_sha256": null,
+          "schema": "hepta.resource-ir.v3",
+          "source_sha256": "d4a55b58a0da908495b70c8077f3ef8027172a2f600beb4087098b1f5034963a",
+          "types": {
+            "Buffer<u8>": {
+              "element": "u8",
+              "kind": "buffer"
+            },
+            "Pair": {
+              "args": [],
+              "fields": [
+                {
+                  "name": "left",
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "name": "right",
+                  "type": "Buffer<u8>"
+                }
+              ],
+              "kind": "struct",
+              "name": "Pair"
+            },
+            "Unit": {
+              "kind": "scalar",
+              "name": "Unit"
+            },
+            "bool": {
+              "kind": "scalar",
+              "name": "bool"
+            },
+            "u8": {
+              "kind": "scalar",
+              "name": "u8"
+            },
+            "usize": {
+              "kind": "scalar",
+              "name": "usize"
+            }
+          },
+          "value_semantics": "copied_values_abstract_not_executable"
+        },
+        "schema": "hepta.resource-ir.export.v1",
+        "status": "frontend_only",
+        "validation": {
+          "assumptions": [],
+          "checks": {
+            "rust_borrows_types": "not_run",
+            "syntax": "passed",
+            "types_effects_resources": "passed_in_supported_subset"
+          },
+          "claims": {
+            "all_programs_faster_than_rust": false,
+            "bounded_cancellation_latency_proved": false,
+            "deadlock_freedom_proved": false,
+            "hardware_execution_verified": false,
+            "whole_language_soundness_proved": false
+          },
+          "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+          "compiler_version": "0.2.0",
+          "diagnostics": [],
+          "effects": {
+            "dispose": [
+              "alloc",
+              "block"
+            ],
+            "main": [
+              "alloc",
+              "block",
+              "panic"
+            ],
+            "reuse": []
+          },
+          "interface_sha256": "f487efa574d107cc31f60956fe16e41305852ad1836cfc310e65b691084616ec",
+          "ok": true,
+          "path": "<input>",
+          "profile": {
+            "crate_type": "bin",
+            "no_std": false,
+            "overflow_checks": true,
+            "panic": "abort"
+          },
+          "resource_contracts": [],
+          "rust_sha256": "2a529a3d9d6d951078f3ffa7cdc4a5e287395843331592cd650f9d59f3047514",
+          "schema": "hepta.check.v1",
+          "source_sha256": "d4a55b58a0da908495b70c8077f3ef8027172a2f600beb4087098b1f5034963a",
+          "status": "frontend_only"
+        },
+        "verifier": {
+          "claims": {
+            "external_contracts_proved": false,
+            "native_codegen_uses_this_ir": false,
+            "scalar_value_semantics_verified": false,
+            "source_to_ir_refinement_proved": false,
+            "termination_proved": false,
+            "whole_language_soundness_proved": false
+          },
+          "diagnostics": [],
+          "external_obligations": {},
+          "functions": [
+            {
+              "function": "dispose",
+              "normal_exits": 1,
+              "reachable_blocks": 1,
+              "total_blocks": 1
+            },
+            {
+              "function": "reuse",
+              "normal_exits": 1,
+              "reachable_blocks": 1,
+              "total_blocks": 1
+            },
+            {
+              "function": "main",
+              "normal_exits": 1,
+              "reachable_blocks": 1,
+              "total_blocks": 1
+            }
+          ],
+          "generic_calls_checked": 0,
+          "generic_functions_checked": 0,
+          "ir_sha256": "8898a71a7b847e8a71fc7c70848d2fda9a65dd99a76a44bd57e1405f514a632e",
+          "ok": true,
+          "operations_checked": 18,
+          "owned_types": [
+            "Buffer<u8>",
+            "Pair"
+          ],
+          "schema": "hepta.resource-ir-validation.v1",
+          "status": "resource_cfg_verified"
+        }
+      },
+      "rust": {
+        "assumptions": [],
+        "backend": {
+          "check_only": true,
+          "crate_type": "bin",
+          "diagnostics": [],
+          "flags": [
+            "edition=2021",
+            "opt-level=3",
+            "overflow-checks=yes",
+            "panic=abort",
+            "codegen-units=1",
+            "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+          ],
+          "link_args": [],
+          "linker": null,
+          "ok": true,
+          "rust_sha256": "2a529a3d9d6d951078f3ffa7cdc4a5e287395843331592cd650f9d59f3047514",
+          "rustc_crate_type": "lib",
+          "status": "rustc_checked",
+          "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+            "host": "x86_64-unknown-linux-gnu",
+            "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+            "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+            "sysroot_discovery": "verified_compiler_prefix",
+            "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+          },
+          "validation_artifact_sha256": "3daf94dfc033069c587fd0bb3efb9591a66e9c46f409ede4e2b1a7f11d74055c"
+        },
+        "checks": {
+          "rust_borrows_types": "rustc_checked",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "dispose": [
+            "alloc",
+            "block"
+          ],
+          "main": [
+            "alloc",
+            "block",
+            "panic"
+          ],
+          "reuse": []
+        },
+        "interface_sha256": "f487efa574d107cc31f60956fe16e41305852ad1836cfc310e65b691084616ec",
+        "ok": true,
+        "path": "<input>",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [],
+        "rust_sha256": "2a529a3d9d6d951078f3ffa7cdc4a5e287395843331592cd650f9d59f3047514",
+        "schema": "hepta.check.v1",
+        "source_sha256": "d4a55b58a0da908495b70c8077f3ef8027172a2f600beb4087098b1f5034963a",
+        "status": "checked"
+      },
+      "source_sha256": "d4a55b58a0da908495b70c8077f3ef8027172a2f600beb4087098b1f5034963a",
+      "valid_executions": [
+        {
+          "backend": "c",
+          "build": {
+            "artifact": "/tmp/hepta-order-safe-6xq1f8m9/c",
+            "artifact_bytes": 16272,
+            "artifact_sha256": "c5509a43c91143b4031bd8f9f53b70b23bd35dffbdff2da6c36ed8a7f2d7746f",
+            "backend": "c11-gcc",
+            "check_only": false,
+            "crate_type": "bin",
+            "diagnostics": [],
+            "flags": [
+              "-std=c11",
+              "-O3",
+              "-fexcess-precision=standard",
+              "-ffp-contract=off",
+              "-fno-strict-aliasing",
+              "-Wall",
+              "-Wextra",
+              "-Werror=implicit-function-declaration",
+              "-Werror=incompatible-pointer-types",
+              "-fsanitize=undefined",
+              "-fno-sanitize-recover=all"
+            ],
+            "link_args": [],
+            "ok": true,
+            "optimization_profile": "default",
+            "rustc_used": false,
+            "source_sha256": "a383391951260a10a217816628649dfce315861abcccc80a3b4f23d0bb7dbc7f",
+            "status": "gcc_checked",
+            "target": "x86_64-linux-gnu",
+            "toolchain": {
+              "executable_sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26",
+              "path": "/usr/bin/gcc",
+              "version": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+            },
+            "validation_artifact_sha256": "c5509a43c91143b4031bd8f9f53b70b23bd35dffbdff2da6c36ed8a7f2d7746f"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        {
+          "backend": "rust",
+          "build": {
+            "artifact": "/tmp/hepta-order-safe-6xq1f8m9/rust",
+            "artifact_bytes": 3859760,
+            "artifact_sha256": "99f264c41c875ca1b8650c3407a54243f50c883a4453b050d5ab9d43898ff297",
+            "check_only": false,
+            "crate_type": "bin",
+            "diagnostics": [],
+            "flags": [
+              "edition=2021",
+              "opt-level=3",
+              "overflow-checks=yes",
+              "panic=abort",
+              "codegen-units=1",
+              "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+            ],
+            "link_args": [],
+            "linker": null,
+            "ok": true,
+            "rust_sha256": "2a529a3d9d6d951078f3ffa7cdc4a5e287395843331592cd650f9d59f3047514",
+            "rustc_crate_type": "bin",
+            "status": "rustc_checked",
+            "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+            "target": "x86_64-unknown-linux-gnu",
+            "toolchain": {
+              "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+              "host": "x86_64-unknown-linux-gnu",
+              "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+              "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+              "sysroot_discovery": "verified_compiler_prefix",
+              "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+            },
+            "validation_artifact_sha256": "99f264c41c875ca1b8650c3407a54243f50c883a4453b050d5ab9d43898ff297"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        }
+      ]
+    },
+    {
+      "c": {
+        "assumptions": [],
+        "c_sha256": "5b3994a67085ff0a4071fd0c3363c3a6baca2f29c8b83f4652f6a63da3c6866b",
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "dispose": [
+            "alloc",
+            "block"
+          ],
+          "main": [
+            "alloc",
+            "block",
+            "panic"
+          ]
+        },
+        "interface_sha256": "8d95b6db274987785d283fb55c5cdbc42fb6ce1a77a0d7ce3a0b629e48fcc0ae",
+        "ok": true,
+        "path": "<input>",
+        "profile": {
+          "c_optimization": "default",
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [],
+        "schema": "hepta.check.v1",
+        "source_sha256": "0fc65b8eb95bf7242e3c1e0c7845534c2991f4ffcffbcc4f9e4937601074f3d2",
+        "status": "frontend_only"
+      },
+      "c_emitted": true,
+      "category": "accepted",
+      "frontend": {
+        "assumptions": [],
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "dispose": [
+            "alloc",
+            "block"
+          ],
+          "main": [
+            "alloc",
+            "block",
+            "panic"
+          ]
+        },
+        "interface_sha256": "8d95b6db274987785d283fb55c5cdbc42fb6ce1a77a0d7ce3a0b629e48fcc0ae",
+        "ok": true,
+        "path": "<input>",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [],
+        "rust_sha256": "b18bd556224e80c44a3d9449bdc8b30588da391aa58e89f8bcfba9f8472961c7",
+        "schema": "hepta.check.v1",
+        "source_sha256": "0fc65b8eb95bf7242e3c1e0c7845534c2991f4ffcffbcc4f9e4937601074f3d2",
+        "status": "frontend_only"
+      },
+      "invalid_native_execution_attempted": false,
+      "name": "rhs_consumes_disjoint_owner",
+      "resource": {
+        "ok": true,
+        "resource_ir": {
+          "claims": {
+            "external_contracts_proved": false,
+            "native_codegen_uses_this_ir": false,
+            "scalar_value_semantics_verified": false,
+            "source_to_ir_refinement_proved": false,
+            "termination_proved": false,
+            "whole_language_soundness_proved": false
+          },
+          "functions": [
+            {
+              "blocks": [
+                {
+                  "id": "b0",
+                  "ops": [
+                    {
+                      "dest": "v0",
+                      "op": "move",
+                      "src": "p0"
+                    },
+                    {
+                      "op": "drop",
+                      "src": "v0"
+                    }
+                  ],
+                  "term": {
+                    "loan": null,
+                    "op": "return",
+                    "value": "v1"
+                  }
+                }
+              ],
+              "entry": "b0",
+              "external": false,
+              "locals": [
+                {
+                  "id": "v0",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v1",
+                  "mutable": false,
+                  "type": "u8"
+                }
+              ],
+              "name": "dispose",
+              "obligation": null,
+              "params": [
+                {
+                  "id": "p0",
+                  "mode": "take",
+                  "type": "Buffer<u8>"
+                }
+              ],
+              "returns": {
+                "mode": "value",
+                "origin": null,
+                "type": "u8"
+              }
+            },
+            {
+              "blocks": [
+                {
+                  "id": "b0",
+                  "ops": [
+                    {
+                      "dest": "v1",
+                      "kind": "buffer",
+                      "op": "acquire"
+                    },
+                    {
+                      "dest": "v2",
+                      "op": "move",
+                      "src": "v1"
+                    },
+                    {
+                      "dest": "v4",
+                      "kind": "buffer",
+                      "op": "acquire"
+                    },
+                    {
+                      "dest": "v5",
+                      "op": "move",
+                      "src": "v4"
+                    },
+                    {
+                      "dest": "v7",
+                      "kind": "buffer",
+                      "op": "acquire"
+                    },
+                    {
+                      "dest": "v8",
+                      "op": "move",
+                      "src": "v7"
+                    },
+                    {
+                      "mode": "read",
+                      "op": "use",
+                      "place": {
+                        "path": [
+                          "*"
+                        ],
+                        "root": "v5"
+                      }
+                    },
+                    {
+                      "dest": "v12",
+                      "op": "move",
+                      "src": "v8"
+                    },
+                    {
+                      "args": [
+                        {
+                          "id": "v12",
+                          "kind": "owner"
+                        }
+                      ],
+                      "function": "dispose",
+                      "obligation": null,
+                      "op": "call",
+                      "result": "v13",
+                      "result_loan": null
+                    },
+                    {
+                      "mode": "write",
+                      "op": "use",
+                      "place": {
+                        "path": [
+                          "*"
+                        ],
+                        "root": "v2"
+                      }
+                    },
+                    {
+                      "mode": "read",
+                      "op": "use",
+                      "place": {
+                        "path": [
+                          "*"
+                        ],
+                        "root": "v2"
+                      }
+                    },
+                    {
+                      "dest": "v18",
+                      "op": "move",
+                      "src": "v5"
+                    },
+                    {
+                      "op": "drop",
+                      "src": "v18"
+                    },
+                    {
+                      "dest": "v19",
+                      "op": "move",
+                      "src": "v2"
+                    },
+                    {
+                      "op": "drop",
+                      "src": "v19"
+                    }
+                  ],
+                  "term": {
+                    "loan": null,
+                    "op": "return",
+                    "value": null
+                  }
+                }
+              ],
+              "entry": "b0",
+              "external": false,
+              "locals": [
+                {
+                  "id": "v0",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v1",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v2",
+                  "mutable": true,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v3",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v4",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v5",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v6",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v7",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v8",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v9",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v10",
+                  "mutable": false,
+                  "type": "u8"
+                },
+                {
+                  "id": "v11",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v12",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v13",
+                  "mutable": false,
+                  "type": "u8"
+                },
+                {
+                  "id": "v14",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v15",
+                  "mutable": false,
+                  "type": "u8"
+                },
+                {
+                  "id": "v16",
+                  "mutable": false,
+                  "type": "u8"
+                },
+                {
+                  "id": "v17",
+                  "mutable": false,
+                  "type": "bool"
+                },
+                {
+                  "id": "v18",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v19",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                }
+              ],
+              "name": "main",
+              "obligation": null,
+              "params": [],
+              "returns": {
+                "mode": "value",
+                "origin": null,
+                "type": "Unit"
+              }
+            }
+          ],
+          "obligations": {},
+          "project_sha256": null,
+          "schema": "hepta.resource-ir.v3",
+          "source_sha256": "0fc65b8eb95bf7242e3c1e0c7845534c2991f4ffcffbcc4f9e4937601074f3d2",
+          "types": {
+            "Buffer<u8>": {
+              "element": "u8",
+              "kind": "buffer"
+            },
+            "Unit": {
+              "kind": "scalar",
+              "name": "Unit"
+            },
+            "bool": {
+              "kind": "scalar",
+              "name": "bool"
+            },
+            "u8": {
+              "kind": "scalar",
+              "name": "u8"
+            },
+            "usize": {
+              "kind": "scalar",
+              "name": "usize"
+            }
+          },
+          "value_semantics": "copied_values_abstract_not_executable"
+        },
+        "schema": "hepta.resource-ir.export.v1",
+        "status": "frontend_only",
+        "validation": {
+          "assumptions": [],
+          "checks": {
+            "rust_borrows_types": "not_run",
+            "syntax": "passed",
+            "types_effects_resources": "passed_in_supported_subset"
+          },
+          "claims": {
+            "all_programs_faster_than_rust": false,
+            "bounded_cancellation_latency_proved": false,
+            "deadlock_freedom_proved": false,
+            "hardware_execution_verified": false,
+            "whole_language_soundness_proved": false
+          },
+          "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+          "compiler_version": "0.2.0",
+          "diagnostics": [],
+          "effects": {
+            "dispose": [
+              "alloc",
+              "block"
+            ],
+            "main": [
+              "alloc",
+              "block",
+              "panic"
+            ]
+          },
+          "interface_sha256": "8d95b6db274987785d283fb55c5cdbc42fb6ce1a77a0d7ce3a0b629e48fcc0ae",
+          "ok": true,
+          "path": "<input>",
+          "profile": {
+            "crate_type": "bin",
+            "no_std": false,
+            "overflow_checks": true,
+            "panic": "abort"
+          },
+          "resource_contracts": [],
+          "rust_sha256": "b18bd556224e80c44a3d9449bdc8b30588da391aa58e89f8bcfba9f8472961c7",
+          "schema": "hepta.check.v1",
+          "source_sha256": "0fc65b8eb95bf7242e3c1e0c7845534c2991f4ffcffbcc4f9e4937601074f3d2",
+          "status": "frontend_only"
+        },
+        "verifier": {
+          "claims": {
+            "external_contracts_proved": false,
+            "native_codegen_uses_this_ir": false,
+            "scalar_value_semantics_verified": false,
+            "source_to_ir_refinement_proved": false,
+            "termination_proved": false,
+            "whole_language_soundness_proved": false
+          },
+          "diagnostics": [],
+          "external_obligations": {},
+          "functions": [
+            {
+              "function": "dispose",
+              "normal_exits": 1,
+              "reachable_blocks": 1,
+              "total_blocks": 1
+            },
+            {
+              "function": "main",
+              "normal_exits": 1,
+              "reachable_blocks": 1,
+              "total_blocks": 1
+            }
+          ],
+          "generic_calls_checked": 0,
+          "generic_functions_checked": 0,
+          "ir_sha256": "6d68987b8f4f2d350d253b49c63508503d08b2c74b902a8c8ec92f238f5b256f",
+          "ok": true,
+          "operations_checked": 17,
+          "owned_types": [
+            "Buffer<u8>"
+          ],
+          "schema": "hepta.resource-ir-validation.v1",
+          "status": "resource_cfg_verified"
+        }
+      },
+      "rust": {
+        "assumptions": [],
+        "backend": {
+          "check_only": true,
+          "crate_type": "bin",
+          "diagnostics": [],
+          "flags": [
+            "edition=2021",
+            "opt-level=3",
+            "overflow-checks=yes",
+            "panic=abort",
+            "codegen-units=1",
+            "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+          ],
+          "link_args": [],
+          "linker": null,
+          "ok": true,
+          "rust_sha256": "b18bd556224e80c44a3d9449bdc8b30588da391aa58e89f8bcfba9f8472961c7",
+          "rustc_crate_type": "lib",
+          "status": "rustc_checked",
+          "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+            "host": "x86_64-unknown-linux-gnu",
+            "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+            "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+            "sysroot_discovery": "verified_compiler_prefix",
+            "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+          },
+          "validation_artifact_sha256": "4c254432191fd07141e41f228d92aae2c081b619a4c896727d1614298576fef7"
+        },
+        "checks": {
+          "rust_borrows_types": "rustc_checked",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "dispose": [
+            "alloc",
+            "block"
+          ],
+          "main": [
+            "alloc",
+            "block",
+            "panic"
+          ]
+        },
+        "interface_sha256": "8d95b6db274987785d283fb55c5cdbc42fb6ce1a77a0d7ce3a0b629e48fcc0ae",
+        "ok": true,
+        "path": "<input>",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [],
+        "rust_sha256": "b18bd556224e80c44a3d9449bdc8b30588da391aa58e89f8bcfba9f8472961c7",
+        "schema": "hepta.check.v1",
+        "source_sha256": "0fc65b8eb95bf7242e3c1e0c7845534c2991f4ffcffbcc4f9e4937601074f3d2",
+        "status": "checked"
+      },
+      "source_sha256": "0fc65b8eb95bf7242e3c1e0c7845534c2991f4ffcffbcc4f9e4937601074f3d2",
+      "valid_executions": [
+        {
+          "backend": "c",
+          "build": {
+            "artifact": "/tmp/hepta-order-safe-xkvojpwp/c",
+            "artifact_bytes": 16312,
+            "artifact_sha256": "9a9d97a55dedbe5f3d45e0a4f15b8c1625b5443dc377972757fa23dbb3d80995",
+            "backend": "c11-gcc",
+            "check_only": false,
+            "crate_type": "bin",
+            "diagnostics": [],
+            "flags": [
+              "-std=c11",
+              "-O3",
+              "-fexcess-precision=standard",
+              "-ffp-contract=off",
+              "-fno-strict-aliasing",
+              "-Wall",
+              "-Wextra",
+              "-Werror=implicit-function-declaration",
+              "-Werror=incompatible-pointer-types",
+              "-fsanitize=undefined",
+              "-fno-sanitize-recover=all"
+            ],
+            "link_args": [],
+            "ok": true,
+            "optimization_profile": "default",
+            "rustc_used": false,
+            "source_sha256": "5b3994a67085ff0a4071fd0c3363c3a6baca2f29c8b83f4652f6a63da3c6866b",
+            "status": "gcc_checked",
+            "target": "x86_64-linux-gnu",
+            "toolchain": {
+              "executable_sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26",
+              "path": "/usr/bin/gcc",
+              "version": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+            },
+            "validation_artifact_sha256": "9a9d97a55dedbe5f3d45e0a4f15b8c1625b5443dc377972757fa23dbb3d80995"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        {
+          "backend": "rust",
+          "build": {
+            "artifact": "/tmp/hepta-order-safe-xkvojpwp/rust",
+            "artifact_bytes": 3859776,
+            "artifact_sha256": "5714ff07c2246c7b06838a454f6831731df8bff8277619884c4218a0d0699adc",
+            "check_only": false,
+            "crate_type": "bin",
+            "diagnostics": [],
+            "flags": [
+              "edition=2021",
+              "opt-level=3",
+              "overflow-checks=yes",
+              "panic=abort",
+              "codegen-units=1",
+              "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+            ],
+            "link_args": [],
+            "linker": null,
+            "ok": true,
+            "rust_sha256": "b18bd556224e80c44a3d9449bdc8b30588da391aa58e89f8bcfba9f8472961c7",
+            "rustc_crate_type": "bin",
+            "status": "rustc_checked",
+            "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+            "target": "x86_64-unknown-linux-gnu",
+            "toolchain": {
+              "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+              "host": "x86_64-unknown-linux-gnu",
+              "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+              "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+              "sysroot_discovery": "verified_compiler_prefix",
+              "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+            },
+            "validation_artifact_sha256": "5714ff07c2246c7b06838a454f6831731df8bff8277619884c4218a0d0699adc"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        }
+      ]
+    },
+    {
+      "c": {
+        "assumptions": [],
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+        "compiler_version": "0.2.0",
+        "diagnostics": [
+          {
+            "code": "E_C_RESOURCE_IR",
+            "message": "Independent C ownership gate rejected E_RIR_LOAN_CONFLICT: Resource lowering failed independent verification in main:b0: Direct access conflicts with a live loan",
+            "notes": [],
+            "phase": "c_backend",
+            "span": {
+              "column": 1,
+              "end": 0,
+              "line": 1,
+              "path": "<input>",
+              "start": 0
+            }
+          }
+        ],
+        "effects": {
+          "main": [
+            "alloc",
+            "block",
+            "panic"
+          ],
+          "view": []
+        },
+        "interface_sha256": "44a59dac2bfe3fa6464d773ba31f26bdb9f00742becfe3a74b5e71f4823a9cf3",
+        "ok": false,
+        "path": "<input>",
+        "resource_contracts": [],
+        "schema": "hepta.check.v1",
+        "source_sha256": "7726f54346edd38debe882b7539b142a65596b5bdeead9914c5951d682a9cee6",
+        "status": "rejected"
+      },
+      "c_emitted": false,
+      "category": "accepted",
+      "frontend": {
+        "assumptions": [],
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "main": [
+            "alloc",
+            "block",
+            "panic"
+          ],
+          "view": []
+        },
+        "interface_sha256": "44a59dac2bfe3fa6464d773ba31f26bdb9f00742becfe3a74b5e71f4823a9cf3",
+        "ok": true,
+        "path": "<input>",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [],
+        "rust_sha256": "6b101f8a4db5d65360a01398dbfe644406b58913815adad6c957b16cfe5ab4fd",
+        "schema": "hepta.check.v1",
+        "source_sha256": "7726f54346edd38debe882b7539b142a65596b5bdeead9914c5951d682a9cee6",
+        "status": "frontend_only"
+      },
+      "invalid_native_execution_attempted": false,
+      "name": "rhs_reads_before_mutable_target",
+      "resource": {
+        "diagnostics": [
+          {
+            "code": "E_RIR_LOAN_CONFLICT",
+            "message": "Resource lowering failed independent verification in main:b0: Direct access conflicts with a live loan",
+            "phase": "resource-ir"
+          }
+        ],
+        "ok": false,
+        "resource_ir": null,
+        "schema": "hepta.resource-ir.export.v1",
+        "status": "rejected",
+        "validation": {
+          "assumptions": [],
+          "checks": {
+            "rust_borrows_types": "not_run",
+            "syntax": "passed",
+            "types_effects_resources": "passed_in_supported_subset"
+          },
+          "claims": {
+            "all_programs_faster_than_rust": false,
+            "bounded_cancellation_latency_proved": false,
+            "deadlock_freedom_proved": false,
+            "hardware_execution_verified": false,
+            "whole_language_soundness_proved": false
+          },
+          "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+          "compiler_version": "0.2.0",
+          "diagnostics": [],
+          "effects": {
+            "main": [
+              "alloc",
+              "block",
+              "panic"
+            ],
+            "view": []
+          },
+          "interface_sha256": "44a59dac2bfe3fa6464d773ba31f26bdb9f00742becfe3a74b5e71f4823a9cf3",
+          "ok": true,
+          "path": "<input>",
+          "profile": {
+            "crate_type": "bin",
+            "no_std": false,
+            "overflow_checks": true,
+            "panic": "abort"
+          },
+          "resource_contracts": [],
+          "rust_sha256": "6b101f8a4db5d65360a01398dbfe644406b58913815adad6c957b16cfe5ab4fd",
+          "schema": "hepta.check.v1",
+          "source_sha256": "7726f54346edd38debe882b7539b142a65596b5bdeead9914c5951d682a9cee6",
+          "status": "frontend_only"
+        },
+        "verifier": null
+      },
+      "rust": {
+        "assumptions": [],
+        "backend": {
+          "check_only": true,
+          "crate_type": "bin",
+          "diagnostics": [],
+          "flags": [
+            "edition=2021",
+            "opt-level=3",
+            "overflow-checks=yes",
+            "panic=abort",
+            "codegen-units=1",
+            "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+          ],
+          "link_args": [],
+          "linker": null,
+          "ok": true,
+          "rust_sha256": "6b101f8a4db5d65360a01398dbfe644406b58913815adad6c957b16cfe5ab4fd",
+          "rustc_crate_type": "lib",
+          "status": "rustc_checked",
+          "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+            "host": "x86_64-unknown-linux-gnu",
+            "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+            "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+            "sysroot_discovery": "verified_compiler_prefix",
+            "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+          },
+          "validation_artifact_sha256": "cb8b9ea7d19462545b864a66a11edff36fdcd7b06d783d940f8d52480b9f436b"
+        },
+        "checks": {
+          "rust_borrows_types": "rustc_checked",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "main": [
+            "alloc",
+            "block",
+            "panic"
+          ],
+          "view": []
+        },
+        "interface_sha256": "44a59dac2bfe3fa6464d773ba31f26bdb9f00742becfe3a74b5e71f4823a9cf3",
+        "ok": true,
+        "path": "<input>",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [],
+        "rust_sha256": "6b101f8a4db5d65360a01398dbfe644406b58913815adad6c957b16cfe5ab4fd",
+        "schema": "hepta.check.v1",
+        "source_sha256": "7726f54346edd38debe882b7539b142a65596b5bdeead9914c5951d682a9cee6",
+        "status": "checked"
+      },
+      "source_sha256": "7726f54346edd38debe882b7539b142a65596b5bdeead9914c5951d682a9cee6",
+      "valid_executions": [
+        {
+          "backend": "rust",
+          "build": {
+            "artifact": "/tmp/hepta-order-safe-z94uiesn/rust",
+            "artifact_bytes": 3859760,
+            "artifact_sha256": "367b957903f014c7e65c743ae59aa509aa82997e213220d697820ee44b8dd2ef",
+            "check_only": false,
+            "crate_type": "bin",
+            "diagnostics": [],
+            "flags": [
+              "edition=2021",
+              "opt-level=3",
+              "overflow-checks=yes",
+              "panic=abort",
+              "codegen-units=1",
+              "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+            ],
+            "link_args": [],
+            "linker": null,
+            "ok": true,
+            "rust_sha256": "6b101f8a4db5d65360a01398dbfe644406b58913815adad6c957b16cfe5ab4fd",
+            "rustc_crate_type": "bin",
+            "status": "rustc_checked",
+            "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+            "target": "x86_64-unknown-linux-gnu",
+            "toolchain": {
+              "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+              "host": "x86_64-unknown-linux-gnu",
+              "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+              "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+              "sysroot_discovery": "verified_compiler_prefix",
+              "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+            },
+            "validation_artifact_sha256": "367b957903f014c7e65c743ae59aa509aa82997e213220d697820ee44b8dd2ef"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        }
+      ]
+    },
+    {
+      "c": {
+        "assumptions": [],
+        "c_sha256": "bf2085506f96e4f0bd27423c4471b6f7e3737a8d5ddb11bedbb16a6412ad9fb6",
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "dispose": [
+            "alloc",
+            "block"
+          ],
+          "main": [
+            "alloc",
+            "block",
+            "panic"
+          ]
+        },
+        "interface_sha256": "ef975db07166db6a4119b849ac0b3c0fc04b35c707df98d43513113b7c5f4793",
+        "ok": true,
+        "path": "<input>",
+        "profile": {
+          "c_optimization": "default",
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [],
+        "schema": "hepta.check.v1",
+        "source_sha256": "0a33c58c3e02267d3142b0e852cf639ccc81ee0ad5906021cff8295584a19b74",
+        "status": "frontend_only"
+      },
+      "c_emitted": true,
+      "category": "rejected",
+      "frontend": {
+        "assumptions": [],
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "dispose": [
+            "alloc",
+            "block"
+          ],
+          "main": [
+            "alloc",
+            "block",
+            "panic"
+          ]
+        },
+        "interface_sha256": "ef975db07166db6a4119b849ac0b3c0fc04b35c707df98d43513113b7c5f4793",
+        "ok": true,
+        "path": "<input>",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [],
+        "rust_sha256": "b0e07cfbec2b23e89e4bd7e549c848cb69f12cde5a139441c018fc408b0192b4",
+        "schema": "hepta.check.v1",
+        "source_sha256": "0a33c58c3e02267d3142b0e852cf639ccc81ee0ad5906021cff8295584a19b74",
+        "status": "frontend_only"
+      },
+      "invalid_native_execution_attempted": false,
+      "name": "rhs_consumes_index_field",
+      "resource": {
+        "ok": true,
+        "resource_ir": {
+          "claims": {
+            "external_contracts_proved": false,
+            "native_codegen_uses_this_ir": false,
+            "scalar_value_semantics_verified": false,
+            "source_to_ir_refinement_proved": false,
+            "termination_proved": false,
+            "whole_language_soundness_proved": false
+          },
+          "functions": [
+            {
+              "blocks": [
+                {
+                  "id": "b0",
+                  "ops": [
+                    {
+                      "dest": "v0",
+                      "op": "move",
+                      "src": "p0"
+                    },
+                    {
+                      "op": "drop",
+                      "src": "v0"
+                    }
+                  ],
+                  "term": {
+                    "loan": null,
+                    "op": "return",
+                    "value": "v1"
+                  }
+                }
+              ],
+              "entry": "b0",
+              "external": false,
+              "locals": [
+                {
+                  "id": "v0",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v1",
+                  "mutable": false,
+                  "type": "u8"
+                }
+              ],
+              "name": "dispose",
+              "obligation": null,
+              "params": [
+                {
+                  "id": "p0",
+                  "mode": "take",
+                  "type": "Buffer<u8>"
+                }
+              ],
+              "returns": {
+                "mode": "value",
+                "origin": null,
+                "type": "u8"
+              }
+            },
+            {
+              "blocks": [
+                {
+                  "id": "b0",
+                  "ops": [
+                    {
+                      "dest": "v1",
+                      "kind": "buffer",
+                      "op": "acquire"
+                    },
+                    {
+                      "dest": "v2",
+                      "op": "move",
+                      "src": "v1"
+                    },
+                    {
+                      "dest": "v4",
+                      "kind": "buffer",
+                      "op": "acquire"
+                    },
+                    {
+                      "dest": "v6",
+                      "fields": [
+                        "v4",
+                        "v5"
+                      ],
+                      "op": "pack",
+                      "variant": null
+                    },
+                    {
+                      "dest": "v7",
+                      "op": "move",
+                      "src": "v6"
+                    },
+                    {
+                      "mode": "read",
+                      "op": "use",
+                      "place": {
+                        "path": [
+                          "bytes",
+                          "*"
+                        ],
+                        "root": "v7"
+                      }
+                    },
+                    {
+                      "dest": "v11",
+                      "op": "take_field",
+                      "place": {
+                        "path": [
+                          "bytes"
+                        ],
+                        "root": "v7"
+                      }
+                    },
+                    {
+                      "args": [
+                        {
+                          "id": "v11",
+                          "kind": "owner"
+                        }
+                      ],
+                      "function": "dispose",
+                      "obligation": null,
+                      "op": "call",
+                      "result": "v12",
+                      "result_loan": null
+                    },
+                    {
+                      "mode": "write",
+                      "op": "use",
+                      "place": {
+                        "path": [
+                          "*"
+                        ],
+                        "root": "v2"
+                      }
+                    },
+                    {
+                      "dest": "v13",
+                      "op": "move",
+                      "src": "v2"
+                    },
+                    {
+                      "op": "drop",
+                      "src": "v13"
+                    },
+                    {
+                      "op": "forget",
+                      "src": "v7"
+                    }
+                  ],
+                  "term": {
+                    "loan": null,
+                    "op": "return",
+                    "value": null
+                  }
+                }
+              ],
+              "entry": "b0",
+              "external": false,
+              "locals": [
+                {
+                  "id": "v0",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v1",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v2",
+                  "mutable": true,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v3",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v4",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v5",
+                  "mutable": false,
+                  "type": "u64"
+                },
+                {
+                  "id": "v6",
+                  "mutable": false,
+                  "type": "Index"
+                },
+                {
+                  "id": "v7",
+                  "mutable": false,
+                  "type": "Index"
+                },
+                {
+                  "id": "v8",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v9",
+                  "mutable": false,
+                  "type": "u8"
+                },
+                {
+                  "id": "v10",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v11",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v12",
+                  "mutable": false,
+                  "type": "u8"
+                },
+                {
+                  "id": "v13",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                }
+              ],
+              "name": "main",
+              "obligation": null,
+              "params": [],
+              "returns": {
+                "mode": "value",
+                "origin": null,
+                "type": "Unit"
+              }
+            }
+          ],
+          "obligations": {},
+          "project_sha256": null,
+          "schema": "hepta.resource-ir.v3",
+          "source_sha256": "0a33c58c3e02267d3142b0e852cf639ccc81ee0ad5906021cff8295584a19b74",
+          "types": {
+            "Buffer<u8>": {
+              "element": "u8",
+              "kind": "buffer"
+            },
+            "Index": {
+              "args": [],
+              "fields": [
+                {
+                  "name": "bytes",
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "name": "tag",
+                  "type": "u64"
+                }
+              ],
+              "kind": "struct",
+              "name": "Index"
+            },
+            "Unit": {
+              "kind": "scalar",
+              "name": "Unit"
+            },
+            "bool": {
+              "kind": "scalar",
+              "name": "bool"
+            },
+            "u64": {
+              "kind": "scalar",
+              "name": "u64"
+            },
+            "u8": {
+              "kind": "scalar",
+              "name": "u8"
+            },
+            "usize": {
+              "kind": "scalar",
+              "name": "usize"
+            }
+          },
+          "value_semantics": "copied_values_abstract_not_executable"
+        },
+        "schema": "hepta.resource-ir.export.v1",
+        "status": "frontend_only",
+        "validation": {
+          "assumptions": [],
+          "checks": {
+            "rust_borrows_types": "not_run",
+            "syntax": "passed",
+            "types_effects_resources": "passed_in_supported_subset"
+          },
+          "claims": {
+            "all_programs_faster_than_rust": false,
+            "bounded_cancellation_latency_proved": false,
+            "deadlock_freedom_proved": false,
+            "hardware_execution_verified": false,
+            "whole_language_soundness_proved": false
+          },
+          "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+          "compiler_version": "0.2.0",
+          "diagnostics": [],
+          "effects": {
+            "dispose": [
+              "alloc",
+              "block"
+            ],
+            "main": [
+              "alloc",
+              "block",
+              "panic"
+            ]
+          },
+          "interface_sha256": "ef975db07166db6a4119b849ac0b3c0fc04b35c707df98d43513113b7c5f4793",
+          "ok": true,
+          "path": "<input>",
+          "profile": {
+            "crate_type": "bin",
+            "no_std": false,
+            "overflow_checks": true,
+            "panic": "abort"
+          },
+          "resource_contracts": [],
+          "rust_sha256": "b0e07cfbec2b23e89e4bd7e549c848cb69f12cde5a139441c018fc408b0192b4",
+          "schema": "hepta.check.v1",
+          "source_sha256": "0a33c58c3e02267d3142b0e852cf639ccc81ee0ad5906021cff8295584a19b74",
+          "status": "frontend_only"
+        },
+        "verifier": {
+          "claims": {
+            "external_contracts_proved": false,
+            "native_codegen_uses_this_ir": false,
+            "scalar_value_semantics_verified": false,
+            "source_to_ir_refinement_proved": false,
+            "termination_proved": false,
+            "whole_language_soundness_proved": false
+          },
+          "diagnostics": [],
+          "external_obligations": {},
+          "functions": [
+            {
+              "function": "dispose",
+              "normal_exits": 1,
+              "reachable_blocks": 1,
+              "total_blocks": 1
+            },
+            {
+              "function": "main",
+              "normal_exits": 1,
+              "reachable_blocks": 1,
+              "total_blocks": 1
+            }
+          ],
+          "generic_calls_checked": 0,
+          "generic_functions_checked": 0,
+          "ir_sha256": "a53d80d1b0e2c2d340e1114081430030ebd2cc6c1218530edea95bd6e0c30c9c",
+          "ok": true,
+          "operations_checked": 14,
+          "owned_types": [
+            "Buffer<u8>",
+            "Index"
+          ],
+          "schema": "hepta.resource-ir-validation.v1",
+          "status": "resource_cfg_verified"
+        }
+      },
+      "rust": {
+        "assumptions": [],
+        "backend": {
+          "check_only": true,
+          "crate_type": "bin",
+          "diagnostics": [
+            {
+              "code": "E0382",
+              "generated_spans": [
+                {
+                  "byte_end": 1996,
+                  "byte_start": 1979,
+                  "column_end": 82,
+                  "column_start": 65,
+                  "expansion": null,
+                  "file_name": "/tmp/.hepta-native-8bfq6hve/program.rs",
+                  "is_primary": false,
+                  "label": "value moved here",
+                  "line_end": 35,
+                  "line_start": 35,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": [
+                    {
+                      "highlight_end": 82,
+                      "highlight_start": 65,
+                      "text": "    (h_out)[(((h_index).h_bytes)[0usize] as usize)] = h_dispose((h_index).h_bytes);"
+                    }
+                  ]
+                },
+                {
+                  "byte_end": 1947,
+                  "byte_start": 1928,
+                  "column_end": 33,
+                  "column_start": 14,
+                  "expansion": null,
+                  "file_name": "/tmp/.hepta-native-8bfq6hve/program.rs",
+                  "is_primary": true,
+                  "label": "value borrowed here after move",
+                  "line_end": 35,
+                  "line_start": 35,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": [
+                    {
+                      "highlight_end": 33,
+                      "highlight_start": 14,
+                      "text": "    (h_out)[(((h_index).h_bytes)[0usize] as usize)] = h_dispose((h_index).h_bytes);"
+                    }
+                  ]
+                }
+              ],
+              "message": "borrow of moved value: `h_index.h_bytes`",
+              "phase": "backend",
+              "rendered": "error[E0382]: borrow of moved value: `h_index.h_bytes`\n  --> /tmp/.hepta-native-8bfq6hve/program.rs:35:14\n   |\n35 |     (h_out)[(((h_index).h_bytes)[0usize] as usize)] = h_dispose((h_index).h_bytes);\n   |              ^^^^^^^^^^^^^^^^^^^ value borrowed here after move ----------------- value moved here\n   |\n   = note: move occurs because `h_index.h_bytes` has type `Vec<u8>`, which does not implement the `Copy` trait\n\n",
+              "source_mappings": [
+                {
+                  "generated_line": 35,
+                  "is_primary": false,
+                  "precision": "statement",
+                  "span": {
+                    "column": 5,
+                    "end": 335,
+                    "line": 9,
+                    "path": "<input>",
+                    "start": 280
+                  }
+                },
+                {
+                  "generated_line": 35,
+                  "is_primary": true,
+                  "precision": "statement",
+                  "span": {
+                    "column": 5,
+                    "end": 335,
+                    "line": 9,
+                    "path": "<input>",
+                    "start": 280
+                  }
+                }
+              ],
+              "span": {
+                "column": 5,
+                "end": 335,
+                "line": 9,
+                "path": "<input>",
+                "start": 280
+              }
+            },
+            {
+              "code": "E_RUSTC",
+              "generated_spans": [],
+              "message": "aborting due to 1 previous error",
+              "phase": "backend",
+              "rendered": "error: aborting due to 1 previous error\n\n"
+            }
+          ],
+          "flags": [
+            "edition=2021",
+            "opt-level=3",
+            "overflow-checks=yes",
+            "panic=abort",
+            "codegen-units=1",
+            "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+          ],
+          "link_args": [],
+          "linker": null,
+          "ok": false,
+          "rust_sha256": "b0e07cfbec2b23e89e4bd7e549c848cb69f12cde5a139441c018fc408b0192b4",
+          "rustc_crate_type": "lib",
+          "status": "rejected",
+          "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+            "host": "x86_64-unknown-linux-gnu",
+            "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+            "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+            "sysroot_discovery": "verified_compiler_prefix",
+            "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+          }
+        },
+        "checks": {
+          "rust_borrows_types": "rejected",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+        "compiler_version": "0.2.0",
+        "diagnostics": [
+          {
+            "code": "E0382",
+            "generated_spans": [
+              {
+                "byte_end": 1996,
+                "byte_start": 1979,
+                "column_end": 82,
+                "column_start": 65,
+                "expansion": null,
+                "file_name": "/tmp/.hepta-native-8bfq6hve/program.rs",
+                "is_primary": false,
+                "label": "value moved here",
+                "line_end": 35,
+                "line_start": 35,
+                "suggested_replacement": null,
+                "suggestion_applicability": null,
+                "text": [
+                  {
+                    "highlight_end": 82,
+                    "highlight_start": 65,
+                    "text": "    (h_out)[(((h_index).h_bytes)[0usize] as usize)] = h_dispose((h_index).h_bytes);"
+                  }
+                ]
+              },
+              {
+                "byte_end": 1947,
+                "byte_start": 1928,
+                "column_end": 33,
+                "column_start": 14,
+                "expansion": null,
+                "file_name": "/tmp/.hepta-native-8bfq6hve/program.rs",
+                "is_primary": true,
+                "label": "value borrowed here after move",
+                "line_end": 35,
+                "line_start": 35,
+                "suggested_replacement": null,
+                "suggestion_applicability": null,
+                "text": [
+                  {
+                    "highlight_end": 33,
+                    "highlight_start": 14,
+                    "text": "    (h_out)[(((h_index).h_bytes)[0usize] as usize)] = h_dispose((h_index).h_bytes);"
+                  }
+                ]
+              }
+            ],
+            "message": "borrow of moved value: `h_index.h_bytes`",
+            "phase": "backend",
+            "rendered": "error[E0382]: borrow of moved value: `h_index.h_bytes`\n  --> /tmp/.hepta-native-8bfq6hve/program.rs:35:14\n   |\n35 |     (h_out)[(((h_index).h_bytes)[0usize] as usize)] = h_dispose((h_index).h_bytes);\n   |              ^^^^^^^^^^^^^^^^^^^ value borrowed here after move ----------------- value moved here\n   |\n   = note: move occurs because `h_index.h_bytes` has type `Vec<u8>`, which does not implement the `Copy` trait\n\n",
+            "source_mappings": [
+              {
+                "generated_line": 35,
+                "is_primary": false,
+                "precision": "statement",
+                "span": {
+                  "column": 5,
+                  "end": 335,
+                  "line": 9,
+                  "path": "<input>",
+                  "start": 280
+                }
+              },
+              {
+                "generated_line": 35,
+                "is_primary": true,
+                "precision": "statement",
+                "span": {
+                  "column": 5,
+                  "end": 335,
+                  "line": 9,
+                  "path": "<input>",
+                  "start": 280
+                }
+              }
+            ],
+            "span": {
+              "column": 5,
+              "end": 335,
+              "line": 9,
+              "path": "<input>",
+              "start": 280
+            }
+          },
+          {
+            "code": "E_RUSTC",
+            "generated_spans": [],
+            "message": "aborting due to 1 previous error",
+            "phase": "backend",
+            "rendered": "error: aborting due to 1 previous error\n\n"
+          }
+        ],
+        "effects": {
+          "dispose": [
+            "alloc",
+            "block"
+          ],
+          "main": [
+            "alloc",
+            "block",
+            "panic"
+          ]
+        },
+        "interface_sha256": "ef975db07166db6a4119b849ac0b3c0fc04b35c707df98d43513113b7c5f4793",
+        "ok": false,
+        "path": "<input>",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [],
+        "rust_sha256": "b0e07cfbec2b23e89e4bd7e549c848cb69f12cde5a139441c018fc408b0192b4",
+        "schema": "hepta.check.v1",
+        "source_sha256": "0a33c58c3e02267d3142b0e852cf639ccc81ee0ad5906021cff8295584a19b74",
+        "status": "rejected"
+      },
+      "source_sha256": "0a33c58c3e02267d3142b0e852cf639ccc81ee0ad5906021cff8295584a19b74",
+      "valid_executions": []
+    },
+    {
+      "c": {
+        "assumptions": [],
+        "c_sha256": "4be90c0688515e536d66f60cf62eee4af9badb88faef5da8725ea8764a5f0dc4",
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "dispose": [
+            "alloc",
+            "block"
+          ],
+          "main": [
+            "alloc",
+            "block",
+            "panic"
+          ]
+        },
+        "interface_sha256": "8d95b6db274987785d283fb55c5cdbc42fb6ce1a77a0d7ce3a0b629e48fcc0ae",
+        "ok": true,
+        "path": "<input>",
+        "profile": {
+          "c_optimization": "default",
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [],
+        "schema": "hepta.check.v1",
+        "source_sha256": "c64abe844d0a5fb11bf7bd3ed0ea325064c55fc1b32665647f233425c173fa33",
+        "status": "frontend_only"
+      },
+      "c_emitted": true,
+      "category": "rejected",
+      "frontend": {
+        "assumptions": [],
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "dispose": [
+            "alloc",
+            "block"
+          ],
+          "main": [
+            "alloc",
+            "block",
+            "panic"
+          ]
+        },
+        "interface_sha256": "8d95b6db274987785d283fb55c5cdbc42fb6ce1a77a0d7ce3a0b629e48fcc0ae",
+        "ok": true,
+        "path": "<input>",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [],
+        "rust_sha256": "d1d4d9939a545b90974b6e742badbe59e795491f4a0cf696ea4eb70d24586a49",
+        "schema": "hepta.check.v1",
+        "source_sha256": "c64abe844d0a5fb11bf7bd3ed0ea325064c55fc1b32665647f233425c173fa33",
+        "status": "frontend_only"
+      },
+      "invalid_native_execution_attempted": false,
+      "name": "rhs_consumes_index_owner",
+      "resource": {
+        "ok": true,
+        "resource_ir": {
+          "claims": {
+            "external_contracts_proved": false,
+            "native_codegen_uses_this_ir": false,
+            "scalar_value_semantics_verified": false,
+            "source_to_ir_refinement_proved": false,
+            "termination_proved": false,
+            "whole_language_soundness_proved": false
+          },
+          "functions": [
+            {
+              "blocks": [
+                {
+                  "id": "b0",
+                  "ops": [
+                    {
+                      "dest": "v0",
+                      "op": "move",
+                      "src": "p0"
+                    },
+                    {
+                      "op": "drop",
+                      "src": "v0"
+                    }
+                  ],
+                  "term": {
+                    "loan": null,
+                    "op": "return",
+                    "value": "v1"
+                  }
+                }
+              ],
+              "entry": "b0",
+              "external": false,
+              "locals": [
+                {
+                  "id": "v0",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v1",
+                  "mutable": false,
+                  "type": "u8"
+                }
+              ],
+              "name": "dispose",
+              "obligation": null,
+              "params": [
+                {
+                  "id": "p0",
+                  "mode": "take",
+                  "type": "Buffer<u8>"
+                }
+              ],
+              "returns": {
+                "mode": "value",
+                "origin": null,
+                "type": "u8"
+              }
+            },
+            {
+              "blocks": [
+                {
+                  "id": "b0",
+                  "ops": [
+                    {
+                      "dest": "v1",
+                      "kind": "buffer",
+                      "op": "acquire"
+                    },
+                    {
+                      "dest": "v2",
+                      "op": "move",
+                      "src": "v1"
+                    },
+                    {
+                      "dest": "v4",
+                      "kind": "buffer",
+                      "op": "acquire"
+                    },
+                    {
+                      "dest": "v5",
+                      "op": "move",
+                      "src": "v4"
+                    },
+                    {
+                      "mode": "read",
+                      "op": "use",
+                      "place": {
+                        "path": [
+                          "*"
+                        ],
+                        "root": "v5"
+                      }
+                    },
+                    {
+                      "dest": "v9",
+                      "op": "move",
+                      "src": "v5"
+                    },
+                    {
+                      "args": [
+                        {
+                          "id": "v9",
+                          "kind": "owner"
+                        }
+                      ],
+                      "function": "dispose",
+                      "obligation": null,
+                      "op": "call",
+                      "result": "v10",
+                      "result_loan": null
+                    },
+                    {
+                      "mode": "write",
+                      "op": "use",
+                      "place": {
+                        "path": [
+                          "*"
+                        ],
+                        "root": "v2"
+                      }
+                    },
+                    {
+                      "dest": "v11",
+                      "op": "move",
+                      "src": "v2"
+                    },
+                    {
+                      "op": "drop",
+                      "src": "v11"
+                    }
+                  ],
+                  "term": {
+                    "loan": null,
+                    "op": "return",
+                    "value": null
+                  }
+                }
+              ],
+              "entry": "b0",
+              "external": false,
+              "locals": [
+                {
+                  "id": "v0",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v1",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v2",
+                  "mutable": true,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v3",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v4",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v5",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v6",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v7",
+                  "mutable": false,
+                  "type": "u8"
+                },
+                {
+                  "id": "v8",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v9",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v10",
+                  "mutable": false,
+                  "type": "u8"
+                },
+                {
+                  "id": "v11",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                }
+              ],
+              "name": "main",
+              "obligation": null,
+              "params": [],
+              "returns": {
+                "mode": "value",
+                "origin": null,
+                "type": "Unit"
+              }
+            }
+          ],
+          "obligations": {},
+          "project_sha256": null,
+          "schema": "hepta.resource-ir.v3",
+          "source_sha256": "c64abe844d0a5fb11bf7bd3ed0ea325064c55fc1b32665647f233425c173fa33",
+          "types": {
+            "Buffer<u8>": {
+              "element": "u8",
+              "kind": "buffer"
+            },
+            "Unit": {
+              "kind": "scalar",
+              "name": "Unit"
+            },
+            "bool": {
+              "kind": "scalar",
+              "name": "bool"
+            },
+            "u8": {
+              "kind": "scalar",
+              "name": "u8"
+            },
+            "usize": {
+              "kind": "scalar",
+              "name": "usize"
+            }
+          },
+          "value_semantics": "copied_values_abstract_not_executable"
+        },
+        "schema": "hepta.resource-ir.export.v1",
+        "status": "frontend_only",
+        "validation": {
+          "assumptions": [],
+          "checks": {
+            "rust_borrows_types": "not_run",
+            "syntax": "passed",
+            "types_effects_resources": "passed_in_supported_subset"
+          },
+          "claims": {
+            "all_programs_faster_than_rust": false,
+            "bounded_cancellation_latency_proved": false,
+            "deadlock_freedom_proved": false,
+            "hardware_execution_verified": false,
+            "whole_language_soundness_proved": false
+          },
+          "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+          "compiler_version": "0.2.0",
+          "diagnostics": [],
+          "effects": {
+            "dispose": [
+              "alloc",
+              "block"
+            ],
+            "main": [
+              "alloc",
+              "block",
+              "panic"
+            ]
+          },
+          "interface_sha256": "8d95b6db274987785d283fb55c5cdbc42fb6ce1a77a0d7ce3a0b629e48fcc0ae",
+          "ok": true,
+          "path": "<input>",
+          "profile": {
+            "crate_type": "bin",
+            "no_std": false,
+            "overflow_checks": true,
+            "panic": "abort"
+          },
+          "resource_contracts": [],
+          "rust_sha256": "d1d4d9939a545b90974b6e742badbe59e795491f4a0cf696ea4eb70d24586a49",
+          "schema": "hepta.check.v1",
+          "source_sha256": "c64abe844d0a5fb11bf7bd3ed0ea325064c55fc1b32665647f233425c173fa33",
+          "status": "frontend_only"
+        },
+        "verifier": {
+          "claims": {
+            "external_contracts_proved": false,
+            "native_codegen_uses_this_ir": false,
+            "scalar_value_semantics_verified": false,
+            "source_to_ir_refinement_proved": false,
+            "termination_proved": false,
+            "whole_language_soundness_proved": false
+          },
+          "diagnostics": [],
+          "external_obligations": {},
+          "functions": [
+            {
+              "function": "dispose",
+              "normal_exits": 1,
+              "reachable_blocks": 1,
+              "total_blocks": 1
+            },
+            {
+              "function": "main",
+              "normal_exits": 1,
+              "reachable_blocks": 1,
+              "total_blocks": 1
+            }
+          ],
+          "generic_calls_checked": 0,
+          "generic_functions_checked": 0,
+          "ir_sha256": "dead67736a82e0ded0bd37f324cb0467036eb3649babc08dc200f9de4a52edb1",
+          "ok": true,
+          "operations_checked": 12,
+          "owned_types": [
+            "Buffer<u8>"
+          ],
+          "schema": "hepta.resource-ir-validation.v1",
+          "status": "resource_cfg_verified"
+        }
+      },
+      "rust": {
+        "assumptions": [],
+        "backend": {
+          "check_only": true,
+          "crate_type": "bin",
+          "diagnostics": [
+            {
+              "code": "E0382",
+              "generated_spans": [
+                {
+                  "byte_end": 1882,
+                  "byte_start": 1875,
+                  "column_end": 62,
+                  "column_start": 55,
+                  "expansion": null,
+                  "file_name": "/tmp/.hepta-native-i6hry5cm/program.rs",
+                  "is_primary": false,
+                  "label": "value moved here",
+                  "line_end": 34,
+                  "line_start": 34,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": [
+                    {
+                      "highlight_end": 62,
+                      "highlight_start": 55,
+                      "text": "    (h_out)[((h_index)[0usize] as usize)] = h_dispose(h_index);"
+                    }
+                  ]
+                },
+                {
+                  "byte_end": 1843,
+                  "byte_start": 1834,
+                  "column_end": 23,
+                  "column_start": 14,
+                  "expansion": null,
+                  "file_name": "/tmp/.hepta-native-i6hry5cm/program.rs",
+                  "is_primary": true,
+                  "label": "value borrowed here after move",
+                  "line_end": 34,
+                  "line_start": 34,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": [
+                    {
+                      "highlight_end": 23,
+                      "highlight_start": 14,
+                      "text": "    (h_out)[((h_index)[0usize] as usize)] = h_dispose(h_index);"
+                    }
+                  ]
+                },
+                {
+                  "byte_end": 1612,
+                  "byte_start": 1605,
+                  "column_end": 16,
+                  "column_start": 9,
+                  "expansion": null,
+                  "file_name": "/tmp/.hepta-native-i6hry5cm/program.rs",
+                  "is_primary": false,
+                  "label": "move occurs because `h_index` has type `Vec<u8>`, which does not implement the `Copy` trait",
+                  "line_end": 31,
+                  "line_start": 31,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": [
+                    {
+                      "highlight_end": 16,
+                      "highlight_start": 9,
+                      "text": "    let h_index: std::vec::Vec<u8> = std::vec![0u8; 1usize];"
+                    }
+                  ]
+                }
+              ],
+              "message": "borrow of moved value: `h_index`",
+              "phase": "backend",
+              "rendered": "error[E0382]: borrow of moved value: `h_index`\n  --> /tmp/.hepta-native-i6hry5cm/program.rs:34:14\n   |\n31 |     let h_index: std::vec::Vec<u8> = std::vec![0u8; 1usize];\n   |         ------- move occurs because `h_index` has type `Vec<u8>`, which does not implement the `Copy` trait\n...\n34 |     (h_out)[((h_index)[0usize] as usize)] = h_dispose(h_index);\n   |              ^^^^^^^^^ value borrowed here after move ------- value moved here\n   |\nnote: consider changing this parameter type in function `h_dispose` to borrow instead if owning the value isn't necessary\n  --> /tmp/.hepta-native-i6hry5cm/program.rs:16:22\n   |\n16 | fn h_dispose(h_data: std::vec::Vec<u8>) -> u8 {\n   |    ---------         ^^^^^^^^^^^^^^^^^ this parameter takes ownership of the value\n   |    |\n   |    in this function\nhelp: consider cloning the value if the performance cost is acceptable\n   |\n34 |     (h_out)[((h_index)[0usize] as usize)] = h_dispose(h_index.clone());\n   |                                                              ++++++++\n\n",
+              "source_mappings": [
+                {
+                  "generated_line": 34,
+                  "is_primary": false,
+                  "precision": "statement",
+                  "span": {
+                    "column": 5,
+                    "end": 261,
+                    "line": 8,
+                    "path": "<input>",
+                    "start": 218
+                  }
+                },
+                {
+                  "generated_line": 34,
+                  "is_primary": true,
+                  "precision": "statement",
+                  "span": {
+                    "column": 5,
+                    "end": 261,
+                    "line": 8,
+                    "path": "<input>",
+                    "start": 218
+                  }
+                },
+                {
+                  "generated_line": 31,
+                  "is_primary": false,
+                  "precision": "statement",
+                  "span": {
+                    "column": 28,
+                    "end": 213,
+                    "line": 7,
+                    "path": "<input>",
+                    "start": 193
+                  }
+                }
+              ],
+              "span": {
+                "column": 5,
+                "end": 261,
+                "line": 8,
+                "path": "<input>",
+                "start": 218
+              }
+            },
+            {
+              "code": "E_RUSTC",
+              "generated_spans": [],
+              "message": "aborting due to 1 previous error",
+              "phase": "backend",
+              "rendered": "error: aborting due to 1 previous error\n\n"
+            }
+          ],
+          "flags": [
+            "edition=2021",
+            "opt-level=3",
+            "overflow-checks=yes",
+            "panic=abort",
+            "codegen-units=1",
+            "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+          ],
+          "link_args": [],
+          "linker": null,
+          "ok": false,
+          "rust_sha256": "d1d4d9939a545b90974b6e742badbe59e795491f4a0cf696ea4eb70d24586a49",
+          "rustc_crate_type": "lib",
+          "status": "rejected",
+          "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+            "host": "x86_64-unknown-linux-gnu",
+            "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+            "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+            "sysroot_discovery": "verified_compiler_prefix",
+            "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+          }
+        },
+        "checks": {
+          "rust_borrows_types": "rejected",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+        "compiler_version": "0.2.0",
+        "diagnostics": [
+          {
+            "code": "E0382",
+            "generated_spans": [
+              {
+                "byte_end": 1882,
+                "byte_start": 1875,
+                "column_end": 62,
+                "column_start": 55,
+                "expansion": null,
+                "file_name": "/tmp/.hepta-native-i6hry5cm/program.rs",
+                "is_primary": false,
+                "label": "value moved here",
+                "line_end": 34,
+                "line_start": 34,
+                "suggested_replacement": null,
+                "suggestion_applicability": null,
+                "text": [
+                  {
+                    "highlight_end": 62,
+                    "highlight_start": 55,
+                    "text": "    (h_out)[((h_index)[0usize] as usize)] = h_dispose(h_index);"
+                  }
+                ]
+              },
+              {
+                "byte_end": 1843,
+                "byte_start": 1834,
+                "column_end": 23,
+                "column_start": 14,
+                "expansion": null,
+                "file_name": "/tmp/.hepta-native-i6hry5cm/program.rs",
+                "is_primary": true,
+                "label": "value borrowed here after move",
+                "line_end": 34,
+                "line_start": 34,
+                "suggested_replacement": null,
+                "suggestion_applicability": null,
+                "text": [
+                  {
+                    "highlight_end": 23,
+                    "highlight_start": 14,
+                    "text": "    (h_out)[((h_index)[0usize] as usize)] = h_dispose(h_index);"
+                  }
+                ]
+              },
+              {
+                "byte_end": 1612,
+                "byte_start": 1605,
+                "column_end": 16,
+                "column_start": 9,
+                "expansion": null,
+                "file_name": "/tmp/.hepta-native-i6hry5cm/program.rs",
+                "is_primary": false,
+                "label": "move occurs because `h_index` has type `Vec<u8>`, which does not implement the `Copy` trait",
+                "line_end": 31,
+                "line_start": 31,
+                "suggested_replacement": null,
+                "suggestion_applicability": null,
+                "text": [
+                  {
+                    "highlight_end": 16,
+                    "highlight_start": 9,
+                    "text": "    let h_index: std::vec::Vec<u8> = std::vec![0u8; 1usize];"
+                  }
+                ]
+              }
+            ],
+            "message": "borrow of moved value: `h_index`",
+            "phase": "backend",
+            "rendered": "error[E0382]: borrow of moved value: `h_index`\n  --> /tmp/.hepta-native-i6hry5cm/program.rs:34:14\n   |\n31 |     let h_index: std::vec::Vec<u8> = std::vec![0u8; 1usize];\n   |         ------- move occurs because `h_index` has type `Vec<u8>`, which does not implement the `Copy` trait\n...\n34 |     (h_out)[((h_index)[0usize] as usize)] = h_dispose(h_index);\n   |              ^^^^^^^^^ value borrowed here after move ------- value moved here\n   |\nnote: consider changing this parameter type in function `h_dispose` to borrow instead if owning the value isn't necessary\n  --> /tmp/.hepta-native-i6hry5cm/program.rs:16:22\n   |\n16 | fn h_dispose(h_data: std::vec::Vec<u8>) -> u8 {\n   |    ---------         ^^^^^^^^^^^^^^^^^ this parameter takes ownership of the value\n   |    |\n   |    in this function\nhelp: consider cloning the value if the performance cost is acceptable\n   |\n34 |     (h_out)[((h_index)[0usize] as usize)] = h_dispose(h_index.clone());\n   |                                                              ++++++++\n\n",
+            "source_mappings": [
+              {
+                "generated_line": 34,
+                "is_primary": false,
+                "precision": "statement",
+                "span": {
+                  "column": 5,
+                  "end": 261,
+                  "line": 8,
+                  "path": "<input>",
+                  "start": 218
+                }
+              },
+              {
+                "generated_line": 34,
+                "is_primary": true,
+                "precision": "statement",
+                "span": {
+                  "column": 5,
+                  "end": 261,
+                  "line": 8,
+                  "path": "<input>",
+                  "start": 218
+                }
+              },
+              {
+                "generated_line": 31,
+                "is_primary": false,
+                "precision": "statement",
+                "span": {
+                  "column": 28,
+                  "end": 213,
+                  "line": 7,
+                  "path": "<input>",
+                  "start": 193
+                }
+              }
+            ],
+            "span": {
+              "column": 5,
+              "end": 261,
+              "line": 8,
+              "path": "<input>",
+              "start": 218
+            }
+          },
+          {
+            "code": "E_RUSTC",
+            "generated_spans": [],
+            "message": "aborting due to 1 previous error",
+            "phase": "backend",
+            "rendered": "error: aborting due to 1 previous error\n\n"
+          }
+        ],
+        "effects": {
+          "dispose": [
+            "alloc",
+            "block"
+          ],
+          "main": [
+            "alloc",
+            "block",
+            "panic"
+          ]
+        },
+        "interface_sha256": "8d95b6db274987785d283fb55c5cdbc42fb6ce1a77a0d7ce3a0b629e48fcc0ae",
+        "ok": false,
+        "path": "<input>",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [],
+        "rust_sha256": "d1d4d9939a545b90974b6e742badbe59e795491f4a0cf696ea4eb70d24586a49",
+        "schema": "hepta.check.v1",
+        "source_sha256": "c64abe844d0a5fb11bf7bd3ed0ea325064c55fc1b32665647f233425c173fa33",
+        "status": "rejected"
+      },
+      "source_sha256": "c64abe844d0a5fb11bf7bd3ed0ea325064c55fc1b32665647f233425c173fa33",
+      "valid_executions": []
+    },
+    {
+      "c": {
+        "assumptions": [],
+        "c_sha256": "0f846dcf12b0cc3da802ddd50569fd635a302ccf4472c41098e711fed6599889",
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "dispose": [
+            "alloc",
+            "block"
+          ],
+          "main": [
+            "alloc",
+            "block",
+            "panic"
+          ],
+          "view": []
+        },
+        "interface_sha256": "beb6857cfcc18983de35e5bc2b33fa6b81d1eeb9efe70f2407497d9ae6b3d15c",
+        "ok": true,
+        "path": "<input>",
+        "profile": {
+          "c_optimization": "default",
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [],
+        "schema": "hepta.check.v1",
+        "source_sha256": "9a4aff73d83c5c5651761ade3ed3f7a934679fad5a6be704f92a1371aa4cf933",
+        "status": "frontend_only"
+      },
+      "c_emitted": true,
+      "category": "rejected",
+      "frontend": {
+        "assumptions": [],
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "dispose": [
+            "alloc",
+            "block"
+          ],
+          "main": [
+            "alloc",
+            "block",
+            "panic"
+          ],
+          "view": []
+        },
+        "interface_sha256": "beb6857cfcc18983de35e5bc2b33fa6b81d1eeb9efe70f2407497d9ae6b3d15c",
+        "ok": true,
+        "path": "<input>",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [],
+        "rust_sha256": "f15624ed01fcd9f44e8151433bdd5ab7fb23d0a6a9c18fab1af3b6fb16d81b54",
+        "schema": "hepta.check.v1",
+        "source_sha256": "9a4aff73d83c5c5651761ade3ed3f7a934679fad5a6be704f92a1371aa4cf933",
+        "status": "frontend_only"
+      },
+      "invalid_native_execution_attempted": false,
+      "name": "rhs_consumes_returned_target_argument",
+      "resource": {
+        "ok": true,
+        "resource_ir": {
+          "claims": {
+            "external_contracts_proved": false,
+            "native_codegen_uses_this_ir": false,
+            "scalar_value_semantics_verified": false,
+            "source_to_ir_refinement_proved": false,
+            "termination_proved": false,
+            "whole_language_soundness_proved": false
+          },
+          "functions": [
+            {
+              "blocks": [
+                {
+                  "id": "b0",
+                  "ops": [
+                    {
+                      "dest": "v0",
+                      "op": "move",
+                      "src": "p0"
+                    },
+                    {
+                      "op": "drop",
+                      "src": "v0"
+                    }
+                  ],
+                  "term": {
+                    "loan": null,
+                    "op": "return",
+                    "value": "v1"
+                  }
+                }
+              ],
+              "entry": "b0",
+              "external": false,
+              "locals": [
+                {
+                  "id": "v0",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v1",
+                  "mutable": false,
+                  "type": "u8"
+                }
+              ],
+              "name": "dispose",
+              "obligation": null,
+              "params": [
+                {
+                  "id": "p0",
+                  "mode": "take",
+                  "type": "Buffer<u8>"
+                }
+              ],
+              "returns": {
+                "mode": "value",
+                "origin": null,
+                "type": "u8"
+              }
+            },
+            {
+              "blocks": [
+                {
+                  "id": "b0",
+                  "ops": [
+                    {
+                      "id": "l0",
+                      "mode": "mut",
+                      "op": "borrow",
+                      "place": {
+                        "path": [],
+                        "root": "p0"
+                      },
+                      "type": "[u8]"
+                    }
+                  ],
+                  "term": {
+                    "loan": "l0",
+                    "op": "return",
+                    "value": null
+                  }
+                }
+              ],
+              "entry": "b0",
+              "external": false,
+              "locals": [],
+              "name": "view",
+              "obligation": null,
+              "params": [
+                {
+                  "id": "p0",
+                  "mode": "mut",
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "p1",
+                  "mode": "read",
+                  "type": "Buffer<u8>"
+                }
+              ],
+              "returns": {
+                "mode": "mut",
+                "origin": "p0",
+                "type": "[u8]"
+              }
+            },
+            {
+              "blocks": [
+                {
+                  "id": "b0",
+                  "ops": [
+                    {
+                      "dest": "v1",
+                      "kind": "buffer",
+                      "op": "acquire"
+                    },
+                    {
+                      "dest": "v2",
+                      "op": "move",
+                      "src": "v1"
+                    },
+                    {
+                      "dest": "v4",
+                      "kind": "buffer",
+                      "op": "acquire"
+                    },
+                    {
+                      "dest": "v5",
+                      "op": "move",
+                      "src": "v4"
+                    },
+                    {
+                      "id": "l0",
+                      "mode": "mut",
+                      "op": "borrow",
+                      "place": {
+                        "path": [],
+                        "root": "v2"
+                      },
+                      "type": "Buffer<u8>"
+                    },
+                    {
+                      "id": "l1",
+                      "mode": "read",
+                      "op": "borrow",
+                      "place": {
+                        "path": [],
+                        "root": "v5"
+                      },
+                      "type": "Buffer<u8>"
+                    },
+                    {
+                      "args": [
+                        {
+                          "id": "l0",
+                          "kind": "borrow"
+                        },
+                        {
+                          "id": "l1",
+                          "kind": "borrow"
+                        }
+                      ],
+                      "function": "view",
+                      "obligation": null,
+                      "op": "call",
+                      "result": null,
+                      "result_loan": "l2"
+                    },
+                    {
+                      "id": "l1",
+                      "op": "end_borrow"
+                    },
+                    {
+                      "dest": "v7",
+                      "op": "move",
+                      "src": "v5"
+                    },
+                    {
+                      "args": [
+                        {
+                          "id": "v7",
+                          "kind": "owner"
+                        }
+                      ],
+                      "function": "dispose",
+                      "obligation": null,
+                      "op": "call",
+                      "result": "v8",
+                      "result_loan": null
+                    },
+                    {
+                      "loan": "l2",
+                      "mode": "write",
+                      "op": "use"
+                    },
+                    {
+                      "id": "l2",
+                      "op": "end_borrow"
+                    },
+                    {
+                      "dest": "v9",
+                      "op": "move",
+                      "src": "v2"
+                    },
+                    {
+                      "op": "drop",
+                      "src": "v9"
+                    }
+                  ],
+                  "term": {
+                    "loan": null,
+                    "op": "return",
+                    "value": null
+                  }
+                }
+              ],
+              "entry": "b0",
+              "external": false,
+              "locals": [
+                {
+                  "id": "v0",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v1",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v2",
+                  "mutable": true,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v3",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v4",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v5",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v6",
+                  "mutable": false,
+                  "type": "usize"
+                },
+                {
+                  "id": "v7",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "id": "v8",
+                  "mutable": false,
+                  "type": "u8"
+                },
+                {
+                  "id": "v9",
+                  "mutable": false,
+                  "type": "Buffer<u8>"
+                }
+              ],
+              "name": "main",
+              "obligation": null,
+              "params": [],
+              "returns": {
+                "mode": "value",
+                "origin": null,
+                "type": "Unit"
+              }
+            }
+          ],
+          "obligations": {},
+          "project_sha256": null,
+          "schema": "hepta.resource-ir.v3",
+          "source_sha256": "9a4aff73d83c5c5651761ade3ed3f7a934679fad5a6be704f92a1371aa4cf933",
+          "types": {
+            "Buffer<u8>": {
+              "element": "u8",
+              "kind": "buffer"
+            },
+            "Unit": {
+              "kind": "scalar",
+              "name": "Unit"
+            },
+            "[u8]": {
+              "element": "u8",
+              "kind": "slice"
+            },
+            "bool": {
+              "kind": "scalar",
+              "name": "bool"
+            },
+            "u8": {
+              "kind": "scalar",
+              "name": "u8"
+            },
+            "usize": {
+              "kind": "scalar",
+              "name": "usize"
+            }
+          },
+          "value_semantics": "copied_values_abstract_not_executable"
+        },
+        "schema": "hepta.resource-ir.export.v1",
+        "status": "frontend_only",
+        "validation": {
+          "assumptions": [],
+          "checks": {
+            "rust_borrows_types": "not_run",
+            "syntax": "passed",
+            "types_effects_resources": "passed_in_supported_subset"
+          },
+          "claims": {
+            "all_programs_faster_than_rust": false,
+            "bounded_cancellation_latency_proved": false,
+            "deadlock_freedom_proved": false,
+            "hardware_execution_verified": false,
+            "whole_language_soundness_proved": false
+          },
+          "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+          "compiler_version": "0.2.0",
+          "diagnostics": [],
+          "effects": {
+            "dispose": [
+              "alloc",
+              "block"
+            ],
+            "main": [
+              "alloc",
+              "block",
+              "panic"
+            ],
+            "view": []
+          },
+          "interface_sha256": "beb6857cfcc18983de35e5bc2b33fa6b81d1eeb9efe70f2407497d9ae6b3d15c",
+          "ok": true,
+          "path": "<input>",
+          "profile": {
+            "crate_type": "bin",
+            "no_std": false,
+            "overflow_checks": true,
+            "panic": "abort"
+          },
+          "resource_contracts": [],
+          "rust_sha256": "f15624ed01fcd9f44e8151433bdd5ab7fb23d0a6a9c18fab1af3b6fb16d81b54",
+          "schema": "hepta.check.v1",
+          "source_sha256": "9a4aff73d83c5c5651761ade3ed3f7a934679fad5a6be704f92a1371aa4cf933",
+          "status": "frontend_only"
+        },
+        "verifier": {
+          "claims": {
+            "external_contracts_proved": false,
+            "native_codegen_uses_this_ir": false,
+            "scalar_value_semantics_verified": false,
+            "source_to_ir_refinement_proved": false,
+            "termination_proved": false,
+            "whole_language_soundness_proved": false
+          },
+          "diagnostics": [],
+          "external_obligations": {},
+          "functions": [
+            {
+              "function": "dispose",
+              "normal_exits": 1,
+              "reachable_blocks": 1,
+              "total_blocks": 1
+            },
+            {
+              "function": "view",
+              "normal_exits": 1,
+              "reachable_blocks": 1,
+              "total_blocks": 1
+            },
+            {
+              "function": "main",
+              "normal_exits": 1,
+              "reachable_blocks": 1,
+              "total_blocks": 1
+            }
+          ],
+          "generic_calls_checked": 0,
+          "generic_functions_checked": 0,
+          "ir_sha256": "3bbdca18e1e8629744470b17ca8a5cff648eda3aebcfee702a34d8af49ba5c8b",
+          "ok": true,
+          "operations_checked": 17,
+          "owned_types": [
+            "Buffer<u8>"
+          ],
+          "schema": "hepta.resource-ir-validation.v1",
+          "status": "resource_cfg_verified"
+        }
+      },
+      "rust": {
+        "assumptions": [],
+        "backend": {
+          "check_only": true,
+          "crate_type": "bin",
+          "diagnostics": [
+            {
+              "code": "E0382",
+              "generated_spans": [
+                {
+                  "byte_end": 2371,
+                  "byte_start": 2364,
+                  "column_end": 70,
+                  "column_start": 63,
+                  "expansion": null,
+                  "file_name": "/tmp/.hepta-native-nrzo4yri/program.rs",
+                  "is_primary": false,
+                  "label": "value moved here",
+                  "line_end": 41,
+                  "line_start": 41,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": [
+                    {
+                      "highlight_end": 70,
+                      "highlight_start": 63,
+                      "text": "    ((*h_view((&mut h_out), (&h_index))))[0usize] = h_dispose(h_index);"
+                    }
+                  ]
+                },
+                {
+                  "byte_end": 2340,
+                  "byte_start": 2330,
+                  "column_end": 39,
+                  "column_start": 29,
+                  "expansion": null,
+                  "file_name": "/tmp/.hepta-native-nrzo4yri/program.rs",
+                  "is_primary": true,
+                  "label": "value borrowed here after move",
+                  "line_end": 41,
+                  "line_start": 41,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": [
+                    {
+                      "highlight_end": 39,
+                      "highlight_start": 29,
+                      "text": "    ((*h_view((&mut h_out), (&h_index))))[0usize] = h_dispose(h_index);"
+                    }
+                  ]
+                },
+                {
+                  "byte_end": 2092,
+                  "byte_start": 2085,
+                  "column_end": 16,
+                  "column_start": 9,
+                  "expansion": null,
+                  "file_name": "/tmp/.hepta-native-nrzo4yri/program.rs",
+                  "is_primary": false,
+                  "label": "move occurs because `h_index` has type `Vec<u8>`, which does not implement the `Copy` trait",
+                  "line_end": 38,
+                  "line_start": 38,
+                  "suggested_replacement": null,
+                  "suggestion_applicability": null,
+                  "text": [
+                    {
+                      "highlight_end": 16,
+                      "highlight_start": 9,
+                      "text": "    let h_index: std::vec::Vec<u8> = std::vec![0u8; 1usize];"
+                    }
+                  ]
+                }
+              ],
+              "message": "borrow of moved value: `h_index`",
+              "phase": "backend",
+              "rendered": "error[E0382]: borrow of moved value: `h_index`\n  --> /tmp/.hepta-native-nrzo4yri/program.rs:41:29\n   |\n38 |     let h_index: std::vec::Vec<u8> = std::vec![0u8; 1usize];\n   |         ------- move occurs because `h_index` has type `Vec<u8>`, which does not implement the `Copy` trait\n...\n41 |     ((*h_view((&mut h_out), (&h_index))))[0usize] = h_dispose(h_index);\n   |                             ^^^^^^^^^^                        ------- value moved here\n   |                             |\n   |                             value borrowed here after move\n   |\nnote: consider changing this parameter type in function `h_dispose` to borrow instead if owning the value isn't necessary\n  --> /tmp/.hepta-native-nrzo4yri/program.rs:16:22\n   |\n16 | fn h_dispose(h_data: std::vec::Vec<u8>) -> u8 {\n   |    ---------         ^^^^^^^^^^^^^^^^^ this parameter takes ownership of the value\n   |    |\n   |    in this function\nhelp: consider cloning the value if the performance cost is acceptable\n   |\n41 |     ((*h_view((&mut h_out), (&h_index))))[0usize] = h_dispose(h_index.clone());\n   |                                                                      ++++++++\n\n",
+              "source_mappings": [
+                {
+                  "generated_line": 41,
+                  "is_primary": false,
+                  "precision": "statement",
+                  "span": {
+                    "column": 5,
+                    "end": 371,
+                    "line": 11,
+                    "path": "<input>",
+                    "start": 323
+                  }
+                },
+                {
+                  "generated_line": 41,
+                  "is_primary": true,
+                  "precision": "statement",
+                  "span": {
+                    "column": 5,
+                    "end": 371,
+                    "line": 11,
+                    "path": "<input>",
+                    "start": 323
+                  }
+                },
+                {
+                  "generated_line": 38,
+                  "is_primary": false,
+                  "precision": "statement",
+                  "span": {
+                    "column": 28,
+                    "end": 318,
+                    "line": 10,
+                    "path": "<input>",
+                    "start": 298
+                  }
+                }
+              ],
+              "span": {
+                "column": 5,
+                "end": 371,
+                "line": 11,
+                "path": "<input>",
+                "start": 323
+              }
+            },
+            {
+              "code": "E_RUSTC",
+              "generated_spans": [],
+              "message": "aborting due to 1 previous error",
+              "phase": "backend",
+              "rendered": "error: aborting due to 1 previous error\n\n"
+            }
+          ],
+          "flags": [
+            "edition=2021",
+            "opt-level=3",
+            "overflow-checks=yes",
+            "panic=abort",
+            "codegen-units=1",
+            "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+          ],
+          "link_args": [],
+          "linker": null,
+          "ok": false,
+          "rust_sha256": "f15624ed01fcd9f44e8151433bdd5ab7fb23d0a6a9c18fab1af3b6fb16d81b54",
+          "rustc_crate_type": "lib",
+          "status": "rejected",
+          "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+            "host": "x86_64-unknown-linux-gnu",
+            "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+            "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+            "sysroot_discovery": "verified_compiler_prefix",
+            "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+          }
+        },
+        "checks": {
+          "rust_borrows_types": "rejected",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "8d750897f3a12da75004d0f00bc2ae238d99fdf6ecd75d1ba3151909f4997ebe",
+        "compiler_version": "0.2.0",
+        "diagnostics": [
+          {
+            "code": "E0382",
+            "generated_spans": [
+              {
+                "byte_end": 2371,
+                "byte_start": 2364,
+                "column_end": 70,
+                "column_start": 63,
+                "expansion": null,
+                "file_name": "/tmp/.hepta-native-nrzo4yri/program.rs",
+                "is_primary": false,
+                "label": "value moved here",
+                "line_end": 41,
+                "line_start": 41,
+                "suggested_replacement": null,
+                "suggestion_applicability": null,
+                "text": [
+                  {
+                    "highlight_end": 70,
+                    "highlight_start": 63,
+                    "text": "    ((*h_view((&mut h_out), (&h_index))))[0usize] = h_dispose(h_index);"
+                  }
+                ]
+              },
+              {
+                "byte_end": 2340,
+                "byte_start": 2330,
+                "column_end": 39,
+                "column_start": 29,
+                "expansion": null,
+                "file_name": "/tmp/.hepta-native-nrzo4yri/program.rs",
+                "is_primary": true,
+                "label": "value borrowed here after move",
+                "line_end": 41,
+                "line_start": 41,
+                "suggested_replacement": null,
+                "suggestion_applicability": null,
+                "text": [
+                  {
+                    "highlight_end": 39,
+                    "highlight_start": 29,
+                    "text": "    ((*h_view((&mut h_out), (&h_index))))[0usize] = h_dispose(h_index);"
+                  }
+                ]
+              },
+              {
+                "byte_end": 2092,
+                "byte_start": 2085,
+                "column_end": 16,
+                "column_start": 9,
+                "expansion": null,
+                "file_name": "/tmp/.hepta-native-nrzo4yri/program.rs",
+                "is_primary": false,
+                "label": "move occurs because `h_index` has type `Vec<u8>`, which does not implement the `Copy` trait",
+                "line_end": 38,
+                "line_start": 38,
+                "suggested_replacement": null,
+                "suggestion_applicability": null,
+                "text": [
+                  {
+                    "highlight_end": 16,
+                    "highlight_start": 9,
+                    "text": "    let h_index: std::vec::Vec<u8> = std::vec![0u8; 1usize];"
+                  }
+                ]
+              }
+            ],
+            "message": "borrow of moved value: `h_index`",
+            "phase": "backend",
+            "rendered": "error[E0382]: borrow of moved value: `h_index`\n  --> /tmp/.hepta-native-nrzo4yri/program.rs:41:29\n   |\n38 |     let h_index: std::vec::Vec<u8> = std::vec![0u8; 1usize];\n   |         ------- move occurs because `h_index` has type `Vec<u8>`, which does not implement the `Copy` trait\n...\n41 |     ((*h_view((&mut h_out), (&h_index))))[0usize] = h_dispose(h_index);\n   |                             ^^^^^^^^^^                        ------- value moved here\n   |                             |\n   |                             value borrowed here after move\n   |\nnote: consider changing this parameter type in function `h_dispose` to borrow instead if owning the value isn't necessary\n  --> /tmp/.hepta-native-nrzo4yri/program.rs:16:22\n   |\n16 | fn h_dispose(h_data: std::vec::Vec<u8>) -> u8 {\n   |    ---------         ^^^^^^^^^^^^^^^^^ this parameter takes ownership of the value\n   |    |\n   |    in this function\nhelp: consider cloning the value if the performance cost is acceptable\n   |\n41 |     ((*h_view((&mut h_out), (&h_index))))[0usize] = h_dispose(h_index.clone());\n   |                                                                      ++++++++\n\n",
+            "source_mappings": [
+              {
+                "generated_line": 41,
+                "is_primary": false,
+                "precision": "statement",
+                "span": {
+                  "column": 5,
+                  "end": 371,
+                  "line": 11,
+                  "path": "<input>",
+                  "start": 323
+                }
+              },
+              {
+                "generated_line": 41,
+                "is_primary": true,
+                "precision": "statement",
+                "span": {
+                  "column": 5,
+                  "end": 371,
+                  "line": 11,
+                  "path": "<input>",
+                  "start": 323
+                }
+              },
+              {
+                "generated_line": 38,
+                "is_primary": false,
+                "precision": "statement",
+                "span": {
+                  "column": 28,
+                  "end": 318,
+                  "line": 10,
+                  "path": "<input>",
+                  "start": 298
+                }
+              }
+            ],
+            "span": {
+              "column": 5,
+              "end": 371,
+              "line": 11,
+              "path": "<input>",
+              "start": 323
+            }
+          },
+          {
+            "code": "E_RUSTC",
+            "generated_spans": [],
+            "message": "aborting due to 1 previous error",
+            "phase": "backend",
+            "rendered": "error: aborting due to 1 previous error\n\n"
+          }
+        ],
+        "effects": {
+          "dispose": [
+            "alloc",
+            "block"
+          ],
+          "main": [
+            "alloc",
+            "block",
+            "panic"
+          ],
+          "view": []
+        },
+        "interface_sha256": "beb6857cfcc18983de35e5bc2b33fa6b81d1eeb9efe70f2407497d9ae6b3d15c",
+        "ok": false,
+        "path": "<input>",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [],
+        "rust_sha256": "f15624ed01fcd9f44e8151433bdd5ab7fb23d0a6a9c18fab1af3b6fb16d81b54",
+        "schema": "hepta.check.v1",
+        "source_sha256": "9a4aff73d83c5c5651761ade3ed3f7a934679fad5a6be704f92a1371aa4cf933",
+        "status": "rejected"
+      },
+      "source_sha256": "9a4aff73d83c5c5651761ade3ed3f7a934679fad5a6be704f92a1371aa4cf933",
+      "valid_executions": []
+    }
+  ],
+  "schema": "hepta.resource-order-audit.v1",
+  "scope": "Frontend/IR/C-emission comparisons and native Rust rejection; only valid neighbouring programs are executed"
+}

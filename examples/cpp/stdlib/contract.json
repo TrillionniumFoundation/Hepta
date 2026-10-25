@@ -1,0 +1,44 @@
+{
+  "schema": "hepta.cpp-contract.v1",
+  "module": "stdlib",
+  "pod_types": [{
+    "name": "Pair", "cpp_type": "hepta_example::Pair",
+    "fields": [{"name": "first", "type": "i64"}, {"name": "second", "type": "i64"}]
+  }],
+  "functions": [
+    {"name": "mix", "cpp_name": "hepta_example::mix", "template_args": [],
+     "params": [{"name": "value", "type": "u64", "mode": "value"}], "returns": "u64",
+     "exception": "noexcept", "threading": "any_thread", "reentrancy": "allowed", "allocation": "none_declared"},
+    {"name": "swap_pair", "cpp_name": "hepta_example::swap_pair", "template_args": [],
+     "params": [{"name": "value", "type": "Pair", "mode": "value"}], "returns": "Pair",
+     "exception": "noexcept", "threading": "any_thread", "reentrancy": "allowed", "allocation": "none_declared"},
+    {"name": "twice", "cpp_name": "hepta_example::twice", "template_args": ["u64"],
+     "params": [{"name": "value", "type": "u64", "mode": "value"}], "returns": "u64",
+     "exception": "noexcept", "threading": "any_thread", "reentrancy": "allowed", "allocation": "none_declared"},
+    {"name": "sum", "cpp_name": "hepta_example::sum", "template_args": [],
+     "params": [{"name": "values", "type": "i64", "mode": "borrow_const", "retention": "call_only"}],
+     "returns": "i64", "exception": "noexcept", "threading": "caller_synchronized", "reentrancy": "allowed", "allocation": "none_declared"},
+    {"name": "add", "cpp_name": "hepta_example::add", "template_args": [],
+     "params": [{"name": "values", "type": "i64", "mode": "borrow_mut", "retention": "call_only"},
+                {"name": "delta", "type": "i64", "mode": "value"}],
+     "returns": "Unit", "exception": "catch_status", "threading": "caller_synchronized", "reentrancy": "caller_prevents", "allocation": "cpp_internal"},
+    {"name": "text_size", "cpp_name": "hepta_example::text_size", "template_args": [],
+     "params": [{"name": "text", "type": "u8", "mode": "borrow_const", "retention": "call_only"}],
+     "returns": "usize", "exception": "catch_status", "threading": "caller_synchronized", "reentrancy": "allowed", "allocation": "cpp_internal"}
+  ],
+  "handles": [{
+    "name": "IntVector", "cpp_type": "std::vector", "template_args": ["i64"],
+    "threading": "serialized", "reentrancy": "reject", "allocator": "cpp_shared_owner",
+    "destruction": "nothrow_defer_inflight",
+    "methods": [
+      {"name": "push", "cpp_method": "push_back", "const": false,
+       "params": [{"name": "value", "type": "i64", "mode": "const_ref", "retention": "call_only"}],
+       "returns": "Unit", "return_mode": "value", "exception": "catch_status"},
+      {"name": "size", "cpp_method": "size", "const": true, "params": [],
+       "returns": "usize", "return_mode": "value", "exception": "noexcept"},
+      {"name": "at", "cpp_method": "at", "const": true,
+       "params": [{"name": "index", "type": "usize", "mode": "value"}],
+       "returns": "i64", "return_mode": "copy_from_reference", "exception": "catch_status"}
+    ]
+  }]
+}

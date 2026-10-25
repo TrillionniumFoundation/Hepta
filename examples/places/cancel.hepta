@@ -1,0 +1,37 @@
+module places_cancel;
+
+struct Pending { input:Buffer<u8>, spare:Buffer<u8> }
+
+fn worker(input:take Buffer<u8>, token:read Cancellation)->u64 effects {alloc,block,panic} {
+    let pending=Pending{input:move input,spare:buffer(8161)};
+    let detached=move pending.input;
+    while !cancelled(read token) {}
+    release(move detached);
+    release(move pending.spare);
+    return 9;
+}
+
+fn failed_worker(input:take Buffer<u8>, token:read Cancellation, out:read Sender<u64>)->u64
+effects {alloc,block,panic,write} {
+    let pending=Pending{input:move input,spare:buffer(8161)};
+    let detached=move pending.input;
+    group_fail(read out,7);
+    release(move detached);
+    release(move pending.spare);
+    return 13;
+}
+
+pub fn run_cancel()->u64 effects {alloc,block,panic,spawn} {
+    let task=spawn(worker,move buffer(4093));
+    return cancel_and_join(move task);
+}
+
+pub fn run_failure()->u64 effects {alloc,block,panic,spawn,write} {
+    let mut group=task_group(1,4093,1);
+    assert(group_spawn(mut group,failed_worker,move buffer(4093)));
+    let report=group_drain_and_join(move group);
+    assert(report.failed);
+    assert(report.failure_code==7);
+    assert(report.active_tasks==0);
+    return report.sum;
+}

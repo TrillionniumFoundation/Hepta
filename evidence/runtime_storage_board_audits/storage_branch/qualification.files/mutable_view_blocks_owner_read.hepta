@@ -1,0 +1,7 @@
+struct Edit<'a>{ data:mut 'a [u8] }
+fn edit<'a>(data:mut 'a Buffer<u8>)->Edit<'a> effects {} {return Edit{data:mut data};}
+fn forward<'a>(value:take Edit<'a>)->Edit<'a> effects {} {return move value;}
+
+fn main()->Unit effects {alloc,block,panic} {
+    let mut owner=buffer(4);let value=edit(mut owner);assert(owner[0]==0);drop(move value);release(move owner);
+}

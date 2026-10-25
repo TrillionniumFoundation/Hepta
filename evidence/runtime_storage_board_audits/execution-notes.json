@@ -1,0 +1,90 @@
+{
+  "created_utc": "2026-10-25T02:45:10.666449Z",
+  "embedded_raw_transcripts": [
+    {
+      "archive_path": "storage_integration/qualified-audit.json",
+      "content": "Original six-method unittest output, preserved as part of its original JSON bytes.",
+      "json_pointer": "/test_output"
+    },
+    {
+      "archive_path": "storage_integration/qualified-audit.json",
+      "content": "Original build/native/metadata argv and outputs, preserved as part of original JSON bytes.",
+      "json_pointer": "/commands"
+    }
+  ],
+  "evidence_class": "reported_execution_notes_not_original_process_transcripts",
+  "excluded_inherited_logs": [
+    "Hepta-storage-next/artifacts/unit_and_integration.log",
+    "Hepta-tree-next/artifacts/unit_and_integration.log"
+  ],
+  "excluded_inherited_logs_reason": "These are inherited artifacts, not standalone logs of this round. They are not relabelled as new evidence.",
+  "missing_report_files": [
+    {
+      "available_original": "qualification-attempt1.log",
+      "directory": "root_board",
+      "explanation": "No report file was present in the enumerated source directory. The log records a command failure.",
+      "report": "qualification-attempt1.json"
+    },
+    {
+      "available_original": "qualification-attempt3.log",
+      "directory": "root_board",
+      "explanation": "No report file was present in the enumerated source directory. The log records validator rejection.",
+      "report": "qualification-attempt3.json"
+    }
+  ],
+  "missing_standalone_logs": [
+    {
+      "basis": "Storage agent states output exists only in exec/write_stdin conversation output. No replacement log generated.",
+      "original_file_available": false,
+      "record": "stored-borrow branch full unit tests",
+      "reported_result": "passed",
+      "reported_test_count": 937
+    },
+    {
+      "basis": "Storage agent states output exists only in exec/write_stdin conversation output. No replacement log generated.",
+      "original_file_available": false,
+      "record": "stored-borrow branch final related regressions",
+      "reported_result": "passed",
+      "reported_test_count": 13
+    },
+    {
+      "basis": "Prior task result and parent confirmation; output exists only in tool conversation output. No replacement log generated.",
+      "original_file_available": false,
+      "record": "task-tree focused unit tests",
+      "reported_result": "passed",
+      "reported_test_count": 86
+    }
+  ],
+  "notes": [
+    {
+      "basis": "Parent-agent report in this conversation; no original process log was supplied or reconstructed.",
+      "complete_release_report_available": false,
+      "counts_as_frozen_qualification": false,
+      "counts_as_success": false,
+      "exec_session_id": 41307,
+      "explanation": "The tool does not implement argparse; this invocation actually started sandbox release execution and was immediately interrupted with Ctrl-C.",
+      "id": "interrupted-release-help",
+      "invocation": [
+        "python",
+        "tools/release_check.py",
+        "--help"
+      ],
+      "original_log_file_available": false,
+      "reported_exit_code": 130,
+      "reported_stdout": "",
+      "reporter": "/root"
+    },
+    {
+      "basis": "Parent-agent status report. The final release run is separate from this historical archive; no current gate output was copied while it was running.",
+      "exec_session_id": 76452,
+      "final_outcome_recorded_in_this_archive": false,
+      "gate_count": 36,
+      "id": "frozen-release-in-progress-at-instruction",
+      "reported_mode": "approved outer execution",
+      "reported_state_at_archive_instruction": "unit gate in progress",
+      "reporter": "/root",
+      "source_commit": "d8c4e8578bff5dc6e8b474d43e2dfbd6442ec38e"
+    }
+  ],
+  "schema": "hepta.historical-execution-notes.v1"
+}

@@ -1,0 +1,712 @@
+{
+  "caller_contracts": {
+    "concurrent_foreign_writes": "excluded_by_read_slice_contract",
+    "origin": "explicit_human_authored_not_inferred_or_proved",
+    "read_aliasing": "equal_pointer_addresses_are_allowed_and_executed",
+    "sha256": "d93b5d4df49bae22a416d08c5038d33e65195b55b1d5e93399980a426f2f9d4a",
+    "void_pointer_element": "one_initialized_live_aligned_C_int_32"
+  },
+  "execution": {
+    "checks": [
+      "C return values",
+      "independent arithmetic expectations",
+      "input bytes unchanged",
+      "read aliasing"
+    ],
+    "differential_cases": {
+      "int_compare": 8434,
+      "int_equal": 8434,
+      "int_hash": 8434
+    },
+    "edge_pairs": 121,
+    "input_pairs": 4217,
+    "invalid_bridge_inputs": [
+      {
+        "exit_code": -6,
+        "expected": "SIGABRT_before_slice_construction",
+        "input": "null",
+        "original_c_executed": false,
+        "reason": "outside_defined_annotated_input_domain"
+      },
+      {
+        "exit_code": -6,
+        "expected": "SIGABRT_before_slice_construction",
+        "input": "misaligned",
+        "original_c_executed": false,
+        "reason": "outside_defined_annotated_input_domain"
+      }
+    ],
+    "random_pairs": 4096,
+    "same_address_read_alias_cases": 8434,
+    "total_differential_cases": 25302,
+    "wrong_result_control_rejected": true
+  },
+  "implementation_commit": "27e7f7e1d528fdd1d6a2ffb7b94bc5dfced05c28",
+  "implementation_files": {
+    "hepta/c_aliases.py": "bc6c0533fff674f20d64619c50afb81a07375c37f158bf17ea7034026e25baf9",
+    "hepta/c_allocation.py": "e11ad48fa7e2af3fd9d0ec3932f002277bbdf44c0d164593432c5965bfd686d0",
+    "hepta/c_migrate.py": "70783d7da852acbd220c0ab3a7c1749d56fe8fab4b54807c49050ca291b1735b",
+    "hepta/c_migration_project.py": "510221cc02685386ca43886b7a78e4c485e01a68f987ff7103b324531b30812d",
+    "hepta/c_project.py": "b7987a83784160bf22eb0ffc0513337aa7c139c8b163106a7d4ed4b41c097a49",
+    "hepta/c_translation.py": "bd72e9414cf1c372b603a36e82877aa2408166e72bdf5e17391d48faae1f3bcd",
+    "tools/qualify_c_algorithms.py": "3475da9c256adbafed65b9b6b53712cda27875b866114eb7a8d5cc5be4e46933",
+    "tools/qualify_c_migration.py": "97b35cf01db80ce2173711c636771be3abff22ba93df757f6489402ade78658e"
+  },
+  "migration": {
+    "artifacts": {
+      "bridge.rs": {
+        "bytes": 3081,
+        "sha256": "40a89b5b6444bd2d40d326b82d8a26be1a1c1a08bea4246db2c33a24c03d83f9"
+      },
+      "generated.rs": {
+        "bytes": 6879,
+        "sha256": "329025f83599375a9666307f9a892530231685bf79b30477fe4244a6182bbcc7"
+      },
+      "libtranslated.so": {
+        "bytes": 3822816,
+        "sha256": "3af68f57d570ebbf7ecfbade3d939e3d94a8cbf11301fa8526c64f76cb825738"
+      },
+      "source.hepta": {
+        "bytes": 1173,
+        "sha256": "d5f026b977fdc0860c9eb8b6c7c49f9a0a274cec6bf130ed81fd1dfa52b4e2d8"
+      }
+    },
+    "build": {
+      "compiler": {
+        "executable_sha256": "ae130c2ff5660b0db2b43efe6bf64384bfad4c3b14fb647d33b7c6a8904ed004",
+        "path": "/workspace/scratch/0817a147930b/toolchains/bin/clang",
+        "target": "x86_64-pc-linux-gnu",
+        "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+      },
+      "configurations": [
+        {
+          "all_dependencies": [
+            "/tmp/hepta-c-algorithms-wisv96w4/compare-int.c",
+            "/tmp/hepta-c-algorithms-wisv96w4/compare-int.h"
+          ],
+          "directory": "/tmp/hepta-c-algorithms-wisv96w4",
+          "frontend_arguments": [
+            "-std=c11"
+          ],
+          "index": 0,
+          "local_dependencies": [
+            "/tmp/hepta-c-algorithms-wisv96w4/compare-int.c",
+            "/tmp/hepta-c-algorithms-wisv96w4/compare-int.h"
+          ],
+          "model": {
+            "char_unsigned": false,
+            "long_bits": 64,
+            "pointer_bits": 64
+          },
+          "omitted_arguments": [
+            {
+              "argument": "-O2",
+              "reason": "driver_output_or_diagnostic_flag"
+            },
+            {
+              "argument": "-c",
+              "reason": "driver_output_or_diagnostic_flag"
+            },
+            {
+              "argument": "-o",
+              "operand": "compare-int.c.o",
+              "reason": "object_output_not_executed"
+            }
+          ],
+          "original_arguments": [
+            "clang",
+            "-std=c11",
+            "-O2",
+            "-c",
+            "compare-int.c",
+            "-o",
+            "compare-int.c.o"
+          ],
+          "predefined_macros_sha256": "d76e79dc55e37118aa6c6f0299aa9d1dac0b6ba22e097d66aca8a0b889b15fd7",
+          "preprocessed_sha256": "5bffd1b0a13c168b8c32b3eb352e9377959c25ee5712f16f672eb10581d7812a",
+          "source": "/tmp/hepta-c-algorithms-wisv96w4/compare-int.c"
+        },
+        {
+          "all_dependencies": [
+            "/tmp/hepta-c-algorithms-wisv96w4/hash-int.c",
+            "/tmp/hepta-c-algorithms-wisv96w4/hash-int.h"
+          ],
+          "directory": "/tmp/hepta-c-algorithms-wisv96w4",
+          "frontend_arguments": [
+            "-std=c11"
+          ],
+          "index": 1,
+          "local_dependencies": [
+            "/tmp/hepta-c-algorithms-wisv96w4/hash-int.c",
+            "/tmp/hepta-c-algorithms-wisv96w4/hash-int.h"
+          ],
+          "model": {
+            "char_unsigned": false,
+            "long_bits": 64,
+            "pointer_bits": 64
+          },
+          "omitted_arguments": [
+            {
+              "argument": "-O2",
+              "reason": "driver_output_or_diagnostic_flag"
+            },
+            {
+              "argument": "-c",
+              "reason": "driver_output_or_diagnostic_flag"
+            },
+            {
+              "argument": "-o",
+              "operand": "hash-int.c.o",
+              "reason": "object_output_not_executed"
+            }
+          ],
+          "original_arguments": [
+            "clang",
+            "-std=c11",
+            "-O2",
+            "-c",
+            "hash-int.c",
+            "-o",
+            "hash-int.c.o"
+          ],
+          "predefined_macros_sha256": "d76e79dc55e37118aa6c6f0299aa9d1dac0b6ba22e097d66aca8a0b889b15fd7",
+          "preprocessed_sha256": "25ce273c1f4737bd4ca839cded89a9587a3f48aca766002d5f07324ea2de4c2d",
+          "source": "/tmp/hepta-c-algorithms-wisv96w4/hash-int.c"
+        }
+      ],
+      "database": {
+        "path": "/tmp/hepta-c-algorithms-wisv96w4/compile_commands.json",
+        "sha256": "d1609fb1153e00f99d4f8876a857aec33974e144bf85d240287f5960e0fd440c"
+      },
+      "dependencies": [
+        {
+          "bytes": 1298,
+          "path": "/tmp/hepta-c-algorithms-wisv96w4/compare-int.c",
+          "project_input": true,
+          "sha256": "e31f939aac72fe45f771a39237538d90c8c65e87c908c685791e6f3248355b46"
+        },
+        {
+          "bytes": 2100,
+          "path": "/tmp/hepta-c-algorithms-wisv96w4/compare-int.h",
+          "project_input": true,
+          "sha256": "f1d31375d1106557d537567cfda01e53d15502b901d8935374e9c1a804b0116d"
+        },
+        {
+          "bytes": 944,
+          "path": "/tmp/hepta-c-algorithms-wisv96w4/hash-int.c",
+          "project_input": true,
+          "sha256": "0f317af10597f1df9503c76dcb4128579fa4b3247931545749ecb14e2ec36acf"
+        },
+        {
+          "bytes": 1279,
+          "path": "/tmp/hepta-c-algorithms-wisv96w4/hash-int.h",
+          "project_input": true,
+          "sha256": "5361e6c63cff34ac63bf86b5af491a6a7e4d321ee7d5166717803e39a4af2473"
+        }
+      ],
+      "schema": "hepta.c-build.v1",
+      "scope": "all_listed_commands_only_not_unlisted_platforms_or_configurations",
+      "sha256": "710547148d3afe11b45b3dd7631ebfea78cf97218afc58a12ac150f331887dab"
+    },
+    "claims": {
+      "all_c_or_cpp_supported": false,
+      "foreign_pointer_validity_checked": false,
+      "pointer_contracts_inferred": false,
+      "source_equivalence_proved": false,
+      "unlisted_build_configurations_qualified": false,
+      "whole_language_soundness_proved": false
+    },
+    "contract_scope": {
+      "may_narrow_original_c_input_domain": true,
+      "not_runtime_checked": [
+        "allocation provenance",
+        "actual allocation size",
+        "initialization",
+        "aliasing",
+        "concurrent foreign accesses"
+      ],
+      "origin": "caller_supplied_not_inferred_or_proved",
+      "pointer_requirements": [
+        "initialized elements",
+        "one live aligned allocation",
+        "stable lifetime throughout call",
+        "exclusive access for mutable slices",
+        "length at most isize::MAX / element_size"
+      ],
+      "runtime_checks": [
+        "non-null for nonempty buffers",
+        "alignment",
+        "representable slice length",
+        "safe-core bounds checks"
+      ]
+    },
+    "contracts": {
+      "functions": {
+        "int_compare": {
+          "slices": {
+            "0": {
+              "access": "read",
+              "element": "int",
+              "length": 1
+            },
+            "1": {
+              "access": "read",
+              "element": "int",
+              "length": 1
+            }
+          }
+        },
+        "int_equal": {
+          "slices": {
+            "0": {
+              "access": "read",
+              "element": "int",
+              "length": 1
+            },
+            "1": {
+              "access": "read",
+              "element": "int",
+              "length": 1
+            }
+          }
+        },
+        "int_hash": {
+          "slices": {
+            "0": {
+              "access": "read",
+              "element": "int",
+              "length": 1
+            }
+          }
+        }
+      },
+      "schema": "hepta.c-contracts.v1"
+    },
+    "cost": {
+      "agent_tokens": null,
+      "caller_slice_contracts": 5,
+      "compile_configurations": 2,
+      "generated_abi_bridge_lines": 42,
+      "generated_hepta_lines": 32,
+      "manual_review_hours": null,
+      "migration_seconds": 0.9708540599967819,
+      "project_input_bytes": 5621,
+      "project_input_files": 4
+    },
+    "coverage": {
+      "active_project_declarations": 6,
+      "denominator": "active_declarations_in_all_listed_preprocessed_translation_units",
+      "status_counts": {
+        "function_converted": 3,
+        "prototype_resolved": 3
+      },
+      "system_or_compiler_declarations_recorded": 10,
+      "unlisted_macro_configurations_included": false
+    },
+    "declaration_inventory_complete": true,
+    "declarations": [
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__int128_t",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__uint128_t",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__NSConstantString",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__builtin_ms_va_list",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__builtin_va_list",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-c-algorithms-wisv96w4/compare-int.h",
+        "kind": "FunctionDecl",
+        "name": "int_equal",
+        "offset": 1457,
+        "reason": null,
+        "status": "prototype_resolved",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-c-algorithms-wisv96w4/compare-int.h",
+        "kind": "FunctionDecl",
+        "name": "int_compare",
+        "offset": 1978,
+        "reason": null,
+        "status": "prototype_resolved",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-c-algorithms-wisv96w4/compare-int.c",
+        "kind": "FunctionDecl",
+        "name": "int_equal",
+        "offset": 832,
+        "reason": null,
+        "status": "function_converted",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-c-algorithms-wisv96w4/compare-int.c",
+        "kind": "FunctionDecl",
+        "name": "int_compare",
+        "offset": 1023,
+        "reason": null,
+        "status": "function_converted",
+        "unit": 0
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__int128_t",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__uint128_t",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__NSConstantString",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__builtin_ms_va_list",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__builtin_va_list",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/tmp/hepta-c-algorithms-wisv96w4/hash-int.h",
+        "kind": "FunctionDecl",
+        "name": "int_hash",
+        "offset": 1181,
+        "reason": null,
+        "status": "prototype_resolved",
+        "unit": 1
+      },
+      {
+        "file": "/tmp/hepta-c-algorithms-wisv96w4/hash-int.c",
+        "kind": "FunctionDecl",
+        "name": "int_hash",
+        "offset": 831,
+        "reason": null,
+        "status": "function_converted",
+        "unit": 1
+      }
+    ],
+    "diagnostics": [],
+    "differential_execution": "not_run",
+    "frontend_validation": "passed",
+    "functions": [
+      {
+        "allocates": false,
+        "external_symbol": true,
+        "hepta_name": "c_int_compare",
+        "key": "int_compare",
+        "name": "int_compare",
+        "nonsemantic_documentation_comments": 0,
+        "params": [
+          {
+            "c_const": false,
+            "c_void": true,
+            "contract_selector": "0",
+            "length": 1,
+            "mode": "read",
+            "name": "vlocation1",
+            "pointer": true,
+            "type": "i32"
+          },
+          {
+            "c_const": false,
+            "c_void": true,
+            "contract_selector": "1",
+            "length": 1,
+            "mode": "read",
+            "name": "vlocation2",
+            "pointer": true,
+            "type": "i32"
+          }
+        ],
+        "read_pointer_aliases": [
+          {
+            "element": "i32",
+            "lowering": "same_read_slice_no_runtime_pointer",
+            "name": "location1",
+            "parameter": "vlocation1"
+          },
+          {
+            "element": "i32",
+            "lowering": "same_read_slice_no_runtime_pointer",
+            "name": "location2",
+            "parameter": "vlocation2"
+          }
+        ],
+        "return": "i32",
+        "unit": 0
+      },
+      {
+        "allocates": false,
+        "external_symbol": true,
+        "hepta_name": "c_int_equal",
+        "key": "int_equal",
+        "name": "int_equal",
+        "nonsemantic_documentation_comments": 0,
+        "params": [
+          {
+            "c_const": false,
+            "c_void": true,
+            "contract_selector": "0",
+            "length": 1,
+            "mode": "read",
+            "name": "vlocation1",
+            "pointer": true,
+            "type": "i32"
+          },
+          {
+            "c_const": false,
+            "c_void": true,
+            "contract_selector": "1",
+            "length": 1,
+            "mode": "read",
+            "name": "vlocation2",
+            "pointer": true,
+            "type": "i32"
+          }
+        ],
+        "read_pointer_aliases": [
+          {
+            "element": "i32",
+            "lowering": "same_read_slice_no_runtime_pointer",
+            "name": "location1",
+            "parameter": "vlocation1"
+          },
+          {
+            "element": "i32",
+            "lowering": "same_read_slice_no_runtime_pointer",
+            "name": "location2",
+            "parameter": "vlocation2"
+          }
+        ],
+        "return": "i32",
+        "unit": 0
+      },
+      {
+        "allocates": false,
+        "external_symbol": true,
+        "hepta_name": "c_int_hash",
+        "key": "int_hash",
+        "name": "int_hash",
+        "nonsemantic_documentation_comments": 0,
+        "params": [
+          {
+            "c_const": false,
+            "c_void": true,
+            "contract_selector": "0",
+            "length": 1,
+            "mode": "read",
+            "name": "vlocation",
+            "pointer": true,
+            "type": "i32"
+          }
+        ],
+        "read_pointer_aliases": [
+          {
+            "element": "i32",
+            "lowering": "same_read_slice_no_runtime_pointer",
+            "name": "location",
+            "parameter": "vlocation"
+          }
+        ],
+        "return": "u32",
+        "unit": 1
+      }
+    ],
+    "native_build": {
+      "artifact": "/tmp/hepta-c-algorithms-wisv96w4/translated/libtranslated.so",
+      "artifact_bytes": 3822816,
+      "artifact_sha256": "3af68f57d570ebbf7ecfbade3d939e3d94a8cbf11301fa8526c64f76cb825738",
+      "check_only": false,
+      "crate_type": "cdylib",
+      "diagnostics": [],
+      "flags": [
+        "edition=2021",
+        "opt-level=3",
+        "overflow-checks=yes",
+        "panic=abort",
+        "codegen-units=1"
+      ],
+      "link_args": [],
+      "ok": true,
+      "rust_sha256": "329025f83599375a9666307f9a892530231685bf79b30477fe4244a6182bbcc7",
+      "rustc_crate_type": "cdylib",
+      "status": "rustc_checked",
+      "target": "x86_64-unknown-linux-gnu",
+      "toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/workspace/scratch/69b06e838148/toolchains/rust-1.90.0/bin/rustc",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "validation_artifact_sha256": "3af68f57d570ebbf7ecfbade3d939e3d94a8cbf11301fa8526c64f76cb825738"
+    },
+    "native_validation": "passed",
+    "ok": true,
+    "output_directory": "/tmp/hepta-c-algorithms-wisv96w4/translated",
+    "profile": "captured_c_value_and_contracted_slice_subset",
+    "publication": "new_directory_manifest_last_not_crash_atomic",
+    "schema": "hepta.c-project-migration.v1",
+    "status": "native_built_not_equivalence_proved"
+  },
+  "ok": true,
+  "original_build": {
+    "argv": [
+      "/usr/bin/gcc",
+      "-std=c11",
+      "-O2",
+      "-shared",
+      "-fPIC",
+      "/tmp/hepta-c-algorithms-wisv96w4/compare-int.c",
+      "/tmp/hepta-c-algorithms-wisv96w4/hash-int.c",
+      "-o",
+      "/tmp/hepta-c-algorithms-wisv96w4/original.so"
+    ],
+    "exit_code": 0,
+    "seconds": 0.052579724993847776,
+    "stderr": "",
+    "stdout": ""
+  },
+  "original_compiler": {
+    "path": "/usr/bin/gcc",
+    "sha256": "6117c52522997d2aaccb2b52b3c6bf42c0a6c5edb1d718431fed6b2fc5fec234",
+    "version": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0"
+  },
+  "performance_parity_claimed": false,
+  "retained_generated_sources": {
+    "bridge.rs": {
+      "path": "evidence/c_algorithms/c-algorithms-generated/bridge.rs",
+      "sha256": "40a89b5b6444bd2d40d326b82d8a26be1a1c1a08bea4246db2c33a24c03d83f9"
+    },
+    "source.hepta": {
+      "path": "evidence/c_algorithms/c-algorithms-generated/source.hepta",
+      "sha256": "d5f026b977fdc0860c9eb8b6c7c49f9a0a274cec6bf130ed81fd1dfa52b4e2d8"
+    }
+  },
+  "runtime_artifacts_retained": false,
+  "schema": "hepta.c-upstream-qualification.v1",
+  "scope": "two_complete_upstream_integer_key_modules_not_the_whole_library",
+  "seconds": 1.1222352260010666,
+  "seed": 231024,
+  "source_equivalence_proved": false,
+  "upstream": {
+    "commit": "23d453792ed89a28ed7d2c8d4311a4d9f7822edd",
+    "files": [
+      {
+        "bytes": 1298,
+        "git_blob": "6a40430ebc990fd1b386cf792e13a33887379b59",
+        "local_path": "compare-int.c",
+        "sha256": "e31f939aac72fe45f771a39237538d90c8c65e87c908c685791e6f3248355b46",
+        "upstream_path": "src/compare-int.c",
+        "url": "https://github.com/fragglet/c-algorithms/blob/23d453792ed89a28ed7d2c8d4311a4d9f7822edd/src/compare-int.c"
+      },
+      {
+        "bytes": 2100,
+        "git_blob": "4307451fc1bbb43f13fba098f183b9d950cf3c25",
+        "local_path": "compare-int.h",
+        "sha256": "f1d31375d1106557d537567cfda01e53d15502b901d8935374e9c1a804b0116d",
+        "upstream_path": "src/compare-int.h",
+        "url": "https://github.com/fragglet/c-algorithms/blob/23d453792ed89a28ed7d2c8d4311a4d9f7822edd/src/compare-int.h"
+      },
+      {
+        "bytes": 944,
+        "git_blob": "9a4acb8a6362f29b01fbb2117ef230fa20244e31",
+        "local_path": "hash-int.c",
+        "sha256": "0f317af10597f1df9503c76dcb4128579fa4b3247931545749ecb14e2ec36acf",
+        "upstream_path": "src/hash-int.c",
+        "url": "https://github.com/fragglet/c-algorithms/blob/23d453792ed89a28ed7d2c8d4311a4d9f7822edd/src/hash-int.c"
+      },
+      {
+        "bytes": 1279,
+        "git_blob": "8caa4ab6dde9ea6a3f8340585c7050f0d47f1071",
+        "local_path": "hash-int.h",
+        "sha256": "5361e6c63cff34ac63bf86b5af491a6a7e4d321ee7d5166717803e39a4af2473",
+        "upstream_path": "src/hash-int.h",
+        "url": "https://github.com/fragglet/c-algorithms/blob/23d453792ed89a28ed7d2c8d4311a4d9f7822edd/src/hash-int.h"
+      },
+      {
+        "bytes": 1044,
+        "git_blob": "bbcd965967d96d26a04710d59029dc96f63e30f4",
+        "local_path": "COPYING.md",
+        "sha256": "164ddf1a88f6379e2d3bb6e3af5ba4dc2b209b8f9258fa5fc5fc18ecfb48424c",
+        "upstream_path": "COPYING.md",
+        "url": "https://github.com/fragglet/c-algorithms/blob/23d453792ed89a28ed7d2c8d4311a4d9f7822edd/COPYING.md"
+      },
+      {
+        "bytes": 778,
+        "git_blob": "317e5d09aab346bad84c27903882cf85e7d55be9",
+        "local_path": "UPSTREAM_README.md",
+        "sha256": "a44ea2456f4e4226acd484262cfacad424a9352c20d0884a36c743eb0c86e16b",
+        "upstream_path": "README.md",
+        "url": "https://github.com/fragglet/c-algorithms/blob/23d453792ed89a28ed7d2c8d4311a4d9f7822edd/README.md"
+      }
+    ],
+    "license": "ISC",
+    "repository": "https://github.com/fragglet/c-algorithms",
+    "scope": "complete upstream compare-int and hash-int modules; not the full c-algorithms library"
+  }
+}

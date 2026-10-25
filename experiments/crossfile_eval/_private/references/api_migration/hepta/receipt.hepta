@@ -1,0 +1,9 @@
+module receipt;
+import pricing;
+pub fn total(qty: i64, unit: i64) -> i64 effects {panic} {
+    let mut discount: i64 = 250;
+    if qty >= 10 { discount = 1250; }
+    match pricing::quote(qty, pricing::Price {unit_cents:unit, discount_bps:discount}) {
+        Result::Ok(value) => { return value; }, Result::Err(code) => { return -1; },
+    }
+}

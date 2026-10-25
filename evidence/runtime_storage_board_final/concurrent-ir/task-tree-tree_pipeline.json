@@ -1,0 +1,645 @@
+{
+  "claims": {
+    "cancellation_termination_proved": false,
+    "deadlock_freedom_proved": false,
+    "normal_exit_join_obligations_verified": true,
+    "runtime_budget_bounds_proved": false,
+    "runtime_data_race_freedom_proved": false,
+    "source_to_ir_refinement_proved": false,
+    "whole_language_soundness_proved": false,
+    "worker_input_transfer_verified": true
+  },
+  "functions": [
+    {
+      "blocks": [
+        {
+          "id": "bb0",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb1"
+            ]
+          }
+        },
+        {
+          "id": "bb1",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb2",
+              "bb3"
+            ]
+          }
+        },
+        {
+          "id": "bb2",
+          "operations": [
+            {
+              "mode": "group_send",
+              "op": "sender",
+              "src": "v2"
+            }
+          ],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb1"
+            ]
+          }
+        },
+        {
+          "id": "bb3",
+          "operations": [
+            {
+              "op": "borrow",
+              "src": "v0"
+            },
+            {
+              "dest": "v3",
+              "op": "move",
+              "src": "v0"
+            },
+            {
+              "op": "drop_buffer",
+              "src": "v3"
+            }
+          ],
+          "terminator": {
+            "op": "return",
+            "owner": null
+          }
+        }
+      ],
+      "entry": "bb0",
+      "name": "emit",
+      "params": [
+        {
+          "id": "v0",
+          "mode": "take",
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v1",
+          "mode": "read",
+          "type": "Cancellation"
+        },
+        {
+          "id": "v2",
+          "mode": "read",
+          "type": "Sender<u64>"
+        }
+      ],
+      "returns": "u64",
+      "slots": {
+        "v0": "Buffer<u8>",
+        "v3": "Buffer<u8>"
+      }
+    },
+    {
+      "blocks": [
+        {
+          "id": "bb0",
+          "operations": [
+            {
+              "dest": "v0",
+              "op": "create",
+              "type": "TaskGroup"
+            },
+            {
+              "dest": "v1",
+              "op": "move",
+              "src": "v0"
+            },
+            {
+              "dest": "v2",
+              "op": "create",
+              "type": "TaskGroup"
+            },
+            {
+              "dest": "v3",
+              "op": "move",
+              "src": "v2"
+            },
+            {
+              "dest": "v4",
+              "op": "create",
+              "type": "TaskGroup"
+            },
+            {
+              "dest": "v5",
+              "op": "move",
+              "src": "v4"
+            },
+            {
+              "dest": "v6",
+              "op": "create",
+              "type": "TaskGroup"
+            },
+            {
+              "dest": "v7",
+              "op": "move",
+              "src": "v6"
+            },
+            {
+              "dest": "v8",
+              "op": "create",
+              "type": "TaskGroup"
+            },
+            {
+              "dest": "v9",
+              "op": "move",
+              "src": "v8"
+            },
+            {
+              "mode": "group_budget_configure",
+              "op": "group",
+              "src": "v1"
+            },
+            {
+              "left": "v3",
+              "mode": "group_budget_share",
+              "op": "group_pair",
+              "right": "v1"
+            },
+            {
+              "left": "v5",
+              "mode": "group_budget_share",
+              "op": "group_pair",
+              "right": "v1"
+            },
+            {
+              "left": "v7",
+              "mode": "group_budget_share",
+              "op": "group_pair",
+              "right": "v1"
+            },
+            {
+              "left": "v9",
+              "mode": "group_budget_share",
+              "op": "group_pair",
+              "right": "v1"
+            },
+            {
+              "dest": "v10",
+              "op": "create",
+              "type": "Buffer<u8>"
+            },
+            {
+              "group": "v1",
+              "input": "v10",
+              "op": "spawn",
+              "task": null,
+              "worker": "emit"
+            },
+            {
+              "dest": "v11",
+              "op": "create",
+              "type": "Buffer<u8>"
+            },
+            {
+              "group": "v3",
+              "input": "v11",
+              "op": "spawn",
+              "task": null,
+              "worker": "emit"
+            },
+            {
+              "dest": "v12",
+              "op": "create",
+              "type": "Buffer<u8>"
+            },
+            {
+              "group": "v5",
+              "input": "v12",
+              "op": "spawn",
+              "task": null,
+              "worker": "emit"
+            },
+            {
+              "dest": "v13",
+              "op": "create",
+              "type": "Buffer<u8>"
+            },
+            {
+              "group": "v7",
+              "input": "v13",
+              "op": "spawn",
+              "task": null,
+              "worker": "emit"
+            },
+            {
+              "dest": "v14",
+              "op": "move",
+              "src": "v5"
+            },
+            {
+              "child": "v14",
+              "op": "adopt",
+              "parent": "v3",
+              "refusal": "cancel_and_join_child_subtree"
+            },
+            {
+              "dest": "v15",
+              "op": "move",
+              "src": "v3"
+            },
+            {
+              "child": "v15",
+              "op": "adopt",
+              "parent": "v1",
+              "refusal": "cancel_and_join_child_subtree"
+            },
+            {
+              "dest": "v16",
+              "op": "move",
+              "src": "v7"
+            },
+            {
+              "child": "v16",
+              "op": "adopt",
+              "parent": "v1",
+              "refusal": "cancel_and_join_child_subtree"
+            },
+            {
+              "mode": "group_tree_snapshot",
+              "op": "group",
+              "src": "v1"
+            }
+          ],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb1",
+              "bb2"
+            ]
+          }
+        },
+        {
+          "id": "bb1",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb3"
+            ]
+          }
+        },
+        {
+          "id": "bb2",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb3"
+            ]
+          }
+        },
+        {
+          "id": "bb3",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb4",
+              "bb5"
+            ]
+          }
+        },
+        {
+          "id": "bb4",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb6"
+            ]
+          }
+        },
+        {
+          "id": "bb5",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb6"
+            ]
+          }
+        },
+        {
+          "id": "bb6",
+          "operations": [
+            {
+              "dest": "v17",
+              "op": "move",
+              "src": "v1"
+            },
+            {
+              "mode": "group_tree_join",
+              "op": "join",
+              "src": "v17"
+            }
+          ],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb7",
+              "bb8"
+            ]
+          }
+        },
+        {
+          "id": "bb7",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb9"
+            ]
+          }
+        },
+        {
+          "id": "bb8",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb9"
+            ]
+          }
+        },
+        {
+          "id": "bb9",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb10",
+              "bb11"
+            ]
+          }
+        },
+        {
+          "id": "bb10",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb12"
+            ]
+          }
+        },
+        {
+          "id": "bb11",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb12"
+            ]
+          }
+        },
+        {
+          "id": "bb12",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb13",
+              "bb14"
+            ]
+          }
+        },
+        {
+          "id": "bb13",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb15"
+            ]
+          }
+        },
+        {
+          "id": "bb14",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb15"
+            ]
+          }
+        },
+        {
+          "id": "bb15",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb16",
+              "bb17"
+            ]
+          }
+        },
+        {
+          "id": "bb16",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb18"
+            ]
+          }
+        },
+        {
+          "id": "bb17",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb18"
+            ]
+          }
+        },
+        {
+          "id": "bb18",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb19",
+              "bb20"
+            ]
+          }
+        },
+        {
+          "id": "bb19",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb21"
+            ]
+          }
+        },
+        {
+          "id": "bb20",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb21"
+            ]
+          }
+        },
+        {
+          "id": "bb21",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb22",
+              "bb23"
+            ]
+          }
+        },
+        {
+          "id": "bb22",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb24"
+            ]
+          }
+        },
+        {
+          "id": "bb23",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb24"
+            ]
+          }
+        },
+        {
+          "id": "bb24",
+          "operations": [
+            {
+              "mode": "group_budget_snapshot",
+              "op": "group",
+              "src": "v9"
+            }
+          ],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb25",
+              "bb26"
+            ]
+          }
+        },
+        {
+          "id": "bb25",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb27"
+            ]
+          }
+        },
+        {
+          "id": "bb26",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb27"
+            ]
+          }
+        },
+        {
+          "id": "bb27",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb28",
+              "bb29"
+            ]
+          }
+        },
+        {
+          "id": "bb28",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb30"
+            ]
+          }
+        },
+        {
+          "id": "bb29",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb30"
+            ]
+          }
+        },
+        {
+          "id": "bb30",
+          "operations": [
+            {
+              "dest": "v18",
+              "op": "move",
+              "src": "v9"
+            },
+            {
+              "mode": "group_join",
+              "op": "join",
+              "src": "v18"
+            }
+          ],
+          "terminator": {
+            "op": "return",
+            "owner": null
+          }
+        }
+      ],
+      "entry": "bb0",
+      "name": "main",
+      "params": [],
+      "returns": "Unit",
+      "slots": {
+        "v0": "TaskGroup",
+        "v1": "TaskGroup",
+        "v10": "Buffer<u8>",
+        "v11": "Buffer<u8>",
+        "v12": "Buffer<u8>",
+        "v13": "Buffer<u8>",
+        "v14": "TaskGroup",
+        "v15": "TaskGroup",
+        "v16": "TaskGroup",
+        "v17": "TaskGroup",
+        "v18": "TaskGroup",
+        "v2": "TaskGroup",
+        "v3": "TaskGroup",
+        "v4": "TaskGroup",
+        "v5": "TaskGroup",
+        "v6": "TaskGroup",
+        "v7": "TaskGroup",
+        "v8": "TaskGroup",
+        "v9": "TaskGroup"
+      }
+    }
+  ],
+  "project_sha256": null,
+  "schema": "hepta.concurrent-ir.v1",
+  "source_sha256": "cbdddfe84bd321460082ea1143fd43ef84bd36b59ca503123c6b217d1dba30e5"
+}

@@ -81,8 +81,11 @@ that an arbitrary worker terminates.
 | `task_group(tasks, bytes, slots)` | Creates the local group and its fixed channel storage. Returns `TaskGroup`. |
 | `group_spawn(mut group, producer, move data)` | Attempts admission and launches a real OS thread. Returns `bool`; input is consumed in either case. |
 | `group_send(read output, value)` | Blocks while the ring is full. Returns `false` after group cancellation or failure closes the channel. |
+| `group_send_timeout(read output, value, milliseconds)` | Uses one monotonic deadline while waiting for queue capacity. Returns `Result<bool,u8>` as specified below. |
 | `group_seal(mut group)` | Ends admission. Existing workers continue. Calling it again is harmless. |
 | `group_receive(read group, mut value)` | Requires a sealed group. Blocks for a value, returning `true` after updating the `u64` destination. Returns `false` when the channel is closed and drained, leaving the destination unchanged. |
+| `group_receive_timeout(read group, mut value, milliseconds)` | Requires sealing and uses one monotonic deadline while waiting for a value. Leaves the destination unchanged on closure or timeout. |
+| `group_cancel(mut group)` | Seals admission, requests cooperative cancellation, closes/discards the channel and wakes waiters. The group remains owned and must still be joined. Repeated calls are harmless. |
 | `group_join(move group)` | Requires a drained channel, joins every admitted worker, and returns `GroupReport`. An undrained channel fails a guard rather than blocking its own producers indefinitely. |
 | `group_drain_and_join(move group)` | Seals, explicitly discards remaining messages while draining, joins every admitted worker, and returns `GroupReport`. |
 | `group_cancel_and_join(move group)` | Requests cancellation, closes the channel, discards queued messages, wakes blocked channel operations, joins every admitted worker, and returns `GroupReport`. |
@@ -110,6 +113,38 @@ Use `group_drain_and_join` when output messages are intentionally discarded.
 Use `group_cancel_and_join` when stopping before normal channel completion.
 Neither operation forcibly terminates a worker that ignores cancellation or is
 stuck in unrelated computation.
+
+### Channel deadlines
+
+The duration argument is a `u64` number of milliseconds. Both timed operations
+return `Result<bool,u8>`:
+
+| Outcome | Meaning |
+| --- | --- |
+| `Result::Ok(true)` | Exactly one value was sent or received. |
+| `Result::Ok(false)` | The operation observed a closed channel; a receive also requires that the channel is drained. |
+| `Result::Err(1)` | The operation observed its deadline while the queue predicate still prevented progress. No value was sent and no receive destination was changed. |
+| `Result::Err(2)` | The host monotonic clock could not represent the requested deadline; no queue mutation occurred. |
+
+Zero milliseconds polls readiness under the mutex. Ready or closed state takes
+precedence over deadline expiry when the operation checks the queue. A timeout
+does not cancel the group, consume its join obligation, or discard its queue.
+Call `group_cancel(mut group)` explicitly if the application chooses to stop;
+then consume it with a join operation. This separates a channel timeout from
+the application's cancellation decision.
+
+The deadline is computed once before acquiring the mutex. Spurious condition
+variable wakeups recompute the **remaining** duration and cannot restart the
+full timeout. `GroupReport.send_timeouts` and `.receive_timeouts` count actual
+deadline outcomes, while `waiting_senders` returns to zero when waits finish.
+There is no hard real-time bound: scheduling, mutex acquisition/reacquisition
+and a subsequent join can take longer, and workers must still cooperate. This
+matches the [Rust condition-variable timing contract](https://doc.rust-lang.org/std/sync/struct.Condvar.html#method.wait_timeout).
+
+`examples/groups/timeouts.hepta` exercises zero-duration send/receive polls,
+one real receive wait, unchanged output on failure, idempotent cancellation and
+cleanup of an owned aggregate in a cancelled worker. Native runtime tests also
+inject spurious notifications and cancel a sender waiting on a long deadline.
 
 The effect upper bounds are conservative. Group creation and snapshot operations
 declare `alloc, block, panic`; channel mutation and joins also declare `write`;
@@ -163,6 +198,8 @@ The native validation builds and executes these checked-in sources:
   on a full queue; all four workers finish with zero active tasks or waiters.
 - `examples/groups/worker_failure.hepta`: nonzero application failure closes the
   queue, requests sibling cancellation, and joins all four admitted workers.
+- `examples/groups/timeouts.hepta`: separately observed send/receive timeouts,
+  a successful poll, and explicit cancellation followed by complete joining.
 
 The JSON pins source, compiler, generated Rust, native artifact, and toolchain
 identities, and includes actual exit codes and per-run counters. Timings are

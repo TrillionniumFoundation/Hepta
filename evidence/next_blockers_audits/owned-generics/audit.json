@@ -1,0 +1,290 @@
+{
+  "schema": "hepta.independent-owned-generic-audit.v1",
+  "implementation_commit": "365fcb16515fec41aac6f00aec61fdbfb5f728eb",
+  "implementation_files": {
+    "hepta/checker.py": "eb6eded641c3ee8d7bf38ca2f7cbe69081bb56f88cf08f9042c451771a2bf409",
+    "hepta/resource_ir.py": "3f52538bcf2f036d423cf79b7878731f18cc0cb5511aa23bda9d0ea096be38e5",
+    "hepta/resource_lowering.py": "cdcb9784930317cb886fd642d08b8aa6769a4096a60fe9b1e08553cf6ac83be3",
+    "hepta/backend.py": "e71dbd8bded0e339c6674b6b4d016ffd78f7974cbb9421a9b88089a90f5b2187",
+    "hepta/parser.py": "ffbc7a1a7c5ed1fd98dec9e774bc5289139a632aa4c73b6d0c7de58d9393619a",
+    "hepta/ast.py": "c4605fe4d5feee256960212940580765428402a0b8d569345f6a3666dbe247d8"
+  },
+  "source_sha256": "2bb773e96ef09ab417b1b9acbc5481715af192f456ecb557d7470100ffe5d6e0",
+  "native": {
+    "exit_code": 0,
+    "build": {
+      "ok": true,
+      "status": "rustc_checked",
+      "diagnostics": [],
+      "toolchain": {
+        "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8",
+        "host": "x86_64-unknown-linux-gnu",
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix"
+      },
+      "target": "x86_64-unknown-linux-gnu",
+      "flags": [
+        "edition=2021",
+        "opt-level=3",
+        "overflow-checks=yes",
+        "panic=abort",
+        "codegen-units=1",
+        "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+      ],
+      "crate_type": "bin",
+      "rust_sha256": "f1c161eba809968b0a0b580ea586456c39f32079a112b5b960b8777268262db0",
+      "check_only": false,
+      "rustc_crate_type": "bin",
+      "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+      "linker": null,
+      "link_args": [],
+      "validation_artifact_sha256": "99f264c41c875ca1b8650c3407a54243f50c883a4453b050d5ab9d43898ff297",
+      "artifact": "/tmp/hepta-owned-independent-native-mu7inqc1/run",
+      "artifact_sha256": "99f264c41c875ca1b8650c3407a54243f50c883a4453b050d5ab9d43898ff297",
+      "artifact_bytes": 3859760
+    },
+    "independent_graph_validation": {
+      "schema": "hepta.resource-ir-validation.v1",
+      "ok": true,
+      "status": "resource_cfg_verified",
+      "functions": [
+        {
+          "function": "identity",
+          "reachable_blocks": 1,
+          "total_blocks": 1,
+          "normal_exits": 1
+        },
+        {
+          "function": "swap",
+          "reachable_blocks": 2,
+          "total_blocks": 2,
+          "normal_exits": 1
+        },
+        {
+          "function": "view",
+          "reachable_blocks": 1,
+          "total_blocks": 1,
+          "normal_exits": 1
+        },
+        {
+          "function": "route",
+          "reachable_blocks": 1,
+          "total_blocks": 1,
+          "normal_exits": 1
+        },
+        {
+          "function": "copied",
+          "reachable_blocks": 1,
+          "total_blocks": 1,
+          "normal_exits": 1
+        },
+        {
+          "function": "unused",
+          "reachable_blocks": 1,
+          "total_blocks": 1,
+          "normal_exits": 1
+        },
+        {
+          "function": "wrapper",
+          "reachable_blocks": 1,
+          "total_blocks": 1,
+          "normal_exits": 1
+        },
+        {
+          "function": "main",
+          "reachable_blocks": 3,
+          "total_blocks": 3,
+          "normal_exits": 1
+        }
+      ],
+      "operations_checked": 45,
+      "generic_functions_checked": 7,
+      "generic_calls_checked": 6,
+      "owned_types": [
+        "@identity::T",
+        "@route::U",
+        "@swap::A",
+        "@swap::B",
+        "@unused::T",
+        "@view::T",
+        "@wrapper::U",
+        "Box<@wrapper::U>",
+        "Box<Buffer<u8>>",
+        "Buffer<u8>",
+        "Pair<@swap::A, @swap::B>",
+        "Pair<@swap::B, @swap::A>",
+        "Pair<Box<Buffer<u8>>, Buffer<u8>>",
+        "Pair<Buffer<u8>, Box<Buffer<u8>>>",
+        "Result<Box<@wrapper::U>, u8>",
+        "Result<Box<Buffer<u8>>, u8>"
+      ],
+      "external_obligations": {},
+      "diagnostics": [],
+      "claims": {
+        "source_to_ir_refinement_proved": false,
+        "native_codegen_uses_this_ir": false,
+        "whole_language_soundness_proved": false,
+        "external_contracts_proved": false,
+        "termination_proved": false,
+        "scalar_value_semantics_verified": false
+      },
+      "ir_sha256": "7c894c92ca509421704417ae69d015a73c1b77d1d1c2144c7ee83f5ade185281"
+    }
+  },
+  "graph_mutations": [
+    {
+      "case": "universal_owned_body_missing_drop",
+      "rejected": true,
+      "diagnostic": {
+        "code": "E_RIR_LEAK",
+        "message": "Normal/early return leaves owned values live: v0",
+        "function": "unused",
+        "block": "b0"
+      }
+    },
+    {
+      "case": "bound_downgrade_with_take",
+      "rejected": true,
+      "diagnostic": {
+        "code": "E_RIR_OWNERSHIP",
+        "message": "take must transfer an owned type",
+        "function": "",
+        "block": ""
+      }
+    },
+    {
+      "case": "caller_type_argument_callee_scope_escape",
+      "rejected": true,
+      "diagnostic": {
+        "code": "E_RIR_GENERIC",
+        "message": "A type parameter escaped its declaring function",
+        "function": "wrapper",
+        "block": "b0"
+      }
+    },
+    {
+      "case": "owned_call_receives_copy_scalar",
+      "rejected": true,
+      "diagnostic": {
+        "code": "E_RIR_GENERIC",
+        "message": "Type argument violates its sized Copy/Owned constraint",
+        "function": "wrapper",
+        "block": "b0"
+      }
+    },
+    {
+      "case": "generic_call_arity_erasure",
+      "rejected": true,
+      "diagnostic": {
+        "code": "E_RIR_GENERIC",
+        "message": "Call must supply exactly the declared type arguments",
+        "function": "wrapper",
+        "block": "b0"
+      }
+    },
+    {
+      "case": "foreign_generic_parameter_in_local",
+      "rejected": true,
+      "diagnostic": {
+        "code": "E_RIR_GENERIC",
+        "message": "A type parameter escaped its declaring function",
+        "function": "copied",
+        "block": "b0"
+      }
+    },
+    {
+      "case": "concrete_box_replaces_owned_payload",
+      "rejected": true,
+      "diagnostic": {
+        "code": "E_RIR_TYPE",
+        "message": "Pack field type differs",
+        "function": "main",
+        "block": "b0"
+      }
+    },
+    {
+      "case": "instantiated_enum_payload_permutation",
+      "rejected": true,
+      "diagnostic": {
+        "code": "E_RIR_GENERIC",
+        "message": "Instantiated aggregate layout differs from the declared generic shape",
+        "function": "main",
+        "block": "b0"
+      }
+    },
+    {
+      "case": "unbound_parameter_table_entry",
+      "rejected": true,
+      "diagnostic": {
+        "code": "E_RIR_GENERIC",
+        "message": "Unbound type parameter declaration",
+        "function": "",
+        "block": ""
+      }
+    },
+    {
+      "case": "false_source_refinement_claim",
+      "rejected": true,
+      "diagnostic": {
+        "code": "E_RIR_CLAIM",
+        "message": "Resource IR cannot claim source refinement, native use or foreign soundness",
+        "function": "",
+        "block": ""
+      }
+    },
+    {
+      "case": "foreign_return_parameter_scope",
+      "rejected": true,
+      "diagnostic": {
+        "code": "E_RIR_GENERIC",
+        "message": "A type parameter escaped its declaring function",
+        "function": "",
+        "block": ""
+      }
+    }
+  ],
+  "frontend_negatives": [
+    {
+      "case": "duplicate_parameter_constraint",
+      "diagnostics": [
+        "E_GENERIC_PARAMETER"
+      ]
+    },
+    {
+      "case": "scoped_owned_as_copy_call",
+      "diagnostics": [
+        "E_GENERIC_COPY",
+        "E_LINEAR_USE"
+      ]
+    },
+    {
+      "case": "copy_as_owned_call",
+      "diagnostics": [
+        "E_GENERIC_OWNED"
+      ]
+    },
+    {
+      "case": "borrowed_abstract_owner_consumed",
+      "diagnostics": [
+        "E_MOVE_BORROW"
+      ]
+    },
+    {
+      "case": "owned_hidden_in_raw_generic",
+      "diagnostics": [
+        "E_NESTED_LINEAR"
+      ]
+    },
+    {
+      "case": "generic_body_leak_without_call",
+      "diagnostics": [
+        "E_LINEAR_UNCONSUMED"
+      ]
+    }
+  ],
+  "whole_language_soundness_proved": false,
+  "ok": true,
+  "source_unchanged": true
+}

@@ -1,0 +1,284 @@
+{
+  "claims": {
+    "cancellation_termination_proved": false,
+    "deadlock_freedom_proved": false,
+    "normal_exit_join_obligations_verified": true,
+    "runtime_budget_bounds_proved": false,
+    "runtime_data_race_freedom_proved": false,
+    "source_to_ir_refinement_proved": false,
+    "whole_language_soundness_proved": false,
+    "worker_input_transfer_verified": true
+  },
+  "functions": [
+    {
+      "blocks": [
+        {
+          "id": "bb0",
+          "operations": [
+            {
+              "op": "borrow",
+              "src": "v0"
+            }
+          ],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb1"
+            ]
+          }
+        },
+        {
+          "id": "bb1",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb2",
+              "bb3"
+            ]
+          }
+        },
+        {
+          "id": "bb2",
+          "operations": [
+            {
+              "mode": "group_send",
+              "op": "sender",
+              "src": "v2"
+            }
+          ],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb1"
+            ]
+          }
+        },
+        {
+          "id": "bb3",
+          "operations": [
+            {
+              "dest": "v3",
+              "op": "move",
+              "src": "v0"
+            },
+            {
+              "op": "drop_buffer",
+              "src": "v3"
+            }
+          ],
+          "terminator": {
+            "op": "return",
+            "owner": null
+          }
+        }
+      ],
+      "entry": "bb0",
+      "name": "producer",
+      "params": [
+        {
+          "id": "v0",
+          "mode": "take",
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v1",
+          "mode": "read",
+          "type": "Cancellation"
+        },
+        {
+          "id": "v2",
+          "mode": "read",
+          "type": "Sender<u64>"
+        }
+      ],
+      "returns": "u64",
+      "slots": {
+        "v0": "Buffer<u8>",
+        "v3": "Buffer<u8>"
+      }
+    },
+    {
+      "blocks": [
+        {
+          "id": "bb0",
+          "operations": [
+            {
+              "dest": "v0",
+              "op": "create",
+              "type": "TaskGroup"
+            },
+            {
+              "dest": "v1",
+              "op": "move",
+              "src": "v0"
+            },
+            {
+              "dest": "v2",
+              "op": "create",
+              "type": "Buffer<u8>"
+            },
+            {
+              "group": "v1",
+              "input": "v2",
+              "op": "spawn",
+              "task": null,
+              "worker": "producer"
+            },
+            {
+              "dest": "v3",
+              "op": "create",
+              "type": "Buffer<u8>"
+            },
+            {
+              "group": "v1",
+              "input": "v3",
+              "op": "spawn",
+              "task": null,
+              "worker": "producer"
+            },
+            {
+              "dest": "v4",
+              "op": "create",
+              "type": "Buffer<u8>"
+            },
+            {
+              "group": "v1",
+              "input": "v4",
+              "op": "spawn",
+              "task": null,
+              "worker": "producer"
+            },
+            {
+              "dest": "v5",
+              "op": "move",
+              "src": "v1"
+            },
+            {
+              "mode": "group_drain_and_join",
+              "op": "join",
+              "src": "v5"
+            },
+            {
+              "dest": "v6",
+              "op": "create",
+              "type": "TaskGroup"
+            },
+            {
+              "dest": "v7",
+              "op": "move",
+              "src": "v6"
+            },
+            {
+              "dest": "v8",
+              "op": "create",
+              "type": "Buffer<u8>"
+            },
+            {
+              "group": "v7",
+              "input": "v8",
+              "op": "spawn",
+              "task": null,
+              "worker": "producer"
+            },
+            {
+              "dest": "v9",
+              "op": "create",
+              "type": "Buffer<u8>"
+            },
+            {
+              "group": "v7",
+              "input": "v9",
+              "op": "spawn",
+              "task": null,
+              "worker": "producer"
+            },
+            {
+              "dest": "v10",
+              "op": "create",
+              "type": "Buffer<u8>"
+            },
+            {
+              "group": "v7",
+              "input": "v10",
+              "op": "spawn",
+              "task": null,
+              "worker": "producer"
+            },
+            {
+              "dest": "v11",
+              "op": "move",
+              "src": "v7"
+            },
+            {
+              "mode": "group_drain_and_join",
+              "op": "join",
+              "src": "v11"
+            },
+            {
+              "dest": "v12",
+              "op": "create",
+              "type": "TaskGroup"
+            },
+            {
+              "dest": "v13",
+              "op": "move",
+              "src": "v12"
+            },
+            {
+              "dest": "v14",
+              "op": "create",
+              "type": "Buffer<u8>"
+            },
+            {
+              "group": "v13",
+              "input": "v14",
+              "op": "spawn",
+              "task": null,
+              "worker": "producer"
+            },
+            {
+              "dest": "v15",
+              "op": "move",
+              "src": "v13"
+            },
+            {
+              "mode": "group_drain_and_join",
+              "op": "join",
+              "src": "v15"
+            }
+          ],
+          "terminator": {
+            "op": "return",
+            "owner": null
+          }
+        }
+      ],
+      "entry": "bb0",
+      "name": "main",
+      "params": [],
+      "returns": "Unit",
+      "slots": {
+        "v0": "TaskGroup",
+        "v1": "TaskGroup",
+        "v10": "Buffer<u8>",
+        "v11": "TaskGroup",
+        "v12": "TaskGroup",
+        "v13": "TaskGroup",
+        "v14": "Buffer<u8>",
+        "v15": "TaskGroup",
+        "v2": "Buffer<u8>",
+        "v3": "Buffer<u8>",
+        "v4": "Buffer<u8>",
+        "v5": "TaskGroup",
+        "v6": "TaskGroup",
+        "v7": "TaskGroup",
+        "v8": "Buffer<u8>",
+        "v9": "Buffer<u8>"
+      }
+    }
+  ],
+  "project_sha256": null,
+  "schema": "hepta.concurrent-ir.v1",
+  "source_sha256": "2d13649569812185dff136e54b456b6fb2edd72353ccdce295bfc4add5add53a"
+}

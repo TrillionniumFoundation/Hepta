@@ -1,0 +1,5926 @@
+{
+  "schema": "hepta.representative-benchmarks.v1",
+  "created_utc": "2026-10-24T17:19:22.506319+00:00",
+  "host": "Linux-6.18.55-x86_64-with-glibc2.39",
+  "compiler_sources": {
+    "hepta/__init__.py": "8448813083e33f38f96474d5c3b3b690284fcf9c1ca939c33683618b419031b2",
+    "hepta/__main__.py": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d",
+    "hepta/ast.py": "8ef5a231318ee53de55f8b0fef65a1df8691d36566156008d0a095dc5f09132a",
+    "hepta/backend.py": "23443dcf55f049db216c33d6bdc825d224ae85f09588970f8a0ee588d2b21589",
+    "hepta/c_aliases.py": "bc6c0533fff674f20d64619c50afb81a07375c37f158bf17ea7034026e25baf9",
+    "hepta/c_allocation.py": "e11ad48fa7e2af3fd9d0ec3932f002277bbdf44c0d164593432c5965bfd686d0",
+    "hepta/c_backend.py": "120a165af3927047e9fb108f687290f1904864578dd741253da44a422fb86c0e",
+    "hepta/c_import.py": "57362c9f54bde1b0ad693fa0d62a428c3861b2f2dca2e9c0f41a5ee888749ac9",
+    "hepta/c_migrate.py": "70783d7da852acbd220c0ab3a7c1749d56fe8fab4b54807c49050ca291b1735b",
+    "hepta/c_migration_project.py": "510221cc02685386ca43886b7a78e4c485e01a68f987ff7103b324531b30812d",
+    "hepta/c_project.py": "b7987a83784160bf22eb0ffc0513337aa7c139c8b163106a7d4ed4b41c097a49",
+    "hepta/c_translation.py": "bd72e9414cf1c372b603a36e82877aa2408166e72bdf5e17391d48faae1f3bcd",
+    "hepta/checker.py": "524ddd6abebc86471fab67166eb5533e44784f3cb0c01e1243e2de86ab87cc56",
+    "hepta/cli.py": "036bf88eea4c5d4310f11b5a622d543e51d6519ef2b587f471f3e20b96a88268",
+    "hepta/cpp_bridge.py": "d6e60271306a37b74a231e9130660c5d2843b8f7b3cbcba26487fbb09b016dda",
+    "hepta/cpp_contracts.py": "b06cc6d8d9bac1c93db39cc4f17f68e35dc98677b02369b93c6ac77b72e8951a",
+    "hepta/flow_ir.py": "e80f17f8ebb831426d45171088131b0603ccf508bf575c9c26454ed2d9eced12",
+    "hepta/hmir.py": "68d7905b9215e5842010695a8386835ef618e43118a4037ef9aac48c5018a6a5",
+    "hepta/lexer.py": "06546e68725a3311c00b21d960ef6a63585d876fd6517e171669f13d0a143626",
+    "hepta/migration_ir.py": "af7011a20f17de92b108ce1e200dc8b50a9ba9aabde528afe4bff8fca6c30f5e",
+    "hepta/modules.py": "ecfcd55f095e3a7946cafda0ce7d4649920393cb87ad6718d875120e64c68137",
+    "hepta/packages.py": "f8a6f1beedcec4c11dbd544c2c60521f8aab40aac4a05a558d5c6a05dc14bb5f",
+    "hepta/parser.py": "edc8136d845dd1e315acfb08327ee191b5e84b4b40ce8f604784f2803801bfec",
+    "hepta/pipeline.py": "6e881361b6f92009151ebcb44545b4c17db5b2b1b1a1562e98dfbe43ecb11268",
+    "hepta/protocol.py": "7c4e9c6b71391f34662bd161864cdac63b90574f65dd77e9489a3820299c6972",
+    "hepta/protocol_v3.py": "ffcae884ccb4a0d32b1736bc272a92678ad8b37b7bc7c677107b84c693cbd903",
+    "hepta/resource_ir.py": "f67f02827ef7ff07379b0ebb0a14bd32949437580f3083ebb6812d44895264a9",
+    "hepta/resource_lowering.py": "717b9d8fc752912f0b42f31a9909f36c36aef9b9e2001680b3d4853a5c534bce",
+    "hepta/runtime_concurrency.py": "1ab566bc21b050a1f5cb66c16de95e6e8f7b06e617c00f529f3c68ea73b01ae0",
+    "hepta/semantic_ir.py": "3cc8160527a172b617a82d679c8d7fb5b3a288445408f6c2c3ccc4ae42fdf689",
+    "hepta/source_map.py": "7a602a7728da1729c0a625eac04acbb0cd47ccf17788c5a31f20f292e3b736f8",
+    "hepta/workspace.py": "eb04e1087b297e70e73fe1eb0b747f0b36a088ddd3728ac4efb2ab7a83ec5279"
+  },
+  "status": "passed",
+  "contract": {
+    "allocation": "All driver allocation is outside timed regions; kernels allocate nothing",
+    "pointer_safety": "All implementations use the same raw-pointer caller obligations",
+    "rust_comparison": "Independent handwritten Rust, same rustc/flags/target; no LTO",
+    "c_comparison": "Hepta C11 backend uses GCC, a different optimizer; not an LLVM-independent claim"
+  },
+  "rustc": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8\n",
+  "gcc": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "builds": {
+    "hepta_rust": {
+      "build": {
+        "artifact": "/tmp/hepta-representative-56dyhioh/hepta_rust.o",
+        "artifact_bytes": 2520,
+        "artifact_sha256": "681950da3d9eccb5c14abcf8756a81c15ecc08d442b22fe27b242d3ef83013d1",
+        "check_only": false,
+        "crate_type": "obj",
+        "diagnostics": [],
+        "flags": [
+          "edition=2021",
+          "opt-level=3",
+          "overflow-checks=yes",
+          "panic=abort",
+          "codegen-units=1",
+          "sysroot=/workspace/scratch/69b06e838148/toolchains/rust-1.90.0"
+        ],
+        "link_args": [],
+        "linker": null,
+        "ok": true,
+        "rust_sha256": "90f96dff6e7b433b8a3b391db603470514da26b5757453f98af4a632b41ad05c",
+        "rustc_crate_type": "lib",
+        "status": "rustc_checked",
+        "sysroot": "/workspace/scratch/69b06e838148/toolchains/rust-1.90.0",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+          "host": "x86_64-unknown-linux-gnu",
+          "path": "/workspace/scratch/69b06e838148/toolchains/rust-1.90.0/bin/rustc",
+          "sysroot": "/workspace/scratch/69b06e838148/toolchains/rust-1.90.0",
+          "sysroot_discovery": "verified_compiler_prefix",
+          "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+        },
+        "validation_artifact_sha256": "681950da3d9eccb5c14abcf8756a81c15ecc08d442b22fe27b242d3ef83013d1"
+      },
+      "ok": true,
+      "schema": "hepta.build.v1",
+      "validation": {
+        "assumptions": [
+          {
+            "function": "hepta_fnv1a",
+            "kind": "unsafe_obligation",
+            "line": 14,
+            "operation": "load",
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+            "status": "not_proved_by_frontend"
+          },
+          {
+            "function": "hepta_histogram",
+            "kind": "unsafe_obligation",
+            "line": 28,
+            "operation": "store",
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+            "status": "not_proved_by_frontend"
+          },
+          {
+            "function": "hepta_histogram",
+            "kind": "unsafe_obligation",
+            "line": 33,
+            "operation": "load",
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+            "status": "not_proved_by_frontend"
+          },
+          {
+            "function": "hepta_histogram",
+            "kind": "unsafe_obligation",
+            "line": 34,
+            "operation": "store",
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+            "status": "not_proved_by_frontend"
+          },
+          {
+            "function": "hepta_histogram",
+            "kind": "unsafe_obligation",
+            "line": 34,
+            "operation": "load",
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+            "status": "not_proved_by_frontend"
+          },
+          {
+            "function": "hepta_histogram",
+            "kind": "unsafe_obligation",
+            "line": 40,
+            "operation": "load",
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+            "status": "not_proved_by_frontend"
+          },
+          {
+            "function": "hepta_dot",
+            "kind": "unsafe_obligation",
+            "line": 55,
+            "operation": "load",
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+            "status": "not_proved_by_frontend"
+          },
+          {
+            "function": "hepta_dot",
+            "kind": "unsafe_obligation",
+            "line": 55,
+            "operation": "load",
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+            "status": "not_proved_by_frontend"
+          },
+          {
+            "function": "hepta_binary_search",
+            "kind": "unsafe_obligation",
+            "line": 70,
+            "operation": "load",
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+            "status": "not_proved_by_frontend"
+          },
+          {
+            "function": "hepta_binary_search",
+            "kind": "unsafe_obligation",
+            "line": 75,
+            "operation": "load",
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+            "status": "not_proved_by_frontend"
+          }
+        ],
+        "backend": {
+          "check_only": true,
+          "crate_type": "obj",
+          "diagnostics": [],
+          "flags": [
+            "edition=2021",
+            "opt-level=3",
+            "overflow-checks=yes",
+            "panic=abort",
+            "codegen-units=1",
+            "sysroot=/workspace/scratch/69b06e838148/toolchains/rust-1.90.0"
+          ],
+          "link_args": [],
+          "linker": null,
+          "ok": true,
+          "rust_sha256": "90f96dff6e7b433b8a3b391db603470514da26b5757453f98af4a632b41ad05c",
+          "rustc_crate_type": "lib",
+          "status": "rustc_checked",
+          "sysroot": "/workspace/scratch/69b06e838148/toolchains/rust-1.90.0",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+            "host": "x86_64-unknown-linux-gnu",
+            "path": "/workspace/scratch/69b06e838148/toolchains/rust-1.90.0/bin/rustc",
+            "sysroot": "/workspace/scratch/69b06e838148/toolchains/rust-1.90.0",
+            "sysroot_discovery": "verified_compiler_prefix",
+            "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+          },
+          "validation_artifact_sha256": "1a274d2686e238174c6926979e410be5783fad785433fe35c8f48307e293fcea"
+        },
+        "checks": {
+          "rust_borrows_types": "rustc_checked",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "62f57f9abc961d66932d7b8a6d55f28c5bee86e3dbdddc8437ec1e362f26dfd7",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "hepta_binary_search": [
+            "panic",
+            "unsafe"
+          ],
+          "hepta_dot": [
+            "unsafe"
+          ],
+          "hepta_fnv1a": [
+            "unsafe"
+          ],
+          "hepta_histogram": [
+            "unsafe",
+            "write"
+          ]
+        },
+        "interface_sha256": "12223d82cb5e96a50747f614c0c3098d5396c79ce06963964f7929c53e8d65d4",
+        "ok": true,
+        "path": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+        "profile": {
+          "crate_type": "obj",
+          "no_std": true,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "project": {
+          "c_imports": [],
+          "entry": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+          "locked": false,
+          "modules": [
+            {
+              "imports": {},
+              "module": "representative",
+              "path": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+              "symbols": {
+                "hepta_binary_search": "hepta_binary_search",
+                "hepta_dot": "hepta_dot",
+                "hepta_fnv1a": "hepta_fnv1a",
+                "hepta_histogram": "hepta_histogram"
+              }
+            }
+          ],
+          "package": null,
+          "path_bindings": {
+            "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta": "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta"
+          },
+          "schema": "hepta.module-graph.v1",
+          "sha256": "15f0ff56c98188f39bba4c8ec28496c87d2e863373ba1bb07987e7f87d3336c8",
+          "sources": {
+            "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta": "87fc435abdcaca6cf742dc1c79347ae15c4897ae8d5ef3e2cee3afb327954fb5"
+          }
+        },
+        "resource_contracts": [],
+        "rust_sha256": "90f96dff6e7b433b8a3b391db603470514da26b5757453f98af4a632b41ad05c",
+        "schema": "hepta.check.v1",
+        "source_sha256": "87fc435abdcaca6cf742dc1c79347ae15c4897ae8d5ef3e2cee3afb327954fb5",
+        "status": "checked_with_external_assumptions"
+      }
+    },
+    "hepta_c": {
+      "ok": true,
+      "status": "gcc_checked",
+      "diagnostics": [],
+      "backend": "c11-gcc",
+      "rustc_used": false,
+      "target": "x86_64-linux-gnu",
+      "toolchain": {
+        "path": "/usr/bin/gcc",
+        "version": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+        "executable_sha256": "6117c52522997d2aaccb2b52b3c6bf42c0a6c5edb1d718431fed6b2fc5fec234"
+      },
+      "source_sha256": "f10509e6f2bd67fcefc41fe90145c5724f8d3df1d65adb2f363f49e94dfa8e45",
+      "flags": [
+        "-std=c11",
+        "-O3",
+        "-fexcess-precision=standard",
+        "-ffp-contract=off",
+        "-fno-strict-aliasing",
+        "-Wall",
+        "-Wextra",
+        "-Werror=implicit-function-declaration",
+        "-Werror=incompatible-pointer-types"
+      ],
+      "check_only": false,
+      "crate_type": "obj",
+      "link_args": [],
+      "validation_artifact_sha256": "87419f1ef52fc84e24363662c27458e2c985195ffc5edb622c649052ac72b9c8",
+      "artifact": "/tmp/hepta-representative-56dyhioh/hepta_c.o",
+      "artifact_bytes": 1840,
+      "artifact_sha256": "87419f1ef52fc84e24363662c27458e2c985195ffc5edb622c649052ac72b9c8"
+    },
+    "independent_rust_flags": [
+      "--edition=2021",
+      "-C",
+      "opt-level=3",
+      "-C",
+      "overflow-checks=yes",
+      "-C",
+      "panic=abort",
+      "-C",
+      "codegen-units=1"
+    ],
+    "undefined_symbols": {
+      "hepta_rust": [
+        "                 U memset"
+      ],
+      "rust": [
+        "                 U memset"
+      ],
+      "hepta_c": []
+    }
+  },
+  "correctness": {
+    "status": "passed",
+    "kernels": [
+      "fnv1a",
+      "histogram",
+      "dot",
+      "binary_search"
+    ],
+    "counts": [
+      1,
+      3,
+      31,
+      255,
+      257,
+      4099
+    ],
+    "zero_length_also_checked": true,
+    "implementations": [
+      "hepta_rust",
+      "rust",
+      "hepta_c"
+    ],
+    "search_oracle": "sorted-query linear merge over a table with duplicates and gaps"
+  },
+  "function_bytes": {
+    "status": "completed",
+    "functions": {
+      "fnv1a": {
+        "implementations": {
+          "hepta_rust": {
+            "bytes": 167,
+            "sha256": "59fb71a4d79c3f5bc632cad69c87daa8b2d6c85313afdb78df72597909eea0a6"
+          },
+          "rust": {
+            "bytes": 167,
+            "sha256": "59fb71a4d79c3f5bc632cad69c87daa8b2d6c85313afdb78df72597909eea0a6"
+          }
+        },
+        "identical_function_bytes": true
+      },
+      "histogram": {
+        "implementations": {
+          "hepta_rust": {
+            "bytes": 364,
+            "sha256": "067dff56c90a9cd5d365ceb74985521c9ec06eae81e5636b2b10cb8555fd2b0c"
+          },
+          "rust": {
+            "bytes": 364,
+            "sha256": "067dff56c90a9cd5d365ceb74985521c9ec06eae81e5636b2b10cb8555fd2b0c"
+          }
+        },
+        "identical_function_bytes": true
+      },
+      "dot": {
+        "implementations": {
+          "hepta_rust": {
+            "bytes": 214,
+            "sha256": "90e7612c48a4b1f530d85f3ab516350a0cfb06c046399371fbefa2957885d955"
+          },
+          "rust": {
+            "bytes": 214,
+            "sha256": "90e7612c48a4b1f530d85f3ab516350a0cfb06c046399371fbefa2957885d955"
+          }
+        },
+        "identical_function_bytes": true
+      },
+      "binary_search": {
+        "implementations": {
+          "hepta_rust": {
+            "bytes": 108,
+            "sha256": "61576c34fc217376effb5c4a73966cb07e0081eeb2c2ae001be8ccd2c4d0f77d"
+          },
+          "rust": {
+            "bytes": 108,
+            "sha256": "61576c34fc217376effb5c4a73966cb07e0081eeb2c2ae001be8ccd2c4d0f77d"
+          }
+        },
+        "identical_function_bytes": true
+      }
+    },
+    "scope": "Function text sections only, not complete object or relocation equivalence"
+  },
+  "measurements": {
+    "status": "completed",
+    "trials": 7,
+    "seed": 20261024,
+    "cpu_affinity": 0,
+    "samples": [
+      {
+        "kernel": "fnv1a",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 75352875,
+        "ns_per_operation": 1.122845337,
+        "reference_checksum": 14469518253046212360,
+        "implementation": "rust",
+        "trial": 0
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 75095582,
+        "ns_per_operation": 1.119011372,
+        "reference_checksum": 14469518253046212360,
+        "implementation": "hepta_rust",
+        "trial": 0
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 76622819,
+        "ns_per_operation": 1.141768977,
+        "reference_checksum": 14469518253046212360,
+        "implementation": "hepta_c",
+        "trial": 0
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 74860825,
+        "ns_per_operation": 1.11551322,
+        "reference_checksum": 14469518253046212360,
+        "implementation": "rust",
+        "trial": 1
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 76225163,
+        "ns_per_operation": 1.135843441,
+        "reference_checksum": 14469518253046212360,
+        "implementation": "hepta_rust",
+        "trial": 1
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 79351784,
+        "ns_per_operation": 1.182433724,
+        "reference_checksum": 14469518253046212360,
+        "implementation": "hepta_c",
+        "trial": 1
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 76077488,
+        "ns_per_operation": 1.133642912,
+        "reference_checksum": 14469518253046212360,
+        "implementation": "hepta_c",
+        "trial": 2
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 76371696,
+        "ns_per_operation": 1.138026953,
+        "reference_checksum": 14469518253046212360,
+        "implementation": "hepta_rust",
+        "trial": 2
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 79352776,
+        "ns_per_operation": 1.182448506,
+        "reference_checksum": 14469518253046212360,
+        "implementation": "rust",
+        "trial": 2
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 76241438,
+        "ns_per_operation": 1.136085957,
+        "reference_checksum": 14469518253046212360,
+        "implementation": "rust",
+        "trial": 3
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 79821559,
+        "ns_per_operation": 1.189433917,
+        "reference_checksum": 14469518253046212360,
+        "implementation": "hepta_c",
+        "trial": 3
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 85952371,
+        "ns_per_operation": 1.280790135,
+        "reference_checksum": 14469518253046212360,
+        "implementation": "hepta_rust",
+        "trial": 3
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 77110135,
+        "ns_per_operation": 1.149030551,
+        "reference_checksum": 14469518253046212360,
+        "implementation": "rust",
+        "trial": 4
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 79982525,
+        "ns_per_operation": 1.191832498,
+        "reference_checksum": 14469518253046212360,
+        "implementation": "hepta_rust",
+        "trial": 4
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 79814560,
+        "ns_per_operation": 1.189329624,
+        "reference_checksum": 14469518253046212360,
+        "implementation": "hepta_c",
+        "trial": 4
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 80418395,
+        "ns_per_operation": 1.198327467,
+        "reference_checksum": 14469518253046212360,
+        "implementation": "hepta_rust",
+        "trial": 5
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 77134657,
+        "ns_per_operation": 1.149395958,
+        "reference_checksum": 14469518253046212360,
+        "implementation": "hepta_c",
+        "trial": 5
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 78390050,
+        "ns_per_operation": 1.168102771,
+        "reference_checksum": 14469518253046212360,
+        "implementation": "rust",
+        "trial": 5
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 77397118,
+        "ns_per_operation": 1.153306931,
+        "reference_checksum": 14469518253046212360,
+        "implementation": "hepta_c",
+        "trial": 6
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 79635392,
+        "ns_per_operation": 1.186659813,
+        "reference_checksum": 14469518253046212360,
+        "implementation": "hepta_rust",
+        "trial": 6
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 76928875,
+        "ns_per_operation": 1.146329567,
+        "reference_checksum": 14469518253046212360,
+        "implementation": "rust",
+        "trial": 6
+      },
+      {
+        "kernel": "histogram",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 24909064,
+        "ns_per_operation": 0.371173978,
+        "reference_checksum": 523163,
+        "implementation": "hepta_c",
+        "trial": 0
+      },
+      {
+        "kernel": "histogram",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 25590462,
+        "ns_per_operation": 0.381327599,
+        "reference_checksum": 523163,
+        "implementation": "rust",
+        "trial": 0
+      },
+      {
+        "kernel": "histogram",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 21733008,
+        "ns_per_operation": 0.323847055,
+        "reference_checksum": 523163,
+        "implementation": "hepta_rust",
+        "trial": 0
+      },
+      {
+        "kernel": "histogram",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 21284305,
+        "ns_per_operation": 0.31716086,
+        "reference_checksum": 523163,
+        "implementation": "hepta_rust",
+        "trial": 1
+      },
+      {
+        "kernel": "histogram",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 23299243,
+        "ns_per_operation": 0.347185776,
+        "reference_checksum": 523163,
+        "implementation": "hepta_c",
+        "trial": 1
+      },
+      {
+        "kernel": "histogram",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 21757494,
+        "ns_per_operation": 0.324211925,
+        "reference_checksum": 523163,
+        "implementation": "rust",
+        "trial": 1
+      },
+      {
+        "kernel": "histogram",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 22332671,
+        "ns_per_operation": 0.33278273,
+        "reference_checksum": 523163,
+        "implementation": "hepta_rust",
+        "trial": 2
+      },
+      {
+        "kernel": "histogram",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 21199535,
+        "ns_per_operation": 0.315897688,
+        "reference_checksum": 523163,
+        "implementation": "rust",
+        "trial": 2
+      },
+      {
+        "kernel": "histogram",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 23559409,
+        "ns_per_operation": 0.351062551,
+        "reference_checksum": 523163,
+        "implementation": "hepta_c",
+        "trial": 2
+      },
+      {
+        "kernel": "histogram",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 43225368,
+        "ns_per_operation": 0.644108176,
+        "reference_checksum": 523163,
+        "implementation": "hepta_rust",
+        "trial": 3
+      },
+      {
+        "kernel": "histogram",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 23452526,
+        "ns_per_operation": 0.34946987,
+        "reference_checksum": 523163,
+        "implementation": "hepta_c",
+        "trial": 3
+      },
+      {
+        "kernel": "histogram",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 21832189,
+        "ns_per_operation": 0.325324968,
+        "reference_checksum": 523163,
+        "implementation": "rust",
+        "trial": 3
+      },
+      {
+        "kernel": "histogram",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 21970768,
+        "ns_per_operation": 0.327389956,
+        "reference_checksum": 523163,
+        "implementation": "hepta_rust",
+        "trial": 4
+      },
+      {
+        "kernel": "histogram",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 25036448,
+        "ns_per_operation": 0.373072147,
+        "reference_checksum": 523163,
+        "implementation": "hepta_c",
+        "trial": 4
+      },
+      {
+        "kernel": "histogram",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 21171462,
+        "ns_per_operation": 0.315479368,
+        "reference_checksum": 523163,
+        "implementation": "rust",
+        "trial": 4
+      },
+      {
+        "kernel": "histogram",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 29206799,
+        "ns_per_operation": 0.43521522,
+        "reference_checksum": 523163,
+        "implementation": "rust",
+        "trial": 5
+      },
+      {
+        "kernel": "histogram",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 23777591,
+        "ns_per_operation": 0.354313716,
+        "reference_checksum": 523163,
+        "implementation": "hepta_c",
+        "trial": 5
+      },
+      {
+        "kernel": "histogram",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 23343711,
+        "ns_per_operation": 0.3478484,
+        "reference_checksum": 523163,
+        "implementation": "hepta_rust",
+        "trial": 5
+      },
+      {
+        "kernel": "histogram",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 23245290,
+        "ns_per_operation": 0.346381813,
+        "reference_checksum": 523163,
+        "implementation": "hepta_c",
+        "trial": 6
+      },
+      {
+        "kernel": "histogram",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 22373001,
+        "ns_per_operation": 0.333383694,
+        "reference_checksum": 523163,
+        "implementation": "hepta_rust",
+        "trial": 6
+      },
+      {
+        "kernel": "histogram",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 22513145,
+        "ns_per_operation": 0.335472003,
+        "reference_checksum": 523163,
+        "implementation": "rust",
+        "trial": 6
+      },
+      {
+        "kernel": "dot",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 39990316,
+        "ns_per_operation": 0.595902145,
+        "reference_checksum": 13936606746779608536,
+        "implementation": "hepta_c",
+        "trial": 0
+      },
+      {
+        "kernel": "dot",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 31504728,
+        "ns_per_operation": 0.46945703,
+        "reference_checksum": 13936606746779608536,
+        "implementation": "rust",
+        "trial": 0
+      },
+      {
+        "kernel": "dot",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 31469135,
+        "ns_per_operation": 0.468926653,
+        "reference_checksum": 13936606746779608536,
+        "implementation": "hepta_rust",
+        "trial": 0
+      },
+      {
+        "kernel": "dot",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 30821167,
+        "ns_per_operation": 0.459271178,
+        "reference_checksum": 13936606746779608536,
+        "implementation": "rust",
+        "trial": 1
+      },
+      {
+        "kernel": "dot",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 45359498,
+        "ns_per_operation": 0.675909191,
+        "reference_checksum": 13936606746779608536,
+        "implementation": "hepta_rust",
+        "trial": 1
+      },
+      {
+        "kernel": "dot",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 64650495,
+        "ns_per_operation": 0.963367447,
+        "reference_checksum": 13936606746779608536,
+        "implementation": "hepta_c",
+        "trial": 1
+      },
+      {
+        "kernel": "dot",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 47980169,
+        "ns_per_operation": 0.714960232,
+        "reference_checksum": 13936606746779608536,
+        "implementation": "hepta_c",
+        "trial": 2
+      },
+      {
+        "kernel": "dot",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 28041054,
+        "ns_per_operation": 0.417844266,
+        "reference_checksum": 13936606746779608536,
+        "implementation": "rust",
+        "trial": 2
+      },
+      {
+        "kernel": "dot",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 31368341,
+        "ns_per_operation": 0.467424706,
+        "reference_checksum": 13936606746779608536,
+        "implementation": "hepta_rust",
+        "trial": 2
+      },
+      {
+        "kernel": "dot",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 38100292,
+        "ns_per_operation": 0.567738593,
+        "reference_checksum": 13936606746779608536,
+        "implementation": "hepta_c",
+        "trial": 3
+      },
+      {
+        "kernel": "dot",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 29835146,
+        "ns_per_operation": 0.44457832,
+        "reference_checksum": 13936606746779608536,
+        "implementation": "rust",
+        "trial": 3
+      },
+      {
+        "kernel": "dot",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 32049679,
+        "ns_per_operation": 0.477577433,
+        "reference_checksum": 13936606746779608536,
+        "implementation": "hepta_rust",
+        "trial": 3
+      },
+      {
+        "kernel": "dot",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 33853960,
+        "ns_per_operation": 0.504463315,
+        "reference_checksum": 13936606746779608536,
+        "implementation": "rust",
+        "trial": 4
+      },
+      {
+        "kernel": "dot",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 54042917,
+        "ns_per_operation": 0.805302218,
+        "reference_checksum": 13936606746779608536,
+        "implementation": "hepta_c",
+        "trial": 4
+      },
+      {
+        "kernel": "dot",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 25113044,
+        "ns_per_operation": 0.374213517,
+        "reference_checksum": 13936606746779608536,
+        "implementation": "hepta_rust",
+        "trial": 4
+      },
+      {
+        "kernel": "dot",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 26982351,
+        "ns_per_operation": 0.402068362,
+        "reference_checksum": 13936606746779608536,
+        "implementation": "hepta_rust",
+        "trial": 5
+      },
+      {
+        "kernel": "dot",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 34718493,
+        "ns_per_operation": 0.517345861,
+        "reference_checksum": 13936606746779608536,
+        "implementation": "rust",
+        "trial": 5
+      },
+      {
+        "kernel": "dot",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 56163671,
+        "ns_per_operation": 0.836903915,
+        "reference_checksum": 13936606746779608536,
+        "implementation": "hepta_c",
+        "trial": 5
+      },
+      {
+        "kernel": "dot",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 38670621,
+        "ns_per_operation": 0.576237157,
+        "reference_checksum": 13936606746779608536,
+        "implementation": "hepta_rust",
+        "trial": 6
+      },
+      {
+        "kernel": "dot",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 59888445,
+        "ns_per_operation": 0.892407373,
+        "reference_checksum": 13936606746779608536,
+        "implementation": "hepta_c",
+        "trial": 6
+      },
+      {
+        "kernel": "dot",
+        "elements": 4096,
+        "queries": 0,
+        "iterations": 16384,
+        "elapsed_ns": 37804422,
+        "ns_per_operation": 0.563329786,
+        "reference_checksum": 13936606746779608536,
+        "implementation": "rust",
+        "trial": 6
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 4096,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 15920516,
+        "ns_per_operation": 15.182987213,
+        "reference_checksum": 4157209,
+        "implementation": "rust",
+        "trial": 0
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 4096,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 12829779,
+        "ns_per_operation": 12.235430717,
+        "reference_checksum": 4157209,
+        "implementation": "hepta_c",
+        "trial": 0
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 4096,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 15951482,
+        "ns_per_operation": 15.212518692,
+        "reference_checksum": 4157209,
+        "implementation": "hepta_rust",
+        "trial": 0
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 4096,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 13886007,
+        "ns_per_operation": 13.242728233,
+        "reference_checksum": 4157209,
+        "implementation": "hepta_c",
+        "trial": 1
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 4096,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 15918241,
+        "ns_per_operation": 15.180817604,
+        "reference_checksum": 4157209,
+        "implementation": "hepta_rust",
+        "trial": 1
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 4096,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 15188521,
+        "ns_per_operation": 14.484902382,
+        "reference_checksum": 4157209,
+        "implementation": "rust",
+        "trial": 1
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 4096,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 13786746,
+        "ns_per_operation": 13.148065567,
+        "reference_checksum": 4157209,
+        "implementation": "hepta_c",
+        "trial": 2
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 4096,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 15455717,
+        "ns_per_operation": 14.739720345,
+        "reference_checksum": 4157209,
+        "implementation": "rust",
+        "trial": 2
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 4096,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 16012366,
+        "ns_per_operation": 15.270582199,
+        "reference_checksum": 4157209,
+        "implementation": "hepta_rust",
+        "trial": 2
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 4096,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 12415557,
+        "ns_per_operation": 11.840397835,
+        "reference_checksum": 4157209,
+        "implementation": "hepta_c",
+        "trial": 3
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 4096,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 13398225,
+        "ns_per_operation": 12.777543068,
+        "reference_checksum": 4157209,
+        "implementation": "hepta_rust",
+        "trial": 3
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 4096,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 13348208,
+        "ns_per_operation": 12.72984314,
+        "reference_checksum": 4157209,
+        "implementation": "rust",
+        "trial": 3
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 4096,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 13513479,
+        "ns_per_operation": 12.887457848,
+        "reference_checksum": 4157209,
+        "implementation": "rust",
+        "trial": 4
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 4096,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 15627599,
+        "ns_per_operation": 14.903639793,
+        "reference_checksum": 4157209,
+        "implementation": "hepta_rust",
+        "trial": 4
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 4096,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 13176107,
+        "ns_per_operation": 12.565714836,
+        "reference_checksum": 4157209,
+        "implementation": "hepta_c",
+        "trial": 4
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 4096,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 15653939,
+        "ns_per_operation": 14.928759575,
+        "reference_checksum": 4157209,
+        "implementation": "hepta_rust",
+        "trial": 5
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 4096,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 14856995,
+        "ns_per_operation": 14.16873455,
+        "reference_checksum": 4157209,
+        "implementation": "rust",
+        "trial": 5
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 4096,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 13974532,
+        "ns_per_operation": 13.327152252,
+        "reference_checksum": 4157209,
+        "implementation": "hepta_c",
+        "trial": 5
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 4096,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 13461239,
+        "ns_per_operation": 12.837637901,
+        "reference_checksum": 4157209,
+        "implementation": "hepta_c",
+        "trial": 6
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 4096,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 15634950,
+        "ns_per_operation": 14.910650253,
+        "reference_checksum": 4157209,
+        "implementation": "rust",
+        "trial": 6
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 4096,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 13879247,
+        "ns_per_operation": 13.236281395,
+        "reference_checksum": 4157209,
+        "implementation": "hepta_rust",
+        "trial": 6
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 74549441,
+        "ns_per_operation": 1.110873237,
+        "reference_checksum": 9676100127730419875,
+        "implementation": "rust",
+        "trial": 0
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 74403810,
+        "ns_per_operation": 1.108703166,
+        "reference_checksum": 9676100127730419875,
+        "implementation": "hepta_rust",
+        "trial": 0
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 75076328,
+        "ns_per_operation": 1.118724465,
+        "reference_checksum": 9676100127730419875,
+        "implementation": "hepta_c",
+        "trial": 0
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 73948836,
+        "ns_per_operation": 1.101923525,
+        "reference_checksum": 9676100127730419875,
+        "implementation": "rust",
+        "trial": 1
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 73962888,
+        "ns_per_operation": 1.102132916,
+        "reference_checksum": 9676100127730419875,
+        "implementation": "hepta_c",
+        "trial": 1
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 74781514,
+        "ns_per_operation": 1.114331394,
+        "reference_checksum": 9676100127730419875,
+        "implementation": "hepta_rust",
+        "trial": 1
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 73975297,
+        "ns_per_operation": 1.102317825,
+        "reference_checksum": 9676100127730419875,
+        "implementation": "rust",
+        "trial": 2
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 73987676,
+        "ns_per_operation": 1.102502286,
+        "reference_checksum": 9676100127730419875,
+        "implementation": "hepta_rust",
+        "trial": 2
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 74134118,
+        "ns_per_operation": 1.104684442,
+        "reference_checksum": 9676100127730419875,
+        "implementation": "hepta_c",
+        "trial": 2
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 74001597,
+        "ns_per_operation": 1.102709725,
+        "reference_checksum": 9676100127730419875,
+        "implementation": "hepta_c",
+        "trial": 3
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 74070862,
+        "ns_per_operation": 1.103741854,
+        "reference_checksum": 9676100127730419875,
+        "implementation": "hepta_rust",
+        "trial": 3
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 74214151,
+        "ns_per_operation": 1.105877027,
+        "reference_checksum": 9676100127730419875,
+        "implementation": "rust",
+        "trial": 3
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 74189783,
+        "ns_per_operation": 1.105513915,
+        "reference_checksum": 9676100127730419875,
+        "implementation": "hepta_c",
+        "trial": 4
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 74631415,
+        "ns_per_operation": 1.112094745,
+        "reference_checksum": 9676100127730419875,
+        "implementation": "hepta_rust",
+        "trial": 4
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 74866123,
+        "ns_per_operation": 1.115592167,
+        "reference_checksum": 9676100127730419875,
+        "implementation": "rust",
+        "trial": 4
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 74159848,
+        "ns_per_operation": 1.105067849,
+        "reference_checksum": 9676100127730419875,
+        "implementation": "rust",
+        "trial": 5
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 74215053,
+        "ns_per_operation": 1.105890468,
+        "reference_checksum": 9676100127730419875,
+        "implementation": "hepta_c",
+        "trial": 5
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 75523104,
+        "ns_per_operation": 1.125381947,
+        "reference_checksum": 9676100127730419875,
+        "implementation": "hepta_rust",
+        "trial": 5
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 74562861,
+        "ns_per_operation": 1.111073211,
+        "reference_checksum": 9676100127730419875,
+        "implementation": "hepta_c",
+        "trial": 6
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 78762092,
+        "ns_per_operation": 1.173646629,
+        "reference_checksum": 9676100127730419875,
+        "implementation": "hepta_rust",
+        "trial": 6
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 76499982,
+        "ns_per_operation": 1.139938563,
+        "reference_checksum": 9676100127730419875,
+        "implementation": "rust",
+        "trial": 6
+      },
+      {
+        "kernel": "histogram",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 20153962,
+        "ns_per_operation": 0.300317436,
+        "reference_checksum": 33488792,
+        "implementation": "hepta_rust",
+        "trial": 0
+      },
+      {
+        "kernel": "histogram",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 20571268,
+        "ns_per_operation": 0.30653578,
+        "reference_checksum": 33488792,
+        "implementation": "rust",
+        "trial": 0
+      },
+      {
+        "kernel": "histogram",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 21241489,
+        "ns_per_operation": 0.316522852,
+        "reference_checksum": 33488792,
+        "implementation": "hepta_c",
+        "trial": 0
+      },
+      {
+        "kernel": "histogram",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 19894547,
+        "ns_per_operation": 0.296451852,
+        "reference_checksum": 33488792,
+        "implementation": "hepta_rust",
+        "trial": 1
+      },
+      {
+        "kernel": "histogram",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 20766786,
+        "ns_per_operation": 0.309449226,
+        "reference_checksum": 33488792,
+        "implementation": "rust",
+        "trial": 1
+      },
+      {
+        "kernel": "histogram",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 20897375,
+        "ns_per_operation": 0.311395153,
+        "reference_checksum": 33488792,
+        "implementation": "hepta_c",
+        "trial": 1
+      },
+      {
+        "kernel": "histogram",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 19799763,
+        "ns_per_operation": 0.29503946,
+        "reference_checksum": 33488792,
+        "implementation": "rust",
+        "trial": 2
+      },
+      {
+        "kernel": "histogram",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 20043784,
+        "ns_per_operation": 0.298675656,
+        "reference_checksum": 33488792,
+        "implementation": "hepta_rust",
+        "trial": 2
+      },
+      {
+        "kernel": "histogram",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 21663461,
+        "ns_per_operation": 0.322810724,
+        "reference_checksum": 33488792,
+        "implementation": "hepta_c",
+        "trial": 2
+      },
+      {
+        "kernel": "histogram",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 19871733,
+        "ns_per_operation": 0.296111897,
+        "reference_checksum": 33488792,
+        "implementation": "rust",
+        "trial": 3
+      },
+      {
+        "kernel": "histogram",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 20564288,
+        "ns_per_operation": 0.30643177,
+        "reference_checksum": 33488792,
+        "implementation": "hepta_rust",
+        "trial": 3
+      },
+      {
+        "kernel": "histogram",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 22307443,
+        "ns_per_operation": 0.332406804,
+        "reference_checksum": 33488792,
+        "implementation": "hepta_c",
+        "trial": 3
+      },
+      {
+        "kernel": "histogram",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 27559415,
+        "ns_per_operation": 0.410667285,
+        "reference_checksum": 33488792,
+        "implementation": "hepta_c",
+        "trial": 4
+      },
+      {
+        "kernel": "histogram",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 22595551,
+        "ns_per_operation": 0.336699948,
+        "reference_checksum": 33488792,
+        "implementation": "hepta_rust",
+        "trial": 4
+      },
+      {
+        "kernel": "histogram",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 22614980,
+        "ns_per_operation": 0.336989462,
+        "reference_checksum": 33488792,
+        "implementation": "rust",
+        "trial": 4
+      },
+      {
+        "kernel": "histogram",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 24285735,
+        "ns_per_operation": 0.361885652,
+        "reference_checksum": 33488792,
+        "implementation": "rust",
+        "trial": 5
+      },
+      {
+        "kernel": "histogram",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 23586890,
+        "ns_per_operation": 0.35147205,
+        "reference_checksum": 33488792,
+        "implementation": "hepta_rust",
+        "trial": 5
+      },
+      {
+        "kernel": "histogram",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 24073289,
+        "ns_per_operation": 0.35871996,
+        "reference_checksum": 33488792,
+        "implementation": "hepta_c",
+        "trial": 5
+      },
+      {
+        "kernel": "histogram",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 22988914,
+        "ns_per_operation": 0.342561513,
+        "reference_checksum": 33488792,
+        "implementation": "rust",
+        "trial": 6
+      },
+      {
+        "kernel": "histogram",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 22433992,
+        "ns_per_operation": 0.334292531,
+        "reference_checksum": 33488792,
+        "implementation": "hepta_c",
+        "trial": 6
+      },
+      {
+        "kernel": "histogram",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 20974939,
+        "ns_per_operation": 0.312550947,
+        "reference_checksum": 33488792,
+        "implementation": "hepta_rust",
+        "trial": 6
+      },
+      {
+        "kernel": "dot",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 28367362,
+        "ns_per_operation": 0.422706634,
+        "reference_checksum": 14826505215544488533,
+        "implementation": "hepta_rust",
+        "trial": 0
+      },
+      {
+        "kernel": "dot",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 32881181,
+        "ns_per_operation": 0.489967778,
+        "reference_checksum": 14826505215544488533,
+        "implementation": "rust",
+        "trial": 0
+      },
+      {
+        "kernel": "dot",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 42436315,
+        "ns_per_operation": 0.63235037,
+        "reference_checksum": 14826505215544488533,
+        "implementation": "hepta_c",
+        "trial": 0
+      },
+      {
+        "kernel": "dot",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 25526944,
+        "ns_per_operation": 0.380381107,
+        "reference_checksum": 14826505215544488533,
+        "implementation": "hepta_rust",
+        "trial": 1
+      },
+      {
+        "kernel": "dot",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 27506589,
+        "ns_per_operation": 0.409880117,
+        "reference_checksum": 14826505215544488533,
+        "implementation": "rust",
+        "trial": 1
+      },
+      {
+        "kernel": "dot",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 39002219,
+        "ns_per_operation": 0.581178352,
+        "reference_checksum": 14826505215544488533,
+        "implementation": "hepta_c",
+        "trial": 1
+      },
+      {
+        "kernel": "dot",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 26986550,
+        "ns_per_operation": 0.402130932,
+        "reference_checksum": 14826505215544488533,
+        "implementation": "hepta_rust",
+        "trial": 2
+      },
+      {
+        "kernel": "dot",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 31234985,
+        "ns_per_operation": 0.465437546,
+        "reference_checksum": 14826505215544488533,
+        "implementation": "rust",
+        "trial": 2
+      },
+      {
+        "kernel": "dot",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 42314994,
+        "ns_per_operation": 0.630542547,
+        "reference_checksum": 14826505215544488533,
+        "implementation": "hepta_c",
+        "trial": 2
+      },
+      {
+        "kernel": "dot",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 39215572,
+        "ns_per_operation": 0.58435756,
+        "reference_checksum": 14826505215544488533,
+        "implementation": "hepta_c",
+        "trial": 3
+      },
+      {
+        "kernel": "dot",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 38639178,
+        "ns_per_operation": 0.57576862,
+        "reference_checksum": 14826505215544488533,
+        "implementation": "hepta_rust",
+        "trial": 3
+      },
+      {
+        "kernel": "dot",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 26032047,
+        "ns_per_operation": 0.387907729,
+        "reference_checksum": 14826505215544488533,
+        "implementation": "rust",
+        "trial": 3
+      },
+      {
+        "kernel": "dot",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 25081090,
+        "ns_per_operation": 0.373737365,
+        "reference_checksum": 14826505215544488533,
+        "implementation": "rust",
+        "trial": 4
+      },
+      {
+        "kernel": "dot",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 39787319,
+        "ns_per_operation": 0.592877254,
+        "reference_checksum": 14826505215544488533,
+        "implementation": "hepta_c",
+        "trial": 4
+      },
+      {
+        "kernel": "dot",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 32865228,
+        "ns_per_operation": 0.48973006,
+        "reference_checksum": 14826505215544488533,
+        "implementation": "hepta_rust",
+        "trial": 4
+      },
+      {
+        "kernel": "dot",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 32639836,
+        "ns_per_operation": 0.486371458,
+        "reference_checksum": 14826505215544488533,
+        "implementation": "hepta_rust",
+        "trial": 5
+      },
+      {
+        "kernel": "dot",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 28898681,
+        "ns_per_operation": 0.430623904,
+        "reference_checksum": 14826505215544488533,
+        "implementation": "rust",
+        "trial": 5
+      },
+      {
+        "kernel": "dot",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 40107937,
+        "ns_per_operation": 0.597654834,
+        "reference_checksum": 14826505215544488533,
+        "implementation": "hepta_c",
+        "trial": 5
+      },
+      {
+        "kernel": "dot",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 25263556,
+        "ns_per_operation": 0.37645632,
+        "reference_checksum": 14826505215544488533,
+        "implementation": "rust",
+        "trial": 6
+      },
+      {
+        "kernel": "dot",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 24527840,
+        "ns_per_operation": 0.365493298,
+        "reference_checksum": 14826505215544488533,
+        "implementation": "hepta_rust",
+        "trial": 6
+      },
+      {
+        "kernel": "dot",
+        "elements": 262144,
+        "queries": 0,
+        "iterations": 256,
+        "elapsed_ns": 38343319,
+        "ns_per_operation": 0.571359977,
+        "reference_checksum": 14826505215544488533,
+        "implementation": "hepta_c",
+        "trial": 6
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 262144,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 23273732,
+        "ns_per_operation": 22.195560455,
+        "reference_checksum": 266309695,
+        "implementation": "hepta_c",
+        "trial": 0
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 262144,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 28365432,
+        "ns_per_operation": 27.051383972,
+        "reference_checksum": 266309695,
+        "implementation": "rust",
+        "trial": 0
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 262144,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 21019227,
+        "ns_per_operation": 20.045496941,
+        "reference_checksum": 266309695,
+        "implementation": "hepta_rust",
+        "trial": 0
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 262144,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 21680641,
+        "ns_per_operation": 20.676270485,
+        "reference_checksum": 266309695,
+        "implementation": "hepta_c",
+        "trial": 1
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 262144,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 21390201,
+        "ns_per_operation": 20.399285316,
+        "reference_checksum": 266309695,
+        "implementation": "rust",
+        "trial": 1
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 262144,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 20538539,
+        "ns_per_operation": 19.587077141,
+        "reference_checksum": 266309695,
+        "implementation": "hepta_rust",
+        "trial": 1
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 262144,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 20304223,
+        "ns_per_operation": 19.36361599,
+        "reference_checksum": 266309695,
+        "implementation": "hepta_rust",
+        "trial": 2
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 262144,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 20599050,
+        "ns_per_operation": 19.644784927,
+        "reference_checksum": 266309695,
+        "implementation": "hepta_c",
+        "trial": 2
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 262144,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 20637649,
+        "ns_per_operation": 19.681595802,
+        "reference_checksum": 266309695,
+        "implementation": "rust",
+        "trial": 2
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 262144,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 31771939,
+        "ns_per_operation": 30.300082207,
+        "reference_checksum": 266309695,
+        "implementation": "hepta_c",
+        "trial": 3
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 262144,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 28415098,
+        "ns_per_operation": 27.098749161,
+        "reference_checksum": 266309695,
+        "implementation": "hepta_rust",
+        "trial": 3
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 262144,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 25332611,
+        "ns_per_operation": 24.159060478,
+        "reference_checksum": 266309695,
+        "implementation": "rust",
+        "trial": 3
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 262144,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 24557986,
+        "ns_per_operation": 23.420320511,
+        "reference_checksum": 266309695,
+        "implementation": "hepta_rust",
+        "trial": 4
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 262144,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 23673744,
+        "ns_per_operation": 22.577041626,
+        "reference_checksum": 266309695,
+        "implementation": "rust",
+        "trial": 4
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 262144,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 21927224,
+        "ns_per_operation": 20.911430359,
+        "reference_checksum": 266309695,
+        "implementation": "hepta_c",
+        "trial": 4
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 262144,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 26416364,
+        "ns_per_operation": 25.19260788,
+        "reference_checksum": 266309695,
+        "implementation": "hepta_rust",
+        "trial": 5
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 262144,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 26129456,
+        "ns_per_operation": 24.918991089,
+        "reference_checksum": 266309695,
+        "implementation": "hepta_c",
+        "trial": 5
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 262144,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 25296638,
+        "ns_per_operation": 24.124753952,
+        "reference_checksum": 266309695,
+        "implementation": "rust",
+        "trial": 5
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 262144,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 24907803,
+        "ns_per_operation": 23.753931999,
+        "reference_checksum": 266309695,
+        "implementation": "hepta_rust",
+        "trial": 6
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 262144,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 21851064,
+        "ns_per_operation": 20.838798523,
+        "reference_checksum": 266309695,
+        "implementation": "hepta_c",
+        "trial": 6
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 262144,
+        "queries": 2048,
+        "iterations": 512,
+        "elapsed_ns": 19835722,
+        "ns_per_operation": 18.916818619,
+        "reference_checksum": 266309695,
+        "implementation": "rust",
+        "trial": 6
+      }
+    ],
+    "summary": [
+      {
+        "kernel": "fnv1a",
+        "elements": 4096,
+        "operation": "element",
+        "implementations": {
+          "hepta_rust": {
+            "median_ns_per_operation": 1.186659813,
+            "min_ns_per_operation": 1.119011372,
+            "max_ns_per_operation": 1.280790135
+          },
+          "rust": {
+            "median_ns_per_operation": 1.146329567,
+            "min_ns_per_operation": 1.11551322,
+            "max_ns_per_operation": 1.182448506
+          },
+          "hepta_c": {
+            "median_ns_per_operation": 1.153306931,
+            "min_ns_per_operation": 1.133642912,
+            "max_ns_per_operation": 1.189433917
+          }
+        },
+        "time_relative_to_independent_rust": {
+          "hepta_rust": 1.0351820690672282,
+          "hepta_c": 1.0060866998469384
+        }
+      },
+      {
+        "kernel": "histogram",
+        "elements": 4096,
+        "operation": "element",
+        "implementations": {
+          "hepta_rust": {
+            "median_ns_per_operation": 0.33278273,
+            "min_ns_per_operation": 0.31716086,
+            "max_ns_per_operation": 0.644108176
+          },
+          "rust": {
+            "median_ns_per_operation": 0.325324968,
+            "min_ns_per_operation": 0.315479368,
+            "max_ns_per_operation": 0.43521522
+          },
+          "hepta_c": {
+            "median_ns_per_operation": 0.351062551,
+            "min_ns_per_operation": 0.346381813,
+            "max_ns_per_operation": 0.373072147
+          }
+        },
+        "time_relative_to_independent_rust": {
+          "hepta_rust": 1.0229240382189173,
+          "hepta_c": 1.0791134574091468
+        }
+      },
+      {
+        "kernel": "dot",
+        "elements": 4096,
+        "operation": "element",
+        "implementations": {
+          "hepta_rust": {
+            "median_ns_per_operation": 0.468926653,
+            "min_ns_per_operation": 0.374213517,
+            "max_ns_per_operation": 0.675909191
+          },
+          "rust": {
+            "median_ns_per_operation": 0.46945703,
+            "min_ns_per_operation": 0.417844266,
+            "max_ns_per_operation": 0.563329786
+          },
+          "hepta_c": {
+            "median_ns_per_operation": 0.805302218,
+            "min_ns_per_operation": 0.567738593,
+            "max_ns_per_operation": 0.963367447
+          }
+        },
+        "time_relative_to_independent_rust": {
+          "hepta_rust": 0.998870233128685,
+          "hepta_c": 1.7153906886856078
+        }
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 4096,
+        "operation": "query",
+        "implementations": {
+          "hepta_rust": {
+            "median_ns_per_operation": 14.928759575,
+            "min_ns_per_operation": 12.777543068,
+            "max_ns_per_operation": 15.270582199
+          },
+          "rust": {
+            "median_ns_per_operation": 14.484902382,
+            "min_ns_per_operation": 12.72984314,
+            "max_ns_per_operation": 15.182987213
+          },
+          "hepta_c": {
+            "median_ns_per_operation": 12.837637901,
+            "min_ns_per_operation": 11.840397835,
+            "max_ns_per_operation": 13.327152252
+          }
+        },
+        "time_relative_to_independent_rust": {
+          "hepta_rust": 1.0306427465849939,
+          "hepta_c": 0.8862771430860997
+        }
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 262144,
+        "operation": "element",
+        "implementations": {
+          "hepta_rust": {
+            "median_ns_per_operation": 1.112094745,
+            "min_ns_per_operation": 1.102502286,
+            "max_ns_per_operation": 1.173646629
+          },
+          "rust": {
+            "median_ns_per_operation": 1.105877027,
+            "min_ns_per_operation": 1.101923525,
+            "max_ns_per_operation": 1.139938563
+          },
+          "hepta_c": {
+            "median_ns_per_operation": 1.105513915,
+            "min_ns_per_operation": 1.102132916,
+            "max_ns_per_operation": 1.118724465
+          }
+        },
+        "time_relative_to_independent_rust": {
+          "hepta_rust": 1.0056224316521587,
+          "hepta_c": 0.9996716524612279
+        }
+      },
+      {
+        "kernel": "histogram",
+        "elements": 262144,
+        "operation": "element",
+        "implementations": {
+          "hepta_rust": {
+            "median_ns_per_operation": 0.30643177,
+            "min_ns_per_operation": 0.296451852,
+            "max_ns_per_operation": 0.35147205
+          },
+          "rust": {
+            "median_ns_per_operation": 0.309449226,
+            "min_ns_per_operation": 0.29503946,
+            "max_ns_per_operation": 0.361885652
+          },
+          "hepta_c": {
+            "median_ns_per_operation": 0.332406804,
+            "min_ns_per_operation": 0.311395153,
+            "max_ns_per_operation": 0.410667285
+          }
+        },
+        "time_relative_to_independent_rust": {
+          "hepta_rust": 0.9902489463651137,
+          "hepta_c": 1.0741885132393254
+        }
+      },
+      {
+        "kernel": "dot",
+        "elements": 262144,
+        "operation": "element",
+        "implementations": {
+          "hepta_rust": {
+            "median_ns_per_operation": 0.422706634,
+            "min_ns_per_operation": 0.365493298,
+            "max_ns_per_operation": 0.57576862
+          },
+          "rust": {
+            "median_ns_per_operation": 0.409880117,
+            "min_ns_per_operation": 0.373737365,
+            "max_ns_per_operation": 0.489967778
+          },
+          "hepta_c": {
+            "median_ns_per_operation": 0.592877254,
+            "min_ns_per_operation": 0.571359977,
+            "max_ns_per_operation": 0.63235037
+          }
+        },
+        "time_relative_to_independent_rust": {
+          "hepta_rust": 1.031293337900555,
+          "hepta_c": 1.4464650257724017
+        }
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 262144,
+        "operation": "query",
+        "implementations": {
+          "hepta_rust": {
+            "median_ns_per_operation": 23.420320511,
+            "min_ns_per_operation": 19.36361599,
+            "max_ns_per_operation": 27.098749161
+          },
+          "rust": {
+            "median_ns_per_operation": 22.577041626,
+            "min_ns_per_operation": 18.916818619,
+            "max_ns_per_operation": 27.051383972
+          },
+          "hepta_c": {
+            "median_ns_per_operation": 20.911430359,
+            "min_ns_per_operation": 19.644784927,
+            "max_ns_per_operation": 30.300082207
+          }
+        },
+        "time_relative_to_independent_rust": {
+          "hepta_rust": 1.0373511684555194,
+          "hepta_c": 0.9262254419958255
+        }
+      }
+    ],
+    "all_observed_slowdowns": [
+      {
+        "kernel": "fnv1a",
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "observed_median_time_ratio": 1.0351820690672282
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "observed_median_time_ratio": 1.0060866998469384
+      },
+      {
+        "kernel": "histogram",
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "observed_median_time_ratio": 1.0229240382189173
+      },
+      {
+        "kernel": "histogram",
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "observed_median_time_ratio": 1.0791134574091468
+      },
+      {
+        "kernel": "dot",
+        "elements": 4096,
+        "implementation": "hepta_c",
+        "observed_median_time_ratio": 1.7153906886856078
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 4096,
+        "implementation": "hepta_rust",
+        "observed_median_time_ratio": 1.0306427465849939
+      },
+      {
+        "kernel": "fnv1a",
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "observed_median_time_ratio": 1.0056224316521587
+      },
+      {
+        "kernel": "histogram",
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "observed_median_time_ratio": 1.0741885132393254
+      },
+      {
+        "kernel": "dot",
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "observed_median_time_ratio": 1.031293337900555
+      },
+      {
+        "kernel": "dot",
+        "elements": 262144,
+        "implementation": "hepta_c",
+        "observed_median_time_ratio": 1.4464650257724017
+      },
+      {
+        "kernel": "binary_search",
+        "elements": 262144,
+        "implementation": "hepta_rust",
+        "observed_median_time_ratio": 1.0373511684555194
+      }
+    ],
+    "interpretation": "Ratios above 1 are slower observed times. All samples and slowdowns are retained; shared-host noise and compiler differences preclude universal superiority claims."
+  },
+  "sources": {
+    "benchmarks/representative.hepta": "87fc435abdcaca6cf742dc1c79347ae15c4897ae8d5ef3e2cee3afb327954fb5",
+    "benchmarks/representative.rs": "f3a6c815bca6d68a57f9e0844df9e8cb32132fdac5bb1cda22463765c5ca9e66",
+    "benchmarks/representative_driver.c": "8d6ca43135cfbde9d558f40feb841b680c17893b56e9e65a210a898c4980a551"
+  },
+  "commands": [
+    {
+      "argv": [
+        "/workspace/scratch/69b06e838148/toolchains/rust-1.90.0/bin/rustc",
+        "--version",
+        "--verbose"
+      ],
+      "exit_code": 0,
+      "stdout": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "gcc",
+        "--version"
+      ],
+      "exit_code": 0,
+      "stdout": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "hepta",
+        "build",
+        "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta",
+        "--crate-type",
+        "obj",
+        "--no-std",
+        "--output",
+        "/tmp/hepta-representative-56dyhioh/hepta_rust.o"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"build\": {\n    \"artifact\": \"/tmp/hepta-representative-56dyhioh/hepta_rust.o\",\n    \"artifact_bytes\": 2520,\n    \"artifact_sha256\": \"681950da3d9eccb5c14abcf8756a81c15ecc08d442b22fe27b242d3ef83013d1\",\n    \"check_only\": false,\n    \"crate_type\": \"obj\",\n    \"diagnostics\": [],\n    \"flags\": [\n      \"edition=2021\",\n      \"opt-level=3\",\n      \"overflow-checks=yes\",\n      \"panic=abort\",\n      \"codegen-units=1\",\n      \"sysroot=/workspace/scratch/69b06e838148/toolchains/rust-1.90.0\"\n    ],\n    \"link_args\": [],\n    \"linker\": null,\n    \"ok\": true,\n    \"rust_sha256\": \"90f96dff6e7b433b8a3b391db603470514da26b5757453f98af4a632b41ad05c\",\n    \"rustc_crate_type\": \"lib\",\n    \"status\": \"rustc_checked\",\n    \"sysroot\": \"/workspace/scratch/69b06e838148/toolchains/rust-1.90.0\",\n    \"target\": \"x86_64-unknown-linux-gnu\",\n    \"toolchain\": {\n      \"executable_sha256\": \"e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa\",\n      \"host\": \"x86_64-unknown-linux-gnu\",\n      \"path\": \"/workspace/scratch/69b06e838148/toolchains/rust-1.90.0/bin/rustc\",\n      \"sysroot\": \"/workspace/scratch/69b06e838148/toolchains/rust-1.90.0\",\n      \"sysroot_discovery\": \"verified_compiler_prefix\",\n      \"version\": \"rustc 1.90.0 (1159e78c4 2025-09-14)\\nbinary: rustc\\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\\ncommit-date: 2025-09-14\\nhost: x86_64-unknown-linux-gnu\\nrelease: 1.90.0\\nLLVM version: 20.1.8\"\n    },\n    \"validation_artifact_sha256\": \"681950da3d9eccb5c14abcf8756a81c15ecc08d442b22fe27b242d3ef83013d1\"\n  },\n  \"ok\": true,\n  \"schema\": \"hepta.build.v1\",\n  \"validation\": {\n    \"assumptions\": [\n      {\n        \"function\": \"hepta_fnv1a\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 14,\n        \"operation\": \"load\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      },\n      {\n        \"function\": \"hepta_histogram\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 28,\n        \"operation\": \"store\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      },\n      {\n        \"function\": \"hepta_histogram\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 33,\n        \"operation\": \"load\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      },\n      {\n        \"function\": \"hepta_histogram\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 34,\n        \"operation\": \"store\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      },\n      {\n        \"function\": \"hepta_histogram\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 34,\n        \"operation\": \"load\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      },\n      {\n        \"function\": \"hepta_histogram\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 40,\n        \"operation\": \"load\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      },\n      {\n        \"function\": \"hepta_dot\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 55,\n        \"operation\": \"load\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      },\n      {\n        \"function\": \"hepta_dot\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 55,\n        \"operation\": \"load\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      },\n      {\n        \"function\": \"hepta_binary_search\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 70,\n        \"operation\": \"load\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      },\n      {\n        \"function\": \"hepta_binary_search\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 75,\n        \"operation\": \"load\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      }\n    ],\n    \"backend\": {\n      \"check_only\": true,\n      \"crate_type\": \"obj\",\n      \"diagnostics\": [],\n      \"flags\": [\n        \"edition=2021\",\n        \"opt-level=3\",\n        \"overflow-checks=yes\",\n        \"panic=abort\",\n        \"codegen-units=1\",\n        \"sysroot=/workspace/scratch/69b06e838148/toolchains/rust-1.90.0\"\n      ],\n      \"link_args\": [],\n      \"linker\": null,\n      \"ok\": true,\n      \"rust_sha256\": \"90f96dff6e7b433b8a3b391db603470514da26b5757453f98af4a632b41ad05c\",\n      \"rustc_crate_type\": \"lib\",\n      \"status\": \"rustc_checked\",\n      \"sysroot\": \"/workspace/scratch/69b06e838148/toolchains/rust-1.90.0\",\n      \"target\": \"x86_64-unknown-linux-gnu\",\n      \"toolchain\": {\n        \"executable_sha256\": \"e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa\",\n        \"host\": \"x86_64-unknown-linux-gnu\",\n        \"path\": \"/workspace/scratch/69b06e838148/toolchains/rust-1.90.0/bin/rustc\",\n        \"sysroot\": \"/workspace/scratch/69b06e838148/toolchains/rust-1.90.0\",\n        \"sysroot_discovery\": \"verified_compiler_prefix\",\n        \"version\": \"rustc 1.90.0 (1159e78c4 2025-09-14)\\nbinary: rustc\\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\\ncommit-date: 2025-09-14\\nhost: x86_64-unknown-linux-gnu\\nrelease: 1.90.0\\nLLVM version: 20.1.8\"\n      },\n      \"validation_artifact_sha256\": \"1a274d2686e238174c6926979e410be5783fad785433fe35c8f48307e293fcea\"\n    },\n    \"checks\": {\n      \"rust_borrows_types\": \"rustc_checked\",\n      \"syntax\": \"passed\",\n      \"types_effects_resources\": \"passed_in_supported_subset\"\n    },\n    \"claims\": {\n      \"all_programs_faster_than_rust\": false,\n      \"bounded_cancellation_latency_proved\": false,\n      \"deadlock_freedom_proved\": false,\n      \"hardware_execution_verified\": false,\n      \"whole_language_soundness_proved\": false\n    },\n    \"compiler_sha256\": \"62f57f9abc961d66932d7b8a6d55f28c5bee86e3dbdddc8437ec1e362f26dfd7\",\n    \"compiler_version\": \"0.2.0\",\n    \"diagnostics\": [],\n    \"effects\": {\n      \"hepta_binary_search\": [\n        \"panic\",\n        \"unsafe\"\n      ],\n      \"hepta_dot\": [\n        \"unsafe\"\n      ],\n      \"hepta_fnv1a\": [\n        \"unsafe\"\n      ],\n      \"hepta_histogram\": [\n        \"unsafe\",\n        \"write\"\n      ]\n    },\n    \"interface_sha256\": \"12223d82cb5e96a50747f614c0c3098d5396c79ce06963964f7929c53e8d65d4\",\n    \"ok\": true,\n    \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta\",\n    \"profile\": {\n      \"crate_type\": \"obj\",\n      \"no_std\": true,\n      \"overflow_checks\": true,\n      \"panic\": \"abort\"\n    },\n    \"project\": {\n      \"c_imports\": [],\n      \"entry\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta\",\n      \"locked\": false,\n      \"modules\": [\n        {\n          \"imports\": {},\n          \"module\": \"representative\",\n          \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta\",\n          \"symbols\": {\n            \"hepta_binary_search\": \"hepta_binary_search\",\n            \"hepta_dot\": \"hepta_dot\",\n            \"hepta_fnv1a\": \"hepta_fnv1a\",\n            \"hepta_histogram\": \"hepta_histogram\"\n          }\n        }\n      ],\n      \"package\": null,\n      \"path_bindings\": {\n        \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta\"\n      },\n      \"schema\": \"hepta.module-graph.v1\",\n      \"sha256\": \"15f0ff56c98188f39bba4c8ec28496c87d2e863373ba1bb07987e7f87d3336c8\",\n      \"sources\": {\n        \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.hepta\": \"87fc435abdcaca6cf742dc1c79347ae15c4897ae8d5ef3e2cee3afb327954fb5\"\n      }\n    },\n    \"resource_contracts\": [],\n    \"rust_sha256\": \"90f96dff6e7b433b8a3b391db603470514da26b5757453f98af4a632b41ad05c\",\n    \"schema\": \"hepta.check.v1\",\n    \"source_sha256\": \"87fc435abdcaca6cf742dc1c79347ae15c4897ae8d5ef3e2cee3afb327954fb5\",\n    \"status\": \"checked_with_external_assumptions\"\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/workspace/scratch/69b06e838148/toolchains/rust-1.90.0/bin/rustc",
+        "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative.rs",
+        "--edition=2021",
+        "-C",
+        "opt-level=3",
+        "-C",
+        "overflow-checks=yes",
+        "-C",
+        "panic=abort",
+        "-C",
+        "codegen-units=1",
+        "--emit=obj",
+        "--crate-type",
+        "lib",
+        "-o",
+        "/tmp/hepta-representative-56dyhioh/rust.o"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "gcc",
+        "-std=c11",
+        "-O3",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-c",
+        "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/representative_driver.c",
+        "-o",
+        "/tmp/hepta-representative-56dyhioh/driver.o"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "gcc",
+        "/tmp/hepta-representative-56dyhioh/driver.o",
+        "/tmp/hepta-representative-56dyhioh/hepta_rust.o",
+        "-lm",
+        "-o",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "gcc",
+        "/tmp/hepta-representative-56dyhioh/driver.o",
+        "/tmp/hepta-representative-56dyhioh/rust.o",
+        "-lm",
+        "-o",
+        "/tmp/hepta-representative-56dyhioh/run-rust"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "gcc",
+        "/tmp/hepta-representative-56dyhioh/driver.o",
+        "/tmp/hepta-representative-56dyhioh/hepta_c.o",
+        "-lm",
+        "-o",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "nm",
+        "--undefined-only",
+        "/tmp/hepta-representative-56dyhioh/hepta_rust.o"
+      ],
+      "exit_code": 0,
+      "stdout": "                 U memset\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "nm",
+        "--undefined-only",
+        "/tmp/hepta-representative-56dyhioh/rust.o"
+      ],
+      "exit_code": 0,
+      "stdout": "                 U memset\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "nm",
+        "--undefined-only",
+        "/tmp/hepta-representative-56dyhioh/hepta_c.o"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "fnv1a",
+        "1",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":1,\"queries\":0,\"iterations\":1,\"elapsed_ns\":80,\"ns_per_operation\":80.000000000,\"reference_checksum\":12638271862951014243}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "fnv1a",
+        "1",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":1,\"queries\":0,\"iterations\":1,\"elapsed_ns\":60,\"ns_per_operation\":60.000000000,\"reference_checksum\":12638271862951014243}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "fnv1a",
+        "1",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":1,\"queries\":0,\"iterations\":1,\"elapsed_ns\":60,\"ns_per_operation\":60.000000000,\"reference_checksum\":12638271862951014243}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "fnv1a",
+        "3",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":3,\"queries\":0,\"iterations\":1,\"elapsed_ns\":60,\"ns_per_operation\":20.000000000,\"reference_checksum\":9263670351302858956}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "fnv1a",
+        "3",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":3,\"queries\":0,\"iterations\":1,\"elapsed_ns\":70,\"ns_per_operation\":23.333333333,\"reference_checksum\":9263670351302858956}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "fnv1a",
+        "3",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":3,\"queries\":0,\"iterations\":1,\"elapsed_ns\":60,\"ns_per_operation\":20.000000000,\"reference_checksum\":9263670351302858956}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "fnv1a",
+        "31",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":31,\"queries\":0,\"iterations\":1,\"elapsed_ns\":70,\"ns_per_operation\":2.258064516,\"reference_checksum\":17313617983718595315}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "fnv1a",
+        "31",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":31,\"queries\":0,\"iterations\":1,\"elapsed_ns\":100,\"ns_per_operation\":3.225806452,\"reference_checksum\":17313617983718595315}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "fnv1a",
+        "31",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":31,\"queries\":0,\"iterations\":1,\"elapsed_ns\":80,\"ns_per_operation\":2.580645161,\"reference_checksum\":17313617983718595315}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "fnv1a",
+        "255",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":255,\"queries\":0,\"iterations\":1,\"elapsed_ns\":330,\"ns_per_operation\":1.294117647,\"reference_checksum\":8474165811701918889}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "fnv1a",
+        "255",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":255,\"queries\":0,\"iterations\":1,\"elapsed_ns\":331,\"ns_per_operation\":1.298039216,\"reference_checksum\":8474165811701918889}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "fnv1a",
+        "255",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":255,\"queries\":0,\"iterations\":1,\"elapsed_ns\":320,\"ns_per_operation\":1.254901961,\"reference_checksum\":8474165811701918889}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "fnv1a",
+        "257",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":257,\"queries\":0,\"iterations\":1,\"elapsed_ns\":321,\"ns_per_operation\":1.249027237,\"reference_checksum\":11909135953899984}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "fnv1a",
+        "257",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":257,\"queries\":0,\"iterations\":1,\"elapsed_ns\":361,\"ns_per_operation\":1.404669261,\"reference_checksum\":11909135953899984}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "fnv1a",
+        "257",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":257,\"queries\":0,\"iterations\":1,\"elapsed_ns\":331,\"ns_per_operation\":1.287937743,\"reference_checksum\":11909135953899984}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "fnv1a",
+        "4099",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":4099,\"queries\":0,\"iterations\":1,\"elapsed_ns\":4476,\"ns_per_operation\":1.091973652,\"reference_checksum\":3470750991652356593}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "fnv1a",
+        "4099",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":4099,\"queries\":0,\"iterations\":1,\"elapsed_ns\":4476,\"ns_per_operation\":1.091973652,\"reference_checksum\":3470750991652356593}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "fnv1a",
+        "4099",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":4099,\"queries\":0,\"iterations\":1,\"elapsed_ns\":4486,\"ns_per_operation\":1.094413272,\"reference_checksum\":3470750991652356593}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "histogram",
+        "1",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":1,\"queries\":0,\"iterations\":1,\"elapsed_ns\":200,\"ns_per_operation\":200.000000000,\"reference_checksum\":180}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "histogram",
+        "1",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":1,\"queries\":0,\"iterations\":1,\"elapsed_ns\":200,\"ns_per_operation\":200.000000000,\"reference_checksum\":180}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "histogram",
+        "1",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":1,\"queries\":0,\"iterations\":1,\"elapsed_ns\":230,\"ns_per_operation\":230.000000000,\"reference_checksum\":180}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "histogram",
+        "3",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":3,\"queries\":0,\"iterations\":1,\"elapsed_ns\":210,\"ns_per_operation\":70.000000000,\"reference_checksum\":397}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "histogram",
+        "3",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":3,\"queries\":0,\"iterations\":1,\"elapsed_ns\":190,\"ns_per_operation\":63.333333333,\"reference_checksum\":397}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "histogram",
+        "3",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":3,\"queries\":0,\"iterations\":1,\"elapsed_ns\":230,\"ns_per_operation\":76.666666667,\"reference_checksum\":397}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "histogram",
+        "31",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":31,\"queries\":0,\"iterations\":1,\"elapsed_ns\":210,\"ns_per_operation\":6.774193548,\"reference_checksum\":4088}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "histogram",
+        "31",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":31,\"queries\":0,\"iterations\":1,\"elapsed_ns\":200,\"ns_per_operation\":6.451612903,\"reference_checksum\":4088}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "histogram",
+        "31",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":31,\"queries\":0,\"iterations\":1,\"elapsed_ns\":381,\"ns_per_operation\":12.290322581,\"reference_checksum\":4088}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "histogram",
+        "255",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":255,\"queries\":0,\"iterations\":1,\"elapsed_ns\":401,\"ns_per_operation\":1.572549020,\"reference_checksum\":33018}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "histogram",
+        "255",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":255,\"queries\":0,\"iterations\":1,\"elapsed_ns\":250,\"ns_per_operation\":0.980392157,\"reference_checksum\":33018}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "histogram",
+        "255",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":255,\"queries\":0,\"iterations\":1,\"elapsed_ns\":441,\"ns_per_operation\":1.729411765,\"reference_checksum\":33018}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "histogram",
+        "257",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":257,\"queries\":0,\"iterations\":1,\"elapsed_ns\":260,\"ns_per_operation\":1.011673152,\"reference_checksum\":33243}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "histogram",
+        "257",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":257,\"queries\":0,\"iterations\":1,\"elapsed_ns\":260,\"ns_per_operation\":1.011673152,\"reference_checksum\":33243}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "histogram",
+        "257",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":257,\"queries\":0,\"iterations\":1,\"elapsed_ns\":461,\"ns_per_operation\":1.793774319,\"reference_checksum\":33243}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "histogram",
+        "4099",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":4099,\"queries\":0,\"iterations\":1,\"elapsed_ns\":1332,\"ns_per_operation\":0.324957307,\"reference_checksum\":523602}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "histogram",
+        "4099",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":4099,\"queries\":0,\"iterations\":1,\"elapsed_ns\":1312,\"ns_per_operation\":0.320078068,\"reference_checksum\":523602}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "histogram",
+        "4099",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":4099,\"queries\":0,\"iterations\":1,\"elapsed_ns\":1453,\"ns_per_operation\":0.354476702,\"reference_checksum\":523602}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "dot",
+        "1",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":1,\"queries\":0,\"iterations\":1,\"elapsed_ns\":70,\"ns_per_operation\":70.000000000,\"reference_checksum\":13741037800510302066}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "dot",
+        "1",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":1,\"queries\":0,\"iterations\":1,\"elapsed_ns\":70,\"ns_per_operation\":70.000000000,\"reference_checksum\":13741037800510302066}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "dot",
+        "1",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":1,\"queries\":0,\"iterations\":1,\"elapsed_ns\":70,\"ns_per_operation\":70.000000000,\"reference_checksum\":13741037800510302066}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "dot",
+        "3",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":3,\"queries\":0,\"iterations\":1,\"elapsed_ns\":80,\"ns_per_operation\":26.666666667,\"reference_checksum\":16747044880852611414}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "dot",
+        "3",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":3,\"queries\":0,\"iterations\":1,\"elapsed_ns\":80,\"ns_per_operation\":26.666666667,\"reference_checksum\":16747044880852611414}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "dot",
+        "3",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":3,\"queries\":0,\"iterations\":1,\"elapsed_ns\":80,\"ns_per_operation\":26.666666667,\"reference_checksum\":16747044880852611414}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "dot",
+        "31",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":31,\"queries\":0,\"iterations\":1,\"elapsed_ns\":100,\"ns_per_operation\":3.225806452,\"reference_checksum\":12817941212267270091}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "dot",
+        "31",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":31,\"queries\":0,\"iterations\":1,\"elapsed_ns\":100,\"ns_per_operation\":3.225806452,\"reference_checksum\":12817941212267270091}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "dot",
+        "31",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":31,\"queries\":0,\"iterations\":1,\"elapsed_ns\":90,\"ns_per_operation\":2.903225806,\"reference_checksum\":12817941212267270091}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "dot",
+        "255",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":255,\"queries\":0,\"iterations\":1,\"elapsed_ns\":170,\"ns_per_operation\":0.666666667,\"reference_checksum\":12600842446390727027}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "dot",
+        "255",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":255,\"queries\":0,\"iterations\":1,\"elapsed_ns\":191,\"ns_per_operation\":0.749019608,\"reference_checksum\":12600842446390727027}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "dot",
+        "255",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":255,\"queries\":0,\"iterations\":1,\"elapsed_ns\":220,\"ns_per_operation\":0.862745098,\"reference_checksum\":12600842446390727027}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "dot",
+        "257",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":257,\"queries\":0,\"iterations\":1,\"elapsed_ns\":181,\"ns_per_operation\":0.704280156,\"reference_checksum\":2741421486424696821}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "dot",
+        "257",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":257,\"queries\":0,\"iterations\":1,\"elapsed_ns\":190,\"ns_per_operation\":0.739299611,\"reference_checksum\":2741421486424696821}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "dot",
+        "257",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":257,\"queries\":0,\"iterations\":1,\"elapsed_ns\":241,\"ns_per_operation\":0.937743191,\"reference_checksum\":2741421486424696821}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "dot",
+        "4099",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":4099,\"queries\":0,\"iterations\":1,\"elapsed_ns\":1503,\"ns_per_operation\":0.366674799,\"reference_checksum\":9921874927179191743}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "dot",
+        "4099",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":4099,\"queries\":0,\"iterations\":1,\"elapsed_ns\":1523,\"ns_per_operation\":0.371554038,\"reference_checksum\":9921874927179191743}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "dot",
+        "4099",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":4099,\"queries\":0,\"iterations\":1,\"elapsed_ns\":2313,\"ns_per_operation\":0.564283972,\"reference_checksum\":9921874927179191743}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "binary_search",
+        "1",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":1,\"queries\":2048,\"iterations\":1,\"elapsed_ns\":1833,\"ns_per_operation\":0.895019531,\"reference_checksum\":1955}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "binary_search",
+        "1",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":1,\"queries\":2048,\"iterations\":1,\"elapsed_ns\":1843,\"ns_per_operation\":0.899902344,\"reference_checksum\":1955}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "binary_search",
+        "1",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":1,\"queries\":2048,\"iterations\":1,\"elapsed_ns\":2845,\"ns_per_operation\":1.389160156,\"reference_checksum\":1955}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "binary_search",
+        "3",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":3,\"queries\":2048,\"iterations\":1,\"elapsed_ns\":7531,\"ns_per_operation\":3.677246094,\"reference_checksum\":5895}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "binary_search",
+        "3",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":3,\"queries\":2048,\"iterations\":1,\"elapsed_ns\":3996,\"ns_per_operation\":1.951171875,\"reference_checksum\":5895}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "binary_search",
+        "3",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":3,\"queries\":2048,\"iterations\":1,\"elapsed_ns\":5138,\"ns_per_operation\":2.508789062,\"reference_checksum\":5895}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "binary_search",
+        "31",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":31,\"queries\":2048,\"iterations\":1,\"elapsed_ns\":8503,\"ns_per_operation\":4.151855469,\"reference_checksum\":41607}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "binary_search",
+        "31",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":31,\"queries\":2048,\"iterations\":1,\"elapsed_ns\":8482,\"ns_per_operation\":4.141601562,\"reference_checksum\":41607}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "binary_search",
+        "31",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":31,\"queries\":2048,\"iterations\":1,\"elapsed_ns\":9064,\"ns_per_operation\":4.425781250,\"reference_checksum\":41607}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "binary_search",
+        "255",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":255,\"queries\":2048,\"iterations\":1,\"elapsed_ns\":17046,\"ns_per_operation\":8.323242188,\"reference_checksum\":283227}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "binary_search",
+        "255",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":255,\"queries\":2048,\"iterations\":1,\"elapsed_ns\":17006,\"ns_per_operation\":8.303710938,\"reference_checksum\":283227}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "binary_search",
+        "255",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":255,\"queries\":2048,\"iterations\":1,\"elapsed_ns\":15223,\"ns_per_operation\":7.433105469,\"reference_checksum\":283227}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "binary_search",
+        "257",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":257,\"queries\":2048,\"iterations\":1,\"elapsed_ns\":16645,\"ns_per_operation\":8.127441406,\"reference_checksum\":283203}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "binary_search",
+        "257",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":257,\"queries\":2048,\"iterations\":1,\"elapsed_ns\":16836,\"ns_per_operation\":8.220703125,\"reference_checksum\":283203}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "binary_search",
+        "257",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":257,\"queries\":2048,\"iterations\":1,\"elapsed_ns\":15183,\"ns_per_operation\":7.413574219,\"reference_checksum\":283203}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "binary_search",
+        "4099",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":4099,\"queries\":2048,\"iterations\":1,\"elapsed_ns\":26571,\"ns_per_operation\":12.974121094,\"reference_checksum\":4121641}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "binary_search",
+        "4099",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":4099,\"queries\":2048,\"iterations\":1,\"elapsed_ns\":26601,\"ns_per_operation\":12.988769531,\"reference_checksum\":4121641}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "binary_search",
+        "4099",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":4099,\"queries\":2048,\"iterations\":1,\"elapsed_ns\":22554,\"ns_per_operation\":11.012695312,\"reference_checksum\":4121641}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "objcopy",
+        "--dump-section",
+        ".text.hepta_fnv1a=/tmp/hepta-representative-56dyhioh/hepta_rust-fnv1a.text",
+        "/tmp/hepta-representative-56dyhioh/hepta_rust.o"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "objcopy",
+        "--dump-section",
+        ".text.hepta_fnv1a=/tmp/hepta-representative-56dyhioh/rust-fnv1a.text",
+        "/tmp/hepta-representative-56dyhioh/rust.o"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "objcopy",
+        "--dump-section",
+        ".text.hepta_histogram=/tmp/hepta-representative-56dyhioh/hepta_rust-histogram.text",
+        "/tmp/hepta-representative-56dyhioh/hepta_rust.o"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "objcopy",
+        "--dump-section",
+        ".text.hepta_histogram=/tmp/hepta-representative-56dyhioh/rust-histogram.text",
+        "/tmp/hepta-representative-56dyhioh/rust.o"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "objcopy",
+        "--dump-section",
+        ".text.hepta_dot=/tmp/hepta-representative-56dyhioh/hepta_rust-dot.text",
+        "/tmp/hepta-representative-56dyhioh/hepta_rust.o"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "objcopy",
+        "--dump-section",
+        ".text.hepta_dot=/tmp/hepta-representative-56dyhioh/rust-dot.text",
+        "/tmp/hepta-representative-56dyhioh/rust.o"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "objcopy",
+        "--dump-section",
+        ".text.hepta_binary_search=/tmp/hepta-representative-56dyhioh/hepta_rust-binary_search.text",
+        "/tmp/hepta-representative-56dyhioh/hepta_rust.o"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "objcopy",
+        "--dump-section",
+        ".text.hepta_binary_search=/tmp/hepta-representative-56dyhioh/rust-binary_search.text",
+        "/tmp/hepta-representative-56dyhioh/rust.o"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "fnv1a",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":75352875,\"ns_per_operation\":1.122845337,\"reference_checksum\":14469518253046212360}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "fnv1a",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":75095582,\"ns_per_operation\":1.119011372,\"reference_checksum\":14469518253046212360}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "fnv1a",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":76622819,\"ns_per_operation\":1.141768977,\"reference_checksum\":14469518253046212360}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "fnv1a",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":74860825,\"ns_per_operation\":1.115513220,\"reference_checksum\":14469518253046212360}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "fnv1a",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":76225163,\"ns_per_operation\":1.135843441,\"reference_checksum\":14469518253046212360}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "fnv1a",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":79351784,\"ns_per_operation\":1.182433724,\"reference_checksum\":14469518253046212360}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "fnv1a",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":76077488,\"ns_per_operation\":1.133642912,\"reference_checksum\":14469518253046212360}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "fnv1a",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":76371696,\"ns_per_operation\":1.138026953,\"reference_checksum\":14469518253046212360}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "fnv1a",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":79352776,\"ns_per_operation\":1.182448506,\"reference_checksum\":14469518253046212360}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "fnv1a",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":76241438,\"ns_per_operation\":1.136085957,\"reference_checksum\":14469518253046212360}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "fnv1a",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":79821559,\"ns_per_operation\":1.189433917,\"reference_checksum\":14469518253046212360}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "fnv1a",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":85952371,\"ns_per_operation\":1.280790135,\"reference_checksum\":14469518253046212360}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "fnv1a",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":77110135,\"ns_per_operation\":1.149030551,\"reference_checksum\":14469518253046212360}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "fnv1a",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":79982525,\"ns_per_operation\":1.191832498,\"reference_checksum\":14469518253046212360}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "fnv1a",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":79814560,\"ns_per_operation\":1.189329624,\"reference_checksum\":14469518253046212360}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "fnv1a",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":80418395,\"ns_per_operation\":1.198327467,\"reference_checksum\":14469518253046212360}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "fnv1a",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":77134657,\"ns_per_operation\":1.149395958,\"reference_checksum\":14469518253046212360}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "fnv1a",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":78390050,\"ns_per_operation\":1.168102771,\"reference_checksum\":14469518253046212360}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "fnv1a",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":77397118,\"ns_per_operation\":1.153306931,\"reference_checksum\":14469518253046212360}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "fnv1a",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":79635392,\"ns_per_operation\":1.186659813,\"reference_checksum\":14469518253046212360}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "fnv1a",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":76928875,\"ns_per_operation\":1.146329567,\"reference_checksum\":14469518253046212360}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "histogram",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":24909064,\"ns_per_operation\":0.371173978,\"reference_checksum\":523163}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "histogram",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":25590462,\"ns_per_operation\":0.381327599,\"reference_checksum\":523163}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "histogram",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":21733008,\"ns_per_operation\":0.323847055,\"reference_checksum\":523163}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "histogram",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":21284305,\"ns_per_operation\":0.317160860,\"reference_checksum\":523163}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "histogram",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":23299243,\"ns_per_operation\":0.347185776,\"reference_checksum\":523163}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "histogram",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":21757494,\"ns_per_operation\":0.324211925,\"reference_checksum\":523163}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "histogram",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":22332671,\"ns_per_operation\":0.332782730,\"reference_checksum\":523163}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "histogram",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":21199535,\"ns_per_operation\":0.315897688,\"reference_checksum\":523163}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "histogram",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":23559409,\"ns_per_operation\":0.351062551,\"reference_checksum\":523163}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "histogram",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":43225368,\"ns_per_operation\":0.644108176,\"reference_checksum\":523163}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "histogram",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":23452526,\"ns_per_operation\":0.349469870,\"reference_checksum\":523163}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "histogram",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":21832189,\"ns_per_operation\":0.325324968,\"reference_checksum\":523163}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "histogram",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":21970768,\"ns_per_operation\":0.327389956,\"reference_checksum\":523163}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "histogram",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":25036448,\"ns_per_operation\":0.373072147,\"reference_checksum\":523163}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "histogram",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":21171462,\"ns_per_operation\":0.315479368,\"reference_checksum\":523163}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "histogram",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":29206799,\"ns_per_operation\":0.435215220,\"reference_checksum\":523163}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "histogram",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":23777591,\"ns_per_operation\":0.354313716,\"reference_checksum\":523163}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "histogram",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":23343711,\"ns_per_operation\":0.347848400,\"reference_checksum\":523163}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "histogram",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":23245290,\"ns_per_operation\":0.346381813,\"reference_checksum\":523163}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "histogram",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":22373001,\"ns_per_operation\":0.333383694,\"reference_checksum\":523163}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "histogram",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":22513145,\"ns_per_operation\":0.335472003,\"reference_checksum\":523163}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "dot",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":39990316,\"ns_per_operation\":0.595902145,\"reference_checksum\":13936606746779608536}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "dot",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":31504728,\"ns_per_operation\":0.469457030,\"reference_checksum\":13936606746779608536}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "dot",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":31469135,\"ns_per_operation\":0.468926653,\"reference_checksum\":13936606746779608536}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "dot",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":30821167,\"ns_per_operation\":0.459271178,\"reference_checksum\":13936606746779608536}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "dot",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":45359498,\"ns_per_operation\":0.675909191,\"reference_checksum\":13936606746779608536}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "dot",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":64650495,\"ns_per_operation\":0.963367447,\"reference_checksum\":13936606746779608536}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "dot",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":47980169,\"ns_per_operation\":0.714960232,\"reference_checksum\":13936606746779608536}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "dot",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":28041054,\"ns_per_operation\":0.417844266,\"reference_checksum\":13936606746779608536}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "dot",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":31368341,\"ns_per_operation\":0.467424706,\"reference_checksum\":13936606746779608536}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "dot",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":38100292,\"ns_per_operation\":0.567738593,\"reference_checksum\":13936606746779608536}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "dot",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":29835146,\"ns_per_operation\":0.444578320,\"reference_checksum\":13936606746779608536}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "dot",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":32049679,\"ns_per_operation\":0.477577433,\"reference_checksum\":13936606746779608536}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "dot",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":33853960,\"ns_per_operation\":0.504463315,\"reference_checksum\":13936606746779608536}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "dot",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":54042917,\"ns_per_operation\":0.805302218,\"reference_checksum\":13936606746779608536}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "dot",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":25113044,\"ns_per_operation\":0.374213517,\"reference_checksum\":13936606746779608536}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "dot",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":26982351,\"ns_per_operation\":0.402068362,\"reference_checksum\":13936606746779608536}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "dot",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":34718493,\"ns_per_operation\":0.517345861,\"reference_checksum\":13936606746779608536}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "dot",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":56163671,\"ns_per_operation\":0.836903915,\"reference_checksum\":13936606746779608536}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "dot",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":38670621,\"ns_per_operation\":0.576237157,\"reference_checksum\":13936606746779608536}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "dot",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":59888445,\"ns_per_operation\":0.892407373,\"reference_checksum\":13936606746779608536}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "dot",
+        "4096",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":4096,\"queries\":0,\"iterations\":16384,\"elapsed_ns\":37804422,\"ns_per_operation\":0.563329786,\"reference_checksum\":13936606746779608536}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "binary_search",
+        "4096",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":4096,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":15920516,\"ns_per_operation\":15.182987213,\"reference_checksum\":4157209}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "binary_search",
+        "4096",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":4096,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":12829779,\"ns_per_operation\":12.235430717,\"reference_checksum\":4157209}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "binary_search",
+        "4096",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":4096,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":15951482,\"ns_per_operation\":15.212518692,\"reference_checksum\":4157209}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "binary_search",
+        "4096",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":4096,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":13886007,\"ns_per_operation\":13.242728233,\"reference_checksum\":4157209}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "binary_search",
+        "4096",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":4096,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":15918241,\"ns_per_operation\":15.180817604,\"reference_checksum\":4157209}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "binary_search",
+        "4096",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":4096,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":15188521,\"ns_per_operation\":14.484902382,\"reference_checksum\":4157209}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "binary_search",
+        "4096",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":4096,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":13786746,\"ns_per_operation\":13.148065567,\"reference_checksum\":4157209}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "binary_search",
+        "4096",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":4096,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":15455717,\"ns_per_operation\":14.739720345,\"reference_checksum\":4157209}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "binary_search",
+        "4096",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":4096,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":16012366,\"ns_per_operation\":15.270582199,\"reference_checksum\":4157209}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "binary_search",
+        "4096",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":4096,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":12415557,\"ns_per_operation\":11.840397835,\"reference_checksum\":4157209}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "binary_search",
+        "4096",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":4096,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":13398225,\"ns_per_operation\":12.777543068,\"reference_checksum\":4157209}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "binary_search",
+        "4096",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":4096,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":13348208,\"ns_per_operation\":12.729843140,\"reference_checksum\":4157209}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "binary_search",
+        "4096",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":4096,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":13513479,\"ns_per_operation\":12.887457848,\"reference_checksum\":4157209}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "binary_search",
+        "4096",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":4096,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":15627599,\"ns_per_operation\":14.903639793,\"reference_checksum\":4157209}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "binary_search",
+        "4096",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":4096,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":13176107,\"ns_per_operation\":12.565714836,\"reference_checksum\":4157209}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "binary_search",
+        "4096",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":4096,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":15653939,\"ns_per_operation\":14.928759575,\"reference_checksum\":4157209}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "binary_search",
+        "4096",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":4096,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":14856995,\"ns_per_operation\":14.168734550,\"reference_checksum\":4157209}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "binary_search",
+        "4096",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":4096,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":13974532,\"ns_per_operation\":13.327152252,\"reference_checksum\":4157209}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "binary_search",
+        "4096",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":4096,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":13461239,\"ns_per_operation\":12.837637901,\"reference_checksum\":4157209}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "binary_search",
+        "4096",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":4096,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":15634950,\"ns_per_operation\":14.910650253,\"reference_checksum\":4157209}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "binary_search",
+        "4096",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":4096,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":13879247,\"ns_per_operation\":13.236281395,\"reference_checksum\":4157209}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "fnv1a",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":74549441,\"ns_per_operation\":1.110873237,\"reference_checksum\":9676100127730419875}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "fnv1a",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":74403810,\"ns_per_operation\":1.108703166,\"reference_checksum\":9676100127730419875}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "fnv1a",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":75076328,\"ns_per_operation\":1.118724465,\"reference_checksum\":9676100127730419875}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "fnv1a",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":73948836,\"ns_per_operation\":1.101923525,\"reference_checksum\":9676100127730419875}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "fnv1a",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":73962888,\"ns_per_operation\":1.102132916,\"reference_checksum\":9676100127730419875}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "fnv1a",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":74781514,\"ns_per_operation\":1.114331394,\"reference_checksum\":9676100127730419875}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "fnv1a",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":73975297,\"ns_per_operation\":1.102317825,\"reference_checksum\":9676100127730419875}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "fnv1a",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":73987676,\"ns_per_operation\":1.102502286,\"reference_checksum\":9676100127730419875}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "fnv1a",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":74134118,\"ns_per_operation\":1.104684442,\"reference_checksum\":9676100127730419875}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "fnv1a",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":74001597,\"ns_per_operation\":1.102709725,\"reference_checksum\":9676100127730419875}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "fnv1a",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":74070862,\"ns_per_operation\":1.103741854,\"reference_checksum\":9676100127730419875}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "fnv1a",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":74214151,\"ns_per_operation\":1.105877027,\"reference_checksum\":9676100127730419875}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "fnv1a",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":74189783,\"ns_per_operation\":1.105513915,\"reference_checksum\":9676100127730419875}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "fnv1a",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":74631415,\"ns_per_operation\":1.112094745,\"reference_checksum\":9676100127730419875}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "fnv1a",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":74866123,\"ns_per_operation\":1.115592167,\"reference_checksum\":9676100127730419875}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "fnv1a",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":74159848,\"ns_per_operation\":1.105067849,\"reference_checksum\":9676100127730419875}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "fnv1a",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":74215053,\"ns_per_operation\":1.105890468,\"reference_checksum\":9676100127730419875}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "fnv1a",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":75523104,\"ns_per_operation\":1.125381947,\"reference_checksum\":9676100127730419875}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "fnv1a",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":74562861,\"ns_per_operation\":1.111073211,\"reference_checksum\":9676100127730419875}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "fnv1a",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":78762092,\"ns_per_operation\":1.173646629,\"reference_checksum\":9676100127730419875}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "fnv1a",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"fnv1a\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":76499982,\"ns_per_operation\":1.139938563,\"reference_checksum\":9676100127730419875}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "histogram",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":20153962,\"ns_per_operation\":0.300317436,\"reference_checksum\":33488792}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "histogram",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":20571268,\"ns_per_operation\":0.306535780,\"reference_checksum\":33488792}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "histogram",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":21241489,\"ns_per_operation\":0.316522852,\"reference_checksum\":33488792}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "histogram",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":19894547,\"ns_per_operation\":0.296451852,\"reference_checksum\":33488792}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "histogram",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":20766786,\"ns_per_operation\":0.309449226,\"reference_checksum\":33488792}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "histogram",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":20897375,\"ns_per_operation\":0.311395153,\"reference_checksum\":33488792}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "histogram",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":19799763,\"ns_per_operation\":0.295039460,\"reference_checksum\":33488792}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "histogram",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":20043784,\"ns_per_operation\":0.298675656,\"reference_checksum\":33488792}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "histogram",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":21663461,\"ns_per_operation\":0.322810724,\"reference_checksum\":33488792}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "histogram",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":19871733,\"ns_per_operation\":0.296111897,\"reference_checksum\":33488792}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "histogram",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":20564288,\"ns_per_operation\":0.306431770,\"reference_checksum\":33488792}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "histogram",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":22307443,\"ns_per_operation\":0.332406804,\"reference_checksum\":33488792}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "histogram",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":27559415,\"ns_per_operation\":0.410667285,\"reference_checksum\":33488792}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "histogram",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":22595551,\"ns_per_operation\":0.336699948,\"reference_checksum\":33488792}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "histogram",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":22614980,\"ns_per_operation\":0.336989462,\"reference_checksum\":33488792}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "histogram",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":24285735,\"ns_per_operation\":0.361885652,\"reference_checksum\":33488792}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "histogram",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":23586890,\"ns_per_operation\":0.351472050,\"reference_checksum\":33488792}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "histogram",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":24073289,\"ns_per_operation\":0.358719960,\"reference_checksum\":33488792}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "histogram",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":22988914,\"ns_per_operation\":0.342561513,\"reference_checksum\":33488792}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "histogram",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":22433992,\"ns_per_operation\":0.334292531,\"reference_checksum\":33488792}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "histogram",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"histogram\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":20974939,\"ns_per_operation\":0.312550947,\"reference_checksum\":33488792}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "dot",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":28367362,\"ns_per_operation\":0.422706634,\"reference_checksum\":14826505215544488533}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "dot",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":32881181,\"ns_per_operation\":0.489967778,\"reference_checksum\":14826505215544488533}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "dot",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":42436315,\"ns_per_operation\":0.632350370,\"reference_checksum\":14826505215544488533}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "dot",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":25526944,\"ns_per_operation\":0.380381107,\"reference_checksum\":14826505215544488533}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "dot",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":27506589,\"ns_per_operation\":0.409880117,\"reference_checksum\":14826505215544488533}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "dot",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":39002219,\"ns_per_operation\":0.581178352,\"reference_checksum\":14826505215544488533}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "dot",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":26986550,\"ns_per_operation\":0.402130932,\"reference_checksum\":14826505215544488533}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "dot",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":31234985,\"ns_per_operation\":0.465437546,\"reference_checksum\":14826505215544488533}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "dot",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":42314994,\"ns_per_operation\":0.630542547,\"reference_checksum\":14826505215544488533}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "dot",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":39215572,\"ns_per_operation\":0.584357560,\"reference_checksum\":14826505215544488533}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "dot",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":38639178,\"ns_per_operation\":0.575768620,\"reference_checksum\":14826505215544488533}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "dot",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":26032047,\"ns_per_operation\":0.387907729,\"reference_checksum\":14826505215544488533}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "dot",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":25081090,\"ns_per_operation\":0.373737365,\"reference_checksum\":14826505215544488533}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "dot",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":39787319,\"ns_per_operation\":0.592877254,\"reference_checksum\":14826505215544488533}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "dot",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":32865228,\"ns_per_operation\":0.489730060,\"reference_checksum\":14826505215544488533}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "dot",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":32639836,\"ns_per_operation\":0.486371458,\"reference_checksum\":14826505215544488533}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "dot",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":28898681,\"ns_per_operation\":0.430623904,\"reference_checksum\":14826505215544488533}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "dot",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":40107937,\"ns_per_operation\":0.597654834,\"reference_checksum\":14826505215544488533}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "dot",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":25263556,\"ns_per_operation\":0.376456320,\"reference_checksum\":14826505215544488533}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "dot",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":24527840,\"ns_per_operation\":0.365493298,\"reference_checksum\":14826505215544488533}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "dot",
+        "262144",
+        "256"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"dot\",\"elements\":262144,\"queries\":0,\"iterations\":256,\"elapsed_ns\":38343319,\"ns_per_operation\":0.571359977,\"reference_checksum\":14826505215544488533}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "binary_search",
+        "262144",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":262144,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":23273732,\"ns_per_operation\":22.195560455,\"reference_checksum\":266309695}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "binary_search",
+        "262144",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":262144,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":28365432,\"ns_per_operation\":27.051383972,\"reference_checksum\":266309695}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "binary_search",
+        "262144",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":262144,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":21019227,\"ns_per_operation\":20.045496941,\"reference_checksum\":266309695}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "binary_search",
+        "262144",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":262144,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":21680641,\"ns_per_operation\":20.676270485,\"reference_checksum\":266309695}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "binary_search",
+        "262144",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":262144,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":21390201,\"ns_per_operation\":20.399285316,\"reference_checksum\":266309695}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "binary_search",
+        "262144",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":262144,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":20538539,\"ns_per_operation\":19.587077141,\"reference_checksum\":266309695}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "binary_search",
+        "262144",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":262144,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":20304223,\"ns_per_operation\":19.363615990,\"reference_checksum\":266309695}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "binary_search",
+        "262144",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":262144,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":20599050,\"ns_per_operation\":19.644784927,\"reference_checksum\":266309695}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "binary_search",
+        "262144",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":262144,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":20637649,\"ns_per_operation\":19.681595802,\"reference_checksum\":266309695}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "binary_search",
+        "262144",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":262144,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":31771939,\"ns_per_operation\":30.300082207,\"reference_checksum\":266309695}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "binary_search",
+        "262144",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":262144,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":28415098,\"ns_per_operation\":27.098749161,\"reference_checksum\":266309695}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "binary_search",
+        "262144",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":262144,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":25332611,\"ns_per_operation\":24.159060478,\"reference_checksum\":266309695}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "binary_search",
+        "262144",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":262144,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":24557986,\"ns_per_operation\":23.420320511,\"reference_checksum\":266309695}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "binary_search",
+        "262144",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":262144,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":23673744,\"ns_per_operation\":22.577041626,\"reference_checksum\":266309695}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "binary_search",
+        "262144",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":262144,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":21927224,\"ns_per_operation\":20.911430359,\"reference_checksum\":266309695}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "binary_search",
+        "262144",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":262144,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":26416364,\"ns_per_operation\":25.192607880,\"reference_checksum\":266309695}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "binary_search",
+        "262144",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":262144,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":26129456,\"ns_per_operation\":24.918991089,\"reference_checksum\":266309695}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "binary_search",
+        "262144",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":262144,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":25296638,\"ns_per_operation\":24.124753952,\"reference_checksum\":266309695}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_rust",
+        "binary_search",
+        "262144",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":262144,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":24907803,\"ns_per_operation\":23.753931999,\"reference_checksum\":266309695}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-hepta_c",
+        "binary_search",
+        "262144",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":262144,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":21851064,\"ns_per_operation\":20.838798523,\"reference_checksum\":266309695}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-representative-56dyhioh/run-rust",
+        "binary_search",
+        "262144",
+        "512"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"binary_search\",\"elements\":262144,\"queries\":2048,\"iterations\":512,\"elapsed_ns\":19835722,\"ns_per_operation\":18.916818619,\"reference_checksum\":266309695}\n",
+      "stderr": ""
+    }
+  ]
+}

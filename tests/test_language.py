@@ -123,13 +123,14 @@ class LanguageRejections(unittest.TestCase):
         self.rejects("struct Box<T>{value:T} fn f(x:Box<Missing>)->Unit effects {} {}", "E_UNKNOWN_TYPE")
 
     def test_resources_cannot_be_hidden_in_generic_type_arguments(self):
-        for typ in ("Buffer<u8>", "Task<u64>", "Cancellation", "[u8]"):
+        for typ in ("Task<u64>", "Cancellation", "[u8]"):
             with self.subTest(typ=typ):
                 self.rejects("struct Box<T>{value:T} fn f(x:Box<" + typ + ">)->Unit effects {} {}", "E_GENERIC_COPY")
+        self.rejects("struct Box<T>{value:T} fn f(x:Box<Buffer<u8>>)->Unit effects {} {}", "E_LINEAR_MODE")
         self.rejects("fn identity<T>(x:T)->T effects {} {return x;} fn f()->Unit effects {alloc,block,panic} {let b=buffer(4); let c=identity::<Buffer<u8>>(move b); release(move c);}", "E_GENERIC_COPY")
 
-    def test_direct_resource_payloads_and_capabilities_are_rejected(self):
-        self.rejects("enum Bad{Value(Buffer<u8>)}", "E_NESTED_LINEAR")
+    def test_resource_payload_obligations_and_borrowed_capabilities_are_checked(self):
+        self.rejects("enum Bad{Value(Buffer<u8>)} fn f(x:take Bad)->Unit effects {} {}", "E_LINEAR_UNCONSUMED")
         self.rejects("enum Bad{Value(Cancellation)}", "E_CANCELLATION_TYPE")
 
     def test_recursive_enum_and_instantiated_struct_layouts_are_rejected(self):
