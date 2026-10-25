@@ -1,0 +1,56 @@
+name: Hepta exact-head full qualification
+
+on:
+  push:
+    branches:
+      - codex/hepta-p1-structural-cfg-20261024
+  pull_request:
+    branches:
+      - codex/hepta-hsir-c-migration-20261024
+
+permissions:
+  contents: read
+
+jobs:
+  qualified-full:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Pin exact source revision
+        run: |
+          echo "GITHUB_SHA=$GITHUB_SHA"
+          git rev-parse HEAD
+          git status --porcelain
+      - name: Install external proof/execution prerequisites
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y file binutils gcc clang dpkg-dev
+          python -m pip install zstandard==0.25.0
+      - name: Bootstrap checksum-locked compiler and target standard libraries
+        run: |
+          python tools/bootstrap_toolchain.py
+          echo "RUSTC=$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/bin/rustc" >> "$GITHUB_ENV"
+      - name: Bootstrap checksum-locked Lean and QEMU
+        run: |
+          python tools/bootstrap_verification.py
+      - name: Execute all 13 native/formal/cross and fixture release gates
+        run: |
+          python tools/release_check.py
+      - name: Publish exact-snapshot test evidence even on gate failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hepta-exact-head-gate-evidence
+          path: |
+            artifacts/release-validation.json
+            artifacts/*.log
+            artifacts/*validation.json
+            artifacts/*benchmarks.json
+            artifacts/abi-matrix.json
+            artifacts/cross-execution.json
+            evidence/groups/native_validation.json
+          if-no-files-found: warn
