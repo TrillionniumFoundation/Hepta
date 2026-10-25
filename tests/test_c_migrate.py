@@ -51,6 +51,107 @@ class ClangMigrationTests(unittest.TestCase):
         self.assertIn('export "C" fn clamp_positive', source)
         self.assertIn("wrapping_add(x, y)", source)
 
+    def test_unsigned_unary_modular_and_complement_vs_native_c(self):
+        self.c.write_text("""
+unsigned int neg32(unsigned int x) { return -x; }
+unsigned int bitnot32(unsigned int x) { return ~x; }
+unsigned long long neg64(unsigned long long x) { return -x; }
+unsigned long long bitnot64(unsigned long long x) { return ~x; }
+""")
+        migrated = migrate_c(self.c, self.hepta)
+        self.assertTrue(migrated["ok"], migrated)
+        source = self.hepta.read_text()
+        self.assertIn("wrapping_sub(0, x)", source)
+        self.assertIn("(!x)", source)
+        self.assertEqual(analyze(source, str(self.hepta), native=False).report["status"], "frontend_only")
+        original, native = self.directory / "unary-original.so", self.directory / "unary-hepta.so"
+        a = subprocess.run(["gcc", "-std=c11", "-O2", "-shared", "-fPIC", str(self.c), "-o", str(original)],
+                           capture_output=True, text=True, timeout=30)
+        self.assertEqual(a.returncode, 0, a.stderr)
+        b = subprocess.run([sys.executable, "-m", "hepta", "build", str(self.hepta),
+                            "--backend", "c", "--crate-type", "cdylib", "-o", str(native)],
+                           capture_output=True, text=True, timeout=90)
+        self.assertEqual(b.returncode, 0, b.stdout + b.stderr)
+        old, translated = ctypes.CDLL(str(original)), ctypes.CDLL(str(native))
+        for name, typ, cases in (
+            ("neg32", ctypes.c_uint32, (0, 1, 2**31, 2**32-1)),
+            ("bitnot32", ctypes.c_uint32, (0, 1, 2**31, 2**32-1)),
+            ("neg64", ctypes.c_uint64, (0, 1, 2**63, 2**64-1)),
+            ("bitnot64", ctypes.c_uint64, (0, 1, 2**63, 2**64-1))):
+            left, right = getattr(old, name), getattr(translated, name)
+            for fn in (left, right):
+                fn.argtypes, fn.restype = [typ], typ
+            for x in cases:
+                with self.subTest(fn=name, x=x):
+                    self.assertEqual(left(x), right(x))
+
+    def test_signed_bitwise_complement_stays_rejected(self):
+        self.c.write_text("int unsafe_bits(int x){return ~x;}")
+        result = migrate_c(self.c, self.hepta)
+        self.assertFalse(result["ok"], result)
+        self.assertIn("E_C_BITWISE", [entry["code"] for entry in result["rejected"]])
+        self.assertFalse(self.hepta.exists())
+
+    def test_divmod_shortcircuit_c11_vs_hepta_c_defined_domain(self):
+        self.c.write_text("""
+int safe_div(int a,int b) { return a / b; }
+int safe_mod(int a,int b) { return a % b; }
+unsigned long long unsigned_mod(unsigned long long a,unsigned long long b) { return a % b; }
+int safe_guard(int a,int b) {
+    if (b != 0 && a / b > 1) { return 7; }
+    if (b == 0 || a % b == 0) { return 9; }
+    if (!(a < 0)) { return 4; }
+    return 2;
+}
+""")
+        report = migrate_c(self.c, self.hepta)
+        self.assertTrue(report["ok"], report)
+        self.assertFalse(report["source_equivalence_proved"])
+        source = self.hepta.read_text()
+        self.assertIn("a / b", source)
+        self.assertIn("a % b", source)
+        self.assertIn("&&", source)
+        self.assertIn("||", source)
+        self.assertIn("!(", source)
+        self.assertEqual(analyze(source, str(self.hepta), native=False).report["status"], "frontend_only")
+        original, hepta_native = self.directory / "div-original.so", self.directory / "div-hepta.so"
+        original_run = subprocess.run(["gcc", "-std=c11", "-O2", "-shared", "-fPIC",
+                                       str(self.c), "-o", str(original)],
+                                      capture_output=True, text=True, timeout=30)
+        self.assertEqual(original_run.returncode, 0, original_run.stderr)
+        native_run = subprocess.run([sys.executable, "-m", "hepta", "build", str(self.hepta),
+                                     "--backend", "c", "--crate-type", "cdylib", "-o", str(hepta_native)],
+                                    capture_output=True, text=True, timeout=90)
+        self.assertEqual(native_run.returncode, 0, native_run.stdout + native_run.stderr)
+        old, new = ctypes.CDLL(str(original)), ctypes.CDLL(str(hepta_native))
+        for name in ("safe_div", "safe_mod", "safe_guard", "unsigned_mod"):
+            a, b = getattr(old, name), getattr(new, name)
+            typ = ctypes.c_uint64 if name == "unsigned_mod" else ctypes.c_int32
+            for fn in (a, b):
+                fn.argtypes, fn.restype = [typ, typ], typ
+            samples = (((2**64-1, 3), (0, 1), (2**63, 7), (0x1234567890abcdef, 11))
+                       if name == "unsigned_mod" else
+                       ((-99, -7), (-99, 7), (99, -7), (99, 7), (0, 3),
+                        (-(2**31), 1), (2**31-1, -1), (5, 0)))
+            for x, y in samples:
+                if y == 0 and name != "safe_guard":
+                    continue  # C zero divisor is undefined
+                with self.subTest(name=name, args=(x, y)):
+                    self.assertEqual(a(x, y), b(x, y))
+
+    def test_divmod_nontrivial_promotions_and_truthiness_reject(self):
+        for source, code in (
+            ("int f(int a,unsigned int b){return a / b;}", "E_C_DIVMOD_PROMOTION"),
+            ("int f(int a,int b){if(a && b){return 1;}return 0;}", "E_C_PROMOTION"),
+            ("int f(int a){if(!a){return 1;}return 0;}", "E_C_PROMOTION"),
+        ):
+            with self.subTest(source=source):
+                self.c.write_text(source)
+                result = migrate_c(self.c, self.hepta)
+                self.assertFalse(result["ok"], result)
+                self.assertIn(code, [entry["code"] for entry in result["rejected"]])
+                self.assertFalse(self.hepta.exists())
+
     def test_unsigned_shift_c11_vs_hepta_c_native_defined_domain(self):
         self.c.write_text("""
 unsigned int shl32(unsigned int value, unsigned int bits) { return value << bits; }
