@@ -97,6 +97,44 @@ class CProjectMigrationTests(unittest.TestCase):
                     verify_capture(altered)
                 self.assertEqual(caught.exception.code, expected_error)
 
+    def test_resealed_dependency_and_target_model_metadata_rejected(self):
+        (self.root / "header.h").write_text("#define HEADER_CONSTANT 7\n")
+        self.project({"input.c": '#include "header.h"\nint f(int x){return x+HEADER_CONSTANT;}'})
+        original = capture_project(self.database, clang=self.clang)
+        verify_capture(original)
+
+        def reseal(value):
+            value["sha256"] = hashlib.sha256(json.dumps(
+                {k: v for k, v in value.items() if k != "sha256"},
+                sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+
+        changes = {
+            "local_provenance": lambda x: x["dependencies"][0].update(
+                project_input=not x["dependencies"][0]["project_input"]),
+            "dependency_length": lambda x: x["dependencies"][0].update(
+                bytes=x["dependencies"][0]["bytes"] + 1),
+            "byte_count_as_float": lambda x: x["dependencies"][0].update(
+                bytes=float(x["dependencies"][0]["bytes"])),
+            "project_flag_as_integer": lambda x: x["dependencies"][0].update(project_input=1),
+            "target_char_bool_as_integer": lambda x: x["configurations"][0]["model"].update(
+                char_unsigned=int(x["configurations"][0]["model"]["char_unsigned"])),
+            "target_pointer_width_as_float": lambda x: x["configurations"][0]["model"].update(
+                pointer_bits=64.0),
+            "extra_compiler_authority": lambda x: x["compiler"].update(ffi_contracts_proved=True),
+            "extra_configuration_authority": lambda x: x["configurations"][0].update(
+                scope_certified=True),
+            "extra_dependency_proof": lambda x: x["dependencies"][0].update(
+                object_lifetime_proved=True),
+        }
+        for name, change in changes.items():
+            with self.subTest(name=name):
+                forged = copy.deepcopy(original)
+                change(forged)
+                reseal(forged)
+                with self.assertRaises(MigrationRejected) as caught:
+                    verify_capture(forged)
+                self.assertEqual(caught.exception.code, "E_C_BUILD_IDENTITY")
+
     def test_resealed_abi_arguments_reject_before_compiler_execution(self):
         self.project({"input.c": "int f(int x){return x;}"}, ["-DUSER_FLAG=1"])
         capture = capture_project(self.database, clang=self.clang)
