@@ -171,6 +171,44 @@ class SSAVerificationTests(unittest.TestCase):
                                             "(BLOCKS|INSTRUCTIONS|DEF|PHI)"):
                     verify_scalar_ssa(encoded(payload), cfg)
 
+    def test_forged_phi_from_dominating_but_overwritten_value_rejected(self):
+        cfg, ssa = self.fixture()
+        payload = ssa.as_dict()
+        payload.pop("sha256")
+        fn = payload["functions"][0]
+        stale = fn["blocks"][0]["instructions"][0]["definition"]["ssa_name"]
+        # Entry's x@0 dominates both branches but neither branch exits with it.
+        for edge in fn["blocks"][3]["phis"][0]["incoming"]:
+            edge["ssa_ref"] = stale
+        with self.assertRaisesRegex(SSAVerificationRejected, "REACHING"):
+            verify_scalar_ssa(encoded(payload), cfg)
+
+    def test_omitted_live_join_phi_cannot_read_prebranch_value(self):
+        cfg, ssa = self.fixture()
+        payload = ssa.as_dict()
+        payload.pop("sha256")
+        fn = payload["functions"][0]
+        join = fn["blocks"][3]
+        join["phis"] = []
+        join["terminator"]["value"]["ssa_ref"] = (
+            fn["blocks"][0]["instructions"][0]["definition"]["ssa_name"])
+        fn["definitions"] -= 1
+        fn["phi_count"] -= 1
+        # x@0 dominates the join but has been overwritten along BOTH edges.
+        with self.assertRaisesRegex(SSAVerificationRejected, "REACHING"):
+            verify_scalar_ssa(encoded(payload), cfg)
+
+    def test_same_block_stale_read_after_assignment_rejected(self):
+        cfg = snapshot([block(0, [let("x", i(1)), assign("x", i(2))],
+                              kind="return", value=n("x"))])
+        payload = lower_cfg_scalar_ssa(cfg).as_dict()
+        payload.pop("sha256")
+        fn = payload["functions"][0]
+        previous = fn["blocks"][0]["instructions"][0]["definition"]["ssa_name"]
+        fn["blocks"][0]["terminator"]["value"]["ssa_ref"] = previous
+        with self.assertRaisesRegex(SSAVerificationRejected, "REACHING"):
+            verify_scalar_ssa(encoded(payload), cfg)
+
     def test_duplicate_definition_wrong_count(self):
         cfg, ssa = self.fixture()
         x = ssa.as_dict()

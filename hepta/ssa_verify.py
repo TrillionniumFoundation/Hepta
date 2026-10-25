@@ -265,6 +265,137 @@ def _function(f: dict, original: dict, graph: dict) -> dict:
             "source_effect_resource_sha256": contract_sha256}
 
 
+
+def _verify_reaching_definitions(f: dict, original: dict, graph: dict) -> None:
+    """Independently verify predecessor-specific value flow, not just dominance.
+
+    Dominance alone is insufficient: a pre-branch definition dominates both
+    successors, but is not the value produced by either successor's writes.
+    This restricted verifier handles only the scalar CFG already accepted by
+    the source-bound structural gate. It is not an ownership/provenance proof.
+    """
+    blocks = {b["id"]: b for b in f["blocks"]}
+    originals = {b["id"]: b for b in original["blocks"]}
+    entry = f["entry"]
+    predecessors = graph["predecessors"]
+    successors = graph["successors"]
+    children = {name: [] for name in blocks}
+    for block_id, parent in graph["immediate_dominators"].items():
+        if parent is not None:
+            children[parent].append(block_id)
+
+    # Replay SSA naming over the *independent* dominator tree, taking each
+    # definition only after its initializer has been evaluated.
+    initial = {p["variable"]: p["ssa_name"] for p in f["parameters"]}
+    before, after = {}, {}
+    work = [(entry, initial)]
+    while work:
+        block_id, parent_values = work.pop()
+        local = dict(parent_values)
+        block = blocks[block_id]
+        for phi in block["phis"]:
+            definition = phi["result"]
+            local[definition["variable"]] = definition["ssa_name"]
+        before[block_id] = dict(local)
+        for instruction in block["instructions"]:
+            if "definition" in instruction:
+                definition = instruction["definition"]
+                local[definition["variable"]] = definition["ssa_name"]
+        after[block_id] = local
+        work.extend((child, local) for child in reversed(sorted(children[block_id])))
+    if set(after) != set(blocks):
+        _reject("E_SSA_VERIFY_REACHING", "Dominator traversal omitted a source block")
+
+    def names(node, depth=0) -> set[str]:
+        if node is None:
+            return set()
+        if depth > 64 or not isinstance(node, dict) or node.get("node") != "expr":
+            _reject("E_SSA_VERIFY_REACHING", "Unreviewed source expression in reaching analysis")
+        if node.get("operation") == "name":
+            if not isinstance(node.get("value"), str):
+                _reject("E_SSA_VERIFY_REACHING", "Missing source variable identity")
+            return {node["value"]}
+        operands = node.get("operands")
+        if not isinstance(operands, list):
+            _reject("E_SSA_VERIFY_REACHING", "Malformed expression operands")
+        result = set()
+        for value in operands:
+            result.update(names(value, depth + 1))
+        return result
+
+    # Reconstruct source liveness, independently of the SSA producer. A
+    # non-live variable can legitimately have divergent dead branch values;
+    # a live variable cannot cross the join without a correct PHI.
+    upward, definitions = {}, {}
+    for block_id, source in originals.items():
+        uses, killed = set(), set()
+        for instruction in source["instructions"]:
+            uses.update(names(instruction["fields"]["expr"]) - killed)
+            if instruction["operation"] in {"let", "assign"}:
+                name = (instruction["fields"].get("name")
+                        if instruction["operation"] == "let"
+                        else instruction["fields"].get("target", {}).get("value"))
+                if not isinstance(name, str) or not name:
+                    _reject("E_SSA_VERIFY_REACHING", "Malformed original scalar definition")
+                killed.add(name)
+        term = source["terminator"]
+        if term["kind"] in {"return", "branch"}:
+            uses.update(names(term.get("condition") if term["kind"] == "branch"
+                              else term.get("value")) - killed)
+        upward[block_id], definitions[block_id] = uses, killed
+    live_in = {name: set() for name in blocks}
+    live_out = {name: set() for name in blocks}
+    # Monotone finite sets over the bounded CFG; fail closed on nonconvergence.
+    for _ in range(max(1, len(blocks) * (len(f["scalar_types"]) + 1))):
+        changed = False
+        for block_id in reversed(list(originals)):
+            out = set().union(*(live_in[succ] for succ in successors[block_id]))
+            into = upward[block_id] | (out - definitions[block_id])
+            if live_out[block_id] != out or live_in[block_id] != into:
+                live_out[block_id], live_in[block_id] = out, into
+                changed = True
+        if not changed:
+            break
+    else:
+        _reject("E_SSA_VERIFY_REACHING", "Source liveness did not converge")
+
+    def check_reads(node, current, depth=0):
+        if node is None:
+            return
+        if depth > 64 or not isinstance(node, dict) or node.get("node") != "expr":
+            _reject("E_SSA_VERIFY_REACHING", "Unreviewed SSA expression")
+        if node.get("operation") == "name":
+            if current.get(node.get("value")) != node.get("ssa_ref"):
+                _reject("E_SSA_VERIFY_REACHING", "SSA read skips the most recent definition")
+            return
+        for operand in node.get("operands", []):
+            check_reads(operand, current, depth + 1)
+
+    for block_id, block in blocks.items():
+        current = dict(before[block_id])
+        for instruction in block["instructions"]:
+            check_reads(instruction["ssa_value"], current)
+            if "definition" in instruction:
+                definition = instruction["definition"]
+                current[definition["variable"]] = definition["ssa_name"]
+        term = block["terminator"]
+        if term["kind"] in {"return", "branch"}:
+            check_reads(term.get("value") if term["kind"] == "return"
+                        else term.get("condition"), current)
+        for phi in block["phis"]:
+            var = phi["result"]["variable"]
+            for edge in phi["incoming"]:
+                if after[edge["from"]].get(var) != edge["ssa_ref"]:
+                    _reject("E_SSA_VERIFY_REACHING", "PHI input is not the predecessor's exit definition")
+        if block_id != entry:
+            phi_vars = {p["result"]["variable"] for p in block["phis"]}
+            for var in live_in[block_id] - phi_vars:
+                inherited = before[block_id].get(var)
+                if inherited is None or any(after[pred].get(var) != inherited
+                                            for pred in predecessors[block_id]):
+                    _reject("E_SSA_VERIFY_REACHING", "Live value crosses a join without the required PHI")
+
+
 def verify_scalar_ssa(ssa: SSASnapshot, cfg: CFGSnapshot) -> SSAVerificationSnapshot:
     """Verify SSA dataflow facts against the exact original control flow."""
     if not isinstance(ssa, SSASnapshot) or not isinstance(cfg, CFGSnapshot):
@@ -286,7 +417,9 @@ def verify_scalar_ssa(ssa: SSASnapshot, cfg: CFGSnapshot) -> SSAVerificationSnap
     for f, old, graph in zip(fs, originals, graphs):
         if f.get("name") != old.get("name") or f["name"] != graph["name"]:
             _reject("E_SSA_VERIFY_FUNCTIONS", "function order/name changed")
-        result.append(_function(f, old, graph))
+        verified = _function(f, old, graph)
+        _verify_reaching_definitions(f, old, graph)
+        result.append(verified)
     output = {"schema": "hepta.ssa.verify.v0", "status": "scalar_ssa_structurally_verified",
               "ssa_sha256": ssa.sha256, "cfg_sha256": cfg.sha256, "functions": result,
               "claims": {"single_assignment_checked": True, "ssa_edge_uses_checked": True,
