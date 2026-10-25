@@ -86,10 +86,10 @@ def _expression(src, dest, depth=0) -> bool:
         if type(value) is not bool or len(src["args"]) or ty != "bool":
             _fail("LITERAL")
     elif op == "unary":
-        if len(src["args"]) != 1 or value not in {"-", "!"}:
+        if len(src["args"]) != 1 or not isinstance(value, str) or value not in {"-", "!"}:
             _fail("UNARY")
     elif op == "binary":
-        if len(src["args"]) != 2 or value not in (_BIN_ARITH | _BIN_CMP | _BIN_LOGICAL):
+        if len(src["args"]) != 2 or not isinstance(value, str) or value not in (_BIN_ARITH | _BIN_CMP | _BIN_LOGICAL):
             _fail("BINARY")
     else:
         # No calls, casts, float, generic instantiation, moves, raw memory,
