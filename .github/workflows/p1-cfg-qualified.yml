@@ -1,0 +1,48 @@
+name: Hepta P1 structural CFG candidate gates
+
+on:
+  push:
+    branches:
+      - codex/hepta-p1-structural-cfg-20261024
+  pull_request:
+    branches:
+      - codex/hepta-hsir-c-migration-20261024
+
+permissions:
+  contents: read
+
+jobs:
+  checked-cfg:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Frontend CFG and HSIR regressions
+        run: |
+          python -m compileall -q hepta tests/test_cfg.py
+          python -m unittest discover -s tests -p test_cfg.py -v
+          python -m unittest discover -s tests -p test_hsir.py -v
+          python -m unittest discover -s tests -p test_checker.py -v
+          python -m unittest discover -s tests -p test_parser.py -v
+      - name: Install sha256-locked Rust 1.90.0 host components
+        run: |
+          python tools/bootstrap_toolchain.py --prefix "$RUNNER_TEMP/hepta-rust" --targets
+          echo "RUSTC=$RUNNER_TEMP/hepta-rust/bin/rustc" >> "$GITHUB_ENV"
+      - name: Native-qualified CFG CLI and explicit claims
+        run: |
+          python -m hepta cfg examples/parser.hepta > "$RUNNER_TEMP/parser-cfg.json"
+          python -m hepta cfg examples/results.hepta > "$RUNNER_TEMP/results-cfg.json"
+          python - "$RUNNER_TEMP/parser-cfg.json" "$RUNNER_TEMP/results-cfg.json" <<'PY'
+          import json, sys
+          for path in sys.argv[1:]:
+              d = json.load(open(path, encoding="utf-8"))
+              assert d["schema"] == "hepta.cfg.v0", path
+              assert d["reference_validation"]["status"] in ("checked", "checked_with_external_assumptions"), path
+              assert d["claims"]["ssa_constructed"] is False, path
+              assert d["claims"]["backend_semantics_refined"] is False, path
+              assert d["claims"]["pointer_provenance_proved"] is False, path
+              assert d["functions"], path
+          PY
