@@ -12,7 +12,13 @@ This is a very narrow prototype: **P6 remains open**.
   return, with one root return statement, or one root `if/else` whose two
   branches each consist of exactly one `return`. The condition may be a
   typed boolean literal or a signed `i32` comparison (`== != < <= > >=`).
-  No general nested control flow, loop or phi-node SSA is supported.
+  The additional **single-local SSA profile** accepts exactly three root
+  statements: a mutable i32 `let`, one `if/else` with one direct assignment
+  to that same local on both paths, and a final `return`. LLVM `phi i32`
+  merges those branch values. When either arm contains checked arithmetic,
+  the incoming label must reference its actual post-overflow continuation
+  block; failing to do so is rejected by the native LLVM verifier. Arbitrary
+  nested flow, loops, multiple locals and general phi-node SSA remain open.
 - Literals, parameter references, unary plus/minus, checked signed
   `+`, `-`, `*` and explicitly wrapping `wrapping_add/sub/mul`.
 - Both declared and inferred function effects may only contain `panic`, and
@@ -46,6 +52,7 @@ python -m hepta build-llvm-scalar examples/llvm_scalar.hepta \
   --clang clang
 
 python -m unittest discover -s tests -p test_llvm_scalar_backend.py -v
+python -m unittest discover -s tests -p test_llvm_scalar_phi.py -v
 ```
 
 The `build-llvm-scalar` driver validates the actual source with the existing
@@ -60,12 +67,18 @@ per arithmetic operation. An additional 103-case differential test exercises
 the `if/else` integer-comparison CFG and explicitly rejects malformed
 branches and unsupported boolean operations. It separately confirms two's-complement wrapping at the boundary
 and aborts a child process on overflow. Safety-negative inputs are refused.
+The `test_llvm_scalar_phi.py` suite covers 804 valid integer pairs against
+a separately GCC-compiled C implementation and a checked-overflow predecessor
+SSA regression, plus structural/effect/symbol-inventory rejection cases.
+The LLVM compile receipt verifies its function-name inventory against actual
+`define i32` declarations before publishing the native artifact.
 A parser/checker/HSIR integration case runs when the full bootstrap compiler
 modules are available. If it skips, do not record a complete integration pass.
 
 ## Still open for P6
 
-The emitted subset is not a full Hepta backend. It lacks control flow, heap,
+The emitted subset is not a full Hepta backend. It supports only the two
+explicit control-flow patterns above and still lacks general CFG/SSA, heap,
 borrows, generics, symbols beyond this C ABI subset, debug information,
 optimizer tuning, alternative LLVM versions, and target profiles. It has no
 formal refinement proof and no evidence of general Rust performance parity,
