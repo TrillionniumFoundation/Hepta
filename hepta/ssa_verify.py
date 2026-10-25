@@ -63,12 +63,41 @@ def _reject(code: str, reason: str):
     raise SSAVerificationRejected(f"{code}: {reason}")
 
 
+def _reject_duplicate_json_keys(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            _reject("E_SSA_VERIFY_JSON", "duplicate keys are forbidden in semantic snapshots")
+        result[key] = value
+    return result
+
+
+def _reject_json_constant(value):
+    _reject("E_SSA_VERIFY_JSON", f"nonfinite JSON constant {value!r} rejected")
+
+
 def _decode(snapshot, required_schema, status):
-    if snapshot.schema != required_schema:
-        _reject("E_SSA_VERIFY_SCHEMA", "wrong snapshot type")
-    if sha256(snapshot.canonical_json.encode()).hexdigest() != snapshot.sha256:
+    if (snapshot.schema != required_schema or
+            not isinstance(snapshot.canonical_json, str)):
+        _reject("E_SSA_VERIFY_SCHEMA", "wrong or malformed snapshot type")
+    try:
+        raw = snapshot.canonical_json.encode("utf-8")
+    except UnicodeEncodeError as exc:
+        raise SSAVerificationRejected("E_SSA_VERIFY_JSON: invalid Unicode snapshot") from exc
+    if len(raw) > 32_000_000:
+        _reject("E_SSA_VERIFY_LIMIT", "semantic snapshot exceeds 32 MB")
+    if not isinstance(snapshot.sha256, str) or sha256(raw).hexdigest() != snapshot.sha256:
         _reject("E_SSA_VERIFY_HASH", "input was modified without updating identity")
-    payload = json.loads(snapshot.canonical_json)
+    try:
+        payload = json.loads(snapshot.canonical_json,
+                             object_pairs_hook=_reject_duplicate_json_keys,
+                             parse_constant=_reject_json_constant)
+        if not isinstance(payload, dict):
+            _reject("E_SSA_VERIFY_SCHEMA", "semantic snapshot root is not a record")
+        if _exact_json(payload, code="E_SSA_VERIFY_JSON") != snapshot.canonical_json:
+            _reject("E_SSA_VERIFY_JSON", "snapshot JSON is not canonical")
+    except (ValueError, TypeError, RecursionError) as exc:
+        raise SSAVerificationRejected("E_SSA_VERIFY_JSON: malformed or unbounded JSON") from exc
     if payload.get("schema") != required_schema or payload.get("status") != status:
         _reject("E_SSA_VERIFY_SCHEMA", "snapshot's canonical schema/status disagrees")
     return payload
