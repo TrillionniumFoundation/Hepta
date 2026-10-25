@@ -38,6 +38,10 @@ def main(argv=None) -> int:
     migrator.add_argument("--output", "-o", required=True)
     migrator.add_argument("--clang", default="clang")
     migrator.add_argument("--module", default="c_migrated")
+    bridge = sub.add_parser("bridge-cpp", help="Generate narrow L0 noexcept C++ to C ABI wrappers")
+    bridge.add_argument("source")
+    bridge.add_argument("--clangxx", default="clang++")
+    bridge.add_argument("--output-dir", required=True)
     for cmd in ["check", "inspect", "hsir", "emit", "header", "build", "run", "patch"]:
         p = sub.add_parser(cmd)
         p.add_argument("source")
@@ -81,6 +85,10 @@ def main(argv=None) -> int:
             from .c2hepta import main as migrate_c_main
             return migrate_c_main([args.source, "--output", args.output,
                                    "--clang", args.clang, "--module", args.module])
+        if args.command == "bridge-cpp":
+            from .cpp_bridge import main as bridge_cpp_main
+            return bridge_cpp_main([args.source, "--output-dir", args.output_dir,
+                                    "--clangxx", args.clangxx])
         if args.command == "doctor":
             info = toolchain_info(find_rustc(args.rustc))
             output_json({"schema": "hepta.doctor.v1", "ok": True, "toolchain": info})
