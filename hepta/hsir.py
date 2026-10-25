@@ -103,6 +103,8 @@ class HSIRSnapshot:
     def as_dict(self) -> dict:
         if self.schema != SCHEMA or not isinstance(self.canonical_json, str) or not isinstance(self.sha256, str):
             raise HSIRRejected("E_HSIR_SNAPSHOT: malformed snapshot")
+        if len(self.canonical_json.encode("utf-8")) > 32_000_000:
+            raise HSIRRejected("E_HSIR_SNAPSHOT: bounded scalar snapshot exceeds 32 MB")
         if sha256(self.canonical_json.encode("utf-8")).hexdigest() != self.sha256:
             raise HSIRRejected("E_HSIR_SNAPSHOT: changed snapshot content")
         try:
@@ -140,7 +142,7 @@ def _validate_derived_node(value: Any, depth: int = 0) -> int:
     if not isinstance(value, dict):
         _reject("derived scalar value must be structured")
     if set(value) == {"type", "args", "length"}:
-        if (value["type"] not in _TYPES or value["args"] != []
+        if (not isinstance(value["type"], str) or value["type"] not in _TYPES or value["args"] != []
                 or value["length"] is not None):
             _reject("derived scalar type is not closed")
         return 0
@@ -153,7 +155,9 @@ def _validate_derived_node(value: Any, depth: int = 0) -> int:
         return 0
     kind = value.get("node")
     if kind == "expr":
-        if (set(value) != _DERIVED_EXPR_FIELDS or value.get("operation") not in _EXPR
+        if (set(value) != _DERIVED_EXPR_FIELDS
+                or not isinstance(value.get("operation"), str)
+                or value.get("operation") not in _EXPR
                 or value.get("type_args") != [] or not isinstance(value.get("operands"), list)):
             _reject("derived scalar expression contains unreviewed semantics")
         op, operands, literal = value["operation"], value["operands"], value["value"]
@@ -176,6 +180,7 @@ def _validate_derived_node(value: Any, depth: int = 0) -> int:
     if kind == "stmt":
         operation, fields = value.get("operation"), value.get("fields")
         if (set(value) != _DERIVED_STMT_FIELDS
+                or not isinstance(operation, str)
                 or operation not in _STMT_DATA_FIELDS or not isinstance(fields, dict)
                 or set(fields) != _STMT_DATA_FIELDS[operation]):
             _reject("derived scalar statement contains unreviewed semantics")
@@ -239,7 +244,9 @@ def _validate_derived_snapshot(obj: dict) -> None:
         if (not isinstance(fn, dict) or set(fn) != _DERIVED_FUNCTION_FIELDS
                 or not isinstance(fn.get("name"), str)
                 or fn.get("type_parameters") != []
+                or not isinstance(fn.get("direction"), str)
                 or fn.get("direction") not in {"local", "export"}
+                or not isinstance(fn.get("abi"), str)
                 or fn.get("abi") not in {"C", "hepta_unstable"}
                 or not isinstance(fn.get("body"), list)
                 or not isinstance(fn.get("param_types"), list)
@@ -270,7 +277,7 @@ def _type(obj: Any, context: str) -> dict:
         name = obj.get("name")
     else:
         _reject(f"{context}: unsupported type structure")
-    if name not in _TYPES:
+    if not isinstance(name, str) or name not in _TYPES:
         _reject(f"{context}: type {name!r} is outside scalar bridge")
     return {"type": name, "args": [], "length": None}
 
@@ -292,7 +299,8 @@ def _value(value: Any) -> Any:
     if kind == "expr":
         if set(value) != _EXPR_FIELDS:
             _reject("unreviewed scalar expression fields")
-        if value.get("op") not in _EXPR or value.get("type_args") not in ([], None):
+        if (not isinstance(value.get("op"), str) or value.get("op") not in _EXPR
+                or value.get("type_args") not in ([], None)):
             _reject(f"unhandled expression {value.get('op')!r}")
         if not isinstance(value.get("args"), list):
             _reject("malformed expression operands")
@@ -305,7 +313,7 @@ def _value(value: Any) -> Any:
         if set(value) != _STMT_FIELDS:
             _reject("unreviewed scalar statement fields")
         operation, data = value.get("op"), value.get("data")
-        if operation not in _STMT or not isinstance(data, dict):
+        if not isinstance(operation, str) or operation not in _STMT or not isinstance(data, dict):
             _reject(f"unhandled statement {operation!r}")
         if set(data) != _STMT_DATA_FIELDS[operation]:
             _reject(f"unreviewed {operation} statement data fields")
@@ -327,7 +335,11 @@ def from_canonical_snapshot(source: dict[str, Any]) -> HSIRSnapshot:
     if not isinstance(parent_digest, str) or _HASH.fullmatch(parent_digest) is None:
         _reject("missing canonical snapshot identity")
     parent = {k: v for k, v in source.items() if k != "sha256"}
-    if sha256(_json(parent).encode("utf-8")).hexdigest() != parent_digest:
+    try:
+        observed_digest = sha256(_json(parent).encode("utf-8")).hexdigest()
+    except (TypeError, ValueError, RecursionError) as exc:
+        raise HSIRRejected("E_HSIR_BRIDGE: canonical snapshot is not serializable") from exc
+    if observed_digest != parent_digest:
         _reject("canonical snapshot checksum mismatch")
     if set(source) != _CANONICAL_FIELDS:
         _reject("canonical HSIR field inventory differs from reviewed v0 semantics")
