@@ -55,7 +55,7 @@ def main(argv=None) -> int:
     llvm_scalar.add_argument("--rustc")
     llvm_scalar.add_argument("--clang", default="clang")
     llvm_scalar.add_argument("--locked", action="store_true")
-    for cmd in ["check", "inspect", "hsir", "cfg", "emit", "header", "build", "run", "patch"]:
+    for cmd in ["check", "inspect", "hsir", "cfg", "cfg-analyze", "emit", "header", "build", "run", "patch"]:
         p = sub.add_parser(cmd)
         p.add_argument("source")
         p.add_argument("--rustc")
@@ -151,7 +151,7 @@ def main(argv=None) -> int:
                                  backend=args.backend, cc=args.cc, locked=args.locked)
         file = result.project.entry
         protected = {Path(p) for p in result.project.sources}
-        if args.command in {"hsir", "cfg"}:
+        if args.command in {"hsir", "cfg", "cfg-analyze"}:
             if args.backend != "rust":
                 raise ValueError("HSIR/CFG extraction requires the real Rust reference backend")
             if not result.report["ok"]:
@@ -162,7 +162,12 @@ def main(argv=None) -> int:
                 snapshot = lower_checked_program(result.program, result.checked).as_dict()
             else:
                 from .cfg import lower_checked_cfg
-                snapshot = lower_checked_cfg(result.program, result.checked).as_dict()
+                cfg = lower_checked_cfg(result.program, result.checked)
+                if args.command == "cfg-analyze":
+                    from .cfg_analysis import analyze_cfg
+                    snapshot = analyze_cfg(cfg).as_dict()
+                else:
+                    snapshot = cfg.as_dict()
             snapshot["reference_validation"] = {
                 "status": result.report["status"],
                 "compiler_sha256": result.report["compiler_sha256"],
