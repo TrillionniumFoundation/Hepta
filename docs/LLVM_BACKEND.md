@@ -32,8 +32,21 @@ LLVM operations.
 ## Reproduce
 
 ```sh
+# Real Hepta source -> checked HSIR -> LLVM IR -> host shared library.
+# The pinned rustc validation is mandatory, with no frontend-only fallback.
+python -m hepta build-llvm-scalar examples/llvm_scalar.hepta \
+  --output /tmp/hepta_scalar.so \
+  --rustc /path/to/pinned/rustc \
+  --clang clang
+
 python -m unittest discover -s tests -p test_llvm_scalar_backend.py -v
 ```
+
+The `build-llvm-scalar` driver validates the actual source with the existing
+Rust backend and pinned compiler **before** invoking this experimental LLVM
+lowerer. A Rust failure rejects the build. There is no evidence that a
+`frontend_only` result suffices. The LLVM path is strictly additive: it does
+not change the default Rust and C backends. 
 
 The suite executes a Clang-produced shared library from emitted LLVM IR,
 links a separate GCC-compiled C reference, and compares 100 seeded inputs
