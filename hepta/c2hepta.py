@@ -321,6 +321,10 @@ def convert_c(source_file: str | Path, *, clang: str = "clang", module: str = "c
         params = [x for x in _children(node) if x.get("kind") == "ParmVarDecl"]
         names: list[str] = []
         for param in params:
+            # Preserve no argument default or attribute implicitly: function
+            # signatures are a strict ABI/semantics boundary.
+            if param.get("init") is not None or _children(param):
+                _reject(param, "default arguments and parameter attributes are unsupported")
             if param.get("type", {}).get("qualType") != "int":
                 _reject(param, "only signed int value parameters are supported")
             pname = _ident(param.get("name"), param)
