@@ -18,6 +18,26 @@ def sha(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def negative_sources(source: str) -> dict[str, str]:
+    """Construct precisely the rejected core variants used by the Lean verifier."""
+    replacements = {
+        "release_while_borrowed": (
+            "| .release =>\n    if s.live = true ∧ s.readers = 0 ∧ s.writer = false then",
+            "| .release =>\n    if s.live = true ∧ s.writer = false then",
+        ),
+        "unbounded_task_admission": (
+            "if u.admitted + 1 ≤ b.tasks ∧ u.inputBytes + bytes ≤ b.inputBytes then",
+            "if u.inputBytes + bytes ≤ b.inputBytes then",
+        ),
+    }
+    result = {}
+    for name, (original, broken) in replacements.items():
+        if source.count(original) != 1:
+            raise RuntimeError("Mutation is not unique or did not apply: " + name)
+        result[name] = source.replace(original, broken)
+    return result
+
+
 def verify(lean: str, output: Path):
     version = subprocess.run([lean, "--version"], capture_output=True, text=True, timeout=20)
     if version.returncode or "version 4.19.0," not in version.stdout:
@@ -42,23 +62,15 @@ def verify(lean: str, output: Path):
         for name, used in axioms.items():
             if set(used) - {"propext", "Quot.sound", "Classical.choice"}:
                 raise RuntimeError("Unexpected axioms in " + name)
-        mutations = {
-            "release_while_borrowed": source.replace(
-                "| .release =>\n    if s.live = true ∧ s.readers = 0 ∧ s.writer = false then",
-                "| .release =>\n    if s.live = true ∧ s.writer = false then"),
-            "unbounded_task_admission": source.replace(
-                "if u.admitted + 1 ≤ b.tasks ∧ u.inputBytes + bytes ≤ b.inputBytes then",
-                "if u.inputBytes + bytes ≤ b.inputBytes then"),
-        }
+        mutations = negative_sources(source)
         negative = []
         for name, broken in mutations.items():
-            if broken == source:
-                raise RuntimeError("Mutation did not apply: " + name)
             p.write_text(broken)
             rejected = subprocess.run([lean, str(p)], capture_output=True, text=True, timeout=60)
             if rejected.returncode == 0 or "error:" not in rejected.stdout + rejected.stderr:
                 raise RuntimeError("Broken core was not rejected: " + name)
             negative.append({"mutation": name, "status": "rejected_as_expected", "source_sha256": sha(broken.encode()),
+                             "exit_code": rejected.returncode, "log": rejected.stdout + rejected.stderr,
                              "log_sha256": sha((rejected.stdout + rejected.stderr).encode())})
     if sha(file.read_bytes()) != sha(source.encode()):
         raise RuntimeError("Formal source changed while checking")
