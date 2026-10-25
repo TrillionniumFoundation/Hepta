@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -42,6 +43,47 @@ def _run(args: list[str], *, input_text: str | None = None) -> str:
     if len(proc.stdout) > 32_000_000:
         raise MigrationRejected("E_CLANG_SIZE", "Clang AST output exceeds 32 MB")
     return proc.stdout
+
+
+def _load_bounded_clang_ast(raw: str, *, max_bytes: int = 32_000_000,
+                            max_depth: int = 128, max_nodes: int = 250_000) -> dict:
+    """Decode and size/depth-bound untrusted native Clang AST transcripts.
+
+    The input is a single real Clang translation unit, not an arbitrary
+    second AST authority. Nonfinite JSON, deeply nested structures and
+    maliciously oversized node inventories must fail with diagnostics rather
+    than an uncaught Python recursion/JSON exception.
+    """
+    if (not isinstance(raw, str) or any(type(n) is not int or n <= 0
+                                       for n in (max_bytes, max_depth, max_nodes))):
+        raise MigrationRejected("E_CLANG_AST_LIMIT", "Invalid AST input or capture budgets")
+    if len(raw) > max_bytes or len(raw.encode("utf-8")) > max_bytes:
+        raise MigrationRejected("E_CLANG_AST_LIMIT", "Clang AST JSON exceeds bounded input budget")
+
+    def bad_constant(value: str):
+        raise ValueError("Nonfinite JSON constant: " + value)
+
+    try:
+        root = json.loads(raw, parse_constant=bad_constant)
+    except (ValueError, RecursionError, OverflowError) as exc:
+        raise MigrationRejected("E_CLANG_AST_FORMAT", "Malformed or too deeply nested Clang JSON AST") from exc
+    if not isinstance(root, dict) or root.get("kind") != "TranslationUnitDecl":
+        raise MigrationRejected("E_CLANG_AST_FORMAT", "Clang AST root must be a translation unit")
+    pending = [(root, 0)]
+    visited = 0
+    while pending:
+        value, depth = pending.pop()
+        visited += 1
+        if visited > max_nodes or depth > max_depth:
+            raise MigrationRejected("E_CLANG_AST_LIMIT", "Clang AST node/depth budget exceeded")
+        if isinstance(value, dict):
+            pending.extend((v, depth + 1) for v in value.values())
+        elif isinstance(value, list):
+            pending.extend((v, depth + 1) for v in value)
+        elif not (value is None or isinstance(value, (str, int, bool))
+                  or (type(value) is float and math.isfinite(value))):
+            raise MigrationRejected("E_CLANG_AST_FORMAT", "Clang AST contains unsupported JSON type")
+    return root
 
 
 def _data_model(clang: str) -> dict:
@@ -343,7 +385,7 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
         report["preprocessed_sha256"] = preprocessed_sha256
         ast_json = _run([clang, "-std=c11", "-fsyntax-only", "-Werror",
                         "-Xclang", "-ast-dump=json", str(src)])
-        root = json.loads(ast_json)
+        root = _load_bounded_clang_ast(ast_json)
         if root.get("kind") != "TranslationUnitDecl":
             raise MigrationRejected("E_C_AST", "Clang did not return a translation unit")
         declarations = []
