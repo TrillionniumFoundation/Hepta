@@ -76,10 +76,27 @@ def inspect_object_symbols(data: bytes, fmt: str, machine: int) -> dict[str, fro
                 name = _name(data, names + name_off, names + names_size)
                 if shndx == 0:
                     if name:
+                        if name in exported:
+                            raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_DUPLICATE: export also imported")
                         undefined.add(name)
-                elif kind == 2 and 0 < shndx < sections:
-                    if name:
-                        exported.add(name)
+                elif kind == 2 and name:
+                    # ELF STT_FUNC is a label, not a proof that executable
+                    # section bytes actually cover its declared function.
+                    if not 0 < shndx < sections:
+                        raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_LOCATION: invalid ELF function section")
+                    section_at = table + 64 * shndx
+                    section_kind = _u32(data, section_at + 4)
+                    section_flags = _u64(data, section_at + 8)
+                    section_bytes = _u64(data, section_at + 32)
+                    value, length = _u64(data, pos + 8), _u64(data, pos + 16)
+                    if (section_kind != 1 or not (section_flags & 0x4) or
+                            not length or value >= section_bytes or
+                            length > section_bytes - value):
+                        raise ObjectSymbolsRejected(
+                            "E_OBJECT_SYMBOL_LOCATION: ELF function outside executable section")
+                    if name in exported or name in undefined:
+                        raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_DUPLICATE: ELF function identity reused")
+                    exported.add(name)
         if not observed:
             raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_TABLE: no ELF symbol table")
     elif fmt == "COFF":
@@ -110,14 +127,41 @@ def inspect_object_symbols(data: bytes, fmt: str, machine: int) -> dict[str, fro
                     except UnicodeDecodeError as exc:
                         raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_NAME: non-ASCII COFF symbol") from exc
                 if section == 0 and name:
+                    if name in exported:
+                        raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_DUPLICATE: export also imported")
                     undefined.add(name)
-                elif storage == 2 and 0 < section <= nsections and kind & 0x20 and name:
+                elif storage == 2 and section > 0 and kind & 0x20 and name:
+                    if section > nsections:
+                        raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_LOCATION: COFF function section missing")
+                    section_at = 20 + (section - 1) * 40
+                    characteristics = _u32(data, section_at + 36)
+                    code_size = _u32(data, section_at + 16)
+                    value = _u32(data, pos + 8)
+                    # Require both IMAGE_SCN_CNT_CODE and MEM_EXECUTE,
+                    # and that the exported function starts within code.
+                    if (characteristics & 0x20 == 0 or
+                            characteristics & 0x20000000 == 0 or
+                            value >= code_size):
+                        raise ObjectSymbolsRejected(
+                            "E_OBJECT_SYMBOL_LOCATION: COFF function not in executable code")
+                    if name in exported or name in undefined:
+                        raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_DUPLICATE: COFF function identity reused")
                     exported.add(name)
             idx += 1 + aux
     elif fmt == "MACHO64":
         pos, commands, symbol_table = 32, _u32(data, 16), None
+        sections: list[tuple[int, int, int, bytes, bytes]] = []
         for _ in range(commands):
             cmd, size = _u32(data, pos), _u32(data, pos + 4)
+            if cmd == 0x19:  # LC_SEGMENT_64
+                for index in range(_u32(data, pos + 64)):
+                    if len(sections) >= 4096:
+                        raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_SECTION: too many Mach-O sections")
+                    entry = pos + 72 + index * 80
+                    sections.append((_u64(data, entry + 32), _u64(data, entry + 40),
+                                     _u32(data, entry + 64),
+                                     data[entry:entry + 16].split(b"\0", 1)[0],
+                                     data[entry + 16:entry + 32].split(b"\0", 1)[0]))
             if cmd == 0x2:  # LC_SYMTAB
                 if symbol_table is not None:
                     raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_TABLE: duplicate Mach-O symbol table")
@@ -144,8 +188,24 @@ def inspect_object_symbols(data: bytes, fmt: str, machine: int) -> dict[str, fro
                 raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_NAME: missing Darwin C underscore")
             normalized = name[1:]
             if kind & 0x0e == 0:
+                if normalized in exported:
+                    raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_DUPLICATE: export also imported")
                 undefined.add(normalized)
-            elif kind & 0x0e == 0x0e and sec != 0:
+            elif kind & 0x0e == 0x0e:
+                if not 0 < sec <= len(sections):
+                    raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_LOCATION: Mach-O function section missing")
+                start, length, flags, sectname, segname = sections[sec - 1]
+                value = _u64(data, pos + 8)
+                # N_SECT/N_EXT alone does not identify executable code.
+                # This strict scalar backend only emits __TEXT,__text.
+                if (sectname != b"__text" or segname != b"__TEXT" or
+                        flags & 0xff != 0 or  # S_REGULAR, not ZEROFILL or another special section
+                        not (flags & (0x80000000 | 0x400)) or
+                        not length or not start <= value < start + length):
+                    raise ObjectSymbolsRejected(
+                        "E_OBJECT_SYMBOL_LOCATION: Mach-O function outside executable text")
+                if normalized in exported or normalized in undefined:
+                    raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_DUPLICATE: Mach-O function identity reused")
                 exported.add(normalized)
     else:
         raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_FORMAT: unsupported object profile")
