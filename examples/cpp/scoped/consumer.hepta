@@ -1,0 +1,25 @@
+module cpp_scoped_consumer;
+import bridge;
+
+export "C" fn hepta_scoped_vector(count: usize, initial: i64, appended: i64,
+                                  index: usize, out: raw mut i64) -> i32
+effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_scoped_vector_roundtrip(count, initial, appended, index, out); }
+}
+
+export "C" fn hepta_scoped_probe(count: usize, initial: i64, mode: u64,
+                                 appended: i64, index: usize, out: raw mut i64) -> i32
+effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_scoped_probe_roundtrip(count, initial, mode, appended, index, out); }
+}
+
+export "C" fn hepta_scoped_unit(count: usize, initial: i64, mode: u64, appended: i64) -> i32
+effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_scoped_probe_unit(count, initial, mode, appended); }
+}
+
+export "C" fn hepta_scoped_pair(first: i64, second: u64, out: raw mut bridge::Pair) -> i32
+effects {ffi, unsafe, write, alloc, block} {
+    let initial = bridge::Pair {first: first, second: second};
+    unsafe { return bridge::hepta_cpp_scoped_pair_copy(initial, out); }
+}

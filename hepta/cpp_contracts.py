@@ -1,8 +1,8 @@
 """Native-checked, explicitly unsafe C++ interoperation contracts.
 
-This is a bridge generator, not a C++ to safe-Hepta translator. Its three
-routes have different costs: direct values, checked call-scoped spans, and
-serialized integer handles. Foreign retention, global effects and pointer
+This is a bridge generator, not a C++ to safe-Hepta translator. Its routes
+have different costs: direct values, checked call-scoped spans, serialized
+integer handles, and call-local C++ RAII objects. Foreign retention, global effects and pointer
 validity remain stated obligations, never conclusions inferred from a schema.
 """
 from __future__ import annotations
@@ -20,6 +20,7 @@ from .c_migrate import MigrationRejected, _IDENT
 
 SCHEMA = "hepta.cpp-contract.v1"
 SCHEMA_V2 = "hepta.cpp-contract.v2"
+SCHEMA_V3 = "hepta.cpp-contract.v3"
 _QUALIFIED = re.compile(r"[A-Za-z_][A-Za-z_0-9]*(?:::[A-Za-z_][A-Za-z_0-9]*)*\Z")
 _SCALARS = {
     "i8": ("std::int8_t", "int8_t"), "u8": ("std::uint8_t", "uint8_t"),
@@ -64,9 +65,11 @@ def _array(value: object, context: str, maximum: int = 32) -> list:
 
 
 def _validate(contract: object) -> dict:
-    c = _fields(contract, {"schema", "module", "pod_types", "functions", "handles"}, "contract")
-    if c["schema"] not in {SCHEMA, SCHEMA_V2}:
-        _reject("Unsupported C++ contract schema")
+    if not isinstance(contract, dict):
+        _reject("contract must be an object")
+    c = _fields(contract, {"schema", "module", "pod_types", "functions", "handles"}
+                | ({"scopes"} if contract.get("schema") == SCHEMA_V3 else set()), "contract")
+    _choice(c["schema"], {SCHEMA, SCHEMA_V2, SCHEMA_V3}, "C++ contract schema")
     _name(c["module"], "module name")
     pods = {}
     for pod in _array(c["pod_types"], "pod_types", 16):
@@ -92,8 +95,9 @@ def _validate(contract: object) -> dict:
 
     def parameters_(params: object, *, constructor: bool = False) -> None:
         used = set()
-        # Constructor wrappers introduce these locals in the invocation scope.
-        # V1 callable parameter acceptance is unchanged.
+        # Keep the original schema's reserved names. C++ implementation
+        # parameters are separately renamed by position below, so accepted
+        # public names cannot capture any generated invocation-scope locals.
         reserved = {"out", "handle"} | ({"entry", "registry", "lock"} if constructor else set())
         for p in _array(params, "parameters", 16):
             if not isinstance(p, dict):
@@ -141,7 +145,7 @@ def _validate(contract: object) -> dict:
         symbols.add(f["name"])
     for h in _array(c["handles"], "handles", 8):
         _fields(h, {"name", "cpp_type", "template_args", "threading", "reentrancy",
-                    "allocator", "destruction", "methods"} | ({"constructors"} if c["schema"] == SCHEMA_V2 else set()), "handle")
+                    "allocator", "destruction", "methods"} | ({"constructors"} if c["schema"] in {SCHEMA_V2, SCHEMA_V3} else set()), "handle")
         _name(h["name"], "handle name")
         _name(h["cpp_type"], "C++ handle type", qualified=True)
         for t in _array(h["template_args"], "template arguments", 4):
@@ -154,10 +158,10 @@ def _validate(contract: object) -> dict:
         if not methods:
             _reject("A handle needs at least one method")
         names = {"destroy"}
-        if c["schema"] == SCHEMA_V2:
+        if c["schema"] in {SCHEMA_V2, SCHEMA_V3}:
             constructors = _array(h["constructors"], "constructors", 8)
             if not constructors:
-                _reject("A v2 handle needs at least one explicit constructor contract")
+                _reject("A v2/v3 handle needs at least one explicit constructor contract")
             for constructor in constructors:
                 _fields(constructor, {"name", "params", "exception"}, "constructor")
                 _name(constructor["name"], "constructor export name")
@@ -177,6 +181,56 @@ def _validate(contract: object) -> dict:
         if exported & symbols:
             _reject("Conflicting handle export name")
         symbols |= exported
+    handles = {h["name"]: h for h in c["handles"]}
+    for scope in _array(c.get("scopes", []), "scopes", 16):
+        _fields(scope, {"name", "handle", "constructor", "params", "constructor_args",
+                        "calls", "lifetime"}, "scoped operation")
+        name = _name(scope["name"], "scoped export name")
+        if name in symbols:
+            _reject("Conflicting scoped export name")
+        symbols.add(name)
+        if scope["lifetime"] != "call_scoped_cpp_raii":
+            _reject("Scoped operations require call_scoped_cpp_raii")
+        handle = _name(scope["handle"], "scoped handle type")
+        if handle not in handles:
+            _reject("Scoped operation refers to an unknown handle type")
+        h = handles[handle]
+        parameters_(scope["params"], constructor=True)
+        params = {p["name"]: p for p in scope["params"]}
+        if {"_hepta_scoped_object", "_hepta_scoped_result"} & set(params):
+            _reject("Reserved scoped operation parameter name")
+        used = set()
+
+        def arguments_(arguments: object, target: dict) -> None:
+            args = _array(arguments, "scoped argument names", 16)
+            if len(args) != len(target["params"]):
+                _reject("Scoped argument count differs from the selected contract")
+            for argument, expected in zip(args, target["params"]):
+                _name(argument, "scoped argument")
+                if argument not in params:
+                    _reject("Scoped argument must name an input parameter")
+                actual = params[argument]
+                if any(actual.get(k) != expected.get(k) for k in ("type", "mode", "retention")):
+                    _reject("Scoped argument type, mode and retention must match exactly")
+                used.add(argument)
+
+        constructor_name = _name(scope["constructor"], "scoped constructor name")
+        constructors = {ctor["name"]: ctor for ctor in h["constructors"]}
+        if constructor_name not in constructors:
+            _reject("Scoped operation refers to an unknown constructor")
+        arguments_(scope["constructor_args"], constructors[constructor_name])
+        calls = _array(scope["calls"], "scoped method calls", 16)
+        if not calls:
+            _reject("Scoped operation needs at least one method call")
+        methods = {m["name"]: m for m in h["methods"]}
+        for call in calls:
+            _fields(call, {"method", "args"}, "scoped method call")
+            method = _name(call["method"], "scoped method name")
+            if method not in methods:
+                _reject("Scoped operation refers to an unknown method")
+            arguments_(call["args"], methods[method])
+        if used != set(params):
+            _reject("Every scoped input must be used by construction or a method")
     if not symbols:
         _reject("Contract must export at least one function or handle")
     return c
@@ -212,6 +266,7 @@ class _Generator:
                    "// All foreign calls remain explicitly unsafe; no C++ safety proof is claimed."]
         self.costs = []
         self.constructor_checks = []
+        self.scoped_checks = []
 
     def cpp_type(self, typ: str, *, abi: bool = False) -> str:
         return _cpp_type(typ, self.pods, abi=abi, prefix=self.prefix)
@@ -237,24 +292,34 @@ class _Generator:
             return "std::span<" + ("const " if p["mode"] == "borrow_const" else "") + typ + ">"
         return typ
 
-    def cpp_arg(self, p: dict) -> str:
+    @staticmethod
+    def argument_names(fn: dict) -> dict[str, str]:
+        # Public C/Hepta names are documentation, not implementation bindings.
+        # A source name such as receiver/result/entry must never resolve to a
+        # generated local (which can silently select a C++ conversion overload).
+        return {p["name"]: "hepta_arg" + str(i) for i, p in enumerate(fn["params"])}
+
+    def cpp_arg(self, p: dict, names: dict[str, str]) -> str:
+        name = names[p["name"]]
         if p["mode"].startswith("borrow_"):
-            return self.cpp_arg_type(p) + "(" + p["name"] + ", " + p["name"] + "_len)"
+            return self.cpp_arg_type(p) + "(" + name + ", " + name + "_len)"
         # Preserve the category used by the compile-time call-expression check;
         # an lvalue/rvalue overload must not silently replace the declared call.
-        return "static_cast<" + self.cpp_arg_type(p) + ">(" + self.value_in(p["name"], p["type"]) + ")"
+        return "static_cast<" + self.cpp_arg_type(p) + ">(" + self.value_in(name, p["type"]) + ")"
 
     def parameters(self, fn: dict, *, handle: bool, checked: bool) -> tuple[list[str], list[str], list[str]]:
         cpp, c, hp = (["std::uint64_t handle"], ["uint64_t handle"], ["handle: u64"]) if handle else ([], [], [])
+        names = self.argument_names(fn)
         for p in fn["params"]:
             n, t, mode = p["name"], p["type"], p["mode"]
+            implementation_name = names[n]
             if mode.startswith("borrow_"):
                 const = "const " if mode == "borrow_const" else ""
-                cpp += [const + self.cpp_type(t) + "* " + n, "std::size_t " + n + "_len"]
+                cpp += [const + self.cpp_type(t) + "* " + implementation_name, "std::size_t " + implementation_name + "_len"]
                 c += [const + self.ctype(t) + "* " + n, "size_t " + n + "_len"]
                 hp += [n + ": raw " + ("const " if const else "mut ") + t, n + "_len: usize"]
             else:
-                cpp.append(self.cpp_type(t, abi=True) + " " + n)
+                cpp.append(self.cpp_type(t, abi=True) + " " + implementation_name)
                 c.append(self.ctype(t) + " " + n)
                 hp.append(n + ": " + t)
         if checked and fn["returns"] != "Unit":
@@ -270,13 +335,14 @@ class _Generator:
 
     def checks(self, fn: dict) -> list[str]:
         lines = []
+        names = self.argument_names(fn)
         if fn["returns"] != "Unit":
             lines += ["    if (!out) return 1;",
                       f"    if (reinterpret_cast<std::uintptr_t>(out) % alignof({self.cpp_type(fn['returns'], abi=True)})) return 8;"]
         for p in fn["params"]:
             if not p["mode"].startswith("borrow_"):
                 continue
-            n, typ = p["name"], self.cpp_type(p["type"])
+            n, typ = names[p["name"]], self.cpp_type(p["type"])
             lines += [f"    if ({n}_len && !{n}) return 1;",
                       f"    if ({n}_len > static_cast<std::size_t>((std::numeric_limits<std::ptrdiff_t>::max)()) / sizeof({typ})) return 7;",
                       f"    if (reinterpret_cast<std::uintptr_t>({n}) % alignof({typ})) return 8;"]
@@ -326,7 +392,7 @@ class _Generator:
             self.cpp += [self.declare(name, "i32" if checked else f["returns"], *params, effects)]
             if checked:
                 self.cpp += self.checks(f) + ["    try {"]
-            expr = name + "_target(" + ", ".join(self.cpp_arg(p) for p in f["params"]) + ")"
+            expr = name + "_target(" + ", ".join(self.cpp_arg(p, self.argument_names(f)) for p in f["params"]) + ")"
             self.cpp += self.call_result(f, expr, checked=checked, indent="        " if checked else "    ")
             if checked:
                 self.cpp += ["    } catch (...) { return 3; }"]
@@ -376,7 +442,7 @@ class _Generator:
                 self.cpp += [self.declare(symbol, "i32", *params, {"ffi", "unsafe", "write", "alloc", "block"})]
                 self.cpp += self.checks(callable_constructor)
                 self.cpp += ["    try {", f"        auto entry = std::make_shared<{entry}>();",
-                             f"        entry->object = std::make_shared<{obj}>({', '.join(self.cpp_arg(p) for p in constructor['params'])});",
+                             f"        entry->object = std::make_shared<{obj}>({', '.join(self.cpp_arg(p, self.argument_names(constructor)) for p in constructor['params'])});",
                              *([f"        entry->creator = {self.prefix}thread_token();"] if h["threading"] == "creator_thread" else []),
                              f"        auto handle = {self.prefix}allocate_handle();", "        if (!handle) return 4;",
                              f"        auto& registry = {get}();", "        std::lock_guard<std::mutex> lock(registry.mutex);",
@@ -434,7 +500,7 @@ class _Generator:
                 self.cpp += [self.declare(symbol, "i32", *params, effects)] + self.checks(m) + ["    try {"] + lookup
                 self.cpp += ["        auto object = entry->object;", f"        {name}_active active(*entry);",
                              f"        {ref} receiver = *object;"]
-                expr = "receiver." + m["cpp_method"] + "(" + ", ".join(self.cpp_arg(p) for p in m["params"]) + ")"
+                expr = "receiver." + m["cpp_method"] + "(" + ", ".join(self.cpp_arg(p, self.argument_names(m)) for p in m["params"]) + ")"
                 self.cpp += self.call_result(m, expr, checked=True, indent="        ")
                 self.cpp += ["    } catch (...) { return 3; }", "}"]
                 self.costs.append({"symbol": symbol, "route": "dynamic_handle", "wrapper_registry_lookups": 1,
@@ -448,10 +514,78 @@ class _Generator:
             self.costs.append({"symbol": name + "_destroy", "route": "handle_destroy", "destruction": h["destruction"],
                                "deallocation": "same_C++_shared_owner_module", "abandoned_handles": "not_automatically_reclaimed"})
 
+    def scopes_(self) -> None:
+        """Keep one concrete C++ object inside a single ordinary call lifetime.
+
+        These are generated C++ RAII operations, not Hepta owning values or
+        rewritten foreign implementations. Only the already checked scalar/POD
+        results cross the ABI; a reference result is copied before destruction.
+        """
+        handles = {h["name"]: h for h in self.c["handles"]}
+        for scope in self.c.get("scopes", []):
+            h = handles[scope["handle"]]
+            obj = _concrete(h["cpp_type"], h["template_args"])
+            constructor = next(ctor for ctor in h["constructors"] if ctor["name"] == scope["constructor"])
+            methods = {m["name"]: m for m in h["methods"]}
+            last = methods[scope["calls"][-1]["method"]]
+            fn = {"params": scope["params"], "returns": last["returns"]}
+            name = self.prefix + scope["name"]
+            params = self.parameters(fn, handle=False, checked=True)
+
+            def arguments(arguments: list[str], target: dict) -> str:
+                return ", ".join(self.cpp_arg({**p, "name": n}, self.argument_names(fn)) for n, p in zip(arguments, target["params"]))
+
+            self.cpp += [self.declare(name, "i32", *params, {"ffi", "unsafe", "write", "alloc", "block"})]
+            self.cpp += self.checks(fn) + ["    try {"]
+            result_type = self.cpp_type(last["returns"])
+            assignment = "auto _hepta_scoped_result = " if last["returns"] != "Unit" else ""
+            self.cpp += [f"        {assignment}[&]() -> {result_type} {{",
+                         f"            auto _hepta_scoped_object = {obj}({arguments(scope['constructor_args'], constructor)});"]
+            for index, call in enumerate(scope["calls"]):
+                method = methods[call["method"]]
+                receiver_type = ("const " if method["const"] else "") + obj + "&"
+                expression = (f"static_cast<{receiver_type}>(_hepta_scoped_object).{method['cpp_method']}"
+                              f"({arguments(call['args'], method)})")
+                if index == len(scope["calls"]) - 1 and method["returns"] != "Unit":
+                    self.cpp += ["            return " + expression + ";"]
+                else:
+                    self.cpp += ["            (void)" + expression + ";"]
+            # Returning from the lambda first materializes the value and then
+            # destroys the foreign object. Do not publish *out until both have
+            # finished. C++ unwinding handles every ordinary throwing path.
+            self.cpp += ["        }();"]
+            if last["returns"] != "Unit":
+                self.cpp += ["        *out = " + self.value_out("_hepta_scoped_result", last["returns"]) + ";"]
+            self.cpp += ["        return 0;", "    } catch (...) { return 3; }", "}"]
+            self.scoped_checks.append({
+                "symbol": name, "cpp_type": obj, "constructor": constructor["name"],
+                "methods": [call["method"] for call in scope["calls"]],
+                "lifetime": "one_call_cpp_automatic_object",
+                "cleanup": "C++_RAII_on_normal_return_and_caught_C++_exceptions",
+                "destructor_nothrow_native_checked": True,
+                "result_type": last["returns"],
+                "reference_result_copied_before_destructor": last["return_mode"] == "copy_from_reference",
+                "output_published_after_destructor": last["returns"] != "Unit",
+                "object_handle_exported": False, "foreign_implementation_rewritten": False,
+                "foreign_nonretention_proved": False, "whole_library_memory_safety_proved": False,
+            })
+            self.costs.append({
+                "symbol": name, "route": "call_scoped_cpp_raii",
+                "wrapper_heap_allocations": 0, "wrapper_registry_lookups": 0,
+                "wrapper_mutex_acquisitions": 0, "wrapper_shared_owner_copies": 0,
+                "automatic_foreign_objects": 1, "method_invocations": len(scope["calls"]),
+                "input_buffer_copy_bytes": 0,
+                "pod_field_conversion": any(p["type"] in self.pods for p in scope["params"]) or last["returns"] in self.pods,
+                "foreign_allocation": "constructor_and_methods_dependent_unverified",
+                "foreign_stack_usage": "sizeof_selected_type_plus_compiler_generated_temporaries",
+                "exception_boundary": "catch_status", "accounting_scope": "generated_wrapper_only",
+            })
+
     def render(self) -> tuple[str, str, str]:
         self.pods_()
         self.functions_()
         self.handles_()
+        self.scopes_()
         self.h += ["#ifdef __cplusplus", "}", "#endif", "#undef HEPTA_CPP_NOEXCEPT"]
         return tuple("\n".join(lines) + "\n" for lines in (self.cpp, self.h, self.hp))
 
@@ -536,6 +670,7 @@ def bridge_cpp_contracts(header: str | Path, contract: dict | str | Path,
                            "transitive_dependency_lock": "not_established_rebuild_from_current_headers_required",
                            "hepta_validation": checked.report, "status_codes": STATUS,
                            "cost_accounting": generator.costs, "constructor_checks": generator.constructor_checks,
+                           "scoped_lifetime_checks": generator.scoped_checks,
                            "abi": "selected_C++_compiler_host_C_ABI",
                            "assumptions": ["Foreign code respects declared effects, reentrancy and synchronization requirements.",
                                            "Borrowed pointers name live initialized aligned allocations of the stated extent with valid aliasing.",
@@ -543,6 +678,8 @@ def bridge_cpp_contracts(header: str | Path, contract: dict | str | Path,
                                            "Output pointers are live writable appropriately aligned nonoverlapping storage.",
                                            "C++ code obeys noexcept; termination, hardware faults and undefined behavior are not catchable exceptions.",
                                            "All handle-owned allocation and release stay in the same C++ module; callers explicitly destroy handles.",
+                                           "Scoped operations keep their C++ automatic object inside the call; generated APIs expose no object handle or reference. Foreign nonretention is unproved.",
+                                           "Scoped RAII cleanup covers normal return and C++ exception unwinding, not process termination, longjmp, nontermination or foreign undefined behavior.",
                                            "Handles belong to their generating bridge module and type; integers from other loaded modules are not authenticated capabilities.",
                                            "Cancellation and exception status do not roll back foreign side effects or borrowed-buffer writes."]})
         files = {"bridge.cpp": cpp, "bridge.h": ch, "bridge.hepta": hp,

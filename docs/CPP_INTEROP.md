@@ -1,10 +1,16 @@
 # C++ interoperation: declared contracts, native checks and measured costs
 
-Hepta now has two distinct C++ entry points. The original `bridge_cpp` imports
+The C++ bridge APIs have two entry points. The original `bridge_cpp` imports
 one flat scalar-method class through a bounded, name-filtered Clang AST. The
 new `bridge_cpp_contracts` binds explicitly selected functions and concrete
 C++ types. Neither translates arbitrary C++ source into safe Hepta, certifies a
 foreign library, or makes raw pointers into safe references.
+
+For actual implementation translation of a complete, bounded scalar value
+class, see [CPP_CLASS_MIGRATION.md](CPP_CLASS_MIGRATION.md). That separate
+entrypoint emits Hepta fields, construction and method bodies, verifies a
+trivial lifecycle, and qualifies independent Rust/C builds. It does not
+extend the bridge's C++ resource-lifecycle claims into a general RAII rewrite.
 
 ## Generate and execute
 
@@ -30,13 +36,14 @@ sets `native_link_qualified=false` and `paired_toolchain_abi_qualified=false`.
 The separate qualifier links and executes a C++ caller, a Hepta static library,
 the generated wrapper and the real C++ implementation.
 
-## Three cost routes
+## Four cost routes
 
 | Route | Actual generated behavior | Cost boundary |
 | --- | --- | --- |
 | Direct scalar/POD | Calls an exactly typed C++ function pointer; `noexcept` is checked by the native type system | No wrapper heap allocation, registry or lock. POD fields are copied into/out of matching native aggregates. A compiler may remove the adapter; the generator does not promise universal zero overhead. |
 | Checked borrowed span | Passes the original pointer/length as `std::span`; rejects null nonempty spans, impossible extents and misalignment; translates C++ exceptions into status | No wrapper buffer copy, allocation, registry or lock. Validation branches and an exception boundary remain. Foreign code may allocate when its declared contract permits it. |
 | Dynamic handle | Keeps C++ objects in a C++-owned registry, obtains a local shared owner, serializes each object and copies scalar/POD results out | A successful initialized call has one registry lookup, two lock acquisitions and two shared-owner copies. Creation additionally allocates owners and a map node, with possible map growth and foreign allocations. |
+| Call-scoped C++ RAII (v3) | Constructs one selected object, executes bounded method calls, copies its result and destroys the object before returning | No wrapper heap allocation, registry, mutex or shared-owner copy. Foreign allocations, stack and exception costs remain; see [CPP_SCOPED_RAII.md](CPP_SCOPED_RAII.md). |
 
 The cost report describes generated operations, not measured nanoseconds.
 `tools.validate_cpp` separately records actual timing samples, checksums,
@@ -88,7 +95,12 @@ The original `hepta.cpp-contract.v1` remains supported. The
 bounded constructor argument lists and named constructor entry points; see
 [CPP_CONSTRUCTORS.md](CPP_CONSTRUCTORS.md) and `examples/cpp/constructors` for
 actual nondefault Boost.Math construction, STL size/fill constructors, failure
-injection and separately measured lifecycle costs. Unknown fields and
+injection and separately measured lifecycle costs. V3 adds a required `scopes`
+array for operations on call-local C++ automatic objects, reusing the selected
+constructor/method checks. Cleanup precedes output publication; the scoped
+ABI never exposes its local object or a reference into its storage. This
+does not introduce a general Hepta owning type or translate C++ source.
+Unknown fields and
 unsupported types are errors. Names are
 bounded identifiers, with namespace qualification for C++ names; template
 arguments are explicit supported scalar types. Arbitrary C++ expressions are

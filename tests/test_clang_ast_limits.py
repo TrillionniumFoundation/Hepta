@@ -89,7 +89,7 @@ class BoundedClangASTTests(unittest.TestCase):
                          "Migration fail-closed checks require native Clang")
     def test_both_migrators_reject_forged_deep_ast_without_output(self):
         deep = ('{"kind":"TranslationUnitDecl","body":' +
-                '{"child":' * 48 + "null" + "}" * 48 + "}")
+                '{"child":' * 160 + "null" + "}" * 160 + "}")
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             for language in ("c", "cpp"):

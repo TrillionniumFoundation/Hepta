@@ -1,5 +1,9 @@
 # Independently checked resource and loan IR
 
+For a serialized graph that must correspond to actual checked source, use the
+additional [source replay interface](RESOURCE_SOURCE_REPLAY.md). The standalone
+data-only verifier continues to make no source-binding claim.
+
 `hepta.resource-ir.v3` is a typed JSON control-flow graph with explicit resource
 transitions. `hepta/resource_ir.py` verifies that graph without importing the
 Hepta parser, source checker or source AST. This is additional checking of a

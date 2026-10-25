@@ -21,6 +21,8 @@ from .clang_capture import CaptureRejected, run_bounded
 from .cfg import CFGSnapshot
 from .ssa import SSASnapshot
 from .ssa_verify import verify_scalar_ssa
+from .llvm_ir_profile import (DECLARATIONS, HEADER, TYPE_MARKER,
+                              LLVMProfileRejected, validate_scalar_llvm_profile)
 
 
 class LLVMSSARejected(ValueError):
@@ -51,20 +53,28 @@ class SSA_LLVM_IR:
     profile: str = "hepta.llvm-ssa-i32.v0"
 
     def check_identity(self) -> None:
-        if (self.profile not in {"hepta.llvm-ssa-i32.v0", "hepta.llvm-ssa-scalar32.v1"} or
-                not isinstance(self.text, str) or
+        if (not isinstance(self.profile, str) or
+                self.profile not in {"hepta.llvm-ssa-i32.v0", "hepta.llvm-ssa-scalar32.v1"} or
+                not isinstance(self.text, str) or not self.text.isascii() or
+                len(self.text) > 4 * 1024 * 1024 or
                 sha256(self.text.encode()).hexdigest() != self.sha256):
             raise LLVMSSARejected("E_LLVM_SSA_IDENTITY: altered or invalid LLVM source")
+        if any(not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{64}", value) is None
+               for value in (self.source_ssa_sha256, self.verification_sha256)):
+            raise LLVMSSARejected("E_LLVM_SSA_IDENTITY: invalid source or verification identity")
         # v1's source-sign information must travel *inside* the hashed LLVM
         # text. Retagging signed IR as unsigned is not a trusted conversion.
-        marker = "; hepta-source-types=scalar32-i32-u32"
         lines = self.text.splitlines()
-        has_marker = len(lines) > 1 and lines[1] == marker
+        has_marker = len(lines) > 1 and lines[1] == TYPE_MARKER
         if has_marker != (self.profile == "hepta.llvm-ssa-scalar32.v1"):
             raise LLVMSSARejected("E_LLVM_SSA_IDENTITY: LLVM profile marker mismatch")
         found = re.findall(r"(?m)^define i32 @([A-Za-z_][A-Za-z0-9_]*)\(", self.text)
         if not isinstance(self.functions, tuple) or len(set(found)) != len(found) or tuple(sorted(found)) != self.functions:
             raise LLVMSSARejected("E_LLVM_SSA_IDENTITY: function inventory mismatch")
+        try:
+            validate_scalar_llvm_profile(self.text, self.functions, profile=self.profile)
+        except LLVMProfileRejected as exc:
+            raise LLVMSSARejected("E_LLVM_SSA_PROFILE: " + str(exc)) from exc
 
 
 _NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
@@ -207,14 +217,7 @@ def emit_scalar_ssa_llvm(ssa: SSASnapshot, cfg: CFGSnapshot) -> SSA_LLVM_IR:
         raise LLVMSSARejected("E_LLVM_SSA_FUNCTION: inventory differs")
     if not s["functions"] or len(s["functions"]) > 32:
         raise LLVMSSARejected("E_LLVM_SSA_LIMIT: expected 1..32 functions")
-    lines = ["; Hepta strict scalar SSA/PHI native-LLVM pilot, not whole-language qualified.",
-             "declare void @abort() noreturn",
-             "declare { i32, i1 } @llvm.sadd.with.overflow.i32(i32, i32)",
-             "declare { i32, i1 } @llvm.ssub.with.overflow.i32(i32, i32)",
-             "declare { i32, i1 } @llvm.smul.with.overflow.i32(i32, i32)",
-             "declare { i32, i1 } @llvm.uadd.with.overflow.i32(i32, i32)",
-             "declare { i32, i1 } @llvm.usub.with.overflow.i32(i32, i32)",
-             "declare { i32, i1 } @llvm.umul.with.overflow.i32(i32, i32)", ""]
+    lines = [HEADER, *DECLARATIONS, ""]
     names = set()
     has_unsigned = False
     for fn, orig in zip(s["functions"], original["functions"]):
@@ -260,7 +263,7 @@ def emit_scalar_ssa_llvm(ssa: SSASnapshot, cfg: CFGSnapshot) -> SSA_LLVM_IR:
             lines.extend(generated[block["id"]])
         lines.extend(["}", ""])
     if has_unsigned:
-        lines.insert(1, "; hepta-source-types=scalar32-i32-u32")
+        lines.insert(1, TYPE_MARKER)
     text = "\n".join(lines) + "\n"
     if len(text.encode()) > _MAX_OUTPUT:
         raise LLVMSSARejected("E_LLVM_SSA_LIMIT: generated LLVM source exceeds budget")
@@ -271,9 +274,39 @@ def emit_scalar_ssa_llvm(ssa: SSASnapshot, cfg: CFGSnapshot) -> SSA_LLVM_IR:
     return output
 
 
-def compile_scalar_ssa_llvm(ir: SSA_LLVM_IR, *, clang: str = "clang", output: str | Path) -> dict:
-    """Compile a host shared-library only; link != ABI qualification or proof."""
+def require_exact_ssa_origin(ir: SSA_LLVM_IR, *,
+                             ssa: SSASnapshot | None = None,
+                             cfg: CFGSnapshot | None = None) -> bool:
+    """Recheck supplied SSA/CFG and regenerate the exact expected LLVM module.
+
+    Standalone IR compilation retains an explicitly unqualified mode. The
+    source pipeline always supplies both snapshots, preventing a rehashed
+    but semantically changed module from claiming that source's provenance.
+    This does not prove backend refinement or source-language soundness.
+    """
+    if not isinstance(ir, SSA_LLVM_IR):
+        raise LLVMSSARejected("E_LLVM_SSA_ORIGIN: expected SSA_LLVM_IR")
     ir.check_identity()
+    if (ssa is None) != (cfg is None):
+        raise LLVMSSARejected("E_LLVM_SSA_ORIGIN: exact SSA and CFG must be provided together")
+    if ssa is None:
+        return False
+    if not isinstance(ssa, SSASnapshot) or not isinstance(cfg, CFGSnapshot):
+        raise LLVMSSARejected("E_LLVM_SSA_ORIGIN: invalid source snapshot types")
+    try:
+        expected = emit_scalar_ssa_llvm(ssa, cfg)
+    except (ValueError, TypeError, KeyError) as exc:
+        raise LLVMSSARejected("E_LLVM_SSA_ORIGIN: SSA/CFG source rejected") from exc
+    if ir != expected:
+        raise LLVMSSARejected("E_LLVM_SSA_ORIGIN: LLVM differs from freshly verified SSA source")
+    return True
+
+
+def compile_scalar_ssa_llvm(ir: SSA_LLVM_IR, *, clang: str = "clang", output: str | Path,
+                            ssa: SSASnapshot | None = None,
+                            cfg: CFGSnapshot | None = None) -> dict:
+    """Compile a host shared-library only; link != ABI qualification or proof."""
+    origin_rechecked = require_exact_ssa_origin(ir, ssa=ssa, cfg=cfg)
     binary = shutil.which(clang)
     if binary is None:
         raise LLVMSSARejected("E_LLVM_SSA_TOOLCHAIN: native Clang unavailable")
@@ -308,4 +341,5 @@ def compile_scalar_ssa_llvm(ir: SSA_LLVM_IR, *, clang: str = "clang", output: st
             "toolchain": {"version": version.stdout.splitlines()[0],
                           "compiler_sha256": sha256(compiler.read_bytes()).hexdigest()},
             "claims": {"backend_refinement_proven": False, "cross_target_abi_qualified": False,
-                       "runtime_execution_qualified": False, "whole_p6_gate_closed": False}}
+                       "runtime_execution_qualified": False, "whole_p6_gate_closed": False,
+                       "ssa_cfg_origin_rechecked": origin_rechecked}}

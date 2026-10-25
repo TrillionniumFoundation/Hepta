@@ -17,6 +17,13 @@ from .ssa import SSASnapshot
 from .ssa_reaching import ReachingRejected, verify_latest_reads
 
 
+_SSA_FUNCTION_FIELDS = frozenset({
+    "name", "entry", "parameters", "blocks", "scalar_types", "definitions",
+    "phi_count", "declared_effects", "inferred_transitive_effects",
+    "resource_contract",
+})
+
+
 class SSAVerificationRejected(ValueError):
     pass
 
@@ -59,6 +66,15 @@ def _unmark(value, depth=0):
 
 
 def _function(f: dict, original: dict, graph: dict) -> dict:
+    if not isinstance(f, dict) or set(f) != _SSA_FUNCTION_FIELDS:
+        _reject("E_SSA_VERIFY_CONTRACT", "SSA function fields differ from reviewed source contract")
+    for field in ("declared_effects", "inferred_transitive_effects", "resource_contract"):
+        # JSON scalar types are semantic: Python considers False == 0, but a
+        # Boolean may not impersonate an allocation count (or vice versa).
+        if (field not in original or
+                json.dumps(f[field], sort_keys=True, allow_nan=False, separators=(",", ":")) !=
+                json.dumps(original[field], sort_keys=True, allow_nan=False, separators=(",", ":"))):
+            _reject("E_SSA_VERIFY_CONTRACT", "SSA effect/resource metadata changed or disappeared")
     blocks = f.get("blocks")
     before = original.get("blocks")
     if not isinstance(blocks, list) or not isinstance(before, list) or len(blocks) != len(before):
@@ -239,8 +255,13 @@ def _function(f: dict, original: dict, graph: dict) -> dict:
         latest_reads = verify_latest_reads(f, graph)
     except ReachingRejected as exc:
         raise SSAVerificationRejected(str(exc)) from exc
+    contract = {field: f[field] for field in
+                ("declared_effects", "inferred_transitive_effects", "resource_contract")}
+    contract_sha256 = sha256(json.dumps(contract, sort_keys=True, ensure_ascii=False,
+                                       allow_nan=False, separators=(",", ":")).encode()).hexdigest()
     return {"name": f["name"], "blocks": len(blocks), "definitions": len(defs),
             "phi_count": phis, "ssa_references_verified": reads,
+            "source_effect_resource_sha256": contract_sha256,
             "latest_source_version_reads_verified": latest_reads}
 
 
@@ -269,6 +290,7 @@ def verify_scalar_ssa(ssa: SSASnapshot, cfg: CFGSnapshot) -> SSAVerificationSnap
     output = {"schema": "hepta.ssa.verify.v0", "status": "scalar_ssa_structurally_verified",
               "ssa_sha256": ssa.sha256, "cfg_sha256": cfg.sha256, "functions": result,
               "claims": {"single_assignment_checked": True, "ssa_edge_uses_checked": True,
+                         "effect_resource_metadata_matched_to_cfg": True,
                          "ssa_origin_expression_retained": True,
                          "semantic_equivalence_proven": False,
                          "whole_language_memory_safety_proven": False,

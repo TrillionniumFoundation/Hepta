@@ -59,7 +59,7 @@ class HeaderProbeBudgetTests(unittest.TestCase):
             actual = _native_process([str(executable)], timeout=30,
                                      stdout_limit=4_000_000)
             self.assertEqual(actual.returncode, 0)
-            self.assertEqual(actual.stdout, f"P|int|{ctypes.sizeof(ctypes.c_int)}|{ctypes.alignment(ctypes.c_int)}|1\\n")
+            self.assertEqual(actual.stdout, f"P|int|{ctypes.sizeof(ctypes.c_int)}|{ctypes.alignment(ctypes.c_int)}|1\n")
 
 
 if __name__ == "__main__":

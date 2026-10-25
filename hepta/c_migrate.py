@@ -170,9 +170,8 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str,
             raise MigrationRejected("E_C_PROMOTION", "C integer promotions require a separate checked lowering")
         return (local[2] if decl.get("kind") == "VarDecl" else name), expected
     if kind == "UnaryOperator" and node.get("opcode") == "!" and len(inner) == 1:
-        # Accept logical negation only when its operand is itself a checked
-        # Boolean/comparison expression. General C integer truthiness remains
-        # outside this profile; !x must not turn into a guessed Hepta cast.
+        # Predicate lowering checks Boolean expressions and converts a
+        # side-effect-free integer to its exact zero/nonzero truth value.
         if expected != "bool" or node.get("type", {}).get("qualType") not in {"int", "bool"}:
             raise MigrationRejected("E_C_LOGICAL", "Logical negation requires a Boolean condition")
         operand, actual = _predicate(inner[0], args, model, locals)
@@ -201,7 +200,7 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str,
         op = node.get("opcode")
         if op in _LOGICAL:
             # C/C++ logical operators return int/bool, respectively. Accept
-            # only pure comparison/Boolean operands and retain their original
+            # only checked pure scalar predicates and retain their original
             # left-to-right short-circuit behavior through Hepta && / ||.
             if expected != "bool" or node.get("type", {}).get("qualType") not in {"int", "bool"}:
                 raise MigrationRejected("E_C_LOGICAL", "Logical operations are supported only as Boolean conditions")
@@ -329,6 +328,25 @@ def _ternary(node: dict, args: dict[str, str], model: dict, expected: str,
     return condition, positive, negative
 
 
+def _conditional_value(node: dict, model: dict, expected: str) -> dict | None:
+    """Find a statement-level ternary through representation-preserving reads.
+
+    C++ can represent a ternary as an lvalue and wrap the whole expression
+    in LValueToRValue when returning/assigning it. Check every wrapper's type
+    and cast kind; general conversions and nested ternaries remain excluded.
+    """
+    current = node
+    while current.get("kind") in {"ParenExpr", "ImplicitCastExpr"}:
+        children = current.get("inner", [])
+        if (len(children) != 1 or not isinstance(children[0], dict)
+                or _decl_type(current, model) != expected
+                or (current["kind"] == "ImplicitCastExpr"
+                    and current.get("castKind") not in _CASTS)):
+            return None
+        current = children[0]
+    return current if current.get("kind") == "ConditionalOperator" else None
+
+
 def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 1,
           locals: dict[str, _Local] | None = None,
           reserved_names: set[str] | None = None) -> list[str]:
@@ -347,8 +365,9 @@ def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 
         if (local is None or ref.get("kind") != "VarDecl"
                 or ref.get("id") != local[1]):
             raise MigrationRejected("E_C_ASSIGN", "Only a known initialized scalar local may be assigned")
-        if children[1].get("kind") == "ConditionalOperator":
-            test, on_true, on_false = _ternary(children[1], args, model, local[0], locals)
+        conditional = _conditional_value(children[1], model, local[0])
+        if conditional is not None:
+            test, on_true, on_false = _ternary(conditional, args, model, local[0], locals)
             return [f"{indent}if {test} {{",
                     f"{indent}    {local[2]} = {on_true};",
                     f"{indent}}} else {{",
@@ -382,8 +401,12 @@ def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 
         # break, goto, in-loop declaration, or observed step return exists.
         # Thus init; while (condition) { body; increment; } is equivalent
         # on the source language's defined signed-arithmetic input domain.
-        if (len(children) != 5 or children[1] is not None
-                or any(part is None for part in (children[0], children[2], children[3], children[4]))):
+        # Native Clang JSON uses {} for an absent condition-variable slot.
+        # A C++ condition declaration has its own lifetime and must not be
+        # silently discarded by treating a nonempty slot as absent.
+        if (len(children) != 5 or children[1] not in (None, {})
+                or any(not isinstance(part, dict) or not part.get("kind")
+                       for part in (children[0], children[2], children[3], children[4]))):
             raise MigrationRejected("E_C_FOR_SHAPE", "For requires explicit init, comparison, step and body")
         initial, _, condition, advance, loop_body = children
         if (loop_body.get("kind") != "CompoundStmt"
@@ -473,8 +496,9 @@ def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 
         lines.append(f"{indent}}}")
         return lines
     if kind == "ReturnStmt" and len(children) == 1:
-        if children[0].get("kind") == "ConditionalOperator":
-            test, on_true, on_false = _ternary(children[0], args, model, ret, locals)
+        conditional = _conditional_value(children[0], model, ret)
+        if conditional is not None:
+            test, on_true, on_false = _ternary(conditional, args, model, ret, locals)
             return [f"{indent}if {test} {{",
                     f"{indent}    return {on_true};",
                     f"{indent}}} else {{",

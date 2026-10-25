@@ -58,7 +58,10 @@ jobs:
       - name: Install SHA-256-locked Lean and QEMU tools
         run: python tools/bootstrap_verification.py
       - name: Run all current native and experiment qualification gates
-        run: python tools/release_check.py
+        run: >-
+          python tools/release_check.py
+          --output-directory artifacts/candidate
+          --continue-on-failure
       - name: Preserve failures and all raw evidence
         if: always()
         uses: actions/upload-artifact@v4

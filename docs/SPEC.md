@@ -5,6 +5,13 @@ compilation profiles. It does not make every feature in the research proposal
 part of the language. The specification, compiler snapshot, and executable
 evidence must agree; a discrepancy is a defect.
 
+This file is the normative entrypoint for implemented language semantics.
+The subsystem documents linked here specify their narrower wire formats and
+qualification protocols. Research proposals, execution ledgers and historical
+test reports do not silently extend the language or a backend's supported
+profile. See [UNIFIED_CANDIDATE.md](UNIFIED_CANDIDATE.md) for the current backend
+and migration acceptance matrix.
+
 ## 1. Compilation profiles and trust
 
 UTF-8 source is parsed into a closed AST. The module loader resolves an explicit
@@ -490,6 +497,67 @@ initialization, UART MMIO and external timer IRQs, with compiled negative
 controls. The AArch64 user-mode harness remains a separate ISA execution gate.
 Neither emulator qualifies physical boards, DMA, interrupt ownership soundness,
 GPUs, hardware timing or arbitrary foreign implementations on every target.
+
+## 13a. Independent scalar32 LLVM path
+
+`hepta build-llvm-ssa` is an explicit third compilation command. It loads the
+same project, runs the shared checker and pinned Rust native reference gate,
+and obtains the canonical typed semantic snapshot. The path then lowers the
+supported control-flow profile to verified scalar SSA and LLVM IR. Clang
+generates the selected native artifact directly from LLVM IR; no Rust or C
+machine-code fallback is allowed after selecting this command.
+
+The current profile admits checked i32/u32 scalar operations, scalar Boolean
+conditions, supported branches, mutable locals and loop PHIs. Declared and
+inferred effects and resource contracts remain attached to each function and
+must agree with its CFG. Only the profile's closed pure/panic effects and zero
+allocation/no blocking/no suspension/no spawning contracts are admitted.
+Every source-facing native build regenerates exact LLVM text from the supplied
+verified SSA/CFG and rejects any mismatch before invoking Clang. A hash alone
+does not establish source correspondence. Both signed and unsigned operations
+retain their checked overflow semantics.
+
+Owned ADTs, Buffer allocation, borrowed references, raw memory, general calls,
+task/I/O runtimes and arbitrary foreign declarations are outside this LLVM
+profile and reject. An optional target emits an object whose format and target
+identity are checked; this does not execute that object on the target machine.
+The host shared-library path is exercised by native differential tests. The
+fresh Rust reference check remains a dependency of this source-facing path,
+although its final machine code comes from LLVM. The standalone IR API's
+explicitly unqualified origin mode cannot be promoted by the source command.
+
+See [P5_SOURCE_BOUND_LLVM_SCALAR32_20261025.md](P5_SOURCE_BOUND_LLVM_SCALAR32_20261025.md).
+
+## 13b. Resource projection and C++ scope boundaries
+
+`hepta resource-ir` exports an independent ownership/place/loan graph. Its
+data-only verifier proves the supported properties of the supplied graph and
+does not infer that graph's source provenance from producer-supplied hashes.
+`hepta verify-resource-source SOURCE GRAPH` freshly loads and checks the real
+source closure, runs the pinned native gate by default, replays the existing
+resource lowering and compares the complete graph, including foreign
+obligations. Explicit `--frontend-only` never receives a native qualification.
+Reusing a lowerer establishes executable correspondence, not a proof that the
+lowerer or the native backend preserves all source semantics.
+
+C++ contract v3 adds automatic objects confined to one generated C++ call.
+Construction, a bounded sequence of methods, result copying and destruction
+all finish before publishing a scalar/POD output. No local object reference,
+pointer or handle may escape this route. This is C++ interoperability: the
+foreign implementation and its retention/thread/global-state assumptions
+remain external. Generic Hepta custom destructors and arbitrary safe C++
+implementation translation are not supplied by this interface. Details are
+in [CPP_SCOPED_RAII.md](CPP_SCOPED_RAII.md).
+
+The separate `hepta migrate-cpp-class` route translates one complete public
+scalar value class to a Hepta struct and receiver-borrowing free functions.
+Clang must confirm standard layout, trivial copy and trivial destruction;
+every active declaration needs a disposition. Owned pointers, nontrivial
+destructors, private state, inheritance, virtual methods and foreign method
+calls reject. Supported method and constructor bodies become Hepta code and
+do not retain original C++ link inputs. This route does not preserve the
+original C++ class ABI or implement generic resource-owning RAII migration.
+See [CPP_CLASS_MIGRATION.md](CPP_CLASS_MIGRATION.md).
 
 ## 14. Agent transactions, proof scope, and remaining work
 

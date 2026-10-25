@@ -9,7 +9,8 @@ import unittest
 from hepta.llvm_ssa_backend import LLVMSSARejected, emit_scalar_ssa_llvm
 from hepta.llvm_ssa_target import compile_ssa_target_object, _qualified_header
 from hepta.ssa import lower_cfg_scalar_ssa
-from tests.test_llvm_ssa_backend import LLVMSSATests
+from tests.test_llvm_ssa_backend import exported
+from tests.test_ssa_differential import nested_loop_fixture
 
 
 @unittest.skipUnless(shutil.which("clang"), "Clang backend required")
@@ -18,8 +19,7 @@ class LLVMSSATargetTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
-        helper = LLVMSSATests("test_true_loop_phi_and_checked_arithmetic_ir")
-        self.graph = helper.fixture()
+        self.graph = exported(nested_loop_fixture())
         self.ir = emit_scalar_ssa_llvm(lower_cfg_scalar_ssa(self.graph), self.graph)
 
     def test_validated_elf_coff_and_macho_cross_objects(self):

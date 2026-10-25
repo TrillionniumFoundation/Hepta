@@ -1,7 +1,6 @@
 """P5 LLVM host and target compile tools share bounded subprocess capture."""
 from __future__ import annotations
 
-from hashlib import sha256
 from pathlib import Path
 import shutil
 import tempfile
@@ -10,19 +9,17 @@ from unittest.mock import patch
 
 from hepta.clang_capture import CaptureRejected, CaptureResult
 from hepta.llvm_ssa_backend import (LLVMSSARejected, SSA_LLVM_IR, _clang_run,
-                                    compile_scalar_ssa_llvm)
+                                    compile_scalar_ssa_llvm, emit_scalar_ssa_llvm)
 from hepta.llvm_ssa_target import compile_ssa_target_object
+from hepta.ssa import lower_cfg_scalar_ssa
+from tests.test_llvm_ssa_backend import exported
+from tests.test_ssa_scalar import snapshot, block, n
 
 
 def fixture() -> SSA_LLVM_IR:
-    ir = ("define i32 @hepta_test(i32 %x) {\n"
-          "entry:\n"
-          "  %plus = add i32 %x, 1\n"
-          "  ret i32 %plus\n"
-          "}\n")
-    return SSA_LLVM_IR(
-        ir, sha256(ir.encode()).hexdigest(), ("hepta_test",),
-        "a"*64, "b"*64)
+    cfg = exported(snapshot([block(0, kind="return", value=n("x"))],
+                            params=[("x", "i32")]))
+    return emit_scalar_ssa_llvm(lower_cfg_scalar_ssa(cfg), cfg)
 
 
 class CaptureBoundaryTests(unittest.TestCase):

@@ -594,6 +594,8 @@ extern "C" int cpp_do_sum(int n){return do_sum(n);}
     def test_ternary_cpp20_return_and_assignment_native(self):
         self.src.write_text("""
 int choose(int x, int y) noexcept { return x > y ? x : y; }
+int choose_parens(int x, int y) noexcept { return ((x > y ? x : y)); }
+int choose_assign(int x, int y) noexcept { int z=0; z = (x > y ? x : y); return z; }
 int clamp(int x) noexcept { int y=0; y = x > 0 ? x : 0; return y; }
 """)
         translated = migrate_cpp(self.src, self.dst)
@@ -607,7 +609,10 @@ int clamp(int x) noexcept { int y=0; y = x > 0 ? x : 0; return y; }
         wrapper = self.root / "ternary_wrapper.cc"
         wrapper.write_text("""
 int choose(int, int) noexcept; int clamp(int) noexcept;
+int choose_parens(int, int) noexcept; int choose_assign(int, int) noexcept;
 extern "C" int cpp_choose(int x,int y){return choose(x,y);}
+extern "C" int cpp_choose_parens(int x,int y){return choose_parens(x,y);}
+extern "C" int cpp_choose_assign(int x,int y){return choose_assign(x,y);}
 extern "C" int cpp_clamp(int x){return clamp(x);}
 """)
         original, hepta = self.root / "ternary_orig.so", self.root / "ternary_hepta.so"
@@ -622,6 +627,8 @@ extern "C" int cpp_clamp(int x){return clamp(x);}
         cpp, hp = ctypes.CDLL(str(original)), ctypes.CDLL(str(hepta))
         for name, rows in (
                 ("choose", [(-20, -50), (0, 1), (7, 5), (2**31-1, -1)]),
+                ("choose_parens", [(-20, -50), (0, 1), (7, 5), (2**31-1, -1)]),
+                ("choose_assign", [(-20, -50), (0, 1), (7, 5), (2**31-1, -1)]),
                 ("clamp", [(-2**31,), (-7,), (0,), (1,), (555,)])):
             left, right = getattr(cpp, "cpp_" + name), getattr(hp, name)
             for fn in (left, right):

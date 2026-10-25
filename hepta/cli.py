@@ -44,6 +44,14 @@ def main(argv=None) -> int:
     migrator.add_argument("source")
     migrator.add_argument("--output", "-o", required=True)
     migrator.add_argument("--clang", default="clang")
+    cpp_migrator = sub.add_parser("migrate-cpp", help="Strict C++20 scalar implementation migration through the shared C lowerer")
+    cpp_migrator.add_argument("source")
+    cpp_migrator.add_argument("--output", "-o", required=True)
+    cpp_migrator.add_argument("--clang", default="clang++")
+    cpp_class = sub.add_parser("migrate-cpp-class", help="Translate one complete public scalar value class with a trivial lifecycle")
+    cpp_class.add_argument("source")
+    cpp_class.add_argument("--output", "-o", required=True)
+    cpp_class.add_argument("--clang", default="clang++")
     project_migrator = sub.add_parser("migrate-c-project", help="Capture a C compilation database and migrate its supported complete declaration set")
     project_migrator.add_argument("database")
     project_migrator.add_argument("--output", "-o", required=True)
@@ -51,13 +59,20 @@ def main(argv=None) -> int:
     project_migrator.add_argument("--clang", default="clang")
     project_migrator.add_argument("--rustc")
     project_migrator.add_argument("--frontend-only", action="store_true", help="Explicitly skip native validation")
-    llvm = sub.add_parser("build-llvm-ssa", help="Native rustc-gated strict i32 HSIR/SSA/LLVM compilation")
+    llvm = sub.add_parser("build-llvm-ssa", help="Native rustc-gated checked i32/u32 HSIR/SSA/LLVM compilation")
     llvm.add_argument("source")
     llvm.add_argument("--output", "-o", required=True)
     llvm.add_argument("--rustc")
     llvm.add_argument("--clang", default="clang")
     llvm.add_argument("--target", help="Optional target object (no target = host shared library)")
     llvm.add_argument("--locked", action="store_true")
+    resource_source = sub.add_parser("verify-resource-source", help="Recheck actual source and match a complete independent resource graph")
+    resource_source.add_argument("source")
+    resource_source.add_argument("graph")
+    resource_source.add_argument("--rustc")
+    resource_source.add_argument("--target")
+    resource_source.add_argument("--locked", action="store_true")
+    resource_source.add_argument("--frontend-only", action="store_true")
     importer = sub.add_parser("import-c", help="Import the supported C header subset using real compiler probes")
     importer.add_argument("header")
     importer.add_argument("--output", "-o", required=True)
@@ -165,6 +180,16 @@ def main(argv=None) -> int:
             result = migrate_c(args.source, args.output, clang=args.clang)
             output_json(result)
             return 0 if result["ok"] else 1
+        if args.command == "migrate-cpp":
+            from .cpp2hepta import migrate_cpp
+            result = migrate_cpp(args.source, args.output, clangxx=args.clang)
+            output_json(result)
+            return 0 if result["ok"] else 1
+        if args.command == "migrate-cpp-class":
+            from .cpp_class_migrate import migrate_cpp_class
+            result = migrate_cpp_class(args.source, args.output, clangxx=args.clang)
+            output_json(result)
+            return 0 if result["ok"] else 1
         if args.command == "migrate-c-project":
             from .c_migrate import migrate_c_project
             contracts = json.loads(Path(args.contracts).read_bytes()) if args.contracts else None
@@ -180,6 +205,16 @@ def main(argv=None) -> int:
                 clang=args.clang, target=args.target, locked=args.locked)
             output_json(result)
             return 0 if result["ok"] else 1
+        if args.command == "verify-resource-source":
+            from .resource_source import main as verify_source_main
+            forwarded = [args.source, args.graph]
+            for option in ("rustc", "target"):
+                if getattr(args, option):
+                    forwarded += ["--" + option, getattr(args, option)]
+            for option in ("locked", "frontend_only"):
+                if getattr(args, option):
+                    forwarded.append("--" + option.replace("_", "-"))
+            return verify_source_main(forwarded)
         if args.command == "import-c":
             from .c_import import import_header
             imported = import_header(args.header, cc=args.cc, module=args.module)

@@ -57,7 +57,7 @@ M07/M23 不等于全进程内存/CPU 上限，未计入任意 worker/FFI 分配�
 | P08 | OPEN / HARDWARE_REQUIRED — GPU 尚未实现 | 地址空间、kernel 与同步语义、GPU 后端、驱动互操作、真实设备性能与正确性 |
 | P09 | PARTIAL / OPEN_RESEARCH — 核心算法对照、两个所有权应用的内存和逐请求尾分位样本可重放 | 更多独立真实应用／异步服务、无计量插桩的长期尾延迟、分配器实用内存与公平调优、多机器重复；全部观察到的 C／Rust 路径回退仍保留，单一配置不承诺普遍获益 |
 | P10 | FRAMEWORK_READY / MODEL_ACCESS_REQUIRED — 五任务 2×2、真实生产 v4 第四臂、逐任务崩溃矩阵、严格隔离及计量 OpenAI adapter 已实现 | API 网络连通性、明确可用模型修订、凭据和预算；多个模型/seed 的完整实际计量、独立未公开任务和更大项目、实际人工修正成本 |
-| P11 | PARTIAL — 独立 C11/GCC 已覆盖 Owned ADT/Result/Buffer/有限泛型和 volatile；真实 GDB 与源级映射、公开 Rust unsafe 边界已实现 | 新存储借用／任务树／I/O 等完整后端覆盖、更多后端一致性、优化回归门槛、优化态／跨平台调试器／类型可视化；独立机器码后端尚未实现 |
+| P11 | PARTIAL — 独立 C11/GCC 已覆盖 Owned ADT/Result/Buffer/有限泛型和 volatile；新增来源绑定的 i32/u32 SSA→LLVM 原生路径；真实 GDB 与源级映射已实现 | LLVM 的拥有者／借用／效果资源完整覆盖、C 后端新存储借用／任务树／I/O 覆盖、优化回归门槛、优化态／跨平台调试器／类型可视化；LLVM 路径仍依赖 Rust 参考检查 |
 | P12 | PARTIAL — 本地内容锁、版本化工具协议、公开仓库 | 注册表/版本求解、兼容性与迁移工具、发布签名和持续平台维护、生产标准库/文档体系 |
 
 P10 的 namespace 与适配器实现 blocker 已有实际执行/离线测试入口。严格 namespace 资格必须在支持的宿主真实运行；不支持的环境依然在启动适配器前拒绝。可信 fixture 与严格隔离的脚本资格均保持 `ai_comparison_eligible=false`，不能当成真实模型成绩。尚未配置模型访问条件，实际 AI 运行数仍为 0。

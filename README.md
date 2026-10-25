@@ -11,6 +11,12 @@ hosted subset. This repository contains working implementations and native
 qualification tools; it does not claim a production-complete language,
 whole-compiler soundness, or universal performance superiority over Rust.
 
+The [unified candidate](docs/UNIFIED_CANDIDATE.md) defines the current semantic
+authority, explicit backend/migration scopes and repeatable acceptance entry.
+An additional `build-llvm-ssa` command emits native code from verified i32/u32
+SSA with exact source-origin rechecks; ownership and hosted runtimes remain
+outside that LLVM profile.
+
 ## Implemented capabilities
 
 | Area | Current implementation |
@@ -18,7 +24,7 @@ whole-compiler soundness, or universal performance superiority over Rust.
 | Ownership | Buffer-bearing structs/enums, `Result<Owned, Error>`, nested named-field moves and restoration, explicit recursive drops, checked normal/early exits, fallible byte allocation |
 | Generics | Finite `Copy` / `Owned` function constraints, checked unused generic bodies, owned aggregate substitution and transfer |
 | Borrowing | Read/mutable parameters, disjoint field borrows, explicit returned origins, bounded lifetime-parameterized stored shared/mutable view records, native Rust region validation |
-| Resource IR | Independent v3 ownership/place CFG plus a separate task/group lifecycle CFG; abstract generic bodies, retained graphs and explicit unproved refinement boundaries |
+| Resource IR | Independent v3 ownership/place CFG, fresh source/native replay of complete retained graphs, plus a separate task/group lifecycle CFG; explicit unproved refinement boundaries |
 | Modules | Imports, privacy, local packages, content locks and frozen dependency identities |
 | Concurrency | Hosted tasks/channels, monotonic deadlines, event-driven two-group selection, shared reservations and bounded parent/child task trees with transitive cancel/fail/join |
 | Hosted I/O | Bounded single-owner local-stream reactor, nonblocking reads/writes, explicit poll, deadlines/cancellation and owned completion tickets on qualified Linux x86-64 GNU hosts |
@@ -26,7 +32,7 @@ whole-compiler soundness, or universal performance superiority over Rust.
 | Native backends | Reference Rust plus independent C11 owned ADT/Result/Buffer lowering, bounded monomorphization and a mandatory independent resource gate for its ownership profile |
 | Debugging | Unoptimized debug builds, retained generated sources, C source line tables and Rust statement mapping, actual GDB breakpoint/local/stack/step qualification |
 | C | Host ABI declarations/probes; compilation-database capture; bounded module translation; complete active-declaration inventory; record/buffer views and restricted allocation/free migration |
-| C++ | Direct scalar/POD calls, checked call-scoped spans, dynamically protected handles, typed constructors, C++ template instantiation, exception/thread/destructor contracts |
+| C++ | Direct scalar/POD calls, checked call-scoped spans, protected handles, typed constructors, template instantiation and bounded automatic-object RAII scopes with copied results |
 | Agent tools | Snapshot-bound semantic edits, explicit interface migration, whole-import-graph native validation, crash-recoverable publication and source-level native diagnostics |
 | Evaluation | Five cross-file tasks in a four-arm Rust/Hepta study, real workspace v4 and per-task publication deaths, strict namespaces, frozen adapter identity, receipt/cost accounting and independent native oracles |
 
@@ -74,8 +80,12 @@ retain explicit caller/implementation assumptions.
 ```sh
 python -m hepta migrate-c-project compile_commands.json \
   --contracts contracts.json --output /tmp/c-migration
+python -m hepta migrate-cpp-class examples/cpp/class_migration/scalar_state.cpp \
+  --output /tmp/scalar_state.hepta
 python -m hepta bridge-cpp-contract examples/cpp/stdlib/foreign.hpp \
   --contract examples/cpp/stdlib/contract.json --output-dir /tmp/cpp-bridge
+python -m hepta bridge-cpp-contract examples/cpp/scoped/foreign.hpp \
+  --contract examples/cpp/scoped/contract.json --output-dir /tmp/cpp-scoped-bridge
 python tools/qualify_c_migration.py --output /tmp/c-migration-evidence.json
 python tools/qualify_c_algorithms.py --output /tmp/upstream-c-evidence.json
 python tools/validate_cpp.py --output /tmp/cpp-evidence.json
@@ -84,8 +94,9 @@ python tools/validate_cpp_constructors.py --output /tmp/cpp-constructor-evidence
 
 C migration supports the explicitly documented profile and rejects unsupported
 active declarations even if no selected function uses them. The compiler does
-not translate arbitrary C++ implementations into safe Hepta; C++ libraries stay
-behind generated, native-checked interfaces. Pointer validity, retention,
+not translate arbitrary C++ implementations into safe Hepta. Selected complete
+scalar value classes can be translated into actual Hepta implementations;
+nontrivial C++ libraries use generated, native-checked interfaces. Pointer validity, retention,
 foreign synchronization and undefined behavior cannot be established by
 declaring a contract.
 

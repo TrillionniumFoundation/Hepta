@@ -836,14 +836,13 @@ def verify_resource_ir(document: object) -> dict:
                                  "function": verifier.function, "block": verifier.block}], "claims": dict(_CLAIMS)}
 
 
-def main(argv=None) -> int:
-    """Check one bounded JSON graph without loading a source-language frontend."""
-    import argparse
-    from pathlib import Path
+def read_resource_ir(path) -> object:
+    """Read one bounded, unambiguous resource graph for either verifier API.
 
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("graph", type=Path, help="A hepta.resource-ir.v3 JSON graph (legacy v1/v2 accepted)")
-    args = parser.parse_args(argv)
+    Reading is separate from validation.  In particular, neither this loader
+    nor the data-only verifier authenticates a graph's source identity.
+    """
+    from pathlib import Path
 
     def unique_fields(pairs):
         result = {}
@@ -853,14 +852,25 @@ def main(argv=None) -> int:
             result[key] = value
         return result
 
+    with Path(path).open("rb") as stream:
+        data = stream.read(16 * 1024 * 1024 + 1)
+    if len(data) > 16 * 1024 * 1024:
+        _fail("E_RIR_LIMIT", "Serialized resource graph exceeds 16 MiB")
+    return json.loads(data.decode("utf-8"), object_pairs_hook=unique_fields,
+                      parse_constant=lambda value: _fail("E_RIR_JSON", f"Invalid JSON constant: {value}"))
+
+
+def main(argv=None) -> int:
+    """Check one bounded JSON graph without loading a source-language frontend."""
+    import argparse
+    from pathlib import Path
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("graph", type=Path, help="A hepta.resource-ir.v3 JSON graph (legacy v1/v2 accepted)")
+    args = parser.parse_args(argv)
+
     try:
-        with args.graph.open("rb") as stream:
-            data = stream.read(16 * 1024 * 1024 + 1)
-        if len(data) > 16 * 1024 * 1024:
-            _fail("E_RIR_LIMIT", "Serialized resource graph exceeds 16 MiB")
-        document = json.loads(data.decode("utf-8"), object_pairs_hook=unique_fields,
-                              parse_constant=lambda value: _fail("E_RIR_JSON", f"Invalid JSON constant: {value}"))
-        report = verify_resource_ir(document)
+        report = verify_resource_ir(read_resource_ir(args.graph))
     except (OSError, ValueError, RecursionError) as exc:
         report = {"schema": "hepta.resource-ir-validation.v1", "ok": False,
                   "status": "rejected", "claims": dict(_CLAIMS),

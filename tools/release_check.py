@@ -2,6 +2,7 @@
 """Run concrete release gates and bind their evidence to an unchanged snapshot."""
 from __future__ import annotations
 
+import argparse
 import datetime
 import hashlib
 import json
@@ -236,8 +237,21 @@ def _require_qualification(name, evidence):
                         or (label == "worker_failure" and not (2 <= metrics["received_before_close"] <= 194))):
                     raise ValueError("Bounded-group cleanup, budgets, or deadlines contradict the native program's required observations")
     elif name == "formal_core":
-        if len(evidence.get("theorems", [])) != 11 or len(evidence.get("negative_mutations", [])) != 2:
-            raise ValueError("Expected 11 checked theorems and two rejected negative mutations")
+        from tools.verify_formal import validate_report
+        validate_report(evidence)
+    elif name == "source_bound_resource_ir":
+        from tools.qualify_resource_source import validate_report
+        validate_report(evidence)
+    elif name == "cpp_class_migration":
+        from tools.validate_cpp_class import validate_report
+        validate_report(evidence)
+    elif name == "llvm_native_performance":
+        from tools.qualify_llvm_native import validate_report
+        identity = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                                  capture_output=True, text=True)
+        if identity.returncode != 0:
+            raise ValueError("LLVM qualification requires the current candidate commit identity")
+        validate_report(evidence, expected_git_commit=identity.stdout.strip())
     elif name == "provenance_and_type_core":
         from tools.verify_memory import validate_report
         validate_report(evidence)
@@ -418,6 +432,106 @@ def _require_qualification(name, evidence):
         validate_constructor_qualification(evidence)
         if any(row.get("iterations") != 100000 for row in evidence["performance"]["measurements"]):
             raise ValueError("Release constructor lifecycle and method samples must each retain 100000 native iterations")
+    elif name == "cpp_scoped_raii":
+        from hepta.cpp_contracts import _Generator, _validate
+        from hepta.cpp_scoped import EXAMPLE
+        from tools.evidence_checks import native_build, strict_equal
+
+        expected = {"vector_differential_cases": 16, "probe_lifecycle_paths": 4,
+                    "unit_cleanup_paths": 2, "pod_reference_copy": True,
+                    "output_guard_cases": 2, "allocation_refusal_sites": 2,
+                    "allocation_recoveries": 2, "direct_cpp_new_calls": 2,
+                    "scoped_cpp_new_calls": 2, "handle_cpp_new_calls": 5,
+                    "scoped_wrapper_allocation_delta": 0, "live_cpp_allocation_delta": 0,
+                    "output_after_destructor": True, "foreign_cpp_library_rewritten": False}
+        if (evidence.get("schema") != "hepta.cpp-scoped-qualification.v1"
+                or evidence.get("ok") is not True or evidence.get("native_link_qualified") is not True
+                or evidence.get("source_snapshot_unchanged") is not True
+                or any(evidence.get(flag) is not False for flag in
+                       ("foreign_cpp_library_rewritten", "whole_library_memory_safety_proved", "arbitrary_hepta_raii_supported"))
+                or not _frontend_checked(evidence.get("hepta_consumer", {}), allow_external=True)
+                or not _native_build(evidence.get("hepta_native_library", {}))
+                or type(evidence.get("execution_process", {}).get("returncode")) is not int
+                or evidence["execution_process"]["returncode"] != 0
+                or not _sha256(evidence.get("executable_sha256"))
+                or json.dumps(evidence.get("execution"), sort_keys=True) != json.dumps(expected, sort_keys=True)):
+            raise ValueError("Scoped C++ qualification requires the complete real lifecycle and allocation observations")
+        inputs = {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
+                  for path in sorted(EXAMPLE.iterdir()) if path.is_file()}
+        bridge = evidence.get("bridge_generation", {})
+        consumer = evidence["hepta_consumer"]
+        library = evidence["hepta_native_library"]
+        contract = _validate(json.loads((EXAMPLE / "contract.json").read_bytes()))
+        cpp, header, source = _Generator((EXAMPLE / "foreign.hpp").resolve(), contract).render()
+        generated = {"bridge.cpp": cpp, "bridge.h": header, "bridge.hepta": source,
+                     "contract.json": json.dumps(contract, indent=2, sort_keys=True) + "\n"}
+        outputs = bridge.get("outputs", {})
+        if (not strict_equal(evidence.get("inputs"), inputs)
+                or evidence.get("scope") != "selected_cpp_automatic_objects_with_scalar_or_POD_results"
+                or bridge.get("ok") is not True or bridge.get("status") != "cpp_object_and_hepta_native_checked"
+                or any(bridge.get(flag) is not False for flag in
+                       ("foreign_library_soundness_proved", "borrow_retention_proved", "foreign_thread_safety_proved", "caller_pointer_validity_proved"))
+                or bridge.get("header_sha256") != inputs[str((EXAMPLE / "foreign.hpp").relative_to(ROOT))]
+                or bridge.get("contract_sha256") != hashlib.sha256(json.dumps(contract, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+                or set(outputs) != set(generated)
+                or any(outputs[name].get("sha256") != hashlib.sha256(text.encode()).hexdigest()
+                       or not isinstance(outputs[name].get("path"), str) or not outputs[name]["path"]
+                       for name, text in generated.items())
+                or consumer.get("compiler_sha256") != compiler_hash()
+                or bridge.get("hepta_validation", {}).get("compiler_sha256") != compiler_hash()
+                or consumer.get("source_sha256") != inputs[str((EXAMPLE / "consumer.hepta").relative_to(ROOT))]
+                or bridge["hepta_validation"].get("source_sha256") != outputs["bridge.hepta"]["sha256"]
+                or not _frontend_checked(bridge["hepta_validation"], allow_external=True)
+                or not _integer(bridge.get("object_bytes"), 1) or not _sha256(bridge.get("object_sha256"))
+                or set(evidence.get("object_sha256", {})) != {"bridge.o", "foreign.o", "harness.o"}
+                or any(not _sha256(value) for value in evidence["object_sha256"].values())
+                or evidence.get("hepta_library_sha256") != library["artifact_sha256"]):
+            raise ValueError("Scoped C++ evidence must bind current inputs, generated bridge, compiler and linked native library")
+        expected_sources = {outputs["bridge.hepta"]["path"]: outputs["bridge.hepta"]["sha256"],
+                            consumer["path"]: consumer["source_sha256"]}
+        if not strict_equal(consumer.get("project", {}).get("sources"), expected_sources):
+            raise ValueError("Scoped Hepta consumer does not identify its actual generated bridge")
+        native_build(consumer["backend"], "rust", check_only=True, crate_type="staticlib", source_sha256=consumer["rust_sha256"])
+        native_build(library, "rust", check_only=False, crate_type="staticlib", source_sha256=consumer["rust_sha256"])
+        bridge_native = bridge["hepta_validation"]["backend"]
+        native_build(bridge_native, "rust", check_only=True, crate_type="rlib",
+                     source_sha256=bridge["hepta_validation"]["rust_sha256"])
+        if (consumer["backend"].get("crate_type") != "staticlib" or library.get("crate_type") != "staticlib"
+                or not strict_equal(consumer["backend"]["toolchain"], library["toolchain"])
+                or not strict_equal(bridge_native["toolchain"], library["toolchain"])
+                or consumer["backend"]["target"] != library["target"] or bridge_native["target"] != library["target"]):
+            raise ValueError("Scoped C++ native checks and linked library have different toolchain identities")
+        for tool in (bridge.get("compiler", {}), library["toolchain"]):
+            if (not isinstance(tool.get("version"), str) or not tool["version"]
+                    or not isinstance(tool.get("path"), str) or not tool["path"]
+                    or not _sha256(tool.get("executable_sha256"))
+                    or hashlib.sha256(Path(tool["path"]).read_bytes()).hexdigest() != tool["executable_sha256"]):
+                raise ValueError("Scoped C++ qualification tool identity changed or is missing")
+        measured = evidence.get("performance", {})
+        rows = measured.get("measurements", [])
+        if (measured.get("status") != "measured" or len(rows) != 4
+                or not _sha256(measured.get("benchmark_sha256"))
+                or measured.get("scope") != "construct_append_at_and_destroy_entire_lifecycle"
+                or {row.get("case") for row in rows} != {"native_cpp_lifecycle", "scoped_cpp_lifecycle", "hepta_scoped_lifecycle", "handle_cpp_lifecycle"}):
+            raise ValueError("All four complete C++ lifecycle cost paths are required")
+        empty = hashlib.sha256(b"").hexdigest()
+        for process in (evidence["execution_process"], measured.get("process", {})):
+            if (type(process.get("returncode")) is not int or process["returncode"] != 0
+                    or not _sha256(process.get("stdout_sha256")) or process["stdout_sha256"] == empty
+                    or process.get("stderr_sha256") != empty):
+                raise ValueError("Scoped C++ native execution and timing require successful processes and retained output identities")
+        for row in rows:
+            if (type(row.get("iterations")) is not int or row["iterations"] != 100000 or len(row.get("samples_ns", [])) != 7
+                    or any(not _integer(n, 1) for n in row["samples_ns"])
+                    or type(row.get("checksum")) is not int or row["checksum"] != (100000 // 32) * sum(range(32))
+                    or not _same_number(row.get("median_ns_per_lifecycle"), statistics.median(row["samples_ns"]) / 100000)):
+                raise ValueError("Scoped lifecycle measurements lack valid raw samples or native checksum")
+        medians = {row["case"]: row["median_ns_per_lifecycle"] for row in rows}
+        ratios = measured.get("observed_median_ratios_to_native", {})
+        if (set(ratios) != set(medians)
+                or any(not _same_number(ratios[name], value / medians["native_cpp_lifecycle"])
+                       for name, value in medians.items())):
+            raise ValueError("Scoped C++ timing ratios differ from their retained raw samples")
     elif name == "independent_resource_ir":
         from hepta.resource_ir import verify_resource_ir
         projects = evidence.get("projects", [])
@@ -552,9 +666,23 @@ def _require_qualification(name, evidence):
             raise ValueError("Every real namespace, boundary and native execution check must pass")
 
 
-def main():
-    artifacts = ROOT / "artifacts"
-    artifacts.mkdir(exist_ok=True)
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output-directory", type=Path,
+                        help="New evidence directory, outside source or inside artifacts/evidence; never replaced")
+    parser.add_argument("--continue-on-failure", action="store_true",
+                        help="Collect all gate results; any failure still fails the release")
+    parser.add_argument("--qemu-aarch64", help="Actual AArch64 user emulator for the execution gate")
+    args = parser.parse_args(argv)
+    artifacts = args.output_directory.resolve() if args.output_directory else ROOT / "artifacts"
+    if args.output_directory:
+        if artifacts.is_relative_to(ROOT) and artifacts.relative_to(ROOT).parts[:1] not in {("artifacts",), ("evidence",)}:
+            parser.error("Evidence may not be written into the hashed source tree")
+        if artifacts.exists() or artifacts.is_symlink():
+            parser.error("Evidence output directory already exists")
+        artifacts.mkdir(parents=True)
+    else:
+        artifacts.mkdir(exist_ok=True)
     before = snapshot()
     run_id = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     fixture_output = f"artifacts/agent-fixtures-{run_id}.json"
@@ -579,6 +707,7 @@ def main():
         ("results_example", [sys.executable, "-m", "hepta", "run", "examples/results.hepta", "--json"], 60),
         ("owned_library_example", [sys.executable, "-m", "hepta", "run", "examples/owned/main.hepta", "--json"], 60),
         ("independent_resource_ir", [sys.executable, "-m", "tools.validate_resources", "--output", next_stage + "/resources.json"], 120),
+        ("source_bound_resource_ir", [sys.executable, "-m", "tools.qualify_resource_source", next_stage + "/resources.json", "--output", next_stage + "/resource_source.json"], 120),
         ("partial_owned_places", [sys.executable, "-m", "tools.qualify_places", "--output", next_stage + "/places.json"], 120),
         ("stored_borrows", [sys.executable, "tools/qualify_borrowed_storage.py", "--output", next_stage + "/stored_borrows.json"], 120),
         ("owned_c_backend", [sys.executable, "tools/validate_c_owned.py", "--output", next_stage + "/c_owned.json"], 180),
@@ -587,6 +716,8 @@ def main():
         ("stateful_c_module", [sys.executable, "tools/qualify_c_ring_buffer.py", "--output", next_stage + "/stateful_c.json"], 120),
         ("cpp_library_interop", [sys.executable, "tools/validate_cpp.py", "--iterations", "1000000", "--output", next_stage + "/cpp.json"], 120),
         ("cpp_constructor_interop", [sys.executable, "tools/validate_cpp_constructors.py", "--iterations", "100000", "--output", next_stage + "/cpp_constructors.json"], 180),
+        ("cpp_scoped_raii", [sys.executable, "-m", "hepta.cpp_scoped", "--iterations", "100000", "--output", next_stage + "/cpp_scoped.json"], 180),
+        ("cpp_class_migration", [sys.executable, "-m", "tools.validate_cpp_class", "--workdir", "artifacts/cpp-class-" + run_id, "--out", next_stage + "/cpp_class.json"], 180),
         ("locked_package_example", [sys.executable, "-m", "hepta", "run", "examples/packages/app", "--locked", "--json"], 60),
         ("bounded_concurrency", [sys.executable, "tools/validate_groups.py", "--repeats", "3", "--output", "evidence/groups/native_validation.json"], 180),
         ("shared_runtime", [sys.executable, "tools/validate_shared_runtime.py", "--repeats", "3", "--output", next_stage + "/shared_runtime.json"], 180),
@@ -599,6 +730,7 @@ def main():
         ("native_and_performance", [sys.executable, "tools/validate.py", "--bench", "--output", "artifacts/native-validation.json"], 180),
         ("representative_performance", [sys.executable, "tools/benchmark_suite.py", "--output", "artifacts/representative-benchmarks.json"], 240),
         ("application_performance", [sys.executable, "tools/benchmark_applications.py", "--output", next_stage + "/applications.json"], 180),
+        ("llvm_native_performance", [sys.executable, "tools/qualify_llvm_native.py", "--output", next_stage + "/llvm_native.json"], 180),
         ("formal_core", [sys.executable, "tools/verify_formal.py", "--output", "artifacts/formal-validation.json"], 180),
         ("provenance_and_type_core", [sys.executable, "tools/verify_memory.py", "--output", next_stage + "/memory_proofs.json"], 180),
         ("aarch64_execution", [sys.executable, "tools/validate_cross.py", "--output", "artifacts/cross-execution.json"], 120),
@@ -614,10 +746,12 @@ def main():
         "native_and_performance": "artifacts/native-validation.json",
         "representative_performance": "artifacts/representative-benchmarks.json",
         "application_performance": next_stage + "/applications.json",
+        "llvm_native_performance": next_stage + "/llvm_native.json",
         "formal_core": "artifacts/formal-validation.json",
         "aarch64_execution": "artifacts/cross-execution.json",
         "agent_evaluator_fixtures": fixture_output,
         "independent_resource_ir": next_stage + "/resources.json",
+        "source_bound_resource_ir": next_stage + "/resource_source.json",
         "partial_owned_places": next_stage + "/places.json",
         "stored_borrows": next_stage + "/stored_borrows.json",
         "owned_c_backend": next_stage + "/c_owned.json",
@@ -634,24 +768,76 @@ def main():
         "stateful_c_module": next_stage + "/stateful_c.json",
         "cpp_library_interop": next_stage + "/cpp.json",
         "cpp_constructor_interop": next_stage + "/cpp_constructors.json",
+        "cpp_scoped_raii": next_stage + "/cpp_scoped.json",
+        "cpp_class_migration": next_stage + "/cpp_class.json",
         "crossfile_agent_fixtures": next_stage + "/crossfile_agent.json",
         "strict_namespace_execution": next_stage + "/sandbox.json",
         "production_workspace_namespace": next_stage + "/workspace_namespace.json",
         "production_workspace_crashes": next_stage + "/workspace_crashes.json",
     }
+    # Relocate every generated evidence file together, including the legacy
+    # fixed-path reports. Retained graph directories follow their own output
+    # file. This avoids rewriting historical evidence during a new candidate
+    # qualification and permits native builds in a RAM-backed temporary area.
+    if args.output_directory:
+        recorded_directory = artifacts.relative_to(ROOT) if artifacts.is_relative_to(ROOT) else artifacts
+        replacements = {old: str(recorded_directory / Path(old).name)
+                        for old in evidence_outputs.values()}
+        if len(set(replacements.values())) != len(replacements):
+            parser.error("Evidence filenames collide")
+        commands = [(name, [replacements.get(part, part) for part in command], timeout)
+                    for name, command, timeout in commands]
+        evidence_outputs = {name: replacements[path] for name, path in evidence_outputs.items()}
+    if args.qemu_aarch64:
+        commands = [(name, command + (["--qemu", args.qemu_aarch64] if name == "aarch64_execution" else []), timeout)
+                    for name, command, timeout in commands]
+    report["planned_gates"] = [name for name, _, _ in commands]
+    report["continue_on_failure"] = args.continue_on_failure
+    git_identity = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                                  capture_output=True, text=True)
+    report["source_git_commit"] = git_identity.stdout.strip() if git_identity.returncode == 0 else None
     for name, command, timeout in commands:
         started = time.monotonic()
+        evidence_path = ROOT / evidence_outputs[name] if name in evidence_outputs else None
+        # Default legacy locations can already contain old evidence. A command
+        # returning zero without replacing that file cannot credit the old run
+        # to this candidate. Native tools are trusted producers, not adversaries
+        # able to fake filesystem timestamps.
+        previous_identity = None
+        if evidence_path is not None:
+            try:
+                stat = evidence_path.stat()
+                previous_identity = (stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
+            except OSError:
+                pass
         try:
             p = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, timeout=timeout)
             text = p.stdout + p.stderr
             gate = {"name": name, "command": command, "exit_code": p.returncode,
-                    "status": "passed" if p.returncode == 0 else "failed"}
+                    "status": "passed" if type(p.returncode) is int and p.returncode == 0 else "failed"}
         except subprocess.TimeoutExpired as exc:
             text = str(exc)
             gate = {"name": name, "command": command, "status": "unknown_timeout"}
+            # TimeoutExpired retains captured output, sometimes as bytes even
+            # with text=True. Keep exact bytes as well as the readable gate log.
+            gate["partial_output"] = {}
+            for stream, value in (("stdout", exc.stdout), ("stderr", exc.stderr)):
+                if value is None:
+                    continue
+                data = value if isinstance(value, bytes) else value.encode("utf-8")
+                captured = artifacts / (name + ".partial." + stream)
+                captured.write_bytes(data)
+                gate["partial_output"][stream] = {
+                    "path": str(captured.relative_to(ROOT)) if captured.is_relative_to(ROOT) else str(captured),
+                    "sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data)}
+                text += "\n" + stream + ":\n" + data.decode("utf-8", errors="replace")
+        except OSError as exc:
+            text = str(exc)
+            gate = {"name": name, "command": command, "status": "environment_error"}
         log = artifacts / (name + ".log")
         log.write_text(text)
-        gate.update({"seconds": round(time.monotonic() - started, 3), "log": str(log.relative_to(ROOT)),
+        gate.update({"seconds": round(time.monotonic() - started, 3),
+                     "log": str(log.relative_to(ROOT)) if log.is_relative_to(ROOT) else str(log),
                      "log_sha256": hashlib.sha256(log.read_bytes()).hexdigest()})
         if name == "unit_and_integration":
             match = re.search(r"Ran (\d+) tests", text)
@@ -662,12 +848,25 @@ def main():
             if not gate.get("test_count") or gate["skipped"]:
                 gate["status"] = "failed"
                 gate["reason"] = "Release qualification requires an actual nonempty suite with zero skips"
-        if gate["status"] == "passed" and name in evidence_outputs:
-            evidence_path = ROOT / evidence_outputs[name]
+        if name in evidence_outputs:
+            retained = None
             try:
                 evidence_bytes = evidence_path.read_bytes()
-                evidence = json.loads(evidence_bytes)
-                if name in {"independent_resource_ir", "partial_owned_places", "owned_c_backend", "c_project_migration", "upstream_c_modules", "stateful_c_module", "cpp_library_interop", "cpp_constructor_interop"}:
+                stat = evidence_path.stat()
+                identity = (stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
+                retained = {"sha256": hashlib.sha256(evidence_bytes).hexdigest(),
+                            "bytes": len(evidence_bytes), "gate": name,
+                            "fresh": previous_identity is None or identity != previous_identity}
+                report["evidence"][evidence_outputs[name]] = retained
+                gate["evidence"] = evidence_outputs[name]
+                evidence = _strict_json(evidence_bytes)
+                if not isinstance(evidence, dict):
+                    raise ValueError("Qualification evidence must be a JSON object")
+                if not retained["fresh"]:
+                    raise ValueError("Evidence was not refreshed by this gate; a previous run cannot qualify the current candidate")
+                if gate["status"] != "passed":
+                    raise ValueError("Gate command did not succeed; retained failure evidence is not qualification")
+                if name in {"independent_resource_ir", "partial_owned_places", "owned_c_backend", "c_project_migration", "upstream_c_modules", "stateful_c_module", "cpp_library_interop", "cpp_constructor_interop", "cpp_scoped_raii", "cpp_class_migration"}:
                     if evidence.get("ok") is not True:
                         raise ValueError("Required native qualification did not report ok=true")
                 else:
@@ -678,16 +877,18 @@ def main():
                     if evidence.get("status") != expected:
                         raise ValueError(f"Expected evidence status {expected!r}, got {evidence.get('status')!r}")
                 require_qualification(name, evidence)
-                report["evidence"][evidence_outputs[name]] = {
-                    "sha256": hashlib.sha256(evidence_bytes).hexdigest(),
-                    "bytes": len(evidence_bytes), "gate": name,
-                }
-            except (OSError, ValueError, KeyError, TypeError) as exc:
-                gate["status"] = "failed"
-                gate["reason"] = str(exc)
+                retained["validation_status"] = "passed"
+            except (OSError, ValueError, KeyError, TypeError, AttributeError, IndexError,
+                    OverflowError, RecursionError, RuntimeError) as exc:
+                if gate["status"] == "passed":
+                    gate["status"] = "failed"
+                gate["validation_error"] = str(exc)
+                gate.setdefault("reason", str(exc))
+                if retained is not None:
+                    retained.update(validation_status="failed", validation_error=str(exc))
         report["gates"].append(gate)
         print(json.dumps(gate), flush=True)
-        if gate["status"] != "passed":
+        if gate["status"] != "passed" and not args.continue_on_failure:
             break
     after = snapshot()
     report["snapshot_unchanged"] = before == after
