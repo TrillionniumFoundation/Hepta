@@ -45,8 +45,26 @@ def require_qualification(name, evidence):
                 or evidence.get("measurements", {}).get("status") != "completed"):
             raise ValueError("Representative correctness/code comparison/timing did not all complete")
     elif name == "formal_core":
-        if len(evidence.get("theorems", [])) != 11 or len(evidence.get("negative_mutations", [])) != 2:
-            raise ValueError("Expected 11 checked theorems and two rejected negative mutations")
+        source = ROOT / "formal/HeptaCore.lean"
+        theorems = evidence.get("theorems")
+        negatives = evidence.get("negative_mutations")
+        expected = set(re.findall(r"(?m)^theorem\s+([A-Za-z0-9_]+)", source.read_text()))
+        if (len(expected) != 11 or not isinstance(theorems, dict)
+                or set(theorems) != expected
+                or evidence.get("source") != "formal/HeptaCore.lean"
+                or evidence.get("source_sha256") != hashlib.sha256(source.read_bytes()).hexdigest()
+                or any(not isinstance(axioms, list) or set(axioms) - {"propext", "Quot.sound", "Classical.choice"}
+                       for axioms in theorems.values())):
+            raise ValueError("Formal theorem identity, source binding or axioms are invalid")
+        required = {"release_while_borrowed", "unbounded_task_admission"}
+        if (not isinstance(negatives, list) or len(negatives) != len(required)
+                or any(not isinstance(case, dict) for case in negatives)
+                or {case.get("mutation") for case in negatives} != required
+                or any(case.get("status") != "rejected_as_expected"
+                       or any(not isinstance(case.get(field), str) or not re.fullmatch(r"[0-9a-f]{64}", case[field])
+                              for field in ("source_sha256", "log_sha256"))
+                       for case in negatives)):
+            raise ValueError("Formal negative mutations lack distinct rejection and evidence hashes")
     elif name == "aarch64_execution":
         cases = {case.get("case"): case for case in evidence.get("cases", [])}
         if (cases.get("correct", {}).get("returncode") != 0
