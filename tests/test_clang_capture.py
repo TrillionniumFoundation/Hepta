@@ -91,6 +91,28 @@ class CaptureBudgets(unittest.TestCase):
                         cpp_contracts._command(["fake"], timeout=3)
                     self.assertEqual(captured.exception.code, "E_CPP_ENV")
 
+    @unittest.skipUnless(shutil.which("clang"), "LLVM-capable Clang required")
+    def test_bounded_llvm_tool_emits_real_native_object(self):
+        from hepta.llvm_ssa_backend import run_llvm_tool
+        with tempfile.TemporaryDirectory() as root:
+            directory = Path(root)
+            source = directory / "function.ll"
+            output = directory / "function.o"
+            source.write_text("define i32 @hepta_test(i32 %x) {\n"
+                              "entry:\n  %y = add i32 %x, 1\n  ret i32 %y\n}\n")
+            result = run_llvm_tool([shutil.which("clang"), "-x", "ir", "-O2",
+                                    "-c", str(source), "-o", str(output)], timeout=15)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertGreater(output.stat().st_size, 32)
+
+    def test_llvm_capture_error_is_not_a_backend_success(self):
+        from hepta import llvm_ssa_backend
+        with patch.object(llvm_ssa_backend, "run_bounded",
+                          side_effect=CaptureRejected("E_CAPTURE_OUTPUT_SIZE", "budget")):
+            with self.assertRaisesRegex(llvm_ssa_backend.LLVMSSARejected,
+                                        "E_LLVM_SSA_TOOL_BOUND"):
+                llvm_ssa_backend.run_llvm_tool(["clang", "-dumpmachine"], timeout=1)
+
     def test_child_nonzero_exit_is_never_success(self):
         r = run_bounded([sys.executable, "-c", "import sys; sys.exit(7)"], timeout=3)
         self.assertEqual(r.returncode, 7)
