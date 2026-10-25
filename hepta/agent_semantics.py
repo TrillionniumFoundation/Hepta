@@ -54,7 +54,7 @@ def inspect_pinned_semantics(store: str | Path, *,
         raise WorkspaceError("E_AGENT_RACE", "Pinned import graph changed during semantic inspection")
     # Unlike source_sha256 (entry text only), this identity binds the complete
     # loaded Hepta import graph, including imported sources and package state.
-    graph_identity = graph.identity
+    graph_identity = getattr(graph, "identity", None)
     if not isinstance(graph_identity, str) or _HASH.fullmatch(graph_identity) is None:
         raise WorkspaceError("E_AGENT_GRAPH", "Missing source-bound checked module graph identity")
     checked = check(graph.program)
