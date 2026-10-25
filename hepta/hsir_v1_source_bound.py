@@ -181,7 +181,8 @@ def _statements(src, dest, depth=0) -> bool:
     return may_panic
 
 
-def recheck_source_bound(envelope: dict, source_text: str, source_path: str):
+def recheck_source_bound(envelope: dict, source_text: str, source_path: str, *,
+                         verified_project_sha256: str | None = None):
     """Produce PR37's native typed snapshot only after exact two-view agreement.
 
     The consumer never generates structural expression types from a string
@@ -204,8 +205,16 @@ def recheck_source_bound(envelope: dict, source_text: str, source_path: str):
                   "owned_types", "untyped_expressions"):
         if not _empty(old.get(field)):
             _fail("UNSUPPORTED_GLOBAL_" + field.upper())
-    if old.get("project_sha256") is not None or old.get("all_expressions_typed") is not True:
-        _fail("UNSUPPORTED_PROJECT")
+    project_sha = old.get("project_sha256")
+    if project_sha is not None:
+        # PR14 CLI includes its resolved project identity. Require the active
+        # PR37 project loader to independently reproduce that exact identity;
+        # never trust a 64-hex claim in an imported producer on its own.
+        if (not isinstance(verified_project_sha256, str)
+                or verified_project_sha256 != project_sha):
+            _fail("PROJECT_IDENTITY")
+    if old.get("all_expressions_typed") is not True:
+        _fail("UNTYPED_PROJECT")
     from .checker import check
     from .parser import parse
     from .hsir import lower_checked_program
