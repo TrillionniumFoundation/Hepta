@@ -166,6 +166,12 @@ class SourceBoundScalarTests(unittest.TestCase):
         with self.assertRaisesRegex(V1SSARejected, "EXPRESSION_PROFILE|UNSUPPORTED_EXPR"):
             self.report(sign(doc))
 
+    def test_unhashable_forged_operator_rejects_as_typed_ir_error(self):
+        doc = pr14_shaped_snapshot()
+        doc["functions"][0]["body"][2]["data"]["condition"]["value"] = ["<"]
+        with self.assertRaisesRegex(V1SSARejected, "SOURCE_BOUND_BINARY"):
+            self.report(sign(doc))
+
     def test_cli_duplicate_hsir_keys_are_ir_rejection_not_driver_failure(self):
         import io
         from pathlib import Path
