@@ -7,6 +7,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import stat
 import subprocess
 import sys
 import time
@@ -26,6 +27,26 @@ def snapshot():
     identity = hashlib.sha256(json.dumps(files, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     return {"sha256": identity, "files": files}
 
+
+
+def evidence_state(path: Path):
+    """Record a local file's identity before running its evidence producer."""
+    try:
+        info = path.lstat()
+    except FileNotFoundError:
+        return None
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_size,
+            info.st_mtime_ns, info.st_ctime_ns)
+
+
+def require_fresh_evidence(path: Path, previous):
+    """Refuse missing, unchanged or symlinked evidence after an exit-zero gate."""
+    current = evidence_state(path)
+    if current is None or current == previous:
+        raise ValueError("E_STALE_GATE_EVIDENCE: report not generated during current gate")
+    if not stat.S_ISREG(current[2]):
+        raise ValueError("E_UNSAFE_GATE_EVIDENCE: not a regular file")
+    return path.read_bytes()
 
 def require_qualification(name, evidence):
     """An outer success must not hide a required inner check marked not_run."""
@@ -101,6 +122,14 @@ def main():
         "agent_evaluator_fixtures": fixture_output,
     }
     for name, command, timeout in commands:
+        # A previous successful report must not qualify a later no-op producer.
+        evidence_path = ROOT / evidence_outputs[name] if name in evidence_outputs else None
+        try:
+            previous_evidence_state = evidence_state(evidence_path) if evidence_path else None
+        except OSError as exc:
+            report["gates"].append({"name": name, "status": "failed",
+                                    "reason": "Cannot inspect prior evidence: " + str(exc)})
+            break
         started = time.monotonic()
         try:
             p = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, timeout=timeout)
@@ -124,9 +153,8 @@ def main():
                 gate["status"] = "failed"
                 gate["reason"] = "Release qualification requires an actual nonempty suite with zero skips"
         if gate["status"] == "passed" and name in evidence_outputs:
-            evidence_path = ROOT / evidence_outputs[name]
             try:
-                evidence_bytes = evidence_path.read_bytes()
+                evidence_bytes = require_fresh_evidence(evidence_path, previous_evidence_state)
                 evidence = json.loads(evidence_bytes)
                 expected = "qualified_fixtures_only" if name == "agent_evaluator_fixtures" else "passed"
                 if evidence.get("status") != expected:
