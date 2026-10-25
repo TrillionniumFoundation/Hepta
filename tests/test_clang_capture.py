@@ -165,6 +165,22 @@ class CaptureBudgets(unittest.TestCase):
             time.sleep(.9)
             self.assertFalse(path.exists())
 
+    @unittest.skipUnless(os.name == "posix", "POSIX descendant cleanup only")
+    def test_oversize_output_cannot_leave_child_running(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            marker = Path(tmp) / "survived-after-overflow.txt"
+            grandchild = ("import time,pathlib;time.sleep(.6);"
+                          + f"pathlib.Path({str(marker)!r}).write_text('survived')")
+            parent = ("import subprocess,sys;"
+                      + f"subprocess.Popen([sys.executable,'-c',{grandchild!r}]);"
+                      + "sys.stdout.write('X'*1000000)")
+            with self.assertRaises(CaptureRejected) as caught:
+                run_bounded([sys.executable, "-c", parent],
+                            timeout=3, stdout_limit=4096)
+            self.assertEqual(caught.exception.code, "E_CAPTURE_OUTPUT_SIZE")
+            time.sleep(.8)
+            self.assertFalse(marker.exists(), "Compiler descendant escaped after quota rejection")
+
     def test_migration_rejection_codes_preserve_budgets(self):
         from hepta import c_migrate
         for capture_code, expected in (
