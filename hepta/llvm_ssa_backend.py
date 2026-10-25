@@ -55,6 +55,13 @@ class SSA_LLVM_IR:
                 not isinstance(self.text, str) or
                 sha256(self.text.encode()).hexdigest() != self.sha256):
             raise LLVMSSARejected("E_LLVM_SSA_IDENTITY: altered or invalid LLVM source")
+        # v1's source-sign information must travel *inside* the hashed LLVM
+        # text. Retagging signed IR as unsigned is not a trusted conversion.
+        marker = "; hepta-source-types=scalar32-i32-u32"
+        lines = self.text.splitlines()
+        has_marker = len(lines) > 1 and lines[1] == marker
+        if has_marker != (self.profile == "hepta.llvm-ssa-scalar32.v1"):
+            raise LLVMSSARejected("E_LLVM_SSA_IDENTITY: LLVM profile marker mismatch")
         found = re.findall(r"(?m)^define i32 @([A-Za-z_][A-Za-z0-9_]*)\(", self.text)
         if not isinstance(self.functions, tuple) or len(set(found)) != len(found) or tuple(sorted(found)) != self.functions:
             raise LLVMSSARejected("E_LLVM_SSA_IDENTITY: function inventory mismatch")
@@ -252,6 +259,8 @@ def emit_scalar_ssa_llvm(ssa: SSASnapshot, cfg: CFGSnapshot) -> SSA_LLVM_IR:
                 lines.append(f"  {_reg(result['ssa_name'])} = phi i32 " + ", ".join(parts))
             lines.extend(generated[block["id"]])
         lines.extend(["}", ""])
+    if has_unsigned:
+        lines.insert(1, "; hepta-source-types=scalar32-i32-u32")
     text = "\n".join(lines) + "\n"
     if len(text.encode()) > _MAX_OUTPUT:
         raise LLVMSSARejected("E_LLVM_SSA_LIMIT: generated LLVM source exceeds budget")
@@ -291,6 +300,7 @@ def compile_scalar_ssa_llvm(ir: SSA_LLVM_IR, *, clang: str = "clang", output: st
         os.link(library, target)
     return {"schema": "hepta.llvm-ssa-host.v0", "status": "native_host_compiled_unqualified",
             "output": str(target), "llvm_ir_sha256": ir.sha256,
+            "llvm_source_profile": ir.profile,
             "ssa_sha256": ir.source_ssa_sha256,
             "ssa_verification_sha256": ir.verification_sha256,
             "artifact_sha256": sha256(target.read_bytes()).hexdigest(),

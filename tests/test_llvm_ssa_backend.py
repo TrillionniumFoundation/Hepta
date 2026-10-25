@@ -130,6 +130,10 @@ class LLVMSSATests(unittest.TestCase):
         ])
         arith_ir = emit_scalar_ssa_llvm(lower_cfg_scalar_ssa(add), add)
         self.assertEqual(arith_ir.profile, "hepta.llvm-ssa-scalar32.v1")
+        self.assertIn("; hepta-source-types=scalar32-i32-u32", arith_ir.text)
+        from dataclasses import replace
+        with self.assertRaisesRegex(LLVMSSARejected, "profile marker"):
+            replace(arith_ir, profile="hepta.llvm-ssa-i32.v0").check_identity()
         self.assertIn("@llvm.uadd.with.overflow.i32", arith_ir.text)
         receipt = compile_scalar_ssa_llvm(arith_ir, output=self.root / "uadd.so")
         fn = ctypes.CDLL(receipt["output"]).f
