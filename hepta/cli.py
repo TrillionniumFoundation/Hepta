@@ -14,6 +14,10 @@ from .ast import HeptaError
 from .backend import compile_rust, emit_header, find_rustc, toolchain_info
 from .pipeline import analyze, analyze_project, inspect_analysis
 from .protocol import apply_patch
+from .cfg import CFGRejected
+from .cfg_analysis import CFGAnalysisRejected
+from .ssa import SSARejected
+from .ssa_verify import SSAVerificationRejected
 
 
 def output_json(value):
@@ -242,6 +246,16 @@ def main(argv=None) -> int:
                 return proc.returncode if proc.returncode >= 0 else 128 - proc.returncode
     except HeptaError as e:
         output_json({"ok": False, "status": "rejected", "diagnostics": [e.diagnostic.to_dict()]})
+        return 1
+    except (CFGRejected, CFGAnalysisRejected, SSARejected, SSAVerificationRejected) as e:
+        # Preserve typed semantic rejection codes for Agent tools instead of
+        # flattening them to E_DRIVER. No frontend-only/native fallback.
+        message = str(e)
+        code = message.split(":", 1)[0]
+        if not code.startswith(("E_CFG_", "E_DOM_", "E_SSA_")):
+            code = "E_IR_REJECTED"
+        output_json({"ok": False, "status": "rejected",
+                     "diagnostics": [{"code": code, "message": message, "phase": "ir"}]})
         return 1
     except (OSError, ValueError, UnicodeError, subprocess.SubprocessError) as e:
         output_json({"ok": False, "status": "error", "diagnostics": [{"code": "E_DRIVER", "message": str(e), "phase": "driver"}]})
