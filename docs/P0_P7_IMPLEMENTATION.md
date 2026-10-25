@@ -20,6 +20,9 @@ A successful reference release is *not* automatically a successful qualification
 - **P4 — C++ bridge bootstrap:** `hepta.cpp_bridge` uses actual Clang++ C++20 ASTs to produce L0 C wrappers for unoverloaded `noexcept int(int...)` free functions, plus C header and non-qualification manifest. GCC C callers have linked and executed against Clang++ wrapper/original on the available host; Class construction, general lifetimes and C++ ABI profiles remain unimplemented. An opt-in status-return bridge now catches ordinary C++ exceptions and a host GCC C caller / Clang++ implementation test verifies local RAII destructor execution; the exception payload is discarded and the foreign code remains unverified.
 - **P3 — Clang AST C migrator:** `hepta.c2hepta` accepts an intentionally restricted standalone C11 signed `int` function subset; performs an actual Clang semantic parse; transforms local variables, arithmetic, comparisons, if/else, and bounded-form while/for constructs; and rejects all unsupported syntax. Every output is tagged **L1 / candidate_unverified** and declares C UB, ABI, native validation, and differential-testing obligations. It never labels a generated candidate fully safe or equivalent merely because it parsed.
 
+- **P6 — independent scalar LLVM/Clang native pilot:** `hepta.llvm_scalar_backend` lowers a closed, pretyped `i32` subset directly from HSIR to LLVM IR. Signed arithmetic uses explicit overflow detection and abort; forbidden effects and ownership modes reject. A GCC C reference and LLVM native library were compared on 100 seeded valid inputs per operation, plus wrapping and overflow-child negative tests. On the local isolated subset, three P6 tests passed and two required full compiler integration tests were skipped; the new `build-llvm-scalar` CLI requires real pinned rustc validation before lowering. This is **not** a whole-language LLVM backend, production performance qualification, or P6 gate closure.
+- **P4 host-only qualification receipt:** `artifacts/cpp-bridge-exception-host-20261024.json` captures GCC/Clang executable identity, source hashes and five actual exception/RAII tests. The host-only script is `tools/verify_cpp_bridge_host.py`; it deliberately reports `whole_p4_gate_closed=false`.
+
 ## Acceptance gates (the definition of done)
 
 | Stage | Scope and required evidence | Status following this incremental change |
@@ -30,7 +33,7 @@ A successful reference release is *not* automatically a successful qualification
 | P3 | Real C project source migration, build, differential fuzz and verified migration levels L0–L3 | Clang subset L1 candidate; **larger projects/L2/L3 open** |
 | P4 | Verified C++ bridge including exceptions, destructors and ABI profiles | Narrow L0 C bridge plus opt-in catch/status and RAII host tests; **full P4 open** |
 | P5 | C++ migration including template, class, RAII/STL, L1–L3 evidence | Strict C++20 integer-function L1 candidate tested locally; **full P5 open** |
-| P6 | LLVM/MLIR backend with semantics, memory, CPU/RSS and p95/p99 regressions | **Open** |
+| P6 | LLVM/MLIR backend with semantics, memory, CPU/RSS and p95/p99 regressions | Direct LLVM i32 scalar pilot plus host differential; **full P6 open** |
 | P7 | Multi-file agent protocol v3, soundness, physical hardware and real-model independent benchmarks | **Open** |
 
 Original Hepta 0.2 P01–P12 blockers in `docs/BLOCKERS.md` also remain open; no existing blocker is silently closed by this ledger. P6–P7 require additional target machines and controlled provider/hardware environments.
@@ -48,6 +51,9 @@ python -m hepta migrate-cpp examples/interop/cpp_noexcept.cc -o /tmp/cpp_migrate
 python -m hepta check /tmp/standalone.hepta
 python tools/abi_host_probe.py --output /tmp/host-abi.json
 python tools/abi_fuzz.py --cc clang --output /tmp/abi-matrix-clang.json
+python tools/verify_cpp_bridge_host.py --output /tmp/cpp-bridge-host.json
+python -m unittest discover -s tests -p test_llvm_scalar_backend.py -v
+python -m hepta build-llvm-scalar examples/llvm_scalar.hepta --rustc /path/to/pinned/rustc --output /tmp/hepta_scalar.so
 python tools/release_check.py
 ```
 
