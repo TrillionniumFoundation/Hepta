@@ -46,6 +46,8 @@ int inferred(int x) noexcept { auto y = x; return y; }
             'template <class T> T foo(T v) noexcept{return v;}',
             '#include <stdint.h>\nint foo(int a) noexcept{return a;}',
             'int foo(int a) {return a;}',
+            'int foo(int a=3) noexcept{return a;}',
+            'int foo(int a [[maybe_unused]]) noexcept{return 1;}',
         ]
         for candidate in samples:
             with self.subTest(source=candidate):
