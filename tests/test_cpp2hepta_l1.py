@@ -73,6 +73,69 @@ int clamp(int x) noexcept {
         self.dst.unlink()
         self.assertEqual(first_hash, migrate_cpp(self.src, self.dst)["output_sha256"])
 
+    @unittest.skipUnless(shutil.which("gcc"), "GCC required for C ABI differential")
+    def test_wide_cpp_signatures_native_original_vs_hepta_c(self):
+        # Defined inputs only for signed arithmetic; unsigned wrap is exact.
+        self.src.write_text("""
+unsigned int u32_add(unsigned int a, unsigned int b) noexcept { return a + b; }
+unsigned long long u64_mix(unsigned long long a, unsigned long long b) noexcept { return a * b + 3ULL; }
+long long i64_add(long long a, long long b) noexcept { return a + b; }
+""")
+        migrated = migrate_cpp(self.src, self.dst)
+        self.assertTrue(migrated["ok"], migrated)
+        self.assertEqual(migrated["tier"], "L1")
+        self.assertFalse(migrated["cpp_abi_preserved"])
+        self.assertFalse(migrated["behavioral_equivalence_proved"])
+        generated = self.dst.read_text()
+        for signature in ("fn u32_add(a: u32, b: u32) -> u32",
+                          "fn u64_mix(a: u64, b: u64) -> u64",
+                          "fn i64_add(a: i64, b: i64) -> i64"):
+            self.assertIn(signature, generated)
+        self.assertIn("wrapping_add", generated)
+        self.assertIn("wrapping_mul", generated)
+        self.assertEqual(analyze(generated, str(self.dst), native=False).report["status"], "frontend_only")
+        wrapper = self.root / "wide_wrapper.cc"
+        wrapper.write_text("""
+unsigned int u32_add(unsigned int,unsigned int) noexcept;
+unsigned long long u64_mix(unsigned long long,unsigned long long) noexcept;
+long long i64_add(long long,long long) noexcept;
+extern "C" unsigned int cpp_u32_add(unsigned int a,unsigned int b){return u32_add(a,b);}
+extern "C" unsigned long long cpp_u64_mix(unsigned long long a,unsigned long long b){return u64_mix(a,b);}
+extern "C" long long cpp_i64_add(long long a,long long b){return i64_add(a,b);}
+""")
+        original, native = self.root / "wide-cpp.so", self.root / "wide-hepta.so"
+        built = subprocess.run(["clang++", "-std=c++20", "-O2", "-fPIC", "-shared",
+                                str(self.src), str(wrapper), "-o", str(original)],
+                               capture_output=True, text=True, timeout=45)
+        self.assertEqual(built.returncode, 0, built.stderr)
+        translated = subprocess.run([sys.executable, "-m", "hepta", "build", str(self.dst),
+                                     "--backend", "c", "--crate-type", "cdylib", "-o", str(native)],
+                                    capture_output=True, text=True, timeout=90)
+        self.assertEqual(translated.returncode, 0, translated.stderr + translated.stdout)
+        cpp, hepta = ctypes.CDLL(str(original)), ctypes.CDLL(str(native))
+        cases = {
+            "u32_add": (ctypes.c_uint32, [(0, 0), (2**32-1, 1), (2**31, 2**31), (12345, 67890)]),
+            "u64_mix": (ctypes.c_uint64, [(0, 0), (2**64-1, 1), (2**63, 2), (123456789, 987654321)]),
+            "i64_add": (ctypes.c_int64, [(-100, 20), (2**63-1, 0), (-(2**63), 0), (-1234567, 7654321)]),
+        }
+        for name, (typ, inputs) in cases.items():
+            left, right = getattr(cpp, "cpp_" + name), getattr(hepta, name)
+            for fn in (left, right):
+                fn.argtypes, fn.restype = [typ, typ], typ
+            for args in inputs:
+                with self.subTest(name=name, args=args):
+                    self.assertEqual(left(*args), right(*args))
+
+    def test_wide_cpp_rejects_unmodeled_abi_types(self):
+        for source in ("long double f(long double x) noexcept { return x; }",
+                       "bool f(bool x) noexcept { return x; }",
+                       "unsigned int *f(unsigned int *x) noexcept { return x; }"):
+            with self.subTest(source=source):
+                self.src.write_text(source)
+                result = migrate_cpp(self.src, self.dst)
+                self.assertFalse(result["ok"], result)
+                self.assertFalse(self.dst.exists())
+
     def test_unsafe_cpp_constructs_never_partially_publish(self):
         negative = [
             'class Foo { public: int x; }; int f(int a) noexcept {return a;}',
