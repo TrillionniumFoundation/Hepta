@@ -228,7 +228,7 @@ class Matrix:
         return "\n".join(hepta) + "\n", "\n".join(body) + "\n", "\n".join(probes) + "\n", manifest
 
 
-def run_matrix(runner: Runner, directory: Path, seed=20261024, cases=36, values=3) -> dict:
+def run_matrix(runner: Runner, directory: Path, seed=20261024, cases=36, values=3, cc=None) -> dict:
     source, harness, probes, manifest = Matrix(seed, cases, values).generate()
     hp, cp, emitted = directory / "matrix.hepta", directory / "matrix.c", directory / "matrix.rs"
     hp.write_text(source)
@@ -237,7 +237,7 @@ def run_matrix(runner: Runner, directory: Path, seed=20261024, cases=36, values=
     runner.hepta("emit", hp, "--output", emitted)
     library = directory / "libmatrix.a"
     runner.hepta("build", hp, "--crate-type", "staticlib", "--output", library)
-    cc = shutil.which("gcc") or "cc"
+    cc = cc or shutil.which("gcc") or "cc"
     executions = []
     for optimization in ("-O0", "-O2"):
         executable = directory / ("matrix" + optimization)
@@ -276,7 +276,7 @@ AUDIT_CASES = {
 }
 
 
-def audit_boundaries(runner: Runner, directory: Path) -> dict:
+def audit_boundaries(runner: Runner, directory: Path, cc=None) -> dict:
     results = {}
     for name, (source, must_reject) in AUDIT_CASES.items():
         hp, header = directory / (name + ".hepta"), directory / (name + ".h")
@@ -294,13 +294,14 @@ def audit_boundaries(runner: Runner, directory: Path) -> dict:
         else:
             cp = directory / (name + ".c")
             cp.write_text('#include "' + header.name + '"\n')
-            runner.run(["gcc", "-std=c11", "-Wall", "-Wextra", "-Werror", "-pedantic-errors", "-fsyntax-only", cp])
+            runner.run([cc or shutil.which("gcc") or "cc", "-std=c11", "-Wall", "-Wextra", "-Werror", "-pedantic-errors", "-fsyntax-only", cp])
             results[name] = {"status": "accepted_and_c_header_compiled"}
     return {"status": "passed", "cases": results}
 
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--cc", help="C compiler for the host ABI matrix (gcc or clang)")
     parser.add_argument("--seed", type=int, default=20261024)
     parser.add_argument("--cases", type=int, default=36)
     parser.add_argument("--output", type=Path, default=ROOT / "artifacts/abi-matrix.json")
@@ -311,6 +312,9 @@ def main(argv=None) -> int:
     rustc = rustc_path()
     if not rustc:
         parser.error("rustc is required")
+    selected_cc = shutil.which(args.cc) if args.cc else (shutil.which("gcc") or shutil.which("cc"))
+    if not selected_cc:
+        parser.error("A selected host C compiler is required")
     runner = Runner(rustc)
     report = {"schema": "hepta.abi-matrix.v1", "created_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
               "compiler_sources": compiler_identity(), "generator_sha256": digest(Path(__file__)),
@@ -320,9 +324,11 @@ def main(argv=None) -> int:
     directory.mkdir(parents=True, exist_ok=True)
     try:
         report["rustc"] = runner.run([rustc, "--version", "--verbose"]).stdout
-        report["c_compiler"] = runner.run([shutil.which("gcc") or "cc", "--version"]).stdout
-        report["matrix"] = run_matrix(runner, directory, args.seed, args.cases)
-        report["boundary_audit"] = audit_boundaries(runner, directory)
+        report["c_compiler"] = runner.run([selected_cc, "--version"]).stdout
+        report["c_compiler_path"] = selected_cc
+        report["c_compiler_sha256"] = digest(Path(selected_cc))
+        report["matrix"] = run_matrix(runner, directory, args.seed, args.cases, cc=selected_cc)
+        report["boundary_audit"] = audit_boundaries(runner, directory, cc=selected_cc)
         report["status"] = "passed"
     except (RuntimeError, OSError, subprocess.SubprocessError, ValueError) as error:
         report["status"] = "failed"
