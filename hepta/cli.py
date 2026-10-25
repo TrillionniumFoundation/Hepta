@@ -38,6 +38,11 @@ def main(argv=None) -> int:
     migrator.add_argument("--output", "-o", required=True)
     migrator.add_argument("--clang", default="clang")
     migrator.add_argument("--module", default="c_migrated")
+    cpp_migration = sub.add_parser("migrate-cpp", help="Fail-closed Clang++ C++20 to Hepta L1 candidate")
+    cpp_migration.add_argument("source")
+    cpp_migration.add_argument("--output", "-o", required=True)
+    cpp_migration.add_argument("--clangxx", default="clang++")
+    cpp_migration.add_argument("--module", default="cpp_migrated")
     bridge = sub.add_parser("bridge-cpp", help="Generate narrow L0 noexcept C++ to C ABI wrappers")
     bridge.add_argument("source")
     bridge.add_argument("--clangxx", default="clang++")
@@ -85,6 +90,10 @@ def main(argv=None) -> int:
             from .c2hepta import main as migrate_c_main
             return migrate_c_main([args.source, "--output", args.output,
                                    "--clang", args.clang, "--module", args.module])
+        if args.command == "migrate-cpp":
+            from .cpp2hepta import main as migrate_cpp_main
+            return migrate_cpp_main([args.source, "--output", args.output,
+                                     "--clangxx", args.clangxx, "--module", args.module])
         if args.command == "bridge-cpp":
             from .cpp_bridge import main as bridge_cpp_main
             return bridge_cpp_main([args.source, "--output-dir", args.output_dir,
