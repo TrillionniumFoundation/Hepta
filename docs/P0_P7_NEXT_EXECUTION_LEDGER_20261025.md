@@ -50,3 +50,11 @@ type nodes. The independent scalar path cannot silently drop unreviewed
 new ABI/effect/borrow attributes even when supplied in a rehashed snapshot.
 This is a subset-admission hardening step, not general HSIR v1 owner/loan
 semantics, a compiler refinement proof, or formal soundness.
+
+## P3 strict C ABI model admission
+
+The single-TU Clang C11 scalar migrator now explicitly requires
+`__CHAR_BIT__ == 8` in addition to its 32-bit int and 64-bit long long
+measurements. Non-octet targets reject before Clang AST migration.
+This does not qualify target C ABI by itself and does not generalize
+pointer or C++ layout support.

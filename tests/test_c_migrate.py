@@ -167,6 +167,20 @@ int sum_for(int n) {
         self.assertFalse(result["ok"])
         self.assertFalse(self.hepta.exists())
 
+    def test_exotic_char_bit_model_rejected_before_ast_capture(self):
+        original = strict_migrator._run
+
+        def forged_non_octet_model(argv, **kwargs):
+            raw = original(argv, **kwargs)
+            if "-dM" in argv and "-E" in argv:
+                self.assertIn("#define __CHAR_BIT__ 8", raw)
+                return raw.replace("#define __CHAR_BIT__ 8", "#define __CHAR_BIT__ 16")
+            return raw
+
+        with patch.object(strict_migrator, "_run", side_effect=forged_non_octet_model):
+            with self.assertRaisesRegex(strict_migrator.MigrationRejected, "E_C_DATA_MODEL"):
+                strict_migrator._data_model("clang")
+
     def test_header_macro_preprocessing_is_source_bound(self):
         header = self.directory / "values.h"
         header.write_text("#define DELTA 3\n")

@@ -48,9 +48,11 @@ def _data_model(clang: str) -> dict:
     macros = _run([clang, "-std=c11", "-dM", "-E", "-x", "c", "-"], input_text="")
     defines = dict(m.groups() for line in macros.splitlines()
                    if (m := re.fullmatch(r"#define (__SIZEOF_(?:INT|LONG|LONG_LONG|POINTER)__)(?:\s+)(\d+)", line)))
-    if defines.get("__SIZEOF_INT__") != "4" or defines.get("__SIZEOF_LONG_LONG__") != "8":
-        raise MigrationRejected("E_C_DATA_MODEL", "pilot requires 32-bit C int and 64-bit long long")
-    return {"sizeof_int": 4, "sizeof_long": int(defines.get("__SIZEOF_LONG__", 0)),
+    char_bits = re.search(r"(?m)^#define __CHAR_BIT__\s+(\d+)\s*$", macros)
+    if (defines.get("__SIZEOF_INT__") != "4" or defines.get("__SIZEOF_LONG_LONG__") != "8"
+            or char_bits is None or char_bits.group(1) != "8"):
+        raise MigrationRejected("E_C_DATA_MODEL", "pilot requires 8-bit C bytes, 32-bit int and 64-bit long long")
+    return {"char_bit": 8, "sizeof_int": 4, "sizeof_long": int(defines.get("__SIZEOF_LONG__", 0)),
             "sizeof_long_long": 8, "sizeof_pointer": int(defines.get("__SIZEOF_POINTER__", 0)),
             "target": _run([clang, "-dumpmachine"]).strip(),
             "clang_version": _run([clang, "--version"]).splitlines()[0]}
