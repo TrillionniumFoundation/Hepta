@@ -17,6 +17,8 @@ import shutil
 import tempfile
 
 from .clang_capture import CaptureRejected, run_bounded
+from .native_output_guard import (MAX_NATIVE_ARTIFACT_BYTES, NativeOutputRejected,
+                                  digest_regular_binary, read_native_artifact)
 
 from .llvm_ir_profile import LLVMProfileRejected, validate_scalar_llvm_profile
 from .cfg import CFGSnapshot
@@ -257,6 +259,10 @@ def compile_scalar_ssa_llvm(ir: SSA_LLVM_IR, *, clang: str = "clang", output: st
     version = _clang_run([str(compiler), "--version"], timeout=10)
     if version.returncode or not version.stdout.strip():
         raise LLVMSSARejected("E_LLVM_SSA_TOOLCHAIN: compiler identity unavailable")
+    try:
+        compiler_digest = digest_regular_binary(compiler)
+    except NativeOutputRejected as exc:
+        raise LLVMSSARejected("E_LLVM_SSA_TOOLCHAIN: " + str(exc)) from exc
     # Do not resolve the output leaf: a dangling symlink could publish
     # the compiled library to a different pathname.
     target = Path(output).absolute()
@@ -269,18 +275,32 @@ def compile_scalar_ssa_llvm(ir: SSA_LLVM_IR, *, clang: str = "clang", output: st
         path.write_text(ir.text)
         cmd = [str(compiler), "-x", "ir", "-O3", "-fPIC", "-shared", str(path), "-o", str(library)]
         result = _clang_run(cmd, timeout=45)
-        if result.returncode or not library.is_file() or library.stat().st_size == 0:
+        if result.returncode:
             raise LLVMSSARejected("E_LLVM_SSA_NATIVE: clang compilation failed: " + result.stderr[:1800])
+        try:
+            staged = read_native_artifact(library)
+        except NativeOutputRejected as exc:
+            raise LLVMSSARejected("E_LLVM_SSA_NATIVE_ARTIFACT: " + str(exc)) from exc
+        staged_digest = sha256(staged).hexdigest()
         if target.is_symlink() or target.exists():
             raise LLVMSSARejected("E_LLVM_SSA_OUTPUT: destination created during build")
-        os.link(library, target)
+        try:
+            os.link(library, target)
+        except FileExistsError as exc:
+            raise LLVMSSARejected("E_LLVM_SSA_OUTPUT: destination race or overwrite") from exc
+        try:
+            published_digest = digest_regular_binary(target, max_bytes=MAX_NATIVE_ARTIFACT_BYTES)
+        except NativeOutputRejected as exc:
+            raise LLVMSSARejected("E_LLVM_SSA_NATIVE_ARTIFACT: " + str(exc)) from exc
+        if published_digest != staged_digest:
+            raise LLVMSSARejected("E_LLVM_SSA_NATIVE_ARTIFACT: published bytes differ from staged bytes")
     return {"schema": "hepta.llvm-ssa-host.v0", "status": "native_host_compiled_unqualified",
             "output": str(target), "llvm_ir_sha256": ir.sha256,
             "ssa_sha256": ir.source_ssa_sha256,
             "ssa_verification_sha256": ir.verification_sha256,
-            "artifact_sha256": sha256(target.read_bytes()).hexdigest(),
-            "artifact_bytes": target.stat().st_size,
+            "artifact_sha256": staged_digest,
+            "artifact_bytes": len(staged),
             "toolchain": {"version": version.stdout.splitlines()[0],
-                          "compiler_sha256": sha256(compiler.read_bytes()).hexdigest()},
+                          "compiler_sha256": compiler_digest},
             "claims": {"backend_refinement_proven": False, "cross_target_abi_qualified": False,
                        "runtime_execution_qualified": False, "whole_p6_gate_closed": False}}

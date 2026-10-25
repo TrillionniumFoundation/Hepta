@@ -12,6 +12,8 @@ import shutil
 import tempfile
 
 from .llvm_ssa_backend import SSA_LLVM_IR, LLVMSSARejected, _clang_run
+from .native_output_guard import (MAX_NATIVE_ARTIFACT_BYTES, NativeOutputRejected,
+                                  digest_regular_binary, read_native_artifact)
 
 _TARGETS = {"x86_64-unknown-linux-gnu": ("ELF64", 62),
             "aarch64-unknown-linux-gnu": ("ELF64", 183),
@@ -461,6 +463,10 @@ def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
     version = _clang_run([str(compiler), "--version"], timeout=10)
     if version.returncode or not version.stdout.strip():
         raise LLVMSSARejected("E_LLVM_SSA_TOOLCHAIN: missing compiler identity")
+    try:
+        compiler_digest = digest_regular_binary(compiler)
+    except NativeOutputRejected as exc:
+        raise LLVMSSARejected("E_LLVM_SSA_TOOLCHAIN: " + str(exc)) from exc
     # Do not dereference a dangling destination symlink: resolving the final
     # component would silently publish the object to the symlink target.
     # os.link below is no-replace, including when a new symlink races us.
@@ -476,7 +482,10 @@ def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
         result = _clang_run(cmd, timeout=45)
         if result.returncode != 0:
             raise LLVMSSARejected("E_LLVM_SSA_TARGET_NATIVE: " + result.stderr[:1200])
-        data = artifact.read_bytes() if artifact.is_file() else b""
+        try:
+            data = read_native_artifact(artifact)
+        except NativeOutputRejected as exc:
+            raise LLVMSSARejected("E_LLVM_SSA_TARGET_OUTPUT: " + str(exc)) from exc
         if not _qualified_header(data, target):
             raise LLVMSSARejected("E_LLVM_SSA_TARGET_IDENTITY: wrong/empty ELF, COFF or Mach-O machine/file type")
         # The strict i32 codegen profile may only reference C abort to signal
@@ -496,6 +505,12 @@ def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
             os.link(artifact, destination)
         except FileExistsError as exc:
             raise LLVMSSARejected("E_LLVM_SSA_OUTPUT: destination race or overwrite rejected") from exc
+        try:
+            published_digest = digest_regular_binary(destination, max_bytes=MAX_NATIVE_ARTIFACT_BYTES)
+        except NativeOutputRejected as exc:
+            raise LLVMSSARejected("E_LLVM_SSA_TARGET_OUTPUT: " + str(exc)) from exc
+        if published_digest != sha256(data).hexdigest():
+            raise LLVMSSARejected("E_LLVM_SSA_TARGET_OUTPUT: published bytes differ from staged bytes")
     return {
         "schema": "hepta.llvm-ssa-object.v0",
         "status": "cross_object_only_not_executed",
@@ -506,10 +521,10 @@ def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
         "undefined_external_dependencies": sorted(unresolved),
         "llvm_ir_sha256": ir.sha256, "ssa_sha256": ir.source_ssa_sha256,
         "structural_ssa_verification_sha256": ir.verification_sha256,
-        "artifact_sha256": sha256(destination.read_bytes()).hexdigest(),
-        "artifact_bytes": destination.stat().st_size,
+        "artifact_sha256": published_digest,
+        "artifact_bytes": len(data),
         "compiler": {"version": version.stdout.splitlines()[0],
-                     "sha256": sha256(compiler.read_bytes()).hexdigest()},
+                     "sha256": compiler_digest},
         "claims": {"target_object_compiled": True,
                    "undefined_external_inventory_checked": True,
                    "target_program_executed": False,
