@@ -66,6 +66,26 @@ A successful reference release is *not* automatically a successful qualification
 - **P6 — independent scalar LLVM/Clang native pilot:** `hepta.llvm_scalar_backend` lowers a closed, pretyped `i32` subset directly from HSIR to LLVM IR. Signed arithmetic uses explicit overflow detection and abort; forbidden effects and ownership modes reject. A GCC C reference and LLVM native library were compared on 100 seeded valid inputs per operation, plus wrapping and overflow-child negative tests. On the local isolated subset, three P6 tests passed and two required full compiler integration tests were skipped; the new `build-llvm-scalar` CLI requires real pinned rustc validation before lowering. This is **not** a whole-language LLVM backend, production performance qualification, or P6 gate closure.
 - **P4 host-only qualification receipt:** `artifacts/cpp-bridge-exception-host-20261024.json` captures GCC/Clang executable identity, source hashes and five actual exception/RAII tests. The host-only script is `tools/verify_cpp_bridge_host.py`; it deliberately reports `whole_p4_gate_closed=false`.
 
+### Current bounded qualification and fail-closed parameter fix (2026-10-25)
+
+- The new P6 host verifier `tools/verify_llvm_subset_host.py` generated
+  `artifacts/llvm-phi-cross-host-20261025.json`, with **18 tests / 15 passed /
+  3 skipped / 0 failed** in a *partial* checkout. It records source and
+  compiler hashes, and denies whole-P6 or whole-project completion. The remote
+  current-head P0 workflow requires zero skipped cases and adds real Hepta
+  Rust-reference-to-LLVM host and cross-object compilation.
+- An adversarial Clang AST test found that C++ default arguments and parameter
+  attributes had been accepted while omitted from the migrated C ABI signature,
+  potentially dropping source call semantics. `c2hepta`, `cpp2hepta`,
+  and `cpp_bridge` now reject parameter defaults/child attributes rather
+  than silently translating them. Local Clang++ positive/negative bridge and
+  migration tests: **9 executed, 8 passed, 1 optional Rust-frontend skip**;
+  the C11 parameter attribute negative was also rejected by an actual Clang AST
+  smoke test. Whole-project/ABI qualification remains open.
+- The current PR Actions job has repeatedly been queued without a qualified
+  current-head completion. The exact queued status and the absence of fixed
+  native runner receipts must not be converted into a P0 pass.
+
 ## Acceptance gates (the definition of done)
 
 | Stage | Scope and required evidence | Status following this incremental change |
