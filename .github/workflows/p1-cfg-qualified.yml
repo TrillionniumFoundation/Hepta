@@ -31,6 +31,9 @@ jobs:
         run: |
           python tools/bootstrap_toolchain.py --prefix "$RUNNER_TEMP/hepta-rust" --targets
           echo "RUSTC=$RUNNER_TEMP/hepta-rust/bin/rustc" >> "$GITHUB_ENV"
+      - name: Multi-source Agent preview regression with pinned rustc
+        run: |
+          python -m unittest discover -s tests -p test_agent_preview.py -v
       - name: Native-qualified CFG CLI and explicit claims
         run: |
           python -m hepta cfg examples/parser.hepta > "$RUNNER_TEMP/parser-cfg.json"
