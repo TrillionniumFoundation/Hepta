@@ -110,6 +110,16 @@ class LLVMScalarPhiTests(unittest.TestCase):
         bad(lambda stmts: stmts[1]['fields']['then'][0].__setitem__('operation', 'return'))
         bad(lambda stmts: stmts[0]['fields'].__setitem__('type', _BOOL))
 
+    def test_llvm_ir_receipt_cannot_claim_missing_symbols(self):
+        from hepta.llvm_scalar_backend import ScalarIR
+        ir = emit_scalar_llvm(build_hsir())
+        altered = ScalarIR(ir.text, ir.sha256, ('a_nonexistent_symbol',))
+        with tempfile.TemporaryDirectory() as folder:
+            target = Path(folder) / 'bad.so'
+            with self.assertRaisesRegex(LLVMScalarRejected, 'E_LLVM_IR_IDENTITY'):
+                compile_scalar_llvm(altered, output=target)
+            self.assertFalse(target.exists())
+
     def test_panic_effect_cannot_be_omitted_in_phi_arm(self):
         for field in ('declared_effects', 'inferred_transitive_effects'):
             snapshot = build_hsir()
