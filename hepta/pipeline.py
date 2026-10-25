@@ -212,6 +212,37 @@ def hsir_analysis(analysis: Analysis) -> dict:
             "hsir": snapshot, "validation": analysis.report}
 
 
+
+def hsir_v1_analysis(analysis: Analysis) -> dict:
+    """Expose a versioned, lossless interface view without granting codegen.
+
+    The old v0 CLI remains unchanged. Native validation and producer-specific
+    FFI/ownership obligations are never inferred from a successful projection.
+    """
+    legacy = hsir_analysis(analysis)
+    rejected = {"schema": "hepta.hsir.integration.export.v1", "ok": False,
+                "status": "rejected", "hsir": None, "validation": analysis.report}
+    if not legacy["ok"] or legacy["hsir"] is None:
+        return rejected
+    try:
+        from .hsir_v1 import HSIRV1Rejected, integrate_v0, verify_v1
+        project_id = getattr(analysis.project, "identity", None)
+        # program.source is the checked aggregate source. For multi-file
+        # imports it need not equal the entry file's standalone source hash.
+        source_id = hashlib.sha256(analysis.program.source.encode("utf-8")).hexdigest()
+        snapshot = integrate_v0(legacy["hsir"], expected_source_sha256=source_id,
+                                expected_project_sha256=project_id)
+        verify_v1(snapshot)
+    except (HSIRV1Rejected, ValueError, TypeError, OverflowError, RecursionError) as exc:
+        return {**rejected, "diagnostics": [
+            {"code": "E_HSIR_V1_LOWER", "phase": "integration-hsir",
+             "message": str(exc)}]}
+    return {"schema": "hepta.hsir.integration.export.v1",
+            "ok": True, "status": legacy["status"],
+            "hsir": snapshot, "validation": analysis.report,
+            "native_validity_not_established_by_hsir_v1": True}
+
+
 def cfg_analysis(analysis: Analysis) -> dict:
     """Export checked structured control flow without upgrading proof claims."""
     if analysis.program is None or analysis.checked is None or not analysis.checked.ok:
