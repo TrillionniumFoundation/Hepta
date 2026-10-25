@@ -1,0 +1,57 @@
+name: Hepta SSA target-object header regression
+
+on:
+  push:
+    branches:
+      - dot/pr77-real-macho-header-regression-20261025
+  pull_request:
+    branches:
+      - codex/hepta-p3-p5-section-extents-20261025
+    paths:
+      - hepta/llvm_ssa_target.py
+      - tests/test_llvm_ssa_target.py
+      - tests/test_llvm_ssa_section_payloads.py
+      - .github/workflows/hepta-ssa-object-headers.yml
+
+permissions:
+  contents: read
+
+jobs:
+  native-object-headers:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify revision and pre-test source integrity
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test -z "$(git status --porcelain)"
+      - name: Run native Clang positive and negative object checks without skips
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v clang
+          clang --version
+          python3 --version
+          python3 - <<'PY'
+          import sys
+          import unittest
+          names = [
+              "tests.test_llvm_ssa_target",
+              "tests.test_llvm_ssa_section_payloads",
+          ]
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if not result.wasSuccessful() or result.skipped or result.testsRun < 6:
+              print("E_SSA_HEADER_QUALIFICATION: failure, skip or missing test", file=sys.stderr)
+              sys.exit(1)
+          print("SSA header targeted tests passed; full production qualification is not claimed")
+          PY
