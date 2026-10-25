@@ -12,9 +12,9 @@ import json
 from pathlib import Path
 import re
 import shutil
-import subprocess
 import tempfile
 
+from .clang_capture import CaptureRejected, CaptureResult, run_bounded
 from .c_migrate import MigrationRejected, _IDENT
 
 
@@ -456,11 +456,19 @@ class _Generator:
         return tuple("\n".join(lines) + "\n" for lines in (self.cpp, self.h, self.hp))
 
 
-def _command(argv: list[str], *, timeout: int = 90) -> subprocess.CompletedProcess:
+def _command(argv: list[str], *, timeout: int = 90) -> CaptureResult:
+    """Bounded C++ compiler invocation for ABI-contract bridge generation.
+
+    This protects the Agent host from unbounded diagnostic capture. The
+    compiler and foreign header are not sandboxed against filesystem effects.
+    """
     try:
-        p = subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        _reject(str(exc), "E_CPP_ENV")
+        p = run_bounded(argv, timeout=timeout, stdin_limit=0,
+                        stdout_limit=64_000, stderr_limit=256_000)
+    except CaptureRejected as exc:
+        code = ("E_CPP_CAPTURE" if exc.code in
+                {"E_CAPTURE_OUTPUT_SIZE", "E_CAPTURE_ENCODING"} else "E_CPP_ENV")
+        _reject(f"{exc.code}: {exc}", code)
     if p.returncode:
         _reject((p.stderr or p.stdout)[-8000:], "E_CPP_NATIVE")
     return p
