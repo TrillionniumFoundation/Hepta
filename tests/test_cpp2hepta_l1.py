@@ -68,6 +68,27 @@ int clamp(int x) noexcept {
                 self.assertFalse(self.dst.exists())
         self.assertTrue(len(negative) >= 9)
 
+    def test_preprocessor_spellings_and_builtin_expansions_never_publish(self):
+        negative = [
+            "/* prefix */ #define VALUE 7\nint f(int a) noexcept {return a+VALUE;}",
+            "%:define VALUE 7\nint f(int a) noexcept {return a+VALUE;}",
+            "%\\\n:define VALUE 7\nint f(int a) noexcept {return a+VALUE;}",
+            "/* prefix */ #if 0\nclass Hidden {};\n/* prefix */ #endif\nint f(int a) noexcept {return a;}",
+            "int f(int a) noexcept {return a+__LINE__;}",
+            "int f(int a) noexcept {return a+__COUNTER__;}",
+            "%\\\r:if 0\rclass Hidden {};\r%\\\r:endif\rint f(int a) noexcept{return a;}",
+            '_Pragma("pack(push, 1)") int f(int a) noexcept{return a;} _Pragma("pack(pop)")',
+        ]
+        for source in negative:
+            with self.subTest(source=source):
+                self.dst.unlink(missing_ok=True)
+                self.src.write_text(source)
+                result = migrate_cpp(self.src, self.dst)
+                self.assertFalse(result["ok"], result)
+                self.assertEqual(result["rejected"][0]["code"], "E_CPP2HEPTA_PREPROCESSOR")
+                self.assertEqual(result["converted"], [])
+                self.assertFalse(self.dst.exists())
+
     def test_dangling_output_alias_and_existing_source_are_not_replaced(self):
         self.src.write_text(self._GOOD)
         target = self.root / "redirected.hepta"
