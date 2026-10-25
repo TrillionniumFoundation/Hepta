@@ -1,134 +1,184 @@
 #!/usr/bin/env python3
-"""Fail-closed, exact-SHA audit of parallel Hepta integration candidates.
+"""Exact-commit Hepta branch integration audit; always manual-review-only.
 
-Usage:
-  python tools/audit_parallel_prs.py --base SHA \
-    --candidate pr14=SHA --candidate pr36=SHA --candidate pr37=SHA \
-    --output audit.json
-
-Requires a locally available git object database containing every specified
-commit. This command never fetches, merges, changes HEAD, or edits source.
+No checkout, fetch, merge or source modification is performed. Commit objects
+must already be present in the current repository. Paths are interpreted from
+NUL-delimited Git tree entries, not a rename-detecting textual diff.
 """
+from __future__ import annotations
+
 import argparse
 import json
 import os
 import re
 import subprocess
 import sys
-from pathlib import Path
 
-SHA = re.compile(r"^[0-9a-fA-F]{40}$")
-SEMANTIC_PATHS = (
-    "hepta/ast.py", "hepta/parser.py", "hepta/checker.py",
-    "hepta/backend.py", "hepta/c_backend.py", "hepta/cli.py",
-    "hepta/semantic_ir.py", "hepta/hsir.py", "hepta/hmir.py",
-    "hepta/migration_ir.py", "hepta/flow_ir.py", "hepta/resource_ir.py",
-    "hepta/resource_lowering.py", "hepta/c_migrate.py",
-    "hepta/c2hepta.py", "hepta/cpp2hepta.py", "hepta/cpp_bridge.py",
-    "hepta/llvm_scalar_backend.py", "hepta/llvm_ssa_backend.py",
-    "hepta/llvm_ssa_target.py", "hepta/protocol.py",
-    "hepta/protocol_v3.py", "hepta/workspace.py",
-)
+SHA = re.compile(r"[0-9a-fA-F]{40}\Z")
+LABEL = re.compile(r"[A-Za-z][A-Za-z0-9_-]{0,63}\Z")
 
-def git(*args):
-    proc = subprocess.run(
-        ["git", "--no-pager", *args], stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE, check=False, timeout=60,
-    )
+# Multiple paths may represent complementary implementations, not necessarily
+# a bug; every multi-candidate family requires source-level reconciliation.
+SEMANTIC_FAMILIES = {
+    "typed_hsir": ("hepta/semantic_ir.py", "hepta/hsir.py"),
+    "control_flow_ssa": ("hepta/hmir.py", "hepta/cfg.py", "hepta/ssa.py"),
+    "ownership_resources": ("hepta/resource_ir.py", "hepta/resource_lowering.py",
+                            "hepta/concurrent_ir.py", "hepta/flow_ir.py"),
+    "c_source_migration": ("hepta/c_migrate.py", "hepta/c_migration_project.py",
+                           "hepta/c2hepta.py", "hepta/migration_ir.py"),
+    "cpp_interop_migration": ("hepta/cpp_bridge.py", "hepta/cpp_contracts.py",
+                              "hepta/cpp2hepta.py"),
+    "agent_transactions": ("hepta/workspace.py", "hepta/protocol_v3.py",
+                           "hepta/agent_preview.py"),
+    "llvm_codegen": ("hepta/llvm_scalar_backend.py", "hepta/llvm_ssa_backend.py",
+                     "hepta/llvm_ssa_target.py"),
+}
+DIRECT_SEMANTIC_PATHS = frozenset({
+    "hepta/ast.py", "hepta/parser.py", "hepta/checker.py", "hepta/backend.py",
+    "hepta/c_backend.py", "hepta/cli.py", "hepta/protocol.py",
+    *(path for group in SEMANTIC_FAMILIES.values() for path in group),
+})
+
+
+def git(*args: str) -> bytes:
+    # Fail on missing objects; no shell evaluation and no remote network reads.
+    env = {**os.environ, "GIT_NO_REPLACE_OBJECTS": "1"}
+    proc = subprocess.run(["git", "--no-pager", *args], stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE, check=False, timeout=60, env=env)
     if proc.returncode:
         raise RuntimeError("git " + " ".join(args[:2]) + " failed: " +
                            proc.stderr.decode("utf-8", "replace")[:500])
     return proc.stdout
 
-def check_commit(sha):
-    if not SHA.fullmatch(sha):
-        raise ValueError("Require a full 40-character commit SHA")
+
+def check_commit(sha: str) -> str:
+    if not isinstance(sha, str) or not SHA.fullmatch(sha):
+        raise ValueError("Require an exact 40-character commit SHA")
     git("cat-file", "-e", sha + "^{commit}")
-    return git("rev-parse", sha + "^{commit}").decode().strip()
+    committed = git("rev-parse", sha + "^{commit}").decode("ascii").strip()
+    if not SHA.fullmatch(committed):
+        raise ValueError("Git returned an unexpected commit identity")
+    return committed.lower()
 
-def changed_files(base, head):
-    # Null-separated paths: safely handles whitespace/newline in filenames.
-    raw = git("diff", "--name-only", "-z", base, head)
-    return sorted(os.fsdecode(p) for p in raw.split(b"\0") if p)
 
-def audit(base, candidates):
+def tree_entries(commit: str) -> dict[str, dict[str, str]]:
+    raw = git("ls-tree", "-r", "-z", "--full-tree", commit)
+    if len(raw) > 32_000_000:
+        raise ValueError("Tree listing exceeds bounded input")
+    result: dict[str, dict[str, str]] = {}
+    if raw and not raw.endswith(b"\0"):
+        raise ValueError("Git returned a truncated NUL-delimited tree")
+    for entry in raw.split(b"\0"):
+        if not entry:
+            continue
+        header, sep, path_bytes = entry.partition(b"\t")
+        parts = header.split(b" ")
+        if not sep or len(parts) != 3 or not path_bytes:
+            raise ValueError("Malformed Git tree entry")
+        mode, kind, oid = parts
+        if kind not in (b"blob", b"commit") or not SHA.fullmatch(oid.decode("ascii")):
+            raise ValueError("Unsupported Git tree entry")
+        path = os.fsdecode(path_bytes)
+        if path in result:
+            raise ValueError("Duplicate path in Git tree")
+        result[path] = {"mode": mode.decode("ascii"),
+                        "kind": kind.decode("ascii"), "oid": oid.decode("ascii").lower()}
+        if len(result) > 100_000:
+            raise ValueError("Tree has too many entries")
+    return result
+
+
+def audit(base: str, candidates: dict[str, str]) -> dict:
+    if len(candidates) < 2 or len(candidates) > 16:
+        raise ValueError("Require between 2 and 16 distinct candidates")
+    if any(not LABEL.fullmatch(label) or label == "base" for label in candidates):
+        raise ValueError("Invalid candidate label")
     base = check_commit(base)
-    heads = {label: check_commit(sha) for label, sha in candidates.items()}
-    changed = {}
+    heads = {label: check_commit(sha) for label, sha in sorted(candidates.items())}
+    if len(set(heads.values())) != len(heads):
+        raise ValueError("Duplicate candidate commit")
+    for label, head in heads.items():
+        ancestor = git("merge-base", base, head).decode("ascii").strip()
+        if ancestor != base:
+            raise ValueError(label + ": expected base is not a candidate ancestor")
+    trees = {"base": tree_entries(base)}
+    trees.update((label, tree_entries(head)) for label, head in heads.items())
+    changes: dict[str, dict] = {}
+    for label in heads:
+        old, new = trees["base"], trees[label]
+        changes[label] = {path: {"base": old.get(path), "candidate": new.get(path)}
+                          for path in sorted(old.keys() | new.keys())
+                          if old.get(path) != new.get(path)}
     ancestry = {}
-    for label, head in sorted(heads.items()):
-        merge_base = git("merge-base", base, head).decode().strip()
-        if merge_base != base:
-            raise ValueError(label + ": base is not an ancestor of candidate")
-        changed[label] = changed_files(base, head)
-    labels = sorted(heads)
     overlaps = []
-    for i, left in enumerate(labels):
-        for right in labels[i + 1:]:
-            common = sorted(set(changed[left]) & set(changed[right]))
-            left_ancestor = (git("merge-base", heads[left], heads[right])
-                             .decode().strip() == heads[left])
-            right_ancestor = (git("merge-base", heads[right], heads[left])
-                              .decode().strip() == heads[right])
+    labels = sorted(heads)
+    for index, left in enumerate(labels):
+        for right in labels[index + 1:]:
+            common = sorted(changes[left].keys() & changes[right].keys())
+            same = [path for path in common if trees[left].get(path) == trees[right].get(path)]
+            different = [path for path in common if trees[left].get(path) != trees[right].get(path)]
+            mergebase = git("merge-base", heads[left], heads[right]).decode("ascii").strip()
             ancestry[left + ":" + right] = {
-                "left_ancestor_of_right": left_ancestor,
-                "right_ancestor_of_left": right_ancestor,
+                "merge_base": mergebase,
+                "left_ancestor_of_right": mergebase == heads[left],
+                "right_ancestor_of_left": mergebase == heads[right],
             }
-            overlaps.append({
-                "left": left, "right": right, "shared_paths": common,
-                "shared_semantic_paths": sorted(set(common) & set(SEMANTIC_PATHS)),
-            })
-    semantic_owners = {}
-    for label, paths in changed.items():
-        for path in paths:
-            if path in SEMANTIC_PATHS:
-                semantic_owners.setdefault(path, []).append(label)
-    conflicting = {p: names for p, names in sorted(semantic_owners.items())
-                   if len(names) > 1}
-    # Disjoint files can STILL implement competing semantic authorities.
-    # Manual semantic/IR mapping and end-to-end native gates are mandatory.
+            overlaps.append({"left": left, "right": right,
+                             "shared_paths": common,
+                             "identical_final_paths": same,
+                             "different_final_paths": different,
+                             "different_semantic_paths": sorted(set(different) & DIRECT_SEMANTIC_PATHS)})
+    semantic_families = {}
+    for family, paths in SEMANTIC_FAMILIES.items():
+        owners = {label: sorted(set(paths) & changes[label].keys())
+                  for label in labels if set(paths) & changes[label].keys()}
+        if len(owners) >= 2:
+            semantic_families[family] = {"candidate_paths": owners,
+                                         "classification": "requires_source_level_review"}
+    duplicated = {}
+    for path in sorted(DIRECT_SEMANTIC_PATHS):
+        owners = [label for label in labels if path in changes[label]]
+        if len(owners) > 1:
+            duplicated[path] = owners
     return {
-        "schema": "hepta.integration-audit.v1",
-        "base": base, "candidates": heads, "changed_files": changed,
-        "ancestry": ancestry, "overlaps": overlaps,
-        "duplicate_semantic_path_owners": conflicting,
+        "schema": "hepta.integration-audit.v2", "base": base, "candidates": heads,
+        "changes": changes, "ancestry": ancestry, "overlaps": overlaps,
+        "semantic_family_review": semantic_families,
+        "duplicate_semantic_path_owners": duplicated,
         "automatic_merge_approved": False,
         "whole_project_blockers_closed": False,
         "limitations": [
-            "File/path audit cannot detect duplicated concepts under distinct filenames",
-            "No content merge, native compilation, test execution or safety proof",
-            "Passing this audit cannot authorize a production merge",
+            "Equal blob content or path lists do not prove semantic compatibility",
+            "Cross-file semantic authority and FFI assumptions require manual review",
+            "No native test, whole-language soundness proof or production qualification was run",
         ],
     }
 
-def main(argv=None):
+
+def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base", required=True)
-    parser.add_argument("--candidate", action="append", required=True,
-                        help="label=40-character-SHA")
+    parser.add_argument("--candidate", action="append", required=True)
     parser.add_argument("--output", required=True)
     args = parser.parse_args(argv)
     candidates = {}
     try:
         for item in args.candidate:
-            label, sha = item.split("=", 1)
-            if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]{0,63}", label):
-                raise ValueError("invalid candidate label")
-            if label in candidates:
-                raise ValueError("duplicate candidate label")
+            label, sep, sha = item.partition("=")
+            if not sep or not LABEL.fullmatch(label) or label == "base" or label in candidates:
+                raise ValueError("Invalid or duplicate candidate label")
             candidates[label] = sha
-        if len(candidates) < 2:
-            raise ValueError("need at least two candidates")
         report = audit(args.base, candidates)
         payload = json.dumps(report, sort_keys=True, indent=2) + "\n"
-        # Protect previously published evidence from accidental overwrite.
-        with open(args.output, "x", encoding="utf-8") as output:
-            output.write(payload)
+        # O_CREAT|O_EXCL refuses existing outputs including dangling symlinks.
+        with open(args.output, "x", encoding="utf-8") as stream:
+            stream.write(payload)
         print(payload, end="")
         return 0
     except (ValueError, RuntimeError, OSError, subprocess.TimeoutExpired) as error:
         print("E_INTEGRATION_AUDIT: " + str(error), file=sys.stderr)
         return 2
+
 
 if __name__ == "__main__":
     raise SystemExit(main())
