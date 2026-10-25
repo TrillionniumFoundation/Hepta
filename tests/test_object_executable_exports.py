@@ -132,6 +132,8 @@ def _mutate_macho(data):
                 "out_of_range": _write(data, symbol + 8, 8, start + length),
                 "non_executable": _write(data, section + 64, 4,
                                          flags & ~(0x80000000 | 0x400)),
+                "zerofill_masquerading_as_text": _write(data, section + 64, 4,
+                                                        (flags & ~0xff) | 0x1),
                 "false_text_name": data[:section] + b"__data" + data[section + 6:],
             }
     raise AssertionError("No Mach-O export found")
