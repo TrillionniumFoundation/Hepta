@@ -52,9 +52,11 @@ direct scalar assignment or standalone ++/-- step on an initialized local,
 and a compound statement body. The output preserves init/body/step order:
 init; while (condition) { body; step; }. Signed arithmetic may abort on
 otherwise undefined source inputs; unsigned ++/-- use wrapping arithmetic.
-All forms with an initializer declaration, missing condition, nested variable
-declaration, break/continue/goto, compound assignment, or unbraced loop body
-reject, rather than hiding scope/lifetime and control-flow differences.
+The earlier assignment-only restriction was superseded by the scoped
+single-scalar declaration profile described below. Multiple or uninitialized
+for-initializer declarations, nonautomatic storage, missing condition, nested
+body declarations, break/continue/goto, compound assignments and unbraced loop
+bodies still reject rather than silently changing source semantics.
 
 C11 and C++20 finite-domain native ABI differential tests are added.
 Passing those tests is not proof of whole-program L2/L3 source equivalence.

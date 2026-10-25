@@ -246,6 +246,55 @@ int shadow(int i) noexcept {
         self.assertFalse(result["cpp_abi_preserved"])
         self.assertFalse(result["behavioral_equivalence_proved"])
 
+    def test_forged_source_local_ast_identity_rejected(self):
+        # Model a corrupted Clang capture by changing one local reference ID:
+        # equality of source spelling is not evidence of the same declaration.
+        import copy
+        from hepta.c_migrate import MigrationRejected, _function
+        from hepta.cpp2hepta import _model
+        self.src.write_text("""
+int sum(int n) noexcept {
+    int total = 0;
+    for (int i = 0; i < n; ++i) { total = total + i; }
+    return total;
+}
+""")
+        capture = subprocess.run(
+            ["clang++", "-std=c++20", "-Werror", "-fsyntax-only",
+             "-Xclang", "-ast-dump=json", str(self.src)],
+            capture_output=True, text=True, timeout=40)
+        self.assertEqual(capture.returncode, 0, capture.stderr)
+        ast = json.loads(capture.stdout)
+        fn = next(n for n in ast["inner"] if n.get("kind") == "FunctionDecl"
+                  and n.get("name") == "sum" and n.get("loc", {}).get("offset") is not None)
+        mutated = copy.deepcopy(fn)
+        def damage(node):
+            if isinstance(node, dict):
+                if (node.get("kind") == "DeclRefExpr"
+                        and node.get("referencedDecl", {}).get("kind") == "VarDecl"
+                        and node["referencedDecl"].get("name") == "i"):
+                    node["referencedDecl"]["id"] = "0xforged-identity"
+                    return True
+                return any(damage(part) for part in node.get("inner", []))
+            return False
+        self.assertTrue(damage(mutated))
+        with self.assertRaisesRegex(MigrationRejected, "not a checked parameter"):
+            _function(mutated, _model("clang++"))
+        self.assertFalse(self.dst.exists())
+
+    def test_scoped_for_special_storage_and_multiple_declarators_rejected(self):
+        sources = [
+            "int f(int n) noexcept { int x=0;for (static int i=0;i<n;++i){x=x+i;}return x;}",
+            "int f(int n) noexcept { int x=0;for (int i=0,j=0;i<n;++i){x=x+i;}return x;}",
+            "int f(int n) noexcept { int x=0;for (int i;i<n;++i){x=x+i;}return x;}",
+        ]
+        for src in sources:
+            with self.subTest(src=src):
+                self.src.write_text(src)
+                result = migrate_cpp(self.src, self.dst)
+                self.assertFalse(result["ok"], result)
+                self.assertFalse(self.dst.exists())
+
     def test_hidden_preprocessor_forms_never_publish(self):
         sources = [
             '%:define FLAG 1\nint f(int a) noexcept {return a + FLAG;}',
