@@ -143,6 +143,16 @@ class Tests(unittest.TestCase):
         with self.assertRaisesRegex(mod.SourceBoundReconcileRejected,'SOURCE_SHA_MISMATCH'):
             mod.reconcile_source_bound_to_ssa(envelope(),SRC+' ')
 
+    def test_unhashable_malformed_operations_fail_closed(self):
+        legacy=make_legacy()
+        legacy['functions'][0]['body'][1]['data']['condition']['op'] = []
+        with self.assertRaisesRegex(mod.SourceBoundReconcileRejected,'EXPRESSION_OPERATOR'):
+            mod.require_safe_source_bound(legacy)
+        legacy=make_legacy()
+        legacy['functions'][0]['body'][1]['data']['condition']['value'] = []
+        with self.assertRaisesRegex(mod.SourceBoundReconcileRejected,'BINARY_OPERATOR'):
+            mod.require_safe_source_bound(legacy)
+
     def test_malformed_ast_rejected(self):
         legacy=make_legacy();legacy['functions'][0]['body'][0]['data']['type']['length']=3
         with self.assertRaisesRegex(mod.SourceBoundReconcileRejected,'COMPLEX_TYPE'):
