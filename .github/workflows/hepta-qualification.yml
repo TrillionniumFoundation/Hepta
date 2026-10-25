@@ -1,0 +1,79 @@
+name: Hepta qualified source snapshot
+
+on:
+  pull_request:
+    paths:
+      - "hepta/**"
+      - "tests/**"
+      - "tools/**"
+      - "formal/**"
+      - "examples/**"
+      - "benchmarks/**"
+      - "experiments/**"
+      - "docs/**"
+      - "toolchain-lock.json"
+      - ".github/workflows/hepta-qualification.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-and-safety:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Record exact source identity
+        run: |
+          git rev-parse HEAD
+          git status --porcelain
+          python --version
+          gcc --version | head -1
+          clang --version | head -1
+      - name: Install fixed validation dependencies
+        run: |
+          python -m pip install --disable-pip-version-check 'zstandard>=0.22,<1'
+          python tools/bootstrap_toolchain.py
+          python tools/bootstrap_verification.py
+          echo "RUSTC=$(realpath ../toolchains/rust-1.90.0/bin/rustc)" >> "$GITHUB_ENV"
+          echo "LEAN=$(realpath ../toolchains/lean-4.19.0/bin/lean)" >> "$GITHUB_ENV"
+          echo "QEMU_AARCH64=$(realpath ../toolchains/qemu-8.2.2/qemu-aarch64-static)" >> "$GITHUB_ENV"
+      - name: Verify pinned rustc identity
+        run: |
+          "$RUSTC" -vV
+          python -m hepta doctor --rustc "$RUSTC"
+      - name: Qualify all original prototype gates on current source
+        run: python tools/release_check.py
+      - name: Qualify new C++ exception boundary
+        run: python tools/verify_cpp_bridge_host.py --output artifacts/cpp-bridge-host-ci.json
+      - name: Qualify alternate Clang C ABI
+        run: python tools/abi_fuzz.py --cc clang --output artifacts/abi-matrix-clang-ci.json
+      - name: Gate no unexpected skipped test cases
+        run: |
+          python - <<'PY'
+          import json
+          r = json.load(open("artifacts/release-validation.json"))
+          assert r["status"] == "passed", "release evidence is not qualified"
+          unit = next(x for x in r["gates"] if x["name"] == "unit_and_integration")
+          assert unit["skipped"] == 0
+          assert r["snapshot_unchanged"] is True
+          print("source_sha256", r["source_snapshot"]["sha256"])
+          print("test_count", unit["test_count"])
+          print("whole_project_blockers_closed", r["whole_project_blockers_closed"])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hepta-qualification-${{ github.sha }}
+          path: |
+            artifacts/
+            evidence/groups/
+          retention-days: 14
