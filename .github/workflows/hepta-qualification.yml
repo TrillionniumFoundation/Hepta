@@ -51,6 +51,43 @@ jobs:
           sudo apt-get install --yes bubblewrap gcc g++ clang gdb libboost-dev qemu-system-arm
       - name: Install SHA-256-locked Rust 1.90.0 toolchain and cross stdlibs
         run: python tools/bootstrap_toolchain.py
+      - name: Select and verify the bootstrapped Rust compiler
+        shell: bash
+        run: |
+          python - <<'PYTHON'
+          import json
+          import os
+          from pathlib import Path
+          import shutil
+          import subprocess
+          from hepta.backend import find_rustc, toolchain_info
+          from tools.validate import rustc_path
+
+          prefix = (Path.cwd().resolve().parent / "toolchains/rust-1.90.0").resolve(strict=True)
+          rustc = (prefix / "bin/rustc").resolve(strict=True)
+          rustc.relative_to(prefix)
+          info = toolchain_info(str(rustc))
+          if info["host"] != "x86_64-unknown-linux-gnu":
+              raise SystemExit("Unexpected pinned Rust host: " + info["host"])
+          sysroot = Path(subprocess.check_output(
+              [str(rustc), "--print", "sysroot"], text=True, timeout=30).strip()).resolve(strict=True)
+          if sysroot != prefix:
+              raise SystemExit("Pinned Rust sysroot does not match the bootstrapped prefix")
+          os.environ["RUSTC"] = str(rustc)
+          os.environ["PATH"] = str(prefix / "bin") + os.pathsep + os.environ["PATH"]
+          selected = {"backend": find_rustc(), "native_validator": rustc_path(),
+                      "PATH": shutil.which("rustc")}
+          if any(not path or Path(path).resolve() != rustc for path in selected.values()):
+              raise SystemExit("A compiler selector did not select the pinned Rust compiler")
+          receipt = {"schema": "hepta.workflow-toolchain.v1", "rustc": info,
+                     "sysroot": str(sysroot), "selectors": selected}
+          Path("artifacts/workflow-toolchain.json").write_text(json.dumps(receipt, indent=2) + "\n")
+          print(json.dumps(receipt, indent=2))
+          with open(os.environ["GITHUB_ENV"], "a") as env_file:
+              env_file.write("RUSTC=" + str(rustc) + "\n")
+          with open(os.environ["GITHUB_PATH"], "a") as path_file:
+              path_file.write(str(prefix / "bin") + "\n")
+          PYTHON
       - name: Install SHA-256-locked Lean and QEMU tools
         run: python tools/bootstrap_verification.py
       - name: Run all current native and experiment qualification gates
