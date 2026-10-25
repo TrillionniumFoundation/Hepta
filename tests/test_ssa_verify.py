@@ -82,6 +82,75 @@ class SSAVerificationTests(unittest.TestCase):
         with self.assertRaisesRegex(SSAVerificationRejected, "ORIGIN"):
             verify_scalar_ssa(encoded(x), cfg)
 
+    def test_rehashed_old_still_dominating_local_version_rejected(self):
+        cfg = snapshot([
+            block(0, [let("x", i(4)), assign("x", i(7))],
+                  kind="return", value=n("x"))])
+        ssa = lower_cfg_scalar_ssa(cfg)
+        self.assertTrue(verify_scalar_ssa(ssa, cfg).as_dict()["functions"][0][
+            "latest_source_version_reads_verified"])
+        forged = ssa.as_dict()
+        forged.pop("sha256")
+        item = forged["functions"][0]["blocks"][0]
+        # x@0 still dominates this return and occurs before it; the source
+        # already performed another assignment, so the correct read is x@1.
+        item["terminator"]["value"]["ssa_ref"] = item["instructions"][0][
+            "definition"]["ssa_name"]
+        with self.assertRaisesRegex(SSAVerificationRejected, "REACHING"):
+            verify_scalar_ssa(encoded(forged), cfg)
+
+    def test_rehashed_old_still_dominating_phi_predecessor_rejected(self):
+        cfg, ssa = self.fixture()
+        forged = ssa.as_dict()
+        forged.pop("sha256")
+        first = forged["functions"][0]["blocks"][0]["instructions"][0][
+            "definition"]["ssa_name"]
+        join_phi = forged["functions"][0]["blocks"][3]["phis"][0]
+        # x@0 dominates b0001, but b0001 overwrote x before its PHI edge.
+        join_phi["incoming"][0]["ssa_ref"] = first
+        with self.assertRaisesRegex(SSAVerificationRejected, "REACHING"):
+            verify_scalar_ssa(encoded(forged), cfg)
+
+    def test_rehashed_old_still_dominating_loop_backedge_rejected(self):
+        cfg = snapshot([
+            block(0, [let("x", i(0))], kind="goto", target="b0001"),
+            block(1, kind="branch",
+                  condition=expr("binary", "<", "bool", n("x"), n("limit")),
+                  **{"then": "b0002", "else": "b0003"}),
+            block(2, [assign("x", expr("binary", "+", "i32", n("x"), i(1)))],
+                  kind="goto", target="b0001"),
+            block(3, kind="return", value=n("x"))],
+            params=[("limit", "i32")], effects=["panic"])
+        ssa = lower_cfg_scalar_ssa(cfg)
+        self.assertTrue(verify_scalar_ssa(ssa, cfg).as_dict())
+        forged = ssa.as_dict()
+        forged.pop("sha256")
+        first = forged["functions"][0]["blocks"][0]["instructions"][0][
+            "definition"]["ssa_name"]
+        loop_phi = forged["functions"][0]["blocks"][1]["phis"][0]
+        backedge = next(edge for edge in loop_phi["incoming"]
+                        if edge["from"] == "b0002")
+        # x@0 dominates b0002, but the backedge must carry its new x version.
+        backedge["ssa_ref"] = first
+        with self.assertRaisesRegex(SSAVerificationRejected, "REACHING"):
+            verify_scalar_ssa(encoded(forged), cfg)
+
+    def test_rehashed_unused_scalar_retag_rejected_against_source(self):
+        cfg = snapshot([
+            block(0, [let("unused", i(1))], kind="return", value=i(7))])
+        ssa = lower_cfg_scalar_ssa(cfg)
+        self.assertTrue(verify_scalar_ssa(ssa, cfg).as_dict())
+        forged = ssa.as_dict()
+        forged.pop("sha256")
+        fn = forged["functions"][0]
+        # The source local is i32. Its output is deliberately unused, so
+        # a verifier that checks use types but never source types accepts a
+        # newly hashed forged u32 SSA definition.
+        fn["scalar_types"]["unused"] = "u32"
+        fn["blocks"][0]["instructions"][0]["definition"]["type"] = "u32"
+        with self.assertRaisesRegex(SSAVerificationRejected, "SOURCE_TYPE"):
+            verify_scalar_ssa(encoded(forged), cfg)
+
     def test_duplicate_definition_wrong_count(self):
         cfg, ssa = self.fixture()
         x = ssa.as_dict()

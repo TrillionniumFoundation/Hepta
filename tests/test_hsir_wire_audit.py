@@ -172,5 +172,55 @@ class WireAuditTests(unittest.TestCase):
                                             "E_HSIR_OBLIGATION"):
                     module.fingerprint(signed(base))
 
+    def test_valid_pr36_unproved_external_assumptions(self):
+        extern = {"kind": "extern_contract", "function": "entry", "abi": "C",
+                  "declared_effects": ["ffi"], "parameters": [{"name": "p", "type": "i32"}],
+                  "return_type": "i32", "status": "assumed_not_verified",
+                  "obligations": list(module.UNPROVED_EXTERNAL_OBLIGATIONS)}
+        unsafe = {"kind": "unsafe_obligation", "function": "entry",
+                  "operation": "raw_load", "path": "fixture.hepta", "line": 1,
+                  "status": "not_proved_by_frontend"}
+        for assumptions in ([], [extern], [unsafe], [extern, unsafe]):
+            with self.subTest(assumptions=assumptions):
+                record = frozen()
+                del record["sha256"]
+                record["external_assumptions"] = assumptions
+                self.assertEqual(module.fingerprint(signed(record))["wire_profile"],
+                                 "frozen_snapshot_v0")
+
+    def test_rehashed_pr36_assumption_claims_rejected(self):
+        extern = {"kind": "extern_contract", "function": "entry", "abi": "C",
+                  "declared_effects": ["ffi"], "parameters": [{"name": "p", "type": "i32"}],
+                  "return_type": "i32", "status": "assumed_not_verified",
+                  "obligations": list(module.UNPROVED_EXTERNAL_OBLIGATIONS)}
+        unsafe = {"kind": "unsafe_obligation", "function": "entry",
+                  "operation": "raw_load", "path": "fixture.hepta", "line": 1,
+                  "status": "not_proved_by_frontend"}
+        variants = [
+            [{**extern, "status": "proof_discharged"}],
+            [{**unsafe, "status": "verified"}],
+            [{**extern, "abi": "Rust"}],
+            [{**extern, "obligations": []}],
+            [{**extern, "parameters": [{"name": "p", "type": "i32", "verified": True}]}],
+            [{**extern, "declared_effects": ["ffi", "ffi"]}],
+            [{**extern, "return_type": False}],
+            [{**extern, "function": ""}],
+            [{**unsafe, "line": True}],
+            [{**unsafe, "line": 0}],
+            [{**unsafe, "proof": True}],
+            [{**unsafe, "kind": "unrecognized"}],
+            {"entries": [extern]},
+            ["extern_contract"],
+        ]
+        for index, assumptions in enumerate(variants):
+            with self.subTest(variant=index):
+                record = frozen()
+                del record["sha256"]
+                record["external_assumptions"] = assumptions
+                with self.assertRaisesRegex(module.HSIRWireRejected,
+                                            "E_HSIR_EXTERNAL_ASSUMPTION"):
+                    module.fingerprint(signed(record))
+
+
 if __name__ == "__main__":
     unittest.main()

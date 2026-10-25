@@ -14,6 +14,7 @@ import re
 from .cfg import CFGSnapshot
 from .cfg_analysis import CFGAnalysisRejected, analyze_cfg
 from .ssa import SSASnapshot
+from .ssa_reaching import ReachingRejected, verify_latest_reads
 
 
 class SSAVerificationRejected(ValueError):
@@ -74,6 +75,55 @@ def _function(f: dict, original: dict, graph: dict) -> dict:
         _reject("E_SSA_VERIFY_TYPES", "missing scalar symbol table")
     defs = {}
     version_numbers = {}
+
+    # Reconstruct local source types from the original checked CFG rather than
+    # trusting independently rehashed SSA type/definition inventories. Without
+    # this, an unused local may be silently retagged from i32 to u32 while all
+    # dominance and source-expression checks still report success.
+    def source_type(node, context):
+        if (not isinstance(node, dict) or set(node) != {"type", "args", "length"}
+                or not isinstance(node["type"], str)
+                or node["args"] != [] or node["length"] is not None):
+            _reject("E_SSA_VERIFY_SOURCE_TYPE", f"malformed source {context} type")
+        return node["type"]
+
+    source_types = {}
+    for parameter in original.get("param_types", []):
+        if not isinstance(parameter, dict) or not isinstance(parameter.get("name"), str):
+            _reject("E_SSA_VERIFY_SOURCE_TYPE", "malformed source parameter")
+        name = parameter["name"]
+        if name in source_types:
+            _reject("E_SSA_VERIFY_SOURCE_TYPE", "duplicate source parameter")
+        source_types[name] = source_type(parameter.get("type"), "parameter")
+    for old_block in before:
+        for original_item in old_block["instructions"]:
+            if original_item["operation"] != "let":
+                continue
+            fields = original_item["fields"]
+            name = fields.get("name")
+            ty = source_type(fields["expr"].get("result_type"), "binding initializer")
+            declared = fields.get("type")
+            if (not isinstance(name, str) or not name or name in source_types
+                    or (declared is not None
+                        and source_type(declared, "declared binding") != ty)):
+                _reject("E_SSA_VERIFY_SOURCE_TYPE", "inconsistent source binding")
+            source_types[name] = ty
+    for old_block in before:
+        for original_item in old_block["instructions"]:
+            if original_item["operation"] != "assign":
+                continue
+            fields = original_item["fields"]
+            target = fields.get("target")
+            if (not isinstance(target, dict) or target.get("operation") != "name"
+                    or not isinstance(target.get("value"), str)):
+                _reject("E_SSA_VERIFY_SOURCE_TYPE", "unsupported source assignment")
+            name = target["value"]
+            value_ty = source_type(fields["expr"].get("result_type"), "assignment")
+            target_ty = source_type(target.get("result_type"), "assignment target")
+            if source_types.get(name) != target_ty or value_ty != target_ty:
+                _reject("E_SSA_VERIFY_SOURCE_TYPE", "inconsistent source assignment type")
+    if scalar_types != source_types:
+        _reject("E_SSA_VERIFY_SOURCE_TYPE", "SSA scalar type inventory differs from source CFG")
 
     def add(defn, block, order, expected_name=None, expected_type=None):
         if not isinstance(defn, dict):
@@ -182,8 +232,16 @@ def _function(f: dict, original: dict, graph: dict) -> dict:
                  term.get("value") if term["kind"] == "return" else None)
         if value is not None:
             reads += read_expr(value, bid, len(b["instructions"]))
+    # Dominance alone permits an older, still-dominating version after a
+    # later assignment. Independently compute reaching definitions on CFG
+    # edges, including loop backedges, and reject stale PHI/read operands.
+    try:
+        latest_reads = verify_latest_reads(f, graph)
+    except ReachingRejected as exc:
+        raise SSAVerificationRejected(str(exc)) from exc
     return {"name": f["name"], "blocks": len(blocks), "definitions": len(defs),
-            "phi_count": phis, "ssa_references_verified": reads}
+            "phi_count": phis, "ssa_references_verified": reads,
+            "latest_source_version_reads_verified": latest_reads}
 
 
 def verify_scalar_ssa(ssa: SSASnapshot, cfg: CFGSnapshot) -> SSAVerificationSnapshot:

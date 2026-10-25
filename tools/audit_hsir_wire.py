@@ -61,6 +61,50 @@ def require_unresolved_obligations(items: object) -> None:
             raise HSIRWireRejected("E_HSIR_OBLIGATION_STATUS")
 
 
+UNPROVED_EXTERNAL_OBLIGATIONS = (
+    "foreign implementation obeys the declared ABI and effect upper bound",
+    "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations",
+)
+
+
+def require_unproved_external_assumptions(items: object) -> None:
+    """Validate pinned PR #36 checker assumption shapes without discharging them."""
+    if type(items) is not list:
+        raise HSIRWireRejected("E_HSIR_EXTERNAL_ASSUMPTIONS")
+    for entry in items:
+        if type(entry) is not dict or type(entry.get("kind")) is not str:
+            raise HSIRWireRejected("E_HSIR_EXTERNAL_ASSUMPTION")
+        kind = entry["kind"]
+        if (kind not in {"extern_contract", "unsafe_obligation"}
+                or type(entry.get("function")) is not str
+                or not entry["function"]):
+            raise HSIRWireRejected("E_HSIR_EXTERNAL_ASSUMPTION")
+        if kind == "extern_contract":
+            if (set(entry) != {"kind", "function", "abi", "declared_effects",
+                              "parameters", "return_type", "status", "obligations"}
+                    or entry["abi"] != "C"
+                    or entry["status"] != "assumed_not_verified"
+                    or type(entry["return_type"]) is not str
+                    or not entry["return_type"]
+                    or type(entry["declared_effects"]) is not list
+                    or any(type(effect) is not str or not effect
+                           for effect in entry["declared_effects"])
+                    or len(entry["declared_effects"]) != len(set(entry["declared_effects"]))
+                    or type(entry["parameters"]) is not list
+                    or any(type(param) is not dict or set(param) != {"name", "type"}
+                           or type(param["name"]) is not str or not param["name"]
+                           or type(param["type"]) is not str or not param["type"]
+                           for param in entry["parameters"])
+                    or entry["obligations"] != list(UNPROVED_EXTERNAL_OBLIGATIONS)):
+                raise HSIRWireRejected("E_HSIR_EXTERNAL_ASSUMPTION")
+        elif (set(entry) != {"kind", "function", "operation", "path", "line", "status"}
+              or entry["status"] != "not_proved_by_frontend"
+              or type(entry["operation"]) is not str or not entry["operation"]
+              or type(entry["path"]) is not str
+              or type(entry["line"]) is not int or entry["line"] < 1):
+            raise HSIRWireRejected("E_HSIR_EXTERNAL_ASSUMPTION")
+
+
 def pairs_unique(pairs):
     result = {}
     for key, value in pairs:
@@ -144,6 +188,7 @@ def fingerprint(record: dict) -> dict:
     else:
         if type(record["typed_expression_count"]) is not int or record["typed_expression_count"] < 0:
             raise HSIRWireRejected("E_HSIR_TYPE_COUNT")
+        require_unproved_external_assumptions(record["external_assumptions"])
     claims = record.get("claims")
     if not isinstance(claims, dict) or not all(claims.get(k) is False for k in profile["denied_claims"]):
         raise HSIRWireRejected("E_HSIR_UNSUPPORTED_PROOF_CLAIM")
