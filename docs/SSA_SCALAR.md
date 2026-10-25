@@ -45,3 +45,18 @@ payloads, loan identities, lifetime/region/provenance, and Rust/LLVM
 refinement plus independent negative, differential and formal evidence.
 
 Production P01–P12 blockers remain open/partial.
+
+## Independent structural SSA verifier
+
+The separate `hepta.ssa_verify.verify_scalar_ssa` pass checks source-expression
+retention, unique definitions, canonical SSA version sequences, typed uses,
+use-def dominance, same-block definition-before-use ordering, PHI inputs
+from exactly the recorded predecessor edges, and identity links to the
+original CFG and its dominance analysis. It also records explicit false
+semantics/native/memory-safety proof claims. Run:
+
+    python -m unittest discover -s tests -p test_ssa_verify.py -v
+    python -m hepta ssa-verify examples/ssa_scalar.hepta > /tmp/ssa-verified.json
+
+This is an independent implementation pass for SSA structural validation,
+not an independent execution semantics or formally verified compiler.
