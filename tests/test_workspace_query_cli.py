@@ -61,7 +61,7 @@ class PinnedWorkspaceQueryCLITests(unittest.TestCase):
 
     def test_diff_has_no_implicit_truthy_success_for_wrong_schema(self):
         with patch.object(agent_contract_diff, "compare_pinned_contracts",
-                          return_value={"schema": "unknown", "status": "passed"}) as query:
+                          return_value={"schema": "unknown", "status": "passed", "ok": True}) as query:
             code, response = self.run_cli([
                 "workspace", "diff", "/pinned/before", "/pinned/after",
                 "--before-version", self.BEFORE, "--after-version", self.AFTER])
