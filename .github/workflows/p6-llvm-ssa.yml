@@ -1,0 +1,59 @@
+name: Hepta P6 direct SSA PHI LLVM native pilot
+
+on:
+  push:
+    branches:
+      - codex/hepta-p1-structural-cfg-20261024
+  pull_request:
+    branches:
+      - codex/hepta-hsir-c-migration-20261024
+
+permissions:
+  contents: read
+
+jobs:
+  llvm-ssa-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Bounded native LLVM SSA pilot and adversarial tests
+        run: |
+          python -m unittest discover -s tests -p test_ssa_scalar.py -v
+          python -m unittest discover -s tests -p test_ssa_verify.py -v
+          python -m unittest discover -s tests -p test_ssa_differential.py -v
+          python -m unittest discover -s tests -p test_llvm_ssa_backend.py -v
+      - name: Install exact SHA-locked Rust 1.90 native oracle
+        run: |
+          python tools/bootstrap_toolchain.py --prefix "$RUNNER_TEMP/hepta-rust" --targets
+          echo "RUSTC=$RUNNER_TEMP/hepta-rust/bin/rustc" >> "$GITHUB_ENV"
+      - name: Hepta native source to LLVM PHI and actual C ABI execution
+        run: |
+          python -m hepta build-llvm-ssa examples/ssa_llvm.hepta \
+            --output "$RUNNER_TEMP/hepta-llvm-ssa.so" \
+            > artifacts/p6-ssa-llvm-report.json
+          python - "$RUNNER_TEMP/hepta-llvm-ssa.so" artifacts/p6-ssa-llvm-report.json <<'PY'
+          import ctypes, json, sys
+          path, report = sys.argv[1:]
+          data = json.load(open(report, encoding="utf-8"))
+          assert data["schema"] == "hepta.build-llvm-ssa.v0"
+          assert data["status"] == "native_host_compiled_unqualified"
+          assert data["reference_validation"]["ok"] is True
+          assert data["build"]["claims"]["backend_refinement_proven"] is False
+          f = ctypes.CDLL(path).hepta_accumulate
+          f.argtypes = [ctypes.c_int32]
+          f.restype = ctypes.c_int32
+          def expected(n):
+              return sum(i if i < 4 else 1 for i in range(max(0, n)))
+          for n in [-4, 0, 1, 2, 3, 4, 5, 8, 12, 20]:
+              assert f(n) == expected(n), n
+          PY
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hepta-p6-native-ssa-host-evidence
+          path: artifacts/p6-ssa-llvm-report.json
+          if-no-files-found: warn
