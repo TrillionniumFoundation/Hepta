@@ -41,10 +41,10 @@ int main(void) {
     if (r.tag != (0xaabbccddu ^ key) || r.scale != 3.5 ||
         r.lanes[0] != 1071 || r.lanes[1] != (71ull ^ key) ||
         p.tag != 0xaabbccddu || p.lanes[0] != 1000) {
-        fputs("independent ABI oracle mismatch\n", stderr);
+        fputs("independent ABI oracle mismatch\\n", stderr);
         return 42;
     }
-    puts("{\"status\":\"passed\",\"cases\":1}");
+    puts("{\\"status\\":\\"passed\\",\\"cases\\":1}");
     return 0;
 }
 '''
