@@ -15,8 +15,8 @@ Clang rejects syntactically invalid input before AST conversion. The migrator th
 ## Commands
 
 ```sh
-python -m hepta migrate-c demo.c --clang clang --module c_migrated -o demo.hepta
-python -m hepta check demo.hepta
+python -m hepta migrate-c examples/interop/c11_small.c --clang clang --module c_migrated -o /tmp/c11_small.hepta
+python -m hepta check /tmp/c11_small.hepta
 python -m unittest discover -s tests -p 'test_c2hepta.py' -v
 ```
 
