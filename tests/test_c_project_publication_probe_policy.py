@@ -2,7 +2,10 @@
 import ast
 import copy
 import hashlib
+import io
+import tokenize
 import json
+import re
 from pathlib import Path
 import shutil
 import os
@@ -14,6 +17,96 @@ from unittest.mock import patch
 
 from tools import c_project_probe_workspace as workspace
 from tools import probe_c_project_publication as native
+
+
+def scientific_source_hashes(raw, names):
+    """Hash exact complete physical source lines, never versioned AST dumps.
+
+    AST locates top-level definitions only. Decorator lines and inline type
+    comments are included; no UTF-8 byte-column slicing or newline normalization.
+    """
+    text=raw.decode('utf-8')
+    tree=ast.parse(text,type_comments=True)
+    # AST decorator expressions may start after the physical @ header. Locate
+    # true top-level decorator statements with tokens, not expression positions.
+    decorator_starts=[]; statement_start=True
+    for token in tokenize.generate_tokens(io.StringIO(text,newline=None).readline):
+        if token.type in (tokenize.NL,tokenize.COMMENT,tokenize.ENCODING):
+            continue
+        if token.type in (tokenize.NEWLINE,tokenize.INDENT,tokenize.DEDENT):
+            statement_start=True
+            continue
+        if statement_start and token.type==tokenize.OP and token.string=='@' and token.start[1]==0:
+            decorator_starts.append(token.start[0])
+        statement_start=False
+    lines=[line for line in re.findall(rb'[^\r\n]*(?:\r\n|\r|\n|$)',raw) if line]
+    if b''.join(lines)!=raw:
+        raise ValueError('Source line splitting changed original bytes')
+    requested=tuple(names);found={name:[] for name in requested}
+    for node in tree.body:
+        candidates=[]
+        if isinstance(node,(ast.FunctionDef,ast.AsyncFunctionDef)):
+            candidates=[node.name]
+        elif isinstance(node,ast.Assign):
+            candidates=[target.id for target in node.targets if isinstance(target,ast.Name)]
+        for name in candidates:
+            if name in found:found[name].append(node)
+    result={}
+    for name,nodes in found.items():
+        if len(nodes)!=1:
+            raise ValueError('Scientific source name missing or duplicated: '+name)
+        node=nodes[0]
+        if node.col_offset!=0 or node.end_lineno is None:
+            raise ValueError('Scientific source must be one complete top-level definition')
+        decorators=getattr(node,'decorator_list',[])
+        previous_end=max((other.end_lineno for other in tree.body
+                          if other.end_lineno is not None and other.end_lineno<node.lineno),default=0)
+        starts=[line for line in decorator_starts if previous_end<line<node.lineno]
+        if len(starts)!=len(decorators):
+            raise ValueError('Cannot bind complete decorator source boundary')
+        first=min(starts+[node.lineno])
+        segment=b''.join(lines[first-1:node.end_lineno])
+        if not segment:
+            raise ValueError('Empty scientific source segment')
+        result[name]=hashlib.sha256(segment).hexdigest()
+    return result
+
+
+class SourceSegmentTests(unittest.TestCase):
+    def test_ast_dump_format_changes_cannot_affect_source_lock(self):
+        raw=b'def f():\n    return 1\n'
+        with patch.object(ast,'dump',side_effect=AssertionError('AST serialization is not a source lock')):
+            self.assertEqual(scientific_source_hashes(raw,['f']),{'f':hashlib.sha256(raw).hexdigest()})
+    def test_decorators_and_type_comments_are_included(self):
+        segment=b'@decorate\ndef f(x): # type: (int) -> int\n    return x # retained comment\n'
+        self.assertEqual(scientific_source_hashes(b'# outside header\n'+segment,['f'])['f'],hashlib.sha256(segment).hexdigest())
+    def test_utf8_crlf_bytes_are_exact_not_ast_column_slices(self):
+        segment='@decorate("π")\r\ndef f(x):\r\n    return "雪" + x\r\n'.encode()
+        value=scientific_source_hashes('# Ω header\r\n'.encode()+segment,['f'])['f']
+        self.assertEqual(value,hashlib.sha256(segment).hexdigest())
+        self.assertNotEqual(value,scientific_source_hashes(segment.replace(b'\r\n',b'\n'),['f'])['f'])
+    def test_parenthesized_multiline_decorator_header_is_locked(self):
+        for sep in (b'\n',b'\r\n',b'\r'):
+            with self.subTest(newline=sep):
+                raw=sep.join([b'@( # first-header',b'    decorate',b')',b'def f(x):',b'    return x',b''])
+                value=scientific_source_hashes(raw,['f'])['f']
+                self.assertEqual(value,hashlib.sha256(raw).hexdigest())
+                self.assertNotEqual(value,scientific_source_hashes(raw.replace(b'first-header',b'changed-header'),['f'])['f'])
+    def test_multiple_decorators_with_nested_at_do_not_confuse_start(self):
+        raw=b'@(decorate(\n  a @ b\n))\n@second\ndef f(): pass\n'
+        self.assertEqual(scientific_source_hashes(raw,['f'])['f'],hashlib.sha256(raw).hexdigest())
+    def test_function_semantic_change_breaks_original_lock(self):
+        original=b'def f(x):\n    return x + 1\n'
+        changed=original.replace(b'+ 1',b'+ 2')
+        self.assertNotEqual(scientific_source_hashes(original,['f']),scientific_source_hashes(changed,['f']))
+    def test_case_literal_change_breaks_original_lock(self):
+        original=b'CASES = [{"negative": True}]\n'
+        self.assertNotEqual(scientific_source_hashes(original,['CASES']),
+                            scientific_source_hashes(original.replace(b'True',b'False'),['CASES']))
+    def test_duplicate_definition_rejected(self):
+        with self.assertRaises(ValueError):scientific_source_hashes(b'def f(): pass\ndef f(): pass\n',['f'])
+    def test_missing_definition_rejected(self):
+        with self.assertRaises(ValueError):scientific_source_hashes(b'OTHER = []\n',['CASES'])
 
 
 class PlacementTests(unittest.TestCase):
@@ -223,16 +316,10 @@ class ScientificAndWorkflowTests(unittest.TestCase):
             report=json.loads((out/'report.json').read_text());self.assertFalse(report['ok'])
             self.assertEqual(report['cases'],[])
     def test_original_scientific_functions_and_cases_unchanged(self):
-        expected=SCIENTIFIC_AST_HASHES
+        expected=SCIENTIFIC_SOURCE_HASHES
         for relative,items in expected.items():
-            tree=ast.parse((native.ROOT/relative).read_text())
-            indexed={node.name:node for node in tree.body if isinstance(node,(ast.FunctionDef,ast.AsyncFunctionDef))}
-            for node in tree.body:
-                if isinstance(node,ast.Assign):
-                    for target in node.targets:
-                        if isinstance(target,ast.Name):indexed[target.id]=node
-            for name,sha in items.items():
-                self.assertEqual(hashlib.sha256(ast.dump(indexed[name],include_attributes=False).encode()).hexdigest(),sha)
+            with self.subTest(source=relative):
+                self.assertEqual(scientific_source_hashes((native.ROOT/relative).read_bytes(),items),items)
     def test_workflow_success_only_chain_and_fixed_budgets(self):
         text=(native.ROOT/'.github/workflows/hepta-active-typedef-qualification.yml').read_text()
         for item in ('id: publisher-profile','id: formal-receipt-controls','id: six-case-oracle','id: typed-oracle','timeout-minutes: 45',
@@ -243,6 +330,6 @@ class ScientificAndWorkflowTests(unittest.TestCase):
         self.assertNotIn('workflow_dispatch',text)
 
 
-SCIENTIFIC_AST_HASHES = {'tools/probe_c_typedef_alignment.py': {'worker': '7ab23cdeac6344444732f46e34b922f2edd5d27b02be6f0f859301c48e5246ac', 'gate': 'ddb467c5399d84df816d8ed66fa7dcd19059070f74e7e58277351d40dd096a7e', 'layout': '664988884d2b0108bd7ee8a8a64ce38f986e29164c995ec4997a1f0e7f77d420', 'packet_layout_binding': '512f3977317a828faa3c30f7d175c95f9a1842f0c11459ae7688d0787c755e7a', 'execution_guard': '243e4498d7b3289f87a0961504f7921f3306a00346de44f365d7151d1b9767eb'}, 'tools/probe_c_record_typedef_attributes.py': {'CASES': 'e9d9f81ddd0e8044b75121c842bfc32cba192cdca72ac298d30c7bebf3a61d41', 'worker': 'c1e2a4ec83b9436da1fa0dd70c3107bac5eb3a4cca339cffdf11608e6ee7d6e5', 'gate': '55465a8ee300916720d1ab793a244e301d5f6b194343a6769c002eea75a4ca11', 'fixture': '10877f4771aa79533f1a8bfa27349ac287df772f56b64c9dd05e48a199e8ab0f', 'observe_ast': '956966ae234d55b9fcaf51ddf7d12cf66cbce81b55f4d846fd4aed55aff67b7b', 'ordinary_layout': '5b21795e58b36b28e4ae1a0d15accd93753c343d69f5b18a3d694da29795a588'}}
+SCIENTIFIC_SOURCE_HASHES = {'tools/probe_c_typedef_alignment.py': {'worker': '8f5dc81485227f445d0e2c47ba0d085ddfca7b43033f3c5dc133914cb0127c85', 'gate': 'facc4bd1d930c38e4e08a22ee40408b29cabd734095cb2b3f1fd3daced97a4be', 'layout': '13ebb09fd04cca232f276da4f3b56931823ff013037cedd0e08d966e8acd976d', 'packet_layout_binding': '36a706c108103616c3e81ae830de7ea3a3952a724fbb2d84a684daea7bbab99a', 'execution_guard': 'b0161f3f7d29b4495086ebccc463555c130781bf3c853e35a58c86ad8d6c2601'}, 'tools/probe_c_record_typedef_attributes.py': {'CASES': '65794e3a20a88e848307a17d471ffb7ba04147499933d0c2214c81d73fdd11bc', 'worker': '9a8dd44255a38d8e496396a2d6ee598c2bc7ddf14f9ec786cf5546a5a4b43bf8', 'gate': '24e26a5c9504a3e91f65d075938a2b69ca6f1ae3b9bc238df3db894385386573', 'fixture': '28dc6d1fd59a8f491ceb28a5168d7935d10de99b2df2a3cd605bf21146781577', 'observe_ast': 'd8292db72c0c5b021a205ff725980f0211081aa09499da562b42515c83a02554', 'ordinary_layout': '50fab9f925a4ed4bb94f9e2f0ea95962fa65b651bb1b523f4a0aca55fbbec0ed'}}
 
 if __name__=='__main__':unittest.main()
