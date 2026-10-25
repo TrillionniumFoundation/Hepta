@@ -21,3 +21,20 @@ difference or an actually wrong executable target. Do not change equality
 until the evidence supports a safe canonicalization rule.
 
 All P0–P7/P01–P12 blockers remain OPEN/PARTIAL.
+
+## Proven Windows short-path mismatch and bounded correction
+
+Exact-headed actual-host run 40168924750 on the diagnostic-only commit
+returned compile/link/execute exit code 0 and explicit argv differences:
+the Python tempfile directory was recorded as
+`C:\\Users\\RUNNER~1\\...` in the executed compiler commands,
+whereas `compile_rust` canonicalized its artifact to
+`C:\\Users\\runneradmin\\...`. The verifier therefore rejected the
+strict trace even though both spellings refer to the same Windows host
+directory. This concrete evidence motivated the small P3 fix:
+`directory = Path(td).resolve(strict=True)` *before* constructing any
+compiler, linker or executable argv. The validator's strict argv equality
+has **not** been relaxed.
+
+The fix itself is not native ABI qualification until a new Windows actual-host
+run passes its positive profiles and compiled negative-control acceptance.
