@@ -125,8 +125,11 @@ class WireAuditTests(unittest.TestCase):
     def test_real_cli_collision_reports_exit_three(self):
         with tempfile.TemporaryDirectory() as d:
             a, b, out = [pathlib.Path(d) / x for x in ("a.json", "b.json", "out.json")]
-            a.write_text(json.dumps(source_bound()))
-            b.write_text(json.dumps(frozen()))
+            a.write_text(json.dumps({"schema": "hepta.hsir.export.v0", "ok": True,
+                                     "status": "frontend_only", "hsir": source_bound(),
+                                     "validation": {"status": "frontend_only"}}))
+            b.write_text(json.dumps({**frozen(),
+                                     "reference_validation": {"status": "checked"}}))
             code = module.main(["--left", str(a), "--right", str(b), "--output", str(out)])
             self.assertEqual(code, 3)
             self.assertTrue(json.loads(out.read_text())["same_schema_different_wire_format"])
