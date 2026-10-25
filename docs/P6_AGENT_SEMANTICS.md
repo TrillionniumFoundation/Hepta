@@ -48,3 +48,21 @@ re-runs rustc nor authorizes a v4 write. See
 
 No production P6 blocker (real models, multiple seeds, agent labor/economics
 and large-project edits) is closed by this additive read-only API.
+
+
+## P6 stable source identity across v4 workspace versions
+
+The canonical checked frontend preserves absolute file paths within immutable
+`versions/<content-hash>/tree` directories. These change whenever a workspace
+version changes. Agent semantic inspection now reports both the original
+`path` (for diagnostics) and a normalized `source_relative_path`, computed
+against the **single pinned workspace root** and checked for exact membership
+in `manifest.validated_sources`. Unknown and escaped paths fail closed.
+
+`compare_pinned_contracts` uses the tuple
+`(source_relative_path, function_name)` as its cross-version identity.
+It must not mistake a new immutable version root for removing and re-adding
+all unchanged functions. Tests cover two differing absolute roots, forged
+relative paths, missing origins, escapes, and unknown source inventories.
+This is still a contract diff, not a behavior comparison or a new permission
+to modify the workspace.

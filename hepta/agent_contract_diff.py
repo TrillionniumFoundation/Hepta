@@ -42,13 +42,24 @@ def _inventory(report: dict[str, Any], version: str) -> dict[tuple[str, str], di
             or not isinstance(report.get("foreign_assumptions"), list)
             or not isinstance(report.get("validated_sources"), list)):
         raise WorkspaceError("E_AGENT_DIFF_INVENTORY", "Incomplete semantic inventory")
+    source_paths = report["validated_sources"]
+    if (any(not isinstance(p, str) or not p or
+            Path(p).is_absolute() or Path(p).as_posix() != p or
+            any(part in {".", ".."} for part in p.split("/"))
+            for p in source_paths)
+            or len(source_paths) != len(set(source_paths))):
+        raise WorkspaceError("E_AGENT_DIFF_INVENTORY", "Invalid relative source inventory")
     keys = {}
     for fn in report["functions"]:
         if not isinstance(fn, dict) or any(k not in fn for k in _TRACKED):
             raise WorkspaceError("E_AGENT_DIFF_FUNCTION", "Malformed function contract")
-        path, name = fn.get("path"), fn.get("name")
-        if not isinstance(path, str) or not path or not isinstance(name, str) or not name:
-            raise WorkspaceError("E_AGENT_DIFF_FUNCTION", "Missing function origin")
+        # The original path can be an absolute location inside a versioned tree,
+        # so it is deliberately NOT used as a cross-snapshot symbol identity.
+        path, name = fn.get("source_relative_path"), fn.get("name")
+        if (not isinstance(path, str) or path not in source_paths
+                or not isinstance(fn.get("path"), str) or not fn["path"]
+                or not isinstance(name, str) or not name):
+            raise WorkspaceError("E_AGENT_DIFF_FUNCTION", "Missing pinned relative function origin")
         key = (path, name)
         if key in keys:
             raise WorkspaceError("E_AGENT_DIFF_DUPLICATE", "Duplicate path/function identity")

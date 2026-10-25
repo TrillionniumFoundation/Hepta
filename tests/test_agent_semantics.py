@@ -19,6 +19,7 @@ class AgentSemanticTests(unittest.TestCase):
             "ok": True,
             "snapshot": {
                 "version": self.VERSION,
+                "root": "/immutable/versions/tree",
                 "entry": "/immutable/versions/tree/main.hepta",
                 "manifest": {
                     "compiler_sha256": self.COMPILER,
@@ -76,6 +77,7 @@ class AgentSemanticTests(unittest.TestCase):
         self.assertEqual(result["workspace_version"], self.VERSION)
         self.assertEqual(result["source_semantic_sha256"], self.SEMANTIC)
         self.assertEqual(result["nodes"], self.snapshot["nodes"])
+        self.assertEqual(result["functions"][0]["source_relative_path"], "main.hepta")
         self.assertEqual(result["functions"][0]["parameter_modes"], [
             {"name": "a", "mode": "value", "type": "i32"}])
         self.assertFalse(result["claims"]["native_validation_reexecuted_this_query"])
@@ -112,6 +114,23 @@ class AgentSemanticTests(unittest.TestCase):
         self.hsir["claims"]["whole_language_soundness_proved"] = True
         self._reseal_hsir()
         with self.assertRaisesRegex(WorkspaceError, "profile/claims"):
+            self._inspect()
+
+    def test_absolute_pinned_source_path_is_normalized(self):
+        self.hsir["functions"][0]["path"] = "/immutable/versions/tree/main.hepta"
+        self._reseal_hsir()
+        self.assertEqual(self._inspect()["functions"][0]["source_relative_path"], "main.hepta")
+
+    def test_pinned_source_escape_rejected(self):
+        self.hsir["functions"][0]["path"] = "/outside/main.hepta"
+        self._reseal_hsir()
+        with self.assertRaisesRegex(WorkspaceError, "escapes pinned tree"):
+            self._inspect()
+
+    def test_unknown_source_path_rejected(self):
+        self.hsir["functions"][0]["path"] = "/immutable/versions/tree/not-validated.hepta"
+        self._reseal_hsir()
+        with self.assertRaisesRegex(WorkspaceError, "not in validated source"):
             self._inspect()
 
     def test_compiler_identity_change_rejected(self):

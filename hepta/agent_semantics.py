@@ -80,6 +80,35 @@ def inspect_pinned_semantics(store: str | Path, *,
         raise WorkspaceError("E_AGENT_SEMANTICS", "Canonical HSIR content checksum mismatch")
     if not graph.unchanged():
         raise WorkspaceError("E_AGENT_RACE", "Pinned import graph changed after semantic inspection")
+    # A function's source path inside a v4 store includes versions/<digest>/tree.
+    # Normalize against this single immutable pin, not CWD or a mutable checkout,
+    # so identities remain comparable across versions and cannot escape the graph.
+    snapshot_root = snapshot.get("root")
+    validated = meta.get("validated_sources")
+    if (not isinstance(snapshot_root, str) or not Path(snapshot_root).is_absolute()
+            or not isinstance(validated, list)
+            or any(not isinstance(p, str) or not p for p in validated)
+            or len(validated) != len(set(validated))):
+        raise WorkspaceError("E_AGENT_PATH", "Missing source-bound snapshot root/inventory")
+    trusted_root = Path(snapshot_root).resolve()
+    trusted_sources = set(validated)
+
+    def source_relative_path(fn: dict) -> str:
+        raw = fn.get("path")
+        if not isinstance(raw, str) or not raw:
+            raise WorkspaceError("E_AGENT_PATH", "Missing canonical function source path")
+        source = Path(raw)
+        if not source.is_absolute():
+            source = trusted_root / source
+        try:
+            relative = source.resolve().relative_to(trusted_root).as_posix()
+        except ValueError as exc:
+            raise WorkspaceError("E_AGENT_PATH", "Function source escapes pinned tree") from exc
+        if relative not in trusted_sources:
+            raise WorkspaceError("E_AGENT_PATH", "Function is not in validated source inventory")
+        return relative
+
+    relative_paths = {id(fn): source_relative_path(fn) for fn in hsir["functions"]}
     return {
         "schema": "hepta.agent-semantics.v1",
         "status": "published_native_prevalidated_read_only",
@@ -93,6 +122,7 @@ def inspect_pinned_semantics(store: str | Path, *,
         "nodes": inspected.get("nodes"),
         "functions": [{
             "name": fn["name"], "path": fn["path"],
+            "source_relative_path": relative_paths[id(fn)],
             "declaration_span": fn["declaration_span"],
             "return_type": fn["returns"], "parameter_modes": [
                 {"name": p["name"], "mode": p["mode"], "type": p["type"]} for p in fn["params"]],
