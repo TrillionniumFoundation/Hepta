@@ -106,6 +106,24 @@ class HSIRBridgeTests(unittest.TestCase):
                 with self.assertRaises(HSIRRejected):
                     from_canonical_snapshot(_reseal(source))
 
+    def test_resealed_nested_semantic_fields_cannot_disappear(self):
+        a, ac = _checked(_SOURCE)
+        canonical = canonical_hsir(a, ac)
+        mutations = {
+            "function_extra_effect_metadata": lambda x: x["functions"][0].update(unknown_abi_effect=True),
+            "function_resource_contract_missing": lambda x: x["functions"][0].pop("resources"),
+            "parameter_extra_loan_metadata": lambda x: x["functions"][0]["params"][0].update(loan_provenance="unknown"),
+            "parameter_span_missing": lambda x: x["functions"][0]["params"][0].pop("span"),
+            "expression_extra_operands": lambda x: x["functions"][0]["body"][0]["data"]["expr"].update(new_unsafe_effect=True),
+            "statement_extra_ownership": lambda x: x["functions"][0]["body"][0].update(implicit_drop=True),
+        }
+        for name, mutation in mutations.items():
+            with self.subTest(name=name):
+                changed = copy.deepcopy(canonical)
+                mutation(changed)
+                with self.assertRaises(HSIRRejected):
+                    from_canonical_snapshot(_reseal(changed))
+
     def test_refuses_c_ffis_generic_types_or_resource_ownership(self):
         a, ac = _checked(_SOURCE)
         canonical = canonical_hsir(a, ac)

@@ -35,6 +35,19 @@ _CANONICAL_CLAIMS = frozenset({
     "native_borrow_validation", "translation_correctness_proved",
     "whole_language_soundness_proved", "foreign_contracts_proved",
 })
+# The upstream encoder emits these exact fields in the strict scalar profile.
+# Unknown function/parameter/node attributes cannot be silently discarded:
+# a future encoder's new property might affect ownership, ABI or effects.
+_FUNCTION_FIELDS = frozenset({
+    "name", "path", "declaration_span", "body_span", "public",
+    "extern_c", "export_c", "type_params", "type_bounds", "params",
+    "returns", "return_mode", "return_origin", "declared_effects",
+    "inferred_effects", "resources", "body",
+})
+_PARAMETER_FIELDS = frozenset({"name", "mode", "type", "span"})
+_EXPR_FIELDS = frozenset({"node", "op", "type", "value", "args", "type_args", "span"})
+_STMT_FIELDS = frozenset({"node", "op", "data", "span"})
+_TYPE_FIELDS = frozenset({"node", "name", "args", "length"})
 
 
 class HSIRRejected(ValueError):
@@ -73,7 +86,8 @@ def _type(obj: Any, context: str) -> dict:
     """Do not invent an ABI/ownership shape from an arbitrary type string."""
     if isinstance(obj, str):
         name = obj
-    elif (isinstance(obj, dict) and obj.get("node") == "type"
+    elif (isinstance(obj, dict) and set(obj) == _TYPE_FIELDS
+          and obj.get("node") == "type"
           and obj.get("args") == [] and obj.get("length") is None):
         name = obj.get("name")
     else:
@@ -98,6 +112,8 @@ def _value(value: Any) -> Any:
     if kind == "type":
         return _type(value, "embedded type")
     if kind == "expr":
+        if set(value) != _EXPR_FIELDS:
+            _reject("unreviewed scalar expression fields")
         if value.get("op") not in _EXPR or value.get("type_args") not in ([], None):
             _reject(f"unhandled expression {value.get('op')!r}")
         if not isinstance(value.get("args"), list):
@@ -108,6 +124,8 @@ def _value(value: Any) -> Any:
                 "operands": [_value(v) for v in value["args"]],
                 "type_args": [], "span": value.get("span")}
     if kind == "stmt":
+        if set(value) != _STMT_FIELDS:
+            _reject("unreviewed scalar statement fields")
         if value.get("op") not in _STMT or not isinstance(value.get("data"), dict):
             _reject(f"unhandled statement {value.get('op')!r}")
         return {"node": "stmt", "operation": value["op"],
@@ -154,8 +172,8 @@ def from_canonical_snapshot(source: dict[str, Any]) -> HSIRSnapshot:
     functions = []
     count = 0
     for fn in source["functions"]:
-        if not isinstance(fn, dict) or not isinstance(fn.get("name"), str):
-            _reject("invalid function")
+        if not isinstance(fn, dict) or set(fn) != _FUNCTION_FIELDS or not isinstance(fn.get("name"), str):
+            _reject("missing or unreviewed function semantic fields")
         if (fn.get("type_params") or fn.get("lifetime_params") or fn.get("return_mode") != "value"
                 or fn.get("return_origin") is not None or fn.get("extern_c")
                 or fn.get("type_bounds")):
@@ -166,7 +184,8 @@ def from_canonical_snapshot(source: dict[str, Any]) -> HSIRSnapshot:
             _reject(f"{fn['name']}: malformed parameters")
         params = []
         for p in fn["params"]:
-            if not isinstance(p, dict) or p.get("mode") != "value" or not isinstance(p.get("name"), str):
+            if (not isinstance(p, dict) or set(p) != _PARAMETER_FIELDS
+                    or p.get("mode") != "value" or not isinstance(p.get("name"), str)):
                 _reject(f"{fn['name']}: borrowed/owned parameters require ownership-aware SSA")
             params.append({"name": p["name"], "ownership": "value",
                            "type": _type(p.get("type"), "parameter"), "span": p.get("span")})

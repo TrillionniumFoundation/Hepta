@@ -41,3 +41,12 @@ observed on one host, and production acceptance obligations not discharged.
 - CI queued/unknown/not-run is never PASS, even when CI is not the current
   execution priority. PR #51 and #52 remain Draft until their real gates pass.
 - Whole project status remains `whole_project_blockers_closed=false`.
+
+## P1 nested semantics integrity extension
+
+The scalar-only canonical-HSIR-to-CFG adapter additionally checks exact
+reviewed field sets for function, parameter, expression, statement and
+type nodes. The independent scalar path cannot silently drop unreviewed
+new ABI/effect/borrow attributes even when supplied in a rehashed snapshot.
+This is a subset-admission hardening step, not general HSIR v1 owner/loan
+semantics, a compiler refinement proof, or formal soundness.
