@@ -9,18 +9,24 @@ This is a very narrow prototype: **P6 remains open**.
 ## Strict acceptance profile
 
 - Only `export "C"` functions with 0–16 `i32` value parameters and an `i32`
-  return, and exactly one return statement per function.
+  return, with one root return statement, or one root `if/else` whose two
+  branches each consist of exactly one `return`. The condition may be a
+  typed boolean literal or a signed `i32` comparison (`== != < <= > >=`).
+  No general nested control flow, loop or phi-node SSA is supported.
 - Literals, parameter references, unary plus/minus, checked signed
   `+`, `-`, `*` and explicitly wrapping `wrapping_add/sub/mul`.
-- Both declared and inferred function effects may only contain `panic`; the
-  resource clauses may only be the empty set or the known zero-heap / no
-  block, suspend, spawn quartet.
+- Both declared and inferred function effects may only contain `panic`, and
+  each must **include** it whenever checked arithmetic can trap. A forged
+  zero-panic effect declaration is rejected. Resource clauses may only be
+  empty or the known zero-heap / no-block/suspend/spawn quartet.
 - Structs, ADTs, generics, imports, pointer operands, FFI, unsafe, allocation,
   concurrency, external assumptions, dynamic dispatch and complex control flow
   **reject**, instead of silently lowering to Rust or C.
-- The byte/hash check prevents stale and accidentally changed snapshots; it
-  is **not a cryptographic signature of successful type checking**. Caller
-  must run the actual Hepta frontend and reference Rust native check.
+- The snapshot and LLVM IR digest checks prevent accidentally changed semantic
+  snapshots and emitted IR. They are **not cryptographic attestations of
+  successful type checking**: a caller must first run the actual Hepta
+  frontend and pinned Rust native check. The Clang identity and executable
+  SHA-256 are recorded in the resulting host compilation report.
 
 For checked signed arithmetic, LLVM `llvm.s{add,sub,mul}.with.overflow.i32`
 feeds an explicit branch to libc `abort()`. This preserves the prototype's
@@ -48,10 +54,11 @@ lowerer. A Rust failure rejects the build. There is no evidence that a
 `frontend_only` result suffices. The LLVM path is strictly additive: it does
 not change the default Rust and C backends. 
 
-The suite executes a Clang-produced shared library from emitted LLVM IR,
-links a separate GCC-compiled C reference, and compares 100 seeded inputs
-for each of addition, subtraction, and multiplication where C has defined
-behavior. It separately confirms two's-complement wrapping at the boundary
+The suite executes Clang-produced native shared libraries from LLVM IR,
+links independent GCC-compiled C references, and compares 100 seeded inputs
+per arithmetic operation. An additional 103-case differential test exercises
+the `if/else` integer-comparison CFG and explicitly rejects malformed
+branches and unsupported boolean operations. It separately confirms two's-complement wrapping at the boundary
 and aborts a child process on overflow. Safety-negative inputs are refused.
 A parser/checker/HSIR integration case runs when the full bootstrap compiler
 modules are available. If it skips, do not record a complete integration pass.
