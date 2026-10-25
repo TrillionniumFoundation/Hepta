@@ -98,6 +98,49 @@ def _dependencies(clang: str, flags: list[str], source: Path, directory: Path, *
 
 
 def verify_capture(capture: dict) -> None:
+    """Fail closed on both content and *configuration* identity at replay."""
+    expected_fields = {"schema", "database", "compiler", "configurations",
+                       "dependencies", "scope", "sha256"}
+    if (not isinstance(capture, dict) or set(capture) != expected_fields
+            or capture.get("schema") != "hepta.c-build.v1"):
+        raise MigrationRejected("E_C_BUILD_IDENTITY", "Missing or unknown captured build fields")
+    bound = capture["sha256"]
+    try:
+        serialized = json.dumps({key: value for key, value in capture.items() if key != "sha256"},
+                                sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+    except (ValueError, TypeError) as exc:
+        raise MigrationRejected("E_C_BUILD_IDENTITY", "Unserializable build manifest") from exc
+    if not isinstance(bound, str) or digest(serialized) != bound:
+        raise MigrationRejected("E_C_BUILD_IDENTITY", "Captured build manifest identity differs")
+    if capture["scope"] != "all_listed_commands_only_not_unlisted_platforms_or_configurations":
+        raise MigrationRejected("E_C_BUILD_IDENTITY", "Unexpected capture scope")
+    database = Path(capture["database"]["path"])
+    entries = json.loads(database.read_bytes())
+    configs = capture["configurations"]
+    if (not isinstance(entries, list) or not isinstance(configs, list)
+            or len(entries) != len(configs) or not 1 <= len(entries) <= 32):
+        raise MigrationRejected("E_C_BUILD_IDENTITY", "Configuration denominator differs from source database")
+    dependencies_seen = set()
+    for index, (entry, config) in enumerate(zip(entries, configs)):
+        if not isinstance(entry, dict) or not isinstance(config, dict):
+            raise MigrationRejected("E_C_BUILD_IDENTITY", "Invalid database configuration")
+        directory = _path(entry["directory"], database.parent)
+        source = _path(entry["file"], directory)
+        argv = entry.get("arguments")
+        if argv is None:
+            argv = shlex.split(entry["command"], posix=True)
+        flags, omitted = _flags(argv, source, directory)
+        if (config["index"] != index or config["source"] != str(source)
+                or config["directory"] != str(directory)
+                or config["original_arguments"] != argv
+                or config["frontend_arguments"] != flags
+                or config["omitted_arguments"] != omitted):
+            raise MigrationRejected("E_C_BUILD_IDENTITY", "Recorded compiler invocation differs from database")
+        dependencies_seen.update(config["all_dependencies"])
+    recorded_paths = [item["path"] for item in capture["dependencies"]]
+    if (len(set(recorded_paths)) != len(recorded_paths)
+            or set(recorded_paths) != dependencies_seen):
+        raise MigrationRejected("E_C_BUILD_IDENTITY", "Dependency inventory is incomplete or duplicated")
     for item in [capture["database"], *capture["dependencies"]]:
         path = Path(item["path"])
         if not path.is_file() or digest(path.read_bytes()) != item["sha256"]:
@@ -135,6 +178,12 @@ def verify_capture(capture: dict) -> None:
         if (digest(current_macros.encode()) != config["predefined_macros_sha256"]
                 or digest(current_abi_macros.encode()) != config["abi_predefined_macros_sha256"]):
             raise MigrationRejected("E_C_BUILD_CHANGED", "Predefined or ABI macro model changed")
+        observed = dict(re.findall(r"^#define (__[A-Z0-9_]+__) (\d+)$", current_abi_macros, flags=re.M))
+        expected = {"long_bits": 8 * int(observed.get("__SIZEOF_LONG__", "0")),
+                    "char_unsigned": "#define __CHAR_UNSIGNED__ 1" in current_abi_macros,
+                    "pointer_bits": 8 * int(observed.get("__SIZEOF_POINTER__", "0"))}
+        if config["model"] != expected:
+            raise MigrationRejected("E_C_BUILD_CHANGED", "Captured C ABI model differs from actual compiler")
 
 
 def capture_project(database: str | Path, *, clang: str = "clang") -> dict:
@@ -226,6 +275,7 @@ def capture_project(database: str | Path, *, clang: str = "clang") -> dict:
                "compiler": compiler, "configurations": configs,
                "dependencies": sorted(dependencies.values(), key=lambda item: item["path"]),
                "scope": "all_listed_commands_only_not_unlisted_platforms_or_configurations"}
+    capture["sha256"] = digest(json.dumps(capture, sort_keys=True, separators=(",", ":"),
+                                          allow_nan=False).encode())
     verify_capture(capture)
-    capture["sha256"] = digest(json.dumps(capture, sort_keys=True, separators=(",", ":")).encode())
     return capture

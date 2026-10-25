@@ -1,7 +1,9 @@
 """Captured project migration: native positives and semantic rejection gates."""
 from __future__ import annotations
 
+import copy
 import ctypes
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -60,6 +62,40 @@ class CProjectMigrationTests(unittest.TestCase):
         (self.root / "inc.h").write_text("#define LOCAL_FACTOR 4\n")
         with self.assertRaisesRegex(MigrationRejected, "changed"):
             verify_capture(capture)
+
+    def test_replay_rejects_missing_or_resealed_source_configuration(self):
+        self.project({"input.c": "unsigned long f(unsigned long x){return x;}"})
+        capture = capture_project(self.database, clang=self.clang)
+        verify_capture(capture)
+        self.assertRegex(capture["sha256"], r"^[a-f0-9]{64}$")
+        for change in (
+            lambda x: x.pop("sha256"),
+            lambda x: x["configurations"][0]["model"].update(long_bits=32),
+            lambda x: x["configurations"][0].update(frontend_arguments=["-std=c99"]),
+            lambda x: x["configurations"].clear(),
+            lambda x: x["dependencies"].clear(),
+            lambda x: x.update(proof_of_safety=True),
+        ):
+            altered = copy.deepcopy(capture)
+            change(altered)
+            with self.subTest(change=str(change)):
+                with self.assertRaises(MigrationRejected):
+                    verify_capture(altered)
+        for change, expected_error in (
+            (lambda x: x["configurations"][0]["model"].update(long_bits=32), "E_C_BUILD_CHANGED"),
+            (lambda x: x["configurations"][0].update(frontend_arguments=["-std=c99"]), "E_C_BUILD_IDENTITY"),
+            (lambda x: x["configurations"].clear(), "E_C_BUILD_IDENTITY"),
+            (lambda x: x["dependencies"].clear(), "E_C_BUILD_IDENTITY"),
+        ):
+            altered = copy.deepcopy(capture)
+            change(altered)
+            altered["sha256"] = hashlib.sha256(json.dumps(
+                {k: v for k, v in altered.items() if k != "sha256"},
+                sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+            with self.subTest(expected_error=expected_error):
+                with self.assertRaises(MigrationRejected) as caught:
+                    verify_capture(altered)
+                self.assertEqual(caught.exception.code, expected_error)
 
     def test_macro_model_identity_rechecked_even_when_source_preprocessing_is_equal(self):
         # Only the compiler's -dM transcript changes; the source, dependency
