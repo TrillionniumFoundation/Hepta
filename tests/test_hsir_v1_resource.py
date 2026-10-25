@@ -3,6 +3,7 @@ from pathlib import Path
 import copy
 import hashlib
 import unittest
+from unittest.mock import patch
 
 from hepta.hsir_v1_resource import HSIRResourceRejected, checked_resource_snapshot
 from hepta.pipeline import analyze, analyze_project, hsir_v1_analysis, hsir_v1_resource_analysis
@@ -74,8 +75,11 @@ class HSIRV1ResourceTests(unittest.TestCase):
         legacy["sha256"] = hashlib.sha256(_stable_json(legacy)).hexdigest()
         forged = integrate_v0(legacy, expected_source_sha256=original["producer"]["source_sha256"])
         self.assertTrue(verify_v1(forged)["ok"])
-        with self.assertRaisesRegex(HSIRResourceRejected, "SNAPSHOT_MISMATCH"):
-            checked_resource_snapshot(analysis, forged)
+        # Reject before the independent resource lowering path can be invoked.
+        with patch("hepta.resource_lowering.lower_resource_ir") as resource_lower:
+            with self.assertRaisesRegex(HSIRResourceRejected, "SNAPSHOT_MISMATCH"):
+                checked_resource_snapshot(analysis, forged)
+            resource_lower.assert_not_called()
 
     def test_resealed_external_obligation_changes_are_not_discarded(self):
         from hepta.hsir_v1 import integrate_v0, verify_v1
