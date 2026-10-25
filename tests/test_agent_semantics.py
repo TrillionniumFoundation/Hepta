@@ -178,7 +178,8 @@ class AgentSemanticTests(unittest.TestCase):
 
     def test_source_graph_race_after_lowering_rejected(self):
         states = iter([True, False])
-        self.graph = SimpleNamespace(program=object(), unchanged=lambda: next(states))
+        self.graph = SimpleNamespace(
+            program=object(), unchanged=lambda: next(states), identity="9" * 64)
         with (patch.object(agent_semantics, "inspect_workspace", return_value=self.snapshot),
               patch.object(agent_semantics, "load_project", return_value=self.graph),
               patch.object(agent_semantics, "check", return_value=self.checked),
