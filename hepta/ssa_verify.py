@@ -16,6 +16,13 @@ from .cfg_analysis import CFGAnalysisRejected, analyze_cfg
 from .ssa import SSASnapshot
 
 
+_SSA_FUNCTION_FIELDS = frozenset({
+    "name", "entry", "parameters", "blocks", "scalar_types", "definitions",
+    "phi_count", "declared_effects", "inferred_transitive_effects",
+    "resource_contract",
+})
+
+
 class SSAVerificationRejected(ValueError):
     pass
 
@@ -58,6 +65,11 @@ def _unmark(value, depth=0):
 
 
 def _function(f: dict, original: dict, graph: dict) -> dict:
+    if not isinstance(f, dict) or set(f) != _SSA_FUNCTION_FIELDS:
+        _reject("E_SSA_VERIFY_CONTRACT", "SSA function fields differ from reviewed source contract")
+    for field in ("declared_effects", "inferred_transitive_effects", "resource_contract"):
+        if field not in original or f[field] != original[field]:
+            _reject("E_SSA_VERIFY_CONTRACT", "SSA effect/resource metadata changed or disappeared")
     blocks = f.get("blocks")
     before = original.get("blocks")
     if not isinstance(blocks, list) or not isinstance(before, list) or len(blocks) != len(before):
@@ -182,8 +194,13 @@ def _function(f: dict, original: dict, graph: dict) -> dict:
                  term.get("value") if term["kind"] == "return" else None)
         if value is not None:
             reads += read_expr(value, bid, len(b["instructions"]))
+    contract = {field: f[field] for field in
+                ("declared_effects", "inferred_transitive_effects", "resource_contract")}
+    contract_sha256 = sha256(json.dumps(contract, sort_keys=True, ensure_ascii=False,
+                                       allow_nan=False, separators=(",", ":")).encode()).hexdigest()
     return {"name": f["name"], "blocks": len(blocks), "definitions": len(defs),
-            "phi_count": phis, "ssa_references_verified": reads}
+            "phi_count": phis, "ssa_references_verified": reads,
+            "source_effect_resource_sha256": contract_sha256}
 
 
 def verify_scalar_ssa(ssa: SSASnapshot, cfg: CFGSnapshot) -> SSAVerificationSnapshot:
@@ -211,6 +228,7 @@ def verify_scalar_ssa(ssa: SSASnapshot, cfg: CFGSnapshot) -> SSAVerificationSnap
     output = {"schema": "hepta.ssa.verify.v0", "status": "scalar_ssa_structurally_verified",
               "ssa_sha256": ssa.sha256, "cfg_sha256": cfg.sha256, "functions": result,
               "claims": {"single_assignment_checked": True, "ssa_edge_uses_checked": True,
+                         "effect_resource_metadata_matched_to_cfg": True,
                          "ssa_origin_expression_retained": True,
                          "semantic_equivalence_proven": False,
                          "whole_language_memory_safety_proven": False,

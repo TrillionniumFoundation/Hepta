@@ -62,6 +62,10 @@ class HSIRBridgeTests(unittest.TestCase):
         verifier = verify_scalar_ssa(ssa, cfg)
         self.assertTrue(verifier.as_dict())
         self.assertGreater(ssa.as_dict()["functions"][0]["phi_count"], 0)
+        self.assertEqual(ssa.as_dict()["functions"][0]["declared_effects"], ["panic"])
+        self.assertEqual(ssa.as_dict()["functions"][0]["resource_contract"],
+                         cfg.as_dict()["functions"][0]["resource_contract"])
+        self.assertTrue(verifier.as_dict()["claims"]["effect_resource_metadata_matched_to_cfg"])
         self.assertFalse(bridge.as_dict()["claims"]["source_semantics_refined"])
         self.assertFalse(ssa.as_dict()["claims"]["native_backend_refinement_proven"])
 

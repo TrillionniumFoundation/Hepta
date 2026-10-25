@@ -38,6 +38,8 @@ _SCALAR = frozenset({"i8", "i16", "i32", "i64", "i128", "isize",
 _BINARY = frozenset({"+", "-", "*", "/", "%", "==", "!=", "<", "<=", ">", ">=",
                      "&&", "||", "&", "|", "^", "<<", ">>"})
 _ALLOWED_EFFECTS = frozenset({"panic"})
+_ALLOWED_RESOURCES = {"heap_allocations": 0, "may_block": False,
+                      "may_suspend": False, "may_spawn": False}
 _MAX_EXPRESSION_DEPTH = 64
 _MAX_DEFINITIONS = 8192
 
@@ -141,6 +143,31 @@ def _term_expr(term: dict) -> dict | None:
     raise SSARejected(f"E_SSA_UNSUPPORTED: terminator {kind!r}; range/match/unsafe not supported")
 
 
+def _checked_contract(fn: dict) -> tuple[list[str], list[str], dict]:
+    """Keep effects and resource clauses attached to scalar SSA, never drop them.
+
+    This preserves already-checked source metadata; it is NOT a second effect
+    checker or a proof of whole-process resource bounds.
+    """
+    declared = fn.get("declared_effects")
+    inferred = fn.get("inferred_transitive_effects")
+    resources = fn.get("resource_contract")
+    if (not isinstance(declared, list) or not isinstance(inferred, list)
+            or any(type(effect) is not str for effect in [*declared, *inferred])
+            or declared != sorted(set(declared))
+            or inferred != sorted(set(inferred))
+            or not set(inferred).issubset(declared)
+            or (set(declared) | set(inferred)) - _ALLOWED_EFFECTS):
+        raise SSARejected("E_SSA_EFFECT: scalar SSA requires closed pure/panic effect metadata")
+    if (not isinstance(resources, dict)
+            or any(key not in _ALLOWED_RESOURCES or
+                   type(value) is not type(_ALLOWED_RESOURCES.get(key)) or
+                   value != _ALLOWED_RESOURCES.get(key)
+                   for key, value in resources.items())):
+        raise SSARejected("E_SSA_RESOURCE: unsupported or malformed resource contract")
+    return list(declared), list(inferred), dict(resources)
+
+
 def _run_function(fn: dict, analysis: dict) -> dict:
     blocks = fn.get("blocks")
     if not isinstance(blocks, list):
@@ -149,8 +176,7 @@ def _run_function(fn: dict, analysis: dict) -> dict:
     params = fn.get("param_types", [])
     if not isinstance(params, list):
         raise SSARejected("E_SSA_PARAMETERS: malformed signature")
-    if set(fn.get("inferred_transitive_effects", [])) - _ALLOWED_EFFECTS:
-        raise SSARejected("E_SSA_EFFECT: effectful functions outside pure scalar profile")
+    declared_effects, inferred_effects, resource_contract = _checked_contract(fn)
     return_type = fn.get("return_type")
     unit_return = return_type == {"type": "Unit", "args": [], "length": None}
     if not unit_return:
@@ -311,6 +337,11 @@ def _run_function(fn: dict, analysis: dict) -> dict:
                 raise SSARejected("E_SSA_PHI: missing, repeated or spurious predecessor input")
     return {"name": fn["name"], "entry": entry, "parameters": initial_params,
             "blocks": [result_blocks[b["id"]] for b in blocks],
+            # These declarations are part of the source contract even when the
+            # scalar optimizer does not interpret memory or allocator effects.
+            "declared_effects": declared_effects,
+            "inferred_transitive_effects": inferred_effects,
+            "resource_contract": resource_contract,
             "scalar_types": dict(sorted(types.items())),
             "definitions": sum(counters.values()),
             "phi_count": sum(len(b["phis"]) for b in result_blocks.values())}
@@ -335,6 +366,7 @@ def lower_cfg_scalar_ssa(cfg: CFGSnapshot) -> SSASnapshot:
               "source_cfg_sha256": cfg.sha256, "source_analysis_sha256": analysis["sha256"],
               "functions": functions,
               "claims": {"scalar_ssa_subset_constructed": True, "phi_inputs_checked": True,
+                         "effect_resource_metadata_retained": True,
                          "whole_language_ssa_complete": False, "for_range_implemented": False,
                          "match_payloads_supported": False, "borrow_drop_proven": False,
                          "pointer_provenance_proven": False,
