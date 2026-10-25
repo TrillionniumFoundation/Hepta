@@ -122,7 +122,7 @@ remain P1 blockers. Never remove unknown obligations or silently promote a
 foreign assumption to proved during conversion.
 
 **Local targeted test result:** python -m unittest discover -s tests
--p 'test_*audit.py' -v passed **15/15** in an isolated Python 3.13.5
+-p 'test_*audit.py' -v passed **19/19** in an isolated Python 3.13.5
 working directory, including a newly created native Git repository used for
 rename and byte-object identity checks, plus an adversarial deeply nested HSIR JSON rejection. Four exact Git blob identities for
 the tested files were independently fetched from the updated PR head and
@@ -168,3 +168,25 @@ source/project identity mapping. Unsupported transformations must reject,
 and neither snapshot family may have its unproved claims upgraded implicitly.
 Only after such a mapping is validated should the CFG/SSA/LLVM consumer be
 retargeted. These actions are not completed in this PR.
+
+
+## Actual producer CLI output envelopes (additional P1 guard)
+
+Source inspection confirms PR #14 hepta hsir outputs an
+hepta.hsir.export.v0 wrapper with an hsir member and a separate validation
+report; PR #36 hepta hsir outputs HSIRSnapshot.as_dict() and appends a
+reference_validation field *after* calculating the payload SHA-256.
+PR #37 CFG/SSA/LLVM consumes PR #36's checked snapshot classes.
+
+The P1 wire audit now accepts these two specific command envelopes for
+**audit only**. It hashes and validates the embedded original semantic
+payload without trusting either outside validation field as part of its
+cryptographic identity. A deliberately modified reference_validation
+status leaves the underlying payload hash unchanged; that metadata therefore
+must never be used by this tool to claim a native pass or semantics proof.
+Unknown wrapper forms, nested mismatched producers, malformed sidecars,
+duplicate JSON keys and forged true proof claims refuse. The actual CLI-form
+comparison is included in the 19 passing synthetic/regression tests.
+
+Only source and output-shape inspections were performed for the producer
+branches; actual Hepta native producer commands were not run here.
