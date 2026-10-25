@@ -37,6 +37,30 @@ class HSIRWireRejected(ValueError):
     pass
 
 
+OBLIGATION_REASONS = frozenset({
+    "foreign_function", "raw_pointer_signature", "unsafe_effect",
+    "ffi_effect", "volatile_access",
+})
+
+
+def require_unresolved_obligations(items: object) -> None:
+    """Accept only PR #14's explicitly unresolved FFI obligation wire shape."""
+    if not isinstance(items, list):
+        raise HSIRWireRejected("E_HSIR_OBLIGATIONS")
+    for entry in items:
+        if (not isinstance(entry, dict)
+                or set(entry) != {"function", "reasons", "status"}
+                or not isinstance(entry["function"], str)
+                or not entry["function"]
+                or entry["status"] != "caller_obligation_not_dischargeable_by_hsir"
+                or not isinstance(entry["reasons"], list)
+                or not entry["reasons"]
+                or any(type(reason) is not str or reason not in OBLIGATION_REASONS
+                       for reason in entry["reasons"])
+                or len(entry["reasons"]) != len(set(entry["reasons"]))):
+            raise HSIRWireRejected("E_HSIR_OBLIGATION_STATUS")
+
+
 def pairs_unique(pairs):
     result = {}
     for key, value in pairs:
@@ -116,8 +140,7 @@ def fingerprint(record: dict) -> dict:
             raise HSIRWireRejected("E_HSIR_PROJECT_ID")
         if type(record["all_expressions_typed"]) is not bool:
             raise HSIRWireRejected("E_HSIR_TYPE_COMPLETENESS")
-        if not isinstance(record["external_obligations"], list):
-            raise HSIRWireRejected("E_HSIR_OBLIGATIONS")
+        require_unresolved_obligations(record["external_obligations"])
     else:
         if type(record["typed_expression_count"]) is not int or record["typed_expression_count"] < 0:
             raise HSIRWireRejected("E_HSIR_TYPE_COUNT")
