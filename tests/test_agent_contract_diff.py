@@ -27,7 +27,8 @@ class AgentContractDiffTests(unittest.TestCase):
             "external_obligations": [],
             "foreign_assumptions": [],
             "functions": [{
-                "path": "src/main.hepta", "name": "compute",
+                "path": "/immutable/versions/" + version + "/tree/src/main.hepta",
+                "source_relative_path": "src/main.hepta", "name": "compute",
                 "return_type": "i32",
                 "parameter_modes": [{"name": "x", "type": "i32", "mode": "value"}],
                 "declared_effects": [], "inferred_effects": [], "resources": {},
@@ -74,6 +75,27 @@ class AgentContractDiffTests(unittest.TestCase):
         self.assertNotEqual(result["before_semantic_sha256"], result["after_semantic_sha256"])
         self.assertFalse(result["claims"]["function_bodies_compared"])
         self.assertFalse(result["claims"]["functional_equivalence_proved"])
+
+    def test_absolute_snapshot_paths_do_not_create_false_add_remove(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        self.assertNotEqual(a["functions"][0]["path"], b["functions"][0]["path"])
+        result = self.compare(a, b)
+        self.assertEqual(result["reported_contract_changes"], [])
+        self.assertFalse(result["interface_identity_changed"])
+
+    def test_untrusted_relative_source_path_rejected(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        for forged in ("../outside.hepta", "src/missing.hepta", "/absolute.hepta"):
+            with self.subTest(path=forged):
+                b["functions"][0]["source_relative_path"] = forged
+                with self.assertRaisesRegex(WorkspaceError, "relative function origin"):
+                    self.compare(a, b)
+
+    def test_missing_relative_source_identity_rejected(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        b["functions"][0].pop("source_relative_path")
+        with self.assertRaisesRegex(WorkspaceError, "relative function origin"):
+            self.compare(a, b)
 
     def test_addition_and_removal_are_deterministically_ordered(self):
         a, b = self.report(self.BEFORE), self.report(self.AFTER)

@@ -43,7 +43,8 @@ def migrate_cpp(source_file: str | Path, destination_file: str | Path, *,
 
     Output is never confused with the original mangled C++ ABI.
     """
-    source = Path(source_file).resolve()
+    lexical_source = Path(source_file).absolute()
+    source = lexical_source.resolve()
     # Do not dereference final output leaf symlinks (including dangling ones).
     output = Path(os.path.abspath(destination_file))
     report = {"schema": "hepta.migrate-cpp-l1.v0", "status": "rejected", "ok": False,
@@ -130,8 +131,8 @@ def migrate_cpp(source_file: str | Path, destination_file: str | Path, *,
             report["rejected"] = [d.to_dict() for d in checking.diagnostics]
             report["status"] = "hepta_frontend_rejected"
             return report
-        if source.read_bytes() != original:
-            raise MigrationRejected("E_CPP2HEPTA_RACE", "Source changed during Clang translation")
+        if lexical_source.resolve() != source or source.read_bytes() != original:
+            raise MigrationRejected("E_CPP2HEPTA_RACE", "Source bytes or lexical path changed during Clang translation")
         if output.exists() or output.is_symlink():
             raise MigrationRejected("E_CPP2HEPTA_EXISTS", "Output already exists")
         if not output.parent.is_dir():
@@ -144,8 +145,8 @@ def migrate_cpp(source_file: str | Path, destination_file: str | Path, *,
                 f.write(program)
                 f.flush()
                 os.fsync(f.fileno())
-            if source.read_bytes() != original:
-                raise MigrationRejected("E_CPP2HEPTA_RACE", "Source changed before publish")
+            if lexical_source.resolve() != source or source.read_bytes() != original:
+                raise MigrationRejected("E_CPP2HEPTA_RACE", "Source bytes or lexical path changed before publish")
             try:
                 os.link(staged, output)
             except FileExistsError as exc:

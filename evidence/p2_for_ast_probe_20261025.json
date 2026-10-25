@@ -1,0 +1,94 @@
+{
+  "schema": "hepta.clang-ast-for-pilot.v1",
+  "scope": "isolated_original_C_C++_AST_shape_only_not_Hepta_native_compiler",
+  "compiler": "clang version 17.0.0 (https://github.com/swiftlang/llvm-project.git 10999b6d034fe318f3d56c83bddb6572593a8bb0)",
+  "passed": 8,
+  "total": 8,
+  "results": [
+    {
+      "fixture": "c11_simple_for",
+      "language": "c",
+      "expected_shape": true,
+      "matches_strict_for_shape": true,
+      "negative_reason": "",
+      "source_sha256": "c17d1d9a4d66b002f047f64ab3f9bd4dfaaafac2a89e7b3281e6b5ecf218319e",
+      "clang_ast_accepted": true,
+      "pass": true
+    },
+    {
+      "fixture": "cpp20_simple_for",
+      "language": "c++",
+      "expected_shape": true,
+      "matches_strict_for_shape": true,
+      "negative_reason": "",
+      "source_sha256": "b2994b9e48dd7c079de6809dc2e636d1fade3c119d4bd5109625ca73ed97f33e",
+      "clang_ast_accepted": true,
+      "pass": true
+    },
+    {
+      "fixture": "cpp20_for_declared_local",
+      "language": "c++",
+      "expected_shape": false,
+      "matches_strict_for_shape": false,
+      "negative_reason": "for_shape_rejected",
+      "source_sha256": "42d22424e50b7196c1fa0db829808fb06415fe7a70321cd59be58def089f7859",
+      "clang_ast_accepted": true,
+      "pass": true
+    },
+    {
+      "fixture": "cpp20_increment_operator",
+      "language": "c++",
+      "expected_shape": false,
+      "matches_strict_for_shape": false,
+      "negative_reason": "for_shape_rejected",
+      "source_sha256": "2ba50ec7d6f098481cfd271bd1bfcdec8641a44322666557a96e2044285094a0",
+      "clang_ast_accepted": true,
+      "pass": true
+    },
+    {
+      "fixture": "cpp20_continue",
+      "language": "c++",
+      "expected_shape": false,
+      "matches_strict_for_shape": false,
+      "negative_reason": "ContinueStmt",
+      "source_sha256": "3d8c11e6e9fe9c8c64e358cbb55e7bdb0999217fa5e47baf14c609e58d23039f",
+      "clang_ast_accepted": true,
+      "pass": true
+    },
+    {
+      "fixture": "cpp20_nested_decl",
+      "language": "c++",
+      "expected_shape": false,
+      "matches_strict_for_shape": false,
+      "negative_reason": "DeclStmt",
+      "source_sha256": "e9481d6bde3c649b26a0e260573dc3b300ee78d16d85ef1ed3e210b987746b06",
+      "clang_ast_accepted": true,
+      "pass": true
+    },
+    {
+      "fixture": "cpp20_no_condition",
+      "language": "c++",
+      "expected_shape": false,
+      "matches_strict_for_shape": false,
+      "negative_reason": "BreakStmt",
+      "source_sha256": "28f2161572666b2c22571c55c9cac951ce88d7141d1999e1dfef0e983d623041",
+      "clang_ast_accepted": true,
+      "pass": true
+    },
+    {
+      "fixture": "c11_for_declared_local",
+      "language": "c",
+      "expected_shape": false,
+      "matches_strict_for_shape": false,
+      "negative_reason": "for_shape_rejected",
+      "source_sha256": "eb4dabcd9e32716d674dd41ab382aa46b757091dc0acf3f81fe87fed3fea44b0",
+      "clang_ast_accepted": true,
+      "pass": true
+    }
+  ],
+  "claims": {
+    "C_CPP_equivalence_proved": false,
+    "cross_target_abi_qualified": false,
+    "hepta_compiler_tested": false
+  }
+}

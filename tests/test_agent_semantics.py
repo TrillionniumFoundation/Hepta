@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -19,6 +20,7 @@ class AgentSemanticTests(unittest.TestCase):
             "ok": True,
             "snapshot": {
                 "version": self.VERSION,
+                "root": "/immutable/versions/tree",
                 "entry": "/immutable/versions/tree/main.hepta",
                 "manifest": {
                     "compiler_sha256": self.COMPILER,
@@ -76,6 +78,7 @@ class AgentSemanticTests(unittest.TestCase):
         self.assertEqual(result["workspace_version"], self.VERSION)
         self.assertEqual(result["source_semantic_sha256"], self.SEMANTIC)
         self.assertEqual(result["nodes"], self.snapshot["nodes"])
+        self.assertEqual(result["functions"][0]["source_relative_path"], "main.hepta")
         self.assertEqual(result["functions"][0]["parameter_modes"], [
             {"name": "a", "mode": "value", "type": "i32"}])
         self.assertFalse(result["claims"]["native_validation_reexecuted_this_query"])
@@ -114,6 +117,34 @@ class AgentSemanticTests(unittest.TestCase):
         with self.assertRaisesRegex(WorkspaceError, "profile/claims"):
             self._inspect()
 
+    def test_absolute_pinned_source_path_is_normalized(self):
+        self.hsir["functions"][0]["path"] = "/immutable/versions/tree/main.hepta"
+        self._reseal_hsir()
+        self.assertEqual(self._inspect()["functions"][0]["source_relative_path"], "main.hepta")
+
+    def test_pinned_source_escape_rejected(self):
+        self.hsir["functions"][0]["path"] = "/outside/main.hepta"
+        self._reseal_hsir()
+        with self.assertRaisesRegex(WorkspaceError, "escapes pinned tree"):
+            self._inspect()
+
+    def test_cyclic_source_symlink_is_structured_rejection(self):
+        with tempfile.TemporaryDirectory() as root:
+            root_path = agent_semantics.Path(root)
+            cycle = root_path / "loop.hepta"
+            cycle.symlink_to(cycle)
+            self.snapshot["snapshot"]["root"] = str(root_path)
+            self.hsir["functions"][0]["path"] = str(cycle)
+            self._reseal_hsir()
+            with self.assertRaisesRegex(WorkspaceError, "cannot resolve"):
+                self._inspect()
+
+    def test_unknown_source_path_rejected(self):
+        self.hsir["functions"][0]["path"] = "/immutable/versions/tree/not-validated.hepta"
+        self._reseal_hsir()
+        with self.assertRaisesRegex(WorkspaceError, "not in validated source"):
+            self._inspect()
+
     def test_compiler_identity_change_rejected(self):
         self.snapshot["snapshot"]["manifest"]["compiler_sha256"] = "f" * 64
         with (patch.object(agent_semantics, "inspect_workspace", return_value=self.snapshot),
@@ -130,6 +161,17 @@ class AgentSemanticTests(unittest.TestCase):
               patch.object(agent_semantics, "compiler_hash", return_value=self.COMPILER),
               patch.object(agent_semantics, "lower_checked_program", return_value=self.hsir)):
             with self.assertRaisesRegex(WorkspaceError, "changed after semantic"):
+                agent_semantics.inspect_pinned_semantics("store")
+
+    def test_source_race_during_relative_path_normalization_rejected(self):
+        states = iter([True, True, False])
+        self.graph = SimpleNamespace(program=object(), unchanged=lambda: next(states))
+        with (patch.object(agent_semantics, "inspect_workspace", return_value=self.snapshot),
+              patch.object(agent_semantics, "load_project", return_value=self.graph),
+              patch.object(agent_semantics, "check", return_value=self.checked),
+              patch.object(agent_semantics, "compiler_hash", return_value=self.COMPILER),
+              patch.object(agent_semantics, "lower_checked_program", return_value=self.hsir)):
+            with self.assertRaisesRegex(WorkspaceError, "during path normalization"):
                 agent_semantics.inspect_pinned_semantics("store")
 
     def test_canonical_project_hash_cannot_be_rebound(self):

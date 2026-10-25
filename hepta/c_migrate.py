@@ -164,6 +164,29 @@ def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 
         if value_type != local[0]:
             raise MigrationRejected("E_C_ASSIGN", "Assignment type conversion not in checked subset")
         return [f"{indent}{name} = {value};"]
+    if kind == "ForStmt":
+        # Clang's five slots are: initializer, condition-variable placeholder,
+        # condition, increment, and body. Deliberately admit only an assignment
+        # to a previously initialized function-prefix local. For-declared locals,
+        # ++/--, break/continue, omitted conditions and nested declarations need
+        # separate scope/control-flow semantics and MUST fail closed here.
+        if (len(children) != 5 or children[1] != {}
+                or any(children[n].get("kind") != "BinaryOperator"
+                       or children[n].get("opcode") != "=" for n in (0, 3))
+                or children[4].get("kind") != "CompoundStmt"):
+            raise MigrationRejected("E_C_FOR", "Unsupported for-loop scope/condition/update shape")
+        condition, condition_type = _expr(children[2], args, model, "bool", locals)
+        if condition_type != "bool":
+            raise MigrationRejected("E_C_FOR", "For-loop requires an explicit Boolean condition")
+        # Scope equivalence: initialization executes once before the first
+        # condition; update runs once after every normally completed body.
+        # break/continue and any inner declaration are refused by _stmt.
+        lines = _stmt(children[0], args, model, ret, depth, locals)
+        lines.append(f"{indent}while {condition} {{")
+        lines.extend(_stmt(children[4], args, model, ret, depth + 1, locals))
+        lines.extend(_stmt(children[3], args, model, ret, depth + 1, locals))
+        lines.append(f"{indent}}}")
+        return lines
     if kind == "WhileStmt" and len(children) == 2:
         condition, condition_type = _expr(children[0], args, model, "bool", locals)
         if condition_type != "bool":
@@ -274,7 +297,8 @@ def _function(decl: dict, model: dict) -> dict:
 
 def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> dict:
     """Return explicit migration evidence; never write a partial conversion."""
-    src, dest = Path(path).resolve(), Path(output).absolute()
+    lexical_source = Path(path).absolute()
+    src, dest = lexical_source.resolve(), Path(output).absolute()
     report = {"schema": "hepta.migrate-c.v0", "ok": False, "status": "rejected",
               "profile": "strict_scalar_pilot", "source": str(src), "output": str(dest),
               "source_equivalence_proved": False, "whole_language_soundness_proved": False,
@@ -289,6 +313,12 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
         report["source_sha256"] = hashlib.sha256(source).hexdigest()
         model = _data_model(clang)
         report["target_model"] = model
+        # Clang AST includes source macros/header expansion. Pin its complete
+        # preprocessed token stream in addition to the original .c bytes. This
+        # strict pilot has fixed C11 flags; configured builds use migrate_project.
+        preprocess_args = [clang, "-std=c11", "-E", "-P", str(src)]
+        preprocessed = _run(preprocess_args)
+        report["preprocessed_sha256"] = hashlib.sha256(preprocessed.encode("utf-8")).hexdigest()
         ast_json = _run([clang, "-std=c11", "-fsyntax-only", "-Werror",
                         "-Xclang", "-ast-dump=json", str(src)])
         root = json.loads(ast_json)
@@ -336,8 +366,10 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
             report["status"] = "unsupported_source"
             return report
         program = "module c_migrated;\n\n" + "\n".join(x["source"] for x in translated)
-        if src.read_bytes() != source:
-            raise MigrationRejected("E_C_SOURCE_RACE", "C source changed during Clang analysis")
+        if (lexical_source.resolve() != src or src.read_bytes() != source):
+            raise MigrationRejected("E_C_SOURCE_RACE", "C source or lexical binding changed during Clang analysis")
+        if _run(preprocess_args) != preprocessed:
+            raise MigrationRejected("E_C_PREPROCESS_RACE", "C preprocessed input changed after AST capture")
         from .checker import check
         from .parser import parse
         checked = check(parse(program, str(dest)))
@@ -358,6 +390,13 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
                 f.write(program)
                 f.flush()
                 os.fsync(f.fileno())
+            # Check again at the publication boundary, not just before
+            # frontend validation. The second preprocessor run detects changed
+            # include/macro semantics even when the .c file is unchanged.
+            if lexical_source.resolve() != src or src.read_bytes() != source:
+                raise MigrationRejected("E_C_SOURCE_RACE", "C source or lexical binding changed before publish")
+            if _run(preprocess_args) != preprocessed:
+                raise MigrationRejected("E_C_PREPROCESS_RACE", "C preprocessed input changed before publish")
             # Atomic same-filesystem hard-link publication: the completely
             # written, fsynced staged inode becomes visible in one operation.
             # os.link fails without replacing a concurrent existing name.
@@ -376,7 +415,7 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
                        "output_sha256": hashlib.sha256(program.encode()).hexdigest(),
                        "native_validation": "not_run", "frontend": "passed"})
         return report
-    except (MigrationRejected, UnicodeError, json.JSONDecodeError) as exc:
+    except (MigrationRejected, UnicodeError, json.JSONDecodeError, OSError) as exc:
         report["rejected"].append({"code": getattr(exc, "code", "E_C_INPUT"), "message": str(exc)})
         return report
 

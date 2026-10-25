@@ -41,3 +41,26 @@ observed on one host, and production acceptance obligations not discharged.
 - CI queued/unknown/not-run is never PASS, even when CI is not the current
   execution priority. PR #51 and #52 remain Draft until their real gates pass.
 - Whole project status remains `whole_project_blockers_closed=false`.
+
+## 2026-10-25 next bounded coding increment
+
+- **P6**: PR #56 fixes false delete/add reports caused by different absolute
+  version-tree roots by binding functions to validated project-relative paths.
+  A third graph-stability check occurs after path normalization. Existing v4
+  immutable snapshot validation remains mandatory.
+- **P2/P4**: strict scalar C/C++ `for (i=0; i<n; i=i+1)` induction lowers
+  through the existing shared C scalar lowerer into Hepta while + update.
+  C11/C++20 local Clang AST classification matched 8/8 explicitly supported
+  and unsupported fixture shapes (see `evidence/p2_for_ast_probe_20261025.json`).
+  Independently GCC/Clang++-compiled original functions agreed on 8/8 bounded
+  defined-input rows. No Hepta native differential is claimed locally.
+- **P2**: single-file C migration records a pinned Clang preprocessed digest
+  and rechecks source bytes, original symlink binding and preprocessing
+  immediately before no-replace publication. C++ L1 rechecks the original
+  source alias. Deterministic race tests are in the repository; isolated
+  Clang -E confirmed that a header-only macro modification changes the digest,
+  and a lexical source symlink retarget is observable.
+- Still **OPEN**: full HSIR/loan/provenance proof, arbitrary C/C++ conversion,
+  native Hepta cross-target ABI/execution, general LLVM Owner backend,
+  real-provider Agent evaluation, physical board/GPU and long-run resource
+  qualification. `whole_project_blockers_closed=false`.

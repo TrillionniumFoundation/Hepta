@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import ctypes
 import json
+import os
+from unittest.mock import patch
 from pathlib import Path
 import shutil
 import subprocess
@@ -146,6 +148,33 @@ extern "C" int cpp_clamp_local(int x) { return clamp_local(x); }
                 with self.subTest(name=name, args=args):
                     self.assertEqual(left(*args), right(*args))
 
+    def test_strict_cpp_for_induction_and_invalid_updates(self):
+        self.src.write_text("""
+int sum_for(int n) noexcept {
+    int total = 0;
+    int i = 0;
+    for (i = 0; i < n; i = i + 1) { total = total + i; }
+    return total;
+}
+""")
+        converted = migrate_cpp(self.src, self.dst)
+        self.assertTrue(converted["ok"], converted)
+        self.assertEqual(converted["tier"], "L1")
+        self.assertIn("while (i < n)", self.dst.read_text())
+        self.assertEqual(analyze(self.dst.read_text(), str(self.dst), native=False).report["status"],
+                         "frontend_only")
+        self.dst.unlink()
+        self.src.write_text("""
+int sum_for(int n) noexcept {
+    int total = 0;
+    for (int i = 0; i < n; ++i) { total = total + i; }
+    return total;
+}
+""")
+        rejected = migrate_cpp(self.src, self.dst)
+        self.assertFalse(rejected["ok"], rejected)
+        self.assertFalse(self.dst.exists())
+
     def test_hidden_preprocessor_forms_never_publish(self):
         sources = [
             '%:define FLAG 1\nint f(int a) noexcept {return a + FLAG;}',
@@ -159,6 +188,24 @@ extern "C" int cpp_clamp_local(int x) { return clamp_local(x); }
                 self.assertFalse(report["ok"], report)
                 self.assertEqual(report["rejected"][0]["code"], "E_CPP2HEPTA_PREPROCESSOR")
                 self.assertFalse(self.dst.exists())
+
+    def test_lexical_source_alias_change_before_publish_rejected(self):
+        original = self.root / "actual.cc"
+        original.write_text(self._GOOD)
+        replacement = self.root / "replacement.cc"
+        replacement.write_text("int f(int x) noexcept {return x+2;}\n")
+        alias = self.root / "source.cc"
+        alias.symlink_to(original)
+        old_fsync = os.fsync
+        def rebind(fd):
+            old_fsync(fd)
+            alias.unlink()
+            alias.symlink_to(replacement)
+        with patch("hepta.cpp2hepta.os.fsync", side_effect=rebind):
+            report = migrate_cpp(alias, self.dst)
+        self.assertFalse(report["ok"], report)
+        self.assertIn("E_CPP2HEPTA_RACE", [r["code"] for r in report["rejected"]])
+        self.assertFalse(self.dst.exists())
 
     def test_dangling_output_alias_and_existing_source_are_not_replaced(self):
         self.src.write_text(self._GOOD)
