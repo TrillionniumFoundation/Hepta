@@ -271,6 +271,43 @@ extern "C" int cpp_shadow(int n){return shadow(n);}
                 with self.subTest(name=name, n=n):
                     self.assertEqual(ref_fn(n), new_fn(n))
 
+
+    def test_do_while_cpp20_native_differential(self):
+        self.src.write_text("""
+int do_sum(int n) noexcept {
+    int total=0; int i=0;
+    do { total=total+i; i=i+1; } while(i<n);
+    return total;
+}
+""")
+        migrated = migrate_cpp(self.src, self.dst)
+        self.assertTrue(migrated["ok"], migrated)
+        generated = self.dst.read_text()
+        self.assertIn("while (i < n)", generated)
+        self.assertEqual(generated.count("total = (total + i);"), 2)
+        self.assertFalse(migrated["cpp_abi_preserved"])
+        wrapper = self.root / "do-wrapper.cc"
+        wrapper.write_text("""
+int do_sum(int) noexcept;
+extern "C" int cpp_do_sum(int n){return do_sum(n);}
+""")
+        reference = self.root / "do-original.so"
+        output = self.root / "do-hepta.so"
+        compiled = subprocess.run(["clang++", "-std=c++20", "-O2", "-fPIC", "-shared",
+                                   str(self.src), str(wrapper), "-o", str(reference)],
+                                  capture_output=True, text=True, timeout=60)
+        self.assertEqual(compiled.returncode, 0, compiled.stderr)
+        built = subprocess.run([sys.executable, "-m", "hepta", "build", str(self.dst),
+                                "--backend", "c", "--crate-type", "cdylib", "-o", str(output)],
+                               capture_output=True, text=True, timeout=90)
+        self.assertEqual(built.returncode, 0, built.stderr + built.stdout)
+        cpp, hepta = ctypes.CDLL(str(reference)).cpp_do_sum, ctypes.CDLL(str(output)).do_sum
+        for fn in (cpp, hepta):
+            fn.argtypes = [ctypes.c_int32]
+            fn.restype = ctypes.c_int32
+        for n in (-10, -1, 0, 1, 2, 7, 50, 500):
+            self.assertEqual(cpp(n), hepta(n), n)
+
     def test_hidden_preprocessor_forms_never_publish(self):
         sources = [
             '%:define FLAG 1\nint f(int a) noexcept {return a + FLAG;}',

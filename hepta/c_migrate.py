@@ -250,6 +250,31 @@ def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 
         lines.extend(_stmt(advance, args, model, ret, depth + 1, scoped_locals, reserved_names))
         lines.append(f"{indent}}}")
         return lines
+    if kind == "DoStmt" and len(children) == 2:
+        # do {body} while (condition) is equivalent to body; while (cond)
+        # {body} only when the body has no declarations or jump-control
+        # constructs. Those would create different lifetimes/control flow
+        # after duplication, and must remain outside this strict scalar L1.
+        body, condition = children
+        if body.get("kind") != "CompoundStmt":
+            raise MigrationRejected("E_C_DO_SHAPE", "Do loop body must be braced")
+        stack = [body]
+        while stack:
+            current = stack.pop()
+            if not isinstance(current, dict):
+                raise MigrationRejected("E_C_DO_SHAPE", "Malformed do-loop AST")
+            if current.get("kind") in {"DeclStmt", "DoStmt", "ForStmt",
+                                       "BreakStmt", "ContinueStmt", "GotoStmt", "ReturnStmt"}:
+                raise MigrationRejected("E_C_DO_SCOPE", "Do loop has unsupported declarations or jumps")
+            stack.extend(item for item in current.get("inner", []) if isinstance(item, dict))
+        rendered, actual = _expr(condition, args, model, "bool", locals)
+        if actual != "bool":
+            raise MigrationRejected("E_C_DO_CONDITION", "Only explicit Boolean do-loop comparisons are supported")
+        first = _stmt(body, args, model, ret, depth, locals, reserved_names)
+        repeated = _stmt(body, args, model, ret, depth + 1, locals, reserved_names)
+        if sum(map(len, first + repeated)) > 32768:
+            raise MigrationRejected("E_C_DO_LIMIT", "Duplicated do-loop body exceeds bounded scalar profile")
+        return first + [f"{indent}while {rendered} {{"] + repeated + [f"{indent}}}"]
     if kind == "WhileStmt" and len(children) == 2:
         condition, condition_type = _expr(children[0], args, model, "bool", locals)
         if condition_type != "bool":

@@ -204,6 +204,54 @@ int twice(int n) {
                 self.assertFalse(report["ok"], report)
                 self.assertFalse(self.hepta.exists())
 
+
+    def test_do_while_clang_defined_semantics_vs_native_hepta(self):
+        self.c.write_text("""
+int do_sum(int n) {
+    int total=0; int i=0;
+    do { total=total+i; i=i+1; } while(i<n);
+    return total;
+}
+""")
+        report = migrate_c(self.c, self.hepta)
+        self.assertTrue(report["ok"], report)
+        generated = self.hepta.read_text()
+        self.assertIn("while (i < n)", generated)
+        self.assertEqual(generated.count("total = (total + i);"), 2)
+        self.assertEqual(analyze(generated, str(self.hepta), native=False).report["status"],
+                         "frontend_only")
+        reference = self.directory / "do-ref.so"
+        output = self.directory / "do-hepta.so"
+        subprocess.run(["gcc", "-std=c11", "-O2", "-shared", "-fPIC",
+                        str(self.c), "-o", str(reference)], check=True, capture_output=True)
+        built = subprocess.run([sys.executable, "-m", "hepta", "build", str(self.hepta),
+                                "--backend", "c", "--crate-type", "cdylib", "-o", str(output)],
+                               capture_output=True, text=True, timeout=90)
+        self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
+        old, new = ctypes.CDLL(str(reference)).do_sum, ctypes.CDLL(str(output)).do_sum
+        for fn in (old, new):
+            fn.argtypes = [ctypes.c_int32]
+            fn.restype = ctypes.c_int32
+        for n in (-20, -1, 0, 1, 2, 3, 17, 100, 500):
+            self.assertEqual(old(n), new(n), n)
+
+    def test_do_while_unsupported_scopes_reject(self):
+        cases = [
+            "int f(int n){int i=0;do i=i+1;while(i<n);return i;}",
+            "int f(int n){int i=0;do {int j=0;i=i+j;}while(i<n);return i;}",
+            "int f(int n){int i=0;do {i=i+1;continue;}while(i<n);return i;}",
+            "int f(int n){int i=0;do {i=i+1;break;}while(i<n);return i;}",
+            "int f(int n){int i=0;do {return i;}while(i<n);}",
+            "int f(int n){int i=0;do {do{i=i+1;}while(i<n);}while(i<n);return i;}",
+        ]
+        for code in cases:
+            with self.subTest(code=code):
+                self.c.write_text(code)
+                self.hepta.unlink(missing_ok=True)
+                report = migrate_c(self.c, self.hepta)
+                self.assertFalse(report["ok"], report)
+                self.assertFalse(self.hepta.exists())
+
     def test_unsupported_scalar_local_shapes_do_not_publish(self):
         cases = [
             "int f(int n) { int x; return n; }",

@@ -102,3 +102,17 @@ or extra condition declarations reject. This is L1 candidate translation, not
 proof of complete C++ source or ABI equivalence. Clang and Hepta/C native
 differential tests cover multiple declarations, nested loops, parameter
 shadowing, unsigned semantics, and invalid source controls.
+
+
+## Braced, no-declaration do-while subset
+
+The shared Clang AST scalar lowering additionally recognizes a braced
+`do { body; } while (comparison);` without declarations, return, break,
+continue, goto, for or nested do-loops inside the body. It emits one
+`body` execution followed by `while (comparison) { body }`, preserving
+the source's at-least-once behavior and test-after-body ordering. Body
+duplication is capped at 32 KiB and limited to effect-free scalar operations
+already accepted by the shared converter. Unknown statement kinds reject.
+It does not alter the existing source-only L1 safety tier or claim a
+general control-flow equivalence theorem. C11 and C++20 original-versus-Hepta/C
+native differential tests cover defined-input examples and negative cases.
