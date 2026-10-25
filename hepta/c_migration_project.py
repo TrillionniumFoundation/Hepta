@@ -106,22 +106,8 @@ def migrate_project(database: str | Path, output_directory: str | Path, *,
                     os.fsync(stream.fileno())
             # The manifest is published last. No claim of a crash-atomic
             # directory transaction is made. No existing name is overwritten.
-            destination.mkdir()
-            created = []
-            try:
-                for path in sorted(stage.iterdir(), key=lambda p: p.name == "migration.json"):
-                    target = destination / path.name
-                    os.link(path, target)
-                    created.append((target, digest(path.read_bytes())))
-            except OSError:
-                for path, expected in reversed(created):
-                    if path.is_file() and digest(path.read_bytes()) == expected:
-                        path.unlink()
-                try:
-                    destination.rmdir()
-                except OSError:
-                    pass
-                raise
+            from .c_project_publish import publish_no_replace
+            publish_no_replace(stage, destination)
         return report
     except (MigrationRejected, HeptaError, OSError, ValueError, KeyError, TypeError, RecursionError) as exc:
         report.update(ok=False, status="rejected")
