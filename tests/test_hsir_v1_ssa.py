@@ -54,6 +54,13 @@ class HSIRV1ScalarSSATests(unittest.TestCase):
         with self.assertRaisesRegex(V1SSARejected, "UNSUPPORTED_PRODUCER"):
             lower_verified_v1_scalar_ssa(envelope)
 
+    def test_unverified_foreign_assumptions_rejected_before_cfg(self):
+        from test_hsir_v1 import pr36, signed
+        source = pr36()
+        source["external_assumptions"] = [{"function": "external", "verified": False}]
+        with self.assertRaisesRegex(V1SSARejected, "FOREIGN_ASSUMPTIONS"):
+            lower_verified_v1_scalar_ssa(integrate_v0(signed(source)))
+
     def test_tampered_v1_claim_even_rehashed_rejected(self):
         _, envelope = self.fixture()
         envelope["claims"]["source_to_ir_refinement_proved"] = True
