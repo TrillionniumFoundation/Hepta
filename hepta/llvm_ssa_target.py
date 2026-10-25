@@ -1,7 +1,7 @@
 """Target-specific object-only compilation for the checked i32 SSA/PHI LLVM pilot.
 
-Emits native object bytes on three explicit targets and verifies ELF/COFF
-machine identifiers. This is NOT a cross-C-ABI, device or execution claim.
+Emits native object bytes on five explicit targets and verifies ELF/COFF/Mach-O
+machine and object-file identifiers. This is NOT cross-C-ABI, device or execution qualification.
 """
 from __future__ import annotations
 
@@ -16,7 +16,9 @@ from .llvm_ssa_backend import SSA_LLVM_IR, LLVMSSARejected
 
 _TARGETS = {"x86_64-unknown-linux-gnu": ("ELF64", 62),
             "aarch64-unknown-linux-gnu": ("ELF64", 183),
-            "x86_64-pc-windows-msvc": ("COFF", 0x8664)}
+            "x86_64-pc-windows-msvc": ("COFF", 0x8664),
+            "x86_64-apple-darwin": ("MACHO64", 0x01000007),
+            "aarch64-apple-darwin": ("MACHO64", 0x0100000c)}
 
 
 def _qualified_header(data: bytes, target: str) -> bool:
@@ -26,8 +28,16 @@ def _qualified_header(data: bytes, target: str) -> bool:
                 and data[4:6] == b"\x02\x01"
                 and data[16:18] == b"\x01\x00"
                 and int.from_bytes(data[18:20], "little") == machine)
-    return (len(data) >= 20 and int.from_bytes(data[:2], "little") == machine
-            and int.from_bytes(data[2:4], "little") > 0)
+    if fmt == "COFF":
+        return (len(data) >= 20 and int.from_bytes(data[:2], "little") == machine
+                and int.from_bytes(data[2:4], "little") > 0)
+    if fmt == "MACHO64":
+        # Little-endian MH_MAGIC_64, 64-bit CPU subtype and MH_OBJECT only.
+        # Linking and execution are deliberately outside the object gate.
+        return (len(data) >= 32 and data[:4] == b"\xcf\xfa\xed\xfe"
+                and int.from_bytes(data[4:8], "little") == machine
+                and int.from_bytes(data[12:16], "little") == 1)
+    return False
 
 
 def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
@@ -64,7 +74,7 @@ def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
             raise LLVMSSARejected("E_LLVM_SSA_TARGET_NATIVE: " + result.stderr[:1200])
         data = artifact.read_bytes() if artifact.is_file() else b""
         if not _qualified_header(data, target):
-            raise LLVMSSARejected("E_LLVM_SSA_TARGET_IDENTITY: wrong/empty ELF or COFF machine type")
+            raise LLVMSSARejected("E_LLVM_SSA_TARGET_IDENTITY: wrong/empty ELF, COFF or Mach-O machine/file type")
         try:
             os.link(artifact, destination)
         except FileExistsError as exc:
