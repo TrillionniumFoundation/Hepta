@@ -215,6 +215,32 @@ class SSAVerificationTests(unittest.TestCase):
                 with self.assertRaisesRegex(SSAVerificationRejected, "CLAIMS"):
                     verify_scalar_ssa(encoded(payload), cfg)
 
+    def test_signed_duplicate_key_and_nonfinite_ir_intake_rejected(self):
+        cfg, ssa = self.fixture()
+        # Duplicate keys with the second value matching the legitimate source
+        # would be silently accepted by Python's default json.loads().
+        malicious = ssa.canonical_json.replace(
+            '"schema":', '"schema":"forged", "schema":', 1)
+        self.assertNotEqual(malicious, ssa.canonical_json)
+        forged = SSASnapshot(ssa.schema, malicious,
+                             sha256(malicious.encode()).hexdigest())
+        with self.assertRaisesRegex(SSAVerificationRejected, "JSON"):
+            verify_scalar_ssa(forged, cfg)
+
+        noncanonical = ssa.canonical_json.replace(',"status":', ', "status":', 1)
+        self.assertNotEqual(noncanonical, ssa.canonical_json)
+        forged = SSASnapshot(ssa.schema, noncanonical,
+                             sha256(noncanonical.encode()).hexdigest())
+        with self.assertRaisesRegex(SSAVerificationRejected, "JSON"):
+            verify_scalar_ssa(forged, cfg)
+
+        invalid = ssa.canonical_json.replace('"definitions":', '"definitions":NaN, "ignored":', 1)
+        self.assertNotEqual(invalid, ssa.canonical_json)
+        forged = SSASnapshot(ssa.schema, invalid,
+                             sha256(invalid.encode()).hexdigest())
+        with self.assertRaisesRegex(SSAVerificationRejected, "JSON"):
+            verify_scalar_ssa(forged, cfg)
+
     def test_duplicate_definition_wrong_count(self):
         cfg, ssa = self.fixture()
         x = ssa.as_dict()
