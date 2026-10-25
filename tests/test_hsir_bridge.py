@@ -106,6 +106,22 @@ class HSIRBridgeTests(unittest.TestCase):
                 with self.assertRaises(HSIRRejected):
                     from_canonical_snapshot(_reseal(source))
 
+    def test_real_checked_noalloc_scalar_contract_preserved(self):
+        source = _SOURCE.replace(
+            "effects { panic } {",
+            "effects { panic } resources {heap_allocations=0;may_block=false;"
+            "may_suspend=false;may_spawn=false;} {",
+        )
+        program, checked = _checked(source)
+        bridge = lower_checked_program(program, checked).as_dict()
+        self.assertEqual(bridge["functions"][0]["resource_contract"], {
+            "heap_allocations": 0,
+            "may_block": False,
+            "may_suspend": False,
+            "may_spawn": False,
+        })
+        self.assertFalse(bridge["claims"]["source_semantics_refined"])
+
     def test_resealed_effect_or_resource_elevation_is_not_scalar_ssa(self):
         a, ac = _checked(_SOURCE)
         canonical = canonical_hsir(a, ac)
