@@ -48,7 +48,7 @@ def require_qualification(name, evidence):
         source = ROOT / "formal/HeptaCore.lean"
         theorems = evidence.get("theorems")
         negatives = evidence.get("negative_mutations")
-        expected = set(re.findall(r"(?m)^theorem\\s+([A-Za-z0-9_]+)", source.read_text()))
+        expected = set(re.findall(r"(?m)^theorem\s+([A-Za-z0-9_]+)", source.read_text()))
         if (len(expected) != 11 or not isinstance(theorems, dict)
                 or set(theorems) != expected
                 or evidence.get("source") != "formal/HeptaCore.lean"
