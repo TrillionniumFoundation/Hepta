@@ -143,6 +143,67 @@ int sum_for(int n) {
                 self.assertFalse(result["ok"], result)
                 self.assertFalse(self.hepta.exists())
 
+
+    def test_declared_for_unsigned_and_repeated_scoped_names(self):
+        import re
+        self.c.write_text("""
+unsigned int sum_unsigned(unsigned int n) {
+    unsigned int total=0;
+    for(unsigned int i=0; i<n; ++i){ total=total+i; }
+    return total;
+}
+int twice(int n) {
+    int total=0;
+    for(int i=0; i<n; ++i){ total=total+i; }
+    for(int i=0; i<n; ++i){ total=total+i; }
+    return total;
+}
+""")
+        report = migrate_c(self.c, self.hepta)
+        self.assertTrue(report["ok"], report)
+        generated = self.hepta.read_text()
+        self.assertRegex(generated, r"let mut hepta_for_\d+_i: u32 = 0;")
+        names = re.findall(r"let mut (hepta_for_\d+_i): i32 = 0;", generated)
+        self.assertEqual(len(names), 2)
+        self.assertNotEqual(names[0], names[1])
+        self.assertIn("wrapping_add(", generated)
+        self.assertEqual(analyze(generated, str(self.hepta), native=False).report["status"],
+                         "frontend_only")
+        old = self.directory / "declared-original.so"
+        new = self.directory / "declared-hepta.so"
+        subprocess.run(["gcc", "-std=c11", "-O2", "-shared", "-fPIC",
+                        str(self.c), "-o", str(old)], check=True, capture_output=True)
+        built = subprocess.run([sys.executable, "-m", "hepta", "build", str(self.hepta),
+                                "--backend", "c", "--crate-type", "cdylib", "-o", str(new)],
+                               capture_output=True, text=True, timeout=90)
+        self.assertEqual(built.returncode, 0, built.stderr + built.stdout)
+        original, converted = ctypes.CDLL(str(old)), ctypes.CDLL(str(new))
+        for name, signature, cases in (
+                ("sum_unsigned", ctypes.c_uint32, [0, 1, 2, 7, 100, 500]),
+                ("twice", ctypes.c_int32, [-50, -1, 0, 1, 2, 7, 100, 500])):
+            left, right = getattr(original, name), getattr(converted, name)
+            for fn in (left, right):
+                fn.restype = signature
+                fn.argtypes = [signature]
+            for n in cases:
+                with self.subTest(name=name, n=n):
+                    self.assertEqual(left(n), right(n))
+
+    def test_for_with_unsupported_declarations_still_rejects(self):
+        cases = [
+            "int f(int n){int r=0;for(int i; i<n; ++i){r=r+i;}return r;}",
+            "int f(int n){int r=0;for(int i=0,j=0; i<n; ++i){r=r+i;}return r;}",
+            "int f(int n){int r=0;for(static int i=0; i<n; ++i){r=r+i;}return r;}",
+            "int f(int n){int r=0;for(int i=0; i<n; i+=1){r=r+i;}return r;}",
+            "int f(int n){int r=0;for(int i=0; i<n; ++i){continue;}return r;}",
+        ]
+        for code in cases:
+            with self.subTest(code=code):
+                self.c.write_text(code)
+                report = migrate_c(self.c, self.hepta)
+                self.assertFalse(report["ok"], report)
+                self.assertFalse(self.hepta.exists())
+
     def test_unsupported_scalar_local_shapes_do_not_publish(self):
         cases = [
             "int f(int n) { int x; return n; }",

@@ -186,6 +186,91 @@ extern "C" int cpp_sum_for(int n) { return sum_for(n); }
         for n in (-8, 0, 1, 2, 9, 100, 1000):
             self.assertEqual(cpp(n), hp(n), n)
 
+
+    def test_declared_for_shadowed_parameters_nested_and_repeated(self):
+        # Clang source identities, not textual names, determine every reference.
+        import re
+        source = """
+int twice(int n) noexcept {
+    int total = 0;
+    for (int i=0; i<n; ++i) { total = total + i; }
+    for (int i=0; i<n; ++i) { total = total + i; }
+    return total;
+}
+int nested(int n) noexcept {
+    int total = 0;
+    for (int i=0; i<n; ++i) {
+        for (int i=0; i<2; ++i) { total = total + 1; }
+    }
+    return total;
+}
+int shadow(int i) noexcept {
+    int total = 0;
+    for (int i=0; i<4; ++i) { total = total + i; }
+    return total + i;
+}
+"""
+        self.src.write_text(source)
+        result = migrate_cpp(self.src, self.dst)
+        self.assertTrue(result["ok"], result)
+        self.assertFalse(result["behavioral_equivalence_proved"])
+        hepta = self.dst.read_text()
+        names = re.findall(r"let mut (hepta_for_\d+_i): i32 = 0;", hepta)
+        self.assertEqual(len(names), 5)
+        self.assertEqual(len(set(names)), 5)
+        self.assertIn("return (total + i);", hepta)  # function parameter, not for-local
+        self.assertEqual(analyze(hepta, str(self.dst), native=False).report["status"], "frontend_only")
+        previous_sha = result["output_sha256"]
+        self.dst.unlink()
+        self.assertEqual(previous_sha, migrate_cpp(self.src, self.dst)["output_sha256"])
+
+    @unittest.skipUnless(shutil.which("gcc"), "GCC needed for C++ native differential")
+    def test_declared_for_native_cpp_vs_hepta_c(self):
+        self.src.write_text("""
+int twice(int n) noexcept { int t=0;
+    for(int i=0; i<n; ++i){t=t+i;}
+    for(int i=0; i<n; ++i){t=t+i;}
+    return t;
+}
+int nested(int n) noexcept { int t=0;
+    for(int i=0; i<n; ++i){for(int i=0; i<2; ++i){t=t+1;}}
+    return t;
+}
+int shadow(int i) noexcept { int t=0;
+    for(int i=0; i<4; ++i){t=t+i;}
+    return t+i;
+}
+""")
+        report = migrate_cpp(self.src, self.dst)
+        self.assertTrue(report["ok"], report)
+        wrapper = self.root / "declared-for-wrap.cc"
+        wrapper.write_text("""
+int twice(int) noexcept; int nested(int) noexcept; int shadow(int) noexcept;
+extern "C" int cpp_twice(int n){return twice(n);}
+extern "C" int cpp_nested(int n){return nested(n);}
+extern "C" int cpp_shadow(int n){return shadow(n);}
+""")
+        original = self.root / "original-declared-for.so"
+        compiled = subprocess.run(["clang++", "-std=c++20", "-O2", "-shared", "-fPIC",
+                                   str(self.src), str(wrapper), "-o", str(original)],
+                                  capture_output=True, text=True, timeout=45)
+        self.assertEqual(compiled.returncode, 0, compiled.stderr)
+        result_so = self.root / "hepta-declared-for.so"
+        built = subprocess.run([sys.executable, "-m", "hepta", "build", str(self.dst),
+                                "--backend", "c", "--crate-type", "cdylib", "-o", str(result_so)],
+                               capture_output=True, text=True, timeout=90)
+        self.assertEqual(built.returncode, 0, built.stderr + built.stdout)
+        cpp, hp = ctypes.CDLL(str(original)), ctypes.CDLL(str(result_so))
+        cases = [-8, -1, 0, 1, 2, 7, 50, 500]
+        for name in ("twice", "nested", "shadow"):
+            ref_fn, new_fn = getattr(cpp, "cpp_" + name), getattr(hp, name)
+            for fn in (ref_fn, new_fn):
+                fn.argtypes = [ctypes.c_int32]
+                fn.restype = ctypes.c_int32
+            for n in cases:
+                with self.subTest(name=name, n=n):
+                    self.assertEqual(ref_fn(n), new_fn(n))
+
     def test_hidden_preprocessor_forms_never_publish(self):
         sources = [
             '%:define FLAG 1\nint f(int a) noexcept {return a + FLAG;}',

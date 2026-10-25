@@ -81,3 +81,24 @@ complete transitive dependency manifest, or protection from noncooperating
 filesystem writes in the final instant before the no-replace link.
 Use the existing compile_commands.json project migrator for full configuration
 capture, multi-TU coverage and per-header dependency/identity evidence.
+
+
+## Explicit for-initializer declarations with scope hygiene
+
+The shared C11/C++20 scalar migrator can now convert one explicitly initialized
+automatic scalar `for (int i = ...; comparison; increment)` declaration into
+`let mut hepta_for_<source-byte-offset>_i = ...; while (...) {...; increment;}`.
+Each reference is resolved against its exact Clang VarDecl ID. Scoped bindings are
+copied into the loop, so nested and repeated `i` declarations cannot escape
+or shadow parameters in the emitted code. Every generated identifier is checked
+against the original function's declared names; an accidental or adversarial
+collision fails closed rather than silently changing the semantics.
+
+Only scalar automatic declarations, explicit comparisons, ordinary assignments
+or standalone ++/-- steps, and braced bodies are supported. Initializers that
+refer to the future local itself, declarations of multiple variables, static or
+thread-local storage, break/continue/goto, pointer/class/destructor operations
+or extra condition declarations reject. This is L1 candidate translation, not
+proof of complete C++ source or ABI equivalence. Clang and Hepta/C native
+differential tests cover multiple declarations, nested loops, parameter
+shadowing, unsigned semantics, and invalid source controls.
