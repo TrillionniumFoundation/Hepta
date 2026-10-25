@@ -14,6 +14,7 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from hepta.pipeline import compiler_hash
+from tools.verify_formal import negative_sources
 
 
 def snapshot():
@@ -46,25 +47,51 @@ def require_qualification(name, evidence):
             raise ValueError("Representative correctness/code comparison/timing did not all complete")
     elif name == "formal_core":
         source = ROOT / "formal/HeptaCore.lean"
+        source_text = source.read_text()
         theorems = evidence.get("theorems")
         negatives = evidence.get("negative_mutations")
-        expected = set(re.findall(r"(?m)^theorem\s+([A-Za-z0-9_]+)", source.read_text()))
-        if (len(expected) != 11 or not isinstance(theorems, dict)
+        expected = set(re.findall(r"(?m)^theorem\s+([A-Za-z0-9_]+)", source_text))
+        if (evidence.get("schema") != "hepta.formal.v1"
+                or evidence.get("status") != "passed"
+                or not str(evidence.get("lean", "")).startswith("Lean (version 4.19.0,")
+                or len(expected) != 11 or not isinstance(theorems, dict)
                 or set(theorems) != expected
                 or evidence.get("source") != "formal/HeptaCore.lean"
                 or evidence.get("source_sha256") != hashlib.sha256(source.read_bytes()).hexdigest()
                 or any(not isinstance(axioms, list) or set(axioms) - {"propext", "Quot.sound", "Classical.choice"}
                        for axioms in theorems.values())):
             raise ValueError("Formal theorem identity, source binding or axioms are invalid")
+        # A table of asserted names is not proof output. Require the captured
+        # kernel dependency report to agree with every claimed theorem/axiom.
+        kernel_output = evidence.get("kernel_output")
+        if not isinstance(kernel_output, str) or "sorryAx" in kernel_output or "error:" in kernel_output:
+            raise ValueError("Formal kernel output is absent or contains a failure")
+        observed = {}
+        for name, body in re.findall(r"'Hepta\.([^']+)' depends on axioms: \[([^\]]*)\]", kernel_output):
+            axioms = [item.strip() for item in body.split(",") if item.strip()]
+            if name in observed and observed[name] != axioms:
+                raise ValueError("Conflicting kernel reports for the same theorem")
+            observed[name] = axioms
+        if observed != theorems:
+            raise ValueError("Captured Lean kernel output does not match claimed theorems")
         required = {"release_while_borrowed", "unbounded_task_admission"}
         if (not isinstance(negatives, list) or len(negatives) != len(required)
                 or any(not isinstance(case, dict) for case in negatives)
-                or {case.get("mutation") for case in negatives} != required
-                or any(case.get("status") != "rejected_as_expected"
-                       or any(not isinstance(case.get(field), str) or not re.fullmatch(r"[0-9a-f]{64}", case[field])
-                              for field in ("source_sha256", "log_sha256"))
-                       for case in negatives)):
-            raise ValueError("Formal negative mutations lack distinct rejection and evidence hashes")
+                or {case.get("mutation") for case in negatives} != required):
+            raise ValueError("Formal negative mutations are absent or duplicated")
+        try:
+            mutations = negative_sources(source_text)
+        except RuntimeError as exc:
+            raise ValueError("Formal negative mutation source is invalid") from exc
+        for case in negatives:
+            log = case.get("log")
+            exit_code = case.get("exit_code")
+            if (case.get("status") != "rejected_as_expected"
+                    or type(exit_code) is not int or exit_code == 0
+                    or not isinstance(log, str) or "error:" not in log
+                    or case.get("source_sha256") != hashlib.sha256(mutations[case["mutation"]].encode()).hexdigest()
+                    or case.get("log_sha256") != hashlib.sha256(log.encode()).hexdigest()):
+                raise ValueError("Formal negative-control execution evidence is missing or inconsistent")
     elif name == "aarch64_execution":
         cases = {case.get("case"): case for case in evidence.get("cases", [])}
         if (cases.get("correct", {}).get("returncode") != 0
