@@ -19,6 +19,7 @@ from .cfg_analysis import CFGAnalysisRejected
 from .ssa import SSARejected
 from .ssa_verify import SSAVerificationRejected
 from .hsir_v1_ssa import V1SSARejected
+from .source_bound_reconcile import SourceBoundReconcileRejected
 from .llvm_ssa_backend import LLVMSSARejected
 
 
@@ -75,6 +76,10 @@ def main(argv=None) -> int:
         "x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu",
         "x86_64-pc-windows-msvc"
     ], help="Cross-compile a machine object only; target execution and ABI remain unqualified")
+    reconcile = sub.add_parser("ssa-v1-reconcile", help="Recheck a PR14 v1 snapshot against exact source via rustc before SSA")
+    reconcile.add_argument("source")
+    reconcile.add_argument("--envelope", required=True, help="PR14 hepta hsir-v1 JSON export or inner snapshot")
+    reconcile.add_argument("--rustc")
     for cmd in ["check", "inspect", "hsir", "cfg", "cfg-analyze", "ssa", "ssa-verify", "ssa-v1-verify", "emit", "header", "build", "run", "patch"]:
         p = sub.add_parser(cmd)
         p.add_argument("source")
@@ -182,6 +187,27 @@ def main(argv=None) -> int:
         if args.command == "doctor":
             info = toolchain_info(find_rustc(args.rustc))
             output_json({"schema": "hepta.doctor.v1", "ok": True, "toolchain": info})
+            return 0
+        if args.command == "ssa-v1-reconcile":
+            from .hsir_v1 import decode_json, MAX_BYTES, HSIRV1Rejected
+            from .source_bound_reconcile import reconcile_source_bound_to_ssa, _MAX_SOURCE
+            with open(args.envelope, "rb") as reader:
+                wire = decode_json(reader.read(MAX_BYTES + 1))
+            if wire.get("schema") == "hepta.hsir.integration.export.v1":
+                if (wire.get("ok") is not True or
+                        not isinstance(wire.get("hsir"), dict)):
+                    raise HSIRV1Rejected("E_HSIR_V1_EXPORT_REJECTED")
+                wire = wire["hsir"]
+            if wire.get("schema") != "hepta.hsir.integration.v1":
+                raise HSIRV1Rejected("E_HSIR_V1_WRONG_SCHEMA")
+            source_path = Path(args.source).resolve()
+            with open(source_path, "rb") as reader:
+                source_bytes = reader.read(_MAX_SOURCE + 1)
+            if len(source_bytes) > _MAX_SOURCE:
+                raise SourceBoundReconcileRejected("E_SOURCE_BOUND_SSA_SOURCE_LIMIT")
+            source = source_bytes.decode("utf-8")
+            output_json(reconcile_source_bound_to_ssa(wire, source,
+                        path=str(source_path), rustc=args.rustc))
             return 0
         file = Path(args.source).resolve()
         if args.command == "patch":
@@ -303,10 +329,10 @@ def main(argv=None) -> int:
     except HeptaError as e:
         output_json({"ok": False, "status": "rejected", "diagnostics": [e.diagnostic.to_dict()]})
         return 1
-    except (CFGRejected, CFGAnalysisRejected, SSARejected, SSAVerificationRejected, LLVMSSARejected, V1SSARejected) as e:
+    except (CFGRejected, CFGAnalysisRejected, SSARejected, SSAVerificationRejected, LLVMSSARejected, V1SSARejected, SourceBoundReconcileRejected) as e:
         message = str(e)
         code = message.split(":", 1)[0]
-        if not code.startswith(("E_CFG_", "E_DOM_", "E_SSA_", "E_LLVM_SSA_", "E_V1_SSA_")):
+        if not code.startswith(("E_CFG_", "E_DOM_", "E_SSA_", "E_LLVM_SSA_", "E_V1_SSA_", "E_SOURCE_BOUND_SSA_")):
             code = "E_IR_REJECTED"
         output_json({"ok": False, "status": "rejected",
                      "diagnostics": [{"code": code, "message": message, "phase": "ir"}]})
