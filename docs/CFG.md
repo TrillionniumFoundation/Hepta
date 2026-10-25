@@ -55,3 +55,15 @@ on the **final** commit; the Hepta 0.2 reference report does not qualify it.
 
 **Blocker state:** P1 PARTIAL; P2–P7 and P01–P12 remain OPEN/PARTIAL.
 Whole-project blockers are not closed.
+
+## Deterministic dominance analysis (`hepta.cfg.analysis.v0`)
+
+`hepta.cfg_analysis.analyze_cfg` validates structural CFG successor edges,
+canonical block IDs, complete entry reachability, and computes dominator sets,
+immediate dominators, dominance frontiers and natural loops/backedges. It
+fail-closes on malformed edges/terminators and bounds the analysis to 512 blocks
+per function. `python -m hepta cfg-analyze examples/parser.hepta` runs after
+the same pinned Rust native reference gate. No executable SSA, phi nodes,
+independent ownership, Drop or provenance checking is claimed.
+
+Run `python -m unittest discover -s tests -p test_cfg_analysis.py -v`.
