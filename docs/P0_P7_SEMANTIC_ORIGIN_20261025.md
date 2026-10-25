@@ -26,7 +26,7 @@ itself as the projection of the checked source. The receipt records canonical
 semantic and derived scalar identities. This is source identity checking, not
 a proof that the sole encoder has correct semantics.
 
-**P5: native LLVM instruction containment and strict SSA/CFG origin.** Both
+**P3/P5: native LLVM instruction containment, verified SSA/CFG origin and target object symbols.** Both
 native host and cross-object compilation entrypoints require a bounded, exact
 finite LLVM vocabulary for the reviewed i32/u32 scalar SSA generator.
 Arbitrary rehashed loads/stores, globals, foreign calls, inline asm, unknown
@@ -40,7 +40,7 @@ The legacy low-level compiler API remains available for backward compatibility
 but explicitly reports ssa_cfg_origin_rechecked=false unless a complete
 typed SSA+CFG pair is provided. Supplying only one is an error. The strict
 source-build path requires true and records the canonical HSIR, scalar HSIR,
-CFG, SSA, verifier and LLVM identities. No origin/grammar receipt proves
+CFG, SSA, verifier and LLVM identities. Target objects are independently inspected for bounded ELF64/COFF/Mach-O64 section and symbol tables: exports must equal the reviewed function inventory and unresolved symbols must be contained in the sole admitted abort external. The parser is reused unchanged from PR #109. This is object identity and import containment, **not** complete ABI or semantic qualification. No origin/grammar receipt proves
 value-level semantics or whole-language soundness.
 
 ## Executed tests and unclosed scope
@@ -61,9 +61,9 @@ snapshot hash or PR by itself is not evidence of native qualification.
 | P0 | Sole canonical source HSIR projection rederived in strict builds | Exact-HEAD whole-project/branch integration, schema consumer qualification |
 | P1 | Explicit verified scalar SSA/CFG identity re-emission | General owned ADTs, Borrow/Drop/Provenance, formal refinements |
 | P2 | No new Rust compiler work | Rust core parity, checked diagnostics and reproducible native builds |
-| P3 | Existing C migrator retained | Real multi-TU C pointer/ownership migration with complete inventory |
+| P3 | Clang target-object export/import symbol gate integrated; existing C migrator retained | Real multi-TU C pointer/ownership migration with complete inventory and full bidirectional ABI |
 | P4 | Existing C++ L1 and bridge retained | RAII, STL/templates, real GCC/Clang/MSVC bidirectional ABI |
-| P5 | Closed LLVM grammar + exact verified SSA/CFG origin in strict source build | Integrated native tests, independent value equivalence and performance |
+| P5 | Closed LLVM grammar, strict source origin and ELF/COFF/Mach-O symbol import/export gate | Integrated native tests, independent value equivalence and performance |
 | P6 | Existing Agent protocols retained | Real-model 2x2 comparisons and crash-safe multi-file transactions |
 | P7 | No physical hardware expansion | MMIO/DMA/IRQ, real board and GPU qualifications |
 
@@ -77,3 +77,5 @@ Do not set whole_project_blockers_closed=true.
 
 For native suites use the actual pinned toolchain. Preserve exact source hashes,
 tool identities, positive and adversarial results, failures, skips and blockers.
+
+Additional new target-object symbol integration tests are committed on this branch but are not included in the 7/7 local self-contained count. PR #109 donated hepta/object_structure.py and hepta/object_symbols.py as unchanged Git blobs, verified against donor blob SHA identities.
