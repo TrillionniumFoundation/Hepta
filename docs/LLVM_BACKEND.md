@@ -53,6 +53,12 @@ python -m hepta build-llvm-scalar examples/llvm_scalar.hepta \
 
 python -m unittest discover -s tests -p test_llvm_scalar_backend.py -v
 python -m unittest discover -s tests -p test_llvm_scalar_phi.py -v
+python -m unittest discover -s tests -p test_llvm_scalar_targets.py -v
+
+# Object-only cross compilation: output is NOT executed on target.
+python -m hepta build-llvm-scalar examples/llvm_scalar.hepta \
+  --rustc /path/to/pinned/rustc --target aarch64-unknown-linux-gnu \
+  --output /tmp/hepta_aarch64.o
 ```
 
 The `build-llvm-scalar` driver validates the actual source with the existing
@@ -74,6 +80,27 @@ The LLVM compile receipt verifies its function-name inventory against actual
 `define i32` declarations before publishing the native artifact.
 A parser/checker/HSIR integration case runs when the full bootstrap compiler
 modules are available. If it skips, do not record a complete integration pass.
+
+## Exact cross-target object support (not runtime qualification)
+
+The low-level `compile_scalar_object` API and public
+`build-llvm-scalar --target` CLI accept only three object profiles:
+`x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`,
+`x86_64-pc-windows-msvc`. Clang compiles the same checked scalar IR to
+ELF/COFF objects, and the driver validates the architecture tag before
+publishing the object via same-filesystem no-overwrite hardlink.
+
+The CLI first runs the pinned **host** Rust reference validation. That is
+not validation under the cross target's calling convention or execution
+environment. Cross-object reports include the exact Clang executable hash,
+IR/object hashes, target identity, and `target_execution_verified=false`,
+`foreign_c_abi_verified=false`, `backend_semantics_proved=false`.
+
+`tests/test_llvm_scalar_targets.py` actually compiles all three objects on
+the available Linux Clang host; all four object/profile/integrity test cases
+passed locally. Native target execution, cross-target ABI roundtrips and
+hardware measurements remain open. CI attempts the same three targets using
+the actual Hepta frontend and pinned Rust reference.
 
 ## Still open for P6
 
