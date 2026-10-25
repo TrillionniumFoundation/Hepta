@@ -86,6 +86,13 @@ class WireAuditTests(unittest.TestCase):
             with self.assertRaisesRegex(module.HSIRWireRejected, "DUPLICATE_KEY"):
                 module.load(str(path))
 
+    def test_adversarial_depth_rejected_without_unhandled_exception(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / "deep.json"
+            path.write_text("[" * 20000 + "0" + "]" * 20000)
+            with self.assertRaisesRegex(module.HSIRWireRejected, "E_HSIR_JSON"):
+                module.load(str(path))
+
     def test_real_cli_collision_reports_exit_three(self):
         with tempfile.TemporaryDirectory() as d:
             a, b, out = [pathlib.Path(d) / x for x in ("a.json", "b.json", "out.json")]
