@@ -113,6 +113,67 @@ class LLVMSSATests(unittest.TestCase):
         self.assertNotEqual(bad.returncode, 0)
         self.assertNotEqual(bad.returncode, 7)
 
+    @unittest.skipUnless(shutil.which("clang"), "Requires native Clang")
+    def test_u32_checked_add_and_unsigned_max_native(self):
+        from tests.test_ssa_scalar import typ
+
+        def unsigned_cfg(blocks):
+            cfg = exported(snapshot(blocks, params=[("a", "u32"), ("b", "u32")], effects=["panic"]))
+            data = json.loads(cfg.canonical_json)
+            data["functions"][0]["return_type"] = typ("u32")
+            wire = json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+            return CFGSnapshot("hepta.cfg.v0", wire, sha256(wire.encode()).hexdigest())
+
+        add = unsigned_cfg([
+            block(0, kind="return",
+                  value=expr("binary", "+", "u32", n("a", "u32"), n("b", "u32")))
+        ])
+        arith_ir = emit_scalar_ssa_llvm(lower_cfg_scalar_ssa(add), add)
+        self.assertEqual(arith_ir.profile, "hepta.llvm-ssa-scalar32.v1")
+        self.assertIn("; hepta-source-types=scalar32-i32-u32", arith_ir.text)
+        from dataclasses import replace
+        with self.assertRaisesRegex(LLVMSSARejected, "profile marker"):
+            replace(arith_ir, profile="hepta.llvm-ssa-i32.v0").check_identity()
+        self.assertIn("@llvm.uadd.with.overflow.i32", arith_ir.text)
+        receipt = compile_scalar_ssa_llvm(arith_ir, output=self.root / "uadd.so")
+        fn = ctypes.CDLL(receipt["output"]).f
+        fn.argtypes, fn.restype = [ctypes.c_uint32, ctypes.c_uint32], ctypes.c_uint32
+        for a, b in ((0, 0), (0, 2**32-1), (2**32-2, 1), (15, 19)):
+            self.assertEqual(fn(a, b), a + b)
+        overflow_child = ("import ctypes,sys\n"
+                          "lib=ctypes.CDLL(sys.argv[1]);f=lib.f\n"
+                          "f.argtypes=[ctypes.c_uint32,ctypes.c_uint32];f.restype=ctypes.c_uint32\n"
+                          "f(4294967295,1)\n")
+        overflow = subprocess.run([sys.executable, "-c", overflow_child, receipt["output"]], timeout=8)
+        self.assertNotEqual(overflow.returncode, 0)
+
+        maximum = unsigned_cfg([
+            block(0, kind="branch",
+                  condition=expr("binary", "<", "bool", n("a", "u32"), n("b", "u32")),
+                  **{"then": "b0001", "else": "b0002"}),
+            block(1, kind="return", value=n("b", "u32")),
+            block(2, kind="return", value=n("a", "u32")),
+        ])
+        max_ir = emit_scalar_ssa_llvm(lower_cfg_scalar_ssa(maximum), maximum)
+        self.assertIn("icmp ult i32", max_ir.text)
+        result = compile_scalar_ssa_llvm(max_ir, output=self.root / "umax.so")
+        native = ctypes.CDLL(result["output"]).f
+        native.argtypes, native.restype = [ctypes.c_uint32, ctypes.c_uint32], ctypes.c_uint32
+        for a, b in ((0, 2**32-1), (2**31, 1), (2**32-1, 0), (7, 13)):
+            self.assertEqual(native(a, b), max(a, b))
+
+    def test_mixed_signed_unsigned_ssa_is_not_silently_lowered(self):
+        from tests.test_ssa_scalar import typ
+        cfg = exported(snapshot([
+            block(0, kind="return", value=expr("binary", "+", "i32", n("a"), n("b")))
+        ], params=[("a", "i32"), ("b", "i32")], effects=["panic"]))
+        obj = json.loads(cfg.canonical_json)
+        obj["functions"][0]["return_type"] = typ("u32")
+        canonical = json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        mismatched = CFGSnapshot("hepta.cfg.v0", canonical, sha256(canonical.encode()).hexdigest())
+        with self.assertRaises((LLVMSSARejected, ValueError)):
+            emit_scalar_ssa_llvm(lower_cfg_scalar_ssa(mismatched), mismatched)
+
     def test_abi_and_effect_rejected(self):
         cfg = nested_loop_fixture()
         with self.assertRaisesRegex(LLVMSSARejected, "ABI"):

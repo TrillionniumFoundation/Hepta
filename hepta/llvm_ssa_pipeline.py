@@ -35,7 +35,7 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
         "schema": "hepta.build-llvm-ssa.v1",
         "status": "rejected",
         "ok": False,
-        "scope": "i32_scalar_ssa_with_pinned_rustc_reference_not_full_language",
+        "scope": "checked_i32_or_u32_scalar_ssa_with_pinned_rustc_reference_not_full_language",
         "source": str(source),
         "output": str(output),
         "target": target,
@@ -85,6 +85,7 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
             "canonical_ssa_sha256": ssa.sha256,
             "structural_verification_sha256": verification.sha256,
             "llvm_ir_sha256": ir.sha256,
+            "llvm_source_profile": ir.profile,
         }
         if not project.unchanged():
             raise LLVMSSARejected("E_LLVM_SSA_STALE: graph changed before native backend")
@@ -103,6 +104,7 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
                                else "backend_refinement_proven")
             if (not isinstance(native, dict) or native.get("status") != expected_status
                     or native.get("llvm_ir_sha256") != ir.sha256
+                    or native.get("llvm_source_profile") != ir.profile
                     or native.get("ssa_sha256") != ssa.sha256
                     or native.get(proof_key) != verification.sha256
                     or not isinstance(native.get("claims"), dict)
