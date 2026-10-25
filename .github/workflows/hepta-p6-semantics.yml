@@ -1,0 +1,25 @@
+name: Hepta P6 pinned Agent semantic inspection
+on:
+  push:
+    branches:
+      - dot/hepta-p6-agent-snapshot-semantics-20261025
+  pull_request:
+    branches:
+      - dot/hepta-p0-p1-semantic-bridge-20261025
+permissions:
+  contents: read
+jobs:
+  semantic-pin:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Exact source head and read-only, fail-closed protocol tests
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          python -m unittest tests.test_agent_semantics -v

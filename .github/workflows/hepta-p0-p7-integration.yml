@@ -1,0 +1,50 @@
+name: Hepta P0-P7 unified incremental qualification
+on:
+  push:
+    branches:
+      - dot/hepta-p0-p7-integration-20261025
+  pull_request:
+    branches:
+      - dot/hepta-p0-p1-semantic-bridge-20261025
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  integrated:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      HEPTA_QUALIFICATION_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ env.HEPTA_QUALIFICATION_HEAD_SHA }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify exact integrated source head
+        run: |
+          test "$(git rev-parse HEAD)" = "$HEPTA_QUALIFICATION_HEAD_SHA"
+          test -z "$(git status --porcelain)"
+          printf '%s\n' "$HEPTA_QUALIFICATION_HEAD_SHA" > artifacts/p0-p7-source-sha.txt
+      - name: Check actual C and C++ toolchains
+        run: |
+          gcc --version
+          clang --version
+          clang++ --version
+      - name: Bootstrap checksum-pinned Rust source validation
+        run: |
+          python tools/bootstrap_toolchain.py --prefix "$RUNNER_TEMP/hepta-rust" --targets
+          echo "RUSTC=$RUNNER_TEMP/hepta-rust/bin/rustc" >> "$GITHUB_ENV"
+      - name: Run P0/P1/P3/P4/P5/P6 scoped tests on the SAME source
+        run: |
+          python -m unittest tests.test_hsir_bridge tests.test_cfg_analysis tests.test_ssa_scalar tests.test_ssa_verify -v
+          python -m unittest tests.test_native_host_evidence tests.test_cpp2hepta_l1 tests.test_agent_semantics -v
+          python -m unittest tests.test_ssa_differential tests.test_llvm_ssa_backend tests.test_llvm_ssa_target tests.test_llvm_ssa_integration -v
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hepta-integrated-source-${{ env.HEPTA_QUALIFICATION_HEAD_SHA }}
+          path: artifacts/p0-p7-source-sha.txt
+          if-no-files-found: warn
