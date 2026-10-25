@@ -16,7 +16,7 @@ import re
 import shutil
 import tempfile
 
-from .c_migrate import MigrationRejected, _function, _run
+from .c_migrate import MigrationRejected, _function, _load_bounded_clang_ast, _run
 from .checker import check
 from .parser import parse
 
@@ -90,8 +90,9 @@ def migrate_cpp(source_file: str | Path, destination_file: str | Path, *,
         compiler_digest = sha256(compiler.read_bytes()).hexdigest()
         model = _model(str(compiler))
         model["compiler_sha256"] = compiler_digest
-        tree = json.loads(_run([str(compiler), "-x", "c++", "-std=c++20", "-Werror", "-fsyntax-only",
-                                "-Xclang", "-ast-dump=json", str(source)]))
+        tree = _load_bounded_clang_ast(_run(
+            [str(compiler), "-x", "c++", "-std=c++20", "-Werror", "-fsyntax-only",
+             "-Xclang", "-ast-dump=json", str(source)]))
         if not isinstance(tree, dict) or tree.get("kind") != "TranslationUnitDecl":
             raise MigrationRejected("E_CPP2HEPTA_AST", "Clang++ AST root was not a translation unit")
         defs = []
