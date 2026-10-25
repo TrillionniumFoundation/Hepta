@@ -61,6 +61,8 @@ int clamp(int x) noexcept {
             'int f(int a) noexcept { int x = a; int x = 1; return x; }',
             'int f(int a) noexcept { if (a > 0) { int y = a; return y; } return a; }',
             'int f(int a) noexcept { int x = a; x += 1; return x; }',
+            'int f(int a) noexcept { static int x = 0; x = x + a; return x; }',
+            'int f(int a) noexcept { static thread_local int x = 0; x = x + a; return x; }',
         ]
         for text in negative:
             with self.subTest(text=text):

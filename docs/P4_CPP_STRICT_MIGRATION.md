@@ -10,7 +10,7 @@ preprocessing, top-level distinct `noexcept int(int...)` functions,
 only the shared C scalar lowering's return/if/scalar expression subset plus
 function-prefix, single-initializer scalar locals, direct scalar assignments
 and explicit Boolean while loops. Local identifiers are checked against their
-Clang declaration IDs; shadowing, nested declarations, uninitialized locals,
+Clang declaration IDs; shadowing, nested declarations, static/thread-local storage, uninitialized locals,
 indirect writes, pointer locals, compound assignments and general C++ control
 flow remain outside this L1 profile. New support shares the same _function
 with strict C migration: no second expression lowering authority. Clang++20

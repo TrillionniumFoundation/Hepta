@@ -236,6 +236,13 @@ def _function(decl: dict, model: dict) -> dict:
             if len(decls) != 1 or decls[0].get("kind") != "VarDecl":
                 raise MigrationRejected("E_C_LOCAL_DECL", "Only single scalar local declarations are supported")
             var = decls[0]
+            # Static / thread-local / constexpr declarations are not ordinary
+            # automatic mutable locals. Dropping their storage duration would
+            # silently change original C or C++ program behavior.
+            if (var.get("storageClass") is not None or var.get("tls") is not None
+                    or var.get("constexpr") or var.get("isConstexpr")
+                    or var.get("inline")):
+                raise MigrationRejected("E_C_LOCAL_STORAGE", "Nonautomatic or special local storage is unsupported")
             local_name = var.get("name", "")
             local_id = var.get("id")
             if (not _IDENT.fullmatch(local_name) or local_name.startswith("__")

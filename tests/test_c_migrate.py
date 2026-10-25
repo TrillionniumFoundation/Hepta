@@ -101,6 +101,7 @@ int sum_to(int n) {
             "int f(int n) { int x=0; x++; return x; }",
             "int f(int n) { int x=n, y=n; return x; }",
             "int f(int n) { int x=0; x=n; int y=x; return y; }",
+            "int f(int n) { static int x=0; x=x+n; return x; }",
         ]
         for source in cases:
             with self.subTest(source=source):
