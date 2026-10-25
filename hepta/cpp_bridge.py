@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+from contextlib import ExitStack
 from pathlib import Path
 import re
 import subprocess
@@ -198,6 +200,55 @@ def _generate_hepta(cls: str, methods: list[dict]) -> str:
     return "\n".join(decls) + "\n"
 
 
+def _publish_pair(cpp: Path, cpp_source: str, hepta: Path, hepta_source: str) -> None:
+    """Stage both complete outputs, then link without overwriting either one.
+
+    Individual links are atomic; publishing two independent paths is NOT a
+    crash-atomic two-file transaction. The rollback covers ordinary errors,
+    not power loss or uncooperative same-user filesystem mutation.
+    """
+    targets = ((cpp, cpp_source.encode("utf-8")),
+               (hepta, hepta_source.encode("utf-8")))
+    for dest, _ in targets:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+    with ExitStack() as stack:
+        staged = []
+        for dest, content in targets:
+            folder = Path(stack.enter_context(
+                tempfile.TemporaryDirectory(prefix=".hepta-bridge-", dir=dest.parent)))
+            stage = folder / "complete"
+            with stage.open("xb") as stream:
+                stream.write(content)
+                stream.flush()
+                os.fsync(stream.fileno())
+            staged.append((stage, dest))
+        published = []
+        try:
+            for stage, dest in staged:
+                # os.link fails if destination exists, including symlinks.
+                # A half-written temporary file is never made public.
+                os.link(stage, dest)
+                published.append((stage, dest))
+            if os.name == "posix":
+                for directory in sorted({str(cpp.parent), str(hepta.parent)}):
+                    fd = os.open(directory, os.O_RDONLY)
+                    try:
+                        os.fsync(fd)
+                    finally:
+                        os.close(fd)
+        except OSError:
+            for stage, dest in reversed(published):
+                try:
+                    source_stat, dest_stat = stage.stat(), dest.lstat()
+                    if (not dest.is_symlink() and
+                            source_stat.st_ino == dest_stat.st_ino and
+                            source_stat.st_dev == dest_stat.st_dev):
+                        dest.unlink()
+                except (OSError, FileNotFoundError):
+                    pass
+            raise
+
+
 def bridge_cpp(header: str | Path, class_name: str, cpp_output: str | Path,
                hepta_output: str | Path, *, clang: str = "clang++") -> dict:
     src, cpp, hp = Path(header).resolve(), Path(cpp_output).resolve(), Path(hepta_output).resolve()
@@ -233,21 +284,10 @@ def bridge_cpp(header: str | Path, class_name: str, cpp_output: str | Path,
             return report
         if src.read_bytes() != source:
             raise MigrationRejected("E_CPP_SOURCE_RACE", "Header changed during bridge generation")
-        cpp.parent.mkdir(parents=True, exist_ok=True)
-        hp.parent.mkdir(parents=True, exist_ok=True)
-        # No claim that two file creations are a crash-atomic transaction.
-        created = []
-        try:
-            for path, content in ((cpp, rendered_cpp), (hp, rendered_hepta)):
-                with path.open("x", encoding="utf-8") as f:
-                    created.append((path, hashlib.sha256(content.encode()).hexdigest()))
-                    f.write(content)
-                    f.flush()
-        except OSError:
-            for path, digest in reversed(created):
-                if path.exists() and hashlib.sha256(path.read_bytes()).hexdigest() == digest:
-                    path.unlink()
-            raise
+        # Final paths are created only after both staged files have been
+        # completely written and fsynced. Ordinary failures roll back only
+        # pathnames still referencing the links created by this operation.
+        _publish_pair(cpp, rendered_cpp, hp, rendered_hepta)
         report.update({"ok": True, "status": "clang_and_hepta_frontend_checked",
                        "header_sha256": hashlib.sha256(source).hexdigest(), "target_model": model,
                        "cpp_sha256": hashlib.sha256(rendered_cpp.encode()).hexdigest(),
@@ -258,8 +298,11 @@ def bridge_cpp(header: str | Path, class_name: str, cpp_output: str | Path,
                                                   "handle_exhausted": 4},
                        "abi": "C_host_only", "execution": "not_run"})
         return report
-    except (MigrationRejected, ValueError, json.JSONDecodeError) as exc:
-        report["diagnostics"].append({"code": getattr(exc, "code", "E_CPP_INPUT"), "message": str(exc)})
+    except (MigrationRejected, ValueError, OSError, json.JSONDecodeError) as exc:
+        report["diagnostics"].append({
+            "code": getattr(exc, "code", "E_CPP_PUBLISH" if isinstance(exc, OSError) else "E_CPP_INPUT"),
+            "message": str(exc),
+        })
         return report
 
 
