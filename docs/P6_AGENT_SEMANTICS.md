@@ -66,3 +66,8 @@ all unchanged functions. Tests cover two differing absolute roots, forged
 relative paths, missing origins, escapes, and unknown source inventories.
 This is still a contract diff, not a behavior comparison or a new permission
 to modify the workspace.
+
+The pinned import graph is rechecked after path normalization as well as before
+and after semantic lowering, narrowing the remaining window for noncooperating
+filesystem writers. Such repeated reads are not a filesystem atomic
+compare-and-swap or a proof against fully adversarial same-user mutation.

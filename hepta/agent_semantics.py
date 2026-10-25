@@ -109,6 +109,12 @@ def inspect_pinned_semantics(store: str | Path, *,
         return relative
 
     relative_paths = {id(fn): source_relative_path(fn) for fn in hsir["functions"]}
+    # Path normalization performs filesystem resolution after the earlier
+    # post-lowering race check. Re-check the original loaded graph once more
+    # before returning metadata so symlink/source rebinding cannot slip by
+    # between source-to-IR validation and relative path identity assignment.
+    if not graph.unchanged():
+        raise WorkspaceError("E_AGENT_RACE", "Pinned source graph changed during path normalization")
     return {
         "schema": "hepta.agent-semantics.v1",
         "status": "published_native_prevalidated_read_only",

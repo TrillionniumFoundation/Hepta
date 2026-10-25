@@ -151,6 +151,17 @@ class AgentSemanticTests(unittest.TestCase):
             with self.assertRaisesRegex(WorkspaceError, "changed after semantic"):
                 agent_semantics.inspect_pinned_semantics("store")
 
+    def test_source_race_during_relative_path_normalization_rejected(self):
+        states = iter([True, True, False])
+        self.graph = SimpleNamespace(program=object(), unchanged=lambda: next(states))
+        with (patch.object(agent_semantics, "inspect_workspace", return_value=self.snapshot),
+              patch.object(agent_semantics, "load_project", return_value=self.graph),
+              patch.object(agent_semantics, "check", return_value=self.checked),
+              patch.object(agent_semantics, "compiler_hash", return_value=self.COMPILER),
+              patch.object(agent_semantics, "lower_checked_program", return_value=self.hsir)):
+            with self.assertRaisesRegex(WorkspaceError, "during path normalization"):
+                agent_semantics.inspect_pinned_semantics("store")
+
     def test_canonical_project_hash_cannot_be_rebound(self):
         self.hsir["project_sha256"] = "0" * 64
         with (patch.object(agent_semantics, "inspect_workspace", return_value=self.snapshot),
