@@ -41,6 +41,18 @@ resources { heap_allocations = 0; may_block = false; may_suspend = false; may_sp
         self.assertFalse(one["claims"]["native_backend_equivalence_proved"])
         self.assertFalse(one["claims"]["pointer_provenance_proved"])
 
+    def test_snapshot_identity_rechecked_at_export(self):
+        from hepta.hsir import HSIRSnapshot
+        program = parse(self.SOURCE)
+        snapshot = lower_checked_program(program, check(program))
+        self.assertEqual(snapshot.as_dict()["sha256"], snapshot.sha256)
+        forged = HSIRSnapshot(snapshot.schema, snapshot.canonical_json + " ", snapshot.sha256)
+        with self.assertRaisesRegex(HSIRRejected, "digest mismatch"):
+            forged.as_dict()
+        forged = HSIRSnapshot("different.schema", snapshot.canonical_json, snapshot.sha256)
+        with self.assertRaisesRegex(HSIRRejected, "snapshot schema"):
+            forged.as_dict()
+
     def test_unchecked_input_rejected(self):
         program = parse(self.SOURCE)
         unchecked = CheckResult(diagnostics=[Diagnostic("E_FAKE", "unchecked")])
