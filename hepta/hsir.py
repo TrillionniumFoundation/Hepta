@@ -35,6 +35,13 @@ _CANONICAL_CLAIMS = frozenset({
     "native_borrow_validation", "translation_correctness_proved",
     "whole_language_soundness_proved", "foreign_contracts_proved",
 })
+# This scalar SSA adapter has no semantics for allocation, IO, FFI, raw
+# pointers, blocking, spawning or arbitrary unsafe effects. The canonical
+# frontend retains authority for full-language effect derivation.
+_SCALAR_EFFECTS = frozenset({"panic"})
+_SCALAR_RESOURCE_CLAUSES = frozenset({
+    "heap_allocations", "may_block", "may_suspend", "may_spawn",
+})
 
 
 class HSIRRejected(ValueError):
@@ -164,6 +171,24 @@ def from_canonical_snapshot(source: dict[str, Any]) -> HSIRSnapshot:
             _reject(f"{fn['name']}: body is required")
         if not isinstance(fn.get("params"), list):
             _reject(f"{fn['name']}: malformed parameters")
+        declared = fn.get("declared_effects")
+        inferred = fn.get("inferred_effects")
+        if (not isinstance(declared, list) or not isinstance(inferred, list)
+                or any(not isinstance(effect, str) or effect not in _SCALAR_EFFECTS
+                       for effect in [*declared, *inferred])
+                or len(set(declared)) != len(declared)
+                or len(set(inferred)) != len(inferred)
+                or not set(inferred).issubset(declared)):
+            _reject(f"{fn['name']}: effects exceed the reviewed scalar SSA profile")
+        resources = fn.get("resources")
+        if not isinstance(resources, dict) or set(resources) - _SCALAR_RESOURCE_CLAUSES:
+            _reject(f"{fn['name']}: unsupported scalar resource contract")
+        for key, value in resources.items():
+            if key == "heap_allocations":
+                if type(value) is not int or value != 0:
+                    _reject(f"{fn['name']}: heap allocation contract requires integer zero")
+            elif value is not False:
+                _reject(f"{fn['name']}: scalar nonblocking resource contract must be false")
         params = []
         for p in fn["params"]:
             if not isinstance(p, dict) or p.get("mode") != "value" or not isinstance(p.get("name"), str):
@@ -174,9 +199,9 @@ def from_canonical_snapshot(source: dict[str, Any]) -> HSIRSnapshot:
         count += sum(1 for _ in _walk_expressions(body))
         functions.append({"name": fn["name"], "param_types": params,
                           "return_type": _type(fn.get("returns"), "result"),
-                          "declared_effects": fn.get("declared_effects"),
-                          "inferred_transitive_effects": fn.get("inferred_effects"),
-                          "resource_contract": fn.get("resources"),
+                          "declared_effects": declared,
+                          "inferred_transitive_effects": inferred,
+                          "resource_contract": resources,
                           "type_parameters": [],
                           "abi": "C" if fn.get("export_c") else "hepta_unstable",
                           "direction": "export" if fn.get("export_c") else "local",

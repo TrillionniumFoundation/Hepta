@@ -39,3 +39,18 @@ test suites including the new negative controls. The existing full pinned releas
 workflow is also enabled for this branch. Both must report complete results for
 the *new exact HEAD* before their results can be called passed. None of P0-P7 or P01-P12
 is marked complete by this change. whole_project_blockers_closed=false.
+
+## P1 addendum: no semantic widening through scalar SSA effects
+
+The canonical scalar HSIR bridge now validates that function declared and
+inferred Effects are well-formed lists restricted to the existing `panic`
+subset, with no implicit effects beyond the declared upper bound. It checks
+only the already-supported function-level zero-allocation/nonblocking/
+non-suspend/non-spawn resource clauses, rejecting malformed, missing, unknown,
+nonzero, incorrectly typed or elevated values. The boolean `false` is not
+permitted as a substitute for numeric `heap_allocations=0`.
+
+Negative tests reseal malicious HSIR snapshots to ensure that a correct
+SHA-256 digest is not mistaken for a semantic proof. The original canonical
+source encoder and full frontend continue to be the authority; this narrow
+adapter does not become a separate borrow checker or general optimizer MIR.

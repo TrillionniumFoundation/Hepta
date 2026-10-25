@@ -106,6 +106,29 @@ class HSIRBridgeTests(unittest.TestCase):
                 with self.assertRaises(HSIRRejected):
                     from_canonical_snapshot(_reseal(source))
 
+    def test_resealed_effect_or_resource_elevation_is_not_scalar_ssa(self):
+        a, ac = _checked(_SOURCE)
+        canonical = canonical_hsir(a, ac)
+        changes = {
+            "effect_missing": lambda o: o["functions"][0].pop("declared_effects"),
+            "effect_ffi": lambda o: o["functions"][0].update(declared_effects=["panic", "ffi"]),
+            "effect_unsafe": lambda o: o["functions"][0].update(inferred_effects=["unsafe"]),
+            "effect_allocation": lambda o: o["functions"][0].update(declared_effects=["alloc", "panic"]),
+            "effect_scalar_mismatch": lambda o: o["functions"][0].update(declared_effects=[]),
+            "effect_duplicate": lambda o: o["functions"][0].update(declared_effects=["panic", "panic"]),
+            "resource_bad_key": lambda o: o["functions"][0].update(resources={"stack_bytes": 1024}),
+            "resource_forged_bool_zero": lambda o: o["functions"][0].update(resources={"heap_allocations": False}),
+            "resource_nonzero_alloc": lambda o: o["functions"][0].update(resources={"heap_allocations": 1}),
+            "resource_may_block": lambda o: o["functions"][0].update(resources={"may_block": True}),
+            "resource_invalid_type": lambda o: o["functions"][0].update(resources={"may_spawn": 0}),
+        }
+        for name, change in changes.items():
+            with self.subTest(name=name):
+                forged = copy.deepcopy(canonical)
+                change(forged)
+                with self.assertRaises(HSIRRejected):
+                    from_canonical_snapshot(_reseal(forged))
+
     def test_refuses_c_ffis_generic_types_or_resource_ownership(self):
         a, ac = _checked(_SOURCE)
         canonical = canonical_hsir(a, ac)
