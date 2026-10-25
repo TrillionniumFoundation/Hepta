@@ -176,6 +176,59 @@ class SSAVerificationTests(unittest.TestCase):
                 with self.assertRaisesRegex(SSAVerificationRejected, "CONTRACT"):
                     verify_scalar_ssa(encoded(payload), cfg)
 
+    def test_resealed_entry_phi_cannot_invent_source_value(self):
+        cfg = snapshot([block(0, kind="return", value=n("x"))],
+                       params=[("x", "i32")])
+        forged = lower_cfg_scalar_ssa(cfg).as_dict()
+        forged.pop("sha256")
+        fn = forged["functions"][0]
+        fn["blocks"][0]["phis"] = [{
+            "result": {"variable": "x", "ssa_name": "x@1",
+                       "type": "i32", "defined_in": "b0000"},
+            "incoming": [],
+        }]
+        fn["blocks"][0]["terminator"]["value"]["ssa_ref"] = "x@1"
+        fn["definitions"] += 1
+        fn["phi_count"] += 1
+        with self.assertRaisesRegex(SSAVerificationRejected, "PHI"):
+            verify_scalar_ssa(encoded(forged), cfg)
+
+    def test_resealed_nested_ssa_fields_cannot_hide_effects(self):
+        cfg, ssa = self.fixture()
+        mutations = {
+            "block_owner": ("BLOCKS", lambda f: f["blocks"][0].update(owner="forged")),
+            "instruction_effect": ("INSTRUCTIONS", lambda f: f["blocks"][0]["instructions"][0].update(ffi=True)),
+            "definition_drop": ("DEF", lambda f: f["blocks"][0]["instructions"][0]["definition"].update(drop=True)),
+            "phi_proof": ("PHI", lambda f: f["blocks"][3]["phis"][0].update(proved=True)),
+            "phi_edge_unsafe": ("PHI", lambda f: f["blocks"][3]["phis"][0]["incoming"][0].update(unsafe=True)),
+        }
+        for name, (code, mutation) in mutations.items():
+            with self.subTest(name=name):
+                forged = ssa.as_dict()
+                forged.pop("sha256")
+                mutation(forged["functions"][0])
+                with self.assertRaisesRegex(SSAVerificationRejected, code):
+                    verify_scalar_ssa(encoded(forged), cfg)
+
+    def test_literal_types_and_source_spans_survive_ssa_rehash(self):
+        cfg = snapshot([block(0, [let("x", i(0))], kind="return", value=i(0))])
+        ssa = lower_cfg_scalar_ssa(cfg)
+        self.assertTrue(verify_scalar_ssa(ssa, cfg).as_dict())
+        for name, mutation in {
+            "initializer_bool_instead_of_zero":
+                lambda f: f["blocks"][0]["instructions"][0]["ssa_value"].update(value=False),
+            "return_bool_instead_of_zero":
+                lambda f: f["blocks"][0]["terminator"]["value"].update(value=False),
+            "span_start_bool_instead_of_zero":
+                lambda f: f["blocks"][0]["instructions"][0]["span"].update(start=False),
+        }.items():
+            with self.subTest(case=name):
+                forged = ssa.as_dict()
+                forged.pop("sha256")
+                mutation(forged["functions"][0])
+                with self.assertRaisesRegex(SSAVerificationRejected, "ORIGIN"):
+                    verify_scalar_ssa(encoded(forged), cfg)
+
     def test_duplicate_definition_wrong_count(self):
         cfg, ssa = self.fixture()
         x = ssa.as_dict()
