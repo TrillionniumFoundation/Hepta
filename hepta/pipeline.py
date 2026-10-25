@@ -171,3 +171,27 @@ def _calls(body):
                     visit(getattr(x, field.name))
     visit(body)
     return found
+
+
+def hsir_analysis(analysis: Analysis) -> dict:
+    """Export typed source-graph IR without mistaking it for native validation.
+
+    A rejected frontend has no HSIR.  A frontend-only analysis can have an
+    interchange graph, but must retain its incomplete qualification status.
+    """
+    if analysis.program is None or analysis.checked is None or not analysis.checked.ok:
+        return {"schema": "hepta.hsir.export.v0", "ok": False,
+                "status": "rejected", "validation": analysis.report, "hsir": None}
+    from .semantic_ir import lower_checked_program
+    try:
+        snapshot = lower_checked_program(
+            analysis.program, analysis.checked,
+            project_sha256=getattr(analysis.project, "identity", None))
+    except (TypeError, ValueError, OverflowError, RecursionError) as exc:
+        return {"schema": "hepta.hsir.export.v0", "ok": False,
+                "status": "rejected", "hsir": None, "validation": analysis.report,
+                "diagnostics": [{"code": "E_HSIR_LOWER", "phase": "semantic-ir",
+                                 "message": str(exc)}]}
+    return {"schema": "hepta.hsir.export.v0", "ok": bool(analysis.report["ok"]),
+            "status": analysis.report["status"],
+            "hsir": snapshot, "validation": analysis.report}

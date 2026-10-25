@@ -12,7 +12,7 @@ import tempfile
 from . import __version__
 from .ast import HeptaError
 from .backend import compile_rust, emit_header, find_rustc, toolchain_info
-from .pipeline import analyze, analyze_project, inspect_analysis
+from .pipeline import analyze, analyze_project, inspect_analysis, hsir_analysis
 from .protocol import apply_patch
 
 
@@ -28,12 +28,22 @@ def main(argv=None) -> int:
     doctor.add_argument("--rustc")
     lock = sub.add_parser("lock", help="Lock local package source and dependency bytes")
     lock.add_argument("package", nargs="?", default=".")
+    cpp = sub.add_parser("bridge-cpp", help="Checked C ABI bridge for one C++ scalar class")
+    cpp.add_argument("header")
+    cpp.add_argument("--class", dest="class_name", required=True)
+    cpp.add_argument("--output", "-o", required=True)
+    cpp.add_argument("--hepta-output", required=True)
+    cpp.add_argument("--clang", default="clang++")
+    migrator = sub.add_parser("migrate-c", help="Strict Clang-AST conversion of safe scalar C functions")
+    migrator.add_argument("source")
+    migrator.add_argument("--output", "-o", required=True)
+    migrator.add_argument("--clang", default="clang")
     importer = sub.add_parser("import-c", help="Import the supported C header subset using real compiler probes")
     importer.add_argument("header")
     importer.add_argument("--output", "-o", required=True)
     importer.add_argument("--module", default="c_imported")
     importer.add_argument("--cc")
-    for cmd in ["check", "inspect", "emit", "header", "build", "run", "patch"]:
+    for cmd in ["check", "inspect", "hsir", "emit", "header", "build", "run", "patch"]:
         p = sub.add_parser(cmd)
         p.add_argument("source")
         p.add_argument("--rustc")
@@ -45,14 +55,14 @@ def main(argv=None) -> int:
         if cmd != "patch":
             p.add_argument("--no-std", action="store_true")
             p.add_argument("--crate-type", choices=["bin", "staticlib", "cdylib", "rlib", "obj"], default="bin" if cmd in {"build", "run"} else "rlib")
-        if cmd in {"check", "inspect"}:
+        if cmd in {"check", "inspect", "hsir"}:
             p.add_argument("--frontend-only", action="store_true", help="Explicitly skip native/borrow checks; output cannot be treated as a complete check")
         if cmd in {"emit", "header", "build"}:
             p.add_argument("--output", "-o")
         if cmd in {"build", "run"}:
             p.add_argument("--link-arg", action="append", default=[])
         if cmd == "patch":
-            p.add_argument("--request", required=True, help="Path to a hepta.patch.v1 JSON request")
+            p.add_argument("--request", required=True, help="Path to a v1/v2 or multi-file preview v3 patch JSON request")
             p.add_argument("--apply", action="store_true", help="Atomically apply after native validation")
     args = parser.parse_args(argv)
     try:
@@ -60,6 +70,16 @@ def main(argv=None) -> int:
             from .packages import write_lock
             output_json(write_lock(args.package))
             return 0
+        if args.command == "bridge-cpp":
+            from .cpp_bridge import bridge_cpp
+            result = bridge_cpp(args.header, args.class_name, args.output, args.hepta_output, clang=args.clang)
+            output_json(result)
+            return 0 if result["ok"] else 1
+        if args.command == "migrate-c":
+            from .c_migrate import migrate_c
+            result = migrate_c(args.source, args.output, clang=args.clang)
+            output_json(result)
+            return 0 if result["ok"] else 1
         if args.command == "import-c":
             from .c_import import import_header
             imported = import_header(args.header, cc=args.cc, module=args.module)
@@ -81,7 +101,10 @@ def main(argv=None) -> int:
             if args.backend != "rust" or args.locked:
                 raise ValueError("patch currently validates with the Rust backend; regenerate the package lock after an applied edit")
             request = json.loads(Path(args.request).read_text())
-            if isinstance(request, dict) and request.get("schema") == "hepta.patch.v2":
+            if isinstance(request, dict) and request.get("schema") == "hepta.patch.v3.preview":
+                from .protocol_v3 import preview_project_patch
+                result = preview_project_patch(file, request, apply=args.apply, rustc=args.rustc, target=args.target)
+            elif isinstance(request, dict) and request.get("schema") == "hepta.patch.v2":
                 from .protocol import apply_project_patch
                 result = apply_project_patch(file, request, apply=args.apply, rustc=args.rustc, target=args.target)
             else:
@@ -95,6 +118,9 @@ def main(argv=None) -> int:
         protected = {Path(p) for p in result.project.sources}
         if args.command == "inspect":
             output_json(inspect_analysis(result))
+            return 0 if result.report["ok"] else 1
+        if args.command == "hsir":
+            output_json(hsir_analysis(result))
             return 0 if result.report["ok"] else 1
         if not result.report["ok"] or args.command == "check":
             output_json(result.report)
