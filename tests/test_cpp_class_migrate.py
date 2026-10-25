@@ -11,7 +11,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from hepta.cpp_class_migrate import migrate_cpp_class
+from hepta.cpp_class_migrate import migrate_cpp_class, _verify_published_class
+from hepta.c_migrate import MigrationRejected
 from tools.validate_cpp_class import qualify_cpp_class, validate_cpp_class_qualification
 
 CLANGXX = os.environ.get("CLANGXX", "clang++")
@@ -152,6 +153,22 @@ class CppClassMigrationTests(unittest.TestCase):
         self.assertEqual(report["rejected"][0]["code"], "E_CPP_CLASS_RACE")
         self.assertFalse(output.exists())
 
+    def test_mutation_after_hardlink_refuses_success_and_unpublishes_own_inode(self):
+        import hepta.cpp_class_migrate as migrator
+        original_link = migrator.os.link
+        source, output = self.root / "link_race.cpp", self.root / "link_race.hepta"
+        source.write_text(BASIC)
+
+        def tamper(source_file, destination, *args, **kwargs):
+            original_link(source_file, destination, *args, **kwargs)
+            Path(destination).write_text("module substituted;")
+
+        with patch.object(migrator.os, "link", side_effect=tamper):
+            report = migrate_cpp_class(source, output, clangxx=CLANGXX)
+        self.assertFalse(report["ok"])
+        self.assertEqual(report["rejected"][0]["code"], "E_CPP_CLASS_RACE")
+        self.assertFalse(output.exists())
+
     def test_absent_compiler_is_explicit_rejection(self):
         source = self.root / "source.cpp"
         source.write_text(BASIC)
@@ -160,6 +177,36 @@ class CppClassMigrationTests(unittest.TestCase):
         self.assertFalse(report["ok"])
         self.assertEqual(report["rejected"][0]["code"], "E_CPP_CLASS_TOOLCHAIN")
         self.assertFalse(output.exists())
+
+
+class CppClassPublicationIdentityTests(unittest.TestCase):
+    """These file-identity negatives do not require Clang or Rust tools."""
+
+    def test_exact_staged_hardlink_accepted_and_mutation_rejected(self):
+        with tempfile.TemporaryDirectory(prefix="hepta-cpp-publication-") as directory:
+            root = Path(directory)
+            staged, published = root / "staged.hepta", root / "published.hepta"
+            original = b"module unchanged;"
+            staged.write_bytes(original)
+            os.link(staged, published)
+            _verify_published_class(staged, published, original)
+            published.write_bytes(b"module changed;")
+            with self.assertRaisesRegex(MigrationRejected, "E_CPP_CLASS_RACE"):
+                _verify_published_class(staged, published, original)
+
+    def test_other_inode_and_symlink_deny_success(self):
+        with tempfile.TemporaryDirectory(prefix="hepta-cpp-publication-") as directory:
+            root = Path(directory)
+            staged, published = root / "staged.hepta", root / "published.hepta"
+            original = b"module unchanged;"
+            staged.write_bytes(original)
+            published.write_bytes(original)
+            with self.assertRaisesRegex(MigrationRejected, "E_CPP_CLASS_RACE"):
+                _verify_published_class(staged, published, original)
+            published.unlink()
+            published.symlink_to(staged)
+            with self.assertRaisesRegex(MigrationRejected, "E_CPP_CLASS_RACE"):
+                _verify_published_class(staged, published, original)
 
 
 @unittest.skipUnless(NATIVE, "class differential needs Clang 20, GCC and pinned Rust 1.90")

@@ -28,6 +28,7 @@ class AgentContractDiffTests(unittest.TestCase):
             "validated_sources": ["src/main.hepta"],
             "external_obligations": [],
             "foreign_assumptions": [],
+            "volatile_accesses": [],
             "functions": [{
                 "path": "src/main.hepta", "name": "compute",
                 "return_type": "i32",
@@ -35,6 +36,7 @@ class AgentContractDiffTests(unittest.TestCase):
                 "declared_effects": [], "inferred_effects": [], "resources": {},
                 "public": False, "extern_c": False, "export_c": False,
                 "return_mode": "value", "return_origin": None,
+                "return_lifetime": None,
                 "parameter_lifetimes": [None], "lifetime_params": [],
                 "type_params": [], "type_bounds": {},
             }],
@@ -82,6 +84,7 @@ class AgentContractDiffTests(unittest.TestCase):
         current["export_c"] = True
         current["return_mode"] = "read"
         current["return_origin"] = "x"
+        current["return_lifetime"] = "source"
         current["parameter_lifetimes"] = ["source"]
         current["lifetime_params"] = ["source"]
         current["type_params"] = ["T"]
@@ -89,7 +92,7 @@ class AgentContractDiffTests(unittest.TestCase):
         result = self.compare(a, b)
         self.assertEqual(result["reported_contract_changes"][0]["changed_fields"], [
             "public", "export_c", "return_mode", "return_origin",
-            "parameter_lifetimes", "lifetime_params", "type_params", "type_bounds",
+            "return_lifetime", "parameter_lifetimes", "lifetime_params", "type_params", "type_bounds",
         ])
         self.assertTrue(result["source_identity_changed"])
         self.assertFalse(result["claims"]["functional_equivalence_proved"])
@@ -162,6 +165,45 @@ class AgentContractDiffTests(unittest.TestCase):
         b["functions"].append(copy.deepcopy(b["functions"][0]))
         with self.assertRaisesRegex(WorkspaceError, "Duplicate"):
             self.compare(a, b)
+
+    def test_volatile_inventory_diff_and_missing_inventory_reject(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        a["volatile_accesses"] = [{"function": "compute", "operation": "volatile_load"}]
+        b["volatile_accesses"] = [{"function": "compute", "operation": "volatile_store"}]
+        result = self.compare(a, b)
+        self.assertTrue(result["volatile_accesses_changed"])
+        self.assertFalse(result["claims"]["functional_equivalence_proved"])
+        b.pop("volatile_accesses")
+        with self.assertRaisesRegex(WorkspaceError, "Incomplete semantic inventory"):
+            self.compare(a, b)
+
+    def test_bool_integer_confusion_cannot_hide_contract_diffs(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        a["functions"][0]["resources"] = {"heap_allocations": 0, "may_block": False}
+        b["functions"][0]["resources"] = {"heap_allocations": False, "may_block": 0}
+        b["functions"][0]["public"] = 0
+        result = self.compare(a, b)
+        self.assertEqual(result["reported_contract_changes"][0]["changed_fields"],
+                         ["resources", "public"])
+        self.assertFalse(result["claims"]["functional_equivalence_proved"])
+
+    def test_bool_integer_confusion_cannot_hide_foreign_changes(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        a["external_obligations"] = [{"live": False}]
+        b["external_obligations"] = [{"live": 0}]
+        a["foreign_assumptions"] = [{"call_limit": 0}]
+        b["foreign_assumptions"] = [{"call_limit": False}]
+        self.assertTrue(self.compare(a, b)["external_obligations_changed"])
+        self.assertTrue(self.compare(a, b)["foreign_assumptions_changed"])
+
+    def test_noncanonical_resources_fail_closed_even_without_delta(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        for value in (float("nan"), float("inf")):
+            with self.subTest(value=str(value)):
+                a["functions"][0]["resources"] = {"max": value}
+                b["functions"][0]["resources"] = {"max": value}
+                with self.assertRaisesRegex(WorkspaceError, "Noncanonical"):
+                    self.compare(a, b)
 
     def test_receipt_claims_cannot_be_elevated(self):
         a, b = self.report(self.BEFORE), self.report(self.AFTER)
