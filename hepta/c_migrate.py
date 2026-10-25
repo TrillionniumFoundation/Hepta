@@ -22,6 +22,7 @@ _TYPES = {"int32_t": "i32", "uint32_t": "u32", "int64_t": "i64", "uint64_t": "u6
           "long": "i64", "unsigned long": "u64"}
 _ARITH = {"+", "-", "*"}
 _BITS = {"&", "|", "^"}
+_SHIFTS = {"<<", ">>"}
 _CMP = {"==", "!=", "<", "<=", ">", ">="}
 _CASTS = {"LValueToRValue", "NoOp"}
 # Original spelling -> (Hepta scalar type, Clang VarDecl ID, emitted identifier).
@@ -137,10 +138,16 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str,
             left, _ = _expr(inner[0], args, model, lhs_type, locals)
             right, _ = _expr(inner[1], args, model, lhs_type, locals)
             return f"({left} {op} {right})", "bool"
-        if op not in _ARITH | _BITS:
+        if op not in _ARITH | _BITS | _SHIFTS:
             raise MigrationRejected("E_C_OPERATOR", f"Unsupported C operator: {op}")
         if op in _BITS and expected.startswith("i"):
             raise MigrationRejected("E_C_BITWISE", "Signed C bitwise operations require target-specific semantics")
+        # Unsigned C11/C++20 shifts match Hepta's fixed-width shift for all
+        # defined counts (0 <= count < bit width). Hepta aborts for bad counts;
+        # those inputs are already undefined in the original C/C++ program.
+        # Signed shifts have different implementation/overflow obligations.
+        if op in _SHIFTS and not expected.startswith("u"):
+            raise MigrationRejected("E_C_SHIFT_SIGNED", "Signed C/C++ shifts require a separate defined-behavior proof")
         left, _ = _expr(inner[0], args, model, expected, locals)
         right, _ = _expr(inner[1], args, model, expected, locals)
         if op in _ARITH and expected.startswith("u"):

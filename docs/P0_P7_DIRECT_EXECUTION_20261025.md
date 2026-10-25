@@ -26,3 +26,31 @@ Integration branch: `assistant/hepta-p0-p7-semantic-budget-20261025`, based on u
 **Scope claims:** Whole-language soundness not proved; resource limits not globally proved; original C/C++ semantic equivalence not proved; no broad Rust speed superiority proved; full Hepta compiler/hardware/model-provenance tests not executed during this direct session; all P0–P7 and original P01–P12 production obligations remain OPEN or PARTIAL.
 
 `whole_project_blockers_closed=false`.
+
+
+## Direct continuation — P1/P3/P4/P6 source increments (2026-10-25)
+
+This continuation follows the single canonical semantic owner and the strict
+C-shaped scalar lowerer. It intentionally does not treat queued/absent CI
+receipts or local C/C++ host probes as a production validation of Hepta.
+
+| Stage | Source branch / PR | Newly implemented behavior | Acceptance still required |
+| --- | --- | --- | --- |
+| P1 | PR #87 `08cb81dd9de5` | Derived scalar HSIR enforces literal/operand arity and statement control-flow shapes; rejects self-resealed arbitrary semantic fields | Execute real frontend/native regressions; complete general ownership/lifetime/Effect/resource SSA and refinement |
+| P1 | PR #89 `77396cc1b829` | Reject unhashable, rehashed HSIR operator/type/ABI fields with structured diagnostics; bound derived snapshot input | Robustness fuzzing, native source-bound SSA correctness and independent proof |
+| P3 | PR #92 `85d7227a9c4e` | Shared Clang C11 scalar migrator admits unsigned shifts on defined count range; signed shifts still fail closed | Actual generated Hepta/C build plus C differential, broader pointer/configuration migration and L2/L3 |
+| P4 | PR #88 `6b564c41de17` | C++20 L1 accepts `int`/`unsigned int`/`long long`/`unsigned long long` by-value `noexcept` signatures, no mangled ABI claim | Real Hepta/C native differential, class/RAII/STL/templates/exception source migration |
+| P4 | PR #92 `85d7227a9c4e` | C++20 strict unsigned shift coverage via the SAME canonical C lowering | Typed native differential and broader migration certification |
+| P6 | PR #87 `08cb81dd9de5` | Pinned Agent workspace recomputes interface/source receipts from actual immutable import graph | Real toolchain-backed and adversarial tests, full cross-file/model A/B trials |
+
+A local independent GCC C11 and Clang++20 original-source probe executed
+**80/80 defined unsigned-shift cases**, including edge values. This is
+limited host execution of the original programs, **not** an executed
+Hepta-generated binary or whole-language equivalence proof.
+
+P0, P2, P5 and P7 still require their own full acceptance conditions, and all
+remaining P01–P12 production blockers stay OPEN/PARTIAL. In particular,
+physical-board/DMA/GPU access and measured actual Agent provider experiments
+were not available for this direct iteration.
+
+`whole_project_blockers_closed=false`.
