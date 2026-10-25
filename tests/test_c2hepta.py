@@ -74,7 +74,7 @@ int accumulate(int n) {
             "int f(int x) { return x ? 1 : 2; }",
             "int f(int x) { return x << 1; }",
             "static int f(int x) { return x; }",
-            "int f(int x) { return x < 2; }",  # C int is not Hepta bool
+            "int f(int x) { return (x < 2) + 4; }",  # unsupported implicit boolean arithmetic
             "int f(int x) { int y; return x + y; }",
             "int f(int x) { return f(x); }",  # call contracts unsupported
             "int f(int x) { goto end; end: return x; }",
