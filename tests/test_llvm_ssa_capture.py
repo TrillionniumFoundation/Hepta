@@ -63,7 +63,7 @@ class CaptureBoundaryTests(unittest.TestCase):
                 fixture(), target="aarch64-apple-darwin", output=cross_output)
             self.assertEqual(cross["status"], "cross_object_only_not_executed")
             self.assertEqual(cross["object_format"], "MACHO64")
-            self.assertTrue(cross_output.read_bytes().startswith(b"\\xcf\\xfa\\xed\\xfe"))
+            self.assertEqual(cross_output.read_bytes()[:4], bytes.fromhex("cffaedfe"))
             self.assertFalse(cross["claims"]["foreign_c_abi_qualified"])
 
     @unittest.skipUnless(shutil.which("clang"), "Tool identity gate needs a Clang path")
