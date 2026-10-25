@@ -151,6 +151,70 @@ class SSAVerificationTests(unittest.TestCase):
         with self.assertRaisesRegex(SSAVerificationRejected, "SOURCE_TYPE"):
             verify_scalar_ssa(encoded(forged), cfg)
 
+    def test_rehashed_bool_as_integer_source_is_not_equivalent(self):
+        # In native Python equality, 0 == False and 1 == True.
+        # Exact source-origin comparison must preserve JSON scalar type.
+        cfg, ssa = self.fixture()
+        forged = ssa.as_dict()
+        forged.pop("sha256")
+        forged["functions"][0]["blocks"][0]["instructions"][0]["ssa_value"]["value"] = False
+        with self.assertRaisesRegex(SSAVerificationRejected, "ORIGIN"):
+            verify_scalar_ssa(encoded(forged), cfg)
+        for integer, boolean in ((0, False), (1, True)):
+            with self.subTest(source_value=integer):
+                cfg = snapshot([block(0, kind="return", value=i(integer))])
+                ssa = lower_cfg_scalar_ssa(cfg)
+                forged = ssa.as_dict()
+                forged.pop("sha256")
+                forged["functions"][0]["blocks"][0]["terminator"]["value"]["value"] = boolean
+                with self.assertRaisesRegex(SSAVerificationRejected, "ORIGIN"):
+                    verify_scalar_ssa(encoded(forged), cfg)
+
+    def test_resigned_entry_phi_cannot_manufacture_source_value(self):
+        cfg = snapshot([block(0, kind="return", value=n("x"))],
+                       params=[("x", "i32")])
+        payload = lower_cfg_scalar_ssa(cfg).as_dict()
+        payload.pop("sha256")
+        function = payload["functions"][0]
+        first = function["blocks"][0]
+        first["phis"] = [{
+            "result": {"variable": "x", "ssa_name": "x@1",
+                       "type": "i32", "defined_in": "b0000"},
+            "incoming": [],
+        }]
+        first["terminator"]["value"]["ssa_ref"] = "x@1"
+        function["definitions"] += 1
+        function["phi_count"] += 1
+        with self.assertRaisesRegex(SSAVerificationRejected, "PHI"):
+            verify_scalar_ssa(encoded(payload), cfg)
+
+    def test_closed_ssa_nested_metadata_and_claim_types(self):
+        cfg, original = self.fixture()
+        mutations = {
+            "unexpected block": lambda f: f["blocks"][0].update(loan_owner="forged"),
+            "unexpected instruction": lambda f: f["blocks"][0]["instructions"][0].update(drop_owner=True),
+            "unexpected definition": lambda f: f["blocks"][0]["instructions"][0]["definition"].update(ffi=True),
+            "unexpected phi": lambda f: f["blocks"][3]["phis"][0].update(proof_status="certified"),
+            "unexpected phi edge": lambda f: f["blocks"][3]["phis"][0]["incoming"][0].update(unsafe=True),
+            "unexpected function": lambda f: f.update(provenance_proved=True),
+        }
+        for name, mutate in mutations.items():
+            with self.subTest(case=name):
+                payload = original.as_dict()
+                payload.pop("sha256")
+                mutate(payload["functions"][0])
+                with self.assertRaisesRegex(SSAVerificationRejected,
+                                            "(BLOCKS|INSTRUCTIONS|DEF|PHI|FUNCTIONS)"):
+                    verify_scalar_ssa(encoded(payload), cfg)
+        for key, value in (("phi_inputs_checked", 1),
+                           ("native_backend_refinement_proven", 0)):
+            with self.subTest(forged_claim=key):
+                payload = original.as_dict()
+                payload.pop("sha256")
+                payload["claims"][key] = value
+                with self.assertRaisesRegex(SSAVerificationRejected, "CLAIMS"):
+                    verify_scalar_ssa(encoded(payload), cfg)
+
     def test_duplicate_definition_wrong_count(self):
         cfg, ssa = self.fixture()
         x = ssa.as_dict()
