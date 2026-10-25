@@ -94,6 +94,8 @@ def preprocess_subset(text):
         opening = re.fullmatch(r"#\s*ifndef\s+([A-Za-z_]\w*)", stripped)
         if opening and guard is None and not any(x.strip() for x in declarations):
             guard, guard_open = opening.group(1), True
+            if guard in macros:
+                reject("PREPROCESSOR", "Include guard was already defined earlier in this header")
             continue
         if re.fullmatch(r"#\s*endif", stripped) and guard_open:
             guard_open = False
@@ -119,12 +121,12 @@ def preprocess_subset(text):
         reject("PREPROCESSOR", "Unclosed include guard")
     if text.rstrip() and not "\n".join(declarations).rstrip().endswith(";") and any(x.strip() for x in declarations):
         reject("SYNTAX", "Only semicolon-terminated declarations are supported")
-    return "\n".join(declarations), macros
+    return "\n".join(declarations), macros, guard
 
 
 class HeaderParser:
     def __init__(self, text):
-        declarations, self.macros = preprocess_subset(text)
+        declarations, self.macros, self.guard = preprocess_subset(text)
         self.structs, self.tags, self.aliases, self.prototypes = {}, {}, {}, []
         # C struct tags do not enter the ordinary typedef namespace.
         self.struct_typedefs = set()
@@ -269,7 +271,14 @@ def import_header(path, *, cc=None, module="c_imported", contracts=None) -> Impo
     if version.returncode or target.returncode:
         reject("TOOLCHAIN", "Cannot identify the C compiler")
     probe = ["#include <stdint.h>", "#include <stddef.h>", "#include <limits.h>", "#include <stdio.h>",
-             "#include " + json.dumps(str(header))]
+             ]
+    if parser.guard and (parser.structs or parser.aliases or parser.prototypes or parser.macros):
+        # The lexical subset parser must not import declarations the native
+        # compiler skips because a preinclude or system header owns this guard.
+        probe += [f"#ifdef {parser.guard}",
+                  '#error "C import include guard is already defined before the header"',
+                  "#endif"]
+    probe.append("#include " + json.dumps(str(header)))
     # A parsed include guard may be inactive in this native environment.
     # Checking a function using only its original typedef spelling can then
     # compare a different native alias with itself. Confirm every simple alias
