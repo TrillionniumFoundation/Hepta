@@ -60,6 +60,10 @@ def main(argv=None) -> int:
     llvm_ssa.add_argument("--rustc")
     llvm_ssa.add_argument("--clang", default="clang")
     llvm_ssa.add_argument("--locked", action="store_true")
+    llvm_ssa.add_argument("--target", choices=[
+        "x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu",
+        "x86_64-pc-windows-msvc",
+    ], help="Compile only a target object; no target execution or external C ABI claim")
     llvm_scalar = sub.add_parser("build-llvm-scalar", help="Build strict HSIR i32 profile through LLVM, after rustc validation")
     llvm_scalar.add_argument("source")
     llvm_scalar.add_argument("--output", "-o", required=True)
@@ -139,9 +143,14 @@ def main(argv=None) -> int:
             cfg = lower_checked_cfg(reference.program, reference.checked)
             ssa = lower_cfg_scalar_ssa(cfg)
             generated = emit_scalar_ssa_llvm(ssa, cfg)
-            build = compile_scalar_ssa_llvm(generated, clang=args.clang, output=dest)
+            if args.target:
+                from .llvm_ssa_target import compile_ssa_target_object
+                build = compile_ssa_target_object(generated, target=args.target,
+                                                  clang=args.clang, output=dest)
+            else:
+                build = compile_scalar_ssa_llvm(generated, clang=args.clang, output=dest)
             output_json({"schema": "hepta.build-llvm-ssa.v0", "ok": True,
-                         "status": "native_host_compiled_unqualified",
+                         "status": build["status"],
                          "source_cfg_sha256": cfg.sha256,
                          "source_ssa_sha256": ssa.sha256,
                          "structural_verification_sha256": generated.verification_sha256,
