@@ -18,6 +18,7 @@ import tempfile
 
 from .clang_capture import CaptureRejected, run_bounded
 
+from .llvm_ir_profile import LLVMProfileRejected, validate_scalar_llvm_profile
 from .cfg import CFGSnapshot
 from .ssa import SSASnapshot
 from .ssa_verify import verify_scalar_ssa
@@ -58,6 +59,15 @@ class SSA_LLVM_IR:
         found = re.findall(r"(?m)^define i32 @([A-Za-z_][A-Za-z0-9_]*)\(", self.text)
         if not isinstance(self.functions, tuple) or len(set(found)) != len(found) or tuple(sorted(found)) != self.functions:
             raise LLVMSSARejected("E_LLVM_SSA_IDENTITY: function inventory mismatch")
+        if (not isinstance(self.source_ssa_sha256, str)
+                or not isinstance(self.verification_sha256, str)
+                or re.fullmatch(r"[0-9a-f]{64}", self.source_ssa_sha256) is None
+                or re.fullmatch(r"[0-9a-f]{64}", self.verification_sha256) is None):
+            raise LLVMSSARejected("E_LLVM_SSA_IDENTITY: unbound SSA verifier digest")
+        try:
+            validate_scalar_llvm_profile(self.text, self.functions)
+        except LLVMProfileRejected as exc:
+            raise LLVMSSARejected("E_LLVM_SSA_PROFILE: " + str(exc)) from exc
 
 
 _NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")

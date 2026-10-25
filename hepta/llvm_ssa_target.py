@@ -320,6 +320,132 @@ def _defined_exports(data: bytes, target: str) -> frozenset[str]:
     return frozenset()
 
 
+def _undefined_externals(data: bytes, target: str) -> frozenset[str]:
+    """Enumerate all externally bound undefined symbols, or fail closed.
+
+    Only a structurally qualified, bounded ELF/COFF/Mach-O object may enter
+    this parser. A defined export inventory does not detect unauthorized
+    foreign *imports* (Clang could emit an unrelated external dependency).
+    """
+    if target not in _TARGETS or not _qualified_header(data, target):
+        raise LLVMSSARejected("E_LLVM_SSA_IMPORTS: object structure is not qualified")
+    fmt = _TARGETS[target][0]
+    total = len(data)
+
+    def u16(pos: int) -> int:
+        return int.from_bytes(data[pos:pos + 2], "little")
+
+    def u32(pos: int) -> int:
+        return int.from_bytes(data[pos:pos + 4], "little")
+
+    def u64(pos: int) -> int:
+        return int.from_bytes(data[pos:pos + 8], "little")
+
+    def name_at(start: int, end: int) -> str:
+        if not 0 <= start < end <= total:
+            raise LLVMSSARejected("E_LLVM_SSA_IMPORTS: symbol outside string table")
+        stop = data.find(b"\0", start, end)
+        if stop < 0:
+            raise LLVMSSARejected("E_LLVM_SSA_IMPORTS: unterminated symbol name")
+        try:
+            return data[start:stop].decode("ascii")
+        except UnicodeDecodeError as exc:
+            raise LLVMSSARejected("E_LLVM_SSA_IMPORTS: non-ASCII foreign symbol") from exc
+
+    imports: set[str] = set()
+    if fmt == "ELF64":
+        table, sections = u64(40), u16(60)
+        saw_table = False
+        for index in range(sections):
+            section = table + 64 * index
+            if u32(section + 4) != 2:  # SHT_SYMTAB
+                continue
+            saw_table = True
+            link, entry_size = u32(section + 40), u64(section + 56)
+            first, size = u64(section + 24), u64(section + 32)
+            if link >= sections or entry_size != 24 or size % 24:
+                raise LLVMSSARejected("E_LLVM_SSA_IMPORTS: malformed ELF symbol table")
+            strings = table + 64 * link
+            if u32(strings + 4) != 3:
+                raise LLVMSSARejected("E_LLVM_SSA_IMPORTS: ELF symbols lack string table")
+            start, length = u64(strings + 24), u64(strings + 32)
+            for entry in range(first, first + size, 24):
+                offset, info, section_index = u32(entry), data[entry + 4], u16(entry + 6)
+                if section_index != 0 or info >> 4 not in (1, 2) or offset == 0:
+                    continue
+                if offset >= length:
+                    raise LLVMSSARejected("E_LLVM_SSA_IMPORTS: invalid ELF symbol offset")
+                name = name_at(start + offset, start + length)
+                if name:
+                    imports.add(name)
+        if not saw_table:
+            raise LLVMSSARejected("E_LLVM_SSA_IMPORTS: missing ELF symbol inventory")
+        return frozenset(imports)
+
+    if fmt == "COFF":
+        first, count = u32(8), u32(12)
+        if (not count or count > 1_000_000 or first < 20 + 40 * u16(2)
+                or first + 18 * count + 4 > total):
+            raise LLVMSSARejected("E_LLVM_SSA_IMPORTS: invalid COFF symbol table")
+        strings = first + 18 * count
+        length = u32(strings)
+        if length < 4 or strings + length > total:
+            raise LLVMSSARejected("E_LLVM_SSA_IMPORTS: malformed COFF string table")
+        index = 0
+        while index < count:
+            entry = first + 18 * index
+            section_index = int.from_bytes(data[entry + 12:entry + 14], "little", signed=True)
+            storage, aux_count = data[entry + 16], data[entry + 17]
+            if index + 1 + aux_count > count:
+                raise LLVMSSARejected("E_LLVM_SSA_IMPORTS: truncated COFF auxiliary symbols")
+            if section_index == 0 and storage in (2, 105):  # external / weak external
+                if data[entry:entry + 4] == b"\0" * 4:
+                    offset = u32(entry + 4)
+                    if not 4 <= offset < length:
+                        raise LLVMSSARejected("E_LLVM_SSA_IMPORTS: invalid COFF name offset")
+                    name = name_at(strings + offset, strings + length)
+                else:
+                    try:
+                        name = data[entry:entry + 8].split(b"\0", 1)[0].decode("ascii")
+                    except UnicodeDecodeError as exc:
+                        raise LLVMSSARejected("E_LLVM_SSA_IMPORTS: non-ASCII COFF name") from exc
+                if name:
+                    imports.add(name)
+            index += 1 + aux_count
+        return frozenset(imports)
+
+    if fmt == "MACHO64":
+        cursor, table = 32, None
+        for _ in range(u32(16)):
+            operation, size = u32(cursor), u32(cursor + 4)
+            if operation == 2:  # LC_SYMTAB
+                if table is not None:
+                    raise LLVMSSARejected("E_LLVM_SSA_IMPORTS: duplicate Mach-O symbol tables")
+                table = (u32(cursor + 8), u32(cursor + 12),
+                         u32(cursor + 16), u32(cursor + 20))
+            cursor += size
+        if table is None:
+            raise LLVMSSARejected("E_LLVM_SSA_IMPORTS: missing Mach-O symbol table")
+        first, count, strings, length = table
+        if count > 1_000_000 or first + 16 * count > total or strings + length > total:
+            raise LLVMSSARejected("E_LLVM_SSA_IMPORTS: malformed Mach-O symbols")
+        for index in range(count):
+            entry = first + 16 * index
+            offset, kind = u32(entry), data[entry + 4]
+            if kind & 0xe0 or kind & 0x0e != 0 or not (kind & 1):
+                continue  # skip debug symbols, non-undefined, local symbols
+            if offset >= length:
+                raise LLVMSSARejected("E_LLVM_SSA_IMPORTS: invalid Mach-O name offset")
+            name = name_at(strings + offset, strings + length)
+            if name:
+                if not name.startswith("_"):
+                    raise LLVMSSARejected("E_LLVM_SSA_IMPORTS: unexpected Darwin symbol encoding")
+                imports.add(name[1:])
+        return frozenset(imports)
+
+    raise LLVMSSARejected("E_LLVM_SSA_IMPORTS: unknown native object format")
+
+
 def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
                               output: str | Path, clang="clang") -> dict:
     """Produce an identified .o on one exact target without link or execution."""
@@ -353,6 +479,14 @@ def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
         data = artifact.read_bytes() if artifact.is_file() else b""
         if not _qualified_header(data, target):
             raise LLVMSSARejected("E_LLVM_SSA_TARGET_IDENTITY: wrong/empty ELF, COFF or Mach-O machine/file type")
+        # The strict i32 codegen profile may only reference C abort to signal
+        # checked overflow. Additional undefined imports are unreviewed native
+        # dependencies even when object format and defined exports are valid.
+        unresolved = _undefined_externals(data, target)
+        unexpected = unresolved - {"abort"}
+        if unexpected:
+            raise LLVMSSARejected("E_LLVM_SSA_IMPORTS: unapproved external dependencies: "
+                                  + ", ".join(sorted(unexpected)))
         exports = _defined_exports(data, target)
         missing = set(ir.functions) - exports
         if missing:
@@ -369,6 +503,7 @@ def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
         "machine": _TARGETS[target][1],
         "functions": list(ir.functions),
         "verified_defined_exports": sorted(set(ir.functions)),
+        "undefined_external_dependencies": sorted(unresolved),
         "llvm_ir_sha256": ir.sha256, "ssa_sha256": ir.source_ssa_sha256,
         "structural_ssa_verification_sha256": ir.verification_sha256,
         "artifact_sha256": sha256(destination.read_bytes()).hexdigest(),
@@ -376,6 +511,7 @@ def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
         "compiler": {"version": version.stdout.splitlines()[0],
                      "sha256": sha256(compiler.read_bytes()).hexdigest()},
         "claims": {"target_object_compiled": True,
+                   "undefined_external_inventory_checked": True,
                    "target_program_executed": False,
                    "foreign_c_abi_qualified": False,
                    "physical_hardware_tested": False,
