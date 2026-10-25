@@ -81,3 +81,24 @@ complete transitive dependency manifest, or protection from noncooperating
 filesystem writes in the final instant before the no-replace link.
 Use the existing compile_commands.json project migrator for full configuration
 capture, multi-TU coverage and per-header dependency/identity evidence.
+
+## Declared for-initializer scopes (P2/P4 follow-up)
+
+The shared AST converter now accepts one explicitly initialized automatic
+scalar VarDecl in a Clang five-slot ForStmt initializer. It checks the source
+declaration's AST ID and lexical location, rejects storage-class/TLS or multiple
+declarators and requires the same restricted Boolean condition, scalar step
+and compound body as assignment-initializer loops.
+
+A stable source-byte-offset-derived Hepta local name avoids reusing the
+source spelling when two disjoint for scopes both declare `i`. A fresh
+lexical mapping retains the Clang VarDecl ID; nested loops may shadow source
+names without conflating ownership. The emitted Copy-only local can live
+through the containing Hepta block because this subset forbids destructors,
+pointers, retained borrows, captured closures and external effects. The
+generated name is deterministic for one frozen input AST, not a C++ ABI symbol.
+
+Native differential tests include repeated `for(int i=...)` in C11 and
+nested `for(int i=...)` in C++20, plus rejected uninitialized or multi-variable
+initializers. Translation remains a strict L1 candidate; no general C/C++
+scope/lifetime equivalence or L2/L3 proof is inferred.

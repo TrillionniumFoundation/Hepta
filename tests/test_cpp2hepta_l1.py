@@ -186,6 +186,48 @@ extern "C" int cpp_sum_for(int n) { return sum_for(n); }
         for n in (-8, 0, 1, 2, 9, 100, 1000):
             self.assertEqual(cpp(n), hp(n), n)
 
+    def test_nested_scoped_for_shadowing_native_abi(self):
+        self.src.write_text("""
+int nested(int n) noexcept {
+    int total = 0;
+    for (int i = 0; i < n; ++i) {
+        for (int i = 0; i < 2; ++i) { total = total + 1; }
+    }
+    return total;
+}
+""")
+        migrated = migrate_cpp(self.src, self.dst)
+        self.assertTrue(migrated["ok"], migrated)
+        self.assertFalse(migrated["behavioral_equivalence_proved"])
+        generated = self.dst.read_text()
+        names = __import__("re").findall(r"let mut (hepta_for_\\d+_i)", generated)
+        self.assertEqual(len(set(names)), 2, generated)
+        self.assertNotIn("let mut i:", generated)
+        wrapper = self.root / "nested_bridge.cc"
+        wrapper.write_text("""
+int nested(int) noexcept;
+extern "C" int cpp_nested(int n) { return nested(n); }
+""")
+        original = self.root / "original_nested.so"
+        output = self.root / "hepta_nested.so"
+        compiled = subprocess.run(["clang++", "-std=c++20", "-O2", "-fPIC", "-shared",
+                                   str(self.src), str(wrapper), "-o", str(original)],
+                                  capture_output=True, text=True, timeout=60)
+        self.assertEqual(compiled.returncode, 0, compiled.stderr)
+        built = subprocess.run([sys.executable, "-m", "hepta", "build", str(self.dst),
+                                "--backend", "c", "--crate-type", "cdylib",
+                                "-o", str(output)], capture_output=True, text=True, timeout=90)
+        self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
+        left = ctypes.CDLL(str(original)).cpp_nested
+        right = ctypes.CDLL(str(output)).nested
+        for fn in (left, right):
+            fn.argtypes = [ctypes.c_int32]
+            fn.restype = ctypes.c_int32
+        for n in (-50, -1, 0, 1, 2, 19, 100, 1000):
+            with self.subTest(n=n):
+                self.assertEqual(left(n), right(n))
+        self.assertEqual(right(19), 38)
+
     def test_hidden_preprocessor_forms_never_publish(self):
         sources = [
             '%:define FLAG 1\nint f(int a) noexcept {return a + FLAG;}',
