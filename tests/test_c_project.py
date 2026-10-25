@@ -97,6 +97,30 @@ class CProjectMigrationTests(unittest.TestCase):
                     verify_capture(altered)
                 self.assertEqual(caught.exception.code, expected_error)
 
+    def test_resealed_abi_arguments_reject_before_compiler_execution(self):
+        self.project({"input.c": "int f(int x){return x;}"}, ["-DUSER_FLAG=1"])
+        capture = capture_project(self.database, clang=self.clang)
+        verify_capture(capture)
+        altered = copy.deepcopy(capture)
+        altered["configurations"][0]["abi_model_arguments"] = [
+            "-std=c11", "-Xclang", "-load", "/tmp/unreviewed-plugin.so"]
+        altered["sha256"] = hashlib.sha256(json.dumps(
+            {k: v for k, v in altered.items() if k != "sha256"},
+            sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        with patch("hepta.c_project.invoke") as native:
+            with self.assertRaises(MigrationRejected) as error:
+                verify_capture(altered)
+            self.assertEqual(error.exception.code, "E_C_BUILD_IDENTITY")
+            native.assert_not_called()
+
+    def test_database_read_is_byte_bounded(self):
+        self.database.write_bytes(b" " * (1_048_576 + 1))
+        with patch("hepta.c_project.invoke") as native:
+            with self.assertRaises(MigrationRejected) as error:
+                capture_project(self.database, clang=self.clang)
+            self.assertEqual(error.exception.code, "E_C_BUILD_DATABASE")
+            native.assert_not_called()
+
     def test_macro_model_identity_rechecked_even_when_source_preprocessing_is_equal(self):
         # Only the compiler's -dM transcript changes; the source, dependency
         # list and ordinary -E output remain bit-for-bit the same.

@@ -18,6 +18,18 @@ from .clang_capture import CaptureRejected, run_bounded
 from .c_migrate import MigrationRejected
 
 
+_MAX_DATABASE_BYTES = 1_048_576
+
+
+def _database_bytes(path: Path) -> bytes:
+    # Bounded read, not a racy pre-read stat check.
+    with path.open("rb") as source:
+        raw = source.read(_MAX_DATABASE_BYTES + 1)
+    if len(raw) > _MAX_DATABASE_BYTES:
+        raise MigrationRejected("E_C_BUILD_DATABASE", "Compilation database exceeds 1 MiB")
+    return raw
+
+
 def digest(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
@@ -88,6 +100,29 @@ def _flags(argv: list[str], source: Path, directory: Path) -> tuple[list[str], l
     return forwarded, omitted
 
 
+def _abi_model_arguments(flags: list[str]) -> list[str]:
+    """Derive ABI probing options from the whitelisted frontend flags.
+
+    A self-rehashed JSON manifest cannot authorize additional Clang options.
+    """
+    result = []
+    index = 0
+    while index < len(flags):
+        flag = flags[index]
+        if flag in {"-I", "-isystem", "-iquote", "-D", "-U"}:
+            if index + 1 >= len(flags):
+                raise MigrationRejected("E_C_BUILD_IDENTITY", "Truncated captured C frontend flag")
+            index += 2
+        elif flag.startswith(("-I", "-D", "-U")) and len(flag) > 2:
+            index += 1
+        elif flag.startswith("-std=") or flag in {"-funsigned-char", "-fsigned-char"}:
+            result.append(flag)
+            index += 1
+        else:
+            raise MigrationRejected("E_C_BUILD_IDENTITY", "Unreviewed captured C ABI model option")
+    return result
+
+
 def _dependencies(clang: str, flags: list[str], source: Path, directory: Path, *, system: bool) -> list[Path]:
     text = invoke([clang, *flags, "-M" if system else "-MM", "-MT", "hepta_dependencies", str(source)], directory)
     body = text.replace("\\\n", " ").partition(":")[2]
@@ -115,7 +150,7 @@ def verify_capture(capture: dict) -> None:
     if capture["scope"] != "all_listed_commands_only_not_unlisted_platforms_or_configurations":
         raise MigrationRejected("E_C_BUILD_IDENTITY", "Unexpected capture scope")
     database = Path(capture["database"]["path"])
-    entries = json.loads(database.read_bytes())
+    entries = json.loads(_database_bytes(database))
     configs = capture["configurations"]
     if (not isinstance(entries, list) or not isinstance(configs, list)
             or len(entries) != len(configs) or not 1 <= len(entries) <= 32):
@@ -136,6 +171,8 @@ def verify_capture(capture: dict) -> None:
                 or config["frontend_arguments"] != flags
                 or config["omitted_arguments"] != omitted):
             raise MigrationRejected("E_C_BUILD_IDENTITY", "Recorded compiler invocation differs from database")
+        if config.get("abi_model_arguments") != _abi_model_arguments(flags):
+            raise MigrationRejected("E_C_BUILD_IDENTITY", "ABI model arguments differ from allowlisted frontend flags")
         dependencies_seen.update(config["all_dependencies"])
     recorded_paths = [item["path"] for item in capture["dependencies"]]
     if (len(set(recorded_paths)) != len(recorded_paths)
@@ -194,7 +231,7 @@ def capture_project(database: str | Path, *, clang: str = "clang") -> dict:
     Users may supply one complete compilation database per intended build.
     """
     db = Path(database).resolve()
-    raw = db.read_bytes()
+    raw = _database_bytes(db)
     entries = json.loads(raw)
     if not isinstance(entries, list) or not 1 <= len(entries) <= 32:
         raise MigrationRejected("E_C_BUILD_DATABASE", "Expected 1–32 compilation commands")
@@ -242,16 +279,7 @@ def capture_project(database: str | Path, *, clang: str = "clang") -> dict:
         # affect preprocessed source semantics, but cannot attest native ABI
         # sizes or char signedness. Probe those with the actual semantic
         # compiler options only, independently of user macro overrides.
-        model_flags = []
-        flag_index = 0
-        while flag_index < len(flags):
-            flag = flags[flag_index]
-            if flag in {"-I", "-isystem", "-iquote", "-D", "-U"}:
-                flag_index += 2
-                continue
-            if flag.startswith("-std=") or flag in {"-funsigned-char", "-fsigned-char"}:
-                model_flags.append(flag)
-            flag_index += 1
+        model_flags = _abi_model_arguments(flags)
         abi_macros = invoke([executable, *model_flags, "-dM", "-E", "-x", "c", "-"], directory, stdin="")
         numeric = dict(re.findall(r"^#define (__[A-Z0-9_]+__) (\d+)$", abi_macros, flags=re.M))
         if any(numeric.get(name) != value for name, value in {
