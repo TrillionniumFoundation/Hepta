@@ -22,6 +22,16 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 OUT = ROOT / 'artifacts/c-typedef-alignment'
 LIMIT = 128 * 1024 * 1024
+EXPECTED_TRANSLATOR_SHA256 = 'a3f77392693063a938b34f4c5b63bb9baa6472174984429032baaf09738c719b'
+BASELINE_RED_WITNESS = {
+    'head': 'e221d0e182c322d6b9a06ed9787f37c521dbe908',
+    'run': 40152643065, 'artifact': 12582748803,
+    'archive_sha256': '2ad9b1881db95f2478b5273a815cd066c9ce1226a0245702f20d5c1dcde85191',
+    'translator_sha256': '54145de3475e417b068532b46ef2cdc347c98445293960ca667cdb6f0ff8f550',
+    'independent_audit_sha256': 'd3e7b4d950cd4ddba49b9c806068324c2bdf6fa8d1549c961d88ba7d0f4d0542',
+    'workflow_conclusion': 'failure',
+    'scope': 'Historical real 4 attributed failures / 2 ordinary controls, 36 layout comparisons; not this candidate execution',
+}
 
 
 def sha(path):
@@ -246,10 +256,11 @@ def worker():
     report = {'schema': 'hepta.c-typedef-alignment-probe.v1', 'ok': False,
               'expected_head': os.environ.get('HEPTA_QUALIFICATION_HEAD_SHA'),
               'scope': 'Independent layout executions; no mismatched ABI calls; no equivalence proof',
-              'source_before': baseline, 'cases': [], 'tools': {}}
+              'source_before': baseline, 'cases': [], 'tools': {},
+              'baseline_red_witness': BASELINE_RED_WITNESS}
     try:
-        require(baseline['hepta/c_translation.py'] == '54145de3475e417b068532b46ef2cdc347c98445293960ca667cdb6f0ff8f550',
-                'Baseline witness requires unchanged ce7 translator')
+        require(baseline['hepta/c_translation.py'] == EXPECTED_TRANSLATOR_SHA256,
+                'Regression requires the exact reviewed repaired translator')
         for name, version_arg, required in [('clang', '--version', '19.1.7'),
                 ('gcc', '--version', '14.2.0'), ('rustc', '--version', '1.90.0')]:
             selected = os.environ.get('RUSTC') if name == 'rustc' else shutil.which(name)

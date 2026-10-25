@@ -83,12 +83,29 @@ class CTranslator:
         self.records: dict[str, list[tuple[str, str]]] = {}
         self.aliases: dict[str, str] = {}
         self.typedef_types: dict[int, dict[str, dict]] = {}
+        self.typedef_declarations: dict[int, dict[str, list[dict]]] = {}
         self.functions: dict[str, dict] = {}
         self.declarations: list[tuple[int, dict, dict]] = []
         self.current: dict = {}
         self.bindings: dict[str, Expression] = {}
         self.binding_modes: dict[str, str] = {}
         self.counter = 0
+
+    def _check_typedef_attributes(self, name: str, unit: int) -> None:
+        # Canonical scalar types do not retain declaration-level ABI attributes
+        # such as aligned. Check every redeclaration and the spelled alias chain
+        # before using desugaredQualType. Unreferenced system aliases stay context.
+        pending, seen = [name], set()
+        while pending:
+            name = re.sub(r"\bconst\b", "", pending.pop()).strip()
+            if name in seen:
+                continue  # The existing type resolver still rejects cyclic types.
+            seen.add(name)
+            for declaration in self.typedef_declarations.get(unit, {}).get(name, []):
+                if any(child.get("kind", "").endswith("Attr") for child in declaration.get("inner", [])):
+                    raise MigrationRejected("E_C_ATTRIBUTE", "Typedef attributes require explicit ABI lowering: " + name)
+                # Type nodes and nonsemantic FullComment children are not attributes.
+                pending.append(declaration["type"]["qualType"])
 
     def typ(self, data: dict | str, *, model: dict | None = None,
             unit: int | None = None, seen: frozenset[str] = frozenset()) -> str:
@@ -97,6 +114,7 @@ class CTranslator:
             raise MigrationRejected("E_C_TYPE", "Unsupported value type: " + qual)
         qual = re.sub(r"\bconst\b", "", qual).strip()
         unit = self.current.get("unit", 0) if unit is None else unit
+        self._check_typedef_attributes(qual, unit)
         model = model or self.capture["configurations"][unit]["model"]
         types = {"void": "Unit", "_Bool": "bool", "char": "u8" if model["char_unsigned"] else "i8",
                  "signed char": "i8", "unsigned char": "u8", "short": "i16", "unsigned short": "u16",
@@ -140,6 +158,11 @@ class CTranslator:
             self.typedef_types[config["index"]] = {
                 node["name"]: node["type"] for node in tree.get("inner", [])
                 if node.get("kind") == "TypedefDecl" and node.get("name") and node.get("type")}
+            declarations: dict[str, list[dict]] = {}
+            for node in tree.get("inner", []):
+                if node.get("kind") == "TypedefDecl" and node.get("name") and node.get("type"):
+                    declarations.setdefault(node["name"], []).append(node)
+            self.typedef_declarations[config["index"]] = declarations
             active_file = None
             for node in tree.get("inner", []):
                 loc = self._position(node)
@@ -177,6 +200,8 @@ class CTranslator:
         for _ in range(len(unresolved) + 1):
             left = []
             for unit, node, item in unresolved:
+                # Do not swallow an attribute rejection in unresolved-type retry.
+                self._check_typedef_attributes(node["name"], unit)
                 try:
                     value = self.typ(node["type"], unit=unit)
                 except MigrationRejected:

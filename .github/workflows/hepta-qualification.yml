@@ -9,6 +9,7 @@ on:
       - dot/fix-c-migration-provenance-20261024
       - dot/qualify-project-c-types-20261024
       - dot/probe-typedef-alignment-20261025
+      - dot/fix-c-typedef-attributes-20261025
   pull_request:
     branches:
       - main
@@ -285,7 +286,7 @@ jobs:
       - name: Run all current native and experiment qualification gates
         run: python tools/release_check.py
       - name: Probe actual typedef alignment without changing production translation
-        if: github.ref == 'refs/heads/dot/probe-typedef-alignment-20261025'
+        if: github.ref == 'refs/heads/dot/probe-typedef-alignment-20261025' || github.ref == 'refs/heads/dot/fix-c-typedef-attributes-20261025'
         timeout-minutes: 9
         run: python tools/probe_c_typedef_alignment.py
       - name: Preserve failures and all raw evidence
