@@ -19,7 +19,8 @@ class AgentSemanticTests(unittest.TestCase):
             "ok": True,
             "snapshot": {
                 "version": self.VERSION,
-                "entry": "/immutable/versions/tree/main.hepta",
+                "root": "/immutable/versions/" + self.VERSION + "/tree",
+                "entry": "/immutable/versions/" + self.VERSION + "/tree/main.hepta",
                 "manifest": {
                     "compiler_sha256": self.COMPILER,
                     "interface_sha256": "d" * 64,
@@ -45,8 +46,12 @@ class AgentSemanticTests(unittest.TestCase):
             "all_expressions_typed": True, "untyped_expressions": [],
             "sha256": self.SEMANTIC, "source_sha256": "e" * 64,
             "functions": [{
-                "name": "add", "path": "main.hepta",
-                "declaration_span": {"start": 0, "end": 100},
+                "name": "add",
+                "path": self.snapshot["snapshot"]["entry"],
+                "declaration_span": {
+                    "path": self.snapshot["snapshot"]["entry"],
+                    "start": 0, "end": 100,
+                },
                 "returns": "i32",
                 "params": [{"name": "a", "mode": "value", "type": "i32"}],
                 "declared_effects": [], "inferred_effects": [],
@@ -79,6 +84,8 @@ class AgentSemanticTests(unittest.TestCase):
         self.assertEqual(result["workspace_version"], self.VERSION)
         self.assertEqual(result["source_semantic_sha256"], self.SEMANTIC)
         self.assertEqual(result["nodes"], self.snapshot["nodes"])
+        self.assertEqual(result["functions"][0]["path"], "main.hepta")
+        self.assertEqual(result["functions"][0]["declaration_span"]["path"], "main.hepta")
         self.assertEqual(result["functions"][0]["parameter_modes"], [
             {"name": "a", "mode": "value", "type": "i32"}])
         self.assertTrue(result["functions"][0]["public"])
@@ -89,6 +96,39 @@ class AgentSemanticTests(unittest.TestCase):
         self.assertFalse(result["claims"]["native_validation_reexecuted_this_query"])
         self.assertTrue(result["claims"]["native_validation_occurred_at_publication"])
         self.assertFalse(result["claims"]["whole_language_soundness_proved"])
+
+    def test_stable_function_identity_across_distinct_version_directories(self):
+        first = self._inspect(expected_version=self.VERSION)
+        next_version = "f" * 64
+        self.snapshot["snapshot"]["version"] = next_version
+        self.snapshot["snapshot"]["root"] = "/immutable/versions/" + next_version + "/tree"
+        self.snapshot["snapshot"]["entry"] = self.snapshot["snapshot"]["root"] + "/main.hepta"
+        self.hsir["project_sha256"] = next_version
+        self.hsir["functions"][0]["path"] = self.snapshot["snapshot"]["entry"]
+        self.hsir["functions"][0]["declaration_span"]["path"] = self.snapshot["snapshot"]["entry"]
+        self._reseal_hsir()
+        second = self._inspect(expected_version=next_version)
+        self.assertEqual(first["functions"][0]["path"], second["functions"][0]["path"])
+        self.assertEqual(first["functions"][0]["declaration_span"]["path"],
+                         second["functions"][0]["declaration_span"]["path"])
+
+    def test_out_of_snapshot_function_origin_fails_closed(self):
+        self.hsir["functions"][0]["path"] = "/other/project/main.hepta"
+        self.hsir["functions"][0]["declaration_span"]["path"] = "/other/project/main.hepta"
+        self._reseal_hsir()
+        with self.assertRaisesRegex(WorkspaceError, "pinned project"):
+            self._inspect()
+
+    def test_missing_validated_source_fails_closed(self):
+        self.snapshot["snapshot"]["manifest"]["validated_sources"] = ["other.hepta"]
+        with self.assertRaisesRegex(WorkspaceError, "pinned project"):
+            self._inspect()
+
+    def test_span_origin_mismatch_fails_closed(self):
+        self.hsir["functions"][0]["declaration_span"]["path"] = "/other/main.hepta"
+        self._reseal_hsir()
+        with self.assertRaisesRegex(WorkspaceError, "pinned project"):
+            self._inspect()
 
     def test_stale_expected_version_rejected_before_semantic_load(self):
         with (patch.object(agent_semantics, "inspect_workspace", return_value=self.snapshot),

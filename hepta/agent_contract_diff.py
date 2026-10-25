@@ -7,7 +7,7 @@ signature never proves behavioral equivalence or unchanged function bodies.
 from __future__ import annotations
 
 from hashlib import sha256
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 from typing import Any
 
@@ -59,6 +59,14 @@ def _inventory(report: dict[str, Any], version: str) -> dict[tuple[str, str], di
         path, name = fn.get("path"), fn.get("name")
         if not isinstance(path, str) or not path or not isinstance(name, str) or not name:
             raise WorkspaceError("E_AGENT_DIFF_FUNCTION", "Missing function origin")
+        # Stable diff keys must be portable v4 manifest paths, not absolute
+        # versions/<digest>/tree paths or escaped/unknown source names.
+        portable_path = PurePosixPath(path)
+        if (portable_path.is_absolute() or "\\" in path
+                or path != portable_path.as_posix()
+                or ".." in portable_path.parts
+                or path not in report["validated_sources"]):
+            raise WorkspaceError("E_AGENT_DIFF_SOURCE", "Unbound or nonportable function source identity")
         key = (path, name)
         if key in keys:
             raise WorkspaceError("E_AGENT_DIFF_DUPLICATE", "Duplicate path/function identity")

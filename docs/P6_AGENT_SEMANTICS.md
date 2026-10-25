@@ -61,3 +61,20 @@ tracked contract fields; previously it could see only a coarse project
 interface hash change. Both source and semantic hashes are retained,
 and elevated or incomplete foreign-qualification proof flags reject.
 Unchanged metadata never proves unchanged behavior; no live project is edited.
+
+## Snapshot-stable module origin (2026-10-25)
+
+The canonical loader reports absolute paths inside the pinned
+`versions/<version>/tree` directory; they legitimately change after each
+publication. Read-only Agent inspection now validates each function origin
+against the same pinned tree root and `validated_sources` manifest, then
+publishes its function path (and declaration span path) as a portable
+project-relative module path. Unbound, escaped, missing or inconsistent spans
+fail closed rather than appearing as an unrelated added/removed function in a
+cross-version contract diff. The canonical HSIR hash continues to authenticate
+the actual source-bound input, not the normalized presentation metadata.
+
+The consumer independently rejects nonportable or non-manifest paths. This
+fixes a contract-identity false positive; it is not a source equivalence,
+workspace integrity or compiler soundness proof. Physical hardware, performance
+and real-model Agent qualification remain open.

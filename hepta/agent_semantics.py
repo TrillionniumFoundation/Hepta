@@ -10,6 +10,7 @@ from pathlib import Path
 import re
 
 from .checker import check
+from .agent_source_paths import relative_validated_source
 from .modules import load_project
 from .pipeline import compiler_hash
 from .semantic_ir import _stable_json, lower_checked_program
@@ -80,6 +81,28 @@ def inspect_pinned_semantics(store: str | Path, *,
         raise WorkspaceError("E_AGENT_SEMANTICS", "Canonical HSIR content checksum mismatch")
     if not graph.unchanged():
         raise WorkspaceError("E_AGENT_RACE", "Pinned import graph changed after semantic inspection")
+    # The canonical loader's spans contain absolute version-tree paths. Those
+    # change on every v4 publication even when the logical function is stable.
+    # Normalize only against the SAME pinned tree and validated-source manifest,
+    # not a mutable checkout or a newly read CURRENT.
+    portable_functions = []
+    try:
+        for fn in hsir["functions"]:
+            original_path = fn["path"]
+            relative_path = relative_validated_source(
+                original_path, snapshot["root"], meta["validated_sources"])
+            span = fn["declaration_span"]
+            if not isinstance(span, dict) or span.get("path") != original_path:
+                raise ValueError("declaration span disagrees with semantic source")
+            portable_functions.append({
+                **fn, "path": relative_path,
+                "declaration_span": {**span, "path": relative_path},
+            })
+    except (KeyError, TypeError, ValueError) as exc:
+        raise WorkspaceError(
+            "E_AGENT_SOURCE_PATH",
+            "Semantic function origin is not bound to the pinned project: " + str(exc),
+        ) from exc
     return {
         "schema": "hepta.agent-semantics.v1",
         "status": "published_native_prevalidated_read_only",
@@ -108,7 +131,7 @@ def inspect_pinned_semantics(store: str | Path, *,
             "lifetime_params": fn.get("lifetime_params", []),
             "type_params": fn["type_params"],
             "type_bounds": fn["type_bounds"],
-        } for fn in hsir["functions"]],
+        } for fn in portable_functions],
         "external_obligations": hsir.get("external_obligations", []),
         "foreign_assumptions": hsir.get("foreign_assumptions", []),
         "claims": {

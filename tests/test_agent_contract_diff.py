@@ -120,6 +120,19 @@ class AgentContractDiffTests(unittest.TestCase):
                           self.compare(a, b)["reported_contract_changes"]],
                          [("new", "added"), ("old", "removed")])
 
+    def test_absolute_snapshot_paths_are_not_comparable_function_keys(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        a["functions"][0]["path"] = (
+            "/store/versions/" + self.BEFORE + "/tree/src/main.hepta")
+        with self.assertRaisesRegex(WorkspaceError, "nonportable"):
+            self.compare(a, b)
+
+    def test_path_missing_from_validated_source_inventory_is_rejected(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        b["validated_sources"] = ["src/other.hepta"]
+        with self.assertRaisesRegex(WorkspaceError, "nonportable"):
+            self.compare(a, b)
+
     def test_different_compiler_fails_closed(self):
         a, b = self.report(self.BEFORE), self.report(self.AFTER)
         b["compiler_sha256"] = "0" * 64
