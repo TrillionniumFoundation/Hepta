@@ -27,6 +27,10 @@ resources { heap_allocations = 0; may_block = false; may_suspend = false; may_sp
         one = lower_checked_program(program, result).as_dict()
         two = lower_checked_program(program, result).as_dict()
         self.assertEqual(one, two)
+        tampered = lower_checked_program(program, result)
+        forged = tampered.as_dict()
+        forged["functions"][0]["name"] = "tampered"
+        self.assertNotEqual(forged, tampered.as_dict())
         self.assertEqual(one["schema"], "hepta.hsir.v0")
         self.assertGreater(one["typed_expression_count"], 0)
         fn = one["functions"][0]
