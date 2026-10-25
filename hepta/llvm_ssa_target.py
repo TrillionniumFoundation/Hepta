@@ -9,10 +9,9 @@ from hashlib import sha256
 import os
 from pathlib import Path
 import shutil
-import subprocess
 import tempfile
 
-from .llvm_ssa_backend import SSA_LLVM_IR, LLVMSSARejected
+from .llvm_ssa_backend import SSA_LLVM_IR, LLVMSSARejected, _clang_run
 
 _TARGETS = {"x86_64-unknown-linux-gnu": ("ELF64", 62),
             "aarch64-unknown-linux-gnu": ("ELF64", 183),
@@ -90,8 +89,7 @@ def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
     if found is None:
         raise LLVMSSARejected("E_LLVM_SSA_TOOLCHAIN: Clang executable is unavailable")
     compiler = Path(found).resolve()
-    version = subprocess.run([str(compiler), "--version"], capture_output=True,
-                             text=True, timeout=10, check=False)
+    version = _clang_run([str(compiler), "--version"], timeout=10)
     if version.returncode or not version.stdout.strip():
         raise LLVMSSARejected("E_LLVM_SSA_TOOLCHAIN: missing compiler identity")
     # Do not dereference a dangling destination symlink: resolving the final
@@ -106,8 +104,7 @@ def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
         source.write_text(ir.text, encoding="utf-8")
         cmd = [str(compiler), "--target=" + target, "-x", "ir", "-O3", "-c",
                str(source), "-o", str(artifact)]
-        result = subprocess.run(cmd, capture_output=True, text=True,
-                                timeout=45, check=False)
+        result = _clang_run(cmd, timeout=45)
         if result.returncode != 0:
             raise LLVMSSARejected("E_LLVM_SSA_TARGET_NATIVE: " + result.stderr[:1200])
         data = artifact.read_bytes() if artifact.is_file() else b""

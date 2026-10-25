@@ -14,8 +14,9 @@ import os
 from pathlib import Path
 import re
 import shutil
-import subprocess
 import tempfile
+
+from .clang_capture import CaptureRejected, run_bounded
 
 from .cfg import CFGSnapshot
 from .ssa import SSASnapshot
@@ -24,6 +25,20 @@ from .ssa_verify import verify_scalar_ssa
 
 class LLVMSSARejected(ValueError):
     pass
+
+
+def _clang_run(argv: list[str], *, timeout: float):
+    """Bounded Clang invocation shared by host and cross-object SSA backends.
+
+    The lower-level Clang capture has a separate stdout, stderr and time
+    budget, plus POSIX process-group cleanup. It is not an OS sandbox.
+    """
+    try:
+        return run_bounded(argv, timeout=timeout, stdin_limit=0,
+                           stdout_limit=64_000, stderr_limit=256_000)
+    except CaptureRejected as exc:
+        raise LLVMSSARejected(
+            f"E_LLVM_SSA_CAPTURE: {exc.code}: {exc}") from exc
 
 
 @dataclass(frozen=True)
@@ -229,7 +244,7 @@ def compile_scalar_ssa_llvm(ir: SSA_LLVM_IR, *, clang: str = "clang", output: st
     if binary is None:
         raise LLVMSSARejected("E_LLVM_SSA_TOOLCHAIN: native Clang unavailable")
     compiler = Path(binary).resolve()
-    version = subprocess.run([str(compiler), "--version"], capture_output=True, text=True, timeout=10)
+    version = _clang_run([str(compiler), "--version"], timeout=10)
     if version.returncode or not version.stdout.strip():
         raise LLVMSSARejected("E_LLVM_SSA_TOOLCHAIN: compiler identity unavailable")
     # Do not resolve the output leaf: a dangling symlink could publish
@@ -243,7 +258,7 @@ def compile_scalar_ssa_llvm(ir: SSA_LLVM_IR, *, clang: str = "clang", output: st
         library = Path(folder) / "module.so"
         path.write_text(ir.text)
         cmd = [str(compiler), "-x", "ir", "-O3", "-fPIC", "-shared", str(path), "-o", str(library)]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=45, check=False)
+        result = _clang_run(cmd, timeout=45)
         if result.returncode or not library.is_file() or library.stat().st_size == 0:
             raise LLVMSSARejected("E_LLVM_SSA_NATIVE: clang compilation failed: " + result.stderr[:1800])
         if target.is_symlink() or target.exists():
