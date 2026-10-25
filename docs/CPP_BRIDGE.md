@@ -7,12 +7,13 @@ The bridge generates an `extern "C" int hepta_cxx_NAME(...) noexcept` C++ wrappe
 ## Usage
 
 ```sh
-python -m hepta bridge-cpp tests/fixtures/safe_noexcept.cc --output-dir /tmp/bridge
+python -m hepta bridge-cpp examples/interop/cpp_noexcept.cc --output-dir /tmp/bridge
 # writes /tmp/bridge/bridge.cc, bridge.h, manifest.json
-clang++ -std=c++20 -c original.cc -o original.o
+clang++ -std=c++20 -c examples/interop/cpp_noexcept.cc -o original.o
 clang++ -std=c++20 -c /tmp/bridge/bridge.cc -o bridge.o
-gcc -std=c11 -c consumer.c -I/tmp/bridge -o consumer.o
+gcc -std=c11 -c examples/interop/cpp_noexcept_consumer.c -I/tmp/bridge -o consumer.o
 clang++ original.o bridge.o consumer.o -o consumer
+./consumer
 ```
 
 The output directory must not exist when the operation starts. Files in this directory are not published as a multi-file atomic transaction; callers must not consume it until the CLI exits successfully. The report contains exact source/bridge/header hashes, Clang++ identity, the selected symbols and negative claims, including `foreign_cpp_memory_safe=false`, `cpp_abi_qualified=false`, `exception_translation=not_implemented` and `status=candidate_unverified`. This **L0** bridge confers no safety certification on existing C++ objects or their code.
