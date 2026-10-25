@@ -129,13 +129,15 @@ def main():
         gate.update({"seconds": round(time.monotonic() - started, 3), "log": str(log.relative_to(ROOT)),
                      "log_sha256": hashlib.sha256(log.read_bytes()).hexdigest()})
         if name == "unit_and_integration":
-            gate["test_count"] = _unittest_passed_count(p.stderr)
+            # Timed-out commands have no CompletedProcess; preserve unknown_timeout.
+            stderr = p.stderr if gate["status"] != "unknown_timeout" else ""
+            gate["test_count"] = _unittest_passed_count(stderr)
             # Preserve genuine skipped counts in the final unittest footer.
             skipped = re.search(
-                r"(?m)^OK \([^\n]*skipped=(\d+)[^\n]*\)\r?\n?\Z", p.stderr,
+                r"(?m)^OK \([^\n]*skipped=(\d+)[^\n]*\)\r?\n?\Z", stderr,
             )
             gate["skipped"] = int(skipped.group(1)) if skipped else 0
-            if not gate["test_count"]:
+            if gate["status"] == "passed" and not gate["test_count"]:
                 gate["status"] = "failed"
                 gate["reason"] = (
                     "Release qualification requires a nonempty terminal unittest "
