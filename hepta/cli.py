@@ -51,6 +51,13 @@ def main(argv=None) -> int:
     project_migrator.add_argument("--clang", default="clang")
     project_migrator.add_argument("--rustc")
     project_migrator.add_argument("--frontend-only", action="store_true", help="Explicitly skip native validation")
+    llvm = sub.add_parser("build-llvm-ssa", help="Native rustc-gated strict i32 HSIR/SSA/LLVM compilation")
+    llvm.add_argument("source")
+    llvm.add_argument("--output", "-o", required=True)
+    llvm.add_argument("--rustc")
+    llvm.add_argument("--clang", default="clang")
+    llvm.add_argument("--target", help="Optional target object (no target = host shared library)")
+    llvm.add_argument("--locked", action="store_true")
     importer = sub.add_parser("import-c", help="Import the supported C header subset using real compiler probes")
     importer.add_argument("header")
     importer.add_argument("--output", "-o", required=True)
@@ -142,6 +149,13 @@ def main(argv=None) -> int:
             result = migrate_c_project(args.database, args.output, contracts=contracts,
                                        clang=args.clang, rustc=args.rustc,
                                        verify_native=not args.frontend_only)
+            output_json(result)
+            return 0 if result["ok"] else 1
+        if args.command == "build-llvm-ssa":
+            from .llvm_ssa_pipeline import build_llvm_ssa_source
+            result = build_llvm_ssa_source(
+                args.source, args.output, rustc=args.rustc,
+                clang=args.clang, target=args.target, locked=args.locked)
             output_json(result)
             return 0 if result["ok"] else 1
         if args.command == "import-c":
