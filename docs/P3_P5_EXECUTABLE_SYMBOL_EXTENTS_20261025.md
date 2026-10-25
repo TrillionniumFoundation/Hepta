@@ -21,7 +21,7 @@ An exported function name by itself is **not** sufficient.
 | --- | --- |
 | ELF64 | STT_FUNC's section index must exist, designate executable SHT_PROGBITS, and the positive `st_size` must lie completely within that code section after `st_value`. |
 | COFF | Each externally defined function must start within the raw code section whose flags include IMAGE_SCN_CNT_CODE and IMAGE_SCN_MEM_EXECUTE. |
-| Mach-O64 | Each externally defined N_SECT function must start within the section length for `__TEXT,__text` carrying instruction attributes; n_sect must resolve to the actual section inventory. |
+| Mach-O64 | Each externally defined N_SECT function must start within the section length for `__TEXT,__text` carrying instruction attributes and regular (non-zerofill) section type; n_sect must resolve to the actual section inventory. |
 
 The verifier also rejects repeated defined function names or an
 export/import identity collision, instead of hiding duplicate entries in
