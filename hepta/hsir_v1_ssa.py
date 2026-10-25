@@ -36,6 +36,9 @@ def lower_verified_v1_scalar_ssa(envelope: dict) -> dict:
     from .ssa_verify import verify_scalar_ssa
 
     legacy = dict(envelope["opaque_producer_payload"])
+    # A hashed external assumption remains unproved; scalar SSA must refuse it.
+    if legacy.get("external_assumptions") not in ([], {}):
+        raise V1SSARejected("E_V1_SSA_FOREIGN_ASSUMPTIONS: unverified external contract")
     digest = legacy.pop("sha256")
     source_json = json.dumps(legacy, sort_keys=True, separators=(",", ":"),
                              ensure_ascii=False, allow_nan=False)
