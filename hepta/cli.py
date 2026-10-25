@@ -18,6 +18,7 @@ from .cfg import CFGRejected
 from .cfg_analysis import CFGAnalysisRejected
 from .ssa import SSARejected
 from .ssa_verify import SSAVerificationRejected
+from .hsir_v1_ssa import V1SSARejected
 from .llvm_ssa_backend import LLVMSSARejected
 
 
@@ -74,7 +75,7 @@ def main(argv=None) -> int:
         "x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu",
         "x86_64-pc-windows-msvc"
     ], help="Cross-compile a machine object only; target execution and ABI remain unqualified")
-    for cmd in ["check", "inspect", "hsir", "cfg", "cfg-analyze", "ssa", "ssa-verify", "emit", "header", "build", "run", "patch"]:
+    for cmd in ["check", "inspect", "hsir", "cfg", "cfg-analyze", "ssa", "ssa-verify", "ssa-v1-verify", "emit", "header", "build", "run", "patch"]:
         p = sub.add_parser(cmd)
         p.add_argument("source")
         p.add_argument("--rustc")
@@ -203,7 +204,7 @@ def main(argv=None) -> int:
                                  backend=args.backend, cc=args.cc, locked=args.locked)
         file = result.project.entry
         protected = {Path(p) for p in result.project.sources}
-        if args.command in {"hsir", "cfg", "cfg-analyze", "ssa", "ssa-verify"}:
+        if args.command in {"hsir", "cfg", "cfg-analyze", "ssa", "ssa-verify", "ssa-v1-verify"}:
             if args.backend != "rust":
                 raise ValueError("HSIR/CFG/SSA inspection requires the real Rust reference backend")
             if not result.report["ok"]:
@@ -212,6 +213,13 @@ def main(argv=None) -> int:
             if args.command == "hsir":
                 from .hsir import lower_checked_program
                 snapshot = lower_checked_program(result.program, result.checked).as_dict()
+            elif args.command == "ssa-v1-verify":
+                from .hsir import lower_checked_program
+                from .hsir_v1 import integrate_v0
+                from .hsir_v1_ssa import lower_verified_v1_scalar_ssa
+                legacy = lower_checked_program(result.program, result.checked).as_dict()
+                integrated = integrate_v0(legacy, expected_source_sha256=legacy["source_sha256"])
+                snapshot = lower_verified_v1_scalar_ssa(integrated)
             else:
                 from .cfg import lower_checked_cfg
                 cfg = lower_checked_cfg(result.program, result.checked)
@@ -295,10 +303,10 @@ def main(argv=None) -> int:
     except HeptaError as e:
         output_json({"ok": False, "status": "rejected", "diagnostics": [e.diagnostic.to_dict()]})
         return 1
-    except (CFGRejected, CFGAnalysisRejected, SSARejected, SSAVerificationRejected, LLVMSSARejected) as e:
+    except (CFGRejected, CFGAnalysisRejected, SSARejected, SSAVerificationRejected, LLVMSSARejected, V1SSARejected) as e:
         message = str(e)
         code = message.split(":", 1)[0]
-        if not code.startswith(("E_CFG_", "E_DOM_", "E_SSA_", "E_LLVM_SSA_")):
+        if not code.startswith(("E_CFG_", "E_DOM_", "E_SSA_", "E_LLVM_SSA_", "E_V1_SSA_")):
             code = "E_IR_REJECTED"
         output_json({"ok": False, "status": "rejected",
                      "diagnostics": [{"code": code, "message": message, "phase": "ir"}]})
