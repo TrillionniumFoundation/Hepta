@@ -11,7 +11,9 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
+import platform
 import re
+import shutil
 import tempfile
 
 from .c_migrate import MigrationRejected, _function, _run
@@ -29,11 +31,21 @@ def _model(clangxx: str) -> dict:
     dims = dict(re.findall(r"(?m)^#define (__SIZEOF_(?:INT|LONG|LONG_LONG|POINTER)__)\s+(\d+)\s*$", macros))
     bit = re.search(r"(?m)^#define __CHAR_BIT__\s+(\d+)\s*$", macros)
     if (dims.get("__SIZEOF_INT__") != "4" or dims.get("__SIZEOF_LONG_LONG__") != "8"
+            or dims.get("__SIZEOF_POINTER__") != "8"
+            or dims.get("__SIZEOF_LONG__") not in {"4", "8"}
             or bit is None or bit.group(1) != "8"):
-        raise MigrationRejected("E_CPP2HEPTA_MODEL", "Requires 32-bit int, 64-bit long long, 8-bit bytes")
-    return {"sizeof_int": 4, "sizeof_long": int(dims.get("__SIZEOF_LONG__", 0)),
-            "sizeof_long_long": 8, "sizeof_pointer": int(dims.get("__SIZEOF_POINTER__", 0)),
-            "target": _run([clangxx, "-dumpmachine"]).strip(),
+        raise MigrationRejected("E_CPP2HEPTA_MODEL", "L1 requires an 8-bit-byte, 64-bit-pointer host with 32-bit int and 64-bit long long")
+    target = _run([clangxx, "-dumpmachine"]).strip()
+    arch = {"amd64": "x86_64", "arm64": "aarch64"}.get(platform.machine().lower(), platform.machine().lower())
+    triple_arch = {"arm64": "aarch64", "amd64": "x86_64"}.get(target.split("-")[0], target.split("-")[0])
+    system = platform.system()
+    host_os = {"Windows": ("windows", "mingw"), "Darwin": ("darwin", "apple"),
+               "Linux": ("linux",)}.get(system, ())
+    if arch not in {"x86_64", "aarch64"} or triple_arch != arch or not any(part in target.lower() for part in host_os):
+        raise MigrationRejected("E_CPP2HEPTA_TARGET", "C++ Clang target must match the actual qualified native host")
+    return {"sizeof_int": 4, "sizeof_long": int(dims["__SIZEOF_LONG__"]),
+            "sizeof_long_long": 8, "sizeof_pointer": 8,
+            "target": target,
             "clang_version": _run([clangxx, "--version"]).splitlines()[0]}
 
 
@@ -68,8 +80,14 @@ def migrate_cpp(source_file: str | Path, destination_file: str | Path, *,
         # This bounded L1 profile does not capture preprocessor state.
         if "#" in text or "%:" in text or re.search(r"\\\r?\n", text):
             raise MigrationRejected("E_CPP2HEPTA_PREPROCESSOR", "Build-dependent preprocessing requires a real C++ project migrator")
-        model = _model(clangxx)
-        tree = json.loads(_run([clangxx, "-x", "c++", "-std=c++20", "-Werror", "-fsyntax-only",
+        resolved = shutil.which(clangxx)
+        if resolved is None:
+            raise MigrationRejected("E_CPP2HEPTA_TOOLCHAIN", "C++ Clang compiler unavailable")
+        compiler = Path(resolved).resolve(strict=True)
+        compiler_digest = sha256(compiler.read_bytes()).hexdigest()
+        model = _model(str(compiler))
+        model["compiler_sha256"] = compiler_digest
+        tree = json.loads(_run([str(compiler), "-x", "c++", "-std=c++20", "-Werror", "-fsyntax-only",
                                 "-Xclang", "-ast-dump=json", str(source)]))
         if not isinstance(tree, dict) or tree.get("kind") != "TranslationUnitDecl":
             raise MigrationRejected("E_CPP2HEPTA_AST", "Clang++ AST root was not a translation unit")
@@ -132,6 +150,8 @@ def migrate_cpp(source_file: str | Path, destination_file: str | Path, *,
             return report
         if source.read_bytes() != original:
             raise MigrationRejected("E_CPP2HEPTA_RACE", "Source changed during Clang translation")
+        if sha256(compiler.read_bytes()).hexdigest() != compiler_digest:
+            raise MigrationRejected("E_CPP2HEPTA_TOOLCHAIN_RACE", "C++ compiler changed during migration")
         if output.exists() or output.is_symlink():
             raise MigrationRejected("E_CPP2HEPTA_EXISTS", "Output already exists")
         if not output.parent.is_dir():
@@ -146,6 +166,8 @@ def migrate_cpp(source_file: str | Path, destination_file: str | Path, *,
                 os.fsync(f.fileno())
             if source.read_bytes() != original:
                 raise MigrationRejected("E_CPP2HEPTA_RACE", "Source changed before publish")
+            if sha256(compiler.read_bytes()).hexdigest() != compiler_digest:
+                raise MigrationRejected("E_CPP2HEPTA_TOOLCHAIN_RACE", "C++ compiler changed before publication")
             try:
                 os.link(staged, output)
             except FileExistsError as exc:

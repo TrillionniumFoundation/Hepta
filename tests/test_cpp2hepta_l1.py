@@ -4,13 +4,15 @@ from __future__ import annotations
 import ctypes
 import json
 from pathlib import Path
+from unittest.mock import patch
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
 
-from hepta.cpp2hepta import migrate_cpp
+from hepta.cpp2hepta import _model, migrate_cpp
+from hepta.c_migrate import MigrationRejected
 from hepta.pipeline import analyze
 
 
@@ -31,6 +33,29 @@ int clamp(int x) noexcept {
         self.src = self.root / "project.cc"
         self.dst = self.root / "migrated.hepta"
 
+    def test_rejects_wrong_cpp_host_model_and_foreign_target(self):
+        from hepta import cpp2hepta
+        from hepta.c_migrate import _run as native_run
+        compiler = shutil.which("clang++")
+        normal = _model(compiler)
+        self.assertEqual(normal["sizeof_pointer"], 8)
+        for mode in ("pointer", "target"):
+            with self.subTest(mode=mode):
+                def replace_capture(argv, **kwargs):
+                    result = native_run(argv, **kwargs)
+                    if mode == "pointer" and "-dM" in argv:
+                        import re
+                        result = re.sub(r"(?m)^#define __SIZEOF_POINTER__ 8$",
+                                        "#define __SIZEOF_POINTER__ 4", result)
+                    if mode == "target" and "-dumpmachine" in argv:
+                        result = "riscv64-unknown-linux-gnu"
+                    return result
+                with patch.object(cpp2hepta, "_run", side_effect=replace_capture):
+                    with self.assertRaises(MigrationRejected) as rejected:
+                        _model(compiler)
+                    self.assertEqual(rejected.exception.code,
+                                     "E_CPP2HEPTA_MODEL" if mode == "pointer" else "E_CPP2HEPTA_TARGET")
+
     def test_strict_cpp_ast_reuses_c_expression_lowering(self):
         self.src.write_text(self._GOOD)
         report = migrate_cpp(self.src, self.dst)
@@ -39,6 +64,7 @@ int clamp(int x) noexcept {
         self.assertFalse(report["cpp_abi_preserved"])
         self.assertFalse(report["behavioral_equivalence_proved"])
         self.assertEqual(report["native_validation"], "not_run")
+        self.assertRegex(report["target_model"]["compiler_sha256"], r"^[a-f0-9]{64}$")
         source = self.dst.read_text()
         self.assertIn('export "C" fn add(', source)
         self.assertIn('export "C" fn clamp(', source)
