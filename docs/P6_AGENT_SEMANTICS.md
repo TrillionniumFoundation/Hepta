@@ -26,3 +26,25 @@ modified pin or checker rejection fails closed.
 
 Real provider/model A/B trials, cost, human editing time, project-scale
 task success and stable public API compatibility remain open.
+
+## P6 addendum: pinned two-version contract comparison
+
+`hepta.agent_contract_diff.compare_pinned_contracts(before_store, after_store,
+expected_before_version=..., expected_after_version=...)` compares two immutable
+published v4 workspace pins using the existing `inspect_pinned_semantics` query.
+Both exact version digests are required, both published native receipts must
+still qualify, and compiler identities must match. It detects function additions,
+removals, and changes in return type, parameter ownership, declared/inferred
+Effects, and resources, plus project-level interface and foreign-obligation
+differences. The output has a canonical SHA-256 receipt.
+
+**This is strictly a contract diff**. Existing v1 inspection does not export
+complete function-body IR or proof of functional equivalence. A pair of sources
+that has unchanged signatures, Effects and resources may still have changed
+function results. The diff explicitly says `function_bodies_compared=false`
+and `functional_equivalence_proved=false`. A successful comparison neither
+re-runs rustc nor authorizes a v4 write. See
+`tests/test_agent_contract_diff.py` for positive and forged-receipt negatives.
+
+No production P6 blocker (real models, multiple seeds, agent labor/economics
+and large-project edits) is closed by this additive read-only API.

@@ -35,4 +35,4 @@ jobs:
           echo "RUSTC=$RUNNER_TEMP/hepta-rust/bin/rustc" >> "$GITHUB_ENV"
       - name: Source migration and direct LLVM/native differential gates
         run: |
-          python -m unittest tests.test_c_migrate tests.test_cpp2hepta_l1 tests.test_stateful_migration_llvm -v
+          python -m unittest tests.test_c_migrate tests.test_cpp2hepta_l1 tests.test_stateful_migration_llvm tests.test_agent_contract_diff -v
