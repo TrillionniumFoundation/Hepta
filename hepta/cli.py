@@ -19,6 +19,7 @@ from .cfg_analysis import CFGAnalysisRejected
 from .ssa import SSARejected
 from .ssa_verify import SSAVerificationRejected
 from .hsir_v1_ssa import V1SSARejected
+from .hsir_v1 import HSIRV1Rejected
 from .llvm_ssa_backend import LLVMSSARejected
 
 
@@ -81,6 +82,8 @@ def main(argv=None) -> int:
         p.add_argument("--rustc")
         p.add_argument("--cc")
         p.add_argument("--backend", choices=["rust", "c"], default="rust")
+        if cmd == "ssa-v1-verify":
+            p.add_argument("--source-bound-hsir", help="PR14 checked HSIR v0 JSON; requires same exact source bytes/path and native recheck")
         p.add_argument("--target")
         p.add_argument("--locked", action="store_true")
         p.add_argument("--json", action="store_true", help="Machine-readable results (default for checks/builds)")
@@ -214,12 +217,24 @@ def main(argv=None) -> int:
                 from .hsir import lower_checked_program
                 snapshot = lower_checked_program(result.program, result.checked).as_dict()
             elif args.command == "ssa-v1-verify":
+                from hashlib import sha256
                 from .hsir import lower_checked_program
-                from .hsir_v1 import integrate_v0
+                from .hsir_v1 import MAX_BYTES, decode_json, integrate_v0
                 from .hsir_v1_ssa import lower_verified_v1_scalar_ssa
-                legacy = lower_checked_program(result.program, result.checked).as_dict()
-                integrated = integrate_v0(legacy, expected_source_sha256=legacy["source_sha256"])
-                snapshot = lower_verified_v1_scalar_ssa(integrated)
+                if args.source_bound_hsir:
+                    with open(args.source_bound_hsir, "rb") as stream:
+                        raw = stream.read(MAX_BYTES + 1)
+                    legacy = decode_json(raw)
+                    integrated = integrate_v0(
+                        legacy, expected_source_sha256=sha256(result.program.source.encode("utf-8")).hexdigest())
+                    snapshot = lower_verified_v1_scalar_ssa(
+                        integrated, source_text=result.program.source,
+                        source_path=result.program.path,
+                        verified_project_sha256=getattr(result.project, "identity", None))
+                else:
+                    legacy = lower_checked_program(result.program, result.checked).as_dict()
+                    integrated = integrate_v0(legacy, expected_source_sha256=legacy["source_sha256"])
+                    snapshot = lower_verified_v1_scalar_ssa(integrated)
             else:
                 from .cfg import lower_checked_cfg
                 cfg = lower_checked_cfg(result.program, result.checked)
@@ -303,10 +318,10 @@ def main(argv=None) -> int:
     except HeptaError as e:
         output_json({"ok": False, "status": "rejected", "diagnostics": [e.diagnostic.to_dict()]})
         return 1
-    except (CFGRejected, CFGAnalysisRejected, SSARejected, SSAVerificationRejected, LLVMSSARejected, V1SSARejected) as e:
+    except (CFGRejected, CFGAnalysisRejected, SSARejected, SSAVerificationRejected, LLVMSSARejected, V1SSARejected, HSIRV1Rejected) as e:
         message = str(e)
         code = message.split(":", 1)[0]
-        if not code.startswith(("E_CFG_", "E_DOM_", "E_SSA_", "E_LLVM_SSA_", "E_V1_SSA_")):
+        if not code.startswith(("E_CFG_", "E_DOM_", "E_SSA_", "E_LLVM_SSA_", "E_V1_SSA_", "E_HSIR_V1_")):
             code = "E_IR_REJECTED"
         output_json({"ok": False, "status": "rejected",
                      "diagnostics": [{"code": code, "message": message, "phase": "ir"}]})
