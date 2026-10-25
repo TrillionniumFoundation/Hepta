@@ -164,6 +164,48 @@ def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 
         if value_type != local[0]:
             raise MigrationRejected("E_C_ASSIGN", "Assignment type conversion not in checked subset")
         return [f"{indent}{name} = {value};"]
+    if kind == "UnaryOperator" and node.get("opcode") in {"++", "--"} and len(children) == 1:
+        # Standalone pre/post increment/decrement has no observed value.
+        # Only the exact Clang declaration ID of a validated local is admitted.
+        operand = children[0]
+        ref = operand.get("referencedDecl", {}) if isinstance(operand, dict) and operand.get("kind") == "DeclRefExpr" else {}
+        name = ref.get("name")
+        local = locals.get(name)
+        if (local is None or ref.get("kind") != "VarDecl" or ref.get("id") != local[1]
+                or _decl_type(node, model) != local[0]):
+            raise MigrationRejected("E_C_INCREMENT", "Only increment/decrement of an initialized scalar local is supported")
+        op = "+" if node["opcode"] == "++" else "-"
+        if local[0].startswith("u"):
+            builtin = "wrapping_add" if op == "+" else "wrapping_sub"
+            result = f"{builtin}({name}, 1)"
+        else:
+            result = f"({name} {op} 1)"
+        return [f"{indent}{name} = {result};"]
+    if kind == "ForStmt":
+        # Clang's five slots: initializer, condition-variable declaration,
+        # condition, increment, and body. For the strict subset no continue,
+        # break, goto, in-loop declaration, or observed step return exists.
+        # Thus init; while (condition) { body; increment; } is equivalent
+        # on the source language's defined signed-arithmetic input domain.
+        if (len(children) != 5 or children[1] is not None
+                or any(part is None for part in (children[0], children[2], children[3], children[4]))):
+            raise MigrationRejected("E_C_FOR_SHAPE", "For requires explicit init, comparison, step and body")
+        initial, _, condition, advance, loop_body = children
+        if (initial.get("kind") != "BinaryOperator" or initial.get("opcode") != "="
+                or loop_body.get("kind") != "CompoundStmt"
+                or not ((advance.get("kind") == "BinaryOperator" and advance.get("opcode") == "=")
+                        or (advance.get("kind") == "UnaryOperator"
+                            and advance.get("opcode") in {"++", "--"}))):
+            raise MigrationRejected("E_C_FOR_SHAPE", "For requires assignment initializer, scalar step and compound body")
+        initial_lines = _stmt(initial, args, model, ret, depth, locals)
+        predicate, predicate_type = _expr(condition, args, model, "bool", locals)
+        if predicate_type != "bool":
+            raise MigrationRejected("E_C_CONDITION", "Only Boolean comparison for conditions are supported")
+        lines = initial_lines + [f"{indent}while {predicate} {{"]
+        lines.extend(_stmt(loop_body, args, model, ret, depth + 1, locals))
+        lines.extend(_stmt(advance, args, model, ret, depth + 1, locals))
+        lines.append(f"{indent}}}")
+        return lines
     if kind == "WhileStmt" and len(children) == 2:
         condition, condition_type = _expr(children[0], args, model, "bool", locals)
         if condition_type != "bool":

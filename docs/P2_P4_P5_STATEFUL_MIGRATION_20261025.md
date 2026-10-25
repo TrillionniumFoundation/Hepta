@@ -42,3 +42,19 @@ zero modeled allocator interactions and no blocking, suspension or spawn.
 No foreign functions are allowed inside this profile. The clauses are
 validated with the standard frontend, without creating a second
 resource-checking authority or claiming whole-process memory bounds.
+
+## Counted-for loops in strict scalar L1
+
+The shared AST lowerer also accepts exactly five-slot Clang ForStmt nodes:
+direct assignment initializer to a previously checked automatic local,
+no for-condition variable declaration, required Boolean comparison condition,
+direct scalar assignment or standalone ++/-- step on an initialized local,
+and a compound statement body. The output preserves init/body/step order:
+init; while (condition) { body; step; }. Signed arithmetic may abort on
+otherwise undefined source inputs; unsigned ++/-- use wrapping arithmetic.
+All forms with an initializer declaration, missing condition, nested variable
+declaration, break/continue/goto, compound assignment, or unbraced loop body
+reject, rather than hiding scope/lifetime and control-flow differences.
+
+C11 and C++20 finite-domain native ABI differential tests are added.
+Passing those tests is not proof of whole-program L2/L3 source equivalence.

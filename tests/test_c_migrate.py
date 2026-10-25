@@ -94,6 +94,53 @@ int sum_to(int n) {
         for n in (-4, 0, 1, 2, 5, 40, 100):
             self.assertEqual(old(n), new(n), n)
 
+    def test_counted_for_original_c_vs_hepta_native(self):
+        self.c.write_text("""
+int sum_for(int n) {
+    int total = 0;
+    int i = 0;
+    for (i = 0; i < n; i++) { total = total + i; }
+    return total;
+}
+""")
+        migrated = migrate_c(self.c, self.hepta)
+        self.assertTrue(migrated["ok"], migrated)
+        self.assertEqual(migrated["native_validation"], "not_run")
+        generated = self.hepta.read_text()
+        self.assertIn("while (i < n)", generated)
+        self.assertIn("i = (i + 1);", generated)
+        native_c = self.directory / "for_original.so"
+        native_hepta = self.directory / "for_hepta.so"
+        subprocess.run(["gcc", "-std=c11", "-O2", "-shared", "-fPIC",
+                        str(self.c), "-o", str(native_c)], check=True, capture_output=True)
+        result = subprocess.run([sys.executable, "-m", "hepta", "build",
+                                 str(self.hepta), "--backend", "c", "--crate-type",
+                                 "cdylib", "-o", str(native_hepta)],
+                                capture_output=True, text=True, timeout=90)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        old = ctypes.CDLL(str(native_c)).sum_for
+        new = ctypes.CDLL(str(native_hepta)).sum_for
+        for fn in (old, new):
+            fn.argtypes = [ctypes.c_int32]
+            fn.restype = ctypes.c_int32
+        for n in (-8, -1, 0, 1, 2, 17, 100, 1000):
+            self.assertEqual(old(n), new(n), n)
+
+    def test_unsupported_for_syntax_rejected_without_output(self):
+        sources = [
+            "int f(int n){int x=0;for(int i=0;i<n;i++){x=x+i;}return x;}",
+            "int f(int n){int i=0;for(i=0;i<n;i+=1){i=i+1;}return i;}",
+            "int f(int n){int i=0;for(i=0;;i=i+1){if(i>3)return i;}return i;}",
+            "int f(int n){int i=0;for(i=0;i<n;i=i+1)i=i+1;return i;}",
+            "int f(int n){int i=0;for(i=0;i<n;i=i+1){continue;}return i;}",
+        ]
+        for src in sources:
+            with self.subTest(src=src):
+                self.c.write_text(src)
+                result = migrate_c(self.c, self.hepta)
+                self.assertFalse(result["ok"], result)
+                self.assertFalse(self.hepta.exists())
+
     def test_unsupported_scalar_local_shapes_do_not_publish(self):
         cases = [
             "int f(int n) { int x; return n; }",

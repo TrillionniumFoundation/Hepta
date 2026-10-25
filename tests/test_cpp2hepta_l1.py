@@ -146,6 +146,46 @@ extern "C" int cpp_clamp_local(int x) { return clamp_local(x); }
                 with self.subTest(name=name, args=args):
                     self.assertEqual(left(*args), right(*args))
 
+    def test_cpp_counted_for_original_vs_hepta_native(self):
+        self.src.write_text("""
+int sum_for(int n) noexcept {
+    int total = 0;
+    int i = 0;
+    for (i = 0; i < n; ++i) { total = total + i; }
+    return total;
+}
+""")
+        migrated = migrate_cpp(self.src, self.dst)
+        self.assertTrue(migrated["ok"], migrated)
+        self.assertFalse(migrated["cpp_abi_preserved"])
+        generated = self.dst.read_text()
+        self.assertIn("while (i < n)", generated)
+        self.assertIn("i = (i + 1);", generated)
+        wrapper = self.root / "for_wrapper.cc"
+        wrapper.write_text("""
+int sum_for(int) noexcept;
+extern "C" int cpp_sum_for(int n) { return sum_for(n); }
+""")
+        original_so = self.root / "for_original.so"
+        hepta_so = self.root / "for_hepta.so"
+        original = subprocess.run(["clang++", "-std=c++20", "-O2", "-shared",
+                                   "-fPIC", str(self.src), str(wrapper),
+                                   "-o", str(original_so)],
+                                  capture_output=True, text=True, timeout=60)
+        self.assertEqual(original.returncode, 0, original.stdout + original.stderr)
+        native = subprocess.run([sys.executable, "-m", "hepta", "build", str(self.dst),
+                                 "--backend", "c", "--crate-type", "cdylib",
+                                 "-o", str(hepta_so)],
+                                capture_output=True, text=True, timeout=90)
+        self.assertEqual(native.returncode, 0, native.stdout + native.stderr)
+        cpp = ctypes.CDLL(str(original_so)).cpp_sum_for
+        hp = ctypes.CDLL(str(hepta_so)).sum_for
+        for fn in (cpp, hp):
+            fn.argtypes = [ctypes.c_int32]
+            fn.restype = ctypes.c_int32
+        for n in (-8, 0, 1, 2, 9, 100, 1000):
+            self.assertEqual(cpp(n), hp(n), n)
+
     def test_hidden_preprocessor_forms_never_publish(self):
         sources = [
             '%:define FLAG 1\nint f(int a) noexcept {return a + FLAG;}',
