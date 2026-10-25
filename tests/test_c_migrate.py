@@ -161,6 +161,40 @@ int twice(int n) {
             with self.subTest(n=n):
                 self.assertEqual(left(n), right(n))
 
+    def test_unsigned_declared_for_preserves_wrapping_builtin(self):
+        self.c.write_text("""
+unsigned int modular_sum(unsigned int n) {
+    unsigned int total = 0;
+    for (unsigned int i = 0; i < n; ++i) { total = total + i; }
+    return total;
+}
+""")
+        converted = migrate_c(self.c, self.hepta)
+        self.assertTrue(converted["ok"], converted)
+        generated = self.hepta.read_text()
+        self.assertRegex(generated, r"wrapping_add\(hepta_for_\d+_i, 1\)")
+        self.assertIn("wrapping_add(total, hepta_for_", generated)
+        original = self.directory / "unsigned_c.so"
+        translated = self.directory / "unsigned_hepta.so"
+        c_build = subprocess.run(["gcc", "-std=c11", "-O2", "-fPIC", "-shared",
+                                  str(self.c), "-o", str(original)],
+                                 capture_output=True, text=True, timeout=50)
+        self.assertEqual(c_build.returncode, 0, c_build.stderr)
+        h_build = subprocess.run([sys.executable, "-m", "hepta", "build",
+                                  str(self.hepta), "--backend", "c",
+                                  "--crate-type", "cdylib", "-o", str(translated)],
+                                 capture_output=True, text=True, timeout=90)
+        self.assertEqual(h_build.returncode, 0, h_build.stderr + h_build.stdout)
+        before = ctypes.CDLL(str(original)).modular_sum
+        after = ctypes.CDLL(str(translated)).modular_sum
+        for fn in (before, after):
+            fn.restype = ctypes.c_uint32
+            fn.argtypes = [ctypes.c_uint32]
+        for n in (0, 1, 2, 3, 17, 100, 255, 1000):
+            with self.subTest(n=n):
+                self.assertEqual(before(n), after(n))
+                self.assertEqual(after(n), sum(range(n)) % 2**32)
+
     def test_unsupported_for_syntax_rejected_without_output(self):
         sources = [
             "int f(int n){int x=0;for(int i=0,j=0;i<n;i++){x=x+i;}return x;}",

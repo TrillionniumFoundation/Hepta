@@ -228,6 +228,24 @@ extern "C" int cpp_nested(int n) { return nested(n); }
                 self.assertEqual(left(n), right(n))
         self.assertEqual(right(19), 38)
 
+    def test_scoped_loop_shadow_does_not_override_parameter(self):
+        self.src.write_text("""
+int shadow(int i) noexcept {
+    int total = 0;
+    for (int i = 0; i < 4; ++i) { total = total + i; }
+    return total + i;
+}
+""")
+        result = migrate_cpp(self.src, self.dst)
+        self.assertTrue(result["ok"], result)
+        output = self.dst.read_text()
+        self.assertRegex(output, r"let mut hepta_for_\d+_i: i32 = 0;")
+        # Source ParmVarDecl 'i' and for-local VarDecl 'i' carry distinct Clang IDs.
+        self.assertIn("return (total + i);", output)
+        self.assertIn("hepta_for_", output)
+        self.assertFalse(result["cpp_abi_preserved"])
+        self.assertFalse(result["behavioral_equivalence_proved"])
+
     def test_hidden_preprocessor_forms_never_publish(self):
         sources = [
             '%:define FLAG 1\nint f(int a) noexcept {return a + FLAG;}',

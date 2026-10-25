@@ -102,3 +102,10 @@ Native differential tests include repeated `for(int i=...)` in C11 and
 nested `for(int i=...)` in C++20, plus rejected uninitialized or multi-variable
 initializers. Translation remains a strict L1 candidate; no general C/C++
 scope/lifetime equivalence or L2/L3 proof is inferred.
+
+Unsigned for-init locals use the built-in `wrapping_add`/`wrapping_sub` with
+AST-driven emitted names, not whole-string replacement (which could corrupt
+builtin spellings containing the source variable name). Regression tests also
+cover for-declaration shadowing of a function parameter; the parameter must
+retain its own Clang ParmVarDecl identity outside the loop. Local Clang AST
+acceptance alone is not counted as a Hepta native build pass.
