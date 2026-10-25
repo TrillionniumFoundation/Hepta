@@ -303,19 +303,20 @@ def emit_scalar_llvm(snapshot) -> ScalarIR:
     return ScalarIR(output, sha256(output.encode()).hexdigest(), tuple(sorted(names)))
 
 
-def compile_scalar_llvm(ir: ScalarIR, *, clang: str = "clang", output: str | Path) -> dict:
-    """Compile host object via real LLVM/Clang. Never call rustc or C frontend."""
+def _verify_scalar_ir(ir: ScalarIR) -> None:
     if not isinstance(ir, ScalarIR) or ir.profile != "hepta.llvm-scalar-i32.v0":
         raise LLVMScalarRejected("E_LLVM_IR_IDENTITY: unsupported scalar IR profile")
     if (not isinstance(ir.text, str) or not isinstance(ir.sha256, str)
             or sha256(ir.text.encode("utf-8")).hexdigest() != ir.sha256):
         raise LLVMScalarRejected("E_LLVM_IR_IDENTITY: modified LLVM IR rejected")
-    # Functions advertised in the release receipt must match actual LLVM
-    # definitions, rather than an independently mutable metadata tuple.
+    # An artifact manifest may name only actual LLVM definition symbols.
     actual = re.findall(r"(?m)^define i32 @([A-Za-z_][A-Za-z0-9_]*)\(", ir.text)
     if (not isinstance(ir.functions, tuple) or len(actual) != len(set(actual))
             or tuple(sorted(actual)) != ir.functions):
         raise LLVMScalarRejected("E_LLVM_IR_IDENTITY: declared functions do not match LLVM IR")
+
+
+def _llvm_compiler(clang: str):
     clang_path = shutil.which(clang)
     if not clang_path:
         raise LLVMScalarRejected("E_LLVM_TOOLCHAIN: clang is unavailable")
@@ -324,6 +325,13 @@ def compile_scalar_llvm(ir: ScalarIR, *, clang: str = "clang", output: str | Pat
                              text=True, timeout=10, check=False)
     if version.returncode or not version.stdout.strip():
         raise LLVMScalarRejected("E_LLVM_TOOLCHAIN: compiler identity unavailable")
+    return compiler, version.stdout.splitlines()[0]
+
+
+def compile_scalar_llvm(ir: ScalarIR, *, clang: str = "clang", output: str | Path) -> dict:
+    """Compile host object via real LLVM/Clang. Never call rustc or C frontend."""
+    _verify_scalar_ir(ir)
+    compiler, compiler_version = _llvm_compiler(clang)
     target = Path(output).resolve()
     target.parent.mkdir(parents=True, exist_ok=True)
     # Staging on the destination filesystem makes the final link atomic even
@@ -350,7 +358,72 @@ def compile_scalar_llvm(ir: ScalarIR, *, clang: str = "clang", output: str | Pat
             "functions": list(ir.functions), "llvm_ir_sha256": ir.sha256,
             "native_sha256": sha256(target.read_bytes()).hexdigest(),
             "native_bytes": target.stat().st_size, "output": str(target),
-            "toolchain": {"version": version.stdout.splitlines()[0],
+            "toolchain": {"version": compiler_version,
                           "compiler_sha256": sha256(compiler.read_bytes()).hexdigest()},
             "claims": {"rustc_used": False, "llvm_ir_executed": False,
                        "backend_semantics_proved": False, "whole_p6_gate_closed": False}}
+
+
+# Explicit object-only target profiles: no linking or execution is performed.
+_SCALAR_OBJECT_TARGETS = {
+    "x86_64-unknown-linux-gnu": ("elf", 62),
+    "aarch64-unknown-linux-gnu": ("elf", 183),
+    "x86_64-pc-windows-msvc": ("coff", 0x8664),
+}
+
+
+def _matches_object_target(data: bytes, triple: str) -> bool:
+    model = _SCALAR_OBJECT_TARGETS.get(triple)
+    if model is None:
+        return False
+    fmt, machine = model
+    if fmt == "elf":
+        return (len(data) >= 20 and data[:4] == b"\x7fELF"
+                and data[4] == 2 and data[5] == 1
+                and int.from_bytes(data[18:20], "little") == machine)
+    return len(data) >= 20 and int.from_bytes(data[0:2], "little") == machine
+
+
+def compile_scalar_object(ir: ScalarIR, *, target: str, clang: str = "clang",
+                          output: str | Path) -> dict:
+    """Cross-compile *only* a machine object. This never qualifies target ABI.
+
+    The input is the same verified i32 LLVM subset, and the current host Rust
+    reference check remains the separate responsibility of the public driver.
+    """
+    _verify_scalar_ir(ir)
+    if target not in _SCALAR_OBJECT_TARGETS:
+        raise LLVMScalarRejected("E_LLVM_TARGET: unsupported cross-target profile")
+    compiler, version = _llvm_compiler(clang)
+    dest = Path(output).resolve()
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".hepta-llvm-cross-", dir=dest.parent) as directory:
+        source = Path(directory) / "module.ll"
+        built = Path(directory) / "cross.o"
+        source.write_text(ir.text, encoding="utf-8")
+        command = [str(compiler), "--target=" + target, "-x", "ir", "-O3",
+                   "-c", str(source), "-o", str(built)]
+        result = subprocess.run(command, capture_output=True, text=True,
+                                timeout=30, check=False)
+        if result.returncode != 0:
+            raise LLVMScalarRejected("E_LLVM_CROSS_NATIVE: " + result.stderr[:1600])
+        if not built.is_file() or built.stat().st_size == 0:
+            raise LLVMScalarRejected("E_LLVM_ARTIFACT: missing target object")
+        if not _matches_object_target(built.read_bytes(), target):
+            raise LLVMScalarRejected("E_LLVM_TARGET: compiler emitted wrong object format")
+        if dest.exists():
+            raise LLVMScalarRejected("E_LLVM_OUTPUT: refusing to overwrite")
+        from os import link
+        link(built, dest)
+    return {
+        "schema": "hepta.llvm-scalar-object.v0", "status": "cross_object_only_unqualified",
+        "target": target, "functions": list(ir.functions), "llvm_ir_sha256": ir.sha256,
+        "artifact_sha256": sha256(dest.read_bytes()).hexdigest(),
+        "artifact_bytes": dest.stat().st_size, "output": str(dest),
+        "toolchain": {"version": version, "compiler_sha256": sha256(compiler.read_bytes()).hexdigest()},
+        "claims": {"rustc_used_for_this_backend": False,
+                   "target_execution_verified": False,
+                   "foreign_c_abi_verified": False,
+                   "backend_semantics_proved": False,
+                   "whole_p6_gate_closed": False},
+    }
