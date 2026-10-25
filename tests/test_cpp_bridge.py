@@ -122,6 +122,8 @@ int main(void) {
             "class Thing {}; int f(int a) noexcept { return a; }",
             "template<class T> T f(T a) noexcept { return a; }",
             "#include <vector>\nint f(int a) noexcept { return a; }",
+            "int f(int a=3) noexcept {return a;}",
+            "int f(int a [[maybe_unused]]) noexcept {return 1;}",
         ):
             with self.subTest(source=source):
                 self.original.write_text(source)
