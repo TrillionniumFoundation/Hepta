@@ -23,6 +23,8 @@ import time
 class CaptureRejected(ValueError):
     def __init__(self, code: str, reason: str) -> None:
         self.code = code
+        self.capture: CaptureFailure | None = None
+        self.capture_error: str | None = None
         super().__init__(reason)
 
 
@@ -31,6 +33,22 @@ class CaptureResult:
     returncode: int
     stdout: str
     stderr: str
+
+
+@dataclass(frozen=True)
+class CaptureFailure:
+    """Bounded raw evidence retained after the existing process cleanup.
+
+    Prefix lengths never exceed the caller's original stream limits. Total
+    lengths describe the file snapshots and can exceed those retained limits.
+    The capture error code remains separate from the actual child exit code.
+    """
+    command: tuple[str, ...]
+    returncode: int | None
+    stdout: bytes
+    stderr: bytes
+    stdout_total_bytes: int
+    stderr_total_bytes: int
 
 
 def _terminate(proc: subprocess.Popen[bytes]) -> None:
@@ -104,6 +122,7 @@ def run_bounded(
         except OSError as exc:
             raise CaptureRejected("E_CAPTURE_EXEC", "Compiler launch failed: " + str(exc)) from exc
         deadline = time.monotonic() + timeout
+        failure = None
         try:
             while proc.poll() is None:
                 if (os.fstat(output_file.fileno()).st_size > stdout_limit
@@ -124,5 +143,23 @@ def run_bounded(
                 proc.returncode, _decode(output_file.read(), "stdout"),
                 _decode(error_file.read(), "stderr"),
             )
+        except CaptureRejected as error:
+            failure = error
+            raise
         finally:
             _terminate(proc)
+            if failure is not None:
+                try:
+                    stdout_size = os.fstat(output_file.fileno()).st_size
+                    stderr_size = os.fstat(error_file.fileno()).st_size
+                    output_file.seek(0)
+                    error_file.seek(0)
+                    failure.capture = CaptureFailure(
+                        tuple(argv), proc.returncode,
+                        output_file.read(stdout_limit), error_file.read(stderr_limit),
+                        stdout_size, stderr_size,
+                    )
+                except OSError as error:
+                    # Preserve the original rejection/code even when the
+                    # capture files themselves cannot be read.
+                    failure.capture_error = str(error)

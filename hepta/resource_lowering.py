@@ -11,7 +11,7 @@ import hashlib
 
 from .ast import Type
 from .checker import _contains_capability, LINEAR, substitute_type, return_origin_index
-from .resource_ir import SCHEMA, ResourceIRError, _CLAIMS, _EXTERNAL_REQUIREMENTS, verify_resource_ir
+from .resource_ir import SCHEMA, STORED_SCHEMA, ResourceIRError, _CLAIMS, _EXTERNAL_REQUIREMENTS, verify_resource_ir
 
 
 _PRIMITIVES = {"i8", "i16", "i32", "i64", "i128", "isize", "u8", "u16", "u32", "u64", "u128", "usize", "f32", "f64", "bool", "Unit"}
@@ -28,6 +28,7 @@ class _Value:
     type: Type
     kind: str = "value"
     mode: str = "value"
+    temporary: bool = False
 
 
 class _Types:
@@ -36,6 +37,24 @@ class _Types:
         self.structs = {s.name: s for s in program.structs}
         self.enums = {e.name: e for e in program.enums}
         self.table = {}
+        self.views = {}
+        from .borrowed_storage import contains_storage
+        for declaration in program.structs:
+            if not (declaration.lifetime_params or any(contains_storage(f.type, self.structs, self.enums) for f in declaration.fields)):
+                continue
+            if (declaration.repr_c or declaration.type_params or len(declaration.lifetime_params) != 1
+                    or len(declaration.fields) != 1):
+                _unsupported("Independent stored views require one local u8-slice field and one lifetime")
+            field = declaration.fields[0]
+            if (field.type.name not in {"ref_read", "ref_mut"}
+                    or field.type.args != (Type("slice", (Type("u8"),)),)
+                    or field.type.lifetimes != declaration.lifetime_params):
+                _unsupported("Only a direct shared/exclusive u8-slice field is modelled in local stored views")
+            self.views[declaration.name] = (field.name, field.type.name[4:])
+        for fn in program.functions:
+            if (fn.lifetime_params or contains_storage(fn.return_type, self.structs, self.enums)
+                    or any(contains_storage(p.type, self.structs, self.enums) for p in fn.params)):
+                _unsupported("Stored view parameters/returns and named function regions require another resource profile")
         self.parameters = {}
         self.owned_parameters = set()
         for fn in program.functions:
@@ -52,7 +71,13 @@ class _Types:
         key = str(typ)
         if key in self.table:
             return key
-        if typ.name in _PRIMITIVES and not typ.args:
+        if typ.name in self.views:
+            if typ.args or typ.lifetimes != ("_",):
+                _unsupported("Stored view resources are confined to inferred local regions")
+            field, mode = self.views[typ.name]
+            self.table[key] = {"kind": "view", "name": typ.name, "field": field,
+                               "mode": mode, "pointee": self.add(Type("slice", (Type("u8"),)))}
+        elif typ.name in _PRIMITIVES and not typ.args:
             self.table[key] = {"kind": "scalar", "name": typ.name}
         elif typ.name in {"Buffer", "array", "slice"}:
             if len(typ.args) != 1 or typ.name == "Buffer" and typ.args[0] != Type("u8"):
@@ -84,6 +109,8 @@ class _Types:
         return key
 
     def owned(self, typ: Type) -> bool:
+        if typ.name in self.views:
+            return self.views[typ.name][1] == "mut"
         return _contains_capability(typ, LINEAR | self.owned_parameters, self.structs, self.enums)
 
     def fields(self, typ: Type, variant: str | None = None) -> list[Type]:
@@ -131,6 +158,8 @@ class _FunctionLowerer:
         sid = "v" + str(self.local_counter)
         self.local_counter += 1
         self.locals.append({"id": sid, "type": key, "mutable": mutable})
+        if typ.name in self.types.views:
+            return _Value(sid, typ, "view", self.types.views[typ.name][1], True)
         return _Value(sid, typ, "owner" if self.types.owned(typ) else "value")
 
     def loan_id(self) -> str:
@@ -150,6 +179,8 @@ class _FunctionLowerer:
         self.current = None
 
     def copy_value(self, value: _Value) -> _Value:
+        if value.kind == "view":
+            _unsupported("Stored views cannot be erased into copied scalar values")
         if value.kind == "borrow" and not self.types.owned(value.type) and value.type.name != "slice":
             self.emit("use", loan=value.id, mode="read")
             self.end(value)
@@ -159,6 +190,8 @@ class _FunctionLowerer:
         return value
 
     def place(self, expr) -> dict:
+        if self.view_projection(expr) is not None:
+            _unsupported("Reborrowing/passing a stored view field needs an explicit reborrow profile")
         if expr.kind == "name" and expr.value in self.env:
             return {"root": self.env[expr.value].id, "path": []}
         if expr.kind == "field":
@@ -171,6 +204,26 @@ class _FunctionLowerer:
             result["path"].append("*")
             return result
         _unsupported("Borrowed places require a named root, a known field, or a conservative index")
+
+    def view_projection(self, expr) -> _Value | None:
+        path = []
+        base = expr
+        while base.kind in {"field", "index"}:
+            path.append((base.kind, base.value))
+            base = base.children[0]
+        value = self.env.get(base.value) if base.kind == "name" else None
+        if value is None or value.type.name not in self.types.views:
+            return None
+        field, _ = self.types.views[value.type.name]
+        path.reverse()
+        if not path or path[0] != ("field", field) or len(path) > 2 or len(path) == 2 and path[1][0] != "index":
+            _unsupported("Only the stored u8-slice field and its elements may be projected")
+        return value
+
+    def end_shared_views(self, values) -> None:
+        for value in values:
+            if value.kind == "view" and value.mode == "read":
+                self.emit("end_view", src=value.id)
 
     def borrow(self, expr, mode: str, expected: Type | None = None) -> _Value:
         if expr.kind == "unary" and expr.value in {"read", "mut"}:
@@ -217,6 +270,11 @@ class _FunctionLowerer:
             if expr.value not in self.env:
                 _unsupported("Unknown local expression")
             value = self.env[expr.value]
+            if value.kind == "view":
+                if value.mode == "mut":
+                    _unsupported("Exclusive stored view values require an explicit move")
+                self.emit("use_view", src=value.id, mode="read")
+                return value
             if self.types.owned(typ):
                 _unsupported("Owned names require explicit move or borrowing")
             self.emit("use", place={"root": value.id, "path": []}, mode="read")
@@ -224,6 +282,14 @@ class _FunctionLowerer:
         if kind == "unary":
             if expr.value == "move":
                 child = expr.children[0]
+                if typ.name in self.types.views:
+                    if self.types.views[typ.name][1] == "read" or child.kind == "struct":
+                        return self.expression(child)
+                    if child.kind != "name" or child.value not in self.env:
+                        _unsupported("Exclusive stored views move only as whole local values")
+                    result = self.slot(typ)
+                    self.emit("move_view", src=self.env[child.value].id, dest=result.id)
+                    return result
                 if child.kind in {"call", "struct", "variant"} and self.types.owned(typ):
                     value = self.expression(child)
                     if value.kind != "owner":
@@ -261,6 +327,13 @@ class _FunctionLowerer:
                 self.copy_value(self.expression(child))
             return self.slot(typ)
         if kind in {"field", "index"}:
+            stored = self.view_projection(expr)
+            if stored is not None:
+                if kind != "index":
+                    _unsupported("A stored slice is used through len or indexed access")
+                self.projection_indices(expr)
+                self.emit("use_view", src=stored.id, mode="read")
+                return self.slot(typ)
             if self.types.owned(typ):
                 _unsupported("Partial owned-field moves are not modelled")
             # Normal named projections preserve field-disjointness. A view
@@ -279,6 +352,14 @@ class _FunctionLowerer:
                 self.emit("use", place=self.place(expr), mode="read")
             return self.slot(typ)
         if kind in {"struct", "variant"}:
+            if typ.name in self.types.views:
+                field, mode = self.types.views[typ.name]
+                if kind != "struct" or expr.value["fields"] != [field] or len(expr.children) != 1:
+                    _unsupported("Stored view construction needs its single reference field")
+                loan = self.borrow(expr.children[0], mode, Type("slice", (Type("u8"),)))
+                result = self.slot(typ)
+                self.emit("bind_view", dest=result.id, loan=loan.id)
+                return result
             values = []
             for child in expr.children:
                 value = self.expression(child)
@@ -307,11 +388,20 @@ class _FunctionLowerer:
             return result
         if name in {"release", "drop"}:
             owner = self.expression(args[0])
+            if owner.kind == "view":
+                if name != "drop" or owner.mode != "mut":
+                    _unsupported("Only explicit drop consumes an exclusive stored view")
+                self.emit("end_view", src=owner.id)
+                return _Value(None, Type("Unit"))
             if owner.kind != "owner":
                 _unsupported("Drop requires an explicit owned transfer")
             self.emit("drop", src=owner.id)
             return _Value(None, Type("Unit"))
         if name == "len":
+            stored = self.view_projection(args[0])
+            if stored is not None:
+                self.emit("use_view", src=stored.id, mode="read")
+                return self.slot(typ)
             view = self.borrow(args[0], "read")
             self.emit("use", loan=view.id, mode="read")
             self.end(view)
@@ -371,7 +461,12 @@ class _FunctionLowerer:
                     value = self.copy_value(value)
                 typ = self.resolve(data["type"]) if data.get("type") is not None else value.type
                 binding = self.slot(typ, mutable=bool(data["mutable"]))
-                if value.kind == "owner":
+                if value.kind == "view":
+                    self.emit("move_view" if value.mode == "mut" else "copy_view", src=value.id, dest=binding.id)
+                    if value.mode == "read" and value.temporary:
+                        self.emit("end_view", src=value.id)
+                    binding.temporary = False
+                elif value.kind == "owner":
                     self.emit("move", src=value.id, dest=binding.id)
                 self.env[data["name"]] = binding
             elif statement.kind == "assign":
@@ -379,6 +474,14 @@ class _FunctionLowerer:
                 # assignment place. Materialize copied values (and end any
                 # returned loan) before evaluating the target's calls/indices.
                 value = self.expression(data["expr"])
+                stored = self.view_projection(data["target"])
+                if stored is not None:
+                    if data["target"].kind != "index":
+                        _unsupported("Stored reference fields cannot be reassigned in this profile")
+                    self.copy_value(value)
+                    self.projection_indices(data["target"])
+                    self.emit("use_view", src=stored.id, mode="write")
+                    continue
                 owned_target = self.types.owned(self.typ(data["target"]))
                 if not owned_target:
                     value = self.copy_value(value)
@@ -402,6 +505,10 @@ class _FunctionLowerer:
                         self.emit("use", place=place, mode="write")
             elif statement.kind == "expr":
                 value = self.expression(data["expr"])
+                if value.kind == "view" and value.mode == "read":
+                    if value.temporary:
+                        self.emit("end_view", src=value.id)
+                    continue
                 if value.kind == "borrow":
                     value = self.copy_value(value)
                 if value.kind != "value":
@@ -412,11 +519,13 @@ class _FunctionLowerer:
                     value = self.borrow(expr, self.fn.return_mode, self.resolve(self.fn.return_type))
                     if value.mode != self.fn.return_mode:
                         _unsupported("Mode-changing returned call views need an explicit reborrow model")
+                    self.end_shared_views(self.env.values())
                     self.finish("return", value=None, loan=value.id)
                 else:
                     value = self.expression(expr) if expr is not None else _Value(None, Type("Unit"))
                     if value.kind == "borrow":
                         value = self.copy_value(value)
+                    self.end_shared_views(self.env.values())
                     self.finish("return", value=value.id, loan=None)
             elif statement.kind == "unsafe":
                 self.statements(data["body"], dict(self.env))
@@ -481,6 +590,9 @@ class _FunctionLowerer:
         if self.current is not None:
             for name in sorted(set(self.env) - entry_names):
                 value = self.env[name]
+                if value.kind == "view" and value.mode == "read":
+                    self.emit("end_view", src=value.id)
+                    continue
                 if self.types.owned(value.type) and value.type.name in self.types.structs:
                     # No destructor is implicit: the independent verifier
                     # rejects forgetting any remaining owned payload/loan.
@@ -506,9 +618,6 @@ def lower_resource_ir(program, checked, *, project_sha256: str | None = None) ->
     """
     if not getattr(checked, "ok", False):
         raise ResourceIRError("E_RIR_LOWER_REJECTED", "Cannot lower a rejected frontend result")
-    from .borrowed_storage import has_borrowed_storage
-    if has_borrowed_storage(program):
-        _unsupported("Stored-borrow records and explicit lifetimes are not represented by this independent resource IR")
     from .runtime_io import has_io_profile
     if has_io_profile(program):
         _unsupported("The I/O reactor profile, including unused I/O declarations, requires another lowering profile")
@@ -535,7 +644,7 @@ def lower_resource_ir(program, checked, *, project_sha256: str | None = None) ->
     for fn in program.functions:
         if not fn.extern_c:
             _FunctionLowerer(program, checked, fn, types, signatures).lower()
-    doc = {"schema": SCHEMA, "source_sha256": hashlib.sha256(program.source.encode()).hexdigest(),
+    doc = {"schema": STORED_SCHEMA if types.views else SCHEMA, "source_sha256": hashlib.sha256(program.source.encode()).hexdigest(),
            "project_sha256": project_sha256, "value_semantics": "copied_values_abstract_not_executable",
            "types": types.table, "functions": list(signatures.values()), "obligations": obligations,
            "claims": dict(_CLAIMS)}

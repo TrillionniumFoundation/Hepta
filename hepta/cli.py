@@ -52,6 +52,10 @@ def main(argv=None) -> int:
     cpp_class.add_argument("source")
     cpp_class.add_argument("--output", "-o", required=True)
     cpp_class.add_argument("--clang", default="clang++")
+    cpp_owned = sub.add_parser("migrate-cpp-owned", help="Translate the complete checked exclusive-byte-owner C++ lifecycle profile")
+    cpp_owned.add_argument("source")
+    cpp_owned.add_argument("--output", "-o", required=True)
+    cpp_owned.add_argument("--clang", default="clang++")
     project_migrator = sub.add_parser("migrate-c-project", help="Capture a C compilation database and migrate its supported complete declaration set")
     project_migrator.add_argument("database")
     project_migrator.add_argument("--output", "-o", required=True)
@@ -66,6 +70,13 @@ def main(argv=None) -> int:
     llvm.add_argument("--clang", default="clang")
     llvm.add_argument("--target", help="Optional target object (no target = host shared library)")
     llvm.add_argument("--locked", action="store_true")
+    llvm_owned = sub.add_parser("build-llvm-owned", help="Direct LLVM host compilation of the checked owned-byte resource profile")
+    llvm_owned.add_argument("source")
+    llvm_owned.add_argument("--output", "-o", required=True)
+    llvm_owned.add_argument("--rustc")
+    llvm_owned.add_argument("--clang", default="clang")
+    llvm_owned.add_argument("--kind", choices=["shared", "object"], default="shared")
+    llvm_owned.add_argument("--locked", action="store_true")
     resource_source = sub.add_parser("verify-resource-source", help="Recheck actual source and match a complete independent resource graph")
     resource_source.add_argument("source")
     resource_source.add_argument("graph")
@@ -190,6 +201,11 @@ def main(argv=None) -> int:
             result = migrate_cpp_class(args.source, args.output, clangxx=args.clang)
             output_json(result)
             return 0 if result["ok"] else 1
+        if args.command == "migrate-cpp-owned":
+            from .cpp_owned_migrate import migrate_cpp_owned
+            result = migrate_cpp_owned(args.source, args.output, clangxx=args.clang)
+            output_json(result)
+            return 0 if result["ok"] else 1
         if args.command == "migrate-c-project":
             from .c_migrate import migrate_c_project
             contracts = json.loads(Path(args.contracts).read_bytes()) if args.contracts else None
@@ -203,6 +219,12 @@ def main(argv=None) -> int:
             result = build_llvm_ssa_source(
                 args.source, args.output, rustc=args.rustc,
                 clang=args.clang, target=args.target, locked=args.locked)
+            output_json(result)
+            return 0 if result["ok"] else 1
+        if args.command == "build-llvm-owned":
+            from .llvm_owned_pipeline import build_llvm_owned_source
+            result = build_llvm_owned_source(args.source, args.output, rustc=args.rustc,
+                                            clang=args.clang, kind=args.kind, locked=args.locked)
             output_json(result)
             return 0 if result["ok"] else 1
         if args.command == "verify-resource-source":

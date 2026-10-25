@@ -12,6 +12,13 @@ entrypoint emits Hepta fields, construction and method bodies, verifies a
 trivial lifecycle, and qualifies independent Rust/C builds. It does not
 extend the bridge's C++ resource-lifecycle claims into a general RAII rewrite.
 
+The further [selected resource-owner migration](CPP_OWNED_MIGRATION.md)
+translates an exclusive byte-array class and its complete construction,
+move, borrow and error-cleanup operation into real Hepta `Buffer` ownership.
+Its complete native AST must match the closed resource protocol, and actual
+allocator refusal and destructor-leak controls qualify both target backends.
+The target programs do not retain the original C++ class implementation.
+
 ## Generate and execute
 
 The standalone entry point does not change the main compiler CLI:

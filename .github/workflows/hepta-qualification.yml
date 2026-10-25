@@ -52,7 +52,27 @@ jobs:
       - name: Native compilers and required namespace runtime
         run: |
           sudo apt-get update
-          sudo apt-get install --yes bubblewrap gcc g++ clang gdb libboost-dev qemu-system-arm
+          sudo apt-get install --yes bubblewrap gcc g++ curl gnupg gdb libboost-dev qemu-system-arm
+      - name: Install the explicit LLVM 20 resource backend toolchain
+        shell: bash
+        run: |
+          # Ubuntu 24.04 runner images ship Clang 18 by default. The owned
+          # LLVM profile requires 20+, and every native receipt hashes the
+          # actual selected compiler. Use LLVM's signed versioned repository.
+          curl --fail --location --retry 3 \
+            --output "$RUNNER_TEMP/hepta-llvm.asc" \
+            https://apt.llvm.org/llvm-snapshot.gpg.key
+          hepta_llvm_fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hepta-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$hepta_llvm_fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hepta-llvm.asc" /usr/share/keyrings/hepta-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' \
+            | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list
+          sudo apt-get update
+          sudo apt-get install --yes clang-20 libclang-rt-20-dev
+          test -x /usr/lib/llvm-20/bin/clang
+          test -x /usr/lib/llvm-20/bin/clang++
+          printf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"
+          /usr/lib/llvm-20/bin/clang --version
       - name: Install SHA-256-locked Rust 1.90.0 toolchain and cross stdlibs
         run: python tools/bootstrap_toolchain.py
       - name: Install SHA-256-locked Lean and QEMU tools

@@ -1,0 +1,3763 @@
+{
+  "artifacts": {
+    "c_library": {
+      "bytes": 17928,
+      "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/c.so",
+      "sha256": "95bf3daf25e8e6668183de538f96259d350f0eb7c1f581d29d2e3c491d8da18f"
+    },
+    "driver_binary": {
+      "bytes": 16512,
+      "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+      "sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6"
+    },
+    "driver_object": {
+      "bytes": 2920,
+      "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver.o",
+      "sha256": "e4155f2e1d8d69ffde06a16e586fe4f6a08003c071c1f8f4b7843d9aa53746ff"
+    },
+    "handwritten_rust_library": {
+      "bytes": 3825584,
+      "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/handwritten_rust.so",
+      "sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77"
+    },
+    "handwritten_rust_object": {
+      "bytes": 6328,
+      "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/handwritten_rust.o",
+      "sha256": "a4b52202e276b4e2ff62ae222e7b7ab44f1b8d7c96c331edcf7406eba9342425"
+    },
+    "llvm_library": {
+      "bytes": 15712,
+      "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.so",
+      "sha256": "03a02fc28e122eda8846a7d711801fecb82ff8744906e271223bca2e75ef0c90"
+    },
+    "llvm_object": {
+      "bytes": 4320,
+      "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.o",
+      "sha256": "d7c28b92c97fb7e1f55b289ffead4e90037829e40e76b40aece17254071540f3"
+    },
+    "rust_library": {
+      "bytes": 3825608,
+      "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/rust.so",
+      "sha256": "919691721b72620c5252b80b6ab2ca959c9d3b45262c1914d25c0be13977e98d"
+    },
+    "rust_object": {
+      "bytes": 9816,
+      "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/rust.o",
+      "sha256": "bb85ac43d390329c788d2a34752de95230ca38c1b38f7dd69f023e5c9f5c35df"
+    }
+  },
+  "c_validation": {
+    "assumptions": [],
+    "c_sha256": "d95b7eaaa5f2f7061292801c38adcd678ef94bf54887d523ba7d8cff08ab483d",
+    "checks": {
+      "rust_borrows_types": "not_run",
+      "syntax": "passed",
+      "types_effects_resources": "passed_in_supported_subset"
+    },
+    "claims": {
+      "all_programs_faster_than_rust": false,
+      "bounded_cancellation_latency_proved": false,
+      "deadlock_freedom_proved": false,
+      "hardware_execution_verified": false,
+      "whole_language_soundness_proved": false
+    },
+    "compiler_sha256": "5714ea197f1971da642b438f578004fd2f5c4acdd24f11e636b8b2135c535194",
+    "compiler_version": "0.2.0",
+    "diagnostics": [],
+    "effects": {
+      "OwnedBytes_data": [],
+      "OwnedBytes_drop": [
+        "alloc",
+        "block"
+      ],
+      "OwnedBytes_fill": [
+        "panic",
+        "write"
+      ],
+      "OwnedBytes_get": [
+        "panic"
+      ],
+      "OwnedBytes_move": [],
+      "OwnedBytes_new": [
+        "alloc",
+        "block"
+      ],
+      "OwnedBytes_set": [
+        "panic",
+        "write"
+      ],
+      "OwnedBytes_size": [],
+      "constructor_error": [
+        "alloc",
+        "block",
+        "panic"
+      ],
+      "forward_owned": [],
+      "full_lifecycle": [
+        "alloc",
+        "block",
+        "panic"
+      ],
+      "run_owned": [
+        "alloc",
+        "block",
+        "panic",
+        "write"
+      ],
+      "two_alloc": [
+        "alloc",
+        "block",
+        "panic"
+      ],
+      "two_stage": [
+        "alloc",
+        "block",
+        "panic",
+        "write"
+      ]
+    },
+    "interface_sha256": "5718972ab81bbae12c80f03aaa66763b49d464cd6011dce702a54193c485636a",
+    "ok": true,
+    "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/kernels.hepta",
+    "profile": {
+      "c_optimization": "default",
+      "crate_type": "cdylib",
+      "no_std": false,
+      "overflow_checks": true,
+      "panic": "abort"
+    },
+    "resource_contracts": [],
+    "schema": "hepta.check.v1",
+    "source_sha256": "b12b6b9731ba6cdc30d91f44980dd387c8396f65dc029da35eb0430e6a9c1856",
+    "status": "frontend_only"
+  },
+  "cc": {
+    "path": "/usr/bin/x86_64-linux-gnu-gcc-13",
+    "sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26",
+    "version": "x86_64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0"
+  },
+  "claims": {
+    "actual_owned_cleanup_checked": true,
+    "backend_refinement_proved": false,
+    "cross_target_execution_qualified": false,
+    "fallback_used": false,
+    "finite_correctness_checked": true,
+    "handwritten_rust_baseline_checked": true,
+    "host_owned_performance_gate_passed": false,
+    "optimal_rust_baseline_proved": false,
+    "stored_lifetime_record_lowering_qualified": false,
+    "universal_rust_superiority_proved": false,
+    "whole_language_memory_safety_proved": false,
+    "whole_language_performance_qualified": false
+  },
+  "clang": {
+    "default_target": "x86_64-pc-linux-gnu",
+    "path": "/usr/lib/llvm-20/bin/clang",
+    "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+    "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+  },
+  "compile_time_scope": "wall time of checked build operations, including tool identity and temporary I/O",
+  "compile_wall_seconds": {
+    "c_library": 0.13880971899925498,
+    "driver": 0.12995975299418205,
+    "handwritten_rust_library": 0.13443882200226653,
+    "handwritten_rust_object": 0.09377300200139871,
+    "llvm_library": 0.22335990099963965,
+    "llvm_object": 0.1853830040054163,
+    "native_reference_and_frontends": 0.10241254599532112,
+    "resource_observer": 0.2287076829961734,
+    "rust_library": 0.12580991799768526,
+    "rust_object": 0.0915036959995632
+  },
+  "compiler_tree_sha256": "5714ea197f1971da642b438f578004fd2f5c4acdd24f11e636b8b2135c535194",
+  "correctness": {
+    "case_count": 196,
+    "cases": [
+      {
+        "expected": 0,
+        "kernel": "full_lifecycle",
+        "seed": 0,
+        "size": 0
+      },
+      {
+        "expected": 0,
+        "kernel": "full_lifecycle",
+        "seed": 1,
+        "size": 0
+      },
+      {
+        "expected": 0,
+        "kernel": "full_lifecycle",
+        "seed": 90,
+        "size": 0
+      },
+      {
+        "expected": 0,
+        "kernel": "full_lifecycle",
+        "seed": 255,
+        "size": 0
+      },
+      {
+        "expected": 0,
+        "kernel": "full_lifecycle",
+        "seed": 256,
+        "size": 0
+      },
+      {
+        "expected": 0,
+        "kernel": "full_lifecycle",
+        "seed": 4294967295,
+        "size": 0
+      },
+      {
+        "expected": 0,
+        "kernel": "full_lifecycle",
+        "seed": 0,
+        "size": 1
+      },
+      {
+        "expected": 1,
+        "kernel": "full_lifecycle",
+        "seed": 1,
+        "size": 1
+      },
+      {
+        "expected": 90,
+        "kernel": "full_lifecycle",
+        "seed": 90,
+        "size": 1
+      },
+      {
+        "expected": 255,
+        "kernel": "full_lifecycle",
+        "seed": 255,
+        "size": 1
+      },
+      {
+        "expected": 0,
+        "kernel": "full_lifecycle",
+        "seed": 256,
+        "size": 1
+      },
+      {
+        "expected": 255,
+        "kernel": "full_lifecycle",
+        "seed": 4294967295,
+        "size": 1
+      },
+      {
+        "expected": 1,
+        "kernel": "full_lifecycle",
+        "seed": 0,
+        "size": 2
+      },
+      {
+        "expected": 3,
+        "kernel": "full_lifecycle",
+        "seed": 1,
+        "size": 2
+      },
+      {
+        "expected": 181,
+        "kernel": "full_lifecycle",
+        "seed": 90,
+        "size": 2
+      },
+      {
+        "expected": 255,
+        "kernel": "full_lifecycle",
+        "seed": 255,
+        "size": 2
+      },
+      {
+        "expected": 1,
+        "kernel": "full_lifecycle",
+        "seed": 256,
+        "size": 2
+      },
+      {
+        "expected": 255,
+        "kernel": "full_lifecycle",
+        "seed": 4294967295,
+        "size": 2
+      },
+      {
+        "expected": 21,
+        "kernel": "full_lifecycle",
+        "seed": 0,
+        "size": 7
+      },
+      {
+        "expected": 28,
+        "kernel": "full_lifecycle",
+        "seed": 1,
+        "size": 7
+      },
+      {
+        "expected": 651,
+        "kernel": "full_lifecycle",
+        "seed": 90,
+        "size": 7
+      },
+      {
+        "expected": 270,
+        "kernel": "full_lifecycle",
+        "seed": 255,
+        "size": 7
+      },
+      {
+        "expected": 21,
+        "kernel": "full_lifecycle",
+        "seed": 256,
+        "size": 7
+      },
+      {
+        "expected": 270,
+        "kernel": "full_lifecycle",
+        "seed": 4294967295,
+        "size": 7
+      },
+      {
+        "expected": 32385,
+        "kernel": "full_lifecycle",
+        "seed": 0,
+        "size": 255
+      },
+      {
+        "expected": 32640,
+        "kernel": "full_lifecycle",
+        "seed": 1,
+        "size": 255
+      },
+      {
+        "expected": 32551,
+        "kernel": "full_lifecycle",
+        "seed": 90,
+        "size": 255
+      },
+      {
+        "expected": 32386,
+        "kernel": "full_lifecycle",
+        "seed": 255,
+        "size": 255
+      },
+      {
+        "expected": 32385,
+        "kernel": "full_lifecycle",
+        "seed": 256,
+        "size": 255
+      },
+      {
+        "expected": 32386,
+        "kernel": "full_lifecycle",
+        "seed": 4294967295,
+        "size": 255
+      },
+      {
+        "expected": 32640,
+        "kernel": "full_lifecycle",
+        "seed": 0,
+        "size": 256
+      },
+      {
+        "expected": 32640,
+        "kernel": "full_lifecycle",
+        "seed": 1,
+        "size": 256
+      },
+      {
+        "expected": 32640,
+        "kernel": "full_lifecycle",
+        "seed": 90,
+        "size": 256
+      },
+      {
+        "expected": 32640,
+        "kernel": "full_lifecycle",
+        "seed": 255,
+        "size": 256
+      },
+      {
+        "expected": 32640,
+        "kernel": "full_lifecycle",
+        "seed": 256,
+        "size": 256
+      },
+      {
+        "expected": 32640,
+        "kernel": "full_lifecycle",
+        "seed": 4294967295,
+        "size": 256
+      },
+      {
+        "expected": 32640,
+        "kernel": "full_lifecycle",
+        "seed": 0,
+        "size": 257
+      },
+      {
+        "expected": 32641,
+        "kernel": "full_lifecycle",
+        "seed": 1,
+        "size": 257
+      },
+      {
+        "expected": 32730,
+        "kernel": "full_lifecycle",
+        "seed": 90,
+        "size": 257
+      },
+      {
+        "expected": 32895,
+        "kernel": "full_lifecycle",
+        "seed": 255,
+        "size": 257
+      },
+      {
+        "expected": 32640,
+        "kernel": "full_lifecycle",
+        "seed": 256,
+        "size": 257
+      },
+      {
+        "expected": 32895,
+        "kernel": "full_lifecycle",
+        "seed": 4294967295,
+        "size": 257
+      },
+      {
+        "expected": 521478,
+        "kernel": "full_lifecycle",
+        "seed": 0,
+        "size": 4093
+      },
+      {
+        "expected": 521731,
+        "kernel": "full_lifecycle",
+        "seed": 1,
+        "size": 4093
+      },
+      {
+        "expected": 521976,
+        "kernel": "full_lifecycle",
+        "seed": 90,
+        "size": 4093
+      },
+      {
+        "expected": 521481,
+        "kernel": "full_lifecycle",
+        "seed": 255,
+        "size": 4093
+      },
+      {
+        "expected": 521478,
+        "kernel": "full_lifecycle",
+        "seed": 256,
+        "size": 4093
+      },
+      {
+        "expected": 521481,
+        "kernel": "full_lifecycle",
+        "seed": 4294967295,
+        "size": 4093
+      },
+      {
+        "expected": 8351641,
+        "kernel": "full_lifecycle",
+        "seed": 0,
+        "size": 65519
+      },
+      {
+        "expected": 8351880,
+        "kernel": "full_lifecycle",
+        "seed": 1,
+        "size": 65519
+      },
+      {
+        "expected": 8354463,
+        "kernel": "full_lifecycle",
+        "seed": 90,
+        "size": 65519
+      },
+      {
+        "expected": 8351658,
+        "kernel": "full_lifecycle",
+        "seed": 255,
+        "size": 65519
+      },
+      {
+        "expected": 8351641,
+        "kernel": "full_lifecycle",
+        "seed": 256,
+        "size": 65519
+      },
+      {
+        "expected": 8351658,
+        "kernel": "full_lifecycle",
+        "seed": 4294967295,
+        "size": 65519
+      },
+      {
+        "expected": 1002,
+        "kernel": "constructor_error",
+        "seed": 0,
+        "size": 0
+      },
+      {
+        "expected": 1003,
+        "kernel": "constructor_error",
+        "seed": 1,
+        "size": 0
+      },
+      {
+        "expected": 1092,
+        "kernel": "constructor_error",
+        "seed": 90,
+        "size": 0
+      },
+      {
+        "expected": 1257,
+        "kernel": "constructor_error",
+        "seed": 255,
+        "size": 0
+      },
+      {
+        "expected": 1258,
+        "kernel": "constructor_error",
+        "seed": 256,
+        "size": 0
+      },
+      {
+        "expected": 4294968297,
+        "kernel": "constructor_error",
+        "seed": 4294967295,
+        "size": 0
+      },
+      {
+        "expected": 1002,
+        "kernel": "constructor_error",
+        "seed": 0,
+        "size": 1
+      },
+      {
+        "expected": 1003,
+        "kernel": "constructor_error",
+        "seed": 1,
+        "size": 1
+      },
+      {
+        "expected": 1092,
+        "kernel": "constructor_error",
+        "seed": 90,
+        "size": 1
+      },
+      {
+        "expected": 1257,
+        "kernel": "constructor_error",
+        "seed": 255,
+        "size": 1
+      },
+      {
+        "expected": 1258,
+        "kernel": "constructor_error",
+        "seed": 256,
+        "size": 1
+      },
+      {
+        "expected": 4294968297,
+        "kernel": "constructor_error",
+        "seed": 4294967295,
+        "size": 1
+      },
+      {
+        "expected": 1002,
+        "kernel": "constructor_error",
+        "seed": 0,
+        "size": 2
+      },
+      {
+        "expected": 1003,
+        "kernel": "constructor_error",
+        "seed": 1,
+        "size": 2
+      },
+      {
+        "expected": 1092,
+        "kernel": "constructor_error",
+        "seed": 90,
+        "size": 2
+      },
+      {
+        "expected": 1257,
+        "kernel": "constructor_error",
+        "seed": 255,
+        "size": 2
+      },
+      {
+        "expected": 1258,
+        "kernel": "constructor_error",
+        "seed": 256,
+        "size": 2
+      },
+      {
+        "expected": 4294968297,
+        "kernel": "constructor_error",
+        "seed": 4294967295,
+        "size": 2
+      },
+      {
+        "expected": 1002,
+        "kernel": "constructor_error",
+        "seed": 0,
+        "size": 7
+      },
+      {
+        "expected": 1003,
+        "kernel": "constructor_error",
+        "seed": 1,
+        "size": 7
+      },
+      {
+        "expected": 1092,
+        "kernel": "constructor_error",
+        "seed": 90,
+        "size": 7
+      },
+      {
+        "expected": 1257,
+        "kernel": "constructor_error",
+        "seed": 255,
+        "size": 7
+      },
+      {
+        "expected": 1258,
+        "kernel": "constructor_error",
+        "seed": 256,
+        "size": 7
+      },
+      {
+        "expected": 4294968297,
+        "kernel": "constructor_error",
+        "seed": 4294967295,
+        "size": 7
+      },
+      {
+        "expected": 1002,
+        "kernel": "constructor_error",
+        "seed": 0,
+        "size": 255
+      },
+      {
+        "expected": 1003,
+        "kernel": "constructor_error",
+        "seed": 1,
+        "size": 255
+      },
+      {
+        "expected": 1092,
+        "kernel": "constructor_error",
+        "seed": 90,
+        "size": 255
+      },
+      {
+        "expected": 1257,
+        "kernel": "constructor_error",
+        "seed": 255,
+        "size": 255
+      },
+      {
+        "expected": 1258,
+        "kernel": "constructor_error",
+        "seed": 256,
+        "size": 255
+      },
+      {
+        "expected": 4294968297,
+        "kernel": "constructor_error",
+        "seed": 4294967295,
+        "size": 255
+      },
+      {
+        "expected": 1002,
+        "kernel": "constructor_error",
+        "seed": 0,
+        "size": 256
+      },
+      {
+        "expected": 1003,
+        "kernel": "constructor_error",
+        "seed": 1,
+        "size": 256
+      },
+      {
+        "expected": 1092,
+        "kernel": "constructor_error",
+        "seed": 90,
+        "size": 256
+      },
+      {
+        "expected": 1257,
+        "kernel": "constructor_error",
+        "seed": 255,
+        "size": 256
+      },
+      {
+        "expected": 1258,
+        "kernel": "constructor_error",
+        "seed": 256,
+        "size": 256
+      },
+      {
+        "expected": 4294968297,
+        "kernel": "constructor_error",
+        "seed": 4294967295,
+        "size": 256
+      },
+      {
+        "expected": 1002,
+        "kernel": "constructor_error",
+        "seed": 0,
+        "size": 257
+      },
+      {
+        "expected": 1003,
+        "kernel": "constructor_error",
+        "seed": 1,
+        "size": 257
+      },
+      {
+        "expected": 1092,
+        "kernel": "constructor_error",
+        "seed": 90,
+        "size": 257
+      },
+      {
+        "expected": 1257,
+        "kernel": "constructor_error",
+        "seed": 255,
+        "size": 257
+      },
+      {
+        "expected": 1258,
+        "kernel": "constructor_error",
+        "seed": 256,
+        "size": 257
+      },
+      {
+        "expected": 4294968297,
+        "kernel": "constructor_error",
+        "seed": 4294967295,
+        "size": 257
+      },
+      {
+        "expected": 1002,
+        "kernel": "constructor_error",
+        "seed": 0,
+        "size": 4093
+      },
+      {
+        "expected": 1003,
+        "kernel": "constructor_error",
+        "seed": 1,
+        "size": 4093
+      },
+      {
+        "expected": 1092,
+        "kernel": "constructor_error",
+        "seed": 90,
+        "size": 4093
+      },
+      {
+        "expected": 1257,
+        "kernel": "constructor_error",
+        "seed": 255,
+        "size": 4093
+      },
+      {
+        "expected": 1258,
+        "kernel": "constructor_error",
+        "seed": 256,
+        "size": 4093
+      },
+      {
+        "expected": 4294968297,
+        "kernel": "constructor_error",
+        "seed": 4294967295,
+        "size": 4093
+      },
+      {
+        "expected": 1002,
+        "kernel": "constructor_error",
+        "seed": 0,
+        "size": 65519
+      },
+      {
+        "expected": 1003,
+        "kernel": "constructor_error",
+        "seed": 1,
+        "size": 65519
+      },
+      {
+        "expected": 1092,
+        "kernel": "constructor_error",
+        "seed": 90,
+        "size": 65519
+      },
+      {
+        "expected": 1257,
+        "kernel": "constructor_error",
+        "seed": 255,
+        "size": 65519
+      },
+      {
+        "expected": 1258,
+        "kernel": "constructor_error",
+        "seed": 256,
+        "size": 65519
+      },
+      {
+        "expected": 4294968297,
+        "kernel": "constructor_error",
+        "seed": 4294967295,
+        "size": 65519
+      },
+      {
+        "expected": 0,
+        "kernel": "two_stage",
+        "seed": 0,
+        "size": 0
+      },
+      {
+        "expected": 0,
+        "kernel": "two_stage",
+        "seed": 1,
+        "size": 0
+      },
+      {
+        "expected": 0,
+        "kernel": "two_stage",
+        "seed": 90,
+        "size": 0
+      },
+      {
+        "expected": 0,
+        "kernel": "two_stage",
+        "seed": 255,
+        "size": 0
+      },
+      {
+        "expected": 0,
+        "kernel": "two_stage",
+        "seed": 256,
+        "size": 0
+      },
+      {
+        "expected": 0,
+        "kernel": "two_stage",
+        "seed": 4294967295,
+        "size": 0
+      },
+      {
+        "expected": 90,
+        "kernel": "two_stage",
+        "seed": 0,
+        "size": 1
+      },
+      {
+        "expected": 91,
+        "kernel": "two_stage",
+        "seed": 1,
+        "size": 1
+      },
+      {
+        "expected": 0,
+        "kernel": "two_stage",
+        "seed": 90,
+        "size": 1
+      },
+      {
+        "expected": 165,
+        "kernel": "two_stage",
+        "seed": 255,
+        "size": 1
+      },
+      {
+        "expected": 90,
+        "kernel": "two_stage",
+        "seed": 256,
+        "size": 1
+      },
+      {
+        "expected": 165,
+        "kernel": "two_stage",
+        "seed": 4294967295,
+        "size": 1
+      },
+      {
+        "expected": 180,
+        "kernel": "two_stage",
+        "seed": 0,
+        "size": 2
+      },
+      {
+        "expected": 182,
+        "kernel": "two_stage",
+        "seed": 1,
+        "size": 2
+      },
+      {
+        "expected": 0,
+        "kernel": "two_stage",
+        "seed": 90,
+        "size": 2
+      },
+      {
+        "expected": 330,
+        "kernel": "two_stage",
+        "seed": 255,
+        "size": 2
+      },
+      {
+        "expected": 180,
+        "kernel": "two_stage",
+        "seed": 256,
+        "size": 2
+      },
+      {
+        "expected": 330,
+        "kernel": "two_stage",
+        "seed": 4294967295,
+        "size": 2
+      },
+      {
+        "expected": 630,
+        "kernel": "two_stage",
+        "seed": 0,
+        "size": 7
+      },
+      {
+        "expected": 637,
+        "kernel": "two_stage",
+        "seed": 1,
+        "size": 7
+      },
+      {
+        "expected": 0,
+        "kernel": "two_stage",
+        "seed": 90,
+        "size": 7
+      },
+      {
+        "expected": 1155,
+        "kernel": "two_stage",
+        "seed": 255,
+        "size": 7
+      },
+      {
+        "expected": 630,
+        "kernel": "two_stage",
+        "seed": 256,
+        "size": 7
+      },
+      {
+        "expected": 1155,
+        "kernel": "two_stage",
+        "seed": 4294967295,
+        "size": 7
+      },
+      {
+        "expected": 22950,
+        "kernel": "two_stage",
+        "seed": 0,
+        "size": 255
+      },
+      {
+        "expected": 23205,
+        "kernel": "two_stage",
+        "seed": 1,
+        "size": 255
+      },
+      {
+        "expected": 0,
+        "kernel": "two_stage",
+        "seed": 90,
+        "size": 255
+      },
+      {
+        "expected": 42075,
+        "kernel": "two_stage",
+        "seed": 255,
+        "size": 255
+      },
+      {
+        "expected": 22950,
+        "kernel": "two_stage",
+        "seed": 256,
+        "size": 255
+      },
+      {
+        "expected": 42075,
+        "kernel": "two_stage",
+        "seed": 4294967295,
+        "size": 255
+      },
+      {
+        "expected": 23040,
+        "kernel": "two_stage",
+        "seed": 0,
+        "size": 256
+      },
+      {
+        "expected": 23296,
+        "kernel": "two_stage",
+        "seed": 1,
+        "size": 256
+      },
+      {
+        "expected": 0,
+        "kernel": "two_stage",
+        "seed": 90,
+        "size": 256
+      },
+      {
+        "expected": 42240,
+        "kernel": "two_stage",
+        "seed": 255,
+        "size": 256
+      },
+      {
+        "expected": 23040,
+        "kernel": "two_stage",
+        "seed": 256,
+        "size": 256
+      },
+      {
+        "expected": 42240,
+        "kernel": "two_stage",
+        "seed": 4294967295,
+        "size": 256
+      },
+      {
+        "expected": 23130,
+        "kernel": "two_stage",
+        "seed": 0,
+        "size": 257
+      },
+      {
+        "expected": 23387,
+        "kernel": "two_stage",
+        "seed": 1,
+        "size": 257
+      },
+      {
+        "expected": 0,
+        "kernel": "two_stage",
+        "seed": 90,
+        "size": 257
+      },
+      {
+        "expected": 42405,
+        "kernel": "two_stage",
+        "seed": 255,
+        "size": 257
+      },
+      {
+        "expected": 23130,
+        "kernel": "two_stage",
+        "seed": 256,
+        "size": 257
+      },
+      {
+        "expected": 42405,
+        "kernel": "two_stage",
+        "seed": 4294967295,
+        "size": 257
+      },
+      {
+        "expected": 368370,
+        "kernel": "two_stage",
+        "seed": 0,
+        "size": 4093
+      },
+      {
+        "expected": 372463,
+        "kernel": "two_stage",
+        "seed": 1,
+        "size": 4093
+      },
+      {
+        "expected": 0,
+        "kernel": "two_stage",
+        "seed": 90,
+        "size": 4093
+      },
+      {
+        "expected": 675345,
+        "kernel": "two_stage",
+        "seed": 255,
+        "size": 4093
+      },
+      {
+        "expected": 368370,
+        "kernel": "two_stage",
+        "seed": 256,
+        "size": 4093
+      },
+      {
+        "expected": 675345,
+        "kernel": "two_stage",
+        "seed": 4294967295,
+        "size": 4093
+      },
+      {
+        "expected": 5896710,
+        "kernel": "two_stage",
+        "seed": 0,
+        "size": 65519
+      },
+      {
+        "expected": 5962229,
+        "kernel": "two_stage",
+        "seed": 1,
+        "size": 65519
+      },
+      {
+        "expected": 0,
+        "kernel": "two_stage",
+        "seed": 90,
+        "size": 65519
+      },
+      {
+        "expected": 10810635,
+        "kernel": "two_stage",
+        "seed": 255,
+        "size": 65519
+      },
+      {
+        "expected": 5896710,
+        "kernel": "two_stage",
+        "seed": 256,
+        "size": 65519
+      },
+      {
+        "expected": 10810635,
+        "kernel": "two_stage",
+        "seed": 4294967295,
+        "size": 65519
+      },
+      {
+        "expected": 1001,
+        "kernel": "full_lifecycle",
+        "seed": 0,
+        "size": 9223372036854775808
+      },
+      {
+        "expected": 1001,
+        "kernel": "full_lifecycle",
+        "seed": 4294967295,
+        "size": 9223372036854775808
+      },
+      {
+        "expected": 1001,
+        "kernel": "full_lifecycle",
+        "seed": 0,
+        "size": 18446744073709551615
+      },
+      {
+        "expected": 1001,
+        "kernel": "full_lifecycle",
+        "seed": 4294967295,
+        "size": 18446744073709551615
+      },
+      {
+        "expected": 1001,
+        "kernel": "constructor_error",
+        "seed": 0,
+        "size": 9223372036854775808
+      },
+      {
+        "expected": 4294968296,
+        "kernel": "constructor_error",
+        "seed": 4294967295,
+        "size": 9223372036854775808
+      },
+      {
+        "expected": 1001,
+        "kernel": "constructor_error",
+        "seed": 0,
+        "size": 18446744073709551615
+      },
+      {
+        "expected": 4294968296,
+        "kernel": "constructor_error",
+        "seed": 4294967295,
+        "size": 18446744073709551615
+      },
+      {
+        "expected": 1001,
+        "kernel": "two_stage",
+        "seed": 0,
+        "size": 9223372036854775808
+      },
+      {
+        "expected": 1001,
+        "kernel": "two_stage",
+        "seed": 4294967295,
+        "size": 9223372036854775808
+      },
+      {
+        "expected": 1001,
+        "kernel": "two_stage",
+        "seed": 0,
+        "size": 18446744073709551615
+      },
+      {
+        "expected": 1001,
+        "kernel": "two_stage",
+        "seed": 4294967295,
+        "size": 18446744073709551615
+      },
+      {
+        "expected": 1,
+        "kernel": "two_alloc",
+        "seed": 0,
+        "size": 9223372036854775808
+      },
+      {
+        "expected": 1,
+        "kernel": "two_alloc",
+        "seed": 4294967295,
+        "size": 9223372036854775808
+      },
+      {
+        "expected": 1,
+        "kernel": "two_alloc",
+        "seed": 0,
+        "size": 18446744073709551615
+      },
+      {
+        "expected": 1,
+        "kernel": "two_alloc",
+        "seed": 4294967295,
+        "size": 18446744073709551615
+      },
+      {
+        "expected": 19,
+        "kernel": "two_alloc",
+        "seed": 0,
+        "size": 0
+      },
+      {
+        "expected": 2,
+        "kernel": "two_alloc",
+        "seed": 1,
+        "size": 0
+      },
+      {
+        "expected": 2,
+        "kernel": "two_alloc",
+        "seed": 4294967295,
+        "size": 0
+      },
+      {
+        "expected": 20,
+        "kernel": "two_alloc",
+        "seed": 0,
+        "size": 1
+      },
+      {
+        "expected": 2,
+        "kernel": "two_alloc",
+        "seed": 1,
+        "size": 1
+      },
+      {
+        "expected": 2,
+        "kernel": "two_alloc",
+        "seed": 4294967295,
+        "size": 1
+      },
+      {
+        "expected": 22,
+        "kernel": "two_alloc",
+        "seed": 0,
+        "size": 3
+      },
+      {
+        "expected": 2,
+        "kernel": "two_alloc",
+        "seed": 1,
+        "size": 3
+      },
+      {
+        "expected": 2,
+        "kernel": "two_alloc",
+        "seed": 4294967295,
+        "size": 3
+      },
+      {
+        "expected": 24,
+        "kernel": "two_alloc",
+        "seed": 0,
+        "size": 5
+      },
+      {
+        "expected": 2,
+        "kernel": "two_alloc",
+        "seed": 1,
+        "size": 5
+      },
+      {
+        "expected": 2,
+        "kernel": "two_alloc",
+        "seed": 4294967295,
+        "size": 5
+      },
+      {
+        "expected": 36,
+        "kernel": "two_alloc",
+        "seed": 0,
+        "size": 17
+      },
+      {
+        "expected": 2,
+        "kernel": "two_alloc",
+        "seed": 1,
+        "size": 17
+      },
+      {
+        "expected": 2,
+        "kernel": "two_alloc",
+        "seed": 4294967295,
+        "size": 17
+      },
+      {
+        "expected": 4112,
+        "kernel": "two_alloc",
+        "seed": 0,
+        "size": 4093
+      },
+      {
+        "expected": 2,
+        "kernel": "two_alloc",
+        "seed": 1,
+        "size": 4093
+      },
+      {
+        "expected": 2,
+        "kernel": "two_alloc",
+        "seed": 4294967295,
+        "size": 4093
+      }
+    ],
+    "native_calls": 784,
+    "observations_sha256": {
+      "c": "836bbec9b9ef36c5aea12ee157346462e6ede4a407902222c4e319b51d94ea42",
+      "handwritten_rust": "836bbec9b9ef36c5aea12ee157346462e6ede4a407902222c4e319b51d94ea42",
+      "llvm": "836bbec9b9ef36c5aea12ee157346462e6ede4a407902222c4e319b51d94ea42",
+      "rust": "836bbec9b9ef36c5aea12ee157346462e6ede4a407902222c4e319b51d94ea42"
+    },
+    "oracle": "independent Python integer/byte formula, including rejected allocation sizes",
+    "status": "passed_finite_domain"
+  },
+  "driver_commands": [
+    {
+      "command": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O3",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-c",
+        "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver.c",
+        "-o",
+        "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver.o"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "/usr/lib/llvm-20/bin/clang",
+        "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver.o",
+        "-ldl",
+        "-o",
+        "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "driver_source_sha256": "f4a2702b4d0e8e593d6fb3cf0f827bb0325b55a3eacfe0306d22aec0df09eb3a",
+  "environment": {
+    "allowed_cpus_before": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "cgroup_cpu_max": "800000 100000",
+    "cpu_model": "AMD EPYC 9V74 80-Core Processor",
+    "kernel": "6.18.55",
+    "libc": [
+      "glibc",
+      "2.39"
+    ],
+    "loadavg_after": [
+      2.22216796875,
+      1.88232421875,
+      2.20556640625
+    ],
+    "loadavg_before": [
+      0.998046875,
+      1.47509765625,
+      2.1259765625
+    ],
+    "machine": "x86_64",
+    "python": "3.12.3",
+    "scaling_governor": null,
+    "scope": "shared host; fixed affinity does not provide exclusive CPU access",
+    "selected_cpu": 0,
+    "system": "Linux"
+  },
+  "evaluation": {
+    "geometric_mean_paired_time_ratios": {
+      "handwritten_rust": 1.2697554930074384,
+      "rust": 1.3147155074111558
+    },
+    "measurement_quality_failures": [
+      "constructor_error/rust: relative MAD above fixed maximum",
+      "constructor_error/handwritten_rust: relative MAD above fixed maximum"
+    ],
+    "ok": false,
+    "performance_threshold_failures": [
+      "full_lifecycle/handwritten_rust: paired ratio exceeds fixed maximum",
+      "constructor_error/rust: paired ratio exceeds fixed maximum",
+      "constructor_error/handwritten_rust: paired ratio exceeds fixed maximum",
+      "rust: geometric mean exceeds fixed maximum",
+      "handwritten_rust: geometric mean exceeds fixed maximum"
+    ],
+    "status": "measurement_inconclusive",
+    "summary": {
+      "constructor_error": {
+        "comparisons": {
+          "handwritten_rust": {
+            "median_paired_time_ratio": 2.611978928549545,
+            "paired_time_ratios": [
+              2.7019597240400057,
+              2.833142647031005,
+              1.6551735591683319,
+              2.041073973604105,
+              2.689060350941488,
+              2.611978928549545,
+              2.343932722659963
+            ]
+          },
+          "rust": {
+            "median_paired_time_ratio": 2.51460625016461,
+            "paired_time_ratios": [
+              2.51460625016461,
+              2.3672112884719283,
+              2.282178739400445,
+              2.764949783601046,
+              2.613991996944189,
+              2.653403217973676,
+              2.4840329667529226
+            ]
+          }
+        },
+        "implementations": {
+          "handwritten_rust": {
+            "maximum_ns": 341854542,
+            "median_ns": 210184648,
+            "median_ns_per_native_call": 25.055962562561035,
+            "minimum_ns": 190481668,
+            "relative_mad": 0.07881138873663122,
+            "samples_ns": [
+              196608498,
+              210184648,
+              341854542,
+              326721177,
+              190481668,
+              193619704,
+              225726998
+            ]
+          },
+          "llvm": {
+            "maximum_ns": 666862091,
+            "median_ns": 531228243,
+            "median_ns_per_native_call": 63.32734143733978,
+            "minimum_ns": 505730587,
+            "relative_mad": 0.047997553473451145,
+            "samples_ns": [
+              531228243,
+              595483090,
+              565828599,
+              666862091,
+              512216701,
+              505730587,
+              529088897
+            ]
+          },
+          "rust": {
+            "maximum_ns": 251554685,
+            "median_ns": 212995924,
+            "median_ns_per_native_call": 25.391092777252197,
+            "minimum_ns": 190596960,
+            "relative_mad": 0.10516146778470746,
+            "samples_ns": [
+              211257028,
+              251554685,
+              247933516,
+              241184160,
+              195951901,
+              190596960,
+              212995924
+            ]
+          }
+        }
+      },
+      "full_lifecycle": {
+        "comparisons": {
+          "handwritten_rust": {
+            "median_paired_time_ratio": 1.3315758044599724,
+            "paired_time_ratios": [
+              1.3315758044599724,
+              1.4225647649644457,
+              1.3006908975560703,
+              1.2218877685885232,
+              1.2593729320563096,
+              1.5262616529335782,
+              1.4844278612542052
+            ]
+          },
+          "rust": {
+            "median_paired_time_ratio": 0.8285950958982505,
+            "paired_time_ratios": [
+              0.8285950958982505,
+              0.8837455189778521,
+              0.7905565200327571,
+              0.7034814015781861,
+              0.7397253742434744,
+              0.8615709104557379,
+              0.8390138563340861
+            ]
+          }
+        },
+        "implementations": {
+          "handwritten_rust": {
+            "maximum_ns": 2057621565,
+            "median_ns": 1863748044,
+            "median_ns_per_native_call": 1777.4086418151855,
+            "minimum_ns": 1627365734,
+            "relative_mad": 0.023671907875118338,
+            "samples_ns": [
+              1863748044,
+              2057621565,
+              1886197293,
+              1907866516,
+              1837191889,
+              1735839938,
+              1627365734
+            ]
+          },
+          "llvm": {
+            "maximum_ns": 2927099938,
+            "median_ns": 2453359650,
+            "median_ns_per_native_call": 2339.7060871124268,
+            "minimum_ns": 2313709736,
+            "relative_mad": 0.049793306904676614,
+            "samples_ns": [
+              2481721801,
+              2927099938,
+              2453359650,
+              2331198760,
+              2313709736,
+              2649345933,
+              2415707036
+            ]
+          },
+          "rust": {
+            "maximum_ns": 3313802973,
+            "median_ns": 3103332384,
+            "median_ns_per_native_call": 2959.568389892578,
+            "minimum_ns": 2879221860,
+            "relative_mad": 0.03487749251676678,
+            "samples_ns": [
+              2995095932,
+              3312152509,
+              3103332384,
+              3313802973,
+              3127795553,
+              3075017855,
+              2879221860
+            ]
+          }
+        }
+      },
+      "two_stage": {
+        "comparisons": {
+          "handwritten_rust": {
+            "median_paired_time_ratio": 0.5886060702202693,
+            "paired_time_ratios": [
+              0.5886060702202693,
+              0.611575716992491,
+              0.5750776669309909,
+              0.5567656065519869,
+              0.5954463335376259,
+              0.6091904725282554,
+              0.5766310616953898
+            ]
+          },
+          "rust": {
+            "median_paired_time_ratio": 1.090643982398203,
+            "paired_time_ratios": [
+              1.1129045539696063,
+              1.1408872374691144,
+              1.0252986942472215,
+              1.0789141557871578,
+              1.094787821767024,
+              1.090643982398203,
+              0.9882921808016001
+            ]
+          }
+        },
+        "implementations": {
+          "handwritten_rust": {
+            "maximum_ns": 3231791469,
+            "median_ns": 3029574227,
+            "median_ns_per_native_call": 2889.2271299362183,
+            "minimum_ns": 2879142842,
+            "relative_mad": 0.04350114508681421,
+            "samples_ns": [
+              3080718091,
+              3161364175,
+              3231791469,
+              2960676230,
+              2879142842,
+              2896733146,
+              3029574227
+            ]
+          },
+          "llvm": {
+            "maximum_ns": 1933413562,
+            "median_ns": 1764662234,
+            "median_ns_per_native_call": 1682.913049697876,
+            "minimum_ns": 1648402697,
+            "relative_mad": 0.02849677634116581,
+            "samples_ns": [
+              1813329369,
+              1933413562,
+              1858531098,
+              1648402697,
+              1714375049,
+              1764662234,
+              1746946603
+            ]
+          },
+          "rust": {
+            "maximum_ns": 1812672842,
+            "median_ns": 1629366474,
+            "median_ns_per_native_call": 1553.884958267212,
+            "minimum_ns": 1527834896,
+            "relative_mad": 0.040071659778118156,
+            "samples_ns": [
+              1629366474,
+              1694657893,
+              1812672842,
+              1527834896,
+              1565942747,
+              1618000248,
+              1767641834
+            ]
+          }
+        }
+      }
+    }
+  },
+  "finished_utc": "2026-10-25T16:50:44Z",
+  "generated_c_sha256": "d95b7eaaa5f2f7061292801c38adcd678ef94bf54887d523ba7d8cff08ab483d",
+  "generated_rust_sha256": "c79e882e1f6a4ec0a9d9362ece6e58f8a12925550561185b964e872ee88a73d1",
+  "git_commit": "fa4f8209e45b98e5b1f4cf42e3c47d657d3249d3",
+  "handwritten_rust_sha256": "88e894018658f4f329217f399926c053a8734b526d372f3b5e2016786f253de4",
+  "inputs": {
+    "examples/llvm_owned/driver.c": "f4a2702b4d0e8e593d6fb3cf0f827bb0325b55a3eacfe0306d22aec0df09eb3a",
+    "examples/llvm_owned/observe.c": "792886e5b6b7e3e0d1e5a93263b430d57256ac5f90c93277ef07a5634567f01b",
+    "examples/llvm_owned/owned.hepta": "31f6f8e18fd222237cd9506d05b0c7b8a0ea2669cb9cdde77c9877948bce9e15",
+    "examples/llvm_owned/qualification.hepta": "b32e67bf70ee6249d6cae2ff6a0677516607d2d5ad38345d7fe72d78f10882b1",
+    "examples/llvm_owned/reference.rs": "88e894018658f4f329217f399926c053a8734b526d372f3b5e2016786f253de4",
+    "tools/evidence_checks.py": "720a9f55e73e3af3467918efabf0db8b5ff85da8ab07c3efd115d8b1423bd3d7",
+    "tools/qualify_llvm_owned.py": "d7a30fb29d91b8560c3690082ab444770081017cb918f50a174d313c969abae0"
+  },
+  "llvm": {
+    "compiler_sha256": "5714ea197f1971da642b438f578004fd2f5c4acdd24f11e636b8b2135c535194",
+    "functions": [
+      "constructor_error",
+      "full_lifecycle",
+      "two_alloc",
+      "two_stage"
+    ],
+    "profile": "hepta.llvm-owned-bytes-host.v1",
+    "resource_ir_sha256": "43b5f950029874f18e99966a34f220b196d16e533befa65dcf5dfeaf4061cb5e",
+    "resource_verification_sha256": "2f36a8c71ac82a03383386524506059400d1ae39d7e095b29c49c3ffe30ff515",
+    "semantic_sha256": "b5f2228e6c2c7c5761db96b68d8642e2aed227f0a0127fdbac09e1bd146386fd",
+    "sha256": "71677363e005e4ff6a41e2152e65d8a476cf64b10d6b6f4f244ce6f3d1139188",
+    "specializations": [
+      "__hepta_owned_fn0",
+      "__hepta_owned_fn1",
+      "__hepta_owned_fn2",
+      "__hepta_owned_fn3",
+      "__hepta_owned_fn4",
+      "__hepta_owned_fn5",
+      "__hepta_owned_fn6",
+      "__hepta_owned_fn7",
+      "__hepta_owned_fn8",
+      "full_lifecycle",
+      "constructor_error",
+      "two_stage",
+      "two_alloc",
+      "__hepta_owned_fn13",
+      "__hepta_owned_fn14"
+    ]
+  },
+  "llvm_ir": "; hepta.llvm-owned-bytes-host.v1: directly emitted from checked Hepta, no C/Rust codegen\ntarget triple = \"x86_64-unknown-linux-gnu\"\n%hepta.bytes = type { ptr, i64 }\n%hepta.type0 = type { %hepta.bytes }\n%hepta.type1 = type { i32, { %hepta.bytes }, { i8 } }\n%hepta.type2 = type { i32, { %hepta.type0 }, { i8 } }\ndeclare noalias ptr @malloc(i64) \"no-builtins\"\ndeclare void @free(ptr)\ndeclare void @abort() noreturn\ndeclare void @llvm.memset.p0.i64(ptr, i8, i64, i1 immarg)\ndeclare {i64, i1} @llvm.uadd.with.overflow.i64(i64, i64)\n\ndefine internal noalias ptr @__hepta_owned_allocate(i64 %size) noinline optnone {\nentry:\n  %data = call ptr @malloc(i64 %size) nobuiltin\n  ret ptr %data\n}\ndefine internal %hepta.type1 @__hepta_owned_try_buffer(i64 %size) {\nentry:\n  %oversized = icmp ugt i64 %size, 9223372036854775807\n  br i1 %oversized, label %failure, label %check_zero\ncheck_zero:\n  %zero = icmp eq i64 %size, 0\n  br i1 %zero, label %empty, label %allocate\nempty:\n  ret %hepta.type1 zeroinitializer\nallocate:\n  %data = call ptr @__hepta_owned_allocate(i64 %size)\n  %failed = icmp eq ptr %data, null\n  br i1 %failed, label %failure, label %success\nsuccess:\n  call void @llvm.memset.p0.i64(ptr %data, i8 0, i64 %size, i1 false)\n  %with_data = insertvalue %hepta.bytes zeroinitializer, ptr %data, 0\n  %buffer = insertvalue %hepta.bytes %with_data, i64 %size, 1\n  %ok = insertvalue %hepta.type1 zeroinitializer, %hepta.bytes %buffer, 1, 0\n  ret %hepta.type1 %ok\nfailure:\n  %bad_tag = insertvalue %hepta.type1 zeroinitializer, i32 1, 0\n  %error = insertvalue %hepta.type1 %bad_tag, i8 1, 2, 0\n  ret %hepta.type1 %error\n}\ndefine internal void @__hepta_owned_drop0(%hepta.bytes %owner) {\nentry:\n  %data = extractvalue %hepta.bytes %owner, 0\n  call void @free(ptr %data)\n  ret void\n}\n\ndefine internal void @__hepta_owned_drop1(%hepta.type0 %owner) {\nentry:\n  %child1 = extractvalue %hepta.type0 %owner, 0\n  call void @__hepta_owned_drop0(%hepta.bytes %child1)\n  ret void\n}\n\ndefine internal %hepta.type2 @__hepta_owned_fn0(i64 %arg0, i1 %arg1) {\nentry:\n  %v1 = alloca i64\n  %v2 = alloca i1\n  %v7 = alloca i8\n  %v12 = alloca %hepta.bytes\n  store i64 %arg0, ptr %v1\n  store i1 %arg1, ptr %v2\n  %v3 = load i64, ptr %v1\n  %v4 = call %hepta.type1 @__hepta_owned_try_buffer(i64 %v3)\n  %v5 = extractvalue %hepta.type1 %v4, 0\n  switch i32 %v5, label %invalid3 [ i32 0, label %variant1 i32 1, label %variant2 ]\ninvalid3:\n  call void @abort()\n  unreachable\nvariant2:\n  %v6 = extractvalue %hepta.type1 %v4, 2, 0\n  store i8 %v6, ptr %v7\n  %v8 = load i8, ptr %v7\n  %v9 = insertvalue %hepta.type2 zeroinitializer, i32 1, 0\n  %v10 = insertvalue %hepta.type2 %v9, i8 %v8, 2, 0\n  ret %hepta.type2 %v10\nvariant1:\n  %v11 = extractvalue %hepta.type1 %v4, 1, 0\n  store %hepta.bytes %v11, ptr %v12\n  %v13 = load i1, ptr %v2\n  br i1 %v13, label %then5, label %else6\nthen5:\n  %v14 = load %hepta.bytes, ptr %v12\n  store %hepta.bytes zeroinitializer, ptr %v12\n  call void @__hepta_owned_drop0(%hepta.bytes %v14)\n  %v15 = insertvalue %hepta.type2 zeroinitializer, i32 1, 0\n  %v16 = insertvalue %hepta.type2 %v15, i8 2, 2, 0\n  ret %hepta.type2 %v16\nelse6:\n  br label %join7\njoin7:\n  %v17 = load %hepta.bytes, ptr %v12\n  store %hepta.bytes zeroinitializer, ptr %v12\n  %v18 = insertvalue %hepta.type0 zeroinitializer, %hepta.bytes %v17, 0\n  %v19 = insertvalue %hepta.type2 zeroinitializer, i32 0, 0\n  %v20 = insertvalue %hepta.type2 %v19, %hepta.type0 %v18, 1, 0\n  ret %hepta.type2 %v20\n}\n\ndefine internal %hepta.type0 @__hepta_owned_fn1(%hepta.type0 %arg0) {\nentry:\n  %v1 = alloca %hepta.type0\n  store %hepta.type0 %arg0, ptr %v1\n  %v2 = load %hepta.type0, ptr %v1\n  store %hepta.type0 zeroinitializer, ptr %v1\n  ret %hepta.type0 %v2\n}\n\ndefine internal void @__hepta_owned_fn2(%hepta.type0 %arg0) {\nentry:\n  %v1 = alloca %hepta.type0\n  store %hepta.type0 %arg0, ptr %v1\n  %v2 = load %hepta.type0, ptr %v1\n  store %hepta.type0 zeroinitializer, ptr %v1\n  call void @__hepta_owned_drop1(%hepta.type0 %v2)\n  ret void\n}\n\ndefine internal i64 @__hepta_owned_fn3(ptr %arg0) {\nentry:\n  %v1 = getelementptr %hepta.type0, ptr %arg0, i32 0, i32 0\n  %v2 = load %hepta.bytes, ptr %v1\n  %v3 = extractvalue %hepta.bytes %v2, 0\n  %v4 = extractvalue %hepta.bytes %v2, 1\n  ret i64 %v4\n}\n\ndefine internal %hepta.bytes @__hepta_owned_fn4(ptr %arg0) {\nentry:\n  %v1 = getelementptr %hepta.type0, ptr %arg0, i32 0, i32 0\n  %v2 = load %hepta.bytes, ptr %v1\n  %v3 = extractvalue %hepta.bytes %v2, 0\n  %v4 = extractvalue %hepta.bytes %v2, 1\n  %v5 = insertvalue %hepta.bytes zeroinitializer, ptr %v3, 0\n  %v6 = insertvalue %hepta.bytes %v5, i64 %v4, 1\n  ret %hepta.bytes %v6\n}\n\ndefine internal void @__hepta_owned_fn5(ptr %arg0, i8 %arg1) {\nentry:\n  %v1 = alloca i8\n  %v6 = alloca i64\n  store i8 %arg1, ptr %v1\n  %v2 = getelementptr %hepta.type0, ptr %arg0, i32 0, i32 0\n  %v3 = load %hepta.bytes, ptr %v2\n  %v4 = extractvalue %hepta.bytes %v3, 0\n  %v5 = extractvalue %hepta.bytes %v3, 1\n  store i64 0, ptr %v6\n  br label %loop1\nloop1:\n  %v7 = load i64, ptr %v6\n  %v8 = icmp ult i64 %v7, %v5\n  br i1 %v8, label %body2, label %exit3\nbody2:\n  %v9 = load i8, ptr %v1\n  %v10 = getelementptr %hepta.type0, ptr %arg0, i32 0, i32 0\n  %v11 = load %hepta.bytes, ptr %v10\n  %v12 = extractvalue %hepta.bytes %v11, 0\n  %v13 = extractvalue %hepta.bytes %v11, 1\n  %v14 = load i64, ptr %v6\n  %v15 = icmp ult i64 %v14, %v13\n  br i1 %v15, label %checked4, label %abort5\nabort5:\n  call void @abort()\n  unreachable\nchecked4:\n  %v16 = getelementptr i8, ptr %v12, i64 %v14\n  store i8 %v9, ptr %v16\n  %v17 = load i64, ptr %v6\n  %v18 = add i64 %v17, 1\n  store i64 %v18, ptr %v6\n  br label %loop1\nexit3:\n  ret void\n}\n\ndefine internal i8 @__hepta_owned_fn6(ptr %arg0, i64 %arg1) {\nentry:\n  %v1 = alloca i64\n  store i64 %arg1, ptr %v1\n  %v2 = getelementptr %hepta.type0, ptr %arg0, i32 0, i32 0\n  %v3 = load %hepta.bytes, ptr %v2\n  %v4 = extractvalue %hepta.bytes %v3, 0\n  %v5 = extractvalue %hepta.bytes %v3, 1\n  %v6 = load i64, ptr %v1\n  %v7 = icmp ult i64 %v6, %v5\n  br i1 %v7, label %checked1, label %abort2\nabort2:\n  call void @abort()\n  unreachable\nchecked1:\n  %v8 = getelementptr i8, ptr %v4, i64 %v6\n  %v9 = load i8, ptr %v8\n  ret i8 %v9\n}\n\ndefine internal void @__hepta_owned_fn7(ptr %arg0, i64 %arg1, i8 %arg2) {\nentry:\n  %v1 = alloca i64\n  %v2 = alloca i8\n  store i64 %arg1, ptr %v1\n  store i8 %arg2, ptr %v2\n  %v3 = load i8, ptr %v2\n  %v4 = getelementptr %hepta.type0, ptr %arg0, i32 0, i32 0\n  %v5 = load %hepta.bytes, ptr %v4\n  %v6 = extractvalue %hepta.bytes %v5, 0\n  %v7 = extractvalue %hepta.bytes %v5, 1\n  %v8 = load i64, ptr %v1\n  %v9 = icmp ult i64 %v8, %v7\n  br i1 %v9, label %checked1, label %abort2\nabort2:\n  call void @abort()\n  unreachable\nchecked1:\n  %v10 = getelementptr i8, ptr %v6, i64 %v8\n  store i8 %v3, ptr %v10\n  ret void\n}\n\ndefine internal i64 @__hepta_owned_fn8(i64 %arg0, i8 %arg1, i64 %arg2, i1 %arg3, i1 %arg4) {\nentry:\n  %v1 = alloca i64\n  %v2 = alloca i8\n  %v3 = alloca i64\n  %v4 = alloca i1\n  %v5 = alloca i1\n  %v11 = alloca i8\n  %v19 = alloca %hepta.type0\n  %v21 = alloca %hepta.type0\n  %v29 = alloca %hepta.type0\n  %v56 = alloca i64\n  store i64 %arg0, ptr %v1\n  store i8 %arg1, ptr %v2\n  store i64 %arg2, ptr %v3\n  store i1 %arg3, ptr %v4\n  store i1 %arg4, ptr %v5\n  %v6 = load i64, ptr %v1\n  %v7 = load i1, ptr %v4\n  %v8 = call %hepta.type2 @__hepta_owned_fn0(i64 %v6, i1 %v7)\n  %v9 = extractvalue %hepta.type2 %v8, 0\n  switch i32 %v9, label %invalid3 [ i32 0, label %variant1 i32 1, label %variant2 ]\ninvalid3:\n  call void @abort()\n  unreachable\nvariant2:\n  %v10 = extractvalue %hepta.type2 %v8, 2, 0\n  store i8 %v10, ptr %v11\n  %v12 = load i8, ptr %v11\n  %v13 = zext i8 %v12 to i64\n  %v14 = call {i64, i1} @llvm.uadd.with.overflow.i64(i64 1000, i64 %v13)\n  %v15 = extractvalue {i64, i1} %v14, 0\n  %v16 = extractvalue {i64, i1} %v14, 1\n  %v17 = xor i1 %v16, true\n  br i1 %v17, label %checked5, label %abort6\nabort6:\n  call void @abort()\n  unreachable\nchecked5:\n  ret i64 %v15\nvariant1:\n  %v18 = extractvalue %hepta.type2 %v8, 1, 0\n  store %hepta.type0 %v18, ptr %v19\n  %v20 = load %hepta.type0, ptr %v19\n  store %hepta.type0 zeroinitializer, ptr %v19\n  store %hepta.type0 %v20, ptr %v21\n  %v22 = load i8, ptr %v2\n  call void @__hepta_owned_fn5(ptr %v21, i8 %v22)\n  %v23 = load i64, ptr %v1\n  %v24 = icmp ne i64 %v23, 0\n  br i1 %v24, label %then7, label %else8\nthen7:\n  %v25 = load i8, ptr %v2\n  %v26 = xor i8 %v25, 90\n  call void @__hepta_owned_fn7(ptr %v21, i64 0, i8 %v26)\n  br label %join9\nelse8:\n  br label %join9\njoin9:\n  %v27 = load %hepta.type0, ptr %v21\n  store %hepta.type0 zeroinitializer, ptr %v21\n  %v28 = call %hepta.type0 @__hepta_owned_fn1(%hepta.type0 %v27)\n  store %hepta.type0 %v28, ptr %v29\n  %v30 = load i1, ptr %v5\n  br i1 %v30, label %then10, label %else11\nthen10:\n  %v31 = load %hepta.type0, ptr %v29\n  store %hepta.type0 zeroinitializer, ptr %v29\n  call void @__hepta_owned_fn2(%hepta.type0 %v31)\n  ret i64 2002\nelse11:\n  br label %join12\njoin12:\n  %v32 = load i64, ptr %v3\n  %v33 = call i64 @__hepta_owned_fn3(ptr %v29)\n  %v34 = icmp uge i64 %v32, %v33\n  br i1 %v34, label %then13, label %else14\nthen13:\n  %v35 = load %hepta.type0, ptr %v29\n  store %hepta.type0 zeroinitializer, ptr %v29\n  call void @__hepta_owned_fn2(%hepta.type0 %v35)\n  ret i64 2003\nelse14:\n  br label %join15\njoin15:\n  %v36 = call %hepta.bytes @__hepta_owned_fn4(ptr %v29)\n  %v37 = extractvalue %hepta.bytes %v36, 0\n  %v38 = extractvalue %hepta.bytes %v36, 1\n  %v39 = load i64, ptr %v3\n  %v40 = icmp ult i64 %v39, %v38\n  br i1 %v40, label %checked16, label %abort17\nabort17:\n  call void @abort()\n  unreachable\nchecked16:\n  %v41 = getelementptr i8, ptr %v37, i64 %v39\n  %v42 = load i8, ptr %v41\n  %v43 = zext i8 %v42 to i64\n  %v44 = load i64, ptr %v3\n  %v45 = call i8 @__hepta_owned_fn6(ptr %v29, i64 %v44)\n  %v46 = zext i8 %v45 to i64\n  %v47 = call {i64, i1} @llvm.uadd.with.overflow.i64(i64 %v43, i64 %v46)\n  %v48 = extractvalue {i64, i1} %v47, 0\n  %v49 = extractvalue {i64, i1} %v47, 1\n  %v50 = xor i1 %v49, true\n  br i1 %v50, label %checked18, label %abort19\nabort19:\n  call void @abort()\n  unreachable\nchecked18:\n  %v51 = call i64 @__hepta_owned_fn3(ptr %v29)\n  %v52 = call {i64, i1} @llvm.uadd.with.overflow.i64(i64 %v48, i64 %v51)\n  %v53 = extractvalue {i64, i1} %v52, 0\n  %v54 = extractvalue {i64, i1} %v52, 1\n  %v55 = xor i1 %v54, true\n  br i1 %v55, label %checked20, label %abort21\nabort21:\n  call void @abort()\n  unreachable\nchecked20:\n  store i64 %v53, ptr %v56\n  %v57 = load %hepta.type0, ptr %v29\n  store %hepta.type0 zeroinitializer, ptr %v29\n  call void @__hepta_owned_fn2(%hepta.type0 %v57)\n  %v58 = load i64, ptr %v56\n  ret i64 %v58\n}\n\ndefine i64 @full_lifecycle(i64 %arg0, i32 %arg1) {\nentry:\n  %v1 = alloca i64\n  %v2 = alloca i32\n  %v7 = alloca i8\n  %v15 = alloca %hepta.type0\n  %v17 = alloca %hepta.type0\n  %v19 = alloca i64\n  %v38 = alloca %hepta.type0\n  %v39 = alloca i64\n  %v41 = alloca i64\n  store i64 %arg0, ptr %v1\n  store i32 %arg1, ptr %v2\n  %v3 = load i64, ptr %v1\n  %v4 = call %hepta.type2 @__hepta_owned_fn0(i64 %v3, i1 false)\n  %v5 = extractvalue %hepta.type2 %v4, 0\n  switch i32 %v5, label %invalid3 [ i32 0, label %variant1 i32 1, label %variant2 ]\ninvalid3:\n  call void @abort()\n  unreachable\nvariant2:\n  %v6 = extractvalue %hepta.type2 %v4, 2, 0\n  store i8 %v6, ptr %v7\n  %v8 = load i8, ptr %v7\n  %v9 = zext i8 %v8 to i64\n  %v10 = call {i64, i1} @llvm.uadd.with.overflow.i64(i64 1000, i64 %v9)\n  %v11 = extractvalue {i64, i1} %v10, 0\n  %v12 = extractvalue {i64, i1} %v10, 1\n  %v13 = xor i1 %v12, true\n  br i1 %v13, label %checked5, label %abort6\nabort6:\n  call void @abort()\n  unreachable\nchecked5:\n  ret i64 %v11\nvariant1:\n  %v14 = extractvalue %hepta.type2 %v4, 1, 0\n  store %hepta.type0 %v14, ptr %v15\n  %v16 = load %hepta.type0, ptr %v15\n  store %hepta.type0 zeroinitializer, ptr %v15\n  store %hepta.type0 %v16, ptr %v17\n  %v18 = load i64, ptr %v1\n  store i64 0, ptr %v19\n  br label %loop7\nloop7:\n  %v20 = load i64, ptr %v19\n  %v21 = icmp ult i64 %v20, %v18\n  br i1 %v21, label %body8, label %exit9\nbody8:\n  %v22 = load i64, ptr %v19\n  %v23 = trunc i64 %v22 to i32\n  %v24 = load i32, ptr %v2\n  %v25 = add i32 %v23, %v24\n  %v26 = trunc i32 %v25 to i8\n  %v27 = getelementptr %hepta.type0, ptr %v17, i32 0, i32 0\n  %v28 = load %hepta.bytes, ptr %v27\n  %v29 = extractvalue %hepta.bytes %v28, 0\n  %v30 = extractvalue %hepta.bytes %v28, 1\n  %v31 = load i64, ptr %v19\n  %v32 = icmp ult i64 %v31, %v30\n  br i1 %v32, label %checked10, label %abort11\nabort11:\n  call void @abort()\n  unreachable\nchecked10:\n  %v33 = getelementptr i8, ptr %v29, i64 %v31\n  store i8 %v26, ptr %v33\n  %v34 = load i64, ptr %v19\n  %v35 = add i64 %v34, 1\n  store i64 %v35, ptr %v19\n  br label %loop7\nexit9:\n  %v36 = load %hepta.type0, ptr %v17\n  store %hepta.type0 zeroinitializer, ptr %v17\n  %v37 = call %hepta.type0 @__hepta_owned_fn13(%hepta.type0 %v36)\n  store %hepta.type0 %v37, ptr %v38\n  store i64 0, ptr %v39\n  %v40 = load i64, ptr %v1\n  store i64 0, ptr %v41\n  br label %loop12\nloop12:\n  %v42 = load i64, ptr %v41\n  %v43 = icmp ult i64 %v42, %v40\n  br i1 %v43, label %body13, label %exit14\nbody13:\n  %v44 = load i64, ptr %v39\n  %v45 = call %hepta.bytes @__hepta_owned_fn4(ptr %v38)\n  %v46 = extractvalue %hepta.bytes %v45, 0\n  %v47 = extractvalue %hepta.bytes %v45, 1\n  %v48 = load i64, ptr %v41\n  %v49 = icmp ult i64 %v48, %v47\n  br i1 %v49, label %checked15, label %abort16\nabort16:\n  call void @abort()\n  unreachable\nchecked15:\n  %v50 = getelementptr i8, ptr %v46, i64 %v48\n  %v51 = load i8, ptr %v50\n  %v52 = zext i8 %v51 to i64\n  %v53 = call {i64, i1} @llvm.uadd.with.overflow.i64(i64 %v44, i64 %v52)\n  %v54 = extractvalue {i64, i1} %v53, 0\n  %v55 = extractvalue {i64, i1} %v53, 1\n  %v56 = xor i1 %v55, true\n  br i1 %v56, label %checked17, label %abort18\nabort18:\n  call void @abort()\n  unreachable\nchecked17:\n  store i64 %v54, ptr %v39\n  %v57 = load i64, ptr %v41\n  %v58 = add i64 %v57, 1\n  store i64 %v58, ptr %v41\n  br label %loop12\nexit14:\n  %v59 = load %hepta.type0, ptr %v38\n  store %hepta.type0 zeroinitializer, ptr %v38\n  call void @__hepta_owned_fn2(%hepta.type0 %v59)\n  %v60 = load i64, ptr %v39\n  ret i64 %v60\n}\n\ndefine i64 @constructor_error(i64 %arg0, i32 %arg1) {\nentry:\n  %v1 = alloca i64\n  %v2 = alloca i32\n  %v7 = alloca i8\n  %v21 = alloca %hepta.type0\n  store i64 %arg0, ptr %v1\n  store i32 %arg1, ptr %v2\n  %v3 = load i64, ptr %v1\n  %v4 = call %hepta.type2 @__hepta_owned_fn0(i64 %v3, i1 true)\n  %v5 = extractvalue %hepta.type2 %v4, 0\n  switch i32 %v5, label %invalid3 [ i32 0, label %variant1 i32 1, label %variant2 ]\ninvalid3:\n  call void @abort()\n  unreachable\nvariant2:\n  %v6 = extractvalue %hepta.type2 %v4, 2, 0\n  store i8 %v6, ptr %v7\n  %v8 = load i8, ptr %v7\n  %v9 = zext i8 %v8 to i64\n  %v10 = call {i64, i1} @llvm.uadd.with.overflow.i64(i64 1000, i64 %v9)\n  %v11 = extractvalue {i64, i1} %v10, 0\n  %v12 = extractvalue {i64, i1} %v10, 1\n  %v13 = xor i1 %v12, true\n  br i1 %v13, label %checked5, label %abort6\nabort6:\n  call void @abort()\n  unreachable\nchecked5:\n  %v14 = load i32, ptr %v2\n  %v15 = zext i32 %v14 to i64\n  %v16 = call {i64, i1} @llvm.uadd.with.overflow.i64(i64 %v11, i64 %v15)\n  %v17 = extractvalue {i64, i1} %v16, 0\n  %v18 = extractvalue {i64, i1} %v16, 1\n  %v19 = xor i1 %v18, true\n  br i1 %v19, label %checked7, label %abort8\nabort8:\n  call void @abort()\n  unreachable\nchecked7:\n  ret i64 %v17\nvariant1:\n  %v20 = extractvalue %hepta.type2 %v4, 1, 0\n  store %hepta.type0 %v20, ptr %v21\n  %v22 = load %hepta.type0, ptr %v21\n  store %hepta.type0 zeroinitializer, ptr %v21\n  call void @__hepta_owned_fn2(%hepta.type0 %v22)\n  ret i64 9000\n}\n\ndefine i64 @two_stage(i64 %arg0, i32 %arg1) {\nentry:\n  %v1 = alloca i64\n  %v2 = alloca i32\n  %v7 = alloca i8\n  %v15 = alloca %hepta.type0\n  %v17 = alloca %hepta.type0\n  %v28 = alloca i8\n  %v37 = alloca %hepta.bytes\n  %v39 = alloca %hepta.bytes\n  %v41 = alloca i64\n  %v55 = alloca i64\n  %v59 = alloca i64\n  store i64 %arg0, ptr %v1\n  store i32 %arg1, ptr %v2\n  %v3 = load i64, ptr %v1\n  %v4 = call %hepta.type2 @__hepta_owned_fn0(i64 %v3, i1 false)\n  %v5 = extractvalue %hepta.type2 %v4, 0\n  switch i32 %v5, label %invalid3 [ i32 0, label %variant1 i32 1, label %variant2 ]\ninvalid3:\n  call void @abort()\n  unreachable\nvariant2:\n  %v6 = extractvalue %hepta.type2 %v4, 2, 0\n  store i8 %v6, ptr %v7\n  %v8 = load i8, ptr %v7\n  %v9 = zext i8 %v8 to i64\n  %v10 = call {i64, i1} @llvm.uadd.with.overflow.i64(i64 1000, i64 %v9)\n  %v11 = extractvalue {i64, i1} %v10, 0\n  %v12 = extractvalue {i64, i1} %v10, 1\n  %v13 = xor i1 %v12, true\n  br i1 %v13, label %checked5, label %abort6\nabort6:\n  call void @abort()\n  unreachable\nchecked5:\n  ret i64 %v11\nvariant1:\n  %v14 = extractvalue %hepta.type2 %v4, 1, 0\n  store %hepta.type0 %v14, ptr %v15\n  %v16 = load %hepta.type0, ptr %v15\n  store %hepta.type0 zeroinitializer, ptr %v15\n  store %hepta.type0 %v16, ptr %v17\n  %v18 = load i32, ptr %v2\n  %v19 = trunc i32 %v18 to i8\n  call void @__hepta_owned_fn5(ptr %v17, i8 %v19)\n  %v20 = load i64, ptr %v1\n  %v21 = call {i64, i1} @llvm.uadd.with.overflow.i64(i64 %v20, i64 17)\n  %v22 = extractvalue {i64, i1} %v21, 0\n  %v23 = extractvalue {i64, i1} %v21, 1\n  %v24 = xor i1 %v23, true\n  br i1 %v24, label %checked7, label %abort8\nabort8:\n  call void @abort()\n  unreachable\nchecked7:\n  %v25 = call %hepta.type1 @__hepta_owned_try_buffer(i64 %v22)\n  %v26 = extractvalue %hepta.type1 %v25, 0\n  switch i32 %v26, label %invalid11 [ i32 0, label %variant9 i32 1, label %variant10 ]\ninvalid11:\n  call void @abort()\n  unreachable\nvariant10:\n  %v27 = extractvalue %hepta.type1 %v25, 2, 0\n  store i8 %v27, ptr %v28\n  %v29 = load %hepta.type0, ptr %v17\n  store %hepta.type0 zeroinitializer, ptr %v17\n  call void @__hepta_owned_fn2(%hepta.type0 %v29)\n  %v30 = load i8, ptr %v28\n  %v31 = zext i8 %v30 to i64\n  %v32 = call {i64, i1} @llvm.uadd.with.overflow.i64(i64 1000, i64 %v31)\n  %v33 = extractvalue {i64, i1} %v32, 0\n  %v34 = extractvalue {i64, i1} %v32, 1\n  %v35 = xor i1 %v34, true\n  br i1 %v35, label %checked13, label %abort14\nabort14:\n  call void @abort()\n  unreachable\nchecked13:\n  ret i64 %v33\nvariant9:\n  %v36 = extractvalue %hepta.type1 %v25, 1, 0\n  store %hepta.bytes %v36, ptr %v37\n  %v38 = load %hepta.bytes, ptr %v37\n  store %hepta.bytes zeroinitializer, ptr %v37\n  store %hepta.bytes %v38, ptr %v39\n  %v40 = load i64, ptr %v1\n  store i64 0, ptr %v41\n  br label %loop15\nloop15:\n  %v42 = load i64, ptr %v41\n  %v43 = icmp ult i64 %v42, %v40\n  br i1 %v43, label %body16, label %exit17\nbody16:\n  %v44 = load i64, ptr %v41\n  %v45 = call i8 @__hepta_owned_fn6(ptr %v17, i64 %v44)\n  %v46 = xor i8 %v45, 90\n  %v47 = load %hepta.bytes, ptr %v39\n  %v48 = extractvalue %hepta.bytes %v47, 0\n  %v49 = extractvalue %hepta.bytes %v47, 1\n  %v50 = load i64, ptr %v41\n  %v51 = icmp ult i64 %v50, %v49\n  br i1 %v51, label %checked18, label %abort19\nabort19:\n  call void @abort()\n  unreachable\nchecked18:\n  %v52 = getelementptr i8, ptr %v48, i64 %v50\n  store i8 %v46, ptr %v52\n  %v53 = load i64, ptr %v41\n  %v54 = add i64 %v53, 1\n  store i64 %v54, ptr %v41\n  br label %loop15\nexit17:\n  store i64 0, ptr %v55\n  %v56 = load %hepta.bytes, ptr %v39\n  %v57 = extractvalue %hepta.bytes %v56, 0\n  %v58 = extractvalue %hepta.bytes %v56, 1\n  store i64 0, ptr %v59\n  br label %loop20\nloop20:\n  %v60 = load i64, ptr %v59\n  %v61 = icmp ult i64 %v60, %v58\n  br i1 %v61, label %body21, label %exit22\nbody21:\n  %v62 = load i64, ptr %v55\n  %v63 = load %hepta.bytes, ptr %v39\n  %v64 = extractvalue %hepta.bytes %v63, 0\n  %v65 = extractvalue %hepta.bytes %v63, 1\n  %v66 = load i64, ptr %v59\n  %v67 = icmp ult i64 %v66, %v65\n  br i1 %v67, label %checked23, label %abort24\nabort24:\n  call void @abort()\n  unreachable\nchecked23:\n  %v68 = getelementptr i8, ptr %v64, i64 %v66\n  %v69 = load i8, ptr %v68\n  %v70 = zext i8 %v69 to i64\n  %v71 = call {i64, i1} @llvm.uadd.with.overflow.i64(i64 %v62, i64 %v70)\n  %v72 = extractvalue {i64, i1} %v71, 0\n  %v73 = extractvalue {i64, i1} %v71, 1\n  %v74 = xor i1 %v73, true\n  br i1 %v74, label %checked25, label %abort26\nabort26:\n  call void @abort()\n  unreachable\nchecked25:\n  store i64 %v72, ptr %v55\n  %v75 = load i64, ptr %v59\n  %v76 = add i64 %v75, 1\n  store i64 %v76, ptr %v59\n  br label %loop20\nexit22:\n  %v77 = load %hepta.bytes, ptr %v39\n  store %hepta.bytes zeroinitializer, ptr %v39\n  call void @__hepta_owned_drop0(%hepta.bytes %v77)\n  %v78 = load %hepta.type0, ptr %v17\n  store %hepta.type0 zeroinitializer, ptr %v17\n  call void @__hepta_owned_fn2(%hepta.type0 %v78)\n  %v79 = load i64, ptr %v55\n  ret i64 %v79\n}\n\ndefine i64 @two_alloc(i64 %arg0, i32 %arg1) {\nentry:\n  %v1 = alloca i64\n  %v2 = alloca i32\n  %v6 = alloca i8\n  %v14 = alloca %hepta.bytes\n  %v16 = alloca %hepta.bytes\n  %v26 = alloca i8\n  %v31 = alloca %hepta.bytes\n  %v34 = alloca %hepta.bytes\n  %v53 = alloca i64\n  store i64 %arg0, ptr %v1\n  store i32 %arg1, ptr %v2\n  %v3 = call %hepta.type1 @__hepta_owned_try_buffer(i64 7)\n  %v4 = extractvalue %hepta.type1 %v3, 0\n  switch i32 %v4, label %invalid3 [ i32 0, label %variant1 i32 1, label %variant2 ]\ninvalid3:\n  call void @abort()\n  unreachable\nvariant2:\n  %v5 = extractvalue %hepta.type1 %v3, 2, 0\n  store i8 %v5, ptr %v6\n  %v7 = load i8, ptr %v6\n  %v8 = zext i8 %v7 to i64\n  %v9 = call {i64, i1} @llvm.uadd.with.overflow.i64(i64 100, i64 %v8)\n  %v10 = extractvalue {i64, i1} %v9, 0\n  %v11 = extractvalue {i64, i1} %v9, 1\n  %v12 = xor i1 %v11, true\n  br i1 %v12, label %checked5, label %abort6\nabort6:\n  call void @abort()\n  unreachable\nchecked5:\n  ret i64 %v10\nvariant1:\n  %v13 = extractvalue %hepta.type1 %v3, 1, 0\n  store %hepta.bytes %v13, ptr %v14\n  %v15 = load %hepta.bytes, ptr %v14\n  store %hepta.bytes zeroinitializer, ptr %v14\n  store %hepta.bytes %v15, ptr %v16\n  %v17 = load %hepta.bytes, ptr %v16\n  %v18 = extractvalue %hepta.bytes %v17, 0\n  %v19 = extractvalue %hepta.bytes %v17, 1\n  %v20 = icmp ult i64 0, %v19\n  br i1 %v20, label %checked7, label %abort8\nabort8:\n  call void @abort()\n  unreachable\nchecked7:\n  %v21 = getelementptr i8, ptr %v18, i64 0\n  store i8 19, ptr %v21\n  %v22 = load i64, ptr %v1\n  %v23 = call %hepta.type1 @__hepta_owned_try_buffer(i64 %v22)\n  %v24 = extractvalue %hepta.type1 %v23, 0\n  switch i32 %v24, label %invalid11 [ i32 0, label %variant9 i32 1, label %variant10 ]\ninvalid11:\n  call void @abort()\n  unreachable\nvariant10:\n  %v25 = extractvalue %hepta.type1 %v23, 2, 0\n  store i8 %v25, ptr %v26\n  %v27 = load %hepta.bytes, ptr %v16\n  store %hepta.bytes zeroinitializer, ptr %v16\n  call void @__hepta_owned_drop0(%hepta.bytes %v27)\n  %v28 = load i8, ptr %v26\n  %v29 = zext i8 %v28 to i64\n  ret i64 %v29\nvariant9:\n  %v30 = extractvalue %hepta.type1 %v23, 1, 0\n  store %hepta.bytes %v30, ptr %v31\n  %v32 = load %hepta.bytes, ptr %v31\n  store %hepta.bytes zeroinitializer, ptr %v31\n  %v33 = call %hepta.bytes @__hepta_owned_fn14(%hepta.bytes %v32)\n  store %hepta.bytes %v33, ptr %v34\n  %v35 = load i32, ptr %v2\n  %v36 = icmp ne i32 %v35, 0\n  br i1 %v36, label %then13, label %else14\nthen13:\n  %v37 = load %hepta.bytes, ptr %v34\n  store %hepta.bytes zeroinitializer, ptr %v34\n  call void @__hepta_owned_drop0(%hepta.bytes %v37)\n  %v38 = load %hepta.bytes, ptr %v16\n  store %hepta.bytes zeroinitializer, ptr %v16\n  call void @__hepta_owned_drop0(%hepta.bytes %v38)\n  ret i64 2\nelse14:\n  br label %join15\njoin15:\n  %v39 = load %hepta.bytes, ptr %v34\n  %v40 = extractvalue %hepta.bytes %v39, 0\n  %v41 = extractvalue %hepta.bytes %v39, 1\n  %v42 = load %hepta.bytes, ptr %v16\n  %v43 = extractvalue %hepta.bytes %v42, 0\n  %v44 = extractvalue %hepta.bytes %v42, 1\n  %v45 = icmp ult i64 0, %v44\n  br i1 %v45, label %checked16, label %abort17\nabort17:\n  call void @abort()\n  unreachable\nchecked16:\n  %v46 = getelementptr i8, ptr %v43, i64 0\n  %v47 = load i8, ptr %v46\n  %v48 = zext i8 %v47 to i64\n  %v49 = call {i64, i1} @llvm.uadd.with.overflow.i64(i64 %v41, i64 %v48)\n  %v50 = extractvalue {i64, i1} %v49, 0\n  %v51 = extractvalue {i64, i1} %v49, 1\n  %v52 = xor i1 %v51, true\n  br i1 %v52, label %checked18, label %abort19\nabort19:\n  call void @abort()\n  unreachable\nchecked18:\n  store i64 %v50, ptr %v53\n  %v54 = load %hepta.bytes, ptr %v34\n  store %hepta.bytes zeroinitializer, ptr %v34\n  call void @__hepta_owned_drop0(%hepta.bytes %v54)\n  %v55 = load %hepta.bytes, ptr %v16\n  store %hepta.bytes zeroinitializer, ptr %v16\n  call void @__hepta_owned_drop0(%hepta.bytes %v55)\n  %v56 = load i64, ptr %v53\n  ret i64 %v56\n}\n\ndefine internal %hepta.type0 @__hepta_owned_fn13(%hepta.type0 %arg0) {\nentry:\n  %v1 = alloca %hepta.type0\n  store %hepta.type0 %arg0, ptr %v1\n  %v2 = load %hepta.type0, ptr %v1\n  store %hepta.type0 zeroinitializer, ptr %v1\n  ret %hepta.type0 %v2\n}\n\ndefine internal %hepta.bytes @__hepta_owned_fn14(%hepta.bytes %arg0) {\nentry:\n  %v1 = alloca %hepta.bytes\n  store %hepta.bytes %arg0, ptr %v1\n  %v2 = load %hepta.bytes, ptr %v1\n  store %hepta.bytes zeroinitializer, ptr %v1\n  ret %hepta.bytes %v2\n}\n",
+  "native_receipts": {
+    "c_library": {
+      "artifact": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/c.so",
+      "artifact_bytes": 17928,
+      "artifact_sha256": "95bf3daf25e8e6668183de538f96259d350f0eb7c1f581d29d2e3c491d8da18f",
+      "backend": "c11-gcc",
+      "check_only": false,
+      "crate_type": "cdylib",
+      "diagnostics": [],
+      "flags": [
+        "-std=c11",
+        "-O3",
+        "-fexcess-precision=standard",
+        "-ffp-contract=off",
+        "-fno-strict-aliasing",
+        "-Wall",
+        "-Wextra",
+        "-Werror=implicit-function-declaration",
+        "-Werror=incompatible-pointer-types",
+        "-fsanitize=undefined",
+        "-fno-sanitize-recover=all"
+      ],
+      "link_args": [],
+      "ok": true,
+      "optimization_profile": "default",
+      "rustc_used": false,
+      "source_sha256": "d95b7eaaa5f2f7061292801c38adcd678ef94bf54887d523ba7d8cff08ab483d",
+      "status": "gcc_checked",
+      "target": "x86_64-linux-gnu",
+      "toolchain": {
+        "executable_sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26",
+        "path": "/usr/bin/x86_64-linux-gnu-gcc-13",
+        "version": "x86_64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+      },
+      "validation_artifact_sha256": "95bf3daf25e8e6668183de538f96259d350f0eb7c1f581d29d2e3c491d8da18f"
+    },
+    "handwritten_rust_library": {
+      "artifact": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/handwritten_rust.so",
+      "artifact_bytes": 3825584,
+      "artifact_sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77",
+      "check_only": false,
+      "crate_type": "cdylib",
+      "diagnostics": [],
+      "flags": [
+        "edition=2021",
+        "opt-level=3",
+        "overflow-checks=yes",
+        "panic=abort",
+        "codegen-units=1",
+        "sysroot=/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0"
+      ],
+      "link_args": [],
+      "linker": null,
+      "ok": true,
+      "rust_sha256": "88e894018658f4f329217f399926c053a8734b526d372f3b5e2016786f253de4",
+      "rustc_crate_type": "cdylib",
+      "status": "rustc_checked",
+      "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+      "target": "x86_64-unknown-linux-gnu",
+      "toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+        "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "validation_artifact_sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77"
+    },
+    "handwritten_rust_object": {
+      "artifact": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/handwritten_rust.o",
+      "artifact_bytes": 6328,
+      "artifact_sha256": "a4b52202e276b4e2ff62ae222e7b7ab44f1b8d7c96c331edcf7406eba9342425",
+      "check_only": false,
+      "crate_type": "obj",
+      "diagnostics": [],
+      "flags": [
+        "edition=2021",
+        "opt-level=3",
+        "overflow-checks=yes",
+        "panic=abort",
+        "codegen-units=1",
+        "sysroot=/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0"
+      ],
+      "link_args": [],
+      "linker": null,
+      "ok": true,
+      "rust_sha256": "88e894018658f4f329217f399926c053a8734b526d372f3b5e2016786f253de4",
+      "rustc_crate_type": "lib",
+      "status": "rustc_checked",
+      "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+      "target": "x86_64-unknown-linux-gnu",
+      "toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+        "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "validation_artifact_sha256": "a4b52202e276b4e2ff62ae222e7b7ab44f1b8d7c96c331edcf7406eba9342425"
+    },
+    "llvm_library": {
+      "artifact_bytes": 15712,
+      "artifact_sha256": "03a02fc28e122eda8846a7d711801fecb82ff8744906e271223bca2e75ef0c90",
+      "claims": {
+        "backend_refinement_proved": false,
+        "c_codegen_used": false,
+        "checked_ast_resource_origin_replayed": true,
+        "cross_target_execution_qualified": false,
+        "fallback_used": false,
+        "native_execution_qualified": false,
+        "rust_codegen_used": false,
+        "whole_language_memory_safety_proved": false
+      },
+      "compiler_sha256": "5714ea197f1971da642b438f578004fd2f5c4acdd24f11e636b8b2135c535194",
+      "flags": [
+        "--target=x86_64-unknown-linux-gnu",
+        "-x",
+        "ir",
+        "-O3",
+        "-fPIC",
+        "-shared"
+      ],
+      "kind": "shared",
+      "llvm_ir_sha256": "71677363e005e4ff6a41e2152e65d8a476cf64b10d6b6f4f244ce6f3d1139188",
+      "ok": true,
+      "output": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.so",
+      "profile": "hepta.llvm-owned-bytes-host.v1",
+      "resource_ir_sha256": "43b5f950029874f18e99966a34f220b196d16e533befa65dcf5dfeaf4061cb5e",
+      "resource_verification_sha256": "2f36a8c71ac82a03383386524506059400d1ae39d7e095b29c49c3ffe30ff515",
+      "schema": "hepta.llvm-owned-native.v1",
+      "semantic_sha256": "b5f2228e6c2c7c5761db96b68d8642e2aed227f0a0127fdbac09e1bd146386fd",
+      "status": "native_compiled_not_executed",
+      "target": "x86_64-unknown-linux-gnu",
+      "toolchain": {
+        "default_target": "x86_64-pc-linux-gnu",
+        "path": "/usr/lib/llvm-20/bin/clang",
+        "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+        "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+      }
+    },
+    "llvm_object": {
+      "artifact_bytes": 4320,
+      "artifact_sha256": "d7c28b92c97fb7e1f55b289ffead4e90037829e40e76b40aece17254071540f3",
+      "claims": {
+        "backend_refinement_proved": false,
+        "c_codegen_used": false,
+        "checked_ast_resource_origin_replayed": true,
+        "cross_target_execution_qualified": false,
+        "fallback_used": false,
+        "native_execution_qualified": false,
+        "rust_codegen_used": false,
+        "whole_language_memory_safety_proved": false
+      },
+      "compiler_sha256": "5714ea197f1971da642b438f578004fd2f5c4acdd24f11e636b8b2135c535194",
+      "flags": [
+        "--target=x86_64-unknown-linux-gnu",
+        "-x",
+        "ir",
+        "-O3",
+        "-fPIC",
+        "-c"
+      ],
+      "kind": "object",
+      "llvm_ir_sha256": "71677363e005e4ff6a41e2152e65d8a476cf64b10d6b6f4f244ce6f3d1139188",
+      "ok": true,
+      "output": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.o",
+      "profile": "hepta.llvm-owned-bytes-host.v1",
+      "resource_ir_sha256": "43b5f950029874f18e99966a34f220b196d16e533befa65dcf5dfeaf4061cb5e",
+      "resource_verification_sha256": "2f36a8c71ac82a03383386524506059400d1ae39d7e095b29c49c3ffe30ff515",
+      "schema": "hepta.llvm-owned-native.v1",
+      "semantic_sha256": "b5f2228e6c2c7c5761db96b68d8642e2aed227f0a0127fdbac09e1bd146386fd",
+      "status": "native_compiled_not_executed",
+      "target": "x86_64-unknown-linux-gnu",
+      "toolchain": {
+        "default_target": "x86_64-pc-linux-gnu",
+        "path": "/usr/lib/llvm-20/bin/clang",
+        "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+        "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+      }
+    },
+    "rust_library": {
+      "artifact": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/rust.so",
+      "artifact_bytes": 3825608,
+      "artifact_sha256": "919691721b72620c5252b80b6ab2ca959c9d3b45262c1914d25c0be13977e98d",
+      "check_only": false,
+      "crate_type": "cdylib",
+      "diagnostics": [],
+      "flags": [
+        "edition=2021",
+        "opt-level=3",
+        "overflow-checks=yes",
+        "panic=abort",
+        "codegen-units=1",
+        "sysroot=/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0"
+      ],
+      "link_args": [],
+      "linker": null,
+      "ok": true,
+      "rust_sha256": "c79e882e1f6a4ec0a9d9362ece6e58f8a12925550561185b964e872ee88a73d1",
+      "rustc_crate_type": "cdylib",
+      "status": "rustc_checked",
+      "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+      "target": "x86_64-unknown-linux-gnu",
+      "toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+        "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "validation_artifact_sha256": "919691721b72620c5252b80b6ab2ca959c9d3b45262c1914d25c0be13977e98d"
+    },
+    "rust_object": {
+      "artifact": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/rust.o",
+      "artifact_bytes": 9816,
+      "artifact_sha256": "bb85ac43d390329c788d2a34752de95230ca38c1b38f7dd69f023e5c9f5c35df",
+      "check_only": false,
+      "crate_type": "obj",
+      "diagnostics": [],
+      "flags": [
+        "edition=2021",
+        "opt-level=3",
+        "overflow-checks=yes",
+        "panic=abort",
+        "codegen-units=1",
+        "sysroot=/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0"
+      ],
+      "link_args": [],
+      "linker": null,
+      "ok": true,
+      "rust_sha256": "c79e882e1f6a4ec0a9d9362ece6e58f8a12925550561185b964e872ee88a73d1",
+      "rustc_crate_type": "lib",
+      "status": "rustc_checked",
+      "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+      "target": "x86_64-unknown-linux-gnu",
+      "toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+        "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "validation_artifact_sha256": "bb85ac43d390329c788d2a34752de95230ca38c1b38f7dd69f023e5c9f5c35df"
+    }
+  },
+  "object_relationship": "Objects are separate emissions of the measured sources; only llvm_object links the untimed resource observer.",
+  "observer_source_sha256": "792886e5b6b7e3e0d1e5a93263b430d57256ac5f90c93277ef07a5634567f01b",
+  "ok": false,
+  "phase": "complete",
+  "protocol": {
+    "baselines": [
+      "same-source Hepta to Rust",
+      "independent handwritten safe Vec/slice Rust"
+    ],
+    "c_backend_scope": "independent checked C with UBSan for correctness only; not a timed baseline",
+    "cpu_affinity": "lowest permitted logical CPU; qualifier and children pinned",
+    "id": "hepta.llvm-owned-bytes-perf.v1",
+    "kernel_buffer_sizes": {
+      "constructor_error": 4093,
+      "full_lifecycle": 4093,
+      "two_stage": 4093
+    },
+    "maximum_geometric_mean_paired_time_ratio": 1.1,
+    "maximum_kernel_paired_time_ratio": 1.2,
+    "maximum_relative_mad": 0.05,
+    "maximum_sample_seconds": 30.0,
+    "measurement_scope": "native loop includes allocation, initialization, borrowed access, cleanup and dispatch",
+    "minimum_sample_seconds": 0.05,
+    "native_calls_per_sample": {
+      "constructor_error": 8388608,
+      "full_lifecycle": 1048576,
+      "two_stage": 1048576
+    },
+    "ordering": "rotate kernels by group; rotate backends by group+kernel-position; reverse on odd groups",
+    "outlier_policy": "retain every sample; no clipping, retries, calibration or best-run selection",
+    "paired_groups": 7,
+    "profile": "hepta.llvm-owned-bytes-host.v1",
+    "ratio_definition": "median paired LLVM/baseline time; both baselines must pass independently",
+    "relative_mad_definition": "median(abs(sample - median(samples))) / median(samples)",
+    "seed_sequence": "((call_index % 64) * 17 + 13) % 97 + 1",
+    "semantics": "checked integer arithmetic; fallible zeroed allocation; explicit moves and drop; abort on panic",
+    "warmup_calls_per_process": 8192
+  },
+  "protocol_sha256": "af27b7f8758bd95623f4748e356dff542e063141669e586205d295b6d65dda51",
+  "raw_samples": [
+    {
+      "backend": "rust",
+      "checksum": 2016016049049797507,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 2995095932,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/rust.so",
+          "full_lifecycle"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":2995095932,\"checksum\":2016016049049797507,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "327ef0e2fd7278ffeb824ae7ae89f54bd5f6907c155389996bd6764f18d1edae"
+      },
+      "group": 0,
+      "kernel": "full_lifecycle",
+      "library_sha256": "919691721b72620c5252b80b6ab2ca959c9d3b45262c1914d25c0be13977e98d",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 0
+    },
+    {
+      "backend": "llvm",
+      "checksum": 2016016049049797507,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 2481721801,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.so",
+          "full_lifecycle"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":2481721801,\"checksum\":2016016049049797507,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "0cfd08797907fe2f17c4b91c5dae32f7ce9d893fe2cca0a103540c8ba2155098"
+      },
+      "group": 0,
+      "kernel": "full_lifecycle",
+      "library_sha256": "03a02fc28e122eda8846a7d711801fecb82ff8744906e271223bca2e75ef0c90",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 1
+    },
+    {
+      "backend": "handwritten_rust",
+      "checksum": 2016016049049797507,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 1863748044,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/handwritten_rust.so",
+          "full_lifecycle"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":1863748044,\"checksum\":2016016049049797507,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "bf0aa3110f151b0d76e05b16d5c757c7495b7f3e36e481044dc1a5e4dacc8604"
+      },
+      "group": 0,
+      "kernel": "full_lifecycle",
+      "library_sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 2
+    },
+    {
+      "backend": "llvm",
+      "checksum": 17884724386126693251,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 531228243,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.so",
+          "constructor_error"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":531228243,\"checksum\":17884724386126693251,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "79a0c99fa579ab3f8d4aa35fa53779de3e3f7cda73f10ef7f4b0d9c4637c8c78"
+      },
+      "group": 0,
+      "kernel": "constructor_error",
+      "library_sha256": "03a02fc28e122eda8846a7d711801fecb82ff8744906e271223bca2e75ef0c90",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 3
+    },
+    {
+      "backend": "handwritten_rust",
+      "checksum": 17884724386126693251,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 196608498,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/handwritten_rust.so",
+          "constructor_error"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":196608498,\"checksum\":17884724386126693251,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "65c588704a51f351fb308fc85d181d6ceb62efbd00dec69b977ab0f73a3388b2"
+      },
+      "group": 0,
+      "kernel": "constructor_error",
+      "library_sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 4
+    },
+    {
+      "backend": "rust",
+      "checksum": 17884724386126693251,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 211257028,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/rust.so",
+          "constructor_error"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":211257028,\"checksum\":17884724386126693251,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "1f292e022067f9408fa3a40739b1ad8d20c01f0d102460215965e0bb768b9911"
+      },
+      "group": 0,
+      "kernel": "constructor_error",
+      "library_sha256": "919691721b72620c5252b80b6ab2ca959c9d3b45262c1914d25c0be13977e98d",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 5
+    },
+    {
+      "backend": "handwritten_rust",
+      "checksum": 5035777366165914499,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 3080718091,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/handwritten_rust.so",
+          "two_stage"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":3080718091,\"checksum\":5035777366165914499,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "912afcd54bbbe108bf3386fa6252a1750892e3e6abc1448ae57b513cc622caa7"
+      },
+      "group": 0,
+      "kernel": "two_stage",
+      "library_sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 6
+    },
+    {
+      "backend": "rust",
+      "checksum": 5035777366165914499,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 1629366474,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/rust.so",
+          "two_stage"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":1629366474,\"checksum\":5035777366165914499,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "12b39b0d5fe8d311d7aeba34513617a3fbdf29d2aeca69bdf2e6a754b0465409"
+      },
+      "group": 0,
+      "kernel": "two_stage",
+      "library_sha256": "919691721b72620c5252b80b6ab2ca959c9d3b45262c1914d25c0be13977e98d",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 7
+    },
+    {
+      "backend": "llvm",
+      "checksum": 5035777366165914499,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 1813329369,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.so",
+          "two_stage"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":1813329369,\"checksum\":5035777366165914499,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "57b9efa5389b0247938f6c5ea911772227509152c50bb4ff3f709b0c35c5b804"
+      },
+      "group": 0,
+      "kernel": "two_stage",
+      "library_sha256": "03a02fc28e122eda8846a7d711801fecb82ff8744906e271223bca2e75ef0c90",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 8
+    },
+    {
+      "backend": "rust",
+      "checksum": 17884724386126693251,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 251554685,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/rust.so",
+          "constructor_error"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":251554685,\"checksum\":17884724386126693251,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "05a1fd8c9771ba56325ae0d80a8f71e9286d263bab74011e2ba3f63c0d8d658a"
+      },
+      "group": 1,
+      "kernel": "constructor_error",
+      "library_sha256": "919691721b72620c5252b80b6ab2ca959c9d3b45262c1914d25c0be13977e98d",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 9
+    },
+    {
+      "backend": "handwritten_rust",
+      "checksum": 17884724386126693251,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 210184648,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/handwritten_rust.so",
+          "constructor_error"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":210184648,\"checksum\":17884724386126693251,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "ccbbde81baffc1f68a2e18c42d49127af66644472d97bac5ad3f17b37d0994bc"
+      },
+      "group": 1,
+      "kernel": "constructor_error",
+      "library_sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 10
+    },
+    {
+      "backend": "llvm",
+      "checksum": 17884724386126693251,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 595483090,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.so",
+          "constructor_error"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":595483090,\"checksum\":17884724386126693251,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "bef6b235282297d64a2c86eb8cd32c7470f195d9d2cb3295c0453fda3ff9a4f1"
+      },
+      "group": 1,
+      "kernel": "constructor_error",
+      "library_sha256": "03a02fc28e122eda8846a7d711801fecb82ff8744906e271223bca2e75ef0c90",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 11
+    },
+    {
+      "backend": "llvm",
+      "checksum": 5035777366165914499,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 1933413562,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.so",
+          "two_stage"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":1933413562,\"checksum\":5035777366165914499,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "1564aed3f311c7d25961761dbbe9c93d2f193fd8593c608d7164e0209371739d"
+      },
+      "group": 1,
+      "kernel": "two_stage",
+      "library_sha256": "03a02fc28e122eda8846a7d711801fecb82ff8744906e271223bca2e75ef0c90",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 12
+    },
+    {
+      "backend": "rust",
+      "checksum": 5035777366165914499,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 1694657893,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/rust.so",
+          "two_stage"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":1694657893,\"checksum\":5035777366165914499,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "6de8a0665f5b0097208333de941b13ee589c6da7475348289c1b939540c005ac"
+      },
+      "group": 1,
+      "kernel": "two_stage",
+      "library_sha256": "919691721b72620c5252b80b6ab2ca959c9d3b45262c1914d25c0be13977e98d",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 13
+    },
+    {
+      "backend": "handwritten_rust",
+      "checksum": 5035777366165914499,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 3161364175,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/handwritten_rust.so",
+          "two_stage"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":3161364175,\"checksum\":5035777366165914499,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "104d76394b39b37502bf87d1bb5992d43e6a35a3aaf3108fef78033fe9a11c40"
+      },
+      "group": 1,
+      "kernel": "two_stage",
+      "library_sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 14
+    },
+    {
+      "backend": "handwritten_rust",
+      "checksum": 2016016049049797507,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 2057621565,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/handwritten_rust.so",
+          "full_lifecycle"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":2057621565,\"checksum\":2016016049049797507,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "898556925ba64ad4272181ba0b62f2d126083690e24eed9f9dde510ef6b81f77"
+      },
+      "group": 1,
+      "kernel": "full_lifecycle",
+      "library_sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 15
+    },
+    {
+      "backend": "llvm",
+      "checksum": 2016016049049797507,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 2927099938,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.so",
+          "full_lifecycle"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":2927099938,\"checksum\":2016016049049797507,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "a5ff21c9f1da9667a9614d108d59b6c88c2bb725e8aa96091ddd826ed412afe2"
+      },
+      "group": 1,
+      "kernel": "full_lifecycle",
+      "library_sha256": "03a02fc28e122eda8846a7d711801fecb82ff8744906e271223bca2e75ef0c90",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 16
+    },
+    {
+      "backend": "rust",
+      "checksum": 2016016049049797507,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 3312152509,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/rust.so",
+          "full_lifecycle"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":3312152509,\"checksum\":2016016049049797507,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "99d6585f4013edd483563710ca81b73d5b33db9924308e87296e3415851cd5a1"
+      },
+      "group": 1,
+      "kernel": "full_lifecycle",
+      "library_sha256": "919691721b72620c5252b80b6ab2ca959c9d3b45262c1914d25c0be13977e98d",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 17
+    },
+    {
+      "backend": "handwritten_rust",
+      "checksum": 5035777366165914499,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 3231791469,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/handwritten_rust.so",
+          "two_stage"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":3231791469,\"checksum\":5035777366165914499,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "e18dae7de0e3bacc0545438626eed4db5ce68a15bf897f2013ef3574c08bd8cd"
+      },
+      "group": 2,
+      "kernel": "two_stage",
+      "library_sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 18
+    },
+    {
+      "backend": "rust",
+      "checksum": 5035777366165914499,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 1812672842,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/rust.so",
+          "two_stage"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":1812672842,\"checksum\":5035777366165914499,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "6b39948a0e88cf1209ba3aa87e4d5442a2b9d2480d9eb94a5d94c47603f1a74b"
+      },
+      "group": 2,
+      "kernel": "two_stage",
+      "library_sha256": "919691721b72620c5252b80b6ab2ca959c9d3b45262c1914d25c0be13977e98d",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 19
+    },
+    {
+      "backend": "llvm",
+      "checksum": 5035777366165914499,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 1858531098,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.so",
+          "two_stage"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":1858531098,\"checksum\":5035777366165914499,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "7da7abfd637fda25ab01036c505afe649c9ab8b12c507140cadcd2850ed68a4a"
+      },
+      "group": 2,
+      "kernel": "two_stage",
+      "library_sha256": "03a02fc28e122eda8846a7d711801fecb82ff8744906e271223bca2e75ef0c90",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 20
+    },
+    {
+      "backend": "rust",
+      "checksum": 2016016049049797507,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 3103332384,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/rust.so",
+          "full_lifecycle"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":3103332384,\"checksum\":2016016049049797507,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "97306f129965acdd684c5c2da582953223152690af96bc9bafd798a1cf107af9"
+      },
+      "group": 2,
+      "kernel": "full_lifecycle",
+      "library_sha256": "919691721b72620c5252b80b6ab2ca959c9d3b45262c1914d25c0be13977e98d",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 21
+    },
+    {
+      "backend": "llvm",
+      "checksum": 2016016049049797507,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 2453359650,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.so",
+          "full_lifecycle"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":2453359650,\"checksum\":2016016049049797507,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "aadca971830a49a2a2579c602e41d2da70e4bda7991d0417a652c05d512d66a1"
+      },
+      "group": 2,
+      "kernel": "full_lifecycle",
+      "library_sha256": "03a02fc28e122eda8846a7d711801fecb82ff8744906e271223bca2e75ef0c90",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 22
+    },
+    {
+      "backend": "handwritten_rust",
+      "checksum": 2016016049049797507,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 1886197293,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/handwritten_rust.so",
+          "full_lifecycle"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":1886197293,\"checksum\":2016016049049797507,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "7926410c25ca752c82cbe5233a63f7ede4ac10e73c4f741a2419018d0aadc804"
+      },
+      "group": 2,
+      "kernel": "full_lifecycle",
+      "library_sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 23
+    },
+    {
+      "backend": "llvm",
+      "checksum": 17884724386126693251,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 565828599,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.so",
+          "constructor_error"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":565828599,\"checksum\":17884724386126693251,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "dbcff1ab8812cf42a2d06d8834e4b0719508448ee6514263a8a1fb0106fd3df1"
+      },
+      "group": 2,
+      "kernel": "constructor_error",
+      "library_sha256": "03a02fc28e122eda8846a7d711801fecb82ff8744906e271223bca2e75ef0c90",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 24
+    },
+    {
+      "backend": "handwritten_rust",
+      "checksum": 17884724386126693251,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 341854542,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/handwritten_rust.so",
+          "constructor_error"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":341854542,\"checksum\":17884724386126693251,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "addcc3f2f359891f867d723167acfcf1717e073c5f4278f73a48b2f07150a9ef"
+      },
+      "group": 2,
+      "kernel": "constructor_error",
+      "library_sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 25
+    },
+    {
+      "backend": "rust",
+      "checksum": 17884724386126693251,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 247933516,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/rust.so",
+          "constructor_error"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":247933516,\"checksum\":17884724386126693251,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "57e79f97716882175a5585bb57d497ea0591b97a6dd74f266545da109d3a0b0e"
+      },
+      "group": 2,
+      "kernel": "constructor_error",
+      "library_sha256": "919691721b72620c5252b80b6ab2ca959c9d3b45262c1914d25c0be13977e98d",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 26
+    },
+    {
+      "backend": "handwritten_rust",
+      "checksum": 2016016049049797507,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 1907866516,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/handwritten_rust.so",
+          "full_lifecycle"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":1907866516,\"checksum\":2016016049049797507,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "5d25e09113fbeeb8d0543a1c165b7cdf7944ad36682b5022aeca779d32a34a99"
+      },
+      "group": 3,
+      "kernel": "full_lifecycle",
+      "library_sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 27
+    },
+    {
+      "backend": "llvm",
+      "checksum": 2016016049049797507,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 2331198760,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.so",
+          "full_lifecycle"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":2331198760,\"checksum\":2016016049049797507,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "1d612aea20b1f1dea7f13c4f719e1c777117f60a05440557bdad3fd86fcecdbf"
+      },
+      "group": 3,
+      "kernel": "full_lifecycle",
+      "library_sha256": "03a02fc28e122eda8846a7d711801fecb82ff8744906e271223bca2e75ef0c90",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 28
+    },
+    {
+      "backend": "rust",
+      "checksum": 2016016049049797507,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 3313802973,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/rust.so",
+          "full_lifecycle"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":3313802973,\"checksum\":2016016049049797507,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "6d5f78c97a2409f02fdb9a0943af3e7e2353ebc48be740933f22fe85baa9642b"
+      },
+      "group": 3,
+      "kernel": "full_lifecycle",
+      "library_sha256": "919691721b72620c5252b80b6ab2ca959c9d3b45262c1914d25c0be13977e98d",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 29
+    },
+    {
+      "backend": "rust",
+      "checksum": 17884724386126693251,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 241184160,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/rust.so",
+          "constructor_error"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":241184160,\"checksum\":17884724386126693251,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "4ed81618c64ad3a2b75b853fb39f6e2b8899415257670d920bd9b0be77acac06"
+      },
+      "group": 3,
+      "kernel": "constructor_error",
+      "library_sha256": "919691721b72620c5252b80b6ab2ca959c9d3b45262c1914d25c0be13977e98d",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 30
+    },
+    {
+      "backend": "handwritten_rust",
+      "checksum": 17884724386126693251,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 326721177,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/handwritten_rust.so",
+          "constructor_error"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":326721177,\"checksum\":17884724386126693251,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "226e475f43e93973f597bff5029b533492612d39da2f22c65861282bc18ddf4a"
+      },
+      "group": 3,
+      "kernel": "constructor_error",
+      "library_sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 31
+    },
+    {
+      "backend": "llvm",
+      "checksum": 17884724386126693251,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 666862091,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.so",
+          "constructor_error"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":666862091,\"checksum\":17884724386126693251,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "3d1c649838581ffa527372f1f2e0ac015184d2aa56ec8e74d6d66d5bbf879bfd"
+      },
+      "group": 3,
+      "kernel": "constructor_error",
+      "library_sha256": "03a02fc28e122eda8846a7d711801fecb82ff8744906e271223bca2e75ef0c90",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 32
+    },
+    {
+      "backend": "llvm",
+      "checksum": 5035777366165914499,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 1648402697,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.so",
+          "two_stage"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":1648402697,\"checksum\":5035777366165914499,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "f878e300163e7d3e0a149f0acbf6bc43da7494a5cf0e27d109764bf2e1eb463c"
+      },
+      "group": 3,
+      "kernel": "two_stage",
+      "library_sha256": "03a02fc28e122eda8846a7d711801fecb82ff8744906e271223bca2e75ef0c90",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 33
+    },
+    {
+      "backend": "rust",
+      "checksum": 5035777366165914499,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 1527834896,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/rust.so",
+          "two_stage"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":1527834896,\"checksum\":5035777366165914499,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "aee7c55801f23b07a8b2770482dcb9c6048438239fe3b4e5275d15144fcf5568"
+      },
+      "group": 3,
+      "kernel": "two_stage",
+      "library_sha256": "919691721b72620c5252b80b6ab2ca959c9d3b45262c1914d25c0be13977e98d",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 34
+    },
+    {
+      "backend": "handwritten_rust",
+      "checksum": 5035777366165914499,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 2960676230,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/handwritten_rust.so",
+          "two_stage"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":2960676230,\"checksum\":5035777366165914499,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "d4c78a28fcaf6061924115dca4adef900456fb5af091c839fd830a84d99da1dd"
+      },
+      "group": 3,
+      "kernel": "two_stage",
+      "library_sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 35
+    },
+    {
+      "backend": "llvm",
+      "checksum": 17884724386126693251,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 512216701,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.so",
+          "constructor_error"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":512216701,\"checksum\":17884724386126693251,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "cddc452197f62e57e09de00bb960b9e77323cbea2bd79620735ffc65277262db"
+      },
+      "group": 4,
+      "kernel": "constructor_error",
+      "library_sha256": "03a02fc28e122eda8846a7d711801fecb82ff8744906e271223bca2e75ef0c90",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 36
+    },
+    {
+      "backend": "handwritten_rust",
+      "checksum": 17884724386126693251,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 190481668,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/handwritten_rust.so",
+          "constructor_error"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":190481668,\"checksum\":17884724386126693251,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "d3619f36d80b587c73280e019f75c92998bab0385c9575e3e07cdfb9e0ec66f2"
+      },
+      "group": 4,
+      "kernel": "constructor_error",
+      "library_sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 37
+    },
+    {
+      "backend": "rust",
+      "checksum": 17884724386126693251,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 195951901,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/rust.so",
+          "constructor_error"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":195951901,\"checksum\":17884724386126693251,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "ad7d6dc8c0511124942f7e1ffcb910191c4c5f596f7a1c0aaa1ab8f3bd25c453"
+      },
+      "group": 4,
+      "kernel": "constructor_error",
+      "library_sha256": "919691721b72620c5252b80b6ab2ca959c9d3b45262c1914d25c0be13977e98d",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 38
+    },
+    {
+      "backend": "handwritten_rust",
+      "checksum": 5035777366165914499,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 2879142842,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/handwritten_rust.so",
+          "two_stage"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":2879142842,\"checksum\":5035777366165914499,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "c09875d7d54d41ea774c39901849471ad2b703eadbb3af6ae234e287d14bfeb6"
+      },
+      "group": 4,
+      "kernel": "two_stage",
+      "library_sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 39
+    },
+    {
+      "backend": "rust",
+      "checksum": 5035777366165914499,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 1565942747,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/rust.so",
+          "two_stage"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":1565942747,\"checksum\":5035777366165914499,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "39768a1f74ae27e14e0e92f26952f17252d2005849a235603d62023ab341e948"
+      },
+      "group": 4,
+      "kernel": "two_stage",
+      "library_sha256": "919691721b72620c5252b80b6ab2ca959c9d3b45262c1914d25c0be13977e98d",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 40
+    },
+    {
+      "backend": "llvm",
+      "checksum": 5035777366165914499,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 1714375049,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.so",
+          "two_stage"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":1714375049,\"checksum\":5035777366165914499,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "2daf8d6f7a4665660f3e72ba99ddec74775c8456524bdb9511e3fd6e3aeafac1"
+      },
+      "group": 4,
+      "kernel": "two_stage",
+      "library_sha256": "03a02fc28e122eda8846a7d711801fecb82ff8744906e271223bca2e75ef0c90",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 41
+    },
+    {
+      "backend": "rust",
+      "checksum": 2016016049049797507,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 3127795553,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/rust.so",
+          "full_lifecycle"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":3127795553,\"checksum\":2016016049049797507,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "4536175a9cfeada83b523cbc1431f6b965790bd51c5121e50b68389c118e0d6b"
+      },
+      "group": 4,
+      "kernel": "full_lifecycle",
+      "library_sha256": "919691721b72620c5252b80b6ab2ca959c9d3b45262c1914d25c0be13977e98d",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 42
+    },
+    {
+      "backend": "llvm",
+      "checksum": 2016016049049797507,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 2313709736,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.so",
+          "full_lifecycle"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":2313709736,\"checksum\":2016016049049797507,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "51172d0c41b77671e650a80207a91e169b25287acf5f1625a7838f007868bd37"
+      },
+      "group": 4,
+      "kernel": "full_lifecycle",
+      "library_sha256": "03a02fc28e122eda8846a7d711801fecb82ff8744906e271223bca2e75ef0c90",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 43
+    },
+    {
+      "backend": "handwritten_rust",
+      "checksum": 2016016049049797507,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 1837191889,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/handwritten_rust.so",
+          "full_lifecycle"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":1837191889,\"checksum\":2016016049049797507,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "24f636e8259f00fd59f2583d77b9ec0fa82ea10beae84c808c3627450d8703db"
+      },
+      "group": 4,
+      "kernel": "full_lifecycle",
+      "library_sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 44
+    },
+    {
+      "backend": "llvm",
+      "checksum": 5035777366165914499,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 1764662234,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.so",
+          "two_stage"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":1764662234,\"checksum\":5035777366165914499,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "545e99dbd234166b993bcc2d40d05ec4a1b325e1e8ebb5c87dc2404e0415d8b0"
+      },
+      "group": 5,
+      "kernel": "two_stage",
+      "library_sha256": "03a02fc28e122eda8846a7d711801fecb82ff8744906e271223bca2e75ef0c90",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 45
+    },
+    {
+      "backend": "rust",
+      "checksum": 5035777366165914499,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 1618000248,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/rust.so",
+          "two_stage"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":1618000248,\"checksum\":5035777366165914499,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "4fe94e6dd8c8629e72dd9ac2192399e9239d53b2d25ba8551a9bde109a8bfde9"
+      },
+      "group": 5,
+      "kernel": "two_stage",
+      "library_sha256": "919691721b72620c5252b80b6ab2ca959c9d3b45262c1914d25c0be13977e98d",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 46
+    },
+    {
+      "backend": "handwritten_rust",
+      "checksum": 5035777366165914499,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 2896733146,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/handwritten_rust.so",
+          "two_stage"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":2896733146,\"checksum\":5035777366165914499,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "f3b1a5205397a5db5c979a9b2db2041b81ddce1d01d120ea9388c85fd329ddfd"
+      },
+      "group": 5,
+      "kernel": "two_stage",
+      "library_sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 47
+    },
+    {
+      "backend": "handwritten_rust",
+      "checksum": 2016016049049797507,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 1735839938,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/handwritten_rust.so",
+          "full_lifecycle"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":1735839938,\"checksum\":2016016049049797507,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "44d8580a95f3b933356a7c814692c00a032b6915f35ff9b1d3523e777ffc9c14"
+      },
+      "group": 5,
+      "kernel": "full_lifecycle",
+      "library_sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 48
+    },
+    {
+      "backend": "llvm",
+      "checksum": 2016016049049797507,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 2649345933,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.so",
+          "full_lifecycle"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":2649345933,\"checksum\":2016016049049797507,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "82c55f8e00519a2b1bc9050114736fe9212e6a384589353ca3ee5221a4d032bb"
+      },
+      "group": 5,
+      "kernel": "full_lifecycle",
+      "library_sha256": "03a02fc28e122eda8846a7d711801fecb82ff8744906e271223bca2e75ef0c90",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 49
+    },
+    {
+      "backend": "rust",
+      "checksum": 2016016049049797507,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 3075017855,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/rust.so",
+          "full_lifecycle"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":3075017855,\"checksum\":2016016049049797507,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "302364fab51b9079dc96a89fa69177ff9a30c57298c8b145b4ca63e665ec57a5"
+      },
+      "group": 5,
+      "kernel": "full_lifecycle",
+      "library_sha256": "919691721b72620c5252b80b6ab2ca959c9d3b45262c1914d25c0be13977e98d",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 50
+    },
+    {
+      "backend": "rust",
+      "checksum": 17884724386126693251,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 190596960,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/rust.so",
+          "constructor_error"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":190596960,\"checksum\":17884724386126693251,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "505a4cb294e60c34057e0974656f7193675061eeaca4dff79d5401a8d8d1be01"
+      },
+      "group": 5,
+      "kernel": "constructor_error",
+      "library_sha256": "919691721b72620c5252b80b6ab2ca959c9d3b45262c1914d25c0be13977e98d",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 51
+    },
+    {
+      "backend": "handwritten_rust",
+      "checksum": 17884724386126693251,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 193619704,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/handwritten_rust.so",
+          "constructor_error"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":193619704,\"checksum\":17884724386126693251,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "641cf20e9d12ece1c38b223f6468ea863777460e79a36285b562f817a1664056"
+      },
+      "group": 5,
+      "kernel": "constructor_error",
+      "library_sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 52
+    },
+    {
+      "backend": "llvm",
+      "checksum": 17884724386126693251,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 505730587,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.so",
+          "constructor_error"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":505730587,\"checksum\":17884724386126693251,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "07b5112b5f6e72ae1f5d557445887069e1d3a83e11d9f4971f79c6e81211e7b4"
+      },
+      "group": 5,
+      "kernel": "constructor_error",
+      "library_sha256": "03a02fc28e122eda8846a7d711801fecb82ff8744906e271223bca2e75ef0c90",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 53
+    },
+    {
+      "backend": "rust",
+      "checksum": 2016016049049797507,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 2879221860,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/rust.so",
+          "full_lifecycle"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":2879221860,\"checksum\":2016016049049797507,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "5a722298eb36f5b60693226f4848bec02e47bfddf181e71e413bc36aa73ec044"
+      },
+      "group": 6,
+      "kernel": "full_lifecycle",
+      "library_sha256": "919691721b72620c5252b80b6ab2ca959c9d3b45262c1914d25c0be13977e98d",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 54
+    },
+    {
+      "backend": "llvm",
+      "checksum": 2016016049049797507,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 2415707036,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.so",
+          "full_lifecycle"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":2415707036,\"checksum\":2016016049049797507,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "47c2037b86bb6585b8a82d305db4bb644b67d6f843bfed656d561ee552ea93d7"
+      },
+      "group": 6,
+      "kernel": "full_lifecycle",
+      "library_sha256": "03a02fc28e122eda8846a7d711801fecb82ff8744906e271223bca2e75ef0c90",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 55
+    },
+    {
+      "backend": "handwritten_rust",
+      "checksum": 2016016049049797507,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 1627365734,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/handwritten_rust.so",
+          "full_lifecycle"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":1627365734,\"checksum\":2016016049049797507,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "0d888d4b5b34d21fc388d83723e068ca5f5b296775786b3c0c54bda59b2985f2"
+      },
+      "group": 6,
+      "kernel": "full_lifecycle",
+      "library_sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 56
+    },
+    {
+      "backend": "llvm",
+      "checksum": 17884724386126693251,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 529088897,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.so",
+          "constructor_error"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":529088897,\"checksum\":17884724386126693251,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "5b97521374501eac5c48212b5f2f5f612a41fe4da067303e741cb629c111eeb4"
+      },
+      "group": 6,
+      "kernel": "constructor_error",
+      "library_sha256": "03a02fc28e122eda8846a7d711801fecb82ff8744906e271223bca2e75ef0c90",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 57
+    },
+    {
+      "backend": "handwritten_rust",
+      "checksum": 17884724386126693251,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 225726998,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/handwritten_rust.so",
+          "constructor_error"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":225726998,\"checksum\":17884724386126693251,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "55c4507be00d55d04076e3162cbb2d70d7dac24f8499083f857eba8e2ea7a12b"
+      },
+      "group": 6,
+      "kernel": "constructor_error",
+      "library_sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 58
+    },
+    {
+      "backend": "rust",
+      "checksum": 17884724386126693251,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 212995924,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/rust.so",
+          "constructor_error"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":212995924,\"checksum\":17884724386126693251,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "3d622b18d3b805902463ac6380c686ea2d67af2b24799c3c7a6507efbeebf7f9"
+      },
+      "group": 6,
+      "kernel": "constructor_error",
+      "library_sha256": "919691721b72620c5252b80b6ab2ca959c9d3b45262c1914d25c0be13977e98d",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 59
+    },
+    {
+      "backend": "handwritten_rust",
+      "checksum": 5035777366165914499,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 3029574227,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/handwritten_rust.so",
+          "two_stage"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":3029574227,\"checksum\":5035777366165914499,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "dd701ac42ac65a6d266701b828c9283bc7540bf4ddff8681dc762fa2edba1860"
+      },
+      "group": 6,
+      "kernel": "two_stage",
+      "library_sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 60
+    },
+    {
+      "backend": "rust",
+      "checksum": 5035777366165914499,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 1767641834,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/rust.so",
+          "two_stage"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":1767641834,\"checksum\":5035777366165914499,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "3d17cfddc63696ab9134025edc97673812bad29417c9a0a8e00ba06b4a124838"
+      },
+      "group": 6,
+      "kernel": "two_stage",
+      "library_sha256": "919691721b72620c5252b80b6ab2ca959c9d3b45262c1914d25c0be13977e98d",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 61
+    },
+    {
+      "backend": "llvm",
+      "checksum": 5035777366165914499,
+      "clock_resolution_ns": 1,
+      "driver_sha256": "11009a6afd6633908f291394a0c0e12a32ac4bcd976c3b004bd8d6196ff414f6",
+      "elapsed_ns": 1746946603,
+      "execution": {
+        "command": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/driver",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.so",
+          "two_stage"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"elapsed_ns\":1746946603,\"checksum\":5035777366165914499,\"clock_resolution_ns\":1,\"process_peak_rss_kib\":27552}\n",
+        "stdout_sha256": "568b24c6989544bc6cac2da1470f0f3b9675ee47b5e5bc9630cc5fbd52c94aed"
+      },
+      "group": 6,
+      "kernel": "two_stage",
+      "library_sha256": "03a02fc28e122eda8846a7d711801fecb82ff8744906e271223bca2e75ef0c90",
+      "process_peak_rss_kib": 27552,
+      "sample_index": 62
+    }
+  ],
+  "reference_validation": {
+    "assumptions": [],
+    "backend": {
+      "check_only": true,
+      "crate_type": "cdylib",
+      "diagnostics": [],
+      "flags": [
+        "edition=2021",
+        "opt-level=3",
+        "overflow-checks=yes",
+        "panic=abort",
+        "codegen-units=1",
+        "sysroot=/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0"
+      ],
+      "link_args": [],
+      "linker": null,
+      "ok": true,
+      "rust_sha256": "c79e882e1f6a4ec0a9d9362ece6e58f8a12925550561185b964e872ee88a73d1",
+      "rustc_crate_type": "lib",
+      "status": "rustc_checked",
+      "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+      "target": "x86_64-unknown-linux-gnu",
+      "toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+        "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "validation_artifact_sha256": "f8ae76203fdbef4fe2791e803b6cd1d2e617c066e9859f4047922781f4cb829f"
+    },
+    "checks": {
+      "rust_borrows_types": "rustc_checked",
+      "syntax": "passed",
+      "types_effects_resources": "passed_in_supported_subset"
+    },
+    "claims": {
+      "all_programs_faster_than_rust": false,
+      "bounded_cancellation_latency_proved": false,
+      "deadlock_freedom_proved": false,
+      "hardware_execution_verified": false,
+      "whole_language_soundness_proved": false
+    },
+    "compiler_sha256": "5714ea197f1971da642b438f578004fd2f5c4acdd24f11e636b8b2135c535194",
+    "compiler_version": "0.2.0",
+    "diagnostics": [],
+    "effects": {
+      "OwnedBytes_data": [],
+      "OwnedBytes_drop": [
+        "alloc",
+        "block"
+      ],
+      "OwnedBytes_fill": [
+        "panic",
+        "write"
+      ],
+      "OwnedBytes_get": [
+        "panic"
+      ],
+      "OwnedBytes_move": [],
+      "OwnedBytes_new": [
+        "alloc",
+        "block"
+      ],
+      "OwnedBytes_set": [
+        "panic",
+        "write"
+      ],
+      "OwnedBytes_size": [],
+      "constructor_error": [
+        "alloc",
+        "block",
+        "panic"
+      ],
+      "forward_owned": [],
+      "full_lifecycle": [
+        "alloc",
+        "block",
+        "panic"
+      ],
+      "run_owned": [
+        "alloc",
+        "block",
+        "panic",
+        "write"
+      ],
+      "two_alloc": [
+        "alloc",
+        "block",
+        "panic"
+      ],
+      "two_stage": [
+        "alloc",
+        "block",
+        "panic",
+        "write"
+      ]
+    },
+    "interface_sha256": "5718972ab81bbae12c80f03aaa66763b49d464cd6011dce702a54193c485636a",
+    "ok": true,
+    "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/kernels.hepta",
+    "profile": {
+      "crate_type": "cdylib",
+      "no_std": false,
+      "overflow_checks": true,
+      "panic": "abort"
+    },
+    "resource_contracts": [],
+    "rust_sha256": "c79e882e1f6a4ec0a9d9362ece6e58f8a12925550561185b964e872ee88a73d1",
+    "schema": "hepta.check.v1",
+    "source_sha256": "b12b6b9731ba6cdc30d91f44980dd387c8396f65dc029da35eb0430e6a9c1856",
+    "status": "checked"
+  },
+  "resource_observation": {
+    "artifacts": {
+      "leak.o": {
+        "bytes": 3904,
+        "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/leak.o",
+        "sha256": "4ed72fdac5a0a578ee970e6bafbb76bc629555ac988d82ab4df566d0663d2afa"
+      },
+      "observe": {
+        "bytes": 16616,
+        "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/observe",
+        "sha256": "97fcf8ac576570b670ba9ce5b585bdc098acbcf5325111d80051dba6e4d8cac3"
+      },
+      "observe_leak": {
+        "bytes": 16616,
+        "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/observe_leak",
+        "sha256": "b5284537406eee5c55a7a4ae84795a93ea4f4738d5a8ba0e21b0c4f66206f4f4"
+      }
+    },
+    "commands": [
+      {
+        "command": [
+          "/usr/bin/x86_64-linux-gnu-gcc-13",
+          "-std=c11",
+          "-O3",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/observe.c",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/llvm.o",
+          "-fno-builtin-calloc",
+          "-fno-builtin-malloc",
+          "-fno-builtin-free",
+          "-Wl,--wrap=calloc",
+          "-Wl,--wrap=malloc",
+          "-Wl,--wrap=free",
+          "-o",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/observe"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "command": [
+          "/usr/lib/llvm-20/bin/clang",
+          "--target=x86_64-unknown-linux-gnu",
+          "-x",
+          "ir",
+          "-O3",
+          "-fPIC",
+          "-c",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/leak.ll",
+          "-o",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/leak.o"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "command": [
+          "/usr/bin/x86_64-linux-gnu-gcc-13",
+          "-std=c11",
+          "-O3",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/observe.c",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/leak.o",
+          "-fno-builtin-calloc",
+          "-fno-builtin-malloc",
+          "-fno-builtin-free",
+          "-Wl,--wrap=calloc",
+          "-Wl,--wrap=malloc",
+          "-Wl,--wrap=free",
+          "-o",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/observe_leak"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "mutated_llvm_sha256": "ac287c1af26d7a4e9793265cae8496851b057c91b907935bc02525caa3473164",
+    "negative": {
+      "command": [
+        "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/observe_leak"
+      ],
+      "returncode": 1,
+      "stderr": "",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "{\"allocations\":7,\"frees\":0,\"live\":7,\"refusals\":1}\n",
+      "stdout_sha256": "e28006f32eb60d83b9ee6cccd8714da3e5f226b5bd827ce4e9f4cdd6b38ca36f"
+    },
+    "origin_mutation_rejected_before_native_build": true,
+    "positive": {
+      "command": [
+        "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-llvm-owned-qualify-b9crwdr_/observe"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "{\"allocations\":7,\"frees\":7,\"live\":0,\"refusals\":1}\n",
+      "stdout_sha256": "ab8845ec479e24500fc63143e4ffe7bee9940755e8936079b4b69ac00e7db2a6"
+    },
+    "status": "passed"
+  },
+  "schema": "hepta.llvm-owned-qualification.v1",
+  "source_sha256": "b12b6b9731ba6cdc30d91f44980dd387c8396f65dc029da35eb0430e6a9c1856",
+  "started_utc": "2026-10-25T16:48:55Z",
+  "status": "measurement_inconclusive"
+}

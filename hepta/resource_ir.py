@@ -14,6 +14,7 @@ import re
 
 
 SCHEMA = "hepta.resource-ir.v3"
+STORED_SCHEMA = "hepta.resource-ir.v4"
 GENERIC_SCHEMA = "hepta.resource-ir.v2"
 LEGACY_SCHEMA = "hepta.resource-ir.v1"
 _SCALARS = {"i8", "i16", "i32", "i64", "i128", "isize", "u8", "u16", "u32", "u64", "u128", "usize", "f32", "f64", "bool", "Unit"}
@@ -76,9 +77,12 @@ class _State:
     # loan -> (root, field/index path, mode, exposed pointee type)
     loans: dict[str, tuple[str, tuple[str, ...], str, str]] = field(default_factory=dict)
     variants: dict[str, str] = field(default_factory=dict)
+    # Local stored slice views retain their loan until an explicit view end.
+    # Keep these separate so end_borrow cannot prematurely release a view.
+    views: dict[str, tuple[str, tuple[str, ...], str, str]] = field(default_factory=dict)
 
     def copy(self) -> _State:
-        return _State(set(self.initialized), dict(self.loans), dict(self.variants))
+        return _State(set(self.initialized), dict(self.loans), dict(self.variants), dict(self.views))
 
 
 class _Verifier:
@@ -86,6 +90,7 @@ class _Verifier:
         self.doc = doc
         self.types: dict = {}
         self.owned: dict[str, bool] = {}
+        self.has_view: dict[str, bool] = {}
         self.type_parameters: dict[str, frozenset[str]] = {}
         self.functions: dict = {}
         self.assumptions: dict = {}
@@ -121,7 +126,7 @@ class _Verifier:
                     _fail("E_RIR_TYPE", "Scalar identity must name a supported primitive")
             elif kind == "parameter":
                 _fields(typ, {"kind", "function", "name", "bound"}, "type parameter")
-                if self.doc["schema"] not in {SCHEMA, GENERIC_SCHEMA}:
+                if self.doc["schema"] not in {STORED_SCHEMA, SCHEMA, GENERIC_SCHEMA}:
                     _fail("E_RIR_SCHEMA", "Generic resource types require resource IR v2")
                 owner, name = _id(typ["function"]), _id(typ["name"])
                 if any(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", part) is None for part in (owner, name)):
@@ -144,6 +149,16 @@ class _Verifier:
                     canonical = f"[{element}; {typ['length']}]"
                 if tid != canonical:
                     _fail("E_RIR_TYPE", "Sequence identity does not match its definition")
+            elif kind == "view":
+                _fields(typ, {"kind", "name", "field", "mode", "pointee"}, "local stored view")
+                if (self.doc["schema"] != STORED_SCHEMA
+                        or re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", _id(typ["name"])) is None
+                        or re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", _id(typ["field"])) is None
+                        or typ["name"] in _SCALARS | {"Buffer", "Result", "Task", "TaskGroup"}
+                        or tid != typ["name"] + "<'_>" or typ["pointee"] != "[u8]"):
+                    _fail("E_RIR_VIEW_TYPE", "Only local single-field u8-slice views are modelled in v4")
+                _mode(typ["mode"], {"read", "mut"})
+                deps.append(typ["pointee"])
             elif kind in {"struct", "enum"}:
                 _fields(typ, {"kind", "name", "args", "fields" if kind == "struct" else "variants"}, "aggregate type")
                 name = _id(typ["name"])
@@ -191,9 +206,13 @@ class _Verifier:
             active.add(tid)
             children = [owned(child, depth + 1) for child in dependencies[tid]]
             kind = self.types[tid]["kind"]
+            self.has_view[tid] = kind == "view" or any(self.has_view[child] for child in dependencies[tid])
+            if kind != "view" and self.has_view[tid]:
+                _fail("E_RIR_VIEW_TYPE", "Stored views cannot be hidden in another resource type")
             if kind in {"slice", "array"} and any(children):
                 _fail("E_RIR_TYPE", "Resource-bearing arrays/slices are unsupported")
-            self.owned[tid] = kind == "buffer" or kind == "parameter" and self.types[tid]["bound"] == "Owned" or any(children)
+            self.owned[tid] = (kind == "view" and self.types[tid]["mode"] == "mut" or kind == "buffer"
+                               or kind == "parameter" and self.types[tid]["bound"] == "Owned" or any(children))
             self.type_parameters[tid] = (frozenset({tid}) if kind == "parameter" else
                                          frozenset().union(*(self.type_parameters[child] for child in dependencies[tid])))
             active.remove(tid)
@@ -219,7 +238,7 @@ class _Verifier:
                 _fail("E_RIR_FUNCTION", "Duplicate function")
             self.functions[name] = fn
             declared = _list(fn.get("type_params", []), 64)
-            if declared and self.doc["schema"] not in {SCHEMA, GENERIC_SCHEMA}:
+            if declared and self.doc["schema"] not in {STORED_SCHEMA, SCHEMA, GENERIC_SCHEMA}:
                 _fail("E_RIR_SCHEMA", "Generic functions require resource IR v2")
             if len(set(_id(t) for t in declared)) != len(declared):
                 _fail("E_RIR_GENERIC", "Generic parameter identities must be unique")
@@ -233,6 +252,8 @@ class _Verifier:
                 pid = _id(p["id"])
                 self.type_(p["type"])
                 self.check_type_scope(p["type"], fn)
+                if self.has_view[p["type"]]:
+                    _fail("E_RIR_VIEW_ESCAPE", "Stored views are local only; parameter region contracts are not modelled")
                 _mode(p["mode"], {"value", "take", "read", "mut"})
                 if pid in params:
                     _fail("E_RIR_FUNCTION", "Duplicate parameter")
@@ -246,6 +267,8 @@ class _Verifier:
             ret = _fields(fn["returns"], {"type", "mode", "origin"}, "return signature")
             self.type_(ret["type"])
             self.check_type_scope(ret["type"], fn)
+            if self.has_view[ret["type"]]:
+                _fail("E_RIR_VIEW_ESCAPE", "Stored view returns have no modelled region contract")
             _mode(ret["mode"], {"value", "read", "mut"})
             if ret["mode"] == "value":
                 if ret["origin"] is not None or self.types[ret["type"]]["kind"] == "slice":
@@ -253,7 +276,7 @@ class _Verifier:
             else:
                 borrowed = [p for p in params.values() if p["mode"] in {"read", "mut"}]
                 origin = next((p for p in borrowed if p["id"] == ret["origin"]), None)
-                if origin is None or (self.doc["schema"] != SCHEMA and len(borrowed) != 1) or (ret["mode"] == "mut" and origin["mode"] != "mut"):
+                if origin is None or (self.doc["schema"] not in {STORED_SCHEMA, SCHEMA} and len(borrowed) != 1) or (ret["mode"] == "mut" and origin["mode"] != "mut"):
                     _fail("E_RIR_RETURN", "Returned borrow needs one compatible declared input origin (multiple inputs require v3)")
             if type(fn["external"]) is not bool:
                 _fail("E_RIR_FUNCTION", "external must be boolean")
@@ -281,6 +304,10 @@ class _Verifier:
         self.type_(tid)
         if not self.type_parameters[tid] <= set(fn.get("type_params", [])):
             _fail("E_RIR_GENERIC", "A type parameter escaped its declaring function")
+
+    @staticmethod
+    def loans(state: _State):
+        return (*state.loans.values(), *state.views.values())
 
     def instantiate(self, tid: str, mapping: dict[str, str], depth: int = 0,
                     memo: dict[str, str] | None = None) -> str:
@@ -332,6 +359,8 @@ class _Verifier:
 
     def live(self, sid: str, state: _State) -> None:
         typ = self.slot(sid)["type"]
+        if self.has_view[typ] and sid not in state.views:
+            _fail("E_RIR_VIEW_LIVE", "Stored view is uninitialized, moved or ended")
         if self.owned[typ] and self.params.get(sid, {}).get("mode") not in {"read", "mut"}:
             self.initialized(sid, (), state)
 
@@ -375,6 +404,8 @@ class _Verifier:
         p = _fields(value, {"root", "path"}, "place")
         root = _id(p["root"])
         typ = self.slot(root)["type"]
+        if self.has_view[typ]:
+            _fail("E_RIR_VIEW_ACCESS", "Stored views require explicit view operations")
         path = tuple(_id(x) for x in _list(p["path"], 128))
         for step in path:
             desc = self.type_(typ)
@@ -397,25 +428,29 @@ class _Verifier:
     def access(self, root: str, path: tuple[str, ...], mode: str, state: _State) -> None:
         if mode == "write" and not self.mutable(root):
             _fail("E_RIR_MUTABILITY", "Mutation requires a mutable root")
-        for loan in state.loans.values():
+        for loan in self.loans(state):
             if _overlap((root, path), loan[:2]) and (mode == "write" or loan[2] == "mut"):
                 _fail("E_RIR_LOAN_CONFLICT", "Direct access conflicts with a live loan")
         if mode == "write":
             state.variants.pop(root, None)
 
     def consume(self, sid: str, state: _State) -> None:
+        if self.has_view[self.slot(sid)["type"]]:
+            _fail("E_RIR_VIEW_ACCESS", "Stored views need explicit move/end operations")
         if not self.owned[self.slot(sid)["type"]] or self.params.get(sid, {}).get("mode") in {"read", "mut"}:
             _fail("E_RIR_USE_AFTER_MOVE", f"Cannot consume non-live owner {sid}")
         self.live(sid, state)
-        if any(loan[0] == sid for loan in state.loans.values()):
+        if any(loan[0] == sid for loan in self.loans(state)):
             _fail("E_RIR_LOAN_CONFLICT", "Cannot move/drop an owner during a loan")
         state.initialized.difference_update(self.tokens(sid))
 
     def produce(self, sid: str, state: _State) -> None:
         typ = self.slot(sid)["type"]
+        if self.has_view[typ]:
+            _fail("E_RIR_VIEW_ACCESS", "Stored views can only be constructed from a live loan")
         if sid in self.params:
             _fail("E_RIR_OWNERSHIP", "Parameter storage cannot be reacquired")
-        if any(loan[0] == sid for loan in state.loans.values()):
+        if any(loan[0] == sid for loan in self.loans(state)):
             _fail("E_RIR_LOAN_CONFLICT", "Cannot overwrite borrowed destination storage")
         # A Copy enum can reuse abstract storage. Any earlier switch fact
         # describes the old value, regardless of whether this is pack, call
@@ -450,13 +485,17 @@ class _Verifier:
                   "take_field": {"place", "dest"}, "init_field": {"place", "src"}, "forget": {"src"},
                   "pack": {"dest", "variant", "fields"}, "unpack": {"src", "variant", "dests"},
                   "borrow": {"id", "place", "mode", "type"}, "end_borrow": {"id"},
+                  "bind_view": {"dest", "loan"}, "copy_view": {"src", "dest"},
+                  "move_view": {"src", "dest"}, "end_view": {"src"}, "use_view": {"src", "mode"},
                   "call": {"function", "args", "result", "result_loan", "obligation"},
                   "foreign": {"function", "args", "result", "result_loan", "obligation"},
                   "use": {"loan" if "loan" in op else "place", "mode"}}
         if not isinstance(name, str) or name not in fields:
             _fail("E_RIR_OP", f"Unknown operation {name}")
-        if name in {"take_field", "init_field", "forget"} and self.doc["schema"] != SCHEMA:
+        if name in {"take_field", "init_field", "forget"} and self.doc["schema"] not in {STORED_SCHEMA, SCHEMA}:
             _fail("E_RIR_SCHEMA", "Partial field state requires resource IR v3")
+        if name in {"bind_view", "copy_view", "move_view", "end_view", "use_view"} and self.doc["schema"] != STORED_SCHEMA:
+            _fail("E_RIR_SCHEMA", "Stored view state requires resource IR v4")
         _fields(op, fields[name] | {"op"} | ({"type_args"} if name in {"call", "foreign"} and "type_args" in op else set()), "operation")
         return name
 
@@ -465,7 +504,9 @@ class _Verifier:
         self.operation_count += 1
         if self.operation_count > 100000:
             _fail("E_RIR_LIMIT", "Resource graph exceeds operation budget")
-        if name == "acquire":
+        if name in {"bind_view", "copy_view", "move_view", "end_view", "use_view"}:
+            self.view_operation(op, state)
+        elif name == "acquire":
             typ = self.slot(op["dest"])["type"]
             expected = {"buffer": "Buffer<u8>", "try_buffer": "Result<Buffer<u8>, u8>"}.get(op["kind"])
             if typ != expected:
@@ -490,7 +531,7 @@ class _Verifier:
             sid = op["dest"] if name == "take_field" else op["src"]
             if sid == root or self.slot(sid)["type"] != typ:
                 _fail("E_RIR_MOVE", "Field transfer requires a distinct identically typed owner slot")
-            if any(_overlap((root, path), loan[:2]) for loan in state.loans.values()):
+            if any(_overlap((root, path), loan[:2]) for loan in self.loans(state)):
                 _fail("E_RIR_LOAN_CONFLICT", "Field transfer conflicts with a live loan")
             destination = self.tokens(root, path)
             if name == "take_field":
@@ -513,7 +554,7 @@ class _Verifier:
             sid = op["src"]
             if sid in self.params or not self.owned[self.slot(sid)["type"]] or self.outstanding(state, sid):
                 _fail("E_RIR_LEAK", "Only local storage with no remaining owned payload can leave scope")
-            if any(loan[0] == sid for loan in state.loans.values()):
+            if any(loan[0] == sid for loan in self.loans(state)):
                 _fail("E_RIR_LOAN_CONFLICT", "Scope exit cannot discard borrowed storage")
             state.initialized.difference_update(self.tokens(sid))
             state.variants.pop(sid, None)
@@ -579,6 +620,46 @@ class _Verifier:
         else:
             self.call(op, state)
 
+    def view_operation(self, op: dict, state: _State) -> None:
+        name = op["op"]
+        if "src" in op:
+            src = _id(op["src"])
+            descriptor = self.type_(self.slot(src)["type"])
+            if descriptor["kind"] != "view":
+                _fail("E_RIR_VIEW_TYPE", "View operation needs a stored view slot")
+            self.live(src, state)
+            loan = state.views[src]
+        if "dest" in op:
+            dest = _id(op["dest"])
+            target = self.type_(self.slot(dest)["type"])
+            if target["kind"] != "view" or dest in self.params or dest in state.views:
+                _fail("E_RIR_VIEW_LIVE", "View destination must be an uninitialized local view")
+        if name == "bind_view":
+            lid = _id(op["loan"])
+            loan = state.loans.get(lid)
+            if loan is None or loan[2:] != (target["mode"], target["pointee"]):
+                _fail("E_RIR_VIEW_ORIGIN", "Stored view must retain a live loan's exact permission and pointee")
+            state.loans.pop(lid)
+            state.views[dest] = loan
+            state.initialized.update(self.tokens(dest))
+        elif name in {"copy_view", "move_view"}:
+            if self.slot(src)["type"] != self.slot(dest)["type"] or src == dest:
+                _fail("E_RIR_VIEW_TYPE", "View transfer requires distinct identically typed slots")
+            if (name == "copy_view") != (descriptor["mode"] == "read"):
+                _fail("E_RIR_VIEW_COPY", "Shared views copy; exclusive views must move")
+            state.views[dest] = loan
+            state.initialized.update(self.tokens(dest))
+            if name == "move_view":
+                del state.views[src]
+                state.initialized.difference_update(self.tokens(src))
+        elif name == "end_view":
+            del state.views[src]
+            state.initialized.difference_update(self.tokens(src))
+        else:
+            mode = _mode(op["mode"], {"read", "write"})
+            if mode == "write" and (descriptor["mode"] != "mut" or not self.mutable(src)):
+                _fail("E_RIR_VIEW_MUTABILITY", "Write needs a mutable local holding an exclusive view")
+
     def call(self, op: dict, state: _State) -> None:
         callee = self.functions.get(_id(op["function"]))
         if callee is None or callee["external"] != (op["op"] == "foreign"):
@@ -597,7 +678,7 @@ class _Verifier:
             descriptor = self.type_(actual)
             self.check_type_scope(actual, self.functions[self.function])
             bound = self.types[parameter]["bound"]
-            if descriptor["kind"] == "slice" or self.owned[actual] != (bound == "Owned"):
+            if descriptor["kind"] == "slice" or self.has_view[actual] or self.owned[actual] != (bound == "Owned"):
                 _fail("E_RIR_GENERIC", "Type argument violates its sized Copy/Owned constraint")
             mapping[parameter] = actual
         params = [{**param, "type": self.instantiate(param["type"], mapping)} for param in callee["params"]]
@@ -712,7 +793,7 @@ class _Verifier:
             outstanding = self.outstanding(state)
             if outstanding:
                 _fail("E_RIR_LEAK", "Normal/early return leaves owned values live: " + ", ".join(sid + ''.join('.' + part for part in path) for sid, path in outstanding))
-            if state.loans:
+            if state.loans or state.views:
                 _fail("E_RIR_LOAN_ESCAPE", "Normal/early return leaves undeclared loans live")
             return []
         _fail("E_RIR_TERM", f"Unknown terminator {op}")
@@ -803,7 +884,7 @@ class _Verifier:
 
     def run(self) -> dict:
         _fields(self.doc, {"schema", "source_sha256", "project_sha256", "value_semantics", "types", "functions", "obligations", "claims"}, "resource IR")
-        if self.doc["schema"] not in {SCHEMA, GENERIC_SCHEMA, LEGACY_SCHEMA} or self.doc["value_semantics"] != "copied_values_abstract_not_executable":
+        if self.doc["schema"] not in {STORED_SCHEMA, SCHEMA, GENERIC_SCHEMA, LEGACY_SCHEMA} or self.doc["value_semantics"] != "copied_values_abstract_not_executable":
             _fail("E_RIR_SCHEMA", "Unsupported resource IR profile")
         if self.doc["claims"] != _CLAIMS or any(type(v) is not bool for v in self.doc["claims"].values()):
             _fail("E_RIR_CLAIM", "Resource IR cannot claim source refinement, native use or foreign soundness")
@@ -814,13 +895,22 @@ class _Verifier:
         self.validate_types()
         self.validate_signatures()
         reports = [self.body(fn) for fn in self.functions.values() if not fn["external"]]
-        return {"schema": "hepta.resource-ir-validation.v1", "ok": True,
+        report = {"schema": "hepta.resource-ir-validation.v1", "ok": True,
                 "status": "resource_cfg_verified_with_external_assumptions" if self.assumptions else "resource_cfg_verified",
                 "functions": reports, "operations_checked": self.operation_count,
                 "generic_functions_checked": sum(bool(fn.get("type_params")) for fn in self.functions.values()),
                 "generic_calls_checked": self.generic_calls_checked,
                 "owned_types": sorted(k for k, v in self.owned.items() if v),
                 "external_obligations": self.assumptions, "diagnostics": [], "claims": dict(_CLAIMS)}
+        if self.doc["schema"] == STORED_SCHEMA:
+            report["stored_views"] = {
+                "profile": "local_single_u8_slice_records_v1",
+                "types": sorted(tid for tid, desc in self.types.items() if desc["kind"] == "view"),
+                "scope": "explicit_cfg_loans_with_lexical_shared_view_end_and_affine_mutable_view_drop",
+                "interprocedural_stored_regions_checked": False,
+                "generic_lifetime_composition_checked": False,
+            }
+        return report
 
 
 def verify_resource_ir(document: object) -> dict:
@@ -866,7 +956,7 @@ def main(argv=None) -> int:
     from pathlib import Path
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("graph", type=Path, help="A hepta.resource-ir.v3 JSON graph (legacy v1/v2 accepted)")
+    parser.add_argument("graph", type=Path, help="A resource JSON graph (v1/v2/v3 or local stored-view v4)")
     args = parser.parse_args(argv)
 
     try:

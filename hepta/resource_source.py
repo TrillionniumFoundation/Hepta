@@ -137,6 +137,10 @@ def verify_resource_source(entry: str | Path, document: object, *,
             "canonical_external_obligations": semantic["external_obligations"],
             "canonical_foreign_assumptions": semantic["foreign_assumptions"],
         }
+        if "stored_views" in independent:
+            # The frontend's general stored-borrow capability remains false:
+            # only this explicitly checked local slice-view profile is added.
+            report["source_binding"]["independent_stored_views"] = independent["stored_views"]
         # Canonical obligations include unsafe/FFI effect boundaries that the
         # resource abstraction intentionally does not represent as operations.
         has_assumptions = bool(independent["external_obligations"]

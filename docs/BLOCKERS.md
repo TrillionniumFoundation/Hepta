@@ -6,7 +6,7 @@
 
 ## 已实现的增量及验收条件
 
-这些项目在本版本有实际代码、正反例和可重放入口。是否通过最终统一快照，以 `artifacts/release-validation.json` 引用的报告为准；当前集成归档入口是 `evidence/runtime_storage_board_final/`，`evidence/production_progress_final/`、`evidence/next_blockers_final/`、`evidence/production_v4_final/`、`evidence/next_stage/` 和 `evidence/production_v4/` 保留先前源码快照的报告。
+这些项目在本版本有实际代码、正反例和可重放入口。是否通过最终统一快照，以指定输出目录中的 `release-validation.json` 引用的报告为准。`evidence/unified_candidate_20261025/` 保留代码提交 `776f005d` 的完整 40 门禁资格；本轮资源扩展使用新的 `evidence/resource_candidate_20261025/`。先前 `runtime_storage_board_final/`、`production_progress_final/`、`next_blockers_final/` 等目录描述各自绑定的旧源码快照，不自动成为新提交的执行证据。
 
 | ID | 已实现范围 | 验收入口 / 证据 |
 | --- | --- | --- |
@@ -40,24 +40,32 @@
 | M28 | 256 节点／16 层的真实任务树所有权；后代取消、向根传播失败及旧 join 接口等待后代 | validate_task_tree.py；真实队列互依、adopt/fail 与 spawn/close 竞态、元数据／线程拒绝和恢复、错误运行时拒绝／超时；并发 IR 增加明确 adopt 与 tree join |
 | M29 | 单所有者、显式 poll 的有界非阻塞本地流 I/O，线性完成票据、期限、取消、缓冲区容量与 FD/请求准入 | validate_io.py；实际 socketpair 传输、read/write 部分完成、真实 readiness 等待、EOF/关闭、跨实例/过期 token、EINTR/系统错误和分配/FD 拒绝 |
 | M30 | volatile load/store、公开 Rust unsafe 契约保留，Cortex-M4 复位／链接／UART MMIO／外设 timer IRQ | validate_board.py；4 个完整 ARM ELF、6 次系统模拟器冷启动；错误 IRQ 计算、缺失 IRQ、未复制数据段均实际拒绝；不代表物理板、DMA 或 GPU 资格 |
+| M31 | 唯一规范／语义编码器、源码绑定的资源与 SSA 投影、原生执行前来源重放、同提交资格采集 | SPEC.md、UNIFIED_CANDIDATE.md、qualify_resource_source.py、qualify_llvm_native.py、release_check.py；源快照前后必须一致，失败与超时保留 |
+| M32 | 选定 C++ 标量值类的真实实现迁移；构造和方法体转为 Hepta | validate_cpp_class.py；接受域内原 C++／Hepta 差分，完整声明分母，输出不链接原 C++ 实现 |
+| M33 | 完整闭合协议的 C++ 独占字节数组类迁移为 Buffer/Result、move、borrow 和显式清理；迁移产物直接进入独立 LLVM | validate_cpp_owned.py、qualify_cpp_owned_llvm.py；475 个生命周期／错误案例、实际分配拒绝和释放计数、原生漏 free 负控；不等于通用 RAII 翻译 |
+| M34 | v4 独立资源 IR 的局部单字段共享／独占存储视图、复制／移动／结束规则和源码重放 | qualify_resource_views.py；与 Box<Buffer>、Owned 泛型、fallible 构造组合；9 次原生调用、2 次真实分配拒绝；跨函数和一般嵌套视图不在独立规则范围内 |
+| M35 | 直接 LLVM 拥有型字节资源后端：有限 ADT／Result／泛型实例、借用、checked 整数、移动、清理和 C ABI 标量出口 | qualify_llvm_owned.py；四方有限差分、真实清理与泄漏负控、63 个原生样本和两条独立 Rust 基线；门槛和失败样本见 LLVM_OWNED_PERFORMANCE_PROTOCOL.md 与各次原始报告 |
+| M36 | nlohmann/json 3.11.3／3.12.0 的实际双版本桥接升级、完整依赖／产物和执行证据绑定 | qualify_cpp_upgrade.py；同一适配器／契约／Hepta 消费者，每版 98 个语义案例及全部 17 个故障点；14 个恢复、3 个析构路径终止，后者明确不具备恢复资格 |
 
 M07/M23 不等于全进程内存/CPU 上限，未计入任意 worker/FFI 分配和 OS 实际栈取整。M10 的 QEMU 运行不等于真机资格。M11/M16 没有证明真实编译器与抽象模型的精化关系；新增并发 IR 验证有限正常退出协议，尚未与完整 ownership 模型建立组合证明。M12/M19 不证明补丁功能等价。M13/M26 不证明普遍快于 Rust。M26 是三个编译实现、两个手写应用来源，包含计量开销；不是第三方生产服务、长期异步负载或多机器数据。M17 只迁移明确接受的 C 子集，M18 不重写外部 C++ 实现。M14/M20 的实际 AI 模型运行数仍为 **0**。
+
+M33 的迁移器按完整 Clang AST 验证一个明确协议；其他自定义析构、继承、容器、分配器和移动后对象观察仍拒绝。M35 的机器码不经 Rust/C 生成，但保留 Rust 参考检查依赖，只资格化 Linux x86-64 的显式支持范围。首轮资源性能运行 `fa4f820` 已完整保留，既有超过 5% 的测量波动，也有未达速度门槛的核心。优化内部聚合返回后，`8fb1f39` 在原协议、原工作负载、原两条 Rust 基线及原门槛下通过全部 63 个样本检查；相对同源／手写 Rust 的几何平均耗时比分别为 0.748068／0.766740。两次完整原始报告均在 `evidence/llvm-owned-native-20261025/`。该有限主机资格不代表普遍优势，最终整合提交仍需独立完整验收。M36 的通过状态表示升级观察完整，不会把外部 `noexcept` 析构触发的进程终止记为可恢复错误，也没有测得人工工时或真实 agent token 成本。
 
 ## 完整目标中的剩余 blocker
 
 | ID | 状态与已完成部分 | 仍需关闭的条件 |
 | --- | --- | --- |
-| P01 | PARTIAL — Owned ADT、Result、有限泛型、字段移动／恢复、明确返回来源和受限生命周期 view record 存储借用已实现 | 通用生命周期/trait、outlives/HRTB、存储借用与类型泛型／ADT 的通用组合、枚举 payload 部分移动、较大多包项目一致语义与生产标准库 |
-| P02 | PARTIAL / OPEN_RESEARCH — 30 个抽象模型定理、v3 资源/loan CFG 和有限并发协议 CFG 可独立检查 | 完整类型／别名／生命周期健全性、真实 AST 与 IR/双后端精化、组合并发内存模型、机器 provenance 与 unsafe/FFI 条件；新表达式核心不等于生产类型系统 |
+| P01 | PARTIAL — Owned ADT、Result、有限泛型、字段移动／恢复、明确返回来源和受限生命周期 view record 存储借用已实现；局部视图与独立 Owned 泛型可在同一程序组合 | 通用生命周期/trait、outlives/HRTB、存储借用与类型泛型／ADT 的通用组合、枚举 payload 部分移动、较大多包项目一致语义与生产标准库 |
+| P02 | PARTIAL / OPEN_RESEARCH — 30 个抽象模型定理、v4 局部 stored-loan 资源 CFG 和有限并发协议 CFG 可独立检查；源图和 LLVM 生成来源重放已有执行门禁 | 完整类型／别名／生命周期健全性、真实 AST 与 IR/各后端精化、组合并发内存模型、机器 provenance 与 unsafe/FFI 条件；来源重放和新表达式核心不等于生产类型系统证明 |
 | P03 | PARTIAL — 组内与共享预算、真实嵌套任务树、线程／输入／队列／请求栈预留、I/O buffer 容量/槽准入和失败回滚可执行 | 任意分配器/实际线程栈/worker 新分配/FFI 统一计费、树与 I/O 的统一全局预算、可证明的故障与恢复边界 |
 | P04 | PARTIAL — channel、两组事件驱动 select、结构化任务树和显式 poll 本地流 I/O 的期限／取消已实现 | async/await、任意多路 select/调度器、任务树与 I/O 取消的组合、TCP/TLS/文件等服务接口及长期负载；期限不构成硬实时或任意 worker 终止保证 |
-| P05 | PARTIAL — 完整活动声明盘点的 C 模块迁移、受限分配模式、明确合约下的完整有状态环形缓冲区与三档 C++ 接口已有原生资格 | 任意 C/C++ 的自动安全重写；一般 inline/宏与跨配置兼容、packed、bitfields、varargs、复杂预处理；异步/保留回调与跨线程外部生命周期证明 |
-| P06 | PARTIAL / ENVIRONMENT_REQUIRED — 多目标对象、AArch64 QEMU 和当前 Linux x86-64 宿主双向 ABI 有执行；四宿主 CI 入口已增加 | Windows/AArch64/macOS 等宿主各自实际成功报告、持续平台矩阵；queued/pending 工作流不能关闭验收 |
+| P05 | PARTIAL — 完整活动声明盘点的 C 模块迁移、受限分配模式、完整有状态环形缓冲区、C++ 桥接／升级以及选定值类和独占资源类的实际实现迁移已有原生入口 | 任意 C/C++ 的自动安全重写；一般 inline/宏与跨配置兼容、packed、bitfields、varargs、复杂预处理；异步/保留回调与跨线程外部生命周期证明；广泛库升级与可恢复失败界限 |
+| P06 | PARTIAL / ENVIRONMENT_REQUIRED — 多目标对象、AArch64 QEMU、Linux x86-64 双向 ABI 和 Windows x86-64 CI 原生 ABI 已实际执行；776f005d 的原始 Windows 产物及 CRLF 源身份重放已保留 | AArch64/macOS 等宿主各自实际成功报告、新候选持续平台矩阵；queued/pending 工作流不能关闭验收；Windows Rust/C ABI 不证明 Windows LLVM 资源后端 |
 | P07 | PARTIAL / HARDWARE_REQUIRED — Cortex-M4 显式 BSP、链接脚本、volatile MMIO 和外设 IRQ 已在 QEMU 系统模型执行 | 实体板启动与设备协议、DMA 所有权／cache/coherence、一般中断资源语义及真实板卡资格；模拟器成功不能替代这些条件 |
 | P08 | OPEN / HARDWARE_REQUIRED — GPU 尚未实现 | 地址空间、kernel 与同步语义、GPU 后端、驱动互操作、真实设备性能与正确性 |
 | P09 | PARTIAL / OPEN_RESEARCH — 核心算法对照、两个所有权应用的内存和逐请求尾分位样本可重放 | 更多独立真实应用／异步服务、无计量插桩的长期尾延迟、分配器实用内存与公平调优、多机器重复；全部观察到的 C／Rust 路径回退仍保留，单一配置不承诺普遍获益 |
 | P10 | FRAMEWORK_READY / MODEL_ACCESS_REQUIRED — 五任务 2×2、真实生产 v4 第四臂、逐任务崩溃矩阵、严格隔离及计量 OpenAI adapter 已实现 | API 网络连通性、明确可用模型修订、凭据和预算；多个模型/seed 的完整实际计量、独立未公开任务和更大项目、实际人工修正成本 |
-| P11 | PARTIAL — 独立 C11/GCC 已覆盖 Owned ADT/Result/Buffer/有限泛型和 volatile；新增来源绑定的 i32/u32 SSA→LLVM 原生路径；真实 GDB 与源级映射已实现 | LLVM 的拥有者／借用／效果资源完整覆盖、C 后端新存储借用／任务树／I/O 覆盖、优化回归门槛、优化态／跨平台调试器／类型可视化；LLVM 路径仍依赖 Rust 参考检查 |
+| P11 | PARTIAL — 独立 C11/GCC 已覆盖 Owned ADT/Result/Buffer/有限泛型和 volatile；来源绑定的 i32/u32 SSA→LLVM 及拥有型字节 LLVM 已执行；限定资源工作负载通过两条 Rust 基线门槛；真实 GDB 与源级映射已实现 | LLVM 的一般所有者／存储借用／任务／I/O／效果条款完整覆盖、更多资源工作负载与持续优化回归、C 后端新存储借用／任务树／I/O 覆盖、优化态／跨平台调试器／类型可视化；LLVM 路径仍依赖 Rust 参考检查 |
 | P12 | PARTIAL — 本地内容锁、版本化工具协议、公开仓库 | 注册表/版本求解、兼容性与迁移工具、发布签名和持续平台维护、生产标准库/文档体系 |
 
 P10 的 namespace 与适配器实现 blocker 已有实际执行/离线测试入口。严格 namespace 资格必须在支持的宿主真实运行；不支持的环境依然在启动适配器前拒绝。可信 fixture 与严格隔离的脚本资格均保持 `ai_comparison_eligible=false`，不能当成真实模型成绩。尚未配置模型访问条件，实际 AI 运行数仍为 0。

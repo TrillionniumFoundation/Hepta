@@ -242,8 +242,23 @@ def _require_qualification(name, evidence):
     elif name == "source_bound_resource_ir":
         from tools.qualify_resource_source import validate_report
         validate_report(evidence)
+    elif name == "local_stored_resource_views":
+        from tools.qualify_resource_views import validate_report
+        validate_report(evidence)
     elif name == "cpp_class_migration":
         from tools.validate_cpp_class import validate_report
+        validate_report(evidence)
+    elif name == "cpp_owned_migration":
+        from tools.validate_cpp_owned import validate_report
+        validate_report(evidence)
+    elif name == "cpp_owned_to_llvm":
+        from tools.qualify_cpp_owned_llvm import validate_report
+        validate_report(evidence)
+    elif name == "cpp_upstream_upgrade":
+        from tools.qualify_cpp_upgrade import validate_report
+        validate_report(evidence)
+    elif name == "llvm_owned_rust_allocator":
+        from tools.qualify_llvm_owned_rust_allocator import validate_report
         validate_report(evidence)
     elif name == "llvm_native_performance":
         from tools.qualify_llvm_native import validate_report
@@ -251,6 +266,13 @@ def _require_qualification(name, evidence):
                                   capture_output=True, text=True)
         if identity.returncode != 0:
             raise ValueError("LLVM qualification requires the current candidate commit identity")
+        validate_report(evidence, expected_git_commit=identity.stdout.strip())
+    elif name == "llvm_owned_performance":
+        from tools.qualify_llvm_owned import validate_report
+        identity = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                                  capture_output=True, text=True)
+        if identity.returncode != 0:
+            raise ValueError("Owned LLVM qualification requires the current candidate commit identity")
         validate_report(evidence, expected_git_commit=identity.stdout.strip())
     elif name == "provenance_and_type_core":
         from tools.verify_memory import validate_report
@@ -699,7 +721,7 @@ def main(argv=None):
                          "general_agent_productivity_advantage_established": False},
               "open_production_blockers": [f"P{i:02d}" for i in range(1, 13)]}
     commands = [
-        ("unit_and_integration", [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"], 420),
+        ("unit_and_integration", [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"], 600),
         ("strict_namespace_execution", [sys.executable, "tools/validate_sandbox.py", "--output", next_stage + "/sandbox.json"], 120),
         ("parser_example", [sys.executable, "-m", "hepta", "run", "examples/parser.hepta", "--json"], 60),
         ("ownership_example", [sys.executable, "-m", "hepta", "run", "examples/ownership.hepta", "--json"], 60),
@@ -710,6 +732,7 @@ def main(argv=None):
         ("source_bound_resource_ir", [sys.executable, "-m", "tools.qualify_resource_source", next_stage + "/resources.json", "--output", next_stage + "/resource_source.json"], 120),
         ("partial_owned_places", [sys.executable, "-m", "tools.qualify_places", "--output", next_stage + "/places.json"], 120),
         ("stored_borrows", [sys.executable, "tools/qualify_borrowed_storage.py", "--output", next_stage + "/stored_borrows.json"], 120),
+        ("local_stored_resource_views", [sys.executable, "-m", "tools.qualify_resource_views", "--output", next_stage + "/resource_views.json"], 120),
         ("owned_c_backend", [sys.executable, "tools/validate_c_owned.py", "--output", next_stage + "/c_owned.json"], 180),
         ("c_project_migration", [sys.executable, "tools/qualify_c_migration.py", "--output", next_stage + "/c_project.json"], 120),
         ("upstream_c_modules", [sys.executable, "tools/qualify_c_algorithms.py", "--output", next_stage + "/upstream_c.json"], 120),
@@ -718,6 +741,9 @@ def main(argv=None):
         ("cpp_constructor_interop", [sys.executable, "tools/validate_cpp_constructors.py", "--iterations", "100000", "--output", next_stage + "/cpp_constructors.json"], 180),
         ("cpp_scoped_raii", [sys.executable, "-m", "hepta.cpp_scoped", "--iterations", "100000", "--output", next_stage + "/cpp_scoped.json"], 180),
         ("cpp_class_migration", [sys.executable, "-m", "tools.validate_cpp_class", "--workdir", "artifacts/cpp-class-" + run_id, "--out", next_stage + "/cpp_class.json"], 180),
+        ("cpp_owned_migration", [sys.executable, "-m", "tools.validate_cpp_owned", "--workdir", "artifacts/cpp-owned-" + run_id, "--out", next_stage + "/cpp_owned.json"], 180),
+        ("cpp_owned_to_llvm", [sys.executable, "-m", "tools.qualify_cpp_owned_llvm", "--workdir", "artifacts/cpp-owned-llvm-" + run_id, "--output", next_stage + "/cpp_owned_llvm.json"], 180),
+        ("cpp_upstream_upgrade", [sys.executable, "-m", "tools.qualify_cpp_upgrade", "--workdir", "artifacts/cpp-upgrade-" + run_id, "--output", next_stage + "/cpp_upgrade.json"], 180),
         ("locked_package_example", [sys.executable, "-m", "hepta", "run", "examples/packages/app", "--locked", "--json"], 60),
         ("bounded_concurrency", [sys.executable, "tools/validate_groups.py", "--repeats", "3", "--output", "evidence/groups/native_validation.json"], 180),
         ("shared_runtime", [sys.executable, "tools/validate_shared_runtime.py", "--repeats", "3", "--output", next_stage + "/shared_runtime.json"], 180),
@@ -730,7 +756,9 @@ def main(argv=None):
         ("native_and_performance", [sys.executable, "tools/validate.py", "--bench", "--output", "artifacts/native-validation.json"], 180),
         ("representative_performance", [sys.executable, "tools/benchmark_suite.py", "--output", "artifacts/representative-benchmarks.json"], 240),
         ("application_performance", [sys.executable, "tools/benchmark_applications.py", "--output", next_stage + "/applications.json"], 180),
+        ("llvm_owned_rust_allocator", [sys.executable, "-m", "tools.qualify_llvm_owned_rust_allocator", "--output", next_stage + "/llvm_owned_rust_allocator.json"], 120),
         ("llvm_native_performance", [sys.executable, "tools/qualify_llvm_native.py", "--output", next_stage + "/llvm_native.json"], 180),
+        ("llvm_owned_performance", [sys.executable, "-m", "tools.qualify_llvm_owned", "--output", next_stage + "/llvm_owned.json"], 300),
         ("formal_core", [sys.executable, "tools/verify_formal.py", "--output", "artifacts/formal-validation.json"], 180),
         ("provenance_and_type_core", [sys.executable, "tools/verify_memory.py", "--output", next_stage + "/memory_proofs.json"], 180),
         ("aarch64_execution", [sys.executable, "tools/validate_cross.py", "--output", "artifacts/cross-execution.json"], 120),
@@ -746,7 +774,9 @@ def main(argv=None):
         "native_and_performance": "artifacts/native-validation.json",
         "representative_performance": "artifacts/representative-benchmarks.json",
         "application_performance": next_stage + "/applications.json",
+        "llvm_owned_rust_allocator": next_stage + "/llvm_owned_rust_allocator.json",
         "llvm_native_performance": next_stage + "/llvm_native.json",
+        "llvm_owned_performance": next_stage + "/llvm_owned.json",
         "formal_core": "artifacts/formal-validation.json",
         "aarch64_execution": "artifacts/cross-execution.json",
         "agent_evaluator_fixtures": fixture_output,
@@ -754,6 +784,7 @@ def main(argv=None):
         "source_bound_resource_ir": next_stage + "/resource_source.json",
         "partial_owned_places": next_stage + "/places.json",
         "stored_borrows": next_stage + "/stored_borrows.json",
+        "local_stored_resource_views": next_stage + "/resource_views.json",
         "owned_c_backend": next_stage + "/c_owned.json",
         "shared_runtime": next_stage + "/shared_runtime.json",
         "independent_concurrent_ir": next_stage + "/concurrent_ir.json",
@@ -770,6 +801,9 @@ def main(argv=None):
         "cpp_constructor_interop": next_stage + "/cpp_constructors.json",
         "cpp_scoped_raii": next_stage + "/cpp_scoped.json",
         "cpp_class_migration": next_stage + "/cpp_class.json",
+        "cpp_owned_migration": next_stage + "/cpp_owned.json",
+        "cpp_owned_to_llvm": next_stage + "/cpp_owned_llvm.json",
+        "cpp_upstream_upgrade": next_stage + "/cpp_upgrade.json",
         "crossfile_agent_fixtures": next_stage + "/crossfile_agent.json",
         "strict_namespace_execution": next_stage + "/sandbox.json",
         "production_workspace_namespace": next_stage + "/workspace_namespace.json",

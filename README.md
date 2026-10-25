@@ -14,8 +14,10 @@ whole-compiler soundness, or universal performance superiority over Rust.
 The [unified candidate](docs/UNIFIED_CANDIDATE.md) defines the current semantic
 authority, explicit backend/migration scopes and repeatable acceptance entry.
 An additional `build-llvm-ssa` command emits native code from verified i32/u32
-SSA with exact source-origin rechecks; ownership and hosted runtimes remain
-outside that LLVM profile.
+SSA with exact source-origin rechecks. `build-llvm-owned` directly lowers a
+separate Buffer/owned-ADT/Result/borrow/cleanup profile to LLVM on Linux x86-64.
+Both require a native Rust reference check; neither silently falls back to
+Rust machine-code generation. Hosted task/I/O runtimes remain outside LLVM.
 
 ## Implemented capabilities
 
@@ -24,15 +26,15 @@ outside that LLVM profile.
 | Ownership | Buffer-bearing structs/enums, `Result<Owned, Error>`, nested named-field moves and restoration, explicit recursive drops, checked normal/early exits, fallible byte allocation |
 | Generics | Finite `Copy` / `Owned` function constraints, checked unused generic bodies, owned aggregate substitution and transfer |
 | Borrowing | Read/mutable parameters, disjoint field borrows, explicit returned origins, bounded lifetime-parameterized stored shared/mutable view records, native Rust region validation |
-| Resource IR | Independent v3 ownership/place CFG, fresh source/native replay of complete retained graphs, plus a separate task/group lifecycle CFG; explicit unproved refinement boundaries |
+| Resource IR | Independent v3 ownership/place CFG and v4 local stored-slice loans, fresh source/native replay, plus a separate task/group lifecycle CFG; explicit unproved refinement boundaries |
 | Modules | Imports, privacy, local packages, content locks and frozen dependency identities |
 | Concurrency | Hosted tasks/channels, monotonic deadlines, event-driven two-group selection, shared reservations and bounded parent/child task trees with transitive cancel/fail/join |
 | Hosted I/O | Bounded single-owner local-stream reactor, nonblocking reads/writes, explicit poll, deadlines/cancellation and owned completion tickets on qualified Linux x86-64 GNU hosts |
 | Board execution | Volatile integer access, explicit unsafe Rust exports, a linked no_std Cortex-M4 BSP with UART/timer IRQ execution under the pinned QEMU system model |
-| Native backends | Reference Rust plus independent C11 owned ADT/Result/Buffer lowering, bounded monomorphization and a mandatory independent resource gate for its ownership profile |
+| Native backends | Reference Rust, independent C11 owned lowering, scalar SSA LLVM and a direct owned-byte LLVM host profile; explicit supported scopes and mandatory resource gates |
 | Debugging | Unoptimized debug builds, retained generated sources, C source line tables and Rust statement mapping, actual GDB breakpoint/local/stack/step qualification |
 | C | Host ABI declarations/probes; compilation-database capture; bounded module translation; complete active-declaration inventory; record/buffer views and restricted allocation/free migration |
-| C++ | Direct scalar/POD calls, checked call-scoped spans, protected handles, typed constructors, template instantiation and bounded automatic-object RAII scopes with copied results |
+| C++ | Direct/span/handle/constructor/scoped bridges; actual selected scalar-class and exclusive-byte-owner implementation migration; two-version upstream library upgrade observations |
 | Agent tools | Snapshot-bound semantic edits, explicit interface migration, whole-import-graph native validation, crash-recoverable publication and source-level native diagnostics |
 | Evaluation | Five cross-file tasks in a four-arm Rust/Hepta study, real workspace v4 and per-task publication deaths, strict namespaces, frozen adapter identity, receipt/cost accounting and independent native oracles |
 
@@ -42,6 +44,11 @@ See [ownership and returned borrows](docs/OWNED_TYPES.md),
 [C++ interface contracts](docs/CPP_INTEROP.md),
 [typed C++ constructors](docs/CPP_CONSTRUCTORS.md), and
 [Agent workspace transactions](docs/AGENT_WORKSPACE.md).
+The [exclusive C++ owner migration](docs/CPP_OWNED_MIGRATION.md),
+[direct owned-byte LLVM backend](docs/LLVM_OWNED_BYTES.md),
+[local stored-loan verifier](docs/LOCAL_STORED_RESOURCE_VIEWS.md) and
+[real upstream library upgrade](docs/CPP_UPSTREAM_UPGRADE.md) describe the
+resource extension and its remaining boundaries.
 The [resource IR](docs/RESOURCE_IR.md),
 [partial owned places](docs/PARTIAL_PLACES.md),
 [concurrent resource protocol](docs/CONCURRENT_IR.md),
@@ -82,6 +89,10 @@ python -m hepta migrate-c-project compile_commands.json \
   --contracts contracts.json --output /tmp/c-migration
 python -m hepta migrate-cpp-class examples/cpp/class_migration/scalar_state.cpp \
   --output /tmp/scalar_state.hepta
+python -m hepta migrate-cpp-owned examples/cpp/owned_migration/owned_bytes.cpp \
+  --output /tmp/owned_bytes.hepta
+python -m hepta build-llvm-owned examples/llvm_owned/main.hepta \
+  --output /tmp/owned-native.so --clang clang
 python -m hepta bridge-cpp-contract examples/cpp/stdlib/foreign.hpp \
   --contract examples/cpp/stdlib/contract.json --output-dir /tmp/cpp-bridge
 python -m hepta bridge-cpp-contract examples/cpp/scoped/foreign.hpp \

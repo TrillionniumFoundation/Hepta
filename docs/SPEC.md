@@ -528,6 +528,25 @@ explicitly unqualified origin mode cannot be promoted by the source command.
 
 See [P5_SOURCE_BOUND_LLVM_SCALAR32_20261025.md](P5_SOURCE_BOUND_LLVM_SCALAR32_20261025.md).
 
+### Independent owned-byte LLVM profile
+
+`hepta build-llvm-owned` selects a second direct LLVM profile for Linux
+x86-64. It admits `Buffer<u8>`, finite owned structs/enums/Result and bounded
+generic instances, immediate read/mut borrows and receiver-tied slice returns,
+explicit moves/drops, checked integer access and normal/error cleanup. The
+existing shared frontend and native Rust reference gate remain mandatory.
+The independent resource projection is checked before direct typed AST to
+LLVM emission; the graph does not pretend to contain executable scalar code.
+The complete module is regenerated and compared before native compilation.
+
+Public C boundaries contain supported ordinary scalars; owner, enum and slice
+layouts stay internal. The `alloc`, `block`, `write` and `panic` effect profile
+is supported. Stored lifetime records, task/I/O resources, raw/foreign access,
+resource clauses, floating point, arrays and foreign-target resource execution
+reject. There is no automatic fallback. Allocation failure is explicit;
+overflow/bounds/infallible-allocation failure aborts, without unwind-cleanup
+claims. See [LLVM_OWNED_BYTES.md](LLVM_OWNED_BYTES.md).
+
 ## 13b. Resource projection and C++ scope boundaries
 
 `hepta resource-ir` exports an independent ownership/place/loan graph. Its
@@ -539,6 +558,14 @@ resource lowering and compares the complete graph, including foreign
 obligations. Explicit `--frontend-only` never receives a native qualification.
 Reusing a lowerer establishes executable correspondence, not a proof that the
 lowerer or the native backend preserves all source semantics.
+
+Resource IR v4 additionally checks local one-field shared/exclusive byte-slice
+records. Copies retain their own shared loan; moving an exclusive view
+transfers its loan; owner access and exit rules account for both transient
+and stored loans. It uses a conservative lexical lifetime model. General
+interprocedural stored regions and mixed type/lifetime generics remain
+unsupported. Exact capability receipts are described in
+[LOCAL_STORED_RESOURCE_VIEWS.md](LOCAL_STORED_RESOURCE_VIEWS.md).
 
 C++ contract v3 adds automatic objects confined to one generated C++ call.
 Construction, a bounded sequence of methods, result copying and destruction
@@ -558,6 +585,21 @@ calls reject. Supported method and constructor bodies become Hepta code and
 do not retain original C++ link inputs. This route does not preserve the
 original C++ class ABI or implement generic resource-owning RAII migration.
 See [CPP_CLASS_MIGRATION.md](CPP_CLASS_MIGRATION.md).
+
+`hepta migrate-cpp-owned` recognizes and translates the complete selected
+exclusive zeroed-byte-array owner and lifecycle protocol. The whole native
+AST, including allocation, move, destructor, method bodies and every exit,
+must match the versioned compiler rules. Its Hepta output owns a Buffer and
+uses Result, borrows and explicit drop; it does not link the original class.
+This strict pattern migration does not claim arbitrary RAII translation,
+moved-from-object compatibility outside its domain or C++ layout preservation.
+See [CPP_OWNED_MIGRATION.md](CPP_OWNED_MIGRATION.md).
+
+The two-version native library qualification in
+[CPP_UPSTREAM_UPGRADE.md](CPP_UPSTREAM_UPGRADE.md) separately measures an
+actual unchanged-caller nlohmann/json upgrade. It retains foreign noexcept
+destructor termination as unqualified recovery. Successful library bridging
+does not make foreign failure paths or unsafe memory behavior safe.
 
 ## 14. Agent transactions, proof scope, and remaining work
 

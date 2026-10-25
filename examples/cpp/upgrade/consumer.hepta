@@ -1,0 +1,8 @@
+module json_upgrade_consumer;
+import bridge;
+
+export "C" fn hepta_json_replace_sum(text: raw const u8, count: usize,
+                                    index: usize, value: i64, out: raw mut i64) -> i32
+effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_json_upgrade_replace_sum(text, count, index, value, out); }
+}

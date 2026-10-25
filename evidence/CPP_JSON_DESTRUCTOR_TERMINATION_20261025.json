@@ -1,0 +1,30 @@
+{
+  "schema": "hepta.foreign-allocation-termination-observation.v1",
+  "library": "nlohmann/json",
+  "version": "3.12.0",
+  "header_sha256": "aaf127c04cb31c406e5b04a63f1ae89369fccde6d8fa7cdda1ed4f32dfc5de63",
+  "fault_site": 15,
+  "argv": [
+    "gdb",
+    "-q",
+    "-batch",
+    "-ex",
+    "set debuginfod enabled off",
+    "-ex",
+    "run 15",
+    "-ex",
+    "bt",
+    "--args",
+    "/dev/shm/hepta-c7c6ee414a6c/json-upgrade-second/3.12.0/json-upgrade",
+    "15"
+  ],
+  "gdb_returncode": 0,
+  "stdout": "\nThis GDB supports auto-downloading debuginfo from the following URLs:\n  <https://debuginfod.ubuntu.com>\nEnable debuginfod for this session? (y or [n]) [answered N; input not from terminal]\nDebuginfod has been disabled.\nTo make this setting permanent, add 'set debuginfod enabled off' to .gdbinit.\n[Thread debugging using libthread_db enabled]\nUsing host libthread_db library \"/lib/x86_64-linux-gnu/libthread_db.so.1\".\n\nProgram received signal SIGABRT, Aborted.\n__pthread_kill_implementation (no_tid=0, signo=6, threadid=<optimized out>) at ./nptl/pthread_kill.c:44\n#0  __pthread_kill_implementation (no_tid=0, signo=6, threadid=<optimized out>) at ./nptl/pthread_kill.c:44\n#1  __pthread_kill_internal (signo=6, threadid=<optimized out>) at ./nptl/pthread_kill.c:78\n#2  __GI___pthread_kill (threadid=<optimized out>, signo=signo@entry=6) at ./nptl/pthread_kill.c:89\n#3  0x00007ffff7b3927e in __GI_raise (sig=sig@entry=6) at ../sysdeps/posix/raise.c:26\n#4  0x00007ffff7b1c8ff in __GI_abort () at ./stdlib/abort.c:79\n#5  0x00007ffff7dd9ff5 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6\n#6  0x00007ffff7def0da in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6\n#7  0x00007ffff7dd98e6 in __cxa_call_terminate () from /lib/x86_64-linux-gnu/libstdc++.so.6\n#8  0x00007ffff7dee8ba in __gxx_personality_v0 () from /lib/x86_64-linux-gnu/libstdc++.so.6\n#9  0x00007ffff7d28b06 in ?? () from /lib/x86_64-linux-gnu/libgcc_s.so.1\n#10 0x00007ffff7d295cd in _Unwind_Resume () from /lib/x86_64-linux-gnu/libgcc_s.so.1\n#11 0x000055555555f001 in nlohmann::json_abi_v3_12_0::basic_json<std::map, std::vector, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, bool, long, unsigned long, double, std::allocator, nlohmann::json_abi_v3_12_0::adl_serializer, std::vector<unsigned char, std::allocator<unsigned char> >, void>::json_value::destroy(nlohmann::json_abi_v3_12_0::detail::value_t) ()\n#12 0x000055555555f039 in nlohmann::json_abi_v3_12_0::basic_json<std::map, std::vector, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, bool, long, unsigned long, double, std::allocator, nlohmann::json_abi_v3_12_0::adl_serializer, std::vector<unsigned char, std::allocator<unsigned char> >, void>::~basic_json() ()\n#13 0x000055555555b644 in hepta_cpp_json_upgrade_replace_sum ()\n#14 0x0000555555558df5 in main ()\n",
+  "stderr": "terminate called after throwing an instance of 'std::bad_alloc'\n  what():  std::bad_alloc\nwarning: 44\t./nptl/pthread_kill.c: No such file or directory\n",
+  "stdout_sha256": "e0a748080b82f66988ecc6a1d86db517a4209d877442584757b53e20cd2b191b",
+  "stderr_sha256": "0b1f5cd8756fd41a974e523f06fac515d9e720a9e08db537263192d37659a426",
+  "executable_sha256": "8b473a165f43729433c4903f9cdf10c46136a747069655045122535683213fc4",
+  "observed_sigabrt": true,
+  "observed_destructor_path": true,
+  "claim": "foreign destructor allocation refusal terminates the process; not recovered by the Hepta C++ exception bridge"
+}
