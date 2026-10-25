@@ -247,12 +247,17 @@ f(2147483647,1)
 export "C" fn add(a: i32, b: i32) -> i32 effects { panic } {
     return a + b;
 }
+export "C" fn min2(a: i32, b: i32) -> i32 effects {} {
+    if a < b { return a; } else { return b; }
+}
 '''
         program = parse(src)
         checked = check(program)
         self.assertTrue(checked.ok, [d.to_dict() for d in checked.diagnostics])
         ir = emit_scalar_llvm(lower_checked_program(program, checked))
         self.assertIn("define i32 @add", ir.text)
+        self.assertIn("define i32 @min2", ir.text)
+        self.assertIn("icmp slt i32", ir.text)
 
 
 if __name__ == "__main__":
