@@ -56,6 +56,63 @@ int main(void) {
                             str(bridge), "-o", str(exe)], check=True, capture_output=True, timeout=30)
             self.assertEqual(subprocess.run([str(exe)], timeout=10).returncode, 0)
 
+    def test_status_bridge_catches_exception_and_runs_raii_cleanup(self):
+        # The original implementation keeps C++ RAII semantics inside the boundary.
+        self.original.write_text("""int guarded(int input) {
+    static int destroyed = 0;
+    struct Guard { int *p; ~Guard() { ++*p; } };
+    if (input == 99) return destroyed;
+    Guard guard{&destroyed};
+    if (input < 0) throw 7;
+    return input + 3;
+}
+int zero() { return 41; }
+""")
+        result = generate_cpp_bridge(self.original, clangxx=CLANGXX,
+                                     exception_mode="catch_status")
+        self.assertEqual(result.report["schema"], "hepta.cpp-bridge.v1")
+        self.assertEqual(result.report["exception_mode"], "catch_status")
+        self.assertFalse(result.report["exception_crosses_c_abi"])
+        self.assertEqual(result.report["exception_translation"], "status_without_exception_payload")
+        self.assertFalse(result.report["foreign_cpp_memory_safe"])
+        bridge = self.root / "catch_bridge.cc"
+        header = self.root / "bridge.h"
+        caller = self.root / "catch_caller.c"
+        bridge.write_text(result.source)
+        header.write_text(result.c_header)
+        caller.write_text('''#include "bridge.h"
+int main(void) {
+    int out = 501;
+    if (hepta_cxx_guarded(-1, &out) != 1 || out != 501) return 1;
+    if (hepta_cxx_guarded(99, &out) != 0 || out != 1) return 2;
+    if (hepta_cxx_guarded(5, &out) != 0 || out != 8) return 3;
+    if (hepta_cxx_guarded(99, &out) != 0 || out != 2) return 4;
+    if (hepta_cxx_guarded(5, 0) != -1) return 5;
+    if (hepta_cxx_zero(&out) != 0 || out != 41) return 6;
+    return 0;
+}
+''')
+        for optimization in ("-O0", "-O2"):
+            caller_obj = self.root / f"catch_{optimization}.o"
+            exe = self.root / f"catch_{optimization}"
+            subprocess.run([CC, "-std=c11", optimization, "-Wall", "-Wextra", "-Werror",
+                            "-c", str(caller), "-o", str(caller_obj)],
+                           check=True, capture_output=True, timeout=20)
+            subprocess.run([CLANGXX, "-std=c++20", optimization, str(caller_obj),
+                            str(self.original), str(bridge), "-o", str(exe)],
+                           check=True, capture_output=True, timeout=30)
+            self.assertEqual(subprocess.run([str(exe)], timeout=10).returncode, 0)
+
+    def test_mode_rejects_invalid_mode_and_default_stays_noexcept(self):
+        with self.assertRaisesRegex(MigrationRejected, "E_CPP_BRIDGE_MODE"):
+            generate_cpp_bridge(self.original, exception_mode="swallow")
+        self.original.write_text("int can_throw(int x) { if (x) throw x; return 0; }")
+        with self.assertRaises(MigrationRejected):
+            generate_cpp_bridge(self.original, exception_mode="noexcept_only")
+        caught = generate_cpp_bridge(self.original, exception_mode="catch_status")
+        self.assertIn("catch (...) {", caught.source)
+        self.assertIn("int *result_out", caught.c_header)
+
     def test_unsupported_semantics_fail_closed(self):
         for source in (
             "int f(int a) { return a; }",  # noexcept required
