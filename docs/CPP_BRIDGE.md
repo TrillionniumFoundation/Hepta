@@ -24,6 +24,39 @@ Run the implemented C/C++ runtime interoperability tests:
 python -m unittest discover -s tests -p test_cpp_bridge.py -v
 ```
 
+## Opt-in exception containment (`catch_status`, experimental)
+
+The default `noexcept_only` mode and its v0 wrapper ABI remain unchanged.
+For a translation unit with ordinary `int f(int...)` free functions, including
+functions that may throw, choose an explicit **different** C ABI:
+
+```sh
+python -m hepta bridge-cpp original.cc --exception-mode catch_status --output-dir /tmp/caught
+```
+
+Each wrapper uses the signature `int hepta_cxx_NAME(int args..., int *result_out)`:
+
+- Return `0` on success and set `*result_out` to the original function result.
+- Return `1` if any C++ exception escapes the called function; leave `*result_out` unchanged.
+- Return `-1` for a null `result_out`; do not invoke the original C++ function.
+
+Every wrapper has `noexcept` and catches with `catch (...)` **inside C++**.
+The exception object/type/message is deliberately discarded: this is only a
+lossy, opt-in status mapping, not a semantics-preserving C++ exception ABI.
+C++ stack unwinding and destructors in the original function still execute,
+provided the original is compiled with working exceptions and does not violate
+`noexcept`, invoke `std::terminate`, or suffer undefined behavior.
+
+The v1 manifest declares `exception_translation=status_without_exception_payload`
+while continuing to assert `foreign_cpp_memory_safe=false`,
+`cpp_abi_qualified=false` and `c_abi_qualified=false`. A C caller compiled with
+GCC and an implementation/bridge compiled with Clang++ were executed at `-O0`
+and `-O2`. The test covers thrown exceptions, unchanged out-parameters,
+null-pointer refusal, and observable local RAII destructor execution. No claim
+about cross-platform C++ ABI, general C++ safety or exceptions thrown through
+callbacks is made. These wrappers are *not* directly callable through a
+Hepta safe API without a separately validated pointer ownership contract.
+
 ## Blocking work for production P4/P5
 
 1. Clang compilation databases, macro-expanded source graph, target ABI profiles, real-header import and function-pointer/callback retention contracts.
