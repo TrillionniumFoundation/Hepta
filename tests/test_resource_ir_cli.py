@@ -30,6 +30,9 @@ class ResourceIRCommandTests(unittest.TestCase):
         self.assertTrue(report["ok"], report)
         self.assertEqual(report["validation"]["checks"]["rust_borrows_types"], "rustc_checked")
         self.assertTrue(report["verifier"]["ok"])
+        self.assertTrue(report["source_binding_verified"])
+        self.assertEqual(report["source_origin"]["canonical_hsir_schema"], "hepta.hsir.v0")
+        self.assertFalse(report["source_origin"]["claims"]["source_to_ir_refinement_proved"])
         self.assertFalse(report["verifier"]["claims"]["source_to_ir_refinement_proved"])
 
     def test_frontend_only_export_does_not_claim_native_qualification(self):
