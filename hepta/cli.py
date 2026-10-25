@@ -19,6 +19,7 @@ from .cfg_analysis import CFGAnalysisRejected
 from .ssa import SSARejected
 from .ssa_verify import SSAVerificationRejected
 from .hsir_v1_ssa import V1SSARejected
+from .hsir_v1 import HSIRV1Rejected
 from .llvm_ssa_backend import LLVMSSARejected
 
 
@@ -316,10 +317,10 @@ def main(argv=None) -> int:
     except HeptaError as e:
         output_json({"ok": False, "status": "rejected", "diagnostics": [e.diagnostic.to_dict()]})
         return 1
-    except (CFGRejected, CFGAnalysisRejected, SSARejected, SSAVerificationRejected, LLVMSSARejected, V1SSARejected) as e:
+    except (CFGRejected, CFGAnalysisRejected, SSARejected, SSAVerificationRejected, LLVMSSARejected, V1SSARejected, HSIRV1Rejected) as e:
         message = str(e)
         code = message.split(":", 1)[0]
-        if not code.startswith(("E_CFG_", "E_DOM_", "E_SSA_", "E_LLVM_SSA_", "E_V1_SSA_")):
+        if not code.startswith(("E_CFG_", "E_DOM_", "E_SSA_", "E_LLVM_SSA_", "E_V1_SSA_", "E_HSIR_V1_")):
             code = "E_IR_REJECTED"
         output_json({"ok": False, "status": "rejected",
                      "diagnostics": [{"code": code, "message": message, "phase": "ir"}]})
