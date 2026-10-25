@@ -124,7 +124,7 @@ def preview_multi_body_patch(entry: str | Path, request: dict, *, apply: bool = 
                                                   for path, text in overrides.items()}}
         if (checked.project.sources != expected_sources or checked.project.modules != original.modules
                 or checked.project.package_state != original.package_state
-                or checked.project.path_bindings != original.path_bindings
+                or checked.project.bindings != original.bindings
                 or not original.unchanged()):
             return _reject("E_STALE_PROJECT", "Combined check did not preserve exact source/import graph")
         return {"schema": SCHEMA, "ok": True, "status": "validated", "applied": False,
