@@ -229,7 +229,8 @@ def main(argv=None) -> int:
                         legacy, expected_source_sha256=sha256(result.program.source.encode("utf-8")).hexdigest())
                     snapshot = lower_verified_v1_scalar_ssa(
                         integrated, source_text=result.program.source,
-                        source_path=result.program.path)
+                        source_path=result.program.path,
+                        verified_project_sha256=getattr(result.project, "identity", None))
                 else:
                     legacy = lower_checked_program(result.program, result.checked).as_dict()
                     integrated = integrate_v0(legacy, expected_source_sha256=legacy["source_sha256"])
