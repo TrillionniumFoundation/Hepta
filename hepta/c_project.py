@@ -13,8 +13,7 @@ from pathlib import Path
 import re
 import shlex
 import shutil
-import subprocess
-
+from .bounded_process import BoundedProcessError, run_bounded
 from .c_migrate import MigrationRejected
 
 
@@ -24,14 +23,14 @@ def digest(data: bytes) -> str:
 
 def invoke(args: list[str], directory: Path, *, stdin: str | None = None) -> str:
     try:
-        run = subprocess.run(args, cwd=directory, input=stdin, capture_output=True,
-                             text=True, timeout=45, check=False)
-    except (OSError, subprocess.SubprocessError) as exc:
+        run = run_bounded(args, directory, stdin=stdin, timeout=45,
+                          stdout_limit=32_000_000, stderr_tail_limit=6000)
+    except BoundedProcessError as exc:
+        if exc.reason == "stdout_limit":
+            raise MigrationRejected("E_C_BUILD_SIZE", "Compiler output exceeds 32 MB") from exc
         raise MigrationRejected("E_C_BUILD_TOOL", str(exc)) from exc
     if run.returncode:
-        raise MigrationRejected("E_C_BUILD_TOOL", run.stderr[-6000:] or "Clang failed")
-    if len(run.stdout) > 32_000_000:
-        raise MigrationRejected("E_C_BUILD_SIZE", "Compiler output exceeds 32 MB")
+        raise MigrationRejected("E_C_BUILD_TOOL", run.stderr_tail or "Clang failed")
     return run.stdout
 
 
