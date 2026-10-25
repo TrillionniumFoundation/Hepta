@@ -688,6 +688,29 @@ def _require_qualification(name, evidence):
             raise ValueError("Every real namespace, boundary and native execution check must pass")
 
 
+def require_collected_qualification(name, evidence):
+    """Check a producer's exact success convention and its nested evidence.
+
+    The collector separately requires fresh output and an actual zero process
+    exit. Keep this payload boundary shared with native producer regressions.
+    """
+    if not isinstance(evidence, dict):
+        raise ValueError("Qualification evidence must be a JSON object")
+    if name in {"independent_resource_ir", "partial_owned_places", "owned_c_backend", "c_project_migration", "upstream_c_modules", "stateful_c_module", "cpp_library_interop", "cpp_constructor_interop", "cpp_scoped_raii", "cpp_class_migration"}:
+        if evidence.get("ok") is not True:
+            raise ValueError("Required native qualification did not report ok=true")
+    else:
+        expected = ("qualified_fixtures_only" if name in {"agent_evaluator_fixtures", "crossfile_agent_fixtures"}
+                    else "qualified_workspace_fixtures_only" if name == "production_workspace_namespace"
+                    else "qualified_workspace_crash_fixtures_only" if name == "production_workspace_crashes"
+                    else "qualified" if name == "strict_namespace_execution"
+                    else "native_owned_implementation_and_cleanup_qualified" if name == "cpp_owned_migration"
+                    else "passed")
+        if evidence.get("status") != expected:
+            raise ValueError(f"Expected evidence status {expected!r}, got {evidence.get('status')!r}")
+    require_qualification(name, evidence)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-directory", type=Path,
@@ -900,17 +923,7 @@ def main(argv=None):
                     raise ValueError("Evidence was not refreshed by this gate; a previous run cannot qualify the current candidate")
                 if gate["status"] != "passed":
                     raise ValueError("Gate command did not succeed; retained failure evidence is not qualification")
-                if name in {"independent_resource_ir", "partial_owned_places", "owned_c_backend", "c_project_migration", "upstream_c_modules", "stateful_c_module", "cpp_library_interop", "cpp_constructor_interop", "cpp_scoped_raii", "cpp_class_migration"}:
-                    if evidence.get("ok") is not True:
-                        raise ValueError("Required native qualification did not report ok=true")
-                else:
-                    expected = ("qualified_fixtures_only" if name in {"agent_evaluator_fixtures", "crossfile_agent_fixtures"}
-                                else "qualified_workspace_fixtures_only" if name == "production_workspace_namespace"
-                                else "qualified_workspace_crash_fixtures_only" if name == "production_workspace_crashes"
-                                else "qualified" if name == "strict_namespace_execution" else "passed")
-                    if evidence.get("status") != expected:
-                        raise ValueError(f"Expected evidence status {expected!r}, got {evidence.get('status')!r}")
-                require_qualification(name, evidence)
+                require_collected_qualification(name, evidence)
                 retained["validation_status"] = "passed"
             except (OSError, ValueError, KeyError, TypeError, AttributeError, IndexError,
                     OverflowError, RecursionError, RuntimeError) as exc:

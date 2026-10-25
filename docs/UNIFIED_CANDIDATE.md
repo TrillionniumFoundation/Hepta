@@ -111,10 +111,16 @@ run fails the aggregate. The final report records every planned gate and the
 code commit used for the run.
 
 The earlier exact 776f005d candidate passed all 40 gates and is preserved under
-`evidence/unified_candidate_20261025/`. The resource extension is qualified
-separately under `evidence/resource_candidate_20261025/`; the aggregate's exact
-commit and status decide acceptance. Failure/unknown entries remain part of
-the evidence. Genuine model trials, physical boards,
+`evidence/unified_candidate_20261025/`. The first resource integration,
+9ce4bc1, completed all 46 gates with 44 passes and an unchanged source snapshot.
+`evidence/resource_candidate_20261025/` retains its collector status-contract
+mismatch and the resource performance measurement's quality rejection. Its
+1369 tests passed with zero skips; the aggregate remains failed.
+The collector now accepts the producer's exact scoped success status and still
+performs its strict current-source validation. The next integrated candidate
+is qualified separately under `evidence/resource_candidate_fixed_20261025/`;
+that aggregate's exact commit and status decide acceptance. All earlier failed
+or inconclusive attempts remain part of the evidence. Genuine model trials, physical boards,
 GPU execution, production service loads, full-language soundness and universal
 performance superiority need their own evidence. Scripted evaluator fixtures,
 QEMU and small abstract Lean cores cannot establish those claims.

@@ -14,6 +14,7 @@ import unittest
 from unittest.mock import patch
 
 from hepta.cpp_owned_migrate import migrate_cpp_owned
+from tools.release_check import require_collected_qualification
 from tools.validate_cpp_owned import EXAMPLE, cases, qualify_cpp_owned, validate_report
 from tests.test_cpp_owned_source_replay import forge_unrelated_safe_projection
 
@@ -160,6 +161,21 @@ class CppOwnedNativeTests(unittest.TestCase):
             report = qualify_cpp_owned(temporary, clangxx=CLANGXX, rustc=os.environ.get("RUSTC"), cc="gcc")
             self.assertTrue(report["ok"], report)
             self.assertTrue(validate_report(report))
+            # Exercise the collector's actual payload boundary with the real
+            # producer report. Its precise successful status is not "passed".
+            self.assertEqual(report["status"], "native_owned_implementation_and_cleanup_qualified")
+            with patch("tools.validate_cpp_owned.validate_report", wraps=validate_report) as strict_validator:
+                require_collected_qualification("cpp_owned_migration", report)
+            strict_validator.assert_called_once_with(report)
+            for status in ("passed", "failed", "not_run"):
+                candidate = copy.deepcopy(report)
+                candidate["status"] = status
+                with self.subTest(collector_status=status), self.assertRaisesRegex(ValueError, "Expected evidence status"):
+                    require_collected_qualification("cpp_owned_migration", candidate)
+            rejected = copy.deepcopy(report)
+            rejected["ok"] = False
+            with self.assertRaises(ValueError):
+                require_collected_qualification("cpp_owned_migration", rejected)
             self.assertEqual(len(cases()), 475)
             expected = {"ok": True, "cases": 475, "observations_fnv64": "76b9c7dcdcefd304",
                         "allocations": 359, "frees": 359, "refusals": 98, "live": 0}
@@ -177,6 +193,8 @@ class CppOwnedNativeTests(unittest.TestCase):
             self.assertTrue(validate_report(unrelated, current_inputs=False))
             with self.assertRaisesRegex(ValueError, "E_CPP_OWNED_SOURCE_GRAPH"):
                 validate_report(unrelated)
+            with self.assertRaisesRegex(ValueError, "E_CPP_OWNED_SOURCE_GRAPH"):
+                require_collected_qualification("cpp_owned_migration", unrelated)
 
             def false_observation(record):
                 row = record["backends"]["c"]["execution"]
