@@ -12,7 +12,9 @@ import shutil
 import subprocess
 import tempfile
 
-from .llvm_ssa_backend import SSA_LLVM_IR, LLVMSSARejected
+from .cfg import CFGSnapshot
+from .ssa import SSASnapshot
+from .llvm_ssa_backend import SSA_LLVM_IR, LLVMSSARejected, require_exact_ssa_origin
 
 _TARGETS = {"x86_64-unknown-linux-gnu": ("ELF64", 62),
             "aarch64-unknown-linux-gnu": ("ELF64", 183),
@@ -84,11 +86,13 @@ def _qualified_header(data: bytes, target: str) -> bool:
 
 
 def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
-                              output: str | Path, clang="clang") -> dict:
+                              output: str | Path, clang="clang",
+                              ssa: SSASnapshot | None = None,
+                              cfg: CFGSnapshot | None = None) -> dict:
     """Produce an identified .o on one exact target without link or execution."""
     if not isinstance(ir, SSA_LLVM_IR):
         raise LLVMSSARejected("E_LLVM_SSA_TARGET_IR: SSA_LLVM_IR is required")
-    ir.check_identity()
+    origin_rechecked = require_exact_ssa_origin(ir, ssa=ssa, cfg=cfg)
     if target not in _TARGETS:
         raise LLVMSSARejected("E_LLVM_SSA_TARGET: unsupported target object profile")
     found = shutil.which(clang)
@@ -139,5 +143,6 @@ def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
                    "foreign_c_abi_qualified": False,
                    "physical_hardware_tested": False,
                    "native_backend_semantics_proved": False,
-                   "full_language_profile_qualified": False},
+                   "full_language_profile_qualified": False,
+                   "ssa_cfg_origin_rechecked": origin_rechecked},
     }

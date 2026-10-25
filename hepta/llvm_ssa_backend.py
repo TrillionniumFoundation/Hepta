@@ -229,9 +229,40 @@ def emit_scalar_ssa_llvm(ssa: SSASnapshot, cfg: CFGSnapshot) -> SSA_LLVM_IR:
     return output
 
 
-def compile_scalar_ssa_llvm(ir: SSA_LLVM_IR, *, clang: str = "clang", output: str | Path) -> dict:
-    """Compile a host shared-library only; link != ABI qualification or proof."""
+
+def require_exact_ssa_origin(ir: SSA_LLVM_IR, *,
+                             ssa: SSASnapshot | None = None,
+                             cfg: CFGSnapshot | None = None) -> bool:
+    """Re-run structural SSA validation and regenerate the *exact* LLVM module.
+
+    Digest/name/profile checks alone cannot distinguish a legitimate module
+    from re-hashed, well-formed but semantically altered scalar LLVM text.
+    Providing an exact SSA + CFG pair is opt-in and must not be confused with
+    proof that the CFG arose from a safe Hepta source.
+    """
+    if not isinstance(ir, SSA_LLVM_IR):
+        raise LLVMSSARejected("E_LLVM_SSA_ORIGIN: expected SSA_LLVM_IR")
     ir.check_identity()
+    if (ssa is None) != (cfg is None):
+        raise LLVMSSARejected("E_LLVM_SSA_ORIGIN: exact SSA and CFG must be provided together")
+    if ssa is None:
+        return False  # Legacy *unqualified* standalone IR compiler
+    if not isinstance(ssa, SSASnapshot) or not isinstance(cfg, CFGSnapshot):
+        raise LLVMSSARejected("E_LLVM_SSA_ORIGIN: invalid source snapshot types")
+    try:
+        expected = emit_scalar_ssa_llvm(ssa, cfg)
+    except (ValueError, TypeError, KeyError) as exc:
+        raise LLVMSSARejected("E_LLVM_SSA_ORIGIN: SSA/CFG source rejected") from exc
+    if ir != expected:
+        raise LLVMSSARejected("E_LLVM_SSA_ORIGIN: LLVM content differs from freshly verified SSA source")
+    return True
+
+
+def compile_scalar_ssa_llvm(ir: SSA_LLVM_IR, *, clang: str = "clang", output: str | Path,
+                            ssa: SSASnapshot | None = None,
+                            cfg: CFGSnapshot | None = None) -> dict:
+    """Compile a host shared-library only; link != ABI qualification or proof."""
+    origin_rechecked = require_exact_ssa_origin(ir, ssa=ssa, cfg=cfg)
     binary = shutil.which(clang)
     if binary is None:
         raise LLVMSSARejected("E_LLVM_SSA_TOOLCHAIN: native Clang unavailable")
@@ -265,4 +296,5 @@ def compile_scalar_ssa_llvm(ir: SSA_LLVM_IR, *, clang: str = "clang", output: st
             "toolchain": {"version": version.stdout.splitlines()[0],
                           "compiler_sha256": sha256(compiler.read_bytes()).hexdigest()},
             "claims": {"backend_refinement_proven": False, "cross_target_abi_qualified": False,
-                       "runtime_execution_qualified": False, "whole_p6_gate_closed": False}}
+                       "runtime_execution_qualified": False, "whole_p6_gate_closed": False,
+                       "ssa_cfg_origin_rechecked": origin_rechecked}}

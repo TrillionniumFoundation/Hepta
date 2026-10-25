@@ -139,6 +139,32 @@ class LLVMSSATargetTests(unittest.TestCase):
                                       output=output)
         self.assertFalse(output.exists())
 
+    def test_strict_ssa_origin_bound_to_cross_target_artifact(self):
+        import re
+        from dataclasses import replace
+        from hashlib import sha256
+        from hepta.ssa import lower_cfg_scalar_ssa
+        from hepta.llvm_ssa_backend import emit_scalar_ssa_llvm
+
+        ssa = lower_cfg_scalar_ssa(self.graph)
+        origin = emit_scalar_ssa_llvm(ssa, self.graph)
+        obj = self.root / "provenance.o"
+        report = compile_ssa_target_object(origin,
+            target="x86_64-unknown-linux-gnu", output=obj,
+            ssa=ssa, cfg=self.graph)
+        self.assertTrue(report["claims"]["ssa_cfg_origin_rechecked"])
+        forged_text = re.sub(r"(?m)^  ret i32 [^\n]+$", "  ret i32 22222",
+                             origin.text, count=1)
+        forged = replace(origin, text=forged_text,
+                         sha256=sha256(forged_text.encode()).hexdigest())
+        forged.check_identity()
+        dest = self.root / "wrong-origin.o"
+        with self.assertRaisesRegex(LLVMSSARejected, "ORIGIN"):
+            compile_ssa_target_object(forged,
+                target="x86_64-unknown-linux-gnu", output=dest,
+                ssa=ssa, cfg=self.graph)
+        self.assertFalse(dest.exists())
+
     def test_modified_ir_fails_before_compilation(self):
         from dataclasses import replace
         forged = replace(self.ir, sha256="0"*64)
