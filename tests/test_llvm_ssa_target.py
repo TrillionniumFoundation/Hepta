@@ -8,6 +8,8 @@ import unittest
 
 from hepta.llvm_ssa_backend import LLVMSSARejected, emit_scalar_ssa_llvm
 from hepta.llvm_ssa_target import compile_ssa_target_object, _qualified_header, _qualified_object
+from hepta.object_symbols import inspect_object_symbols, ObjectSymbolsRejected
+from hepta.llvm_ssa_target import _TARGETS
 from hepta.ssa import lower_cfg_scalar_ssa
 from tests.test_llvm_ssa_backend import LLVMSSATests
 
@@ -39,6 +41,8 @@ class LLVMSSATargetTests(unittest.TestCase):
                 self.assertTrue(_qualified_header(output.read_bytes(), target))
                 self.assertFalse(evidence["claims"]["target_program_executed"])
                 self.assertFalse(evidence["claims"]["foreign_c_abi_qualified"])
+                self.assertEqual(evidence["defined_export_symbols"], sorted(self.ir.functions))
+                self.assertTrue(set(evidence["undefined_external_symbols"]) <= {"abort"})
 
     def test_reject_macho_wrong_machine_or_wrong_file_type(self):
         # Accept only Mach-O 64-bit MH_OBJECT for the exact requested CPU.
@@ -84,6 +88,21 @@ class LLVMSSATargetTests(unittest.TestCase):
                 data[position:position + width] = (len(data) + 64).to_bytes(width, "little")
                 self.assertTrue(_qualified_header(bytes(data), target))
                 self.assertFalse(_qualified_object(bytes(data), target))
+
+    def test_defined_symbol_spelling_change_rejected(self):
+        for target in ("x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu",
+                       "x86_64-pc-windows-msvc", "x86_64-apple-darwin",
+                       "aarch64-apple-darwin"):
+            with self.subTest(target=target):
+                output = self.root / ("symbol-" + target + ".o")
+                compile_ssa_target_object(self.ir, target=target, output=output)
+                binary = output.read_bytes()
+                expected = self.ir.functions[0].encode()
+                self.assertIn(expected, binary)
+                altered = binary.replace(expected, b"x" * len(expected), 1)
+                fmt, machine = _TARGETS[target]
+                inventory = inspect_object_symbols(altered, fmt, machine)
+                self.assertNotEqual(inventory["defined"], frozenset(self.ir.functions))
 
     def test_wrong_target_unknown_or_overwrite_rejects(self):
         path = self.root / "object.o"
