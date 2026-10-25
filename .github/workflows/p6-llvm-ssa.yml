@@ -26,6 +26,7 @@ jobs:
           python -m unittest discover -s tests -p test_ssa_verify.py -v
           python -m unittest discover -s tests -p test_ssa_differential.py -v
           python -m unittest discover -s tests -p test_llvm_ssa_backend.py -v
+          python -m unittest discover -s tests -p test_llvm_ssa_target.py -v
           python -m unittest discover -s tests -p test_ssa_native_benchmark.py -v
       - name: Install exact SHA-locked Rust 1.90 native oracle
         run: |
@@ -52,6 +53,28 @@ jobs:
           for n in [-4, 0, 1, 2, 3, 4, 5, 8, 12, 20]:
               assert f(n) == expected(n), n
           PY
+      - name: Verify SSA/PHI object identity on Linux x64, ARM64 and Windows x64
+        run: |
+          python -m hepta build-llvm-ssa examples/ssa_llvm.hepta \
+            --target x86_64-unknown-linux-gnu \
+            --output "$RUNNER_TEMP/hepta-ssa-linux-x64.o" > artifacts/p6-ssa-linux-x64.json
+          python -m hepta build-llvm-ssa examples/ssa_llvm.hepta \
+            --target aarch64-unknown-linux-gnu \
+            --output "$RUNNER_TEMP/hepta-ssa-linux-arm64.o" > artifacts/p6-ssa-linux-arm64.json
+          python -m hepta build-llvm-ssa examples/ssa_llvm.hepta \
+            --target x86_64-pc-windows-msvc \
+            --output "$RUNNER_TEMP/hepta-ssa-windows-x64.obj" > artifacts/p6-ssa-windows-x64.json
+          python - <<'PY'
+          import json
+          for target, suffix in [("x86_64-unknown-linux-gnu", "linux-x64"),
+                                 ("aarch64-unknown-linux-gnu", "linux-arm64"),
+                                 ("x86_64-pc-windows-msvc", "windows-x64")]:
+              d=json.load(open("artifacts/p6-ssa-"+suffix+".json"))
+              assert d["build"]["target"] == target
+              assert d["status"] == "cross_object_only_not_executed"
+              assert d["build"]["claims"]["target_program_executed"] is False
+              assert d["build"]["claims"]["foreign_c_abi_qualified"] is False
+          PY
       - name: Record timed Hepta LLVM SSA vs independent native C samples
         run: |
           python tools/ssa_native_benchmark.py \
@@ -74,4 +97,7 @@ jobs:
           path: |
             artifacts/p6-ssa-llvm-report.json
             artifacts/p6-ssa-perf.json
+            artifacts/p6-ssa-linux-x64.json
+            artifacts/p6-ssa-linux-arm64.json
+            artifacts/p6-ssa-windows-x64.json
           if-no-files-found: warn
