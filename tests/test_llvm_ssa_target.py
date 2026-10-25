@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import shutil
+import subprocess
 import tempfile
 import unittest
 
@@ -89,20 +90,37 @@ class LLVMSSATargetTests(unittest.TestCase):
                 self.assertTrue(_qualified_header(bytes(data), target))
                 self.assertFalse(_qualified_object(bytes(data), target))
 
-    def test_defined_symbol_spelling_change_rejected(self):
-        for target in ("x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu",
-                       "x86_64-pc-windows-msvc", "x86_64-apple-darwin",
-                       "aarch64-apple-darwin"):
+    def test_real_symbol_renaming_and_unreviewed_external_import(self):
+        # Use a deliberately long, unique exported name so a mutation
+        # cannot accidentally replace an unrelated byte in a one-char symbol.
+        source = self.root / "symbol.ll"
+        source.write_text("""\
+declare i32 @puts(ptr)
+define i32 @hepta_symbol_target(i32 %x) {
+entry:
+  %r = call i32 @puts(ptr null)
+  ret i32 %x
+}
+""")
+        for target in _TARGETS:
             with self.subTest(target=target):
                 output = self.root / ("symbol-" + target + ".o")
-                compile_ssa_target_object(self.ir, target=target, output=output)
-                binary = output.read_bytes()
-                expected = self.ir.functions[0].encode()
-                self.assertIn(expected, binary)
-                altered = binary.replace(expected, b"x" * len(expected), 1)
+                result = subprocess.run(
+                    ["clang", "--target=" + target, "-x", "ir", "-O3", "-c",
+                     str(source), "-o", str(output)],
+                    capture_output=True, text=True, timeout=45)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                data = output.read_bytes()
                 fmt, machine = _TARGETS[target]
-                inventory = inspect_object_symbols(altered, fmt, machine)
-                self.assertNotEqual(inventory["defined"], frozenset(self.ir.functions))
+                symbols = inspect_object_symbols(data, fmt, machine)
+                self.assertIn("hepta_symbol_target", symbols["defined"])
+                self.assertIn("puts", symbols["undefined"])
+                self.assertFalse(symbols["undefined"] <= {"abort"})
+                needle = b"hepta_symbol_target"
+                self.assertIn(needle, data)
+                altered = data.replace(needle, b"hepta_symbol_targex")
+                renamed = inspect_object_symbols(altered, fmt, machine)
+                self.assertNotIn("hepta_symbol_target", renamed["defined"])
 
     def test_wrong_target_unknown_or_overwrite_rejects(self):
         path = self.root / "object.o"
