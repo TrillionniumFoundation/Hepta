@@ -252,6 +252,53 @@ int do_sum(int n) {
                 self.assertFalse(report["ok"], report)
                 self.assertFalse(self.hepta.exists())
 
+
+    def test_scalar_ternary_return_and_assignment_native_differential(self):
+        self.c.write_text("""
+int choose(int x, int y) { return x > y ? x : y; }
+int clamp(int x) { int y=0; y = x > 0 ? x : 0; return y; }
+""")
+        result = migrate_c(self.c, self.hepta)
+        self.assertTrue(result["ok"], result)
+        generated = self.hepta.read_text()
+        self.assertIn("if (x > y)", generated)
+        self.assertIn("return x;", generated)
+        self.assertIn("y = 0;", generated)
+        self.assertEqual(analyze(generated, str(self.hepta), native=False).report["status"],
+                         "frontend_only")
+        reference, migrated = self.directory / "ternary-original.so", self.directory / "ternary-hepta.so"
+        subprocess.run(["gcc", "-std=c11", "-O2", "-fPIC", "-shared",
+                        str(self.c), "-o", str(reference)], check=True, capture_output=True)
+        built = subprocess.run([sys.executable, "-m", "hepta", "build", str(self.hepta),
+                                "--backend", "c", "--crate-type", "cdylib", "-o", str(migrated)],
+                               capture_output=True, text=True, timeout=90)
+        self.assertEqual(built.returncode, 0, built.stderr + built.stdout)
+        old, new = ctypes.CDLL(str(reference)), ctypes.CDLL(str(migrated))
+        for name, args in (
+                ("choose", [(1, 0), (-3, -8), (0, 0), (123, 222), (2**31 - 1, -1)]),
+                ("clamp", [(-2**31,), (-10,), (-1,), (0,), (1,), (2**31 - 1,)])):
+            left, right = getattr(old, name), getattr(new, name)
+            for fn in (left, right):
+                fn.argtypes = [ctypes.c_int32] * len(args[0])
+                fn.restype = ctypes.c_int32
+            for row in args:
+                self.assertEqual(left(*row), right(*row), (name, row))
+
+    def test_side_effecting_ternary_rejected_without_output(self):
+        cases = [
+            "int f(int x){return x>0 ? ++x : x;}",
+            "int f(int x){int y=0; y=x>0 ? (y=1) : x; return y;}",
+            "int f(int x){return x>0 ? x++ : 0;}",
+            "int f(int x){return x ?: 0;}",
+        ]
+        for source in cases:
+            with self.subTest(source=source):
+                self.hepta.unlink(missing_ok=True)
+                self.c.write_text(source)
+                report = migrate_c(self.c, self.hepta)
+                self.assertFalse(report["ok"], report)
+                self.assertFalse(self.hepta.exists())
+
     def test_unsupported_scalar_local_shapes_do_not_publish(self):
         cases = [
             "int f(int n) { int x; return n; }",

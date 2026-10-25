@@ -150,6 +150,27 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str,
     raise MigrationRejected("E_C_EXPRESSION", f"Unsupported C expression: {kind}")
 
 
+def _ternary(node: dict, args: dict[str, str], model: dict, expected: str,
+             locals: dict[str, _Local]) -> tuple[str, str, str]:
+    """Translate only type-preserving, side-effect-free scalar branches.
+
+    C's comparison result may have integer type; our _expr normalizes the
+    condition to bool. The branch expressions themselves remain strictly
+    restricted by the same C/C++ scalar expression checker.
+    """
+    if node.get("kind") != "ConditionalOperator":
+        raise MigrationRejected("E_C_CONDITIONAL", "Expected ordinary ternary expression")
+    children = node.get("inner", [])
+    if len(children) != 3 or _decl_type(node, model) != expected:
+        raise MigrationRejected("E_C_CONDITIONAL", "Ternary result type is unsupported")
+    condition, condition_type = _expr(children[0], args, model, "bool", locals)
+    positive, positive_type = _expr(children[1], args, model, expected, locals)
+    negative, negative_type = _expr(children[2], args, model, expected, locals)
+    if (condition_type != "bool" or positive_type != expected or negative_type != expected):
+        raise MigrationRejected("E_C_CONDITIONAL", "Ternary branches change scalar type")
+    return condition, positive, negative
+
+
 def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 1,
           locals: dict[str, _Local] | None = None,
           reserved_names: set[str] | None = None) -> list[str]:
@@ -168,6 +189,13 @@ def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 
         if (local is None or ref.get("kind") != "VarDecl"
                 or ref.get("id") != local[1]):
             raise MigrationRejected("E_C_ASSIGN", "Only a known initialized scalar local may be assigned")
+        if children[1].get("kind") == "ConditionalOperator":
+            test, on_true, on_false = _ternary(children[1], args, model, local[0], locals)
+            return [f"{indent}if {test} {{",
+                    f"{indent}    {local[2]} = {on_true};",
+                    f"{indent}}} else {{",
+                    f"{indent}    {local[2]} = {on_false};",
+                    f"{indent}}}"]
         value, value_type = _expr(children[1], args, model, local[0], locals)
         if value_type != local[0]:
             raise MigrationRejected("E_C_ASSIGN", "Assignment type conversion not in checked subset")
@@ -287,6 +315,13 @@ def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 
         lines.append(f"{indent}}}")
         return lines
     if kind == "ReturnStmt" and len(children) == 1:
+        if children[0].get("kind") == "ConditionalOperator":
+            test, on_true, on_false = _ternary(children[0], args, model, ret, locals)
+            return [f"{indent}if {test} {{",
+                    f"{indent}    return {on_true};",
+                    f"{indent}}} else {{",
+                    f"{indent}    return {on_false};",
+                    f"{indent}}}"]
         expression, typ = _expr(children[0], args, model, ret, locals)
         if typ != ret:
             raise MigrationRejected("E_C_RETURN", "C comparison or implicit conversion is not a Hepta integer return")

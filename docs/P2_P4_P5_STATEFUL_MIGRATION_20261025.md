@@ -128,3 +128,20 @@ UBSan pair calls without a sanitizer failure. See
 `evidence/do_while_native_oracle_20261025.json`. The receipt **does not**
 claim the Hepta parser/checker, native C backend, arbitrary C++ features,
 whole-language safety, or full C++ ABI passed.
+
+## Pure scalar ternary return and assignment
+
+Only Clang `ConditionalOperator` with three operands, an explicit scalar
+comparison condition, and side-effect-free typed scalar branches is accepted
+for a direct function return or assignment to an initialized automatic local.
+The shared lowering converts `return test ? a : b` into two explicit
+`if/else` returns and converts `local = test ? a : b` into two
+`if/else` assignments, preserving short-circuit branch evaluation without
+adding an unmodeled expression feature to Hepta.
+
+GNU omitted-middle ternaries, nested ternaries, calls, side-effecting
+increments in branches, pointer/aggregate expressions, implicit numeric
+conversions not already checked by the strict `_expr` helper, and arbitrary
+expression contexts remain unsupported. This is a narrow L1 candidate
+extension, not source equivalence proof. C11/C++20 native differential
+tests cover min/max-like functions and boundary integer inputs.

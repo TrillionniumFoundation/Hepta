@@ -308,6 +308,46 @@ extern "C" int cpp_do_sum(int n){return do_sum(n);}
         for n in (-10, -1, 0, 1, 2, 7, 50, 500):
             self.assertEqual(cpp(n), hepta(n), n)
 
+
+    def test_ternary_cpp20_return_and_assignment_native(self):
+        self.src.write_text("""
+int choose(int x, int y) noexcept { return x > y ? x : y; }
+int clamp(int x) noexcept { int y=0; y = x > 0 ? x : 0; return y; }
+""")
+        translated = migrate_cpp(self.src, self.dst)
+        self.assertTrue(translated["ok"], translated)
+        self.assertFalse(translated["cpp_abi_preserved"])
+        generated = self.dst.read_text()
+        self.assertIn("if (x > y)", generated)
+        self.assertIn("y = 0;", generated)
+        self.assertEqual(analyze(generated, str(self.dst), native=False).report["status"],
+                         "frontend_only")
+        wrapper = self.root / "ternary_wrapper.cc"
+        wrapper.write_text("""
+int choose(int, int) noexcept; int clamp(int) noexcept;
+extern "C" int cpp_choose(int x,int y){return choose(x,y);}
+extern "C" int cpp_clamp(int x){return clamp(x);}
+""")
+        original, hepta = self.root / "ternary_orig.so", self.root / "ternary_hepta.so"
+        native = subprocess.run(["clang++", "-std=c++20", "-O2", "-shared", "-fPIC",
+                                 str(self.src), str(wrapper), "-o", str(original)],
+                                capture_output=True, text=True, timeout=60)
+        self.assertEqual(native.returncode, 0, native.stderr)
+        built = subprocess.run([sys.executable, "-m", "hepta", "build", str(self.dst),
+                                "--backend", "c", "--crate-type", "cdylib", "-o", str(hepta)],
+                               capture_output=True, text=True, timeout=90)
+        self.assertEqual(built.returncode, 0, built.stderr + built.stdout)
+        cpp, hp = ctypes.CDLL(str(original)), ctypes.CDLL(str(hepta))
+        for name, rows in (
+                ("choose", [(-20, -50), (0, 1), (7, 5), (2**31-1, -1)]),
+                ("clamp", [(-2**31,), (-7,), (0,), (1,), (555,)])):
+            left, right = getattr(cpp, "cpp_" + name), getattr(hp, name)
+            for fn in (left, right):
+                fn.argtypes = [ctypes.c_int32] * len(rows[0])
+                fn.restype = ctypes.c_int32
+            for row in rows:
+                self.assertEqual(left(*row), right(*row), (name, row))
+
     def test_hidden_preprocessor_forms_never_publish(self):
         sources = [
             '%:define FLAG 1\nint f(int a) noexcept {return a + FLAG;}',
