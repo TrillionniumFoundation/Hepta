@@ -137,10 +137,10 @@ def main(argv=None) -> int:
                 result = apply_workspace_patch(args.store, request, apply=args.apply,
                                                rustc=args.rustc, target=args.target)
             output_json(result)
-            return 0 if (result.get("ok") is True or (
-                args.workspace_action == "diff"
-                and result.get("schema") == "hepta.agent-contract-diff.v1"
-                and result.get("status") == "read_only_contract_diff_not_equivalence")) else 1
+            if args.workspace_action == "diff":
+                return 0 if (result.get("schema") == "hepta.agent-contract-diff.v1"
+                             and result.get("status") == "read_only_contract_diff_not_equivalence") else 1
+            return 0 if result.get("ok") is True else 1
         if args.command == "lock":
             from .packages import write_lock
             output_json(write_lock(args.package))
