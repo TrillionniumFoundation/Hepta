@@ -13,8 +13,8 @@ from pathlib import Path
 import re
 import shlex
 import shutil
-import subprocess
 
+from .clang_capture import CaptureRejected, run_bounded
 from .c_migrate import MigrationRejected
 
 
@@ -23,15 +23,21 @@ def digest(data: bytes) -> str:
 
 
 def invoke(args: list[str], directory: Path, *, stdin: str | None = None) -> str:
+    """Capture compiler dependencies/preprocessing with finite byte budgets.
+
+    Compilation database commands remain data and are not executed by shell.
+    The runner bounds captured I/O, not external Clang memory or filesystem.
+    """
     try:
-        run = subprocess.run(args, cwd=directory, input=stdin, capture_output=True,
-                             text=True, timeout=45, check=False)
-    except (OSError, subprocess.SubprocessError) as exc:
-        raise MigrationRejected("E_C_BUILD_TOOL", str(exc)) from exc
+        run = run_bounded(args, cwd=directory, input_text=stdin, timeout=45,
+                          stdout_limit=32_000_000, stderr_limit=1_000_000,
+                          stdin_limit=1_000_000)
+    except CaptureRejected as exc:
+        code = ("E_C_BUILD_SIZE" if exc.code in
+                {"E_CAPTURE_OUTPUT_SIZE", "E_CAPTURE_INPUT_SIZE"} else "E_C_BUILD_TOOL")
+        raise MigrationRejected(code, f"{exc.code}: {exc}") from exc
     if run.returncode:
         raise MigrationRejected("E_C_BUILD_TOOL", run.stderr[-6000:] or "Clang failed")
-    if len(run.stdout) > 32_000_000:
-        raise MigrationRejected("E_C_BUILD_SIZE", "Compiler output exceeds 32 MB")
     return run.stdout
 
 

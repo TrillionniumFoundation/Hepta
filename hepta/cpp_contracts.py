@@ -12,9 +12,9 @@ import json
 from pathlib import Path
 import re
 import shutil
-import subprocess
 import tempfile
 
+from .clang_capture import CaptureResult, CaptureRejected, run_bounded
 from .c_migrate import MigrationRejected, _IDENT
 
 
@@ -456,11 +456,17 @@ class _Generator:
         return tuple("\n".join(lines) + "\n" for lines in (self.cpp, self.h, self.hp))
 
 
-def _command(argv: list[str], *, timeout: int = 90) -> subprocess.CompletedProcess:
+def _command(argv: list[str], *, timeout: int = 90) -> CaptureResult:
+    """Use bounded compiler capture for C++ ABI/bridge native qualification.
+
+    Compiler stdout/stderr byte quotas avoid unbounded memory usage, but are
+    not a C++ plugin security boundary or full native-resource accounting.
+    """
     try:
-        p = subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        _reject(str(exc), "E_CPP_ENV")
+        p = run_bounded(argv, timeout=timeout, stdout_limit=8_000_000,
+                        stderr_limit=1_000_000, stdin_limit=0)
+    except CaptureRejected as exc:
+        _reject(f"{exc.code}: {exc}", "E_CPP_ENV")
     if p.returncode:
         _reject((p.stderr or p.stdout)[-8000:], "E_CPP_NATIVE")
     return p
