@@ -7,7 +7,7 @@ import unittest
 
 from hepta.ssa import SSASnapshot, lower_cfg_scalar_ssa
 from hepta.ssa_verify import SSAVerificationRejected, verify_scalar_ssa
-from test_ssa_scalar import snapshot, block, let, assign, i, n, expr
+from tests.test_ssa_scalar import snapshot, block, let, assign, i, n, expr
 
 
 def encoded(payload):
