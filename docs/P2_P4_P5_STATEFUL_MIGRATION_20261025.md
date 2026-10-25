@@ -145,3 +145,16 @@ conversions not already checked by the strict `_expr` helper, and arbitrary
 expression contexts remain unsupported. This is a narrow L1 candidate
 extension, not source equivalence proof. C11/C++20 native differential
 tests cover min/max-like functions and boundary integer inputs.
+
+## Independent ternary smoke evidence
+
+`tools/probe_strict_ternary.py --output /tmp/ternary-oracle.json`
+compiles separate C11 and C++20 original/normalized scalar functions with
+Clang and checks 5820 finite input cases in total. It also rejects 1496
+outputs from a deliberately incorrect implementation and runs 322404 UBSan
+original/normalized comparison calls. A bounded local Clang 17 record is
+in `evidence/ternary_native_oracle_20261025.json`.
+
+This **does not** execute the Hepta parser, checker, C or LLVM backend;
+the independently verified scalar transformation is narrower than the
+production L2/L3 safety and source-equivalence obligations.
