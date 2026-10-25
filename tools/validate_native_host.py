@@ -64,7 +64,12 @@ def run_host(*, cc=None, rustc=None, expected_system=None, expected_machine=None
     if not analysis.report["ok"]:
         raise RuntimeError(json.dumps(analysis.report))
     with tempfile.TemporaryDirectory(prefix="hepta-native-host-") as td:
-        directory = Path(td)
+        # Windows may return the 8.3 short-path spelling RUNNER~1 here.
+        # rustc's validated artifact path uses Path.resolve(), which expands
+        # that name to runneradmin. Canonicalize *before* constructing any
+        # commands so the trace and the artifact receipt have exact identity.
+        # This preserves strict bytewise argv comparisons in validate_report.
+        directory = Path(td).resolve(strict=True)
         header = emit_header(analysis.program)
         (directory / "matrix.h").write_text(header)
         cfile = directory / "matrix.c"
