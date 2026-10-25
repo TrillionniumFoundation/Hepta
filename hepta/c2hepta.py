@@ -365,7 +365,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         source = Path(args.source).resolve(strict=True)
-        target = Path(args.output).resolve()
+        # Preserve the requested leaf name. resolve() follows dangling output
+        # symlinks and could silently create files at an unintended location.
+        requested = Path(os.path.abspath(args.output))
+        target = requested.parent.resolve() / requested.name
+        if target.is_symlink():
+            raise MigrationRejected("E_C2HEPTA_OUTPUT: Output symlink refused")
         if target == source or target.suffix != ".hepta":
             raise MigrationRejected("E_C2HEPTA_OUTPUT: A separate .hepta output is required")
         translated = convert_c(source, clang=args.clang, module=args.module)
