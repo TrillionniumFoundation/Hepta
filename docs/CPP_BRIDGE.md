@@ -16,13 +16,33 @@ clang++ original.o bridge.o consumer.o -o consumer
 ./consumer
 ```
 
-The output directory must not exist when the operation starts. Files in this directory are not published as a multi-file atomic transaction; callers must not consume it until the CLI exits successfully. The report contains exact source/bridge/header hashes, Clang++ identity, the selected symbols and negative claims, including `foreign_cpp_memory_safe=false`, `cpp_abi_qualified=false`, `exception_translation=not_implemented` and `status=candidate_unverified`. This **L0** bridge confers no safety certification on existing C++ objects or their code.
+The output directory must not exist when the operation starts. On supported Linux hosts the three-file directory is published atomically after staging; other platforms reject this profile rather than publishing a partial bundle. The report contains exact source/bridge/header hashes, Clang++ identity, the selected symbols and negative claims, including `foreign_cpp_memory_safe=false`, `cpp_abi_qualified=false`, `exception_translation=not_implemented` and `status=candidate_unverified`. This **L0** bridge confers no safety certification on existing C++ objects or their code.
 
 Run the implemented C/C++ runtime interoperability tests:
 
 ```sh
 python -m unittest discover -s tests -p test_cpp_bridge.py -v
 ```
+
+## Atomic bridge publication on Linux
+
+The bridge CLI stages `bridge.cc`, `bridge.h`, and `manifest.json` in a
+private sibling directory, synchronizes the individual files, then publishes
+the completed directory via Linux `renameat2(RENAME_NOREPLACE)` relative to
+an open parent directory descriptor. Publication is atomic and will never
+replace an existing path (including a dangling symlink). Concurrent writers
+cannot publish partial mixed bundles. A staging failure leaves the requested
+destination absent and removes the private stage.
+
+This profile **requires Linux `renameat2`**. Other platforms fail closed
+with `E_CPP_BRIDGE_ATOMIC`; no unsafe fallback to ordinary `rename` is used.
+Atomic visibility does not imply a durable power-loss transaction, and this
+does not sandbox Clang or certify the foreign C++ code.
+
+The generator also refuses a source symbol named `hepta_cxx_X` when the same
+translation unit defines `X`. Without this guard, a second wrapper could
+silently invoke the first `extern "C"` wrapper, compile and link successfully
+but return the wrong result. Tests cover both exception modes.
 
 ## Opt-in exception containment (`catch_status`, experimental)
 
