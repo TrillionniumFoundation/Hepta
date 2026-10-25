@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -126,6 +127,17 @@ class AgentSemanticTests(unittest.TestCase):
         self._reseal_hsir()
         with self.assertRaisesRegex(WorkspaceError, "escapes pinned tree"):
             self._inspect()
+
+    def test_cyclic_source_symlink_is_structured_rejection(self):
+        with tempfile.TemporaryDirectory() as root:
+            root_path = agent_semantics.Path(root)
+            cycle = root_path / "loop.hepta"
+            cycle.symlink_to(cycle)
+            self.snapshot["snapshot"]["root"] = str(root_path)
+            self.hsir["functions"][0]["path"] = str(cycle)
+            self._reseal_hsir()
+            with self.assertRaisesRegex(WorkspaceError, "cannot resolve"):
+                self._inspect()
 
     def test_unknown_source_path_rejected(self):
         self.hsir["functions"][0]["path"] = "/immutable/versions/tree/not-validated.hepta"

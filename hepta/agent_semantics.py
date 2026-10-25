@@ -102,8 +102,8 @@ def inspect_pinned_semantics(store: str | Path, *,
             source = trusted_root / source
         try:
             relative = source.resolve().relative_to(trusted_root).as_posix()
-        except ValueError as exc:
-            raise WorkspaceError("E_AGENT_PATH", "Function source escapes pinned tree") from exc
+        except (ValueError, OSError, RuntimeError) as exc:
+            raise WorkspaceError("E_AGENT_PATH", "Function source escapes or cannot resolve in pinned tree") from exc
         if relative not in trusted_sources:
             raise WorkspaceError("E_AGENT_PATH", "Function is not in validated source inventory")
         return relative
