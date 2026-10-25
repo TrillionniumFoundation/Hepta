@@ -19,6 +19,24 @@ from .c_migrate import MigrationRejected
 
 
 _MAX_DATABASE_BYTES = 1_048_576
+_DATABASE_FIELDS = frozenset({"path", "sha256"})
+_COMPILER_FIELDS = frozenset({"path", "executable_sha256", "version", "target"})
+_CONFIGURATION_FIELDS = frozenset({
+    "index", "source", "directory", "original_arguments",
+    "frontend_arguments", "omitted_arguments", "all_dependencies",
+    "local_dependencies", "preprocessed_sha256",
+    "predefined_macros_sha256", "abi_predefined_macros_sha256",
+    "abi_model_arguments", "model",
+})
+_DEPENDENCY_FIELDS = frozenset({"path", "sha256", "bytes", "project_input"})
+_ABI_MODEL_FIELDS = frozenset({"long_bits", "char_unsigned", "pointer_bits"})
+
+
+def _complete(value: object, fields: frozenset[str], label: str) -> dict:
+    if not isinstance(value, dict) or set(value) != fields:
+        raise MigrationRejected("E_C_BUILD_IDENTITY", "Unreviewed " + label + " metadata")
+    return value
+
 
 
 def _database_bytes(path: Path) -> bytes:
@@ -149,16 +167,32 @@ def verify_capture(capture: dict) -> None:
         raise MigrationRejected("E_C_BUILD_IDENTITY", "Captured build manifest identity differs")
     if capture["scope"] != "all_listed_commands_only_not_unlisted_platforms_or_configurations":
         raise MigrationRejected("E_C_BUILD_IDENTITY", "Unexpected capture scope")
-    database = Path(capture["database"]["path"])
+    db_record = _complete(capture["database"], _DATABASE_FIELDS, "build database")
+    compiler = _complete(capture["compiler"], _COMPILER_FIELDS, "compiler")
+    if (not isinstance(db_record["path"], str)
+            or not isinstance(db_record["sha256"], str)
+            or not isinstance(compiler["path"], str)
+            or not isinstance(compiler["version"], str)
+            or not isinstance(compiler["target"], str)
+            or not isinstance(compiler["executable_sha256"], str)):
+        raise MigrationRejected("E_C_BUILD_IDENTITY", "Malformed compiler/database identity")
+    database = Path(db_record["path"])
     entries = json.loads(_database_bytes(database))
     configs = capture["configurations"]
     if (not isinstance(entries, list) or not isinstance(configs, list)
             or len(entries) != len(configs) or not 1 <= len(entries) <= 32):
         raise MigrationRejected("E_C_BUILD_IDENTITY", "Configuration denominator differs from source database")
     dependencies_seen = set()
+    local_dependencies_seen = set()
     for index, (entry, config) in enumerate(zip(entries, configs)):
-        if not isinstance(entry, dict) or not isinstance(config, dict):
+        if not isinstance(entry, dict):
             raise MigrationRejected("E_C_BUILD_IDENTITY", "Invalid database configuration")
+        _complete(config, _CONFIGURATION_FIELDS, "C configuration")
+        model = _complete(config["model"], _ABI_MODEL_FIELDS, "C target data model")
+        if (type(config["index"]) is not int or type(model["long_bits"]) is not int
+                or type(model["pointer_bits"]) is not int
+                or type(model["char_unsigned"]) is not bool):
+            raise MigrationRejected("E_C_BUILD_IDENTITY", "C model/index types differ from the captured compiler")
         directory = _path(entry["directory"], database.parent)
         source = _path(entry["file"], directory)
         argv = entry.get("arguments")
@@ -174,15 +208,31 @@ def verify_capture(capture: dict) -> None:
         if config.get("abi_model_arguments") != _abi_model_arguments(flags):
             raise MigrationRejected("E_C_BUILD_IDENTITY", "ABI model arguments differ from allowlisted frontend flags")
         dependencies_seen.update(config["all_dependencies"])
-    recorded_paths = [item["path"] for item in capture["dependencies"]]
+        local_dependencies_seen.update(config["local_dependencies"])
+    dependencies = capture["dependencies"]
+    if not isinstance(dependencies, list):
+        raise MigrationRejected("E_C_BUILD_IDENTITY", "Malformed dependency inventory")
+    for item in dependencies:
+        _complete(item, _DEPENDENCY_FIELDS, "dependency")
+        if (not isinstance(item["path"], str) or not isinstance(item["sha256"], str)
+                or type(item["bytes"]) is not int or item["bytes"] < 0
+                or type(item["project_input"]) is not bool):
+            raise MigrationRejected("E_C_BUILD_IDENTITY", "Invalid dependency metadata type")
+        if item["project_input"] is not (item["path"] in local_dependencies_seen):
+            raise MigrationRejected("E_C_BUILD_IDENTITY", "Local header provenance differs from compiler discovery")
+    recorded_paths = [item["path"] for item in dependencies]
     if (len(set(recorded_paths)) != len(recorded_paths)
             or set(recorded_paths) != dependencies_seen):
         raise MigrationRejected("E_C_BUILD_IDENTITY", "Dependency inventory is incomplete or duplicated")
-    for item in [capture["database"], *capture["dependencies"]]:
+    for item in [db_record, *dependencies]:
         path = Path(item["path"])
-        if not path.is_file() or digest(path.read_bytes()) != item["sha256"]:
+        if not path.is_file():
+            raise MigrationRejected("E_C_BUILD_CHANGED", "Captured build input disappeared: " + str(path))
+        content = path.read_bytes()
+        if digest(content) != item["sha256"]:
             raise MigrationRejected("E_C_BUILD_CHANGED", "Captured build input changed: " + str(path))
-    compiler = capture["compiler"]
+        if item is not db_record and len(content) != item["bytes"]:
+            raise MigrationRejected("E_C_BUILD_IDENTITY", "Dependency byte count differs from captured input")
     if digest(Path(compiler["path"]).read_bytes()) != compiler["executable_sha256"]:
         raise MigrationRejected("E_C_BUILD_CHANGED", "Selected compiler changed")
     # The same binary may report a different driver/target identity under a
