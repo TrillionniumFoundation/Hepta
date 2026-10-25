@@ -71,6 +71,7 @@ class _Function:
         self.seq = 0
         self.depth = 0
         self.requires_panic = False
+        self.active_block = "entry"
 
     def _temp(self):
         self.seq += 1
@@ -92,6 +93,10 @@ class _Function:
             f"  br i1 {overflow}, label %{fail}, label %{ok}",
             f"{fail}:", "  call void @abort()", "  unreachable", f"{ok}:",
         ])
+        # The next instruction is in the overflow-checked continuation block,
+        # not in the block in which the arithmetic expression started. SSA
+        # phi predecessors must refer to this actual predecessor label.
+        self.active_block = ok
         return value
 
     def expr(self, expr):
@@ -160,9 +165,74 @@ class _Function:
         value = self.expr(fields["expr"])
         self.lines.append(f"  ret i32 {value}")
 
+    def _build_single_phi(self, body):
+        """Restricted SSA join: mutable i32 local, assign in both arms, return.
+
+        No escape, loop, nested control flow or aliasing. RHS may use the old
+        local value, so each arm is lowered against the pre-branch SSA map.
+        """
+        declaration, conditional, last = body
+        if not isinstance(declaration, dict) or declaration.get("node") != "stmt" or declaration.get("operation") != "let":
+            raise LLVMScalarRejected("E_LLVM_PHI: expected a mutable i32 local declaration")
+        fields = declaration.get("fields")
+        if (not isinstance(fields, dict) or set(fields) != {"name", "type", "mutable", "expr"}
+                or fields["mutable"] is not True or not _type_i32(fields["type"])):
+            raise LLVMScalarRejected("E_LLVM_PHI: unsupported local declaration")
+        name = fields["name"]
+        if (not isinstance(name, str) or not _NAME.fullmatch(name)
+                or name in self.vars or name.startswith("_")):
+            raise LLVMScalarRejected("E_LLVM_PHI: local must be a new valid symbol")
+        initial = self.expr(fields["expr"])
+        self.vars[name] = initial
+        if not isinstance(conditional, dict) or conditional.get("node") != "stmt" or conditional.get("operation") != "if":
+            raise LLVMScalarRejected("E_LLVM_PHI: expected a single conditional assignment")
+        branch = conditional.get("fields")
+        if not isinstance(branch, dict) or set(branch) != {"condition", "then", "else"}:
+            raise LLVMScalarRejected("E_LLVM_PHI: conditional has unexpected fields")
+        then_arm, else_arm = branch["then"], branch["else"]
+        if (not isinstance(then_arm, list) or len(then_arm) != 1
+                or not isinstance(else_arm, list) or len(else_arm) != 1):
+            raise LLVMScalarRejected("E_LLVM_PHI: each branch must assign the same local")
+        def get_rhs(stmt):
+            if not isinstance(stmt, dict) or stmt.get("node") != "stmt" or stmt.get("operation") != "assign":
+                raise LLVMScalarRejected("E_LLVM_PHI: only direct assignments are supported")
+            fields = stmt.get("fields")
+            if not isinstance(fields, dict) or set(fields) != {"target", "expr"}:
+                raise LLVMScalarRejected("E_LLVM_PHI: malformed assignment")
+            target = fields["target"]
+            if (not isinstance(target, dict) or target.get("node") != "expr"
+                    or target.get("operation") != "name" or target.get("value") != name
+                    or target.get("operands") != [] or not _type_i32(target.get("result_type"))):
+                raise LLVMScalarRejected("E_LLVM_PHI: assignment must target the same mutable i32 local")
+            return fields["expr"]
+        then_rhs, else_rhs = get_rhs(then_arm[0]), get_rhs(else_arm[0])
+        condition = self.bool_expr(branch["condition"])
+        label = self._temp().removeprefix("%")
+        self.lines.append(f"  br i1 {condition}, label %then_{label}, label %else_{label}")
+        self.lines.append(f"then_{label}:")
+        self.active_block = f"then_{label}"
+        then_value = self.expr(then_rhs)
+        then_predecessor = self.active_block
+        self.lines.append(f"  br label %join_{label}")
+        self.lines.append(f"else_{label}:")
+        self.active_block = f"else_{label}"
+        self.vars[name] = initial
+        else_value = self.expr(else_rhs)
+        else_predecessor = self.active_block
+        self.lines.append(f"  br label %join_{label}")
+        self.lines.append(f"join_{label}:")
+        self.active_block = f"join_{label}"
+        merged = self._temp()
+        self.lines.append(f"  {merged} = phi i32 [ {then_value}, %{then_predecessor} ], [ {else_value}, %{else_predecessor} ]")
+        self.vars[name] = merged
+        self._return(last)
+
     def build(self, body):
+        if isinstance(body, list) and len(body) == 3:
+            self._build_single_phi(body)
+            return self.lines
         if not isinstance(body, list) or len(body) != 1:
-            raise LLVMScalarRejected("E_LLVM_STMT: exactly one root statement required")
+            raise LLVMScalarRejected("E_LLVM_STMT: exactly one return/if, or a restricted three-statement phi profile")
         stmt = body[0]
         if not isinstance(stmt, dict) or stmt.get("node") != "stmt":
             raise LLVMScalarRejected("E_LLVM_STMT: checked statement required")
