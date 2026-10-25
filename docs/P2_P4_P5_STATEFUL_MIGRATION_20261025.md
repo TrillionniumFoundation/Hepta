@@ -122,3 +122,13 @@ independent SSA verifier before emitting direct LLVM. The original C++
 wrapper, Hepta/C and native LLVM comparisons remain finite defined-input
 observations. Until they actually run on one exact checked source HEAD,
 this is an executable acceptance criterion, not a qualified backend claim.
+
+## Parameter source-ID admission hardening (P1/P2)
+
+The common scalar lowerer also retains the Clang ParmVarDecl identity for
+each source argument while preserving the outward name-to-type report map.
+Every argument reference must match the exact original declaration ID, not
+merely its name or type. Rehashed/mutated AST reference nodes with correct
+spelling but forged IDs fail before Hepta publication. This is a narrow
+source-provenance invariant, not formal pointer provenance or soundness of
+arbitrary frontend/backend lowering.

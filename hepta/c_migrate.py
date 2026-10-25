@@ -31,6 +31,17 @@ class MigrationRejected(ValueError):
         super().__init__(message)
 
 
+class _ParameterTypes(dict):
+    """Keep the public name-to-type map while binding Clang parameter IDs.
+
+    This is a migration input identity check, not a full source-to-IR proof.
+    Serialized candidate reports still expose only the ordinary type mapping.
+    """
+    def __init__(self):
+        super().__init__()
+        self.declaration_ids: dict[str, str] = {}
+
+
 def _run(args: list[str], *, input_text: str | None = None) -> str:
     try:
         proc = subprocess.run(args, input=input_text, capture_output=True, text=True,
@@ -106,7 +117,11 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str,
         decl = node.get("referencedDecl", {})
         name = decl.get("name", "")
         if decl.get("kind") == "ParmVarDecl":
-            actual = args.get(name)
+            # A matching spelling is not enough. Reject a forged, stale or
+            # out-of-scope parameter reference even if its type is unchanged.
+            recorded = getattr(args, "declaration_ids", {}).get(name)
+            actual = args.get(name) if (isinstance(decl.get("id"), str)
+                                        and recorded == decl["id"]) else None
         elif decl.get("kind") == "VarDecl":
             local = locals.get(name)
             actual = local[0] if (local is not None
@@ -309,12 +324,16 @@ def _function(decl: dict, model: dict) -> dict:
     params = [x for x in parts if x.get("kind") == "ParmVarDecl"]
     if "..." in typ or len(params) > 32:
         raise MigrationRejected("E_C_FUNCTION", "Variadic or oversized C function signature")
-    args = {}
+    args = _ParameterTypes()
     for p in params:
         n = p.get("name", "")
-        if not _IDENT.fullmatch(n) or n in args or n.startswith("__"):
+        if not isinstance(n, str) or not _IDENT.fullmatch(n) or n in args or n.startswith("__"):
             raise MigrationRejected("E_C_NAME", "Unnamed, duplicate or reserved C parameter")
+        identity = p.get("id")
+        if not isinstance(identity, str) or not identity:
+            raise MigrationRejected("E_C_PARAM_ID", "Clang parameter declaration identity is missing")
         args[n] = _decl_type(p, model)
+        args.declaration_ids[n] = identity
     # Deliberately narrow scope recovery: initialized local declarations must
     # be a simple prefix of the function's top-level block. Nested declarations,
     # shadowing, multiple declarators and arbitrary initialization are rejected.

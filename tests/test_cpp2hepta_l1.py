@@ -282,6 +282,39 @@ int sum(int n) noexcept {
             _function(mutated, _model("clang++"))
         self.assertFalse(self.dst.exists())
 
+    def test_forged_clang_parameter_id_rejected(self):
+        import copy
+        from hepta.c_migrate import MigrationRejected, _function
+        from hepta.cpp2hepta import _model
+        self.src.write_text("""
+int signed_diff(int x, int y) noexcept { return x - y; }
+""")
+        capture = subprocess.run(
+            ["clang++", "-std=c++20", "-Werror", "-fsyntax-only",
+             "-Xclang", "-ast-dump=json", str(self.src)],
+            capture_output=True, text=True, timeout=40)
+        self.assertEqual(capture.returncode, 0, capture.stderr)
+        ast = json.loads(capture.stdout)
+        original = next(n for n in ast["inner"] if n.get("kind") == "FunctionDecl"
+                        and n.get("name") == "signed_diff"
+                        and n.get("loc", {}).get("offset") is not None)
+        model = _model("clang++")
+        self.assertIn("signed_diff", _function(copy.deepcopy(original), model)["name"])
+        tampered = copy.deepcopy(original)
+        def damage(node):
+            if isinstance(node, dict):
+                ref = node.get("referencedDecl", {})
+                if (node.get("kind") == "DeclRefExpr" and ref.get("kind") == "ParmVarDecl"
+                        and ref.get("name") == "x"):
+                    ref["id"] = "0xforged-parameter"
+                    return True
+                return any(damage(child) for child in node.get("inner", []))
+            return False
+        self.assertTrue(damage(tampered))
+        with self.assertRaisesRegex(MigrationRejected, "not a checked parameter"):
+            _function(tampered, model)
+        self.assertFalse(self.dst.exists())
+
     def test_scoped_for_special_storage_and_multiple_declarators_rejected(self):
         sources = [
             "int f(int n) noexcept { int x=0;for (static int i=0;i<n;++i){x=x+i;}return x;}",
