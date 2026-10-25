@@ -217,14 +217,14 @@ def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 
                 or _decl_type(node, model) != local[0]):
             raise MigrationRejected("E_C_INCREMENT", "Only increment/decrement of an initialized scalar local is supported")
         op = "+" if node["opcode"] == "++" else "-"
+        emitted = local[2] if len(local) > 2 else name
+        # Never replace arbitrary substrings: e.g. 'i' also occurs inside
+        # 'wrapping_add', and text replacement would corrupt the builtin name.
         if local[0].startswith("u"):
             builtin = "wrapping_add" if op == "+" else "wrapping_sub"
-            result = f"{builtin}({name}, 1)"
+            result = f"{builtin}({emitted}, 1)"
         else:
-            result = f"({name} {op} 1)"
-        emitted = local[2] if len(local) > 2 else name
-        if emitted != name:
-            result = result.replace(name, emitted)
+            result = f"({emitted} {op} 1)"
         return [f"{indent}{emitted} = {result};"]
     if kind == "ForStmt":
         # Clang's five slots: initializer, condition-variable declaration,
