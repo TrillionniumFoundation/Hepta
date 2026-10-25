@@ -19,7 +19,7 @@ _HASH = re.compile(r"[0-9a-f]{64}\Z")
 _TRACKED = ("return_type", "parameter_modes", "declared_effects",
             "inferred_effects", "resources",
             "public", "extern_c", "export_c", "return_mode", "return_origin",
-            "parameter_lifetimes", "lifetime_params", "type_params", "type_bounds")
+            "return_lifetime", "parameter_lifetimes", "lifetime_params", "type_params", "type_bounds")
 _CLAIM_KEYS = frozenset({
     "native_validation_occurred_at_publication",
     "native_validation_reexecuted_this_query",
@@ -27,6 +27,19 @@ _CLAIM_KEYS = frozenset({
     "whole_language_soundness_proved",
     "functional_equivalence_proved",
 })
+
+
+def _same_json_value(left: Any, right: Any) -> bool:
+    """Compare JSON source semantics without Python bool/int coercion.
+
+    Fail closed on non-finite/nonserializable nested contracts even when a
+    caller would otherwise report a no-change result.
+    """
+    try:
+        return _stable_json(left) == _stable_json(right)
+    except (TypeError, ValueError, OverflowError, RecursionError) as exc:
+        raise WorkspaceError("E_AGENT_DIFF_CONTRACT",
+                             "Noncanonical typed function or foreign contract") from exc
 
 
 def _inventory(report: dict[str, Any], version: str) -> dict[tuple[str, str], dict]:
@@ -51,12 +64,14 @@ def _inventory(report: dict[str, Any], version: str) -> dict[tuple[str, str], di
     if (not isinstance(report.get("functions"), list)
             or not isinstance(report.get("external_obligations"), list)
             or not isinstance(report.get("foreign_assumptions"), list)
+            or not isinstance(report.get("volatile_accesses"), list)
             or not isinstance(report.get("validated_sources"), list)):
         raise WorkspaceError("E_AGENT_DIFF_INVENTORY", "Incomplete semantic inventory")
     keys = {}
     for fn in report["functions"]:
         if not isinstance(fn, dict) or any(k not in fn for k in _TRACKED):
             raise WorkspaceError("E_AGENT_DIFF_FUNCTION", "Malformed function contract")
+        _same_json_value({key: fn[key] for key in _TRACKED}, {})
         path, name = fn.get("path"), fn.get("name")
         if (not isinstance(path, str) or not path or not isinstance(name, str) or not name
                 or PurePosixPath(path).is_absolute() or "\\" in path
@@ -67,6 +82,11 @@ def _inventory(report: dict[str, Any], version: str) -> dict[tuple[str, str], di
         if key in keys:
             raise WorkspaceError("E_AGENT_DIFF_DUPLICATE", "Duplicate path/function identity")
         keys[key] = fn
+    # Foreign and hardware obligations remain assumptions, not proofs. Every
+    # compared field must be serializable *even when both sides are identical*.
+    for name in ("external_obligations", "foreign_assumptions", "volatile_accesses",
+                 "validated_sources"):
+        _same_json_value(report[name], [])
     return keys
 
 
@@ -101,7 +121,8 @@ def compare_pinned_contracts(
         elif current is None:
             changes.append({"path": path, "name": name, "change": "removed", "changed_fields": list(_TRACKED)})
         else:
-            fields = [field for field in _TRACKED if previous[field] != current[field]]
+            fields = [field for field in _TRACKED
+                      if not _same_json_value(previous[field], current[field])]
             if fields:
                 changes.append({"path": path, "name": name,
                                 "change": "contract_modified", "changed_fields": fields})
@@ -126,9 +147,14 @@ def compare_pinned_contracts(
         "before_interface_sha256": before["interface_sha256"],
         "after_interface_sha256": after["interface_sha256"],
         "interface_identity_changed": before["interface_sha256"] != after["interface_sha256"],
-        "validated_source_set_changed": before["validated_sources"] != after["validated_sources"],
-        "external_obligations_changed": before["external_obligations"] != after["external_obligations"],
-        "foreign_assumptions_changed": before["foreign_assumptions"] != after["foreign_assumptions"],
+        "validated_source_set_changed": not _same_json_value(
+            before["validated_sources"], after["validated_sources"]),
+        "external_obligations_changed": not _same_json_value(
+            before["external_obligations"], after["external_obligations"]),
+        "foreign_assumptions_changed": not _same_json_value(
+            before["foreign_assumptions"], after["foreign_assumptions"]),
+        "volatile_accesses_changed": not _same_json_value(
+            before["volatile_accesses"], after["volatile_accesses"]),
         "reported_contract_changes": changes,
         "claims": {
             "both_snapshots_prevalidated_at_publication": True,
