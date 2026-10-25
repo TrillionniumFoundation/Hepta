@@ -78,3 +78,18 @@ The consumer independently rejects nonportable or non-manifest paths. This
 fixes a contract-identity false positive; it is not a source equivalence,
 workspace integrity or compiler soundness proof. Physical hardware, performance
 and real-model Agent qualification remain open.
+
+## Multi-module source identity scopes (2026-10-25)
+
+`inspect_pinned_semantics` exposes `checked_graph_sha256` from the existing
+`LoadedProject.identity`. It binds the checked Hepta sources and import edges
+by relative names, including portable package state. The canonical
+`source_sha256` covers the entry source text and is insufficient to detect a
+dependency-only edit.
+
+`compare_pinned_contracts` now distinguishes `entry_source_changed`,
+`checked_graph_changed` (also the corrected `source_identity_changed`), and
+`workspace_snapshot_changed`. The last includes the complete v4 pinned
+bundle/profile, even when the loaded Hepta graph remains unchanged. The
+reported scope is `loaded_hepta_module_graph_not_full_workspace`: it
+cannot certify arbitrary external-library behavior or source equivalence.

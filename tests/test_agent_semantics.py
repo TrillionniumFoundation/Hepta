@@ -33,7 +33,8 @@ class AgentSemanticTests(unittest.TestCase):
             },
             "nodes": {"main.hepta": [{"kind": "fn", "id": "immutable-id"}]},
         }
-        self.graph = SimpleNamespace(program=object(), unchanged=lambda: True)
+        self.graph = SimpleNamespace(
+            program=object(), unchanged=lambda: True, identity="9" * 64)
         self.checked = SimpleNamespace(ok=True)
         self.hsir = {
             "schema": "hepta.hsir.v0",
@@ -83,6 +84,7 @@ class AgentSemanticTests(unittest.TestCase):
         result = self._inspect(expected_version=self.VERSION)
         self.assertEqual(result["workspace_version"], self.VERSION)
         self.assertEqual(result["source_semantic_sha256"], self.SEMANTIC)
+        self.assertEqual(result["checked_graph_sha256"], self.graph.identity)
         self.assertEqual(result["nodes"], self.snapshot["nodes"])
         self.assertEqual(result["functions"][0]["path"], "main.hepta")
         self.assertEqual(result["functions"][0]["declaration_span"]["path"], "main.hepta")
@@ -128,6 +130,11 @@ class AgentSemanticTests(unittest.TestCase):
         self.hsir["functions"][0]["declaration_span"]["path"] = "/other/main.hepta"
         self._reseal_hsir()
         with self.assertRaisesRegex(WorkspaceError, "pinned project"):
+            self._inspect()
+
+    def test_invalid_checked_graph_identity_rejected(self):
+        self.graph.identity = "invalid-graph"
+        with self.assertRaisesRegex(WorkspaceError, "module graph identity"):
             self._inspect()
 
     def test_stale_expected_version_rejected_before_semantic_load(self):

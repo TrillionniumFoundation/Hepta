@@ -52,6 +52,11 @@ def inspect_pinned_semantics(store: str | Path, *,
     graph = load_project(Path(snapshot["entry"]))
     if not graph.unchanged():
         raise WorkspaceError("E_AGENT_RACE", "Pinned import graph changed during semantic inspection")
+    # Unlike source_sha256 (entry text only), this identity binds the complete
+    # loaded Hepta import graph, including imported sources and package state.
+    graph_identity = graph.identity
+    if not isinstance(graph_identity, str) or _HASH.fullmatch(graph_identity) is None:
+        raise WorkspaceError("E_AGENT_GRAPH", "Missing source-bound checked module graph identity")
     checked = check(graph.program)
     if not checked.ok:
         raise WorkspaceError("E_AGENT_CHECK", "Pinned source no longer passes the current frontend")
@@ -112,6 +117,7 @@ def inspect_pinned_semantics(store: str | Path, *,
         "compiler_sha256": meta["compiler_sha256"],
         "source_semantic_sha256": hsir["sha256"],
         "source_sha256": hsir["source_sha256"],
+        "checked_graph_sha256": graph_identity,
         "validated_sources": meta.get("validated_sources"),
         "nodes": inspected.get("nodes"),
         "functions": [{

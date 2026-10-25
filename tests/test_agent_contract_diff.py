@@ -24,6 +24,7 @@ class AgentContractDiffTests(unittest.TestCase):
             "interface_sha256": "d" * 64,
             "source_semantic_sha256": "e" * 64 if version == self.BEFORE else "f" * 64,
             "source_sha256": "1" * 64 if version == self.BEFORE else "2" * 64,
+            "checked_graph_sha256": "3" * 64 if version == self.BEFORE else "4" * 64,
             "validated_sources": ["src/main.hepta"],
             "external_obligations": [],
             "foreign_assumptions": [],
@@ -91,6 +92,10 @@ class AgentContractDiffTests(unittest.TestCase):
             "parameter_lifetimes", "lifetime_params", "type_params", "type_bounds",
         ])
         self.assertTrue(result["source_identity_changed"])
+        self.assertTrue(result["checked_graph_changed"])
+        self.assertTrue(result["entry_source_changed"])
+        self.assertEqual(result["source_identity_scope"],
+                         "loaded_hepta_module_graph_not_full_workspace")
         self.assertFalse(result["claims"]["functional_equivalence_proved"])
 
     def test_foreign_contract_elevation_rejected(self):
@@ -119,6 +124,31 @@ class AgentContractDiffTests(unittest.TestCase):
         self.assertEqual([(x["name"], x["change"]) for x in
                           self.compare(a, b)["reported_contract_changes"]],
                          [("new", "added"), ("old", "removed")])
+
+    def test_dependency_edit_changes_checked_graph_not_entry(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        b["source_sha256"] = a["source_sha256"]
+        result = self.compare(a, b)
+        self.assertFalse(result["entry_source_changed"])
+        self.assertTrue(result["checked_graph_changed"])
+        self.assertTrue(result["source_identity_changed"])
+        self.assertTrue(result["workspace_snapshot_changed"])
+
+    def test_snapshot_only_change_is_not_checked_graph_change(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        b["source_sha256"] = a["source_sha256"]
+        b["checked_graph_sha256"] = a["checked_graph_sha256"]
+        result = self.compare(a, b)
+        self.assertFalse(result["entry_source_changed"])
+        self.assertFalse(result["checked_graph_changed"])
+        self.assertFalse(result["source_identity_changed"])
+        self.assertTrue(result["workspace_snapshot_changed"])
+
+    def test_bad_graph_sha_rejected(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        b["checked_graph_sha256"] = "bad"
+        with self.assertRaisesRegex(WorkspaceError, "bound digest"):
+            self.compare(a, b)
 
     def test_absolute_snapshot_paths_are_not_comparable_function_keys(self):
         a, b = self.report(self.BEFORE), self.report(self.AFTER)
