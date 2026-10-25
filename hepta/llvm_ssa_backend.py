@@ -19,7 +19,7 @@ import tempfile
 from .clang_capture import CaptureRejected, run_bounded
 
 from .cfg import CFGSnapshot
-from .ssa import SSASnapshot
+from .ssa import SSASnapshot, lower_cfg_scalar_ssa
 from .ssa_verify import verify_scalar_ssa
 from .llvm_ir_profile import LLVMProfileRejected, validate_scalar_llvm_profile
 
@@ -294,7 +294,13 @@ def require_verified_ssa_cfg_origin(ir: SSA_LLVM_IR, *,
         return False
     if not isinstance(ssa, SSASnapshot) or not isinstance(cfg, CFGSnapshot):
         raise LLVMSSARejected("E_LLVM_SSA_ORIGIN: invalid typed source snapshots")
-    expected = emit_scalar_ssa_llvm(ssa, cfg)
+    # A structurally accepted SSA is not automatically the deterministic
+    # lowering of the supplied CFG. Rebuild canonical SSA from that CFG
+    # before giving the native receipt any positive origin qualification.
+    canonical_ssa = lower_cfg_scalar_ssa(cfg)
+    if ssa != canonical_ssa:
+        raise LLVMSSARejected("E_LLVM_SSA_ORIGIN: SSA differs from canonical CFG lowering")
+    expected = emit_scalar_ssa_llvm(canonical_ssa, cfg)
     if not isinstance(ir, SSA_LLVM_IR) or ir != expected:
         raise LLVMSSARejected("E_LLVM_SSA_ORIGIN: LLVM differs from independently verified SSA/CFG output")
     return True
