@@ -49,6 +49,12 @@ def main(argv=None) -> int:
     bridge.add_argument("--output-dir", required=True)
     bridge.add_argument("--exception-mode", choices=["noexcept_only", "catch_status"],
                         default="noexcept_only")
+    llvm_scalar = sub.add_parser("build-llvm-scalar", help="Build strict HSIR i32 profile through LLVM, after rustc validation")
+    llvm_scalar.add_argument("source")
+    llvm_scalar.add_argument("--output", "-o", required=True)
+    llvm_scalar.add_argument("--rustc")
+    llvm_scalar.add_argument("--clang", default="clang")
+    llvm_scalar.add_argument("--locked", action="store_true")
     for cmd in ["check", "inspect", "hsir", "cfg", "emit", "header", "build", "run", "patch"]:
         p = sub.add_parser(cmd)
         p.add_argument("source")
@@ -101,6 +107,25 @@ def main(argv=None) -> int:
             return bridge_cpp_main([args.source, "--output-dir", args.output_dir,
                                     "--clangxx", args.clangxx,
                                     "--exception-mode", args.exception_mode])
+        if args.command == "build-llvm-scalar":
+            # Never qualify a new backend merely from a frontend-only result.
+            # The pinned real rustc reference must complete its native check.
+            from .hsir import lower_checked_program
+            from .llvm_scalar_backend import emit_scalar_llvm, compile_scalar_llvm
+            reference = analyze_project(Path(args.source).resolve(),
+                                        rustc=args.rustc, native=True,
+                                        backend="rust", locked=args.locked,
+                                        crate_type="cdylib")
+            if not reference.report["ok"]:
+                output_json(reference.report)
+                return 1
+            hsir = lower_checked_program(reference.program, reference.checked)
+            code = emit_scalar_llvm(hsir)
+            build = compile_scalar_llvm(code, clang=args.clang, output=args.output)
+            output_json({"schema": "hepta.build-llvm-scalar.v0", "ok": True,
+                         "status": "native_host_compiled_unqualified",
+                         "reference_validation": reference.report, "build": build})
+            return 0
         if args.command == "doctor":
             info = toolchain_info(find_rustc(args.rustc))
             output_json({"schema": "hepta.doctor.v1", "ok": True, "toolchain": info})

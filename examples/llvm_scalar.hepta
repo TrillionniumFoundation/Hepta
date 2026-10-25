@@ -1,0 +1,9 @@
+module llvm_scalar;
+
+// P6 experimental profile: fully checked i32 arithmetic and no runtime allocations.
+// This is not a substitute for the original Rust reference validation.
+export "C" fn checked_add(a: i32, b: i32) -> i32 effects { panic }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    return a + b;
+}

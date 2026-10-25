@@ -1,0 +1,49 @@
+{
+  "claims": {
+    "cpp_exception_containment_tested": true,
+    "cpp_native_abi_proved": false,
+    "cpp_raii_cleanup_tested": true,
+    "foreign_cpp_memory_safe": false,
+    "hepta_ffi_validated": false,
+    "whole_p4_gate_closed": false,
+    "whole_project_blockers_closed": false
+  },
+  "created_utc": "2026-10-25T01:03:51.552540+00:00",
+  "host": {
+    "machine": "x86_64",
+    "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+    "python": "3.13.5"
+  },
+  "schema": "hepta.cpp-bridge-host-validation.v1",
+  "scope": "host-C-caller-to-C++-bridge-only",
+  "source_sha256": {
+    "hepta/c2hepta.py": "ef3d5d527c3e1a45a68ced5667ed39d8fdb4059fa8349c7dd7df52a5b80580f1",
+    "hepta/cpp_bridge.py": "2417a8ce1acfc0d47ad980647f23c6623f7aa1079e1493525a872436a059d772",
+    "tests/test_cpp_bridge.py": "e66ba4dbf86f57a0ad4ead08f4370ae878de25a305be6522a5e8b590d4cf279f",
+    "tools/verify_cpp_bridge_host.py": "e4030de404d941fe1720e2fe0e2793e5a4d8fcfd91012984a580a8e689ac2762"
+  },
+  "status": "passed",
+  "tests": {
+    "errors": 0,
+    "failures": 0,
+    "passed": true,
+    "skipped": 0,
+    "status": "passed",
+    "test_output": "test_actual_c_cxx_link_and_run (tests.test_cpp_bridge.CppBridgeTests.test_actual_c_cxx_link_and_run) ... ok\ntest_cli_refuses_overwriting_existing_directory (tests.test_cpp_bridge.CppBridgeTests.test_cli_refuses_overwriting_existing_directory) ... ok\ntest_mode_rejects_invalid_mode_and_default_stays_noexcept (tests.test_cpp_bridge.CppBridgeTests.test_mode_rejects_invalid_mode_and_default_stays_noexcept) ... ok\ntest_status_bridge_catches_exception_and_runs_raii_cleanup (tests.test_cpp_bridge.CppBridgeTests.test_status_bridge_catches_exception_and_runs_raii_cleanup) ... ok\ntest_unsupported_semantics_fail_closed (tests.test_cpp_bridge.CppBridgeTests.test_unsupported_semantics_fail_closed) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 0.893s\n\nOK\n",
+    "tests_run": 5
+  },
+  "toolchain": {
+    "c": {
+      "executable_sha256": "a23ecab8ff08f09ad8c80602c2c5df7f49e09c25905cb8975902e101bf72635f",
+      "path": "/usr/bin/x86_64-linux-gnu-gcc-14",
+      "status": "identified",
+      "version": "x86_64-linux-gnu-gcc-14 (Debian 14.2.0-19) 14.2.0"
+    },
+    "cpp": {
+      "executable_sha256": "aa7389d9766be7e61df76cf094ac4f1861fd067e12908d1e9fd5cd7eb2a078f4",
+      "path": "/usr/local/swift/usr/bin/clang-17",
+      "status": "identified",
+      "version": "clang version 17.0.0 (https://github.com/swiftlang/llvm-project.git 10999b6d034fe318f3d56c83bddb6572593a8bb0)"
+    }
+  }
+}
