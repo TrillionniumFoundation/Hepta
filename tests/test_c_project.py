@@ -97,6 +97,44 @@ class CProjectMigrationTests(unittest.TestCase):
                     verify_capture(altered)
                 self.assertEqual(caught.exception.code, expected_error)
 
+    def test_resealed_c_capture_provenance_and_typed_model_rejected(self):
+        (self.root / "header.h").write_text("#define HEADER_CONSTANT 7\n")
+        self.project({"input.c": '#include "header.h"\nint f(int x){return x+HEADER_CONSTANT;}'})
+        original = capture_project(self.database, clang=self.clang)
+        verify_capture(original)
+
+        def reseal(report):
+            report["sha256"] = hashlib.sha256(json.dumps(
+                {key: value for key, value in report.items() if key != "sha256"},
+                sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+
+        changes = {
+            "local_header_claim": lambda v: v["dependencies"][0].update(
+                project_input=not v["dependencies"][0]["project_input"]),
+            "dependency_bytes": lambda v: v["dependencies"][0].update(
+                bytes=v["dependencies"][0]["bytes"] + 1),
+            "dependency_bytes_float": lambda v: v["dependencies"][0].update(
+                bytes=float(v["dependencies"][0]["bytes"])),
+            "local_flag_integer": lambda v: v["dependencies"][0].update(project_input=1),
+            "target_char_bool_integer": lambda v: v["configurations"][0]["model"].update(
+                char_unsigned=int(v["configurations"][0]["model"]["char_unsigned"])),
+            "target_pointer_width_float": lambda v: v["configurations"][0]["model"].update(
+                pointer_bits=64.0),
+            "compiler_extra_authority": lambda v: v["compiler"].update(ffi_safety_proved=True),
+            "config_extra_authority": lambda v: v["configurations"][0].update(ownership_proved=True),
+            "dependency_extra_proof": lambda v: v["dependencies"][0].update(lifetime_proved=True),
+            "malformed_local_graph": lambda v: v["configurations"][0].update(
+                local_dependencies=[False]),
+        }
+        for name, mutate in changes.items():
+            with self.subTest(case=name):
+                forged = copy.deepcopy(original)
+                mutate(forged)
+                reseal(forged)
+                with self.assertRaises(MigrationRejected) as caught:
+                    verify_capture(forged)
+                self.assertEqual(caught.exception.code, "E_C_BUILD_IDENTITY")
+
     def test_macro_model_identity_rechecked_even_when_source_preprocessing_is_equal(self):
         # Only the compiler's -dM transcript changes; the source, dependency
         # list and ordinary -E output remain bit-for-bit the same.
