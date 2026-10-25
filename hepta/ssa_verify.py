@@ -14,6 +14,7 @@ import re
 from .cfg import CFGSnapshot
 from .cfg_analysis import CFGAnalysisRejected, analyze_cfg
 from .ssa import SSASnapshot
+from .ssa_reaching import ReachingRejected, verify_latest_reads
 
 
 class SSAVerificationRejected(ValueError):
@@ -182,8 +183,16 @@ def _function(f: dict, original: dict, graph: dict) -> dict:
                  term.get("value") if term["kind"] == "return" else None)
         if value is not None:
             reads += read_expr(value, bid, len(b["instructions"]))
+    # Dominance alone permits an older, still-dominating version after a
+    # later assignment. Independently compute reaching definitions on CFG
+    # edges, including loop backedges, and reject stale PHI/read operands.
+    try:
+        latest_reads = verify_latest_reads(f, graph)
+    except ReachingRejected as exc:
+        raise SSAVerificationRejected(str(exc)) from exc
     return {"name": f["name"], "blocks": len(blocks), "definitions": len(defs),
-            "phi_count": phis, "ssa_references_verified": reads}
+            "phi_count": phis, "ssa_references_verified": reads,
+            "latest_source_version_reads_verified": latest_reads}
 
 
 def verify_scalar_ssa(ssa: SSASnapshot, cfg: CFGSnapshot) -> SSAVerificationSnapshot:
