@@ -54,11 +54,11 @@ The original frozen_snapshot_v0 consumer path remains unchanged.
 
 ## Tests and qualification
 
-tests/test_source_bound_scalar_consumer.py adds 11 integration/negative
+tests/test_source_bound_scalar_consumer.py adds 12 integration/negative
 cases using the actual PR #37 parser/checker/CFG/SSA: a loop+if PHI program,
 deterministic identities, source-byte mismatch, missing source, forged
 expression type/effect/ownership with correctly recomputed producer/v1
-hashes, foreign-obligation rejection, unsupported-call conversion refusal
+hashes, foreign-obligation rejection, adversarial unhashable operator rejection, unsupported-call conversion refusal
 and the real CLI help contract.
 
 The test's source-bound producer fixture encodes the documented PR #14 AST
