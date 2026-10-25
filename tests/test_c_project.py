@@ -75,7 +75,7 @@ class CProjectMigrationTests(unittest.TestCase):
                     result = original_invoke(args, directory, stdin=stdin)
                     has_user_flag = "-DUSER_FLAG=1" in args
                     if "-dM" in args and has_user_flag == (changed == "frontend"):
-                        result += "\\n#define HEPTA_UNRECORDED_MACRO 1\\n"
+                        result += "\n#define HEPTA_UNRECORDED_MACRO 1\n"
                     return result
                 with patch("hepta.c_project.invoke", side_effect=forged_macros):
                     with self.assertRaisesRegex(MigrationRejected, "macro model changed") as error:
