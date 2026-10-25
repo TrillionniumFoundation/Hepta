@@ -23,3 +23,15 @@ runtime ABI, Clang/libc++/Apple linker compatibility, bidirectional calls,
 physical hardware, exception unwinding, or macOS execution.
 
 Reproduce: `python -m unittest tests.test_llvm_ssa_target -v`.
+
+## Independently reproducible host toolchain probe
+
+Run `python tools/probe_native_object_formats.py --output /tmp/probe.json`
+on a host with an LLVM-capable Clang. The tool runs five real object
+compilations, records the source fixture and compiler hashes, preserves
+compiler stderr and output hashes, checks exact object headers, and
+returns a nonzero exit status when any target fails. It never runs
+cross-target code and cannot qualify the Hepta compiler backend.
+The local five-target Clang 17 receipt is retained in
+`evidence/target_object_format_probe_20261025.json` as limited host evidence.
+Object binary hashes are host/Clang-version dependent, not release promises.
