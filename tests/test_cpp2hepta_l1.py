@@ -249,7 +249,7 @@ int nested(int n) noexcept {
         self.assertTrue(migrated["ok"], migrated)
         self.assertFalse(migrated["behavioral_equivalence_proved"])
         generated = self.dst.read_text()
-        names = __import__("re").findall(r"let mut (hepta_for_\\d+_i)", generated)
+        names = __import__("re").findall(r"let mut (hepta_for_\d+_i)", generated)
         self.assertEqual(len(set(names)), 2, generated)
         self.assertNotIn("let mut i:", generated)
         wrapper = self.root / "nested_bridge.cc"

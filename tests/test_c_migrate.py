@@ -140,7 +140,7 @@ int twice(int n) {
         result = migrate_c(self.c, self.hepta)
         self.assertTrue(result["ok"], result)
         generated = self.hepta.read_text()
-        self.assertEqual(len(set(__import__("re").findall(r"let mut (hepta_for_\\d+_i)", generated))), 2)
+        self.assertEqual(len(set(__import__("re").findall(r"let mut (hepta_for_\d+_i)", generated))), 2)
         self.assertNotIn("let mut i:", generated)
         original = self.directory / "c_original.so"
         migrated = self.directory / "hepta_migrated.so"
