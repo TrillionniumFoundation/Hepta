@@ -29,5 +29,9 @@ jobs:
         run: |
           test "$(git rev-parse HEAD)" = "$HEPTA_EXPECTED_HEAD"
           test -z "$(git status --porcelain)"
+      - name: Select supported Python for the test harness
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
       - name: Test receipt positive and negative gates
-        run: python3 -m unittest discover -s tests -p test_release_qualification.py -v
+        run: python -m unittest discover -s tests -p test_release_qualification.py -v
