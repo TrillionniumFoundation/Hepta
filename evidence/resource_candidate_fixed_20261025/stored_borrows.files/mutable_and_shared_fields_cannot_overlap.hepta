@@ -1,0 +1,4 @@
+struct Both<'a>{left:mut 'a [u8],right:read 'a [u8]}
+fn main()->Unit effects {alloc,block,panic} {
+    let mut owner=buffer(4);let value=Both{left:mut owner,right:read owner};drop(move value);release(move owner);
+}

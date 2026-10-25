@@ -1,0 +1,6 @@
+struct Value<'a>{item:read 'a u64}
+fn main()->Unit effects {panic} {
+    let outer:u64=7;let mut value=Value{item:read outer};
+    if true {let inner:u64=9;value=Value{item:read inner};}
+    assert(value.item==9);
+}

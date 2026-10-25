@@ -1,0 +1,60 @@
+module cpp_class_migrated;
+
+// Actual implementation migration; no foreign calls or C++ class ABI.
+pub struct ScalarState {
+    word: u32,
+    wide: u64,
+    balance: i32,
+    position: i64,
+}
+
+pub fn ScalarState_new(arg0: u32, arg1: u64, arg2: i32, arg3: i64) -> ScalarState effects {panic} resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {
+    return ScalarState {word: arg0, wide: arg1, balance: arg2, position: arg3};
+}
+
+pub fn ScalarState_add_word(receiver: mut ScalarState, arg0: u32) -> u32 effects {panic, write} resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {
+    receiver.word = wrapping_add(receiver.word, arg0);
+    return receiver.word;
+}
+
+pub fn ScalarState_mix(receiver: mut ScalarState, arg0: u64) -> u64 effects {panic, write} resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {
+    receiver.wide = wrapping_add((receiver.wide ^ arg0), 1);
+    return receiver.wide;
+}
+
+pub fn ScalarState_clamp_balance(receiver: mut ScalarState, arg0: i32, arg1: i32) -> i32 effects {panic, write} resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {
+    if (receiver.balance < arg0) {
+        receiver.balance = arg0;
+    }
+    else {
+        if (receiver.balance > arg1) {
+            receiver.balance = arg1;
+        }
+    }
+    return receiver.balance;
+}
+
+pub fn ScalarState_replace_position(receiver: mut ScalarState, arg0: i64) -> i64 effects {panic, write} resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {
+    receiver.position = arg0;
+    return receiver.position;
+}
+
+pub fn ScalarState_word_value(receiver: read ScalarState) -> u32 effects {panic} resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {
+    return receiver.word;
+}
+
+pub fn ScalarState_wide_value(receiver: read ScalarState) -> u64 effects {panic} resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {
+    return receiver.wide;
+}
+
+pub fn ScalarState_balance_value(receiver: read ScalarState) -> i32 effects {panic} resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {
+    return receiver.balance;
+}
+
+pub fn ScalarState_position_value(receiver: read ScalarState) -> i64 effects {panic} resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {
+    return receiver.position;
+}
+
+pub fn ScalarState_set_word(receiver: mut ScalarState, arg0: u32) -> Unit effects {panic, write} resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {
+    receiver.word = arg0;
+}

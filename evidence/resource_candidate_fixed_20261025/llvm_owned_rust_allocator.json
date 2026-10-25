@@ -1,0 +1,681 @@
+{
+  "baseline_sources": {
+    "handwritten_rust": {
+      "bytes": 2516,
+      "path": "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/handwritten_rust.rs",
+      "sha256": "88e894018658f4f329217f399926c053a8734b526d372f3b5e2016786f253de4"
+    },
+    "rust": {
+      "bytes": 35696,
+      "path": "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/rust.rs",
+      "sha256": "133196316bfc1074877690272007ba133988d3cfe1e1caf185c7c98b843a2f83"
+    }
+  },
+  "claims": {
+    "actual_first_and_second_refusal_observed": true,
+    "application_sources_unchanged": true,
+    "arbitrary_third_party_execution_authenticated": false,
+    "cleanup_and_recovery_observed": true,
+    "compiled_deallocation_omission_detected": true,
+    "original_measured_binaries_instrumented": false,
+    "original_performance_attempt_modified": false,
+    "performance_measured": false,
+    "whole_language_memory_safety_proved": false
+  },
+  "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+  "directory": "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files",
+  "frontend": {
+    "assumptions": [],
+    "backend": {
+      "check_only": true,
+      "crate_type": "cdylib",
+      "diagnostics": [],
+      "flags": [
+        "edition=2021",
+        "opt-level=3",
+        "overflow-checks=yes",
+        "panic=abort",
+        "codegen-units=1",
+        "sysroot=/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0"
+      ],
+      "link_args": [],
+      "linker": null,
+      "ok": true,
+      "rust_sha256": "133196316bfc1074877690272007ba133988d3cfe1e1caf185c7c98b843a2f83",
+      "rustc_crate_type": "lib",
+      "status": "rustc_checked",
+      "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+      "target": "x86_64-unknown-linux-gnu",
+      "toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+        "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "validation_artifact_sha256": "fd86294733bc982609f0960a10346879266af71fd21be2a1adced00f25317b35"
+    },
+    "checks": {
+      "rust_borrows_types": "rustc_checked",
+      "syntax": "passed",
+      "types_effects_resources": "passed_in_supported_subset"
+    },
+    "claims": {
+      "all_programs_faster_than_rust": false,
+      "bounded_cancellation_latency_proved": false,
+      "deadlock_freedom_proved": false,
+      "hardware_execution_verified": false,
+      "whole_language_soundness_proved": false
+    },
+    "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+    "compiler_version": "0.2.0",
+    "diagnostics": [],
+    "effects": {
+      "OwnedBytes_data": [],
+      "OwnedBytes_drop": [
+        "alloc",
+        "block"
+      ],
+      "OwnedBytes_fill": [
+        "panic",
+        "write"
+      ],
+      "OwnedBytes_get": [
+        "panic"
+      ],
+      "OwnedBytes_move": [],
+      "OwnedBytes_new": [
+        "alloc",
+        "block"
+      ],
+      "OwnedBytes_set": [
+        "panic",
+        "write"
+      ],
+      "OwnedBytes_size": [],
+      "constructor_error": [
+        "alloc",
+        "block",
+        "panic"
+      ],
+      "forward_owned": [],
+      "full_lifecycle": [
+        "alloc",
+        "block",
+        "panic"
+      ],
+      "run_owned": [
+        "alloc",
+        "block",
+        "panic",
+        "write"
+      ],
+      "two_alloc": [
+        "alloc",
+        "block",
+        "panic"
+      ],
+      "two_stage": [
+        "alloc",
+        "block",
+        "panic",
+        "write"
+      ]
+    },
+    "interface_sha256": "5718972ab81bbae12c80f03aaa66763b49d464cd6011dce702a54193c485636a",
+    "ok": true,
+    "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/kernels.hepta",
+    "profile": {
+      "crate_type": "cdylib",
+      "no_std": false,
+      "overflow_checks": true,
+      "panic": "abort"
+    },
+    "resource_contracts": [],
+    "rust_sha256": "133196316bfc1074877690272007ba133988d3cfe1e1caf185c7c98b843a2f83",
+    "schema": "hepta.check.v1",
+    "source_sha256": "b12b6b9731ba6cdc30d91f44980dd387c8396f65dc029da35eb0430e6a9c1856",
+    "status": "checked"
+  },
+  "hepta_source": {
+    "bytes": 5466,
+    "path": "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/kernels.hepta",
+    "sha256": "b12b6b9731ba6cdc30d91f44980dd387c8396f65dc029da35eb0430e6a9c1856"
+  },
+  "inputs": {
+    "examples/llvm_owned/owned.hepta": "31f6f8e18fd222237cd9506d05b0c7b8a0ea2669cb9cdde77c9877948bce9e15",
+    "examples/llvm_owned/qualification.hepta": "b32e67bf70ee6249d6cae2ff6a0677516607d2d5ad38345d7fe72d78f10882b1",
+    "examples/llvm_owned/reference.rs": "88e894018658f4f329217f399926c053a8734b526d372f3b5e2016786f253de4",
+    "examples/llvm_owned/rust_allocator_observer.rs": "7586ab988f6fa2cb629f07ad9d1a097991754b61e7dcf6330621ca5d7dd90379",
+    "tools/evidence_checks.py": "720a9f55e73e3af3467918efabf0db8b5ff85da8ab07c3efd115d8b1423bd3d7",
+    "tools/qualify_llvm_owned.py": "29cd0b8973c81751765f39850aaf2fc10b574c2772a926dd0c94111dbf23aaa7",
+    "tools/qualify_llvm_owned_rust_allocator.py": "8502a61b701e74a5f63cefda9605e8884cca1fa0aa53bf82edce38e1647074ec"
+  },
+  "ok": true,
+  "performance_protocol_sha256": "af27b7f8758bd95623f4748e356dff542e063141669e586205d295b6d65dda51",
+  "protocol": {
+    "first_refusal_result": 101,
+    "first_refusal_size": 7,
+    "fixed_calls": [
+      [
+        3,
+        0,
+        22
+      ],
+      [
+        5,
+        1,
+        2
+      ],
+      [
+        0,
+        0,
+        19
+      ],
+      [
+        12281,
+        0,
+        1
+      ],
+      [
+        18446744073709551615,
+        0,
+        1
+      ]
+    ],
+    "id": "hepta.llvm-owned-rust-allocator-observation.v1",
+    "native_process_denominator": 4,
+    "negative_control": "omit System.dealloc while tracking; application Drop calls unchanged",
+    "negative_exit_code": 86,
+    "optimization_policy": "observed counts must match; do not manufacture requests removed by optimization",
+    "process_timeout_seconds": 10,
+    "recovery_call": [
+      3,
+      0,
+      22
+    ],
+    "scope": "new untimed correctness only; unchanged application prefixes plus System allocator observer",
+    "second_refusal_size": 12281,
+    "target": "x86_64-unknown-linux-gnu"
+  },
+  "rows": [
+    {
+      "artifact": {
+        "bytes": 3872840,
+        "path": "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/rust.normal",
+        "sha256": "ab91f44f5080c684cf3999f1b16d6ee35fa0197e97ff96e458d17e8af339ae53"
+      },
+      "backend": "rust",
+      "build": {
+        "artifact": "/workspace/scratch/c7c6ee414a6c/hepta-research/evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/rust.normal",
+        "artifact_bytes": 3872840,
+        "artifact_sha256": "ab91f44f5080c684cf3999f1b16d6ee35fa0197e97ff96e458d17e8af339ae53",
+        "check_only": false,
+        "crate_type": "bin",
+        "diagnostics": [],
+        "flags": [
+          "edition=2021",
+          "opt-level=3",
+          "overflow-checks=yes",
+          "panic=abort",
+          "codegen-units=1",
+          "sysroot=/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0"
+        ],
+        "link_args": [],
+        "linker": null,
+        "ok": true,
+        "rust_sha256": "997d7f4a6afaaf4e8ae2a4624824064fc793b2e248239f7dc813dd0dfe1f19c7",
+        "rustc_crate_type": "bin",
+        "status": "rustc_checked",
+        "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+          "host": "x86_64-unknown-linux-gnu",
+          "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+          "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+          "sysroot_discovery": "verified_compiler_prefix",
+          "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+        },
+        "validation_artifact_sha256": "ab91f44f5080c684cf3999f1b16d6ee35fa0197e97ff96e458d17e8af339ae53"
+      },
+      "execution": {
+        "argv": [
+          "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/rust.normal"
+        ],
+        "executable_sha256": "ab91f44f5080c684cf3999f1b16d6ee35fa0197e97ff96e458d17e8af339ae53",
+        "returncode": 0,
+        "status": "completed",
+        "stderr": {
+          "base64": "",
+          "file": {
+            "bytes": 0,
+            "path": "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/rust.normal.stderr.bin",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "text": ""
+        },
+        "stdout": {
+          "base64": "eyJiYWNrZW5kIjoicnVzdCIsIm5lZ2F0aXZlX2NvbnRyb2wiOmZhbHNlLCJwaGFzZSI6ImZpeGVkX2ZpdmUiLCJjYWxscyI6WzIyLCAyLCAxOSwgMSwgMV0sImFsbG9jYXRpb25zIjo3LCJmcmVlcyI6NywibGl2ZSI6MCwicmVmdXNhbHMiOjEsImF0dGVtcHRzIjo4LCJzeXN0ZW1fcmVmdXNhbHMiOjAsIm9rIjp0cnVlfQp7ImJhY2tlbmQiOiJydXN0IiwibmVnYXRpdmVfY29udHJvbCI6ZmFsc2UsInBoYXNlIjoic2Vjb25kX3JlZnVzYWxfcmVjb3ZlcnkiLCJjYWxscyI6WzIyXSwiYWxsb2NhdGlvbnMiOjksImZyZWVzIjo5LCJsaXZlIjowLCJyZWZ1c2FscyI6MSwiYXR0ZW1wdHMiOjEwLCJzeXN0ZW1fcmVmdXNhbHMiOjAsIm9rIjp0cnVlfQp7ImJhY2tlbmQiOiJydXN0IiwibmVnYXRpdmVfY29udHJvbCI6ZmFsc2UsInBoYXNlIjoiZmlyc3RfcmVmdXNhbCIsImNhbGxzIjpbMTAxXSwiYWxsb2NhdGlvbnMiOjAsImZyZWVzIjowLCJsaXZlIjowLCJyZWZ1c2FscyI6MSwiYXR0ZW1wdHMiOjEsInN5c3RlbV9yZWZ1c2FscyI6MCwib2siOnRydWV9CnsiYmFja2VuZCI6InJ1c3QiLCJuZWdhdGl2ZV9jb250cm9sIjpmYWxzZSwicGhhc2UiOiJmaXJzdF9yZWZ1c2FsX3JlY292ZXJ5IiwiY2FsbHMiOlsyMl0sImFsbG9jYXRpb25zIjoyLCJmcmVlcyI6MiwibGl2ZSI6MCwicmVmdXNhbHMiOjEsImF0dGVtcHRzIjozLCJzeXN0ZW1fcmVmdXNhbHMiOjAsIm9rIjp0cnVlfQo=",
+          "file": {
+            "bytes": 719,
+            "path": "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/rust.normal.stdout.bin",
+            "sha256": "b6de45a7f005cf0091a93a892ed962adfe39c72db8aec66b67da162c0e54a0cf"
+          },
+          "text": "{\"backend\":\"rust\",\"negative_control\":false,\"phase\":\"fixed_five\",\"calls\":[22, 2, 19, 1, 1],\"allocations\":7,\"frees\":7,\"live\":0,\"refusals\":1,\"attempts\":8,\"system_refusals\":0,\"ok\":true}\n{\"backend\":\"rust\",\"negative_control\":false,\"phase\":\"second_refusal_recovery\",\"calls\":[22],\"allocations\":9,\"frees\":9,\"live\":0,\"refusals\":1,\"attempts\":10,\"system_refusals\":0,\"ok\":true}\n{\"backend\":\"rust\",\"negative_control\":false,\"phase\":\"first_refusal\",\"calls\":[101],\"allocations\":0,\"frees\":0,\"live\":0,\"refusals\":1,\"attempts\":1,\"system_refusals\":0,\"ok\":true}\n{\"backend\":\"rust\",\"negative_control\":false,\"phase\":\"first_refusal_recovery\",\"calls\":[22],\"allocations\":2,\"frees\":2,\"live\":0,\"refusals\":1,\"attempts\":3,\"system_refusals\":0,\"ok\":true}\n"
+        }
+      },
+      "instrumented_source": {
+        "bytes": 41813,
+        "path": "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/rust.normal.rs",
+        "sha256": "997d7f4a6afaaf4e8ae2a4624824064fc793b2e248239f7dc813dd0dfe1f19c7"
+      },
+      "mode": "normal",
+      "observations": [
+        {
+          "allocations": 7,
+          "attempts": 8,
+          "backend": "rust",
+          "calls": [
+            22,
+            2,
+            19,
+            1,
+            1
+          ],
+          "frees": 7,
+          "live": 0,
+          "negative_control": false,
+          "ok": true,
+          "phase": "fixed_five",
+          "refusals": 1,
+          "system_refusals": 0
+        },
+        {
+          "allocations": 9,
+          "attempts": 10,
+          "backend": "rust",
+          "calls": [
+            22
+          ],
+          "frees": 9,
+          "live": 0,
+          "negative_control": false,
+          "ok": true,
+          "phase": "second_refusal_recovery",
+          "refusals": 1,
+          "system_refusals": 0
+        },
+        {
+          "allocations": 0,
+          "attempts": 1,
+          "backend": "rust",
+          "calls": [
+            101
+          ],
+          "frees": 0,
+          "live": 0,
+          "negative_control": false,
+          "ok": true,
+          "phase": "first_refusal",
+          "refusals": 1,
+          "system_refusals": 0
+        },
+        {
+          "allocations": 2,
+          "attempts": 3,
+          "backend": "rust",
+          "calls": [
+            22
+          ],
+          "frees": 2,
+          "live": 0,
+          "negative_control": false,
+          "ok": true,
+          "phase": "first_refusal_recovery",
+          "refusals": 1,
+          "system_refusals": 0
+        }
+      ],
+      "status": "completed",
+      "validation_error": null
+    },
+    {
+      "artifact": {
+        "bytes": 3872144,
+        "path": "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/rust.leak",
+        "sha256": "e479040fff0581177e0bc104c67179731d485c3e785b82e8389e645865e964b9"
+      },
+      "backend": "rust",
+      "build": {
+        "artifact": "/workspace/scratch/c7c6ee414a6c/hepta-research/evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/rust.leak",
+        "artifact_bytes": 3872144,
+        "artifact_sha256": "e479040fff0581177e0bc104c67179731d485c3e785b82e8389e645865e964b9",
+        "check_only": false,
+        "crate_type": "bin",
+        "diagnostics": [],
+        "flags": [
+          "edition=2021",
+          "opt-level=3",
+          "overflow-checks=yes",
+          "panic=abort",
+          "codegen-units=1",
+          "sysroot=/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0"
+        ],
+        "link_args": [],
+        "linker": null,
+        "ok": true,
+        "rust_sha256": "316798b77c30883faf71cc0c2d2a145b8a4a04f5a3f84a7d0ba0f366724166f1",
+        "rustc_crate_type": "bin",
+        "status": "rustc_checked",
+        "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+          "host": "x86_64-unknown-linux-gnu",
+          "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+          "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+          "sysroot_discovery": "verified_compiler_prefix",
+          "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+        },
+        "validation_artifact_sha256": "e479040fff0581177e0bc104c67179731d485c3e785b82e8389e645865e964b9"
+      },
+      "execution": {
+        "argv": [
+          "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/rust.leak"
+        ],
+        "executable_sha256": "e479040fff0581177e0bc104c67179731d485c3e785b82e8389e645865e964b9",
+        "returncode": 86,
+        "status": "completed",
+        "stderr": {
+          "base64": "",
+          "file": {
+            "bytes": 0,
+            "path": "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/rust.leak.stderr.bin",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "text": ""
+        },
+        "stdout": {
+          "base64": "eyJiYWNrZW5kIjoicnVzdCIsIm5lZ2F0aXZlX2NvbnRyb2wiOnRydWUsInBoYXNlIjoiZml4ZWRfZml2ZSIsImNhbGxzIjpbMjIsIDIsIDE5LCAxLCAxXSwiYWxsb2NhdGlvbnMiOjcsImZyZWVzIjowLCJsaXZlIjo3LCJyZWZ1c2FscyI6MSwiYXR0ZW1wdHMiOjgsInN5c3RlbV9yZWZ1c2FscyI6MCwib2siOmZhbHNlfQo=",
+          "file": {
+            "bytes": 182,
+            "path": "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/rust.leak.stdout.bin",
+            "sha256": "6b22852759cee2f384191e1ffba99a38cf11f91f0c84fb1cc90cbfe3d12a0376"
+          },
+          "text": "{\"backend\":\"rust\",\"negative_control\":true,\"phase\":\"fixed_five\",\"calls\":[22, 2, 19, 1, 1],\"allocations\":7,\"frees\":0,\"live\":7,\"refusals\":1,\"attempts\":8,\"system_refusals\":0,\"ok\":false}\n"
+        }
+      },
+      "instrumented_source": {
+        "bytes": 41812,
+        "path": "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/rust.leak.rs",
+        "sha256": "316798b77c30883faf71cc0c2d2a145b8a4a04f5a3f84a7d0ba0f366724166f1"
+      },
+      "mode": "leak",
+      "observations": [
+        {
+          "allocations": 7,
+          "attempts": 8,
+          "backend": "rust",
+          "calls": [
+            22,
+            2,
+            19,
+            1,
+            1
+          ],
+          "frees": 0,
+          "live": 7,
+          "negative_control": true,
+          "ok": false,
+          "phase": "fixed_five",
+          "refusals": 1,
+          "system_refusals": 0
+        }
+      ],
+      "status": "completed",
+      "validation_error": null
+    },
+    {
+      "artifact": {
+        "bytes": 3872840,
+        "path": "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/handwritten_rust.normal",
+        "sha256": "24bcc27b4c2d99da710777c0f0011868202e6e52b3d863b9346cdbff279bf3b9"
+      },
+      "backend": "handwritten_rust",
+      "build": {
+        "artifact": "/workspace/scratch/c7c6ee414a6c/hepta-research/evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/handwritten_rust.normal",
+        "artifact_bytes": 3872840,
+        "artifact_sha256": "24bcc27b4c2d99da710777c0f0011868202e6e52b3d863b9346cdbff279bf3b9",
+        "check_only": false,
+        "crate_type": "bin",
+        "diagnostics": [],
+        "flags": [
+          "edition=2021",
+          "opt-level=3",
+          "overflow-checks=yes",
+          "panic=abort",
+          "codegen-units=1",
+          "sysroot=/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0"
+        ],
+        "link_args": [],
+        "linker": null,
+        "ok": true,
+        "rust_sha256": "4722787da54e9d0c2c5dd36ce531aae23d5a50ee35554e3badaa92fa6da7210f",
+        "rustc_crate_type": "bin",
+        "status": "rustc_checked",
+        "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+          "host": "x86_64-unknown-linux-gnu",
+          "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+          "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+          "sysroot_discovery": "verified_compiler_prefix",
+          "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+        },
+        "validation_artifact_sha256": "24bcc27b4c2d99da710777c0f0011868202e6e52b3d863b9346cdbff279bf3b9"
+      },
+      "execution": {
+        "argv": [
+          "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/handwritten_rust.normal"
+        ],
+        "executable_sha256": "24bcc27b4c2d99da710777c0f0011868202e6e52b3d863b9346cdbff279bf3b9",
+        "returncode": 0,
+        "status": "completed",
+        "stderr": {
+          "base64": "",
+          "file": {
+            "bytes": 0,
+            "path": "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/handwritten_rust.normal.stderr.bin",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "text": ""
+        },
+        "stdout": {
+          "base64": "eyJiYWNrZW5kIjoiaGFuZHdyaXR0ZW5fcnVzdCIsIm5lZ2F0aXZlX2NvbnRyb2wiOmZhbHNlLCJwaGFzZSI6ImZpeGVkX2ZpdmUiLCJjYWxscyI6WzIyLCAyLCAxOSwgMSwgMV0sImFsbG9jYXRpb25zIjo3LCJmcmVlcyI6NywibGl2ZSI6MCwicmVmdXNhbHMiOjEsImF0dGVtcHRzIjo4LCJzeXN0ZW1fcmVmdXNhbHMiOjAsIm9rIjp0cnVlfQp7ImJhY2tlbmQiOiJoYW5kd3JpdHRlbl9ydXN0IiwibmVnYXRpdmVfY29udHJvbCI6ZmFsc2UsInBoYXNlIjoic2Vjb25kX3JlZnVzYWxfcmVjb3ZlcnkiLCJjYWxscyI6WzIyXSwiYWxsb2NhdGlvbnMiOjksImZyZWVzIjo5LCJsaXZlIjowLCJyZWZ1c2FscyI6MSwiYXR0ZW1wdHMiOjEwLCJzeXN0ZW1fcmVmdXNhbHMiOjAsIm9rIjp0cnVlfQp7ImJhY2tlbmQiOiJoYW5kd3JpdHRlbl9ydXN0IiwibmVnYXRpdmVfY29udHJvbCI6ZmFsc2UsInBoYXNlIjoiZmlyc3RfcmVmdXNhbCIsImNhbGxzIjpbMTAxXSwiYWxsb2NhdGlvbnMiOjAsImZyZWVzIjowLCJsaXZlIjowLCJyZWZ1c2FscyI6MSwiYXR0ZW1wdHMiOjEsInN5c3RlbV9yZWZ1c2FscyI6MCwib2siOnRydWV9CnsiYmFja2VuZCI6ImhhbmR3cml0dGVuX3J1c3QiLCJuZWdhdGl2ZV9jb250cm9sIjpmYWxzZSwicGhhc2UiOiJmaXJzdF9yZWZ1c2FsX3JlY292ZXJ5IiwiY2FsbHMiOlsyMl0sImFsbG9jYXRpb25zIjoyLCJmcmVlcyI6MiwibGl2ZSI6MCwicmVmdXNhbHMiOjEsImF0dGVtcHRzIjozLCJzeXN0ZW1fcmVmdXNhbHMiOjAsIm9rIjp0cnVlfQo=",
+          "file": {
+            "bytes": 767,
+            "path": "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/handwritten_rust.normal.stdout.bin",
+            "sha256": "ffc8b725d5398037ea182c2d9742149eca06254c8ebfbfd8c2f3e8e349b58b8b"
+          },
+          "text": "{\"backend\":\"handwritten_rust\",\"negative_control\":false,\"phase\":\"fixed_five\",\"calls\":[22, 2, 19, 1, 1],\"allocations\":7,\"frees\":7,\"live\":0,\"refusals\":1,\"attempts\":8,\"system_refusals\":0,\"ok\":true}\n{\"backend\":\"handwritten_rust\",\"negative_control\":false,\"phase\":\"second_refusal_recovery\",\"calls\":[22],\"allocations\":9,\"frees\":9,\"live\":0,\"refusals\":1,\"attempts\":10,\"system_refusals\":0,\"ok\":true}\n{\"backend\":\"handwritten_rust\",\"negative_control\":false,\"phase\":\"first_refusal\",\"calls\":[101],\"allocations\":0,\"frees\":0,\"live\":0,\"refusals\":1,\"attempts\":1,\"system_refusals\":0,\"ok\":true}\n{\"backend\":\"handwritten_rust\",\"negative_control\":false,\"phase\":\"first_refusal_recovery\",\"calls\":[22],\"allocations\":2,\"frees\":2,\"live\":0,\"refusals\":1,\"attempts\":3,\"system_refusals\":0,\"ok\":true}\n"
+        }
+      },
+      "instrumented_source": {
+        "bytes": 8645,
+        "path": "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/handwritten_rust.normal.rs",
+        "sha256": "4722787da54e9d0c2c5dd36ce531aae23d5a50ee35554e3badaa92fa6da7210f"
+      },
+      "mode": "normal",
+      "observations": [
+        {
+          "allocations": 7,
+          "attempts": 8,
+          "backend": "handwritten_rust",
+          "calls": [
+            22,
+            2,
+            19,
+            1,
+            1
+          ],
+          "frees": 7,
+          "live": 0,
+          "negative_control": false,
+          "ok": true,
+          "phase": "fixed_five",
+          "refusals": 1,
+          "system_refusals": 0
+        },
+        {
+          "allocations": 9,
+          "attempts": 10,
+          "backend": "handwritten_rust",
+          "calls": [
+            22
+          ],
+          "frees": 9,
+          "live": 0,
+          "negative_control": false,
+          "ok": true,
+          "phase": "second_refusal_recovery",
+          "refusals": 1,
+          "system_refusals": 0
+        },
+        {
+          "allocations": 0,
+          "attempts": 1,
+          "backend": "handwritten_rust",
+          "calls": [
+            101
+          ],
+          "frees": 0,
+          "live": 0,
+          "negative_control": false,
+          "ok": true,
+          "phase": "first_refusal",
+          "refusals": 1,
+          "system_refusals": 0
+        },
+        {
+          "allocations": 2,
+          "attempts": 3,
+          "backend": "handwritten_rust",
+          "calls": [
+            22
+          ],
+          "frees": 2,
+          "live": 0,
+          "negative_control": false,
+          "ok": true,
+          "phase": "first_refusal_recovery",
+          "refusals": 1,
+          "system_refusals": 0
+        }
+      ],
+      "status": "completed",
+      "validation_error": null
+    },
+    {
+      "artifact": {
+        "bytes": 3872160,
+        "path": "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/handwritten_rust.leak",
+        "sha256": "e1151b39be9f0699411277157201de074242ceab2f0db9fe831b355fc84fc292"
+      },
+      "backend": "handwritten_rust",
+      "build": {
+        "artifact": "/workspace/scratch/c7c6ee414a6c/hepta-research/evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/handwritten_rust.leak",
+        "artifact_bytes": 3872160,
+        "artifact_sha256": "e1151b39be9f0699411277157201de074242ceab2f0db9fe831b355fc84fc292",
+        "check_only": false,
+        "crate_type": "bin",
+        "diagnostics": [],
+        "flags": [
+          "edition=2021",
+          "opt-level=3",
+          "overflow-checks=yes",
+          "panic=abort",
+          "codegen-units=1",
+          "sysroot=/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0"
+        ],
+        "link_args": [],
+        "linker": null,
+        "ok": true,
+        "rust_sha256": "194af9a8243fe6992920ca538bda73aeb4b830c4a5a0db4bb4d2659260d14cea",
+        "rustc_crate_type": "bin",
+        "status": "rustc_checked",
+        "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+          "host": "x86_64-unknown-linux-gnu",
+          "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+          "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+          "sysroot_discovery": "verified_compiler_prefix",
+          "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+        },
+        "validation_artifact_sha256": "e1151b39be9f0699411277157201de074242ceab2f0db9fe831b355fc84fc292"
+      },
+      "execution": {
+        "argv": [
+          "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/handwritten_rust.leak"
+        ],
+        "executable_sha256": "e1151b39be9f0699411277157201de074242ceab2f0db9fe831b355fc84fc292",
+        "returncode": 86,
+        "status": "completed",
+        "stderr": {
+          "base64": "",
+          "file": {
+            "bytes": 0,
+            "path": "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/handwritten_rust.leak.stderr.bin",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "text": ""
+        },
+        "stdout": {
+          "base64": "eyJiYWNrZW5kIjoiaGFuZHdyaXR0ZW5fcnVzdCIsIm5lZ2F0aXZlX2NvbnRyb2wiOnRydWUsInBoYXNlIjoiZml4ZWRfZml2ZSIsImNhbGxzIjpbMjIsIDIsIDE5LCAxLCAxXSwiYWxsb2NhdGlvbnMiOjcsImZyZWVzIjowLCJsaXZlIjo3LCJyZWZ1c2FscyI6MSwiYXR0ZW1wdHMiOjgsInN5c3RlbV9yZWZ1c2FscyI6MCwib2siOmZhbHNlfQo=",
+          "file": {
+            "bytes": 194,
+            "path": "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/handwritten_rust.leak.stdout.bin",
+            "sha256": "d340c4bcc3dd520cf53be00bfa479b34d350820572d69892f85842815dc7285c"
+          },
+          "text": "{\"backend\":\"handwritten_rust\",\"negative_control\":true,\"phase\":\"fixed_five\",\"calls\":[22, 2, 19, 1, 1],\"allocations\":7,\"frees\":0,\"live\":7,\"refusals\":1,\"attempts\":8,\"system_refusals\":0,\"ok\":false}\n"
+        }
+      },
+      "instrumented_source": {
+        "bytes": 8644,
+        "path": "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.files/handwritten_rust.leak.rs",
+        "sha256": "194af9a8243fe6992920ca538bda73aeb4b830c4a5a0db4bb4d2659260d14cea"
+      },
+      "mode": "leak",
+      "observations": [
+        {
+          "allocations": 7,
+          "attempts": 8,
+          "backend": "handwritten_rust",
+          "calls": [
+            22,
+            2,
+            19,
+            1,
+            1
+          ],
+          "frees": 0,
+          "live": 7,
+          "negative_control": true,
+          "ok": false,
+          "phase": "fixed_five",
+          "refusals": 1,
+          "system_refusals": 0
+        }
+      ],
+      "status": "completed",
+      "validation_error": null
+    }
+  ],
+  "schema": "hepta.llvm-owned-rust-allocator-qualification.v1",
+  "status": "passed",
+  "validation_error": null
+}

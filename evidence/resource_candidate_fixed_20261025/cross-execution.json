@@ -1,0 +1,45 @@
+{
+  "schema": "hepta.cross-execution.v1",
+  "status": "passed",
+  "target": "aarch64-unknown-linux-gnu",
+  "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+  "rustc": {
+    "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+    "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8",
+    "host": "x86_64-unknown-linux-gnu",
+    "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+    "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+    "sysroot_discovery": "verified_compiler_prefix"
+  },
+  "qemu": "qemu-aarch64 version 8.2.2 (Debian 1:8.2.2+ds-0ubuntu1.18)\nCopyright (c) 2003-2023 Fabrice Bellard and the QEMU Project developers",
+  "qemu_binary_sha256": "e4f8d99e9ff69c3cefffab71cee358ce2af1ecba1282d04c3eeb44ef76f5a71e",
+  "harness_sha256": "5d8aefa3fdc7767675720b0fc783f4abb8e08da310b3a2fc70975d987f4de2c5",
+  "cases": [
+    {
+      "case": "correct",
+      "source_sha256": "1f25a2ff79632fcaf2d489117d4fc9034ff03cf80e957ab3b056c917195f70b3",
+      "generated_rust_sha256": "4acbe6baa6c5b604ee48f9af04316e01da7e3660ba9972c7a94a10a9c15a3ba2",
+      "artifact_sha256": "acf5d050ee665b5ed4fa06a9e05eb6b51c1f691ae12a4f97f408f8e49fa365c6",
+      "returncode": 0,
+      "status": "passed",
+      "object_identity": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cross-execute-jpu019tu/correct: ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), static-pie linked, not stripped"
+    },
+    {
+      "case": "wrong_sum_negative_control",
+      "source_sha256": "fdee0bbfbf42e68d4668cc9d84bac17fb4b6d777522e7bddc04726f70391daa4",
+      "generated_rust_sha256": "f626418bf36492b1f129dd2485bf81f1fbce099994032062f557955c72d9baec",
+      "artifact_sha256": "a870923db63aad4f28fbf3f291c9b4c1dff1580f8031528b176ce6ebf341fdd8",
+      "returncode": 11,
+      "status": "failed_as_expected",
+      "object_identity": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cross-execute-jpu019tu/wrong_sum_negative_control: ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), static-pie linked, not stripped"
+    }
+  ],
+  "qualification": "AArch64 ISA execution under QEMU user-mode Linux emulation",
+  "physical_hardware_executed": false,
+  "cross_c_compiler_abi_qualified": false,
+  "scope": "sum/copy at lengths 0..4, wrapping-u64 edge values, untouched destination suffix; Rust no_std syscall harness",
+  "limitations": [
+    "No physical CPU/board, IRQ, DMA, GPU, Windows or timing qualification.",
+    "The ABI caller is a Rust extern-C harness, not an independent AArch64 C compiler."
+  ]
+}

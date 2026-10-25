@@ -1,0 +1,746 @@
+{
+  "schema": "hepta.seven-stage-completion-ledger.v1",
+  "code_commit": "2f8cd75d5ab5dba08f130561c1b9198c76e6ba6e",
+  "source_snapshot_sha256": "4d228091e1cd920938528f50a8dcb946c3ed7f20a581188edf4bdc2ef68fc67d",
+  "source_snapshot_file_count": 620,
+  "aggregate": {
+    "status": "failed",
+    "gates_completed": 46,
+    "gates_passed": 44,
+    "tests": 1369,
+    "skips": 0,
+    "snapshot_unchanged": true
+  },
+  "whole_project_blockers_closed": false,
+  "all_requested_stages_fully_complete": false,
+  "static_runtime_external_boundaries": {
+    "static_supported_profiles": [
+      "类型/效果与穷尽分支检查",
+      "move/drop/place 与局部 loan 协议检查",
+      "后端能力拒绝与源/IR/生成物对应重放"
+    ],
+    "runtime_supported_profiles": [
+      "checked arithmetic 与索引检查",
+      "可失败分配与实际错误路径清理",
+      "任务/队列/输入/请求栈准入、协作取消及选择的 I/O 超时"
+    ],
+    "external_assumptions": [
+      "真实工具链/标准库/OS 的既定语义",
+      "外部 C/C++ 指针 validity、来源、别名、生命周期、线程与 retention 契约",
+      "硬件和外部库不能仅由 Hepta 接口签名变成已证明安全"
+    ],
+    "whole_language_soundness_proved": false,
+    "whole_process_memory_budget_proved": false,
+    "arbitrary_foreign_cpp_safe": false
+  },
+  "stages": [
+    {
+      "stage": 1,
+      "name": "统一语义与候选版本",
+      "user_deliverable": "一个规范、一套语义权威、清晰的后端支持范围",
+      "user_completion_criterion": "在同一提交上贯通源码、检查、生成和实际执行",
+      "current_status": "工程贯通和后端范围已实证；完整候选验收未通过",
+      "implemented_and_observed": [
+        "SPEC.md、共享 checker 和唯一 canonical semantic encoder；显式 Rust/C/scalar LLVM/owned LLVM 能力矩阵。",
+        "候选 2f8cd75 的同一未变源码快照完成全部 46 项门禁；1369 项测试通过，零跳过。",
+        "源码到资源图以及重新生成 LLVM 的来源重放；不支持的配置拒绝，没有静默后端回退。",
+        "LLVM 的机器码由 LLVM/Clang 产生；仍有 Rust 参考类型/借用检查依赖。"
+      ],
+      "candidate_gates": [
+        {
+          "name": "unit_and_integration",
+          "status": "passed",
+          "evidence": null,
+          "log": "evidence/resource_candidate_fixed_20261025/unit_and_integration.log"
+        },
+        {
+          "name": "parser_example",
+          "status": "passed",
+          "evidence": null,
+          "log": "evidence/resource_candidate_fixed_20261025/parser_example.log"
+        },
+        {
+          "name": "source_bound_resource_ir",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/resource_source.json",
+          "log": "evidence/resource_candidate_fixed_20261025/source_bound_resource_ir.log"
+        },
+        {
+          "name": "cpp_owned_to_llvm",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/cpp_owned_llvm.json",
+          "log": "evidence/resource_candidate_fixed_20261025/cpp_owned_to_llvm.log"
+        }
+      ],
+      "remaining_conditions": [
+        "两个 LLVM 性能门禁因测量质量不足未通过；不能把完整候选写成通过。",
+        "各后端的支持域不相同；统一语义权威不等于完整后端语义覆盖或形式化精化证明。"
+      ],
+      "full_production_goal_closed": false
+    },
+    {
+      "stage": 2,
+      "name": "完成安全资源核心",
+      "user_deliverable": "拥有型 ADT、借用、错误路径、任务与资源协议",
+      "user_completion_criterion": "正反例完整；静态保证、运行时检查和外部假设分别明确",
+      "current_status": "列明资源 profile 已通过；通用组合与完整安全性仍部分完成",
+      "implemented_and_observed": [
+        "拥有型 ADT、Result、有限泛型、字段部分移动/恢复、显式返回借用来源和选定 stored-borrow profile。",
+        "独立局部 stored-loan v4 与 Owned 泛型/Buffer 组合：9 次原生调用、2 次真实分配拒绝，每次调用完成后 live=0。",
+        "独立并发协议 CFG、任务树、本地流 I/O 和共享准入预算；正反例和原生故障/恢复记录。",
+        "两条 Rust 基线的观察分配器：正常 7 分配/7 释放/0 存活/1 拒绝，首笔及第二笔拒绝后恢复；两个编译泄漏控制退出 86。",
+        "Lean 实际检查 30 个抽象定理，7 个负向变异均被拒绝。"
+      ],
+      "candidate_gates": [
+        {
+          "name": "independent_resource_ir",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/resources.json",
+          "log": "evidence/resource_candidate_fixed_20261025/independent_resource_ir.log"
+        },
+        {
+          "name": "partial_owned_places",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/places.json",
+          "log": "evidence/resource_candidate_fixed_20261025/partial_owned_places.log"
+        },
+        {
+          "name": "stored_borrows",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/stored_borrows.json",
+          "log": "evidence/resource_candidate_fixed_20261025/stored_borrows.log"
+        },
+        {
+          "name": "local_stored_resource_views",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/resource_views.json",
+          "log": "evidence/resource_candidate_fixed_20261025/local_stored_resource_views.log"
+        },
+        {
+          "name": "bounded_concurrency",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/native_validation.json",
+          "log": "evidence/resource_candidate_fixed_20261025/bounded_concurrency.log"
+        },
+        {
+          "name": "shared_runtime",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/shared_runtime.json",
+          "log": "evidence/resource_candidate_fixed_20261025/shared_runtime.log"
+        },
+        {
+          "name": "independent_concurrent_ir",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/concurrent_ir.json",
+          "log": "evidence/resource_candidate_fixed_20261025/independent_concurrent_ir.log"
+        },
+        {
+          "name": "structured_task_trees",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/task_trees.json",
+          "log": "evidence/resource_candidate_fixed_20261025/structured_task_trees.log"
+        },
+        {
+          "name": "bounded_async_io",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/async_io.json",
+          "log": "evidence/resource_candidate_fixed_20261025/bounded_async_io.log"
+        },
+        {
+          "name": "llvm_owned_rust_allocator",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.json",
+          "log": "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.log"
+        },
+        {
+          "name": "formal_core",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/formal-validation.json",
+          "log": "evidence/resource_candidate_fixed_20261025/formal_core.log"
+        },
+        {
+          "name": "provenance_and_type_core",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/memory_proofs.json",
+          "log": "evidence/resource_candidate_fixed_20261025/provenance_and_type_core.log"
+        }
+      ],
+      "remaining_conditions": [
+        "通用生命周期/trait/outlives/HRTB、存储借用与类型泛型/ADT 组合、枚举 payload 部分移动。",
+        "任务树与 I/O 取消/预算的组合、任意 worker/FFI 分配和实际 OS 栈的全局计费。",
+        "实际 checker、源码到 IR/各后端、并发内存模型的健全性和精化证明未完成。"
+      ],
+      "full_production_goal_closed": false
+    },
+    {
+      "stage": 3,
+      "name": "实用 C 迁移",
+      "user_deliverable": "从真实构建配置迁移完整模块",
+      "user_completion_criterion": "全部声明有去向；行为、安全、ABI 和成本分别验证",
+      "current_status": "选定完整模块已迁移并通过；通用 C 和完整成本资格未关闭",
+      "implemented_and_observed": [
+        "编译配置驱动的多文件 fixture：7 个转换函数、11 项声明、1046 次差分调用及实际分配拒绝/恢复。",
+        "完整 compare-int/hash-int 上游模块：3 个实现函数、6 项声明、25302 次差分调用。",
+        "完整上游 Ring-Buffer：9 个函数、22 项声明、65544 次调用、16384 次状态转换、8 个容量。",
+        "Ring-Buffer 返回值、持久状态、backing bytes、哨兵和指针身份被比较；9 个非法边界控制拒绝。",
+        "按配置记录 C ABI/原生行为与耗时；人工审查时间和真实模型 token 未测，保持 null。"
+      ],
+      "candidate_gates": [
+        {
+          "name": "c_project_migration",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/c_project.json",
+          "log": "evidence/resource_candidate_fixed_20261025/c_project_migration.log"
+        },
+        {
+          "name": "upstream_c_modules",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/upstream_c.json",
+          "log": "evidence/resource_candidate_fixed_20261025/upstream_c_modules.log"
+        },
+        {
+          "name": "stateful_c_module",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/stateful_c.json",
+          "log": "evidence/resource_candidate_fixed_20261025/stateful_c_module.log"
+        },
+        {
+          "name": "abi_matrix",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/abi-matrix.json",
+          "log": "evidence/resource_candidate_fixed_20261025/abi_matrix.log"
+        },
+        {
+          "name": "native_host_abi",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/native_host.json",
+          "log": "evidence/resource_candidate_fixed_20261025/native_host_abi.log"
+        }
+      ],
+      "remaining_conditions": [
+        "活动声明完整性仅覆盖列明 translation units/configurations；一般宏、inline、packed、bitfields、varargs 和混合配置未覆盖。",
+        "外部指针大小、初始化、provenance、生命周期和别名仍有明确调用者义务。",
+        "手写 Buffer owner 客户端不计为上游 allocator 迁移；有限差分不构成源码等价证明。",
+        "完整人力/agent 迁移成本未实测；观测到的性能退化保留，不声明普遍零开销。"
+      ],
+      "full_production_goal_closed": false
+    },
+    {
+      "stage": 4,
+      "name": "广泛 C++ 库接入",
+      "user_deliverable": "自动生成对象、生命周期和模板实例桥接",
+      "user_completion_criterion": "真实库使用场景可运行，维护和升级成本可测",
+      "current_status": "多个真实库路径与一次双版本升级通过；广泛覆盖及完整维护成本未关闭",
+      "implemented_and_observed": [
+        "直接调用、POD、borrow/span、handle、带参构造和模板显式实例支持 std::string/std::vector/Boost.Math。",
+        "Scoped RAII 在 C++ 一次调用内构造、使用、复制结果和析构；这条路线保留原 C++ 实现。",
+        "nlohmann/json 3.11.3 与 3.12.0 各 98 案例，适配器/契约/Hepta caller 升级改动均为 0。",
+        "初始仍有 33 行 adapter、104 行 contract、8 行 Hepta；资格运行 11.5533/11.3523 秒，人工小时/token 未测。",
+        "每版全部 17 分配故障点被观察：14 恢复、3 个 foreign noexcept 析构路径 SIGABRT；后者 recovery=false。"
+      ],
+      "candidate_gates": [
+        {
+          "name": "cpp_library_interop",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/cpp.json",
+          "log": "evidence/resource_candidate_fixed_20261025/cpp_library_interop.log"
+        },
+        {
+          "name": "cpp_constructor_interop",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/cpp_constructors.json",
+          "log": "evidence/resource_candidate_fixed_20261025/cpp_constructor_interop.log"
+        },
+        {
+          "name": "cpp_scoped_raii",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/cpp_scoped.json",
+          "log": "evidence/resource_candidate_fixed_20261025/cpp_scoped_raii.log"
+        },
+        {
+          "name": "cpp_upstream_upgrade",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/cpp_upgrade.json",
+          "log": "evidence/resource_candidate_fixed_20261025/cpp_upstream_upgrade.log"
+        }
+      ],
+      "remaining_conditions": [
+        "一般 STL/template/callback、异步保留借用和跨线程生命周期契约仍需扩展。",
+        "外部库的 memory safety、线程安全及不保留借用不能仅由桥接签名保证。",
+        "普通异常 catch/status 边界不能恢复 noexcept 终止；两个版本 all_allocation_failure_paths_recovered=false。",
+        "一次选定 API 升级不建立任意库/版本兼容，也没有总开发和人工维护成本数据。"
+      ],
+      "full_production_goal_closed": false
+    },
+    {
+      "stage": 5,
+      "name": "扩大 C++ 安全迁移",
+      "user_deliverable": "从标量函数扩展到选定的类与 RAII 模式",
+      "user_completion_criterion": "已转换实现与仍保留的 C++ 清楚区分",
+      "current_status": "选定值类及独占资源协议已真实转换并通过；通用 RAII 迁移未关闭",
+      "implemented_and_observed": [
+        "标量值类真实构造/方法体转为 Hepta struct/free functions；C++/Rust/C 各 1777 案例。",
+        "完整 321 节点独占字节 owner AST 通过闭集协议核验，转换 Buffer/Result/move/borrow/drop。",
+        "原 C++、Hepta/Rust、Hepta/C 及实际迁移输出到独立 LLVM 各 475 案例，均为 359 分配/359 释放/98 拒绝/live=0。",
+        "目标程序没有原 C++ link input；LLVM 目标没有 Rust 或 C codegen fallback。",
+        "移除真实生成 C free 的已编译负控观察到 live=1 并退出 3；严格新鲜源码重放拒绝伪造图。"
+      ],
+      "candidate_gates": [
+        {
+          "name": "cpp_class_migration",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/cpp_class.json",
+          "log": "evidence/resource_candidate_fixed_20261025/cpp_class_migration.log"
+        },
+        {
+          "name": "cpp_owned_migration",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/cpp_owned.json",
+          "log": "evidence/resource_candidate_fixed_20261025/cpp_owned_migration.log"
+        },
+        {
+          "name": "cpp_owned_to_llvm",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/cpp_owned_llvm.json",
+          "log": "evidence/resource_candidate_fixed_20261025/cpp_owned_to_llvm.log"
+        }
+      ],
+      "remaining_conditions": [
+        "独占 owner 转换是完整闭集 AST 协议识别；不是对任意构造/析构语义的自动推断。",
+        "多资源耦合、自定义 allocator、继承/virtual、一般模板、逃逸视图和 moved-from 观察仍拒绝。",
+        "不保留 C++ class layout/mangled ABI，也未自动转换整个 legacy caller 图。",
+        "有限资源差分和来源重放不能替代全程序等价及类型系统健全性证明。"
+      ],
+      "full_production_goal_closed": false
+    },
+    {
+      "stage": 6,
+      "name": "扩大独立原生后端",
+      "user_deliverable": "把拥有者、借用和效果语义贯通到 LLVM",
+      "user_completion_criterion": "无隐藏回退；代表性程序满足预先确定的性能门槛",
+      "current_status": "受限资源 LLVM 已真实执行；两项当前性能资格因稳定性不足未通过",
+      "implemented_and_observed": [
+        "直接 LLVM：Buffer<u8>、有限拥有型 struct/enum/Result/泛型实例、checked 整数、即时 returned slice、move/drop。",
+        "实际迁移输出进入同一源码检查/资源验证/LLVM 管线并原生运行；无 C/Rust 机器码回退。",
+        "Scalar32：186 向量/372 调用、42 完整计时样本；观测几何耗时比 0.911476。",
+        "Owned：196 向量/784 调用、63 完整计时样本；观测几何耗时比 0.747484/0.764494 对两条 Rust 基线。",
+        "速度阈值失败均为空；固定 5% MAD 质量条件失败，保留全部原始样本及早期失败尝试。"
+      ],
+      "candidate_gates": [
+        {
+          "name": "cpp_owned_to_llvm",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/cpp_owned_llvm.json",
+          "log": "evidence/resource_candidate_fixed_20261025/cpp_owned_to_llvm.log"
+        },
+        {
+          "name": "llvm_owned_rust_allocator",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.json",
+          "log": "evidence/resource_candidate_fixed_20261025/llvm_owned_rust_allocator.log"
+        },
+        {
+          "name": "llvm_native_performance",
+          "status": "failed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/llvm_native.json",
+          "log": "evidence/resource_candidate_fixed_20261025/llvm_native_performance.log"
+        },
+        {
+          "name": "llvm_owned_performance",
+          "status": "failed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/llvm_owned.json",
+          "log": "evidence/resource_candidate_fixed_20261025/llvm_owned_performance.log"
+        }
+      ],
+      "remaining_conditions": [
+        "当前 scalar Rust branch_accumulate MAD=10.3231%；owned ctor Rust=7.8514%、LLVM=6.1607%；本提交性能资格仍未通过。",
+        "在受控合格宿主以相同冻结协议重做独立标识的完整测量；不改门槛、不选最好一次、保留全部结果。",
+        "LLVM 一般 stored-region、任务/I/O、resource clause、更多架构/宿主与调试能力仍未实现。",
+        "当前 owned LLVM 仅 Linux x86-64；机器码独立但 Rust 参考检查依赖仍存在。"
+      ],
+      "full_production_goal_closed": false
+    },
+    {
+      "stage": 7,
+      "name": "验证 agent 与平台收益",
+      "user_deliverable": "真实 agent 任务、服务负载和硬件资格",
+      "user_completion_criterion": "正确率、总成本、性能和恢复行为有独立证据",
+      "current_status": "评测/恢复工具和部分平台有证据；真实模型/生产服务/硬件收益未完成",
+      "implemented_and_observed": [
+        "四臂五任务框架、真实 v4 prepare/commit/recover/pin；严格隔离 5/5 fixture；10/10 实际进程死亡 checkpoint 案例。",
+        "严格 namespace 10/10 边界/原生检查；workspace 312、crash 624 隐藏 native checks，不能相加冒充独立任务数。",
+        "两本地所有权应用：240 正确性请求、30 故障/恢复请求、5184 计时请求；保留 47 条变慢观察。",
+        "当前候选 Linux 与 Windows x86-64 原生 ABI：各优化 profile 181 foreign calls；Windows 原始回执及 CRLF 来源重放保留。",
+        "AArch64 用户态 QEMU 和 Cortex-M4 系统 QEMU 实际执行；没有把它们计为物理设备资格。"
+      ],
+      "candidate_gates": [
+        {
+          "name": "strict_namespace_execution",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/sandbox.json",
+          "log": "evidence/resource_candidate_fixed_20261025/strict_namespace_execution.log"
+        },
+        {
+          "name": "application_performance",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/applications.json",
+          "log": "evidence/resource_candidate_fixed_20261025/application_performance.log"
+        },
+        {
+          "name": "native_host_abi",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/native_host.json",
+          "log": "evidence/resource_candidate_fixed_20261025/native_host_abi.log"
+        },
+        {
+          "name": "aarch64_execution",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/cross-execution.json",
+          "log": "evidence/resource_candidate_fixed_20261025/aarch64_execution.log"
+        },
+        {
+          "name": "system_board",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/system_board.json",
+          "log": "evidence/resource_candidate_fixed_20261025/system_board.log"
+        },
+        {
+          "name": "agent_evaluator_fixtures",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/agent-fixtures-20261025T173653458011Z.json",
+          "log": "evidence/resource_candidate_fixed_20261025/agent_evaluator_fixtures.log"
+        },
+        {
+          "name": "crossfile_agent_fixtures",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/crossfile_agent.json",
+          "log": "evidence/resource_candidate_fixed_20261025/crossfile_agent_fixtures.log"
+        },
+        {
+          "name": "production_workspace_namespace",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/workspace_namespace.json",
+          "log": "evidence/resource_candidate_fixed_20261025/production_workspace_namespace.log"
+        },
+        {
+          "name": "production_workspace_crashes",
+          "status": "passed",
+          "evidence": "evidence/resource_candidate_fixed_20261025/workspace_crashes.json",
+          "log": "evidence/resource_candidate_fixed_20261025/production_workspace_crashes.log"
+        }
+      ],
+      "remaining_conditions": [
+        "实际受控模型调用仍为 0；provider 凭据未配置、域名解析失败，未发出 API 请求。",
+        "模型修订/预算、实际多模型/seed 任务与完整 token/费用/人工修正成本需真实执行。",
+        "长期无插桩生产服务、更多机器和宿主实测缺失；当前其它 host/完整 CI jobs 仍 queued。",
+        "物理板/DMA/cache/IRQ 与 GPU 的语义、实现和真实设备资格未完成；当前进程未见相关设备路径。",
+        "checkpoint 进程死亡恢复不证明断电耐久性或任意指令位置 kill 的安全性。"
+      ],
+      "full_production_goal_closed": false
+    }
+  ],
+  "open_production_blockers": [
+    {
+      "id": "P01",
+      "recorded_scope": "PARTIAL — Owned ADT、Result、有限泛型、字段移动／恢复、明确返回来源和受限生命周期 view record 存储借用已实现；局部视图与独立 Owned 泛型可在同一程序组合",
+      "remaining_condition": "通用生命周期/trait、outlives/HRTB、存储借用与类型泛型／ADT 的通用组合、枚举 payload 部分移动、较大多包项目一致语义与生产标准库",
+      "closed": false
+    },
+    {
+      "id": "P02",
+      "recorded_scope": "PARTIAL / OPEN_RESEARCH — 30 个抽象模型定理、v4 局部 stored-loan 资源 CFG 和有限并发协议 CFG 可独立检查；源图和 LLVM 生成来源重放已有执行门禁",
+      "remaining_condition": "完整类型／别名／生命周期健全性、真实 AST 与 IR/各后端精化、组合并发内存模型、机器 provenance 与 unsafe/FFI 条件；来源重放和新表达式核心不等于生产类型系统证明",
+      "closed": false
+    },
+    {
+      "id": "P03",
+      "recorded_scope": "PARTIAL — 组内与共享预算、真实嵌套任务树、线程／输入／队列／请求栈预留、I/O buffer 容量/槽准入和失败回滚可执行",
+      "remaining_condition": "任意分配器/实际线程栈/worker 新分配/FFI 统一计费、树与 I/O 的统一全局预算、可证明的故障与恢复边界",
+      "closed": false
+    },
+    {
+      "id": "P04",
+      "recorded_scope": "PARTIAL — channel、两组事件驱动 select、结构化任务树和显式 poll 本地流 I/O 的期限／取消已实现",
+      "remaining_condition": "async/await、任意多路 select/调度器、任务树与 I/O 取消的组合、TCP/TLS/文件等服务接口及长期负载；期限不构成硬实时或任意 worker 终止保证",
+      "closed": false
+    },
+    {
+      "id": "P05",
+      "recorded_scope": "PARTIAL — 完整活动声明盘点的 C 模块迁移、受限分配模式、完整有状态环形缓冲区、C++ 桥接／升级以及选定值类和独占资源类的实际实现迁移已有原生入口",
+      "remaining_condition": "任意 C/C++ 的自动安全重写；一般 inline/宏与跨配置兼容、packed、bitfields、varargs、复杂预处理；异步/保留回调与跨线程外部生命周期证明；广泛库升级与可恢复失败界限",
+      "closed": false
+    },
+    {
+      "id": "P06",
+      "recorded_scope": "PARTIAL / ENVIRONMENT_REQUIRED — 多目标对象、AArch64 QEMU、Linux x86-64 双向 ABI 和 Windows x86-64 CI 原生 ABI 已实际执行；776f005d 的原始 Windows 产物及 CRLF 源身份重放已保留",
+      "remaining_condition": "AArch64/macOS 等宿主各自实际成功报告、新候选持续平台矩阵；queued/pending 工作流不能关闭验收；Windows Rust/C ABI 不证明 Windows LLVM 资源后端",
+      "closed": false,
+      "current_candidate_update": "2f8cd75 also has actual Windows x86-64 ABI evidence and strict CRLF-source replay; other remote host jobs remain queued in the retained observation."
+    },
+    {
+      "id": "P07",
+      "recorded_scope": "PARTIAL / HARDWARE_REQUIRED — Cortex-M4 显式 BSP、链接脚本、volatile MMIO 和外设 IRQ 已在 QEMU 系统模型执行",
+      "remaining_condition": "实体板启动与设备协议、DMA 所有权／cache/coherence、一般中断资源语义及真实板卡资格；模拟器成功不能替代这些条件",
+      "closed": false
+    },
+    {
+      "id": "P08",
+      "recorded_scope": "OPEN / HARDWARE_REQUIRED — GPU 尚未实现",
+      "remaining_condition": "地址空间、kernel 与同步语义、GPU 后端、驱动互操作、真实设备性能与正确性",
+      "closed": false
+    },
+    {
+      "id": "P09",
+      "recorded_scope": "PARTIAL / OPEN_RESEARCH — 核心算法对照、两个所有权应用的内存和逐请求尾分位样本可重放",
+      "remaining_condition": "更多独立真实应用／异步服务、无计量插桩的长期尾延迟、分配器实用内存与公平调优、多机器重复；全部观察到的 C／Rust 路径回退仍保留，单一配置不承诺普遍获益",
+      "closed": false
+    },
+    {
+      "id": "P10",
+      "recorded_scope": "FRAMEWORK_READY / MODEL_ACCESS_REQUIRED — 五任务 2×2、真实生产 v4 第四臂、逐任务崩溃矩阵、严格隔离及计量 OpenAI adapter 已实现",
+      "remaining_condition": "API 网络连通性、明确可用模型修订、凭据和预算；多个模型/seed 的完整实际计量、独立未公开任务和更大项目、实际人工修正成本",
+      "closed": false
+    },
+    {
+      "id": "P11",
+      "recorded_scope": "PARTIAL — 独立 C11/GCC 已覆盖 Owned ADT/Result/Buffer/有限泛型和 volatile；来源绑定的 i32/u32 SSA→LLVM 及拥有型字节 LLVM 已执行；限定资源工作负载通过两条 Rust 基线门槛；真实 GDB 与源级映射已实现",
+      "remaining_condition": "LLVM 的一般所有者／存储借用／任务／I/O／效果条款完整覆盖、更多资源工作负载与持续优化回归、C 后端新存储借用／任务树／I/O 覆盖、优化态／跨平台调试器／类型可视化；LLVM 路径仍依赖 Rust 参考检查",
+      "closed": false,
+      "current_candidate_update": "Historical owned LLVM speed qualification does not apply to this attempt: both current LLVM performance reports are measurement_inconclusive."
+    },
+    {
+      "id": "P12",
+      "recorded_scope": "PARTIAL — 本地内容锁、版本化工具协议、公开仓库",
+      "remaining_condition": "注册表/版本求解、兼容性与迁移工具、发布签名和持续平台维护、生产标准库/文档体系",
+      "closed": false
+    }
+  ],
+  "external_execution_conditions": {
+    "actual_controlled_ai_model_runs": 0,
+    "candidate_commit": "2f8cd75d5ab5dba08f130561c1b9198c76e6ba6e",
+    "checked_utc": "2026-10-25T17:38:55.941079+00:00",
+    "dns_error_type": "gaierror",
+    "openai_api_key_present": false,
+    "physical_devices_visible": {
+      "gpu": [],
+      "serial": []
+    },
+    "provider_dns_resolvable": false,
+    "schema": "hepta.execution-prerequisites.v1",
+    "scope": "Presence and DNS/device observations in this qualification process only; no credential value recorded and no API request made."
+  },
+  "evidence": {
+    "strict_namespace_execution": {
+      "path": "sandbox.json",
+      "sha256": "c3edcbfc998b70313ed5ccdd75f80b661398a63c343aec2452c03870515189f6",
+      "status": "passed"
+    },
+    "independent_resource_ir": {
+      "path": "resources.json",
+      "sha256": "7316a9450b64b3cfb2742f9055cdc0d5642c26db1a4243541d2c576573b67b60",
+      "status": "passed"
+    },
+    "source_bound_resource_ir": {
+      "path": "resource_source.json",
+      "sha256": "a70a5011d64808b6cb34dc14054612d5b82ffa671c5e6cb4097471c91b11a65a",
+      "status": "passed"
+    },
+    "partial_owned_places": {
+      "path": "places.json",
+      "sha256": "bcdaca7ac0e27b3d0bf54640e3d14a7124188d7e0480f43a7148a8535f91f835",
+      "status": "passed"
+    },
+    "stored_borrows": {
+      "path": "stored_borrows.json",
+      "sha256": "6b379a9686015e960251f2abfefe13ebfc0baa8f8e7fda60bc380de94d0d97e7",
+      "status": "passed"
+    },
+    "local_stored_resource_views": {
+      "path": "resource_views.json",
+      "sha256": "46b5884c615ce69170bee60b0565033c0d10bbc5d28613d66e2c12e28b97aabf",
+      "status": "passed"
+    },
+    "owned_c_backend": {
+      "path": "c_owned.json",
+      "sha256": "ae47769b6e843941b7554ee0572a6e5adc6608a6b28d6a3f40ebf9ea1e5a0f94",
+      "status": "passed"
+    },
+    "c_project_migration": {
+      "path": "c_project.json",
+      "sha256": "76ca1fe11a2c059ef9c58087e1662f462c149718379ea07974377ee0c4b2c416",
+      "status": "passed"
+    },
+    "upstream_c_modules": {
+      "path": "upstream_c.json",
+      "sha256": "8e05a4d2202a183f1d57f1e5d74093b9ae693cd942cfbcbe571f45902be28be4",
+      "status": "passed"
+    },
+    "stateful_c_module": {
+      "path": "stateful_c.json",
+      "sha256": "6610541754c08fc5babac7a86b15d7217bbc29914cad4cbce7dfdecc3a513e44",
+      "status": "passed"
+    },
+    "cpp_library_interop": {
+      "path": "cpp.json",
+      "sha256": "3f023e22e6a35afe501b685a8ae0918ef9d54524f251dc061054d7209ccbf889",
+      "status": "passed"
+    },
+    "cpp_constructor_interop": {
+      "path": "cpp_constructors.json",
+      "sha256": "35354720557b237cb2ac66225fcd41553edcb7e98808ea2efd54f34edeac505c",
+      "status": "passed"
+    },
+    "cpp_scoped_raii": {
+      "path": "cpp_scoped.json",
+      "sha256": "e4fde050cfcebf749b1bae6e4f1d45688f0947393b182e7626c5a95649befca1",
+      "status": "passed"
+    },
+    "cpp_class_migration": {
+      "path": "cpp_class.json",
+      "sha256": "b0cda08858731a8eaa3a50176eaf2f4147111d3c6c684cd0dc2fdba978ac067b",
+      "status": "passed"
+    },
+    "cpp_owned_migration": {
+      "path": "cpp_owned.json",
+      "sha256": "16ee43a15b70e3db95cbde00c2bea3ff3931612d7a95be99b84ba9cb2a8fd1b4",
+      "status": "passed"
+    },
+    "cpp_owned_to_llvm": {
+      "path": "cpp_owned_llvm.json",
+      "sha256": "84c0904e53c610d2f9a181a395fc1464e4f7278511ebcf40774d6418cd2a1bd5",
+      "status": "passed"
+    },
+    "cpp_upstream_upgrade": {
+      "path": "cpp_upgrade.json",
+      "sha256": "b71a480575f144d29677d80981e896caf0ad0bae3df5613956440daaa96daf36",
+      "status": "passed"
+    },
+    "bounded_concurrency": {
+      "path": "native_validation.json",
+      "sha256": "85f050d8b089b31b52a0e3367bd0cd93d1c85d76ef3e3dc0595b6ef615c665c5",
+      "status": "passed"
+    },
+    "shared_runtime": {
+      "path": "shared_runtime.json",
+      "sha256": "cc8aa6be47ccf217b8195530daa5f3630f57c91c2013b0917a5ab35706fbc786",
+      "status": "passed"
+    },
+    "independent_concurrent_ir": {
+      "path": "concurrent_ir.json",
+      "sha256": "9c55135a6cf383a4843f168f0388da9424281e53d7e1703b4803d3c1ef755d60",
+      "status": "passed"
+    },
+    "structured_task_trees": {
+      "path": "task_trees.json",
+      "sha256": "c59ee11284caaf787a7091e10126d5d6a3b05f3f44b81f3b96fd9b8ff3f1d665",
+      "status": "passed"
+    },
+    "bounded_async_io": {
+      "path": "async_io.json",
+      "sha256": "caccfab9e9331ce74d25185bf17cc80822cca318aef798dadc929d2ac831b07f",
+      "status": "passed"
+    },
+    "abi_matrix": {
+      "path": "abi-matrix.json",
+      "sha256": "cc7b6b79c4e41ade1fbb7ee09a903dd48a8bb01c3e4325991e35ee2744a43d4f",
+      "status": "passed"
+    },
+    "native_host_abi": {
+      "path": "native_host.json",
+      "sha256": "a2e881b2fffc8d86765d8185467437e682c2339f0e3f43cfe936b6dcb7bb8e69",
+      "status": "passed"
+    },
+    "native_debugger": {
+      "path": "debugger.json",
+      "sha256": "34c87cb0c269f52ced920f48b3702e5bede5ac27e6aca892b350375d8fd64f5d",
+      "status": "passed"
+    },
+    "native_and_performance": {
+      "path": "native-validation.json",
+      "sha256": "fd3a723a19977f2ed0942897ce53daf89761fe6052b91f3db1d58f5dd90b0cdb",
+      "status": "passed"
+    },
+    "representative_performance": {
+      "path": "representative-benchmarks.json",
+      "sha256": "ec31de999f71f9c17ec2205c46b1ae77ec171976c10fae7016db226729fbc23c",
+      "status": "passed"
+    },
+    "application_performance": {
+      "path": "applications.json",
+      "sha256": "38d51675912ba3414643153be444c953d17a2c768a2d30e8f2460b977d4cf79f",
+      "status": "passed"
+    },
+    "llvm_owned_rust_allocator": {
+      "path": "llvm_owned_rust_allocator.json",
+      "sha256": "49fb6664cbe1ddab6bab2885debb7b23e3ae453b6a050bf1681156f552c87455",
+      "status": "passed"
+    },
+    "llvm_native_performance": {
+      "path": "llvm_native.json",
+      "sha256": "ff9c2accba7b58023e18038e0851675a46c551a5c7d6876bedd25a7bb435b650",
+      "status": "failed"
+    },
+    "llvm_owned_performance": {
+      "path": "llvm_owned.json",
+      "sha256": "5e6bce6a42cd5b7b728bbf005d3ff604aeaf27962c4c9c8bb7a5fe976821db0a",
+      "status": "failed"
+    },
+    "formal_core": {
+      "path": "formal-validation.json",
+      "sha256": "7fececefa6442374f9268bb59514129973367f6cc56a4691b02b1fe565bace41",
+      "status": "passed"
+    },
+    "provenance_and_type_core": {
+      "path": "memory_proofs.json",
+      "sha256": "815d5c78279c365e6ecdcdc09fd69d5174355b379f4e4fff0977fd93e1ef0820",
+      "status": "passed"
+    },
+    "aarch64_execution": {
+      "path": "cross-execution.json",
+      "sha256": "166509edb7d34a11082f85918c14fde7abd80ec01c4c835a5d19aacbb36bfde3",
+      "status": "passed"
+    },
+    "system_board": {
+      "path": "system_board.json",
+      "sha256": "03b0231d8c48a2ba255f9509c90d9898d7990933f0a36eaa85c869437aaa999d",
+      "status": "passed"
+    },
+    "agent_evaluator_fixtures": {
+      "path": "agent-fixtures-20261025T173653458011Z.json",
+      "sha256": "01b5d7079f39f926b8a4195203a7983cfac16a0e5878fa9ffc05f5f7250ee2e3",
+      "status": "passed"
+    },
+    "crossfile_agent_fixtures": {
+      "path": "crossfile_agent.json",
+      "sha256": "07ab9b03b3535262572296e8399bfe32897c7352d2fb071bf75045f657b36727",
+      "status": "passed"
+    },
+    "production_workspace_namespace": {
+      "path": "workspace_namespace.json",
+      "sha256": "5af25906ca80d54e808588f01de20f3f2d00225ef63fa971e0b79604cd2f55b2",
+      "status": "passed"
+    },
+    "production_workspace_crashes": {
+      "path": "workspace_crashes.json",
+      "sha256": "a0a18e0cfdef68cd6b962687162430bfdd33a58ba7a6d82f7963a677b2feea3b",
+      "status": "passed"
+    },
+    "release-validation.json": {
+      "path": "release-validation.json",
+      "sha256": "2780a9b5994320f6566834335bc61f2c58b0fb01cb24efb6aff9af6924924bbb"
+    },
+    "platform/windows-x86_64.json": {
+      "path": "platform/windows-x86_64.json",
+      "sha256": "e7f5849adb4988b7ad678cdf8daa2542f39a558c75d98b4919593d839266f9be"
+    },
+    "platform/windows-receipt-replay.json": {
+      "path": "platform/windows-receipt-replay.json",
+      "sha256": "5125a2769649f4e0067266dd11388c15c5c4b6baa9b799b46ea3eaba587086b7"
+    },
+    "platform/github-actions-observation.json": {
+      "path": "platform/github-actions-observation.json",
+      "sha256": "271d74d7fd03da43f13cfce12abb3c5d58157aa5c02882fec139465264954b10"
+    }
+  },
+  "scope": "Finite implementations and observations are recorded separately from full production-language completion. Remaining software, external execution and proof work are not interchangeable."
+}

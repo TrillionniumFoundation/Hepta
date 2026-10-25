@@ -1,0 +1,7 @@
+module cpp_owned_consumer;
+import migrated;
+
+export "C" fn owned_case(size: usize, value: u8, index: usize, reject: u32, early: u32) -> u64
+effects {alloc, block, panic, write} {
+    return migrated::run_owned(size, value, index, reject != 0, early != 0);
+}
