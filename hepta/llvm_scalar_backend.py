@@ -193,17 +193,30 @@ def emit_scalar_llvm(snapshot) -> ScalarIR:
 
 def compile_scalar_llvm(ir: ScalarIR, *, clang: str = "clang", output: str | Path) -> dict:
     """Compile host object via real LLVM/Clang. Never call rustc or C frontend."""
-    if not shutil.which(clang):
+    if not isinstance(ir, ScalarIR) or ir.profile != "hepta.llvm-scalar-i32.v0":
+        raise LLVMScalarRejected("E_LLVM_IR_IDENTITY: unsupported scalar IR profile")
+    if (not isinstance(ir.text, str) or not isinstance(ir.sha256, str)
+            or sha256(ir.text.encode("utf-8")).hexdigest() != ir.sha256):
+        raise LLVMScalarRejected("E_LLVM_IR_IDENTITY: modified LLVM IR rejected")
+    clang_path = shutil.which(clang)
+    if not clang_path:
         raise LLVMScalarRejected("E_LLVM_TOOLCHAIN: clang is unavailable")
+    compiler = Path(clang_path).resolve()
+    version = subprocess.run([str(compiler), "--version"], capture_output=True,
+                             text=True, timeout=10, check=False)
+    if version.returncode or not version.stdout.strip():
+        raise LLVMScalarRejected("E_LLVM_TOOLCHAIN: compiler identity unavailable")
     target = Path(output).resolve()
     target.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="hepta-llvm-scalar-") as directory:
+    # Staging on the destination filesystem makes the final link atomic even
+    # when the caller requests output on a different mount than /tmp.
+    with tempfile.TemporaryDirectory(prefix=".hepta-llvm-scalar-", dir=target.parent) as directory:
         source = Path(directory) / "module.ll"
         obj = Path(directory) / "module.o"
         built = Path(directory) / "candidate.so"
         source.write_text(ir.text, encoding="utf-8")
-        cmds = [[clang, "-x", "ir", "-O3", "-fPIC", "-c", str(source), "-o", str(obj)],
-                [clang, "-shared", str(obj), "-o", str(built)]]
+        cmds = [[str(compiler), "-x", "ir", "-O3", "-fPIC", "-c", str(source), "-o", str(obj)],
+                [str(compiler), "-shared", str(obj), "-o", str(built)]]
         for cmd in cmds:
             proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30, check=False)
             if proc.returncode:
@@ -219,5 +232,7 @@ def compile_scalar_llvm(ir: ScalarIR, *, clang: str = "clang", output: str | Pat
             "functions": list(ir.functions), "llvm_ir_sha256": ir.sha256,
             "native_sha256": sha256(target.read_bytes()).hexdigest(),
             "native_bytes": target.stat().st_size, "output": str(target),
+            "toolchain": {"version": version.stdout.splitlines()[0],
+                          "compiler_sha256": sha256(compiler.read_bytes()).hexdigest()},
             "claims": {"rustc_used": False, "llvm_ir_executed": False,
                        "backend_semantics_proved": False, "whole_p6_gate_closed": False}}
