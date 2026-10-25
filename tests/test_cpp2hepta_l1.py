@@ -94,6 +94,8 @@ int clamp_local(int x) noexcept {
         self.assertEqual(report["native_validation"], "not_run")
         generated = self.dst.read_text()
         self.assertIn("let mut total: i32 = 0;", generated)
+        self.assertIn("resources {heap_allocations=0;may_block=false;", generated)
+        self.assertIn("may_suspend=false;may_spawn=false;}", generated)
         self.assertIn("while (i < n)", generated)
         self.assertIn("y = 0;", generated)
         self.assertEqual(analyze(generated, str(self.dst), native=False).report["status"], "frontend_only")

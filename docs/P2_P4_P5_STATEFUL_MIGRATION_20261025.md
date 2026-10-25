@@ -34,3 +34,11 @@ Requires Python 3.12, GCC, Clang/Clang++, and the pinned rustc 1.90.0 reference.
 
 Any successful qualification must be associated with the exact unchanged
 source SHA, compiler identities, negative controls, and unmodified fixtures.
+
+## Explicit resource contract
+
+The shared strict scalar lowerer emits checked Hepta resource clauses for
+zero modeled allocator interactions and no blocking, suspension or spawn.
+No foreign functions are allowed inside this profile. The clauses are
+validated with the standard frontend, without creating a second
+resource-checking authority or claiming whole-process memory bounds.

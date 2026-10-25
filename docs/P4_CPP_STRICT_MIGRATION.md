@@ -31,3 +31,10 @@ and includes selected stdlib/Boost calls; it is not source migration.
 L2 requires checked dynamic memory rules and measured costs.
 L3 would require actual complete static memory-safety evidence.
 All broad C++ class/RAII/virtual/template/STL migration is still OPEN.
+
+The strict expression subset contains no allocation, blocking, suspension,
+spawning or indirect calls. Migrated functions therefore carry explicit
+`heap_allocations=0`, `may_block=false`, `may_suspend=false`,
+and `may_spawn=false` Hepta resource clauses, checked by the Hepta frontend.
+These are per-function checked-profile constraints, not process-wide
+C/C++ execution resource bounds or evidence about unconverted foreign code.

@@ -263,7 +263,12 @@ def _function(decl: dict, model: dict) -> dict:
     if not rendered:
         raise MigrationRejected("E_C_EMPTY", "Empty C function cannot satisfy a scalar return")
     signature = ", ".join(f"{p}: {t}" for p, t in args.items())
-    source = f"export \"C\" fn {name}({signature}) -> {ret} effects {{panic}} {{\n" + "\n".join(rendered) + "\n}\n"
+    # The fully closed scalar subset contains no calls, allocation, blocking,
+    # suspension or task creation. Preserve these verified limits as explicit
+    # Hepta resource contracts instead of relying on a comment-level claim.
+    resources = "resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;}"
+    source = (f"export \"C\" fn {name}({signature}) -> {ret} effects {{panic}} "
+              + resources + " {\n" + "\n".join(rendered) + "\n}\n")
     return {"name": name, "source": source, "params": args, "returns": ret}
 
 

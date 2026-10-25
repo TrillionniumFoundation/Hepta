@@ -76,6 +76,7 @@ int sum_to(int n) {
         result = migrate_c(self.c, self.hepta)
         self.assertTrue(result["ok"], result)
         self.assertIn("let mut total: i32 = 0;", self.hepta.read_text())
+        self.assertIn("resources {heap_allocations=0;may_block=false;", self.hepta.read_text())
         self.assertIn("while (i < n)", self.hepta.read_text())
         original = self.directory / "liboriginal.so"
         output = self.directory / "libhepta.so"
