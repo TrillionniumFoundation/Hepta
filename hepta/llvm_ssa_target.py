@@ -20,6 +20,93 @@ _TARGETS = {"x86_64-unknown-linux-gnu": ("ELF64", 62),
             "aarch64-apple-darwin": ("MACHO64", 0x0100000c)}
 
 
+def _payload_extents_bounded(data: bytes, fmt: str) -> bool:
+    """Check referenced file extents in supported object sections.
+
+    A syntactically complete object header may still point to out-of-file
+    executable bytes, relocations or symbol tables. Do not call such an
+    artifact qualified. This remains a bounded format check, not code proof.
+    """
+    total = len(data)
+
+    def u16(offset: int) -> int:
+        return int.from_bytes(data[offset:offset + 2], "little")
+
+    def u32(offset: int) -> int:
+        return int.from_bytes(data[offset:offset + 4], "little")
+
+    def u64(offset: int) -> int:
+        return int.from_bytes(data[offset:offset + 8], "little")
+
+    def within(offset: int, size: int, first: int = 0) -> bool:
+        return first <= offset <= total and size <= total - offset
+
+    if fmt == "ELF64":
+        table, sections = u64(40), u16(60)
+        for index in range(sections):
+            entry = table + 64 * index
+            kind, offset, size = u32(entry + 4), u64(entry + 24), u64(entry + 32)
+            if kind == 0:  # SHT_NULL; extended section encodings are unsupported.
+                if index != 0 or size != 0:
+                    return False
+            elif kind != 8 and size and not within(offset, size, 64):  # SHT_NOBITS has no file payload.
+                return False
+        return True
+
+    if fmt == "COFF":
+        count = u16(2)
+        end_of_headers = 20 + 40 * count
+        for index in range(count):
+            entry = 20 + 40 * index
+            raw_size, raw_at = u32(entry + 16), u32(entry + 20)
+            reloc_at, lines_at = u32(entry + 24), u32(entry + 28)
+            relocs, lines = u16(entry + 32), u16(entry + 34)
+            if raw_size and not within(raw_at, raw_size, end_of_headers):
+                return False
+            if relocs and not within(reloc_at, 10 * relocs, end_of_headers):
+                return False
+            if lines and not within(lines_at, 6 * lines, end_of_headers):
+                return False
+        return True
+
+    if fmt == "MACHO64":
+        cursor, end = 32, 32 + u32(20)
+        for _ in range(u32(16)):
+            command, length = u32(cursor), u32(cursor + 4)
+            if command == 0x19:  # LC_SEGMENT_64
+                if length < 72:
+                    return False
+                seg_at, seg_size, sections = u64(cursor + 40), u64(cursor + 48), u32(cursor + 64)
+                if sections > 4096 or 72 + 80 * sections > length:
+                    return False
+                if seg_size and not within(seg_at, seg_size, end):
+                    return False
+                for index in range(sections):
+                    entry = cursor + 72 + 80 * index
+                    size, offset = u64(entry + 40), u32(entry + 48)
+                    reloc_at, relocs = u32(entry + 56), u32(entry + 60)
+                    kind = u32(entry + 64) & 0xff
+                    # Zero-fill, giant zero-fill and thread-local zero-fill
+                    # reserve memory but do not occupy file bytes.
+                    no_payload = kind in (0x1, 0xc, 0x12)
+                    if size and not no_payload and not within(offset, size, end):
+                        return False
+                    if relocs and not within(reloc_at, 8 * relocs, end):
+                        return False
+            elif command == 0x2:  # LC_SYMTAB
+                if length < 24:
+                    return False
+                sym_at, symbols = u32(cursor + 8), u32(cursor + 12)
+                str_at, str_size = u32(cursor + 16), u32(cursor + 20)
+                if symbols and not within(sym_at, 16 * symbols, end):
+                    return False
+                if str_size and not within(str_at, str_size, end):
+                    return False
+            cursor += length
+        return True
+    return False
+
+
 def _qualified_header(data: bytes, target: str) -> bool:
     """Check bounded *object* structure, not just magic and target CPU bytes.
 
@@ -39,7 +126,8 @@ def _qualified_header(data: bytes, target: str) -> bool:
         section_count = int.from_bytes(data[60:62], "little")
         return (section_offset >= 64 and section_size == 64
                 and 0 < section_count <= 4096
-                and section_offset + section_size * section_count <= len(data))
+                and section_offset + section_size * section_count <= len(data)
+                and _payload_extents_bounded(data, fmt))
     if fmt == "COFF":
         if len(data) < 60 or int.from_bytes(data[:2], "little") != machine:
             return False
@@ -50,9 +138,10 @@ def _qualified_header(data: bytes, target: str) -> bool:
             return False
         symbols_at = int.from_bytes(data[8:12], "little")
         symbols = int.from_bytes(data[12:16], "little")
-        return (symbols == 0 or
-                (symbols_at >= 20 + 40 * sections
-                 and symbols_at + 18 * symbols <= len(data)))
+        return ((symbols == 0 or
+                 (symbols_at >= 20 + 40 * sections
+                  and symbols_at + 18 * symbols <= len(data)))
+                and _payload_extents_bounded(data, fmt))
     if fmt == "MACHO64":
         if (len(data) < 40 or data[:4] != b"\xcf\xfa\xed\xfe"
                 or int.from_bytes(data[4:8], "little") != machine
@@ -73,7 +162,7 @@ def _qualified_header(data: bytes, target: str) -> bool:
             if size < 8 or size % 8 or offset + size > end:
                 return False
             offset += size
-        return offset == end
+        return offset == end and _payload_extents_bounded(data, fmt)
     return False
 
 
