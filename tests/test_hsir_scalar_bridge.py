@@ -4,7 +4,7 @@ import json
 import pathlib
 import unittest
 
-import hsir_scalar_bridge as sb
+from hepta import hsir_scalar_bridge as sb
 
 SPAN = {"path": "s.hepta", "start": 0, "end": 3, "line": 1, "column": 1}
 
