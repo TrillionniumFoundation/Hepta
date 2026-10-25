@@ -70,6 +70,29 @@ class LLVMSSATests(unittest.TestCase):
         with self.assertRaisesRegex(LLVMSSARejected, "OUTPUT"):
             compile_scalar_ssa_llvm(ir, output=report["output"])
 
+    @unittest.skipUnless(shutil.which("clang"), "clang required for host output-path qualification")
+    def test_dangling_output_symlink_cannot_redirect_native_library(self):
+        cfg = self.fixture()
+        ir = emit_scalar_ssa_llvm(lower_cfg_scalar_ssa(cfg), cfg)
+        unintended_dir = self.root / "unintended"
+        unintended_dir.mkdir()
+        unintended = unintended_dir / "misrouted.so"
+        alias = self.root / "requested.so"
+        alias.symlink_to(unintended)
+        self.assertTrue(alias.is_symlink())
+        self.assertFalse(unintended.exists())
+        with self.assertRaisesRegex(LLVMSSARejected, "E_LLVM_SSA_OUTPUT"):
+            compile_scalar_ssa_llvm(ir, output=alias)
+        self.assertTrue(alias.is_symlink())
+        self.assertFalse(unintended.exists())
+
+        normal = self.root / "normal.so"
+        report = compile_scalar_ssa_llvm(ir, output=normal)
+        self.assertEqual(report["artifact_bytes"], normal.stat().st_size)
+        self.assertEqual(report["artifact_sha256"], sha256(normal.read_bytes()).hexdigest())
+        with self.assertRaisesRegex(LLVMSSARejected, "E_LLVM_SSA_OUTPUT"):
+            compile_scalar_ssa_llvm(ir, output=normal)
+
     @unittest.skipUnless(shutil.which("clang"), "clang required for overflow negative control")
     def test_native_overflow_abort_negative(self):
         cfg = exported(snapshot([
