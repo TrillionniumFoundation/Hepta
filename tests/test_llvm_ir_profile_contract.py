@@ -94,6 +94,29 @@ class LLVMIRProfileTests(unittest.TestCase):
                 with self.assertRaises(LLVMProfileRejected):
                     validate_scalar_llvm_profile(mutant, ("f",), SIGNED_PROFILE)
 
+    def test_valid_loop_phi_and_backward_edge(self):
+        body = [
+            "define i32 @f(i32 %r_x_0) {", "b0000:", "  br label %b0001",
+            "b0001:",
+            "  %r_i_1 = phi i32 [ %r_x_0, %b0000 ], [ %r_i_2, %b0002 ]",
+            "  %t1 = icmp slt i32 %r_i_1, 10",
+            "  br i1 %t1, label %b0002, label %b0003",
+            "b0002:", "  %r_i_2 = add i32 0, %r_i_1", "  br label %b0001",
+            "b0003:",
+            "  ret i32 %r_i_1", "}", "",
+        ]
+        text = fixture(payload=body)
+        validate_scalar_llvm_profile(text, ("f",), SIGNED_PROFILE)
+        import shutil
+        if shutil.which("clang"):
+            with tempfile.TemporaryDirectory() as tmp:
+                src, obj = Path(tmp) / "phi.ll", Path(tmp) / "phi.o"
+                src.write_text(text)
+                ran = subprocess.run(["clang", "-x", "ir", "-O2", "-c", str(src), "-o", str(obj)],
+                                     capture_output=True, text=True, timeout=15)
+                self.assertEqual(ran.returncode, 0, ran.stderr)
+                self.assertGreater(obj.stat().st_size, 0)
+
     def test_checked_signed_and_unsigned_intrinsic_syntax(self):
         for unsigned, keyword in ((False, "sadd"), (True, "uadd")):
             body = ["define i32 @f(i32 %r_a_0, i32 %r_b_0) {", "b0000:",
