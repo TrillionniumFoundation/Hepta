@@ -174,6 +174,16 @@ class LLVMSSATests(unittest.TestCase):
         with self.assertRaises((LLVMSSARejected, ValueError)):
             emit_scalar_ssa_llvm(lower_cfg_scalar_ssa(mismatched), mismatched)
 
+    def test_unsigned_type_label_and_oversized_raw_ir_rejected(self):
+        from hepta.llvm_ssa_backend import SSA_LLVM_IR, _word32, _MAX_OUTPUT
+        self.assertIsNone(_word32({"type": ["u32"], "args": [], "length": None}))
+        self.assertIsNone(_word32({"type": "u16", "args": [], "length": None}))
+        text = " " * (_MAX_OUTPUT + 1)
+        oversized = SSA_LLVM_IR(text, sha256(text.encode()).hexdigest(),
+                                (), "a"*64, "b"*64)
+        with self.assertRaisesRegex(LLVMSSARejected, "IDENTITY"):
+            oversized.check_identity()
+
     def test_abi_and_effect_rejected(self):
         cfg = nested_loop_fixture()
         with self.assertRaisesRegex(LLVMSSARejected, "ABI"):
