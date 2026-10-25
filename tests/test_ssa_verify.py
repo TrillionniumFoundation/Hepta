@@ -209,6 +209,21 @@ class SSAVerificationTests(unittest.TestCase):
         with self.assertRaisesRegex(SSAVerificationRejected, "REACHING"):
             verify_scalar_ssa(encoded(payload), cfg)
 
+    def test_live_join_values_and_dead_divergence_are_distinguished(self):
+        cfg, valid = self.fixture()
+        self.assertEqual(verify_scalar_ssa(valid, cfg).as_dict()["functions"][0]["phi_count"], 1)
+
+        # Distinct branch writes do not need a PHI when the value is dead
+        # after the join. Liveness must not demand redundant PHIs.
+        dead = snapshot([
+            block(0, [let("x", i(0))], kind="branch", condition=n("b", "bool"),
+                  **{"then": "b0001", "else": "b0002"}),
+            block(1, [assign("x", i(2))], kind="goto", target="b0003"),
+            block(2, [assign("x", i(3))], kind="goto", target="b0003"),
+            block(3, kind="return", value=i(8))], params=[("b", "bool")])
+        result = verify_scalar_ssa(lower_cfg_scalar_ssa(dead), dead).as_dict()
+        self.assertEqual(result["functions"][0]["phi_count"], 0)
+
     def test_duplicate_definition_wrong_count(self):
         cfg, ssa = self.fixture()
         x = ssa.as_dict()
