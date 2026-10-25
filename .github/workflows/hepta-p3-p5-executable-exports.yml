@@ -1,0 +1,42 @@
+name: Hepta P3-P5 executable object symbol qualification
+on:
+  push:
+    branches:
+      - agent/hepta-p3-abi-capture-closure-20261025
+  pull_request:
+    branches:
+      - agent/hepta-p0-p7-llvm-provenance-20261025
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  object-exports:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      HEPTA_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact immutable source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_HEAD_SHA }}
+          persist-credentials: false
+      - name: Confirm exact source identity
+        run: |
+          test "$(git rev-parse HEAD)" = "$HEPTA_HEAD_SHA"
+          test -z "$(git status --porcelain)"
+          printf '%s\n' "$HEPTA_HEAD_SHA"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Confirm native LLVM and C compilers
+        run: |
+          python --version
+          clang --version
+          gcc --version
+      - name: Five-target real-Clang function extent and negative controls
+        run: |
+          python -m unittest tests.test_object_executable_exports tests.test_llvm_ssa_target -v
+      - name: Execute reference scalar SSA and LLVM profile regressions
+        run: |
+          python -m unittest tests.test_llvm_ir_profile_contract tests.test_llvm_ssa_origin_gate tests.test_semantic_source_origin -v
