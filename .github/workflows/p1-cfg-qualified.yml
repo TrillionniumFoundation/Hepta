@@ -24,6 +24,7 @@ jobs:
         run: |
           python -m compileall -q hepta tests/test_cfg.py
           python -m unittest discover -s tests -p test_cfg.py -v
+          python -m unittest discover -s tests -p test_cfg_analysis.py -v
           python -m unittest discover -s tests -p test_hsir.py -v
           python -m unittest discover -s tests -p test_checker.py -v
           python -m unittest discover -s tests -p test_parser.py -v
@@ -37,6 +38,7 @@ jobs:
       - name: Native-qualified CFG CLI and explicit claims
         run: |
           python -m hepta cfg examples/parser.hepta > "$RUNNER_TEMP/parser-cfg.json"
+          python -m hepta cfg-analyze examples/parser.hepta > "$RUNNER_TEMP/parser-cfg-analysis.json"
           python -m hepta cfg examples/results.hepta > "$RUNNER_TEMP/results-cfg.json"
           python - "$RUNNER_TEMP/parser-cfg.json" "$RUNNER_TEMP/results-cfg.json" <<'PY'
           import json, sys
