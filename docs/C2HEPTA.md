@@ -4,7 +4,7 @@ This migration tool is *not* a C source transpiler or a proof that an arbitrary 
 
 ## Accepted first profile
 
-- C `int` return type and `int` value parameters and initialized locals; target Clang must report 32-bit C `int` and 8-bit bytes.
+- C `int` return type and plain `int` value parameters (no parameter attributes) and initialized locals; target Clang must report 32-bit C `int` and 8-bit bytes. Clang `ParmVarDecl` children must be absent, otherwise the entire migration rejects rather than dropping semantics.
 - Separate ordinary global C function definitions; no `main`, public names must be representable in Hepta.
 - Integer literals, local value references, `+ - * / %`, comparison, logical operators, unary plus/minus/not, parentheses.
 - `return`, local declarations, direct assignments, `+=/-=/*=` to locals, `++/--` as standalone statements, `if/else`, `while`, and the restricted `for (int i=...; condition; ++i)` profile without `break`/`continue`.

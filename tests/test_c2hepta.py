@@ -78,6 +78,7 @@ int accumulate(int n) {
             "int f(int x) { int y; return x + y; }",
             "int f(int x) { return f(x); }",  # call contracts unsupported
             "int f(int x) { goto end; end: return x; }",
+            "int f(int x __attribute__((unused))) { return 1; }",
         )
         for src in bad:
             with self.subTest(src=src):

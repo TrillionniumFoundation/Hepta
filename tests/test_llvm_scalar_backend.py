@@ -82,6 +82,66 @@ class LLVMScalarBackendTests(unittest.TestCase):
         with self.assertRaisesRegex(LLVMScalarRejected, "E_LLVM_LITERAL"):
             emit_scalar_llvm(_seal(mutated))
 
+    def test_host_if_else_cfg_against_independent_c(self):
+        snap = _snapshot()
+        fn = snap['functions'][3]
+        fn['name'] = 'hepta_min2'
+        condition = {'node': 'expr', 'operation': 'binary', 'value': '<',
+                     'result_type': {'type': 'bool', 'args': [], 'length': None},
+                     'operands': [_expr('name', 'a'), _expr('name', 'b')],
+                     'type_args': [], 'span': {}}
+        then_arm = [{'node': 'stmt', 'operation': 'return',
+                     'fields': {'expr': _expr('name', 'a')}}]
+        else_arm = [{'node': 'stmt', 'operation': 'return',
+                     'fields': {'expr': _expr('name', 'b')}}]
+        fn['body'] = [{'node': 'stmt', 'operation': 'if',
+                       'fields': {'condition': condition, 'then': then_arm, 'else': else_arm}}]
+        snap['functions'] = [fn]
+        llvm = emit_scalar_llvm(_seal(snap))
+        self.assertIn('icmp slt i32', llvm.text)
+        self.assertIn('label %then_', llvm.text)
+        self.assertIn('label %else_', llvm.text)
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            if shutil.which('clang') and shutil.which('gcc'):
+                compile_scalar_llvm(llvm, output=root / 'hepta.so')
+                (root / 'reference.c').write_text('int hepta_min2(int a,int b){if(a<b)return a;else return b;}')
+                subprocess.run(['gcc', '-std=c11', '-fPIC', '-O2', '-shared',
+                                str(root / 'reference.c'), '-o', str(root / 'reference.so')],
+                               check=True, capture_output=True, timeout=20)
+                l = ctypes.CDLL(str(root / 'hepta.so')).hepta_min2
+                r = ctypes.CDLL(str(root / 'reference.so')).hepta_min2
+                for f in (l, r):
+                    f.restype = ctypes.c_int32
+                    f.argtypes = [ctypes.c_int32, ctypes.c_int32]
+                rng = random.Random(52691)
+                for a, b in [(-2**31, 2**31-1), (0, 0), (12, -5)] + [
+                    (rng.randrange(-2**31, 2**31), rng.randrange(-2**31, 2**31))
+                    for _ in range(100)]:
+                    self.assertEqual(l(a, b), r(a, b), (a, b))
+        snap['functions'][0]['body'][0]['fields']['else'] = []
+        with self.assertRaisesRegex(LLVMScalarRejected, 'E_LLVM_STMT'):
+            emit_scalar_llvm(_seal(snap))
+        snap['functions'][0]['body'][0]['fields']['else'] = else_arm
+        condition['value'] = '&&'
+        with self.assertRaisesRegex(LLVMScalarRejected, 'E_LLVM_CONDITION'):
+            emit_scalar_llvm(_seal(snap))
+
+    def test_backend_rejects_modified_ir_before_invoking_compiler(self):
+        from hepta.llvm_scalar_backend import ScalarIR
+        legitimate = emit_scalar_llvm(_snapshot())
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "modified.so"
+            invalid = ScalarIR(legitimate.text + "\n", legitimate.sha256,
+                               legitimate.functions)
+            with self.assertRaisesRegex(LLVMScalarRejected, "E_LLVM_IR_IDENTITY"):
+                compile_scalar_llvm(invalid, output=path)
+            self.assertFalse(path.exists())
+            invalid = ScalarIR(legitimate.text, legitimate.sha256,
+                               legitimate.functions, profile="unsupported")
+            with self.assertRaisesRegex(LLVMScalarRejected, "E_LLVM_IR_IDENTITY"):
+                compile_scalar_llvm(invalid, output=path)
+
     def test_checked_arithmetic_cannot_hide_panic_effect(self):
         for effect_field in ("declared_effects", "inferred_transitive_effects"):
             snapshot = _snapshot()
@@ -187,12 +247,17 @@ f(2147483647,1)
 export "C" fn add(a: i32, b: i32) -> i32 effects { panic } {
     return a + b;
 }
+export "C" fn min2(a: i32, b: i32) -> i32 effects {} {
+    if a < b { return a; } else { return b; }
+}
 '''
         program = parse(src)
         checked = check(program)
         self.assertTrue(checked.ok, [d.to_dict() for d in checked.diagnostics])
         ir = emit_scalar_llvm(lower_checked_program(program, checked))
         self.assertIn("define i32 @add", ir.text)
+        self.assertIn("define i32 @min2", ir.text)
+        self.assertIn("icmp slt i32", ir.text)
 
 
 if __name__ == "__main__":

@@ -7,3 +7,21 @@ resources { heap_allocations = 0; may_block = false; may_suspend = false; may_sp
 {
     return a + b;
 }
+
+export "C" fn min2(a: i32, b: i32) -> i32 effects {}
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    if a < b { return a; } else { return b; }
+}
+
+export "C" fn choose(a: i32, b: i32) -> i32 effects { panic }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    let mut result: i32 = a;
+    if a < b {
+        result = a + 1;
+    } else {
+        result = b - 1;
+    }
+    return result;
+}

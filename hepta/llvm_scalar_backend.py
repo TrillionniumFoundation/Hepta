@@ -71,6 +71,7 @@ class _Function:
         self.seq = 0
         self.depth = 0
         self.requires_panic = False
+        self.active_block = "entry"
 
     def _temp(self):
         self.seq += 1
@@ -92,6 +93,10 @@ class _Function:
             f"  br i1 {overflow}, label %{fail}, label %{ok}",
             f"{fail}:", "  call void @abort()", "  unreachable", f"{ok}:",
         ])
+        # The next instruction is in the overflow-checked continuation block,
+        # not in the block in which the arithmetic expression started. SSA
+        # phi predecessors must refer to this actual predecessor label.
+        self.active_block = ok
         return value
 
     def expr(self, expr):
@@ -132,17 +137,124 @@ class _Function:
             return result
         raise LLVMScalarRejected("E_LLVM_EXPR: unsupported scalar operation " + str(op))
 
-    def build(self, body):
-        if not isinstance(body, list) or len(body) != 1:
-            raise LLVMScalarRejected("E_LLVM_STMT: only one return statement supported")
-        stmt = body[0]
+    def bool_expr(self, expr):
+        if (not isinstance(expr, dict) or expr.get("node") != "expr"
+                or not isinstance(expr.get("result_type"), dict)
+                or expr["result_type"] != {"type": "bool", "args": [], "length": None}):
+            raise LLVMScalarRejected("E_LLVM_CONDITION: checked bool expression required")
+        op, args = expr.get("operation"), expr.get("operands", [])
+        if op == "bool" and args == [] and type(expr.get("value")) is bool:
+            return "true" if expr["value"] else "false"
+        if op != "binary" or len(args) != 2:
+            raise LLVMScalarRejected("E_LLVM_CONDITION: unsupported boolean expression")
+        predicate = {"==": "eq", "!=": "ne", "<": "slt", "<=": "sle",
+                     ">": "sgt", ">=": "sge"}.get(expr.get("value"))
+        if predicate is None:
+            raise LLVMScalarRejected("E_LLVM_CONDITION: only i32 comparisons supported")
+        left, right = self.expr(args[0]), self.expr(args[1])
+        result = self._temp()
+        self.lines.append(f"  {result} = icmp {predicate} i32 {left}, {right}")
+        return result
+
+    def _return(self, stmt):
         if not isinstance(stmt, dict) or stmt.get("node") != "stmt" or stmt.get("operation") != "return":
-            raise LLVMScalarRejected("E_LLVM_STMT: nonreturn statement refused")
-        fields = stmt.get("fields", {})
+            raise LLVMScalarRejected("E_LLVM_STMT: only explicit return arms supported")
+        fields = stmt.get("fields")
         if not isinstance(fields, dict) or set(fields) != {"expr"}:
             raise LLVMScalarRejected("E_LLVM_STMT: return shape not accepted")
-        result = self.expr(fields["expr"])
-        self.lines.append(f"  ret i32 {result}")
+        value = self.expr(fields["expr"])
+        self.lines.append(f"  ret i32 {value}")
+
+    def _build_single_phi(self, body):
+        """Restricted SSA join: mutable i32 local, assign in both arms, return.
+
+        No escape, loop, nested control flow or aliasing. RHS may use the old
+        local value, so each arm is lowered against the pre-branch SSA map.
+        """
+        declaration, conditional, last = body
+        if not isinstance(declaration, dict) or declaration.get("node") != "stmt" or declaration.get("operation") != "let":
+            raise LLVMScalarRejected("E_LLVM_PHI: expected a mutable i32 local declaration")
+        fields = declaration.get("fields")
+        if (not isinstance(fields, dict) or set(fields) != {"name", "type", "mutable", "expr"}
+                or fields["mutable"] is not True or not _type_i32(fields["type"])):
+            raise LLVMScalarRejected("E_LLVM_PHI: unsupported local declaration")
+        name = fields["name"]
+        if (not isinstance(name, str) or not _NAME.fullmatch(name)
+                or name in self.vars or name.startswith("_")):
+            raise LLVMScalarRejected("E_LLVM_PHI: local must be a new valid symbol")
+        initial = self.expr(fields["expr"])
+        self.vars[name] = initial
+        if not isinstance(conditional, dict) or conditional.get("node") != "stmt" or conditional.get("operation") != "if":
+            raise LLVMScalarRejected("E_LLVM_PHI: expected a single conditional assignment")
+        branch = conditional.get("fields")
+        if not isinstance(branch, dict) or set(branch) != {"condition", "then", "else"}:
+            raise LLVMScalarRejected("E_LLVM_PHI: conditional has unexpected fields")
+        then_arm, else_arm = branch["then"], branch["else"]
+        if (not isinstance(then_arm, list) or len(then_arm) != 1
+                or not isinstance(else_arm, list) or len(else_arm) != 1):
+            raise LLVMScalarRejected("E_LLVM_PHI: each branch must assign the same local")
+        def get_rhs(stmt):
+            if not isinstance(stmt, dict) or stmt.get("node") != "stmt" or stmt.get("operation") != "assign":
+                raise LLVMScalarRejected("E_LLVM_PHI: only direct assignments are supported")
+            fields = stmt.get("fields")
+            if not isinstance(fields, dict) or set(fields) != {"target", "expr"}:
+                raise LLVMScalarRejected("E_LLVM_PHI: malformed assignment")
+            target = fields["target"]
+            if (not isinstance(target, dict) or target.get("node") != "expr"
+                    or target.get("operation") != "name" or target.get("value") != name
+                    or target.get("operands") != [] or not _type_i32(target.get("result_type"))):
+                raise LLVMScalarRejected("E_LLVM_PHI: assignment must target the same mutable i32 local")
+            return fields["expr"]
+        then_rhs, else_rhs = get_rhs(then_arm[0]), get_rhs(else_arm[0])
+        condition = self.bool_expr(branch["condition"])
+        label = self._temp().removeprefix("%")
+        self.lines.append(f"  br i1 {condition}, label %then_{label}, label %else_{label}")
+        self.lines.append(f"then_{label}:")
+        self.active_block = f"then_{label}"
+        then_value = self.expr(then_rhs)
+        then_predecessor = self.active_block
+        self.lines.append(f"  br label %join_{label}")
+        self.lines.append(f"else_{label}:")
+        self.active_block = f"else_{label}"
+        self.vars[name] = initial
+        else_value = self.expr(else_rhs)
+        else_predecessor = self.active_block
+        self.lines.append(f"  br label %join_{label}")
+        self.lines.append(f"join_{label}:")
+        self.active_block = f"join_{label}"
+        merged = self._temp()
+        self.lines.append(f"  {merged} = phi i32 [ {then_value}, %{then_predecessor} ], [ {else_value}, %{else_predecessor} ]")
+        self.vars[name] = merged
+        self._return(last)
+
+    def build(self, body):
+        if isinstance(body, list) and len(body) == 3:
+            self._build_single_phi(body)
+            return self.lines
+        if not isinstance(body, list) or len(body) != 1:
+            raise LLVMScalarRejected("E_LLVM_STMT: exactly one return/if, or a restricted three-statement phi profile")
+        stmt = body[0]
+        if not isinstance(stmt, dict) or stmt.get("node") != "stmt":
+            raise LLVMScalarRejected("E_LLVM_STMT: checked statement required")
+        if stmt.get("operation") == "return":
+            self._return(stmt)
+        elif stmt.get("operation") == "if":
+            fields = stmt.get("fields", {})
+            if not isinstance(fields, dict) or set(fields) != {"condition", "then", "else"}:
+                raise LLVMScalarRejected("E_LLVM_STMT: if must have explicit then/else arms")
+            then_arm, else_arm = fields["then"], fields["else"]
+            if (not isinstance(then_arm, list) or len(then_arm) != 1
+                    or not isinstance(else_arm, list) or len(else_arm) != 1):
+                raise LLVMScalarRejected("E_LLVM_STMT: each if branch must return once")
+            condition = self.bool_expr(fields["condition"])
+            label = self._temp().removeprefix("%")
+            self.lines.append(f"  br i1 {condition}, label %then_{label}, label %else_{label}")
+            self.lines.append(f"then_{label}:")
+            self._return(then_arm[0])
+            self.lines.append(f"else_{label}:")
+            self._return(else_arm[0])
+        else:
+            raise LLVMScalarRejected("E_LLVM_STMT: unsupported root statement")
         return self.lines
 
 
@@ -191,19 +303,46 @@ def emit_scalar_llvm(snapshot) -> ScalarIR:
     return ScalarIR(output, sha256(output.encode()).hexdigest(), tuple(sorted(names)))
 
 
+def _verify_scalar_ir(ir: ScalarIR) -> None:
+    if not isinstance(ir, ScalarIR) or ir.profile != "hepta.llvm-scalar-i32.v0":
+        raise LLVMScalarRejected("E_LLVM_IR_IDENTITY: unsupported scalar IR profile")
+    if (not isinstance(ir.text, str) or not isinstance(ir.sha256, str)
+            or sha256(ir.text.encode("utf-8")).hexdigest() != ir.sha256):
+        raise LLVMScalarRejected("E_LLVM_IR_IDENTITY: modified LLVM IR rejected")
+    # An artifact manifest may name only actual LLVM definition symbols.
+    actual = re.findall(r"(?m)^define i32 @([A-Za-z_][A-Za-z0-9_]*)\(", ir.text)
+    if (not isinstance(ir.functions, tuple) or len(actual) != len(set(actual))
+            or tuple(sorted(actual)) != ir.functions):
+        raise LLVMScalarRejected("E_LLVM_IR_IDENTITY: declared functions do not match LLVM IR")
+
+
+def _llvm_compiler(clang: str):
+    clang_path = shutil.which(clang)
+    if not clang_path:
+        raise LLVMScalarRejected("E_LLVM_TOOLCHAIN: clang is unavailable")
+    compiler = Path(clang_path).resolve()
+    version = subprocess.run([str(compiler), "--version"], capture_output=True,
+                             text=True, timeout=10, check=False)
+    if version.returncode or not version.stdout.strip():
+        raise LLVMScalarRejected("E_LLVM_TOOLCHAIN: compiler identity unavailable")
+    return compiler, version.stdout.splitlines()[0]
+
+
 def compile_scalar_llvm(ir: ScalarIR, *, clang: str = "clang", output: str | Path) -> dict:
     """Compile host object via real LLVM/Clang. Never call rustc or C frontend."""
-    if not shutil.which(clang):
-        raise LLVMScalarRejected("E_LLVM_TOOLCHAIN: clang is unavailable")
+    _verify_scalar_ir(ir)
+    compiler, compiler_version = _llvm_compiler(clang)
     target = Path(output).resolve()
     target.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="hepta-llvm-scalar-") as directory:
+    # Staging on the destination filesystem makes the final link atomic even
+    # when the caller requests output on a different mount than /tmp.
+    with tempfile.TemporaryDirectory(prefix=".hepta-llvm-scalar-", dir=target.parent) as directory:
         source = Path(directory) / "module.ll"
         obj = Path(directory) / "module.o"
         built = Path(directory) / "candidate.so"
         source.write_text(ir.text, encoding="utf-8")
-        cmds = [[clang, "-x", "ir", "-O3", "-fPIC", "-c", str(source), "-o", str(obj)],
-                [clang, "-shared", str(obj), "-o", str(built)]]
+        cmds = [[str(compiler), "-x", "ir", "-O3", "-fPIC", "-c", str(source), "-o", str(obj)],
+                [str(compiler), "-shared", str(obj), "-o", str(built)]]
         for cmd in cmds:
             proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30, check=False)
             if proc.returncode:
@@ -219,5 +358,72 @@ def compile_scalar_llvm(ir: ScalarIR, *, clang: str = "clang", output: str | Pat
             "functions": list(ir.functions), "llvm_ir_sha256": ir.sha256,
             "native_sha256": sha256(target.read_bytes()).hexdigest(),
             "native_bytes": target.stat().st_size, "output": str(target),
+            "toolchain": {"version": compiler_version,
+                          "compiler_sha256": sha256(compiler.read_bytes()).hexdigest()},
             "claims": {"rustc_used": False, "llvm_ir_executed": False,
                        "backend_semantics_proved": False, "whole_p6_gate_closed": False}}
+
+
+# Explicit object-only target profiles: no linking or execution is performed.
+_SCALAR_OBJECT_TARGETS = {
+    "x86_64-unknown-linux-gnu": ("elf", 62),
+    "aarch64-unknown-linux-gnu": ("elf", 183),
+    "x86_64-pc-windows-msvc": ("coff", 0x8664),
+}
+
+
+def _matches_object_target(data: bytes, triple: str) -> bool:
+    model = _SCALAR_OBJECT_TARGETS.get(triple)
+    if model is None:
+        return False
+    fmt, machine = model
+    if fmt == "elf":
+        return (len(data) >= 20 and data[:4] == b"\x7fELF"
+                and data[4] == 2 and data[5] == 1
+                and int.from_bytes(data[18:20], "little") == machine)
+    return len(data) >= 20 and int.from_bytes(data[0:2], "little") == machine
+
+
+def compile_scalar_object(ir: ScalarIR, *, target: str, clang: str = "clang",
+                          output: str | Path) -> dict:
+    """Cross-compile *only* a machine object. This never qualifies target ABI.
+
+    The input is the same verified i32 LLVM subset, and the current host Rust
+    reference check remains the separate responsibility of the public driver.
+    """
+    _verify_scalar_ir(ir)
+    if target not in _SCALAR_OBJECT_TARGETS:
+        raise LLVMScalarRejected("E_LLVM_TARGET: unsupported cross-target profile")
+    compiler, version = _llvm_compiler(clang)
+    dest = Path(output).resolve()
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".hepta-llvm-cross-", dir=dest.parent) as directory:
+        source = Path(directory) / "module.ll"
+        built = Path(directory) / "cross.o"
+        source.write_text(ir.text, encoding="utf-8")
+        command = [str(compiler), "--target=" + target, "-x", "ir", "-O3",
+                   "-c", str(source), "-o", str(built)]
+        result = subprocess.run(command, capture_output=True, text=True,
+                                timeout=30, check=False)
+        if result.returncode != 0:
+            raise LLVMScalarRejected("E_LLVM_CROSS_NATIVE: " + result.stderr[:1600])
+        if not built.is_file() or built.stat().st_size == 0:
+            raise LLVMScalarRejected("E_LLVM_ARTIFACT: missing target object")
+        if not _matches_object_target(built.read_bytes(), target):
+            raise LLVMScalarRejected("E_LLVM_TARGET: compiler emitted wrong object format")
+        if dest.exists():
+            raise LLVMScalarRejected("E_LLVM_OUTPUT: refusing to overwrite")
+        from os import link
+        link(built, dest)
+    return {
+        "schema": "hepta.llvm-scalar-object.v0", "status": "cross_object_only_unqualified",
+        "target": target, "functions": list(ir.functions), "llvm_ir_sha256": ir.sha256,
+        "artifact_sha256": sha256(dest.read_bytes()).hexdigest(),
+        "artifact_bytes": dest.stat().st_size, "output": str(dest),
+        "toolchain": {"version": version, "compiler_sha256": sha256(compiler.read_bytes()).hexdigest()},
+        "claims": {"rustc_used_for_this_backend": False,
+                   "target_execution_verified": False,
+                   "foreign_c_abi_verified": False,
+                   "backend_semantics_proved": False,
+                   "whole_p6_gate_closed": False},
+    }

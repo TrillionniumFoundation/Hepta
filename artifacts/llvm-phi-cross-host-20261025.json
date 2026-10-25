@@ -1,0 +1,59 @@
+{
+  "claims": {
+    "backend_semantics_proved": false,
+    "cross_target_execution_verified": false,
+    "hepta_frontend_integration_fully_qualified": false,
+    "host_llvm_differential_tested": true,
+    "rust_reference_revalidated_current_head": false,
+    "whole_p6_gate_closed": false,
+    "x86_aarch64_windows_target_objects_tested": true
+  },
+  "created_utc": "2026-10-25T02:12:14.957736+00:00",
+  "explicit_test_observations": {
+    "host_llvm_differential": true,
+    "phi_gcc_differential": true,
+    "three_target_objects": true
+  },
+  "qualification_scope": "partial_checkout_host_llvm_object_and_executable_only",
+  "schema": "hepta.llvm-subset-host-validation.v1",
+  "source_sha256": {
+    "hepta/llvm_scalar_backend.py": "be1feee90d7fc4567632ac0d40bae654485ce7d550aeb302fef4db0c2c5a8e07",
+    "tests/test_llvm_scalar_backend.py": "5456933e38d503b97f8feac955af1350c5c6c74192a319d69ba4ea5472cc4ed9",
+    "tests/test_llvm_scalar_phi.py": "b6f25b260bcc71a1ebf808b383fe3ba588694906602fcf8612660ca346b1fe95",
+    "tests/test_llvm_scalar_targets.py": "fd46b48bed21d11d9d7214f82c8caba109bc020f686b91a8c167a2af3b157905",
+    "tools/verify_llvm_subset_host.py": "08f18e2c4305f6243e641cfcc62c65c81076bd8aaab50bc30f0c4823538a28c0"
+  },
+  "test_result": {
+    "command": [
+      "/opt/pyvenv/bin/python",
+      "-m",
+      "unittest",
+      "tests.test_llvm_scalar_backend",
+      "tests.test_llvm_scalar_phi",
+      "tests.test_llvm_scalar_targets",
+      "-v"
+    ],
+    "executed_without_skip": 15,
+    "exit_code": 0,
+    "log": "test_backend_rejects_modified_ir_before_invoking_compiler (tests.test_llvm_scalar_backend.LLVMScalarBackendTests.test_backend_rejects_modified_ir_before_invoking_compiler) ... ok\ntest_checked_arithmetic_cannot_hide_panic_effect (tests.test_llvm_scalar_backend.LLVMScalarBackendTests.test_checked_arithmetic_cannot_hide_panic_effect) ... ok\ntest_cli_does_not_bypass_reference_native_gate (tests.test_llvm_scalar_backend.LLVMScalarBackendTests.test_cli_does_not_bypass_reference_native_gate) ... skipped 'full Hepta CLI not mounted here'\ntest_forged_or_unsafe_profiles_fail_closed (tests.test_llvm_scalar_backend.LLVMScalarBackendTests.test_forged_or_unsafe_profiles_fail_closed) ... ok\ntest_host_if_else_cfg_against_independent_c (tests.test_llvm_scalar_backend.LLVMScalarBackendTests.test_host_if_else_cfg_against_independent_c) ... ok\ntest_host_llvm_abi_matches_independent_c_for_defined_inputs (tests.test_llvm_scalar_backend.LLVMScalarBackendTests.test_host_llvm_abi_matches_independent_c_for_defined_inputs) ... ok\ntest_integration_with_actual_parser_checker_when_available (tests.test_llvm_scalar_backend.LLVMScalarBackendTests.test_integration_with_actual_parser_checker_when_available) ... skipped 'full Hepta bootstrap frontend not mounted here'\ntest_scalar_llvm_ir_is_reproducible (tests.test_llvm_scalar_backend.LLVMScalarBackendTests.test_scalar_llvm_ir_is_reproducible) ... ok\ntest_actual_hepta_frontend_integration_when_available (tests.test_llvm_scalar_phi.LLVMScalarPhiTests.test_actual_hepta_frontend_integration_when_available) ... skipped 'Hepta original compiler frontend unavailable in subset checkout'\ntest_exact_ssa_phi_uses_checked_continuation_predecessors (tests.test_llvm_scalar_phi.LLVMScalarPhiTests.test_exact_ssa_phi_uses_checked_continuation_predecessors) ... ok\ntest_llvm_ir_receipt_cannot_claim_missing_symbols (tests.test_llvm_scalar_phi.LLVMScalarPhiTests.test_llvm_ir_receipt_cannot_claim_missing_symbols) ... ok\ntest_missing_definite_assignment_rejected (tests.test_llvm_scalar_phi.LLVMScalarPhiTests.test_missing_definite_assignment_rejected) ... ok\ntest_panic_effect_cannot_be_omitted_in_phi_arm (tests.test_llvm_scalar_phi.LLVMScalarPhiTests.test_panic_effect_cannot_be_omitted_in_phi_arm) ... ok\ntest_phi_executes_identically_to_independent_c_on_defined_inputs (tests.test_llvm_scalar_phi.LLVMScalarPhiTests.test_phi_executes_identically_to_independent_c_on_defined_inputs) ... ok\ntest_bad_target_or_ir_identity_fail_before_compiler (tests.test_llvm_scalar_targets.LLVMScalarTargetTests.test_bad_target_or_ir_identity_fail_before_compiler) ... ok\ntest_object_output_is_atomic_no_overwrite (tests.test_llvm_scalar_targets.LLVMScalarTargetTests.test_object_output_is_atomic_no_overwrite) ... ok\ntest_three_target_objects_compile_with_real_llvm (tests.test_llvm_scalar_targets.LLVMScalarTargetTests.test_three_target_objects_compile_with_real_llvm) ... ok\ntest_wrong_object_machine_rejected (tests.test_llvm_scalar_targets.LLVMScalarTargetTests.test_wrong_object_machine_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 18 tests in 2.656s\n\nOK (skipped=3)\n",
+    "log_sha256": "2818ed29f273d8703f6368cea912114014250b73283389dbf885eeb544d85a9a",
+    "skipped": 3,
+    "status": "passed_with_skips",
+    "tests_run": 18
+  },
+  "toolchains": {
+    "clang": {
+      "path": "/usr/local/swift/usr/bin/clang-17",
+      "sha256": "aa7389d9766be7e61df76cf094ac4f1861fd067e12908d1e9fd5cd7eb2a078f4",
+      "status": "identified",
+      "version": "clang version 17.0.0 (https://github.com/swiftlang/llvm-project.git 10999b6d034fe318f3d56c83bddb6572593a8bb0)"
+    },
+    "gcc": {
+      "path": "/usr/bin/x86_64-linux-gnu-gcc-14",
+      "sha256": "a23ecab8ff08f09ad8c80602c2c5df7f49e09c25905cb8975902e101bf72635f",
+      "status": "identified",
+      "version": "x86_64-linux-gnu-gcc-14 (Debian 14.2.0-19) 14.2.0"
+    }
+  },
+  "whole_project_blockers_closed": false
+}

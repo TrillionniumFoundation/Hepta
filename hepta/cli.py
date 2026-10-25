@@ -66,6 +66,10 @@ def main(argv=None) -> int:
     llvm_scalar.add_argument("--rustc")
     llvm_scalar.add_argument("--clang", default="clang")
     llvm_scalar.add_argument("--locked", action="store_true")
+    llvm_scalar.add_argument("--target", choices=[
+        "x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu",
+        "x86_64-pc-windows-msvc"
+    ], help="Cross-compile a machine object only; target execution and ABI remain unqualified")
     for cmd in ["check", "inspect", "hsir", "cfg", "cfg-analyze", "ssa", "ssa-verify", "emit", "header", "build", "run", "patch"]:
         p = sub.add_parser(cmd)
         p.add_argument("source")
@@ -147,7 +151,7 @@ def main(argv=None) -> int:
             # Never qualify a new backend merely from a frontend-only result.
             # The pinned real rustc reference must complete its native check.
             from .hsir import lower_checked_program
-            from .llvm_scalar_backend import emit_scalar_llvm, compile_scalar_llvm
+            from .llvm_scalar_backend import emit_scalar_llvm, compile_scalar_llvm, compile_scalar_object
             reference = analyze_project(Path(args.source).resolve(),
                                         rustc=args.rustc, native=True,
                                         backend="rust", locked=args.locked,
@@ -157,9 +161,12 @@ def main(argv=None) -> int:
                 return 1
             hsir = lower_checked_program(reference.program, reference.checked)
             code = emit_scalar_llvm(hsir)
-            build = compile_scalar_llvm(code, clang=args.clang, output=args.output)
-            output_json({"schema": "hepta.build-llvm-scalar.v0", "ok": True,
-                         "status": "native_host_compiled_unqualified",
+            build = (compile_scalar_object(code, clang=args.clang, target=args.target, output=args.output)
+                     if args.target is not None
+                     else compile_scalar_llvm(code, clang=args.clang, output=args.output))
+            output_json({"schema": "hepta.build-llvm-scalar.v1" if args.target else "hepta.build-llvm-scalar.v0",
+                         "ok": True, "status": build["status"],
+                         "reference_scope": "host_rust_reference_not_target_execution",
                          "reference_validation": reference.report, "build": build})
             return 0
         if args.command == "doctor":
@@ -189,7 +196,7 @@ def main(argv=None) -> int:
         protected = {Path(p) for p in result.project.sources}
         if args.command in {"hsir", "cfg", "cfg-analyze", "ssa", "ssa-verify"}:
             if args.backend != "rust":
-                raise ValueError("HSIR/CFG extraction requires the real Rust reference backend")
+                raise ValueError("HSIR/CFG/SSA inspection requires the real Rust reference backend")
             if not result.report["ok"]:
                 output_json(result.report)
                 return 1
@@ -280,8 +287,6 @@ def main(argv=None) -> int:
         output_json({"ok": False, "status": "rejected", "diagnostics": [e.diagnostic.to_dict()]})
         return 1
     except (CFGRejected, CFGAnalysisRejected, SSARejected, SSAVerificationRejected, LLVMSSARejected) as e:
-        # Preserve typed semantic rejection codes for Agent tools instead of
-        # flattening them to E_DRIVER. No frontend-only/native fallback.
         message = str(e)
         code = message.split(":", 1)[0]
         if not code.startswith(("E_CFG_", "E_DOM_", "E_SSA_", "E_LLVM_SSA_")):
