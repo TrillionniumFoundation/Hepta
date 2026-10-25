@@ -1,7 +1,8 @@
 """Bounded hosted concurrency profile, separate from syntax and code generation.
 
-Budgets belong to one TaskGroup instance. They constrain admissions and logical
-queue storage, not total process heap/RSS, worker allocations, or CPU time.
+Local budgets belong to one TaskGroup instance. Explicitly attached groups can
+also share a reservation pool. Neither profile bounds total process heap/RSS,
+worker/FFI allocations, actual OS stack mappings, or CPU time.
 """
 from .ast import Param, Struct, Type
 
@@ -10,11 +11,14 @@ GROUP_BUILTINS = {
     "group_join", "group_drain_and_join", "group_cancel_and_join",
     "group_snapshot", "group_fail", "group_send_timeout", "group_receive_timeout",
     "group_cancel",
+    "group_select_receive",
+    "group_budget_configure", "group_budget_share", "group_budget_snapshot",
 }
-GROUP_TYPE_NAMES = {"TaskGroup", "Sender", "GroupReport"}
+GROUP_TYPE_NAMES = {"TaskGroup", "Sender", "GroupReport", "GroupBudgetReport"}
 GROUP = Type("TaskGroup")
 SENDER = Type("Sender", (Type("u64"),))
 REPORT = Type("GroupReport")
+BUDGET_REPORT = Type("GroupBudgetReport")
 REPORT_FIELDS = [
     ("accepted_tasks", "usize"), ("rejected_tasks", "usize"),
     ("completed_tasks", "usize"), ("active_tasks", "usize"),
@@ -28,10 +32,26 @@ REPORT_FIELDS = [
     ("failed", "bool"), ("failure_code", "u64"),
     ("cancelled", "bool"), ("joined", "bool"),
 ]
+BUDGET_REPORT_FIELDS = [
+    ("attached", "bool"), ("attached_groups", "usize"),
+    ("thread_limit", "usize"), ("input_byte_limit", "usize"),
+    ("queue_slot_limit", "usize"), ("requested_stack_byte_limit", "usize"),
+    ("worker_stack_request", "usize"),
+    ("reserved_threads", "usize"), ("reserved_input_bytes", "usize"),
+    ("reserved_queue_slots", "usize"), ("reserved_requested_stack_bytes", "usize"),
+    ("peak_threads", "usize"), ("peak_input_bytes", "usize"),
+    ("peak_queue_slots", "usize"), ("peak_requested_stack_bytes", "usize"),
+    ("rejected_admissions", "usize"), ("spawn_failures", "usize"),
+    ("attachment_refusals", "usize"),
+]
 
 
 def report_struct() -> Struct:
     return Struct("GroupReport", [Param(name, Type(typ)) for name, typ in REPORT_FIELDS])
+
+
+def budget_report_struct() -> Struct:
+    return Struct("GroupBudgetReport", [Param(name, Type(typ)) for name, typ in BUDGET_REPORT_FIELDS])
 
 
 GROUP_RUNTIME = r'''
@@ -49,11 +69,41 @@ pub struct H_GroupReport {
     pub h_failed: bool, pub h_failure_code: u64,
     pub h_cancelled: bool, pub h_joined: bool,
 }
+#[derive(Clone, Copy, Default)]
+pub struct H_GroupBudgetReport {
+    pub h_attached: bool, pub h_attached_groups: usize,
+    pub h_thread_limit: usize, pub h_input_byte_limit: usize,
+    pub h_queue_slot_limit: usize, pub h_requested_stack_byte_limit: usize,
+    pub h_worker_stack_request: usize,
+    pub h_reserved_threads: usize, pub h_reserved_input_bytes: usize,
+    pub h_reserved_queue_slots: usize, pub h_reserved_requested_stack_bytes: usize,
+    pub h_peak_threads: usize, pub h_peak_input_bytes: usize,
+    pub h_peak_queue_slots: usize, pub h_peak_requested_stack_bytes: usize,
+    pub h_rejected_admissions: usize, pub h_spawn_failures: usize,
+    pub h_attachment_refusals: usize,
+}
+struct HeptaGroupBudget { state: std::sync::Mutex<H_GroupBudgetReport> }
 struct HeptaGroupState {
     report: H_GroupReport,
     // Fixed-size storage: send never grows the ring.
     ring: std::vec::Vec<u64>,
     head: usize, len: usize, sealed: bool, closed: bool,
+    selectors: std::vec::Vec<std::sync::Weak<HeptaSelectSignal>>,
+}
+// One signal belongs to one select call, so unrelated groups cannot cause
+// repeated wakeups. Group state -> signal is the only nested lock order.
+struct HeptaSelectSignal {
+    pending: std::sync::Mutex<bool>,
+    changed: std::sync::Condvar,
+}
+fn __hepta_select_notify(state: &mut HeptaGroupState) {
+    state.selectors.retain(|weak| {
+        if let Some(signal) = weak.upgrade() {
+            *signal.pending.lock().expect("Hepta select state poisoned") = true;
+            signal.changed.notify_all();
+            true
+        } else { false }
+    });
 }
 struct HeptaGroupShared {
     state: std::sync::Mutex<HeptaGroupState>,
@@ -65,6 +115,7 @@ pub struct HeptaSender { shared: std::sync::Arc<HeptaGroupShared> }
 pub struct HeptaTaskGroup {
     shared: std::sync::Arc<HeptaGroupShared>,
     handles: std::vec::Vec<std::thread::JoinHandle<u64>>,
+    budget: Option<std::sync::Arc<HeptaGroupBudget>>,
 }
 fn __hepta_group_new(tasks: usize, bytes: usize, slots: usize) -> HeptaTaskGroup {
     assert!(slots > 0, "Hepta group queue capacity must be positive");
@@ -85,12 +136,89 @@ fn __hepta_group_new(tasks: usize, bytes: usize, slots: usize) -> HeptaTaskGroup
             state: std::sync::Mutex::new(HeptaGroupState {
                 report, ring: std::vec![0u64; slots], head: 0, len: 0,
                 sealed: false, closed: false,
+                selectors: std::vec::Vec::new(),
             }),
             readable: std::sync::Condvar::new(),
             writable: std::sync::Condvar::new(),
             cancel: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
         }),
         handles: std::vec::Vec::new(),
+        budget: None,
+    }
+}
+fn __hepta_group_budget_configure(
+    group: &mut HeptaTaskGroup, threads: usize, bytes: usize, slots: usize,
+    requested_stack_bytes: usize, worker_stack_request: usize,
+) -> bool {
+    let state = group.shared.state.lock().expect("Hepta group state poisoned");
+    if group.budget.is_some() || state.sealed || state.closed || state.report.h_accepted_tasks != 0
+        || slots < state.ring.len() || worker_stack_request < 64 * 1024
+        || worker_stack_request > 1024 * 1024 * 1024 {
+        return false;
+    }
+    group.budget = Some(std::sync::Arc::new(HeptaGroupBudget {
+        state: std::sync::Mutex::new(H_GroupBudgetReport {
+            h_attached: true, h_attached_groups: 1,
+            h_thread_limit: threads, h_input_byte_limit: bytes,
+            h_queue_slot_limit: slots, h_requested_stack_byte_limit: requested_stack_bytes,
+            h_worker_stack_request: worker_stack_request,
+            h_reserved_queue_slots: state.ring.len(), h_peak_queue_slots: state.ring.len(),
+            ..H_GroupBudgetReport::default()
+        }),
+    }));
+    true
+}
+fn __hepta_group_budget_share(target: &mut HeptaTaskGroup, sponsor: &HeptaTaskGroup) -> bool {
+    let budget = match &sponsor.budget { Some(value) => value, None => return false };
+    let state = target.shared.state.lock().expect("Hepta group state poisoned");
+    if target.budget.is_some() || state.sealed || state.closed || state.report.h_accepted_tasks != 0 { return false; }
+    let mut usage = budget.state.lock().expect("Hepta group budget poisoned");
+    let slots = usage.h_reserved_queue_slots.checked_add(state.ring.len());
+    let groups = usage.h_attached_groups.checked_add(1);
+    if slots.is_none() || slots.unwrap() > usage.h_queue_slot_limit || groups.is_none() {
+        usage.h_attachment_refusals = usage.h_attachment_refusals.saturating_add(1);
+        return false;
+    }
+    usage.h_attached_groups = groups.unwrap();
+    usage.h_reserved_queue_slots = slots.unwrap();
+    usage.h_peak_queue_slots = core::cmp::max(usage.h_peak_queue_slots, slots.unwrap());
+    target.budget = Some(std::sync::Arc::clone(budget));
+    true
+}
+fn __hepta_group_budget_snapshot(group: &HeptaTaskGroup) -> H_GroupBudgetReport {
+    group.budget.as_ref().map(|budget| *budget.state.lock().expect("Hepta group budget poisoned"))
+        .unwrap_or_default()
+}
+fn __hepta_budget_admit(group: &HeptaTaskGroup, bytes: usize) -> bool {
+    let budget = match &group.budget { Some(value) => value, None => return true };
+    let mut usage = budget.state.lock().expect("Hepta group budget poisoned");
+    let threads = usage.h_reserved_threads.checked_add(1);
+    let input = usage.h_reserved_input_bytes.checked_add(bytes);
+    let stack = usage.h_reserved_requested_stack_bytes.checked_add(usage.h_worker_stack_request);
+    if threads.is_none() || threads.unwrap() > usage.h_thread_limit
+        || input.is_none() || input.unwrap() > usage.h_input_byte_limit
+        || stack.is_none() || stack.unwrap() > usage.h_requested_stack_byte_limit {
+        usage.h_rejected_admissions = usage.h_rejected_admissions.saturating_add(1);
+        return false;
+    }
+    usage.h_reserved_threads = threads.unwrap();
+    usage.h_reserved_input_bytes = input.unwrap();
+    usage.h_reserved_requested_stack_bytes = stack.unwrap();
+    usage.h_peak_threads = core::cmp::max(usage.h_peak_threads, threads.unwrap());
+    usage.h_peak_input_bytes = core::cmp::max(usage.h_peak_input_bytes, input.unwrap());
+    usage.h_peak_requested_stack_bytes = core::cmp::max(usage.h_peak_requested_stack_bytes, stack.unwrap());
+    true
+}
+fn __hepta_budget_spawn_failure(group: &HeptaTaskGroup, bytes: usize, reserved: bool) {
+    if let Some(budget) = &group.budget {
+        let mut usage = budget.state.lock().expect("Hepta group budget poisoned");
+        if reserved {
+            usage.h_reserved_threads -= 1;
+            usage.h_reserved_input_bytes -= bytes;
+            usage.h_reserved_requested_stack_bytes -= usage.h_worker_stack_request;
+        }
+        usage.h_rejected_admissions = usage.h_rejected_admissions.saturating_add(1);
+        usage.h_spawn_failures = usage.h_spawn_failures.saturating_add(1);
     }
 }
 fn __hepta_group_spawn(
@@ -109,12 +237,29 @@ fn __hepta_group_spawn(
             // 'data' is owned by this call and released on rejection.
             return false;
         }
+        // Reserve the join-handle slot before starting an OS thread. Failure
+        // cannot leave an unrecorded running worker behind.
+        if group.handles.try_reserve(1).is_err() {
+            state.report.h_rejected_tasks = state.report.h_rejected_tasks.saturating_add(1);
+            state.report.h_spawn_failures = state.report.h_spawn_failures.saturating_add(1);
+            __hepta_budget_spawn_failure(group, bytes, false);
+            return false;
+        }
+        if !__hepta_budget_admit(group, bytes) {
+            state.report.h_rejected_tasks = state.report.h_rejected_tasks.saturating_add(1);
+            return false;
+        }
         state.report.h_accepted_tasks += 1;
         state.report.h_active_tasks += 1;
         state.report.h_input_bytes = new_bytes.unwrap();
     }
     let shared = std::sync::Arc::clone(&group.shared);
-    let launched = std::thread::Builder::new().spawn(move || {
+    let builder = match &group.budget {
+        Some(budget) => std::thread::Builder::new().stack_size(
+            budget.state.lock().expect("Hepta group budget poisoned").h_worker_stack_request),
+        None => std::thread::Builder::new(),
+    };
+    let launched = builder.spawn(move || {
         let token = HeptaCancellation { flag: std::sync::Arc::clone(&shared.cancel) };
         let sender = HeptaSender { shared: std::sync::Arc::clone(&shared) };
         let value = worker(data, &token, &sender);
@@ -126,6 +271,7 @@ fn __hepta_group_spawn(
             state.closed = true;
             shared.readable.notify_all();
             shared.writable.notify_all();
+            __hepta_select_notify(&mut state);
         }
         value
     });
@@ -138,6 +284,7 @@ fn __hepta_group_spawn(
             state.report.h_input_bytes -= bytes;
             state.report.h_rejected_tasks = state.report.h_rejected_tasks.saturating_add(1);
             state.report.h_spawn_failures = state.report.h_spawn_failures.saturating_add(1);
+            __hepta_budget_spawn_failure(group, bytes, true);
             false
         }
     }
@@ -172,6 +319,7 @@ fn __hepta_group_send_wait(
     state.report.h_queued = state.len;
     state.report.h_peak_queued = core::cmp::max(state.report.h_peak_queued, state.len);
     shared.readable.notify_one();
+    __hepta_select_notify(&mut state);
     Ok(true)
 }
 fn __hepta_group_send(sender: &HeptaSender, value: u64) -> bool {
@@ -190,6 +338,7 @@ fn __hepta_group_seal(group: &mut HeptaTaskGroup) {
         state.closed = true;
         group.shared.readable.notify_all();
         group.shared.writable.notify_all();
+        __hepta_select_notify(&mut state);
     }
 }
 fn __hepta_group_receive_wait(
@@ -232,6 +381,85 @@ fn __hepta_group_receive_timeout(group: &HeptaTaskGroup, output: &mut u64, milli
     let until = std::time::Instant::now().checked_add(std::time::Duration::from_millis(millis)).ok_or(2u8)?;
     __hepta_group_receive_wait(group, output, false, Some(until))
 }
+struct HeptaSelectRegistration {
+    left: std::sync::Arc<HeptaGroupShared>,
+    right: std::sync::Arc<HeptaGroupShared>,
+    signal: std::sync::Arc<HeptaSelectSignal>,
+}
+impl Drop for HeptaSelectRegistration {
+    fn drop(&mut self) {
+        let signal = std::sync::Arc::downgrade(&self.signal);
+        for shared in [&self.left, &self.right] {
+            let mut state = shared.state.lock().expect("Hepta group state poisoned");
+            state.selectors.retain(|weak| !weak.ptr_eq(&signal));
+        }
+    }
+}
+fn __hepta_select_register(shared: &HeptaGroupShared, signal: &std::sync::Arc<HeptaSelectSignal>)
+    -> core::result::Result<(), u8> {
+    let mut state = shared.state.lock().expect("Hepta group state poisoned");
+    assert!(state.sealed, "Hepta group_select_receive requires group_seal on both groups");
+    state.selectors.retain(|weak| weak.strong_count() != 0);
+    // Bound the number of concurrent registered calls and retained vector
+    // capacity. This limit is separate from channel queue capacity.
+    if state.selectors.len() >= 64 || state.selectors.try_reserve_exact(1).is_err() {
+        return Err(4);
+    }
+    state.selectors.push(std::sync::Arc::downgrade(signal));
+    Ok(())
+}
+fn __hepta_select_poll(shared: &HeptaGroupShared, output: &mut u64) -> (bool, bool) {
+    let mut state = shared.state.lock().expect("Hepta group state poisoned");
+    if state.len == 0 { return (false, state.closed); }
+    *output = state.ring[state.head];
+    state.head = (state.head + 1) % state.ring.len();
+    state.len -= 1;
+    state.report.h_queued = state.len;
+    state.report.h_received = state.report.h_received.saturating_add(1);
+    shared.writable.notify_one();
+    (true, false)
+}
+fn __hepta_group_select_receive(
+    left: &HeptaTaskGroup, right: &HeptaTaskGroup, output: &mut u64,
+    prefer_right: bool, millis: u64,
+) -> core::result::Result<u8, u8> {
+    if std::sync::Arc::ptr_eq(&left.shared, &right.shared) { return Err(3); }
+    let until = std::time::Instant::now().checked_add(std::time::Duration::from_millis(millis)).ok_or(2u8)?;
+    let registration = HeptaSelectRegistration {
+        left: std::sync::Arc::clone(&left.shared), right: std::sync::Arc::clone(&right.shared),
+        signal: std::sync::Arc::new(HeptaSelectSignal {
+            pending: std::sync::Mutex::new(false), changed: std::sync::Condvar::new(),
+        }),
+    };
+    // Drop unregisters both sides even if the second reservation is refused.
+    __hepta_select_register(&registration.left, &registration.signal)?;
+    __hepta_select_register(&registration.right, &registration.signal)?;
+    loop {
+        // Never hold the signal mutex while inspecting a group: notifications
+        // take the opposite (group -> signal) order. Setting pending first and
+        // then polling makes every racing notification either observable as a
+        // queue state or retained until the following condition-variable wait.
+        *registration.signal.pending.lock().expect("Hepta select state poisoned") = false;
+        let (first, first_id, second, second_id) = if prefer_right {
+            (&registration.right, 2u8, &registration.left, 1u8)
+        } else { (&registration.left, 1u8, &registration.right, 2u8) };
+        let (received, first_closed) = __hepta_select_poll(first, output);
+        if received { return Ok(first_id); }
+        let (received, second_closed) = __hepta_select_poll(second, output);
+        if received { return Ok(second_id); }
+        if first_closed && second_closed { return Ok(0); }
+        let mut pending = registration.signal.pending.lock().expect("Hepta select state poisoned");
+        let now = std::time::Instant::now();
+        if now >= until { return Err(1); }
+        if !*pending {
+            pending = registration.signal.changed.wait_timeout(pending, until.duration_since(now))
+                .expect("Hepta select state poisoned").0;
+            // Poll after every wake, including timeout/spurious wake. The one
+            // deadline is retained, and queued values/closed state win a zero
+            // duration poll. The mutex, scheduler and workers are not timed.
+        }
+    }
+}
 fn __hepta_group_cancel(group: &mut HeptaTaskGroup) {
     let mut state = group.shared.state.lock().expect("Hepta group state poisoned");
     state.sealed = true;
@@ -243,6 +471,7 @@ fn __hepta_group_cancel(group: &mut HeptaTaskGroup) {
     state.report.h_queued = 0;
     group.shared.readable.notify_all();
     group.shared.writable.notify_all();
+    __hepta_select_notify(&mut state);
 }
 fn __hepta_group_snapshot(group: &HeptaTaskGroup) -> H_GroupReport {
     group.shared.state.lock().expect("Hepta group state poisoned").report
@@ -259,6 +488,7 @@ fn __hepta_group_fail(sender: &HeptaSender, code: u64) {
     sender.shared.cancel.store(true, std::sync::atomic::Ordering::Release);
     sender.shared.readable.notify_all();
     sender.shared.writable.notify_all();
+    __hepta_select_notify(&mut state);
 }
 fn __hepta_group_join(mut group: HeptaTaskGroup, mode: u8) -> H_GroupReport {
     // mode 0: already drained; 1: explicitly drain and discard; 2: cancel.
@@ -280,6 +510,14 @@ fn __hepta_group_join(mut group: HeptaTaskGroup, mode: u8) -> H_GroupReport {
     }
     let mut state = group.shared.state.lock().expect("Hepta group state poisoned");
     state.report.h_joined = true;
+    if let Some(budget) = group.budget.take() {
+        let mut usage = budget.state.lock().expect("Hepta group budget poisoned");
+        usage.h_reserved_threads -= state.report.h_accepted_tasks;
+        usage.h_reserved_input_bytes -= state.report.h_input_bytes;
+        usage.h_reserved_requested_stack_bytes -= state.report.h_accepted_tasks * usage.h_worker_stack_request;
+        usage.h_reserved_queue_slots -= state.ring.len();
+        usage.h_attached_groups -= 1;
+    }
     state.report
 }
 '''

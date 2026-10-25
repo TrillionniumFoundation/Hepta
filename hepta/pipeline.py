@@ -26,7 +26,7 @@ def interface(program: Program) -> dict:
             "functions": [{"name": f.name, "params": [{"name": p.name, "mode": p.mode, "type": str(p.type)} for p in f.params],
                            "type_params": list(getattr(f, "type_params", ())),
                            "type_bounds": {name: f.type_bounds.get(name, "Copy") for name in f.type_params},
-                           "returns": str(f.return_type), "return_mode": getattr(f, "return_mode", "value"),
+                           "returns": str(f.return_type), "return_mode": getattr(f, "return_mode", "value"), "return_origin": f.return_origin,
                            "effects": sorted(f.effects),
                            "resources": f.resources, "public": f.public, "export_c": f.export_c,
                            "extern_c": f.extern_c} for f in program.functions]}
@@ -242,5 +242,27 @@ def resource_ir_analysis(analysis: Analysis) -> dict:
                       status=analysis.report["status"] if verification["ok"] else "rejected")
     except (ResourceIRError, ValueError, TypeError, OverflowError, RecursionError) as exc:
         report["diagnostics"] = [{"phase": "resource-ir", "code": getattr(exc, "code", "E_RIR_LOWER"),
+                                   "message": str(exc)}]
+    return report
+
+
+def concurrent_ir_analysis(analysis: Analysis) -> dict:
+    """Check explicit task/group obligations without upgrading runtime proofs."""
+    report = {"schema": "hepta.concurrent-ir.export.v1", "ok": False,
+              "status": "rejected", "concurrent_ir": None, "verifier": None,
+              "validation": analysis.report}
+    if analysis.program is None or analysis.checked is None or not analysis.checked.ok:
+        return report
+    from .concurrent_ir import ConcurrentIRError, verify_concurrent_ir
+    from .concurrent_lowering import lower_concurrent_ir
+    try:
+        graph = lower_concurrent_ir(analysis.program, analysis.checked,
+                                   project_sha256=getattr(analysis.project, "identity", None))
+        verification = verify_concurrent_ir(json.loads(json.dumps(graph)))
+        report.update(concurrent_ir=graph, verifier=verification,
+                      ok=bool(analysis.report["ok"] and verification["ok"]),
+                      status=analysis.report["status"] if verification["ok"] else "rejected")
+    except (ConcurrentIRError, ValueError, TypeError, OverflowError, RecursionError) as exc:
+        report["diagnostics"] = [{"phase": "concurrent-ir", "code": getattr(exc, "code", "E_CIR_LOWER"),
                                    "message": str(exc)}]
     return report

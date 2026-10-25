@@ -262,6 +262,12 @@ class Parser:
         self._expect("->", "Functions require an explicit return type after '->'")
         return_mode = self._advance().value if self.current.kind in {"read", "mut"} else "value"
         return_type = self._type()
+        return_origin = None
+        # Contextual keyword: existing locals/functions named `from` remain
+        # legal. Only the position after a return type gives it this meaning.
+        if self._at("IDENT") and self.current.value == "from":
+            self._advance()
+            return_origin = self._expect("IDENT", "Expected a borrowed parameter after 'from'").value
         effects = self._effects()
         resources: dict = {}
         if extern_c:
@@ -274,7 +280,7 @@ class Parser:
             body, body_span = self._block()
             end = body_span
         return Function(name, params, return_type, effects, body, public, extern_c,
-                        export_c, resources, _cover(start, end), body_span, type_params, return_mode, type_bounds)
+                        export_c, resources, _cover(start, end), body_span, type_params, return_mode, type_bounds, return_origin)
 
     def _effects(self) -> set[str]:
         self._expect("effects", "Every function requires an explicit effects clause")

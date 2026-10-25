@@ -13,7 +13,8 @@ import json
 import re
 
 
-SCHEMA = "hepta.resource-ir.v2"
+SCHEMA = "hepta.resource-ir.v3"
+GENERIC_SCHEMA = "hepta.resource-ir.v2"
 LEGACY_SCHEMA = "hepta.resource-ir.v1"
 _SCALARS = {"i8", "i16", "i32", "i64", "i128", "isize", "u8", "u16", "u32", "u64", "u128", "usize", "f32", "f64", "bool", "Unit"}
 _EXTERNAL_REQUIREMENTS = ["abi", "aliasing", "effects", "lifetime", "ownership"]
@@ -69,13 +70,15 @@ def _overlap(left: tuple[str, tuple[str, ...]], right: tuple[str, tuple[str, ...
 
 @dataclass
 class _State:
-    owners: set[str] = field(default_factory=set)
+    # Initialized aggregate nodes and opaque owned leaves. Copy descendants
+    # remain readable after a sibling field move, but not after a whole move.
+    initialized: set[tuple[str, tuple[str, ...]]] = field(default_factory=set)
     # loan -> (root, field/index path, mode, exposed pointee type)
     loans: dict[str, tuple[str, tuple[str, ...], str, str]] = field(default_factory=dict)
     variants: dict[str, str] = field(default_factory=dict)
 
     def copy(self) -> _State:
-        return _State(set(self.owners), dict(self.loans), dict(self.variants))
+        return _State(set(self.initialized), dict(self.loans), dict(self.variants))
 
 
 class _Verifier:
@@ -93,6 +96,7 @@ class _Verifier:
         self.operation_count = 0
         self.static_operation_count = 0
         self.generic_calls_checked = 0
+        self.shapes: dict[str, dict[tuple[str, ...], str]] = {}
 
     def type_(self, name: object) -> dict:
         name = _id(name)
@@ -117,7 +121,7 @@ class _Verifier:
                     _fail("E_RIR_TYPE", "Scalar identity must name a supported primitive")
             elif kind == "parameter":
                 _fields(typ, {"kind", "function", "name", "bound"}, "type parameter")
-                if self.doc["schema"] != SCHEMA:
+                if self.doc["schema"] not in {SCHEMA, GENERIC_SCHEMA}:
                     _fail("E_RIR_SCHEMA", "Generic resource types require resource IR v2")
                 owner, name = _id(typ["function"]), _id(typ["name"])
                 if any(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", part) is None for part in (owner, name)):
@@ -215,7 +219,7 @@ class _Verifier:
                 _fail("E_RIR_FUNCTION", "Duplicate function")
             self.functions[name] = fn
             declared = _list(fn.get("type_params", []), 64)
-            if declared and self.doc["schema"] != SCHEMA:
+            if declared and self.doc["schema"] not in {SCHEMA, GENERIC_SCHEMA}:
                 _fail("E_RIR_SCHEMA", "Generic functions require resource IR v2")
             if len(set(_id(t) for t in declared)) != len(declared):
                 _fail("E_RIR_GENERIC", "Generic parameter identities must be unique")
@@ -248,8 +252,9 @@ class _Verifier:
                     _fail("E_RIR_RETURN", "Value returns cannot name a borrow origin or unsized slice")
             else:
                 borrowed = [p for p in params.values() if p["mode"] in {"read", "mut"}]
-                if len(borrowed) != 1 or ret["origin"] != borrowed[0]["id"] or (ret["mode"] == "mut" and borrowed[0]["mode"] != "mut"):
-                    _fail("E_RIR_RETURN", "Returned borrow needs the unique compatible borrowed parameter")
+                origin = next((p for p in borrowed if p["id"] == ret["origin"]), None)
+                if origin is None or (self.doc["schema"] != SCHEMA and len(borrowed) != 1) or (ret["mode"] == "mut" and origin["mode"] != "mut"):
+                    _fail("E_RIR_RETURN", "Returned borrow needs one compatible declared input origin (multiple inputs require v3)")
             if type(fn["external"]) is not bool:
                 _fail("E_RIR_FUNCTION", "external must be boolean")
             if fn["external"]:
@@ -327,13 +332,48 @@ class _Verifier:
 
     def live(self, sid: str, state: _State) -> None:
         typ = self.slot(sid)["type"]
-        if self.owned[typ] and self.params.get(sid, {}).get("mode") not in {"read", "mut"} and sid not in state.owners:
-            _fail("E_RIR_USE_AFTER_MOVE", f"Owned slot {sid} is not live")
+        if self.owned[typ] and self.params.get(sid, {}).get("mode") not in {"read", "mut"}:
+            self.initialized(sid, (), state)
 
-    def place(self, value: object, state: _State) -> tuple[str, tuple[str, ...], str]:
+    def shape(self, typ: str) -> dict[tuple[str, ...], str]:
+        if typ not in self.shapes:
+            result = {}
+            def visit(tid: str, path: tuple[str, ...]) -> None:
+                if len(path) > 128 or len(result) >= 16384:
+                    _fail("E_RIR_LIMIT", "Owned place tree exceeds its finite shape budget")
+                result[path] = tid
+                desc = self.type_(tid)
+                if desc["kind"] == "struct":
+                    for member in desc["fields"]:
+                        visit(member["type"], (*path, member["name"]))
+            visit(typ, ())
+            self.shapes[typ] = result
+        return self.shapes[typ]
+
+    def tokens(self, root: str, path: tuple[str, ...] = ()) -> set[tuple[str, tuple[str, ...]]]:
+        return {(root, candidate) for candidate in self.shape(self.slot(root)["type"])
+                if candidate[:len(path)] == path}
+
+    def initialized(self, root: str, path: tuple[str, ...], state: _State) -> None:
+        if not self.owned[self.slot(root)["type"]] or self.params.get(root, {}).get("mode") in {"read", "mut"}:
+            return
+        named = path[:path.index("*")] if "*" in path else path
+        ancestors = {(root, candidate) for candidate in self.shape(self.slot(root)["type"])
+                     if named[:len(candidate)] == candidate}
+        if not (ancestors | self.tokens(root, named)) <= state.initialized:
+            _fail("E_RIR_USE_AFTER_MOVE", f"Place {root}{''.join('.' + x for x in path)} is moved or partially initialized")
+
+    def outstanding(self, state: _State, root: str | None = None) -> list[tuple[str, tuple[str, ...]]]:
+        result = []
+        for sid, path in state.initialized:
+            typ = self.shape(self.slot(sid)["type"])[path]
+            if (root is None or sid == root) and self.owned[typ] and self.type_(typ)["kind"] != "struct":
+                result.append((sid, path))
+        return sorted(result)
+
+    def place(self, value: object, state: _State, *, require_initialized: bool = True) -> tuple[str, tuple[str, ...], str]:
         p = _fields(value, {"root", "path"}, "place")
         root = _id(p["root"])
-        self.live(root, state)
         typ = self.slot(root)["type"]
         path = tuple(_id(x) for x in _list(p["path"], 128))
         for step in path:
@@ -347,6 +387,8 @@ class _Verifier:
                 typ = desc["element"]
             else:
                 _fail("E_RIR_PLACE", "Invalid field or conservative index path")
+        if require_initialized:
+            self.initialized(root, path, state)
         return root, path, typ
 
     def mutable(self, root: str) -> bool:
@@ -362,11 +404,12 @@ class _Verifier:
             state.variants.pop(root, None)
 
     def consume(self, sid: str, state: _State) -> None:
-        if sid not in state.owners:
+        if not self.owned[self.slot(sid)["type"]] or self.params.get(sid, {}).get("mode") in {"read", "mut"}:
             _fail("E_RIR_USE_AFTER_MOVE", f"Cannot consume non-live owner {sid}")
+        self.live(sid, state)
         if any(loan[0] == sid for loan in state.loans.values()):
             _fail("E_RIR_LOAN_CONFLICT", "Cannot move/drop an owner during a loan")
-        state.owners.remove(sid)
+        state.initialized.difference_update(self.tokens(sid))
 
     def produce(self, sid: str, state: _State) -> None:
         typ = self.slot(sid)["type"]
@@ -379,9 +422,9 @@ class _Verifier:
         # output or an unpack destination. A later unpack needs a fresh edge.
         state.variants.pop(sid, None)
         if self.owned[typ]:
-            if sid in state.owners:
+            if self.tokens(sid) & state.initialized:
                 _fail("E_RIR_DOUBLE_OWNER", f"Owner destination {sid} is already live/borrowed")
-            state.owners.add(sid)
+            state.initialized.update(self.tokens(sid))
 
     def compatible_borrow(self, actual: str, expected: str) -> bool:
         if actual == expected:
@@ -404,6 +447,7 @@ class _Verifier:
             _fail("E_RIR_OP", "Operation must be an object")
         name = op.get("op")
         fields = {"acquire": {"dest", "kind"}, "move": {"src", "dest"}, "drop": {"src"},
+                  "take_field": {"place", "dest"}, "init_field": {"place", "src"}, "forget": {"src"},
                   "pack": {"dest", "variant", "fields"}, "unpack": {"src", "variant", "dests"},
                   "borrow": {"id", "place", "mode", "type"}, "end_borrow": {"id"},
                   "call": {"function", "args", "result", "result_loan", "obligation"},
@@ -411,6 +455,8 @@ class _Verifier:
                   "use": {"loan" if "loan" in op else "place", "mode"}}
         if not isinstance(name, str) or name not in fields:
             _fail("E_RIR_OP", f"Unknown operation {name}")
+        if name in {"take_field", "init_field", "forget"} and self.doc["schema"] != SCHEMA:
+            _fail("E_RIR_SCHEMA", "Partial field state requires resource IR v3")
         _fields(op, fields[name] | {"op"} | ({"type_args"} if name in {"call", "foreign"} and "type_args" in op else set()), "operation")
         return name
 
@@ -437,6 +483,40 @@ class _Verifier:
             self.slot(op["src"])
             self.consume(op["src"], state)
             state.variants.pop(op["src"], None)
+        elif name in {"take_field", "init_field"}:
+            root, path, typ = self.place(op["place"], state, require_initialized=name == "take_field")
+            if not path or "*" in path or not self.owned[typ] or not self.owned[self.slot(root)["type"]] or self.params.get(root, {}).get("mode") in {"read", "mut"}:
+                _fail("E_RIR_PLACE", "Field transfer requires an owned named struct field")
+            sid = op["dest"] if name == "take_field" else op["src"]
+            if sid == root or self.slot(sid)["type"] != typ:
+                _fail("E_RIR_MOVE", "Field transfer requires a distinct identically typed owner slot")
+            if any(_overlap((root, path), loan[:2]) for loan in state.loans.values()):
+                _fail("E_RIR_LOAN_CONFLICT", "Field transfer conflicts with a live loan")
+            destination = self.tokens(root, path)
+            if name == "take_field":
+                state.initialized.difference_update(destination)
+                self.produce(sid, state)
+            else:
+                if root in self.params or not self.mutable(root):
+                    _fail("E_RIR_MUTABILITY", "Field restoration needs a mutable local aggregate")
+                ancestors = {(root, candidate) for candidate in self.shape(self.slot(root)["type"])
+                             if len(candidate) < len(path) and path[:len(candidate)] == candidate}
+                if not ancestors <= state.initialized:
+                    _fail("E_RIR_USE_AFTER_MOVE", "Field restoration cannot revive a moved parent")
+                if destination & state.initialized:
+                    _fail("E_RIR_DOUBLE_OWNER", "Field restoration cannot overwrite a live or partial field")
+                self.consume(sid, state)
+                state.initialized.update(destination)
+            state.variants.pop(root, None)
+            state.variants.pop(sid, None)
+        elif name == "forget":
+            sid = op["src"]
+            if sid in self.params or not self.owned[self.slot(sid)["type"]] or self.outstanding(state, sid):
+                _fail("E_RIR_LEAK", "Only local storage with no remaining owned payload can leave scope")
+            if any(loan[0] == sid for loan in state.loans.values()):
+                _fail("E_RIR_LOAN_CONFLICT", "Scope exit cannot discard borrowed storage")
+            state.initialized.difference_update(self.tokens(sid))
+            state.variants.pop(sid, None)
         elif name == "pack":
             dest = op["dest"]
             types = self.payload(self.slot(dest)["type"], op["variant"])
@@ -629,8 +709,9 @@ class _Verifier:
                         or loan[2] != ret["mode"] or not self.compatible_borrow(loan[3], ret["type"])):
                     _fail("E_RIR_RETURN", "Returned borrow escapes its declared input/mode")
                 del state.loans[term["loan"]]
-            if state.owners:
-                _fail("E_RIR_LEAK", "Normal/early return leaves owned values live: " + ", ".join(sorted(state.owners)))
+            outstanding = self.outstanding(state)
+            if outstanding:
+                _fail("E_RIR_LEAK", "Normal/early return leaves owned values live: " + ", ".join(sid + ''.join('.' + part for part in path) for sid, path in outstanding))
             if state.loans:
                 _fail("E_RIR_LOAN_ESCAPE", "Normal/early return leaves undeclared loans live")
             return []
@@ -695,7 +776,7 @@ class _Verifier:
         entry = _id(fn["entry"])
         if entry not in blocks:
             _fail("E_RIR_CFG", "Entry block is missing")
-        initial = _State({p["id"] for p in fn["params"] if p["mode"] == "take"})
+        initial = _State(set().union(*(self.tokens(p["id"]) for p in fn["params"] if p["mode"] == "take")))
         incoming = {entry: initial}
         pending = deque([entry])
         exits = 0
@@ -722,7 +803,7 @@ class _Verifier:
 
     def run(self) -> dict:
         _fields(self.doc, {"schema", "source_sha256", "project_sha256", "value_semantics", "types", "functions", "obligations", "claims"}, "resource IR")
-        if self.doc["schema"] not in {SCHEMA, LEGACY_SCHEMA} or self.doc["value_semantics"] != "copied_values_abstract_not_executable":
+        if self.doc["schema"] not in {SCHEMA, GENERIC_SCHEMA, LEGACY_SCHEMA} or self.doc["value_semantics"] != "copied_values_abstract_not_executable":
             _fail("E_RIR_SCHEMA", "Unsupported resource IR profile")
         if self.doc["claims"] != _CLAIMS or any(type(v) is not bool for v in self.doc["claims"].values()):
             _fail("E_RIR_CLAIM", "Resource IR cannot claim source refinement, native use or foreign soundness")
@@ -761,7 +842,7 @@ def main(argv=None) -> int:
     from pathlib import Path
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("graph", type=Path, help="A hepta.resource-ir.v2 JSON graph (legacy v1 accepted)")
+    parser.add_argument("graph", type=Path, help="A hepta.resource-ir.v3 JSON graph (legacy v1/v2 accepted)")
     args = parser.parse_args(argv)
 
     def unique_fields(pairs):

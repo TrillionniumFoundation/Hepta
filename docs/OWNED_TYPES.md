@@ -129,12 +129,13 @@ fn sum(input: read [u8]) -> u64 effects {panic} {
 }
 ```
 
-A borrowed-return function has exactly one `read` or `mut` input parameter.
-Its returned place must derive from that input, possibly through fields,
+A borrowed-return function selects one `read` or `mut` input parameter.
+With multiple borrowed inputs it must name the source using `from parameter`;
+with exactly one the source may be inferred. Its returned place derives from that input, possibly through fields,
 indexing, or another single-origin borrowed-return function. A `mut` return
 requires a mutable source. Borrowing a local, a fresh allocation, or an owned
-parameter for the return is rejected. Multiple borrowed inputs are rejected
-until explicit lifetime relationships are implemented. Runtime capabilities
+parameter for the return is rejected. Returning either of multiple unrelated
+inputs conditionally remains unsupported. Runtime capabilities
 cannot escape through borrowed returns.
 
 The result is a place for immediate reading, indexing, assignment when mutable,
@@ -144,7 +145,10 @@ Resource values cannot become new owners, even via an explicit move. This
 extension has no first-class local reference variables and no stored borrowed
 fields; `let alias = read packet` is still rejected.
 
-Rust lowering uses real `&T`/`&mut T` returns with the unique input lifetime.
+Rust lowering uses real `&T`/`&mut T` returns with the selected input lifetime.
+An explicit `from parameter` clause selects one source when several borrowed
+inputs exist; see [PARTIAL_PLACES.md](PARTIAL_PLACES.md) for that relationship
+and the separately checked partial-field move/restoration semantics.
 Real rustc checking rejects overlapping returned borrows and moving an owner
 while a returned borrow is still needed by an enclosing call. These cases are
 tested as native negative tests; the bootstrap frontend is not claimed to

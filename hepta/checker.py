@@ -11,7 +11,7 @@ import re
 from typing import Any
 
 from .ast import Diagnostic, Enum, EnumVariant, Expr, Function, Param, Program, Span, Stmt, Struct, Type
-from .runtime_concurrency import GROUP, GROUP_BUILTINS, GROUP_TYPE_NAMES, REPORT, SENDER, report_struct
+from .runtime_concurrency import BUDGET_REPORT, GROUP, GROUP_BUILTINS, GROUP_TYPE_NAMES, REPORT, SENDER, budget_report_struct, report_struct
 
 
 INTS = {"i8", "i16", "i32", "i64", "i128", "isize", "u8", "u16", "u32", "u64", "u128", "usize"}
@@ -102,6 +102,14 @@ def places_overlap(left: tuple[str, tuple[str, ...]], right: tuple[str, tuple[st
     return True
 
 
+def return_origin_index(fn: Function) -> int | None:
+    """The declared source is one borrowed parameter, never a local value."""
+    candidates = [i for i, param in enumerate(fn.params) if param.mode in {"read", "mut"}]
+    if fn.return_origin is None:
+        return candidates[0] if len(candidates) == 1 else None
+    return next((i for i in candidates if fn.params[i].name == fn.return_origin), None)
+
+
 @dataclass
 class CheckResult:
     diagnostics: list[Diagnostic] = field(default_factory=list)
@@ -136,7 +144,7 @@ class _Checker:
     def __init__(self, program: Program):
         self.program = program
         self.result = CheckResult()
-        self.structs: dict[str, Struct] = {"GroupReport": report_struct()}
+        self.structs: dict[str, Struct] = {"GroupReport": report_struct(), "GroupBudgetReport": budget_report_struct()}
         self.enums: dict[str, Enum] = {"Result": Enum("Result", [EnumVariant("Ok", [Type("$ResultOk")]), EnumVariant("Err", [Type("$ResultErr")])], ("$ResultOk", "$ResultErr"), True)}
         self.type_params: set[str] = set()
         self.owned_type_params: set[str] = set()
@@ -146,6 +154,12 @@ class _Checker:
         self.current: Function | None = None
         self.next_binding = 0
         self.bindings: dict[int, _Binding] = {}
+        # An owned struct has an initialization token for its root and each
+        # named descendant. Only opaque owned leaves carry drop obligations.
+        # Keeping Copy field tokens distinguishes a partial move from moving
+        # the entire aggregate; every continuing CFG edge compares this state.
+        self.place_tokens: dict[int, dict[tuple[str, ...], int]] = {}
+        self.token_places: dict[int, tuple[_Binding, tuple[str, ...], bool]] = {}
         self._assumption_keys: set[tuple] = set()
         self.worker_sites: list[tuple[str, Span]] = []
 
@@ -477,11 +491,13 @@ class _Checker:
                 self.error("E_RETURN_MODE", f"unsupported return mode {fn.return_mode}", fn.span)
             self.valid_type(fn.return_type, fn.span, allow_slice=fn.return_mode in {"read", "mut"})
             if fn.return_mode in {"read", "mut"}:
-                origins = [p for p in fn.params if p.mode in {"read", "mut"}]
-                if len(origins) != 1:
-                    self.error("E_BORROW_RETURN_SOURCE", "a borrowed return requires exactly one read/mut source parameter", fn.span)
-                elif fn.return_mode == "mut" and origins[0].mode != "mut":
+                origin = return_origin_index(fn)
+                if origin is None:
+                    self.error("E_BORROW_RETURN_SOURCE", "a borrowed return needs one explicit 'from parameter' origin, or exactly one borrowed input", fn.span)
+                elif fn.return_mode == "mut" and fn.params[origin].mode != "mut":
                     self.error("E_READ_ONLY", "a mutable borrowed return requires a mutable source parameter", fn.span)
+            elif fn.return_origin is not None:
+                self.error("E_BORROW_RETURN_SOURCE", "a value return cannot declare a borrowed origin", fn.span)
             if self.contains_capability(fn.return_type, {"Task", "TaskGroup"}):
                 self.error("E_TASK_SCOPE", "Task/TaskGroup handles cannot escape through a function return; join them in their creating scope", fn.span)
             seen: set[str] = set()
@@ -543,13 +559,71 @@ class _Checker:
         env[name] = binding
         self.bindings[binding.ident] = binding
         if self.contains_linear(typ) and mode not in {"read", "mut"}:
-            live.add(binding.ident)
+            tokens = {}
+            def add(value: Type, path: tuple[str, ...], depth: int = 0) -> None:
+                if depth > 128 or len(tokens) >= 16384:
+                    self.error("E_PLACE_LIMIT", "owned field initialization exceeds the finite place budget", span)
+                    return
+                if path:
+                    self.next_binding += 1
+                    token = self.next_binding
+                else:
+                    token = binding.ident
+                tokens[path] = token
+                declaration = self.structs.get(value.name)
+                self.token_places[token] = (binding, path, self.contains_linear(value) and declaration is None)
+                if declaration is not None:
+                    mapping = dict(zip(declaration.type_params, value.args))
+                    for member in declaration.fields:
+                        add(substitute_type(member.type, mapping), (*path, member.name), depth + 1)
+            add(typ, ())
+            self.place_tokens[binding.ident] = tokens
+            live.update(tokens.values())
         return binding
 
     def live_error(self, live: set[int], span: Span, context: str) -> None:
-        if live:
-            names = ", ".join(self.bindings[i].name for i in sorted(live))
+        obligations = [self.token_places[i] for i in sorted(live) if self.token_places[i][2]]
+        if obligations:
+            names = ", ".join(binding.name + "".join("." + part for part in path) for binding, path, _ in obligations)
             self.error("E_LINEAR_UNCONSUMED", f"unconsumed linear owner(s) on {context}: {names}", span, "consume resource values with release/drop/take/return or consuming match, and task handles with join/cancel_and_join, on every normal exit")
+
+    def binding_tokens(self, binding: _Binding) -> set[int]:
+        return set(self.place_tokens.get(binding.ident, {}).values())
+
+    def subtree_tokens(self, binding: _Binding, path: tuple[str, ...]) -> set[int]:
+        return {token for candidate, token in self.place_tokens.get(binding.ident, {}).items()
+                if candidate[:len(path)] == path}
+
+    def initialized_place(self, binding: _Binding, path: tuple[str, ...], live: set[int], span: Span) -> bool:
+        tokens = self.place_tokens.get(binding.ident)
+        if tokens is None:
+            return True
+        # Index projections are checked through their containing sequence.
+        named = path[:path.index("*")] if "*" in path else path
+        ancestors = {token for candidate, token in tokens.items() if named[:len(candidate)] == candidate}
+        required = ancestors | self.subtree_tokens(binding, named)
+        if not required <= live:
+            self.error("E_USE_AFTER_MOVE", f"place {binding.name}{''.join('.' + part for part in path)} is moved or partially initialized", span)
+            return False
+        return True
+
+    def named_field_type(self, expr: Expr, env: dict[str, _Binding]) -> Type:
+        """Resolve a pure named field chain without reading its parent value."""
+        if expr.kind == "name":
+            if expr.type_args:
+                self.error("E_GENERIC_CONTEXT", "explicit type arguments require a function call or constructor", expr.span)
+            binding = env.get(expr.value)
+            if binding is None:
+                self.error("E_UNKNOWN_NAME", f"unknown name {expr.value}", expr.span)
+                return self.remember(expr, ERROR)
+            return self.remember(expr, binding.type)
+        base = self.named_field_type(expr.children[0], env)
+        declaration = self.structs.get(base.name)
+        member = next((field for field in declaration.fields if field.name == expr.value), None) if declaration else None
+        if member is None:
+            self.error("E_UNKNOWN_FIELD", f"type {base} has no field {expr.value}", expr.span)
+            return self.remember(expr, ERROR)
+        return self.remember(expr, substitute_type(member.type, dict(zip(declaration.type_params, base.args))))
 
     def require_transfer(self, expr: Expr, typ: Type, *, context: str, fresh: bool = True) -> None:
         """A resource place never becomes an implicit copy or implicit move."""
@@ -599,6 +673,12 @@ class _Checker:
                 return BOOL
             if expr.value in {"group_send_timeout", "group_receive_timeout"}:
                 return Type("Result", (BOOL, Type("u8")))
+            if expr.value == "group_select_receive":
+                return Type("Result", (Type("u8"), Type("u8")))
+            if expr.value in {"group_budget_configure", "group_budget_share"}:
+                return BOOL
+            if expr.value == "group_budget_snapshot":
+                return BUDGET_REPORT
         if expr.kind == "unary" and expr.children:
             return self.hint(expr.children[0], env)
         if expr.kind == "field" and expr.children:
@@ -656,9 +736,9 @@ class _Checker:
                 continue
             fn = self.functions.get(expr.value) if expr.kind == "call" else None
             if fn is not None and fn.return_mode in {"read", "mut"}:
-                origins = [i for i, p in enumerate(fn.params) if p.mode in {"read", "mut"}]
-                if len(origins) == 1 and origins[0] < len(expr.children):
-                    arg = expr.children[origins[0]]
+                origin = return_origin_index(fn)
+                if origin is not None and origin < len(expr.children):
+                    arg = expr.children[origin]
                     if arg.kind == "unary" and arg.value in {"read", "mut"} and arg.children:
                         expr = arg.children[0]
                         continue
@@ -759,8 +839,7 @@ class _Checker:
                 self.error("E_UNKNOWN_NAME", f"unknown name {expr.value}", expr.span)
             else:
                 typ = binding.type
-                if self.contains_linear(typ) and binding.mode not in {"read", "mut"} and binding.ident not in live:
-                    self.error("E_USE_AFTER_MOVE", f"linear resource {binding.name} has already been moved", expr.span)
+                self.initialized_place(binding, (), live, expr.span)
         elif kind == "call":
             if expr.value in BUILTINS:
                 typ = self.builtin(expr, env, live, unsafe_depth, expected)
@@ -804,14 +883,14 @@ class _Checker:
                 if self.contains_linear(typ):
                     if self.returned_borrow_mode(child) is not None:
                         self.error("E_MOVE_BORROW", "cannot move a borrowed function result", expr.span)
-                    elif child.kind == "name" and child.value in env:
-                        binding = env[child.value]
+                    elif (place := place_path(child)) is not None and "*" not in place[1] and place[0] in env:
+                        binding = env[place[0]]
                         if binding.mode in {"read", "mut"}:
                             self.error("E_MOVE_BORROW", f"cannot move borrowed resource {binding.name}", expr.span)
                         else:
-                            live.discard(binding.ident)
+                            live.difference_update(self.subtree_tokens(binding, place[1]))
                     elif child.kind not in {"call", "struct", "variant"}:
-                        self.error("E_MOVE_PLACE", "resource move requires an owner name or a fresh function result", expr.span)
+                        self.error("E_MOVE_PLACE", "resource move requires a named owner/struct field or a fresh function result", expr.span)
             elif expr.value in {"-", "!"}:
                 child = expr.children[0]
                 desired = expected if expected is not None else self.numeric_hint([child], env)
@@ -905,6 +984,11 @@ class _Checker:
         elif kind == "field":
             if len(expr.children) != 1:
                 self.error("E_AST", "field expression requires one base", expr.span)
+            elif (place := place_path(expr)) is not None and "*" not in place[1]:
+                typ = self.named_field_type(expr, env)
+                binding = env.get(place[0])
+                if binding is not None:
+                    self.initialized_place(binding, place[1], live, expr.span)
             else:
                 base = self.expr(expr.children[0], env, live, unsafe_depth)
                 struct = self.structs.get(base.name)
@@ -933,8 +1017,8 @@ class _Checker:
                 self.error("E_AST", "malformed struct expression", expr.span)
             else:
                 name = expr.value.get("name")
-                if name == "GroupReport":
-                    self.error("E_REPORT_CONSTRUCTION", "GroupReport values can only be returned by the runtime", expr.span)
+                if name in {"GroupReport", "GroupBudgetReport"}:
+                    self.error("E_REPORT_CONSTRUCTION", f"{name} values can only be returned by the runtime", expr.span)
                 fields = expr.value.get("fields", [])
                 struct = self.structs.get(name)
                 if struct is None:
@@ -1087,7 +1171,9 @@ class _Checker:
                  "group_receive": 2, "group_seal": 1, "group_join": 1,
                  "group_drain_and_join": 1, "group_cancel_and_join": 1,
                  "group_snapshot": 1, "group_fail": 2, "group_cancel": 1,
-                 "group_send_timeout": 3, "group_receive_timeout": 3}[name]
+                 "group_send_timeout": 3, "group_receive_timeout": 3,
+                 "group_select_receive": 5, "group_budget_configure": 6,
+                 "group_budget_share": 2, "group_budget_snapshot": 1}[name]
         if len(args) != arity:
             self.error("E_ARITY", f"{name} expects {arity} argument(s), found {len(args)}", expr.span)
             for arg in args:
@@ -1110,6 +1196,34 @@ class _Checker:
                 "excludes": ["other_group_instances", "allocations_before_submission", "worker_internal_allocations", "thread_stacks", "runtime_metadata", "process_RSS", "CPU_time"],
             })
             return GROUP
+        if name == "group_budget_configure":
+            self.borrow(args[0], "mut", GROUP, env, live, unsafe_depth)
+            for arg in args[1:]:
+                actual = self.expr(arg, env, live, unsafe_depth, USIZE)
+                self.compatible(actual, USIZE, arg.span)
+            self.effect("alloc", "block", "panic", "write")
+            self.result.resource_contracts.append({
+                "kind": "shared_task_budget", "scope": "explicitly_attached_group_instances",
+                "enforcement": "checked_reservations_before_spawn_released_after_join",
+                "function": self.current.name if self.current else None,
+                "path": expr.span.path, "line": expr.span.line,
+                "limits": {key: arg.value if arg.kind == "int" else "dynamic_runtime_value"
+                           for key, arg in zip(("reserved_threads", "reserved_input_bytes", "reserved_queue_slots",
+                                               "reserved_requested_stack_bytes", "worker_stack_request"), args[1:])},
+                "excludes": ["unattached_group_instances", "allocations_before_submission", "worker_internal_allocations",
+                             "FFI_allocations", "OS_stack_rounding_and_guard_pages", "runtime_metadata", "process_RSS", "CPU_time"],
+                "configuration_can_be_refused": True,
+            })
+            return BOOL
+        if name == "group_budget_share":
+            self.borrow(args[0], "mut", GROUP, env, live, unsafe_depth)
+            self.borrow(args[1], "read", GROUP, env, live, unsafe_depth)
+            self.effect("alloc", "block", "panic", "write")
+            return BOOL
+        if name == "group_budget_snapshot":
+            self.borrow(args[0], "read", GROUP, env, live, unsafe_depth)
+            self.effect("alloc", "block", "panic")
+            return BUDGET_REPORT
         if name == "group_spawn":
             self.borrow(args[0], "mut", GROUP, env, live, unsafe_depth)
             worker_expr = args[1]
@@ -1159,6 +1273,15 @@ class _Checker:
                 self.compatible(actual, Type("u64"), args[2].span)
             self.effect("alloc", "block", "panic", "write")
             return Type("Result", (BOOL, Type("u8"))) if name == "group_receive_timeout" else BOOL
+        if name == "group_select_receive":
+            self.borrow(args[0], "read", GROUP, env, live, unsafe_depth)
+            self.borrow(args[1], "read", GROUP, env, live, unsafe_depth)
+            self.borrow(args[2], "mut", Type("u64"), env, live, unsafe_depth)
+            for arg, expected in ((args[3], BOOL), (args[4], Type("u64"))):
+                actual = self.expr(arg, env, live, unsafe_depth, expected)
+                self.compatible(actual, expected, arg.span)
+            self.effect("alloc", "block", "panic", "write")
+            return Type("Result", (Type("u8"), Type("u8")))
         if name in {"group_seal", "group_cancel"}:
             self.borrow(args[0], "mut", GROUP, env, live, unsafe_depth)
             self.effect("alloc", "block", "panic", "write")
@@ -1210,13 +1333,39 @@ class _Checker:
                 self.error("E_UNSIZED", "slice values cannot be local owned bindings", stmt.span)
             binding = self.bind(data["name"], typ, bool(data.get("mutable")), "value", stmt.span, env, live)
             if self.contains_linear(typ):
-                local_owners.add(binding.ident)
+                local_owners.update(self.binding_tokens(binding))
         elif stmt.kind == "assign":
             target = data["target"]
-            target_type = self.lvalue(target, env, live, unsafe_depth, mutable=True)
+            hint = self.hint(target, env)
+            place = place_path(target)
+            restore = bool(hint is not None and self.contains_linear(hint) and target.kind == "field"
+                           and place is not None and "*" not in place[1])
+            if restore:
+                target_type = self.named_field_type(target, env)
+                binding = env.get(place[0])
+                tokens = self.place_tokens.get(binding.ident, {}) if binding else {}
+                ancestors = {token for path, token in tokens.items() if len(path) < len(place[1]) and place[1][:len(path)] == path}
+                destination = self.subtree_tokens(binding, place[1]) if binding else set()
+                if binding is None or not binding.mutable or binding.mode in {"read", "mut"}:
+                    self.error("E_LINEAR_REASSIGN", "owned field restoration requires a mutable local owning aggregate", target.span)
+                elif not destination or not ancestors <= live:
+                    self.error("E_USE_AFTER_MOVE", "restore a moved field only while all its enclosing aggregates remain initialized", target.span)
+                elif destination & live:
+                    self.error("E_LINEAR_REASSIGN", "owned field restoration requires a completely moved-out field; consume remaining payloads explicitly", target.span)
+            else:
+                target_type = self.lvalue(target, env, live, unsafe_depth, mutable=True)
             actual = self.expr(data["expr"], env, live, unsafe_depth, target_type)
             self.compatible(actual, target_type, stmt.span)
-            if self.contains_linear(target_type) or self.contains_linear(actual):
+            if restore:
+                self.require_transfer(data["expr"], actual, context="owned field restoration")
+                # RHS evaluation may move an enclosing aggregate. Recheck the
+                # destination after it, before adding initialization tokens.
+                if not ancestors <= live:
+                    self.error("E_USE_AFTER_MOVE", "field restoration RHS moved its enclosing aggregate", stmt.span)
+                if destination & live:
+                    self.error("E_LINEAR_REASSIGN", "field restoration RHS reinitialized the destination", stmt.span)
+                live.update(destination)
+            elif self.contains_linear(target_type) or self.contains_linear(actual):
                 self.error("E_LINEAR_REASSIGN", "linear resources cannot be reassigned", stmt.span)
             if self.contains_cancellation(target_type) or self.contains_cancellation(actual):
                 self.error("E_CANCELLATION_TYPE", "Cancellation capabilities cannot be reassigned", stmt.span)
@@ -1235,9 +1384,9 @@ class _Checker:
                     self.borrow(expr, self.current.return_mode, self.current.return_type, env, live, unsafe_depth)
                     place = expr.children[0] if expr.kind == "unary" and expr.children else expr
                     origin = self.root_binding(place, env)
-                    sources = [p for p in self.current.params if p.mode in {"read", "mut"}]
-                    if len(sources) != 1 or origin is None or origin.name != sources[0].name or origin.mode not in {"read", "mut"}:
-                        self.error("E_BORROW_RETURN_SOURCE", "returned borrow must originate in the unique borrowed input, never a local or owned parameter", stmt.span)
+                    selected = return_origin_index(self.current)
+                    if selected is None or origin is None or origin.name != self.current.params[selected].name or origin.mode not in {"read", "mut"}:
+                        self.error("E_BORROW_RETURN_SOURCE", "returned borrow must originate in the declared borrowed input, never another input, local or owned parameter", stmt.span)
                 self.live_error(live, stmt.span, "borrowed return")
                 return _Flow(live, False)
             if expr is None:
@@ -1308,7 +1457,7 @@ class _Checker:
                         continue
                     binding = self.bind(name, field_type, False, "value", pattern.span, arm_env, arm_live)
                     if self.contains_linear(field_type):
-                        arm_owners.add(binding.ident)
+                        arm_owners.update(self.binding_tokens(binding))
                 flow = self.block(arm.body, arm_env, arm_live, unsafe_depth)
                 if flow.normal:
                     self.live_error(flow.live & arm_owners, arm.span, "match arm exit")

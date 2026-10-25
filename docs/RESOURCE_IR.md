@@ -1,10 +1,10 @@
 # Independently checked resource and loan IR
 
-`hepta.resource-ir.v2` is a typed JSON control-flow graph with explicit resource
+`hepta.resource-ir.v3` is a typed JSON control-flow graph with explicit resource
 transitions. `hepta/resource_ir.py` verifies that graph without importing the
 Hepta parser, source checker or source AST. This is additional checking of a
 resource abstraction. It does not replace the existing native Rust gate.
-The standalone verifier also accepts concrete legacy v1 graphs.
+The standalone verifier also accepts concrete legacy v1 and generic v2 graphs.
 
 `hepta/resource_lowering.py` translates a successfully checked AST into the
 graph; the pipeline invokes the independent verifier. The translator is ordinary Python
@@ -29,7 +29,7 @@ are checked independently. `OWNED_GENERICS.md` details that finite profile.
 
 Each function has parameter modes, a typed return signature, local storage,
 an entry block, basic blocks and explicit terminators. The verifier propagates
-three kinds of state through every reachable edge: live owners, active loans
+three kinds of state through every reachable edge: initialized owner places, active loans
 and enum-variant facts. All incoming states at a block must be identical,
 including incoming loop backedges. This strict rule permits deterministic
 worklist checking without a source checker or guessed loop invariant. It can
@@ -40,6 +40,9 @@ reject programs requiring more expressive joins or loop invariants.
 | `acquire` | A modeled buffer constructor creates a new owner. |
 | `move` | A live owner is consumed and transferred into distinct, vacant storage of the same type. |
 | `drop` | A live owner is consumed; no loan into it may remain. |
+| `take_field` | An initialized owned struct-field subtree moves to a distinct typed owner slot. |
+| `init_field` | A moved-out field is restored from a distinct typed owner; its mutable local parents must remain initialized. |
+| `forget` | Local aggregate storage leaves scope only after all owned leaves are consumed and no loan remains. |
 | `pack` | Every aggregate field has the declared type; owned fields transfer into the aggregate. |
 | `unpack` | All payloads receive distinct typed destinations; owned aggregate storage is consumed. Enum unpacking requires the matching switch-edge fact. |
 | `borrow` | A live place grants a read or mutable loan with compatible pointee type and no conflicting loan. |
@@ -74,8 +77,9 @@ is mutable; shared read/read argument use is permitted. Moving, dropping or
 overwriting an owner with an active loan is rejected. Borrowed inputs are
 never treated as locally owned values that a callee can destroy.
 
-A returned borrow must originate in the function's unique declared `read`
-or `mut` parameter, and a mutable return requires a mutable origin. An
+A returned borrow must originate in one declared `read` or `mut` parameter,
+and a mutable return requires a mutable origin. V3 supports explicitly selecting
+one input from several borrowed parameters; v1/v2 require a unique input. An
 internal function body must establish that relation with its return
 transition. The caller conservatively retains the entire argument region
 for a returned view, because a call signature does not describe the precise
@@ -94,7 +98,7 @@ There is no claim that a foreign implementation satisfies those assumptions.
 ## Source lowering profile
 
 The implemented source translator handles concrete `Buffer<u8>`, owned
-structs/enums/`Result`, `buffer`/`try_buffer`, explicit whole-owner movement,
+structs/enums/`Result`, `buffer`/`try_buffer`, explicit whole-owner and named field movement,
 aggregate construction, consuming matches, `drop`/`release`, direct field
 and index access, temporary `read`/`mut` borrows, calls, returned views,
 `if`, short-circuit booleans, early return, `for` and `while`. Loop bodies
@@ -102,12 +106,14 @@ must return to the header with the same owner and loan state. All imported
 functions in the resolved project are translated and checked.
 Finite Copy/Owned function constraints and whole fresh-owner transfers are
 also modelled; the IR does not rely on concrete specialization sampling.
+Nested partial moves, field restoration, lexical cleanup checks and explicit
+returned origins are detailed in [PARTIAL_PLACES.md](PARTIAL_PLACES.md).
 
 Unsupported constructs fail with `E_RIR_LOWER_UNSUPPORTED`, or a more
 specific resource-verifier diagnostic when a produced graph violates the
 model. These include raw pointers, tasks/channels/concurrency, task resource
-clauses, unbound or unsupported generic constraints, partial moves
-out of owned fields, first-class stored references, unmodeled builtins,
+clauses, unbound or unsupported generic constraints, moves through indexed or
+borrowed storage, first-class stored references, unmodeled builtins,
 projection from temporary nonborrowed aggregates, and mode-changing borrowed
 returns that need an explicit reborrow transition. Concrete generic
 aggregate instances are supported. A supported source may still be rejected

@@ -12,7 +12,7 @@ import tempfile
 from . import __version__
 from .ast import HeptaError
 from .backend import compile_rust, emit_header, find_rustc, toolchain_info
-from .pipeline import analyze, analyze_project, inspect_analysis, hsir_analysis, cfg_analysis, resource_ir_analysis
+from .pipeline import analyze, analyze_project, inspect_analysis, hsir_analysis, cfg_analysis, resource_ir_analysis, concurrent_ir_analysis
 from .protocol import apply_patch
 
 
@@ -72,7 +72,7 @@ def main(argv=None) -> int:
             w.add_argument("--apply", action="store_true")
         if action == "pin":
             w.add_argument("--version")
-    for cmd in ["check", "inspect", "hsir", "cfg", "hmir", "resource-ir", "emit", "header", "build", "run", "patch"]:
+    for cmd in ["check", "inspect", "hsir", "cfg", "hmir", "resource-ir", "concurrent-ir", "emit", "header", "build", "run", "patch"]:
         p = sub.add_parser(cmd)
         p.add_argument("source")
         p.add_argument("--rustc")
@@ -86,17 +86,20 @@ def main(argv=None) -> int:
         if cmd != "patch":
             p.add_argument("--no-std", action="store_true")
             p.add_argument("--crate-type", choices=["bin", "staticlib", "cdylib", "rlib", "obj"], default="bin" if cmd in {"build", "run"} else "rlib")
-        if cmd in {"check", "inspect", "hsir", "cfg", "hmir", "resource-ir"}:
+        if cmd in {"check", "inspect", "hsir", "cfg", "hmir", "resource-ir", "concurrent-ir"}:
             p.add_argument("--frontend-only", action="store_true", help="Explicitly skip native/borrow checks; output cannot be treated as a complete check")
         if cmd in {"emit", "header", "build"}:
             p.add_argument("--output", "-o")
         if cmd in {"build", "run"}:
             p.add_argument("--link-arg", action="append", default=[])
+            p.add_argument("--debug", action="store_true", help="Unoptimized native debug information and retained generated source mapping")
         if cmd == "patch":
             p.add_argument("--request", required=True, help="Path to a v1/v2 or multi-file preview v3 patch JSON request")
             p.add_argument("--apply", action="store_true", help="Atomically apply after native validation")
     args = parser.parse_args(argv)
     try:
+        if getattr(args, "debug", False) and args.c_opt != "default":
+            raise ValueError("--debug disables optimization and cannot use --c-opt unroll")
         if args.command == "workspace":
             from .workspace import initialize, inspect_workspace, pin, apply_workspace_patch, recover
             if args.workspace_action == "init":
@@ -196,6 +199,10 @@ def main(argv=None) -> int:
             exported = resource_ir_analysis(result)
             output_json(exported)
             return 0 if exported["ok"] else 1
+        if args.command == "concurrent-ir":
+            exported = concurrent_ir_analysis(result)
+            output_json(exported)
+            return 0 if exported["ok"] else 1
         if not result.report["ok"] or args.command == "check":
             output_json(result.report)
             return 0 if result.report["ok"] else 1
@@ -219,10 +226,10 @@ def main(argv=None) -> int:
             if args.backend == "c":
                 from .c_backend import compile_c
                 native = compile_c(result.c, cc=args.cc, crate_type=args.crate_type, output=dest, link_args=args.link_arg,
-                                   optimization_profile=args.c_opt)
+                                   optimization_profile=args.c_opt, optimize=not args.debug, debug_info=args.debug)
             else:
                 native = compile_rust(result.rust, rustc=args.rustc, target=args.target, crate_type=args.crate_type,
-                                      output=dest, link_args=args.link_arg)
+                                      output=dest, link_args=args.link_arg, optimize=not args.debug, debug_info=args.debug)
             output_json({"schema": "hepta.build.v1", "ok": native["ok"], "validation": result.report, "build": native})
             return 0 if native["ok"] else 1
         if args.command == "run":
@@ -232,10 +239,10 @@ def main(argv=None) -> int:
                 if args.backend == "c":
                     from .c_backend import compile_c
                     native = compile_c(result.c, cc=args.cc, crate_type="bin", output=Path(td) / "program", link_args=args.link_arg,
-                                       optimization_profile=args.c_opt)
+                                       optimization_profile=args.c_opt, optimize=not args.debug, debug_info=args.debug)
                 else:
                     native = compile_rust(result.rust, rustc=args.rustc, target=args.target, crate_type="bin",
-                                          output=Path(td) / "program", link_args=args.link_arg)
+                                          output=Path(td) / "program", link_args=args.link_arg, optimize=not args.debug, debug_info=args.debug)
                 if not native["ok"]:
                     output_json(native)
                     return 1

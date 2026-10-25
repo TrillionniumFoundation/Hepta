@@ -1,5 +1,38 @@
 # Checked abstract core and cross-execution tools
 
+## Allocation identity and typed expression core
+
+`HeptaMemory.lean` adds 19 kernel-checked theorems. Its explicit memory model
+distinguishes allocation identity, generation and offset, rejects stale or
+retired pointers, forbids nonempty one-past reads, narrows view ranges without
+gaining write permission, and preserves pairwise loan compatibility on admission.
+Its separate closed expression model proves canonical forms, small-step type
+preservation, progress, trace preservation and the absence of a stuck reachable
+well-typed expression.
+
+```sh
+python tools/verify_memory.py --output artifacts/memory-proofs.json
+```
+
+This checker verifies the pinned Lean executable SHA-256, inventories every
+theorem's standard axiom dependencies and requires five rejected mutations:
+removing allocation identity, generation or extent checks, granting write
+permission to a read-only view, and making addition return a Boolean. The
+kernel diagnostics for each broken variant are retained.
+
+The memory definitions use mathematical natural numbers and explicit abstract
+identities; actual allocator identity freshness, generation overflow, machine
+pointer representation, initialization, alignment, FFI and concurrent runtime
+implementation are not established. Allocation records are supplied assumptions;
+there is no global freshness or pointer unforgeability theorem. Pairwise view
+compatibility does not establish the validity or liveness of each admitted
+view. The expression core has wrapping words,
+Booleans, addition, equality and conditionals; it is not the complete production
+Hepta type system or checked-panic arithmetic semantics. No correspondence from
+the Python frontend, IR or native backends to either definition is proved.
+
+## Earlier abstract resource and lowering core
+
 `HeptaCore.lean` contains 11 kernel-checked theorems about three explicit models:
 
 1. Loan-count resource state transitions preserve live/borrow consistency;

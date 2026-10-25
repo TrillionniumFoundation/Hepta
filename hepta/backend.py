@@ -80,6 +80,7 @@ class Emitter:
         self.params: dict[str, str] = {}
         self.type_params: set[str] = set()
         self.functions = {f.name: f for f in program.functions}
+        self.borrow_origin: str | None = None
 
     def typ(self, typ: Type) -> str:
         return rust_type(typ, self.type_params)
@@ -87,8 +88,9 @@ class Emitter:
     def constructor(self, typ: Type) -> str:
         return self.typ(typ).replace("<", "::<", 1)
 
-    def generics(self, params: tuple[str, ...], *, copy_bound: bool = True, bounds: dict[str, str] | None = None) -> str:
-        return "<" + ", ".join("G_" + name + (": core::marker::Copy" if copy_bound and (bounds or {}).get(name, "Copy") == "Copy" else "") for name in params) + ">" if params else ""
+    def generics(self, params: tuple[str, ...], *, copy_bound: bool = True, bounds: dict[str, str] | None = None, borrowed: bool = False) -> str:
+        items = (["'hepta_return"] if borrowed else []) + ["G_" + name + (": core::marker::Copy" if copy_bound and (bounds or {}).get(name, "Copy") == "Copy" else "") for name in params]
+        return "<" + ", ".join(items) + ">" if items else ""
 
     @staticmethod
     def variant_name(enum_name: str, variant_name: str) -> str:
@@ -146,6 +148,10 @@ class Emitter:
                            "group_snapshot": "__hepta_group_snapshot", "group_fail": "__hepta_group_fail",
                            "group_send_timeout": "__hepta_group_send_timeout",
                            "group_receive_timeout": "__hepta_group_receive_timeout",
+                           "group_select_receive": "__hepta_group_select_receive",
+                           "group_budget_configure": "__hepta_group_budget_configure",
+                           "group_budget_share": "__hepta_group_budget_share",
+                           "group_budget_snapshot": "__hepta_group_budget_snapshot",
                            "group_cancel": "__hepta_group_cancel"}
             if e.value in group_calls:
                 return group_calls[e.value] + "(" + ", ".join(args) + ")"
@@ -229,10 +235,11 @@ class Emitter:
 
     def param(self, p) -> str:
         t = self.typ(p.type)
+        lifetime = "'hepta_return " if p.name == self.borrow_origin else ""
         if p.mode == "read":
-            t = "&" + t
+            t = "&" + lifetime + t
         elif p.mode == "mut":
-            t = "&mut " + t
+            t = "&" + lifetime + "mut " + t
         return "h_" + p.name + ": " + t
 
     def emit(self) -> str:
@@ -284,8 +291,10 @@ class Emitter:
         for fn in self.program.functions:
             self.params = {p.name: p.mode for p in fn.params}
             self.type_params = set(fn.type_params)
-            return_prefix = "&" if fn.return_mode == "read" else "&mut " if fn.return_mode == "mut" else ""
-            signature = "fn h_" + fn.name + self.generics(fn.type_params, bounds=fn.type_bounds) + "(" + ", ".join(self.param(p) for p in fn.params) + ") -> " + return_prefix + self.typ(fn.return_type)
+            self.borrow_origin = fn.return_origin
+            lifetime = "'hepta_return " if self.borrow_origin else ""
+            return_prefix = "&" + lifetime if fn.return_mode == "read" else "&" + lifetime + "mut " if fn.return_mode == "mut" else ""
+            signature = "fn h_" + fn.name + self.generics(fn.type_params, bounds=fn.type_bounds, borrowed=self.borrow_origin is not None) + "(" + ", ".join(self.param(p) for p in fn.params) + ") -> " + return_prefix + self.typ(fn.return_type)
             lines.append("// hepta-source: " + json.dumps({"event": "begin", "kind": "declaration", "span": asdict(fn.span)}, ensure_ascii=True, separators=(",", ":")))
             if fn.extern_c:
                 lines.append('extern "C" { #[link_name = ' + json.dumps(fn.name) + "] pub " + signature + "; }")
@@ -423,7 +432,8 @@ def toolchain_info(rustc: str) -> dict:
 
 def compile_rust(source: str, *, rustc: str | None = None, target: str | None = None,
                  crate_type: str = "rlib", output: str | Path | None = None,
-                 check_only: bool = False, optimize: bool = True, link_args: list[str] | None = None) -> dict:
+                 check_only: bool = False, optimize: bool = True, link_args: list[str] | None = None,
+                 debug_info: bool = False) -> dict:
     compiler = find_rustc(rustc)
     info = toolchain_info(compiler)
     # Rust normally discovers its sysroot through its executable location.
@@ -441,11 +451,18 @@ def compile_rust(source: str, *, rustc: str | None = None, target: str | None = 
         if visible_gcc:
             linker = str(Path(visible_gcc).resolve())
     artifact = Path(output).resolve() if output is not None else None
+    if debug_info and artifact is None:
+        raise HeptaError(Diagnostic("E_DEBUG_OUTPUT", "Debug builds need an explicit output to retain their generated source", phase="backend"))
     if artifact:
         artifact.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=".hepta-native-", dir=artifact.parent if artifact else None) as td:
         generated = Path(td) / "program.rs"
-        generated.write_text(source)
+        retained_debug = None
+        if debug_info:
+            from .debug_info import retain_debug_source
+            generated, retained_debug = retain_debug_source(source, artifact, "rust")
+        else:
+            generated.write_text(source)
         native_out = Path(td) / (artifact.name if artifact else "checked.rmeta")
         # rustc intentionally emits empty/no metadata for bins and staticlibs.
         # A library metadata pass checks the same lowered bodies and borrows;
@@ -457,6 +474,8 @@ def compile_rust(source: str, *, rustc: str | None = None, target: str | None = 
                "--error-format=json", "-o", str(native_out)]
         if sysroot:
             cmd += ["--sysroot", str(sysroot)]
+        if debug_info:
+            cmd += ["-C", "debuginfo=2", "-C", "force-frame-pointers=yes"]
         if linker:
             cmd += ["-C", "linker=" + linker]
         if target:
@@ -469,6 +488,8 @@ def compile_rust(source: str, *, rustc: str | None = None, target: str | None = 
             cmd += ["-C", "link-arg=" + arg]
         flags = ["edition=2021", "opt-level=" + ("3" if optimize else "0"),
                  "overflow-checks=yes", "panic=abort", "codegen-units=1"]
+        if debug_info:
+            flags += ["debuginfo=2", "force-frame-pointers=yes"]
         if sysroot:
             flags.append("sysroot=" + sysroot)
         if linker:
@@ -498,6 +519,8 @@ def compile_rust(source: str, *, rustc: str | None = None, target: str | None = 
                   "rustc_crate_type": native_type,
                   "sysroot": str(sysroot) if sysroot else None, "linker": linker,
                   "link_args": link_args or []}
+        if debug_info:
+            result["debug_info"] = retained_debug
         if p.returncode == 0 and (not native_out.is_file() or native_out.stat().st_size == 0):
             result["ok"] = False
             result["status"] = "rejected"

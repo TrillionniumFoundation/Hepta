@@ -72,11 +72,12 @@ class BorrowedReturnChecks(unittest.TestCase):
         self.reject("fn bad(c:read Cancellation)->read Cancellation effects {} {return read c;}", "E_CANCELLATION_TYPE")
         self.reject("fn bad(c:read Sender<u64>)->read Sender<u64> effects {} {return read c;}", "E_SENDER_TYPE")
 
-    def test_borrowed_returns_cannot_cross_c_abi_or_c_backend(self):
+    def test_borrowed_returns_cannot_cross_c_abi_but_have_internal_c_lowering(self):
         self.reject('export "C" fn get(x:read u32)->read u32 effects {} {return read x;}', "E_C_ABI")
         result = analyze("fn get(x:read u32)->read u32 effects {} {return read x;}", native=False, backend="c")
-        self.assertFalse(result.report["ok"])
-        self.assertIn("E_C_BACKEND_SUBSET", [d["code"] for d in result.report["diagnostics"]])
+        self.assertTrue(result.report["ok"], result.report)
+        self.assertIsNone(result.rust)
+        self.assertIn("const uint32_t *", result.c)
 
 
 @unittest.skipUnless(RUSTC, "requires real pinned rustc")

@@ -137,12 +137,13 @@ class Function:
     span: Span = field(default_factory=Span)
     body_span: Span = field(default_factory=Span)
     type_params: tuple[str, ...] = ()
-    # Borrowed returns are tied to the unique read/mut input. They are places
-    # for immediate use/reborrowing, not first-class local reference values.
+    # Borrowed returns name one input origin (or infer the unique borrowed
+    # input). They are immediate places, not first-class stored references.
     return_mode: str = "value"
     # Function-only finite capability constraints. Missing entries retain the
     # historical Copy constraint; Owned means a checked, sized resource value.
     type_bounds: dict[str, str] = field(default_factory=dict)
+    return_origin: str | None = None
 
 
 @dataclass

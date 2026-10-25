@@ -199,7 +199,7 @@ def lower_checked_cfg(program: Program, checked: Any, *,
     functions = []
     for fn in program.functions:
         signature = {"params": [{"name": p.name, "mode": p.mode, "type": str(p.type)} for p in fn.params],
-                     "returns": str(fn.return_type), "return_mode": getattr(fn, "return_mode", "value")}
+                     "returns": str(fn.return_type), "return_mode": getattr(fn, "return_mode", "value"), "return_origin": fn.return_origin}
         if fn.body is None:
             functions.append({"name": fn.name, "path": fn.span.path,
                               "signature": signature,

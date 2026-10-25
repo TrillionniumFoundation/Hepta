@@ -1,0 +1,16 @@
+module protocol_qualification;
+
+fn work(data: take Buffer<u8>, token: read Cancellation, out: read Sender<u64>) -> u64
+effects {alloc, block, panic, write} {
+    let sent = group_send(read out, 7);
+    release(move data);
+    return 1;
+}
+
+fn main() -> Unit effects {alloc, block, spawn, panic, write} {
+    let mut group = task_group(1, 8, 1);
+    let input = buffer(8);
+    let accepted = group_spawn(mut group, work, move input);
+    group_cancel(mut group);
+    let report = group_join(move group);
+}

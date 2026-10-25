@@ -146,8 +146,9 @@ class OwnedGenericChecks(unittest.TestCase):
     def test_generic_owned_functions_keep_c_boundary_restrictions(self):
         self.reject('export "C" fn f<T:Owned>(x:take T)->T effects {} {return move x;}', "E_GENERIC_BOUNDARY")
         result = analyze(GENERIC, native=False, backend="c")
-        self.assertFalse(result.report["ok"])
-        self.assertIn("E_C_BACKEND_SUBSET", [d["code"] for d in result.report["diagnostics"]])
+        self.assertTrue(result.report["ok"], result.report)
+        self.assertIsNone(result.rust)
+        self.assertIn("__hepta_cb_generic_", result.c)
 
 
 class GenericResourceIR(unittest.TestCase):
@@ -160,7 +161,7 @@ class GenericResourceIR(unittest.TestCase):
         document = graph()
         result = verify_resource_ir(document)
         self.assertTrue(result["ok"], result)
-        self.assertEqual(document["schema"], "hepta.resource-ir.v2")
+        self.assertEqual(document["schema"], "hepta.resource-ir.v3")
         self.assertIn("unused", {f["function"] for f in result["functions"]})
         self.assertEqual(fn(document, "unused")["type_params"], ["@unused::T"])
         self.assertFalse(result["claims"]["source_to_ir_refinement_proved"])

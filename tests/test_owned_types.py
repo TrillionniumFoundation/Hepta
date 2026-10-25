@@ -83,8 +83,8 @@ class OwnedTypeChecks(unittest.TestCase):
         helper = PACKET + "fn done(p:take Packet)->bool effects {alloc,block} {drop(move p);return true;}"
         self.reject(self.body("let p=Packet{bytes:buffer(1),tag:0};let answer=false&&done(move p);drop(move p);", helper), "E_LINEAR_SHORT_CIRCUIT")
 
-    def test_partial_move_and_temporary_projection_are_rejected(self):
-        self.reject(self.body("let p=Packet{bytes:buffer(3),tag:4};let data=move p.bytes;release(move data);drop(move p);", PACKET), "E_MOVE_PLACE")
+    def test_whole_use_after_partial_move_and_temporary_projection_are_rejected(self):
+        self.reject(self.body("let p=Packet{bytes:buffer(3),tag:4};let data=move p.bytes;release(move data);drop(move p);", PACKET), "E_USE_AFTER_MOVE")
         helper = PACKET + "fn make()->Packet effects {alloc,block,panic} {return Packet{bytes:buffer(3),tag:4};}"
         self.reject(self.body("let tag=make().tag;", helper), "E_LINEAR_TEMPORARY")
 
@@ -123,8 +123,9 @@ class OwnedTypeChecks(unittest.TestCase):
     def test_owned_result_does_not_gain_a_c_abi(self):
         self.reject('export "C" fn f()->Result<Buffer<u8>,u8> effects {} {return Result::Err(1);}', "E_C_ABI")
         result = analyze("fn f()->Result<Buffer<u8>,u8> effects {} {return Result::Err(1);}", native=False, backend="c")
-        self.assertFalse(result.report["ok"])
-        self.assertIn("E_C_BACKEND_SUBSET", [d["code"] for d in result.report["diagnostics"]])
+        self.assertTrue(result.report["ok"], result.report)
+        self.assertIsNone(result.rust)
+        self.assertIn("payload.v_Err", result.c)
 
     def test_failure_and_cancellation_paths_cannot_drop_obligations(self):
         worker = """fn worker(data:take Buffer<u8>,token:read Cancellation,out:read Sender<u64>)->u64

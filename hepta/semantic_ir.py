@@ -122,6 +122,7 @@ def lower_checked_program(program: Program, checked: Any, *, project_sha256: str
                         "span": _span(p.span)} for p in fn.params],
             "returns": str(fn.return_type),
             "return_mode": getattr(fn, "return_mode", "value"),
+            "return_origin": fn.return_origin,
             "declared_effects": sorted(fn.effects),
             "inferred_effects": sorted(checked.effects.get(fn.name, ())),
             "resources": enc.value(fn.resources),

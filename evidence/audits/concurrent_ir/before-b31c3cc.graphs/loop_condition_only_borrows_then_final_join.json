@@ -1,0 +1,134 @@
+{
+  "claims": {
+    "cancellation_termination_proved": false,
+    "deadlock_freedom_proved": false,
+    "normal_exit_join_obligations_verified": true,
+    "runtime_budget_bounds_proved": false,
+    "runtime_data_race_freedom_proved": false,
+    "source_to_ir_refinement_proved": false,
+    "whole_language_soundness_proved": false,
+    "worker_input_transfer_verified": true
+  },
+  "functions": [
+    {
+      "blocks": [
+        {
+          "id": "bb0",
+          "operations": [
+            {
+              "dest": "v0",
+              "op": "create",
+              "type": "TaskGroup"
+            },
+            {
+              "dest": "v1",
+              "op": "move",
+              "src": "v0"
+            }
+          ],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb1"
+            ]
+          }
+        },
+        {
+          "id": "bb1",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb4",
+              "bb5"
+            ]
+          }
+        },
+        {
+          "id": "bb2",
+          "operations": [
+            {
+              "mode": "group_cancel",
+              "op": "group",
+              "src": "v1"
+            }
+          ],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb1"
+            ]
+          }
+        },
+        {
+          "id": "bb3",
+          "operations": [
+            {
+              "dest": "v2",
+              "op": "move",
+              "src": "v1"
+            },
+            {
+              "mode": "group_cancel_and_join",
+              "op": "join",
+              "src": "v2"
+            }
+          ],
+          "terminator": {
+            "op": "return",
+            "owner": null
+          }
+        },
+        {
+          "id": "bb4",
+          "operations": [
+            {
+              "mode": "group_snapshot",
+              "op": "group",
+              "src": "v1"
+            }
+          ],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb6"
+            ]
+          }
+        },
+        {
+          "id": "bb5",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb6"
+            ]
+          }
+        },
+        {
+          "id": "bb6",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb2",
+              "bb3"
+            ]
+          }
+        }
+      ],
+      "entry": "bb0",
+      "name": "f",
+      "params": [],
+      "returns": "Unit",
+      "slots": {
+        "v0": "TaskGroup",
+        "v1": "TaskGroup",
+        "v2": "TaskGroup"
+      }
+    }
+  ],
+  "project_sha256": null,
+  "schema": "hepta.concurrent-ir.v1",
+  "source_sha256": "4fc513e3370a6f055a317357f3258b05219d4f66b1000673bb39099ccf62a718"
+}

@@ -42,9 +42,11 @@ a generic destructor helper cannot hide those effects.
 Neither constraint implies methods, arithmetic, comparison, allocation,
 custom destructors or a particular representation. Abstract Owned values can
 be transferred, dropped, wrapped in supported ADTs, or borrowed. A generic
-returned view still needs the unique borrowed input and cannot escape from
-a local owner. Partial field moves, stored references, multi-origin lifetime
-parameters and user-defined traits remain open language work.
+returned view still needs one declared input origin (inferred for a unique
+borrowed input, otherwise selected using `from parameter`) and cannot escape from
+a local owner. Named partial field moves also work in uninstantiated generic
+bodies; `PARTIAL_PLACES.md` defines restoration and cleanup. Stored references,
+multi-origin lifetime parameters and user-defined traits remain open language work.
 
 ## Instantiation and native execution
 

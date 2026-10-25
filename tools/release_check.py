@@ -198,6 +198,9 @@ def _require_qualification(name, evidence):
                 or any(not _same_number(r.get("observed_median_time_ratio"), slowdowns[r["kernel"], r["elements"], r["implementation"]])
                        for r in regressions)):
             raise ValueError("Every observed performance regression must remain in the report")
+    elif name == "application_performance":
+        from tools.benchmark_applications import validate_application_report
+        validate_application_report(evidence)
     elif name == "bounded_concurrency":
         from tools.validate_groups import SCENARIOS
         scenarios = evidence.get("scenarios", [])
@@ -235,6 +238,27 @@ def _require_qualification(name, evidence):
     elif name == "formal_core":
         if len(evidence.get("theorems", [])) != 11 or len(evidence.get("negative_mutations", [])) != 2:
             raise ValueError("Expected 11 checked theorems and two rejected negative mutations")
+    elif name == "provenance_and_type_core":
+        from tools.verify_memory import validate_report
+        validate_report(evidence)
+    elif name == "partial_owned_places":
+        from tools.qualify_places import validate_places_qualification
+        validate_places_qualification(evidence)
+    elif name == "owned_c_backend":
+        from tools.validate_c_owned import validate_c_owned_qualification
+        validate_c_owned_qualification(evidence)
+    elif name == "shared_runtime":
+        from tools.validate_shared_runtime import validate_shared_runtime_report
+        validate_shared_runtime_report(evidence, minimum_repeats=3)
+    elif name == "independent_concurrent_ir":
+        from tools.validate_concurrent_ir import validate_report
+        validate_report(evidence)
+    elif name == "native_host_abi":
+        from tools.validate_native_host import validate_report
+        validate_report(evidence)
+    elif name == "native_debugger":
+        from tools.validate_debugger import validate_report
+        validate_report(evidence)
     elif name == "aarch64_execution":
         cases = {case.get("case"): case for case in evidence.get("cases", [])}
         if (cases.get("correct", {}).get("returncode") != 0
@@ -543,6 +567,8 @@ def main():
         ("results_example", [sys.executable, "-m", "hepta", "run", "examples/results.hepta", "--json"], 60),
         ("owned_library_example", [sys.executable, "-m", "hepta", "run", "examples/owned/main.hepta", "--json"], 60),
         ("independent_resource_ir", [sys.executable, "-m", "tools.validate_resources", "--output", next_stage + "/resources.json"], 120),
+        ("partial_owned_places", [sys.executable, "-m", "tools.qualify_places", "--output", next_stage + "/places.json"], 120),
+        ("owned_c_backend", [sys.executable, "tools/validate_c_owned.py", "--output", next_stage + "/c_owned.json"], 180),
         ("c_project_migration", [sys.executable, "tools/qualify_c_migration.py", "--output", next_stage + "/c_project.json"], 120),
         ("upstream_c_modules", [sys.executable, "tools/qualify_c_algorithms.py", "--output", next_stage + "/upstream_c.json"], 120),
         ("stateful_c_module", [sys.executable, "tools/qualify_c_ring_buffer.py", "--output", next_stage + "/stateful_c.json"], 120),
@@ -550,10 +576,16 @@ def main():
         ("cpp_constructor_interop", [sys.executable, "tools/validate_cpp_constructors.py", "--iterations", "100000", "--output", next_stage + "/cpp_constructors.json"], 180),
         ("locked_package_example", [sys.executable, "-m", "hepta", "run", "examples/packages/app", "--locked", "--json"], 60),
         ("bounded_concurrency", [sys.executable, "tools/validate_groups.py", "--repeats", "3", "--output", "evidence/groups/native_validation.json"], 180),
+        ("shared_runtime", [sys.executable, "tools/validate_shared_runtime.py", "--repeats", "3", "--output", next_stage + "/shared_runtime.json"], 180),
+        ("independent_concurrent_ir", [sys.executable, "tools/validate_concurrent_ir.py", "--output", next_stage + "/concurrent_ir.json"], 180),
         ("abi_matrix", [sys.executable, "tools/abi_fuzz.py", "--output", "artifacts/abi-matrix.json"], 180),
+        ("native_host_abi", [sys.executable, "tools/validate_native_host.py", "--expected-system", "Linux", "--expected-machine", "x86_64", "--output", next_stage + "/native_host.json"], 180),
+        ("native_debugger", [sys.executable, "tools/validate_debugger.py", "--output", next_stage + "/debugger.json"], 120),
         ("native_and_performance", [sys.executable, "tools/validate.py", "--bench", "--output", "artifacts/native-validation.json"], 180),
         ("representative_performance", [sys.executable, "tools/benchmark_suite.py", "--output", "artifacts/representative-benchmarks.json"], 240),
+        ("application_performance", [sys.executable, "tools/benchmark_applications.py", "--output", next_stage + "/applications.json"], 180),
         ("formal_core", [sys.executable, "tools/verify_formal.py", "--output", "artifacts/formal-validation.json"], 180),
+        ("provenance_and_type_core", [sys.executable, "tools/verify_memory.py", "--output", next_stage + "/memory_proofs.json"], 180),
         ("aarch64_execution", [sys.executable, "tools/validate_cross.py", "--output", "artifacts/cross-execution.json"], 120),
         ("agent_evaluator_fixtures", [sys.executable, "-m", "experiments.agent_eval", "qualify-fixtures", "--output", fixture_output], 240),
         ("crossfile_agent_fixtures", [sys.executable, "-m", "experiments.crossfile_eval", "qualify-fixtures", "--output", next_stage + "/crossfile_agent.json"], 360),
@@ -565,10 +597,18 @@ def main():
         "abi_matrix": "artifacts/abi-matrix.json",
         "native_and_performance": "artifacts/native-validation.json",
         "representative_performance": "artifacts/representative-benchmarks.json",
+        "application_performance": next_stage + "/applications.json",
         "formal_core": "artifacts/formal-validation.json",
         "aarch64_execution": "artifacts/cross-execution.json",
         "agent_evaluator_fixtures": fixture_output,
         "independent_resource_ir": next_stage + "/resources.json",
+        "partial_owned_places": next_stage + "/places.json",
+        "owned_c_backend": next_stage + "/c_owned.json",
+        "shared_runtime": next_stage + "/shared_runtime.json",
+        "independent_concurrent_ir": next_stage + "/concurrent_ir.json",
+        "native_host_abi": next_stage + "/native_host.json",
+        "native_debugger": next_stage + "/debugger.json",
+        "provenance_and_type_core": next_stage + "/memory_proofs.json",
         "c_project_migration": next_stage + "/c_project.json",
         "upstream_c_modules": next_stage + "/upstream_c.json",
         "stateful_c_module": next_stage + "/stateful_c.json",
@@ -607,7 +647,7 @@ def main():
             try:
                 evidence_bytes = evidence_path.read_bytes()
                 evidence = json.loads(evidence_bytes)
-                if name in {"independent_resource_ir", "c_project_migration", "upstream_c_modules", "stateful_c_module", "cpp_library_interop", "cpp_constructor_interop"}:
+                if name in {"independent_resource_ir", "partial_owned_places", "owned_c_backend", "c_project_migration", "upstream_c_modules", "stateful_c_module", "cpp_library_interop", "cpp_constructor_interop"}:
                     if evidence.get("ok") is not True:
                         raise ValueError("Required native qualification did not report ok=true")
                 else:

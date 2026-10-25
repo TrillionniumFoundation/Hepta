@@ -10,7 +10,7 @@ from dataclasses import dataclass
 import hashlib
 
 from .ast import Type
-from .checker import _contains_capability, LINEAR, substitute_type
+from .checker import _contains_capability, LINEAR, substitute_type, return_origin_index
 from .resource_ir import SCHEMA, ResourceIRError, _CLAIMS, _EXTERNAL_REQUIREMENTS, verify_resource_ir
 
 
@@ -191,6 +191,21 @@ class _FunctionLowerer:
         if value.kind == "borrow":
             self.emit("end_borrow", id=value.id)
 
+    def projection_indices(self, expr) -> None:
+        """Evaluate nested projection operands from the base outwards.
+
+        Walking the AST towards its root discovers outer indices first. Source
+        execution evaluates the innermost index first; reversing this order can
+        hide a resource consumption before a later index reads that resource.
+        """
+        indices = []
+        while expr.kind in {"field", "index"}:
+            if expr.kind == "index":
+                indices.append(expr.children[1])
+            expr = expr.children[0]
+        for index in reversed(indices):
+            self.copy_value(self.expression(index))
+
     def expression(self, expr) -> _Value:
         typ = self.typ(expr)
         kind = expr.kind
@@ -214,10 +229,15 @@ class _FunctionLowerer:
                     if value.kind != "owner":
                         _unsupported("Fresh owner transfer cannot consume a borrowed function result")
                     return value
-                if child.kind != "name" or child.value not in self.env or not self.types.owned(typ):
-                    _unsupported("Only whole named owners can move in this profile")
+                if not self.types.owned(typ):
+                    return self.copy_value(self.expression(child))
                 result = self.slot(typ)
-                self.emit("move", src=self.env[child.value].id, dest=result.id)
+                if child.kind == "name" and child.value in self.env:
+                    self.emit("move", src=self.env[child.value].id, dest=result.id)
+                elif child.kind == "field":
+                    self.emit("take_field", place=self.place(child), dest=result.id)
+                else:
+                    _unsupported("Owners move only from whole names or named struct fields")
                 return result
             if expr.value in {"read", "mut"}:
                 return self.borrow(expr, expr.value, typ)
@@ -252,19 +272,20 @@ class _FunctionLowerer:
                 view = self.expression(base)
                 if view.kind != "borrow":
                     _unsupported("Projection from temporary aggregate values is outside this profile")
-                cursor = expr
-                while cursor.kind in {"field", "index"}:
-                    if cursor.kind == "index":
-                        self.copy_value(self.expression(cursor.children[1]))
-                    cursor = cursor.children[0]
+                self.projection_indices(expr)
                 self.emit("use", loan=view.id, mode="read")
                 self.end(view)
             else:
                 self.emit("use", place=self.place(expr), mode="read")
             return self.slot(typ)
         if kind in {"struct", "variant"}:
-            values = [self.expression(child) for child in expr.children]
-            values = [self.copy_value(v) if v.kind == "borrow" else v for v in values]
+            values = []
+            for child in expr.children:
+                value = self.expression(child)
+                # A Copy field reads a returned view immediately. Keeping its
+                # loan until all later field expressions complete invents an
+                # overlap that neither source/native evaluator performs.
+                values.append(self.copy_value(value) if value.kind == "borrow" else value)
             variant = expr.value["variant"] if kind == "variant" else None
             if kind == "struct":
                 ordered = dict(zip(expr.value["fields"], values))
@@ -339,6 +360,7 @@ class _FunctionLowerer:
         previous = self.env
         if binding_env is not None:
             self.env = binding_env
+        entry_names = set(self.env)
         for statement in body:
             if self.current is None:
                 _unsupported("Checked source contains an unreachable statement")
@@ -353,6 +375,13 @@ class _FunctionLowerer:
                     self.emit("move", src=value.id, dest=binding.id)
                 self.env[data["name"]] = binding
             elif statement.kind == "assign":
+                # Both native backends evaluate the right-hand side before the
+                # assignment place. Materialize copied values (and end any
+                # returned loan) before evaluating the target's calls/indices.
+                value = self.expression(data["expr"])
+                owned_target = self.types.owned(self.typ(data["target"]))
+                if not owned_target:
+                    value = self.copy_value(value)
                 base = data["target"]
                 while base.kind in {"field", "index"}:
                     base = base.children[0]
@@ -360,18 +389,17 @@ class _FunctionLowerer:
                     view = self.expression(base)
                     if view.kind != "borrow" or view.mode != "mut":
                         _unsupported("Assignment through a returned view requires a mutable loan")
-                    cursor = data["target"]
-                    while cursor.kind in {"field", "index"}:
-                        if cursor.kind == "index":
-                            self.copy_value(self.expression(cursor.children[1]))
-                        cursor = cursor.children[0]
-                    self.copy_value(self.expression(data["expr"]))
+                    self.projection_indices(data["target"])
                     self.emit("use", loan=view.id, mode="write")
                     self.end(view)
                 else:
                     place = self.place(data["target"])
-                    self.copy_value(self.expression(data["expr"]))
-                    self.emit("use", place=place, mode="write")
+                    if owned_target:
+                        if value.kind != "owner":
+                            _unsupported("Owned field restoration requires an explicit transferred value")
+                        self.emit("init_field", place=place, src=value.id)
+                    else:
+                        self.emit("use", place=place, mode="write")
             elif statement.kind == "expr":
                 value = self.expression(data["expr"])
                 if value.kind == "borrow":
@@ -422,6 +450,9 @@ class _FunctionLowerer:
                     env.update((name, binding) for name, binding in zip(arm.pattern.bindings, bindings) if name != "_")
                     self.statements(arm.body, env)
                     if self.current is not None:
+                        for binding in bindings:
+                            if self.types.owned(binding.type) and binding.type.name in self.types.structs:
+                                self.emit("forget", src=binding.id)
                         continuation.append(self.current)
                 self.current = None
                 if continuation:
@@ -447,6 +478,13 @@ class _FunctionLowerer:
                 self.current = after
             else:
                 _unsupported(f"Unsupported statement {statement.kind}")
+        if self.current is not None:
+            for name in sorted(set(self.env) - entry_names):
+                value = self.env[name]
+                if self.types.owned(value.type) and value.type.name in self.types.structs:
+                    # No destructor is implicit: the independent verifier
+                    # rejects forgetting any remaining owned payload/loan.
+                    self.emit("forget", src=value.id)
         if binding_env is not None:
             self.env = previous
 
@@ -477,10 +515,10 @@ def lower_resource_ir(program, checked, *, project_sha256: str | None = None) ->
             _unsupported("Task/resource runtime clauses require another lowering profile")
         mapping = types.parameters[fn.name]
         params = [{"id": "p" + str(i), "type": types.add(substitute_type(p.type, mapping)), "mode": p.mode} for i, p in enumerate(fn.params)]
-        origins = [p["id"] for p in params if p["mode"] in {"read", "mut"}]
+        origin = return_origin_index(fn)
         signature = {"name": fn.name, "params": params,
                      "returns": {"type": types.add(substitute_type(fn.return_type, mapping)), "mode": fn.return_mode,
-                                 "origin": origins[0] if fn.return_mode != "value" and len(origins) == 1 else None},
+                                 "origin": params[origin]["id"] if fn.return_mode != "value" and origin is not None else None},
                      "external": fn.extern_c, "obligation": "foreign:" + fn.name if fn.extern_c else None,
                      "locals": [], "entry": None, "blocks": []}
         if fn.type_params:

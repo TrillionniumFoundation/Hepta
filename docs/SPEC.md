@@ -151,7 +151,8 @@ value read its contents; Rust lowering dereferences the parameter borrow.
 Local bindings are immutable unless declared `let mut`. Local shadowing is
 rejected. Local reference aliases, arbitrary lifetime parameters, stored
 borrowed fields and owned control capabilities are unsupported. A returned
-read/mut view must derive from the unique borrowed input; see `OWNED_TYPES.md`.
+read/mut view derives from the unique borrowed input or the input named by
+`-> read/mut Type from parameter`; see `PARTIAL_PLACES.md`.
 Task and TaskGroup handles cannot be user-function
 parameters or returns. GroupReport cannot be constructed with a source struct
 literal; runtime operations return it, after which it is a normal Copy value.
@@ -196,8 +197,10 @@ arguments may contain Buffer and supported resource-bearing data. Scoped Task,
 TaskGroup, Cancellation and Sender capabilities cannot be stored in data types
 or passed as function type arguments. Resource arrays, resources behind raw
 pointers and nested resource buffers remain unsupported, including through
-generic substitution. Whole owned values must be moved or explicitly dropped;
-partial field moves remain unsupported.
+generic substitution. Whole owned values and nested named owned struct fields
+move explicitly. A completely moved-out field can be restored in a mutable
+local aggregate while its enclosing structs remain initialized. Every exit
+consumes each remaining owned leaf; see `PARTIAL_PLACES.md`.
 Recursive by-value layouts are rejected across structs and enums. The layout
 check tracks generic arguments used by value, so supported raw-pointer
 indirection can break a layout cycle; this does not prove pointer validity.
