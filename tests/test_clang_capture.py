@@ -66,6 +66,31 @@ class CaptureBudgets(unittest.TestCase):
                 c_project.invoke([sys.executable, "-c", "import sys; sys.exit(7)"], Path(root))
             self.assertEqual(caught.exception.code, "E_C_BUILD_TOOL")
 
+    def test_c_header_probe_capture_real_process_and_rejection(self):
+        from hepta import c_import
+        ok = c_import._native_capture([sys.executable, "-c", 'print("probe")'],
+                                      timeout=3, phase="PROBE")
+        self.assertEqual(ok.stdout, "probe\n")
+        for code in ("E_CAPTURE_OUTPUT_SIZE", "E_CAPTURE_TIMEOUT"):
+            with self.subTest(code=code):
+                with patch.object(c_import, "run_bounded",
+                                  side_effect=CaptureRejected(code, "limited")):
+                    with self.assertRaisesRegex(Exception, "limited") as captured:
+                        c_import._native_capture(["fake"], timeout=3, phase="PROBE")
+                    self.assertEqual(captured.exception.diagnostic.code, "E_C_IMPORT_PROBE")
+
+    def test_cpp_contract_native_capture_real_process_and_rejection(self):
+        from hepta import cpp_contracts
+        ok = cpp_contracts._command([sys.executable, "-c", 'print("cpp")'], timeout=3)
+        self.assertEqual(ok.stdout, "cpp\n")
+        for code in ("E_CAPTURE_OUTPUT_SIZE", "E_CAPTURE_TIMEOUT"):
+            with self.subTest(code=code):
+                with patch.object(cpp_contracts, "run_bounded",
+                                  side_effect=CaptureRejected(code, "limited")):
+                    with self.assertRaises(MigrationRejected) as captured:
+                        cpp_contracts._command(["fake"], timeout=3)
+                    self.assertEqual(captured.exception.code, "E_CPP_ENV")
+
     def test_child_nonzero_exit_is_never_success(self):
         r = run_bounded([sys.executable, "-c", "import sys; sys.exit(7)"], timeout=3)
         self.assertEqual(r.returncode, 7)
