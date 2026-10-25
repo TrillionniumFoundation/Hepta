@@ -19,6 +19,7 @@ from .cfg_analysis import CFGAnalysisRejected
 from .ssa import SSARejected
 from .ssa_verify import SSAVerificationRejected
 from .hsir_v1_ssa import V1SSARejected
+from .hsir_v1 import HSIRV1Rejected
 from .llvm_ssa_backend import LLVMSSARejected
 
 
@@ -75,6 +76,8 @@ def main(argv=None) -> int:
         "x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu",
         "x86_64-pc-windows-msvc"
     ], help="Cross-compile a machine object only; target execution and ABI remain unqualified")
+    v1_import = sub.add_parser("ssa-v1-import", help="Structurally inspect a saved v1 HSIR snapshot, never authorize native codegen")
+    v1_import.add_argument("snapshot", help="Saved PR14 integration.export.v1 or raw integration.v1 JSON")
     for cmd in ["check", "inspect", "hsir", "cfg", "cfg-analyze", "ssa", "ssa-verify", "ssa-v1-verify", "emit", "header", "build", "run", "patch"]:
         p = sub.add_parser(cmd)
         p.add_argument("source")
@@ -98,6 +101,26 @@ def main(argv=None) -> int:
             p.add_argument("--apply", action="store_true", help="Atomically apply after native validation")
     args = parser.parse_args(argv)
     try:
+        if args.command == "ssa-v1-import":
+            from .hsir_v1 import MAX_BYTES, decode_json
+            from .hsir_v1_ssa import lower_verified_v1_scalar_ssa
+            with open(args.snapshot, "rb") as inp:
+                raw = inp.read(MAX_BYTES + 1)
+            doc = decode_json(raw)
+            if doc.get("schema") == "hepta.hsir.integration.export.v1":
+                expected = {"schema", "ok", "status", "hsir", "validation",
+                            "native_validity_not_established_by_hsir_v1"}
+                if (set(doc) != expected or doc["ok"] is not True or
+                    doc["native_validity_not_established_by_hsir_v1"] is not True or
+                    not isinstance(doc["status"], str) or not isinstance(doc["validation"], dict) or
+                    not isinstance(doc["hsir"], dict)):
+                    raise HSIRV1Rejected("E_HSIR_V1_EXPORT_ENVELOPE")
+                # This wrapper can be forged; even a 'checked' status is not
+                # attestation. It is not passed to the structural converter.
+                doc = doc["hsir"]
+            snapshot = lower_verified_v1_scalar_ssa(doc)
+            output_json(snapshot)
+            return 0
         if args.command == "lock":
             from .packages import write_lock
             output_json(write_lock(args.package))
@@ -303,10 +326,10 @@ def main(argv=None) -> int:
     except HeptaError as e:
         output_json({"ok": False, "status": "rejected", "diagnostics": [e.diagnostic.to_dict()]})
         return 1
-    except (CFGRejected, CFGAnalysisRejected, SSARejected, SSAVerificationRejected, LLVMSSARejected, V1SSARejected) as e:
+    except (CFGRejected, CFGAnalysisRejected, SSARejected, SSAVerificationRejected, LLVMSSARejected, V1SSARejected, HSIRV1Rejected) as e:
         message = str(e)
         code = message.split(":", 1)[0]
-        if not code.startswith(("E_CFG_", "E_DOM_", "E_SSA_", "E_LLVM_SSA_", "E_V1_SSA_")):
+        if not code.startswith(("E_CFG_", "E_DOM_", "E_SSA_", "E_LLVM_SSA_", "E_V1_SSA_", "E_HSIR_V1_", "E_HSIR_SCALAR_")):
             code = "E_IR_REJECTED"
         output_json({"ok": False, "status": "rejected",
                      "diagnostics": [{"code": code, "message": message, "phase": "ir"}]})
