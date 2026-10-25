@@ -16,7 +16,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from hepta.llvm_ssa_target import _TARGETS, _qualified_header
+from hepta.llvm_ssa_target import _TARGETS, _qualified_object
 
 _FIXTURE = b"""define i32 @hepta_scalar(i32 %x) {
 entry:
@@ -63,7 +63,7 @@ def probe(clang: str = "clang") -> dict:
             proc = subprocess.run(cmd, capture_output=True, text=True,
                                   timeout=45, check=False)
             observed = output.read_bytes() if output.is_file() else b""
-            accepted = proc.returncode == 0 and _qualified_header(observed, target)
+            accepted = proc.returncode == 0 and _qualified_object(observed, target)
             report["targets"].append({
                 "target": target, "format": fmt, "machine": machine,
                 "status": "passed" if accepted else "rejected",

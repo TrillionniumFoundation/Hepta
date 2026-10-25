@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 from hepta.llvm_ssa_backend import LLVMSSARejected, emit_scalar_ssa_llvm
-from hepta.llvm_ssa_target import compile_ssa_target_object, _qualified_header
+from hepta.llvm_ssa_target import compile_ssa_target_object, _qualified_header, _qualified_object
 from hepta.ssa import lower_cfg_scalar_ssa
 from tests.test_llvm_ssa_backend import LLVMSSATests
 
@@ -45,13 +45,45 @@ class LLVMSSATargetTests(unittest.TestCase):
         header = (b"\xcf\xfa\xed\xfe" + (0x01000007).to_bytes(4, "little")
                   + (3).to_bytes(4, "little") + (1).to_bytes(4, "little")
                   + b"\x00" * 16)
-        self.assertTrue(_qualified_header(header, "x86_64-apple-darwin"))
+        self.assertFalse(_qualified_header(header, "x86_64-apple-darwin"), "A header without commands/sections is not a qualified Mach-O object")
         self.assertFalse(_qualified_header(header, "aarch64-apple-darwin"))
         linked = header[:12] + (2).to_bytes(4, "little") + header[16:]
         self.assertFalse(_qualified_header(linked, "x86_64-apple-darwin"))
         self.assertFalse(_qualified_header(header[:16], "x86_64-apple-darwin"))
         big_endian = b"\xfe\xed\xfa\xcf" + header[4:]
         self.assertFalse(_qualified_header(big_endian, "x86_64-apple-darwin"))
+
+    def test_corrupt_sections_rejected_after_real_clang_compile(self):
+        # Verify that a correctly labelled object with a forged payload extent
+        # does not qualify as a genuine target compilation result.
+        for target in ("x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu",
+                       "x86_64-pc-windows-msvc", "x86_64-apple-darwin",
+                       "aarch64-apple-darwin"):
+            with self.subTest(target=target):
+                output = self.root / ("tamper-" + target + ".o")
+                compile_ssa_target_object(self.ir, target=target, output=output)
+                data = bytearray(output.read_bytes())
+                self.assertTrue(_qualified_object(bytes(data), target))
+                if "linux" in target:
+                    shoff = int.from_bytes(data[40:48], "little")
+                    # Find actual file-backed, nonempty section to corrupt.
+                    position = None
+                    for index in range(int.from_bytes(data[60:62], "little")):
+                        sec = shoff + 64 * index
+                        kind = int.from_bytes(data[sec + 4:sec + 8], "little")
+                        size = int.from_bytes(data[sec + 32:sec + 40], "little")
+                        if kind not in (0, 8) and size:
+                            position = sec + 24
+                            break
+                    self.assertIsNotNone(position)
+                    width = 8
+                elif "windows" in target:
+                    position, width = 20 + 20, 4  # section PointerToRawData
+                else:
+                    position, width = 32 + 72 + 48, 4  # first section offset
+                data[position:position + width] = (len(data) + 64).to_bytes(width, "little")
+                self.assertTrue(_qualified_header(bytes(data), target))
+                self.assertFalse(_qualified_object(bytes(data), target))
 
     def test_wrong_target_unknown_or_overwrite_rejects(self):
         path = self.root / "object.o"
