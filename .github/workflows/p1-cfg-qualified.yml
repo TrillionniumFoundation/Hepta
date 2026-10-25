@@ -1,0 +1,78 @@
+name: Hepta P1 structural CFG candidate gates
+
+on:
+  push:
+    branches:
+      - codex/hepta-p1-structural-cfg-20261024
+  pull_request:
+    branches:
+      - codex/hepta-hsir-c-migration-20261024
+
+permissions:
+  contents: read
+
+jobs:
+  checked-cfg:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Frontend CFG and HSIR regressions
+        run: |
+          python -m compileall -q hepta tests/test_cfg.py
+          python -m unittest discover -s tests -p test_cfg.py -v
+          python -m unittest discover -s tests -p test_cfg_analysis.py -v
+          python -m unittest discover -s tests -p test_ssa_scalar.py -v
+          python -m unittest discover -s tests -p test_ssa_verify.py -v
+          python -m unittest discover -s tests -p test_ssa_differential.py -v
+          python -m unittest discover -s tests -p test_hsir.py -v
+          python -m unittest discover -s tests -p test_checker.py -v
+          python -m unittest discover -s tests -p test_parser.py -v
+      - name: Install sha256-locked Rust 1.90.0 host components
+        run: |
+          python tools/bootstrap_toolchain.py --prefix "$RUNNER_TEMP/hepta-rust" --targets
+          echo "RUSTC=$RUNNER_TEMP/hepta-rust/bin/rustc" >> "$GITHUB_ENV"
+      - name: Multi-source Agent preview regression with pinned rustc
+        run: |
+          python -m unittest discover -s tests -p test_agent_preview.py -v
+      - name: Native-qualified CFG CLI and explicit claims
+        run: |
+          python -m hepta cfg examples/parser.hepta > "$RUNNER_TEMP/parser-cfg.json"
+          python -m hepta cfg-analyze examples/parser.hepta > "$RUNNER_TEMP/parser-cfg-analysis.json"
+          python -m hepta ssa examples/ssa_scalar.hepta > "$RUNNER_TEMP/ssa.json"
+          python -m hepta ssa-verify examples/ssa_scalar.hepta > "$RUNNER_TEMP/ssa-verified.json"
+          python -m hepta cfg examples/results.hepta > "$RUNNER_TEMP/results-cfg.json"
+          python - "$RUNNER_TEMP/parser-cfg.json" "$RUNNER_TEMP/results-cfg.json" "$RUNNER_TEMP/parser-cfg-analysis.json" "$RUNNER_TEMP/ssa.json" "$RUNNER_TEMP/ssa-verified.json" <<'PY'
+          import json, sys
+          for path in sys.argv[1:]:
+              d = json.load(open(path, encoding="utf-8"))
+              assert d["schema"] in ("hepta.cfg.v0", "hepta.cfg.analysis.v0", "hepta.ssa.scalar.v0", "hepta.ssa.verify.v0"), path
+              if d["schema"] == "hepta.ssa.verify.v0":
+                  assert d["status"] == "scalar_ssa_structurally_verified", path
+                  assert d["claims"]["single_assignment_checked"] is True, path
+                  assert d["claims"]["semantic_equivalence_proven"] is False, path
+                  assert d["functions"][0]["phi_count"] > 0, path
+              if d["schema"] == "hepta.ssa.scalar.v0":
+                  assert d["claims"]["scalar_ssa_subset_constructed"] is True, path
+                  assert d["claims"]["whole_language_ssa_complete"] is False, path
+                  assert d["claims"]["borrow_drop_proven"] is False, path
+                  assert any(fn["phi_count"] > 0 for fn in d["functions"]), path
+              if d["schema"] == "hepta.cfg.analysis.v0":
+                  assert d["claims"]["phi_nodes_generated"] is False, path
+                  assert d["claims"]["dominators_computed"] is True, path
+              assert d["reference_validation"]["status"] in ("checked", "checked_with_external_assumptions"), path
+              if d["schema"] in ("hepta.cfg.v0", "hepta.cfg.analysis.v0"):
+                  assert d["claims"]["ssa_constructed"] is False, path
+              if d["schema"] == "hepta.cfg.v0":
+                  assert d["claims"]["backend_semantics_refined"] is False, path
+              elif d["schema"] == "hepta.ssa.scalar.v0":
+                  assert d["claims"]["native_backend_refinement_proven"] is False, path
+              elif d["schema"] == "hepta.cfg.analysis.v0":
+                  assert d["claims"]["backend_refinement_proved"] is False, path
+              if d["schema"] == "hepta.cfg.v0":
+                  assert d["claims"]["pointer_provenance_proved"] is False, path
+              assert d["functions"], path
+          PY

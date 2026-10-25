@@ -14,6 +14,11 @@ from .ast import HeptaError
 from .backend import compile_rust, emit_header, find_rustc, toolchain_info
 from .pipeline import analyze, analyze_project, inspect_analysis
 from .protocol import apply_patch
+from .cfg import CFGRejected
+from .cfg_analysis import CFGAnalysisRejected
+from .ssa import SSARejected
+from .ssa_verify import SSAVerificationRejected
+from .llvm_ssa_backend import LLVMSSARejected
 
 
 def output_json(value):
@@ -49,6 +54,16 @@ def main(argv=None) -> int:
     bridge.add_argument("--output-dir", required=True)
     bridge.add_argument("--exception-mode", choices=["noexcept_only", "catch_status"],
                         default="noexcept_only")
+    llvm_ssa = sub.add_parser("build-llvm-ssa", help="Build checked SSA/PHI i32 profile through native LLVM")
+    llvm_ssa.add_argument("source")
+    llvm_ssa.add_argument("--output", "-o", required=True)
+    llvm_ssa.add_argument("--rustc")
+    llvm_ssa.add_argument("--clang", default="clang")
+    llvm_ssa.add_argument("--locked", action="store_true")
+    llvm_ssa.add_argument("--target", choices=[
+        "x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu",
+        "x86_64-pc-windows-msvc",
+    ], help="Compile only a target object; no target execution or external C ABI claim")
     llvm_scalar = sub.add_parser("build-llvm-scalar", help="Build strict HSIR i32 profile through LLVM, after rustc validation")
     llvm_scalar.add_argument("source")
     llvm_scalar.add_argument("--output", "-o", required=True)
@@ -59,7 +74,7 @@ def main(argv=None) -> int:
         "x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu",
         "x86_64-pc-windows-msvc"
     ], help="Cross-compile a machine object only; target execution and ABI remain unqualified")
-    for cmd in ["check", "inspect", "hsir", "emit", "header", "build", "run", "patch"]:
+    for cmd in ["check", "inspect", "hsir", "cfg", "cfg-analyze", "ssa", "ssa-verify", "emit", "header", "build", "run", "patch"]:
         p = sub.add_parser(cmd)
         p.add_argument("source")
         p.add_argument("--rustc")
@@ -111,6 +126,36 @@ def main(argv=None) -> int:
             return bridge_cpp_main([args.source, "--output-dir", args.output_dir,
                                     "--clangxx", args.clangxx,
                                     "--exception-mode", args.exception_mode])
+        if args.command == "build-llvm-ssa":
+            from .cfg import lower_checked_cfg
+            from .ssa import lower_cfg_scalar_ssa
+            from .llvm_ssa_backend import emit_scalar_ssa_llvm, compile_scalar_ssa_llvm
+            reference = analyze_project(Path(args.source).resolve(),
+                                        rustc=args.rustc, native=True,
+                                        backend="rust", locked=args.locked,
+                                        crate_type="cdylib")
+            if not reference.report["ok"]:
+                output_json(reference.report)
+                return 1
+            dest = Path(args.output).resolve()
+            if dest in {Path(p) for p in reference.project.sources}:
+                raise ValueError("Output cannot overwrite any source in the checked project graph")
+            cfg = lower_checked_cfg(reference.program, reference.checked)
+            ssa = lower_cfg_scalar_ssa(cfg)
+            generated = emit_scalar_ssa_llvm(ssa, cfg)
+            if args.target:
+                from .llvm_ssa_target import compile_ssa_target_object
+                build = compile_ssa_target_object(generated, target=args.target,
+                                                  clang=args.clang, output=dest)
+            else:
+                build = compile_scalar_ssa_llvm(generated, clang=args.clang, output=dest)
+            output_json({"schema": "hepta.build-llvm-ssa.v0", "ok": True,
+                         "status": build["status"],
+                         "source_cfg_sha256": cfg.sha256,
+                         "source_ssa_sha256": ssa.sha256,
+                         "structural_verification_sha256": generated.verification_sha256,
+                         "reference_validation": reference.report, "build": build})
+            return 0
         if args.command == "build-llvm-scalar":
             # Never qualify a new backend merely from a frontend-only result.
             # The pinned real rustc reference must complete its native check.
@@ -142,7 +187,11 @@ def main(argv=None) -> int:
             if args.backend != "rust" or args.locked:
                 raise ValueError("patch currently validates with the Rust backend; regenerate the package lock after an applied edit")
             request = json.loads(Path(args.request).read_text())
-            if isinstance(request, dict) and request.get("schema") == "hepta.patch.v2":
+            if isinstance(request, dict) and request.get("schema") == "hepta.patch.preview.v3":
+                from .agent_preview import preview_multi_body_patch
+                result = preview_multi_body_patch(file, request, apply=args.apply,
+                                                  rustc=args.rustc, target=args.target)
+            elif isinstance(request, dict) and request.get("schema") == "hepta.patch.v2":
                 from .protocol import apply_project_patch
                 result = apply_project_patch(file, request, apply=args.apply, rustc=args.rustc, target=args.target)
             else:
@@ -154,14 +203,31 @@ def main(argv=None) -> int:
                                  backend=args.backend, cc=args.cc, locked=args.locked)
         file = result.project.entry
         protected = {Path(p) for p in result.project.sources}
-        if args.command == "hsir":
+        if args.command in {"hsir", "cfg", "cfg-analyze", "ssa", "ssa-verify"}:
             if args.backend != "rust":
-                raise ValueError("HSIR v0 requires the real Rust reference backend")
+                raise ValueError("HSIR/CFG/SSA inspection requires the real Rust reference backend")
             if not result.report["ok"]:
                 output_json(result.report)
                 return 1
-            from .hsir import lower_checked_program
-            snapshot = lower_checked_program(result.program, result.checked).as_dict()
+            if args.command == "hsir":
+                from .hsir import lower_checked_program
+                snapshot = lower_checked_program(result.program, result.checked).as_dict()
+            else:
+                from .cfg import lower_checked_cfg
+                cfg = lower_checked_cfg(result.program, result.checked)
+                if args.command == "cfg-analyze":
+                    from .cfg_analysis import analyze_cfg
+                    snapshot = analyze_cfg(cfg).as_dict()
+                elif args.command in {"ssa", "ssa-verify"}:
+                    from .ssa import lower_cfg_scalar_ssa
+                    scalar_ssa = lower_cfg_scalar_ssa(cfg)
+                    if args.command == "ssa":
+                        snapshot = scalar_ssa.as_dict()
+                    else:
+                        from .ssa_verify import verify_scalar_ssa
+                        snapshot = verify_scalar_ssa(scalar_ssa, cfg).as_dict()
+                else:
+                    snapshot = cfg.as_dict()
             snapshot["reference_validation"] = {
                 "status": result.report["status"],
                 "compiler_sha256": result.report["compiler_sha256"],
@@ -228,6 +294,14 @@ def main(argv=None) -> int:
                 return proc.returncode if proc.returncode >= 0 else 128 - proc.returncode
     except HeptaError as e:
         output_json({"ok": False, "status": "rejected", "diagnostics": [e.diagnostic.to_dict()]})
+        return 1
+    except (CFGRejected, CFGAnalysisRejected, SSARejected, SSAVerificationRejected, LLVMSSARejected) as e:
+        message = str(e)
+        code = message.split(":", 1)[0]
+        if not code.startswith(("E_CFG_", "E_DOM_", "E_SSA_", "E_LLVM_SSA_")):
+            code = "E_IR_REJECTED"
+        output_json({"ok": False, "status": "rejected",
+                     "diagnostics": [{"code": code, "message": message, "phase": "ir"}]})
         return 1
     except (OSError, ValueError, UnicodeError, subprocess.SubprocessError) as e:
         output_json({"ok": False, "status": "error", "diagnostics": [{"code": "E_DRIVER", "message": str(e), "phase": "driver"}]})
