@@ -14,7 +14,7 @@ from pathlib import Path
 import re
 import tempfile
 
-from .c_migrate import MigrationRejected, _function, _run
+from .c_migrate import MigrationRejected, _function, _run, _load_bounded_clang_ast
 from .checker import check
 from .parser import parse
 
@@ -69,7 +69,7 @@ def migrate_cpp(source_file: str | Path, destination_file: str | Path, *,
         if "#" in text or "%:" in text or re.search(r"\\\r?\n", text):
             raise MigrationRejected("E_CPP2HEPTA_PREPROCESSOR", "Build-dependent preprocessing requires a real C++ project migrator")
         model = _model(clangxx)
-        tree = json.loads(_run([clangxx, "-x", "c++", "-std=c++20", "-Werror", "-fsyntax-only",
+        tree = _load_bounded_clang_ast(_run([clangxx, "-x", "c++", "-std=c++20", "-Werror", "-fsyntax-only",
                                 "-Xclang", "-ast-dump=json", str(source)]))
         if not isinstance(tree, dict) or tree.get("kind") != "TranslationUnitDecl":
             raise MigrationRejected("E_CPP2HEPTA_AST", "Clang++ AST root was not a translation unit")

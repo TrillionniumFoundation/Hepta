@@ -13,6 +13,8 @@ import subprocess
 import tempfile
 
 from .llvm_ssa_backend import SSA_LLVM_IR, LLVMSSARejected
+from .object_structure import qualified_header, qualified_object
+from .object_symbols import ObjectSymbolsRejected, inspect_object_symbols
 
 _TARGETS = {"x86_64-unknown-linux-gnu": ("ELF64", 62),
             "aarch64-unknown-linux-gnu": ("ELF64", 183),
@@ -23,21 +25,12 @@ _TARGETS = {"x86_64-unknown-linux-gnu": ("ELF64", 62),
 
 def _qualified_header(data: bytes, target: str) -> bool:
     fmt, machine = _TARGETS[target]
-    if fmt == "ELF64":
-        return (len(data) >= 64 and data[:4] == b"\x7fELF"
-                and data[4:6] == b"\x02\x01"
-                and data[16:18] == b"\x01\x00"
-                and int.from_bytes(data[18:20], "little") == machine)
-    if fmt == "COFF":
-        return (len(data) >= 20 and int.from_bytes(data[:2], "little") == machine
-                and int.from_bytes(data[2:4], "little") > 0)
-    if fmt == "MACHO64":
-        # Little-endian MH_MAGIC_64, 64-bit CPU subtype and MH_OBJECT only.
-        # Linking and execution are deliberately outside the object gate.
-        return (len(data) >= 32 and data[:4] == b"\xcf\xfa\xed\xfe"
-                and int.from_bytes(data[4:8], "little") == machine
-                and int.from_bytes(data[12:16], "little") == 1)
-    return False
+    return qualified_header(data, fmt, machine)
+
+
+def _qualified_object(data: bytes, target: str) -> bool:
+    fmt, machine = _TARGETS[target]
+    return qualified_object(data, fmt, machine)
 
 
 def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
@@ -73,8 +66,17 @@ def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
         if result.returncode != 0:
             raise LLVMSSARejected("E_LLVM_SSA_TARGET_NATIVE: " + result.stderr[:1200])
         data = artifact.read_bytes() if artifact.is_file() else b""
-        if not _qualified_header(data, target):
-            raise LLVMSSARejected("E_LLVM_SSA_TARGET_IDENTITY: wrong/empty ELF, COFF or Mach-O machine/file type")
+        if not _qualified_object(data, target):
+            raise LLVMSSARejected("E_LLVM_SSA_TARGET_IDENTITY: malformed ELF, COFF or Mach-O object payload")
+        fmt, machine = _TARGETS[target]
+        try:
+            symbols = inspect_object_symbols(data, fmt, machine)
+        except ObjectSymbolsRejected as exc:
+            raise LLVMSSARejected("E_LLVM_SSA_TARGET_SYMBOL: " + str(exc)) from exc
+        if symbols["defined"] != frozenset(ir.functions):
+            raise LLVMSSARejected("E_LLVM_SSA_TARGET_EXPORT: target object exports do not match LLVM functions")
+        if symbols["undefined"] - {"abort"}:
+            raise LLVMSSARejected("E_LLVM_SSA_TARGET_IMPORT: object imports unreviewed externals")
         try:
             os.link(artifact, destination)
         except FileExistsError as exc:
@@ -85,6 +87,10 @@ def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
         "target": target, "object_format": _TARGETS[target][0],
         "machine": _TARGETS[target][1],
         "functions": list(ir.functions),
+        "object_structure_qualified": True,
+        "object_symbols_qualified": True,
+        "defined_export_symbols": sorted(symbols["defined"]),
+        "undefined_external_symbols": sorted(symbols["undefined"]),
         "llvm_ir_sha256": ir.sha256, "ssa_sha256": ir.source_ssa_sha256,
         "structural_ssa_verification_sha256": ir.verification_sha256,
         "artifact_sha256": sha256(destination.read_bytes()).hexdigest(),

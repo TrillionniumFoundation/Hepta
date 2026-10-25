@@ -113,6 +113,24 @@ class LLVMSSATests(unittest.TestCase):
         self.assertNotEqual(bad.returncode, 0)
         self.assertNotEqual(bad.returncode, 7)
 
+    def test_rehashed_llvm_escape_cannot_reach_native_compilers(self):
+        from dataclasses import replace
+        ir = emit_scalar_ssa_llvm(lower_cfg_scalar_ssa(self.fixture()), self.fixture())
+        # A digest is an integrity label, not a license to compile arbitrary
+        # LLVM memory operations or unexpected imports.
+        variants = [
+            ir.text.replace("define i32 @", "declare i32 @puts(ptr)\ndefine i32 @", 1),
+            ir.text.replace("define i32 @", "@malicious = global i32 1\ndefine i32 @", 1),
+            ir.text.replace("  ret i32 ", "  store i32 2, ptr null\n  ret i32 ", 1),
+            ir.text.replace("  ret i32 ", "  %t999 = call i32 @puts(ptr null)\n  ret i32 ", 1),
+            ir.text.replace("  ret i32 ", "  call void asm sideeffect \"\", \"\"()\n  ret i32 ", 1),
+        ]
+        for text in variants:
+            with self.subTest(change=text[:75]):
+                forged = replace(ir, text=text, sha256=sha256(text.encode()).hexdigest())
+                with self.assertRaisesRegex(LLVMSSARejected, "PROFILE"):
+                    forged.check_identity()
+
     def test_abi_and_effect_rejected(self):
         cfg = nested_loop_fixture()
         with self.assertRaisesRegex(LLVMSSARejected, "ABI"):

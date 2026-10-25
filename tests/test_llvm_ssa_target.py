@@ -3,11 +3,14 @@ from __future__ import annotations
 
 from pathlib import Path
 import shutil
+import subprocess
 import tempfile
 import unittest
 
 from hepta.llvm_ssa_backend import LLVMSSARejected, emit_scalar_ssa_llvm
-from hepta.llvm_ssa_target import compile_ssa_target_object, _qualified_header
+from hepta.llvm_ssa_target import compile_ssa_target_object, _qualified_header, _qualified_object
+from hepta.object_symbols import inspect_object_symbols, ObjectSymbolsRejected
+from hepta.llvm_ssa_target import _TARGETS
 from hepta.ssa import lower_cfg_scalar_ssa
 from tests.test_llvm_ssa_backend import LLVMSSATests
 
@@ -39,19 +42,85 @@ class LLVMSSATargetTests(unittest.TestCase):
                 self.assertTrue(_qualified_header(output.read_bytes(), target))
                 self.assertFalse(evidence["claims"]["target_program_executed"])
                 self.assertFalse(evidence["claims"]["foreign_c_abi_qualified"])
+                self.assertEqual(evidence["defined_export_symbols"], sorted(self.ir.functions))
+                self.assertTrue(set(evidence["undefined_external_symbols"]) <= {"abort"})
 
     def test_reject_macho_wrong_machine_or_wrong_file_type(self):
         # Accept only Mach-O 64-bit MH_OBJECT for the exact requested CPU.
         header = (b"\xcf\xfa\xed\xfe" + (0x01000007).to_bytes(4, "little")
                   + (3).to_bytes(4, "little") + (1).to_bytes(4, "little")
                   + b"\x00" * 16)
-        self.assertTrue(_qualified_header(header, "x86_64-apple-darwin"))
+        self.assertFalse(_qualified_header(header, "x86_64-apple-darwin"), "A header without commands/sections is not a qualified Mach-O object")
         self.assertFalse(_qualified_header(header, "aarch64-apple-darwin"))
         linked = header[:12] + (2).to_bytes(4, "little") + header[16:]
         self.assertFalse(_qualified_header(linked, "x86_64-apple-darwin"))
         self.assertFalse(_qualified_header(header[:16], "x86_64-apple-darwin"))
         big_endian = b"\xfe\xed\xfa\xcf" + header[4:]
         self.assertFalse(_qualified_header(big_endian, "x86_64-apple-darwin"))
+
+    def test_corrupt_sections_rejected_after_real_clang_compile(self):
+        # Verify that a correctly labelled object with a forged payload extent
+        # does not qualify as a genuine target compilation result.
+        for target in ("x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu",
+                       "x86_64-pc-windows-msvc", "x86_64-apple-darwin",
+                       "aarch64-apple-darwin"):
+            with self.subTest(target=target):
+                output = self.root / ("tamper-" + target + ".o")
+                compile_ssa_target_object(self.ir, target=target, output=output)
+                data = bytearray(output.read_bytes())
+                self.assertTrue(_qualified_object(bytes(data), target))
+                if "linux" in target:
+                    shoff = int.from_bytes(data[40:48], "little")
+                    # Find actual file-backed, nonempty section to corrupt.
+                    position = None
+                    for index in range(int.from_bytes(data[60:62], "little")):
+                        sec = shoff + 64 * index
+                        kind = int.from_bytes(data[sec + 4:sec + 8], "little")
+                        size = int.from_bytes(data[sec + 32:sec + 40], "little")
+                        if kind not in (0, 8) and size:
+                            position = sec + 24
+                            break
+                    self.assertIsNotNone(position)
+                    width = 8
+                elif "windows" in target:
+                    position, width = 20 + 20, 4  # section PointerToRawData
+                else:
+                    position, width = 32 + 72 + 48, 4  # first section offset
+                data[position:position + width] = (len(data) + 64).to_bytes(width, "little")
+                self.assertTrue(_qualified_header(bytes(data), target))
+                self.assertFalse(_qualified_object(bytes(data), target))
+
+    def test_real_symbol_renaming_and_unreviewed_external_import(self):
+        # Use a deliberately long, unique exported name so a mutation
+        # cannot accidentally replace an unrelated byte in a one-char symbol.
+        source = self.root / "symbol.ll"
+        source.write_text("""\
+declare i32 @puts(ptr)
+define i32 @hepta_symbol_target(i32 %x) {
+entry:
+  %r = call i32 @puts(ptr null)
+  ret i32 %x
+}
+""")
+        for target in _TARGETS:
+            with self.subTest(target=target):
+                output = self.root / ("symbol-" + target + ".o")
+                result = subprocess.run(
+                    ["clang", "--target=" + target, "-x", "ir", "-O3", "-c",
+                     str(source), "-o", str(output)],
+                    capture_output=True, text=True, timeout=45)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                data = output.read_bytes()
+                fmt, machine = _TARGETS[target]
+                symbols = inspect_object_symbols(data, fmt, machine)
+                self.assertIn("hepta_symbol_target", symbols["defined"])
+                self.assertIn("puts", symbols["undefined"])
+                self.assertFalse(symbols["undefined"] <= {"abort"})
+                needle = b"hepta_symbol_target"
+                self.assertIn(needle, data)
+                altered = data.replace(needle, b"hepta_symbol_targex")
+                renamed = inspect_object_symbols(altered, fmt, machine)
+                self.assertNotIn("hepta_symbol_target", renamed["defined"])
 
     def test_wrong_target_unknown_or_overwrite_rejects(self):
         path = self.root / "object.o"
