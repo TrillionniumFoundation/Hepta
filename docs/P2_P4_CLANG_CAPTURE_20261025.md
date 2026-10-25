@@ -64,3 +64,20 @@ until executed against exact source and dependencies.
 
 No resource-budget claim is made for Rust/LLVM/Clang compiler peak RSS,
 untrusted C++ libraries, physical devices or overall process lifetime.
+
+## Direct LLVM SSA native and cross-object producer
+
+`hepta.llvm_ssa_backend.run_llvm_tool` additionally reuses the same
+`run_bounded` primitive for direct LLVM SSA host shared libraries and
+`hepta.llvm_ssa_target`'s existing five object-only targets.
+Clang stdout is capped at 8 MB, stderr at 1 MB, stdin at 0 bytes,
+and the prior 10s identity / 45s compile timeouts remain unchanged.
+Quota and launch errors fail closed as `E_LLVM_SSA_TOOL_BOUND`.
+
+Locally, the isolated bounded runner successfully compiled a real i32
+LLVM IR fixture with Clang 17 into a 608-byte x86_64 ELF object.
+This demonstrates executable compiler subprocess capture, not Hepta
+source-to-LLVM refinement or target ABI compatibility.
+
+All new stage-specific tests remain Draft until executed against their
+actual integrated source, and `whole_project_blockers_closed=false`.
