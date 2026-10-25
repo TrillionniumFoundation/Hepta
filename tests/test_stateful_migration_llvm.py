@@ -26,7 +26,7 @@ SOURCE = """
 int sum_to(int n) noexcept {
     int total = 0;
     int i = 0;
-    while (i < n) { total = total + i; i = i + 1; }
+    for (i = 0; i < n; ++i) { total = total + i; }
     return total;
 }
 int clamp_local(int x) noexcept {
@@ -57,6 +57,9 @@ class StatefulMigrationLLVMTests(unittest.TestCase):
             self.assertFalse(migrated["cpp_abi_preserved"])
             self.assertFalse(migrated["behavioral_equivalence_proved"])
             self.assertEqual(migrated["native_validation"], "not_run")
+            lowered_source = hepta.read_text(encoding="utf-8")
+            self.assertIn("while (i < n)", lowered_source)
+            self.assertIn("i = (i + 1);", lowered_source)
 
             # Reference rustc must really validate before the LLVM path.
             checked = analyze(hepta.read_text(encoding="utf-8"), str(hepta),

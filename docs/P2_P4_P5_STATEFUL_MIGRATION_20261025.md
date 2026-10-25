@@ -58,3 +58,11 @@ reject, rather than hiding scope/lifetime and control-flow differences.
 
 C11 and C++20 finite-domain native ABI differential tests are added.
 Passing those tests is not proof of whole-program L2/L3 source equivalence.
+
+## P5 integration coverage for counted-for
+
+The existing pinned-rustc-required native LLVM differential source is now
+a strict C++20 counted-for fixture. Its generated Hepta is checked to contain
+the normalized while/step form before canonical HSIR/CFG/SSA/LLVM processing.
+Clang++ original/C wrapper, Hepta/C and LLVM SSA execution remain separate.
+Like the other tests, this targets finite defined-input semantics only.
