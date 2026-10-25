@@ -113,6 +113,29 @@ class LLVMSSATests(unittest.TestCase):
         self.assertNotEqual(bad.returncode, 0)
         self.assertNotEqual(bad.returncode, 7)
 
+    def test_rehashed_llvm_memory_or_foreign_call_rejected_before_native_compilation(self):
+        from dataclasses import replace
+        cfg = self.fixture()
+        original = emit_scalar_ssa_llvm(lower_cfg_scalar_ssa(cfg), cfg)
+        self.assertTrue(original.sha256)
+        for payload in (
+            "  %t999 = call i32 @puts(ptr null)",
+            "  %t999 = alloca i32",
+            "  store i32 1, ptr null",
+            "  %t999 = load i32, ptr null",
+            '  call void asm sideeffect "", ""()',
+        ):
+            with self.subTest(payload=payload):
+                injected = original.text.replace("  call void @abort()",
+                    payload + "\n  call void @abort()", 1)
+                self.assertNotEqual(injected, original.text)
+                bad = replace(original, text=injected,
+                              sha256=sha256(injected.encode()).hexdigest())
+                self.assertEqual(bad.sha256, sha256(bad.text.encode()).hexdigest())
+                with self.assertRaisesRegex(LLVMSSARejected, "PROFILE"):
+                    compile_scalar_ssa_llvm(bad, output=self.root / "forged.so")
+                self.assertFalse((self.root / "forged.so").exists())
+
     def test_abi_and_effect_rejected(self):
         cfg = nested_loop_fixture()
         with self.assertRaisesRegex(LLVMSSARejected, "ABI"):

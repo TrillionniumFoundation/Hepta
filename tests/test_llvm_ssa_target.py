@@ -82,6 +82,20 @@ class LLVMSSATargetTests(unittest.TestCase):
         self.assertEqual(evidence["artifact_bytes"], regular.stat().st_size)
         self.assertTrue(_qualified_header(regular.read_bytes(), "x86_64-unknown-linux-gnu"))
 
+    def test_rehashed_raw_memory_ir_rejected_before_any_target_object(self):
+        from dataclasses import replace
+        from hashlib import sha256
+        forged = self.ir.text.replace("  call void @abort()",
+                                      "  store i32 1, ptr null\n  call void @abort()", 1)
+        self.assertNotEqual(forged, self.ir.text)
+        candidate = replace(self.ir, text=forged,
+                            sha256=sha256(forged.encode()).hexdigest())
+        output = self.root / "forged-import.o"
+        with self.assertRaisesRegex(LLVMSSARejected, "PROFILE"):
+            compile_ssa_target_object(candidate, target="x86_64-unknown-linux-gnu",
+                                      output=output)
+        self.assertFalse(output.exists())
+
     def test_modified_ir_fails_before_compilation(self):
         from dataclasses import replace
         forged = replace(self.ir, sha256="0"*64)

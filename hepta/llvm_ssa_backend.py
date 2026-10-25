@@ -20,6 +20,7 @@ import tempfile
 from .cfg import CFGSnapshot
 from .ssa import SSASnapshot
 from .ssa_verify import verify_scalar_ssa
+from .llvm_ir_profile import LLVMProfileRejected, validate_scalar_llvm_profile
 
 
 class LLVMSSARejected(ValueError):
@@ -43,6 +44,12 @@ class SSA_LLVM_IR:
         found = re.findall(r"(?m)^define i32 @([A-Za-z_][A-Za-z0-9_]*)\(", self.text)
         if not isinstance(self.functions, tuple) or len(set(found)) != len(found) or tuple(sorted(found)) != self.functions:
             raise LLVMSSARejected("E_LLVM_SSA_IDENTITY: function inventory mismatch")
+        # A freshly recomputed SHA-256 is NOT an authorization token for LLVM.
+        # Reject rehashed arbitrary LLVM text before both host and target codegen.
+        try:
+            validate_scalar_llvm_profile(self.text, self.functions)
+        except LLVMProfileRejected as exc:
+            raise LLVMSSARejected("E_LLVM_SSA_PROFILE: " + str(exc)) from exc
 
 
 _NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
