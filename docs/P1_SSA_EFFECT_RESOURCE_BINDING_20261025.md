@@ -21,3 +21,13 @@ These suites require a complete Hepta checkout and, for native qualification out
 ## Still open
 
 General owner/loan/Drop/provenance SSA, FFI and hardware effect semantics, source-to-backend semantic refinement, formal whole-language soundness, and cross-target native execution all remain open. `whole_project_blockers_closed=false`.
+
+## Source metadata type-confusion guard
+
+The independent verifier compares canonical JSON representations of the source
+CFG versus SSA effect/resource metadata. Python dictionary equality treats
+`False == 0` as true; this must **not** allow an SSA snapshot with `may_block=0`
+to masquerade as the checked `may_block=false` contract (or `heap_allocations=false`
+as integer zero). A resealed scalar SSA also must retain the exact known set
+of conservative proof-claim flags. Negative tests cover both type confusions,
+missing fields, and forged proof-flag elevations.

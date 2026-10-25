@@ -21,6 +21,21 @@ _SSA_FUNCTION_FIELDS = frozenset({
     "phi_count", "declared_effects", "inferred_transitive_effects",
     "resource_contract",
 })
+# This verifier owns its expectations independently of the SSA producer.
+# A valid self-resealed digest must never authorize elevated proof flags.
+_SSA_TOP_FIELDS = frozenset({
+    "schema", "status", "source_cfg_sha256", "source_analysis_sha256",
+    "functions", "claims",
+})
+_SSA_EXPECTED_CLAIMS = {
+    "scalar_ssa_subset_constructed": True, "phi_inputs_checked": True,
+    "effect_resource_metadata_retained": True,
+    "whole_language_ssa_complete": False, "for_range_implemented": False,
+    "match_payloads_supported": False, "borrow_drop_proven": False,
+    "pointer_provenance_proven": False,
+    "semantic_equivalence_proven": False,
+    "native_backend_refinement_proven": False,
+}
 
 
 class SSAVerificationRejected(ValueError):
@@ -43,6 +58,16 @@ def _reject(code: str, reason: str):
     raise SSAVerificationRejected(f"{code}: {reason}")
 
 
+def _canonical_contract(value) -> str:
+    # JSON distinguishes the safety-critical False vs 0 and 0 vs False pairs
+    # that Python equality deliberately considers equal.
+    try:
+        return json.dumps(value, sort_keys=True, separators=(",", ":"),
+                          ensure_ascii=False, allow_nan=False)
+    except (ValueError, TypeError) as exc:
+        _reject("E_SSA_VERIFY_CONTRACT", "Noncanonical effect/resource metadata")
+
+
 def _decode(snapshot, required_schema, status):
     if snapshot.schema != required_schema:
         _reject("E_SSA_VERIFY_SCHEMA", "wrong snapshot type")
@@ -51,6 +76,11 @@ def _decode(snapshot, required_schema, status):
     payload = json.loads(snapshot.canonical_json)
     if payload.get("schema") != required_schema or payload.get("status") != status:
         _reject("E_SSA_VERIFY_SCHEMA", "snapshot's canonical schema/status disagrees")
+    if required_schema == "hepta.ssa.scalar.v0":
+        if (set(payload) != _SSA_TOP_FIELDS
+                or _canonical_contract(payload.get("claims")) !=
+                   _canonical_contract(_SSA_EXPECTED_CLAIMS)):
+            _reject("E_SSA_VERIFY_CLAIMS", "SSA schema or safety proof claims changed")
     return payload
 
 
@@ -68,7 +98,8 @@ def _function(f: dict, original: dict, graph: dict) -> dict:
     if not isinstance(f, dict) or set(f) != _SSA_FUNCTION_FIELDS:
         _reject("E_SSA_VERIFY_CONTRACT", "SSA function fields differ from reviewed source contract")
     for field in ("declared_effects", "inferred_transitive_effects", "resource_contract"):
-        if field not in original or f[field] != original[field]:
+        if (field not in original or
+                _canonical_contract(f[field]) != _canonical_contract(original[field])):
             _reject("E_SSA_VERIFY_CONTRACT", "SSA effect/resource metadata changed or disappeared")
     blocks = f.get("blocks")
     before = original.get("blocks")
