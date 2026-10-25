@@ -1,0 +1,29 @@
+name: Hepta P0-P1 semantic bridge (scoped)
+on:
+  push:
+    branches:
+      - dot/hepta-p0-p1-semantic-bridge-20261025
+  pull_request:
+    branches:
+      - feat/hepta-safe-migration-agent-20261024
+  workflow_dispatch:
+jobs:
+  scalar-bridge:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Check exact source identity
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          test -z "$(git status --porcelain)"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify bounded canonical HSIR to independent scalar SSA
+        run: |
+          python -m unittest tests.test_hsir_bridge tests.test_cfg_analysis tests.test_ssa_scalar tests.test_ssa_verify -v
