@@ -111,3 +111,14 @@ builtin spellings containing the source variable name). Regression tests also
 cover for-declaration shadowing of a function parameter; the parameter must
 retain its own Clang ParmVarDecl identity outside the loop. Local Clang AST
 acceptance alone is not counted as a Hepta native build pass.
+
+## P5 declared-for direct-LLVM acceptance gate
+
+`tests.test_stateful_migration_llvm` now consumes the same strict source
+profile with `for (int i=0;...)` rather than only an assignment-initializer
+loop. The gate explicitly checks the deterministic loop-local name and
+normalized while/step form, then requires the pinned Rust compiler and the
+independent SSA verifier before emitting direct LLVM. The original C++
+wrapper, Hepta/C and native LLVM comparisons remain finite defined-input
+observations. Until they actually run on one exact checked source HEAD,
+this is an executable acceptance criterion, not a qualified backend claim.

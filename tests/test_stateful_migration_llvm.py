@@ -25,8 +25,7 @@ from hepta.llvm_ssa_backend import emit_scalar_ssa_llvm, compile_scalar_ssa_llvm
 SOURCE = """
 int sum_to(int n) noexcept {
     int total = 0;
-    int i = 0;
-    for (i = 0; i < n; ++i) { total = total + i; }
+    for (int i = 0; i < n; ++i) { total = total + i; }
     return total;
 }
 int clamp_local(int x) noexcept {
@@ -58,8 +57,9 @@ class StatefulMigrationLLVMTests(unittest.TestCase):
             self.assertFalse(migrated["behavioral_equivalence_proved"])
             self.assertEqual(migrated["native_validation"], "not_run")
             lowered_source = hepta.read_text(encoding="utf-8")
-            self.assertIn("while (i < n)", lowered_source)
-            self.assertIn("i = (i + 1);", lowered_source)
+            self.assertRegex(lowered_source, r"let mut hepta_for_\d+_i: i32 = 0;")
+            self.assertRegex(lowered_source, r"while \(hepta_for_\d+_i < n\)")
+            self.assertRegex(lowered_source, r"hepta_for_\d+_i = \(hepta_for_\d+_i \+ 1\);")
 
             # Reference rustc must really validate before the LLVM path.
             checked = analyze(hepta.read_text(encoding="utf-8"), str(hepta),
