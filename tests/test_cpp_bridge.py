@@ -117,6 +117,14 @@ int main(void) {
         self.assertIn("catch (...) {", caught.source)
         self.assertIn("int *result_out", caught.c_header)
 
+    def test_generated_wrapper_collision_rejected_before_code_generation(self):
+        self.original.write_text('int foo(int x) noexcept {return x;}\n'
+                                 'int hepta_cxx_foo(int x) noexcept {return x+100;}\n')
+        for mode in ('noexcept_only', 'catch_status'):
+            with self.subTest(mode=mode):
+                with self.assertRaisesRegex(MigrationRejected, 'E_CPP_BRIDGE_SYMBOL'):
+                    generate_cpp_bridge(self.original, clangxx=CLANGXX, exception_mode=mode)
+
     def test_unsupported_semantics_fail_closed(self):
         for source in (
             "int f(int a) { return a; }",  # noexcept required
