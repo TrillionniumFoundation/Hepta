@@ -100,6 +100,10 @@ def convert_cpp(path: str | Path, *, clangxx: str = 'clang++', module: str = 'cp
         seen.add(name)
         params = []
         for p in (x for x in children if x.get('kind') == 'ParmVarDecl'):
+            # Defaults change call arity and parameter attributes can carry
+            # semantics. Neither is representable in this L1 migration tier.
+            if p.get('init') is not None or _children(p):
+                _reject(p, 'default arguments and parameter attributes are unsupported')
             if p.get('type', {}).get('qualType') != 'int':
                 _reject(p, 'only plain int values are supported')
             param = _ident(p.get('name'), p)
