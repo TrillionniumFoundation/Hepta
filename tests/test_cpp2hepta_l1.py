@@ -70,6 +70,32 @@ int clamp(int x) noexcept {
         self.assertEqual(rejected["top_level_declarations"][0]["kind"], "CXXRecordDecl")
         self.assertEqual(rejected["top_level_declarations"][0]["status"], "unsupported")
 
+    def test_source_ranged_toplevel_without_location_is_not_silently_ignored(self):
+        from unittest.mock import patch
+        from hepta import cpp2hepta
+        self.src.write_text(self._GOOD)
+        original_run = cpp2hepta._run
+        def corrupt_one_clang_decl(argv, **kwargs):
+            content = original_run(argv, **kwargs)
+            if "-ast-dump=json" in argv:
+                ast = json.loads(content)
+                for node in ast["inner"]:
+                    loc = node.get("loc", {})
+                    if node.get("kind") == "FunctionDecl" and isinstance(loc.get("offset"), int):
+                        loc.pop("offset")
+                        break
+                else:
+                    self.fail("Clang AST fixture has no source-located function")
+                return json.dumps(ast)
+            return content
+        with patch.object(cpp2hepta, "_run", side_effect=corrupt_one_clang_decl):
+            report = migrate_cpp(self.src, self.dst)
+        self.assertFalse(report["ok"])
+        self.assertFalse(report["top_level_inventory_complete"])
+        self.assertEqual(report["converted"], [])
+        self.assertFalse(self.dst.exists())
+        self.assertEqual(report["rejected"][0]["code"], "E_CPP2HEPTA_LOCATION")
+
     def test_unsafe_cpp_constructs_never_partially_publish(self):
         negative = [
             'class Foo { public: int x; }; int f(int a) noexcept {return a;}',
