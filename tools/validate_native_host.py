@@ -23,6 +23,7 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from hepta.backend import compile_rust, emit_header
+from hepta.clang_capture import CaptureRejected, run_bounded
 from hepta.pipeline import analyze, compiler_hash
 from tools.abi_fuzz import Matrix
 from tools.evidence_checks import command as check_command, is_sha, native_build, normalized_errors, require, strict_equal, text
@@ -48,7 +49,13 @@ def run_host(*, cc=None, rustc=None, expected_system=None, expected_machine=None
     def run(argv, *, positive=True):
         argv = list(map(str, argv))
         start = time.monotonic()
-        process = subprocess.run(argv, text=True, capture_output=True, timeout=120)
+        # A hostile or malfunctioning tool/caller must not buffer arbitrary
+        # stdout/stderr in the Python host qualifier before it can fail.
+        try:
+            process = run_bounded(argv, timeout=120, stdin_limit=0,
+                                  stdout_limit=128_000, stderr_limit=256_000)
+        except CaptureRejected as exc:
+            raise ValueError(f"E_NATIVE_HOST_CAPTURE: {exc.code}: {exc}") from exc
         entry = {"argv": argv, "returncode": process.returncode,
                  "seconds": time.monotonic() - start,
                  "stdout": process.stdout, "stderr": process.stderr}

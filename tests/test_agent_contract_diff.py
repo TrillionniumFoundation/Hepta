@@ -24,6 +24,7 @@ class AgentContractDiffTests(unittest.TestCase):
             "interface_sha256": "d" * 64,
             "source_semantic_sha256": "e" * 64 if version == self.BEFORE else "f" * 64,
             "source_sha256": "1" * 64 if version == self.BEFORE else "2" * 64,
+            "source_graph_sha256": "3" * 64 if version == self.BEFORE else "4" * 64,
             "validated_sources": ["src/main.hepta"],
             "external_obligations": [],
             "foreign_assumptions": [],
@@ -99,11 +100,35 @@ class AgentContractDiffTests(unittest.TestCase):
         with self.assertRaisesRegex(WorkspaceError, "claims"):
             self.compare(a, b)
 
+    def test_missing_graph_identity_field_rejected(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        b.pop("source_graph_sha256")
+        with self.assertRaisesRegex(WorkspaceError, "digest"):
+            self.compare(a, b)
+
     def test_missing_contract_field_rejected(self):
         a, b = self.report(self.BEFORE), self.report(self.AFTER)
         b["functions"][0].pop("return_origin")
         with self.assertRaisesRegex(WorkspaceError, "Malformed function"):
             self.compare(a, b)
+
+    def test_imported_source_change_is_visible_with_identical_entry_hash(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        b["source_sha256"] = a["source_sha256"]
+        b["functions"][0]["declared_effects"] = ["panic"]
+        result = self.compare(a, b)
+        self.assertFalse(result["entry_source_changed"])
+        self.assertTrue(result["source_identity_changed"])
+        self.assertNotEqual(result["before_graph_sha256"], result["after_graph_sha256"])
+        self.assertEqual(result["reported_contract_changes"][0]["changed_fields"],
+                         ["declared_effects"])
+
+    def test_non_graph_workspace_change_is_not_called_source_change(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        b["source_sha256"] = a["source_sha256"]
+        b["source_graph_sha256"] = a["source_graph_sha256"]
+        result = self.compare(a, b)
+        self.assertFalse(result["source_identity_changed"])
 
     def test_no_contract_delta_does_not_claim_unchanged_behavior(self):
         result = self.compare(self.report(self.BEFORE), self.report(self.AFTER))
@@ -124,6 +149,12 @@ class AgentContractDiffTests(unittest.TestCase):
         a, b = self.report(self.BEFORE), self.report(self.AFTER)
         b["compiler_sha256"] = "0" * 64
         with self.assertRaisesRegex(WorkspaceError, "different compiler"):
+            self.compare(a, b)
+
+    def test_absolute_function_paths_cannot_impersonate_module_ids(self):
+        a, b = self.report(self.BEFORE), self.report(self.AFTER)
+        b["functions"][0]["path"] = "/store/versions/b/main.hepta"
+        with self.assertRaisesRegex(WorkspaceError, "relative function origin"):
             self.compare(a, b)
 
     def test_duplicate_function_identity_rejected(self):

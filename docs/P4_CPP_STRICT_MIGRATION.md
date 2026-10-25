@@ -6,7 +6,7 @@ expression/statement lowering authority. It does NOT copy PR #36's
 second C-to-Hepta lowerer or claim general C++20 grammar support.
 
 Strict source profile: standalone `.cc`/`.cpp`/`.cxx` files, no
-preprocessing, top-level distinct `noexcept int(int...)` functions,
+preprocessing, matching the current x86-64/AArch64 64-bit native host/Clang target, and top-level distinct `noexcept int(int...)` functions,
 only the shared C scalar lowering's return/if/scalar expression subset plus
 function-prefix, single-initializer scalar locals, direct scalar assignments
 and explicit Boolean while loops. Local identifiers are checked against their
@@ -18,6 +18,8 @@ must accept the entire translation unit with warning errors; unsupported
 top-level declarations, defaults, attrs, templates, pointers, classes,
 exceptions or overloaded symbols reject all output. The generated
 Hepta uses `export "C"` and does NOT preserve original C++ mangling.
+
+The L1 tool now resolves and records its exact Clang++ executable SHA-256, rejects a foreign target or 32-bit pointer data model, and rehashes the executable after AST capture and immediately before publication. This catches changed compiler files but is not a complete hermetic build/foreign ABI proof.
 
 Execution: the bounded real differential test compares a Clang++-compiled
 original through its explicit C wrapper with the same generated Hepta

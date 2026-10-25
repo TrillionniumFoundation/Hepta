@@ -13,9 +13,33 @@ from .checker import check
 from .modules import load_project
 from .pipeline import compiler_hash
 from .semantic_ir import _stable_json, lower_checked_program
-from .workspace import WorkspaceError, inspect_workspace
+from .workspace import WorkspaceError, inspect_workspace, relative
 
 _HASH = re.compile(r"[0-9a-f]{64}\Z")
+
+
+def _module_identity(path: object, root: Path, validated_sources: set[str]) -> str:
+    """Normalize pinned source locations into stable module-local identities.
+
+    A content-addressed workspace changes its absolute versions/<sha> prefix
+    on each edit. Treating that prefix as part of a function's identity would
+    falsely report every unchanged function as deleted+added.
+    """
+    if not isinstance(path, str) or not path:
+        raise WorkspaceError("E_AGENT_PATH", "Missing source module path")
+    file = Path(path)
+    if file.is_absolute():
+        try:
+            file = file.relative_to(root)
+        except ValueError as exc:
+            raise WorkspaceError("E_AGENT_PATH", "Function path escapes published workspace") from exc
+    try:
+        normalized = relative(file.as_posix())
+    except WorkspaceError as exc:
+        raise WorkspaceError("E_AGENT_PATH", "Function module path is not normalized") from exc
+    if normalized not in validated_sources:
+        raise WorkspaceError("E_AGENT_PATH", "Function is not in the validated import closure")
+    return normalized
 
 
 def inspect_pinned_semantics(store: str | Path, *,
@@ -49,6 +73,10 @@ def inspect_pinned_semantics(store: str | Path, *,
         raise WorkspaceError("E_AGENT_VALIDATION", "Published source lacks current-compiler Rust-qualified evidence")
     # Do not load a new mutable editor checkout or follow CURRENT a second time.
     graph = load_project(Path(snapshot["entry"]))
+    # The entry file alone does NOT identify an imported module closure.
+    # Use the canonical project loader's import-edge/source digest authority.
+    if not isinstance(graph.identity, str) or not _HASH.fullmatch(graph.identity):
+        raise WorkspaceError("E_AGENT_IDENTITY", "Missing exact pinned source graph identity")
     if not graph.unchanged():
         raise WorkspaceError("E_AGENT_RACE", "Pinned import graph changed during semantic inspection")
     checked = check(graph.program)
@@ -80,6 +108,11 @@ def inspect_pinned_semantics(store: str | Path, *,
         raise WorkspaceError("E_AGENT_SEMANTICS", "Canonical HSIR content checksum mismatch")
     if not graph.unchanged():
         raise WorkspaceError("E_AGENT_RACE", "Pinned import graph changed after semantic inspection")
+    tree_root = Path(snapshot["root"]).resolve()
+    expected_modules = meta.get("validated_sources")
+    if not isinstance(expected_modules, list) or not all(isinstance(p, str) for p in expected_modules):
+        raise WorkspaceError("E_AGENT_PATH", "Incomplete validated module inventory")
+    validated = set(expected_modules)
     return {
         "schema": "hepta.agent-semantics.v1",
         "status": "published_native_prevalidated_read_only",
@@ -88,11 +121,13 @@ def inspect_pinned_semantics(store: str | Path, *,
         "interface_sha256": meta.get("interface_sha256"),
         "compiler_sha256": meta["compiler_sha256"],
         "source_semantic_sha256": hsir["sha256"],
-        "source_sha256": hsir["source_sha256"],
+        "source_sha256": hsir["source_sha256"],  # entry file only
+        "source_graph_sha256": graph.identity,  # every resolved import/sidecar
         "validated_sources": meta.get("validated_sources"),
         "nodes": inspected.get("nodes"),
         "functions": [{
-            "name": fn["name"], "path": fn["path"],
+            "name": fn["name"],
+            "path": _module_identity(fn["path"], tree_root, validated),
             "declaration_span": fn["declaration_span"],
             "return_type": fn["returns"], "parameter_modes": [
                 {"name": p["name"], "mode": p["mode"], "type": p["type"]} for p in fn["params"]],

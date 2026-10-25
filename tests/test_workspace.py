@@ -124,6 +124,33 @@ class WorkspaceTests(unittest.TestCase):
         with self.assertRaisesRegex(WorkspaceError, "bytes changed"):
             pin(self.store)
 
+    def test_manifest_claims_and_source_inventory_cannot_be_forged(self):
+        before = pin(self.store)
+        manifest = self.store / "versions" / before["version"] / "snapshot.json"
+        original = manifest.read_bytes()
+        baseline = json.loads(original)
+        mutations = {
+            "elevated_proof": {"functional_equivalence_proved": True},
+            "parent_traversal": {"validated_sources": ["../../untrusted.hepta", "main.hepta"]},
+            "duplicate": {"validated_sources": ["main.hepta", "main.hepta"]},
+            "missing_entry": {"validated_sources": ["api.hepta"]},
+        }
+        try:
+            for name, updated in mutations.items():
+                with self.subTest(name=name):
+                    manifest.write_text(json.dumps({**baseline, **updated}))
+                    with self.assertRaises(WorkspaceError):
+                        pin(self.store)
+            # An omitted dependency stays within the tree but must still be
+            # rejected by the graph-based Agent inspection.
+            manifest.write_text(json.dumps({**baseline, "validated_sources": ["main.hepta"]}))
+            self.assertEqual(pin(self.store)["version"], before["version"])
+            with self.assertRaisesRegex(WorkspaceError, "import graph"):
+                inspect_workspace(self.store)
+        finally:
+            manifest.write_bytes(original)
+        self.assertEqual(inspect_workspace(self.store)["snapshot"]["version"], before["version"])
+
     def test_symlink_input_rejected(self):
         (self.root / "alias.hepta").symlink_to(self.root / "api.hepta")
         with self.assertRaisesRegex(WorkspaceError, "regular files"):

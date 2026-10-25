@@ -16,6 +16,28 @@ from .cfg_analysis import CFGAnalysisRejected, analyze_cfg
 from .ssa import SSASnapshot
 
 
+_SSA_FUNCTION_FIELDS = frozenset({
+    "name", "entry", "parameters", "blocks", "scalar_types", "definitions",
+    "phi_count", "declared_effects", "inferred_transitive_effects",
+    "resource_contract",
+})
+# This verifier owns its expectations independently of the SSA producer.
+# A valid self-resealed digest must never authorize elevated proof flags.
+_SSA_TOP_FIELDS = frozenset({
+    "schema", "status", "source_cfg_sha256", "source_analysis_sha256",
+    "functions", "claims",
+})
+_SSA_EXPECTED_CLAIMS = {
+    "scalar_ssa_subset_constructed": True, "phi_inputs_checked": True,
+    "effect_resource_metadata_retained": True,
+    "whole_language_ssa_complete": False, "for_range_implemented": False,
+    "match_payloads_supported": False, "borrow_drop_proven": False,
+    "pointer_provenance_proven": False,
+    "semantic_equivalence_proven": False,
+    "native_backend_refinement_proven": False,
+}
+
+
 class SSAVerificationRejected(ValueError):
     pass
 
@@ -36,6 +58,16 @@ def _reject(code: str, reason: str):
     raise SSAVerificationRejected(f"{code}: {reason}")
 
 
+def _canonical_contract(value) -> str:
+    # JSON distinguishes the safety-critical False vs 0 and 0 vs False pairs
+    # that Python equality deliberately considers equal.
+    try:
+        return json.dumps(value, sort_keys=True, separators=(",", ":"),
+                          ensure_ascii=False, allow_nan=False)
+    except (ValueError, TypeError) as exc:
+        _reject("E_SSA_VERIFY_CONTRACT", "Noncanonical effect/resource metadata")
+
+
 def _decode(snapshot, required_schema, status):
     if snapshot.schema != required_schema:
         _reject("E_SSA_VERIFY_SCHEMA", "wrong snapshot type")
@@ -44,6 +76,11 @@ def _decode(snapshot, required_schema, status):
     payload = json.loads(snapshot.canonical_json)
     if payload.get("schema") != required_schema or payload.get("status") != status:
         _reject("E_SSA_VERIFY_SCHEMA", "snapshot's canonical schema/status disagrees")
+    if required_schema == "hepta.ssa.scalar.v0":
+        if (set(payload) != _SSA_TOP_FIELDS
+                or _canonical_contract(payload.get("claims")) !=
+                   _canonical_contract(_SSA_EXPECTED_CLAIMS)):
+            _reject("E_SSA_VERIFY_CLAIMS", "SSA schema or safety proof claims changed")
     return payload
 
 
@@ -58,6 +95,12 @@ def _unmark(value, depth=0):
 
 
 def _function(f: dict, original: dict, graph: dict) -> dict:
+    if not isinstance(f, dict) or set(f) != _SSA_FUNCTION_FIELDS:
+        _reject("E_SSA_VERIFY_CONTRACT", "SSA function fields differ from reviewed source contract")
+    for field in ("declared_effects", "inferred_transitive_effects", "resource_contract"):
+        if (field not in original or
+                _canonical_contract(f[field]) != _canonical_contract(original[field])):
+            _reject("E_SSA_VERIFY_CONTRACT", "SSA effect/resource metadata changed or disappeared")
     blocks = f.get("blocks")
     before = original.get("blocks")
     if not isinstance(blocks, list) or not isinstance(before, list) or len(blocks) != len(before):
@@ -182,8 +225,13 @@ def _function(f: dict, original: dict, graph: dict) -> dict:
                  term.get("value") if term["kind"] == "return" else None)
         if value is not None:
             reads += read_expr(value, bid, len(b["instructions"]))
+    contract = {field: f[field] for field in
+                ("declared_effects", "inferred_transitive_effects", "resource_contract")}
+    contract_sha256 = sha256(json.dumps(contract, sort_keys=True, ensure_ascii=False,
+                                       allow_nan=False, separators=(",", ":")).encode()).hexdigest()
     return {"name": f["name"], "blocks": len(blocks), "definitions": len(defs),
-            "phi_count": phis, "ssa_references_verified": reads}
+            "phi_count": phis, "ssa_references_verified": reads,
+            "source_effect_resource_sha256": contract_sha256}
 
 
 def verify_scalar_ssa(ssa: SSASnapshot, cfg: CFGSnapshot) -> SSAVerificationSnapshot:
@@ -211,6 +259,7 @@ def verify_scalar_ssa(ssa: SSASnapshot, cfg: CFGSnapshot) -> SSAVerificationSnap
     output = {"schema": "hepta.ssa.verify.v0", "status": "scalar_ssa_structurally_verified",
               "ssa_sha256": ssa.sha256, "cfg_sha256": cfg.sha256, "functions": result,
               "claims": {"single_assignment_checked": True, "ssa_edge_uses_checked": True,
+                         "effect_resource_metadata_matched_to_cfg": True,
                          "ssa_origin_expression_retained": True,
                          "semantic_equivalence_proven": False,
                          "whole_language_memory_safety_proven": False,

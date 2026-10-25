@@ -217,6 +217,21 @@ def pin(store, version=None):
         fail("E_WORKSPACE_IDENTITY", "Published snapshot bytes changed")
     if entry not in files:
         fail("E_WORKSPACE_ENTRY", "Missing snapshot entry")
+    # The content ID binds source bytes/profile, not every manifest claim.
+    # Never allow a modified manifest to elevate proof status or direct an
+    # Agent reader outside the validated, immutable source tree.
+    if meta.get("functional_equivalence_proved") is not False:
+        fail("E_WORKSPACE_IDENTITY", "Workspace cannot claim functional equivalence")
+    validated = meta.get("validated_sources")
+    if (not isinstance(validated, list) or not validated
+            or any(not isinstance(name, str) for name in validated)):
+        fail("E_WORKSPACE_IDENTITY", "Malformed validated source inventory")
+    if validated != sorted(set(validated)) or entry not in validated:
+        fail("E_WORKSPACE_IDENTITY", "Incomplete or repeated validated source inventory")
+    for name in validated:
+        relative(name)  # rejects absolute, parent traversal and path aliases
+        if not name.endswith(".hepta") or name not in files:
+            fail("E_WORKSPACE_IDENTITY", "Validated source is not a captured Hepta module")
     return {"schema": SCHEMA, "version": version, "root": str(location / "tree"),
             "entry": str(location / "tree" / entry), "manifest": meta}
 
@@ -349,6 +364,14 @@ def _nodes(source, path):
 def inspect_workspace(store):
     snapshot = pin(store)
     root = Path(snapshot["root"])
+    # A manifest-only change could silently omit an imported module without
+    # affecting the content-addressed tree identity. Re-derive the import
+    # closure from the frozen tree before giving an Agent editable node IDs.
+    project = load_project(snapshot["entry"])
+    expected = sorted(Path(p).relative_to(root).as_posix()
+                      for p in project.sources if p.endswith(".hepta"))
+    if expected != snapshot["manifest"]["validated_sources"]:
+        fail("E_WORKSPACE_IDENTITY", "Validated source inventory differs from pinned import graph")
     nodes = {p: _nodes((root / p).read_bytes().decode("utf-8"), p)
              for p in snapshot["manifest"]["validated_sources"]}
     return {"schema": SCHEMA, "ok": True, "snapshot": snapshot, "nodes": nodes,

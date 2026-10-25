@@ -52,7 +52,8 @@ An example database entry is:
 ]
 ```
 
-The database's compiler command is parsed as data; it is never executed through
+The compilation database is read with a hard 1 MiB byte cap. The database's
+compiler command is parsed as data; it is never executed through
 a shell. The explicitly selected Clang performs preprocessing and AST capture.
 Compiler wrappers, response files, plugin flags and unknown options are
 rejected. Accepted compile standards are explicit C99, C11 and C17. Includes
@@ -82,8 +83,7 @@ Capture records every listed translation unit, its normalized frontend
 arguments, dependency paths and SHA-256 digests, preprocessed digest, predefined
 macro digest, selected Clang executable digest, compiler version and target.
 Both `-M` and `-MM` dependency sets are retained to distinguish system input from
-project input. Before publishing, capture rechecks source and header bytes,
-reruns dependency discovery and preprocessing, and rejects changes. This catches
+project input. Before publishing, capture recomputes its canonical build-manifest identity, reloads every compile-database entry to verify the full configuration denominator, and checks the complete dependency inventory. It rechecks the selected compiler identity and target, source and header bytes, dependency discovery, preprocessing, both predefined-macro inventories and the separately derived allowlisted ABI-model probe. Changes reject; a manifest merely rehashed after removing an input or changing the measured C ABI model is not accepted. This catches
 changed includes and a newly selected header even when the previously selected
 header's contents remain unchanged. It is not a hermetic build-system or
 compiler-binary attestation.

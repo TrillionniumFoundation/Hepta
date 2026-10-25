@@ -38,7 +38,7 @@ def block(index, instructions=(), **terminator):
     return {"id": f"b{index:04d}", "instructions": list(instructions), "terminator": terminator}
 
 
-def snapshot(blocks, params=(), *, effects=()):
+def snapshot(blocks, params=(), *, effects=(), resources=None):
     edges = []
     for block in blocks:
         t = block["terminator"]
@@ -51,7 +51,10 @@ def snapshot(blocks, params=(), *, effects=()):
     fn = {"name": "f", "entry": "b0000", "blocks": blocks, "edges": edges,
           "param_types": [{"name": name, "type": typ(ty), "ownership": "value"}
                           for name, ty in params],
-          "inferred_transitive_effects": list(effects), "return_type": typ("i32")}
+          "declared_effects": sorted(effects),
+          "inferred_transitive_effects": sorted(effects),
+          "resource_contract": dict(resources or {}),
+          "return_type": typ("i32")}
     data = {"schema": "hepta.cfg.v0", "status": "structural_cfg_only_not_proved", "functions": [fn]}
     encoded = json.dumps(data, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
     return CFGSnapshot("hepta.cfg.v0", encoded, sha256(encoded.encode()).hexdigest())
@@ -140,6 +143,36 @@ class SSATests(unittest.TestCase):
         unsafe = snapshot([block(0, kind="return", value=i(3))], effects=["unsafe"])
         with self.assertRaisesRegex(SSARejected, "EFFECT"):
             lower_cfg_scalar_ssa(unsafe)
+
+    def test_source_effect_and_resource_contract_survive_scalar_ssa(self):
+        resources = {"heap_allocations": 0, "may_block": False,
+                     "may_suspend": False, "may_spawn": False}
+        cfg = snapshot([block(0, kind="return", value=i(3))],
+                       effects=("panic",), resources=resources)
+        fn = lower_cfg_scalar_ssa(cfg).as_dict()["functions"][0]
+        self.assertEqual(fn["declared_effects"], ["panic"])
+        self.assertEqual(fn["inferred_transitive_effects"], ["panic"])
+        self.assertEqual(fn["resource_contract"], resources)
+        for bad_resources in ({"heap_allocations": True},
+                              {"may_block": 0}, {"max_heap": 0}):
+            with self.subTest(resources=bad_resources):
+                broken = snapshot([block(0, kind="return", value=i(3))],
+                                  effects=("panic",), resources=bad_resources)
+                with self.assertRaisesRegex(SSARejected, "RESOURCE"):
+                    lower_cfg_scalar_ssa(broken)
+
+    def test_nonpure_declared_effect_fails_closed(self):
+        cfg = snapshot([block(0, kind="return", value=i(3))], effects=("unsafe",))
+        with self.assertRaisesRegex(SSARejected, "EFFECT"):
+            lower_cfg_scalar_ssa(cfg)
+        # A malicious checked-CFG producer cannot conceal a wider declared
+        # effect by supplying only the narrower inferred list.
+        payload = json.loads(snapshot([block(0, kind="return", value=i(3))]).canonical_json)
+        payload["functions"][0]["declared_effects"] = ["ffi"]
+        encoded = json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+        forged = CFGSnapshot("hepta.cfg.v0", encoded, sha256(encoded.encode()).hexdigest())
+        with self.assertRaisesRegex(SSARejected, "EFFECT"):
+            lower_cfg_scalar_ssa(forged)
 
     def test_snapshot_tampering_rejected(self):
         cfg = snapshot([block(0, kind="return", value=i(3))])

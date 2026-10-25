@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import shutil
+from unittest.mock import patch
 import sys
 import tempfile
 import time
@@ -50,6 +51,26 @@ class CaptureBudgets(unittest.TestCase):
             run_bounded([sys.executable, '-c', 'import time;time.sleep(10)'], timeout=.15)
         self.assertEqual(e.exception.code, 'E_CAPTURE_TIMEOUT')
         self.assertLess(time.monotonic() - start, 2)
+
+    def test_invalid_timeout_budgets_reject_before_launch(self):
+        for invalid in (float("nan"), float("inf"), float("-inf"),
+                        "45", True, 0, -1, 3601):
+            with self.subTest(timeout=repr(invalid)):
+                with patch("hepta.clang_capture.subprocess.Popen") as launch:
+                    with self.assertRaises(CaptureRejected) as caught:
+                        run_bounded([sys.executable, "-c", "print(1)"], timeout=invalid)
+                    self.assertEqual(caught.exception.code, "E_CAPTURE_BUDGET")
+                    launch.assert_not_called()
+
+    def test_invalid_byte_limits_reject_before_launch(self):
+        for key in ("stdout_limit", "stderr_limit", "stdin_limit"):
+            for invalid in (float("nan"), float("inf"), -1, True, None, "4096", 4.5):
+                with self.subTest(budget=key, invalid=repr(invalid)):
+                    with patch("hepta.clang_capture.subprocess.Popen") as launch:
+                        with self.assertRaises(CaptureRejected) as caught:
+                            run_bounded([sys.executable, "-c", "print(1)"], **{key: invalid})
+                        self.assertEqual(caught.exception.code, "E_CAPTURE_BUDGET")
+                        launch.assert_not_called()
 
     def test_oversize_stdin_without_process_launch(self):
         with self.assertRaises(CaptureRejected) as e:

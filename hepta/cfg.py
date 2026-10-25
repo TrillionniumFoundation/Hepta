@@ -236,7 +236,9 @@ def lower_hsir_cfg(snapshot: HSIRSnapshot) -> CFGSnapshot:
         raise CFGRejected("E_CFG_INPUT: requires HSIR v0 snapshot")
     if sha256(snapshot.canonical_json.encode("utf-8")).hexdigest() != snapshot.sha256:
         raise CFGRejected("E_CFG_INPUT: HSIR snapshot digest mismatch")
-    data = json.loads(snapshot.canonical_json)
+    # Validation is structural as well as content-hash-bound. A directly
+    # constructed HSIRSnapshot is not authority to omit new effects/fields.
+    data = snapshot.as_dict()
     if data.get("schema") != snapshot.schema or data.get("status") != "checked_frontend_snapshot_not_proved":
         raise CFGRejected("E_CFG_INPUT: unexpected HSIR schema/status")
     if not isinstance(data.get("functions"), list):

@@ -22,6 +22,18 @@ _SCALARS = frozenset({"bool", "i8", "i16", "i32", "i64", "i128", "isize",
 _TYPES = _SCALARS | {"Unit"}
 _EXPR = frozenset({"name", "int", "float", "bool", "binary", "unary", "cast"})
 _STMT = frozenset({"let", "assign", "expr", "return", "if", "while", "for"})
+# Canonical Stmt.data must be lossless at every nesting level. Reject
+# unexpected keys rather than allowing a new semantic effect to reach the
+# scalar CFG/SSA bridge where it could otherwise be silently ignored.
+_STMT_DATA_FIELDS = {
+    "let": frozenset({"name", "type", "mutable", "expr"}),
+    "assign": frozenset({"target", "expr"}),
+    "expr": frozenset({"expr"}),
+    "return": frozenset({"expr"}),
+    "if": frozenset({"condition", "then", "else"}),
+    "while": frozenset({"condition", "body"}),
+    "for": frozenset({"name", "start", "end", "body"}),
+}
 _HASH = re.compile(r"[0-9a-f]{64}\Z")
 # Fixed upstream v0 semantic inventory, not an alternative AST encoder.
 # An added/missing field requires a review of the scalar projection boundary.
@@ -48,6 +60,29 @@ _PARAMETER_FIELDS = frozenset({"name", "mode", "type", "span"})
 _EXPR_FIELDS = frozenset({"node", "op", "type", "value", "args", "type_args", "span"})
 _STMT_FIELDS = frozenset({"node", "op", "data", "span"})
 _TYPE_FIELDS = frozenset({"node", "name", "args", "length"})
+# Closed schema of the *derived* scalar snapshot. It can be supplied to the
+# structural CFG consumer directly; the latter must not trust a self-resealed
+# JSON object merely because its SHA-256 matches.
+_DERIVED_FIELDS = frozenset({
+    "schema", "status", "program", "source_sha256", "source_semantic_sha256",
+    "project_sha256", "imports", "structs", "enums", "functions",
+    "external_assumptions", "resource_contracts", "typed_expression_count",
+    "claims",
+})
+_DERIVED_FUNCTION_FIELDS = frozenset({
+    "name", "param_types", "return_type", "declared_effects",
+    "inferred_transitive_effects", "resource_contract", "type_parameters",
+    "abi", "direction", "public", "body", "span",
+})
+_DERIVED_CLAIMS = {
+    "lifetimes_fully_modeled": False, "pointer_provenance_proved": False,
+    "source_semantics_refined": False, "native_backend_equivalence_proved": False,
+    "canonical_semantics_still_authoritative": True,
+}
+_DERIVED_EXPR_FIELDS = frozenset({
+    "node", "operation", "result_type", "value", "operands", "type_args", "span",
+})
+_DERIVED_STMT_FIELDS = frozenset({"node", "operation", "fields", "span"})
 
 
 class HSIRRejected(ValueError):
@@ -71,6 +106,13 @@ class HSIRSnapshot:
             raise HSIRRejected("E_HSIR_SNAPSHOT: invalid JSON") from exc
         if not isinstance(obj, dict) or obj.get("schema") != SCHEMA or obj.get("status") != _STATUS:
             raise HSIRRejected("E_HSIR_SNAPSHOT: schema/status mismatch")
+        try:
+            canonical = _json(obj)
+        except (TypeError, ValueError) as exc:
+            raise HSIRRejected("E_HSIR_SNAPSHOT: noncanonical or nonfinite snapshot") from exc
+        if canonical != self.canonical_json:
+            raise HSIRRejected("E_HSIR_SNAPSHOT: noncanonical serialized snapshot")
+        _validate_derived_snapshot(obj)
         return {**obj, "sha256": self.sha256}
 
 
@@ -80,6 +122,90 @@ def _reject(reason: str) -> None:
 
 def _json(obj: Any) -> str:
     return json.dumps(obj, ensure_ascii=False, allow_nan=False, sort_keys=True, separators=(",", ":"))
+
+
+def _validate_derived_node(value: Any, depth: int = 0) -> int:
+    """Validate closed scalar expression/statement nesting. Return expr count."""
+    if depth > 256:
+        _reject("derived scalar node nesting exceeded")
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return 0
+    if isinstance(value, list):
+        return sum(_validate_derived_node(item, depth + 1) for item in value)
+    if not isinstance(value, dict):
+        _reject("derived scalar value must be structured")
+    if set(value) == {"type", "args", "length"}:
+        if (value["type"] not in _TYPES or value["args"] != []
+                or value["length"] is not None):
+            _reject("derived scalar type is not closed")
+        return 0
+    if set(value) == {"path", "start", "end", "line", "column"}:
+        if (not isinstance(value["path"], str)
+                or not all(type(value[key]) is int for key in ("start", "end", "line", "column"))
+                or value["start"] < 0 or value["end"] < value["start"]
+                or value["line"] < 1 or value["column"] < 1):
+            _reject("derived scalar source span is malformed")
+        return 0
+    kind = value.get("node")
+    if kind == "expr":
+        if (set(value) != _DERIVED_EXPR_FIELDS or value.get("operation") not in _EXPR
+                or value.get("type_args") != [] or not isinstance(value.get("operands"), list)):
+            _reject("derived scalar expression contains unreviewed semantics")
+        _validate_derived_node(value["result_type"], depth + 1)
+        _validate_derived_node(value["span"], depth + 1)
+        return (1 + _validate_derived_node(value["value"], depth + 1)
+                + _validate_derived_node(value["operands"], depth + 1))
+    if kind == "stmt":
+        operation, fields = value.get("operation"), value.get("fields")
+        if (set(value) != _DERIVED_STMT_FIELDS
+                or operation not in _STMT_DATA_FIELDS or not isinstance(fields, dict)
+                or set(fields) != _STMT_DATA_FIELDS[operation]):
+            _reject("derived scalar statement contains unreviewed semantics")
+        _validate_derived_node(value["span"], depth + 1)
+        return sum(_validate_derived_node(item, depth + 1) for item in fields.values())
+    _reject("unreviewed derived scalar node")
+
+
+def _validate_derived_snapshot(obj: dict) -> None:
+    if set(obj) != _DERIVED_FIELDS or obj.get("claims") != _DERIVED_CLAIMS:
+        _reject("derived snapshot inventory/claims differ from reviewed scalar subset")
+    if (not isinstance(obj.get("source_sha256"), str)
+            or _HASH.fullmatch(obj["source_sha256"]) is None
+            or not isinstance(obj.get("source_semantic_sha256"), str)
+            or _HASH.fullmatch(obj["source_semantic_sha256"]) is None
+            or (obj.get("project_sha256") is not None
+                and (not isinstance(obj["project_sha256"], str)
+                     or _HASH.fullmatch(obj["project_sha256"]) is None))):
+        _reject("derived snapshot lacks source/semantic identity")
+    if any(not isinstance(obj.get(name), list) or obj[name]
+           for name in ("imports", "structs", "enums", "external_assumptions")):
+        _reject("derived scalar snapshot must not contain foreign or nominal content")
+    if not isinstance(obj.get("functions"), list):
+        _reject("derived snapshot requires function inventory")
+    count = 0
+    for fn in obj["functions"]:
+        if (not isinstance(fn, dict) or set(fn) != _DERIVED_FUNCTION_FIELDS
+                or not isinstance(fn.get("name"), str)
+                or fn.get("type_parameters") != []
+                or fn.get("direction") not in {"local", "export"}
+                or fn.get("abi") not in {"C", "hepta_unstable"}
+                or not isinstance(fn.get("body"), list)
+                or not isinstance(fn.get("param_types"), list)
+                or not isinstance(fn.get("resource_contract"), dict)):
+            _reject("derived function has unsupported ownership, ABI or metadata")
+        _validate_derived_node(fn["return_type"])
+        _validate_derived_node(fn["span"])
+        for param in fn["param_types"]:
+            if (not isinstance(param, dict)
+                    or set(param) != {"name", "ownership", "type", "span"}
+                    or param.get("ownership") != "value"
+                    or not isinstance(param.get("name"), str)):
+                _reject("derived scalar parameter ownership differs")
+            _validate_derived_node(param["type"])
+            _validate_derived_node(param["span"])
+        count += _validate_derived_node(fn["body"])
+    if type(obj.get("typed_expression_count")) is not int or count != obj["typed_expression_count"]:
+        _reject("derived expression inventory is not complete")
 
 
 def _type(obj: Any, context: str) -> dict:
@@ -126,10 +252,13 @@ def _value(value: Any) -> Any:
     if kind == "stmt":
         if set(value) != _STMT_FIELDS:
             _reject("unreviewed scalar statement fields")
-        if value.get("op") not in _STMT or not isinstance(value.get("data"), dict):
-            _reject(f"unhandled statement {value.get('op')!r}")
-        return {"node": "stmt", "operation": value["op"],
-                "fields": _value(value["data"]), "span": value.get("span")}
+        operation, data = value.get("op"), value.get("data")
+        if operation not in _STMT or not isinstance(data, dict):
+            _reject(f"unhandled statement {operation!r}")
+        if set(data) != _STMT_DATA_FIELDS[operation]:
+            _reject(f"unreviewed {operation} statement data fields")
+        return {"node": "stmt", "operation": operation,
+                "fields": _value(data), "span": value.get("span")}
     _reject(f"unhandled semantic node {kind!r}")
 
 

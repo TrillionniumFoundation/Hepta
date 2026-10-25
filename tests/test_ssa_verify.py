@@ -82,6 +82,47 @@ class SSAVerificationTests(unittest.TestCase):
         with self.assertRaisesRegex(SSAVerificationRejected, "ORIGIN"):
             verify_scalar_ssa(encoded(x), cfg)
 
+    def test_effect_resource_contract_tamper_rejected_after_rehash(self):
+        cfg = snapshot([block(0, kind="return", value=i(3))],
+                       effects=["panic"],
+                       resources={"heap_allocations": 0, "may_block": False})
+        ssa = lower_cfg_scalar_ssa(cfg)
+        verification = verify_scalar_ssa(ssa, cfg).as_dict()
+        self.assertTrue(verification["claims"]["effect_resource_metadata_matched_to_cfg"])
+        self.assertEqual(len(verification["functions"][0]["source_effect_resource_sha256"]), 64)
+        mutations = {
+            "drop_contract": lambda f: f.pop("resource_contract"),
+            "resource_upgrade": lambda f: f["resource_contract"].update(may_block=True),
+            "bool_as_zero": lambda f: f["resource_contract"].update(may_block=0),
+            "zero_as_bool": lambda f: f["resource_contract"].update(heap_allocations=False),
+            "effect_upgrade": lambda f: f.update(declared_effects=["ffi"]),
+            "inferred_elision": lambda f: f.update(inferred_transitive_effects=[]),
+            "unreviewed_metadata": lambda f: f.update(verified_unsafe=True),
+        }
+        for name, mutate in mutations.items():
+            with self.subTest(case=name):
+                payload = ssa.as_dict()
+                payload.pop("sha256")
+                mutate(payload["functions"][0])
+                with self.assertRaisesRegex(SSAVerificationRejected, "CONTRACT"):
+                    verify_scalar_ssa(encoded(payload), cfg)
+
+    def test_resealed_ssa_cannot_elevate_claims_or_hide_fields(self):
+        cfg, ssa = self.fixture()
+        for name, mutation in {
+            "raise_native_proof": lambda x: x["claims"].update(native_backend_refinement_proven=True),
+            "hide_false_proof": lambda x: x["claims"].pop("native_backend_refinement_proven"),
+            "inject_unknown_claim": lambda x: x["claims"].update(memory_soundness_proved=True),
+            "true_as_one": lambda x: x["claims"].update(phi_inputs_checked=1),
+            "unknown_top_level": lambda x: x.update(elevated_proof=True),
+        }.items():
+            with self.subTest(case=name):
+                forged = ssa.as_dict()
+                forged.pop("sha256")
+                mutation(forged)
+                with self.assertRaisesRegex(SSAVerificationRejected, "CLAIMS"):
+                    verify_scalar_ssa(encoded(forged), cfg)
+
     def test_duplicate_definition_wrong_count(self):
         cfg, ssa = self.fixture()
         x = ssa.as_dict()

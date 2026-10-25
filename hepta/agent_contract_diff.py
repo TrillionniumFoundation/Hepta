@@ -7,7 +7,7 @@ signature never proves behavioral equivalence or unchanged function bodies.
 from __future__ import annotations
 
 from hashlib import sha256
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 from typing import Any
 
@@ -35,7 +35,8 @@ def _inventory(report: dict[str, Any], version: str) -> dict[tuple[str, str], di
             or report.get("status") != "published_native_prevalidated_read_only"
             or report.get("workspace_version") != version):
         raise WorkspaceError("E_AGENT_DIFF_PIN", "Expected a native-prevalidated pinned semantic report")
-    for key in ("compiler_sha256", "source_semantic_sha256", "source_sha256", "interface_sha256"):
+    for key in ("compiler_sha256", "source_semantic_sha256", "source_sha256",
+                "source_graph_sha256", "interface_sha256"):
         digest = report.get(key)
         if not isinstance(digest, str) or _HASH.fullmatch(digest) is None:
             raise WorkspaceError("E_AGENT_DIFF_ID", "Missing or invalid bound digest: " + key)
@@ -57,8 +58,11 @@ def _inventory(report: dict[str, Any], version: str) -> dict[tuple[str, str], di
         if not isinstance(fn, dict) or any(k not in fn for k in _TRACKED):
             raise WorkspaceError("E_AGENT_DIFF_FUNCTION", "Malformed function contract")
         path, name = fn.get("path"), fn.get("name")
-        if not isinstance(path, str) or not path or not isinstance(name, str) or not name:
-            raise WorkspaceError("E_AGENT_DIFF_FUNCTION", "Missing function origin")
+        if (not isinstance(path, str) or not path or not isinstance(name, str) or not name
+                or PurePosixPath(path).is_absolute() or "\\" in path
+                or any(part in ("", ".", "..") for part in path.split("/"))
+                or path not in report["validated_sources"]):
+            raise WorkspaceError("E_AGENT_DIFF_FUNCTION", "Missing or unvalidated relative function origin")
         key = (path, name)
         if key in keys:
             raise WorkspaceError("E_AGENT_DIFF_DUPLICATE", "Duplicate path/function identity")
@@ -112,7 +116,13 @@ def compare_pinned_contracts(
         "after_semantic_sha256": after["source_semantic_sha256"],
         "before_source_sha256": before["source_sha256"],
         "after_source_sha256": after["source_sha256"],
-        "source_identity_changed": before["source_sha256"] != after["source_sha256"],
+        "before_graph_sha256": before["source_graph_sha256"],
+        "after_graph_sha256": after["source_graph_sha256"],
+        # An imported module can change while the entry's source SHA stays
+        # unchanged. The loader's full source graph + import-edge digest is
+        # the only meaningful cross-workspace source-change comparator.
+        "source_identity_changed": before["source_graph_sha256"] != after["source_graph_sha256"],
+        "entry_source_changed": before["source_sha256"] != after["source_sha256"],
         "before_interface_sha256": before["interface_sha256"],
         "after_interface_sha256": after["interface_sha256"],
         "interface_identity_changed": before["interface_sha256"] != after["interface_sha256"],

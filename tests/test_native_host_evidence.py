@@ -10,10 +10,36 @@ from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch
 
+from hepta.clang_capture import CaptureRejected, CaptureResult
 from tools import validate_native_host as module
 
 
 class NativeHostFailureEvidenceTests(TestCase):
+    def test_host_subprocess_uses_bounded_capture_and_preserves_status(self):
+        with patch.object(module, "run_bounded",
+                          return_value=CaptureResult(0, "ok\\n", "")) as invoke:
+            # The public run_host has a nested capture helper: exercise the
+            # helper through its source path with a deliberately early mock
+            # abort after version/target interrogation below.
+            with (patch.object(module.shutil, "which", return_value="/mock/clang"),
+                  patch.object(module, "Matrix") as matrix):
+                matrix.side_effect = RuntimeError("stop after tool identity")
+                with self.assertRaises(RuntimeError):
+                    module.run_host(cc="clang")
+            self.assertGreaterEqual(invoke.call_count, 2)
+            for call in invoke.call_args_list:
+                self.assertEqual(call.kwargs["timeout"], 120)
+                self.assertEqual(call.kwargs["stdin_limit"], 0)
+                self.assertEqual(call.kwargs["stdout_limit"], 128000)
+                self.assertEqual(call.kwargs["stderr_limit"], 256000)
+
+    def test_host_capture_rejection_does_not_claim_qualification(self):
+        with (patch.object(module.shutil, "which", return_value="/mock/clang"),
+              patch.object(module, "run_bounded",
+                           side_effect=CaptureRejected("E_CAPTURE_OUTPUT_SIZE", "bounded"))):
+            with self.assertRaisesRegex(ValueError, "E_NATIVE_HOST_CAPTURE"):
+                module.run_host(cc="clang")
+
     def test_post_execution_validator_failure_keeps_raw_trace_and_fails(self):
         observed = {
             "schema": "hepta.native-host.v1", "status": "passed",

@@ -24,7 +24,8 @@ def _qualified_header(data: bytes, target: str) -> bool:
     """Check bounded *object* structure, not just magic and target CPU bytes.
 
     The strict subset intentionally rejects extended section numbering and
-    unrecognized formats. It does not prove sections' semantics or C ABI.
+    unrecognized formats. Section payload offsets and lengths must fit within
+    the complete artifact. This does not prove section semantics or C ABI.
     """
     fmt, machine = _TARGETS[target]
     if fmt == "ELF64":
@@ -37,9 +38,26 @@ def _qualified_header(data: bytes, target: str) -> bool:
         section_offset = int.from_bytes(data[40:48], "little")
         section_size = int.from_bytes(data[58:60], "little")
         section_count = int.from_bytes(data[60:62], "little")
-        return (section_offset >= 64 and section_size == 64
-                and 0 < section_count <= 4096
-                and section_offset + section_size * section_count <= len(data))
+        string_section = int.from_bytes(data[62:64], "little")
+        if (not section_offset >= 64 or section_size != 64
+                or not 0 < section_count <= 4096
+                or section_offset + section_size * section_count > len(data)
+                or string_section >= section_count):
+            return False
+        for index in range(section_count):
+            start = section_offset + section_size * index
+            header = data[start:start + section_size]
+            section_type = int.from_bytes(header[4:8], "little")
+            file_offset = int.from_bytes(header[24:32], "little")
+            file_size = int.from_bytes(header[32:40], "little")
+            alignment = int.from_bytes(header[48:56], "little")
+            # SHT_NOBITS (8) has logical length but no file payload.
+            if (section_type != 8 and file_size
+                    and (file_offset < 64 or file_offset + file_size > len(data))):
+                return False
+            if alignment and alignment & (alignment - 1):
+                return False
+        return True
     if fmt == "COFF":
         if len(data) < 60 or int.from_bytes(data[:2], "little") != machine:
             return False
@@ -50,9 +68,23 @@ def _qualified_header(data: bytes, target: str) -> bool:
             return False
         symbols_at = int.from_bytes(data[8:12], "little")
         symbols = int.from_bytes(data[12:16], "little")
-        return (symbols == 0 or
-                (symbols_at >= 20 + 40 * sections
-                 and symbols_at + 18 * symbols <= len(data)))
+        section_table_end = 20 + 40 * sections
+        if symbols and (symbols_at < section_table_end
+                        or symbols_at + 18 * symbols > len(data)):
+            return False
+        for index in range(sections):
+            entry = data[20 + 40 * index:20 + 40 * (index + 1)]
+            raw_size = int.from_bytes(entry[16:20], "little")
+            raw_offset = int.from_bytes(entry[20:24], "little")
+            reloc_offset = int.from_bytes(entry[24:28], "little")
+            reloc_count = int.from_bytes(entry[32:34], "little")
+            if raw_size and (raw_offset < section_table_end
+                             or raw_offset + raw_size > len(data)):
+                return False
+            if reloc_count and (reloc_offset < section_table_end
+                                or reloc_offset + 10 * reloc_count > len(data)):
+                return False
+        return True
     if fmt == "MACHO64":
         if (len(data) < 40 or data[:4] != b"\xcf\xfa\xed\xfe"
                 or int.from_bytes(data[4:8], "little") != machine
@@ -72,6 +104,23 @@ def _qualified_header(data: bytes, target: str) -> bool:
             size = int.from_bytes(data[offset + 4:offset + 8], "little")
             if size < 8 or size % 8 or offset + size > end:
                 return False
+            command = int.from_bytes(data[offset:offset + 4], "little")
+            if command == 0x19:  # LC_SEGMENT_64: validate section records.
+                if size < 72:
+                    return False
+                section_count = int.from_bytes(data[offset + 64:offset + 68], "little")
+                if section_count > 4096 or 72 + 80 * section_count > size:
+                    return False
+                for index in range(section_count):
+                    section_at = offset + 72 + 80 * index
+                    section = data[section_at:section_at + 80]
+                    file_size = int.from_bytes(section[40:48], "little")
+                    file_offset = int.from_bytes(section[48:52], "little")
+                    section_type = int.from_bytes(section[64:68], "little") & 0xff
+                    # Zerofill sections have no backing data in the object.
+                    if (section_type not in (1, 0x0c, 0x12) and file_size
+                            and (file_offset < end or file_offset + file_size > len(data))):
+                        return False
             offset += size
         return offset == end
     return False

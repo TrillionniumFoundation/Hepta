@@ -62,6 +62,10 @@ class HSIRBridgeTests(unittest.TestCase):
         verifier = verify_scalar_ssa(ssa, cfg)
         self.assertTrue(verifier.as_dict())
         self.assertGreater(ssa.as_dict()["functions"][0]["phi_count"], 0)
+        self.assertEqual(ssa.as_dict()["functions"][0]["declared_effects"], ["panic"])
+        self.assertEqual(ssa.as_dict()["functions"][0]["resource_contract"],
+                         cfg.as_dict()["functions"][0]["resource_contract"])
+        self.assertTrue(verifier.as_dict()["claims"]["effect_resource_metadata_matched_to_cfg"])
         self.assertFalse(bridge.as_dict()["claims"]["source_semantics_refined"])
         self.assertFalse(ssa.as_dict()["claims"]["native_backend_refinement_proven"])
 
@@ -86,6 +90,31 @@ class HSIRBridgeTests(unittest.TestCase):
         snap = from_canonical_snapshot(canonical)
         with self.assertRaises(HSIRRejected):
             HSIRSnapshot(snap.schema, snap.canonical_json, "0" * 64).as_dict()
+
+    def test_resealed_derived_snapshot_cannot_bypass_scalar_schema(self):
+        program, checked = _checked(_SOURCE)
+        snap = lower_checked_program(program, checked)
+        baseline = snap.as_dict()
+        self.assertTrue(lower_hsir_cfg(snap))
+        for name, mutate in {
+            "elevated_claim": lambda x: x["claims"].update(pointer_provenance_proved=True),
+            "extra_function_metadata": lambda x: x["functions"][0].update(implicit_unsafe=True),
+            "missing_statement_field": lambda x: x["functions"][0]["body"][0]["fields"].pop("mutable"),
+            "injected_nested_effect": lambda x: x["functions"][0]["body"][2]["fields"]["body"][0]["fields"].update(ffi=True),
+            "hidden_expression": lambda x: x.update(typed_expression_count=0),
+            "unknown_top_level": lambda x: x.update(pointer_proof=True),
+        }.items():
+            with self.subTest(case=name):
+                payload = copy.deepcopy(baseline)
+                payload.pop("sha256")
+                mutate(payload)
+                encoded = json.dumps(payload, sort_keys=True, ensure_ascii=False,
+                                     allow_nan=False, separators=(",", ":"))
+                forged = HSIRSnapshot(snap.schema, encoded, hashlib.sha256(encoded.encode()).hexdigest())
+                with self.assertRaises(HSIRRejected):
+                    forged.as_dict()
+                with self.assertRaises(HSIRRejected):
+                    lower_hsir_cfg(forged)
 
     def test_resealed_but_elided_or_unreviewed_semantics_rejected(self):
         a, ac = _checked(_SOURCE)
@@ -116,6 +145,11 @@ class HSIRBridgeTests(unittest.TestCase):
             "parameter_span_missing": lambda x: x["functions"][0]["params"][0].pop("span"),
             "expression_extra_operands": lambda x: x["functions"][0]["body"][0]["data"]["expr"].update(new_unsafe_effect=True),
             "statement_extra_ownership": lambda x: x["functions"][0]["body"][0].update(implicit_drop=True),
+            "let_data_extra_drop": lambda x: x["functions"][0]["body"][0]["data"].update(implicit_drop=True),
+            "let_data_missing_mutability": lambda x: x["functions"][0]["body"][0]["data"].pop("mutable"),
+            "while_data_extra_effect": lambda x: x["functions"][0]["body"][2]["data"].update(implicit_ffi=True),
+            "nested_if_data_extra_effect": lambda x: x["functions"][0]["body"][2]["data"]["body"][0]["data"].update(implicit_spawn=True),
+            "return_data_extra_ownership": lambda x: x["functions"][0]["body"][3]["data"].update(consume_owner=True),
         }
         for name, mutation in mutations.items():
             with self.subTest(name=name):

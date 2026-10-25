@@ -45,13 +45,48 @@ class LLVMSSATargetTests(unittest.TestCase):
         header = (b"\xcf\xfa\xed\xfe" + (0x01000007).to_bytes(4, "little")
                   + (3).to_bytes(4, "little") + (1).to_bytes(4, "little")
                   + b"\x00" * 16)
-        self.assertTrue(_qualified_header(header, "x86_64-apple-darwin"))
+        # A 32-byte Mach-O header without load commands and sections is not
+        # a complete object; the former positive expectation was incorrect.
+        self.assertFalse(_qualified_header(header, "x86_64-apple-darwin"))
         self.assertFalse(_qualified_header(header, "aarch64-apple-darwin"))
         linked = header[:12] + (2).to_bytes(4, "little") + header[16:]
         self.assertFalse(_qualified_header(linked, "x86_64-apple-darwin"))
         self.assertFalse(_qualified_header(header[:16], "x86_64-apple-darwin"))
         big_endian = b"\xfe\xed\xfa\xcf" + header[4:]
         self.assertFalse(_qualified_header(big_endian, "x86_64-apple-darwin"))
+
+    def test_reject_out_of_file_section_payloads_on_real_target_objects(self):
+        # A correct machine tag plus valid section-table bounds must not let
+        # truncated/fabricated payload references masquerade as a native build.
+        for target in ("x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc",
+                       "aarch64-apple-darwin"):
+            with self.subTest(target=target):
+                output = self.root / ("sections-" + target + ".o")
+                compile_ssa_target_object(self.ir, target=target, output=output)
+                original = output.read_bytes()
+                self.assertTrue(_qualified_header(original, target))
+                data = bytearray(original)
+                if "linux" in target:
+                    table = int.from_bytes(data[40:48], "little")
+                    count = int.from_bytes(data[60:62], "little")
+                    candidates = [
+                        table + 64 * index
+                        for index in range(count)
+                        if int.from_bytes(data[table + 64 * index + 32:table + 64 * index + 40], "little")
+                        and int.from_bytes(data[table + 64 * index + 4:table + 64 * index + 8], "little") != 8
+                    ]
+                    self.assertTrue(candidates)
+                    start = candidates[0] + 32
+                    data[start:start + 8] = (len(data) + 1024).to_bytes(8, "little")
+                elif "windows" in target:
+                    self.assertGreater(int.from_bytes(data[20 + 16:20 + 20], "little"), 0)
+                    data[20 + 16:20 + 20] = (len(data) + 1024).to_bytes(4, "little")
+                else:
+                    # First Clang object command is LC_SEGMENT_64 with __text.
+                    self.assertEqual(int.from_bytes(data[32:36], "little"), 0x19)
+                    self.assertGreater(int.from_bytes(data[32 + 64:32 + 68], "little"), 0)
+                    data[32 + 72 + 40:32 + 72 + 48] = (len(data) + 1024).to_bytes(8, "little")
+                self.assertFalse(_qualified_header(bytes(data), target))
 
     def test_wrong_target_unknown_or_overwrite_rejects(self):
         path = self.root / "object.o"

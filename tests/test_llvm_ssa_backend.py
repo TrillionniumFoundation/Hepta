@@ -14,7 +14,7 @@ import unittest
 
 from hepta.cfg import CFGSnapshot
 from hepta.llvm_ssa_backend import LLVMSSARejected, emit_scalar_ssa_llvm, compile_scalar_ssa_llvm
-from hepta.ssa import lower_cfg_scalar_ssa
+from hepta.ssa import SSARejected, lower_cfg_scalar_ssa
 from tests.test_ssa_differential import nested_loop_fixture, execute_source
 from tests.test_ssa_scalar import snapshot, block, i, n, expr
 
@@ -118,8 +118,11 @@ class LLVMSSATests(unittest.TestCase):
         with self.assertRaisesRegex(LLVMSSARejected, "ABI"):
             emit_scalar_ssa_llvm(lower_cfg_scalar_ssa(cfg), cfg)
         cfg = exported(nested_loop_fixture(), effects=())
-        with self.assertRaisesRegex(LLVMSSARejected, "EFFECT"):
-            emit_scalar_ssa_llvm(lower_cfg_scalar_ssa(cfg), cfg)
+        # The source CFG now rejects this forged widening/narrowing mismatch
+        # before native emission: inferred panic is missing from its declared
+        # upper bound. Earlier tests exercised the LLVM-only rejection.
+        with self.assertRaisesRegex(SSARejected, "EFFECT"):
+            lower_cfg_scalar_ssa(cfg)
 
     def test_foreign_assumptions_and_forged_ssa_rejected(self):
         cfg = self.fixture()

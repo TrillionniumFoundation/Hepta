@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - dot/hepta-p0-p7-integration-20261025
+      - assistant/hepta-p0-p7-semantic-budget-20261025
   pull_request:
     branches:
       - dot/hepta-p0-p1-semantic-bridge-20261025
@@ -42,6 +43,7 @@ jobs:
           python -m unittest tests.test_hsir_bridge tests.test_cfg_analysis tests.test_ssa_scalar tests.test_ssa_verify -v
           python -m unittest tests.test_native_host_evidence tests.test_cpp2hepta_l1 tests.test_agent_semantics -v
           python -m unittest tests.test_ssa_differential tests.test_llvm_ssa_backend tests.test_llvm_ssa_target tests.test_llvm_ssa_integration -v
+          python -m unittest tests.test_clang_capture tests.test_clang_capture_integration tests.test_c_project tests.test_workspace -v
       - if: always()
         uses: actions/upload-artifact@v4
         with:
