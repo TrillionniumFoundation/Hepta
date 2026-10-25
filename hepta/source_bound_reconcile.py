@@ -52,6 +52,8 @@ def expr(node, depth=0):
     if set(node) != {"node", "op", "type", "value", "args", "type_args", "span"}:
         fail("EXPRESSION_FIELDS")
     kind, operands = node["op"], node["args"]
+    if not isinstance(kind, str):
+        fail("EXPRESSION_OPERATOR")
     arity = {"int": 0, "bool": 0, "float": 0, "name": 0,
              "binary": 2, "unary": 1, "cast": 1}.get(kind)
     if arity is None or not isinstance(operands, list) or len(operands) != arity:
@@ -60,9 +62,9 @@ def expr(node, depth=0):
         fail("GENERIC_EXPRESSION")
     ty = simple_type(node["type"])
     value = node["value"]
-    if kind == "binary" and value not in BINARY:
+    if kind == "binary" and (not isinstance(value, str) or value not in BINARY):
         fail("BINARY_OPERATOR")
-    if kind == "unary" and value not in _UNARY:
+    if kind == "unary" and (not isinstance(value, str) or value not in _UNARY):
         fail("UNARY_OPERATOR")
     if kind == "name" and (not isinstance(value, str) or not value or "::" in value):
         fail("NONLOCAL_NAME")
@@ -168,7 +170,7 @@ def require_safe_source_bound(legacy):
             fail("PARAMETERS")
         parameters = []
         for p in params:
-            if (not isinstance(p, dict) or not isinstance(p.get("name"), str) or
+            if (not isinstance(p, dict) or not isinstance(p.get("name"), str) or not p["name"] or
                     p.get("mode") != "value" or p.get("lifetime") is not None):
                 fail("BORROWED_PARAMETER")
             parameters.append({"name": p["name"], "type": simple_type(p.get("type")),
