@@ -12,8 +12,9 @@ import json
 import os
 from pathlib import Path
 import re
-import subprocess
 import tempfile
+
+from .bounded_process import BoundedProcessError, run_bounded
 
 _IDENT = re.compile(r"[A-Za-z_][A-Za-z_0-9]*\Z")
 _TYPES = {"int32_t": "i32", "uint32_t": "u32", "int64_t": "i64", "uint64_t": "u64",
@@ -33,14 +34,14 @@ class MigrationRejected(ValueError):
 
 def _run(args: list[str], *, input_text: str | None = None) -> str:
     try:
-        proc = subprocess.run(args, input=input_text, capture_output=True, text=True,
-                              timeout=30, check=False)
-    except (OSError, subprocess.TimeoutExpired) as exc:
+        proc = run_bounded(args, Path.cwd(), stdin=input_text, timeout=30,
+                           stdout_limit=32_000_000, stderr_tail_limit=5000)
+    except BoundedProcessError as exc:
+        if exc.reason == "stdout_limit":
+            raise MigrationRejected("E_CLANG_SIZE", "Clang AST output exceeds 32 MB") from exc
         raise MigrationRejected("E_CLANG_ENV", str(exc)) from exc
     if proc.returncode:
-        raise MigrationRejected("E_CLANG_REJECT", proc.stderr[-5000:] or "Clang exited with failure")
-    if len(proc.stdout) > 32_000_000:
-        raise MigrationRejected("E_CLANG_SIZE", "Clang AST output exceeds 32 MB")
+        raise MigrationRejected("E_CLANG_REJECT", proc.stderr_tail or "Clang exited with failure")
     return proc.stdout
 
 
