@@ -88,6 +88,49 @@ unsigned long long shl64(unsigned long long value, unsigned long long bits) { re
                     with self.subTest(name=name, value=value, bits=bits):
                         self.assertEqual(lhs(value, bits), rhs(value, bits))
 
+    def test_unsigned_shift_independent_rhs_types_original_c_vs_hepta_native(self):
+        # Shift result follows the promoted lhs, while the C count type is
+        # independent. Retain exact behavior only for defined counts.
+        self.c.write_text("""
+unsigned int left_s32(unsigned int value,int bits) {return value << bits;}
+unsigned int right_u64(unsigned int value,unsigned long long bits) {return value >> bits;}
+unsigned long long left_s32_wide(unsigned long long value,int bits) {return value << bits;}
+unsigned long long right_literal(unsigned long long value) {return value >> 7;}
+""")
+        report = migrate_c(self.c, self.hepta)
+        self.assertTrue(report["ok"], report)
+        source = self.hepta.read_text()
+        self.assertIn("value << (bits as u32)", source)
+        self.assertIn("value >> (bits as u32)", source)
+        self.assertIn("value << (bits as u64)", source)
+        self.assertIn("value >> (7 as u64)", source)
+        self.assertEqual(analyze(source, str(self.hepta), native=False).report["status"], "frontend_only")
+        original = self.directory / "rhs-original.so"
+        converted = self.directory / "rhs-hepta.so"
+        ref_build = subprocess.run(["gcc", "-std=c11", "-O2", "-shared", "-fPIC",
+                                    str(self.c), "-o", str(original)],
+                                   capture_output=True, text=True, timeout=30)
+        self.assertEqual(ref_build.returncode, 0, ref_build.stderr)
+        hp_build = subprocess.run([sys.executable, "-m", "hepta", "build", str(self.hepta),
+                                   "--backend", "c", "--crate-type", "cdylib", "-o", str(converted)],
+                                  capture_output=True, text=True, timeout=90)
+        self.assertEqual(hp_build.returncode, 0, hp_build.stdout + hp_build.stderr)
+        old, new = ctypes.CDLL(str(original)), ctypes.CDLL(str(converted))
+        for name, ret, count_type, values, counts in (
+                ("left_s32", ctypes.c_uint32, ctypes.c_int32, (0, 1, 2**31, 2**32-1), (0, 1, 7, 31)),
+                ("right_u64", ctypes.c_uint32, ctypes.c_uint64, (0, 1, 2**31, 2**32-1), (0, 1, 7, 31)),
+                ("left_s32_wide", ctypes.c_uint64, ctypes.c_int32, (0, 1, 2**63, 2**64-1), (0, 1, 7, 63)),
+                ("right_literal", ctypes.c_uint64, None, (0, 1, 2**63, 2**64-1), (0,))):
+            lhs, rhs = getattr(old, name), getattr(new, name)
+            for fn in (lhs, rhs):
+                fn.argtypes = [ret] + ([count_type] if count_type is not None else [])
+                fn.restype = ret
+            for value in values:
+                for count in counts:
+                    args = (value, count) if count_type is not None else (value,)
+                    with self.subTest(name=name, args=args):
+                        self.assertEqual(lhs(*args), rhs(*args))
+
     def test_signed_shift_is_still_rejected_without_publication(self):
         self.c.write_text("int unsafe_shift(int value, int bits) { return value << bits; }")
         result = migrate_c(self.c, self.hepta)
