@@ -351,10 +351,14 @@ def _observe_native(library: Path, function: str, word: str, args: list[int], *,
             # The pre-dlopen kernel filter now blocks fork/clone/setsid;
             # other native side effects still require stronger containment.
             proc = subprocess.Popen(
-                [sys.executable, "-I", "-c", _WORKER,
+                [sys.executable, "-I", "-S", "-c", _WORKER,
                  "/proc/self/fd/" + str(pinned_fd),
                  function, word, json.dumps(args, separators=(",", ":"))],
                 stdin=subprocess.DEVNULL, stdout=out, stderr=err,
+                # Isolated Python still loads sitecustomize unless -S is set.
+                # Inherited LD_PRELOAD/LD_AUDIT also run before Python/seccomp.
+                # This worker needs no ambient environment or loader paths.
+                env={"LC_ALL": "C", "LANG": "C", "TZ": "UTC"},
                 pass_fds=(pinned_fd,), start_new_session=True)
             # Linux waitid(WNOWAIT) observes direct-child termination
             # without reaping its PID. Popen.wait() would reap first, then
