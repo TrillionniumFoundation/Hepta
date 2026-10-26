@@ -1,6 +1,6 @@
 # HIA Agent patch impact — static call-graph receipt (2026-10-26)
 
-**Status:** stacked engineering candidate on PR #186 exact source; not a
+**Status:** stacked engineering candidate on PR #189 (HIA v4) exact source; not a
 whole-project acceptance claim. CI scheduling is not a development blocker;
 actual semantic/native tests and exact SHA evidence remain separate gates.
 
@@ -57,6 +57,21 @@ or overriding the stronger PR #186 ARM64/LLVM implementation:
 - Rejection of missing `write` effects even with `migrate` authorization.
 - Old/new reverse caller closure including unrelated functions.
 - Stale snapshot and forged Boolean/inventory/receipt rejection.
+
+## Versioned HIA v4 integration
+
+The source stack is a genuine two-parent merge of PR #189's existing
+`buffer.swap` / reverified four-op peephole path and the Agent read-only
+impact work. All four Agent file blobs were transplanted unchanged onto
+the exact PR #189 Git tree; neither the v4 instruction verifier, optimizer,
+interpreter nor LLVM code generator was replaced.
+
+A new in-repository regression uses PR #188/189's *actual* `swap_program`
+v4 fixture: an allowed body-only byte constant patch changes observed
+interpreter results while preserving the ABI, and an attempt to perform
+`buffer.swap` with an owner instead of a unique mutable loan is rejected,
+even with `migrate` authorization. Its execution remains unqualified until
+run against the merged exact checkout.
 
 ## Agent CLI
 
