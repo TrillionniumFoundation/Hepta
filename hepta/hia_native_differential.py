@@ -199,27 +199,65 @@ def _check_artifact_unchanged(path: Path, original: bytes, identity) -> None:
     if current != original or metadata != identity:
         _reject("native artifact path/inode/bytes changed during differential execution")
 
+def _kill_worker_group(pgid: int) -> bool:
+    """SIGKILL a Linux evaluation process group; True means members remained.
+
+    This is scoped cleanup, not an arbitrary-native-code OS sandbox. A child
+    that deliberately leaves its process group/session needs stronger isolation.
+    """
+    try:
+        os.killpg(pgid, signal.SIGKILL)
+    except ProcessLookupError:
+        return False
+    except OSError as exc:
+        raise HIADifferentialRejected(
+            "E_HIA_DIFFERENTIAL: cannot clear native evaluation process group") from exc
+    return True
+
+
 def _observe_native(library: Path, function: str, word: str, args: list[int], *,
                     timeout: float, pinned_fd: int):
     if (platform.system() != "Linux" or platform.machine().lower() not in {"x86_64", "amd64"}
-            or not 0 < timeout <= 10
+            or type(timeout) not in (int, float) or not 0 < timeout <= 10
             or type(function) is not str or _IDENT.fullmatch(function) is None
             or type(word) is not str or word not in _TYPES
             or type(pinned_fd) is not int or pinned_fd < 0):
         _reject("bounded Linux host and sealed native fd required")
     try:
         with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
-            proc = subprocess.run([sys.executable, "-I", "-c", _WORKER,
-                                   "/proc/self/fd/" + str(pinned_fd),
-                                   function, word, json.dumps(args, separators=(",", ":"))],
-                                  stdout=out, stderr=err, check=False, timeout=timeout,
-                                  pass_fds=(pinned_fd,))
+            # Keep #221's sealed executable descriptor and limits. Give every
+            # evaluator an isolated process group so a native fork cannot
+            # silently outlive either a timeout or a successful worker exit.
+            proc = subprocess.Popen(
+                [sys.executable, "-I", "-c", _WORKER,
+                 "/proc/self/fd/" + str(pinned_fd),
+                 function, word, json.dumps(args, separators=(",", ":"))],
+                stdout=out, stderr=err, pass_fds=(pinned_fd,),
+                start_new_session=True)
+            try:
+                proc.wait(timeout=timeout)
+            except subprocess.TimeoutExpired as exc:
+                _kill_worker_group(proc.pid)
+                proc.wait(timeout=2)
+                raise HIADifferentialRejected(
+                    "E_HIA_DIFFERENTIAL: native child timed out; process group terminated") from exc
+            except BaseException:
+                _kill_worker_group(proc.pid)
+                proc.wait(timeout=2)
+                raise
+            # A direct worker may exit 0 after forking. stdout/stderr are
+            # file-backed, so wait() does not await inherited descriptors.
+            # Reject the entire observation if any in-group child remains,
+            # and terminate it before inspecting potentially valid JSON.
+            if _kill_worker_group(proc.pid):
+                _reject("native child left surviving in-group descendants after exit")
             out.seek(0)
             err.seek(0)
             child_stdout = out.read(4097)
             child_stderr = err.read(4097)
     except (subprocess.TimeoutExpired, OSError) as exc:
-        raise HIADifferentialRejected("E_HIA_DIFFERENTIAL: native child unavailable or timed out") from exc
+        raise HIADifferentialRejected(
+            "E_HIA_DIFFERENTIAL: native child unavailable or timed out") from exc
     # RLIMIT_FSIZE can surface as SIGXFSZ, a child write exception, or a
     # Python exit code after a partial 4096-byte write. All are refusals.
     if len(child_stdout) >= 4096 or len(child_stderr) >= 4096:
@@ -233,7 +271,8 @@ def _observe_native(library: Path, function: str, word: str, args: list[int], *,
     try:
         value = json.loads(child_stdout)
     except (ValueError, UnicodeError) as exc:
-        raise HIADifferentialRejected("E_HIA_DIFFERENTIAL: invalid native child output") from exc
+        raise HIADifferentialRejected(
+            "E_HIA_DIFFERENTIAL: invalid native child output") from exc
     low, high = _TYPES[word]
     if (type(value) is not dict or set(value) != {"value"}
             or type(value["value"]) is not int or not low <= value["value"] <= high):
