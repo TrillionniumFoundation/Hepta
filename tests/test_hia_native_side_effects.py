@@ -125,8 +125,14 @@ int socket_create(void) { socket(AF_INET, SOCK_DGRAM, 0); return 7; }
 int socket_pair(void) { int fds[2]; socketpair(AF_UNIX, SOCK_STREAM, 0, fds); return 7; }
 int direct_send(void) { syscall(44, -1, 0, 0, 0, 0, 0); return 7; }
 int direct_kill(void) { syscall(62, getppid(), 0); return 7; }
+int tgkill_parent(void) { syscall(234, getppid(), getppid(), 0); return 7; }
+int tgkill_self_wrong_signal(void) {
+  syscall(234, getpid(), syscall(186), 10);
+  return 7;
+}
 """)
-            for name in ("socket_create", "socket_pair", "direct_send", "direct_kill"):
+            for name in ("socket_create", "socket_pair", "direct_send",
+                         "direct_kill", "tgkill_parent", "tgkill_self_wrong_signal"):
                 with self.subTest(case=name):
                     self.assert_sigsys(lib, name)
 
