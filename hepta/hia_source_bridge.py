@@ -31,6 +31,89 @@ def _reject(reason):
     raise HIAHeptaBridgeRejected("E_HIA_HEPTA_BRIDGE: " + reason)
 
 
+def _validate_static_budget_receipt(program, limits: dict, receipt: dict) -> None:
+    """Recheck existing analyzer's complete receipt before native LLVM.
+
+    This is NOT a second numeric resource analyzer: verified immutable Core
+    owns the function inventory; the existing static-budget analyzer owns
+    actual upper-bound computation. A hash alone does not authorize missing
+    functions, false proof types, or fabricated policy limits.
+    """
+    from .hia_program import verify_program
+
+    checked = verify_program(program)
+    if (not isinstance(program, VerifiedProgram)
+            or checked.canonical_bytes != program.canonical_bytes):
+        _reject("static budget source is not the current verified HIA Core")
+    if type(limits) is not dict or not limits or any(
+            type(value) is not int or value < 0 for value in limits.values()):
+        _reject("static budget receipt requires typed resource policy")
+    base_limits = ("max_allocator_interactions", "max_vm_ticks", "max_call_depth")
+    allowed = set(base_limits) | {"max_live_heap_bytes"}
+    if not set(limits) <= allowed:
+        _reject("static budget policy contains unknown fields")
+    expected_limits = {name: limits.get(name) for name in base_limits}
+    if "max_live_heap_bytes" in limits:
+        expected_limits["max_live_heap_bytes"] = limits["max_live_heap_bytes"]
+    claims = {
+        "finite_acyclic_cfg_and_call_graph_checked": True,
+        "allocator_interactions_upper_bounded": True,
+        "vm_tick_events_upper_bounded": True,
+        "native_cpu_time_or_rss_proved": False,
+        "full_source_to_core_refinement_proved": False,
+        "whole_language_soundness_proved": False,
+    }
+    if "max_live_heap_bytes" in limits:
+        claims["requested_live_payload_bytes_upper_bounded"] = True
+    required_fields = {"schema", "status", "core_sha256", "functions",
+                       "limits", "claims", "sha256"}
+    if (type(receipt) is not dict or set(receipt) != required_fields
+            or receipt.get("schema") != "hepta.hia.static-budget.v1"
+            or receipt.get("status") !=
+                "finite_structural_upper_bound_not_native_time_proof"
+            or receipt.get("core_sha256") != checked.sha256
+            or type(receipt.get("claims")) is not dict
+            or set(receipt["claims"]) != set(claims)
+            or any(receipt["claims"][key] is not val
+                   for key, val in claims.items())
+            or type(receipt.get("limits")) is not dict):
+        _reject("static budget schema, claims or source identity mismatch")
+    # JSON scalar types are part of the policy: false is not 0.
+    try:
+        wire = lambda value: json.dumps(value, sort_keys=True, separators=(",", ":"),
+                                        allow_nan=False)
+        if wire(receipt["limits"]) != wire(expected_limits):
+            _reject("static budget policy differs from the explicit request")
+        unsealed = {key: value for key, value in receipt.items() if key != "sha256"}
+        expected_digest = sha256(wire(unsealed).encode("utf-8")).hexdigest()
+        if (type(receipt["sha256"]) is not str
+                or receipt["sha256"] != expected_digest):
+            _reject("static budget receipt has altered bytes or self-identity")
+    except (TypeError, ValueError, OverflowError, RecursionError) as exc:
+        raise HIAHeptaBridgeRejected(
+            "E_HIA_HEPTA_BRIDGE: invalid static budget JSON") from exc
+    source_functions = checked.as_dict()["functions"]
+    names = [f["name"] for f in source_functions]
+    rows = receipt.get("functions")
+    if (type(rows) is not list or len(rows) != len(names)
+            or any(type(row) is not dict or
+                   row.get("function") != name
+                   for row, name in zip(rows, names))):
+        _reject("static budget does not cover every canonical HIA function")
+    required_row_keys = {"function", *base_limits}
+    if "max_live_heap_bytes" in limits:
+        required_row_keys.add("max_live_heap_bytes")
+    for row in rows:
+        if (set(row) != required_row_keys or
+                any(type(row.get(key)) is not int or row[key] < 0
+                    for key in required_row_keys - {"function"}) or
+                row["max_vm_ticks"] < 1 or row["max_call_depth"] < 1):
+            _reject("static budget row has missing/forged quantities")
+        for key, upper in limits.items():
+            if row[key] > upper:
+                _reject("static budget exceeds a requested bound")
+
+
 @dataclass(frozen=True)
 class CheckedScalarHIA:
     program: VerifiedProgram
@@ -284,24 +367,8 @@ def build_checked_hepta_hia_native(source, output, *, rustc=None, clang="clang",
         if static_resource_limits is not None:
             budget = analyze_static_budget(
                 derived.program, **static_resource_limits)
-            if (type(budget) is not dict
-                    or budget.get("schema") != "hepta.hia.static-budget.v1"
-                    or budget.get("core_sha256") != derived.program.sha256
-                    or budget.get("claims", {}).get("native_cpu_time_or_rss_proved") is not False
-                    or budget.get("claims", {}).get("whole_language_soundness_proved") is not False):
-                _reject("static resource bound does not match checked HIA Core")
-            if "max_live_heap_bytes" in static_resource_limits:
-                limit = static_resource_limits["max_live_heap_bytes"]
-                if (type(budget.get("limits")) is not dict
-                        or budget["limits"].get("max_live_heap_bytes") != limit
-                        or budget.get("claims", {}).get(
-                            "requested_live_payload_bytes_upper_bounded") is not True
-                        or type(budget.get("functions")) is not list
-                        or any(type(row) is not dict
-                               or type(row.get("max_live_heap_bytes")) is not int
-                               or not 0 <= row["max_live_heap_bytes"] <= limit
-                               for row in budget["functions"])):
-                    _reject("live payload-byte budget is not backed by checked Core")
+            _validate_static_budget_receipt(
+                derived.program, static_resource_limits, budget)
             report["static_resource_budget"] = budget
         # No other compiler path may produce the native machine code. The
         # canonical HIA Program is reverified again inside emit/compile.
