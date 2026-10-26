@@ -51,6 +51,16 @@ _ALLOWED_UNDEFINED = frozenset({
     "_ITM_registerTMCloneTable", "_ITM_deregisterTMCloneTable", "__gmon_start__",
 })
 
+# Section and dynamic-symbol inventories are not the loader's entire behavior.
+# Do not admit tags which can redirect the ELF loader to a new library or
+# alter writable text/symbol binding outside the reviewed Hepta native ABI.
+# Numeric constants are from the generic ELF dynamic tag specification.
+_UNREVIEWED_LOADER_TAGS = frozenset({
+    15, 16, 22, 29,                  # RPATH, SYMBOLIC, TEXTREL, RUNPATH
+    0x6FFFFEFA, 0x6FFFFEFB, 0x6FFFFEFC, # CONFIG, DEPAUDIT, AUDIT
+    0x7FFFFFFD, 0x7FFFFFFF,         # AUXILIARY, FILTER
+})
+
 
 def inspect_owned_shared_elf(data: bytes, expected_exports: tuple[str, ...]) -> dict:
     """Fail closed if the dynamic ABI differs from the checked export surface.
@@ -85,19 +95,34 @@ def inspect_owned_shared_elf(data: bytes, expected_exports: tuple[str, ...]) -> 
         _fail("missing or invalid program headers")
     executable_segments: list[tuple[int, int]] = []
     dynamic_segments: list[tuple[int, int]] = []
+    stack_headers = 0
     for index in range(nsegments):
         pos = phoff + index * 56
         typ, flags = _u(data, pos, 4), _u(data, pos + 4, 4)
         vaddr, filesz, off = _u(data, pos + 16, 8), _u(data, pos + 32, 8), _u(data, pos + 8, 8)
+        if typ == 0x6474E551:  # PT_GNU_STACK
+            stack_headers += 1
+            # An absent/duplicated or executable stack is outside the
+            # native Hepta host profile. Do not trust section metadata or
+            # ELF symbol inventories to establish process memory permissions.
+            if flags != 6:  # PF_R | PF_W; no PF_X/unknown permission bits
+                _fail("PT_GNU_STACK requires reviewed non-executable RW permissions")
         if typ == 2:  # PT_DYNAMIC is what the loader actually consumes
             if not _range(data, off, filesz) or filesz % 16:
                 _fail("invalid loader dynamic table bounds")
             dynamic_segments.append((off, filesz))
         if typ == 1:  # PT_LOAD
+            # LLVM may emit correct symbols into a loader segment with
+            # unsafe permissions. Reject RWX, X-only, W-only and unreviewed
+            # PF_* bits; the reviewed Clang/GCC profile emits R/RX/RW loads.
+            if flags not in (4, 5, 6):
+                _fail("PT_LOAD has unreviewed permissions or is writable-executable")
             if not _range(data, off, filesz) or vaddr + filesz > (1 << 64):
                 _fail("invalid load segment range")
             if flags & 1:  # PF_X
                 executable_segments.append((vaddr, vaddr + filesz))
+    if stack_headers != 1:
+        _fail("missing or duplicated explicit non-executable PT_GNU_STACK")
     if not executable_segments:
         _fail("no executable load segment")
     if len(dynamic_segments) != 1:
@@ -121,6 +146,14 @@ def inspect_owned_shared_elf(data: bytes, expected_exports: tuple[str, ...]) -> 
         if tag == 0:
             terminated = True
             break
+        if tag in _UNREVIEWED_LOADER_TAGS:
+            _fail("unreviewed dynamic loader redirect, audit, filter or text-relocation tag")
+        if tag == 30 and value & (0x1 | 0x2 | 0x4):  # DT_FLAGS: ORIGIN/SYMBOLIC/TEXTREL
+            _fail("DT_FLAGS enables unreviewed origin, symbolic binding or text relocations")
+        if tag == 0x6FFFFFFB and value & (0x10 | 0x80 | 0x1000000):
+            # DT_FLAGS_1: LOADFLTR, ORIGIN or GLOBAUDIT. These are not
+            # required for native Hepta scalar/owned checked profiles.
+            _fail("DT_FLAGS_1 enables unreviewed loader side effects")
         if tag == 1:  # DT_NEEDED library name offset into dynamic strtab
             needed.append(value)
         elif tag in (5, 6, 10, 11):  # STRTAB, SYMTAB, STRSZ, SYMENT
