@@ -125,6 +125,11 @@ class SharedELFTests(unittest.TestCase):
             'GNU_STACK missing': _set(data, stack[0], 4, 0),
         }
         if relro:
+            # A normal shared object has neither PT_INTERP nor implicit TLS.
+            # Borrow its real GNU_RELRO header slot to forge each unexpected
+            # loader feature without disturbing the exact symbol inventory.
+            cases['unexpected PT_INTERP'] = _set(data, relro[0], 4, 3)
+            cases['unexpected PT_TLS'] = _set(data, relro[0], 4, 7)
             duplicated = _set(data, relro[0], 4, 0x6474E551)
             cases['duplicated GNU_STACK'] = _set(duplicated, relro[0] + 4, 4, 6)
         for reason, forged in cases.items():

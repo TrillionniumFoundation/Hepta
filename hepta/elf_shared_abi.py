@@ -100,6 +100,11 @@ def inspect_owned_shared_elf(data: bytes, expected_exports: tuple[str, ...]) -> 
         pos = phoff + index * 56
         typ, flags = _u(data, pos, 4), _u(data, pos + 4, 4)
         vaddr, filesz, off = _u(data, pos + 16, 8), _u(data, pos + 32, 8), _u(data, pos + 8, 8)
+        if typ in (3, 7):  # PT_INTERP / PT_TLS
+            # This is a reviewed shared-library ABI, not an ET_DYN PIE
+            # executable or a runtime with implicit thread-local storage.
+            # Neither interpreter nor TLS lifecycle is represented in HIA.
+            _fail("PT_INTERP or PT_TLS is outside the checked shared-library profile")
         if typ == 0x6474E551:  # PT_GNU_STACK
             stack_headers += 1
             # An absent/duplicated or executable stack is outside the

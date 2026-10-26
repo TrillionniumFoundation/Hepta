@@ -88,3 +88,16 @@ values per original). The dedicated in-repository Clang regression now calls
 the actual scanner on equivalent modified binary data. This repository
 regression remains **not run on a complete exact checkout**; the standalone
 controls are not a release qualification or proof of whole-language safety.
+
+
+## Host shared-object boundary: no PT_INTERP or PT_TLS
+
+The reviewed HIA native shared-object profile is not an ET_DYN PIE
+executable with its own interpreter and does not model implicit
+thread-local storage initialization/teardown. PT_INTERP (3) and PT_TLS
+(7) are now rejected before any source/native ELF qualification. Real
+Clang and GCC -O2 host shared objects were independently compiled and
+inspected: both had GNU_RELRO and **neither** PT_INTERP nor PT_TLS.
+The updated repository regression mutates an existing real GNU_RELRO
+program-header type into 3 or 7 and expects exact scanner refusal.
+The actual full checkout scanner regression is still not run.
