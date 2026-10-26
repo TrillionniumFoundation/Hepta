@@ -53,8 +53,9 @@ int32_t huge_virtual_allocation(void) {
 """
 
 
-@unittest.skipUnless(platform.system() == "Linux" and shutil.which("clang")
-                     and hasattr(os, "memfd_create"),
+@unittest.skipUnless(platform.system() == "Linux"
+                     and platform.machine().lower() in {"x86_64", "amd64"}
+                     and shutil.which("clang") and hasattr(os, "memfd_create"),
                      "real Linux host, sealed memfd and Clang required")
 class NativeChildHardLimitTests(unittest.TestCase):
     @classmethod

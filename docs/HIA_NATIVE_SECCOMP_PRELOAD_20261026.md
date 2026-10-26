@@ -54,9 +54,11 @@ used the exact new seccomp-BPF instruction sequence, sealed memfd and
 | `fork()` followed by child `setsid()` | SIGSYS |
 | direct `syscall(435, ...)` (`clone3`) | SIGSYS |
 | direct `setsid()` | SIGSYS |
+| x32-tagged direct fork syscall number | SIGSYS |
+| `vfork()` | SIGSYS |
 | ELF constructor calls `fork()` during dlopen | SIGSYS |
 
-**6/6 independent kernel/loader controls matched expected outcomes**.
+**8/8 independent kernel/loader controls matched expected outcomes**.
 These are not complete Hepta source/LLVM/VM executions, nor proof that the
 committed in-repo test file passed on the exact combined SHA. Native execution
 of `tests/test_hia_native_seccomp.py` and edited existing tests still needs
