@@ -88,6 +88,9 @@ def inspect_object_symbols(data: bytes, fmt: str, machine: int) -> dict[str, fro
                             raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_DUPLICATE: export also imported")
                         undefined.add(name)
                 elif kind == 2 and name:
+                    if binding != 1:
+                        raise ObjectSymbolsRejected(
+                            "E_OBJECT_SYMBOL_WEAK: checked C function export cannot be interposed")
                     # ELF STT_FUNC is a label, not a proof that executable
                     # section bytes actually cover its declared function.
                     if not 0 < shndx < sections:
@@ -97,7 +100,10 @@ def inspect_object_symbols(data: bytes, fmt: str, machine: int) -> dict[str, fro
                     section_flags = _u64(data, section_at + 8)
                     section_bytes = _u64(data, section_at + 32)
                     value, length = _u64(data, pos + 8), _u64(data, pos + 16)
-                    if (section_kind != 1 or not (section_flags & 0x4) or
+                    # SHF_ALLOC (0x2) and SHF_EXECINSTR (0x4) are both
+                    # required: a section can claim executable instructions
+                    # without being part of the loaded program image.
+                    if (section_kind != 1 or (section_flags & 0x6) != 0x6 or
                             not length or value >= section_bytes or
                             length > section_bytes - value):
                         raise ObjectSymbolsRejected(
@@ -196,6 +202,7 @@ def inspect_object_symbols(data: bytes, fmt: str, machine: int) -> dict[str, fro
         for i in range(count):
             pos = at + i * 16
             name_off, kind, sec = _u32(data, pos), data[pos + 4], data[pos + 5]
+            desc = _u16(data, pos + 6)
             if kind & 0xe0 or not (kind & 1):  # exclude N_STAB, require N_EXT
                 continue
             if name_off >= names_size:
@@ -211,6 +218,12 @@ def inspect_object_symbols(data: bytes, fmt: str, machine: int) -> dict[str, fro
                     raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_DUPLICATE: export also imported")
                 undefined.add(normalized)
             elif kind & 0x0e == 0x0e:
+                # N_WEAK_DEF permits a different linked implementation to
+                # override this source-checked function. Do not certify a
+                # weak public export as a fixed Hepta C interface.
+                if desc & 0x0080:
+                    raise ObjectSymbolsRejected(
+                        "E_OBJECT_SYMBOL_WEAK: weak Mach-O C function export")
                 if not 0 < sec <= len(sections):
                     raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_LOCATION: Mach-O function section missing")
                 start, length, flags, sectname, segname = sections[sec - 1]
