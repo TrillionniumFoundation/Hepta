@@ -247,6 +247,42 @@ class ResourceIRTests(unittest.TestCase):
         fn["blocks"][-1]["term"] = {"op": "jump", "target": "missing"}
         self.reject(doc, "E_RIR_CFG")
 
+    def test_unreachable_known_operation_cannot_fake_resource_qualification(self):
+        # Previously the data-only verifier checked only the *shape* of a
+        # dead block. Its impossible drop was never semantically executed,
+        # yet the entire graph obtained resource_cfg_verified.
+        document = lower(SIMPLE)
+        self.assertTrue(verify_resource_ir(document)["ok"])
+        fn = function(document)
+        fn["blocks"].append({
+            "id": "forged_dead",
+            "ops": [{"op": "drop", "src": "missing_owner"}],
+            "term": {"op": "return", "value": None, "loan": None},
+        })
+        self.reject(document, "E_RIR_UNREACHABLE")
+
+    def test_even_well_formed_unreachable_resource_blocks_are_not_certified(self):
+        document = lower(SIMPLE)
+        function(document)["blocks"].append({
+            "id": "dead_but_well_formed", "ops": [],
+            "term": {"op": "return", "value": None, "loan": None},
+        })
+        self.reject(document, "E_RIR_UNREACHABLE")
+
+    def test_source_generated_diamond_and_while_remain_reachable(self):
+        document = lower("""
+        fn main()->Unit effects {alloc,block,panic} {
+            let b = buffer(2);
+            let mut i:usize = 0;
+            if i == 0 { i = i + 1; } else { i = i + 2; }
+            while i < 4 { i = i + 1; }
+            drop(move b);
+        }""")
+        result = verify_resource_ir(document)
+        self.assertTrue(result["ok"], result)
+        for row in result["functions"]:
+            self.assertEqual(row["reachable_blocks"], row["total_blocks"])
+
     def test_unmodelled_raw_pointers_are_rejected(self):
         program = parse('extern "C" fn raw_value(p:raw const u8)->u8 effects {ffi,unsafe};')
         checked = check(program)
