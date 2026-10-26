@@ -580,6 +580,35 @@ class _Function:
                 + "\n".join(self.allocas + self.lines) + "\n}\n")
 
 
+def _resources_allowed(fn, checked) -> bool:
+    """Preserve the checked language's finite static resource clauses.
+
+    This permits exactly the already checked source-level no-alloc/no-block/
+    no-spawn/no-suspend clauses, NOT a process-global allocator/CPU budget.
+    Effects and foreign/task/I/O exclusions remain independently checked.
+    """
+    clauses = fn.resources
+    if type(clauses) is not dict or type(fn.effects) is not set:
+        return False
+    upper = fn.effects | checked.effects.get(fn.name, set())
+    for key, value in clauses.items():
+        if key == "heap_allocations":
+            if type(value) is not int or value != 0 or "alloc" in upper:
+                return False
+        elif key == "may_block":
+            if value is not False or "block" in upper:
+                return False
+        elif key == "may_spawn":
+            if value is not False or "spawn" in upper:
+                return False
+        elif key == "may_suspend":
+            if value is not False:
+                return False
+        else:
+            return False
+    return True
+
+
 class _Emitter:
     def __init__(self, program, checked):
         self.program, self.checked = program, checked
@@ -595,9 +624,10 @@ class _Emitter:
         if not checked.ok or has_borrowed_storage(program):
             reject("A checked program without stored lifetime records is required")
         for fn in program.functions:
-            if (fn.extern_c or fn.body is None or fn.lifetime_params or fn.resources
+            if (fn.extern_c or fn.body is None or fn.lifetime_params
+                    or not _resources_allowed(fn, checked)
                     or (fn.effects | checked.effects.get(fn.name, set())) - {"alloc", "block", "panic", "write"}):
-                reject("Foreign/task/I/O/lifetime/resource-clause functions are outside the closed profile")
+                reject("Foreign/task/I/O/lifetime or unsupported resource-clause functions are outside the closed profile")
             if fn.export_c:
                 boundary = [parameter.type for parameter in fn.params] + [fn.return_type]
                 if (fn.type_params or fn.return_mode != "value" or any(p.mode != "value" for p in fn.params)
