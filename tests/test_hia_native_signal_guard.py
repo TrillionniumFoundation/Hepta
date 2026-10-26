@@ -46,7 +46,7 @@ class HIANativeSelfSignalTests(unittest.TestCase):
         finally:
             os.close(fd)
 
-    def test_self_signal_keeps_abort_semantics_without_foreign_signal_rights(self):
+    def test_only_own_sigabrt_preserves_abort_and_all_zero_or_foreign_signals_reject(self):
         with tempfile.TemporaryDirectory() as td:
             so = self.build(Path(td), r"""
 #include <stdlib.h>
@@ -68,9 +68,8 @@ int wrong_tid(void) {
 }
 """)
             self.assertEqual(self.observe(so, "healthy"), ("value", 7))
-            self.assertEqual(self.observe(so, "self_tgkill"), ("value", 7))
             self.assertEqual(self.observe(so, "aborting"), ("trap", None))
-            for symbol in ("external_tgkill", "wrong_tid"):
+            for symbol in ("self_tgkill", "external_tgkill", "wrong_tid"):
                 with self.subTest(symbol=symbol):
                     with self.assertRaisesRegex(
                         differential.HIADifferentialRejected,
@@ -116,13 +115,11 @@ int io_uring_after_filter(void) {
         self.assertIn("stdin=subprocess.DEVNULL", 
                       __import__("inspect").getsource(differential._observe_native))
         self.assertIn("_WRITE_OPEN_FLAGS = 0x3 | 0x40 | 0x200 | 0x400 | 0x400000", worker)
-        self.assertIn("_self_pid = os.getpid()", worker)
-        self.assertIn("_self_tid = ctypes.CDLL(None).syscall(186)", worker)
-        self.assertIn("(16, _self_pid), (24, _self_tid)", worker)
-        self.assertLess(
-            worker.index("for _offset, _expected in"),
-            worker.index("_libc.prctl(22, 2,")
-        )
+        self.assertIn("_worker_pid = os.getpid()", worker)
+        self.assertIn("_worker_tid = _libc.syscall(186)", worker)
+        self.assertIn("(0x15, 1, 0, 6)", worker)
+        self.assertLess(worker.index("_worker_pid = os.getpid()"),
+                        worker.index("_libc.prctl(22, 2,"))
 
 
 if __name__ == "__main__":
