@@ -6,12 +6,14 @@ The same intake function is called on initial capture and on replay.
 from __future__ import annotations
 
 import json
+from hashlib import sha256
 from pathlib import Path
 import tempfile
 import unittest
 
 from hepta.c_migrate import MigrationRejected
-from hepta.c_project import _load_compdb, _MAX_COMPDB_BYTES
+from hepta.c_project import (_load_compdb, _MAX_COMPDB_BYTES,
+                             _MAX_DEPENDENCY_BYTES, _read_dependency, _file_digest)
 
 
 class CompilationDatabaseIntakeTests(unittest.TestCase):
@@ -30,6 +32,20 @@ class CompilationDatabaseIntakeTests(unittest.TestCase):
         with self.assertRaises(MigrationRejected) as error:
             _load_compdb(self.path)
         self.assertEqual(error.exception.code, code)
+
+    def test_c_header_budget_and_streaming_tool_digest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            header = Path(tmp) / "header.h"
+            header.write_bytes(b"X" * (_MAX_DEPENDENCY_BYTES + 1))
+            with self.assertRaises(MigrationRejected) as error:
+                _read_dependency(header)
+            self.assertEqual(error.exception.code, "E_C_BUILD_SIZE")
+            header.write_bytes(b"hepta\n" * 300)
+            self.assertEqual(_read_dependency(header), header.read_bytes())
+            self.assertEqual(_file_digest(header), sha256(header.read_bytes()).hexdigest())
+            header.write_bytes(b"Y" * (_MAX_DEPENDENCY_BYTES + 1))
+            # Compiler executables are not 8 MB capped, but MUST be streamed.
+            self.assertEqual(_file_digest(header), sha256(header.read_bytes()).hexdigest())
 
     def test_roundtrip_arguments_and_explicit_command(self):
         original = json.dumps([self.valid])
