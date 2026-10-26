@@ -91,6 +91,43 @@ class NativeResourceGateTests(unittest.TestCase):
                         qualify_native_resource_source(program, checked,
                                                        canonical_hsir_sha256=digest)
 
+    def test_native_pipeline_rejects_resealed_resource_receipt_elevation(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            src = Path(temporary) / "source.hepta"
+            dest = Path(temporary) / "no-native-result.so"
+            src.write_text(_SOURCE)
+            program, checked, digest = fixture()
+            project = SimpleNamespace(identity="d" * 64,
+                                      sources={str(src): "pinned"},
+                                      unchanged=lambda: True)
+            analysis = SimpleNamespace(
+                program=program, checked=checked, project=project,
+                report={"ok": True, "checks": {"rust_borrows_types": "rustc_checked"},
+                        "source_sha256": "a" * 64, "compiler_sha256": "b" * 64})
+            genuine = qualify_native_resource_source(
+                program, checked, canonical_hsir_sha256=digest,
+                project_sha256=project.identity)
+            for label, mutation in {
+                "fake_soundness": lambda v: v["claims"].update(whole_language_memory_safety_proved=True),
+                "bool_integer_forgery": lambda v: v["claims"].update(independent_resource_cfg_verified=1),
+                "unknown_claim": lambda v: v["claims"].update(foreign_unsafe_proved=True),
+                "unbound_graph": lambda v: v.update(resource_ir_sha256="0" * 64),
+                "wrong_source": lambda v: v.update(source_sha256="0" * 64),
+                "bad_function_count": lambda v: v.update(functions_checked=True),
+            }.items():
+                with self.subTest(case=label):
+                    forged = deepcopy(genuine)
+                    mutation(forged)
+                    with (patch("hepta.llvm_ssa_pipeline.analyze_project", return_value=analysis),
+                          patch("hepta.llvm_ssa_pipeline.qualify_native_resource_source",
+                                return_value=forged),
+                          patch("hepta.llvm_ssa_pipeline.compile_scalar_ssa_llvm") as compiler):
+                        report = build_llvm_ssa_source(src, dest)
+                    self.assertFalse(report["ok"], report)
+                    self.assertEqual(report["diagnostics"][0]["code"], "E_NATIVE_RESOURCE_GATE")
+                    self.assertFalse(dest.exists())
+                    compiler.assert_not_called()
+
     def test_noncanonical_source_foreign_obligations_refused(self):
         program, checked, digest = fixture()
         real = canonical_hsir
