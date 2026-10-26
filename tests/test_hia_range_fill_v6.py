@@ -138,6 +138,19 @@ class V6RangeFillTests(unittest.TestCase):
         target = emit_program_llvm(checked, target=TARGET_AARCH64)
         self.assertEqual(target.profile, PROFILE_AARCH64_V6)
 
+    def test_fixed_aarch64_v6_driver_has_exact_checked_abi(self):
+        # Builds the reviewed C driver from verified Core. No QEMU or physical
+        # execution is claimed by inspecting its generated source.
+        from hepta.hia_program_aarch64 import _runtime_source, _RANGE_FILL_CASES
+        candidate = verify_program(fill_program())
+        runtime, required = _runtime_source(candidate.as_dict(), "range_fill")
+        self.assertEqual(required, {"fill_range"})
+        self.assertEqual(len(_RANGE_FILL_CASES), 8)
+        self.assertIn("extern hepta_u8 fill_range(", runtime)
+        self.assertIn("successful_allocations != 8", runtime)
+        self.assertIn("outstanding != 0", runtime)
+        self.assertIn("_start(void)", runtime)
+
     def test_real_emitted_llvm_native_and_abort(self):
         compiler = shutil.which("clang")
         if compiler is None or platform.system() != "Linux" or platform.machine() not in ("x86_64", "amd64"):

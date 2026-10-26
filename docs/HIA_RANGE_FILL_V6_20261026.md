@@ -52,3 +52,28 @@ Still OPEN: general value+memory SSA and source→Core refinement; unconstrained
 C/C++ L2/L3 translation; GPU/NPU/physical target execution; formal whole-core
 soundness; real Agent/model A/B; fair sustained CPU/RSS/p99 performance.
 \`whole_project_blockers_closed=false\`.
+
+## AArch64 finite runtime option
+
+The existing `hepta.hia_program_aarch64.run_finite_program_aarch64`
+now admits `mode="range_fill"` for an **exact scalar ABI**
+`fill_range(usize,usize,usize,u8,usize)->u8`. It constructs a fixed
+eight-call driver comparing actual returned bytes and requiring exactly
+eight allocations, eight frees, no live owners and no allocator refusals
+on the *unchanged, hash-pinned* 4096-byte reviewed runtime. Unsupported
+signatures or runtime hash drift reject. `QEMU_SHA256` still pins the
+target emulator.
+
+To actually execute on a full checkout with pinned Clang20, lld and QEMU8.2.2:
+
+```python
+from hepta.hia_program_aarch64 import run_finite_program_aarch64
+from tests.test_hia_range_fill_v6 import fill_program
+report = run_finite_program_aarch64(
+    fill_program(), clang="clang-20", linker="ld.lld",
+    qemu_aarch64="qemu-aarch64", mode="range_fill")
+assert report["execution"]["returncode"] == 0
+```
+
+The separate Clang17 cross-object control is *not* a QEMU execution; this
+driver extension does not demonstrate physical ARM64 target execution.
