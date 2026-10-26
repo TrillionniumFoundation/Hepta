@@ -104,7 +104,7 @@ class HIAHeptaSourceBridgeTests(unittest.TestCase):
         self.assertIn("icmp ult i32", emitted.text)
 
     def test_short_circuit_with_possible_rhs_trap_fails_closed(self):
-        with self.assertRaisesRegex(HIAHeptaBridgeRejected, "unqualified lowering"):
+        with self.assertRaisesRegex(HIAHeptaBridgeRejected, "E_HIA_HEPTA_BRIDGE"):
             lower(SHORT_CIRCUIT)
 
     def test_corrupted_resource_gate_never_generates_hia(self):
@@ -122,6 +122,42 @@ class HIAHeptaSourceBridgeTests(unittest.TestCase):
                     lower_checked_scalar_hia(program, checked, project_sha256=digest)
         with self.assertRaisesRegex(HIAHeptaBridgeRejected, "E_HIA_HEPTA_BRIDGE"):
             lower_checked_scalar_hia(program, object(), project_sha256=PROJECT)
+
+    def test_source_native_rejects_stale_graph_before_codegen(self):
+        from types import SimpleNamespace
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source, output = root / "input.hepta", root / "unpublished.so"
+            source.write_text(SIMPLE, encoding="utf-8")
+            project = SimpleNamespace(identity=PROJECT, sources={str(source): "locked"},
+                                      unchanged=lambda: False)
+            checked = check(parse(SIMPLE, str(source)))
+            fake = SimpleNamespace(
+                program=parse(SIMPLE, str(source)), checked=checked, project=project,
+                report={"ok": True, "checks": {"rust_borrows_types": "rustc_checked"}})
+            with (patch("hepta.pipeline.analyze_project", return_value=fake),
+                  patch("hepta.hia_source_bridge.lower_checked_scalar_hia") as lowerer):
+                result = build_checked_hepta_hia_native(source, output)
+            self.assertFalse(result["ok"])
+            self.assertFalse(output.exists())
+            lowerer.assert_not_called()
+
+    def test_standalone_source_qualified_cli_rejects_missing_native(self):
+        from tools.build_checked_hia_source import main
+        from contextlib import redirect_stdout
+        import io
+        import json
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source, output = root / "source.hepta", root / "not-published.so"
+            source.write_text(SIMPLE, encoding="utf-8")
+            stream = io.StringIO()
+            with redirect_stdout(stream):
+                exit_code = main([str(source), "-o", str(output),
+                                  "--rustc", "/missing/hepta-rustc"])
+            self.assertEqual(exit_code, 2)
+            self.assertFalse(json.loads(stream.getvalue())["ok"])
+            self.assertFalse(output.exists())
 
     def test_source_facing_native_never_publishes_without_rustc(self):
         with tempfile.TemporaryDirectory() as directory:

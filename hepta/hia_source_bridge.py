@@ -1,8 +1,8 @@
-"""Fail-closed checked Hepta scalar SSA -> executable standalone HIA Program.
+"""Checked Hepta scalar source -> EXISTING verified HIA Core and native compiler.
 
-Reuses the sole canonical Hepta HSIR, Resource IR, CFG, scalar SSA, SSA
-verifier and HIA Core verifier. This is a finite i32/u32 exported profile,
-not a general owned/lifetime translator or formal source refinement proof.
+No independent SSA-to-HIA translator is maintained here. Only the canonical
+Hepta source, existing Resource IR checker, HIA scalar snapshot adapter,
+hepta.core.from_scalar_core and the existing HIA native backend are used.
 """
 from __future__ import annotations
 
@@ -12,6 +12,8 @@ import json
 import re
 
 from .cfg import lower_hsir_cfg
+from .core import from_scalar_core
+from .hia_core import seal_hia_scalar_core
 from .hia_program import VerifiedProgram, verify_program
 from .hsir import lower_checked_program
 from .native_resource_gate import qualify_native_resource_source
@@ -19,287 +21,14 @@ from .ssa import lower_cfg_scalar_ssa
 from .ssa_verify import verify_scalar_ssa
 
 _HASH = re.compile(r"[0-9a-f]{64}\Z")
-_WORDS = frozenset({"i32", "u32"})
-_VALUE_TYPES = _WORDS | {"bool"}
-_BINARY = {"+": "int.add.checked", "-": "int.sub.checked",
-           "*": "int.mul.checked", "/": "int.div.checked",
-           "%": "int.rem.checked", "<<": "int.shl.checked",
-           ">>": "int.shr.checked", "&": "bit.and", "|": "bit.or",
-           "^": "bit.xor", "==": "compare.eq", "!=": "compare.ne",
-           "<": "compare.lt", "<=": "compare.le", ">": "compare.gt",
-           ">=": "compare.ge"}
-_MAX_BLOCKS = 512
-_MAX_VALUES = 8192
 
 
 class HIAHeptaBridgeRejected(ValueError):
-    """Unsupported scalar semantics or inconsistent verified-source SSA."""
+    """A source/identity/native qualification is outside the reviewed profile."""
 
 
-def _reject(message):
-    raise HIAHeptaBridgeRejected("E_HIA_HEPTA_BRIDGE: " + message)
-
-
-def _t(value):
-    if (type(value) is not dict or set(value) != {"type", "args", "length"}
-            or value["args"] != [] or value["length"] is not None
-            or type(value["type"]) is not str or value["type"] not in _VALUE_TYPES):
-        _reject("only i32/u32 and internal Boolean values are supported")
-    return value["type"]
-
-
-def _refs(expr):
-    if type(expr) is not dict or expr.get("node") != "expr":
-        _reject("invalid typed expression")
-    pending, refs, steps = [expr], set(), 0
-    while pending:
-        node = pending.pop()
-        steps += 1
-        if steps > _MAX_VALUES or type(node) is not dict or node.get("node") != "expr":
-            _reject("expression exceeds checked scalar budget")
-        if node.get("operation") == "name":
-            name = node.get("ssa_ref")
-            if type(name) is not str:
-                _reject("name does not carry a verified SSA reference")
-            refs.add(name)
-        args = node.get("operands")
-        if type(args) is not list or len(args) > 3:
-            _reject("unreviewed expression operands")
-        pending.extend(args)
-    return refs
-
-
-def _output(definition):
-    if type(definition) is not dict or type(definition.get("ssa_name")) is not str:
-        _reject("invalid SSA definition")
-    return definition["ssa_name"], _t({"type": definition["type"], "args": [], "length": None})
-
-
-def _analysis(function):
-    blocks = function["blocks"]
-    if type(blocks) is not list or not 1 <= len(blocks) <= _MAX_BLOCKS:
-        _reject("invalid source SSA block count")
-    by_id = {b["id"]: b for b in blocks}
-    if len(by_id) != len(blocks):
-        _reject("duplicate SSA block identity")
-    names, defs, uses, outgoing, phi_edges = {}, {}, {}, {}, {}
-    entry = function["entry"]
-    for block in blocks:
-        bid = block["id"]
-        initial = function["parameters"] if bid == entry else []
-        local = {}
-        for definition in initial + [phi["result"] for phi in block["phis"]]:
-            name, ty = _output(definition)
-            if name in local or name in names:
-                _reject("duplicate source SSA definition")
-            local[name] = ty
-            names[name] = ty
-        seen, need = set(local), set()
-        for inst in block["instructions"]:
-            for name in _refs(inst["ssa_value"]):
-                if name not in seen:
-                    need.add(name)
-            if "definition" in inst:
-                name, ty = _output(inst["definition"])
-                if name in local or name in names:
-                    _reject("duplicate source SSA result")
-                local[name] = ty
-                names[name] = ty
-                seen.add(name)
-        term = block["terminator"]
-        kind = term["kind"]
-        if kind == "goto":
-            targets = [term["target"]]
-        elif kind == "branch":
-            targets = [term["then"], term["else"]]
-            for name in _refs(term["condition"]):
-                if name not in seen:
-                    need.add(name)
-        elif kind == "return":
-            targets = []
-            if term.get("value") is not None:
-                for name in _refs(term["value"]):
-                    if name not in seen:
-                        need.add(name)
-        else:
-            _reject("range, switch, fallthrough and unchecked exception edges are unsupported")
-        if any(t not in by_id for t in targets):
-            _reject("SSA has a missing CFG successor")
-        defs[bid], uses[bid], outgoing[bid] = set(local), need, targets
-        for successor in set(targets):
-            for phi in by_id[successor]["phis"]:
-                matching = [x["ssa_ref"] for x in phi["incoming"] if x["from"] == bid]
-                if len(matching) != 1:
-                    _reject("missing or ambiguous edge-specific phi input")
-                phi_edges.setdefault((bid, successor), set()).add(matching[0])
-    # Validate all SSA references independently of their location. The existing
-    # structural SSA verifier checks dominance/edge value legality separately.
-    for required in list(uses.values()) + list(phi_edges.values()):
-        if not required.issubset(names):
-            _reject("SSA reference has no typed definition")
-    live = {bid: set() for bid in by_id}
-    for _ in range(_MAX_VALUES + 1):
-        changed = False
-        for bid in reversed([b["id"] for b in blocks]):
-            out = set()
-            for successor in outgoing[bid]:
-                out |= live[successor] | phi_edges.get((bid, successor), set())
-            incoming = uses[bid] | (out - defs[bid])
-            if incoming != live[bid]:
-                live[bid] = incoming
-                changed = True
-        if not changed:
-            break
-    else:
-        _reject("SSA liveness failed to reach a bounded fixed point")
-    if live[entry]:
-        _reject("entry must not require undeclared external SSA values")
-    return names, live
-
-
-class _Emit:
-    def __init__(self, bid, environment):
-        self.bid, self.env, self.ops, self.serial = bid, dict(environment), [], 0
-
-    def instruction(self, opcode, arguments, result_type, attrs=None):
-        self.serial += 1
-        if self.serial > _MAX_VALUES:
-            _reject("excessive HIA instruction expansion")
-        name = f"v_{self.bid}_{self.serial}"
-        self.ops.append({"op": opcode, "args": list(arguments),
-                         "out": [{"name": name, "type": result_type}],
-                         "attrs": {} if attrs is None else attrs})
-        return name
-
-    def expression(self, expr, depth=0):
-        if depth > 48 or type(expr) is not dict or expr.get("node") != "expr":
-            _reject("unsupported/deep source expression")
-        typ = _t(expr.get("result_type"))
-        op = expr.get("operation")
-        parts = expr.get("operands")
-        if type(parts) is not list:
-            _reject("source expression missing operands")
-        if op == "name" and not parts:
-            ref = expr.get("ssa_ref")
-            if ref not in self.env:
-                _reject("source value not available in current CFG block")
-            return self.env[ref]
-        if op in {"int", "bool"} and not parts:
-            value = expr.get("value")
-            if (op == "int" and (type(value) is not int or typ not in _WORDS)
-                    or op == "bool" and (type(value) is not bool or typ != "bool")):
-                _reject("invalid typed integer/boolean source constant")
-            return self.instruction("const", [], typ, {"value": value})
-        if op == "binary" and len(parts) == 2:
-            opcode = _BINARY.get(expr.get("value"))
-            if opcode is None:
-                # && and || are short-circuit operators: eager lowering would
-                # incorrectly execute RHS traps. Do not silently translate.
-                _reject("binary expression has unqualified lowering (including short-circuit)")
-            left = self.expression(parts[0], depth + 1)
-            right = self.expression(parts[1], depth + 1)
-            return self.instruction(opcode, [left, right], typ)
-        if op == "unary" and len(parts) == 1:
-            src = _t(parts[0].get("result_type"))
-            opcode = ("int.neg.checked" if expr.get("value") == "-" and src in _WORDS
-                      else "bool.not" if expr.get("value") == "!" and src == "bool"
-                      else "bit.not" if expr.get("value") == "!" and src in _WORDS
-                      else None)
-            if opcode is None:
-                _reject("unqualified source unary operation")
-            return self.instruction(opcode, [self.expression(parts[0], depth + 1)], typ)
-        if op == "cast" and len(parts) == 1:
-            src = _t(parts[0].get("result_type"))
-            if src not in _WORDS or typ not in _WORDS:
-                _reject("Boolean/float casts are outside the bridge")
-            return self.instruction("int.cast", [self.expression(parts[0], depth + 1)],
-                                    typ, {"mode": "wrap"})
-        _reject("unmapped scalar source expression")
-
-
-def _function(ssa, original):
-    if (ssa["name"] != original["name"] or original.get("direction") != "export"
-            or original.get("abi") != "C" or _t(original["return_type"]) not in _WORDS):
-        _reject("only source-exported C ABI i32/u32 functions are qualified")
-    params = original["param_types"]
-    if (len(params) != len(ssa["parameters"]) or len(params) > 16
-            or any(p["ownership"] != "value" or _t(p["type"]) not in _WORDS for p in params)):
-        _reject("only 0..16 by-value i32/u32 parameters are qualified")
-    word = _t(original["return_type"])
-    if any(_t(p["type"]) != word for p in params):
-        _reject("mixed-sign/width source ABI not qualified in first bridge")
-    if set(original["declared_effects"]) - {"panic"} or set(original["inferred_transitive_effects"]) - {"panic"}:
-        _reject("unsupported source effects")
-    names, live = _analysis(ssa)
-    blocks = {b["id"]: b for b in ssa["blocks"]}
-    block_params, incoming_order = {}, {}
-    for bid, block in blocks.items():
-        needed = [] if bid == ssa["entry"] else sorted(live[bid])
-        phi = [] if bid == ssa["entry"] else sorted((p["result"]["ssa_name"] for p in block["phis"]))
-        ordered = [p["ssa_name"] for p in ssa["parameters"]] if bid == ssa["entry"] else needed + phi
-        if len(set(ordered)) != len(ordered):
-            _reject("SSA phi and forwarded block argument collide")
-        if any(ref not in names for ref in ordered):
-            _reject("block arguments are not typed by SSA")
-        block_params[bid] = [{"name": f"p_{bid}_{i}", "type": names[ref]}
-                             for i, ref in enumerate(ordered)]
-        incoming_order[bid] = ordered
-    output = []
-    for bid, block in blocks.items():
-        emit = _Emit(bid, {ref: p["name"] for ref, p in zip(incoming_order[bid], block_params[bid])})
-        for instruction in block["instructions"]:
-            result = emit.expression(instruction["ssa_value"])
-            if "definition" in instruction:
-                name, typ = _output(instruction["definition"])
-                if _t(instruction["ssa_value"]["result_type"]) != typ:
-                    _reject("SSA definition and expression types differ")
-                emit.env[name] = result
-        def edge(target):
-            args = []
-            for ref in incoming_order[target]:
-                if ref not in emit.env:
-                    # A phi argument uses its edge-specific incoming value,
-                    # not the target's SSA phi-result name.
-                    matched = [x["ssa_ref"] for p in blocks[target]["phis"]
-                               if p["result"]["ssa_name"] == ref
-                               for x in p["incoming"] if x["from"] == bid]
-                    if len(matched) != 1 or matched[0] not in emit.env:
-                        _reject("SSA edge lacks a live required value")
-                    args.append(emit.env[matched[0]])
-                else:
-                    # No SSA phi definition at a target is in scope on its
-                    # predecessor. Check this even for loop/back edges.
-                    if any(p["result"]["ssa_name"] == ref for p in blocks[target]["phis"]):
-                        matched = [x["ssa_ref"] for p in blocks[target]["phis"]
-                                   if p["result"]["ssa_name"] == ref
-                                   for x in p["incoming"] if x["from"] == bid]
-                        if len(matched) != 1 or matched[0] not in emit.env:
-                            _reject("predecessor cannot provide required phi source")
-                        args.append(emit.env[matched[0]])
-                    else:
-                        args.append(emit.env[ref])
-            return {"target": target, "args": args}
-        term = block["terminator"]
-        if term["kind"] == "goto":
-            target = term["target"]
-            new_term = {"op": "jump", **edge(target)}
-        elif term["kind"] == "branch":
-            condition = emit.expression(term["condition"])
-            new_term = {"op": "branch", "cond": condition,
-                        "then": edge(term["then"]), "else": edge(term["else"])}
-        elif term["kind"] == "return":
-            if term.get("value") is None:
-                _reject("Unit returns are not in the first source bridge")
-            result = emit.expression(term["value"])
-            new_term = {"op": "ret", "values": [result]}
-        else:
-            _reject("unsupported source control flow")
-        output.append({"id": bid, "params": block_params[bid],
-                       "ops": emit.ops, "term": new_term})
-    return {"name": ssa["name"], "params": block_params[ssa["entry"]],
-            "returns": [word],
-            "effects": ["trap"] if "panic" in original["declared_effects"] else [],
-            "entry": ssa["entry"], "blocks": output}
+def _reject(reason):
+    raise HIAHeptaBridgeRejected("E_HIA_HEPTA_BRIDGE: " + reason)
 
 
 @dataclass(frozen=True)
@@ -314,15 +43,16 @@ class CheckedScalarHIA:
 
 
 def lower_checked_scalar_hia(program, checked, *, project_sha256: str) -> CheckedScalarHIA:
-    """Lower the exact frontend-checked scalar subset into executable HIA Core.
+    """Authenticate old scalar SSA then reuse *the sole* HIA Core converter.
 
-    A supplied digest or externally constructed SSA cannot bypass Hepta's
-    canonical source lowering or Resource IR validation. This is a bounded
-    translation, not a formal proof of arbitrary source equivalence.
+    The existing from_scalar_core replays the exact source identity, rechecks
+    the old executable subset and consumes verified SSA/PHIs. A digest alone
+    never authenticates untrusted source, and no general ownership proof is
+    asserted by this narrow scalar-profile bridge.
     """
     if (type(project_sha256) is not str or _HASH.fullmatch(project_sha256) is None
             or getattr(checked, "ok", None) is not True):
-        _reject("frontend-qualified source and full project identity required")
+        _reject("frontend checked source and complete project digest required")
     try:
         hsir = lower_checked_program(program, checked)
         origin = hsir.as_dict()
@@ -332,24 +62,20 @@ def lower_checked_scalar_hia(program, checked, *, project_sha256: str) -> Checke
         cfg = lower_hsir_cfg(hsir)
         ssa = lower_cfg_scalar_ssa(cfg)
         verification = verify_scalar_ssa(ssa, cfg)
-        source_cfg, source_ssa = cfg.as_dict(), ssa.as_dict()
-        if (source_cfg.get("source_hsir_sha256") != hsir.sha256
-                or source_ssa.get("source_cfg_sha256") != cfg.sha256
-                or source_ssa.get("functions") is None
-                or len(source_ssa["functions"]) != len(source_cfg["functions"])):
-            _reject("canonical CFG/SSA source linkage disagrees")
-        lowered = [_function(fn, orig) for fn, orig in zip(
-            source_ssa["functions"], source_cfg["functions"])]
-        executable = verify_program({"schema": "hepta.hia.program.v1",
-                                     "module": "hia_checked_scalar",
-                                     "functions": lowered})
-        # Rebuild independently from source-owned snapshots; never trust
-        # output mutable dictionaries or a self-resealed claimed identity.
-        repeated = [_function(fn, orig) for fn, orig in zip(
-            ssa.as_dict()["functions"], cfg.as_dict()["functions"])]
-        if verify_program({"schema": "hepta.hia.program.v1", "module": "hia_checked_scalar",
-                           "functions": repeated}).canonical_bytes != executable.canonical_bytes:
-            _reject("HIA output changed during source replay")
+        # Reuse the canonical v0 HIA scalar packer, then the existing adapter
+        # to operational HIA. Neither operation grants source-refinement proof.
+        sealed = seal_hia_scalar_core(hsir, cfg, ssa, verification, gate,
+                                      project_sha256=project_sha256)
+        executable = from_scalar_core(sealed, program=program, checked=checked,
+                                      project_sha256=project_sha256,
+                                      module="hia_checked_scalar")
+        if not isinstance(executable, VerifiedProgram):
+            _reject("existing source/Core adapter did not return verified HIA")
+        # Same source replay must produce identical immutable executable bytes.
+        if executable.canonical_bytes != from_scalar_core(
+                sealed, program=program, checked=checked,
+                project_sha256=project_sha256, module="hia_checked_scalar").canonical_bytes:
+            _reject("source-bound HIA bytes changed during replay")
         return CheckedScalarHIA(
             program=executable, source_semantic_sha256=origin["source_semantic_sha256"],
             project_sha256=project_sha256, resource_ir_sha256=gate["resource_ir_sha256"],
@@ -364,8 +90,7 @@ def lower_checked_scalar_hia(program, checked, *, project_sha256: str) -> Checke
         raise
     except (KeyError, ValueError, TypeError, AttributeError, OverflowError, RecursionError) as exc:
         raise HIAHeptaBridgeRejected(
-            "E_HIA_HEPTA_BRIDGE: unsupported or malformed checked scalar source") from exc
-
+            "E_HIA_HEPTA_BRIDGE: existing canonical source/Core gates rejected") from exc
 
 
 @dataclass(frozen=True)
@@ -431,7 +156,10 @@ def lower_checked_owned_hia(program, checked, *, project_sha256: str) -> Checked
         if (type(report) is not dict or report.get("ok") is not True
                 or report.get("status") != "resource_cfg_verified"
                 or report.get("ir_sha256") != resource_sha
-                or report.get("claims") != RESOURCE_CLAIMS
+                or type(report.get("claims")) is not dict
+                or set(report["claims"]) != set(RESOURCE_CLAIMS)
+                or any(report["claims"][key] is not proof
+                       for key, proof in RESOURCE_CLAIMS.items())
                 or report.get("external_obligations") != {}
                 or type(inventory) is not list
                 or len(inventory) != len(expected)
