@@ -5,7 +5,6 @@ import argparse
 import hashlib
 import json
 import os
-import stat
 from pathlib import Path
 import tempfile
 
@@ -14,7 +13,8 @@ from .pipeline import analyze_project, compiler_hash
 from .resource_ir import verify_resource_ir
 from .resource_lowering import lower_resource_ir
 from .elf_shared_abi import inspect_owned_shared_elf
-from .artifact_publication import PublicationRejected, publish_verified
+from .artifact_publication import (PublicationRejected, publish_verified,
+                                   verify_published, withdraw_own_link)
 
 
 def build_llvm_owned_source(source, output, *, rustc=None, clang="clang", kind="shared", locked=False):
@@ -97,19 +97,24 @@ def build_llvm_owned_source(source, output, *, rustc=None, clang="clang", kind="
                 raise LLVMOwnedRejected("E_LLVM_OWNED_PUBLICATION: " + str(exc)) from exc
             if (publication["sha256"] != native["artifact_sha256"]
                     or publication["bytes"] != native["artifact_bytes"]):
+                withdraw_own_link(stage, destination)
                 raise LLVMOwnedRejected("E_LLVM_OWNED_ARTIFACT: published receipt identity differs")
             # The output has already been made visible; a source edit during
             # publication cannot mint a successful source-bound LLVM receipt.
             if not project.unchanged() or compiler_hash() != ir.compiler_sha256:
-                try:
-                    source_entry, published_entry = stage.stat(), destination.lstat()
-                    if (stat.S_ISREG(published_entry.st_mode)
-                            and (source_entry.st_dev, source_entry.st_ino) ==
-                                (published_entry.st_dev, published_entry.st_ino)):
-                        destination.unlink()
-                except OSError:
-                    pass
+                withdraw_own_link(stage, destination)
                 raise LLVMOwnedRejected("E_LLVM_OWNED_STALE: source/compiler changed after publication")
+            # The source check and the compiler's inner publication are
+            # different trust boundaries. Re-read the final *actual* bytes
+            # and inode before reporting a source-bound native success.
+            try:
+                final = verify_published(stage, destination, data)
+            except PublicationRejected as exc:
+                withdraw_own_link(stage, destination)
+                raise LLVMOwnedRejected("E_LLVM_OWNED_PUBLICATION: " + str(exc)) from exc
+            if final != publication:
+                withdraw_own_link(stage, destination)
+                raise LLVMOwnedRejected("E_LLVM_OWNED_PUBLICATION: final receipt mismatch")
         report["native_backend"] = dict(native, output=str(destination))
         report["claims"].update(actual_source_replayed=True, independent_resource_cfg_verified=True,
                                 native_artifact_compiled=True)

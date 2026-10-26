@@ -17,6 +17,9 @@ from .llvm_ssa_target import _TARGETS, compile_ssa_target_object
 from .pipeline import analyze_project
 from .ssa import lower_cfg_scalar_ssa
 from .ssa_verify import verify_scalar_ssa
+from .object_symbols import inspect_object_symbols
+from .artifact_publication import (PublicationRejected, publish_verified,
+                                   verify_published, withdraw_own_link)
 
 
 def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
@@ -113,7 +116,13 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
                     or not isinstance(native.get("claims"), dict)
                     or native["claims"].get("ssa_cfg_origin_rechecked") is not True
                     or native["claims"].get(forbidden_claim) is not False
-                    or (target is not None and native.get("target") != target)):
+                    or (target is not None and (
+                        native.get("target") != target
+                        or native.get("object_structure_qualified") is not True
+                        or native.get("object_symbols_qualified") is not True
+                        or native.get("defined_export_symbols") != list(ir.functions)
+                        or not isinstance(native.get("undefined_external_symbols"), list)
+                        or any(symbol != "abort" for symbol in native["undefined_external_symbols"])))):
                 raise LLVMSSARejected("E_LLVM_SSA_RECEIPT: native backend identity or proof scope mismatch")
             # Validate real staged bytes *before* external publication. An
             # incorrect compiler receipt must never leave a published output
@@ -122,14 +131,46 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
             if (not artifact or sha256(artifact).hexdigest() != native.get("artifact_sha256")
                     or len(artifact) != native.get("artifact_bytes")):
                 raise LLVMSSARejected("E_LLVM_SSA_ARTIFACT: staged native bytes differ from compiler receipt")
+            # Do not trust a matching SHA or a self-asserted native receipt.
+            # Re-read actual staged ELF/COFF/Mach-O symbol tables from this
+            # strict source-facing entrypoint; no merely named functions pass.
+            if target is not None:
+                fmt, machine = _TARGETS[target]
+                inspected = inspect_object_symbols(artifact, fmt, machine)
+                if (sorted(inspected["defined"]) != list(ir.functions)
+                        or inspected["undefined"] - {"abort"}
+                        or native["defined_export_symbols"] != sorted(inspected["defined"])
+                        or native["undefined_external_symbols"] != sorted(inspected["undefined"])):
+                    raise LLVMSSARejected(
+                        "E_LLVM_SSA_SYMBOLS: native object or receipt differs from source-verified exports/imports")
             if not project.unchanged():
                 raise LLVMSSARejected("E_LLVM_SSA_STALE: graph changed during native compilation")
-            if dest.is_symlink() or dest.exists():
-                raise LLVMSSARejected("E_LLVM_SSA_OUTPUT: concurrent destination publication")
-            os.link(stage, dest)  # same filesystem, no overwrite
+            # Use the *single* publication authority also used by Owned LLVM:
+            # no-replace hardlink, exact inode/byte checks and removal of
+            # only our own pathname when in-place corruption is detected.
+            try:
+                publication = publish_verified(stage, dest, artifact)
+            except PublicationRejected as exc:
+                raise LLVMSSARejected("E_LLVM_SSA_PUBLICATION: " + str(exc)) from exc
+            if publication != {"sha256": native["artifact_sha256"],
+                               "bytes": native["artifact_bytes"]}:
+                withdraw_own_link(stage, dest)
+                raise LLVMSSARejected("E_LLVM_SSA_PUBLICATION: native receipt identity mismatch")
+            if not project.unchanged():
+                withdraw_own_link(stage, dest)
+                raise LLVMSSARejected("E_LLVM_SSA_STALE: source graph changed after publication")
+            try:
+                final = verify_published(stage, dest, artifact)
+            except PublicationRejected as exc:
+                withdraw_own_link(stage, dest)
+                raise LLVMSSARejected("E_LLVM_SSA_PUBLICATION: " + str(exc)) from exc
+            if final != publication:
+                withdraw_own_link(stage, dest)
+                raise LLVMSSARejected("E_LLVM_SSA_PUBLICATION: final receipt mismatch")
+            published_bytes = artifact
         result["native_backend"] = dict(native)
         result["native_backend"]["output"] = str(dest)
-        result["native_backend"]["artifact_sha256"] = sha256(artifact).hexdigest()
+        result["native_backend"]["artifact_sha256"] = sha256(published_bytes).hexdigest()
         result["claims"]["native_artifact_compiled"] = True
         result["claims"]["ssa_cfg_origin_rechecked"] = True
         result["ok"] = True

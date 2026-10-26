@@ -76,3 +76,38 @@ def publish_verified(stage: str | Path, destination: str | Path, expected: bytes
             pass
         raise
     return {"sha256": sha256(expected).hexdigest(), "bytes": len(expected)}
+
+
+def verify_published(stage: str | Path, destination: str | Path, expected: bytes) -> dict:
+    """Independently re-read both exact inodes after a source-level gate.
+
+    The stage and destination must still be the *same* ordinary inode with
+    the byte-for-byte payload validated before publication. A matching hash
+    in a prior receipt is deliberately insufficient. This is point-in-time
+    local consistency, not immunity from later noncooperating writers.
+    """
+    stage, destination = Path(stage), Path(destination)
+    if type(expected) is not bytes or not expected or stage.absolute() == destination.absolute():
+        raise PublicationRejected("E_PUBLISH_INPUT: exact nonempty bytes and distinct paths required")
+    staged = _read_exact(stage, expected)
+    _read_exact(destination, expected, identity=staged)
+    return {"sha256": sha256(expected).hexdigest(), "bytes": len(expected)}
+
+
+def withdraw_own_link(stage: str | Path, destination: str | Path) -> bool:
+    """Withdraw only the hardlink that still refers to our own staging inode.
+
+    A concurrent writer's *replacement path* must never be removed. A shared
+    inode may have changed in place; deleting only our destination pathname
+    does not destroy another linked copy or a competitor's separate inode.
+    """
+    try:
+        staged = Path(stage).lstat()
+        published = Path(destination).lstat()
+        if (stat.S_ISREG(staged.st_mode) and stat.S_ISREG(published.st_mode)
+                and (staged.st_dev, staged.st_ino) == (published.st_dev, published.st_ino)):
+            Path(destination).unlink()
+            return True
+    except OSError:
+        pass
+    return False

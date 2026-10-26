@@ -9,7 +9,8 @@ import unittest
 from unittest.mock import patch
 
 from hepta.llvm_ssa_backend import LLVMSSARejected, emit_scalar_ssa_llvm
-from hepta.llvm_ssa_target import compile_ssa_target_object, _qualified_header, _verified_publication
+from hepta.llvm_ssa_target import compile_ssa_target_object, _qualified_header, _verified_publication, _TARGETS
+from hepta.object_symbols import ObjectSymbolsRejected, inspect_object_symbols
 from hepta.ssa import lower_cfg_scalar_ssa
 from tests.test_llvm_ssa_backend import exported
 from tests.test_ssa_differential import nested_loop_fixture
@@ -41,6 +42,14 @@ class LLVMSSATargetTests(unittest.TestCase):
                 self.assertTrue(_qualified_header(output.read_bytes(), target))
                 self.assertFalse(evidence["claims"]["target_program_executed"])
                 self.assertFalse(evidence["claims"]["foreign_c_abi_qualified"])
+                self.assertTrue(evidence["object_structure_qualified"])
+                self.assertTrue(evidence["object_symbols_qualified"])
+                self.assertEqual(evidence["defined_export_symbols"], list(self.ir.functions))
+                self.assertTrue(set(evidence["undefined_external_symbols"]) <= {"abort"})
+                fmt, machine_id = _TARGETS[target]
+                independent = inspect_object_symbols(output.read_bytes(), fmt, machine_id)
+                self.assertEqual(evidence["defined_export_symbols"], sorted(independent["defined"]))
+                self.assertEqual(evidence["undefined_external_symbols"], sorted(independent["undefined"]))
 
     def test_reject_macho_wrong_machine_or_wrong_file_type(self):
         # Accept only Mach-O 64-bit MH_OBJECT for the exact requested CPU.
@@ -153,6 +162,17 @@ class LLVMSSATargetTests(unittest.TestCase):
                     self.ir, target="x86_64-unknown-linux-gnu", output=path)
         self.assertTrue(path.exists())
         self.assertEqual(path.read_bytes(), b"fake-object")
+
+    def test_invalid_object_symbol_inventory_fails_before_publication(self):
+        # Even a valid object header cannot force an unauthorized external
+        # import or a forged function location through native publication.
+        path = self.root / "untrusted-sym.o"
+        with patch("hepta.llvm_ssa_target.inspect_object_symbols",
+                   side_effect=ObjectSymbolsRejected("E_OBJECT_SYMBOL_LOCATION: wrong section")):
+            with self.assertRaisesRegex(LLVMSSARejected, "E_LLVM_SSA_TARGET_SYMBOL"):
+                compile_ssa_target_object(self.ir, target="x86_64-unknown-linux-gnu",
+                                          output=path)
+        self.assertFalse(path.exists())
 
     def test_modified_ir_fails_before_compilation(self):
         from dataclasses import replace

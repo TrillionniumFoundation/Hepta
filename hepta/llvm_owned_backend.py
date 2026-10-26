@@ -581,33 +581,9 @@ class _Function:
 
 
 def _resources_allowed(fn, checked) -> bool:
-    """Preserve the checked language's finite static resource clauses.
-
-    This permits exactly the already checked source-level no-alloc/no-block/
-    no-spawn/no-suspend clauses, NOT a process-global allocator/CPU budget.
-    Effects and foreign/task/I/O exclusions remain independently checked.
-    """
-    clauses = fn.resources
-    if type(clauses) is not dict or type(fn.effects) is not set:
-        return False
-    upper = fn.effects | checked.effects.get(fn.name, set())
-    for key, value in clauses.items():
-        if key == "heap_allocations":
-            if type(value) is not int or value != 0 or "alloc" in upper:
-                return False
-        elif key == "may_block":
-            if value is not False or "block" in upper:
-                return False
-        elif key == "may_spawn":
-            if value is not False or "spawn" in upper:
-                return False
-        elif key == "may_suspend":
-            if value is not False:
-                return False
-        else:
-            return False
-    return True
-
+    """Preserve legacy evaluator API while using the one shared IR/LLVM policy."""
+    from .static_resource_contracts import finite_static_contract_allowed
+    return finite_static_contract_allowed(fn, checked)
 
 class _Emitter:
     def __init__(self, program, checked):

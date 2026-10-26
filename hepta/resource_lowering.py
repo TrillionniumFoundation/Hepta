@@ -12,6 +12,7 @@ import hashlib
 from .ast import Type
 from .checker import _contains_capability, LINEAR, substitute_type, return_origin_index
 from .resource_ir import SCHEMA, STORED_SCHEMA, ResourceIRError, _CLAIMS, _EXTERNAL_REQUIREMENTS, verify_resource_ir
+from .static_resource_contracts import finite_static_contract_allowed
 
 
 _PRIMITIVES = {"i8", "i16", "i32", "i64", "i128", "isize", "u8", "u16", "u32", "u64", "u128", "usize", "f32", "f64", "bool", "Unit"}
@@ -626,8 +627,12 @@ def lower_resource_ir(program, checked, *, project_sha256: str | None = None) ->
         types.add(Type(primitive))
     signatures, obligations = {}, {}
     for fn in program.functions:
-        if fn.resources:
-            _unsupported("Task/resource runtime clauses require another lowering profile")
+        # The current Resource IR abstracts *ownership*, not cost. Its
+        # source-facing lowerer may admit only the closed effect-derived
+        # zero-cost clauses also admitted by the owned LLVM backend. Runtime
+        # task-group budgets and all unknown resource kinds still reject.
+        if not finite_static_contract_allowed(fn, checked):
+            _unsupported("Unknown, ill-typed or effect-inconsistent static resource clause")
         mapping = types.parameters[fn.name]
         params = [{"id": "p" + str(i), "type": types.add(substitute_type(p.type, mapping)), "mode": p.mode} for i, p in enumerate(fn.params)]
         origin = return_origin_index(fn)

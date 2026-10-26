@@ -40,6 +40,47 @@ class LLVMSSASourceCLITests(unittest.TestCase):
         self.source.write_text(SOURCE, encoding="utf-8")
         self.output = self.root / "compiled.so"
 
+    @unittest.skipUnless(shutil.which("clang") and (os.environ.get("RUSTC") or shutil.which("rustc")),
+                         "Native Clang and pinned Rust required")
+    def test_final_source_hardlink_mutant_never_receives_success(self):
+        from hepta import llvm_ssa_pipeline
+        original_link = llvm_ssa_pipeline.os.link
+
+        def alter_final_link(src, dst, *args, **kwargs):
+            original_link(src, dst, *args, **kwargs)
+            if Path(dst) == self.output:
+                # The backend stage has already been validated. This is the
+                # second, outermost publication race that must also reject.
+                Path(dst).write_bytes(b"changed-after-source-link")
+
+        with patch.object(llvm_ssa_pipeline.os, "link", side_effect=alter_final_link):
+            result = build_llvm_ssa_source(
+                self.source, self.output, rustc=os.environ.get("RUSTC"))
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["diagnostics"][0]["code"], "E_LLVM_SSA_PUBLICATION")
+        # Unlike the earlier raw os.link path, the single publisher retracts
+        # our own hardlink when it detects post-link byte corruption.
+        self.assertFalse(self.output.exists())
+
+    @unittest.skipUnless(shutil.which("clang") and (os.environ.get("RUSTC") or shutil.which("rustc")),
+                         "Native Clang and pinned Rust required")
+    def test_native_source_rechecks_bytes_after_publisher_return(self):
+        from hepta import llvm_ssa_pipeline
+        original = llvm_ssa_pipeline.publish_verified
+
+        def corrupt_after_success(stage, target, expected):
+            receipt = original(stage, target, expected)
+            Path(target).write_bytes(b"tampered after publisher receipt")
+            return receipt
+
+        with patch.object(llvm_ssa_pipeline, "publish_verified",
+                          side_effect=corrupt_after_success):
+            result = build_llvm_ssa_source(self.source, self.output,
+                                           rustc=os.environ.get("RUSTC"))
+        self.assertFalse(result["ok"], result)
+        self.assertEqual(result["diagnostics"][0]["code"], "E_LLVM_SSA_PUBLICATION")
+        self.assertFalse(self.output.exists())
+
     def test_invalid_target_and_existing_output_reject_without_side_effect(self):
         wrong = build_llvm_ssa_source(self.source, self.output, target="unknown-cpu")
         self.assertFalse(wrong["ok"])
