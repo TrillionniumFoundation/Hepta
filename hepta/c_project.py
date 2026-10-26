@@ -22,6 +22,74 @@ def digest(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+_MAX_COMPDB_BYTES = 4_000_000
+_MAX_COMPDB_NODES = 65_536
+_MAX_COMPDB_DEPTH = 48
+_MAX_COMPDB_TEXT = 65_536
+
+
+def _unique_compdb_fields(pairs):
+    item = {}
+    for key, value in pairs:
+        if key in item:
+            raise MigrationRejected("E_C_BUILD_DATABASE", "Compilation database contains duplicate JSON keys")
+        item[key] = value
+    return item
+
+
+def _reject_compdb_constant(value):
+    raise MigrationRejected("E_C_BUILD_DATABASE", "Nonfinite JSON constant in compilation database: " + value)
+
+
+def _read_compilation_database(path: Path) -> tuple[bytes, list[dict]]:
+    """Read one bounded, strict database on capture and identity replay.
+
+    The compilation database is untrusted data. Prevent huge files, duplicate
+    keys, nonfinite constants and deeply nested fields from causing implicit
+    compiler options to be ignored or consuming unbounded resources.
+    """
+    try:
+        with path.open("rb") as stream:
+            raw = stream.read(_MAX_COMPDB_BYTES + 1)
+    except OSError as exc:
+        raise MigrationRejected("E_C_BUILD_DATABASE", "Cannot read compilation database") from exc
+    if not raw or len(raw) > _MAX_COMPDB_BYTES:
+        raise MigrationRejected("E_C_BUILD_SIZE", "Compilation database exceeds bounded input size")
+    try:
+        entries = json.loads(
+            raw.decode("utf-8"),
+            object_pairs_hook=_unique_compdb_fields,
+            parse_constant=_reject_compdb_constant)
+    except MigrationRejected:
+        raise
+    except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError,
+            RecursionError, OverflowError) as exc:
+        raise MigrationRejected("E_C_BUILD_DATABASE", "Invalid bounded compilation database JSON") from exc
+    if not isinstance(entries, list) or not 1 <= len(entries) <= 32:
+        raise MigrationRejected("E_C_BUILD_DATABASE", "Expected 1–32 compilation commands")
+
+    # Explicit iterative shape budget bounds future extension fields too.
+    # Only JSON collections and strings are necessary for this build profile.
+    pending = [(entries, 0)]
+    nodes = 0
+    while pending:
+        value, depth = pending.pop()
+        nodes += 1
+        if nodes > _MAX_COMPDB_NODES or depth > _MAX_COMPDB_DEPTH:
+            raise MigrationRejected("E_C_BUILD_SIZE", "Compilation database exceeds JSON node/depth budget")
+        if isinstance(value, list):
+            pending.extend((item, depth + 1) for item in value)
+        elif isinstance(value, dict):
+            if any(not isinstance(key, str) or len(key) > 256 for key in value):
+                raise MigrationRejected("E_C_BUILD_DATABASE", "Invalid compilation database field name")
+            pending.extend((item, depth + 1) for item in value.values())
+        elif not isinstance(value, str) or len(value) > _MAX_COMPDB_TEXT:
+            raise MigrationRejected("E_C_BUILD_DATABASE", "Unsupported or oversized compilation database value")
+    if any(not isinstance(entry, dict) for entry in entries):
+        raise MigrationRejected("E_C_BUILD_DATABASE", "Compilation database entries must be records")
+    return raw, entries
+
+
 def invoke(args: list[str], directory: Path, *, stdin: str | None = None) -> str:
     try:
         run = run_bounded(args, cwd=directory, input_text=stdin, timeout=45,
@@ -115,7 +183,7 @@ def verify_capture(capture: dict) -> None:
     if capture["scope"] != "all_listed_commands_only_not_unlisted_platforms_or_configurations":
         raise MigrationRejected("E_C_BUILD_IDENTITY", "Unexpected capture scope")
     database = Path(capture["database"]["path"])
-    entries = json.loads(database.read_bytes())
+    _, entries = _read_compilation_database(database)
     configs = capture["configurations"]
     if (not isinstance(entries, list) or not isinstance(configs, list)
             or len(entries) != len(configs) or not 1 <= len(entries) <= 32):
@@ -194,10 +262,7 @@ def capture_project(database: str | Path, *, clang: str = "clang") -> dict:
     Users may supply one complete compilation database per intended build.
     """
     db = Path(database).resolve()
-    raw = db.read_bytes()
-    entries = json.loads(raw)
-    if not isinstance(entries, list) or not 1 <= len(entries) <= 32:
-        raise MigrationRejected("E_C_BUILD_DATABASE", "Expected 1–32 compilation commands")
+    raw, entries = _read_compilation_database(db)
     executable = shutil.which(clang)
     if executable is None:
         raise MigrationRejected("E_C_BUILD_TOOL", "Clang executable unavailable")
