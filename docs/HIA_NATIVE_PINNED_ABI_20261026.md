@@ -67,3 +67,12 @@ passing exact-head receipts.
 All P0–P7 production gates remain OPEN/PARTIAL;
 `whole_project_blockers_closed=false`. Remote CI queue never blocks
 engineering, but its absence is not proof of correctness.
+
+## Exact oracle observation types
+
+The finite differential rejects oracle results unless `type(result) is int`
+and the result fits the exact declared i32/u32 return ABI. Python
+`True == 1` and `1.0 == 1` cannot satisfy an integer-native equality test;
+neither can an out-of-range integer. Regression cases bind real Clang native
+scalar exports to forged bool/float/string/overflow oracles. This guard is
+independent of the full compiler's semantics and requires exact-head testing.
