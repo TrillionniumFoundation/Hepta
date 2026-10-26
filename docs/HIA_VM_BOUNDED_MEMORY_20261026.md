@@ -28,6 +28,15 @@ size zero, error-before-mutation and lengths crossing 4096. That qualifies
 the bounded Python byte manipulation, not the complete HIA interpreter
 and not native machine-code equivalence.
 
+## Independent native libc oracle addendum
+
+The exact revised Python 3.13.5 helper/test files additionally executed
+1,000 seeded, paired byte-buffer cases against the host Linux libc
+`memmove` and `memset` through `ctypes` (2,000 native comparisons).
+All outcomes matched, and all **5/5** unit methods passed. This validates
+the interpreter helper's concrete byte behavior against libc on this host,
+NOT the Hepta LLVM emitter or source-to-native refinement.
+
 ## Exact-source acceptance still required
 
 \`\`\`sh
