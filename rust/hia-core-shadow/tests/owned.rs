@@ -104,3 +104,31 @@ fn v2_bulk_op_is_refused_not_promoted_to_resource_proof() {
     }));
     assert!(!checked(&d));
 }
+
+#[test]
+fn type_correct_cfg_join_cannot_change_loan_root() {
+    let mut d = owned();
+    // Add a second independently allocated owner, then forward both through
+    // either predecessor order. The read view always originates from "b".
+    d["functions"][0]["blocks"][0]["ops"].as_array_mut().unwrap().insert(1,json!({
+        "op":"buffer.new","args":["n"],
+        "out":[{"name":"other","type":"buffer"}],"attrs":{}
+    }));
+    d["functions"][0]["blocks"][0]["term"]["op"] = json!("branch");
+    d["functions"][0]["blocks"][0]["term"] = json!({
+        "op":"branch",
+        "cond":"choose",
+        "then":{"target":"next","args":["b","other","v","zero"]},
+        "else":{"target":"next","args":["other","b","v","zero"]}
+    });
+    d["functions"][0]["params"].as_array_mut().unwrap().push(
+        json!({"name":"choose","type":"bool"}));
+    d["functions"][0]["blocks"][0]["params"].as_array_mut().unwrap().push(
+        json!({"name":"choose","type":"bool"}));
+    d["functions"][0]["blocks"][1]["params"].as_array_mut().unwrap().insert(1,
+        json!({"name":"second","type":"buffer"}));
+    d["functions"][0]["blocks"][1]["ops"].as_array_mut().unwrap().insert(3,json!({
+        "op":"owner.drop","args":["second"],"out":[],"attrs":{}
+    }));
+    assert!(!checked(&d));
+}
