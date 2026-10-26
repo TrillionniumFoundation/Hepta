@@ -12,6 +12,7 @@ from .llvm_owned_backend import PROFILE, LLVMOwnedRejected, compile_owned_llvm, 
 from .pipeline import analyze_project, compiler_hash
 from .resource_ir import verify_resource_ir
 from .resource_lowering import lower_resource_ir
+from .elf_shared_abi import inspect_owned_shared_elf
 
 
 def build_llvm_owned_source(source, output, *, rustc=None, clang="clang", kind="shared", locked=False):
@@ -74,6 +75,18 @@ def build_llvm_owned_source(source, output, *, rustc=None, clang="clang", kind="
                     or not data or native.get("artifact_sha256") != hashlib.sha256(data).hexdigest()
                     or type(native.get("artifact_bytes")) is not int or native["artifact_bytes"] != len(data)):
                 raise LLVMOwnedRejected("E_LLVM_OWNED_ARTIFACT: exact staged native receipt required")
+            # Independently parse the exact stage bytes, rather than trusting
+            # a backend receipt that could be re-created with a new digest.
+            if kind == "shared":
+                dynamic_abi = inspect_owned_shared_elf(data, ir.functions)
+                if (not isinstance(native.get("dynamic_abi"), dict)
+                        or json.dumps(native["dynamic_abi"], sort_keys=True, allow_nan=False)
+                        != json.dumps(dynamic_abi, sort_keys=True, allow_nan=False)):
+                    raise LLVMOwnedRejected(
+                        "E_LLVM_OWNED_ARTIFACT: native dynamic ABI receipt differs from staged ELF")
+            elif native.get("dynamic_abi") is not None:
+                raise LLVMOwnedRejected(
+                    "E_LLVM_OWNED_ARTIFACT: relocatable object cannot claim a shared dynamic ABI")
             if not project.unchanged() or compiler_hash() != ir.compiler_sha256:
                 raise LLVMOwnedRejected("E_LLVM_OWNED_STALE: source/compiler changed during native build")
             os.link(stage, destination)
