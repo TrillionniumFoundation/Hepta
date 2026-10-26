@@ -31,6 +31,9 @@ import ctypes, json, resource, sys
 resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
 # A hostile foreign constructor must not fill a host disk before timeout.
 resource.setrlimit(resource.RLIMIT_FSIZE, (4096, 4096))
+# Child evaluator limits: these do not prove HIA heap/RSS or OS sandboxing.
+resource.setrlimit(resource.RLIMIT_AS, (512 * 1024 * 1024, 512 * 1024 * 1024))
+resource.setrlimit(resource.RLIMIT_CPU, (10, 10))
 lib, symbol, word, packed = sys.argv[1:]
 args = json.loads(packed)
 c = ctypes.c_int32 if word == "i32" else ctypes.c_uint32
@@ -260,12 +263,19 @@ def compare_oracle_with_native(oracle, library: str | Path, cases: dict, *,
             for index, args in enumerate(cases[function]):
                 _check_artifact_unchanged(binary, original, identity)
                 try:
-                    expected = ("value", oracle.run(function, args, max_steps=max_steps))
+                    oracle_value = oracle.run(function, args, max_steps=max_steps)
                 except HIAOracleTrap:
                     expected = ("trap", None)
                 except (HIAOracleBudgetExceeded, HIAOracleRejected) as exc:
                     raise HIADifferentialRejected(
                         "E_HIA_DIFFERENTIAL: oracle failed or exhausted budget, never native trap") from exc
+                else:
+                    # Python bool/float equality is not native ABI equivalence:
+                    # True == 1 and 1.0 == 1, but neither is an exact HIA integer.
+                    lo, hi = _TYPES[words[function]]
+                    if type(oracle_value) is not int or not lo <= oracle_value <= hi:
+                        _reject("oracle returned non-integer or out-of-range native ABI value")
+                    expected = ("value", oracle_value)
                 observed = _observe_native(binary, function, words[function], args,
                                            timeout=timeout, pinned_fd=pinned_fd)
                 if observed != expected:
