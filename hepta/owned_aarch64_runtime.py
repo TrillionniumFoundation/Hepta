@@ -17,6 +17,7 @@ from .llvm_owned_aarch64 import TARGET_AARCH64, MAX_OBJECT_BYTES, inspect_owned_
 from .llvm_ssa_backend import _clang_run
 from .object_symbols import ObjectSymbolsRejected, inspect_object_symbols
 from .owned_aarch64_link import inspect_synthetic_aarch64_elf
+from .native_tool_identity import ToolIdentityRejected, digest_executable
 
 _FIXTURE = Path(__file__).resolve().parents[1] / "examples/llvm_owned/finite_aarch64_runtime.c"
 _RUNTIME_EXPORTS = frozenset({"malloc", "free", "abort", "memcpy", "memmove", "memset", "_start"})
@@ -37,6 +38,15 @@ class OwnedAArch64RuntimeRejected(ValueError):
 
 def _reject(message: str) -> None:
     raise OwnedAArch64RuntimeRejected("E_OWNED_AARCH64_RUNTIME: " + message)
+
+
+def _tool_digest(path: Path) -> str:
+    """Share the bounded compiler/runner identity guard across P7 probes."""
+    try:
+        return digest_executable(path)
+    except ToolIdentityRejected as exc:
+        raise OwnedAArch64RuntimeRejected(
+            "E_OWNED_AARCH64_RUNTIME: native tool identity rejected") from exc
 
 
 def _read_reviewed_runtime() -> tuple[bytes, str]:
@@ -73,7 +83,7 @@ def probe_finite_owned_aarch64_runtime(object_bytes: bytes, exports: tuple[str, 
     if not selected:
         _reject("Clang unavailable")
     compiler = Path(selected).resolve(strict=True)
-    compiler_before = sha256(compiler.read_bytes()).hexdigest()
+    compiler_before = _tool_digest(compiler)
     runtime_bytes, source_sha = _read_reviewed_runtime()
     with tempfile.TemporaryDirectory(prefix=".hepta-finite-arm64-") as temp:
         folder = Path(temp)
@@ -113,7 +123,7 @@ def probe_finite_owned_aarch64_runtime(object_bytes: bytes, exports: tuple[str, 
             _reject("linked image missing or oversized")
         shape = inspect_synthetic_aarch64_elf(payload, _EXPORT)
         if (_FIXTURE.read_bytes() != runtime_bytes or
-                sha256(compiler.read_bytes()).hexdigest() != compiler_before):
+                _tool_digest(compiler) != compiler_before):
             _reject("compiler or finite runtime changed during link")
         ran = False
         runner_sha = None
@@ -126,12 +136,12 @@ def probe_finite_owned_aarch64_runtime(object_bytes: bytes, exports: tuple[str, 
             runner_path = Path(candidate).resolve(strict=True)
             if not runner_path.is_file() or not runner_path.name.startswith("qemu-aarch64"):
                 _reject("runner is not QEMU AArch64")
-            runner_sha = sha256(runner_path.read_bytes()).hexdigest()
+            runner_sha = _tool_digest(runner_path)
             execution = _clang_run([str(runner_path), str(linked)], timeout=25)
             if execution.returncode != 0:
                 _reject("real finite test exited unsuccessfully under QEMU: "
                         + str(execution.returncode) + " " + execution.stderr[:300])
-            if (sha256(runner_path.read_bytes()).hexdigest() != runner_sha or
+            if (_tool_digest(runner_path) != runner_sha or
                     sha256(linked.read_bytes()).hexdigest() != sha256(payload).hexdigest()):
                 _reject("runner or linked executable changed after emulation")
             ran = True
