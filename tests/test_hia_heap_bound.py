@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
+import tempfile
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -112,6 +114,33 @@ class HIAHeapBoundTests(unittest.TestCase):
             analyze_static_budget(core, max_live_heap_bytes=11)
         with self.assertRaisesRegex(ValueError, "E_HIA_BUDGET_POLICY"):
             analyze_static_budget(core, max_live_heap_bytes=True)
+
+    def test_source_native_gate_rejects_live_heap_before_any_llvm(self):
+        from hepta.hia_source_bridge import build_checked_hepta_hia_native
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "program.hepta"
+            destination = Path(temporary) / "must-not-exist.so"
+            source.write_text("module budget;", encoding="utf-8")
+            project = SimpleNamespace(identity="d" * 64,
+                                      sources={str(source): "pinned"},
+                                      unchanged=lambda: True)
+            analyzed = SimpleNamespace(
+                program=object(), checked=object(), project=project,
+                report={"ok": True,
+                        "checks": {"rust_borrows_types": "rustc_checked"},
+                        "compiler_sha256": "e" * 64})
+            derived = SimpleNamespace(program=verify_program(local_buffers()))
+            with (patch("hepta.pipeline.analyze_project", return_value=analyzed),
+                  patch("hepta.pipeline.compiler_hash", return_value="e" * 64),
+                  patch("hepta.hia_source_bridge.lower_checked_scalar_hia",
+                        return_value=derived),
+                  patch("hepta.hia_program_llvm.emit_program_llvm") as llvm):
+                result = build_checked_hepta_hia_native(
+                    source, destination, static_resource_limits={"max_live_heap_bytes": 11})
+            self.assertFalse(result["ok"], result)
+            self.assertEqual(result["diagnostics"][0]["code"], "E_HIA_BUDGET_EXCEEDED")
+            self.assertFalse(destination.exists())
+            llvm.assert_not_called()
 
     def test_dynamic_unknown_never_qualifies_native_budget(self):
         from hepta.hia_static_budget import analyze_static_budget
