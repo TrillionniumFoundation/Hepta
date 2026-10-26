@@ -647,16 +647,31 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
         unsupported_toplevel = []
         active_file = None
         for node in root.get("inner", []):
-            node_file = node.get("loc", {}).get("file")
+            loc = node.get("loc", {})
+            expansion = loc.get("expansionLoc") or {}
+            spelling = loc.get("spellingLoc") or {}
+            if expansion:
+                # Clang elides repeated filenames. The *expansion* site owns
+                # generated declarations, not the header spelling location.
+                node_file = expansion.get("file") or (
+                    spelling.get("file") if active_file is None else None)
+            else:
+                node_file = loc.get("file") or spelling.get("file")
             if node_file:
                 active_file = Path(node_file).resolve()
-            loc = node.get("loc", {})
             if active_file != src:
+                continue
+            if "expansionLoc" in loc or "spellingLoc" in loc:
+                # Macro-generated globals/prototypes/functions commonly have
+                # no plain range offsets. Omission would falsely certify the
+                # entire translation unit as migrated.
+                unsupported_toplevel.append(
+                    f"macro-generated {node.get('kind')}: {node.get('name', '<anonymous>')}")
                 continue
             begin = node.get("range", {}).get("begin", {}).get("offset")
             end = node.get("range", {}).get("end", {}).get("offset")
             if not isinstance(begin, int) or not isinstance(end, int) or not (0 <= begin <= end < len(source)):
-                continue
+                raise MigrationRejected("E_C_AST_LOCATION", "Unattributable main-file declaration")
             if node.get("kind") == "FunctionDecl" and any(
                     x.get("kind") == "CompoundStmt" for x in node.get("inner", [])):
                 declarations.append(node)
