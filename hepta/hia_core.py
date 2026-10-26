@@ -135,11 +135,20 @@ class HIAScalarCore:
         """Structural check only. Does NOT authenticate against actual source."""
         if not _digest(self.sha256) or type(self.canonical_json) is not str:
             _reject("missing HIA core identity")
-        if sha256(self.canonical_json.encode("utf-8")).hexdigest() != self.sha256:
+        try:
+            raw = self.canonical_json.encode("utf-8")
+        except UnicodeError as exc:
+            raise HIACoreRejected("E_HIA_CORE: invalid UTF-8 core") from exc
+        if len(raw) > _MAX_BYTES:
+            _reject("HIA core exceeds byte budget")
+        if sha256(raw).hexdigest() != self.sha256:
             _reject("HIA core digest differs from bytes")
         data = _bounded_json(self.canonical_json)
         if (set(data) != _FIELDS or data.get("schema") != SCHEMA
-                or data.get("status") != STATUS or data.get("claims") != _CLAIMS
+                or data.get("status") != STATUS
+                or type(data.get("claims")) is not dict
+                or set(data["claims"]) != set(_CLAIMS)
+                or any(data["claims"][key] is not val for key, val in _CLAIMS.items())
                 or any(not _digest(data.get(field)) for field in (
                     "canonical_hsir_sha256", "scalar_hsir_sha256", "source_sha256",
                     "project_sha256", "cfg_sha256", "ssa_sha256", "verification_sha256"))):
