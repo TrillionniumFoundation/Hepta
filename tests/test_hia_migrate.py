@@ -25,12 +25,21 @@ def fake_build(src, out, **kwargs):
     Path(out).write_bytes(data)
     return {
         'ok':True,'status':'cross_object_only_not_executed' if kwargs['target'] else 'native_host_compiled_unqualified',
+        'output':str(out),
+        'reference_validation':{'ok':True,'checks':{'rust_borrows_types':'rustc_checked'}},
         'claims':{
-            'native_rust_reference_required':True, 'hia_scalar_core_source_replayed':True,
+            'native_rust_reference_required':True, 'source_bound_resource_cfg_checked':True,
+            'ssa_cfg_origin_rechecked':True, 'hia_scalar_core_source_replayed':True,
             'independent_scalar_ssa_structure_checked':True,'native_artifact_compiled':True,
+            'target_program_executed':False,'foreign_c_abi_qualified':False,
+            'host_elf_dynamic_symbols_checked':kwargs['target'] is None,
             'backend_refinement_proved':False},
-        'identities':{'hia_scalar_core_schema':'hepta.hia.scalar-core.v0','hia_scalar_core_sha256':'a'*64},
-        'native_backend':{'artifact_sha256':h(data),'artifact_bytes':len(data)}
+        'identities':{'source_sha256':h(Path(src).read_bytes()),
+                      'native_resource_gate_schema':'hepta.native.resource-gate.v1',
+                      'llvm_ir_sha256':'b'*64,
+                      'hia_scalar_core_schema':'hepta.hia.scalar-core.v0','hia_scalar_core_sha256':'a'*64},
+        'native_backend':{'llvm_ir_sha256':'b'*64,'output':str(out),
+                          'artifact_sha256':h(data),'artifact_bytes':len(data)}
     }
 
 
@@ -73,6 +82,35 @@ class MigrationProtocolTests(unittest.TestCase):
             return p
         self.assertFalse(self.run_migration(build=bogus)["ok"])
         self.assertFalse(self.dest.exists())
+
+    def test_forged_hia_source_identity_rejects(self):
+        def bogus(*a, **k):
+            result=fake_build(*a, **k)
+            result['identities']['source_sha256']='c'*64
+            return result
+        self.assertFalse(self.run_migration(build=bogus)['ok'])
+        self.assertFalse(self.dest.exists())
+
+    def test_forged_native_llvm_identity_rejects(self):
+        def bogus(*a, **k):
+            result=fake_build(*a, **k)
+            result['native_backend']['llvm_ir_sha256']='d'*64
+            return result
+        self.assertFalse(self.run_migration(build=bogus)['ok'])
+        self.assertFalse(self.dest.exists())
+
+    def test_reference_receipt_and_native_stage_binding_required(self):
+        for field in ('reference_validation', 'native_backend'):
+            def bogus(*a, **k):
+                result=fake_build(*a, **k)
+                if field == 'reference_validation':
+                    result[field]['checks']['rust_borrows_types']='frontend_only'
+                else:
+                    result[field]['output']='/tmp/forged-artifact.so'
+                return result
+            with self.subTest(field=field):
+                self.assertFalse(self.run_migration(build=bogus)['ok'])
+                self.assertFalse(self.dest.exists())
 
     def test_wrong_binary_receipt_rejects(self):
         def bogus(*a,**k):
