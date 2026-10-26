@@ -139,7 +139,7 @@ def derive_owned_operation_witness(graph: dict, verified: dict) -> OwnedOperatio
                     _fail("malformed resource operation")
                 if op["op"] == "acquire":
                     kind = op.get("kind")
-                    if kind not in {"buffer", "try_buffer"}:
+                    if type(kind) is not str or kind not in {"buffer", "try_buffer"}:
                         _fail("unrecognized resource allocation semantics")
                     sites[kind] += 1
                 elif op["op"] == "drop":

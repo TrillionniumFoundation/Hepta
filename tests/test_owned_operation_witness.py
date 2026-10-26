@@ -6,6 +6,8 @@ Owned LLVM emitter. Does not prove instruction-level native refinement.
 from __future__ import annotations
 
 from copy import deepcopy
+from hashlib import sha256
+import json
 from unittest.mock import patch
 import unittest
 
@@ -147,6 +149,19 @@ class OwnedOperationWitnessTests(unittest.TestCase):
             with self.subTest(mutate=mutate.__code__.co_firstlineno):
                 with self.assertRaisesRegex(OwnedOperationWitnessRejected, "E_OWNED_OPERATION_WITNESS"):
                     derive_owned_operation_witness(candidate, receipt)
+
+    def test_resealed_unhashable_resource_kind_is_deterministic_rejection(self):
+        _, _, graph, verified = fixture()
+        changed, receipt = deepcopy(graph), deepcopy(verified)
+        acquired = [op for fn in changed["functions"] for block in fn["blocks"]
+                    for op in block["ops"] if op["op"] == "acquire"]
+        self.assertTrue(acquired)
+        acquired[0]["kind"] = ["buffer"]
+        raw = json.dumps(changed, sort_keys=True, separators=(",", ":"),
+                         allow_nan=False).encode()
+        receipt["ir_sha256"] = sha256(raw).hexdigest()
+        with self.assertRaisesRegex(OwnedOperationWitnessRejected, "E_OWNED_OPERATION_WITNESS"):
+            derive_owned_operation_witness(changed, receipt)
 
     def test_unsupported_or_inaccurate_emission_counts_reject(self):
         _, _, graph, verified = fixture()
