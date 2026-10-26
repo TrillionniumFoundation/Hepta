@@ -163,5 +163,80 @@ class HIASourceBinaryReinspectionTests(unittest.TestCase):
                             data, other_ir, wrong, target=other_target, kind="object", stage=path)
 
 
+    def test_source_native_rejects_consistent_forged_compiler_artifact_before_publish(self):
+        """Exercise the actual source-facing builder, not just its ELF helper.
+
+        Even an internally consistent native receipt and artifact digest cannot
+        authorize a different binary. The test uses real Clang-built ELF bytes,
+        but mocks the earlier rustc qualification and the native compiler call
+        to inject those bytes at the exact final source stage.
+        """
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from hepta.pipeline import compiler_hash
+        from hepta.hia_source_bridge import build_checked_hepta_hia_native
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            src = root / "source.hepta"
+            src.write_text("module mock_only;\n", encoding="utf-8")
+            checked_core = core()
+            project_sha = "a" * 64
+            derived = SimpleNamespace(
+                program=checked_core,
+                source_semantic_sha256="b" * 64,
+                project_sha256=project_sha,
+                resource_ir_sha256="c" * 64,
+                scalar_ssa_sha256="d" * 64,
+                ssa_verification_sha256="e" * 64,
+            )
+            project = SimpleNamespace(
+                identity=project_sha, sources={str(src): "pinned"},
+                unchanged=lambda: True)
+            result = SimpleNamespace(
+                program=object(), checked=object(), project=project,
+                report={"ok": True,
+                        "checks": {"rust_borrows_types": "rustc_checked"},
+                        "compiler_sha256": compiler_hash()},
+            )
+            for target, kind, c_source in (
+                (TARGET, "shared",
+                 "int trusted(void){return 7;} int unexpected(void){return 9;}"),
+                (TARGET_AARCH64, "object",
+                 "int unauthorized=8; int trusted(void){return 7;}"),
+            ):
+                with self.subTest(target=target, kind=kind):
+                    bad_file, bad_bytes = self.build(
+                        root, "forged_" + kind, c_source,
+                        target=target, kind=kind)
+                    output = root / ("never_published_" + kind)
+                    def fake_backend(ir, *, program, output, clang, kind):
+                        self.assertEqual(program.canonical_bytes, checked_core.canonical_bytes)
+                        Path(output).write_bytes(bad_bytes)
+                        inventory = (
+                            {"schema": "hepta.elf-shared-abi.v1"}
+                            if kind == "shared" else
+                            {"defined": ["trusted"], "undefined": []})
+                        return receipt(ir, bad_bytes, Path(output),
+                                       kind=kind, inventory=inventory)
+                    with (patch("hepta.pipeline.analyze_project", return_value=result),
+                          patch("hepta.hia_source_bridge.lower_checked_scalar_hia",
+                                return_value=derived),
+                          patch("hepta.hia_program_llvm.compile_program_llvm",
+                                side_effect=fake_backend) as compiler,
+                          patch("hepta.artifact_publication.publish_verified") as publisher):
+                        report = build_checked_hepta_hia_native(
+                            src, output, profile="scalar",
+                            target=target, kind=kind)
+                    self.assertFalse(report["ok"], report)
+                    self.assertFalse(output.exists())
+                    self.assertFalse(
+                        report["claims"]["native_codegen_consumed_verified_hia_core"])
+                    self.assertFalse(
+                        report["claims"]["source_native_binary_abi_rechecked"])
+                    compiler.assert_called_once()
+                    publisher.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
