@@ -312,8 +312,8 @@ class StoredViewResourceTests(unittest.TestCase):
             ("E_RIR_VIEW_SCALAR", lambda g: operation(g,"write_view_scalar")[2].update(field="data")),
             ("E_RIR_VIEW_SCALAR", lambda g: operation(g,"write_view_scalar")[2].update(field="hidden")),
             ("E_RIR_VIEW_SCALAR", lambda g: operation(g,"write_view_scalar")[2].update(
-                value=next(op["src"] for block in function(g)["blocks"] for op in block["ops"]
-                           if op["op"]=="bind_view" for op in op["scalars"] if op["name"]=="valid"))),
+                value=next(label["src"] for label in operation(g, "bind_view")[2]["scalars"]
+                           if label["name"] == "valid"))),
             ("E_RIR_VIEW_MUTABILITY", lambda g: next(
                 loc for loc in function(g)["locals"]
                 if loc["id"] == operation(g, "write_view_scalar")[2]["src"]).update(mutable=False)),
