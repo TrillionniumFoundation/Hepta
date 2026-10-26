@@ -206,18 +206,31 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
                 except ELFSharedABIRejected as exc:
                     raise LLVMSSARejected(
                         "E_LLVM_SSA_HOST_ABI: " + str(exc)) from exc
+                abi_claims = {
+                    "binary_abi_observed": True,
+                    "native_execution_proven": False,
+                    "whole_language_memory_safety_proven": False,
+                    "backend_refinement_proven": False,
+                }
                 if (type(host_dynamic_abi) is not dict
+                        or set(host_dynamic_abi) != {
+                            "schema", "format", "machine", "kind",
+                            "dynamic_exports", "unresolved_imports",
+                            "source_exports_rechecked", "claims"}
                         or host_dynamic_abi.get("schema") != "hepta.elf-shared-abi.v1"
                         or host_dynamic_abi.get("format") != "ELF64"
-                        or host_dynamic_abi.get("machine") != 62
+                        or type(host_dynamic_abi.get("machine")) is not int
+                        or host_dynamic_abi["machine"] != 62
                         or host_dynamic_abi.get("kind") != "ET_DYN"
                         or host_dynamic_abi.get("dynamic_exports") != list(ir.functions)
+                        or type(host_dynamic_abi.get("unresolved_imports")) is not list
+                        or any(type(symbol) is not str
+                               for symbol in host_dynamic_abi["unresolved_imports"])
                         or host_dynamic_abi.get("source_exports_rechecked") is not True
-                        or host_dynamic_abi.get("claims") != {
-                            "binary_abi_observed": True,
-                            "native_execution_proven": False,
-                            "whole_language_memory_safety_proven": False,
-                            "backend_refinement_proven": False}):
+                        or type(host_dynamic_abi.get("claims")) is not dict
+                        or set(host_dynamic_abi["claims"]) != set(abi_claims)
+                        or any(host_dynamic_abi["claims"][key] is not val
+                               for key, val in abi_claims.items())):
                     raise LLVMSSARejected(
                         "E_LLVM_SSA_HOST_ABI: dynamic symbols or proof scope differ from checked source")
             if not project.unchanged():
