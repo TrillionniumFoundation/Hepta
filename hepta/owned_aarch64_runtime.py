@@ -22,6 +22,9 @@ _FIXTURE = Path(__file__).resolve().parents[1] / "examples/llvm_owned/finite_aar
 _RUNTIME_EXPORTS = frozenset({"malloc", "free", "abort", "memcpy", "memmove", "memset", "_start"})
 _EXPORT = ("owned_case",)
 _MAX_LINKED_BYTES = 16 * 1024 * 1024
+# Pin exact reviewed single-owner runtime semantics; editing the fixture
+# without deliberately updating this identity fails before compilation.
+_REVIEWED_RUNTIME_SHA256 = "c258eae09d7f2d506bd18e4ce0f0db89c5296dcc9d9772759a2283984cf855cb"
 
 
 class OwnedAArch64RuntimeRejected(ValueError):
@@ -56,6 +59,8 @@ def probe_finite_owned_aarch64_runtime(object_bytes: bytes, exports: tuple[str, 
             not runtime_bytes.startswith(b"/* Experimental finite, single-owner Linux runtime")):
         _reject("missing or unreviewed real runtime source")
     source_sha = sha256(runtime_bytes).hexdigest()
+    if source_sha != _REVIEWED_RUNTIME_SHA256:
+        _reject("finite allocator source differs from the reviewed exact bytes")
     with tempfile.TemporaryDirectory(prefix=".hepta-finite-arm64-") as temp:
         folder = Path(temp)
         original = folder / "owned.o"
