@@ -492,6 +492,32 @@ int main(void) {
         self.assertFalse(stale.exists())
         self.assertIn("STALE", result["diagnostics"][0]["code"])
 
+    def test_second_owned_source_publication_corruption_fails_after_receipt(self):
+        # A mutation after the inner publisher succeeds must still be caught
+        # at the outer source-facing receipt boundary. The original PR #136
+        # test injected os.link; this compiler now uses publish_verified.
+        from hepta import llvm_owned_pipeline
+        project = self.root / "outer-owned-publication-race"
+        project.mkdir()
+        for name in ("main.hepta", "owned.hepta"):
+            shutil.copyfile(ROOT / "examples/llvm_owned" / name, project / name)
+        output = self.root / "outer-owned-mutant.so"
+        original = llvm_owned_pipeline.publish_verified
+
+        def corrupt_after_first_receipt(stage, destination, expected):
+            receipt = original(stage, destination, expected)
+            Path(destination).write_bytes(b"corrupted-after-initial-publisher")
+            return receipt
+
+        with patch.object(llvm_owned_pipeline, "publish_verified",
+                          side_effect=corrupt_after_first_receipt):
+            report = build_llvm_owned_source(project / "main.hepta", output)
+        self.assertFalse(report["ok"], report)
+        self.assertEqual(report["diagnostics"][0]["code"], "E_LLVM_OWNED_PUBLICATION")
+        # Reject the candidate and retract only the destination that still
+        # aliases this build's own staged inode; never publish a bad receipt.
+        self.assertFalse(output.exists())
+
     def test_source_changed_during_publisher_does_not_mint_native_receipt(self):
         from hepta import llvm_owned_pipeline
         project = self.root / "post-publication"
