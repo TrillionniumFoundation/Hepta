@@ -263,6 +263,79 @@ class StoredViewResourceTests(unittest.TestCase):
         graph["types"]["Tagged<'_>"]["scalars"] = []
         self.reject(graph, "E_RIR_VIEW_TYPE")
 
+    def test_v5_mutable_copy_label_update_on_shared_borrow(self):
+        graph = lower("""struct Tagged<'a>{data:read 'a [u8],tag:u64}
+        fn f(data:read [u8])->Unit effects {panic} {
+            let mut first=Tagged{data:read data,tag:7};
+            first.tag=9;
+            assert(first.tag==9);
+            assert(len(first.data)==4);
+        }""")
+        self.assertEqual(graph["schema"], "hepta.resource-ir.v5")
+        self.assertTrue(verify_resource_ir(graph)["ok"])
+        update = operation(graph, "write_view_scalar")[2]
+        self.assertEqual(update["field"], "tag")
+        self.assertEqual(function(graph)["locals"][int(update["value"][1:])]["type"], "u64")
+        # Changing the local label is not a mut borrow of the source slice.
+        self.assertTrue(any(item["op"] == "borrow" and item["mode"] == "read"
+                            for block in function(graph)["blocks"] for item in block["ops"]))
+
+    def test_v5_shared_view_copy_has_separate_mutable_scalar_field(self):
+        graph = lower("""struct Tagged<'a>{data:read 'a [u8],tag:u64}
+        fn f(data:read [u8])->Unit effects {panic} {
+            let first=Tagged{data:read data,tag:7};
+            let mut copy=first;
+            copy.tag=9;
+            assert(first.tag==7);
+            assert(copy.tag==9);
+        }""")
+        self.assertTrue(verify_resource_ir(graph)["ok"])
+        fn = function(graph)
+        self.assertEqual(len([op for block in fn["blocks"] for op in block["ops"]
+                              if op["op"] == "write_view_scalar"]), 1)
+        # The independent IR abstracts scalar values, not borrow owners.
+        self.assertFalse(verify_resource_ir(graph)["claims"]["scalar_value_semantics_verified"])
+
+    def test_v5_scalar_write_rejects_immutable_unknown_or_wrong_typed_fields(self):
+        base = lower("""struct Tagged<'a>{data:read 'a [u8],tag:u64,valid:bool}
+        fn f(data:read [u8])->Unit effects {panic} {
+            let mut view=Tagged{data:read data,tag:7,valid:true};
+            view.tag=9;
+            assert(view.tag==9);
+        }""")
+        self.assertTrue(verify_resource_ir(base)["ok"])
+        assignments = [(block, i, op) for block in function(base)["blocks"]
+                       for i, op in enumerate(block["ops"]) if op["op"] == "write_view_scalar"]
+        self.assertEqual(len(assignments), 1)
+        _, _, statement = assignments[0]
+        changes = [
+            ("E_RIR_VIEW_SCALAR", lambda g: operation(g,"write_view_scalar")[2].update(field="data")),
+            ("E_RIR_VIEW_SCALAR", lambda g: operation(g,"write_view_scalar")[2].update(field="hidden")),
+            ("E_RIR_VIEW_SCALAR", lambda g: operation(g,"write_view_scalar")[2].update(
+                value=next(op["src"] for block in function(g)["blocks"] for op in block["ops"]
+                           if op["op"]=="bind_view" for op in op["scalars"] if op["name"]=="valid"))),
+            ("E_RIR_VIEW_MUTABILITY", lambda g: next(
+                loc for loc in function(g)["locals"]
+                if loc["id"] == operation(g, "write_view_scalar")[2]["src"]).update(mutable=False)),
+            ("E_RIR_SCHEMA", lambda g: g.update(schema="hepta.resource-ir.v4")),
+        ]
+        for code, mutator in changes:
+            with self.subTest(code=code):
+                poisoned=copy.deepcopy(base)
+                mutator(poisoned)
+                self.reject(poisoned,code)
+
+    def test_v5_scalar_write_after_end_of_view_must_fail(self):
+        base = lower("""struct Tagged<'a>{data:read 'a [u8],tag:u64}
+        fn f(data:read [u8])->Unit effects {panic} {
+            let mut view=Tagged{data:read data,tag:7};
+            view.tag=9;
+        }""")
+        block, index, op = operation(base, "end_view", index=-1)
+        update=copy.deepcopy(operation(base, "write_view_scalar")[2])
+        block["ops"].insert(index + 1,update)
+        self.reject(base,"E_RIR_VIEW_LIVE")
+
     def test_preexisting_v4_view_profiles_stay_strict_and_unchanged(self):
         graph = lower(SHARED)
         self.assertEqual(graph["schema"], "hepta.resource-ir.v4")
