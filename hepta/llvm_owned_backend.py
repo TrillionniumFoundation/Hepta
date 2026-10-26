@@ -25,6 +25,10 @@ from .pipeline import compiler_hash
 from .resource_ir import verify_resource_ir
 from .artifact_publication import PublicationRejected, publish_verified
 from .resource_lowering import lower_resource_ir
+from .owned_operation_witness import (
+    OwnedOperationWitness, OwnedOperationWitnessRejected,
+    derive_owned_operation_witness,
+)
 from .semantic_ir import lower_checked_program
 from .elf_shared_abi import ELFSharedABIRejected, inspect_owned_shared_elf
 
@@ -107,6 +111,7 @@ class _Function:
         self.block_counter = 0
         self.current = "entry"
         self.terminated = False
+        self.owner_sites = {"buffer": 0, "try_buffer": 0, "drop": 0}
         self.return_type = self.resolve(declaration.return_type)
         self.return_slot = self.e.uses_return_slot(self.return_type, declaration.return_mode)
         for index, parameter in enumerate(declaration.params):
@@ -138,6 +143,22 @@ class _Function:
         if self.terminated:
             reject("Instruction after a terminator", "E_LLVM_OWNED_CFG")
         self.lines.append("  " + instruction)
+
+    def observe_owned_call(self, operation, fragment, start=None):
+        """Observe a real emitted call and buffer's required abort-on-failure guard."""
+        if (operation not in self.owner_sites or not self.lines
+                or start is not None and (type(start) is not int or not 0 <= start < len(self.lines))):
+            reject("Missing owned native emission site", "E_OWNED_OPERATION_WITNESS")
+        emitted = self.lines[-1:] if start is None else self.lines[start:]
+        if sum(fragment in line for line in emitted) != 1:
+            reject("Native owner call instruction missing or duplicated",
+                   "E_OWNED_OPERATION_WITNESS")
+        if operation == "buffer" and (not any("call void @abort()" in line for line in emitted)
+                                     or not any(line.strip().startswith("br i1 ") for line in emitted)
+                                     or not any(line.strip() == "unreachable" for line in emitted)):
+            reject("Infallible buffer constructor lacks checked abort edge",
+                   "E_OWNED_OPERATION_WITNESS")
+        self.owner_sites[operation] += 1
 
     def result(self, instruction):
         name = self.reg()
@@ -418,19 +439,25 @@ class _Function:
             if name in {"buffer", "try_buffer"}:
                 size = self.value(children[0])
                 output = self.slot(ALLOCATION_RESULT)
+                start_owned_call = len(self.lines)
                 self.emit(f"call void @__hepta_owned_try_buffer(ptr sret({self.e.typ(ALLOCATION_RESULT)}) "
                           + f"{output.pointer}, i64 {size})")
                 result = self.load(ALLOCATION_RESULT, output.pointer)
                 if name == "try_buffer":
+                    self.observe_owned_call("try_buffer", "call void @__hepta_owned_try_buffer(",
+                                            start=start_owned_call)
                     return result
                 tag = self.extract(ALLOCATION_RESULT, result, (0,))
                 self.guard(self.result(f"icmp eq i32 {tag}, 0"))
+                self.observe_owned_call("buffer", "call void @__hepta_owned_try_buffer(",
+                                        start=start_owned_call)
                 return self.extract(ALLOCATION_RESULT, result, (1, 0))
             if name in {"drop", "release"}:
                 owner = self.typ(children[0])
                 value = self.value(children[0])
                 helper = self.e.drop(owner)
                 self.emit(f"call void @{helper}({self.e.typ(owner)} {value})")
+                self.observe_owned_call("drop", f"call void @{helper}(")
                 return "0"
             if name == "len":
                 return self.sequence(children[0])[1]
@@ -564,6 +591,10 @@ class _Function:
 
     def render(self, name):
         self.block(self.fn.body or [])
+        try:
+            self.e.owner_witness.require_emitted(self.fn.name, self.owner_sites)
+        except OwnedOperationWitnessRejected as exc:
+            raise LLVMOwnedRejected(str(exc)) from exc
         if not self.terminated:
             if self.return_type.name != "Unit" or self.fn.return_mode != "value":
                 reject("A non-Unit function has a continuing exit", "E_LLVM_OWNED_CFG")
@@ -586,7 +617,12 @@ def _resources_allowed(fn, checked) -> bool:
     return finite_static_contract_allowed(fn, checked)
 
 class _Emitter:
-    def __init__(self, program, checked):
+    def __init__(self, program, checked, owner_witness: OwnedOperationWitness):
+        if (not isinstance(owner_witness, OwnedOperationWitness)
+                or owner_witness.names != tuple(fn.name for fn in program.functions)):
+            reject("Complete verified Resource IR function inventory required",
+                   "E_OWNED_OPERATION_WITNESS")
+        self.owner_witness = owner_witness
         self.program, self.checked = program, checked
         self.functions = {fn.name: fn for fn in program.functions}
         self.structs = {st.name: st for st in program.structs}
@@ -834,7 +870,10 @@ failure:
         for declaration in self.program.enums:
             if not declaration.type_params:
                 self.typ(Type(declaration.name))
-        for fn in self.program.functions:
+        # Function scheduling now comes from the independently verified
+        # Resource IR inventory, not from another unchecked AST enumeration.
+        for function_name in self.owner_witness.names:
+            fn = self.functions[function_name]
             if not fn.type_params:
                 self.instance(fn)
         bodies, index = [], 0
@@ -871,7 +910,19 @@ def emit_owned_llvm(program, checked, *, project_sha256=None):
     verification = verify_resource_ir(json.loads(_wire(graph)))
     if verification.get("ok") is not True or verification.get("external_obligations"):
         reject("Independent resource CFG verification rejected", "E_LLVM_OWNED_RESOURCE")
-    emitter = _Emitter(program, checked)
+    # Consume the same source-derived, independently verified graph in native
+    # function scheduling and acquire/drop emission-site comparison. This is
+    # not yet general executable ownership SSA or a backend refinement proof.
+    try:
+        owner_witness = derive_owned_operation_witness(graph, verification)
+    except OwnedOperationWitnessRejected as exc:
+        raise LLVMOwnedRejected(str(exc)) from exc
+    if (owner_witness.source_sha256 != semantic["source_sha256"]
+            or owner_witness.project_sha256 != project_sha256
+            or owner_witness.names != tuple(fn.name for fn in program.functions)):
+        reject("Owned LLVM source and verified Resource IR function graph differ",
+               "E_OWNED_OPERATION_WITNESS")
+    emitter = _Emitter(program, checked, owner_witness)
     text = emitter.render()
     result = OwnedLLVM(text, _hash(text.encode()), semantic["sha256"], _hash(_wire(graph)),
                        _hash(_wire(verification)), compiler_hash(),
