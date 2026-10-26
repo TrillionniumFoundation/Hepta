@@ -96,6 +96,7 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
                     "whole_language_memory_safety_proved") is not False):
             raise LLVMSSARejected("E_NATIVE_RESOURCE_GATE: missing qualified source resource gate receipt")
         result["claims"]["source_bound_resource_cfg_checked"] = True
+        result["resource_verification"] = resource_receipt
         cfg = lower_hsir_cfg(scalar_hsir)
         ssa = lower_cfg_scalar_ssa(cfg)
         verification = verify_scalar_ssa(ssa, cfg)
