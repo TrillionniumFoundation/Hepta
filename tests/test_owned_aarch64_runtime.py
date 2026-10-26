@@ -2,16 +2,52 @@
 from __future__ import annotations
 
 from pathlib import Path
+from hashlib import sha256
 import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 from types import SimpleNamespace
 
 from hepta.owned_aarch64_runtime import (
     OwnedAArch64RuntimeRejected, probe_finite_owned_aarch64_runtime,
 )
 from hepta.llvm_owned_aarch64 import _finite_runtime_abi_allowed
+from hepta import owned_aarch64_runtime as runtime
+
+
+class ReviewedFiniteRuntimeSourceGateTests(unittest.TestCase):
+    """Source-byte admission runs without a native compiler or QEMU."""
+
+    def test_reviewed_4259_byte_source_fits_separate_8192_source_budget(self):
+        actual = runtime._FIXTURE.read_bytes()
+        self.assertGreater(len(actual), 4096)
+        self.assertLessEqual(len(actual), runtime._MAX_RUNTIME_SOURCE_BYTES)
+        source, content_sha = runtime._read_reviewed_runtime()
+        self.assertEqual(source, actual)
+        self.assertEqual(content_sha, sha256(source).hexdigest())
+        self.assertEqual(content_sha, runtime._REVIEWED_RUNTIME_SHA256)
+        # The allocator's HEPTA_CAPACITY remains exactly 4096 bytes.
+        self.assertIn(b"#define HEPTA_CAPACITY 4096u", source)
+
+    def test_wrong_or_oversized_runtime_source_fails_closed_before_compilation(self):
+        original = runtime._FIXTURE
+        with tempfile.TemporaryDirectory(prefix="hepta-p7-runtime-source-") as root:
+            path = Path(root) / "runtime.c"
+            for name, payload in (
+                ("tampered_same_length", original.read_bytes().replace(
+                    b"#define HEPTA_CAPACITY 4096u",
+                    b"#define HEPTA_CAPACITY 8192u")),
+                ("over_limit", original.read_bytes() + b" " * 8192),
+                ("unreviewed_marker", b"not a checked runtime"),
+            ):
+                with self.subTest(name=name):
+                    path.write_bytes(payload)
+                    with patch.object(runtime, "_FIXTURE", path):
+                        with self.assertRaisesRegex(
+                                OwnedAArch64RuntimeRejected, "runtime|allocator"):
+                            runtime._read_reviewed_runtime()
 
 
 STANDIN = """\
