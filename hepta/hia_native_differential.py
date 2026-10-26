@@ -28,7 +28,7 @@ _MAX_BYTES = 8 * 1024 * 1024
 # No repository import or source parsing occurs in the native child. Only the
 # already published shared object, an exact exported symbol and integer args.
 _WORKER = r'''
-import ctypes, json, resource, sys
+import ctypes, json, os, resource, sys
 resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
 # A hostile foreign constructor must not fill a host disk before timeout.
 resource.setrlimit(resource.RLIMIT_FSIZE, (4096, 4096))
@@ -55,10 +55,64 @@ _rules = [(0x20, 0, 0, 4), (0x15, 1, 0, 0xC000003E),
           (0x06, 0, 0, 0x80000000)]
 # clone/fork/vfork/clone3, execve/execveat, process session/group escape,
 # namespace escape, ptrace and io_uring kernel-worker creation.
-# This is NOT a general syscall sandbox: other file/network side effects
-# remain unsupported by this bounded finite differential oracle.
+# A narrow native differential must not let the DSO mutate host files or use
+# sockets just to return a forged scalar. The rules below additionally prevent
+# direct network creation/use, filesystem mutation and common kernel mutation
+# entrypoints. This is still NOT a hostile-code sandbox (see the scoped docs).
 for _nr in (56, 57, 58, 435, 59, 322, 109, 112, 272, 308, 101, 425):
     _rules += [(0x15, 0, 1, _nr), (0x06, 0, 0, 0x80000000)]
+# Deny native network I/O, filesystem mutation, cross-process signalling,
+# kernel/module/mount mutation, writable anonymous fd creation and io_uring.
+# These constants are Linux x86-64 syscall numbers, *not* portable identifiers.
+# Do not blacklist the read-only dynamic-loader open/openat path: libdl needs it.
+# Each forbidden syscall returns SECCOMP_RET_KILL_PROCESS (SIGSYS), not EPERM;
+# EPERM would let foreign code conceal the failed operation and return success.
+_DENY_NATIVE_EFFECTS = (
+    41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55,
+    288, 299, 307,  # socket*/connect/accept/send*/recv*, including batched I/O
+    76, 77, 82, 83, 84, 85, 86, 87, 88, 90, 91, 92, 93, 94,
+    132, 133, 188, 189, 190, 197, 198, 199, 235, 258, 259, 260,
+    261, 263, 264, 265, 266, 268, 280, 285, 316, 452,
+    # truncate, rename, mkdir, rmdir, creat, link, unlink, chmod, chown,
+    # timestamp, xattr, fallocate, all at-/new variants including fchmodat2
+    62, 129, 200, 297, 424,  # kill, signal queue, tkill, pidfd_send_signal
+    155, 165, 166, 428, 429, 430, 431, 432, 433, 442,  # mounts
+    298, 302, 311, 319, 321, 323, 434, 438,  # perf/rlimit/process_vm/memfd
+    426, 427, 437,  # io_uring enter/register, openat2 (flags live in user memory)
+)
+for _nr in _DENY_NATIVE_EFFECTS:
+    _rules += [(0x15, 0, 1, _nr), (0x06, 0, 0, 0x80000000)]
+# BPF sees open(path,flags) and openat(dirfd,path,flags) in different
+# seccomp_data argument positions (32-bit low words at offsets 24 and 32).
+# Reject access-mode writes, O_CREAT, O_TRUNC, O_APPEND and O_TMPFILE.
+# Allow read-only opens so the dynamic ELF loader still works.
+# The conditional jump deliberately lands on the *reload nr* instruction
+# on both allowed and unrelated syscalls, preventing stale A-register bypass.
+_WRITE_OPEN_FLAGS = 0x400643
+for _nr, _flag_offset in ((2, 24), (257, 32)):
+    _rules += [
+        (0x15, 0, 4, _nr),  # not open/openat: skip four to reload nr
+        (0x20, 0, 0, _flag_offset),  # BPF_LD|BPF_W|BPF_ABS flags
+        (0x54, 0, 0, _WRITE_OPEN_FLAGS),  # BPF_ALU|BPF_AND|BPF_K
+        (0x15, 1, 0, 0),  # no denied flags: skip SIGSYS to reload nr
+        (0x06, 0, 0, 0x80000000),
+        (0x20, 0, 0, 0),  # re-load seccomp_data.nr for remaining checks
+    ]
+# libc abort() uses tgkill(tgid,tid,SIGABRT), so rejecting every tgkill
+# would silently invalidate the VM-vs-native trap oracle. Permit tgkill
+# only when both target IDs equal this *one-thread* worker's own IDs.
+# clone/fork are forbidden above; native code cannot create another thread.
+# Other-process signals are denied before the DSO executes.
+_self_pid = os.getpid()
+_self_tid = ctypes.CDLL(None).syscall(186)  # __NR_gettid, Linux x86-64
+for _offset, _expected in ((16, _self_pid), (24, _self_tid)):
+    _rules += [
+        (0x15, 0, 4, 234),  # __NR_tgkill, otherwise reload nr
+        (0x20, 0, 0, _offset),
+        (0x15, 1, 0, _expected),
+        (0x06, 0, 0, 0x80000000),
+        (0x20, 0, 0, 0),
+    ]
 _rules.append((0x06, 0, 0, 0x7FFF0000))
 _rules_array = (_BpfRule * len(_rules))(*(_BpfRule(*r) for r in _rules))
 _filter = _BpfProgram(len(_rules), _rules_array)
