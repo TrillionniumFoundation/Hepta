@@ -410,6 +410,27 @@ int main(void) {
                         capture_output=True, text=True, timeout=15)
                     self.assertEqual(child.returncode, -6, child.stderr)
 
+    def test_second_owned_source_hardlink_mutant_cannot_mint_success(self):
+        from hepta import llvm_owned_pipeline
+        project = self.root / "owned-source-race"
+        project.mkdir()
+        for name in ("main.hepta", "owned.hepta"):
+            shutil.copyfile(ROOT / "examples/llvm_owned" / name, project / name)
+        final = self.root / "owned-final-mutant.so"
+        original_link = llvm_owned_pipeline.os.link
+
+        def corrupt_only_outer_publication(src, dst, *args, **kwargs):
+            original_link(src, dst, *args, **kwargs)
+            if Path(dst) == final:
+                Path(dst).write_bytes(b"corrupted-after-final-link")
+
+        with patch.object(llvm_owned_pipeline.os, "link",
+                          side_effect=corrupt_only_outer_publication):
+            report = build_llvm_owned_source(project / "main.hepta", final)
+        self.assertFalse(report["ok"])
+        self.assertEqual(report["diagnostics"][0]["code"], "E_LLVM_OWNED_PUBLICATION")
+        self.assertEqual(final.read_bytes(), b"corrupted-after-final-link")
+
     def test_actual_multifile_source_pipeline_and_stale_input_rejection(self):
         project = self.root / "project"
         project.mkdir()
