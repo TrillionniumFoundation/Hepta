@@ -27,11 +27,24 @@ def main(argv=None) -> int:
     parser.add_argument("--kind", choices=("shared", "object"), default="shared")
     parser.add_argument("--locked", action="store_true")
     parser.add_argument("--profile", choices=("scalar", "owned"), default="scalar")
+    # Optional conservative HIA Core DAG resource admission. No assertion of
+    # native execution time, RSS or runtime allocation-byte bounds.
+    parser.add_argument("--max-allocator-interactions", type=int)
+    parser.add_argument("--max-vm-ticks", type=int)
+    parser.add_argument("--max-call-depth", type=int)
     args = parser.parse_args(argv)
+    limits = {
+        key: value for key, value in (
+            ("max_allocator_interactions", args.max_allocator_interactions),
+            ("max_vm_ticks", args.max_vm_ticks),
+            ("max_call_depth", args.max_call_depth))
+        if value is not None
+    }
     result = build_checked_hepta_hia_native(
         args.source, args.output, rustc=args.rustc, clang=args.clang,
         target=args.target, kind=args.kind, locked=args.locked,
-        profile=args.profile)
+        profile=args.profile,
+        **({"static_resource_limits": limits} if limits else {}))
     print(json.dumps(result, sort_keys=True, allow_nan=False))
     return 0 if result["ok"] else 2
 
