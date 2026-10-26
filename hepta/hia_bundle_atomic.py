@@ -55,31 +55,43 @@ def _check_regular(directory_fd: int, name: str, expected: bytes) -> None:
         before = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
         if not stat.S_ISREG(before.st_mode) or before.st_size != len(expected):
             _reject("staged file is not an exact regular file: " + name)
-        handle = os.open(name, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW,
-                         dir_fd=directory_fd)
+        # O_NONBLOCK prevents a concurrent regular-file -> FIFO swap from
+        # blocking the verification process between lstat and fstat. It is a
+        # no-op for legitimate regular files and is mandatory for this gate.
+        handle = os.open(name, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW |
+                         os.O_NONBLOCK, dir_fd=directory_fd)
         try:
             opened = os.fstat(handle)
+            identity = lambda st: (st.st_dev, st.st_ino, st.st_size,
+                                   st.st_mtime_ns, st.st_ctime_ns)
             if (not stat.S_ISREG(opened.st_mode)
-                    or (opened.st_dev, opened.st_ino, opened.st_size) !=
-                    (before.st_dev, before.st_ino, before.st_size)):
+                    or identity(opened) != identity(before)):
                 _reject("staged file changed while opening: " + name)
+            # A changing/appending file must not hold the verifier in an
+            # unbounded read loop. Read at most expected-length + 1 bytes to
+            # detect growth; no new file data is trusted after that point.
+            limit = len(expected) + 1
+            read_bytes = 0
             digest = sha256()
-            while True:
-                chunk = os.read(handle, 1024 * 1024)
+            while read_bytes < limit:
+                chunk = os.read(handle, min(1024 * 1024, limit - read_bytes))
                 if not chunk:
                     break
+                read_bytes += len(chunk)
                 digest.update(chunk)
-            if digest.digest() != sha256(expected).digest():
-                _reject("staged bytes do not match checked artifact: " + name)
+            if (read_bytes != len(expected)
+                    or digest.digest() != sha256(expected).digest()):
+                _reject("staged size/bytes do not match checked artifact: " + name)
             os.fsync(handle)
             after = os.fstat(handle)
             named = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
+            # Comparing only the fd to its *current* pathname misses an
+            # in-place same-inode write after the digest but before fsync.
+            # Require both snapshots still equal the pre-read identity.
             if (not stat.S_ISREG(named.st_mode)
-                    or (after.st_dev, after.st_ino, after.st_size,
-                        after.st_mtime_ns, after.st_ctime_ns) !=
-                       (named.st_dev, named.st_ino, named.st_size,
-                        named.st_mtime_ns, named.st_ctime_ns)):
-                _reject("staged path changed after byte verification: " + name)
+                    or identity(after) != identity(opened)
+                    or identity(named) != identity(opened)):
+                _reject("staged file changed after byte verification: " + name)
         finally:
             os.close(handle)
     except (FileNotFoundError, IsADirectoryError, NotADirectoryError) as exc:

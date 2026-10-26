@@ -42,18 +42,32 @@ def digest_executable(path: str | Path) -> str:
                 not 0 < before.st_size <= MAX_EXECUTABLE_BYTES):
             raise ToolIdentityRejected("E_TOOL_IDENTITY: compiler must be a bounded regular file")
         digest = sha256()
-        with path.open("rb") as stream:
+        # Never do a blocking Path.open after a regular-file lstat: a path
+        # rebinding to a FIFO can hang before fstat gets to reject it.
+        # O_BINARY preserves raw image bytes on Windows; other flags are
+        # available on qualified POSIX/Linux native hosts.
+        flags = (os.O_RDONLY | getattr(os, "O_NONBLOCK", 0)
+                 | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0)
+                 | getattr(os, "O_BINARY", 0))
+        if os.name == "posix" and not hasattr(os, "O_NONBLOCK"):
+            raise ToolIdentityRejected("E_TOOL_IDENTITY: nonblocking regular-file gate unavailable")
+        fd = os.open(path, flags)
+        try:
+            stream = os.fdopen(fd, "rb")
+        except Exception:
+            os.close(fd)
+            raise
+        with stream:
             opened = os.fstat(stream.fileno())
             if not stat.S_ISREG(opened.st_mode) or _identity(opened) != _identity(before):
                 raise ToolIdentityRejected("E_TOOL_IDENTITY: compiler file changed before hashing")
             total = 0
-            while True:
-                block = stream.read(CHUNK_BYTES)
+            limit = before.st_size + 1
+            while total < limit:
+                block = stream.read(min(CHUNK_BYTES, limit - total))
                 if not block:
                     break
                 total += len(block)
-                if total > MAX_EXECUTABLE_BYTES:
-                    raise ToolIdentityRejected("E_TOOL_IDENTITY: compiler image exceeds budget")
                 digest.update(block)
             after_fd = os.fstat(stream.fileno())
             if total != before.st_size or _identity(after_fd) != _identity(before):
