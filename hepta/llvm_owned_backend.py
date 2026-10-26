@@ -27,6 +27,10 @@ from .artifact_publication import PublicationRejected, publish_verified
 from .resource_lowering import lower_resource_ir
 from .owned_drop_plan import DropPlanRejected, derive_resource_drop_plan
 from .owned_drop_sites import DropSiteRejected, VerifiedDropSites, qualify_drop_sites
+from .owned_operation_witness import (
+    OwnedOperationWitness, OwnedOperationWitnessRejected,
+    derive_owned_operation_witness,
+)
 from .semantic_ir import lower_checked_program
 from .elf_shared_abi import ELFSharedABIRejected, inspect_owned_shared_elf
 from .owned_target_layout import OwnedTargetLayoutRejected, probe_owned_target_layout
@@ -111,6 +115,7 @@ class _Function:
         self.block_counter = 0
         self.current = "entry"
         self.terminated = False
+        self.owner_sites = {"buffer": 0, "try_buffer": 0, "drop": 0}
         self.return_type = self.resolve(declaration.return_type)
         self.return_slot = self.e.uses_return_slot(self.return_type, declaration.return_mode)
         # Non-generic static Drop sites must be authorized by the separately
@@ -150,6 +155,22 @@ class _Function:
         if self.terminated:
             reject("Instruction after a terminator", "E_LLVM_OWNED_CFG")
         self.lines.append("  " + instruction)
+
+    def observe_owned_call(self, operation, fragment, start=None):
+        """Observe actual emitted calls and the infallible buffer abort edge."""
+        if (operation not in self.owner_sites or not self.lines
+                or start is not None and (type(start) is not int or not 0 <= start < len(self.lines))):
+            reject("Missing owned native emission site", "E_OWNED_OPERATION_WITNESS")
+        emitted = self.lines[-1:] if start is None else self.lines[start:]
+        if sum(fragment in line for line in emitted) != 1:
+            reject("Native owner call instruction missing or duplicated",
+                   "E_OWNED_OPERATION_WITNESS")
+        if operation == "buffer" and (not any("call void @abort()" in line for line in emitted)
+                                     or not any(line.strip().startswith("br i1 ") for line in emitted)
+                                     or not any(line.strip() == "unreachable" for line in emitted)):
+            reject("Infallible buffer constructor lacks checked abort edge",
+                   "E_OWNED_OPERATION_WITNESS")
+        self.owner_sites[operation] += 1
 
     def result(self, instruction):
         name = self.reg()
@@ -430,13 +451,18 @@ class _Function:
             if name in {"buffer", "try_buffer"}:
                 size = self.value(children[0])
                 output = self.slot(ALLOCATION_RESULT)
+                start_owned_call = len(self.lines)
                 self.emit(f"call void @__hepta_owned_try_buffer(ptr sret({self.e.typ(ALLOCATION_RESULT)}) "
                           + f"{output.pointer}, i64 {size})")
                 result = self.load(ALLOCATION_RESULT, output.pointer)
                 if name == "try_buffer":
+                    self.observe_owned_call("try_buffer", "call void @__hepta_owned_try_buffer(",
+                                            start=start_owned_call)
                     return result
                 tag = self.extract(ALLOCATION_RESULT, result, (0,))
                 self.guard(self.result(f"icmp eq i32 {tag}, 0"))
+                self.observe_owned_call("buffer", "call void @__hepta_owned_try_buffer(",
+                                        start=start_owned_call)
                 return self.extract(ALLOCATION_RESULT, result, (1, 0))
             if name in {"drop", "release"}:
                 owner = self.typ(children[0])
@@ -450,6 +476,7 @@ class _Function:
                     self.drop_sites[key] = available - 1
                 helper = self.e.drop(owner)
                 self.emit(f"call void @{helper}({self.e.typ(owner)} {value})")
+                self.observe_owned_call("drop", f"call void @{helper}(")
                 return "0"
             if name == "len":
                 return self.sequence(children[0])[1]
@@ -583,6 +610,10 @@ class _Function:
 
     def render(self, name):
         self.block(self.fn.body or [])
+        try:
+            self.e.owner_witness.require_emitted(self.fn.name, self.owner_sites)
+        except OwnedOperationWitnessRejected as exc:
+            raise LLVMOwnedRejected(str(exc)) from exc
         if self.drop_sites is not None and any(remaining != 0 for remaining in self.drop_sites.values()):
             reject("Not all independently verified static Drop sites reached native codegen",
                    "E_LLVM_OWNED_DROP_SITE")
@@ -608,7 +639,13 @@ def _resources_allowed(fn, checked) -> bool:
     return finite_static_contract_allowed(fn, checked)
 
 class _Emitter:
-    def __init__(self, program, checked, *, resource_types=None, resource_drop_sites=None):
+    def __init__(self, program, checked, *, resource_types=None, resource_drop_sites=None,
+                 owner_witness=None):
+        if (not isinstance(owner_witness, OwnedOperationWitness)
+                or owner_witness.names != tuple(fn.name for fn in program.functions)):
+            reject("Complete verified Resource IR operation witness required",
+                   "E_OWNED_OPERATION_WITNESS")
+        self.owner_witness = owner_witness
         self.program, self.checked = program, checked
         if type(resource_types) is not dict:
             reject("Verified Resource IR type inventory required", "E_LLVM_OWNED_DROP_PLAN")
@@ -901,7 +938,8 @@ failure:
         for declaration in self.program.enums:
             if not declaration.type_params:
                 self.typ(Type(declaration.name))
-        for fn in self.program.functions:
+        for function_name in self.owner_witness.names:
+            fn = self.functions[function_name]
             if not fn.type_params:
                 self.instance(fn)
         bodies, index = [], 0
@@ -956,8 +994,18 @@ def emit_owned_llvm(program, checked, *, project_sha256=None):
             or sites.resource_ir_sha256 != graph_digest):
         reject("Verified Drop-site inventory is not bound to the checked graph",
                "E_LLVM_OWNED_DROP_SITE")
+    try:
+        owner_witness = derive_owned_operation_witness(graph, verification)
+    except OwnedOperationWitnessRejected as exc:
+        raise LLVMOwnedRejected(str(exc)) from exc
+    if (owner_witness.graph_sha256 != graph_digest
+            or owner_witness.source_sha256 != semantic["source_sha256"]
+            or owner_witness.project_sha256 != project_sha256
+            or owner_witness.names != tuple(fn.name for fn in program.functions)):
+        reject("Owned LLVM checked-source and verified resource witness disagree",
+               "E_OWNED_OPERATION_WITNESS")
     emitter = _Emitter(program, checked, resource_types=graph["types"],
-                       resource_drop_sites=sites)
+                       resource_drop_sites=sites, owner_witness=owner_witness)
     text = emitter.render()
     result = OwnedLLVM(text, _hash(text.encode()), semantic["sha256"], _hash(_wire(graph)),
                        _hash(_wire(verification)), compiler_hash(),
