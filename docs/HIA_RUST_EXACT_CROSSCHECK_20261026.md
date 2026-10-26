@@ -17,7 +17,9 @@ the caller's original path cannot swap the program about to execute.
 The subprocess receives the **canonical verified HIA program bytes** via
 stdin, uses the scalar mode or explicit `--owned-shadow`, has a finite timeout,
 runs without a shell or inherited dynamic-linker/Python environment variables
-and has bounded *read-back* output. This is a development tool for a
+and uses nonblocking stdin/stdout/stderr pipes with bounded in-memory
+reads; an output flood or deadline violation kills its process group. This
+is a development tool for a
 caller-chosen, hash-pinned binary, **not a hostile-executable sandbox**:
 the caller must trust the selected binary and host toolchain.
 
@@ -57,10 +59,11 @@ python tools/release_check.py
 ```
 
 An isolated Linux subprocess protocol test with a deliberately **mocked**
-canonical Python verifier executed 4/4 test methods on the exact new bridge
+canonical Python verifier executed 5/5 test methods on the exact new bridge
 and protocol-test source bytes. The fake shadow executables exercised good
 scalar/Owner report structure, wrong binary pin, symlink refusal, forged
-proof flags, wrong Core digest, extra fields, duplicate JSON keys and timeout.
+proof flags, wrong Core digest, extra fields, duplicate JSON keys,
+stdout floods, unexpected stderr and timeout.
 These tests do not certify Rust compiler output, true Hepta Core semantics
 or backend refinement. The complete in-repository Python CLI suite and
 actual Cargo/native HIA suites have not run on this exact Git SHA.
