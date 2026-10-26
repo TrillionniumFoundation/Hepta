@@ -23,6 +23,11 @@ def finite_static_contract_allowed(fn, checked) -> bool:
     name = getattr(fn, "name", None)
     if type(clauses) is not dict or type(declared) is not set or not isinstance(effects, dict):
         return False
+    # A plausible effect inventory is not evidence that the actual frontend
+    # accepted the source. Only the successful checker result can authorize a
+    # source-level resource contract. bool/int impersonation must not pass.
+    if getattr(checked, "ok", None) is not True:
+        return False
     if not isinstance(name, str) or not name:
         return False
     # The real frontend materializes transitive effects for every function.
@@ -51,7 +56,11 @@ def finite_static_contract_allowed(fn, checked) -> bool:
             if value is not False or "spawn" in upper:
                 return False
         elif key == "may_suspend":
-            if value is not False or "suspend" in upper:
+            # Hepta's current checked effect vocabulary has no independent
+            # 'suspend' effect. A block/spawn operation cannot be certified as
+            # non-suspending merely because that nonexistent tag is absent.
+            # This finite native profile declines those ambiguous effects.
+            if value is not False or upper & {"suspend", "block", "spawn"}:
                 return False
         else:
             return False
