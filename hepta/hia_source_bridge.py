@@ -212,7 +212,7 @@ def build_checked_hepta_hia_native(source, output, *, rustc=None, clang="clang",
                                        verify_published, withdraw_own_link)
     from .hia_program_llvm import (TARGET, TARGET_AARCH64, _read_artifact,
                                    compile_program_llvm, emit_program_llvm)
-    from .pipeline import analyze_project
+    from .pipeline import analyze_project, compiler_hash
 
     report = {"schema": "hepta.build-checked-hia-source.v1", "ok": False,
               "status": "rejected", "source": str(source), "output": str(output),
@@ -245,6 +245,14 @@ def build_checked_hepta_hia_native(source, output, *, rustc=None, clang="clang",
                 or analyzed.program is None or analyzed.checked is None or analyzed.project is None):
             _reject("pinned Rust reference must actually validate checked source")
         project = analyzed.project
+        # The pinned Rust qualification binds *the exact Hepta compiler*.
+        # Subsequent Core lowering and native publication must not silently
+        # use different parser/checker/SSA/source-bridge implementations.
+        compiler_identity = analyzed.report.get("compiler_sha256")
+        if (type(compiler_identity) is not str
+                or _HASH.fullmatch(compiler_identity) is None
+                or compiler_hash() != compiler_identity):
+            _reject("compiler implementation differs from Rust-qualified source")
         report["claims"]["pinned_rust_reference_validated"] = True
         if destination.resolve(strict=False) in {Path(p).resolve() for p in project.sources}:
             _reject("cannot overwrite any source project input")
@@ -254,6 +262,8 @@ def build_checked_hepta_hia_native(source, output, *, rustc=None, clang="clang",
             analyzed.program, analyzed.checked, project_sha256=project.identity)
                    if profile == "owned" else lower_checked_scalar_hia(
             analyzed.program, analyzed.checked, project_sha256=project.identity))
+        if compiler_hash() != compiler_identity:
+            _reject("compiler changed during source-to-Core lowering")
         # No other compiler path may produce the native machine code. The
         # canonical HIA Program is reverified again inside emit/compile.
         ir = emit_program_llvm(derived.program, target=target)
@@ -261,6 +271,7 @@ def build_checked_hepta_hia_native(source, output, *, rustc=None, clang="clang",
             _reject("native emitter does not consume the qualified HIA program")
         report["identities"] = {
             "project_sha256": project.identity,
+            "compiler_sha256": compiler_identity,
             "source_semantic_sha256": derived.source_semantic_sha256,
             "resource_ir_sha256": derived.resource_ir_sha256,
             "hia_program_sha256": derived.program.sha256,
@@ -275,6 +286,8 @@ def build_checked_hepta_hia_native(source, output, *, rustc=None, clang="clang",
         report["claims"]["source_bound_resource_ir_checked"] = True
         if not project.unchanged():
             _reject("source changed before native compilation")
+        if compiler_hash() != compiler_identity:
+            _reject("compiler changed before native compilation")
         with tempfile.TemporaryDirectory(prefix=".hia-source-", dir=destination.parent) as folder:
             stage = Path(folder) / ("native.so" if kind == "shared" else "native.o")
             native = compile_program_llvm(ir, program=derived.program, output=stage,
@@ -293,11 +306,15 @@ def build_checked_hepta_hia_native(source, output, *, rustc=None, clang="clang",
                 _reject("staged native bytes/receipt disagree with HIA source")
             if not project.unchanged():
                 _reject("source changed during native compilation")
+            if compiler_hash() != compiler_identity:
+                _reject("compiler changed during native compilation")
             try:
                 published = publish_verified(stage, destination, payload)
                 if not project.unchanged():
                     _reject("source changed during artifact publication")
                 observed = verify_published(stage, destination, payload)
+                if compiler_hash() != compiler_identity:
+                    _reject("compiler changed during native publication")
                 if published != observed:
                     _reject("final source artifact identity differs")
             except Exception:
