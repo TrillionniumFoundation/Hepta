@@ -255,7 +255,7 @@ impl Flow {
         }
         let resources: Vec<&String> = args.iter().zip(&types)
             .filter_map(|(n, t)| is_cap(t).then_some(n)).collect();
-        let forwarded_names: BTreeSet<String> = resources.iter().map(|n| (*n).clone()).collect();
+        let forwarded_names: BTreeSet<String> = resources.iter().map(|n| n.as_str().to_owned()).collect();
         if forwarded_names.len() != resources.len() {
             return failure("E_HIA_RESOURCE", "duplicate linear edge argument");
         }
