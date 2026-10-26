@@ -112,9 +112,9 @@ refinement theorem. No new runtime accounting is claimed.
 Independent exact-file verification:
 
 - `hepta/static_resource_contracts.py` Git blob
-  `da3de5c362c3d5f5417d414b8b8a3239f4df5d59`
+  `68b3e4ef4ceabfbdeda05d81a760351609297667`
 - `tests/test_static_resource_policy.py` Git blob
-  `68ca01aae1e0a06a40708e4c7ea429d6e1bc4a43`
+  `8032ab23c5aacca92b50042cbd5acd434aa58e65`
 
 Local `git hash-object` confirmed both identities and Python 3.13.5
 executed **12/12** policy tests without skips. Combined with the
