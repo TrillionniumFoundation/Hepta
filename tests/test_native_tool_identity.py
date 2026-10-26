@@ -62,15 +62,15 @@ class NativeToolIdentityTests(unittest.TestCase):
     def test_in_place_mutation_after_open(self):
         path = self.root / "mutable"
         path.write_bytes(b"a" * 4096)
-        original_open = Path.open
+        original_open = os.open
 
-        def mutate_after_open(candidate, *args, **kwargs):
-            stream = original_open(candidate, *args, **kwargs)
-            if candidate == path:
+        def mutate_after_open(candidate, flags, *args, **kwargs):
+            fd = original_open(candidate, flags, *args, **kwargs)
+            if Path(candidate) == path:
                 os.truncate(path, 1)
-            return stream
+            return fd
 
-        with patch.object(Path, "open", mutate_after_open):
+        with patch("hepta.native_tool_identity.os.open", side_effect=mutate_after_open):
             with self.assertRaises(ToolIdentityRejected):
                 digest_executable(path)
 
@@ -80,17 +80,54 @@ class NativeToolIdentityTests(unittest.TestCase):
         path.write_bytes(b"a" * 4096)
         replacement = self.root / "replacement"
         replacement.write_bytes(b"b" * 4096)
-        original_open = Path.open
+        original_open = os.open
 
-        def replace_after_open(candidate, *args, **kwargs):
-            stream = original_open(candidate, *args, **kwargs)
-            if candidate == path:
+        def replace_after_open(candidate, flags, *args, **kwargs):
+            fd = original_open(candidate, flags, *args, **kwargs)
+            if Path(candidate) == path:
                 os.replace(replacement, path)
-            return stream
+            return fd
 
-        with patch.object(Path, "open", replace_after_open):
+        with patch("hepta.native_tool_identity.os.open", side_effect=replace_after_open):
             with self.assertRaises(ToolIdentityRejected):
                 digest_executable(path)
+
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "POSIX FIFO required")
+    def test_regular_compiler_swapped_to_fifo_before_open_never_blocks(self):
+        path = self.root / "clang"
+        path.write_bytes(b"compiled file bytes")
+        real_open = os.open
+        observed = []
+
+        def swap_to_fifo(candidate, flags, *args, **kwargs):
+            if Path(candidate) == path and not observed:
+                observed.append(flags)
+                path.unlink()
+                os.mkfifo(path)
+            return real_open(candidate, flags, *args, **kwargs)
+
+        with patch("hepta.native_tool_identity.os.open", side_effect=swap_to_fifo):
+            with self.assertRaises(ToolIdentityRejected):
+                digest_executable(path)
+        self.assertEqual(len(observed), 1)
+        self.assertTrue(observed[0] & os.O_NONBLOCK)
+
+    def test_file_growth_after_open_is_not_silently_accepted(self):
+        path = self.root / "clang"
+        path.write_bytes(b"A" * 4096)
+        real_fstat = os.fstat
+        observed = []
+        def modify_after_first_fd_stat(fd):
+            st = real_fstat(fd)
+            if st.st_ino == path.stat().st_ino and not observed:
+                observed.append(True)
+                with path.open("ab") as stream:
+                    stream.write(b"B" * 10)
+            return st
+        with patch("hepta.native_tool_identity.os.fstat", side_effect=modify_after_first_fd_stat):
+            with self.assertRaises(ToolIdentityRejected):
+                digest_executable(path)
+        self.assertEqual(observed, [True])
 
     @unittest.skipUnless(shutil.which("clang"), "A real Clang executable is required")
     def test_real_clang_identity(self):
