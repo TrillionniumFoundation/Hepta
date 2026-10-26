@@ -22,6 +22,10 @@ _FIXTURE = Path(__file__).resolve().parents[1] / "examples/llvm_owned/finite_aar
 _RUNTIME_EXPORTS = frozenset({"malloc", "free", "abort", "memcpy", "memmove", "memset", "_start"})
 _EXPORT = ("owned_case",)
 _MAX_LINKED_BYTES = 16 * 1024 * 1024
+# This is a SOURCE FILE bound, not the functional allocator's 4096-byte arena.
+# The reviewed runtime is larger than 4096 source bytes; conflating the two
+# made the real source-facing link probe reject before any native compilation.
+_MAX_RUNTIME_SOURCE_BYTES = 8192
 # Pin exact reviewed single-owner runtime semantics; editing the fixture
 # without deliberately updating this identity fails before compilation.
 _REVIEWED_RUNTIME_SHA256 = "5caa9cbc33df5734626ff17045159add08b850abceb021b038ddb110db6f402c"
@@ -33,6 +37,22 @@ class OwnedAArch64RuntimeRejected(ValueError):
 
 def _reject(message: str) -> None:
     raise OwnedAArch64RuntimeRejected("E_OWNED_AARCH64_RUNTIME: " + message)
+
+
+def _read_reviewed_runtime() -> tuple[bytes, str]:
+    """Read a bounded, exactly pinned runtime independent of allocator size."""
+    try:
+        raw = _FIXTURE.read_bytes()
+    except OSError as exc:
+        raise OwnedAArch64RuntimeRejected(
+            "E_OWNED_AARCH64_RUNTIME: reviewed runtime source unavailable") from exc
+    if (not raw or len(raw) > _MAX_RUNTIME_SOURCE_BYTES
+            or not raw.startswith(b"/* Experimental finite, single-owner Linux runtime")):
+        _reject("missing or out-of-profile reviewed finite runtime source")
+    observed_sha = sha256(raw).hexdigest()
+    if observed_sha != _REVIEWED_RUNTIME_SHA256:
+        _reject("finite allocator source differs from reviewed exact bytes")
+    return raw, observed_sha
 
 
 def probe_finite_owned_aarch64_runtime(object_bytes: bytes, exports: tuple[str, ...],
@@ -54,13 +74,7 @@ def probe_finite_owned_aarch64_runtime(object_bytes: bytes, exports: tuple[str, 
         _reject("Clang unavailable")
     compiler = Path(selected).resolve(strict=True)
     compiler_before = sha256(compiler.read_bytes()).hexdigest()
-    runtime_bytes = _FIXTURE.read_bytes()
-    if (not runtime_bytes or len(runtime_bytes) > 4096 or
-            not runtime_bytes.startswith(b"/* Experimental finite, single-owner Linux runtime")):
-        _reject("missing or unreviewed real runtime source")
-    source_sha = sha256(runtime_bytes).hexdigest()
-    if source_sha != _REVIEWED_RUNTIME_SHA256:
-        _reject("finite allocator source differs from the reviewed exact bytes")
+    runtime_bytes, source_sha = _read_reviewed_runtime()
     with tempfile.TemporaryDirectory(prefix=".hepta-finite-arm64-") as temp:
         folder = Path(temp)
         original = folder / "owned.o"
