@@ -1,0 +1,22 @@
+// Scoped local stored loan + Copy label; independent Resource IR v5 profile.
+struct Tagged<'a> {
+    data: read 'a [u8],
+    tag: u64,
+    valid: bool,
+}
+
+fn main() -> i32 effects { alloc, block, panic } {
+    let owner = buffer(4);
+    if true {
+        let first = Tagged { valid: true, data: read owner, tag: 9 };
+        let mut copied = first;
+        // Copy scalar labels belong to each record, not the borrowed owner.
+        copied.tag = 11;
+        assert(copied.tag == 11);
+        assert(first.tag == 9);
+        assert(copied.valid);
+        assert(len(first.data) == 4);
+    }
+    release(move owner);
+    return 0;
+}

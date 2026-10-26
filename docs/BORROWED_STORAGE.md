@@ -173,12 +173,18 @@ The following remain rejected:
 - View lifetimes at C ABI boundaries, `repr(C)` borrowed records, and lifetime
   parameters on `main`. No C layout or foreign lifetime contract is invented.
 
-The independent C backend emits `E_C_BORROW_STORAGE` for the entire new profile,
-including an unused view declaration. Sequential resource IR, concurrent
-protocol IR and the scalar HMIR pilot likewise reject the profile. They do not
-claim to validate storage regions they cannot represent. The descriptive HSIR
-and CFG can retain lifetime declarations, field types, parameter lifetimes and
-return-origin metadata, while their proof claims remain false.
+The independent C backend emits `E_C_BORROW_STORAGE` for this native
+stored-reference profile, including unused declarations. The independent
+sequential Resource IR supports only explicitly finite **local** view
+records: original v4 admits one direct u8-slice reference, while the new v5
+admits that reference plus up to four Copy scalar fields. It verifies explicit
+loan transitions, copied or moved views and lexical end obligations, but not
+named interprocedural regions or arbitrary stored references. Concurrent
+protocol IR and scalar HMIR still reject stored borrow profiles. The
+descriptive HSIR and CFG can retain broader lifetime declarations, field
+types, parameter lifetimes and return-origin metadata, while their proof
+claims remain false. See [RESOURCE_IR.md](RESOURCE_IR.md) for v5 evidence
+boundaries.
 
 An analysis report for this profile includes `borrowed_storage` with
 `native_lifetimes_required=true`. With `native=False`, the report is explicitly

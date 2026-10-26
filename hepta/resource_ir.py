@@ -15,6 +15,7 @@ import re
 
 SCHEMA = "hepta.resource-ir.v3"
 STORED_SCHEMA = "hepta.resource-ir.v4"
+LABELLED_VIEW_SCHEMA = "hepta.resource-ir.v5"
 GENERIC_SCHEMA = "hepta.resource-ir.v2"
 LEGACY_SCHEMA = "hepta.resource-ir.v1"
 _SCALARS = {"i8", "i16", "i32", "i64", "i128", "isize", "u8", "u16", "u32", "u64", "u128", "usize", "f32", "f64", "bool", "Unit"}
@@ -126,7 +127,7 @@ class _Verifier:
                     _fail("E_RIR_TYPE", "Scalar identity must name a supported primitive")
             elif kind == "parameter":
                 _fields(typ, {"kind", "function", "name", "bound"}, "type parameter")
-                if self.doc["schema"] not in {STORED_SCHEMA, SCHEMA, GENERIC_SCHEMA}:
+                if self.doc["schema"] not in {LABELLED_VIEW_SCHEMA, STORED_SCHEMA, SCHEMA, GENERIC_SCHEMA}:
                     _fail("E_RIR_SCHEMA", "Generic resource types require resource IR v2")
                 owner, name = _id(typ["function"]), _id(typ["name"])
                 if any(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", part) is None for part in (owner, name)):
@@ -150,15 +151,31 @@ class _Verifier:
                 if tid != canonical:
                     _fail("E_RIR_TYPE", "Sequence identity does not match its definition")
             elif kind == "view":
-                _fields(typ, {"kind", "name", "field", "mode", "pointee"}, "local stored view")
-                if (self.doc["schema"] != STORED_SCHEMA
+                # v4 remains frozen: one u8 slice field, no copied metadata.
+                # v5 adds at most four explicitly typed Copy scalar fields.
+                labelled = self.doc["schema"] == LABELLED_VIEW_SCHEMA
+                expected = {"kind", "name", "field", "mode", "pointee"} | ({"scalars"} if labelled else set())
+                _fields(typ, expected, "local stored view")
+                if (self.doc["schema"] not in {STORED_SCHEMA, LABELLED_VIEW_SCHEMA}
                         or re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", _id(typ["name"])) is None
                         or re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", _id(typ["field"])) is None
                         or typ["name"] in _SCALARS | {"Buffer", "Result", "Task", "TaskGroup"}
                         or tid != typ["name"] + "<'_>" or typ["pointee"] != "[u8]"):
-                    _fail("E_RIR_VIEW_TYPE", "Only local single-field u8-slice views are modelled in v4")
+                    _fail("E_RIR_VIEW_TYPE", "Unreviewed local u8-slice view shape")
                 _mode(typ["mode"], {"read", "mut"})
                 deps.append(typ["pointee"])
+                if labelled:
+                    field_names = {typ["field"]}
+                    for scalar in _list(typ["scalars"], 4):
+                        _fields(scalar, {"name", "type"}, "view Copy scalar field")
+                        field_name = _id(scalar["name"])
+                        field_type = _id(scalar["type"])
+                        if (re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", field_name) is None
+                                or field_name in field_names
+                                or field_type not in _SCALARS - {"Unit"}):
+                            _fail("E_RIR_VIEW_TYPE", "View label must be a distinct Copy scalar")
+                        field_names.add(field_name)
+                        deps.append(field_type)
             elif kind in {"struct", "enum"}:
                 _fields(typ, {"kind", "name", "args", "fields" if kind == "struct" else "variants"}, "aggregate type")
                 name = _id(typ["name"])
@@ -220,6 +237,13 @@ class _Verifier:
 
         for tid in self.types:
             owned(tid)
+        # A v5 marker without *any* Copy-labelled view is not a legitimate
+        # format upgrade; never permit a self-rehashed empty v5 envelope to
+        # disguise an old single-field v4 claim.
+        if (self.doc["schema"] == LABELLED_VIEW_SCHEMA
+                and not any(desc["kind"] == "view" and desc["scalars"]
+                            for desc in self.types.values())):
+            _fail("E_RIR_VIEW_TYPE", "v5 requires at least one copied scalar view field")
 
     def validate_signatures(self) -> None:
         if not isinstance(self.doc["obligations"], dict) or len(self.doc["obligations"]) > 512:
@@ -238,7 +262,7 @@ class _Verifier:
                 _fail("E_RIR_FUNCTION", "Duplicate function")
             self.functions[name] = fn
             declared = _list(fn.get("type_params", []), 64)
-            if declared and self.doc["schema"] not in {STORED_SCHEMA, SCHEMA, GENERIC_SCHEMA}:
+            if declared and self.doc["schema"] not in {LABELLED_VIEW_SCHEMA, STORED_SCHEMA, SCHEMA, GENERIC_SCHEMA}:
                 _fail("E_RIR_SCHEMA", "Generic functions require resource IR v2")
             if len(set(_id(t) for t in declared)) != len(declared):
                 _fail("E_RIR_GENERIC", "Generic parameter identities must be unique")
@@ -276,7 +300,7 @@ class _Verifier:
             else:
                 borrowed = [p for p in params.values() if p["mode"] in {"read", "mut"}]
                 origin = next((p for p in borrowed if p["id"] == ret["origin"]), None)
-                if origin is None or (self.doc["schema"] not in {STORED_SCHEMA, SCHEMA} and len(borrowed) != 1) or (ret["mode"] == "mut" and origin["mode"] != "mut"):
+                if origin is None or (self.doc["schema"] not in {LABELLED_VIEW_SCHEMA, STORED_SCHEMA, SCHEMA} and len(borrowed) != 1) or (ret["mode"] == "mut" and origin["mode"] != "mut"):
                     _fail("E_RIR_RETURN", "Returned borrow needs one compatible declared input origin (multiple inputs require v3)")
             if type(fn["external"]) is not bool:
                 _fail("E_RIR_FUNCTION", "external must be boolean")
@@ -487,16 +511,24 @@ class _Verifier:
                   "borrow": {"id", "place", "mode", "type"}, "end_borrow": {"id"},
                   "bind_view": {"dest", "loan"}, "copy_view": {"src", "dest"},
                   "move_view": {"src", "dest"}, "end_view": {"src"}, "use_view": {"src", "mode"},
+                  "write_view_scalar": {"src", "field", "value"},
                   "call": {"function", "args", "result", "result_loan", "obligation"},
                   "foreign": {"function", "args", "result", "result_loan", "obligation"},
                   "use": {"loan" if "loan" in op else "place", "mode"}}
         if not isinstance(name, str) or name not in fields:
             _fail("E_RIR_OP", f"Unknown operation {name}")
-        if name in {"take_field", "init_field", "forget"} and self.doc["schema"] not in {STORED_SCHEMA, SCHEMA}:
+        if name in {"take_field", "init_field", "forget"} and self.doc["schema"] not in {LABELLED_VIEW_SCHEMA, STORED_SCHEMA, SCHEMA}:
             _fail("E_RIR_SCHEMA", "Partial field state requires resource IR v3")
-        if name in {"bind_view", "copy_view", "move_view", "end_view", "use_view"} and self.doc["schema"] != STORED_SCHEMA:
-            _fail("E_RIR_SCHEMA", "Stored view state requires resource IR v4")
-        _fields(op, fields[name] | {"op"} | ({"type_args"} if name in {"call", "foreign"} and "type_args" in op else set()), "operation")
+        if name in {"bind_view", "copy_view", "move_view", "end_view", "use_view"} and self.doc["schema"] not in {STORED_SCHEMA, LABELLED_VIEW_SCHEMA}:
+            _fail("E_RIR_SCHEMA", "Stored view state requires resource IR v4/v5")
+        if name == "write_view_scalar" and self.doc["schema"] != LABELLED_VIEW_SCHEMA:
+            _fail("E_RIR_SCHEMA", "Stored Copy scalar mutation requires resource IR v5")
+        expected = fields[name] | {"op"}
+        if name in {"call", "foreign"} and "type_args" in op:
+            expected |= {"type_args"}
+        if name == "bind_view" and self.doc["schema"] == LABELLED_VIEW_SCHEMA:
+            expected |= {"scalars"}
+        _fields(op, expected, "operation")
         return name
 
     def operation(self, op: dict, state: _State) -> None:
@@ -504,7 +536,7 @@ class _Verifier:
         self.operation_count += 1
         if self.operation_count > 100000:
             _fail("E_RIR_LIMIT", "Resource graph exceeds operation budget")
-        if name in {"bind_view", "copy_view", "move_view", "end_view", "use_view"}:
+        if name in {"bind_view", "copy_view", "move_view", "end_view", "use_view", "write_view_scalar"}:
             self.view_operation(op, state)
         elif name == "acquire":
             typ = self.slot(op["dest"])["type"]
@@ -639,6 +671,17 @@ class _Verifier:
             loan = state.loans.get(lid)
             if loan is None or loan[2:] != (target["mode"], target["pointee"]):
                 _fail("E_RIR_VIEW_ORIGIN", "Stored view must retain a live loan's exact permission and pointee")
+            if self.doc["schema"] == LABELLED_VIEW_SCHEMA:
+                supplied = _list(op["scalars"], 4)
+                declared = target["scalars"]
+                if len(supplied) != len(declared):
+                    _fail("E_RIR_VIEW_SCALAR", "Stored view label inventory is incomplete")
+                for entry, label in zip(supplied, declared):
+                    _fields(entry, {"name", "src"}, "stored view Copy value")
+                    if (entry["name"] != label["name"]
+                            or self.slot(entry["src"])["type"] != label["type"]
+                            or self.owned[label["type"]] or self.has_view[label["type"]]):
+                        _fail("E_RIR_VIEW_SCALAR", "Label must be a source-typed Copy scalar slot")
             state.loans.pop(lid)
             state.views[dest] = loan
             state.initialized.update(self.tokens(dest))
@@ -655,6 +698,19 @@ class _Verifier:
         elif name == "end_view":
             del state.views[src]
             state.initialized.difference_update(self.tokens(src))
+        elif name == "write_view_scalar":
+            # This writes the Copy *field owned by the view record*, never
+            # the referent or the borrowed slice. A borrowed read view can
+            # own a mutable Copy label without upgrading loan permissions.
+            field_name = _id(op["field"])
+            label_types = {item["name"]: item["type"] for item in descriptor["scalars"]}
+            label_type = label_types.get(field_name)
+            if (label_type is None
+                    or self.slot(op["value"])["type"] != label_type
+                    or self.owned[label_type] or self.has_view[label_type]):
+                _fail("E_RIR_VIEW_SCALAR", "Scalar write needs a declared Copy label and exact value type")
+            if not self.mutable(src):
+                _fail("E_RIR_VIEW_MUTABILITY", "Scalar write needs a mutable local record")
         else:
             mode = _mode(op["mode"], {"read", "write"})
             if mode == "write" and (descriptor["mode"] != "mut" or not self.mutable(src)):
@@ -903,7 +959,7 @@ class _Verifier:
 
     def run(self) -> dict:
         _fields(self.doc, {"schema", "source_sha256", "project_sha256", "value_semantics", "types", "functions", "obligations", "claims"}, "resource IR")
-        if self.doc["schema"] not in {STORED_SCHEMA, SCHEMA, GENERIC_SCHEMA, LEGACY_SCHEMA} or self.doc["value_semantics"] != "copied_values_abstract_not_executable":
+        if self.doc["schema"] not in {LABELLED_VIEW_SCHEMA, STORED_SCHEMA, SCHEMA, GENERIC_SCHEMA, LEGACY_SCHEMA} or self.doc["value_semantics"] != "copied_values_abstract_not_executable":
             _fail("E_RIR_SCHEMA", "Unsupported resource IR profile")
         if self.doc["claims"] != _CLAIMS or any(type(v) is not bool for v in self.doc["claims"].values()):
             _fail("E_RIR_CLAIM", "Resource IR cannot claim source refinement, native use or foreign soundness")
@@ -921,9 +977,11 @@ class _Verifier:
                 "generic_calls_checked": self.generic_calls_checked,
                 "owned_types": sorted(k for k, v in self.owned.items() if v),
                 "external_obligations": self.assumptions, "diagnostics": [], "claims": dict(_CLAIMS)}
-        if self.doc["schema"] == STORED_SCHEMA:
+        if self.doc["schema"] in {STORED_SCHEMA, LABELLED_VIEW_SCHEMA}:
             report["stored_views"] = {
-                "profile": "local_single_u8_slice_records_v1",
+                "profile": ("local_single_u8_slice_records_v2_copy_scalars"
+                            if self.doc["schema"] == LABELLED_VIEW_SCHEMA
+                            else "local_single_u8_slice_records_v1"),
                 "types": sorted(tid for tid, desc in self.types.items() if desc["kind"] == "view"),
                 "scope": "explicit_cfg_loans_with_lexical_shared_view_end_and_affine_mutable_view_drop",
                 "interprocedural_stored_regions_checked": False,
