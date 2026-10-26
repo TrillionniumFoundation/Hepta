@@ -69,6 +69,9 @@ def migrate_scalar_to_hia(source: str | Path, output_directory: str | Path, *,
     try:
         if language not in {"c", "cpp"}:
             _reject("language must be c or cpp")
+        if target is not None and target not in {
+                "x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu"}:
+            _reject("target is outside explicitly admitted native HIA profiles")
         valid_ext = {".c"} if language == "c" else {".cc", ".cpp", ".cxx"}
         if (not src.is_file() or src.suffix not in valid_ext
                 or out.exists() or out.is_symlink() or not out.parent.is_dir()
