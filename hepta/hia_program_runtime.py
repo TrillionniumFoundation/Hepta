@@ -269,6 +269,21 @@ class _Machine:
                 except MemoryError as exc:
                     raise HIAProgramBudgetExceeded(
                         "host_memory", "in-place copy needs temporary host memory") from exc
+        elif op == "buffer.copy_range":
+            dest_view, src_view = args[:2]
+            destination, source = _underlying(dest_view), _underlying(src_view)
+            dst_offset, src_offset, size = args[2:]
+            if (not isinstance(dest_view, _View) or not dest_view.mutable
+                    or not isinstance(src_view, _View) or destination is source):
+                raise HIAProgramRejected("range copy violates checked distinct-owner loans",
+                                         "E_HIA_RUNTIME_INVARIANT")
+            dst_size, src_size = len(destination.data), len(source.data)
+            if (dst_offset > dst_size or src_offset > src_size
+                    or size > dst_size - dst_offset or size > src_size - src_offset):
+                raise HIAProgramTrap("bounds", "cross-owner range copy exceeds byte extent")
+            if size:
+                memoryview(destination.data)[dst_offset:dst_offset + size] = (
+                    memoryview(source.data)[src_offset:src_offset + size])
         elif op == "buffer.swap":
             owner = _underlying(args[0])
             left, right = args[1:]
