@@ -73,6 +73,27 @@ class ExistingV6CoreDifferentialTests(unittest.TestCase):
                                              {"wrong_export": [[]]})
             runner.assert_not_called()
 
+    def test_core_abi_arity_rejects_before_native_child(self):
+        # drop_case is a verified zero-argument C export. ctypes must never
+        # call it with arbitrary caller-supplied words, even if the VM would
+        # later reject those words on its own.
+        from hepta.hia_native_differential import _require_exact_argument_arities
+        core = checked_core()
+        _require_exact_argument_arities({"drop_case": [[]]}, (("drop_case", 0),))
+        for arguments in ([3], [3, 4], [True]):
+            with self.subTest(arguments=arguments):
+                with patch("hepta.hia_native_differential._observe_native") as child:
+                    with self.assertRaisesRegex(HIADifferentialRejected, "arity"):
+                        compare_verified_hia_program(
+                            core, "not-a-real-binary.so",
+                            {"drop_case": [arguments]})
+                    child.assert_not_called()
+        for signatures in ((("drop_case", True),), (("drop_case", 1.0),),
+                           (("drop_case", -1),), (("drop_case", 0), ("drop_case", 0))):
+            with self.subTest(signatures=signatures):
+                with self.assertRaisesRegex(HIADifferentialRejected, "signature"):
+                    _require_exact_argument_arities({"drop_case": [[]]}, signatures)
+
     @unittest.skipUnless(shutil.which(CLANG), "pinned Clang20 required")
     def test_actual_executable_hia_llvm_matches_owner_vm(self):
         core = checked_core()

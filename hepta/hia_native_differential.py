@@ -59,7 +59,7 @@ def _corpus(cases, return_words):
     for item in return_words:
         if (type(item) is not tuple or len(item) != 2
                 or type(item[0]) is not str or _IDENT.fullmatch(item[0]) is None
-                or item[0] in words or item[1] not in _TYPES):
+                or item[0] in words or type(item[1]) is not str or item[1] not in _TYPES):
             _reject("invalid or duplicated native ABI function inventory")
         words[item[0]] = item[1]
     if set(cases) != set(words):
@@ -82,10 +82,39 @@ def _corpus(cases, return_words):
     return words, total
 
 
+def _require_exact_argument_arities(cases: dict, signatures: tuple[tuple[str, int], ...]) -> None:
+    """Refuse a ctypes call whose argument count differs from verified Core.
+
+    The ELF symbol table cannot attest an implementation's C parameter types;
+    this gate only binds each *test vector* to the already independently
+    verified source/Core signature before loading a foreign shared object.
+    Raw externally supplied oracle mode has no authenticated signatures.
+    """
+    if (type(cases) is not dict or type(signatures) is not tuple
+            or not 1 <= len(signatures) <= 32):
+        _reject("complete HIA native argument signature inventory required")
+    arities = {}
+    for entry in signatures:
+        if (type(entry) is not tuple or len(entry) != 2
+                or type(entry[0]) is not str or _IDENT.fullmatch(entry[0]) is None
+                or type(entry[1]) is not int or not 0 <= entry[1] <= 16
+                or entry[0] in arities):
+            _reject("unreviewed HIA native parameter signature")
+        arities[entry[0]] = entry[1]
+    if set(cases) != set(arities):
+        _reject("corpus differs from verified HIA ABI export inventory")
+    for name, vectors in cases.items():
+        if type(vectors) is not list or not vectors:
+            _reject("native export requires a nonempty typed corpus")
+        for index, args in enumerate(vectors):
+            if type(args) is not list or len(args) != arities[name]:
+                _reject(f"native ABI argument arity mismatch at {name} case {index}")
+
+
 def _observe_native(library: Path, function: str, word: str, args: list[int], *, timeout: float):
     if (platform.system() != "Linux" or not 0 < timeout <= 10
             or type(function) is not str or _IDENT.fullmatch(function) is None
-            or word not in _TYPES):
+            or type(word) is not str or word not in _TYPES):
         _reject("bounded Linux x86-64 scalar host required")
     try:
         with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
@@ -164,6 +193,7 @@ def compare_oracle_with_native(oracle, library: str | Path, cases: dict, *,
         "defined_traps_observed": traps,
         "claims": {"finite_native_oracle_match": True,
                    "checked_hepta_source_replayed": False,
+                   "core_corpus_argument_arity_checked": False,
                    "backend_refinement_proved": False,
                    "whole_language_soundness_proved": False,
                    "physical_target_qualified": False},
@@ -214,6 +244,13 @@ def qualify_scalar_source(source: str | Path, cases: dict, *, rustc=None,
                                     project_sha256=project_sha)
         oracle = prepare_scalar_oracle(core, analyzed.program, analyzed.checked,
                                        project_sha256=project_sha)
+        scalar_fns = json.loads(ssa.canonical_json).get("functions")
+        if (type(scalar_fns) is not list
+                or any(type(fn) is not dict or type(fn.get("name")) is not str
+                       or type(fn.get("parameters")) is not list for fn in scalar_fns)):
+            _reject("missing source-derived scalar parameter inventory")
+        _require_exact_argument_arities(
+            cases, tuple((fn["name"], len(fn["parameters"])) for fn in scalar_fns))
         record = compiled.get("identities", {})
         native = compiled.get("native_backend", {})
         if (record.get("hia_scalar_core_sha256") != core.sha256
@@ -230,6 +267,7 @@ def qualify_scalar_source(source: str | Path, cases: dict, *, rustc=None,
         result["ssa_sha256"] = ssa.sha256
         result["compiler_sha256"] = record.get("compiler_sha256")
         result["claims"]["checked_hepta_source_replayed"] = True
+        result["claims"]["core_corpus_argument_arity_checked"] = True
         return result
 
 
@@ -263,6 +301,7 @@ def compare_verified_hia_program(program, library: str | Path, cases: dict, *,
             set(cases) != set(exported)):
         _reject("corpus must cover the exact HIA native scalar export inventory")
     words = []
+    argument_arities = []
     for name in sorted(exported):
         fn = by_name[name]
         result_types = fn.get("returns")
@@ -272,6 +311,10 @@ def compare_verified_hia_program(program, library: str | Path, cases: dict, *,
                 or any(type(p) is not dict or p.get("type") != result_types[0] for p in params)):
             _reject("HIA native differential supports homogeneous i32/u32 wrappers only")
         words.append((name, result_types[0]))
+        argument_arities.append((name, len(params)))
+    # Never dispatch foreign ABI calls before checking actual Core arity.
+    # The old corpus gate checked widths/upper counts, not exact counts.
+    _require_exact_argument_arities(cases, tuple(argument_arities))
 
     class _ExecutableHIAOracle:
         return_words = tuple(words)
@@ -298,6 +341,7 @@ def compare_verified_hia_program(program, library: str | Path, cases: dict, *,
     report["executable_hia_program_sha256"] = checked.sha256
     report["executable_hia_llvm_sha256"] = emitted.sha256
     report["claims"]["executable_hia_program_reverified"] = True
+    report["claims"]["core_corpus_argument_arity_checked"] = True
     report["claims"]["native_compiled_from_program_verified"] = False
     # This helper only compares an arbitrary provided artifact to the actual
     # Core VM. compile/qualification provenance belongs to the wrappers below.
