@@ -87,4 +87,32 @@ python tools/release_check.py
 This change closes a narrow, concrete direct-worker-only timeout
 lifecycle defect. P0–P7 whole-project blockers remain open/partial.
 
+
+## Native child record ambiguity (follow-up)
+
+Even when the worker exits 0, permissive `json.loads(stdout)` accepts
+duplicate object fields and trailing whitespace. A malicious or defective
+native constructor may also emit unrelated stderr before returning. The
+scalar evaluator's source profile has no user I/O effect; neither may be
+silently counted as a correct return observation. Similarly, a native
+`SIGABRT` with diagnostic stdout/stderr is *not* accepted as the Core VM's
+expected checked arithmetic trap (although a silent unrelated SIGABRT
+remains indistinguishable from a defined trap without deeper provenance).
+
+The native observation now requires precisely one compact
+`{"value":<typed signed-or-unsigned integer>}\n` record with strict
+integer/range checking and **empty stderr** for successful returns. Any
+stdout/stderr on SIGABRT rejects. Output size limits are still enforced
+before parsing. This is canonical transport validation only; a foreign DSO
+can still forge exactly the same record or escape a process group.
+A true untrusted-DSO sandbox and native root-cause proof remain open.
+
+Additional standalone local Clang17 controls validated 2 successful
+normal/silent-abort observations and 5 refusals: stderr followed by
+return, stderr followed by abort, JSON with duplicate value keys,
+space-modified JSON and trailing-newline JSON. These controls replicate
+the transport code but are **not** full in-repository Hepta-native tests.
+Run `python -m unittest tests.test_hia_native_child_protocol -v` on
+the exact source checkout as an additional acceptance input.
+
 `whole_project_blockers_closed=false`

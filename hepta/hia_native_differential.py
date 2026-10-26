@@ -250,11 +250,19 @@ def _observe_native(library: Path, function: str, word: str, args: list[int], *,
     if len(child_stdout) >= 4096 or len(child_stderr) >= 4096:
         _reject("native subprocess exceeded output budget")
     if proc.returncode == -signal.SIGABRT:
+        # HIA scalar profiles have no user-visible IO. A glibc diagnostic,
+        # constructor print or other output before SIGABRT cannot be accepted
+        # as the VM's defined checked trap; this is still a finite oracle,
+        # not a proof that a silent SIGABRT had the expected root cause.
+        if child_stdout or child_stderr:
+            _reject("native trap emitted unqualified stdout/stderr")
         return ("trap", None)
     if proc.returncode == -signal.SIGXFSZ:
         _reject("native subprocess exceeded output budget")
     if proc.returncode != 0:
         _reject("native child exited with unexpected error/signal " + str(proc.returncode))
+    if child_stderr:
+        _reject("native result emitted unexpected stderr")
     try:
         value = json.loads(child_stdout)
     except (ValueError, UnicodeError) as exc:
@@ -263,6 +271,12 @@ def _observe_native(library: Path, function: str, word: str, args: list[int], *,
     if (type(value) is not dict or set(value) != {"value"}
             or type(value["value"]) is not int or not low <= value["value"] <= high):
         _reject("native child returned invalid scalar observation")
+    # The checked worker prints one exact compact JSON object and newline.
+    # Duplicate-key, whitespace, trailing material or native-injected output
+    # must not become an apparently qualified observation through json.loads.
+    # Native code capable of forging this *exact* record remains out of scope.
+    if child_stdout != _canonical({"value": value["value"]}) + b"\n":
+        _reject("native child output is not one canonical worker record")
     return ("value", value["value"])
 
 
