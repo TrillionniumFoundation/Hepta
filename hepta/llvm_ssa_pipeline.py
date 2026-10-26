@@ -78,15 +78,22 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
             raise LLVMSSARejected("E_LLVM_SSA_OUTPUT: refusing to write into a source input")
         if not project.unchanged():
             raise LLVMSSARejected("E_LLVM_SSA_STALE: source graph changed before semantic projection")
-        scalar_hsir = lower_checked_program(analyzed.program, analyzed.checked)
-        semantic_origin = verify_checked_source_projection(analyzed.program, analyzed.checked, scalar_hsir)
+        # The HSIR and Resource IR producers must include *the same* exact
+        # loaded project graph identity. Including it in only one changes the
+        # canonical digest and invalidates every source-bound receipt.
+        graph_sha = project.identity
+        scalar_hsir = lower_checked_program(
+            analyzed.program, analyzed.checked, project_sha256=graph_sha)
+        semantic_origin = verify_checked_source_projection(
+            analyzed.program, analyzed.checked, scalar_hsir,
+            project_sha256=graph_sha)
         result["claims"]["semantic_source_projection_rechecked"] = True
         # P1 is a *mandatory* pre-codegen condition, not a sidecar. An
         # unsupported resource profile/loan CFG fails closed without Clang.
         resource_receipt = qualify_native_resource_source(
             analyzed.program, analyzed.checked,
             canonical_hsir_sha256=semantic_origin["canonical_sha256"],
-            project_sha256=getattr(project, "identity", None))
+            project_sha256=graph_sha)
         if (resource_receipt.get("status") !=
                 "source_bound_resource_cfg_checked_not_refinement_proof"
                 or resource_receipt.get("claims", {}).get(
@@ -112,6 +119,7 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
             "compiler_sha256": analyzed.report.get("compiler_sha256"),
             "canonical_source_semantic_sha256": semantic_origin["canonical_sha256"],
             "semantic_origin_receipt_schema": semantic_origin["schema"],
+            "project_sha256": graph_sha,
             "resource_ir_sha256": resource_receipt["resource_ir_sha256"],
             "resource_origin_receipt_schema": resource_receipt["resource_source_receipt_schema"],
             "native_resource_gate_schema": resource_receipt["schema"],
