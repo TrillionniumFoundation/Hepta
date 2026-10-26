@@ -58,6 +58,25 @@ The strict native backend remains the limited i32/u32 scalar SSA profile.
 Resource-using code outside that subset may pass the independent resource
 verifier but cannot be silently promoted to a qualified native artifact.
 
+## Canonical project identity bug found and repaired
+
+The first integration uncovered an actual P0/P1 mismatch: the scalar HSIR
+adapter built a canonical snapshot with project_sha256=null, but the resource
+source-origin checker built its canonical snapshot with project_sha256 set to
+the loaded project graph identity. Since the project field participates in
+the canonical digest, those two valid same-source snapshots could NEVER have
+the same SHA when invoked by the strict native CLI.
+
+The adapter and its source-projection verifier now accept the optional
+project_sha256 argument; default null preserves existing caller behavior.
+The strict native pipeline passes the exact same LoadedProject.identity to
+both the canonical/scalar HSIR projection and Resource IR source verifier,
+and binds it in the native receipt. A different or stale project graph SHA
+causes a controlled origin rejection. No parallel semantic authority added.
+
+Tests now explicitly cover matching project SHA, default/unbound backward
+compatibility, and rejection of two different project identities.
+
 ## Test changes
 
 tests/test_native_resource_gate.py adds:
