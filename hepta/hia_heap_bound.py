@@ -8,7 +8,9 @@ The bound counts requested live byte payload, NOT allocator overhead or RSS.
 """
 from __future__ import annotations
 
-from .hia_program import verify_program
+from dataclasses import dataclass
+
+from .hia_program import WIDTHS, integer_range, verify_program
 
 MAX_REQUEST = (1 << 63) - 1
 # Versioned closed interpretation: a future schema could change the semantics
@@ -40,6 +42,83 @@ def _reject(detail: str) -> None:
     raise HIAHeapBoundRejected("E_HIA_BUDGET_UNBOUNDED", detail)
 
 
+@dataclass(frozen=True)
+class _Span:
+    """Closed abstract integer interval, never an unproved input assumption."""
+    lo: int
+    hi: int
+
+
+def _span(value):
+    if type(value) is int:
+        return _Span(value, value)
+    return value if isinstance(value, _Span) else None
+
+
+def _bounded(lo, hi):
+    if type(lo) is not int or type(hi) is not int or lo > hi:
+        return None
+    return lo if lo == hi else _Span(lo, hi)
+
+
+def _combine_known(a, b):
+    # Exactly typed booleans cannot silently act as integer constants.
+    if type(a) is bool and type(b) is bool:
+        return a if a == b else None
+    left, right = _span(a), _span(b)
+    if left is None or right is None:
+        return None
+    return _bounded(min(left.lo, right.lo), max(left.hi, right.hi))
+
+
+def _wrap(value, typ):
+    bits = WIDTHS[typ]
+    value &= (1 << bits) - 1
+    if typ.startswith("i") and value >= (1 << (bits - 1)):
+        value -= 1 << bits
+    return value
+
+
+def _bounded_binary(op, lhs, rhs, typ):
+    """Conservative arithmetic over verified same-width SSA integer values.
+
+    Checked overflow can trap; a partly overflowing interval loses precision.
+    Wrapping arithmetic is admitted only when the full interval does not wrap,
+    or for an exact pair for which modular arithmetic is computed directly.
+    """
+    a, b = _span(lhs), _span(rhs)
+    if a is None or b is None:
+        return None
+    kind = op.split(".")[1]
+    if kind == "add":
+        lo, hi = a.lo + b.lo, a.hi + b.hi
+    elif kind == "sub":
+        lo, hi = a.lo - b.hi, a.hi - b.lo
+    else:
+        endpoints = (a.lo*b.lo, a.lo*b.hi, a.hi*b.lo, a.hi*b.hi)
+        lo, hi = min(endpoints), max(endpoints)
+    minimum, maximum = integer_range(typ)
+    if minimum <= lo <= hi <= maximum:
+        return _bounded(lo, hi)
+    if op.endswith(".wrap") and a.lo == a.hi and b.lo == b.hi:
+        return _wrap(lo, typ)
+    if op.endswith(".checked") and a.lo == a.hi and b.lo == b.hi:
+        _reject("checked constant arithmetic may trap")
+    return None
+
+
+def _bounded_cast(value, typ, mode):
+    source = _span(value)
+    if source is None:
+        return None
+    minimum, maximum = integer_range(typ)
+    if minimum <= source.lo <= source.hi <= maximum:
+        return _bounded(source.lo, source.hi)
+    if mode == "wrap" and source.lo == source.hi:
+        return _wrap(source.lo, typ)
+    return None
+
+
 def _paths(term: dict) -> list[dict]:
     if term["op"] == "jump":
         return [{"target": term["target"], "args": term["args"]}]
@@ -55,16 +134,18 @@ def _dag(names, edges, context):
 
 
 def _merge(previous, proposed, label):
-    """Join two verified CFG edges with a per-owner conservative maximum."""
-    old_owners, old_constants = previous
-    new_owners, new_constants = proposed
+    """Join HIA edges by maximum possible owner and scalar value bounds."""
+    old_owners, old_known = previous
+    new_owners, new_known = proposed
     if old_owners.keys() != new_owners.keys():
         _reject(f"{label}: incompatible owner inventory at a CFG join")
     owners = {key: max(old_owners[key], new_owners[key]) for key in old_owners}
-    constants = {key: value for key, value in old_constants.items()
-                 if key in new_constants and type(new_constants[key]) is type(value)
-                 and new_constants[key] == value}
-    return owners, constants
+    known = {}
+    for key in old_known.keys() & new_known.keys():
+        bound = _combine_known(old_known[key], new_known[key])
+        if bound is not None:
+            known[key] = bound
+    return owners, known
 
 
 def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) -> int:
@@ -96,35 +177,36 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) 
                 # unit constants are intentionally not used as sizes.
             elif op in {"int.add.checked", "int.sub.checked", "int.mul.checked",
                         "int.add.wrap", "int.sub.wrap", "int.mul.wrap"}:
-                # Pure constant folding is only an admission-time fact. Both
-                # operands have a known exact value and the existing Core
-                # verifier has already checked their matching integer type.
-                # A potentially trapping checked calculation is deliberately
-                # refused rather than guessed as an allocation extent.
-                if len(args) == 2 and all(type(known.get(arg)) is int for arg in args):
-                    from .hia_program import WIDTHS, integer_range
-                    typ = outputs[0]["type"]
-                    if typ not in WIDTHS:
-                        _reject(f"{fn['name']}/{name}: folded value has unsupported type")
-                    left, right = (known[arg] for arg in args)
-                    action = op.split(".")[1]
-                    value = (left + right if action == "add" else
-                             left - right if action == "sub" else left * right)
-                    lo, hi = integer_range(typ)
-                    if op.endswith("checked"):
-                        if not lo <= value <= hi:
-                            _reject(f"{fn['name']}/{name}: checked constant arithmetic may trap")
-                    else:
-                        width = WIDTHS[typ]
-                        value &= (1 << width) - 1
-                        if lo < 0 and value > hi:
-                            value -= 1 << width
-                    known[out_names[0]] = value
+                folded = _bounded_binary(op, known.get(args[0]), known.get(args[1]),
+                                         outputs[0]["type"])
+                if folded is not None:
+                    known[out_names[0]] = folded
+            elif op == "int.cast":
+                folded = _bounded_cast(known.get(args[0]), outputs[0]["type"],
+                                       attrs["mode"])
+                if folded is not None:
+                    known[out_names[0]] = folded
+            elif op == "select":
+                condition = known.get(args[0])
+                folded = (known.get(args[1] if condition else args[2])
+                          if type(condition) is bool else
+                          _combine_known(known.get(args[1]), known.get(args[2])))
+                if folded is not None:
+                    known[out_names[0]] = folded
+            elif op == "bool.not":
+                if type(known.get(args[0])) is bool:
+                    known[out_names[0]] = not known[args[0]]
+            elif op in {"bool.and", "bool.or"}:
+                lhs, rhs = known.get(args[0]), known.get(args[1])
+                if type(lhs) is bool and type(rhs) is bool:
+                    known[out_names[0]] = lhs and rhs if op == "bool.and" else lhs or rhs
             elif op in {"buffer.new", "buffer.try_new"}:
-                size = known.get(args[0])
-                if type(size) is not int or size < 0 or size > MAX_REQUEST:
-                    _reject(f"{fn['name']}/{name}: allocator extent is not a finite constant")
-                owner[out_names[0]] = size
+                size = _span(known.get(args[0]))
+                if size is None or size.lo < 0 or size.hi > MAX_REQUEST:
+                    _reject(f"{fn['name']}/{name}: allocator extent lacks a finite verified bound")
+                # Count the largest successful fallible allocation, never
+                # infer that try_new must fail or return only empty storage.
+                owner[out_names[0]] = size.hi
                 peak = max(peak, sum(owner.values()))
             elif op == "owner.move":
                 if args[0] not in owner:
@@ -142,10 +224,17 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) 
                 if child["name"] not in calculated:
                     _reject(f"{fn['name']}/{name}: callee heap bound not available")
                 peak = max(peak, sum(owner.values()) + calculated[child["name"]])
+            elif op == "buffer.len":
+                # A known owner is backed by <= owner[name] bytes. Failed
+                # try_new and merged owner alternatives can also have length 0.
+                # Do not treat an owner *upper* bound as an exact length: that
+                # would be unsafe if later wrapped arithmetic changed the size.
+                if args[0] in owner:
+                    known[out_names[0]] = _Span(0, owner[args[0]])
             elif op not in _NO_ALLOCATION_OPS:
                 _reject(f"{fn['name']}/{name}: unreviewed opcode {op} has no heap accounting")
-            # Audited nonallocating scalar/memory operations produce unknown
-            # scalar values; unknowns cannot later qualify allocation size.
+            # Unreviewed or nonconstant arithmetic stays unknown and cannot
+            # subsequently qualify an allocation extent.
         for edge in _paths(block["term"]):
             target = blocks[edge["target"]]
             next_owner, next_known = {}, {}
