@@ -167,3 +167,13 @@ side effects; the differential runner is **not an adversarial DSO sandbox**.
 Additional acceptance:
 `python -m unittest tests.test_hia_native_postexit_group -v`.
 `whole_project_blockers_closed=false`.
+
+## Bounded final reap
+
+The evaluator now uses `Popen.wait(timeout=2)` even after signaling the
+worker group. SIGKILL cannot necessarily finish a task stuck in uninterruptible
+kernel I/O, so an unconditional post-timeout `wait()` would leave the parent
+hanging indefinitely. This timeout is a fail-closed **evaluator bound**, not
+a claim that the OS has reclaimed all resources or that hostile native code
+is safely isolated. The native post-exit regression now also checks that the
+reap timeout is explicitly supplied.

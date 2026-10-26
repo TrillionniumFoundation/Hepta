@@ -15,6 +15,7 @@ import subprocess
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 
 from hepta.hia_native_differential import (
     HIADifferentialRejected, _observe_native, _pin_native_artifact,
@@ -105,6 +106,29 @@ class HIANativePostExitGroupTests(unittest.TestCase):
                 self._run(library, "stall", timeout=0.35)
             time.sleep(1.1)
             self.assertFalse(marker.exists(), "native fork escaped timeout cleanup")
+
+
+    def test_direct_worker_reap_wait_has_an_explicit_deadline(self):
+        # A native thread stuck in uninterruptible kernel sleep may not
+        # reap promptly even after the group receives SIGKILL. Never
+        # introduce an unbounded parent wait after the policy deadline.
+        with tempfile.TemporaryDirectory() as td:
+            library = self._compile(Path(td), """
+                int healthy(void) { return 7; }
+            """)
+            actual_wait = subprocess.Popen.wait
+            deadlines = []
+
+            def timed_reap(proc, *args, **kwargs):
+                deadlines.append(kwargs.get("timeout"))
+                if type(kwargs.get("timeout")) not in (int, float) or not (
+                        0 < kwargs["timeout"] <= 2):
+                    self.fail("unbounded worker reap may stall the evaluator")
+                return actual_wait(proc, *args, **kwargs)
+
+            with patch.object(subprocess.Popen, "wait", timed_reap):
+                self.assertEqual(self._run(library, "healthy"), ("value", 7))
+            self.assertTrue(deadlines)
 
 
 if __name__ == "__main__":

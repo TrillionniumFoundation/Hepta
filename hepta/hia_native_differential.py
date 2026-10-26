@@ -290,7 +290,10 @@ def _observe_native(library: Path, function: str, word: str, args: list[int], *,
                 except ProcessLookupError:
                     pass
                 finally:
-                    proc.wait()
+                    # SIGKILL cannot immediately finish an uninterruptible
+                    # kernel wait. Bound the final reap; never block the
+                    # evaluator indefinitely after its deadline.
+                    proc.wait(timeout=2)
             if timed_out:
                 _reject("native child timed out; process group terminated")
             if residual_group:
