@@ -89,4 +89,37 @@ class HIAByteTraceTests(unittest.TestCase):
             replay_byte_memory_path(graph,other,"f",inputs={"p0":True},actions=(
                 {"kind":"alloc","bytes":4},{"kind":"read","index":0}))
 
+    def test_indexed_buffer_projection_uses_checked_resource_place(self):
+        # * is the Resource IR index projection, not a value-level SSA fact.
+        from hepta.resource_ir import verify_resource_ir
+        for cond in (False, True):
+            graph, _ = fixture()
+            fn = graph["functions"][0]
+            fn["locals"][0]["mutable"] = True
+            ops = fn["blocks"][0]["ops"]
+            ops.insert(1, {"op": "use", "place": {"root": "v0", "path": ["*"]},
+                           "mode": "write"})
+            ops.insert(2, {"op": "use", "place": {"root": "v0", "path": ["*"]},
+                           "mode": "read"})
+            verified = verify_resource_ir(graph)
+            self.assertTrue(verified["ok"], verified)
+            report = replay_byte_memory_path(
+                graph, verified, "f", inputs={"p0": cond},
+                actions=({"kind": "alloc", "bytes": 4},
+                         {"kind": "write", "index": 1, "value": 72},
+                         {"kind": "read", "index": 1}))
+            self.assertEqual(report["allocation_count"], 1)
+            self.assertEqual(report["free_count"], 1)
+            self.assertEqual(report["memory_token_final"], 3)
+            self.assertEqual(
+                [event["value"] for event in report["memory_observations"]
+                 if event["kind"] == "read"], [72])
+            self.assertFalse(report["claims"]["memory_bytes_match_original_source_proved"])
+            with self.assertRaisesRegex(HIAByteTraceRejected, "E_HIA_BYTE_TRACE"):
+                replay_byte_memory_path(
+                    graph, verified, "f", inputs={"p0": cond},
+                    actions=({"kind": "alloc", "bytes": 4},
+                             {"kind": "write", "index": 4, "value": 72},
+                             {"kind": "read", "index": 1}))
+
 if __name__ == "__main__": unittest.main()

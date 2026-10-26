@@ -164,8 +164,13 @@ def replay_byte_memory_path(graph: dict, verified: dict, function_name: str, *,
                     if mode == "write" and permission != "mut":
                         _reject("shared loan cannot write")
                 else:
-                    if type(place) is not dict or place.get("path") != []:
-                        _reject("only whole Buffer<u8> place access is modeled")
+                    # The verified Resource IR uses a single '*' projection
+                    # for a Buffer<u8> element access. This byte oracle binds
+                    # its concrete index to an EXTERNAL action, NOT to the
+                    # checked source's scalar SSA. Nested projections reject.
+                    if (type(place) is not dict or
+                            place.get("path") not in ([], ["*"])):
+                        _reject("only whole Buffer<u8> or one checked indexed element is modeled")
                     root = place.get("root")
                     if type(root) is not str or root not in owners:
                         _reject("memory access through missing owner")
