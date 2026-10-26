@@ -212,6 +212,23 @@ class _FunctionEmitter:
         self.line("unreachable")
         self.lines.append(good + ":")
 
+    def bulk_if_nonempty(self, count, emit):
+        """Skip even pointer formation for a verified zero-byte memory operation.
+
+        Guarded range checks must be emitted *before* entering this helper.
+        No value defined inside the write block may escape the join.
+        The verifier admits only bulk operations with no SSA outputs.
+        """
+        positive = self.instruction("icmp ne i64 " + count + ", 0")
+        self.serial += 1
+        suffix = str(self.serial)
+        nonempty, after = "bulk_nonzero_" + suffix, "bulk_after_" + suffix
+        self.line("br i1 " + positive + ", label %" + nonempty + ", label %" + after)
+        self.lines.append(nonempty + ":")
+        emit()
+        self.line("br label %" + after)
+        self.lines.append(after + ":")
+
     def cast(self, value, source, destination):
         old, new = _WIDTHS[source], _WIDTHS[destination]
         if old == new:
@@ -352,18 +369,24 @@ class _FunctionEmitter:
                 self.line("store i8 " + arguments[2][0] + ", ptr " + address + ", align 1")
         elif op == "buffer.fill":
             pointer, length = self.buffer_parts(arguments[0][0])
-            self.line("call void @llvm.memset.p0.i64(ptr align 1 " + pointer +
-                      ", i8 " + arguments[1][0] + ", i64 " + length + ", i1 false)")
+            # The allocator's valid empty owner may contain a null pointer.
+            # Even for count=0, do not pass it to a memory intrinsic.
+            def fill_nonempty():
+                self.line("call void @llvm.memset.p0.i64(ptr align 1 " + pointer +
+                          ", i8 " + arguments[1][0] + ", i64 " + length + ", i1 false)")
+            self.bulk_if_nonempty(length, fill_nonempty)
         elif op == "buffer.copy":
             destination, dest_len = self.buffer_parts(arguments[0][0])
             source, source_len = self.buffer_parts(arguments[1][0])
             size = arguments[2][0]
             self.guard(self.instruction("icmp ule i64 " + size + ", " + dest_len))
             self.guard(self.instruction("icmp ule i64 " + size + ", " + source_len))
-            # The verifier requires a unique destination loan and a different
-            # source owner root, so nonoverlapping LLVM memcpy is admissible.
-            self.line("call void @llvm.memcpy.p0.p0.i64(ptr align 1 " + destination +
-                      ", ptr align 1 " + source + ", i64 " + size + ", i1 false)")
+            # Independent owner roots permit memcpy. Zero count is a no-op,
+            # including two distinct null zero-size owners.
+            def copy_nonempty():
+                self.line("call void @llvm.memcpy.p0.p0.i64(ptr align 1 " + destination +
+                          ", ptr align 1 " + source + ", i64 " + size + ", i1 false)")
+            self.bulk_if_nonempty(size, copy_nonempty)
         elif op == "buffer.move_within":
             # v3 overlap-safe memmove within one uniquely borrowed owner.
             # Validate each offset before subtracting from the extent, then
@@ -376,14 +399,17 @@ class _FunctionEmitter:
             src_available = self.instruction("sub i64 " + extent + ", " + source)
             self.guard(self.instruction("icmp ule i64 " + size + ", " + dst_available))
             self.guard(self.instruction("icmp ule i64 " + size + ", " + src_available))
-            dst_pointer = self.instruction(
-                "getelementptr i8, ptr " + pointer + ", i64 " + destination)
-            src_pointer = self.instruction(
-                "getelementptr i8, ptr " + pointer + ", i64 " + source)
-            # Intentionally memmove, never memcpy: source and destination
-            # ranges may partially or entirely overlap.
-            self.line("call void @llvm.memmove.p0.p0.i64(ptr align 1 " + dst_pointer +
-                      ", ptr align 1 " + src_pointer + ", i64 " + size + ", i1 false)")
+            # Offset==extent, count==0 is legal, even for a null empty owner.
+            # Do not compute GEPs at all until a nonzero range is established.
+            def move_nonempty():
+                dst_pointer = self.instruction(
+                    "getelementptr i8, ptr " + pointer + ", i64 " + destination)
+                src_pointer = self.instruction(
+                    "getelementptr i8, ptr " + pointer + ", i64 " + source)
+                # One owner can overlap itself: always use memmove.
+                self.line("call void @llvm.memmove.p0.p0.i64(ptr align 1 " + dst_pointer +
+                          ", ptr align 1 " + src_pointer + ", i64 " + size + ", i1 false)")
+            self.bulk_if_nonempty(size, move_nonempty)
         elif op == "buffer.fill_range":
             # v6 partial memset: both guards dominate the address and write.
             # A zero count needs no derived pointer (zero-size owners use null).
@@ -415,12 +441,16 @@ class _FunctionEmitter:
             src_remaining = self.instruction("sub i64 " + src_size + ", " + src_offset)
             self.guard(self.instruction("icmp ule i64 " + size + ", " + dst_remaining))
             self.guard(self.instruction("icmp ule i64 " + size + ", " + src_remaining))
-            dst_ptr = self.instruction(
-                "getelementptr i8, ptr " + destination + ", i64 " + dst_offset)
-            src_ptr = self.instruction(
-                "getelementptr i8, ptr " + source + ", i64 " + src_offset)
-            self.line("call void @llvm.memcpy.p0.p0.i64(ptr align 1 " + dst_ptr +
-                      ", ptr align 1 " + src_ptr + ", i64 " + size + ", i1 false)")
+            # Skip both GEPs and memcpy for a zero-size range, even when
+            # either owner has zero capacity and is represented by null.
+            def copy_range_nonempty():
+                dst_ptr = self.instruction(
+                    "getelementptr i8, ptr " + destination + ", i64 " + dst_offset)
+                src_ptr = self.instruction(
+                    "getelementptr i8, ptr " + source + ", i64 " + src_offset)
+                self.line("call void @llvm.memcpy.p0.p0.i64(ptr align 1 " + dst_ptr +
+                          ", ptr align 1 " + src_ptr + ", i64 " + size + ", i1 false)")
+            self.bulk_if_nonempty(size, copy_range_nonempty)
         elif op == "buffer.swap":
             # v4: finite same-owner byte exchange. Two independent guards must
             # dominate BOTH loads/stores. Same-index swap is well defined.
