@@ -102,6 +102,54 @@ class ExistingV6CoreDifferentialTests(unittest.TestCase):
         self.assertFalse(report["claims"]["checked_hepta_source_replayed"])
         self.assertEqual(report["cases_executed"], 1)
 
+    def test_source_static_budget_receipt_is_replayed_before_native_child(self):
+        # The native builder may return a complete, rehashed receipt with
+        # understated heap bytes. No finite VM/native comparison may start.
+        from copy import deepcopy
+        from hashlib import sha256
+        import json
+        from types import SimpleNamespace
+        from hepta.hia_static_budget import analyze_static_budget
+
+        core = checked_core()
+        limits = {"max_live_heap_bytes": 4}
+        genuine = analyze_static_budget(core, **limits)
+        self.assertGreater(genuine["functions"][0]["max_live_heap_bytes"], 0)
+        fake = deepcopy(genuine)
+        fake["functions"][0]["max_live_heap_bytes"] = 0
+        unsealed = {k: v for k, v in fake.items() if k != "sha256"}
+        fake["sha256"] = sha256(json.dumps(
+            unsealed, sort_keys=True, separators=(",", ":"), allow_nan=False
+        ).encode("utf-8")).hexdigest()
+        analyzed = SimpleNamespace(
+            program=object(), checked=object(),
+            project=SimpleNamespace(identity=_PROJECT, unchanged=lambda: True),
+            report={"ok": True})
+        fake_builder = {
+            "ok": True,
+            "claims": {"native_codegen_consumed_verified_hia_core": True},
+            "static_resource_budget": fake,
+        }
+        with tempfile.TemporaryDirectory(prefix="hia-forged-budget-") as temp:
+            source = Path(temp) / "original.hepta"
+            source.write_text(_SOURCE, encoding="utf-8")
+            with (
+                patch("hepta.pipeline.analyze_project", return_value=analyzed),
+                patch("hepta.hia_source_bridge.build_checked_hepta_hia_native",
+                      return_value=fake_builder) as build,
+                patch("hepta.hia_source_bridge.lower_checked_owned_hia",
+                      return_value=SimpleNamespace(program=core)),
+                patch("hepta.hia_native_differential._observe_native") as child,
+            ):
+                with self.assertRaisesRegex(HIADifferentialRejected, "budget replay"):
+                    qualify_checked_hia_source(
+                        source, {"drop_case": [[]]}, profile="owned",
+                        static_resource_limits=limits)
+                child.assert_not_called()
+                build.assert_called_once()
+                self.assertEqual(
+                    build.call_args.kwargs["static_resource_limits"], limits)
+
     @unittest.skipUnless(shutil.which(CLANG) and
                          (os.environ.get("RUSTC") or shutil.which("rustc")),
                          "pinned Rust and Clang20 required")
@@ -111,7 +159,10 @@ class ExistingV6CoreDifferentialTests(unittest.TestCase):
             src.write_text(_SOURCE, encoding="utf-8")
             report = qualify_checked_hia_source(
                 src, {"drop_case": [[]]}, profile="owned",
-                clang=CLANG, rustc=os.environ.get("RUSTC"))
+                clang=CLANG, rustc=os.environ.get("RUSTC"),
+                static_resource_limits={"max_live_heap_bytes": 4})
+            self.assertTrue(report["claims"]["source_static_resource_budget_replayed"])
+            self.assertEqual(report["static_resource_limits"], {"max_live_heap_bytes": 4})
             self.assertTrue(report["claims"]["native_compiled_from_program_verified"])
             self.assertTrue(report["claims"]["checked_hepta_source_replayed"])
             self.assertEqual(report["cases_executed"], 1)

@@ -373,24 +373,36 @@ def qualify_executable_hia_program(program, cases: dict, *, clang="clang") -> di
 
 
 def qualify_checked_hia_source(source: str | Path, cases: dict, *, profile="owned",
-                               rustc=None, clang="clang", locked=False) -> dict:
+                               rustc=None, clang="clang", locked=False,
+                               static_resource_limits=None) -> dict:
     """Pinned Hepta source -> single executable HIA v1-v6 -> native LLVM -> VM.
 
     Unlike the historical scalar-only route, this uses hia_source_bridge's
     canonical verified Program producer and hia_program_llvm exclusively.
     """
     from .pipeline import analyze_project, compiler_hash
-    from .hia_source_bridge import (build_checked_hepta_hia_native,
+    from .hia_source_bridge import (HIAHeptaBridgeRejected,
+                                    _validate_static_budget_receipt,
+                                    build_checked_hepta_hia_native,
                                     lower_checked_scalar_hia,
                                     lower_checked_owned_hia)
 
     if profile not in {"scalar", "owned"} or platform.system() != "Linux":
         _reject("verified Core differential requires supported source profile and Linux")
+    if static_resource_limits is not None and (
+            type(static_resource_limits) is not dict or not static_resource_limits
+            or not set(static_resource_limits) <= {
+                "max_allocator_interactions", "max_vm_ticks",
+                "max_call_depth", "max_live_heap_bytes"}
+            or any(type(v) is not int or v < 0
+                   for v in static_resource_limits.values())):
+        _reject("invalid typed opt-in static resource policy")
     with tempfile.TemporaryDirectory(prefix="hia-checked-native-diff-") as temp:
         shared = Path(temp) / "checked.so"
         native = build_checked_hepta_hia_native(source, shared, rustc=rustc,
                                                 clang=clang, locked=locked,
-                                                profile=profile, kind="shared")
+                                                profile=profile, kind="shared",
+                                                static_resource_limits=static_resource_limits)
         if (native.get("ok") is not True
                 or native.get("claims", {}).get("native_codegen_consumed_verified_hia_core") is not True):
             _reject("checked source->Core native qualification rejected")
@@ -406,6 +418,24 @@ def qualify_checked_hia_source(source: str | Path, cases: dict, *, profile="owne
                    if profile == "owned" else
                    lower_checked_scalar_hia(analyzed.program, analyzed.checked,
                                             project_sha256=project.identity))
+        # Native build acceptance alone cannot promote an optional resource
+        # claim into a source-checked finite bound. Replay its exact budget
+        # with the existing source bridge validator against independently
+        # regenerated *current HIA Core bytes* before any native child call.
+        # This validator re-runs the single established budget analyzer;
+        # neither a JSON digest nor a self-asserted builder receipt suffices.
+        qualified_budget = None
+        if static_resource_limits is not None:
+            qualified_budget = native.get("static_resource_budget")
+            try:
+                _validate_static_budget_receipt(
+                    lowered.program, static_resource_limits, qualified_budget)
+            except (HIAHeptaBridgeRejected, ValueError, TypeError,
+                    KeyError, OverflowError, RecursionError) as exc:
+                raise HIADifferentialRejected(
+                    "E_HIA_DIFFERENTIAL: source static resource budget replay rejected") from exc
+        elif "static_resource_budget" in native:
+            _reject("unexpected unrequested static resource budget receipt")
         ids = native.get("identities", {})
         artifact = native.get("native_backend", {})
         if (ids.get("hia_program_sha256") != lowered.program.sha256
@@ -421,6 +451,10 @@ def qualify_checked_hia_source(source: str | Path, cases: dict, *, profile="owne
             _reject("source, compiler or native bytes changed during differential execution")
         result["claims"]["native_compiled_from_program_verified"] = True
         result["claims"]["checked_hepta_source_replayed"] = True
+        result["claims"]["source_static_resource_budget_replayed"] = qualified_budget is not None
+        if qualified_budget is not None:
+            result["static_resource_budget_sha256"] = qualified_budget["sha256"]
+            result["static_resource_limits"] = dict(static_resource_limits)
         result["source_project_sha256"] = project.identity
         result["source_compiler_sha256"] = ids["compiler_sha256"]
         return result
