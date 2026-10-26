@@ -67,3 +67,12 @@ passing exact-head receipts.
 All P0–P7 production gates remain OPEN/PARTIAL;
 `whole_project_blockers_closed=false`. Remote CI queue never blocks
 engineering, but its absence is not proof of correctness.
+
+## Oracle/native integer type identity
+
+A signed/unsigned HIA integer value must be an exact Python `int` within
+its declared i32/u32 range before finite comparison. Python tuple equality
+would otherwise treat `True` or `1.0` as equal to the native `1`. These
+results and out-of-range oracles now reject before a successful receipt.
+This change is a bounded result-type gate, not a general backend refinement
+or foreign-code safety theorem.

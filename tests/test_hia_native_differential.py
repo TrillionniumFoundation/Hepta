@@ -84,6 +84,20 @@ uint32_t max_unsigned(uint32_t a, uint32_t b) { return a > b ? a : b; }
             compare_oracle_with_native(WrongOracle(), self.library,
                 {"checked_add": [[2, 5]], "max_unsigned": [[1, 2]]})
 
+    def test_noninteger_oracle_cannot_equal_native_integer(self):
+        # Python tuple equality alone would accept True == 1 and 1.0 == 1.
+        for forged in (True, 1.0, "1", -1, 2**32):
+            class Forged(_ScalarOracle):
+                def run(self, name, args, *, max_steps=20000):
+                    if name == "max_unsigned":
+                        return forged
+                    return super().run(name, args, max_steps=max_steps)
+            with self.subTest(forged=repr(forged)):
+                with self.assertRaisesRegex(HIADifferentialRejected, "oracle returned"):
+                    compare_oracle_with_native(
+                        Forged(), self.library,
+                        {"checked_add": [[1, 2]], "max_unsigned": [[0, 1]]})
+
     def test_oracle_budget_is_never_reclassified_as_native_trap(self):
         class TimedOut(_ScalarOracle):
             def run(self, name, args, *, max_steps=20000):
