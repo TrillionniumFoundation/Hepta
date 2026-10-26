@@ -91,7 +91,7 @@ def _implementation_hash():
     """Bind the actual verifier/emitter and the native boundary helpers."""
     digest = sha256()
     root = Path(__file__).parent
-    for name in ("hia_program.py", "hia_program_llvm.py", "artifact_publication.py",
+    for name in ("hia_schema.py", "hia_program.py", "hia_program_composite.py", "hia_program_llvm.py", "artifact_publication.py",
                  "clang_capture.py", "elf_shared_abi.py", "object_symbols.py",
                  "object_structure.py", "native_tool_identity.py"):
         content = (root / name).read_bytes()
@@ -106,7 +106,8 @@ def _verified(program):
     # A public dataclass instance/digest is not itself authority. Re-run the
     # independent verifier over its exact bytes before emitting machine code.
     current = verify_program(program)
-    if current.canonical_bytes != program.canonical_bytes or current.sha256 != program.sha256:
+    if (current.canonical_bytes != program.canonical_bytes or current.sha256 != program.sha256
+            or current.input_sha256 != program.input_sha256):
         _reject("verified program bytes changed")
     return current
 
@@ -161,6 +162,7 @@ class HIAProgramLLVM:
     exports: tuple[str, ...]
     profile: str = PROFILE
     target: str = TARGET
+    input_sha256: str | None = None
 
 
 class _FunctionEmitter:
@@ -341,8 +343,21 @@ class _FunctionEmitter:
             pair = self.instruction("call %hia.alloc @__hia_allocate(i64 " + arguments[0][0] + ", i1 " + self.zero_bytes + ")")
             owner = self.instruction("extractvalue %hia.alloc " + pair + ", 0")
             success = self.instruction("extractvalue %hia.alloc " + pair + ", 1")
+            # Expose the allocation helper's exact length invariant to LLVM:
+            # success implies requested length (including zero), failure an
+            # empty owner.  Returning both fields through an aggregate PHI can
+            # hide this correlation from downstream loop bounds analysis.
+            # Reconstruct only the length, retaining the actual allocator's
+            # pointer and success flag.  Every byte access below still emits
+            # its ordinary runtime guard; no trust in source-loop patterns or
+            # unverified assumptions is introduced by this normalization.
             if op == "buffer.new":
                 self.guard(success)
+                length = arguments[0][0]
+            else:
+                length = self.instruction("select i1 " + success + ", i64 " + arguments[0][0] + ", i64 0")
+            owner = self.instruction("insertvalue %hia.buffer " + owner + ", i64 " + length + ", 1")
+            if op == "buffer.new":
                 results = [owner]
             else:
                 results = [owner, success]
@@ -354,10 +369,20 @@ class _FunctionEmitter:
             pass
         elif op == "owner.drop":
             ptr = self.instruction("extractvalue %hia.buffer " + arguments[0][0] + ", 0")
-            # Allocation refusal and deallocation events are observable in this
-            # explicit resource profile. libc-name recognition must not erase
-            # them simply because no surviving value refers to the bytes.
+            # HIA's zero-size and failed try_new owners contain a null pointer
+            # and do not own a native allocation. The Python Core VM therefore
+            # observes zero frees for these owners. Calling free(NULL) is legal
+            # C but still observable by an allocator wrapper: avoid that call.
+            # Non-null pointers must retain their real, nobuiltin free event.
+            nonnull = self.instruction("icmp ne ptr " + ptr + ", null")
+            self.serial += 1
+            suffix = str(self.serial)
+            release, after = "drop_nonnull_" + suffix, "drop_after_" + suffix
+            self.line("br i1 " + nonnull + ", label %" + release + ", label %" + after)
+            self.lines.append(release + ":")
             self.line("call void @free(ptr " + ptr + ") nobuiltin")
+            self.line("br label %" + after)
+            self.lines.append(after + ":")
         elif op in {"buffer.load", "buffer.store"}:
             pointer, length = self.buffer_parts(arguments[0][0])
             index = arguments[1][0]
@@ -574,7 +599,7 @@ failed:
 
 
 class _Emitter:
-    def __init__(self, document, target):
+    def __init__(self, document, target, allowed_exports):
         self.document = document
         self.target = target
         self.functions = {fn["name"]: fn for fn in document["functions"]}
@@ -584,10 +609,15 @@ class _Emitter:
         self.indices = {fn["name"]: index for index, fn in enumerate(document["functions"])}
         self.intrinsics = set()
         self.exports = []
+        self.allowed_exports = allowed_exports
 
     def wrapper(self, fn, number):
         # External entrypoints never accept forged owner/loan descriptors.
-        if (any(param["type"] not in set(_WIDTHS) | {"bool"} for param in fn["params"])
+        # An erased nominal aggregate or task is still not a scalar public
+        # signature.  Its tags/padding/protocol helpers cannot be constructed
+        # by callers through the scalar C ABI.
+        if (fn["name"] not in self.allowed_exports
+                or any(param["type"] not in set(_WIDTHS) | {"bool"} for param in fn["params"])
                 or len(fn["returns"]) > 1 or
                 any(typ not in set(_WIDTHS) | {"bool", "unit"} for typ in fn["returns"])):
             return ""
@@ -646,7 +676,7 @@ def emit_program_llvm(program, *, target=TARGET):
     verified = _verified(program)
     from .hia_program import SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6
     document = verified.as_dict()
-    emitter = _Emitter(document, target)
+    emitter = _Emitter(document, target, verified.scalar_entrypoints)
     text = emitter.render()
     if not text.isascii() or len(text.encode()) > MAX_LLVM_BYTES:
         _reject("generated LLVM exceeds the closed textual profile")
@@ -665,7 +695,7 @@ def emit_program_llvm(program, *, target=TARGET):
     else:
         profile = PROFILE if target == TARGET else PROFILE_AARCH64
     return HIAProgramLLVM(text, sha256(text.encode()).hexdigest(), verified.sha256,
-                          before, tuple(sorted(emitter.exports)), profile, target)
+                          before, tuple(sorted(emitter.exports)), profile, target, verified.input_sha256)
 
 
 def _read_artifact(path):
@@ -751,6 +781,7 @@ def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared"):
     return {"schema": "hepta.hia.program.native.v1", "ok": True,
             "status": "native_compiled_not_executed", "profile": ir.profile, "target": ir.target,
             "kind": kind, "output": str(destination), "core_sha256": ir.core_sha256,
+            "input_sha256": ir.input_sha256,
             "llvm_ir_sha256": ir.sha256, "implementation_sha256": ir.implementation_sha256,
             "artifact_sha256": published["sha256"], "artifact_bytes": published["bytes"],
             "exports": list(ir.exports), "binary_inventory": inventory,

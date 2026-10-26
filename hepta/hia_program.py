@@ -17,19 +17,11 @@ from hashlib import sha256
 import json
 import re
 
-
-SCHEMA = "hepta.hia.program.v1"
-SCHEMA_V2 = "hepta.hia.program.v2"
-SCHEMA_V3 = "hepta.hia.program.v3"
-SCHEMA_V4 = "hepta.hia.program.v4"
-SCHEMA_V5 = "hepta.hia.program.v5"
-SCHEMA_V6 = "hepta.hia.program.v6"
-PROFILE = "closed-ssa-integer-byte-resources-64-v1"
-PROFILE_V2 = "closed-ssa-integer-byte-resources-bulk-64-v2"
-PROFILE_V3 = "closed-ssa-integer-byte-resources-overlap-64-v3"
-PROFILE_V4 = "closed-ssa-integer-byte-resources-swap-64-v4"
-PROFILE_V5 = "closed-ssa-integer-byte-resources-offset-copy-64-v5"
-PROFILE_V6 = "closed-ssa-integer-byte-resources-range-fill-64-v6"
+from .hia_schema import (
+    COMPOSITE_SCHEMA, PRIMITIVE_SCHEMAS, PROFILE, PROFILE_V2, PROFILE_V3,
+    PROFILE_V4, PROFILE_V5, PROFILE_V6, SCHEMA, SCHEMA_V2, SCHEMA_V3,
+    SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, profile_for_schema, supports_feature,
+)
 WORD_BITS = 64
 WIDTHS = {**{f"{s}{n}": n for s in ("i", "u") for n in (8, 16, 32, 64)},
           "isize": 64, "usize": 64}
@@ -157,6 +149,7 @@ class VerifiedProgram:
     """Immutable bytes, not an unforgeable receipt; consumers reverify them."""
 
     canonical_bytes: bytes
+    structured_bytes: bytes | None = None
 
     @property
     def sha256(self):
@@ -166,6 +159,39 @@ class VerifiedProgram:
     def canonical_json(self):
         return self.canonical_bytes.decode("utf-8")
 
+    @property
+    def input_sha256(self):
+        return sha256(self.structured_bytes if self.structured_bytes is not None
+                      else self.canonical_bytes).hexdigest()
+
+    @property
+    def scalar_entrypoints(self):
+        # A nominal aggregate erased into scalar slots is still not a scalar
+        # public signature.  Generated protocol helpers are internal too.
+        document = self.as_dict()
+        if "exports" in document:
+            return frozenset(document["exports"])
+        return frozenset(fn["name"] for fn in document["functions"]
+                         if all(type(p["type"]) is str and p["type"] in SCALARS for p in fn["params"])
+                         and all(type(t) is str and t in SCALARS for t in fn["returns"]))
+
+    @property
+    def normalization_report(self):
+        checked = verify_program(self)
+        core = checked.as_dict()
+        original = (json.loads(checked.structured_bytes)
+                    if checked.structured_bytes is not None else core)
+        return {"input_sha256": checked.input_sha256,
+                "core_sha256": checked.sha256,
+                "input_schema": original["schema"],
+                "input_profile": profile_for_schema(original["schema"]),
+                "core_schema": core["schema"],
+                "core_profile": profile_for_schema(core["schema"]),
+                "structured_elaboration_rechecked": checked.structured_bytes is not None,
+                "primitive_core_rechecked": True,
+                "source_ast_required": False,
+                "public_scalar_entrypoints": sorted(checked.scalar_entrypoints)}
+
     def as_dict(self):
         return json.loads(self.canonical_bytes)
 
@@ -174,13 +200,11 @@ class VerifiedProgram:
         # report rechecks the immutable bytes instead of trusting its class.
         checked = verify_program(self)
         data = checked.as_dict()
-        profile = (PROFILE_V6 if data["schema"] == SCHEMA_V6 else
-                   PROFILE_V5 if data["schema"] == SCHEMA_V5 else
-                   PROFILE_V4 if data["schema"] == SCHEMA_V4 else
-                   PROFILE_V3 if data["schema"] == SCHEMA_V3 else
-                   PROFILE_V2 if data["schema"] == SCHEMA_V2 else PROFILE)
+        profile = profile_for_schema(data["schema"])
         return {"schema": "hepta.hia.program-verification.v1", "ok": True,
                 "profile": profile, "program_sha256": checked.sha256,
+                "input_sha256": checked.input_sha256,
+                "normalization": checked.normalization_report,
                 "word_bits": WORD_BITS, "functions_checked": len(data["functions"]),
                 "blocks_checked": sum(len(f["blocks"]) for f in data["functions"]),
                 "source_required": False,
@@ -190,7 +214,14 @@ class VerifiedProgram:
                            "backend_refinement_proved": False,
                            "foreign_code_supported": False,
                            "escaping_loans_supported": False,
-                           "concurrency_supported": False}}
+                           "concurrency_supported": False,
+                           "nominal_products_and_enums_checked": checked.structured_bytes is not None,
+                           "local_stored_loan_identity_checked": checked.structured_bytes is not None,
+                           "record_field_borrow_provenance_checked": checked.structured_bytes is not None,
+                           "cooperative_task_protocol_checked": checked.structured_bytes is not None,
+                           "background_tasks_supported": False,
+                           "recursive_heap_adts_supported": False,
+                           "preemptive_or_async_cancellation_supported": False}}
 
 
 @dataclass(frozen=True)
@@ -661,9 +692,30 @@ def verify_program(program) -> VerifiedProgram:
     Even a manually constructed VerifiedProgram is parsed and fully rechecked.
     Caller-owned dictionaries and decoded dictionaries never back execution.
     """
+    if isinstance(program, VerifiedProgram) and program.structured_bytes is not None:
+        if type(program.structured_bytes) is not bytes:
+            _reject("structured input must be immutable canonical bytes", "E_HIA_FORMAT")
+        checked = verify_program(program.structured_bytes)
+        if (checked.structured_bytes != program.structured_bytes
+                or checked.canonical_bytes != program.canonical_bytes):
+            _reject("structured input and executable core differ", "E_HIA_CORE")
+        return checked
     data, raw = _decode(program)
-    _keys(data, {"schema", "module", "functions"}, "program")
-    if data["schema"] not in {SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6}:
+    if type(data) is dict and data.get("schema") == COMPOSITE_SCHEMA:
+        from .hia_program_composite import elaborate_program
+        # The entire input was bounded/strictly decoded above.  The whole
+        # generated program is independently checked, with no receipt bypass.
+        core = verify_program(elaborate_program(data))
+        return VerifiedProgram(core.canonical_bytes, raw)
+    if type(data) is dict and data.get("schema") == SCHEMA_V2 and "types" in data:
+        _reject("historical nominal v2 requires import_legacy_composite_v2; "
+                "the primitive v2 namespace cannot infer a producer profile",
+                "E_HIA_VERSION_COLLISION")
+    fields = {"schema", "module", "functions"}
+    if type(data) is dict and "exports" in data:
+        fields.add("exports")
+    _keys(data, fields, "program")
+    if type(data["schema"]) is not str or data["schema"] not in PRIMITIVE_SCHEMAS:
         _reject("unsupported program schema", "E_HIA_SCHEMA")
     _ident(data["module"], "module")
     if type(data["functions"]) is not list or not 1 <= len(data["functions"]) <= MAX_FUNCTIONS:
@@ -674,6 +726,16 @@ def verify_program(program) -> VerifiedProgram:
         if fn["name"] in functions:
             _reject("duplicate function", "E_HIA_NAME")
         functions[fn["name"]], block_maps[fn["name"]] = fn, blocks
+    if "exports" in data:
+        _names(data["exports"], "explicit scalar exports")
+        if len(data["exports"]) != len(set(data["exports"])):
+            _reject("duplicate explicit scalar export", "E_HIA_NAME")
+        for name in data["exports"]:
+            if name not in functions:
+                _reject("explicit export names a missing function", "E_HIA_CALL")
+            fn = functions[name]
+            if any(p["type"] not in SCALARS for p in fn["params"]) or any(t not in SCALARS for t in fn["returns"]):
+                _reject("public exports cannot carry resource descriptors", "E_HIA_TYPE")
     for fn in functions.values():
         blocks = block_maps[fn["name"]]
         initial = {p["name"]: _Capability(p["type"], p["name"], external=p["type"] != "buffer")
@@ -688,11 +750,11 @@ def verify_program(program) -> VerifiedProgram:
             processed.add(ident)
             block = blocks[ident]
             check = _BlockCheck(fn, block, incoming[ident], functions,
-                                bulk_memory=data["schema"] in {SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6},
-                                inplace_memory=data["schema"] in {SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6},
-                                byte_swap=data["schema"] in {SCHEMA_V4, SCHEMA_V5, SCHEMA_V6},
-                                offset_copy=data["schema"] in {SCHEMA_V5, SCHEMA_V6},
-                                range_fill=data["schema"] == SCHEMA_V6)
+                                bulk_memory=supports_feature(data["schema"], "bulk_memory"),
+                                inplace_memory=supports_feature(data["schema"], "inplace_memory"),
+                                byte_swap=supports_feature(data["schema"], "byte_swap"),
+                                offset_copy=supports_feature(data["schema"], "offset_copy"),
+                                range_fill=supports_feature(data["schema"], "range_fill"))
             for ins in block["ops"]:
                 check.instruction(ins)
             check.finish()

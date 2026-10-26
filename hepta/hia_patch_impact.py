@@ -18,10 +18,10 @@ MAX_FUNCTIONS = 1024
 _RECEIPT_FIELDS = {
     "hepta.hia.patch-result.v1": frozenset({
         "schema", "ok", "status", "before_sha256", "after_sha256",
-        "edits", "interface_changes", "claims"}),
+        "edits", "interface_changes", "edit_domain", "original_input_sha256", "claims"}),
     "hepta.hia.patch-result.v2": frozenset({
         "schema", "ok", "status", "before_sha256", "after_sha256",
-        "edits", "interface_changes", "interface_policy", "claims"}),
+        "edits", "interface_changes", "interface_policy", "edit_domain", "original_input_sha256", "claims"}),
 }
 _RECEIPT_CLAIMS = {
     "hepta.hia.patch-result.v1": {
@@ -111,6 +111,8 @@ def analyze_patch_impact(document, request):
             or patch_receipt.get("ok") is not True
             or patch_receipt.get("before_sha256") != original.sha256
             or patch_receipt.get("after_sha256") != checked.sha256
+            or patch_receipt.get("edit_domain") != "independently_verified_normalized_core"
+            or patch_receipt.get("original_input_sha256") != getattr(original, "input_sha256", original.sha256)
             or type(patch_receipt.get("edits")) is not int
             or patch_receipt["edits"] < 1):
         _reject("unqualified or fabricated Agent patch receipt")

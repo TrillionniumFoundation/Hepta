@@ -8,6 +8,7 @@ Restricted Rust expression slots prevent arbitrary generated host code.
 from __future__ import annotations
 import argparse
 import copy
+from contextlib import nullcontext
 import json
 from pathlib import Path
 import re
@@ -214,11 +215,18 @@ def expected_values(task):
     return [(a[0] * (a[0] - 1) // 2) % (1 << 32) for a in task["cases"]]
 
 
-def native_oracle(task, candidate, language, *, clang, rustc):
+def native_oracle(task, candidate, language, *, clang, rustc, artifact_directory=None):
     expected = expected_values(task)
-    with tempfile.TemporaryDirectory(prefix="hia-agent-oracle-") as td:
+    if artifact_directory is not None:
+        Path(artifact_directory).mkdir(parents=True, exist_ok=False)
+    context = (tempfile.TemporaryDirectory(prefix="hia-agent-oracle-")
+               if artifact_directory is None else nullcontext(str(artifact_directory)))
+    with context as td:
         directory = Path(td)
         if language == "hia":
+            from hepta.hia_program_llvm import emit_program_llvm
+            (directory / "candidate.hia").write_bytes(candidate.canonical_bytes)
+            (directory / "candidate.ll").write_text(emit_program_llvm(candidate).text)
             output = directory / "candidate.so"
             compiled = build_program_native(candidate, output, clang=clang)
             runner = ("import ctypes,json,sys\nlib=ctypes.CDLL(sys.argv[1])\nf=lib.repair\n"
@@ -248,11 +256,16 @@ def native_oracle(task, candidate, language, *, clang, rustc):
         return {"ok": observed.returncode == 0 and actual == expected, "native_executed": True,
                 "compile": compiled, "artifact_sha256": file_digest(output),
                 "command": command, "returncode": observed.returncode,
-                "stdout": observed.stdout, "stderr": observed.stderr, "expected": expected, "actual": actual}
+                "stdout": observed.stdout, "stderr": observed.stderr, "expected": expected, "actual": actual,
+                "artifacts_retained": artifact_directory is not None}
 
 
 def bindings():
     return {name: file_digest(ROOT / name) for name in BINDINGS}
+
+
+def native_control_passed(result, correct):
+    return result.get("native_executed") is True and result.get("ok") is correct
 
 
 def write_new(path, value):
@@ -302,7 +315,7 @@ def run_pilot(*, model_dir, model_lock, output_dir, clang, rustc):
                     task["rust_template"].replace("@SLOT@", task["rust_good"]) if correct else task["rust"])
                 result = native_oracle(task, candidate, language, clang=clang, rustc=rustc)
                 controls.append({"task": task["id"], "language": language, "correct": correct,
-                                 "control_passed": result["ok"] is correct, "oracle": result})
+                                 "control_passed": native_control_passed(result, correct), "oracle": result})
     write_new(out / "controls.json", controls)
     def finish(status, runs, **extra):
         report = {"schema": "hepta.hia.agent-pilot.v1", "status": status,

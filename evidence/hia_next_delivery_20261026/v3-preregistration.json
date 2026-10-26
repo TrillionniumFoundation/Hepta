@@ -1,0 +1,530 @@
+{
+  "execution_log_when_registered": "{\"gate\": \"unit_regression\", \"status\": \"running\"}\n",
+  "fixed_order": [
+    [
+      0,
+      "full_lifecycle",
+      "rust"
+    ],
+    [
+      0,
+      "full_lifecycle",
+      "llvm"
+    ],
+    [
+      0,
+      "full_lifecycle",
+      "handwritten_rust"
+    ],
+    [
+      0,
+      "constructor_error",
+      "llvm"
+    ],
+    [
+      0,
+      "constructor_error",
+      "handwritten_rust"
+    ],
+    [
+      0,
+      "constructor_error",
+      "rust"
+    ],
+    [
+      0,
+      "two_stage",
+      "handwritten_rust"
+    ],
+    [
+      0,
+      "two_stage",
+      "rust"
+    ],
+    [
+      0,
+      "two_stage",
+      "llvm"
+    ],
+    [
+      1,
+      "constructor_error",
+      "llvm"
+    ],
+    [
+      1,
+      "constructor_error",
+      "rust"
+    ],
+    [
+      1,
+      "constructor_error",
+      "handwritten_rust"
+    ],
+    [
+      1,
+      "two_stage",
+      "handwritten_rust"
+    ],
+    [
+      1,
+      "two_stage",
+      "llvm"
+    ],
+    [
+      1,
+      "two_stage",
+      "rust"
+    ],
+    [
+      1,
+      "full_lifecycle",
+      "rust"
+    ],
+    [
+      1,
+      "full_lifecycle",
+      "handwritten_rust"
+    ],
+    [
+      1,
+      "full_lifecycle",
+      "llvm"
+    ],
+    [
+      2,
+      "two_stage",
+      "llvm"
+    ],
+    [
+      2,
+      "two_stage",
+      "handwritten_rust"
+    ],
+    [
+      2,
+      "two_stage",
+      "rust"
+    ],
+    [
+      2,
+      "full_lifecycle",
+      "handwritten_rust"
+    ],
+    [
+      2,
+      "full_lifecycle",
+      "rust"
+    ],
+    [
+      2,
+      "full_lifecycle",
+      "llvm"
+    ],
+    [
+      2,
+      "constructor_error",
+      "rust"
+    ],
+    [
+      2,
+      "constructor_error",
+      "llvm"
+    ],
+    [
+      2,
+      "constructor_error",
+      "handwritten_rust"
+    ],
+    [
+      3,
+      "full_lifecycle",
+      "handwritten_rust"
+    ],
+    [
+      3,
+      "full_lifecycle",
+      "llvm"
+    ],
+    [
+      3,
+      "full_lifecycle",
+      "rust"
+    ],
+    [
+      3,
+      "constructor_error",
+      "rust"
+    ],
+    [
+      3,
+      "constructor_error",
+      "handwritten_rust"
+    ],
+    [
+      3,
+      "constructor_error",
+      "llvm"
+    ],
+    [
+      3,
+      "two_stage",
+      "llvm"
+    ],
+    [
+      3,
+      "two_stage",
+      "rust"
+    ],
+    [
+      3,
+      "two_stage",
+      "handwritten_rust"
+    ],
+    [
+      4,
+      "constructor_error",
+      "handwritten_rust"
+    ],
+    [
+      4,
+      "constructor_error",
+      "rust"
+    ],
+    [
+      4,
+      "constructor_error",
+      "llvm"
+    ],
+    [
+      4,
+      "two_stage",
+      "rust"
+    ],
+    [
+      4,
+      "two_stage",
+      "llvm"
+    ],
+    [
+      4,
+      "two_stage",
+      "handwritten_rust"
+    ],
+    [
+      4,
+      "full_lifecycle",
+      "llvm"
+    ],
+    [
+      4,
+      "full_lifecycle",
+      "handwritten_rust"
+    ],
+    [
+      4,
+      "full_lifecycle",
+      "rust"
+    ],
+    [
+      5,
+      "two_stage",
+      "rust"
+    ],
+    [
+      5,
+      "two_stage",
+      "handwritten_rust"
+    ],
+    [
+      5,
+      "two_stage",
+      "llvm"
+    ],
+    [
+      5,
+      "full_lifecycle",
+      "llvm"
+    ],
+    [
+      5,
+      "full_lifecycle",
+      "rust"
+    ],
+    [
+      5,
+      "full_lifecycle",
+      "handwritten_rust"
+    ],
+    [
+      5,
+      "constructor_error",
+      "handwritten_rust"
+    ],
+    [
+      5,
+      "constructor_error",
+      "llvm"
+    ],
+    [
+      5,
+      "constructor_error",
+      "rust"
+    ],
+    [
+      6,
+      "full_lifecycle",
+      "rust"
+    ],
+    [
+      6,
+      "full_lifecycle",
+      "llvm"
+    ],
+    [
+      6,
+      "full_lifecycle",
+      "handwritten_rust"
+    ],
+    [
+      6,
+      "constructor_error",
+      "llvm"
+    ],
+    [
+      6,
+      "constructor_error",
+      "handwritten_rust"
+    ],
+    [
+      6,
+      "constructor_error",
+      "rust"
+    ],
+    [
+      6,
+      "two_stage",
+      "handwritten_rust"
+    ],
+    [
+      6,
+      "two_stage",
+      "rust"
+    ],
+    [
+      6,
+      "two_stage",
+      "llvm"
+    ]
+  ],
+  "full_qualification_plan": {
+    "commands": [
+      {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "tests",
+          "-q"
+        ],
+        "name": "unit_regression"
+      },
+      {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+          "tools/qualify_hia_program.py",
+          "--clang",
+          "/usr/lib/llvm-20/bin/clang",
+          "--output",
+          "/workspace/scratch/06ad8295a712/hepta-unified/evidence/hia_next_20261026_run3/native.json"
+        ],
+        "name": "standalone_native"
+      },
+      {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+          "tools/qualify_hia_program_resources.py",
+          "--output",
+          "/workspace/scratch/06ad8295a712/hepta-unified/evidence/hia_next_20261026_run3/resources.json"
+        ],
+        "name": "standalone_resources"
+      },
+      {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+          "tools/qualify_hia_program_composite.py",
+          "--clang",
+          "/usr/lib/llvm-20/bin/clang",
+          "--workdir",
+          "/workspace/scratch/06ad8295a712/hepta-unified/evidence/hia_next_20261026_run3/composite"
+        ],
+        "name": "composite_resources"
+      },
+      {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+          "tools/qualify_hia_migration.py",
+          "--clang",
+          "/usr/lib/llvm-20/bin/clang",
+          "--clangxx",
+          "/usr/lib/llvm-20/bin/clang++",
+          "--workdir",
+          "/workspace/scratch/06ad8295a712/hepta-unified/evidence/hia_next_20261026_run3/migration"
+        ],
+        "name": "source_migration"
+      },
+      {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+          "tools/qualify_cpp_project_hia.py",
+          "--clang",
+          "/usr/lib/llvm-20/bin/clang",
+          "--clangxx",
+          "/usr/lib/llvm-20/bin/clang++",
+          "--workdir",
+          "/workspace/scratch/06ad8295a712/hepta-unified/evidence/hia_next_20261026_run3/cpp-templates"
+        ],
+        "name": "cpp_template_migration"
+      },
+      {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+          "tools/qualify_hia_program_aarch64.py",
+          "--clang",
+          "/usr/lib/llvm-20/bin/clang",
+          "--linker",
+          "/tmp/hepta-ai-rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld",
+          "--qemu-aarch64",
+          "/tmp/hepta-ai-verification/qemu-8.2.2/qemu-aarch64-static",
+          "--output",
+          "/workspace/scratch/06ad8295a712/hepta-unified/evidence/hia_next_20261026_run3/aarch64.json"
+        ],
+        "name": "standalone_aarch64_qemu"
+      },
+      {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+          "-m",
+          "hepta.executable_core_qualify",
+          "--clang",
+          "/usr/lib/llvm-20/bin/clang",
+          "--rustc",
+          "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+          "--report",
+          "/workspace/scratch/06ad8295a712/hepta-unified/evidence/hia_next_20261026_run3/legacy-core.json"
+        ],
+        "name": "legacy_executable_core"
+      },
+      {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+          "-m",
+          "tools.qualify_lifecycle_composition",
+          "--rustc",
+          "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+          "--output",
+          "/workspace/scratch/06ad8295a712/hepta-unified/evidence/hia_next_20261026_run3/hosted-composition.json"
+        ],
+        "name": "legacy_hosted_composition"
+      },
+      {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+          "tools/validate_board.py",
+          "--rustc",
+          "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+          "--qemu",
+          "/usr/bin/qemu-system-arm",
+          "--output",
+          "/workspace/scratch/06ad8295a712/hepta-unified/evidence/hia_next_20261026_run3/board.json"
+        ],
+        "name": "legacy_cortex_m4_qemu"
+      },
+      {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+          "tools/qualify_hia_program_perf.py",
+          "--clang",
+          "/usr/lib/llvm-20/bin/clang",
+          "--rustc",
+          "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+          "--output",
+          "/workspace/scratch/06ad8295a712/hepta-unified/evidence/hia_next_20261026_run3/performance.json",
+          "--artifact-directory",
+          "/workspace/scratch/06ad8295a712/hepta-unified/evidence/hia_next_20261026_run3/performance-artifacts"
+        ],
+        "name": "standalone_performance"
+      }
+    ],
+    "git_commit": "ae0c0f8b467b401e22efdb18ffbb15ab32da0eb9",
+    "source_snapshot_sha256": "7cd189285e0df22d99989dce1404b7d9c73acfd6a86befe086e3aaa0c205ad75"
+  },
+  "planned_full_runs": 1,
+  "prior_runs_preserved": [
+    "hia_next_20261026_run1",
+    "hia_next_20261026_run2"
+  ],
+  "protocol": {
+    "allocation_optimization_scope": "HIA preserves allocator effects; Rust baselines use their standard allocator optimization rules",
+    "baselines": [
+      "same-source Hepta to Rust",
+      "independent handwritten safe Vec/slice Rust"
+    ],
+    "build_layout": {
+      "caller_tmpdir_used_for_build": false,
+      "directory_prefix": "hepta-hia-perf-",
+      "identity_scope": "fixed path length; random path strings can reorder pooled data and references; whole-ELF or whole-.text equality is not claimed",
+      "retention": "copy exact files after sampling or failure; verify source/copy hashes against recorded measured identities",
+      "retention_parent_used_for_build": false,
+      "root": "/tmp",
+      "temporary_suffix_characters": 8
+    },
+    "c_backend_scope": "no C correctness or performance backend is executed by this qualification",
+    "cpu_affinity": "lowest permitted logical CPU; qualifier and children pinned",
+    "id": "hepta.hia.program.perf.v3",
+    "implementation_mapping": {
+      "handwritten_rust": "independent safe Vec/slice Rust",
+      "llvm": "standalone HIA direct LLVM",
+      "rust": "same Hepta input to checked Rust"
+    },
+    "interference_observation": "CPU time, context switches and page faults are retained per sample; informational only, no sample exclusion or acceptance adjustment",
+    "kernel_buffer_sizes": {
+      "constructor_error": 4093,
+      "full_lifecycle": 4093,
+      "two_stage": 4093
+    },
+    "maximum_geometric_mean_paired_time_ratio": 1.1,
+    "maximum_kernel_paired_time_ratio": 1.2,
+    "maximum_relative_mad": 0.05,
+    "maximum_sample_seconds": 30.0,
+    "measurement_scope": "native loop includes allocation, initialization, borrowed access, cleanup and dispatch",
+    "minimum_sample_seconds": 0.05,
+    "native_calls_per_sample": {
+      "constructor_error": 8388608,
+      "full_lifecycle": 1048576,
+      "two_stage": 1048576
+    },
+    "observer": "actual allocator/NULL interception plus compiled missing-free negative control",
+    "ordering": "rotate kernels by group; rotate backends by group+original-kernel-index; reverse on odd groups",
+    "outlier_policy": "retain every sample; no clipping, retries, calibration or best-run selection",
+    "paired_groups": 7,
+    "profile": "closed-ssa-integer-byte-resources-64-v1",
+    "ratio_definition": "median paired LLVM/baseline time; both baselines must pass independently",
+    "relative_mad_definition": "median(abs(sample - median(samples))) / median(samples)",
+    "resource_observation_scope": "untimed standalone LLVM two_alloc object; Rust allocator traces are not compared",
+    "scope": "Linux x86-64; finite integer/byte-owner kernels; source-free HIA execution",
+    "seed_sequence": "((call_index % 64) * 17 + 13) % 97 + 1",
+    "semantics": "checked integer arithmetic; fallible zeroed allocation; explicit moves and drop; abort on panic",
+    "warmup_calls_per_process": 8192
+  },
+  "reason": "correct independently identified fixed-middle ordering confound; no claim of physical cause of earlier MAD",
+  "schema": "hepta.hia.v3-prospective-qualification.v1",
+  "source": {
+    "git_tree": "b83bcfbecaf380ba6369ce01128389175e59f7f8",
+    "local_commit": "ae0c0f8b467b401e22efdb18ffbb15ab32da0eb9",
+    "remote_commit": "ce8d2689e72ad4da19e835f21424e77d43154623"
+  },
+  "workload_or_safety_or_threshold_change": false
+}

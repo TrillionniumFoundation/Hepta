@@ -206,10 +206,13 @@ class CTranslator:
                 raise MigrationRejected("E_C_RECORD", "Conflicting struct layout in listed configurations")
             self.records[name] = fields
             item.update(status="record_converted", reason=None)
+        models_by_unit = {config["index"]: config["model"] for config in self.capture["configurations"]}
         for unit, node, item in self.declarations:
             if node["kind"] != "FunctionDecl":
                 continue
-            model = self.capture["configurations"][unit]["model"]
+            # Explicit matrix selections retain their original database
+            # indices; a unit identity is not a position in this subset.
+            model = models_by_unit[unit]
             name = ident(node["name"])
             key = f"local_{unit}_{name}" if node.get("storageClass") == "static" else name
             signature = self.signature(node, key, unit, model)

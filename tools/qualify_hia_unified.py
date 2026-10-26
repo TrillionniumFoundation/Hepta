@@ -3,7 +3,7 @@
 
 An actual compiler/test/native run is required for every planned gate. The
 collector records skips and failures and continues independent gates. Scoped
-success never upgrades the six-part research/production request to complete.
+success never upgrades the seven-part research/production request to complete.
 """
 from __future__ import annotations
 
@@ -45,8 +45,18 @@ def _command(argv, timeout=1800):
                 "stdout": value.stdout, "stderr": value.stderr,
                 "seconds": time.monotonic() - started}
     except CaptureRejected as exc:
+        partial = getattr(exc, "capture", None)
+        stdout = partial.stdout.decode("utf-8", errors="replace") if partial is not None else ""
+        stderr = partial.stderr.decode("utf-8", errors="replace") if partial is not None else ""
         return {"argv": list(map(str, argv)), "returncode": None,
-                "stdout": "", "stderr": str(exc), "capture_error": exc.code,
+                "stdout": stdout, "stderr": stderr + "\n" + str(exc),
+                "capture_error": exc.code,
+                "partial_capture": None if partial is None else {
+                    "returncode": partial.returncode,
+                    "stdout_total_bytes": partial.stdout_total_bytes,
+                    "stderr_total_bytes": partial.stderr_total_bytes,
+                    "stdout_retained_bytes": len(partial.stdout),
+                    "stderr_retained_bytes": len(partial.stderr)},
                 "seconds": time.monotonic() - started}
 
 
@@ -77,7 +87,7 @@ def unittest_outcome(stderr, returncode):
     return result
 
 
-def qualify(output, *, clang, rustc, qemu_aarch64, qemu_system_arm, linker):
+def qualify(output, *, clang, rustc, qemu_aarch64, qemu_system_arm, linker, lean):
     output = Path(output).absolute()
     if output.exists() or output.is_symlink():
         raise ValueError("output directory must be new")
@@ -94,9 +104,24 @@ def qualify(output, *, clang, rustc, qemu_aarch64, qemu_system_arm, linker):
                                "--output", output / "native.json"], output / "native.json"),
         ("standalone_resources", [python, "tools/qualify_hia_program_resources.py",
                                   "--output", output / "resources.json"], output / "resources.json"),
+        ("composite_resources", [python, "tools/qualify_hia_program_composite.py", "--clang", clang,
+                                 "--workdir", output / "composite"], output / "composite/qualification.json"),
+        ("composite_bulk_targets", [python, "tools/qualify_hia_composite_bulk.py", "--clang", clang,
+                                    "--linker", linker, "--qemu-aarch64", qemu_aarch64,
+                                    "--output-directory", output / "composite-bulk"], output / "composite-bulk/qualification.json"),
         ("source_migration", [python, "tools/qualify_hia_migration.py", "--clang", clang,
                               "--clangxx", str(Path(clang).with_name("clang++")),
                               "--workdir", output / "migration"], output / "migration/qualification.json"),
+        ("cpp_template_migration", [python, "tools/qualify_cpp_project_hia.py", "--clang", clang,
+                                   "--clangxx", str(Path(clang).with_name("clang++")),
+                                   "--workdir", output / "cpp-templates"], output / "cpp-templates/qualification.json"),
+        ("c_configuration_matrix", [python, "tools/qualify_c_project_matrix.py", "--clang", clang,
+                                    "--workdir", output / "c-matrix"], output / "c-matrix/qualification.json"),
+        ("cpp_configuration_matrix", [python, "tools/qualify_cpp_project_matrix.py", "--clang", clang,
+                                      "--clangxx", str(Path(clang).with_name("clang++")),
+                                      "--workdir", output / "cpp-matrix"], output / "cpp-matrix/qualification.json"),
+        ("selected_core_formal", [python, "tools/qualify_hia_selected_formal.py", "--lean", lean,
+                                  "--clang", clang, "--output-directory", output / "selected-formal"], output / "selected-formal/qualification.json"),
         ("standalone_aarch64_qemu", [python, "tools/qualify_hia_program_aarch64.py", "--clang", clang,
                                    "--linker", linker, "--qemu-aarch64", qemu_aarch64,
                                    "--output", output / "aarch64.json"], output / "aarch64.json"),
@@ -107,7 +132,8 @@ def qualify(output, *, clang, rustc, qemu_aarch64, qemu_system_arm, linker):
         ("legacy_cortex_m4_qemu", [python, "tools/validate_board.py", "--rustc", rustc,
                                    "--qemu", qemu_system_arm, "--output", output / "board.json"], output / "board.json"),
         ("standalone_performance", [python, "tools/qualify_hia_program_perf.py", "--clang", clang,
-                                    "--rustc", rustc, "--output", output / "performance.json"], output / "performance.json"),
+                                    "--rustc", rustc, "--output", output / "performance.json",
+                                    "--artifact-directory", output / "performance-artifacts"], output / "performance.json"),
     ]
     report = {"schema": "hepta.hia.unified-qualification.v1", "git_commit": commit["stdout"].strip(),
         "compiler_tree_sha256": compiler_hash(), "source_snapshot_before": before,
@@ -115,7 +141,8 @@ def qualify(output, *, clang, rustc, qemu_aarch64, qemu_system_arm, linker):
         "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "planned_gates": [name for name, _, _ in plan], "gates": [],
         "full_six_deliverables_complete": False,
-        "scope_limits": ["General ADT/lifetime/task/cancellation composition is not closed in standalone HIA",
+        "full_seven_deliverables_complete": False,
+        "scope_limits": ["Recursive heap ADTs, escaping stored loans and background scheduling/channels remain outside the current core",
             "C/C++ migration covers declared finite profiles, not arbitrary historical libraries",
             "QEMU is not physical hardware or device timing/protocol qualification",
             "Agent productivity and independent total development-cost improvement require their own qualified trials",
@@ -125,7 +152,7 @@ def qualify(output, *, clang, rustc, qemu_aarch64, qemu_system_arm, linker):
         "commands": [{"name": name, "argv": list(map(str, argv))} for name, argv, _ in plan]},
         indent=2, sort_keys=True) + "\n").encode())
     previous_cwd, old_path = Path.cwd(), os.environ.get("PATH", "")
-    old_rustc, old_clang = os.environ.get("RUSTC"), os.environ.get("CLANG")
+    old_rustc, old_clang, old_lean = (os.environ.get(name) for name in ("RUSTC", "CLANG", "LEAN"))
     try:
         os.chdir(ROOT)
         with tempfile.TemporaryDirectory(prefix="hepta-hia-gate-tools-") as directory:
@@ -135,8 +162,8 @@ def qualify(output, *, clang, rustc, qemu_aarch64, qemu_system_arm, linker):
             if Path(linker).is_file():
                 (bin_dir / "ld.lld").symlink_to(Path(linker).resolve())
             os.environ["PATH"] = os.pathsep.join([str(bin_dir), str(Path(clang).parent),
-                                                  str(Path(rustc).parent), old_path])
-            os.environ["RUSTC"], os.environ["CLANG"] = rustc, clang
+                                                  str(Path(rustc).parent), str(Path(lean).parent), old_path])
+            os.environ["RUSTC"], os.environ["CLANG"], os.environ["LEAN"] = rustc, clang, lean
             os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
             for name, argv, evidence in plan:
                 print(json.dumps({"gate": name, "status": "running"}), flush=True)
@@ -152,18 +179,23 @@ def qualify(output, *, clang, rustc, qemu_aarch64, qemu_system_arm, linker):
                     row.update(unittest_outcome(executed["stderr"], executed["returncode"]))
                 elif evidence.is_file() and not evidence.is_symlink():
                     raw = evidence.read_bytes()
-                    payload = json.loads(raw)
-                    row["evidence"] = {"path": str(evidence.relative_to(output)), "sha256": sha(raw),
-                                       "status": payload.get("status"), "ok": payload.get("ok")}
-                    scoped_ok = payload.get("ok") is True or (name == "legacy_cortex_m4_qemu" and payload.get("status") == "passed")
-                    row["passed"] = executed["returncode"] == 0 and scoped_ok
+                    try:
+                        payload = json.loads(raw)
+                        if type(payload) is not dict:
+                            raise ValueError("gate evidence must be a JSON object")
+                        row["evidence"] = {"path": str(evidence.relative_to(output)), "sha256": sha(raw),
+                                           "status": payload.get("status"), "ok": payload.get("ok")}
+                        scoped_ok = payload.get("ok") is True or (name == "legacy_cortex_m4_qemu" and payload.get("status") == "passed")
+                        row["passed"] = executed["returncode"] == 0 and scoped_ok
+                    except (ValueError, TypeError) as exc:
+                        row["evidence_error"] = {"type": type(exc).__name__, "message": str(exc)}
                 report["gates"].append(row)
                 print(json.dumps({"gate": name, "passed": row["passed"], "seconds": row["seconds"],
                                   "returncode": row["returncode"]}), flush=True)
     finally:
         os.chdir(previous_cwd)
         os.environ["PATH"] = old_path
-        for name, value in (("RUSTC", old_rustc), ("CLANG", old_clang)):
+        for name, value in (("RUSTC", old_rustc), ("CLANG", old_clang), ("LEAN", old_lean)):
             if value is None:
                 os.environ.pop(name, None)
             else:
@@ -187,10 +219,12 @@ def main():
     parser.add_argument("--qemu-aarch64", required=True)
     parser.add_argument("--qemu-system-arm", default=shutil.which("qemu-system-arm") or "qemu-system-arm")
     parser.add_argument("--linker", required=True)
+    parser.add_argument("--lean", required=True)
     args = parser.parse_args()
     result = qualify(args.output_directory, clang=args.clang, rustc=args.rustc,
-                     qemu_aarch64=args.qemu_aarch64, qemu_system_arm=args.qemu_system_arm, linker=args.linker)
-    print(json.dumps({key: result[key] for key in ("ok", "status", "passed_gates", "completed_gates", "unchanged_source", "full_six_deliverables_complete")}))
+                     qemu_aarch64=args.qemu_aarch64, qemu_system_arm=args.qemu_system_arm,
+                     linker=args.linker, lean=args.lean)
+    print(json.dumps({key: result[key] for key in ("ok", "status", "passed_gates", "completed_gates", "unchanged_source", "full_seven_deliverables_complete")}))
     return 0 if result["ok"] else 1
 
 

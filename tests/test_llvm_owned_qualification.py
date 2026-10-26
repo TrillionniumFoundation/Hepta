@@ -60,6 +60,25 @@ class OwnedQualificationPolicyTests(unittest.TestCase):
         for backend in q.BACKENDS:
             self.assertEqual(sum(row["backend"] == backend for row in rows), 21)
 
+    def test_explicit_order_preserves_complete_groups_and_kernel_inventory(self):
+        original = q.sample_order()
+        order = [entry for index in range(0, len(original), 3) for entry in reversed(original[index:index + 3])]
+        rows = [{"group": g, "kernel": k, "backend": b, "sample_index": i,
+                 "elapsed_ns": 100_000_000, "checksum": q.timed_checksum(k)}
+                for i, (g, k, b) in enumerate(order)]
+        self.assertTrue(q.evaluate_samples(rows, expected_order=order)["ok"])
+        with self.assertRaisesRegex(ValueError, "sample order/identity"):
+            q.evaluate_samples(rows)
+        duplicate = list(order)
+        duplicate[1] = duplicate[0]
+        boolean = list(order)
+        boolean[0] = (False, *boolean[0][1:])
+        wrong_kernel = list(order)
+        wrong_kernel[0] = (0, q.KERNELS[1], wrong_kernel[0][2])
+        for bad in (order[:-1], list(reversed(order)), duplicate, boolean, wrong_kernel, [None] * 63):
+            with self.subTest(first=bad[0]), self.assertRaises(ValueError):
+                q.evaluate_samples(rows, expected_order=bad)
+
     def test_rejects_missing_reordered_duplicate_boolean_and_wrong_native_result(self):
         candidates = [samples()[:-1], list(reversed(samples()))]
         duplicate = samples()

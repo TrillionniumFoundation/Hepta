@@ -20,18 +20,56 @@ def output_json(value):
     print(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True))
 
 
+def publish_json_view(value, destination):
+    """No-replace publication of a checked, non-executable agent JSON view."""
+    from .artifact_publication import publish_verified
+    target = Path(destination).absolute()
+    if target.exists() or target.is_symlink():
+        raise ValueError("JSON output must be a new file")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if target.parent.resolve() != target.parent:
+        raise ValueError("JSON output parent must not traverse a symlink")
+    payload = (json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + "\n").encode()
+    with tempfile.TemporaryDirectory(prefix=".hepta-json-view-", dir=target.parent) as temporary:
+        stage = Path(temporary) / "view.json"
+        with stage.open("xb") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        receipt = publish_verified(stage, target, payload)
+    return {"schema": "hepta.hia.json-view-output.v1", "ok": True,
+            "output": str(target), "view_schema": value["schema"], "publication": receipt}
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="hepta", description="Hepta native systems language")
     parser.add_argument("--version", action="version", version="hepta " + __version__)
     sub = parser.add_subparsers(dest="command", required=True)
     hia = sub.add_parser("hia", help="Independent typed HIA program verification, execution and native compilation")
     hia_actions = hia.add_subparsers(dest="hia_action", required=True)
-    for action in ("verify", "inspect", "run", "emit", "build", "lower", "patch",
-                   "impact", "import-executable", "import-scalar"):
+    for action in ("verify", "inspect", "run", "emit", "build", "lower", "patch", "normalize",
+                   "impact", "import-executable", "import-scalar", "import-cpp-project",
+                   "import-cpp-matrix", "import-composite-v2", "edit-query", "edit-apply"):
         h = hia_actions.add_parser(action)
         h.add_argument("input", help="Standalone HIA JSON program; lower accepts Hepta source")
-        if action in {"emit", "build", "lower", "patch", "import-executable", "import-scalar"}:
+        if action in {"emit", "build", "lower", "patch", "normalize", "import-executable", "import-scalar",
+                      "import-cpp-project", "import-cpp-matrix", "import-composite-v2", "edit-query", "edit-apply"}:
             h.add_argument("--output", "-o", required=action == "build")
+        if action in {"import-cpp-project", "import-cpp-matrix"}:
+            h.add_argument("--clangxx", default="clang++")
+            h.add_argument("--report", help="New file for the complete capture and declaration ledger")
+        if action == "import-cpp-matrix":
+            h.add_argument("--variant", required=True, help="Exact declared variant to publish after all builds verify")
+        if action == "import-composite-v2":
+            h.add_argument("--report", help="New file for explicit legacy import and reverification provenance")
+        if action == "edit-query":
+            h.add_argument("--function", required=True)
+            h.add_argument("--block", required=True)
+            h.add_argument("--value", required=True, help="SSA output selecting one value-producing instruction")
+            h.add_argument("--fields", required=True, help="Comma-separated subset of op,args,attrs")
+        if action == "edit-apply":
+            h.add_argument("--query", required=True)
+            h.add_argument("--response", required=True)
         if action == "run":
             h.add_argument("--function", required=True)
             h.add_argument("--arguments", default="[]")
@@ -197,6 +235,43 @@ def main(argv=None) -> int:
             from .hia_program import verify_program
             from .hia_program_tools import (read_bounded, decode_json, inspect_program,
                                             apply_program_patch, publish_program)
+            if args.hia_action == "import-composite-v2":
+                from .hia_core_upgrade import import_legacy_composite_v2
+                program, report = import_legacy_composite_v2(read_bounded(args.input))
+                if args.report:
+                    with Path(args.report).open("x", encoding="utf-8") as stream:
+                        json.dump(report, stream, sort_keys=True, indent=2)
+                        stream.write("\n")
+                output_json(publish_program(program, args.output) if args.output else program.as_dict())
+                return 0
+            if args.hia_action == "import-cpp-matrix":
+                from .cpp_project_migrate import lower_cpp_project_matrix
+                migrated = lower_cpp_project_matrix(args.input, clangxx=args.clangxx)
+                programs = {variant["name"]: verify_program(variant.pop("program"))
+                            for variant in migrated["variants"]}
+                if args.variant not in programs:
+                    raise ValueError("Requested C++ variant is not declared in the matrix")
+                for variant in migrated["variants"]:
+                    variant["program_sha256"] = programs[variant["name"]].sha256
+                if args.report:
+                    with Path(args.report).open("x", encoding="utf-8") as stream:
+                        json.dump(migrated, stream, sort_keys=True, indent=2)
+                        stream.write("\n")
+                program = programs[args.variant]
+                output_json(publish_program(program, args.output) if args.output else program.as_dict())
+                return 0
+            if args.hia_action == "import-cpp-project":
+                from .cpp_project_migrate import lower_cpp_project
+                migrated = lower_cpp_project(args.input, clangxx=args.clangxx)
+                program = verify_program(migrated.pop("program"))
+                migrated.update(schema="hepta.hia.cpp-project-import.v1",
+                                program_sha256=program.sha256, native_executed=False)
+                if args.report:
+                    with Path(args.report).open("x", encoding="utf-8") as stream:
+                        json.dump(migrated, stream, sort_keys=True, indent=2)
+                        stream.write("\n")
+                output_json(publish_program(program, args.output) if args.output else program.as_dict())
+                return 0
             if args.hia_action in {"import-executable", "import-scalar"}:
                 from .core import from_executable_core, from_scalar_core
                 source = read_bounded(args.source).decode("utf-8")
@@ -224,6 +299,26 @@ def main(argv=None) -> int:
                 output_json(result)
                 return 0
             program = verify_program(read_bounded(args.input))
+            if args.hia_action == "edit-query":
+                from .hia_edit_query import prepare_edit
+                query = prepare_edit(program, function=args.function, block=args.block,
+                                     output=args.value, fields=args.fields.split(","))
+                output_json(publish_json_view(query, args.output) if args.output else query)
+                return 0
+            if args.hia_action == "edit-apply":
+                from .hia_edit_query import apply_edit, MAX_RESPONSE_BYTES
+                revised, receipt = apply_edit(program, decode_json(read_bounded(args.query)),
+                                              read_bounded(args.response, limit=MAX_RESPONSE_BYTES))
+                if args.output:
+                    receipt["publication"] = publish_program(revised, args.output)
+                    receipt["status"] = "verified_new_snapshot_published"
+                else:
+                    receipt["program"] = revised.as_dict()
+                output_json(receipt)
+                return 0
+            if args.hia_action == "normalize":
+                output_json(publish_program(program, args.output) if args.output else program.as_dict())
+                return 0
             if args.hia_action == "verify":
                 output_json({**program.report(), "status": "standalone_core_checked",
                              "native_executed": False})
