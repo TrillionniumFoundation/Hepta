@@ -14,9 +14,11 @@ from __future__ import annotations
 import json
 
 from .hsir import HSIRSnapshot, lower_checked_program as lower_scalar_hsir
+from .cfg import lower_hsir_cfg
 from .resource_ir import SCHEMA as RESOURCE_SCHEMA, ResourceIRError, verify_resource_ir
 from .resource_lowering import lower_resource_ir, verify_resource_source_origin
-from .ssa import SSASnapshot
+from .ssa import SSASnapshot, lower_cfg_scalar_ssa
+from .ssa_verify import verify_scalar_ssa
 
 
 class NativeResourceGateRejected(ValueError):
@@ -52,6 +54,15 @@ def verify_native_scalar_resource_gate(program, checked, *,
                 scalar_hsir.sha256 != fresh.sha256):
             _reject("scalar HSIR differs from the sole checked-source producer")
         scalar = scalar_hsir.as_dict()
+        # The resource evidence and native SSA must describe the SAME
+        # checked source, not merely functions that happen to share names.
+        cfg = lower_hsir_cfg(fresh)
+        regenerated_ssa = lower_cfg_scalar_ssa(cfg)
+        verify_scalar_ssa(regenerated_ssa, cfg)
+        if (ssa.schema != regenerated_ssa.schema
+                or ssa.canonical_json != regenerated_ssa.canonical_json
+                or ssa.sha256 != regenerated_ssa.sha256):
+            _reject("verified SSA differs from the exact checked-source CFG")
         if scalar.get("source_sha256") is None:
             _reject("missing scalar semantic source content identity")
 
@@ -121,6 +132,7 @@ def verify_native_scalar_resource_gate(program, checked, *,
             "project_sha256": project_sha256,
             "scalar_hsir_sha256": scalar_hsir.sha256,
             "ssa_sha256": ssa.sha256,
+            "cfg_sha256": cfg.sha256,
             "functions": graph_names,
             "abstract_resource_operations_checked": verified["operations_checked"],
             "claims": {
