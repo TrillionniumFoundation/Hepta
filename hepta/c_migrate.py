@@ -475,14 +475,28 @@ def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 
         lines.append(f"{indent}}}")
         return lines
     if kind == "ReturnStmt" and len(children) == 1:
-        if children[0].get("kind") == "ConditionalOperator":
-            test, on_true, on_false = _ternary(children[0], args, model, ret, locals)
+        expression_node = children[0]
+        # In C++20, (condition ? x : y) is an lvalue when both scalar arms
+        # are lvalues of the same type. Clang wraps the return read in exactly
+        # one LValueToRValue cast. Expose only that type-preserving read to the
+        # existing pure-ternary checker; all other casts still fail closed.
+        materialized = expression_node.get("inner", [])
+        if (expression_node.get("kind") == "ImplicitCastExpr"
+                and expression_node.get("castKind") == "LValueToRValue"
+                and _decl_type(expression_node, model) == ret
+                and isinstance(materialized, list) and len(materialized) == 1
+                and isinstance(materialized[0], dict)
+                and materialized[0].get("kind") == "ConditionalOperator"
+                and _decl_type(materialized[0], model) == ret):
+            expression_node = materialized[0]
+        if expression_node.get("kind") == "ConditionalOperator":
+            test, on_true, on_false = _ternary(expression_node, args, model, ret, locals)
             return [f"{indent}if {test} {{",
                     f"{indent}    return {on_true};",
                     f"{indent}}} else {{",
                     f"{indent}    return {on_false};",
                     f"{indent}}}"]
-        expression, typ = _expr(children[0], args, model, ret, locals)
+        expression, typ = _expr(expression_node, args, model, ret, locals)
         if typ != ret:
             raise MigrationRejected("E_C_RETURN", "C comparison or implicit conversion is not a Hepta integer return")
         return [f"{indent}return {expression};"]

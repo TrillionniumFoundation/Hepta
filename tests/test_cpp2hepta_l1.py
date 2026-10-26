@@ -591,6 +591,22 @@ extern "C" int cpp_do_sum(int n){return do_sum(n);}
             self.assertEqual(cpp(n), hepta(n), n)
 
 
+    def test_cpp20_ternary_implicit_conversion_and_effect_rejected(self):
+        # The scalar lvalue read accepted in choose() must not broaden to an
+        # integer-promotion cast or an effectful conditional branch.
+        for source in (
+            "int unsafe(unsigned int x, int y) noexcept { return x > 0u ? x : y; }",
+            "int unsafe(int x, int y) noexcept { return x > 0 ? x++ : y; }",
+        ):
+            with self.subTest(source=source):
+                self.dst.unlink(missing_ok=True)
+                self.src.write_text(source)
+                report = migrate_cpp(self.src, self.dst)
+                self.assertFalse(report["ok"], report)
+                self.assertTrue(report["rejected"], report)
+                self.assertFalse(self.dst.exists())
+
+
     def test_ternary_cpp20_return_and_assignment_native(self):
         self.src.write_text("""
 int choose(int x, int y) noexcept { return x > y ? x : y; }
