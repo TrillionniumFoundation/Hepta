@@ -77,7 +77,12 @@ class HSIRBridgeTests(unittest.TestCase):
         receipt = verify_checked_source_projection(
             program, checked, derived, project_sha256=project)
         self.assertEqual(receipt["canonical_sha256"], canonical["sha256"])
+        self.assertEqual(receipt["schema"], "hepta.hsir.source-origin.v2")
         self.assertEqual(receipt["project_sha256"], project)
+        legacy = verify_checked_source_projection(
+            program, checked, lower_checked_program(program, checked))
+        self.assertEqual(legacy["schema"], "hepta.hsir.source-origin.v1")
+        self.assertNotIn("project_sha256", legacy)
         self.assertFalse(receipt["claims"]["whole_language_soundness_proven"])
         # A self-rehashed source snapshot for another project must not qualify.
         with self.assertRaisesRegex(HSIRRejected, "SOURCE_ORIGIN"):
