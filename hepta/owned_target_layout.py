@@ -14,6 +14,7 @@ import tempfile
 from .llvm_ssa_backend import _clang_run
 from .object_structure import qualified_object
 from .object_symbols import ObjectSymbolsRejected, inspect_object_symbols
+from .native_tool_identity import ToolIdentityRejected, digest_executable
 
 
 _TARGETS = {
@@ -64,9 +65,12 @@ def probe_owned_target_layout(clang: str | Path, target: str, llvm_text: str) ->
             or llvm_text.count('target triple = "' + target + '"\n') != 1
             or "target datalayout" in llvm_text):
         raise OwnedTargetLayoutRejected("E_OWNED_LAYOUT_SOURCE: unrecognized Owned LLVM layout/triple")
-    compiler = Path(clang)
-    if not compiler.is_file():
-        raise OwnedTargetLayoutRejected("E_OWNED_LAYOUT_COMPILER: selected Clang does not exist")
+    try:
+        compiler = Path(clang).resolve(strict=True)
+        compiler_before = digest_executable(compiler)
+    except (OSError, ToolIdentityRejected) as exc:
+        raise OwnedTargetLayoutRejected(
+            "E_OWNED_LAYOUT_COMPILER: selected compiler identity unavailable") from exc
     with tempfile.TemporaryDirectory(prefix=".hepta-owned-layout-") as directory:
         source = Path(directory) / "model.c"
         output = Path(directory) / "model.o"
@@ -76,6 +80,13 @@ def probe_owned_target_layout(clang: str | Path, target: str, llvm_text: str) ->
                    "-Wall", "-Wextra", "-Werror",
                    "-c", str(source), "-o", str(output)]
         result = _clang_run(command, timeout=30)
+        try:
+            compiler_stable = digest_executable(compiler) == compiler_before
+        except ToolIdentityRejected:
+            compiler_stable = False
+        if not compiler_stable:
+            raise OwnedTargetLayoutRejected(
+                "E_OWNED_LAYOUT_COMPILER: selected compiler changed during native ABI probe")
         if result.returncode != 0:
             raise OwnedTargetLayoutRejected(
                 "E_OWNED_LAYOUT_ASSERT: C compiler rejected CPU layout assumptions: " +
