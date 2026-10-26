@@ -405,6 +405,11 @@ def verify_capture(capture: dict) -> None:
                     "pointer_bits": 8 * int(observed.get("__SIZEOF_POINTER__", "0"))}
         if config["model"] != expected:
             raise MigrationRejected("E_C_BUILD_CHANGED", "Captured C ABI model differs from actual compiler")
+    # Reconfirm the *same* original database bytes after actual compiler
+    # invocations. Changes during dependency/preprocessing probes must not
+    # leave a replay receipt bound to a stale configuration.
+    if _load_compdb(database)[0] != parsed_bytes:
+        raise MigrationRejected("E_C_BUILD_CHANGED", "Compilation database changed during replay")
 
 
 def capture_project(database: str | Path, *, clang: str = "clang") -> dict:
