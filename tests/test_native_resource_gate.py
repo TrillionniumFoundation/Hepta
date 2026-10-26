@@ -102,6 +102,38 @@ class NativeResourceGateTests(unittest.TestCase):
                 verify_native_scalar_resource_gate(
                     program, checked, scalar_hsir=hsir, ssa=ssa)
 
+    def test_pipeline_rejects_forged_success_receipt_before_native_build(self):
+        program, checked, _, _ = snapshots(_SOURCE)
+        fake_project = SimpleNamespace(
+            identity="2" * 64, sources={}, unchanged=lambda: True)
+        analyzed = SimpleNamespace(
+            program=program, checked=checked, project=fake_project,
+            report={"ok": True, "checks": {"rust_borrows_types": "rustc_checked"}})
+        with tempfile.TemporaryDirectory() as root:
+            output = Path(root) / "forged.so"
+            with (patch("hepta.llvm_ssa_pipeline.analyze_project", return_value=analyzed),
+                  patch("hepta.llvm_ssa_pipeline.verify_native_scalar_resource_gate",
+                        return_value={
+                            "schema": "hepta.llvm-native-resource-origin.v1",
+                            "status": "source_bound_copy_scalar_resource_cfg_checked_not_refinement_proved",
+                            "cfg_sha256": "0" * 64,
+                            "ssa_sha256": "0" * 64,
+                            "scalar_hsir_sha256": "0" * 64,
+                            "project_sha256": "2" * 64,
+                            "claims": {
+                                "source_resource_ir_origin_rechecked": 1,
+                                "independent_abstract_resource_flow_checked": True,
+                                "source_to_ir_refinement_proved": False,
+                                "native_codegen_uses_resource_ir": False,
+                                "whole_language_soundness_proved": False,
+                            }}),
+                  patch("hepta.llvm_ssa_pipeline.compile_scalar_ssa_llvm") as compiler):
+                result = build_llvm_ssa_source(Path(root) / "source.hepta", output)
+                self.assertFalse(result["ok"])
+                self.assertEqual(result["diagnostics"][0]["code"], "E_LLVM_SSA_RESOURCE_RECEIPT")
+                self.assertFalse(output.exists())
+                compiler.assert_not_called()
+
     def test_rust_qualified_source_pipeline_must_hit_gate_before_codegen(self):
         program, checked, _, _ = snapshots(_SOURCE)
         fake_project = SimpleNamespace(
