@@ -315,6 +315,21 @@ class LLVMOwnedNativeTests(unittest.TestCase):
         self.assertTrue(independently_rechecked["source_exports_rechecked"])
         self.assertFalse(independently_rechecked["claims"]["backend_refinement_proven"])
 
+    def test_native_owned_llvm_rejects_output_mutation_after_link(self):
+        from hepta import artifact_publication
+        output = self.root / "mutated-after-link.so"
+        original = artifact_publication.os.link
+
+        def corrupt(stage, destination, *args, **kwargs):
+            original(stage, destination, *args, **kwargs)
+            Path(destination).write_bytes(b"mutated-ELF-payload")
+
+        with patch.object(artifact_publication.os, "link", side_effect=corrupt):
+            with self.assertRaisesRegex(LLVMOwnedRejected, "E_LLVM_OWNED_PUBLICATION"):
+                compile_owned_llvm(self.ir, program=self.analyzed.program,
+                    checked=self.analyzed.checked, output=output)
+        self.assertFalse(output.exists())
+
     def test_same_hepta_source_executes_all_owned_result_paths_on_three_backends(self):
         functions = []
         for library in self.loaded.values():
