@@ -14,6 +14,7 @@ from pathlib import Path
 import platform
 import re
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -28,6 +29,8 @@ _MAX_BYTES = 8 * 1024 * 1024
 _WORKER = r'''
 import ctypes, json, resource, sys
 resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+# A hostile foreign constructor must not fill a host disk before timeout.
+resource.setrlimit(resource.RLIMIT_FSIZE, (4096, 4096))
 lib, symbol, word, packed = sys.argv[1:]
 args = json.loads(packed)
 c = ctypes.c_int32 if word == "i32" else ctypes.c_uint32
@@ -82,26 +85,117 @@ def _corpus(cases, return_words):
     return words, total
 
 
-def _observe_native(library: Path, function: str, word: str, args: list[int], *, timeout: float):
-    if (platform.system() != "Linux" or not 0 < timeout <= 10
+
+
+def _read_regular_artifact(path: Path):
+    """Read exactly one no-follow regular-file inode, bounded before allocation.
+
+    Opening with O_NONBLOCK prevents FIFOs/devices from blocking an admission
+    thread; O_NOFOLLOW prevents a final-component symlink substitution.
+    fstat before/after reads rejects concurrent in-place size/metadata drift.
+    """
+    if platform.system() != "Linux":
+        _reject("native artifact identity pinning requires Linux")
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_CLOEXEC | os.O_NONBLOCK | os.O_NOFOLLOW)
+    except OSError as exc:
+        raise HIADifferentialRejected("E_HIA_DIFFERENTIAL: cannot open no-follow native artifact") from exc
+    try:
+        before = os.fstat(fd)
+        if not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= _MAX_BYTES:
+            _reject("native artifact must be bounded regular file")
+        chunks = []
+        remaining = before.st_size + 1
+        while remaining:
+            part = os.read(fd, min(1 << 20, remaining))
+            if not part:
+                break
+            chunks.append(part)
+            remaining -= len(part)
+        contents = b"".join(chunks)
+        after = os.fstat(fd)
+        identity = (before.st_dev, before.st_ino, before.st_size,
+                    before.st_mtime_ns, before.st_ctime_ns)
+        observed = (after.st_dev, after.st_ino, after.st_size,
+                    after.st_mtime_ns, after.st_ctime_ns)
+        if len(contents) != before.st_size or observed != identity:
+            _reject("native artifact changed during identity-bound read")
+        return contents, identity
+    except OSError as exc:
+        raise HIADifferentialRejected("E_HIA_DIFFERENTIAL: native artifact read failed") from exc
+    finally:
+        os.close(fd)
+
+
+def _pin_native_artifact(path: Path):
+    """Create a sealed Linux memfd from the exact identity-checked artifact.
+
+    Native children load /proc/self/fd/<N>, not the mutable original pathname.
+    If memfd sealing is unavailable, fail closed rather than weakening the
+    differential's executable-byte identity guarantee.
+    """
+    original, identity = _read_regular_artifact(path)
+    fd = None
+    try:
+        # Keep the module importable on non-Linux hosts; the execution path
+        # itself still refuses anything except qualified Linux.
+        import fcntl
+        fd = os.memfd_create("hepta-hia-native", os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
+        remaining = memoryview(original)
+        while remaining:
+            count = os.write(fd, remaining)
+            if count <= 0:
+                _reject("sealed native snapshot write made no progress")
+            remaining = remaining[count:]
+        expected_seals = (fcntl.F_SEAL_WRITE | fcntl.F_SEAL_GROW |
+                          fcntl.F_SEAL_SHRINK | fcntl.F_SEAL_SEAL)
+        fcntl.fcntl(fd, fcntl.F_ADD_SEALS, expected_seals)
+        if (os.fstat(fd).st_size != len(original) or
+                fcntl.fcntl(fd, fcntl.F_GET_SEALS) & expected_seals != expected_seals or
+                os.pread(fd, len(original), 0) != original):
+            _reject("sealed executable-byte snapshot differs from source")
+        return original, identity, fd
+    except (OSError, AttributeError, ImportError) as exc:
+        raise HIADifferentialRejected("E_HIA_DIFFERENTIAL: sealed executable snapshot unavailable") from exc
+    finally:
+        # Ownership of a successfully sealed descriptor transfers to caller.
+        if fd is not None and sys.exc_info()[0] is not None:
+            os.close(fd)
+
+
+def _check_artifact_unchanged(path: Path, original: bytes, identity) -> None:
+    current, metadata = _read_regular_artifact(path)
+    if current != original or metadata != identity:
+        _reject("native artifact path/inode/bytes changed during differential execution")
+
+def _observe_native(library: Path, function: str, word: str, args: list[int], *,
+                    timeout: float, pinned_fd: int):
+    if (platform.system() != "Linux" or platform.machine().lower() not in {"x86_64", "amd64"}
+            or not 0 < timeout <= 10
             or type(function) is not str or _IDENT.fullmatch(function) is None
-            or word not in _TYPES):
-        _reject("bounded Linux x86-64 scalar host required")
+            or word not in _TYPES or type(pinned_fd) is not int or pinned_fd < 0):
+        _reject("bounded Linux host and sealed native fd required")
     try:
         with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
-            proc = subprocess.run([sys.executable, "-I", "-c", _WORKER, str(library),
+            proc = subprocess.run([sys.executable, "-I", "-c", _WORKER,
+                                   "/proc/self/fd/" + str(pinned_fd),
                                    function, word, json.dumps(args, separators=(",", ":"))],
-                                  stdout=out, stderr=err, check=False, timeout=timeout)
+                                  stdout=out, stderr=err, check=False, timeout=timeout,
+                                  pass_fds=(pinned_fd,))
             out.seek(0)
             err.seek(0)
             child_stdout = out.read(4097)
             child_stderr = err.read(4097)
     except (subprocess.TimeoutExpired, OSError) as exc:
         raise HIADifferentialRejected("E_HIA_DIFFERENTIAL: native child unavailable or timed out") from exc
-    if len(child_stdout) > 4096 or len(child_stderr) > 4096:
+    # RLIMIT_FSIZE can surface as SIGXFSZ, a child write exception, or a
+    # Python exit code after a partial 4096-byte write. All are refusals.
+    if len(child_stdout) >= 4096 or len(child_stderr) >= 4096:
         _reject("native subprocess exceeded output budget")
     if proc.returncode == -signal.SIGABRT:
         return ("trap", None)
+    if proc.returncode == -signal.SIGXFSZ:
+        _reject("native subprocess exceeded output budget")
     if proc.returncode != 0:
         _reject("native child exited with unexpected error/signal " + str(proc.returncode))
     try:
@@ -128,31 +222,30 @@ def compare_oracle_with_native(oracle, library: str | Path, cases: dict, *,
         _reject("invalid execution limits")
     words, total = _corpus(cases, getattr(oracle, "return_words", None))
     binary = Path(library)
-    if (binary.is_symlink() or not binary.is_file() or
-            not 0 < binary.stat().st_size <= _MAX_BYTES):
-        _reject("native artifact must be bounded regular file")
-    original = binary.read_bytes()
+    original, identity, pinned_fd = _pin_native_artifact(binary)
     artifact_sha = sha256(original).hexdigest()
     matches = traps = 0
-    # Iterate canonically so receipt and first failure do not depend on map order.
-    for function in sorted(cases):
-        for index, args in enumerate(cases[function]):
-            if binary.read_bytes() != original:
-                _reject("native artifact changed during differential execution")
-            try:
-                expected = ("value", oracle.run(function, args, max_steps=max_steps))
-            except HIAOracleTrap:
-                expected = ("trap", None)
-            except (HIAOracleBudgetExceeded, HIAOracleRejected) as exc:
-                raise HIADifferentialRejected(
-                    "E_HIA_DIFFERENTIAL: oracle failed or exhausted budget, never native trap") from exc
-            observed = _observe_native(binary, function, words[function], args, timeout=timeout)
-            if observed != expected:
-                _reject(f"native mismatch at {function} case {index}: expected {expected}, observed {observed}")
-            matches += 1
-            traps += observed[0] == "trap"
-    if binary.read_bytes() != original:
-        _reject("native artifact changed after differential execution")
+    try:
+        # Iterate canonically so receipt and first failure do not depend on map order.
+        for function in sorted(cases):
+            for index, args in enumerate(cases[function]):
+                _check_artifact_unchanged(binary, original, identity)
+                try:
+                    expected = ("value", oracle.run(function, args, max_steps=max_steps))
+                except HIAOracleTrap:
+                    expected = ("trap", None)
+                except (HIAOracleBudgetExceeded, HIAOracleRejected) as exc:
+                    raise HIADifferentialRejected(
+                        "E_HIA_DIFFERENTIAL: oracle failed or exhausted budget, never native trap") from exc
+                observed = _observe_native(binary, function, words[function], args,
+                                           timeout=timeout, pinned_fd=pinned_fd)
+                if observed != expected:
+                    _reject(f"native mismatch at {function} case {index}: expected {expected}, observed {observed}")
+                matches += 1
+                traps += observed[0] == "trap"
+        _check_artifact_unchanged(binary, original, identity)
+    finally:
+        os.close(pinned_fd)
     if matches != total:
         _reject("complete finite denominator not executed")
     return {
@@ -271,6 +364,14 @@ def compare_verified_hia_program(program, library: str | Path, cases: dict, *,
                 or result_types[0] not in _TYPES or type(params) is not list
                 or any(type(p) is not dict or p.get("type") != result_types[0] for p in params)):
             _reject("HIA native differential supports homogeneous i32/u32 wrappers only")
+        # A ctypes call with too few/many arguments has an unqualified native
+        # calling convention, even if a callee happens to ignore extra values.
+        # Reject the entire corpus before any native library can be loaded.
+        vectors = cases[name]
+        if (type(vectors) is not list or
+                any(type(args) is not list or len(args) != len(params)
+                    for args in vectors)):
+            _reject("HIA ABI argument arity differs from verified function signature")
         words.append((name, result_types[0]))
 
     class _ExecutableHIAOracle:
