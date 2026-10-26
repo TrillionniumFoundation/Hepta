@@ -9,8 +9,11 @@ fn main() -> i32 effects { alloc, block, panic } {
     let owner = buffer(4);
     if true {
         let first = Tagged { valid: true, data: read owner, tag: 9 };
-        let copied = first;
-        assert(copied.tag == 9);
+        let mut copied = first;
+        // Copy scalar labels belong to each record, not the borrowed owner.
+        copied.tag = 11;
+        assert(copied.tag == 11);
+        assert(first.tag == 9);
         assert(copied.valid);
         assert(len(first.data) == 4);
     }
