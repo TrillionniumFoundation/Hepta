@@ -158,7 +158,7 @@ performance, foreign resource ABI equivalence or general stored-borrow support.
 ## Shared publication boundary (current successor candidate)
 
 The source-level C++ owned-class migrator, native Owned LLVM emitter, and
-source-facing LLVM pipeline now use the same \`artifact_publication\` helper
+source-facing LLVM pipeline now use the same `artifact_publication` helper
 after checking generated Hepta text or ELF object data. Publication is a
 no-replace hard link from a regular staged file. The helper requires the
 published inode and exact bytes to agree with the already-validated stage,
@@ -172,7 +172,7 @@ malicious-host attestation. This is a local race-hardening profile.
 
 Targeted local verification, without the complete Rust/Clang20 checkout,
 executed **9/9 publication tests** against the exact Git source blob
-\`dd3b95638e797c0f37a987c3f342ffc75d71e89b\`, including an actual
+`dd3b95638e797c0f37a987c3f342ffc75d71e89b`, including an actual
 Clang 17 LLVM-to-ELF object published and linked into a working GCC C program.
 A separate 5/5 terminal unittest-summary parsing probe also ran locally.
 These are not full Hepta tests and do not update the earlier 46-gate receipts.
