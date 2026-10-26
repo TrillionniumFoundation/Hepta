@@ -71,7 +71,8 @@ were materialized to an isolated Linux Python 3.13.5 workspace. Local
 
 Executed command:
 
-    python -m unittest tests.test_artifact_publication -v
+    python -m unittest tests.test_artifact_publication tests.test_static_resource_policy -v
+    python -m unittest tests.test_static_resource_lowering -v
 
 Result: **15 tests passed, zero failures/skips**, including a real
 Clang 17 compiled LLVM object and GCC-linked C caller execution (exit 0),
@@ -84,16 +85,56 @@ checkout**. Neither the old #115 44/46 qualification nor PR #136 isolated
 cross-object data qualifies this unified source SHA. Rust1.90/Clang20/Lean/
 real-model/board hardware results are not asserted here.
 
+## P1/P5: static resource clause contradiction removed
+
+The inherited #137 candidate allowed `heap_allocations=0`,
+`may_block=false`, `may_spawn=false` and `may_suspend=false`
+in `llvm_owned_backend._resources_allowed`, but its mandatory
+`resource_lowering.lower_resource_ir` still rejected **every**
+nonempty `fn.resources`. This made advertised safe source clauses
+impossible to lower into the resource safety gate.
+
+This candidate now uses exactly one pure
+`hepta.static_resource_contracts.finite_static_contract_allowed`
+for both consumers. Nonempty clauses are admitted ONLY for the four
+reviewed, correctly typed finite values and when original declared
+and transitive inferred effects satisfy the obligation; runtime
+resource budgets and all unknown keys reject before Resource IR
+generation. Legacy unconstrained functions retain their original
+behavior. `llvm_owned_backend._resources_allowed` remains a thin
+compatibility entrypoint, not a separate safety-policy authority.
+
+Resource IR remains an abstract Ownership/Loan checker; the finite
+contract check enforces source effect restrictions, not a global
+memory/time bound, whole-language provenance proof or source-to-LLVM
+refinement theorem. No new runtime accounting is claimed.
+
+Independent exact-file verification:
+
+- `hepta/static_resource_contracts.py` Git blob
+  `da3de5c362c3d5f5417d414b8b8a3239f4df5d59`
+- `tests/test_static_resource_policy.py` Git blob
+  `68ca01aae1e0a06a40708e4c7ea429d6e1bc4a43`
+
+Local `git hash-object` confirmed both identities and Python 3.13.5
+executed **12/12** policy tests without skips. Combined with the
+15/15 previously verified publisher suite, the local exact-byte
+result is **27/27 passed**. The separate committed
+`tests/test_static_resource_lowering.py` runs real Hepta
+checker/resource lowering/Owned LLVM integration and remains
+**unexecuted** in this restricted local environment; it is
+not counted in the 27 local tests.
+
 ## Current P0–P7 remaining work
 
 | Stage | Increment on this branch | Remaining strict blocker |
 | --- | --- | --- |
 | P0 | Exact eight-blob integration; single canonical source/IR owner retained | Final complete source/consumer integration and full checked semantics |
-| P1 | Existing owned Resource IR and effects retained, without weakening safety | General Borrow/Drop/Provenance refinement and whole-language typing soundness |
+| P1 | One typed source effect/resource predicate shared by Resource IR and Owned LLVM; invalid zero-cost clauses reject | General Borrow/Drop/Provenance refinement and whole-language typing soundness |
 | P2 | No change to pinned Rust reference, frontend | Independent Rust compiler implementation and fully differential validation |
 | P3 | Five-target object symbol import/export containment integrated | C full multi-TU pointer migration and actual cross-host C ABI execution |
 | P4 | #137's C++ migration and publication guards retained | General RAII/STL/templates, MSVC/Itanium ABI and larger real C++ projects |
-| P5 | Scalar/owned native source paths share strict final publication authority | Full end-to-end semantics, stable representative performance, actual native matrix |
+| P5 | Scalar/owned native source paths share strict final publication authority and the same finite static resource policy | Full end-to-end semantics, stable representative performance, actual native matrix |
 | P6 | Existing Agent contracts retained | Real model controlled A/B and durable multi-file fault/recovery execution |
 | P7 | No board/GPU code claim | Physical DMA/MMIO/IRQ/GPU/NPU execution and sustained-resource qualification |
 
