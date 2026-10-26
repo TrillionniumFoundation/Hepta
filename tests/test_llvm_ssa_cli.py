@@ -179,6 +179,9 @@ class LLVMSSASourceCLITests(unittest.TestCase):
         self.assertEqual(report["status"], "native_host_compiled_unqualified")
         self.assertTrue(report["claims"]["independent_scalar_ssa_structure_checked"])
         self.assertTrue(report["claims"]["source_bound_resource_cfg_checked"])
+        self.assertTrue(report["claims"]["host_elf_dynamic_symbols_checked"])
+        self.assertEqual(report["native_backend"]["host_dynamic_abi"]["dynamic_exports"], ["sum"])
+        self.assertFalse(report["native_backend"]["host_dynamic_abi"]["claims"]["native_execution_proven"])
         self.assertEqual(report["resource_verification"]["status"],
                          "source_bound_resource_cfg_checked_not_refinement_proof")
         self.assertEqual(report["resource_verification"]["resource_ir_sha256"],
