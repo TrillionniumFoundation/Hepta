@@ -64,13 +64,26 @@ These checks guard configuration *identity* and make forgery or accidental
 schema widening fail closed; they do not show that the C source was converted
 safely or that the compiler itself is formally verified.
 
+## Bounded I/O and replay-time race check
+
+- The 8 MB per-header limit is now enforced **before** reading a captured
+  dependency into memory, during both capture and replay; a maliciously large
+  header cannot cause an unbounded `Path.read_bytes()` allocation.
+- Compiler executable SHA-256 identity is now calculated incrementally in
+  1 MiB chunks instead of loading the entire native toolchain binary into
+  the Python process.
+- After the real Clang dependency, macro and ABI probing commands complete,
+  replay reads the database through the **same** bounded parser and requires
+  byte-for-byte equality with the initially parsed snapshot. A database
+  mutation during the actual probes fails closed before migration publication.
+
 ## Executed evidence and scoped test sources
 
 A standalone Python 3.13 mirror containing the exact new parser logic ran
-**15/15 positive and negative tests** successfully on this host; these
+**19/19 positive and negative tests** successfully on this host; these
 exercise valid argument/command records, duplicate names, NaN, invalid
 Unicode, NUL fields, mismatched types, forbidden combinations, quoted
-commands, argument count, source count, byte limits and unknown metadata.
+commands, argument count, source count, byte limits and unknown metadata, ABI probe flag derivation, bounded header reads and streamed binary digests.
 That mirror is **not** a run of the full Hepta source tree.
 
 Repository test files added/updated:
@@ -80,7 +93,7 @@ Repository test files added/updated:
   keys even after a hostile actor recomputes the database and manifest
   digests.
 
-The expanded integration tests also include rehashed ABI probe options, local-header provenance, dependency path/order and byte-count tampering. These integrated tests have not run against the final source
+The expanded integration tests also include rehashed ABI probe options, local-header provenance, dependency path/order and byte-count tampering. The same repository suite also adds a capture/replay mutation during Clang probes. These integrated tests have not run against the final source
 candidate in this current local container. Do not infer broader C ABI
 or pointer ownership properties from passing intake tests.
 
