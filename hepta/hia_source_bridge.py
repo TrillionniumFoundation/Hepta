@@ -131,6 +131,83 @@ def _validate_static_budget_receipt(program, limits: dict, receipt: dict) -> Non
         _reject("static budget quantities differ from the canonical Core replay")
 
 
+def _reinspect_source_native_bytes(payload: bytes, ir, native: dict, *,
+                                   target: str, kind: str, stage) -> dict:
+    """Parse the *actual staged bytes* against source-derived Core exports.
+
+    The compiler's binary_inventory and hash are assertions, not an
+    independent source-facing ABI verification. Reuse the existing strict ELF
+    and relocatable-object readers, without implementing another parser.
+    This is a structural ABI check, not behavioral equivalence or proof
+    that the foreign libc implementation is safe.
+    """
+    from .elf_shared_abi import inspect_owned_shared_elf
+    from .hia_program_llvm import TARGET, TARGET_AARCH64, _IMPORTS
+    from .object_symbols import inspect_object_symbols
+
+    expected_claims = {
+        "standalone_core_reverified": True,
+        "source_ast_required": False,
+        "rust_reference_required": False,
+        "rust_codegen_used": False,
+        "c_codegen_used": False,
+        "fallback_used": False,
+        "native_execution_qualified": False,
+        "backend_refinement_proved": False,
+        "cross_target_execution_qualified": False,
+        "whole_language_soundness_proved": False,
+        "foreign_buffer_entrypoints_exposed": False,
+    }
+    expected_fields = {
+        "schema", "ok", "status", "profile", "target", "kind", "output",
+        "core_sha256", "llvm_ir_sha256", "implementation_sha256",
+        "artifact_sha256", "artifact_bytes", "exports", "binary_inventory",
+        "external_abi", "runtime_assumptions", "toolchain", "flags", "claims",
+    }
+    if (type(payload) is not bytes or not payload or type(native) is not dict
+            or set(native) != expected_fields
+            or native.get("schema") != "hepta.hia.program.native.v1"
+            or native.get("ok") is not True
+            or native.get("status") != "native_compiled_not_executed"
+            or native.get("profile") != ir.profile
+            or native.get("target") != target or native.get("kind") != kind
+            or native.get("output") != str(stage)
+            or native.get("core_sha256") != ir.core_sha256
+            or native.get("llvm_ir_sha256") != ir.sha256
+            or native.get("implementation_sha256") != ir.implementation_sha256
+            or native.get("exports") != list(ir.exports)
+            or type(native.get("artifact_bytes")) is not int
+            or native["artifact_bytes"] != len(payload)
+            or native.get("artifact_sha256") != sha256(payload).hexdigest()
+            or type(native.get("claims")) is not dict
+            or set(native["claims"]) != set(expected_claims)
+            or any(native["claims"][name] is not value
+                   for name, value in expected_claims.items())):
+        _reject("staged native receipt lacks exact Core profile or proof scope")
+    if kind == "shared" and target == TARGET:
+        scanned = inspect_owned_shared_elf(payload, ir.exports)
+    elif kind == "object" and target in {TARGET, TARGET_AARCH64}:
+        machine = 62 if target == TARGET else 183
+        symbols = inspect_object_symbols(payload, "ELF64", machine)
+        if (symbols.get("defined") != frozenset(ir.exports)
+                or type(symbols.get("undefined")) is not frozenset
+                or not symbols["undefined"] <= _IMPORTS):
+            _reject("actual relocatable imports or function exports differ from Core")
+        scanned = {key: sorted(value) for key, value in symbols.items()}
+    else:
+        _reject("native Core source only qualifies reviewed ELF target/kind combinations")
+    try:
+        canonical = lambda value: json.dumps(value, sort_keys=True,
+                                             separators=(",", ":"), allow_nan=False)
+        if (type(native.get("binary_inventory")) is not dict or
+                canonical(scanned) != canonical(native["binary_inventory"])):
+            _reject("native receipt ABI inventory differs from actual binary bytes")
+    except (ValueError, TypeError, OverflowError, RecursionError) as exc:
+        raise HIAHeptaBridgeRejected(
+            "E_HIA_HEPTA_BRIDGE: malformed source/native binary inventory") from exc
+    return scanned
+
+
 @dataclass(frozen=True)
 class CheckedScalarHIA:
     program: VerifiedProgram
@@ -321,6 +398,7 @@ def build_checked_hepta_hia_native(source, output, *, rustc=None, clang="clang",
               "target": target,
               "claims": {"pinned_rust_reference_validated": False,
                          "source_bound_resource_ir_checked": False,
+                         "source_native_binary_abi_rechecked": False,
                          "native_codegen_consumed_verified_hia_core": False,
                          "native_executed": False,
                          "source_to_core_refinement_proved": False,
@@ -427,6 +505,13 @@ def build_checked_hepta_hia_native(source, output, *, rustc=None, clang="clang",
                     or native["claims"].get("backend_refinement_proved") is not False
                     or native["claims"].get("native_execution_qualified") is not False):
                 _reject("staged native bytes/receipt disagree with HIA source")
+            # A self-consistent forged binary/receipt cannot authorize
+            # publication: independently reparse actual object/ELF bytes
+            # using the checked Core's exact expected native C exports.
+            rechecked_binary = _reinspect_source_native_bytes(
+                payload, ir, native, target=target, kind=kind, stage=stage)
+            report["source_native_binary_inventory"] = rechecked_binary
+            report["claims"]["source_native_binary_abi_rechecked"] = True
             if not project.unchanged():
                 _reject("source changed during native compilation")
             if compiler_hash() != compiler_identity:
