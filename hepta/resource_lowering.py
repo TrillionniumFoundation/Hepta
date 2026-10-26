@@ -11,7 +11,7 @@ import hashlib
 
 from .ast import Type
 from .checker import _contains_capability, LINEAR, substitute_type, return_origin_index
-from .resource_ir import SCHEMA, STORED_SCHEMA, ResourceIRError, _CLAIMS, _EXTERNAL_REQUIREMENTS, verify_resource_ir
+from .resource_ir import SCHEMA, STORED_SCHEMA, LABELLED_VIEW_SCHEMA, ResourceIRError, _CLAIMS, _EXTERNAL_REQUIREMENTS, verify_resource_ir
 from .static_resource_contracts import finite_static_contract_allowed
 
 
@@ -39,19 +39,29 @@ class _Types:
         self.enums = {e.name: e for e in program.enums}
         self.table = {}
         self.views = {}
+        self.view_scalars = {}
         from .borrowed_storage import contains_storage
         for declaration in program.structs:
             if not (declaration.lifetime_params or any(contains_storage(f.type, self.structs, self.enums) for f in declaration.fields)):
                 continue
-            if (declaration.repr_c or declaration.type_params or len(declaration.lifetime_params) != 1
-                    or len(declaration.fields) != 1):
-                _unsupported("Independent stored views require one local u8-slice field and one lifetime")
-            field = declaration.fields[0]
-            if (field.type.name not in {"ref_read", "ref_mut"}
-                    or field.type.args != (Type("slice", (Type("u8"),)),)
-                    or field.type.lifetimes != declaration.lifetime_params):
-                _unsupported("Only a direct shared/exclusive u8-slice field is modelled in local stored views")
+            if (declaration.repr_c or declaration.type_params or len(declaration.lifetime_params) != 1):
+                _unsupported("Independent stored views require one region, no repr(C) or type generics")
+            refs = [field for field in declaration.fields if field.type.name in {"ref_read", "ref_mut"}]
+            scalars = [field for field in declaration.fields if field not in refs]
+            if len(refs) != 1 or len(scalars) > 4:
+                _unsupported("Only one stored u8-slice loan and up to four Copy scalar fields are modelled")
+            field = refs[0]
+            if (field.type.args != (Type("slice", (Type("u8"),)),)
+                    or field.type.lifetimes != declaration.lifetime_params
+                    or any(item.type.name not in _PRIMITIVES - {"Unit"}
+                           or item.type.args or item.type.lifetimes or item.type.length is not None
+                           for item in scalars)):
+                _unsupported("Stored view fields must be one direct u8 loan plus plain Copy scalars")
             self.views[declaration.name] = (field.name, field.type.name[4:])
+            self.view_scalars[declaration.name] = {item.name: item.type for item in scalars}
+        # A separate wire version prevents old v4 readers from silently
+        # ignoring the labels or assuming that they were never initialized.
+        self.labelled_views_present = any(self.view_scalars.values())
         for fn in program.functions:
             if (fn.lifetime_params or contains_storage(fn.return_type, self.structs, self.enums)
                     or any(contains_storage(p.type, self.structs, self.enums) for p in fn.params)):
@@ -78,6 +88,10 @@ class _Types:
             field, mode = self.views[typ.name]
             self.table[key] = {"kind": "view", "name": typ.name, "field": field,
                                "mode": mode, "pointee": self.add(Type("slice", (Type("u8"),)))}
+            if self.labelled_views_present:
+                self.table[key]["scalars"] = [
+                    {"name": name, "type": self.add(label)}
+                    for name, label in self.view_scalars[typ.name].items()]
         elif typ.name in _PRIMITIVES and not typ.args:
             self.table[key] = {"kind": "scalar", "name": typ.name}
         elif typ.name in {"Buffer", "array", "slice"}:
@@ -206,6 +220,20 @@ class _FunctionLowerer:
             return result
         _unsupported("Borrowed places require a named root, a known field, or a conservative index")
 
+    def scalar_view_projection(self, expr) -> _Value | None:
+        """Access one checked copied label only while its view is live.
+
+        The scalar's *value* remains abstract in the independent resource
+        verifier; an existing borrow is never converted into ownership.
+        """
+        if expr.kind != "field" or len(expr.children) != 1 or expr.children[0].kind != "name":
+            return None
+        view = self.env.get(expr.children[0].value)
+        if (view is None or
+                expr.value not in self.types.view_scalars.get(view.type.name, {})):
+            return None
+        return view
+
     def view_projection(self, expr) -> _Value | None:
         path = []
         base = expr
@@ -328,6 +356,10 @@ class _FunctionLowerer:
                 self.copy_value(self.expression(child))
             return self.slot(typ)
         if kind in {"field", "index"}:
+            label_view = self.scalar_view_projection(expr)
+            if label_view is not None:
+                self.emit("use_view", src=label_view.id, mode="read")
+                return self.slot(typ)
             stored = self.view_projection(expr)
             if stored is not None:
                 if kind != "index":
@@ -355,11 +387,34 @@ class _FunctionLowerer:
         if kind in {"struct", "variant"}:
             if typ.name in self.types.views:
                 field, mode = self.types.views[typ.name]
-                if kind != "struct" or expr.value["fields"] != [field] or len(expr.children) != 1:
-                    _unsupported("Stored view construction needs its single reference field")
-                loan = self.borrow(expr.children[0], mode, Type("slice", (Type("u8"),)))
+                labels = self.types.view_scalars[typ.name]
+                if (kind != "struct" or not isinstance(expr.value, dict)
+                        or not isinstance(expr.value.get("fields"), list)
+                        or len(expr.value["fields"]) != 1 + len(labels)
+                        or len(expr.children) != 1 + len(labels)
+                        or set(expr.value["fields"]) != {field, *labels}):
+                    _unsupported("Stored view requires its one loan and every declared scalar field")
+                loan = None
+                scalar_values = {}
+                # Match the source order, not a reordered struct declaration.
+                # A later field expression may read the original buffer and
+                # must conflict with a prior exclusive borrow when applicable.
+                for name, child in zip(expr.value["fields"], expr.children):
+                    if name == field:
+                        loan = self.borrow(child, mode, Type("slice", (Type("u8"),)))
+                    else:
+                        value = self.copy_value(self.expression(child))
+                        if (value.kind != "value" or value.id is None
+                                or value.type != labels[name]):
+                            _unsupported("Stored view label must be an exact Copy scalar value")
+                        scalar_values[name] = value.id
+                if loan is None:
+                    _unsupported("Stored view loan was not constructed")
                 result = self.slot(typ)
-                self.emit("bind_view", dest=result.id, loan=loan.id)
+                metadata = ({"scalars": [{"name": name, "src": scalar_values[name]}
+                                        for name in labels]}
+                            if self.types.labelled_views_present else {})
+                self.emit("bind_view", dest=result.id, loan=loan.id, **metadata)
                 return result
             values = []
             for child in expr.children:
@@ -475,6 +530,8 @@ class _FunctionLowerer:
                 # assignment place. Materialize copied values (and end any
                 # returned loan) before evaluating the target's calls/indices.
                 value = self.expression(data["expr"])
+                if self.scalar_view_projection(data["target"]) is not None:
+                    _unsupported("Updating stored Copy scalar labels needs an explicit value-write profile")
                 stored = self.view_projection(data["target"])
                 if stored is not None:
                     if data["target"].kind != "index":
@@ -649,7 +706,8 @@ def lower_resource_ir(program, checked, *, project_sha256: str | None = None) ->
     for fn in program.functions:
         if not fn.extern_c:
             _FunctionLowerer(program, checked, fn, types, signatures).lower()
-    doc = {"schema": STORED_SCHEMA if types.views else SCHEMA, "source_sha256": hashlib.sha256(program.source.encode()).hexdigest(),
+    doc = {"schema": (LABELLED_VIEW_SCHEMA if types.labelled_views_present
+                       else STORED_SCHEMA if types.views else SCHEMA), "source_sha256": hashlib.sha256(program.source.encode()).hexdigest(),
            "project_sha256": project_sha256, "value_semantics": "copied_values_abstract_not_executable",
            "types": types.table, "functions": list(signatures.values()), "obligations": obligations,
            "claims": dict(_CLAIMS)}
