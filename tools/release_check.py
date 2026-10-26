@@ -7,6 +7,8 @@ import datetime
 import hashlib
 import json
 import math
+import os
+import stat
 from pathlib import Path
 import re
 import statistics
@@ -17,6 +19,45 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from hepta.pipeline import compiler_hash
+
+
+
+def _evidence_state(path: Path):
+    """Capture the *path entry*, not the target of a symlink."""
+    try:
+        info = path.lstat()
+    except FileNotFoundError:
+        return None
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_size,
+            info.st_mtime_ns, info.st_ctime_ns)
+
+
+def _read_regular_evidence(path: Path):
+    """Read one stable, regular evidence file; reject symlinks and replacement.
+
+    A zero-exit producer is not sufficient: bytes must come from the same
+    filesystem object before, during and after the read. The producer and
+    local filesystem are still trusted; this is not a remote attestation.
+    """
+    before = _evidence_state(path)
+    if before is None:
+        raise ValueError("E_MISSING_GATE_EVIDENCE: producer did not create a report")
+    if not stat.S_ISREG(before[2]):
+        raise ValueError("E_UNSAFE_GATE_EVIDENCE: report is not a regular file")
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    with os.fdopen(os.open(path, flags), "rb") as stream:
+        def identity():
+            current = os.fstat(stream.fileno())
+            return (current.st_dev, current.st_ino, current.st_mode,
+                    current.st_size, current.st_mtime_ns, current.st_ctime_ns)
+        if identity() != before:
+            raise ValueError("E_UNSAFE_GATE_EVIDENCE: report changed before opening")
+        data = stream.read()
+        if identity() != before:
+            raise ValueError("E_UNSAFE_GATE_EVIDENCE: report changed while reading")
+    if _evidence_state(path) != before:
+        raise ValueError("E_UNSAFE_GATE_EVIDENCE: report path changed during read")
+    return data, before
 
 
 def snapshot():
@@ -860,13 +901,12 @@ def main(argv=None):
         # returning zero without replacing that file cannot credit the old run
         # to this candidate. Native tools are trusted producers, not adversaries
         # able to fake filesystem timestamps.
-        previous_identity = None
+        previous_identity, previous_error = None, None
         if evidence_path is not None:
             try:
-                stat = evidence_path.stat()
-                previous_identity = (stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
-            except OSError:
-                pass
+                previous_identity = _evidence_state(evidence_path)
+            except OSError as exc:
+                previous_error = str(exc)
         try:
             p = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, timeout=timeout)
             text = p.stdout + p.stderr
@@ -908,9 +948,9 @@ def main(argv=None):
         if name in evidence_outputs:
             retained = None
             try:
-                evidence_bytes = evidence_path.read_bytes()
-                stat = evidence_path.stat()
-                identity = (stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
+                evidence_bytes, identity = _read_regular_evidence(evidence_path)
+                if previous_error is not None:
+                    raise ValueError("E_STALE_GATE_EVIDENCE: initial path state unavailable: " + previous_error)
                 retained = {"sha256": hashlib.sha256(evidence_bytes).hexdigest(),
                             "bytes": len(evidence_bytes), "gate": name,
                             "fresh": previous_identity is None or identity != previous_identity}
