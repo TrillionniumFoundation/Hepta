@@ -14,6 +14,7 @@ import tempfile
 
 from .cfg import CFGSnapshot
 from .ssa import SSASnapshot
+from .object_symbols import ObjectSymbolsRejected, inspect_object_symbols
 from .llvm_ssa_backend import (SSA_LLVM_IR, LLVMSSARejected, _clang_run,
                                require_exact_ssa_origin)
 
@@ -206,6 +207,17 @@ def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
         data = artifact.read_bytes() if artifact.is_file() else b""
         if not _qualified_header(data, target):
             raise LLVMSSARejected("E_LLVM_SSA_TARGET_IDENTITY: wrong/empty ELF, COFF or Mach-O machine/file type")
+        # A correct machine tag is not a proof that symbols are genuine
+        # functions in executable sections, or that imports are approved.
+        fmt, machine = _TARGETS[target]
+        try:
+            symbols = inspect_object_symbols(data, fmt, machine)
+        except ObjectSymbolsRejected as exc:
+            raise LLVMSSARejected("E_LLVM_SSA_TARGET_SYMBOL: " + str(exc)) from exc
+        if symbols["defined"] != frozenset(ir.functions):
+            raise LLVMSSARejected("E_LLVM_SSA_TARGET_EXPORT: native exports differ from checked LLVM")
+        if symbols["undefined"] - {"abort"}:
+            raise LLVMSSARejected("E_LLVM_SSA_TARGET_IMPORT: unreviewed native object imports")
         try:
             os.link(artifact, destination)
         except FileExistsError as exc:
@@ -219,6 +231,10 @@ def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
         "target": target, "object_format": _TARGETS[target][0],
         "machine": _TARGETS[target][1],
         "functions": list(ir.functions),
+        "object_structure_qualified": True,
+        "object_symbols_qualified": True,
+        "defined_export_symbols": sorted(symbols["defined"]),
+        "undefined_external_symbols": sorted(symbols["undefined"]),
         "llvm_ir_sha256": ir.sha256, "llvm_source_profile": ir.profile,
         "ssa_sha256": ir.source_ssa_sha256,
         "structural_ssa_verification_sha256": ir.verification_sha256,
