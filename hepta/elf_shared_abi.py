@@ -43,10 +43,11 @@ def _text_name(data: bytes, begin: int, end: int) -> str:
 
 
 # These toolchain-defined weak stubs are not a Hepta-provided C API.
-# Required runtime effects are malloc/free/abort/memset/calloc; any other
+# Reviewable runtime effects include allocation, deallocation, abort and
+# bounded standard C memory operations; any other
 # unresolved symbol must reject instead of silently widening FFI authority.
 _ALLOWED_UNDEFINED = frozenset({
-    "malloc", "calloc", "free", "abort", "memset", "__cxa_finalize",
+    "malloc", "calloc", "free", "abort", "memset", "memcpy", "memmove", "__cxa_finalize",
     "_ITM_registerTMCloneTable", "_ITM_deregisterTMCloneTable", "__gmon_start__",
 })
 
