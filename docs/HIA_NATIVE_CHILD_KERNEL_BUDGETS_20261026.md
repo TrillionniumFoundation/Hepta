@@ -72,3 +72,26 @@ persistent process isolation. Do not upgrade compiler refinement, global
 resource bound, whole-language soundness or physical hardware claims.
 
 `whole_project_blockers_closed=false`.
+
+## Timeout cleanup for forked foreign libraries
+
+A plain `subprocess.run(timeout=...)` only kills its **direct** child.
+The native shared object accepted by the raw comparison helper is arbitrary
+foreign code and could fork before its Python worker is timed out, leaving an
+unbounded grandchild alive after the parent is reaped.
+
+The current worker launches with `start_new_session=True`. On a real wall
+timeout the parent sends SIGKILL to **that worker's process group before
+reaping it**, preventing ordinary in-group forked children from continuing.
+The rule does not claim to catch processes that deliberately detach into a
+new process group/session, and a worker that exits before the timeout may
+still leave descendants; this remains outside a hostile-process sandbox.
+
+Real Linux Clang17 standalone control: a shared library forked a child
+programmed to create a marker after 2 seconds while the parent slept 6
+seconds; with the new 0.3-second group timeout, the Python parent exited
+SIGKILL and no marker was created after 2.3 seconds. The in-repo test
+`test_timeout_kills_worker_and_forked_child_process_group` uses a
+fresh native C shared object and checks the same condition.
+
+This local C control is not a full Hepta/Core/LLVM native qualification.

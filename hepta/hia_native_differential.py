@@ -123,9 +123,23 @@ def _observe_native(library: Path, function: str, word: str, args: list[int], *,
         _reject("bounded Linux x86-64 scalar host required")
     try:
         with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
-            proc = subprocess.run([sys.executable, "-I", "-c", _WORKER, str(library),
-                                   function, word, json.dumps(args, separators=(",", ":"))],
-                                  stdout=out, stderr=err, check=False, timeout=timeout)
+            # An arbitrary DSO can fork. Give the worker its own process
+            # group so timeout cleanup kills the entire still-running group,
+            # not just the Python parent process. No OS sandbox is claimed.
+            proc = subprocess.Popen(
+                [sys.executable, "-I", "-c", _WORKER, str(library), function,
+                 word, json.dumps(args, separators=(",", ":"))],
+                stdout=out, stderr=err, start_new_session=True)
+            try:
+                proc.wait(timeout=timeout)
+            except subprocess.TimeoutExpired as exc:
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                proc.wait()  # Reap the direct child before closing capture FDs.
+                raise HIADifferentialRejected(
+                    "E_HIA_DIFFERENTIAL: native child timed out; process group terminated") from exc
             out.seek(0)
             err.seek(0)
             child_stdout = out.read(4097)

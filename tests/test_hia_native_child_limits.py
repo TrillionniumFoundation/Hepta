@@ -7,10 +7,12 @@ HIA owner/memory backend; those retain their separate full-suite acceptance.
 from __future__ import annotations
 
 from pathlib import Path
+import json
 import platform
 import shutil
 import subprocess
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 
@@ -108,6 +110,43 @@ class NativeChildHardLimitTests(unittest.TestCase):
         # address space. This is an evaluator budget, not the language's
         # native heap bound or a general process security sandbox.
         self.assertEqual(self.observe("huge_virtual_allocation"), ("value", 7))
+
+
+    def test_timeout_kills_worker_and_forked_child_process_group(self):
+        # Direct-child-only subprocess.run(timeout=...) leaves a native-forked
+        # grandchild alive. Observe a marker it would write after the timeout.
+        with tempfile.TemporaryDirectory(prefix="hia-killgroup-") as folder:
+            root = Path(folder)
+            marker = root / "grandchild-survived"
+            library = root / "forked.so"
+            c_file = root / "forked.c"
+            c_file.write_text("""
+#include <unistd.h>
+#include <fcntl.h>
+#include <stdint.h>
+int32_t fork_and_stall(void) {
+    pid_t pid = fork();
+    if (pid == 0) {
+        sleep(2);
+        int fd = open(""" + json.dumps(str(marker)) + """, O_WRONLY | O_CREAT, 0600);
+        if (fd >= 0) close(fd);
+        _exit(0);
+    }
+    sleep(6);
+    return 7;
+}
+""", encoding="utf-8")
+            subprocess.run(["clang", "-O0", "-shared", "-fPIC",
+                            str(c_file), "-o", str(library)],
+                           check=True, timeout=30)
+            with self.assertRaisesRegex(
+                    differential.HIADifferentialRejected, "timed out"):
+                differential._observe_native(
+                    library, "fork_and_stall", "i32", [], timeout=0.3)
+            # Enough wall time for a surviving child to write the marker.
+            time.sleep(2.3)
+            self.assertFalse(marker.exists(),
+                             "timeout must not leave an in-group child alive")
 
 
 if __name__ == "__main__":
