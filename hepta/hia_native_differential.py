@@ -31,6 +31,9 @@ import ctypes, json, resource, sys
 resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
 # A hostile foreign constructor must not fill a host disk before timeout.
 resource.setrlimit(resource.RLIMIT_FSIZE, (4096, 4096))
+# Bounded evaluator caps; not a native HIA heap proof or adversarial sandbox.
+resource.setrlimit(resource.RLIMIT_AS, (512 * 1024 * 1024, 512 * 1024 * 1024))
+resource.setrlimit(resource.RLIMIT_CPU, (10, 10))
 lib, symbol, word, packed = sys.argv[1:]
 args = json.loads(packed)
 c = ctypes.c_int32 if word == "i32" else ctypes.c_uint32
@@ -206,11 +209,25 @@ def _observe_native(library: Path, function: str, word: str, args: list[int], *,
         _reject("bounded Linux host and sealed native fd required")
     try:
         with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
-            proc = subprocess.run([sys.executable, "-I", "-c", _WORKER,
-                                   "/proc/self/fd/" + str(pinned_fd),
-                                   function, word, json.dumps(args, separators=(",", ":"))],
-                                  stdout=out, stderr=err, check=False, timeout=timeout,
-                                  pass_fds=(pinned_fd,))
+            # Keep the new sealed memfd fd identity from #220 and create an
+            # isolated process group. On timeout kill in-group descendants,
+            # not just the direct Python worker. This is not a sandbox.
+            proc = subprocess.Popen(
+                [sys.executable, "-I", "-c", _WORKER,
+                 "/proc/self/fd/" + str(pinned_fd),
+                 function, word, json.dumps(args, separators=(",", ":"))],
+                stdout=out, stderr=err, pass_fds=(pinned_fd,),
+                start_new_session=True)
+            try:
+                proc.wait(timeout=timeout)
+            except subprocess.TimeoutExpired as exc:
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                proc.wait()
+                raise HIADifferentialRejected(
+                    "E_HIA_DIFFERENTIAL: native child timed out; process group terminated") from exc
             out.seek(0)
             err.seek(0)
             child_stdout = out.read(4097)
