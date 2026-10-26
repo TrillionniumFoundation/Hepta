@@ -79,10 +79,12 @@ for _nr in _FORBIDDEN_SYSCALLS:
     _rules += [(0x15, 0, 1, _nr), (0x06, 0, 0, 0x80000000)]
 # seccomp_data.args[1] starts at byte 24 for open(), args[2] at byte 32
 # for openat(). Both are little-endian low 32-bit flags on x86-64.
-# Reject writable opens, O_CREAT, O_TRUNC, O_APPEND, O_TMPFILE even when
-# O_ACCMODE happens to be read-only. Read-only dynamic loader opens remain.
-# Each nonmatching syscall or read-only open must reload nr for the next rule.
-_WRITE_OPEN_FLAGS = 0x3 | 0x40 | 0x200 | 0x400 | 0x410000
+# Reject writable opens, O_CREAT, O_TRUNC, O_APPEND and the
+# __O_TMPFILE-exclusive bit (0x400000). Do NOT mask the whole O_TMPFILE
+# macro (0x410000): its O_DIRECTORY bit would kill valid read-only directory
+# opens. Read-only dynamic loader and directory opens remain available.
+# Each nonmatching syscall or read-only open reloads nr for the next rule.
+_WRITE_OPEN_FLAGS = 0x3 | 0x40 | 0x200 | 0x400 | 0x400000
 for _nr, _flags_offset in ((2, 24), (257, 32)):
     _rules += [
         (0x15, 0, 4, _nr),  # other syscall: skip to reload nr

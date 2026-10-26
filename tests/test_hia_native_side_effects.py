@@ -68,9 +68,16 @@ int readonly(void) {
   close(fd);
   return result == 1 && letter == 'X' ? 7 : 9;
 }
+int readonly_dir(void) {
+  int fd = open(""" + json.dumps(str(root)) + r""", O_RDONLY | O_DIRECTORY);
+  if (fd < 0) return 8;
+  close(fd);
+  return 7;
+}
 """)
             self.assertEqual(self.observe(lib, "healthy"), ("value", 7))
             self.assertEqual(self.observe(lib, "readonly"), ("value", 7))
+            self.assertEqual(self.observe(lib, "readonly_dir"), ("value", 7))
             self.assertEqual(self.observe(lib, "aborting"), ("trap", None))
 
     def test_file_creates_removes_and_openat2_reject_before_side_effect(self):
@@ -94,8 +101,14 @@ int create_openat(void) {
 }
 int remove_file(void) { unlink(""" + json.dumps(str(existing)) + r"""); return 7; }
 int direct_openat2(void) { syscall(437, AT_FDCWD, 0, 0, 0); return 7; }
+int direct_tmpfile(void) {
+  syscall(SYS_openat, AT_FDCWD, """ + json.dumps(str(root)) + r""",
+          0x410000 | O_RDWR, 0600);
+  return 7;
+}
 """)
-            for name in ("create_open", "create_openat", "remove_file", "direct_openat2"):
+            for name in ("create_open", "create_openat", "remove_file",
+                         "direct_openat2", "direct_tmpfile"):
                 with self.subTest(case=name):
                     self.assert_sigsys(lib, name)
             self.assertFalse(marker.exists())

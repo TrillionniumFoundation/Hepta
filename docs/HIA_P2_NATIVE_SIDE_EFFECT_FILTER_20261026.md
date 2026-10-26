@@ -20,7 +20,10 @@ The Linux x86-64 seccomp filter now:
   metadata modifications;
 - kills `openat2` rather than attempting to inspect its user-pointer flags;
 - checks low 32-bit open()/openat() flags in kernel BPF; only read-only
-  opens without O_CREAT/O_TRUNC/O_APPEND/O_TMPFILE can pass;
+  opens without O_CREAT/O_TRUNC/O_APPEND or the __O_TMPFILE-exclusive
+  bit can pass. Masking the complete O_TMPFILE macro would also reject
+  legitimate read-only O_DIRECTORY opens, so that bit is deliberately
+  excluded from the mask;
 - kills `kill`, `tkill`, queued signals and `pidfd_send_signal`, and
   refuses pidfd_getfd and process_vm_writev. `tgkill` remains available:
   libc abort/raise may need it to deliver SIGABRT to the worker itself;
@@ -39,12 +42,13 @@ value.
 
 An isolated Python 3.13 / Clang 17 reproducer installed the **same BPF rule
 sequence** before `ctypes.CDLL` and executed actual x86-64 ELF shared
-objects. It observed 10/10 controls:
+objects. It observed 12/12 controls:
 
-- valid integer return and read-only open: exit 0 with value 7;
+- valid integer return, read-only file open and read-only O_DIRECTORY open:
+  exit 0 with value 7;
 - ordinary libc abort: SIGABRT (not SIGSYS);
-- O_CREAT|O_WRONLY open and openat, unlink, socket, direct kill and
-  openat2: SIGSYS;
+- O_CREAT|O_WRONLY open and openat, O_TMPFILE openat, unlink, socket,
+  direct kill and openat2: SIGSYS;
 - marker file remained unchanged and forbidden new file did not appear.
 
 The executable in-repository `tests/test_hia_native_side_effects.py`
