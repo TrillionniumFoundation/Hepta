@@ -59,6 +59,18 @@ class HIABooleanTraceTests(unittest.TestCase):
         with self.assertRaisesRegex(HIABooleanTraceRejected, "may be mutated"):
             replay_boolean_resource_path(graph, verified, "f", inputs={"p0": True})
 
+    def test_unhashable_resource_operands_reject_structurally(self):
+        for replacement in (
+            {"op": ["use"], "place": {"root": "p0", "path": []}, "mode": "write"},
+            {"op": "use", "place": {"root": [], "path": []}, "mode": "write"},
+            {"op": "use", "place": {"root": "p0", "path": []}, "mode": ["write"]},
+        ):
+            with self.subTest(replacement=replacement):
+                graph, verified = fixture()
+                graph["functions"][0]["blocks"][0]["ops"].append(replacement)
+                with self.assertRaisesRegex(HIABooleanTraceRejected, "E_HIA_BOOL_TRACE"):
+                    replay_boolean_resource_path(graph, verified, "f", inputs={"p0": True})
+
     def test_wrong_input_type_or_inventory_refuses(self):
         graph, verified = fixture()
         for args in ({"p0": 1}, {"p0": 0}, {"p0": "true"},

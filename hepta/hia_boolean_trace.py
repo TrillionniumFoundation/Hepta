@@ -87,12 +87,17 @@ def replay_boolean_resource_path(graph: dict, verified: dict, function_name: str
         if type(ops) is not list:
             _reject("malformed operation block")
         for operation in ops:
-            if type(operation) is not dict:
+            if type(operation) is not dict or type(operation.get("op")) is not str:
                 _reject("malformed resource operation")
             place = operation.get("place")
-            if (type(place) is dict and place.get("root") in inputs
-                    and operation.get("mode") in {"write", "mut"}):
-                _reject("value parameter may be mutated before a branch")
+            if type(place) is dict:
+                root, mode = place.get("root"), operation.get("mode")
+                if type(root) is not str:
+                    _reject("malformed resource place root")
+                if mode is not None and type(mode) is not str:
+                    _reject("malformed resource access mode")
+                if root in inputs and mode in {"write", "mut"}:
+                    _reject("value parameter may be mutated before a branch")
     visited = []
     choices = []
     edge_decisions = []
