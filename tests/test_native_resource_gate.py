@@ -59,6 +59,26 @@ class NativeResourceGateTests(unittest.TestCase):
         self.assertFalse(receipt["claims"]["whole_language_memory_safety_proved"])
         self.assertIsNone(receipt["project_sha256"])
 
+    def test_shared_project_sha_changes_canonical_hsir_and_resource_receipts(self):
+        program, checked, unbound = fixture()
+        project = "f" * 64
+        project_bound = canonical_hsir(
+            program, checked, project_sha256=project)["sha256"]
+        self.assertNotEqual(unbound, project_bound)
+        receipt = qualify_native_resource_source(
+            program, checked, canonical_hsir_sha256=project_bound,
+            project_sha256=project)
+        self.assertEqual(receipt["project_sha256"], project)
+        self.assertEqual(receipt["canonical_hsir_sha256"], project_bound)
+        with self.assertRaisesRegex(NativeResourceGateRejected, "E_NATIVE_RESOURCE_GATE"):
+            qualify_native_resource_source(
+                program, checked, canonical_hsir_sha256=unbound,
+                project_sha256=project)
+        with self.assertRaisesRegex(NativeResourceGateRejected, "E_NATIVE_RESOURCE_GATE"):
+            qualify_native_resource_source(
+                program, checked, canonical_hsir_sha256=project_bound,
+                project_sha256="e" * 64)
+
     def test_source_hsir_mismatch_and_invalid_inputs_reject(self):
         program, checked, digest = fixture()
         for invalid in ("0" * 64, "", digest.upper(), "x" * 64):
