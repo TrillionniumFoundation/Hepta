@@ -1,4 +1,5 @@
 """Configuration regressions; the separate qualifier runs the real boundaries."""
+import errno
 import os
 from pathlib import Path
 import shlex
@@ -7,7 +8,7 @@ import unittest
 from unittest.mock import patch
 
 from experiments.agent_eval import sandbox
-from experiments.agent_eval.sandbox_qualification import qualify_sandbox
+from experiments.agent_eval.sandbox_qualification import _host_path_evidence, qualify_sandbox
 from hepta.backend import compile_rust, find_rustc
 
 
@@ -46,6 +47,30 @@ class NamespaceConfigurationTests(unittest.TestCase):
             offset = argv.index("LD_LIBRARY_PATH")
             self.assertEqual(argv[offset - 1:offset + 2],
                              ["--setenv", "LD_LIBRARY_PATH", str(toolchain / "lib")])
+
+    def test_denied_host_proc_stat_is_unknown_not_missing_or_qualified(self):
+        # Ubuntu AppArmor may prevent host /proc/1/root lookup even when the
+        # separate bubblewrap namespace + inside-capsule boundary probes work.
+        with patch.object(Path, "exists", side_effect=PermissionError(errno.EACCES, "restricted procfs")):
+            observed = _host_path_evidence("/proc/1/root/tmp/parent_oracle_canary")
+        self.assertIsNone(observed["host_exists"])
+        self.assertEqual(observed["host_stat_error"],
+                         {"errno": errno.EACCES, "type": "PermissionError"})
+
+    def test_host_visibility_evidence_keeps_known_presence_and_absence(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            present = Path(temporary) / "canary"
+            present.write_text("marker")
+            missing = Path(temporary) / "absent"
+            self.assertEqual(_host_path_evidence(str(present)),
+                             {"path": str(present), "host_exists": True})
+            self.assertEqual(_host_path_evidence(str(missing)),
+                             {"path": str(missing), "host_exists": False})
+
+    def test_unexpected_host_metadata_programmer_error_is_not_suppressed(self):
+        with patch.object(Path, "exists", side_effect=TypeError("broken test")):
+            with self.assertRaises(TypeError):
+                _host_path_evidence("/proc/1/root/tmp/canary")
 
     def test_unavailable_namespaces_cannot_be_relabelled_available(self):
         blocked = {"available": False, "reason": "kernel denied namespaces"}
