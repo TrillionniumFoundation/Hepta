@@ -86,19 +86,37 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
             analyzed.program, analyzed.checked,
             canonical_hsir_sha256=scalar_source["source_semantic_sha256"],
             project_sha256=project.identity)
-        if (resource_gate.get("status") !=
-                "source_bound_resource_cfg_checked_not_refinement_proof"
+        expected_claims = {
+            "exact_checked_source_resource_graph_rederived": True,
+            "independent_resource_cfg_verified": True,
+            "foreign_resource_obligations_absent": True,
+            "source_to_resource_ir_refinement_proved": False,
+            "native_codegen_consumes_resource_ir": False,
+            "whole_language_memory_safety_proved": False,
+        }
+        if (type(resource_gate) is not dict
+                or set(resource_gate) != {
+                    "schema", "status", "canonical_hsir_sha256",
+                    "resource_ir_sha256", "source_sha256", "project_sha256",
+                    "functions_checked", "claims"}
+                or resource_gate.get("schema") != "hepta.native.resource-gate.v1"
+                or resource_gate.get("status") !=
+                    "source_bound_resource_cfg_checked_not_refinement_proof"
                 or resource_gate.get("canonical_hsir_sha256") !=
-                scalar_source["source_semantic_sha256"]
+                    scalar_source["source_semantic_sha256"]
+                or resource_gate.get("source_sha256") != scalar_source["source_sha256"]
                 or resource_gate.get("project_sha256") != project.identity
-                or resource_gate.get("claims", {}).get(
-                    "exact_checked_source_resource_graph_rederived") is not True
-                or resource_gate.get("claims", {}).get(
-                    "independent_resource_cfg_verified") is not True
-                or resource_gate.get("claims", {}).get(
-                    "foreign_resource_obligations_absent") is not True
-                or resource_gate.get("claims", {}).get(
-                    "whole_language_memory_safety_proved") is not False):
+                or type(resource_gate.get("resource_ir_sha256")) is not str
+                or len(resource_gate["resource_ir_sha256"]) != 64
+                or any(value not in "0123456789abcdef" for value in
+                       resource_gate["resource_ir_sha256"])
+                or type(resource_gate.get("functions_checked")) is not int
+                or resource_gate["functions_checked"] != sum(
+                    not function.extern_c for function in analyzed.program.functions)
+                or type(resource_gate.get("claims")) is not dict
+                or set(resource_gate["claims"]) != set(expected_claims)
+                or any(resource_gate["claims"][key] is not value
+                       for key, value in expected_claims.items())):
             raise LLVMSSARejected(
                 "E_NATIVE_RESOURCE_GATE: missing trusted checked-source Resource IR receipt")
         result["resource_verification"] = resource_gate
