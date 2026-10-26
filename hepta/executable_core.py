@@ -34,6 +34,7 @@ MAX_DEPTH = 96
 CLAIMS = {"executable_reference_semantics": True,
           "source_origin_replayed": True,
           "decoded_core_rechecked": True,
+          "native_profile_representability_checked": True,
           "native_execution_qualified": False,
           "source_to_ir_refinement_proved": False,
           "backend_refinement_proved": False,
@@ -144,6 +145,17 @@ class _Lower:
         elif expr.kind == "name":
             out.update(op="local.get", name=expr.value)
         elif expr.kind == "index":
+            def owner_type(typ):
+                return typ["name"] in {"Buffer", "slice"} or any(owner_type(t) for t in typ["args"])
+            def owner_in_index(node):
+                return owner_type(node["type"]) or any(owner_in_index(n) for n in node["args"])
+            if owner_in_index(out["args"][1]):
+                # Index operands are scalar-only in v1. This covers implicit
+                # owner access such as len(data), as well as pure helper calls
+                # taking read/mut parameters. Rust's indexing loans can span
+                # these argument evaluations even if no write effect exists.
+                reject("Core index operands must not access owners; compute a scalar index first",
+                       "E_CORE_INDEX_BORROW")
             out["op"] = "buffer.load"
         elif expr.kind == "binary" and expr.value in BINARY:
             if expr.value in {"<<", ">>"} and self.checked.expr_types[id(expr.children[0])] != self.checked.expr_types[id(expr.children[1])]:
@@ -365,6 +377,17 @@ def decode_executable_core(document, *, source, path=None, project_sha256=None):
     replay = _unchecked_lower(program, checked, project_sha256)
     if _wire(replay) != _wire(document):
         reject("Decoded executable operations do not round-trip", "E_CORE_DECODE")
+    # Admission is the intersection of reference and native semantics. A
+    # reference-only operation must not enter a core whose build path promises
+    # the same operations. Reuse the real backend's pure-Python emitter instead
+    # of maintaining a second, inevitably drifting list of native restrictions.
+    # This performs no compiler invocation and proves no native execution.
+    from .llvm_owned_backend import emit_owned_llvm, LLVMOwnedRejected
+    try:
+        emit_owned_llvm(program, checked, project_sha256=project_sha256)
+    except LLVMOwnedRejected as exc:
+        reject("Decoded core is outside the native profile: " + str(exc),
+               "E_CORE_BACKEND_PROFILE")
     return program, checked
 
 

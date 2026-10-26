@@ -79,6 +79,51 @@ class ExecutableCoreCLITests(unittest.TestCase):
                                             "--function", "add", *options)
                 self.assertNotEqual(code, 0, report)
 
+    def test_reference_only_bool_bitwise_operation_is_rejected_at_admission(self):
+        for operation in ("&", "|", "^"):
+            with self.subTest(operation=operation):
+                self.source.write_text('fn bits(a:bool,b:bool)->bool effects {} {return a '
+                    + operation + ' b;} export "C" fn f(a:u8,b:u8)->u8 effects {} '
+                    '{if bits(a==1,b==1){return 1;}return 0;}')
+                code, report = self.command("executable-core", self.source)
+                self.assertNotEqual(code, 0, report)
+                self.assertIn("E_CORE_BACKEND_PROFILE", report["diagnostics"][0]["message"])
+
+    def test_effectful_index_is_rejected_before_core_publication(self):
+        self.source.write_text('fn index()->usize effects {alloc,block,panic} '
+            '{let tmp=buffer(1);drop(move tmp);return 0;} '
+            'export "C" fn f()->u8 effects {alloc,block,panic} '
+            '{let data=buffer(1);let answer=data[index()];drop(move data);return answer;}')
+        code, report = self.command("executable-core", self.source, "-o", self.core)
+        self.assertNotEqual(code, 0, report)
+        self.assertFalse(self.core.exists())
+        self.assertIn("E_CORE_BACKEND_PROFILE", report["diagnostics"][0]["message"])
+
+    def test_pure_borrow_in_index_is_rejected_before_rust_only_alias_gate(self):
+        for index in ("index(mut data)", "len(data)-1"):
+            with self.subTest(index=index):
+                self.source.write_text('fn index(value:mut Buffer<u8>)->usize effects {} {return 0;} '
+                    'export "C" fn f()->u8 effects {alloc,block,panic} '
+                    '{let mut data=buffer(1);let answer=data[' + index + '];drop(move data);return answer;}')
+                code, report = self.command("executable-core", self.source)
+                self.assertNotEqual(code, 0, report)
+                self.assertIn("E_CORE_INDEX_BORROW", report["diagnostics"][0]["message"])
+        self.source.write_text('fn index(value:mut Buffer<u8>)->usize effects {} {return 0;} '
+            'export "C" fn f()->u8 effects {alloc,block,panic} '
+            '{let mut data=buffer(1);let offset=index(mut data);let answer=data[offset];drop(move data);return answer;}')
+        code, report = self.command("run-executable-core", self.source, "--function", "f")
+        self.assertEqual(code, 0, report)
+        self.assertEqual(report["result"], 0)
+
+    def test_slice_reborrow_in_index_is_also_rejected(self):
+        self.source.write_text('fn index(value:mut [u8])->usize effects {} {return 0;} '
+            'fn get(value:mut [u8])->u8 effects {panic} {return value[index(mut value)];} '
+            'export "C" fn f()->u8 effects {alloc,block,panic} '
+            '{let mut data=buffer(1);let answer=get(mut data);drop(move data);return answer;}')
+        code, report = self.command("executable-core", self.source)
+        self.assertNotEqual(code, 0, report)
+        self.assertIn("E_CORE_INDEX_BORROW", report["diagnostics"][0]["message"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -32,6 +32,23 @@ about the frontend or native backend.
 
 ## Closed profile
 
+Admission also runs the existing LLVM emitter on the newly decoded core AST,
+without invoking a native compiler. This makes the accepted profile the
+intersection of the executable reference and native profiles. For example,
+boolean `&`, `|`, `^` and effectful index expressions are rejected when creating
+the core, rather than being accepted by the interpreter and rejected only at
+native build time. This representability check is not native execution or a
+compiler-refinement proof; the pinned Rust gate and actual native compilation
+are still required for a build.
+
+Index operands are scalar-only in v1: compute `let offset = index(mut data);`
+before accessing `data[offset]`. Borrowing or otherwise accessing an owner
+inside an index (including `len(data)`) is rejected conservatively. This closes
+the case where an effect-free helper still takes a mutable loan while Rust's
+indexing loan is active. Pure scalar index arithmetic and scalar helper calls
+remain supported. The current resource representation also rejects
+`Result<Unit, E>` construction; a scalar payload must be used instead.
+
 The wire schema is `hepta.executable-core.v1`; its profile is
 `checked-integer-buffer-result-structured-v1`.
 
