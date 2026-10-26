@@ -12,6 +12,7 @@ import tempfile
 
 from .cfg import lower_hsir_cfg
 from .hsir import lower_checked_program
+from .native_resource_gate import qualify_native_resource_source
 from .llvm_ssa_backend import LLVMSSARejected, compile_scalar_ssa_llvm, emit_scalar_ssa_llvm
 from .llvm_ssa_target import _TARGETS, compile_ssa_target_object
 from .pipeline import analyze_project
@@ -45,6 +46,7 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
         "claims": {
             "native_rust_reference_required": True,
             "independent_scalar_ssa_structure_checked": False,
+            "source_bound_resource_cfg_checked": False,
             "ssa_cfg_origin_rechecked": False,
             "native_artifact_compiled": False,
             "target_program_executed": False,
@@ -76,6 +78,31 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
         if not project.unchanged():
             raise LLVMSSARejected("E_LLVM_SSA_STALE: source graph changed before semantic projection")
         scalar_hsir = lower_checked_program(analyzed.program, analyzed.checked)
+        # The scalar adapter's canonical-source digest is not a native safety
+        # receipt. Require the same checked AST to produce and independently
+        # validate a complete owner/loan Resource IR *before* Clang runs.
+        scalar_source = scalar_hsir.as_dict()
+        resource_gate = qualify_native_resource_source(
+            analyzed.program, analyzed.checked,
+            canonical_hsir_sha256=scalar_source["source_semantic_sha256"],
+            project_sha256=project.identity)
+        if (resource_gate.get("status") !=
+                "source_bound_resource_cfg_checked_not_refinement_proof"
+                or resource_gate.get("canonical_hsir_sha256") !=
+                scalar_source["source_semantic_sha256"]
+                or resource_gate.get("project_sha256") != project.identity
+                or resource_gate.get("claims", {}).get(
+                    "exact_checked_source_resource_graph_rederived") is not True
+                or resource_gate.get("claims", {}).get(
+                    "independent_resource_cfg_verified") is not True
+                or resource_gate.get("claims", {}).get(
+                    "foreign_resource_obligations_absent") is not True
+                or resource_gate.get("claims", {}).get(
+                    "whole_language_memory_safety_proved") is not False):
+            raise LLVMSSARejected(
+                "E_NATIVE_RESOURCE_GATE: missing trusted checked-source Resource IR receipt")
+        result["resource_verification"] = resource_gate
+        result["claims"]["source_bound_resource_cfg_checked"] = True
         cfg = lower_hsir_cfg(scalar_hsir)
         ssa = lower_cfg_scalar_ssa(cfg)
         verification = verify_scalar_ssa(ssa, cfg)
@@ -86,6 +113,9 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
         result["identities"] = {
             "source_sha256": analyzed.report.get("source_sha256"),
             "compiler_sha256": analyzed.report.get("compiler_sha256"),
+            "canonical_hsir_sha256": scalar_source["source_semantic_sha256"],
+            "resource_ir_sha256": resource_gate["resource_ir_sha256"],
+            "native_resource_gate_schema": resource_gate["schema"],
             "canonical_ssa_sha256": ssa.sha256,
             "structural_verification_sha256": verification.sha256,
             "llvm_ir_sha256": ir.sha256,
