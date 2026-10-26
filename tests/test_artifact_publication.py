@@ -10,7 +10,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from hepta.artifact_publication import PublicationRejected, publish_verified
+from hepta.artifact_publication import (PublicationRejected, publish_verified,
+                                        recheck_verified_publication)
 
 
 class ArtifactPublicationTests(unittest.TestCase):
@@ -30,6 +31,28 @@ class ArtifactPublicationTests(unittest.TestCase):
                                    "bytes": len(self.payload)})
         self.assertEqual(self.dest.read_bytes(), self.payload)
         self.assertEqual(self.stage.stat().st_ino, self.dest.stat().st_ino)
+
+    def test_source_facing_recheck_accepts_unmodified_hardlink(self):
+        receipt = publish_verified(self.stage, self.dest, self.payload)
+        again = recheck_verified_publication(self.stage, self.dest, self.payload)
+        self.assertEqual(receipt, again)
+
+    def test_source_facing_recheck_denies_mutation_after_initial_receipt(self):
+        publish_verified(self.stage, self.dest, self.payload)
+        self.dest.write_bytes(b"mutated-after-first-verification")
+        with self.assertRaisesRegex(PublicationRejected, "E_PUBLISH_BYTES"):
+            recheck_verified_publication(self.stage, self.dest, self.payload)
+
+    def test_source_facing_recheck_denies_replaced_or_symlinked_output(self):
+        publish_verified(self.stage, self.dest, self.payload)
+        self.dest.unlink()
+        self.dest.write_bytes(self.payload)
+        with self.assertRaisesRegex(PublicationRejected, "E_PUBLISH_IDENTITY"):
+            recheck_verified_publication(self.stage, self.dest, self.payload)
+        self.dest.unlink()
+        self.dest.symlink_to(self.stage)
+        with self.assertRaisesRegex(PublicationRejected, "E_PUBLISH_IDENTITY"):
+            recheck_verified_publication(self.stage, self.dest, self.payload)
 
     def test_existing_destination_not_replaced(self):
         self.dest.write_bytes(b"unchanged")
@@ -113,6 +136,7 @@ class ArtifactPublicationTests(unittest.TestCase):
         self.assertTrue(object_bytes.startswith(b"\x7fELF"))
         receipt = publish_verified(staged, published, object_bytes)
         self.assertEqual(receipt["bytes"], len(object_bytes))
+        self.assertEqual(recheck_verified_publication(staged, published, object_bytes), receipt)
         self.assertEqual(published.read_bytes(), object_bytes)
         harness = self.root / "driver.c"
         harness.write_text(

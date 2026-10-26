@@ -13,10 +13,11 @@ import tempfile
 from .cfg import lower_hsir_cfg
 from .hsir import lower_checked_program
 from .llvm_ssa_backend import LLVMSSARejected, compile_scalar_ssa_llvm, emit_scalar_ssa_llvm
-from .llvm_ssa_target import _TARGETS, compile_ssa_target_object
+from .llvm_ssa_target import _TARGETS, compile_ssa_target_object, _verified_publication
 from .pipeline import analyze_project
 from .ssa import lower_cfg_scalar_ssa
 from .ssa_verify import verify_scalar_ssa
+from .object_symbols import inspect_object_symbols
 
 
 def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
@@ -113,7 +114,13 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
                     or not isinstance(native.get("claims"), dict)
                     or native["claims"].get("ssa_cfg_origin_rechecked") is not True
                     or native["claims"].get(forbidden_claim) is not False
-                    or (target is not None and native.get("target") != target)):
+                    or (target is not None and (
+                        native.get("target") != target
+                        or native.get("object_structure_qualified") is not True
+                        or native.get("object_symbols_qualified") is not True
+                        or native.get("defined_export_symbols") != list(ir.functions)
+                        or not isinstance(native.get("undefined_external_symbols"), list)
+                        or any(symbol != "abort" for symbol in native["undefined_external_symbols"])))):
                 raise LLVMSSARejected("E_LLVM_SSA_RECEIPT: native backend identity or proof scope mismatch")
             # Validate real staged bytes *before* external publication. An
             # incorrect compiler receipt must never leave a published output
@@ -122,14 +129,30 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
             if (not artifact or sha256(artifact).hexdigest() != native.get("artifact_sha256")
                     or len(artifact) != native.get("artifact_bytes")):
                 raise LLVMSSARejected("E_LLVM_SSA_ARTIFACT: staged native bytes differ from compiler receipt")
+            # Do not trust a matching SHA or a self-asserted native receipt.
+            # Re-read actual staged ELF/COFF/Mach-O symbol tables from this
+            # strict source-facing entrypoint; no merely named functions pass.
+            if target is not None:
+                fmt, machine = _TARGETS[target]
+                inspected = inspect_object_symbols(artifact, fmt, machine)
+                if (sorted(inspected["defined"]) != list(ir.functions)
+                        or inspected["undefined"] - {"abort"}
+                        or native["defined_export_symbols"] != sorted(inspected["defined"])
+                        or native["undefined_external_symbols"] != sorted(inspected["undefined"])):
+                    raise LLVMSSARejected(
+                        "E_LLVM_SSA_SYMBOLS: native object or receipt differs from source-verified exports/imports")
             if not project.unchanged():
                 raise LLVMSSARejected("E_LLVM_SSA_STALE: graph changed during native compilation")
             if dest.is_symlink() or dest.exists():
                 raise LLVMSSARejected("E_LLVM_SSA_OUTPUT: concurrent destination publication")
             os.link(stage, dest)  # same filesystem, no overwrite
+            # A second hard link at the source-facing layer is a *new*
+            # publication boundary. A previously verified stage is not
+            # proof that the published path still has those bytes/inode.
+            published_bytes = _verified_publication(stage, dest, artifact)
         result["native_backend"] = dict(native)
         result["native_backend"]["output"] = str(dest)
-        result["native_backend"]["artifact_sha256"] = sha256(artifact).hexdigest()
+        result["native_backend"]["artifact_sha256"] = sha256(published_bytes).hexdigest()
         result["claims"]["native_artifact_compiled"] = True
         result["claims"]["ssa_cfg_origin_rechecked"] = True
         result["ok"] = True

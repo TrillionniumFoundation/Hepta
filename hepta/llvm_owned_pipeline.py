@@ -14,7 +14,8 @@ from .pipeline import analyze_project, compiler_hash
 from .resource_ir import verify_resource_ir
 from .resource_lowering import lower_resource_ir
 from .elf_shared_abi import inspect_owned_shared_elf
-from .artifact_publication import PublicationRejected, publish_verified
+from .artifact_publication import (PublicationRejected, publish_verified,
+                                   recheck_verified_publication)
 
 
 def build_llvm_owned_source(source, output, *, rustc=None, clang="clang", kind="shared", locked=False):
@@ -91,25 +92,40 @@ def build_llvm_owned_source(source, output, *, rustc=None, clang="clang", kind="
                     "E_LLVM_OWNED_ARTIFACT: relocatable object cannot claim a shared dynamic ABI")
             if not project.unchanged() or compiler_hash() != ir.compiler_sha256:
                 raise LLVMOwnedRejected("E_LLVM_OWNED_STALE: source/compiler changed during native build")
+            # The native backend published its own stage first. This outer
+            # source-facing hardlink is a second trust boundary, so independently
+            # inspect its *actual* bytes again immediately before the receipt.
+            publication_qualified = False
             try:
-                publication = publish_verified(stage, destination, data)
-            except PublicationRejected as exc:
-                raise LLVMOwnedRejected("E_LLVM_OWNED_PUBLICATION: " + str(exc)) from exc
-            if (publication["sha256"] != native["artifact_sha256"]
-                    or publication["bytes"] != native["artifact_bytes"]):
-                raise LLVMOwnedRejected("E_LLVM_OWNED_ARTIFACT: published receipt identity differs")
-            # The output has already been made visible; a source edit during
-            # publication cannot mint a successful source-bound LLVM receipt.
-            if not project.unchanged() or compiler_hash() != ir.compiler_sha256:
                 try:
-                    source_entry, published_entry = stage.stat(), destination.lstat()
-                    if (stat.S_ISREG(published_entry.st_mode)
-                            and (source_entry.st_dev, source_entry.st_ino) ==
-                                (published_entry.st_dev, published_entry.st_ino)):
-                        destination.unlink()
-                except OSError:
-                    pass
-                raise LLVMOwnedRejected("E_LLVM_OWNED_STALE: source/compiler changed after publication")
+                    publication = publish_verified(stage, destination, data)
+                    final_bytes = recheck_verified_publication(stage, destination, data)
+                except PublicationRejected as exc:
+                    raise LLVMOwnedRejected(
+                        "E_LLVM_OWNED_PUBLICATION: second artifact publication changed") from exc
+                if (publication["sha256"] != native["artifact_sha256"]
+                        or publication["bytes"] != native["artifact_bytes"]
+                        or final_bytes != publication):
+                    raise LLVMOwnedRejected(
+                        "E_LLVM_OWNED_ARTIFACT: published receipt identity differs")
+                # Never mint a source-bound result for inputs changed *after*
+                # the second publication, even if the native bytes still match.
+                if not project.unchanged() or compiler_hash() != ir.compiler_sha256:
+                    raise LLVMOwnedRejected(
+                        "E_LLVM_OWNED_STALE: source/compiler changed after publication")
+                publication_qualified = True
+            finally:
+                if not publication_qualified:
+                    # Only unlink our own still-identical hardlink; a competing
+                    # editor's replacement path does not belong to this build.
+                    try:
+                        source_entry, published_entry = stage.stat(), destination.lstat()
+                        if (stat.S_ISREG(published_entry.st_mode)
+                                and (source_entry.st_dev, source_entry.st_ino)
+                                == (published_entry.st_dev, published_entry.st_ino)):
+                            destination.unlink()
+                    except OSError:
+                        pass
         report["native_backend"] = dict(native, output=str(destination))
         report["claims"].update(actual_source_replayed=True, independent_resource_cfg_verified=True,
                                 native_artifact_compiled=True)
