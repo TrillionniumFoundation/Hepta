@@ -135,17 +135,22 @@ def _dag(names, edges, context):
 
 def _merge(previous, proposed, label):
     """Join HIA edges by maximum possible owner and scalar value bounds."""
-    old_owners, old_known = previous
-    new_owners, new_known = proposed
+    old_owners, old_known, old_loans = previous
+    new_owners, new_known, new_loans = proposed
     if old_owners.keys() != new_owners.keys():
         _reject(f"{label}: incompatible owner inventory at a CFG join")
+    # The canonical Core checker enforces loan normalization. Repeat the
+    # critical root relation here rather than estimating an allocation size
+    # using the wrong owner's extent after a CFG join.
+    if old_loans != new_loans:
+        _reject(f"{label}: incompatible borrowed owner roots")
     owners = {key: max(old_owners[key], new_owners[key]) for key in old_owners}
     known = {}
     for key in old_known.keys() & new_known.keys():
         bound = _combine_known(old_known[key], new_known[key])
         if bound is not None:
             known[key] = bound
-    return owners, known
+    return owners, known, dict(old_loans)
 
 
 def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) -> int:
@@ -159,12 +164,14 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) 
     edges = {key: {e["target"] for e in _paths(block["term"])}
              for key, block in blocks.items()}
     order = _dag(list(blocks), edges, f"{fn['name']} heap control flow")
-    states = {fn["entry"]: ({}, {})}  # owner SSA name -> bound, scalar name -> constant
+    # owners: SSA owner -> max requested bytes; known: scalar intervals;
+    # loans: live readbuf/mutbuf -> root owner SSA name.
+    states = {fn["entry"]: ({}, {}, {})}
     peak = 0
     for name in order:
         if name not in states:
             _reject(f"{fn['name']}: missing reachable CFG input")
-        owner, known = (dict(row) for row in states[name])
+        owner, known, loans = (dict(row) for row in states[name])
         block = blocks[name]
         peak = max(peak, sum(owner.values()))
         for ins in block["ops"]:
@@ -208,13 +215,26 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) 
                 # infer that try_new must fail or return only empty storage.
                 owner[out_names[0]] = size.hi
                 peak = max(peak, sum(owner.values()))
+            elif op in {"borrow.read", "borrow.mut"}:
+                # A live borrow's length is bounded by the same root owner's
+                # allocation, including nested reborrows. Borrow creation
+                # does not add payload bytes and never creates ownership.
+                source = args[0]
+                root = source if source in owner else loans.get(source)
+                if root is None or root not in owner:
+                    _reject(f"{fn['name']}/{name}: borrowed extent lacks a bounded owner root")
+                loans[out_names[0]] = root
+            elif op == "loan.end":
+                if args[0] not in loans:
+                    _reject(f"{fn['name']}/{name}: ending a loan without a bounded root")
+                del loans[args[0]]
             elif op == "owner.move":
-                if args[0] not in owner:
-                    _reject(f"{fn['name']}/{name}: owner move has no bounded source")
+                if args[0] not in owner or args[0] in loans.values():
+                    _reject(f"{fn['name']}/{name}: owner move lacks a free bounded source")
                 owner[out_names[0]] = owner.pop(args[0])
             elif op == "owner.drop":
-                if args[0] not in owner:
-                    _reject(f"{fn['name']}/{name}: drop has no bounded source")
+                if args[0] not in owner or args[0] in loans.values():
+                    _reject(f"{fn['name']}/{name}: drop lacks a free bounded source")
                 owner.pop(args[0])
             elif op == "call":
                 child = functions[attrs["function"]]
@@ -225,27 +245,39 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) 
                     _reject(f"{fn['name']}/{name}: callee heap bound not available")
                 peak = max(peak, sum(owner.values()) + calculated[child["name"]])
             elif op == "buffer.len":
-                # A known owner is backed by <= owner[name] bytes. Failed
-                # try_new and merged owner alternatives can also have length 0.
-                # Do not treat an owner *upper* bound as an exact length: that
-                # would be unsafe if later wrapped arithmetic changed the size.
-                if args[0] in owner:
-                    known[out_names[0]] = _Span(0, owner[args[0]])
+                # An owner or any checked read/mut reborrow shares its root's
+                # allocation extent. A fallible try_new can yield zero bytes,
+                # so propagate [0, upper], NEVER an assumed exact maximum.
+                root = args[0] if args[0] in owner else loans.get(args[0])
+                if root is None or root not in owner:
+                    _reject(f"{fn['name']}/{name}: buffer.len lacks a bounded root")
+                known[out_names[0]] = _Span(0, owner[root])
             elif op not in _NO_ALLOCATION_OPS:
                 _reject(f"{fn['name']}/{name}: unreviewed opcode {op} has no heap accounting")
             # Unreviewed or nonconstant arithmetic stays unknown and cannot
             # subsequently qualify an allocation extent.
         for edge in _paths(block["term"]):
             target = blocks[edge["target"]]
-            next_owner, next_known = {}, {}
+            next_owner, next_known, next_loans = {}, {}, {}
+            # Normalize loan-root identities through the SAME block-parameter
+            # remapping as verified executable Core. No edge may forge a
+            # borrowed length without forwarding its bound owner.
+            remap = {source: param["name"]
+                     for source, param in zip(edge["args"], target["params"])
+                     if param["type"] in {"buffer", "readbuf", "mutbuf"}}
             for source_name, param in zip(edge["args"], target["params"]):
                 if param["type"] == "buffer":
                     if source_name not in owner:
                         _reject(f"{fn['name']}/{name}: missing bounded owner at edge")
                     next_owner[param["name"]] = owner[source_name]
+                elif param["type"] in {"readbuf", "mutbuf"}:
+                    root = loans.get(source_name)
+                    if root is None or root not in remap:
+                        _reject(f"{fn['name']}/{name}: loan edge lacks its bounded owner")
+                    next_loans[param["name"]] = remap[root]
                 elif (param["type"] in WIDTHS or param["type"] in {"bool", "unit"}) and source_name in known:
                     next_known[param["name"]] = known[source_name]
-            proposed = (next_owner, next_known)
+            proposed = (next_owner, next_known, next_loans)
             dest = edge["target"]
             states[dest] = (_merge(states[dest], proposed, f"{fn['name']}/{dest}")
                             if dest in states else proposed)
