@@ -248,6 +248,60 @@ class ExecutableSymbolExtentTests(unittest.TestCase):
                                 ObjectSymbolsRejected, "E_OBJECT_SYMBOL_EXPORT_KIND"):
                             inspect_object_symbols(forged, "ELF64", machine)
 
+    def test_coff_abort_import_must_not_be_weak_external(self):
+        # A defined checked overflow trap imports strong abort. Retagging its
+        # COFF symbol as WEAK_EXTERNAL (105) must never silently preserve the
+        # apparently authorized "abort" import in source-native receipts.
+        source_text = """declare void @abort()
+define i32 @hepta_symbol_target(i32 %x) {
+entry:
+  %cond = icmp eq i32 %x, 0
+  br i1 %cond, label %bad, label %ok
+bad:
+  call void @abort()
+  unreachable
+ok:
+  ret i32 %x
+}
+"""
+        with tempfile.TemporaryDirectory(prefix="hepta-weak-abort-") as tmp:
+            root = Path(tmp)
+            source = root / "abort.ll"
+            artifact = root / "abort.obj"
+            source.write_text(source_text)
+            compiled = subprocess.run(
+                ["clang", "--target=x86_64-pc-windows-msvc", "-x", "ir",
+                 "-O2", "-c", str(source), "-o", str(artifact)],
+                capture_output=True, text=True, timeout=30)
+            self.assertEqual(compiled.returncode, 0, compiled.stderr)
+            original = artifact.read_bytes()
+            self.assertTrue(qualified_object(original, "COFF", 0x8664))
+            expected = inspect_object_symbols(original, "COFF", 0x8664)
+            self.assertEqual(expected["defined"], frozenset({"hepta_symbol_target"}))
+            self.assertEqual(expected["undefined"], frozenset({"abort"}))
+            symbol_at, count = _u32(original, 8), _u32(original, 12)
+            strings_at = symbol_at + 18 * count
+            found = False
+            index = 0
+            while index < count:
+                position = symbol_at + 18 * index
+                if original[position:position + 4] == b"\\0" * 4:
+                    name_at = strings_at + _u32(original, position + 4)
+                    name = original[name_at:original.index(b"\\0", name_at)]
+                else:
+                    name = original[position:position + 8].split(b"\\0", 1)[0]
+                if name == b"abort":
+                    self.assertEqual(original[position + 16], 2)
+                    changed = _write(original, position + 16, 1, 105)
+                    self.assertTrue(qualified_object(changed, "COFF", 0x8664))
+                    with self.assertRaisesRegex(
+                            ObjectSymbolsRejected, "E_OBJECT_SYMBOL_WEAK"):
+                        inspect_object_symbols(changed, "COFF", 0x8664)
+                    found = True
+                    break
+                index += 1 + original[position + 17]
+            self.assertTrue(found, "Expected actual Clang-generated abort import")
+
     def test_all_five_native_object_profiles(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
