@@ -124,6 +124,17 @@ class AArch64LinkProbeTests(unittest.TestCase):
                                             "executable stack or writable executable"):
                     original(bytes(corrupted), ("hepta_owner_test",))
 
+    def test_link_receipt_cannot_use_changed_native_compiler(self):
+        import hepta.owned_aarch64_link as module
+        with patch.object(module, "digest_executable",
+                          side_effect=["a" * 64, "b" * 64]) as digest:
+            with self.assertRaisesRegex(OwnedAArch64LinkRejected,
+                                        "compiler changed during synthetic link"):
+                probe_owned_aarch64_freestanding_link(
+                    self.path.read_bytes(), ("hepta_owner_test",),
+                    clang=self.compiler)
+        self.assertEqual(digest.call_count, 2)
+
     def test_linked_image_negative_header_controls(self):
         # Unit-level header refusal applies without executing foreign code.
         bad = bytearray(b"\x7fELF" + b"\x02\x01" + b"\0" * 600)
