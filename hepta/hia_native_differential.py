@@ -18,6 +18,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 
 _IDENT = re.compile(r"[A-Za-z_][A-Za-z_0-9]*\Z")
 _TYPES = {"i32": (-2**31, 2**31 - 1), "u32": (0, 2**32 - 1)}
@@ -222,20 +223,32 @@ def _observe_native(library: Path, function: str, word: str, args: list[int], *,
                  function, word, json.dumps(args, separators=(",", ":"))],
                 stdout=out, stderr=err, pass_fds=(pinned_fd,),
                 start_new_session=True)
+            # Linux waitid(WNOWAIT) observes direct-child termination
+            # without reaping its PID. Popen.wait() would reap first, then
+            # killpg(pid) could race a reused PID/PGID. Keep the zombie as
+            # identity anchor until group cleanup, then reap exactly once.
+            deadline = time.monotonic() + timeout
             timed_out = False
             try:
-                proc.wait(timeout=timeout)
-            except subprocess.TimeoutExpired:
-                timed_out = True
+                while True:
+                    status = os.waitid(os.P_PID, proc.pid,
+                                       os.WEXITED | os.WNOWAIT | os.WNOHANG)
+                    if status is not None:
+                        break
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        timed_out = True
+                        break
+                    time.sleep(min(0.01, remaining))
             finally:
-                # A forked child can outlive its direct worker. Reap the
-                # process group even for ordinary exit/trap; reject unexpected
-                # OS failures rather than silently accepting containment.
+                # Clear the entire ordinary session/group for BOTH timeout
+                # and successful or trapped native exit, before waitpid reaps
+                # its leader. A native setsid escape remains out of scope.
                 try:
                     os.killpg(proc.pid, signal.SIGKILL)
                 except ProcessLookupError:
                     pass
-                if proc.poll() is None:
+                finally:
                     proc.wait()
             if timed_out:
                 _reject("native child timed out; process group terminated")

@@ -115,4 +115,33 @@ the transport code but are **not** full in-repository Hepta-native tests.
 Run `python -m unittest tests.test_hia_native_child_protocol -v` on
 the exact source checkout as an additional acceptance input.
 
+## PID/PGID identity race hardening
+
+The initial group-cleanup code used `Popen.wait()` and only then
+`killpg(proc.pid)`. Once `waitpid` has reaped the worker, the numeric PID
+may be recycled, potentially making a later group signal ambiguous. The
+current Linux-only observer uses
+
+`waitid(P_PID, pid, WEXITED | WNOWAIT | WNOHANG)`
+
+with a monotonic deadline and bounded sleep to observe the worker's
+termination **without consuming its PID**. It sends `SIGKILL` to the
+per-case session/group before the definitive `Popen.wait()` reap, on
+success, trap, timeout and exceptional control flow. The call can fail
+closed on unavailable operating-system support; it does not claim
+permission to kill unrelated groups. This avoids the specific
+wait-then-kill PID recycle race when no external code reaps the child.
+
+The Clang17 independent C controls were reexecuted with this exact
+waitid polling/kill-before-reap sequence: 7/7 process/resource and
+7/7 output-protocol cases succeeded as classified. A new in-repo test
+intercepts `killpg` on a live Linux child process and independently
+checks that `waitid(WNOWAIT)` can still see the unreaped worker at the
+moment the process-group signal is sent.
+
+Still open: setsid/daemon escapes, hostile native syscalls, untrusted
+process isolation, full HIA-source/LLVM semantics, kernel/cgroup
+qualification and physical-device execution. Do not call this a
+hostile-code sandbox or universal process-lifecycle proof.
+
 `whole_project_blockers_closed=false`

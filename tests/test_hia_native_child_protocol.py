@@ -9,9 +9,11 @@ import os
 from pathlib import Path
 import platform
 import shutil
+import signal
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from hepta import hia_native_differential as differential
 
@@ -99,6 +101,27 @@ class NativeObservationProtocolTests(unittest.TestCase):
                         differential.HIADifferentialRejected, "canonical worker record"):
                     self.observe(symbol)
 
+
+    def test_process_group_kill_precedes_waitpid_reap(self):
+        # The direct worker's PID must remain reserved while it is used as a
+        # process-group identity. This checks real Linux waitid(WNOWAIT), not
+        # a mocked exit status or a separate unverified implementation.
+        native_killpg = os.killpg
+        observed = []
+
+        def inspect_before_cleanup(group, chosen_signal):
+            self.assertEqual(chosen_signal, signal.SIGKILL)
+            state = os.waitid(os.P_PID, group,
+                              os.WEXITED | os.WNOWAIT | os.WNOHANG)
+            self.assertIsNotNone(state, "worker must have exited but not been reaped")
+            self.assertEqual(state.si_pid, group)
+            observed.append(state.si_pid)
+            return native_killpg(group, chosen_signal)
+
+        with patch.object(differential.os, "killpg",
+                          side_effect=inspect_before_cleanup):
+            self.assertEqual(self.observe("normal_return"), ("value", 7))
+        self.assertEqual(len(observed), 1)
 
 if __name__ == "__main__":
     unittest.main()
