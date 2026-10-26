@@ -200,6 +200,41 @@ def _check_artifact_unchanged(path: Path, original: bytes, identity) -> None:
     if current != original or metadata != identity:
         _reject("native artifact path/inode/bytes changed during differential execution")
 
+def _has_in_group_descendant(pgid: int) -> bool:
+    """Conservatively inspect live process-group membership before PID reap.
+
+    Linux waitid(WNOWAIT) keeps the original worker PID from being reused.
+    The worker itself is excluded; no external process may be silently
+    accepted as a harmless effect of native code. Setsid escapes remain
+    outside this deliberately limited policy.
+    """
+    seen = 0
+    try:
+        with os.scandir("/proc") as entries:
+            for entry in entries:
+                if not entry.name.isascii() or not entry.name.isdecimal():
+                    continue
+                seen += 1
+                if seen > 65536:
+                    _reject("native evaluator process inventory exceeds bounded scan")
+                pid = int(entry.name)
+                if pid == pgid:
+                    continue
+                try:
+                    member_group = os.getpgid(pid)
+                except ProcessLookupError:
+                    continue  # Race: the observed pid exited during /proc scan.
+                except OSError as exc:
+                    raise HIADifferentialRejected(
+                        "E_HIA_DIFFERENTIAL: cannot inspect native evaluator process group") from exc
+                if member_group == pgid:
+                    return True
+    except OSError as exc:
+        raise HIADifferentialRejected(
+            "E_HIA_DIFFERENTIAL: Linux process-group inspection unavailable") from exc
+    return False
+
+
 def _observe_native(library: Path, function: str, word: str, args: list[int], *,
                     timeout: float, pinned_fd: int):
     if (platform.system() != "Linux" or platform.machine().lower() not in {"x86_64", "amd64"}
@@ -229,6 +264,7 @@ def _observe_native(library: Path, function: str, word: str, args: list[int], *,
             # identity anchor until group cleanup, then reap exactly once.
             deadline = time.monotonic() + timeout
             timed_out = False
+            residual_group = False
             try:
                 while True:
                     status = os.waitid(os.P_PID, proc.pid,
@@ -240,6 +276,11 @@ def _observe_native(library: Path, function: str, word: str, args: list[int], *,
                         timed_out = True
                         break
                     time.sleep(min(0.01, remaining))
+                if not timed_out:
+                    # WNOWAIT intentionally keeps the direct worker PID
+                    # reserved. killpg() alone cannot reveal descendants:
+                    # it also succeeds for a lone zombie group leader.
+                    residual_group = _has_in_group_descendant(proc.pid)
             finally:
                 # Clear the entire ordinary session/group for BOTH timeout
                 # and successful or trapped native exit, before waitpid reaps
@@ -252,6 +293,8 @@ def _observe_native(library: Path, function: str, word: str, args: list[int], *,
                     proc.wait()
             if timed_out:
                 _reject("native child timed out; process group terminated")
+            if residual_group:
+                _reject("native child left surviving in-group descendants after exit")
             out.seek(0)
             err.seek(0)
             child_stdout = out.read(4097)

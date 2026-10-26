@@ -145,3 +145,25 @@ qualification and physical-device execution. Do not call this a
 hostile-code sandbox or universal process-lifecycle proof.
 
 `whole_project_blockers_closed=false`
+
+## Stronger post-exit admission (follow-up P2/P7)
+
+Killing an in-group fork after the direct worker returns is not enough to
+certify an unmodified finite observation: an already-started child can make
+external effects before cleanup. With waitid(WNOWAIT) retaining the direct
+worker PID, the evaluator now scans bounded Linux /proc PID inventory and
+checks os.getpgid() for members of that group other than the worker. This
+scan runs **before SIGKILL and PID reap**, so a detected residual group is
+killed and the native comparison is **rejected**, even if the direct worker
+printed a canonical scalar or silently aborted.
+
+killpg() success alone is NOT evidence of a child: the unreaped zombie
+worker retains process-group membership. This avoids blanket false failures
+for healthy scalar functions. An inaccessible /proc scan, uninspectable
+process group, or excessive process inventory fails closed. This cannot
+prevent malicious setsid/session escape, races after the scan, or all OS
+side effects; the differential runner is **not an adversarial DSO sandbox**.
+
+Additional acceptance:
+`python -m unittest tests.test_hia_native_postexit_group -v`.
+`whole_project_blockers_closed=false`.
