@@ -97,6 +97,14 @@ class CProjectMigrationTests(unittest.TestCase):
                 char_unsigned=0),
             "duplicate_claim": lambda x: x["compiler"].update(
                 trusted_authority="forged"),
+            "extra_system_dependency": lambda x: x["configurations"][0]["all_dependencies"].append(
+                "/nonexistent/pretend_system_header.h"),
+            "invented_local_dependency": lambda x: x["configurations"][0]["local_dependencies"].append(
+                "/nonexistent/pretend_local_header.h"),
+            "non_string_local_dependency": lambda x: x["configurations"][0]["local_dependencies"].append(
+                {"unexpected": "record"}),
+            "duplicate_compiler_dependency": lambda x: x["configurations"][0]["all_dependencies"].append(
+                x["configurations"][0]["all_dependencies"][0]),
         }
         for name, mutation in mutations.items():
             with self.subTest(case=name):
