@@ -492,6 +492,27 @@ int main(void) {
         self.assertFalse(stale.exists())
         self.assertIn("STALE", result["diagnostics"][0]["code"])
 
+    def test_owned_outer_publication_rejects_post_receipt_inplace_mutation(self):
+        from hepta import llvm_owned_pipeline
+        project = self.root / "post-publisher-mutation"
+        project.mkdir()
+        for name in ("main.hepta", "owned.hepta"):
+            shutil.copyfile(ROOT / "examples/llvm_owned" / name, project / name)
+        destination = self.root / "post-publisher-mutation.so"
+        real_publisher = llvm_owned_pipeline.publish_verified
+
+        def mutate_after_success(stage, target, expected):
+            receipt = real_publisher(stage, target, expected)
+            Path(target).write_bytes(b"mutated after publisher receipt")
+            return receipt
+
+        with patch.object(llvm_owned_pipeline, "publish_verified",
+                          side_effect=mutate_after_success):
+            result = build_llvm_owned_source(project / "main.hepta", destination)
+        self.assertFalse(result["ok"], result)
+        self.assertEqual(result["diagnostics"][0]["code"], "E_LLVM_OWNED_PUBLICATION")
+        self.assertFalse(destination.exists())
+
     def test_source_changed_during_publisher_does_not_mint_native_receipt(self):
         from hepta import llvm_owned_pipeline
         project = self.root / "post-publication"
