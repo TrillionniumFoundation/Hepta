@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import stat
 import tempfile
 
 from .c_migrate import MigrationRejected, _expr, _load_bounded_clang_ast, _predicate, _run, _stmt
@@ -275,6 +276,41 @@ def _translate(record: dict, model: dict) -> tuple[str, dict]:
                               "copy_semantics": "trivial_scalar_value_copy", "unconverted_members": []}
 
 
+
+def _verify_published_class(staged: Path, output: Path, content: bytes) -> None:
+    """Reject output replacement or byte changes after atomic no-overwrite link.
+
+    The generated Hepta text has been checked in memory. Certification must
+    reference precisely those bytes, not unrelated bytes at the output path.
+    """
+    try:
+        source = staged.stat()
+        target = output.lstat()
+        identity = (target.st_dev, target.st_ino, target.st_mode,
+                    target.st_size, target.st_mtime_ns, target.st_ctime_ns)
+        if (not stat.S_ISREG(target.st_mode)
+                or (source.st_dev, source.st_ino) != (target.st_dev, target.st_ino)
+                or source.st_size != len(content)):
+            _reject("Published C++ migration is not its validated staged file", "E_CPP_CLASS_RACE")
+        fd = os.open(output, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        with os.fdopen(fd, "rb") as stream:
+            opened = os.fstat(stream.fileno())
+            if ((opened.st_dev, opened.st_ino, opened.st_mode,
+                 opened.st_size, opened.st_mtime_ns, opened.st_ctime_ns) != identity):
+                _reject("Published C++ migration changed before opening", "E_CPP_CLASS_RACE")
+            observed = stream.read(len(content) + 1)
+            after = os.fstat(stream.fileno())
+            if (observed != content or (after.st_dev, after.st_ino, after.st_mode,
+                     after.st_size, after.st_mtime_ns, after.st_ctime_ns) != identity):
+                _reject("Published C++ migration bytes or inode differ", "E_CPP_CLASS_RACE")
+        latest = output.lstat()
+        if (latest.st_dev, latest.st_ino, latest.st_mode,
+                latest.st_size, latest.st_mtime_ns, latest.st_ctime_ns) != identity:
+            _reject("Published C++ migration path was replaced", "E_CPP_CLASS_RACE")
+    except OSError as exc:
+        _reject(f"Published C++ migration cannot be read reliably: {exc}", "E_CPP_CLASS_RACE")
+
+
 def migrate_cpp_class(source_file: str | Path, destination_file: str | Path, *, clangxx: str = "clang++") -> dict:
     source, output = Path(source_file).resolve(), Path(os.path.abspath(destination_file))
     report = {"schema": "hepta.cpp-class-migration.v1", "profile": PROFILE, "tier": "L1",
@@ -348,6 +384,25 @@ def migrate_cpp_class(source_file: str | Path, destination_file: str | Path, *, 
                     or hashlib.sha256(compiler.read_bytes()).hexdigest() != compiler_hash):
                 _reject("Source/compiler changed before publication", "E_CPP_CLASS_RACE")
             os.link(staged, output)
+            # A subsequent verification cannot rely on the bytes used for
+            # emit/check if a competing writer altered the published entry.
+            publication_ok = False
+            try:
+                _verify_published_class(staged, output, rendered.encode("utf-8"))
+                if (source.read_bytes() != original
+                        or hashlib.sha256(compiler.read_bytes()).hexdigest() != compiler_hash):
+                    _reject("Source or compiler changed during publication", "E_CPP_CLASS_RACE")
+                publication_ok = True
+            finally:
+                if not publication_ok:
+                    try:
+                        stage_info, output_info = staged.stat(), output.lstat()
+                        if (stat.S_ISREG(output_info.st_mode)
+                                and (stage_info.st_dev, stage_info.st_ino) ==
+                                (output_info.st_dev, output_info.st_ino)):
+                            output.unlink()
+                    except OSError:
+                        pass
         finally:
             if staged is not None:
                 staged.unlink(missing_ok=True)

@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
 import shutil
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from hepta.llvm_ssa_backend import LLVMSSARejected, emit_scalar_ssa_llvm
-from hepta.llvm_ssa_target import compile_ssa_target_object, _qualified_header
+from hepta.llvm_ssa_target import compile_ssa_target_object, _qualified_header, _verified_publication
 from hepta.ssa import lower_cfg_scalar_ssa
 from tests.test_llvm_ssa_backend import exported
 from tests.test_ssa_differential import nested_loop_fixture
@@ -116,6 +118,41 @@ class LLVMSSATargetTests(unittest.TestCase):
                                              output=regular)
         self.assertEqual(evidence["artifact_bytes"], regular.stat().st_size)
         self.assertTrue(_qualified_header(regular.read_bytes(), "x86_64-unknown-linux-gnu"))
+
+    def test_publication_requires_same_inode_bytes_and_regular_file(self):
+        staged = self.root / "staged.o"
+        destination = self.root / "published.o"
+        expected = b"stage-object-exact-bytes"
+        staged.write_bytes(expected)
+        os.link(staged, destination)
+        self.assertEqual(_verified_publication(staged, destination, expected), expected)
+        destination.write_bytes(b"modified-by-other-writer")
+        with self.assertRaisesRegex(LLVMSSARejected, "PUBLICATION"):
+            _verified_publication(staged, destination, expected)
+        destination.unlink()
+        destination.write_bytes(expected)
+        with self.assertRaisesRegex(LLVMSSARejected, "PUBLICATION"):
+            _verified_publication(staged, destination, expected)
+        destination.unlink()
+        destination.symlink_to(staged)
+        with self.assertRaisesRegex(LLVMSSARejected, "PUBLICATION"):
+            _verified_publication(staged, destination, expected)
+
+    def test_link_time_native_object_mutation_cannot_mint_receipt(self):
+        from hepta import llvm_ssa_target
+        path = self.root / "attacked.o"
+        original_link = llvm_ssa_target.os.link
+
+        def mutate_after_link(source, dest, *args, **kwargs):
+            original_link(source, dest, *args, **kwargs)
+            Path(dest).write_bytes(b"fake-object")
+
+        with patch.object(llvm_ssa_target.os, "link", side_effect=mutate_after_link):
+            with self.assertRaisesRegex(LLVMSSARejected, "E_LLVM_SSA_PUBLICATION"):
+                compile_ssa_target_object(
+                    self.ir, target="x86_64-unknown-linux-gnu", output=path)
+        self.assertTrue(path.exists())
+        self.assertEqual(path.read_bytes(), b"fake-object")
 
     def test_modified_ir_fails_before_compilation(self):
         from dataclasses import replace
