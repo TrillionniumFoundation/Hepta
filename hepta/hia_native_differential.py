@@ -28,7 +28,7 @@ _MAX_BYTES = 8 * 1024 * 1024
 # No repository import or source parsing occurs in the native child. Only the
 # already published shared object, an exact exported symbol and integer args.
 _WORKER = r'''
-import ctypes, json, resource, sys
+import ctypes, json, os, resource, sys
 resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
 # A hostile foreign constructor must not fill a host disk before timeout.
 resource.setrlimit(resource.RLIMIT_FSIZE, (4096, 4096))
@@ -72,6 +72,11 @@ _FORBIDDEN_SYSCALLS = (
     # openat2 takes pointer-to-flags: fail closed; also reject foreign FD
     # duplication, remote-memory writes and process-scoped signalling.
     437, 438, 311, 62, 200, 129, 297, 424,
+    # Extended filesystem metadata, allocation-backed mutation and kernel
+    # capability entrypoints unneeded by the isolated read-only ELF observer.
+    188, 189, 190, 197, 198, 199, 285,
+    155, 165, 166, 428, 429, 430, 431, 432, 433, 442,
+    298, 302, 319, 321, 323, 426, 427, 434,
 )
 if len(_FORBIDDEN_SYSCALLS) != len(set(_FORBIDDEN_SYSCALLS)):
     raise RuntimeError("duplicated native evaluator syscall policy")
@@ -93,6 +98,24 @@ for _nr, _flags_offset in ((2, 24), (257, 32)):
         (0x15, 1, 0, 0),  # zero flags: skip KILL; otherwise SIGSYS
         (0x06, 0, 0, 0x80000000),
         (0x20, 0, 0, 0),  # restore syscall number for subsequent tests
+    ]
+# libc abort() uses tgkill(tgid, tid, SIGABRT); rejecting it entirely
+# would invalidate the native trap oracle. But permitting unrestricted
+# tgkill lets a foreign ELF signal processes or threads outside this worker.
+# The child has exactly one thread (clone/fork already denied above), so
+# permit only the exact worker PID AND TID. Check the low 32-bit words of
+# seccomp_data.args[0] (offset 16) and args[1] (offset 24).
+# A nonmatching syscall or a permitted self-target reloads nr; a wrong
+# target is SIGSYS-killed BEFORE any DSO or ELF constructor runs.
+_self_pid = os.getpid()
+_self_tid = ctypes.CDLL(None).syscall(186)  # __NR_gettid, Linux x86-64
+for _offset, _expected in ((16, _self_pid), (24, _self_tid)):
+    _rules += [
+        (0x15, 0, 4, 234),  # __NR_tgkill, otherwise jump to reload nr
+        (0x20, 0, 0, _offset),
+        (0x15, 1, 0, _expected),
+        (0x06, 0, 0, 0x80000000),
+        (0x20, 0, 0, 0),
     ]
 _rules.append((0x06, 0, 0, 0x7FFF0000))
 _rules_array = (_BpfRule * len(_rules))(*(_BpfRule(*r) for r in _rules))
