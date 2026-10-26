@@ -35,10 +35,16 @@ There is no foreign-target resource mode and no automatic fallback.
   pointers, owner layouts and slice descriptors do not cross that boundary.
 
 Stored lifetime records, arrays, floating point, 128-bit values, raw pointers,
-foreign declarations, tasks/groups/I/O, resource clauses and target-specific
-resource ABIs are outside this profile. Unsupported concrete expressions and
-types reject before publication. This is separate from the existing scalar
-SSA backend; it does not widen that backend's proof claims.
+foreign declarations, tasks/groups/I/O, *unsupported* resource clauses and
+target-specific resource ABIs are outside this profile. The only admitted
+resource clauses are exact frontend-checked `heap_allocations=0`,
+`may_block=false`, `may_suspend=false`, and `may_spawn=false`. The LLVM
+backend rechecks their literal types and transitive effects, rejecting a zero
+allocation claim with `alloc` or a nonblocking claim with `block`. These are
+function-level source contracts, **not** process-wide memory, CPU or FFI
+budgets. Unsupported concrete expressions and types reject before publication.
+This is separate from the existing scalar SSA backend; it does not widen
+that backend's proof claims.
 
 ## Source and resource checks
 
@@ -148,3 +154,27 @@ Resource-workload measurement requires its separately frozen protocol and
 retained native samples. Neither these finite observations nor successful
 compilation establish whole-language soundness, native refinement, universal
 performance, foreign resource ABI equivalence or general stored-borrow support.
+
+## Shared publication boundary (current successor candidate)
+
+The source-level C++ owned-class migrator, native Owned LLVM emitter, and
+source-facing LLVM pipeline now use the same \`artifact_publication\` helper
+after checking generated Hepta text or ELF object data. Publication is a
+no-replace hard link from a regular staged file. The helper requires the
+published inode and exact bytes to agree with the already-validated stage,
+refuses symlinks/FIFOs, and only attempts to remove its own output on failure.
+The source LLVM path independently retains its dynamic ELF exported-function
+and foreign-import check before this publication.
+
+An attacker with arbitrary write access to the same inode can still change
+an artifact after the check; neither this helper nor SHA-256 receipts are
+malicious-host attestation. This is a local race-hardening profile.
+
+Targeted local verification, without the complete Rust/Clang20 checkout,
+executed **9/9 publication tests** against the exact Git source blob
+\`dd3b95638e797c0f37a987c3f342ffc75d71e89b\`, including an actual
+Clang 17 LLVM-to-ELF object published and linked into a working GCC C program.
+A separate 5/5 terminal unittest-summary parsing probe also ran locally.
+These are not full Hepta tests and do not update the earlier 46-gate receipts.
+All exact integrated-source qualification and real AI/hardware studies remain
+separate blockers.
