@@ -68,6 +68,10 @@ def _mutate_elf(data):
                     "out_of_range": _write(data, pos + 8, 8, original_bytes + 1),
                     "non_executable": _write(data, target + 8, 8,
                                              _u64(data, target + 8) & ~0x4),
+                    "not_allocated": _write(data, target + 8, 8,
+                                             _u64(data, target + 8) & ~0x2),
+                    "weak_override": _write(data, pos + 4, 1,
+                                             (data[pos + 4] & 0x0f) | 0x20),
                     "zero_length": _write(data, pos + 16, 8, 0),
                 }
     raise AssertionError("No ELF exported function found")
@@ -159,6 +163,8 @@ def _mutate_macho(data):
                                          flags & ~(0x80000000 | 0x400)),
                 "zerofill_masquerading_as_text": _write(data, section + 64, 4,
                                                         (flags & ~0xff) | 0x1),
+                "weak_definition": _write(data, symbol + 6, 2,
+                                           _u16(data, symbol + 6) | 0x80),
                 "false_text_name": data[:section] + b"__data" + data[section + 6:],
             }
     raise AssertionError("No Mach-O export found")
@@ -242,7 +248,7 @@ class ExecutableSymbolExtentTests(unittest.TestCase):
                             # executable placement, not from a broken header.
                             self.assertTrue(qualified_object(forged, fmt, machine))
                             with self.assertRaisesRegex(
-                                    ObjectSymbolsRejected, "E_OBJECT_SYMBOL_LOCATION"):
+                                    ObjectSymbolsRejected, "E_OBJECT_SYMBOL_(LOCATION|WEAK)"):
                                 inspect_object_symbols(forged, fmt, machine)
 
 
