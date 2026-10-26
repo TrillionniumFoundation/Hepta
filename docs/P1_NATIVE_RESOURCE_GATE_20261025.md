@@ -77,6 +77,23 @@ causes a controlled origin rejection. No parallel semantic authority added.
 Tests now explicitly cover matching project SHA, default/unbound backward
 compatibility, and rejection of two different project identities.
 
+## Whole-receipt rejection boundary
+
+The strict LLVM consumer no longer trusts only a handful of positive booleans
+on the Resource IR receipt. It calls require_native_resource_receipt, which
+independently checks its complete versioned field inventory, exact positive
+and negative claims, source/project/canonical/resource digests, provenance
+schema and function count. A forged or incomplete receipt cannot authorize
+Clang or artifact publication.
+
+Negative tests include bool-versus-int impersonation, removed/added fields,
+wrong source identity, missing Resource IR digest, stale project SHA and
+mismatched function counts. The actual verifier source's Git blob
+50a7db3286801be98cee07277587349d7d76bfe8 was used in an isolated
+Python 3.13.5 harness (controlled Resource IR dependencies):
+13/13 isolated tests passed, including 300 deterministic source replay and
+tampering cases. This is not an integrated Hepta native validation.
+
 ## Test changes
 
 tests/test_native_resource_gate.py adds:
