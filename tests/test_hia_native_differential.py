@@ -62,6 +62,7 @@ uint32_t max_unsigned(uint32_t a, uint32_t b) { return a > b ? a : b; }
         self.assertEqual(report["defined_traps_observed"], 2)
         self.assertFalse(report["claims"]["backend_refinement_proved"])
         self.assertTrue(report["claims"]["finite_native_oracle_match"])
+        self.assertFalse(report["claims"]["checked_hepta_source_replayed"])
 
     def test_missing_export_and_python_bool_do_not_count(self):
         for malformed in (
@@ -98,6 +99,31 @@ uint32_t max_unsigned(uint32_t a, uint32_t b) { return a > b ? a : b; }
             compare_oracle_with_native(_ScalarOracle(), altered,
                 {"checked_add": [[1, 2]], "max_unsigned": [[1, 2]]})
 
+    def test_native_segfault_must_not_count_as_matched_arithmetic_trap(self):
+        source = Path(self.temp.name) / "segfault.c"
+        library = Path(self.temp.name) / "segfault.so"
+        source.write_text('#include <stdint.h>\n#include <signal.h>\n'
+                          'int32_t checked_add(int32_t a,int32_t b){raise(SIGSEGV);return a+b;}\n'
+                          'uint32_t max_unsigned(uint32_t a,uint32_t b){return a>b?a:b;}\n')
+        subprocess.run(["clang", "-shared", "-fPIC", str(source), "-o", str(library)],
+                       check=True, timeout=30)
+        with self.assertRaisesRegex(HIADifferentialRejected, "unexpected error/signal"):
+            compare_oracle_with_native(_ScalarOracle(), library,
+                {"checked_add": [[2**31 - 1, 1]], "max_unsigned": [[1, 2]]})
+
+    def test_native_stdout_flood_rejected_by_file_backed_capture(self):
+        source = Path(self.temp.name) / "output.c"
+        library = Path(self.temp.name) / "output.so"
+        source.write_text('#include <stdint.h>\n#include <stdio.h>\n'
+                          'int32_t checked_add(int32_t a,int32_t b){'
+                          'for(int i=0;i<9000;i++)putchar(120);return a+b;}\n'
+                          'uint32_t max_unsigned(uint32_t a,uint32_t b){return a>b?a:b;}\n')
+        subprocess.run(["clang", "-shared", "-fPIC", str(source), "-o", str(library)],
+                       check=True, timeout=30)
+        with self.assertRaisesRegex(HIADifferentialRejected, "output budget"):
+            compare_oracle_with_native(_ScalarOracle(), library,
+                {"checked_add": [[1, 2]], "max_unsigned": [[1, 2]]})
+
 
 _NATIVE_SOURCE = '''module hia_native_differential;
 export "C" fn checked_add(a: i32, b: i32) -> i32 effects {panic} {
@@ -128,6 +154,7 @@ class RealHeptaEndToEndTests(unittest.TestCase):
             self.assertEqual(result["cases_executed"], 8)
             self.assertEqual(result["defined_traps_observed"], 2)
             self.assertFalse(result["claims"]["whole_language_soundness_proved"])
+            self.assertTrue(result["claims"]["checked_hepta_source_replayed"])
             self.assertEqual(len(result["hia_core_sha256"]), 64)
 
 

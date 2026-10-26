@@ -88,20 +88,24 @@ def _observe_native(library: Path, function: str, word: str, args: list[int], *,
             or word not in _TYPES):
         _reject("bounded Linux x86-64 scalar host required")
     try:
-        proc = subprocess.run([sys.executable, "-I", "-c", _WORKER, str(library),
-                               function, word, json.dumps(args, separators=(",", ":"))],
-                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                              check=False, timeout=timeout)
+        with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
+            proc = subprocess.run([sys.executable, "-I", "-c", _WORKER, str(library),
+                                   function, word, json.dumps(args, separators=(",", ":"))],
+                                  stdout=out, stderr=err, check=False, timeout=timeout)
+            out.seek(0)
+            err.seek(0)
+            child_stdout = out.read(4097)
+            child_stderr = err.read(4097)
     except (subprocess.TimeoutExpired, OSError) as exc:
         raise HIADifferentialRejected("E_HIA_DIFFERENTIAL: native child unavailable or timed out") from exc
-    if len(proc.stdout) > 4096 or len(proc.stderr) > 4096:
+    if len(child_stdout) > 4096 or len(child_stderr) > 4096:
         _reject("native subprocess exceeded output budget")
     if proc.returncode == -signal.SIGABRT:
         return ("trap", None)
     if proc.returncode != 0:
         _reject("native child exited with unexpected error/signal " + str(proc.returncode))
     try:
-        value = json.loads(proc.stdout)
+        value = json.loads(child_stdout)
     except (ValueError, UnicodeError) as exc:
         raise HIADifferentialRejected("E_HIA_DIFFERENTIAL: invalid native child output") from exc
     low, high = _TYPES[word]
@@ -159,6 +163,7 @@ def compare_oracle_with_native(oracle, library: str | Path, cases: dict, *,
         "function_count": len(words), "cases_executed": matches,
         "defined_traps_observed": traps,
         "claims": {"finite_native_oracle_match": True,
+                   "checked_hepta_source_replayed": False,
                    "backend_refinement_proved": False,
                    "whole_language_soundness_proved": False,
                    "physical_target_qualified": False},
@@ -224,4 +229,5 @@ def qualify_scalar_source(source: str | Path, cases: dict, *, rustc=None,
         result["hia_core_sha256"] = core.sha256
         result["ssa_sha256"] = ssa.sha256
         result["compiler_sha256"] = record.get("compiler_sha256")
+        result["claims"]["checked_hepta_source_replayed"] = True
         return result

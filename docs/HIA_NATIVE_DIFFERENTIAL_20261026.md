@@ -30,10 +30,14 @@ checker, compiler, SSA algorithm or LLVM emitter.
   *finite matching checked-arithmetic trap* **only when** the oracle
   also predicts that trap. Segfaults/other signals/nonzero exit,
   unexpected outputs, timeouts and oracle budget exhaustion reject.
-- Native child uses Python `-I`, no shell, no repository imports and
+- Native child uses Python `-I`, file-backed bounded stdout/stderr capture,
+  no shell, no repository imports and
   `RLIMIT_CORE=0`. This is **not** a secure OS/process sandbox and
   does not prevent hostile native code from accessing host resources.
-  Execute only artifacts obtained from the reviewed Hepta compiler path.
+  The stand-alone finite-comparison helper deliberately reports
+  `checked_hepta_source_replayed=false`; only the full source-qualified path
+  can change that claim to true. Execute only artifacts obtained from the
+  reviewed Hepta compiler path.
 - Binary is a non-symlink regular file capped at 8 MiB. Exact bytes are
   reread between cases and after the final run. Receipt includes
   artifact SHA-256, corpus SHA-256, observed counts, project/Core/SSA
@@ -47,19 +51,19 @@ checker, compiler, SSA algorithm or LLVM emitter.
 
     python -m unittest tests.test_hia_native_differential -v
 
-A C-built shared-library control checks the child ABI and error/trap
-classification without claiming it represents compiled Hepta. An
+A C-built shared-library control checks the child ABI, overflow traps,
+actual SIGSEGV refusal, output-flood rejection and error/trap classification without claiming it represents compiled Hepta. An
 additional Hepta end-to-end test requires pinned Rust and native Clang:
 it compiles two mixed i32/u32 exports through the actual Core/LLVM path,
 then checks eight values/traps.
 
-Local Linux Python 3.13.5 / Clang 17 child-boundary controls: **5/5 passed**
+Local Linux Python 3.13.5 / Clang 17 child-boundary controls: **7/7 passed**
 with a real compiled `.so`, including two actual `SIGABRT` observations.
-The combined test module also ran its full 6-test inventory, with the
+The combined test module also ran its full 8-test inventory, with the
 real-Hepta end-to-end test **skipped** because rustc was unavailable
 in this container. These observations are bound to the exact new module
-Git blob `7274927ef0ba005418785092d091dd03797a5eb2` and test blob
-`53f666e3e16d5b9c7b399666a565ba4abe248006`.
+Git blob `8e053a60cfb5d5583f043df3270fa42f79cddd05` and test blob
+`1964c8bc8c4f6efb1ebf6ad959ba360c16a06db2`.
 The full Hepta checkout, pinned rustc-native and AArch64 target suites
 were **not executed** in this container.
 
