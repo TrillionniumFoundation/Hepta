@@ -76,7 +76,10 @@ class FiniteOwnedRuntimeTests(unittest.TestCase):
         actual = run([str(linked)])
         self.assertEqual(actual.returncode, 0, actual.stderr)
 
-        wrong = STANDIN.replace("return answer;", "return 0;")
+        # Remove the unused computation too; -Werror must remain enabled.
+        wrong = STANDIN.replace(
+            "   u64 answer = p[index]+p[index]+size;\n   free(p);\n   return answer;",
+            "   free(p);\n   return 0;")
         runtime2, owner2 = self.build("x86_64-unknown-linux-gnu", wrong)
         bad = self.root / "bad.elf"
         self.assertEqual(run([self.clang, "-fuse-ld=lld", "-nostdlib", "-static",
