@@ -23,12 +23,20 @@ loans, denial of suspended view access, external borrowed parameters,
 cross-block capability identity/parent/root forwarding, equivalent loan
 states at CFG joins, checked byte load/store and transitive declared effects.
 
-**Deliberately rejected:** function calls (especially interprocedural
-resource transfer), `buffer.fill`, `buffer.copy`, `buffer.move_within`,
-`buffer.swap`, `buffer.copy_range`, `buffer.fill_range`, raw pointer or
-foreign operations, GPU, DMA, exceptional unwind, arbitrary memory provenance.
-Historical v2–v6 schemas do not authorize their added instructions in this
-shadow. Native artifact consumers do not call this shadow.
+**Versioned byte operations:** the same shadow now checks the existing
+`buffer.fill/copy` under v2+, `move_within` under v3+, `swap` under v4+,
+`copy_range` under v5+, and `fill_range` under v6. It verifies precise
+operand and output types, independent source/destination owner roots for
+`copy/copy_range`, unique mutable loan access, parent suspension and required
+read/write/trap effects. Earlier schemas reject later instructions. This
+does NOT discharge dynamic extent checks, runtime allocation behavior, or
+LLVM refinement; those remain obligations of the existing Python verifier,
+interpreter and backend.
+
+**Deliberately rejected:** direct/interprocedural function calls and
+resource transfers, raw/foreign pointers, GPU, DMA, exceptional unwind,
+general Memory SSA and externally supplied provenance proofs. Native artifact
+consumers do not call this Rust shadow.
 
 The emitted `hepta.hia.rust-owner-shadow.v1` report explicitly marks
 whole-language soundness, native correctness, generic Memory SSA,
@@ -46,8 +54,8 @@ python -m unittest tests.test_hia_program tests.test_hia_program_llvm -v
 
 The new Rust regression tests include a legitimate Owner+Loan traveling across
 two basic blocks, double-drop, use after end, owner/edge duplication, live
-borrow on drop, suspended parent, missing effect, unknown field and unsupported
-bulk opcode. The Python↔Rust test uses **existing genuine canonical** HIA
+borrow on drop, suspended parent, missing effect, unknown field, versioned
+bulk-memory acceptance, old-version refusal and distinct-owner copy rejection. The Python↔Rust test uses **existing genuine canonical** HIA
 fixtures `resource_program` and `joined_loan_program`, comparing
 acceptance, fail-closed negative behavior and exact canonical SHA-256.
 
