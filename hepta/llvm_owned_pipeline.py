@@ -12,6 +12,7 @@ from .llvm_owned_backend import PROFILE, LLVMOwnedRejected, compile_owned_llvm, 
 from .pipeline import analyze_project, compiler_hash
 from .resource_ir import verify_resource_ir
 from .resource_lowering import lower_resource_ir
+from .artifact_publication import PublicationRejected, publish_verified
 
 
 def build_llvm_owned_source(source, output, *, rustc=None, clang="clang", kind="shared", locked=False):
@@ -76,7 +77,13 @@ def build_llvm_owned_source(source, output, *, rustc=None, clang="clang", kind="
                 raise LLVMOwnedRejected("E_LLVM_OWNED_ARTIFACT: exact staged native receipt required")
             if not project.unchanged() or compiler_hash() != ir.compiler_sha256:
                 raise LLVMOwnedRejected("E_LLVM_OWNED_STALE: source/compiler changed during native build")
-            os.link(stage, destination)
+            try:
+                publication = publish_verified(stage, destination, data)
+            except PublicationRejected as exc:
+                raise LLVMOwnedRejected("E_LLVM_OWNED_PUBLICATION: " + str(exc)) from exc
+            if (publication["sha256"] != native["artifact_sha256"]
+                    or publication["bytes"] != native["artifact_bytes"]):
+                raise LLVMOwnedRejected("E_LLVM_OWNED_ARTIFACT: published receipt identity differs")
         report["native_backend"] = dict(native, output=str(destination))
         report["claims"].update(actual_source_replayed=True, independent_resource_cfg_verified=True,
                                 native_artifact_compiled=True)

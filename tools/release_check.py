@@ -7,6 +7,8 @@ import datetime
 import hashlib
 import json
 import math
+import os
+import stat
 from pathlib import Path
 import re
 import statistics
@@ -28,6 +30,58 @@ def snapshot():
             files[str(p.relative_to(ROOT))] = hashlib.sha256(p.read_bytes()).hexdigest()
     identity = hashlib.sha256(json.dumps(files, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     return {"sha256": identity, "files": files}
+
+
+def _evidence_state(path: Path):
+    """Observe the directory entry itself, never its symlink target."""
+    try:
+        info = path.lstat()
+    except FileNotFoundError:
+        return None
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_size,
+            info.st_mtime_ns, info.st_ctime_ns)
+
+
+def _read_regular_evidence(path: Path):
+    """Require one regular, stable evidence file during read.
+
+    This prevents passive cached-receipt reuse and path swaps, but is not
+    a cryptographic attestation against an arbitrary same-user attacker.
+    """
+    before = _evidence_state(path)
+    if before is None:
+        raise ValueError("E_MISSING_GATE_EVIDENCE: no fresh producer report")
+    if not stat.S_ISREG(before[2]):
+        raise ValueError("E_UNSAFE_GATE_EVIDENCE: expected ordinary regular file")
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    with os.fdopen(os.open(path, flags), "rb") as stream:
+        def identity():
+            now = os.fstat(stream.fileno())
+            return (now.st_dev, now.st_ino, now.st_mode, now.st_size,
+                    now.st_mtime_ns, now.st_ctime_ns)
+        if identity() != before:
+            raise ValueError("E_UNSAFE_GATE_EVIDENCE: file changed before read")
+        data = stream.read()
+        if identity() != before:
+            raise ValueError("E_UNSAFE_GATE_EVIDENCE: file changed during read")
+    if _evidence_state(path) != before:
+        raise ValueError("E_UNSAFE_GATE_EVIDENCE: path changed after read")
+    return data, before
+
+
+def _unittest_passed_count(stderr: str) -> int:
+    """Parse only the terminal successful unittest stderr summary.
+
+    stdout contains arbitrary user-test output, and Python's bool/int equality
+    does not authorize non-test text to inflate an executed test count.
+    """
+    if not isinstance(stderr, str):
+        return 0
+    match = re.search(
+        r"(?m)^Ran ([0-9]+) tests? in [0-9]+(?:\.[0-9]+)?s\r?\n\r?\nOK\r?\n?\Z",
+        stderr,
+    )
+    return int(match.group(1)) if match else 0
 
 
 def _sha256(value):
@@ -861,14 +915,16 @@ def main(argv=None):
         # to this candidate. Native tools are trusted producers, not adversaries
         # able to fake filesystem timestamps.
         previous_identity = None
+        previous_error = None
         if evidence_path is not None:
             try:
-                stat = evidence_path.stat()
-                previous_identity = (stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
-            except OSError:
-                pass
+                previous_identity = _evidence_state(evidence_path)
+            except OSError as exc:
+                previous_error = str(exc)
+        stderr = ""
         try:
             p = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, timeout=timeout)
+            stderr = p.stderr
             text = p.stdout + p.stderr
             gate = {"name": name, "command": command, "exit_code": p.returncode,
                     "status": "passed" if type(p.returncode) is int and p.returncode == 0 else "failed"}
@@ -897,20 +953,18 @@ def main(argv=None):
                      "log": str(log.relative_to(ROOT)) if log.is_relative_to(ROOT) else str(log),
                      "log_sha256": hashlib.sha256(log.read_bytes()).hexdigest()})
         if name == "unit_and_integration":
-            match = re.search(r"Ran (\d+) tests", text)
-            if match:
-                gate["test_count"] = int(match.group(1))
-            skipped = re.search(r"skipped=(\d+)", text)
+            gate["test_count"] = _unittest_passed_count(stderr)
+            skipped = re.search(r"(?m)^OK \([^\n]*skipped=([0-9]+)[^\n]*\)\r?\n?\Z", stderr)
             gate["skipped"] = int(skipped.group(1)) if skipped else 0
-            if not gate.get("test_count") or gate["skipped"]:
+            if gate["status"] == "passed" and not gate["test_count"]:
                 gate["status"] = "failed"
-                gate["reason"] = "Release qualification requires an actual nonempty suite with zero skips"
+                gate["reason"] = "Release requires terminal unittest OK on stderr, nonzero tests, zero skipped"
         if name in evidence_outputs:
             retained = None
             try:
-                evidence_bytes = evidence_path.read_bytes()
-                stat = evidence_path.stat()
-                identity = (stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
+                evidence_bytes, identity = _read_regular_evidence(evidence_path)
+                if previous_error is not None:
+                    raise ValueError("E_STALE_GATE_EVIDENCE: prior path inspection failed: " + previous_error)
                 retained = {"sha256": hashlib.sha256(evidence_bytes).hexdigest(),
                             "bytes": len(evidence_bytes), "gate": name,
                             "fresh": previous_identity is None or identity != previous_identity}

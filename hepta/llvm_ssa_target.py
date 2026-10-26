@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from hashlib import sha256
 import os
+import stat
 from pathlib import Path
 import shutil
 import tempfile
@@ -132,6 +133,44 @@ def _qualified_header(data: bytes, target: str) -> bool:
     return False
 
 
+
+def _verified_publication(stage: Path, destination: Path, expected: bytes) -> bytes:
+    """Bind a newly hard-linked native object to its staged inode and bytes.
+
+    A successful linker exit and a well-formed staging object do not authorize
+    a destination that was replaced or modified during publication. This is a
+    local filesystem consistency check, not malicious same-user isolation.
+    """
+    try:
+        staged = stage.stat()
+        published = destination.lstat()
+        if (not stat.S_ISREG(published.st_mode)
+                or (published.st_dev, published.st_ino) != (staged.st_dev, staged.st_ino)
+                or published.st_size != len(expected)):
+            raise LLVMSSARejected("E_LLVM_SSA_PUBLICATION: published object is not the staged regular file")
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+        with os.fdopen(os.open(destination, flags), "rb") as source:
+            opened = os.fstat(source.fileno())
+            identity = (opened.st_dev, opened.st_ino, opened.st_mode, opened.st_size,
+                        opened.st_mtime_ns, opened.st_ctime_ns)
+            original = (published.st_dev, published.st_ino, published.st_mode,
+                        published.st_size, published.st_mtime_ns, published.st_ctime_ns)
+            if identity != original:
+                raise LLVMSSARejected("E_LLVM_SSA_PUBLICATION: file identity changed before reading")
+            observed = source.read(len(expected) + 1)
+            after = os.fstat(source.fileno())
+            if observed != expected or (after.st_dev, after.st_ino, after.st_mode,
+                    after.st_size, after.st_mtime_ns, after.st_ctime_ns) != original:
+                raise LLVMSSARejected("E_LLVM_SSA_PUBLICATION: published object bytes or identity changed")
+        end = destination.lstat()
+        if (end.st_dev, end.st_ino, end.st_mode, end.st_size,
+                end.st_mtime_ns, end.st_ctime_ns) != original:
+            raise LLVMSSARejected("E_LLVM_SSA_PUBLICATION: destination path changed during read")
+        return observed
+    except OSError as exc:
+        raise LLVMSSARejected("E_LLVM_SSA_PUBLICATION: unable to securely read published object") from exc
+
+
 def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
                               output: str | Path, clang="clang",
                               ssa: SSASnapshot | None = None,
@@ -171,6 +210,9 @@ def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
             os.link(artifact, destination)
         except FileExistsError as exc:
             raise LLVMSSARejected("E_LLVM_SSA_OUTPUT: destination race or overwrite rejected") from exc
+        # A hard link is the publication operation; validate its inode and
+        # *actual bytes* before minting a successful compiler receipt.
+        published_bytes = _verified_publication(artifact, destination, data)
     return {
         "schema": "hepta.llvm-ssa-object.v0",
         "status": "cross_object_only_not_executed",
@@ -180,8 +222,8 @@ def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
         "llvm_ir_sha256": ir.sha256, "llvm_source_profile": ir.profile,
         "ssa_sha256": ir.source_ssa_sha256,
         "structural_ssa_verification_sha256": ir.verification_sha256,
-        "artifact_sha256": sha256(destination.read_bytes()).hexdigest(),
-        "artifact_bytes": destination.stat().st_size,
+        "artifact_sha256": sha256(published_bytes).hexdigest(),
+        "artifact_bytes": len(published_bytes),
         "compiler": {"version": version.stdout.splitlines()[0],
                      "sha256": sha256(compiler.read_bytes()).hexdigest()},
         "claims": {"target_object_compiled": True,

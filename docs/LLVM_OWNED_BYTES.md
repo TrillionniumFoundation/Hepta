@@ -35,9 +35,19 @@ There is no foreign-target resource mode and no automatic fallback.
   pointers, owner layouts and slice descriptors do not cross that boundary.
 
 Stored lifetime records, arrays, floating point, 128-bit values, raw pointers,
-foreign declarations, tasks/groups/I/O, resource clauses and target-specific
-resource ABIs are outside this profile. Unsupported concrete expressions and
-types reject before publication. This is separate from the existing scalar
+foreign declarations, tasks/groups/I/O and target-specific resource ABIs are
+outside this profile. Unsupported concrete expressions and types reject before
+publication.
+
+The LLVM owned profile additionally preserves **the finite source-checked
+resource clauses** `heap_allocations=0`, `may_block=false`,
+`may_suspend=false` and `may_spawn=false` when their precise types and
+transitive effect exclusions have already been established by the frontend.
+These are compile-time restrictions; they are not a whole-process memory/CPU
+budget, allocator instrumentation, or an extra LLVM runtime promise.
+Conflicting `alloc`, `block` or `spawn` effects and unknown clauses fail
+closed. Foreign functions remain forbidden on this backend, so external
+contracts cannot silently satisfy these clauses. This is separate from the existing scalar
 SSA backend; it does not widen that backend's proof claims.
 
 ## Source and resource checks

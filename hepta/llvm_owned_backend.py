@@ -25,6 +25,7 @@ from .pipeline import compiler_hash
 from .resource_ir import verify_resource_ir
 from .resource_lowering import lower_resource_ir
 from .semantic_ir import lower_checked_program
+from .artifact_publication import PublicationRejected, publish_verified
 
 PROFILE = "hepta.llvm-owned-bytes-host.v1"
 TARGET = "x86_64-unknown-linux-gnu"
@@ -578,6 +579,36 @@ class _Function:
                 + "\n".join(self.allocas + self.lines) + "\n}\n")
 
 
+def _resources_allowed(fn, checked) -> bool:
+    """Preserve the checked language's finite static resource clauses.
+
+    A resource clause is a *source/type* restriction, not a new LLVM runtime
+    promise. Explicit foreign, task, I/O, stored-region and allocator effects
+    remain disallowed by the enclosing closed backend profile. In particular
+    `heap_allocations=0` is NOT a process-wide memory limit.
+    """
+    clauses = fn.resources
+    if type(clauses) is not dict or type(fn.effects) is not set:
+        return False
+    upper = fn.effects | checked.effects.get(fn.name, set())
+    for key, value in clauses.items():
+        if key == "heap_allocations":
+            if type(value) is not int or value != 0 or "alloc" in upper:
+                return False
+        elif key == "may_block":
+            if value is not False or "block" in upper:
+                return False
+        elif key == "may_spawn":
+            if value is not False or "spawn" in upper:
+                return False
+        elif key == "may_suspend":
+            if value is not False:
+                return False
+        else:
+            return False
+    return True
+
+
 class _Emitter:
     def __init__(self, program, checked):
         self.program, self.checked = program, checked
@@ -593,7 +624,8 @@ class _Emitter:
         if not checked.ok or has_borrowed_storage(program):
             reject("A checked program without stored lifetime records is required")
         for fn in program.functions:
-            if (fn.extern_c or fn.body is None or fn.lifetime_params or fn.resources
+            if (fn.extern_c or fn.body is None or fn.lifetime_params
+                    or not _resources_allowed(fn, checked)
                     or (fn.effects | checked.effects.get(fn.name, set())) - {"alloc", "block", "panic", "write"}):
                 reject("Foreign/task/I/O/lifetime/resource-clause functions are outside the closed profile")
             if fn.export_c:
@@ -917,10 +949,13 @@ def compile_owned_llvm(ir, *, program, checked, output, project_sha256=None, cla
             reject("Native shared-library target identity differs", "E_LLVM_OWNED_ARTIFACT")
         if _hash(compiler.read_bytes()) != compiler_digest or compiler_hash() != ir.compiler_sha256:
             reject("Compiler identity changed during native build", "E_LLVM_OWNED_STALE")
-        os.link(artifact, destination)
+        try:
+            publication = publish_verified(artifact, destination, data)
+        except PublicationRejected as exc:
+            reject(str(exc), "E_LLVM_OWNED_PUBLICATION")
     return {"schema": "hepta.llvm-owned-native.v1", "ok": True, "status": "native_compiled_not_executed",
             "profile": PROFILE, "kind": kind, "target": TARGET, "output": str(destination),
-            "artifact_sha256": _hash(data), "artifact_bytes": len(data),
+            "artifact_sha256": publication["sha256"], "artifact_bytes": publication["bytes"],
             "llvm_ir_sha256": ir.sha256, "semantic_sha256": ir.semantic_sha256,
             "resource_ir_sha256": ir.resource_ir_sha256,
             "resource_verification_sha256": ir.resource_verification_sha256,
