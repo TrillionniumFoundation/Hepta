@@ -25,6 +25,7 @@ from .pipeline import compiler_hash
 from .resource_ir import verify_resource_ir
 from .artifact_publication import PublicationRejected, publish_verified
 from .resource_lowering import lower_resource_ir
+from .owned_drop_plan import DropPlanRejected, derive_resource_drop_plan
 from .semantic_ir import lower_checked_program
 from .elf_shared_abi import ELFSharedABIRejected, inspect_owned_shared_elf
 from .owned_target_layout import OwnedTargetLayoutRejected, probe_owned_target_layout
@@ -588,8 +589,11 @@ def _resources_allowed(fn, checked) -> bool:
     return finite_static_contract_allowed(fn, checked)
 
 class _Emitter:
-    def __init__(self, program, checked):
+    def __init__(self, program, checked, *, resource_types=None):
         self.program, self.checked = program, checked
+        if resource_types is not None and type(resource_types) is not dict:
+            reject("Verified Resource IR type inventory required", "E_LLVM_OWNED_DROP_PLAN")
+        self.resource_types = resource_types
         self.functions = {fn.name: fn for fn in program.functions}
         self.structs = {st.name: st for st in program.structs}
         self.enums = {enum.name: enum for enum in program.enums}
@@ -745,38 +749,76 @@ class _Emitter:
     def drop(self, typ):
         if typ in self.drops:
             return self.drops[typ]
+        # A verified Resource IR type table drives the known concrete owner
+        # layout and child-Drop choices. Uninstantiated generic templates are
+        # still handled by the previously checked concrete AST specialization.
+        # This is *partial* Resource IR consumption, NOT executable owned SSA.
+        plan = None
+        if self.resource_types is not None:
+            try:
+                plan = derive_resource_drop_plan(self.resource_types, str(typ))
+            except DropPlanRejected as exc:
+                reject(str(exc), "E_LLVM_OWNED_DROP_PLAN")
+            if plan is None and (not typ.args or typ == BUFFER):
+                reject("Verified Resource IR omits a concrete Drop type",
+                       "E_LLVM_OWNED_DROP_PLAN")
         name = "__hepta_owned_drop" + str(len(self.drops))
         native = self.typ(typ)
         self.drops[typ] = name
         lines = [f"define internal void @{name}({native} %owner) {{", "entry:"]
         serial = 0
-        def child(field, indices):
+
+        def child(field, indices, resource_owned=None):
             nonlocal serial
-            if is_owned_type(self.program, field):
+            checked_owned = is_owned_type(self.program, field)
+            if resource_owned is not None and (
+                    type(resource_owned) is not bool or resource_owned is not checked_owned):
+                reject("Verified child owner differs from checked source",
+                       "E_LLVM_OWNED_DROP_PLAN")
+            needs_drop = checked_owned if resource_owned is None else resource_owned
+            if needs_drop:
                 serial += 1
                 value = "%child" + str(serial)
                 helper = self.drop(field)
                 lines.append(f"  {value} = extractvalue {native} %owner, " + ", ".join(map(str, indices)))
                 lines.append(f"  call void @{helper}({self.typ(field)} {value})")
+
         if typ == BUFFER:
+            if plan is not None and plan.kind != "buffer":
+                reject("Verified buffer Drop kind mismatch", "E_LLVM_OWNED_DROP_PLAN")
             lines.extend(("  %data = extractvalue %hepta.bytes %owner, 0",
                           "  %allocated = icmp ne ptr %data, null",
                           "  br i1 %allocated, label %release, label %empty",
                           "release:", "  call void @free(ptr %data)", "  ret void",
                           "empty:", "  ret void"))
         elif typ.name in self.structs:
-            for index, field in enumerate(self.fields(typ)):
-                child(field.type, (index,))
+            fields = self.fields(typ)
+            if plan is not None and (plan.kind != "struct" or
+                    tuple((f.name, str(f.type)) for f in fields) !=
+                    tuple((name, identity) for name, identity, _ in plan.fields)):
+                reject("Verified struct Drop field layout differs from native layout",
+                       "E_LLVM_OWNED_DROP_PLAN")
+            for index, field in enumerate(fields):
+                decision = plan.fields[index][2] if plan is not None else None
+                child(field.type, (index,), decision)
             lines.append("  ret void")
         elif typ.name in self.enums:
             variants = self.variants(typ)
+            if plan is not None and (plan.kind != "enum" or
+                    tuple((vname, tuple(str(field) for field in fields))
+                          for vname, fields in variants) !=
+                    tuple((vname, tuple(key for key, _ in fields))
+                          for vname, fields in plan.variants)):
+                reject("Verified enum Drop payload layout differs from native layout",
+                       "E_LLVM_OWNED_DROP_PLAN")
             lines.append(f"  %tag = extractvalue {native} %owner, 0")
             lines.append("  switch i32 %tag, label %invalid [ " +
                          " ".join(f"i32 {i}, label %variant{i}" for i in range(len(variants))) + " ]")
             for index, (_, fields) in enumerate(variants):
                 lines.append(f"variant{index}:")
                 for offset, field in enumerate(fields):
-                    child(field, (index + 1, offset))
+                    decision = plan.variants[index][1][offset][1] if plan is not None else None
+                    child(field, (index + 1, offset), decision)
                 lines.append("  ret void")
             lines.extend(("invalid:", "  call void @abort()", "  unreachable"))
         else:
@@ -873,7 +915,7 @@ def emit_owned_llvm(program, checked, *, project_sha256=None):
     verification = verify_resource_ir(json.loads(_wire(graph)))
     if verification.get("ok") is not True or verification.get("external_obligations"):
         reject("Independent resource CFG verification rejected", "E_LLVM_OWNED_RESOURCE")
-    emitter = _Emitter(program, checked)
+    emitter = _Emitter(program, checked, resource_types=graph["types"])
     text = emitter.render()
     result = OwnedLLVM(text, _hash(text.encode()), semantic["sha256"], _hash(_wire(graph)),
                        _hash(_wire(verification)), compiler_hash(),
