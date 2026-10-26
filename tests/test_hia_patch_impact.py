@@ -131,6 +131,33 @@ class HIAPatchImpactTests(unittest.TestCase):
         self.assertEqual(impact["patch_result_schema"], "hepta.hia.patch-result.v1")
         self.assertEqual(execute_program(checked, "move_bytes", [5, 0, 0, 0, 0])["result"], 89)
 
+    def test_v4_swap_patch_converges_on_same_agent_verifier(self):
+        from hepta.hia_program import SCHEMA_V4
+        from tests.test_hia_swap_v4 import swap_program
+
+        original = swap_program()
+        operations = original["functions"][0]["blocks"][0]["ops"]
+        index = next(i for i, op in enumerate(operations)
+                     if op["op"] == "const" and op["out"] == [param("byte0", "u8")])
+        replacement = deepcopy(operations[index])
+        replacement["attrs"]["value"] = 99
+        edit = {"action": "replace_operation", "function": "swap_bytes",
+                "block": "entry", "index": index, "operation": replacement}
+        changed, receipt, impact = analyze_patch_impact(original, patch_packet(original, [edit]))
+        self.assertEqual(changed.as_dict()["schema"], SCHEMA_V4)
+        self.assertEqual(impact["direct_changed_functions"], ["swap_bytes"])
+        self.assertEqual(impact["interface_changed_functions"], [])
+        self.assertTrue(receipt["claims"]["interface_preserved"])
+        self.assertEqual(execute_program(changed, "swap_bytes", [5, 0, 4, 4])["result"], 99)
+        self.assertEqual(execute_program(original, "swap_bytes", [5, 0, 4, 4])["result"], 11)
+
+        bad = {"action": "replace_operation", "function": "swap_bytes",
+               "block": "entry", "index": next(i for i, op in enumerate(operations)
+                                                if op["op"] == "buffer.swap"),
+               "operation": ins("buffer.swap", ["owned", "left", "right"])}
+        with self.assertRaisesRegex(HIAProgramRejected, "E_HIA_TYPE"):
+            analyze_patch_impact(original, patch_packet(original, [bad], "migrate"))
+
     def test_read_only_cli_impact_for_v3(self):
         from contextlib import redirect_stdout
         import io
@@ -173,6 +200,7 @@ class HIAPatchImpactTests(unittest.TestCase):
             lambda value: value["claims"].update(external_callers_revalidated=True),
             lambda value: value["claims"].update(native_execution_proved=True),
             lambda value: value.update(publication={"unreviewed": True}),
+            lambda value: value.update(schema=["unhashable"]),
             lambda value: value["claims"].pop("native_executed"),
         ):
             with self.subTest(attack=attack):
