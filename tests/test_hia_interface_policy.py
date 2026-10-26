@@ -55,6 +55,21 @@ class HIAInterfacePolicyTests(unittest.TestCase):
         self.assertEqual(receipt["interface_changes"], [])
         self.assertEqual(execute_program(result, "increment", [40])["result"], 42)
 
+    def test_v2_preserve_accepts_body_change_and_reports_no_interface_drift(self):
+        original = core()
+        op = deepcopy(original["functions"][0]["blocks"][0]["ops"][0])
+        op["attrs"]["value"] = 2
+        edits = [{"action": "replace_operation", "function": "increment",
+                  "block": "entry", "index": 0, "operation": op}]
+        changed, receipt = apply_program_patch(original, request(
+            original, edits, schema="hepta.hia.patch.v2", policy="preserve"))
+        self.assertEqual(receipt["schema"], "hepta.hia.patch-result.v2")
+        self.assertEqual(receipt["interface_policy"], "preserve")
+        self.assertTrue(receipt["claims"]["interface_preserved"])
+        self.assertFalse(receipt["claims"]["external_callers_revalidated"])
+        self.assertEqual(receipt["interface_changes"], [])
+        self.assertEqual(execute_program(changed, "increment", [40])["result"], 42)
+
     def test_implicit_v1_and_explicit_v2_preserve_reject_broadened_effects(self):
         original = core()
         changed = deepcopy(original["functions"][0])
