@@ -325,6 +325,36 @@ class StoredViewResourceTests(unittest.TestCase):
                 mutator(poisoned)
                 self.reject(poisoned,code)
 
+    def test_v5_local_labelled_owner_source_replay_binds_scalar_writes(self):
+        path = ROOT / "examples/resource_views/labelled_view.hepta"
+        graph = exported(path)
+        standalone = verify_resource_ir(graph)
+        self.assertTrue(standalone["ok"], standalone)
+        replay = verify_resource_source(path, graph, native=False)
+        self.assertTrue(replay["ok"], replay)
+        self.assertEqual(replay["status"], "frontend_only_source_replayed")
+        self.assertTrue(replay["source_binding_verified"])
+        self.assertEqual(replay["source_binding"]["native_reference"], "not_run")
+        self.assertFalse(replay["claims"]["source_to_ir_refinement_proved"])
+        self.assertFalse(replay["claims"]["user_program_executed"])
+
+        # A validly typed, rehashed graph can still claim the wrong Copy
+        # *value source*. The independent graph checks resource structure;
+        # only source replay catches this candidate's incorrect origin.
+        forged = copy.deepcopy(graph)
+        fn = function(forged, "main")
+        operations = [op for block in fn["blocks"] for op in block["ops"]]
+        write = next(op for op in operations if op["op"] == "write_view_scalar")
+        source = next(op for op in operations if op["op"] == "bind_view"
+                      and any(s["name"] == "tag" for s in op["scalars"]))
+        tagged = next(s["src"] for s in source["scalars"] if s["name"] == "tag")
+        self.assertNotEqual(write["value"], tagged)
+        write["value"] = tagged
+        self.assertTrue(verify_resource_ir(forged)["ok"])
+        rejected = verify_resource_source(path, forged, native=False)
+        self.assertFalse(rejected["ok"], rejected)
+        self.assertEqual(rejected["diagnostics"][0]["code"], "E_RIR_SOURCE_GRAPH")
+
     def test_v5_scalar_write_after_end_of_view_must_fail(self):
         base = lower("""struct Tagged<'a>{data:read 'a [u8],tag:u64}
         fn f(data:read [u8])->Unit effects {panic} {
