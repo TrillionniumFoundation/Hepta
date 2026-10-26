@@ -15,7 +15,7 @@ from unittest.mock import patch
 
 from hepta.backend import compile_rust
 from hepta.c_backend import compile_c
-from hepta.llvm_owned_backend import LLVMOwnedRejected, compile_owned_llvm, emit_owned_llvm
+from hepta.llvm_owned_backend import LLVMOwnedRejected, compile_owned_llvm, emit_owned_llvm, _resources_allowed
 from hepta.llvm_owned_pipeline import build_llvm_owned_source
 from hepta.pipeline import analyze
 
@@ -157,6 +157,47 @@ def checked(source):
 
 
 class LLVMOwnedIdentityTests(unittest.TestCase):
+    def test_checked_nonallocating_nonblocking_source_clauses_lower(self):
+        source = '''
+        export "C" fn constrained(value:u32)->u32
+        effects {panic}
+        resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {
+            return value + 1;
+        }
+        '''
+        analyzed = checked(source)
+        self.assertEqual(analyzed.program.functions[0].resources,
+                         {"heap_allocations": 0, "may_block": False,
+                          "may_suspend": False, "may_spawn": False})
+        self.assertTrue(_resources_allowed(analyzed.program.functions[0], analyzed.checked))
+        ir = emit_owned_llvm(analyzed.program, analyzed.checked)
+        self.assertEqual(ir.functions, ("constrained",))
+        self.assertIn("define", ir.text)
+
+    def test_owned_llvm_resource_contract_literals_and_effects_fail_closed(self):
+        from types import SimpleNamespace
+        def permitted(resources, declared=(), inferred=()):
+            fn = SimpleNamespace(name="f", resources=resources, effects=set(declared))
+            checked_effects = SimpleNamespace(effects={"f": set(inferred)})
+            return _resources_allowed(fn, checked_effects)
+
+        self.assertTrue(permitted({}))
+        self.assertTrue(permitted({"heap_allocations": 0, "may_block": False,
+                                   "may_spawn": False, "may_suspend": False},
+                                  declared=("panic",)))
+        for case, resources, declared, inferred in (
+            ("allocation-bool", {"heap_allocations": False}, (), ()),
+            ("may-block-int", {"may_block": 0}, (), ()),
+            ("may-spawn-int", {"may_spawn": 0}, (), ()),
+            ("suspend-true", {"may_suspend": True}, (), ()),
+            ("allocation-effect", {"heap_allocations": 0}, (), ("alloc",)),
+            ("blocking-effect", {"may_block": False}, ("block",), ()),
+            ("spawning-effect", {"may_spawn": False}, (), ("spawn",)),
+            ("unknown-resource", {"max_rss_bytes": 4096}, (), ()),
+        ):
+            with self.subTest(case=case):
+                self.assertFalse(permitted(resources, declared, inferred))
+
     def test_excessive_aggregate_return_leaf_expansion_rejects(self):
         fields = ",".join(f"f{index}:u8" for index in range(128))
         values = ",".join(f"f{index}:0" for index in range(128))
@@ -273,6 +314,21 @@ class LLVMOwnedNativeTests(unittest.TestCase):
         self.assertEqual(independently_rechecked["dynamic_exports"], list(self.ir.functions))
         self.assertTrue(independently_rechecked["source_exports_rechecked"])
         self.assertFalse(independently_rechecked["claims"]["backend_refinement_proven"])
+
+    def test_native_owned_llvm_rejects_output_mutation_after_link(self):
+        from hepta import artifact_publication
+        output = self.root / "mutated-after-link.so"
+        original = artifact_publication.os.link
+
+        def corrupt(stage, destination, *args, **kwargs):
+            original(stage, destination, *args, **kwargs)
+            Path(destination).write_bytes(b"mutated-ELF-payload")
+
+        with patch.object(artifact_publication.os, "link", side_effect=corrupt):
+            with self.assertRaisesRegex(LLVMOwnedRejected, "E_LLVM_OWNED_PUBLICATION"):
+                compile_owned_llvm(self.ir, program=self.analyzed.program,
+                    checked=self.analyzed.checked, output=output)
+        self.assertFalse(output.exists())
 
     def test_same_hepta_source_executes_all_owned_result_paths_on_three_backends(self):
         functions = []
@@ -435,6 +491,28 @@ int main(void) {
         self.assertFalse(result["ok"])
         self.assertFalse(stale.exists())
         self.assertIn("STALE", result["diagnostics"][0]["code"])
+
+    def test_source_changed_during_publisher_does_not_mint_native_receipt(self):
+        from hepta import llvm_owned_pipeline
+        project = self.root / "post-publication"
+        project.mkdir()
+        for name in ("main.hepta", "owned.hepta"):
+            shutil.copyfile(ROOT / "examples/llvm_owned" / name, project / name)
+        output = self.root / "postpublication.so"
+        original = llvm_owned_pipeline.publish_verified
+
+        def modify_after_publish(stage, destination, expected):
+            receipt = original(stage, destination, expected)
+            (project / "owned.hepta").write_text(OWNED + "\n// post-publication edit\n")
+            return receipt
+
+        with patch.object(llvm_owned_pipeline, "publish_verified",
+                          side_effect=modify_after_publish):
+            report = build_llvm_owned_source(project / "main.hepta", output)
+        self.assertFalse(report["ok"], report)
+        self.assertFalse(output.exists())
+        self.assertEqual(report["diagnostics"][0]["code"], "E_LLVM_OWNED_STALE")
+
 
 
 if __name__ == "__main__":

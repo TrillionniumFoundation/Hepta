@@ -71,6 +71,21 @@ def snapshot():
     return {"sha256": identity, "files": files}
 
 
+def _unittest_passed_count(stderr: str) -> int:
+    """Count only a completed, unskipped terminal unittest stderr report.
+
+    Test-controlled stdout or early stderr lines cannot inflate this value.
+    This is a parser for local validation logs, not remote attestation.
+    """
+    if not isinstance(stderr, str):
+        return 0
+    match = re.search(
+        r"(?m)^Ran ([0-9]+) tests? in [0-9]+(?:\.[0-9]+)?s\r?\n\r?\nOK\r?\n?\Z",
+        stderr,
+    )
+    return int(match.group(1)) if match else 0
+
+
 def _sha256(value):
     return isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value) is not None
 
@@ -907,8 +922,10 @@ def main(argv=None):
                 previous_identity = _evidence_state(evidence_path)
             except OSError as exc:
                 previous_error = str(exc)
+        unit_stderr = ""
         try:
             p = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, timeout=timeout)
+            unit_stderr = p.stderr
             text = p.stdout + p.stderr
             gate = {"name": name, "command": command, "exit_code": p.returncode,
                     "status": "passed" if type(p.returncode) is int and p.returncode == 0 else "failed"}
@@ -937,14 +954,12 @@ def main(argv=None):
                      "log": str(log.relative_to(ROOT)) if log.is_relative_to(ROOT) else str(log),
                      "log_sha256": hashlib.sha256(log.read_bytes()).hexdigest()})
         if name == "unit_and_integration":
-            match = re.search(r"Ran (\d+) tests", text)
-            if match:
-                gate["test_count"] = int(match.group(1))
-            skipped = re.search(r"skipped=(\d+)", text)
+            gate["test_count"] = _unittest_passed_count(unit_stderr)
+            skipped = re.search(r"(?m)^OK \([^\n]*skipped=([0-9]+)[^\n]*\)\r?\n?\Z", unit_stderr)
             gate["skipped"] = int(skipped.group(1)) if skipped else 0
-            if not gate.get("test_count") or gate["skipped"]:
+            if gate["status"] == "passed" and gate["test_count"] == 0:
                 gate["status"] = "failed"
-                gate["reason"] = "Release qualification requires an actual nonempty suite with zero skips"
+                gate["reason"] = "Release requires terminal unittest OK on stderr, nonzero tests and zero skips"
         if name in evidence_outputs:
             retained = None
             try:
