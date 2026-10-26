@@ -24,12 +24,17 @@ def fill_bytes(buffer: bytearray, offset: int, count: int, value: int) -> None:
         raise ValueError("E_HIA_VM_VALUE: expected u8")
     if not count:
         return
-    pattern = bytes((value,)) * min(count, _CHUNK)
+    # Seed at most 4 KiB, then double the filled region using disjoint
+    # memoryview-to-memoryview copies. No large Python bytes object is formed.
+    seeded = min(count, _CHUNK)
+    pattern = bytes((value,)) * seeded
     view = memoryview(buffer)
-    for index in range(0, count, _CHUNK):
-        width = min(_CHUNK, count - index)
-        # Only the final short block may form a new <=4KiB byte slice.
-        view[offset + index:offset + index + width] = pattern[:width]
+    view[offset:offset + seeded] = pattern
+    filled = seeded
+    while filled < count:
+        width = min(filled, count - filled)
+        view[offset + filled:offset + filled + width] = view[offset:offset + width]
+        filled += width
 
 
 def move_bytes(buffer: bytearray, destination: int, source: int, count: int) -> None:
@@ -39,6 +44,10 @@ def move_bytes(buffer: bytearray, destination: int, source: int, count: int) -> 
     if not count or destination == source:
         return
     view = memoryview(buffer)
+    if destination + count <= source or source + count <= destination:
+        # Non-overlapping native buffer assignment needs no byte snapshot.
+        view[destination:destination + count] = view[source:source + count]
+        return
     if source < destination < source + count:
         remaining = count
         while remaining:
