@@ -7,7 +7,6 @@ native LLVM qualification.
 """
 from __future__ import annotations
 
-import copy
 import unittest
 
 from hepta.hia_heap_bound import analyze_constant_live_heap
