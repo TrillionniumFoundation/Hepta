@@ -84,6 +84,12 @@ data = sys.stdin.buffer.read()
 doc = json.loads(data)
 claims = {claims[profile]!r}
 if mode == 'sleep': time.sleep(2)
+if mode == 'flood':
+    sys.stdout.write('X' * 500000)
+    sys.stdout.flush()
+    sys.exit(0)
+if mode == 'stderr':
+    sys.stderr.write('unexpected report diagnostics')
 if mode == 'proof_promoted': claims['whole_language_soundness_proved'] = 0
 if mode == 'extra_claim': claims['future_claim'] = False
 result = {{
@@ -137,6 +143,14 @@ else:
             with self.assertRaises(HIARustCrosscheckRejected):
                 crosscheck_rust_shadow(owned_program(), exe,
                                        executable_sha256="0" * 64, profile="both")
+
+    def test_child_cannot_spool_unbounded_output_or_hide_stderr(self):
+        for mode in ("flood", "stderr"):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as td:
+                exe, digest = self.make_fake(Path(td), mode=mode)
+                with self.assertRaises(HIARustCrosscheckRejected):
+                    crosscheck_rust_shadow(owned_program(), exe,
+                                           executable_sha256=digest)
 
     def test_deadline_is_enforced_without_success_receipt(self):
         with tempfile.TemporaryDirectory() as td:
