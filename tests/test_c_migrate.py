@@ -534,9 +534,14 @@ int clamp(int x) { int y=0; y = x > 0 ? x : 0; return y; }
                 return raw.replace("#define __CHAR_BIT__ 8", "#define __CHAR_BIT__ 16")
             return raw
 
+        # A typed rejection code is not part of the exception's human message.
+        # Verify both the supported native model and fail-closed non-octet model.
+        self.assertEqual(strict_migrator._data_model("clang")["char_bit"], 8)
         with patch.object(strict_migrator, "_run", side_effect=forged_non_octet_model):
-            with self.assertRaisesRegex(strict_migrator.MigrationRejected, "E_C_DATA_MODEL"):
+            with self.assertRaises(strict_migrator.MigrationRejected) as caught:
                 strict_migrator._data_model("clang")
+        self.assertEqual(caught.exception.code, "E_C_DATA_MODEL")
+        self.assertIn("8-bit C bytes", str(caught.exception))
 
     def test_header_macro_preprocessing_is_source_bound(self):
         header = self.directory / "values.h"
