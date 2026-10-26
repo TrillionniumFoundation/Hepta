@@ -66,17 +66,35 @@ class RustOwnerLoanShadow(unittest.TestCase):
                     verify_program(p)
                 self.assertNotEqual(self.run_shadow(p).returncode, 0)
 
-    def test_genuine_borrowed_v2_bulk_is_explicitly_unimplemented(self):
-        p = resource_program()
-        p["schema"] = "hepta.hia.program.v2"
-        instructions = p["functions"][0]["blocks"][0]["ops"]
-        instructions.insert(3, {
-            "op":"buffer.fill", "args":["writer","value"], "out":[], "attrs":{}
-        })
-        verified = verify_program(p)
-        result = self.run_shadow(verified.canonical_bytes)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn(b"E_HIA_RUST_UNSUPPORTED", result.stderr)
+    def test_versioned_bulk_byte_operations_match_reference(self):
+        profiles = [
+            (2, "buffer.fill", ["writer", "value"]),
+            (3, "buffer.move_within", ["writer", "zero", "zero", "zero"]),
+            (4, "buffer.swap", ["writer", "zero", "zero"]),
+            (6, "buffer.fill_range", ["writer", "zero", "zero", "value"]),
+        ]
+        for version, opcode, args in profiles:
+            with self.subTest(version=version, opcode=opcode):
+                p = resource_program()
+                p["schema"] = f"hepta.hia.program.v{version}"
+                instructions = p["functions"][0]["blocks"][0]["ops"]
+                instructions.insert(3, {
+                    "op": opcode, "args": args, "out": [], "attrs": {}
+                })
+                verified = verify_program(p)
+                result = self.run_shadow(verified.canonical_bytes)
+                self.assertEqual(result.returncode, 0,
+                                 result.stderr.decode(errors="replace"))
+                report = json.loads(result.stdout)
+                self.assertEqual(report["program_sha256"], verified.sha256)
+                self.assertIs(
+                    report["claims"]["v2_v6_bulk_byte_opcode_types_loans_and_effects_checked"],
+                    True)
+                # New opcodes must never be interpreted under an old wire schema.
+                p["schema"] = "hepta.hia.program.v1"
+                with self.assertRaises(HIAProgramRejected):
+                    verify_program(p)
+                self.assertNotEqual(self.run_shadow(p).returncode, 0)
 
 if __name__ == "__main__":
     unittest.main()
