@@ -68,6 +68,25 @@ class OwnedTargetLayoutTests(unittest.TestCase):
             with self.assertRaisesRegex(OwnedTargetLayoutRejected, "E_OWNED_LAYOUT_ASSERT"):
                 probe_owned_target_layout(self.clang, target, llvm(target))
 
+    def test_tool_replacement_before_or_after_target_probe_rejects(self):
+        from types import SimpleNamespace
+        from hepta.native_tool_identity import ToolIdentityRejected
+        target = "aarch64-unknown-linux-gnu"
+        with (patch("hepta.owned_target_layout.digest_executable",
+                    side_effect=ToolIdentityRejected("changed tool")),
+              patch("hepta.owned_target_layout._clang_run",
+                    side_effect=AssertionError("must refuse before compiler invocation"))):
+            with self.assertRaisesRegex(OwnedTargetLayoutRejected, "COMPILER"):
+                probe_owned_target_layout(self.clang, target, llvm(target))
+        # Even a zero-return native command cannot promote a layout probe
+        # if its compiler executable changes before reading the result.
+        with (patch("hepta.owned_target_layout.digest_executable",
+                    side_effect=["a" * 64, "b" * 64]),
+              patch("hepta.owned_target_layout._clang_run",
+                    return_value=SimpleNamespace(returncode=0, stderr=""))):
+            with self.assertRaisesRegex(OwnedTargetLayoutRejected, "compiler changed"):
+                probe_owned_target_layout(self.clang, target, llvm(target))
+
     def test_unreviewed_external_import_never_qualifies_as_layout_probe(self):
         target = "aarch64-unknown-linux-gnu"
         forged = _SOURCE.replace(
