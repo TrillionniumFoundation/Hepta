@@ -30,3 +30,12 @@ separately scoped evidence. Exact merged SHA still requires real in-repo
 unit, native, model, CPU/RSS and hardware runs.
 
 `whole_project_blockers_closed=false`.
+
+## Agent-ready program fixture
+
+The checked program lives at `examples/hia_program/offset_copy_v5.hia`.
+It is a bounded standalone v5 JSON program, not C source or a generated
+native qualification. Load it with the existing HIA verify/inspect/run CLI,
+or supply it as the exact pinned original for an Agent patch. The integration
+regression requires literal decoded equality with the independently constructed
+v5 fixture before accepting any Agent impact receipt.

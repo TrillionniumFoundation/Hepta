@@ -83,5 +83,14 @@ class V5AgentConvergenceTests(unittest.TestCase):
             self.assertEqual(sorted(p.name for p in root.iterdir()), ["patch.json", "program.hia"])
 
 
+    def test_shipped_v5_example_replays_exact_verified_program(self):
+        fixture = Path(__file__).resolve().parents[1] / "examples" / "hia_program" / "offset_copy_v5.hia"
+        from_file = json.loads(fixture.read_text(encoding="utf-8"))
+        self.assertEqual(from_file, copy_program())
+        checked = verify_program(from_file)
+        self.assertEqual(checked.as_dict()["schema"], SCHEMA_V5)
+        self.assertEqual(execute_program(checked, "copy_offset",
+                                         [5, 2, 1, 2, 2])["result"], 22)
+
 if __name__ == "__main__":
     unittest.main()
