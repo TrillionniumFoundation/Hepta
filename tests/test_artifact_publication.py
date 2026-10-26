@@ -10,7 +10,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from hepta.artifact_publication import PublicationRejected, publish_verified
+from hepta.artifact_publication import (PublicationRejected, publish_verified,
+                                       verify_published, withdraw_own_link)
 
 
 class ArtifactPublicationTests(unittest.TestCase):
@@ -30,6 +31,39 @@ class ArtifactPublicationTests(unittest.TestCase):
                                    "bytes": len(self.payload)})
         self.assertEqual(self.dest.read_bytes(), self.payload)
         self.assertEqual(self.stage.stat().st_ino, self.dest.stat().st_ino)
+
+    def test_post_publication_exact_inode_replay(self):
+        from hashlib import sha256
+        before = publish_verified(self.stage, self.dest, self.payload)
+        after = verify_published(self.stage, self.dest, self.payload)
+        self.assertEqual(before, after)
+        self.assertEqual(after["sha256"], sha256(self.payload).hexdigest())
+
+    def test_post_publication_inplace_corruption_is_rejected_and_withdrawn(self):
+        publish_verified(self.stage, self.dest, self.payload)
+        self.dest.write_bytes(b"tampered after successful publisher return")
+        with self.assertRaisesRegex(PublicationRejected, "E_PUBLISH_BYTES"):
+            verify_published(self.stage, self.dest, self.payload)
+        self.assertTrue(withdraw_own_link(self.stage, self.dest))
+        self.assertFalse(self.dest.exists())
+
+    def test_post_publication_competitor_swap_survives_own_link_cleanup(self):
+        publish_verified(self.stage, self.dest, self.payload)
+        self.dest.unlink()
+        self.dest.write_bytes(b"separate other-writer bytes")
+        with self.assertRaisesRegex(PublicationRejected, "E_PUBLISH"):
+            verify_published(self.stage, self.dest, self.payload)
+        self.assertFalse(withdraw_own_link(self.stage, self.dest))
+        self.assertEqual(self.dest.read_bytes(), b"separate other-writer bytes")
+
+    def test_post_publication_wrong_size_and_symlink_fail_closed(self):
+        publish_verified(self.stage, self.dest, self.payload)
+        self.dest.unlink()
+        self.dest.symlink_to(self.stage)
+        with self.assertRaisesRegex(PublicationRejected, "E_PUBLISH_IDENTITY"):
+            verify_published(self.stage, self.dest, self.payload)
+        self.assertFalse(withdraw_own_link(self.stage, self.dest))
+        self.assertTrue(self.dest.is_symlink())
 
     def test_existing_destination_not_replaced(self):
         self.dest.write_bytes(b"unchanged")
