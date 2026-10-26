@@ -53,6 +53,13 @@ class RustOwnerLoanShadow(unittest.TestCase):
         p = joined_loan_program()
         p["functions"][0]["blocks"][0]["term"]["then"]["args"][1] = "a"
         variants.append(p)  # same Owner on one CFG edge twice
+        p = joined_loan_program()
+        # Both branch edges are well-typed and preserve all owners, but the
+        # read view is rooted in different target owners at the same join.
+        p["functions"][0]["blocks"][0]["term"]["else"]["args"] = [
+            "z", "a", "view"
+        ]
+        variants.append(p)
         for p in variants:
             with self.subTest(case=str(p["functions"][0]["name"])):
                 with self.assertRaises(HIAProgramRejected):
