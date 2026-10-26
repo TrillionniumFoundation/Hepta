@@ -285,11 +285,11 @@ ok:
             index = 0
             while index < count:
                 position = symbol_at + 18 * index
-                if original[position:position + 4] == b"\\0" * 4:
+                if original[position:position + 4] == b"\0" * 4:
                     name_at = strings_at + _u32(original, position + 4)
-                    name = original[name_at:original.index(b"\\0", name_at)]
+                    name = original[name_at:original.index(b"\0", name_at)]
                 else:
-                    name = original[position:position + 8].split(b"\\0", 1)[0]
+                    name = original[position:position + 8].split(b"\0", 1)[0]
                 if name == b"abort":
                     self.assertEqual(original[position + 16], 2)
                     changed = _write(original, position + 16, 1, 105)
