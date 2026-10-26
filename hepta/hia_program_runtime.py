@@ -248,6 +248,24 @@ class _Machine:
                 raise HIAProgramTrap("bounds", "bulk copy exceeds an owner extent")
             # Distinct live allocations are guaranteed by the verified roots.
             memoryview(destination.data)[:size] = memoryview(source.data)[:size]
+        elif op == "buffer.move_within":
+            owner, destination, source, count = _underlying(args[0]), args[1], args[2], args[3]
+            if not isinstance(args[0], _View) or not args[0].mutable:
+                raise HIAProgramRejected("move_within requires a unique live loan", "E_HIA_RUNTIME_INVARIANT")
+            extent = len(owner.data)
+            # Subtraction-based extents mirror native usize bounds without
+            # overflowing destination+count or source+count.
+            if (destination > extent or source > extent
+                    or count > extent - destination or count > extent - source):
+                raise HIAProgramTrap("bounds", "overlapping move exceeds byte-owner extent")
+            # Directional move handles overlapping regions without allocating
+            # a temporary byte buffer; auxiliary interpreter memory is O(1).
+            if destination > source and destination < source + count:
+                for index in range(count - 1, -1, -1):
+                    owner.data[destination + index] = owner.data[source + index]
+            else:
+                for index in range(count):
+                    owner.data[destination + index] = owner.data[source + index]
         elif op == "call":
             callee = self.functions[attrs["function"]]
             for name, param in zip(names, callee["params"]):
