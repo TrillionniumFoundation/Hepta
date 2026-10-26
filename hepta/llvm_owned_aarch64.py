@@ -22,6 +22,7 @@ from .llvm_ssa_backend import _clang_run
 from .object_structure import qualified_object
 from .object_symbols import ObjectSymbolsRejected, inspect_object_symbols
 from .owned_target_layout import OwnedTargetLayoutRejected, probe_owned_target_layout
+from .native_tool_identity import ToolIdentityRejected, digest_executable
 from .pipeline import analyze_project, compiler_hash
 
 
@@ -112,7 +113,11 @@ def compile_owned_aarch64_object(ir: OwnedLLVM, *, program, checked, output,
     if selected is None:
         reject("Clang backend executable unavailable", "E_LLVM_OWNED_TARGET_TOOLCHAIN")
     compiler = Path(selected).resolve()
-    tool_hash = sha256(compiler.read_bytes()).hexdigest()
+    try:
+        tool_hash = digest_executable(compiler)
+    except ToolIdentityRejected as exc:
+        reject("Bounded compiler identity check failed: " + str(exc),
+               "E_LLVM_OWNED_TARGET_TOOLCHAIN")
     version = _clang_run([str(compiler), "--version"], timeout=10)
     if version.returncode or not version.stdout.strip():
         reject("Clang identity probe failed", "E_LLVM_OWNED_TARGET_TOOLCHAIN")
@@ -141,7 +146,11 @@ def compile_owned_aarch64_object(ir: OwnedLLVM, *, program, checked, output,
                    "E_LLVM_OWNED_TARGET_NATIVE")
         data = stage.read_bytes()
         observed = inspect_owned_aarch64_object(data, ir.functions)
-        if (sha256(compiler.read_bytes()).hexdigest() != tool_hash
+        try:
+            compiler_still_identical = digest_executable(compiler) == tool_hash
+        except ToolIdentityRejected:
+            compiler_still_identical = False
+        if (not compiler_still_identical
                 or compiler_hash() != ir.compiler_sha256
                 or ir != emit_owned_llvm(program, checked, project_sha256=project_sha256)):
             reject("Source or compiler changed before publication",
