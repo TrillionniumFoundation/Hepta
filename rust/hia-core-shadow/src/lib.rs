@@ -465,10 +465,9 @@ fn check_function(fn_value: &Value, sig: &Signature, functions: &BTreeMap<String
     }
     Ok(blocks.len())
 }
-/// Fail-closed scalar shadow verification. A successful report is NOT a
-/// substitute for hepta.hia_program.verify_program, LLVM/refinement proof,
-/// or production final-use authorization.
-pub fn verify(input: &[u8]) -> R<Value> {
+mod ownership;
+
+fn decode_hia(input: &[u8]) -> R<(Value, Vec<u8>)> {
     if input.len() > MAX_BYTES {
         return failure("E_HIA_LIMIT", "encoded HIA program exceeds 8 MiB");
     }
@@ -478,6 +477,26 @@ pub fn verify(input: &[u8]) -> R<Value> {
     d.end().map_err(|e| VerifyError { code: "E_HIA_FORMAT", detail: e.to_string() })?;
     let doc = parsed.0;
     structure(&doc)?;
+    let canonical = serde_json::to_vec(&doc).map_err(|e| VerifyError {
+        code: "E_HIA_FORMAT", detail: e.to_string(),
+    })?;
+    if canonical.len() > MAX_BYTES {
+        return failure("E_HIA_LIMIT", "canonical HIA program exceeds 8 MiB");
+    }
+    Ok((doc, canonical))
+}
+
+/// Independently check a conservative HIA v1 Owner/Loan CFG subset.
+/// This is never a source/native admission or proof authorization.
+pub fn verify_owned(input: &[u8]) -> R<Value> {
+    ownership::verify_owned(input)
+}
+
+/// Fail-closed scalar shadow verification. A successful report is NOT a
+/// substitute for hepta.hia_program.verify_program, LLVM/refinement proof,
+/// or production final-use authorization.
+pub fn verify(input: &[u8]) -> R<Value> {
+    let (doc, _canonical_bytes) = decode_hia(input)?;
     let top = object(&doc, &["schema", "module", "functions"], "program")?;
     let schema = string(&top["schema"], "schema")?;
     if !matches!(schema, "hepta.hia.program.v1" | "hepta.hia.program.v2"
