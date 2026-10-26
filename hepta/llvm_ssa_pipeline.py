@@ -17,6 +17,7 @@ from .llvm_ssa_target import _TARGETS, compile_ssa_target_object
 from .pipeline import analyze_project
 from .ssa import lower_cfg_scalar_ssa
 from .ssa_verify import verify_scalar_ssa
+from .native_resource_gate import verify_native_scalar_resource_gate
 
 
 def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
@@ -42,6 +43,7 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
         "claims": {
             "native_rust_reference_required": True,
             "independent_scalar_ssa_structure_checked": False,
+            "source_bound_resource_flow_checked": False,
             "native_ssa_cfg_origin_rechecked": False,
             "semantic_source_projection_rechecked": False,
             "native_artifact_compiled": False,
@@ -79,6 +81,15 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
         cfg = lower_hsir_cfg(scalar_hsir)
         ssa = lower_cfg_scalar_ssa(cfg)
         verification = verify_scalar_ssa(ssa, cfg)
+        # This is deliberately mandatory for native source builds, not a
+        # sidecar that an Agent can omit. A scalar SSA graph does not itself
+        # check the ownership/loan/drop abstraction. Unsupported source
+        # resource semantics fail closed in the existing P1 lowerer.
+        resource_receipt = verify_native_scalar_resource_gate(
+            analyzed.program, analyzed.checked,
+            project_sha256=project.identity,
+            scalar_hsir=scalar_hsir, ssa=ssa)
+        result["claims"]["source_bound_resource_flow_checked"] = True
         ir = emit_scalar_ssa_llvm(ssa, cfg)
         if verification.sha256 != ir.verification_sha256:
             raise LLVMSSARejected("E_LLVM_SSA_VERIFY: emitted LLVM provenance does not match verifier")
@@ -91,6 +102,9 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
             "derived_scalar_hsir_sha256": scalar_hsir.sha256,
             "cfg_sha256": cfg.sha256,
             "canonical_ssa_sha256": ssa.sha256,
+            "abstract_resource_ir_sha256": resource_receipt["resource_ir_sha256"],
+            "abstract_resource_receipt_schema": resource_receipt["schema"],
+            "abstract_resource_origin_hsir_sha256": resource_receipt["canonical_hsir_sha256"],
             "structural_verification_sha256": verification.sha256,
             "llvm_ir_sha256": ir.sha256,
             "llvm_source_profile": ir.profile,
