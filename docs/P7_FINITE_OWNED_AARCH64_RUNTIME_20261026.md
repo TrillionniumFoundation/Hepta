@@ -36,7 +36,7 @@ balanced allocations/releases plus observed allocation refusal. A nonzero
 exit means a failed actual runtime observation.
 
 The literal exact reviewed runtime SHA-256 is
-`97000140eb68610f85f5e627210483c05e1c0a2ef6bce2816a74e4afc6f9efa5`.
+`5caa9cbc33df5734626ff17045159add08b850abceb021b038ddb110db6f402c`.
 The probe refuses silently changed runtime C source. Source, compiler,
 original target object, functional runtime object and linked ELF identities
 are retained in the typed receipt.
@@ -53,7 +53,7 @@ backend:
 - Real AArch64 object + actual functional runtime compiled with Clang,
   linked by lld to AArch64 ELF64 **ET_EXEC** machine 183. Linked ELF SHA-256
   (for the local independent stand-in smoke run):
-  `49ed2309ab33b2895a2726506f7272d3ec8032deaef633d638649a7df6949dd3`.
+  `fe09ecf0ad0f9a1e6a1e126018cced71f4a22ac9582637611e44f3e320`.
 - This local environment did **not** have `qemu-aarch64`; the AArch64 image
   was **not executed**. The x86-64 success is not target execution and the
   independent C stand-in is not a source-bound Hepta native build.
