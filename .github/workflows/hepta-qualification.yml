@@ -12,6 +12,7 @@ on:
       - assistant/hepta-p0-p7-semantic-budget-20261025
       - implement/hia-unified-native-20261026
       - audit/pr179-native-rustc-env-20261026
+      - audit/pr218-aarch64-lld-qemu-ci-20261026
   pull_request:
     branches:
       - main
@@ -70,9 +71,11 @@ jobs:
           printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' \
             | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list
           sudo apt-get update
-          sudo apt-get install --yes clang-20 libclang-rt-20-dev
+          sudo apt-get install --yes clang-20 libclang-rt-20-dev lld-20
           test -x /usr/lib/llvm-20/bin/clang
           test -x /usr/lib/llvm-20/bin/clang++
+          test -x /usr/lib/llvm-20/bin/ld.lld
+          /usr/lib/llvm-20/bin/ld.lld --version | grep -E '^LLD 20\.'
           printf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"
           /usr/lib/llvm-20/bin/clang --version
       - name: Install SHA-256-locked Rust 1.90.0 toolchain and cross stdlibs
@@ -116,6 +119,36 @@ jobs:
           PYTHON
       - name: Install SHA-256-locked Lean and QEMU tools
         run: python tools/bootstrap_verification.py
+      - name: Expose SHA-256-locked QEMU AArch64 runner to native tests
+        shell: bash
+        run: |
+          python - <<'PYTHON'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          lock = json.loads(Path("formal/qemu-toolchain-lock.json").read_text())
+          binary = (Path.cwd().resolve().parent /
+                    "toolchains/qemu-8.2.2/qemu-aarch64-static").resolve(strict=True)
+          if not binary.is_file() or not os.access(binary, os.X_OK):
+              raise SystemExit("E_QEMU_IDENTITY: pinned QEMU binary is not executable")
+          with binary.open("rb") as source:
+              digest = hashlib.file_digest(source, "sha256").hexdigest()
+          if digest != lock["binary_sha256"]:
+              raise SystemExit("E_QEMU_IDENTITY: pinned QEMU binary hash mismatch")
+          bindir = Path(os.environ["RUNNER_TEMP"]) / "hepta-qualified-aarch64-runner"
+          bindir.mkdir(mode=0o700, exist_ok=False)
+          entry = bindir / "qemu-aarch64"
+          entry.symlink_to(binary)
+          if entry.resolve(strict=True) != binary:
+              raise SystemExit("E_QEMU_IDENTITY: runner path mismatch")
+          with open(os.environ["GITHUB_PATH"], "a") as output:
+              output.write(str(bindir) + "\n")
+          print(json.dumps({"schema": "hepta.qemu-runner-identity.v1",
+                            "binary_sha256": digest, "runner": str(binary),
+                            "alias": str(entry)}, sort_keys=True))
+          PYTHON
       - name: Run all current native and experiment qualification gates
         run: >-
           python tools/release_check.py
