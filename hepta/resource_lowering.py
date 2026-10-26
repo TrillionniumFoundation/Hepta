@@ -530,8 +530,18 @@ class _FunctionLowerer:
                 # assignment place. Materialize copied values (and end any
                 # returned loan) before evaluating the target's calls/indices.
                 value = self.expression(data["expr"])
-                if self.scalar_view_projection(data["target"]) is not None:
-                    _unsupported("Updating stored Copy scalar labels needs an explicit value-write profile")
+                view = self.scalar_view_projection(data["target"])
+                if view is not None:
+                    # Assignment evaluates its RHS before the target. The
+                    # Copied label belongs to this view *record*, never its
+                    # borrowed origin. Do not upgrade slice permissions.
+                    value = self.copy_value(value)
+                    label = data["target"].value
+                    if (self.types.view_scalars[view.type.name][label] != value.type
+                            or value.id is None or value.kind != "value"):
+                        _unsupported("Stored Copy field assignment needs its original checked scalar type")
+                    self.emit("write_view_scalar", src=view.id, field=label, value=value.id)
+                    continue
                 stored = self.view_projection(data["target"])
                 if stored is not None:
                     if data["target"].kind != "index":
