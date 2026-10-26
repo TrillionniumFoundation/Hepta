@@ -33,10 +33,20 @@ does NOT discharge dynamic extent checks, runtime allocation behavior, or
 LLVM refinement; those remain obligations of the existing Python verifier,
 interpreter and backend.
 
-**Deliberately rejected:** direct/interprocedural function calls and
-resource transfers, raw/foreign pointers, GPU, DMA, exceptional unwind,
-general Memory SSA and externally supplied provenance proofs. Native artifact
-consumers do not call this Rust shadow.
+**Static internal calls:** the Rust shadow now checks the existing
+`call` operation against the complete declared module signatures. Owner
+arguments are consumed once, cannot move while borrowed, and Owner returns
+create new linear result capabilities. Borrowed `readbuf/mutbuf` arguments
+remain with the caller; exclusive aliasing is rejected across same-root call
+arguments, `mutbuf` may supply a read-only formal, and the caller's declared
+effects must include all callee effects. A callee cannot return or locally end
+the caller's external loan.
+
+**Still unproved/unsupported:** arbitrary foreign/indirect calls and
+external pointer provenance, GPU/DMA, exceptional unwind, termination of
+recursive programs, stack bounds, whole-program Memory SSA and independently
+proved source/LLVM semantic refinement. Native artifact consumers do not call
+this Rust shadow.
 
 The emitted `hepta.hia.rust-owner-shadow.v1` report explicitly marks
 whole-language soundness, native correctness, generic Memory SSA,
@@ -48,7 +58,7 @@ A digest proves byte identity, not source↔IR semantic refinement.
 ```sh
 cargo test --manifest-path rust/hia-core-shadow/Cargo.toml
 cargo fmt --manifest-path rust/hia-core-shadow/Cargo.toml -- --check
-python -m unittest tests.test_hia_rust_owned_shadow -v
+python -m unittest tests.test_hia_rust_owned_shadow tests.test_hia_rust_calls_shadow -v
 python -m unittest tests.test_hia_program tests.test_hia_program_llvm -v
 ```
 
@@ -68,7 +78,7 @@ A static review and GitHub file receipts do not change that boundary.
 
 P0: exact SHA source/release qualification and canonical schema convergence.
 P1: interprocedural and exception-edge resource SSA, full memory provenance,
-native verifier transition, bounded hardware capabilities.
+native verifier transition, complete exception/FFI obligations and bounded hardware capabilities.
 P2: executable Core↔native/VM differential plus formal safety refinement.
 P3/P4: C/C++ L2/L3 real-project coverage with independently qualified ABI.
 P5: SIMD/GPU/NPU actual execution and unbiased CPU/RSS/throughput/p99.
