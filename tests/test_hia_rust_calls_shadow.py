@@ -70,6 +70,19 @@ class RustOwnerCallComparison(unittest.TestCase):
                 self.assertIs(shadow["claims"]["recursion_or_stack_bounds_proved"], False)
                 self.assertIs(shadow["claims"]["rust_is_production_admission_authority"], False)
 
+    def test_borrowed_call_exclusive_alias_is_refused(self):
+        double = f("double", [("left","mutbuf"),("right","mutbuf")],
+                   [], [], [b("double_entry", [("left","mutbuf"),
+                                               ("right","mutbuf")], [], ret())])
+        from tests.test_hia_program import resource_program
+        p = resource_program()
+        p["functions"].append(double)
+        p["functions"][0]["blocks"][0]["ops"].insert(
+            2, i("call", ["writer","writer"], function="double"))
+        with self.assertRaises(HIAProgramRejected):
+            verify_program(p)
+        self.assertNotEqual(self.rust(p).returncode, 0)
+
     def test_double_consumption_and_effect_claims_are_rejected(self):
         invalid = []
         p = call_owner()
