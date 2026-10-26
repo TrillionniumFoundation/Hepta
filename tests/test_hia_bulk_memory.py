@@ -146,9 +146,9 @@ class BulkMemoryV2Tests(unittest.TestCase):
             # return a plausible value from unchecked LLVM memcpy.
             harness = root / "bounds.c"
             exe = root / "bounds"
-            harness.write_text("#include <stdint.h>\\n"
-                               "uint8_t bulk(uint64_t,uint64_t,uint8_t);\\n"
-                               "int main(void){return bulk(1,2,7); }\\n")
+            harness.write_text("#include <stdint.h>\n"
+                               "uint8_t bulk(uint64_t,uint64_t,uint8_t);\n"
+                               "int main(void){return bulk(1,2,7); }\n")
             linked = subprocess.run([compiler, str(harness), str(library),
                                      "-Wl,-rpath," + str(root), "-o", str(exe)],
                                     capture_output=True, text=True, timeout=60)
