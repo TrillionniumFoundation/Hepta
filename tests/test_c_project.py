@@ -164,7 +164,7 @@ class CProjectMigrationTests(unittest.TestCase):
             nonlocal touched
             if not touched:
                 touched = True
-                self.database.write_bytes(self.database.read_bytes() + b"\\n")
+                self.database.write_bytes(self.database.read_bytes() + b"\n")
             return actual(args, directory, stdin=stdin)
 
         with patch("hepta.c_project.invoke", side_effect=mutate):
