@@ -300,10 +300,19 @@ def verify_capture(capture: dict) -> None:
             raise MigrationRejected("E_C_BUILD_IDENTITY", "Recorded compiler invocation differs from database")
         if config.get("abi_model_arguments") != _abi_model_arguments(flags):
             raise MigrationRejected("E_C_BUILD_IDENTITY", "ABI probe flags differ from allowed frontend flags")
-        if not isinstance(config["all_dependencies"], list) or not isinstance(config["local_dependencies"], list):
+        all_paths, local_paths = config["all_dependencies"], config["local_dependencies"]
+        if not isinstance(all_paths, list) or not isinstance(local_paths, list):
             raise MigrationRejected("E_C_BUILD_IDENTITY", "Malformed configuration dependency inventories")
-        dependencies_seen.update(config["all_dependencies"])
-        local_dependencies_seen.update(config["local_dependencies"])
+        if (any(not isinstance(path, str) or not path or "\\x00" in path
+                for path in [*all_paths, *local_paths])
+                or len(set(all_paths)) != len(all_paths)
+                or len(set(local_paths)) != len(local_paths)
+                or all_paths != sorted(all_paths)
+                or local_paths != sorted(local_paths)
+                or not set(local_paths) <= set(all_paths)):
+            raise MigrationRejected("E_C_BUILD_IDENTITY", "Unreviewed dependency order or locality")
+        dependencies_seen.update(all_paths)
+        local_dependencies_seen.update(local_paths)
     dependencies = capture["dependencies"]
     if not isinstance(dependencies, list):
         raise MigrationRejected("E_C_BUILD_IDENTITY", "Malformed dependency inventory")
