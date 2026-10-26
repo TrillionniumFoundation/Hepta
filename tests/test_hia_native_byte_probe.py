@@ -56,6 +56,9 @@ class NativeByteTraceTests(unittest.TestCase):
         graph, _ = fixture(borrow=True)
         from hepta.resource_ir import verify_resource_ir
         ops = graph['functions'][0]['blocks'][0]['ops']
+        # Real Resource IR rejects a unique loan of an immutable owner.
+        # The local stripped verifier does not model that guard.
+        graph['functions'][0]['locals'][0]['mutable'] = True
         ops[1]['mode'] = 'mut'
         ops[2]['mode'] = 'write'
         ops.insert(3, {'op': 'use', 'loan': 'loan0', 'mode': 'read'})
