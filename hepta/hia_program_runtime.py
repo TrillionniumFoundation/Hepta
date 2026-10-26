@@ -248,6 +248,27 @@ class _Machine:
                 raise HIAProgramTrap("bounds", "bulk copy exceeds an owner extent")
             # Distinct live allocations are guaranteed by the verified roots.
             memoryview(destination.data)[:size] = memoryview(source.data)[:size]
+        elif op == "buffer.move_within":
+            # Exact memmove semantics, including overlapping byte ranges.
+            # All offsets are already verified usize; prove each subrange
+            # fits before any write (subtraction cannot underflow here).
+            owner = _underlying(args[0])
+            destination, source, size = args[1:]
+            if not isinstance(args[0], _View) or not args[0].mutable:
+                raise HIAProgramRejected("in-place move needs a unique mutable loan",
+                                         "E_HIA_RUNTIME_INVARIANT")
+            extent = len(owner.data)
+            if (destination > extent or source > extent
+                    or size > extent - destination or size > extent - source):
+                raise HIAProgramTrap("bounds", "in-place byte range exceeds owned extent")
+            if size:
+                # RHS materializes an independent bytearray snapshot, so
+                # overlapping regions copy as if through a temporary.
+                try:
+                    owner.data[destination:destination + size] = owner.data[source:source + size]
+                except MemoryError as exc:
+                    raise HIAProgramBudgetExceeded(
+                        "host_memory", "in-place copy needs temporary host memory") from exc
         elif op == "call":
             callee = self.functions[attrs["function"]]
             for name, param in zip(names, callee["params"]):

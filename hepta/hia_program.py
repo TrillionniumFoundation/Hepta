@@ -20,8 +20,10 @@ import re
 
 SCHEMA = "hepta.hia.program.v1"
 SCHEMA_V2 = "hepta.hia.program.v2"
+SCHEMA_V3 = "hepta.hia.program.v3"
 PROFILE = "closed-ssa-integer-byte-resources-64-v1"
 PROFILE_V2 = "closed-ssa-integer-byte-resources-bulk-64-v2"
+PROFILE_V3 = "closed-ssa-integer-byte-resources-overlap-64-v3"
 WORD_BITS = 64
 WIDTHS = {**{f"{s}{n}": n for s in ("i", "u") for n in (8, 16, 32, 64)},
           "isize": 64, "usize": 64}
@@ -166,7 +168,8 @@ class VerifiedProgram:
         # report rechecks the immutable bytes instead of trusting its class.
         checked = verify_program(self)
         data = checked.as_dict()
-        profile = PROFILE_V2 if data["schema"] == SCHEMA_V2 else PROFILE
+        profile = (PROFILE_V3 if data["schema"] == SCHEMA_V3 else
+                   PROFILE_V2 if data["schema"] == SCHEMA_V2 else PROFILE)
         return {"schema": "hepta.hia.program-verification.v1", "ok": True,
                 "profile": profile, "program_sha256": checked.sha256,
                 "word_bits": WORD_BITS, "functions_checked": len(data["functions"]),
@@ -311,9 +314,10 @@ def _function_shape(fn):
 
 
 class _BlockCheck:
-    def __init__(self, fn, block, capabilities, functions, *, bulk_memory=False):
+    def __init__(self, fn, block, capabilities, functions, *, bulk_memory=False, inplace_memory=False):
         self.fn, self.block, self.functions = fn, block, functions
         self.bulk_memory = bulk_memory
+        self.inplace_memory = inplace_memory
         self.env = {p["name"]: p["type"] for p in block["params"]}
         self.caps = dict(capabilities)
         self.required = set()
@@ -493,6 +497,17 @@ class _BlockCheck:
                 _reject("bulk copy aliases the destination owner", "E_HIA_LOAN")
             expected = []
             self.required.update({"read", "write", "trap"})
+        elif op == "buffer.move_within":
+            # v3: overlapping source/destination ranges in ONE uniquely
+            # borrowed allocation. Unlike v2 buffer.copy, this is memmove.
+            if not self.inplace_memory:
+                _reject("in-place overlapping move requires HIA program v3", "E_HIA_OPCODE")
+            arity(4)
+            self.access(args[0], True)
+            if actual != ["mutbuf", "usize", "usize", "usize"]:
+                _reject("in-place move requires mutbuf, dest, source, length as usize", "E_HIA_TYPE")
+            expected = []
+            self.required.update({"read", "write", "trap"})
         elif op == "call":
             _keys(attrs, {"function"}, op)
             callee_name = _ident(attrs["function"], "callee")
@@ -600,7 +615,7 @@ def verify_program(program) -> VerifiedProgram:
     """
     data, raw = _decode(program)
     _keys(data, {"schema", "module", "functions"}, "program")
-    if data["schema"] not in {SCHEMA, SCHEMA_V2}:
+    if data["schema"] not in {SCHEMA, SCHEMA_V2, SCHEMA_V3}:
         _reject("unsupported program schema", "E_HIA_SCHEMA")
     _ident(data["module"], "module")
     if type(data["functions"]) is not list or not 1 <= len(data["functions"]) <= MAX_FUNCTIONS:
@@ -625,7 +640,8 @@ def verify_program(program) -> VerifiedProgram:
             processed.add(ident)
             block = blocks[ident]
             check = _BlockCheck(fn, block, incoming[ident], functions,
-                                bulk_memory=data["schema"] == SCHEMA_V2)
+                                bulk_memory=data["schema"] in {SCHEMA_V2, SCHEMA_V3},
+                                inplace_memory=data["schema"] == SCHEMA_V3)
             for ins in block["ops"]:
                 check.instruction(ins)
             check.finish()
