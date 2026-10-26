@@ -71,6 +71,41 @@ class CProjectMigrationTests(unittest.TestCase):
         with self.assertRaisesRegex(MigrationRejected, "Duplicate"):
             capture_project(self.database, clang=self.clang)
 
+    def test_resigned_c_build_metadata_cannot_invent_abi_or_local_header_facts(self):
+        (self.root / "inc.h").write_text("#define FACTOR 7\n")
+        self.project({"input.c": '#include "inc.h"\nint f(int x){return x*FACTOR;}'})
+        original = capture_project(self.database, clang=self.clang)
+        self.assertTrue(any(d["project_input"] for d in original["dependencies"]))
+
+        def reseal(value):
+            value["sha256"] = hashlib.sha256(json.dumps(
+                {k: v for k, v in value.items() if k != "sha256"},
+                sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+            return value
+
+        mutations = {
+            "abi_probe_injection": lambda x: x["configurations"][0]["abi_model_arguments"].extend(
+                ["-D__CHAR_UNSIGNED__=1"]),
+            "source_locality": lambda x: next(
+                d for d in x["dependencies"] if d["project_input"]).update(project_input=False),
+            "missing_dep_size": lambda x: x["dependencies"][0].pop("bytes"),
+            "tampered_dep_size": lambda x: x["dependencies"][0].update(
+                bytes=x["dependencies"][0]["bytes"] + 1),
+            "schema_extension": lambda x: x["configurations"][0].update(
+                cpp_abi_qualified=True),
+            "bool_int_model": lambda x: x["configurations"][0]["model"].update(
+                char_unsigned=0),
+            "duplicate_claim": lambda x: x["compiler"].update(
+                trusted_authority="forged"),
+        }
+        for name, mutation in mutations.items():
+            with self.subTest(case=name):
+                forged = copy.deepcopy(original)
+                mutation(forged)
+                with self.assertRaisesRegex(MigrationRejected, "E_C_BUILD_IDENTITY"):
+                    verify_capture(reseal(forged))
+        verify_capture(original)
+
     def test_capture_includes_flags_headers_and_rejects_changed_inputs(self):
         (self.root / "inc.h").write_text("#define LOCAL_FACTOR 3\n")
         self.project({"input.c": '#include "inc.h"\nunsigned int scale(unsigned int x){return x*LOCAL_FACTOR*FACTOR;}'}, ["-DFACTOR=2"])
