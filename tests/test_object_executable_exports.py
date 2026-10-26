@@ -77,8 +77,8 @@ def _mutate_elf(data):
     raise AssertionError("No ELF exported function found")
 
 
-def _elf_global_to_gnu_unique(data):
-    """Mutate the additional public data symbol to ELF STB_GNU_UNIQUE (10)."""
+def _elf_global_to_gnu_unique(data, *, binding=10):
+    """Retag one real Clang public ELF data symbol without changing section bytes."""
     table, sections = _u64(data, 40), _u16(data, 60)
     for index in range(sections):
         section = table + index * 64
@@ -97,7 +97,7 @@ def _elf_global_to_gnu_unique(data):
                     b"hepta_unapproved_global\0"):
                 assert data[pos + 4] == 0x11  # STB_GLOBAL + STT_OBJECT
                 modified = bytearray(data)
-                modified[pos + 4] = 0xa1  # STB_GNU_UNIQUE + STT_OBJECT
+                modified[pos + 4] = (binding << 4) | 1  # chosen binding + STT_OBJECT
                 return bytes(modified)
     raise AssertionError("Did not find an external data symbol to mutate")
 
@@ -220,6 +220,33 @@ class ExecutableSymbolExtentTests(unittest.TestCase):
                     with self.assertRaisesRegex(ObjectSymbolsRejected,
                                                 "E_OBJECT_SYMBOL_EXPORT_KIND"):
                         inspect_object_symbols(mutated, "ELF64", machine)
+
+    def test_unreviewed_elf_bindings_cannot_hide_extra_data_exports(self):
+        # Binding 10 (GNU_UNIQUE) was already rejected. The previous scanner
+        # continued to skip bindings 3..9 and 11..15, despite not having
+        # specified visibility semantics for them. All must fail closed.
+        with tempfile.TemporaryDirectory(prefix="hepta-unreviewed-binding-") as tmp:
+            root = Path(tmp)
+            source = root / "unreviewed.ll"
+            source.write_text(
+                "@hepta_unapproved_global = global i64 77, align 8\n" + _SOURCE)
+            for target, machine in (("x86_64-unknown-linux-gnu", 62),
+                                    ("aarch64-unknown-linux-gnu", 183)):
+                artifact = root / (target + ".o")
+                run = subprocess.run(
+                    ["clang", "--target=" + target, "-x", "ir", "-O2",
+                     "-c", str(source), "-o", str(artifact)],
+                    capture_output=True, text=True, timeout=30)
+                self.assertEqual(run.returncode, 0, run.stderr)
+                original = artifact.read_bytes()
+                self.assertTrue(qualified_object(original, "ELF64", machine))
+                for binding in (3, 9, 10, 11, 12, 13, 15):
+                    with self.subTest(target=target, binding=binding):
+                        forged = _elf_global_to_gnu_unique(original, binding=binding)
+                        self.assertTrue(qualified_object(forged, "ELF64", machine))
+                        with self.assertRaisesRegex(
+                                ObjectSymbolsRejected, "E_OBJECT_SYMBOL_EXPORT_KIND"):
+                            inspect_object_symbols(forged, "ELF64", machine)
 
     def test_all_five_native_object_profiles(self):
         with tempfile.TemporaryDirectory() as tmp:
