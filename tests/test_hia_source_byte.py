@@ -171,7 +171,9 @@ class SourceByteBindingTests(unittest.TestCase):
         import tempfile
         source = '''module source_byte;
 pub fn case(enabled: bool, second: bool) -> Unit effects {alloc, block, panic} {
-    let data: Buffer<u8> = buffer(4);
+    let mut data: Buffer<u8> = buffer(4);
+    data[1] = 72;
+    let value: u8 = data[1];
     if enabled { drop(move data); }
     else { drop(move data); }
 }
@@ -181,10 +183,16 @@ pub fn case(enabled: bool, second: bool) -> Unit effects {alloc, block, panic} {
             path.write_text(source, encoding="utf-8")
             report = replay_source_byte_path(
                 path, "case", boolean_arguments={"enabled": True, "second": False},
-                actions=({"kind": "alloc", "bytes": 4},), native=False)
+                actions=({"kind": "alloc", "bytes": 4},
+                         {"kind": "write", "index": 1, "value": 72},
+                         {"kind": "read", "index": 1}), native=False)
             self.assertEqual(report["reference"], "frontend_only")
             self.assertEqual(report["byte_trace"]["allocation_count"], 1)
             self.assertEqual(report["byte_trace"]["free_count"], 1)
+            self.assertEqual(report["byte_trace"]["memory_token_final"], 3)
+            self.assertEqual([ev["value"] for ev in
+                              report["byte_trace"]["memory_observations"]
+                              if ev["kind"] == "read"], [72])
             self.assertFalse(report["claims"]["memory_byte_semantics_match_source_proved"])
 
     def test_unsupported_actions_and_mode_reject_before_source_checker(self):

@@ -35,6 +35,11 @@ resource hash, all seven exactly-FALSE proof claims and its unaltered wire hash.
 
 - Allocation sizes, memory indices and written bytes in actions are still
   EXTERNAL test values, not computed source expression/SSA values.
+- The finite byte oracle now admits exactly one verified Buffer<u8> wildcard
+  index projection path ["*"] as well as the existing whole-buffer path [].
+  The index's concrete value is checked for bounds but comes from actions.
+  Nested, unknown or foreign projections still reject. This is **not** a
+  source value-SSA or pointer provenance qualification.
 - One finite owner/loan/drop path is checked, not arbitrary loop termination
   or whole-program behavior.
 - General typed numerical-and-owned SSA, source-to-Core/backend refinement,
@@ -50,7 +55,8 @@ Local Python 3.13 executed 8/8 isolated protocol tests against the *actual
 new module* and mocked compiler/Resource/byte-oracle dependencies. Covered
 boolean input order, native/frontend distinction, stale data, forged proof
 claims and byte trace hash mismatch. The ninth checked-source integration
-test is included but NOT executed against a complete Hepta repository:
+test includes a real Hepta indexed store/load plus owner cleanup and is
+included but NOT executed against a complete Hepta repository:
 the working container has no GitHub network/DNS route, and full repository
 clone could not be completed. No complete rustc/Clang/QEMU/physical/formal
 qualification is claimed.
