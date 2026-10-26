@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from hepta.owned_aarch64_link import (
     OwnedAArch64LinkRejected, inspect_synthetic_aarch64_elf,
@@ -81,6 +82,47 @@ class AArch64LinkProbeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "(IMPORT|LINK)"):
             probe_owned_aarch64_freestanding_link(
                 file.read_bytes(), ("hepta_owner_test",), clang=self.compiler)
+
+    def test_linked_image_rejects_writable_executable_load_and_exec_stack(self):
+        # Capture the real Clang/lld linked bytes before the synthetic probe
+        # discards them. Only the ELF reader is called with mutated bytes;
+        # no dummy-allocator image is ever executed.
+        import hepta.owned_aarch64_link as module
+        original = module.inspect_synthetic_aarch64_elf
+        captured = []
+
+        def retain(payload, exports):
+            captured.append(payload)
+            return original(payload, exports)
+
+        with patch.object(module, "inspect_synthetic_aarch64_elf", side_effect=retain):
+            report = module.probe_owned_aarch64_freestanding_link(
+                self.path.read_bytes(), ("hepta_owner_test",), clang=self.compiler)
+        self.assertTrue(report["symbols"]["no_unresolved_symbols"])
+        linked = captured[-1]
+        phoff = int.from_bytes(linked[32:40], "little")
+        count = int.from_bytes(linked[56:58], "little")
+        load = []
+        stack = []
+        for index in range(count):
+            at = phoff + 56 * index
+            kind = int.from_bytes(linked[at:at+4], "little")
+            if kind == 1:
+                load.append(at)
+            if kind == 0x6474e551:
+                stack.append(at)
+        self.assertTrue(load)
+        for label, positions in (("rwx_load", load[:1]), ("exec_stack", stack[:1])):
+            if not positions:
+                continue
+            with self.subTest(case=label):
+                corrupted = bytearray(linked)
+                at = positions[0]
+                original_flags = int.from_bytes(corrupted[at+4:at+8], "little")
+                corrupted[at+4:at+8] = (original_flags | (3 if label == "rwx_load" else 1)).to_bytes(4, "little")
+                with self.assertRaisesRegex(OwnedAArch64LinkRejected,
+                                            "executable stack or writable executable"):
+                    original(bytes(corrupted), ("hepta_owner_test",))
 
     def test_linked_image_negative_header_controls(self):
         # Unit-level header refusal applies without executing foreign code.
