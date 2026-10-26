@@ -51,6 +51,26 @@ class CProjectMigrationTests(unittest.TestCase):
         self.assertIn(code, [item["code"] for item in report["diagnostics"]], report)
         return report
 
+    def test_replay_rejects_duplicate_keys_even_after_manifest_rehash(self):
+        # An ambiguous database cannot become safe merely because a caller
+        # recomputes the manifest's SHA-256 over its altered bytes.
+        self.project({"input.c": "int identity(int x){return x;}"})
+        snapshot = capture_project(self.database, clang=self.clang)
+        raw = self.database.read_text()
+        needle = '"file": "input.c", '
+        self.assertIn(needle, raw)
+        tampered = raw.replace(needle, '"file": "input.c", "file": "input.c", ', 1)
+        self.database.write_text(tampered)
+        forged = copy.deepcopy(snapshot)
+        forged["database"]["sha256"] = hashlib.sha256(tampered.encode()).hexdigest()
+        forged["sha256"] = hashlib.sha256(json.dumps(
+            {k: v for k, v in forged.items() if k != "sha256"},
+            sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        with self.assertRaisesRegex(MigrationRejected, "Duplicate"):
+            verify_capture(forged)
+        with self.assertRaisesRegex(MigrationRejected, "Duplicate"):
+            capture_project(self.database, clang=self.clang)
+
     def test_capture_includes_flags_headers_and_rejects_changed_inputs(self):
         (self.root / "inc.h").write_text("#define LOCAL_FACTOR 3\n")
         self.project({"input.c": '#include "inc.h"\nunsigned int scale(unsigned int x){return x*LOCAL_FACTOR*FACTOR;}'}, ["-DFACTOR=2"])
