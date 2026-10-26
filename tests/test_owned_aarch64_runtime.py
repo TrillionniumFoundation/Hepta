@@ -147,6 +147,18 @@ class FiniteOwnedRuntimeTests(unittest.TestCase):
             self.assertEqual(emulated["status"], "finite_qemu_userspace_execution_passed")
             self.assertTrue(emulated["qemu_user_mode_executed"])
 
+    def test_compiler_change_during_real_runtime_link_rejects(self):
+        # This runs the actual Clang ARM64 compile+link while replacing only
+        # the tool digest observations. No QEMU or physical execution claimed.
+        _, owner = self.build("aarch64-unknown-linux-gnu")
+        with patch.object(runtime, "_tool_digest",
+                          side_effect=["a" * 64, "b" * 64]) as digest:
+            with self.assertRaisesRegex(OwnedAArch64RuntimeRejected,
+                                        "compiler or finite runtime changed"):
+                probe_finite_owned_aarch64_runtime(
+                    owner.read_bytes(), ("owned_case",), clang=self.clang)
+        self.assertEqual(digest.call_count, 2)
+
     def test_wrong_export_and_unavailable_runner_reject(self):
         _, owner = self.build("aarch64-unknown-linux-gnu")
         with self.assertRaisesRegex(OwnedAArch64RuntimeRejected, "exact|one checked"):
