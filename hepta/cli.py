@@ -51,6 +51,13 @@ def main(argv=None) -> int:
             h.add_argument("--project-sha256", required=action == "import-scalar")
         if action in {"patch", "impact"}:
             h.add_argument("--request", required=True)
+        if action == "verify":
+            h.add_argument("--rust-shadow-bin",
+                           help="opt-in exact-byte Rust shadow executable (not native admission)")
+            h.add_argument("--rust-shadow-sha256",
+                           help="required exact lowercase SHA-256 when Rust shadow is selected")
+            h.add_argument("--rust-shadow-profile", choices=("scalar", "owned"),
+                           help="scalar or Owner/Loan Rust shadow; requires both executable flags")
     doctor = sub.add_parser("doctor", help="Inspect the actual native toolchain")
     doctor.add_argument("--rustc")
     lock = sub.add_parser("lock", help="Lock local package source and dependency bytes")
@@ -225,8 +232,19 @@ def main(argv=None) -> int:
                 return 0
             program = verify_program(read_bounded(args.input))
             if args.hia_action == "verify":
-                output_json({**program.report(), "status": "standalone_core_checked",
-                             "native_executed": False})
+                report = {**program.report(), "status": "standalone_core_checked",
+                          "native_executed": False}
+                selected_shadow = any(value is not None for value in (
+                    args.rust_shadow_bin, args.rust_shadow_sha256, args.rust_shadow_profile))
+                if selected_shadow:
+                    if not args.rust_shadow_bin or not args.rust_shadow_sha256:
+                        raise ValueError("Rust shadow requires both --rust-shadow-bin and --rust-shadow-sha256")
+                    from .hia_rust_crosscheck import crosscheck_rust_shadow
+                    report["rust_crosscheck"] = crosscheck_rust_shadow(
+                        program, args.rust_shadow_bin,
+                        executable_sha256=args.rust_shadow_sha256,
+                        profile=args.rust_shadow_profile or "owned")
+                output_json(report)
                 return 0
             if args.hia_action == "inspect":
                 output_json(inspect_program(program))
