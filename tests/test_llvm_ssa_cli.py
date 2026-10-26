@@ -117,6 +117,12 @@ class LLVMSSASourceCLITests(unittest.TestCase):
         self.assertTrue(report["claims"]["source_bound_resource_cfg_checked"])
         self.assertIn("resource_ir_sha256", report["identities"])
         self.assertEqual(len(report["identities"]["resource_ir_sha256"]), 64)
+        self.assertEqual(report["identities"]["project_sha256"],
+                         report["reference_validation"]["project"]["sha256"])
+        self.assertEqual(report["resource_verification"]["canonical_hsir_sha256"],
+                         report["identities"]["canonical_source_semantic_sha256"])
+        self.assertEqual(report["resource_verification"]["project_sha256"],
+                         report["identities"]["project_sha256"])
         self.assertFalse(report["claims"]["backend_refinement_proved"])
         native = ctypes.CDLL(str(self.output)).sum
         native.argtypes = [ctypes.c_int32]
