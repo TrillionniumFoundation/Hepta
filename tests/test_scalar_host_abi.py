@@ -14,6 +14,7 @@ import tempfile
 import unittest
 
 from hepta.elf_shared_abi import ELFSharedABIRejected, inspect_owned_shared_elf
+from hepta.scalar_host_abi import inspect_scalar_host_elf
 
 
 _NATIVE = (platform.system() == "Linux" and platform.machine() == "x86_64"
@@ -48,7 +49,7 @@ class ScalarNativeSharedABITests(unittest.TestCase):
 
     def test_real_native_elf_only_exposes_source_C_export(self):
         library = self.compile(GOOD)
-        report = inspect_owned_shared_elf(library.read_bytes(), ("hepta_scalar_probe",))
+        report = inspect_scalar_host_elf(library.read_bytes(), ("hepta_scalar_probe",))
         self.assertEqual(report["dynamic_exports"], ["hepta_scalar_probe"])
         self.assertTrue(report["source_exports_rechecked"])
         self.assertFalse(report["claims"]["native_execution_proven"])
@@ -69,7 +70,7 @@ entry:
 """
         data = self.compile(GOOD + extra).read_bytes()
         with self.assertRaisesRegex(ELFSharedABIRejected, "source|public"):
-            inspect_owned_shared_elf(data, ("hepta_scalar_probe",))
+            inspect_scalar_host_elf(data, ("hepta_scalar_probe",))
 
     def test_unreviewed_dynamic_external_import_is_rejected(self):
         source = """\
@@ -83,14 +84,32 @@ entry:
 """
         data = self.compile(source).read_bytes()
         with self.assertRaisesRegex(ELFSharedABIRejected, "unreviewed external import"):
-            inspect_owned_shared_elf(data, ("hepta_scalar_probe",))
+            inspect_scalar_host_elf(data, ("hepta_scalar_probe",))
+
+    def test_allocating_foreign_import_accepted_by_owned_but_not_scalar_profile(self):
+        # A scalar source cannot silently claim a no-heap ABI if a native
+        # library contains a live malloc import used by generated code.
+        source = """\
+declare ptr @malloc(i64)
+define i32 @hepta_scalar_probe(i32 %x) {
+entry:
+  %p = call ptr @malloc(i64 8)
+  store volatile i32 42, ptr %p
+  ret i32 %x
+}
+"""
+        data = self.compile(source).read_bytes()
+        owned = inspect_owned_shared_elf(data, ("hepta_scalar_probe",))
+        self.assertIn("malloc", owned["unresolved_imports"])
+        with self.assertRaisesRegex(ELFSharedABIRejected, "scalar native code"):
+            inspect_scalar_host_elf(data, ("hepta_scalar_probe",))
 
     def test_corrupted_elf_or_forged_expected_export_is_rejected(self):
         data = self.compile(GOOD).read_bytes()
         with self.assertRaises(ELFSharedABIRejected):
-            inspect_owned_shared_elf(data[:36], ("hepta_scalar_probe",))
+            inspect_scalar_host_elf(data[:36], ("hepta_scalar_probe",))
         with self.assertRaises(ELFSharedABIRejected):
-            inspect_owned_shared_elf(data, ("unrelated_c_function",))
+            inspect_scalar_host_elf(data, ("unrelated_c_function",))
 
 
 if __name__ == "__main__":
