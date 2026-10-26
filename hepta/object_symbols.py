@@ -69,7 +69,15 @@ def inspect_object_symbols(data: bytes, fmt: str, machine: int) -> dict[str, fro
             for pos in range(offset, offset + size, 24):
                 name_off, info, shndx = _u32(data, pos), data[pos + 4], _u16(data, pos + 6)
                 binding, kind = info >> 4, info & 0x0f
-                if not name_off or binding not in (1, 2):
+                if not name_off:
+                    continue
+                # STB_GNU_UNIQUE (10) has externally visible linkage just as
+                # GLOBAL/WEAK do. Ignoring it could hide an extra data export
+                # while the required function is still present.
+                if binding == 10:
+                    raise ObjectSymbolsRejected(
+                        "E_OBJECT_SYMBOL_EXPORT_KIND: unreviewed ELF GNU-unique export")
+                if binding not in (1, 2):
                     continue
                 if name_off >= names_size:
                     raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_NAME: bad ELF name")
