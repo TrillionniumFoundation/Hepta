@@ -12,6 +12,7 @@ import tempfile
 
 from .cfg import lower_hsir_cfg
 from .hsir import lower_checked_program
+from .hia_core import seal_hia_scalar_core
 from .native_resource_gate import qualify_native_resource_source
 from .llvm_ssa_backend import LLVMSSARejected, compile_scalar_ssa_llvm, emit_scalar_ssa_llvm
 from .llvm_ssa_target import _TARGETS, compile_ssa_target_object
@@ -49,6 +50,7 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
             "native_rust_reference_required": True,
             "independent_scalar_ssa_structure_checked": False,
             "source_bound_resource_cfg_checked": False,
+            "hia_scalar_core_source_replayed": False,
             "ssa_cfg_origin_rechecked": False,
             "native_artifact_compiled": False,
             "host_elf_dynamic_symbols_checked": False,
@@ -127,10 +129,21 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
         cfg = lower_hsir_cfg(scalar_hsir)
         ssa = lower_cfg_scalar_ssa(cfg)
         verification = verify_scalar_ssa(ssa, cfg)
+        # HIA v0 is the mandatory executable scalar SSA carrier for the
+        # source-qualified LLVM path. The existing Resource IR remains a
+        # source-bound independent gate; it is NOT executable owned SSA.
+        # Source replay must succeed before the emitter sees the *decoded*
+        # typed CFG/SSA. A self-rehashed envelope is never sufficient.
+        core = seal_hia_scalar_core(
+            scalar_hsir, cfg, ssa, verification, resource_gate,
+            project_sha256=project.identity)
+        ssa, cfg, verification = core.qualified_for(
+            analyzed.program, analyzed.checked, project_sha256=project.identity)
         ir = emit_scalar_ssa_llvm(ssa, cfg)
         if verification.sha256 != ir.verification_sha256:
             raise LLVMSSARejected("E_LLVM_SSA_VERIFY: emitted LLVM provenance does not match verifier")
         result["claims"]["independent_scalar_ssa_structure_checked"] = True
+        result["claims"]["hia_scalar_core_source_replayed"] = True
         result["identities"] = {
             "source_sha256": analyzed.report.get("source_sha256"),
             "compiler_sha256": analyzed.report.get("compiler_sha256"),
@@ -138,6 +151,8 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
             "resource_ir_sha256": resource_gate["resource_ir_sha256"],
             "native_resource_gate_schema": resource_gate["schema"],
             "canonical_ssa_sha256": ssa.sha256,
+            "hia_scalar_core_schema": "hepta.hia.scalar-core.v0",
+            "hia_scalar_core_sha256": core.sha256,
             "structural_verification_sha256": verification.sha256,
             "llvm_ir_sha256": ir.sha256,
             "llvm_source_profile": ir.profile,
