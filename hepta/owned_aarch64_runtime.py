@@ -10,7 +10,9 @@ from __future__ import annotations
 
 from hashlib import sha256
 from pathlib import Path
+import os
 import shutil
+import stat
 import tempfile
 
 from .llvm_owned_aarch64 import TARGET_AARCH64, MAX_OBJECT_BYTES, inspect_owned_aarch64_object
@@ -49,16 +51,41 @@ def _tool_digest(path: Path) -> str:
             "E_OWNED_AARCH64_RUNTIME: native tool identity rejected") from exc
 
 
+def _source_identity(info: os.stat_result) -> tuple[int, int, int, int, int, int]:
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_size,
+            info.st_mtime_ns, info.st_ctime_ns)
+
+
 def _read_reviewed_runtime() -> tuple[bytes, str]:
-    """Read a bounded, exactly pinned runtime independent of allocator size."""
+    """Bounded, non-symlinked source read with exact file-identity replay.
+
+    A file-size check after read_bytes() permits an attacker to force an
+    unbounded memory allocation *before* the safety gate can reject it.
+    Read no more than MAX+1 bytes and compare the same fd/path identity
+    before and after. This remains a local race check, not remote attestation.
+    """
     try:
-        raw = _FIXTURE.read_bytes()
+        previous = _FIXTURE.lstat()
+        if (not stat.S_ISREG(previous.st_mode)
+                or not 0 < previous.st_size <= _MAX_RUNTIME_SOURCE_BYTES):
+            _reject("missing or out-of-profile reviewed finite runtime source")
+        fd = os.open(_FIXTURE, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        with os.fdopen(fd, "rb") as stream:
+            original = os.fstat(stream.fileno())
+            if _source_identity(original) != _source_identity(previous):
+                _reject("reviewed runtime source changed before reading")
+            raw = stream.read(_MAX_RUNTIME_SOURCE_BYTES + 1)
+            observed = os.fstat(stream.fileno())
+            if (len(raw) != previous.st_size
+                    or _source_identity(observed) != _source_identity(previous)):
+                _reject("reviewed runtime source changed during bounded reading")
+        if _source_identity(_FIXTURE.lstat()) != _source_identity(previous):
+            _reject("reviewed runtime source path was replaced")
     except OSError as exc:
         raise OwnedAArch64RuntimeRejected(
-            "E_OWNED_AARCH64_RUNTIME: reviewed runtime source unavailable") from exc
-    if (not raw or len(raw) > _MAX_RUNTIME_SOURCE_BYTES
-            or not raw.startswith(b"/* Experimental finite, single-owner Linux runtime")):
-        _reject("missing or out-of-profile reviewed finite runtime source")
+            "E_OWNED_AARCH64_RUNTIME: reviewed runtime file identity unavailable") from exc
+    if not raw.startswith(b"/* Experimental finite, single-owner Linux runtime"):
+        _reject("missing reviewed runtime source marker")
     observed_sha = sha256(raw).hexdigest()
     if observed_sha != _REVIEWED_RUNTIME_SHA256:
         _reject("finite allocator source differs from reviewed exact bytes")
@@ -122,7 +149,7 @@ def probe_finite_owned_aarch64_runtime(object_bytes: bytes, exports: tuple[str, 
         if not 512 <= len(payload) <= _MAX_LINKED_BYTES:
             _reject("linked image missing or oversized")
         shape = inspect_synthetic_aarch64_elf(payload, _EXPORT)
-        if (_FIXTURE.read_bytes() != runtime_bytes or
+        if (_read_reviewed_runtime()[0] != runtime_bytes or
                 _tool_digest(compiler) != compiler_before):
             _reject("compiler or finite runtime changed during link")
         ran = False
