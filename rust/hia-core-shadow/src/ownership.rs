@@ -107,16 +107,18 @@ impl Flow {
         });
         Ok(())
     }
-    fn instr(&mut self, v: &Value) -> R<()> {
+    fn instr(&mut self, v: &Value, version: u8) -> R<()> {
         let o = object(v, &["op", "args", "out", "attrs"], "instruction")?;
         let op = string(&o["op"], "opcode")?;
         let args = names(&o["args"])?;
         let output = params(&o["out"])?;
         if !matches!(op, "buffer.new" | "buffer.try_new" | "buffer.len" |
             "borrow.read" | "borrow.mut" | "loan.end" | "owner.move" |
-            "owner.drop" | "buffer.load" | "buffer.store") {
+            "owner.drop" | "buffer.load" | "buffer.store" |
+            "buffer.fill" | "buffer.copy" | "buffer.move_within" |
+            "buffer.swap" | "buffer.copy_range" | "buffer.fill_range") {
             // Reuse, rather than reimplement, exact scalar instruction checks.
-            // Calls and v2-v6 resource extensions remain deliberately unsupported.
+            // Calls, foreign resources and unknown extensions remain unsupported.
             if op == "call" {
                 return failure("E_HIA_RUST_UNSUPPORTED", "resource calls not yet modeled");
             }
@@ -124,6 +126,13 @@ impl Flow {
             return scalar_instruction(v, &mut self.vars, &empty, &mut self.required);
         }
         object(&o["attrs"], &[], "resource attributes")?;
+        if ((matches!(op, "buffer.fill" | "buffer.copy") && version < 2)
+            || (op == "buffer.move_within" && version < 3)
+            || (op == "buffer.swap" && version < 4)
+            || (op == "buffer.copy_range" && version < 5)
+            || (op == "buffer.fill_range" && version < 6)) {
+            return failure("E_HIA_OPCODE", "memory opcode outside declared ISA version");
+        }
         let actual: Vec<String> = args.iter().map(|n| self.ty(n)).collect::<R<_>>()?;
         let actual: Vec<&str> = actual.iter().map(String::as_str).collect();
         let expected: Vec<&str> = match op {
@@ -180,6 +189,62 @@ impl Flow {
             "buffer.store" => {
                 if actual.len() != 3 || actual[1] != "usize" || actual[2] != "u8" {
                     return failure("E_HIA_TYPE", "store type/arity");
+                }
+                self.access(&args[0], true)?;
+                self.required.extend(["write".into(), "trap".into()]);
+                vec![]
+            }
+            "buffer.fill" => {
+                if actual.as_slice() != ["mutbuf", "u8"] {
+                    return failure("E_HIA_TYPE", "fill requires mutable view and u8");
+                }
+                self.access(&args[0], true)?;
+                self.required.insert("write".into());
+                vec![]
+            }
+            "buffer.copy" => {
+                if actual.as_slice() != ["mutbuf", "readbuf", "usize"] {
+                    return failure("E_HIA_TYPE", "copy requires mutable/read views and usize");
+                }
+                self.access(&args[0], true)?;
+                self.access(&args[1], false)?;
+                if self.cap(&args[0])?.root.as_str() == self.cap(&args[1])?.root.as_str() {
+                    return failure("E_HIA_LOAN", "memcpy requires distinct owner roots");
+                }
+                self.required.extend(["read".into(), "write".into(), "trap".into()]);
+                vec![]
+            }
+            "buffer.move_within" => {
+                if actual.as_slice() != ["mutbuf", "usize", "usize", "usize"] {
+                    return failure("E_HIA_TYPE", "move_within requires mutable view and three usize");
+                }
+                self.access(&args[0], true)?;
+                self.required.extend(["read".into(), "write".into(), "trap".into()]);
+                vec![]
+            }
+            "buffer.swap" => {
+                if actual.as_slice() != ["mutbuf", "usize", "usize"] {
+                    return failure("E_HIA_TYPE", "swap requires mutable view and two usize");
+                }
+                self.access(&args[0], true)?;
+                self.required.extend(["read".into(), "write".into(), "trap".into()]);
+                vec![]
+            }
+            "buffer.copy_range" => {
+                if actual.as_slice() != ["mutbuf", "readbuf", "usize", "usize", "usize"] {
+                    return failure("E_HIA_TYPE", "copy_range typed operands mismatch");
+                }
+                self.access(&args[0], true)?;
+                self.access(&args[1], false)?;
+                if self.cap(&args[0])?.root.as_str() == self.cap(&args[1])?.root.as_str() {
+                    return failure("E_HIA_LOAN", "copy_range requires distinct owner roots");
+                }
+                self.required.extend(["read".into(), "write".into(), "trap".into()]);
+                vec![]
+            }
+            "buffer.fill_range" => {
+                if actual.as_slice() != ["mutbuf", "usize", "usize", "u8"] {
+                    return failure("E_HIA_TYPE", "fill_range typed operands mismatch");
                 }
                 self.access(&args[0], true)?;
                 self.required.extend(["write".into(), "trap".into()]);
@@ -286,7 +351,7 @@ impl Flow {
         Ok(caps)
     }
 }
-fn check_function(f: &Value) -> R<usize> {
+fn check_function(f: &Value, version: u8) -> R<usize> {
     let function = object(f, &["name", "params", "returns", "effects", "entry", "blocks"], "function")?;
     let n = ident(&function["name"])?;
     if matches!(n.as_str(), "abort"|"calloc"|"malloc"|"free"|"memcpy"|"memmove"|"memset") {
@@ -378,7 +443,7 @@ fn check_function(f: &Value) -> R<usize> {
         let b = by_id[&n];
         let mut flow = Flow::new(&ps[&n], incoming[&n].clone());
         for instr in array(&b["ops"], "operations")? {
-            flow.instr(instr)?;
+            flow.instr(instr, version)?;
         }
         flow.finish(&b["term"], &results, &declared)?;
         for e in term_edges(&b["term"])? {
@@ -407,6 +472,15 @@ pub(super) fn verify_owned(input: &[u8]) -> R<Value> {
         "hepta.hia.program.v5" | "hepta.hia.program.v6") {
         return failure("E_HIA_SCHEMA", "unsupported/ambiguous ISA version");
     }
+    let version = match schema {
+        "hepta.hia.program.v1" => 1,
+        "hepta.hia.program.v2" => 2,
+        "hepta.hia.program.v3" => 3,
+        "hepta.hia.program.v4" => 4,
+        "hepta.hia.program.v5" => 5,
+        "hepta.hia.program.v6" => 6,
+        _ => return failure("E_HIA_SCHEMA", "unsupported ISA version"),
+    };
     ident(&top["module"])?;
     let fs = array(&top["functions"], "functions")?;
     if fs.is_empty() || fs.len() > super::MAX_FUNCTIONS {
@@ -419,7 +493,7 @@ pub(super) fn verify_owned(input: &[u8]) -> R<Value> {
         if !function_names.insert(n) {
             return failure("E_HIA_NAME", "duplicate function");
         }
-        count += check_function(f)?;
+        count += check_function(f, version)?;
     }
     let digest = Sha256::digest(&canonical);
     Ok(json!({
@@ -430,7 +504,7 @@ pub(super) fn verify_owned(input: &[u8]) -> R<Value> {
         "claims": {
             "finite_owner_loan_cfg_checked": true,
             "cross_block_owner_loan_state_checked": true,
-            "v2_v6_bulk_memory_checked": false,
+            "v2_v6_bulk_byte_opcode_types_loans_and_effects_checked": true,
             "interprocedural_resource_calls_checked": false,
             "general_memory_provenance_proved": false,
             "full_source_to_core_refinement_proved": false,
