@@ -15,9 +15,22 @@ def fake_migrate(path, out, **kwargs):
     source = Path(path).read_bytes()
     code = b'module migrated;\nexport "C" fn f(x:i32)->i32 effects {} { return x; }\n'
     Path(out).write_bytes(code)
-    return {'ok': True, 'status': 'frontend_checked_not_native_qualified',
+    base = {'ok': True, 'status': 'frontend_checked_not_native_qualified',
             'native_validation': 'not_run', 'source_sha256':h(source), 'output_sha256':h(code),
-            'source_equivalence_proved':False,'behavioral_equivalence_proved':False,'cpp_abi_preserved':False}
+            'source': str(Path(path).resolve()), 'output': str(Path(out)),
+            'converted': [{'name': 'f'}], 'rejected': [],
+            'target_model': {'pointer_bits': 64}}
+    if Path(path).suffix == '.c':
+        base.update(schema='hepta.migrate-c.v0', profile='strict_scalar_pilot',
+                    source_equivalence_proved=False, whole_language_soundness_proved=False,
+                    preprocessed_sha256='c'*64, frontend='passed')
+    else:
+        base.update(schema='hepta.migrate-cpp-l1.v0', tier='L1',
+                    profile='cpp20-noexcept-i32-free-functions-canonical-c-scalar-l1',
+                    cpp_abi_preserved=False, behavioral_equivalence_proved=False,
+                    whole_language_memory_safety_proved=False, foreign_cpp_memory_safe=False,
+                    differential_validation='not_run')
+    return base
 
 
 def fake_build(src, out, **kwargs):
@@ -245,6 +258,46 @@ class MigrationProtocolTests(unittest.TestCase):
     def test_unsupported_language_rejected(self):
         res=self.run_migration(language='rust')
         self.assertFalse(res['ok'])
+        self.assertFalse(self.dest.exists())
+
+    def test_forged_migration_receipt_rejects_before_native_builder(self):
+        from hepta.hia_migrate import migrate_scalar_to_hia
+        variants = ('schema', 'fields', 'proof', 'identity', 'inventory')
+        for case in variants:
+            def forged(*args, **kwargs):
+                receipt = fake_migrate(*args, **kwargs)
+                if case == 'schema':
+                    receipt['schema'] = 'hepta.migrate-c.v999'
+                elif case == 'fields':
+                    receipt['future_safety_verified'] = False
+                elif case == 'proof':
+                    receipt['whole_language_soundness_proved'] = 0
+                elif case == 'identity':
+                    receipt['output'] = '/tmp/foreign-source.hepta'
+                else:
+                    receipt['converted'] = [{'name':'f'}, {'name':'f'}]
+                return receipt
+            with self.subTest(case=case):
+                with patch('hepta.hia_migrate.migrate_c', side_effect=forged), \
+                     patch('hepta.hia_migrate.build_checked_hepta_hia_native',
+                           side_effect=AssertionError('native build must not run')):
+                    outcome = migrate_scalar_to_hia(self.src, self.dest, language='c')
+                self.assertFalse(outcome['ok'])
+                self.assertFalse(self.dest.exists())
+
+    def test_cpp_foreign_safety_claim_cannot_be_upgraded(self):
+        from hepta.hia_migrate import migrate_scalar_to_hia
+        self.src.rename(self.src.with_suffix('.cc'))
+        self.src = self.src.with_suffix('.cc')
+        def forged(*args, **kwargs):
+            receipt = fake_migrate(*args, **kwargs)
+            receipt['foreign_cpp_memory_safe'] = 0
+            return receipt
+        with patch('hepta.hia_migrate.migrate_cpp', side_effect=forged), \
+             patch('hepta.hia_migrate.build_checked_hepta_hia_native',
+                   side_effect=AssertionError('native build must not run')):
+            outcome = migrate_scalar_to_hia(self.src, self.dest, language='cpp')
+        self.assertFalse(outcome['ok'])
         self.assertFalse(self.dest.exists())
 
 if __name__=='__main__':unittest.main()
