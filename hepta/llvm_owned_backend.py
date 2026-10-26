@@ -23,6 +23,7 @@ from .checker import is_owned_type, substitute_type
 from .llvm_ssa_backend import _clang_run
 from .pipeline import compiler_hash
 from .resource_ir import verify_resource_ir
+from .artifact_publication import PublicationRejected, publish_verified
 from .resource_lowering import lower_resource_ir
 from .semantic_ir import lower_checked_program
 from .elf_shared_abi import ELFSharedABIRejected, inspect_owned_shared_elf
@@ -928,10 +929,13 @@ def compile_owned_llvm(ir, *, program, checked, output, project_sha256=None, cla
                     "E_LLVM_OWNED_ARTIFACT: dynamic export/import identity rejected: " + str(exc)) from exc
         if _hash(compiler.read_bytes()) != compiler_digest or compiler_hash() != ir.compiler_sha256:
             reject("Compiler identity changed during native build", "E_LLVM_OWNED_STALE")
-        os.link(artifact, destination)
+        try:
+            publication = publish_verified(artifact, destination, data)
+        except PublicationRejected as exc:
+            reject(str(exc), "E_LLVM_OWNED_PUBLICATION")
     return {"schema": "hepta.llvm-owned-native.v1", "ok": True, "status": "native_compiled_not_executed",
             "profile": PROFILE, "kind": kind, "target": TARGET, "output": str(destination),
-            "artifact_sha256": _hash(data), "artifact_bytes": len(data),
+            "artifact_sha256": publication["sha256"], "artifact_bytes": publication["bytes"],
             "dynamic_abi": dynamic_abi,
             "llvm_ir_sha256": ir.sha256, "semantic_sha256": ir.semantic_sha256,
             "resource_ir_sha256": ir.resource_ir_sha256,
