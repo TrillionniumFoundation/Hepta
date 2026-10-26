@@ -511,6 +511,7 @@ class _Verifier:
                   "borrow": {"id", "place", "mode", "type"}, "end_borrow": {"id"},
                   "bind_view": {"dest", "loan"}, "copy_view": {"src", "dest"},
                   "move_view": {"src", "dest"}, "end_view": {"src"}, "use_view": {"src", "mode"},
+                  "write_view_scalar": {"src", "field", "value"},
                   "call": {"function", "args", "result", "result_loan", "obligation"},
                   "foreign": {"function", "args", "result", "result_loan", "obligation"},
                   "use": {"loan" if "loan" in op else "place", "mode"}}
@@ -520,6 +521,8 @@ class _Verifier:
             _fail("E_RIR_SCHEMA", "Partial field state requires resource IR v3")
         if name in {"bind_view", "copy_view", "move_view", "end_view", "use_view"} and self.doc["schema"] not in {STORED_SCHEMA, LABELLED_VIEW_SCHEMA}:
             _fail("E_RIR_SCHEMA", "Stored view state requires resource IR v4/v5")
+        if name == "write_view_scalar" and self.doc["schema"] != LABELLED_VIEW_SCHEMA:
+            _fail("E_RIR_SCHEMA", "Stored Copy scalar mutation requires resource IR v5")
         expected = fields[name] | {"op"}
         if name in {"call", "foreign"} and "type_args" in op:
             expected |= {"type_args"}
@@ -533,7 +536,7 @@ class _Verifier:
         self.operation_count += 1
         if self.operation_count > 100000:
             _fail("E_RIR_LIMIT", "Resource graph exceeds operation budget")
-        if name in {"bind_view", "copy_view", "move_view", "end_view", "use_view"}:
+        if name in {"bind_view", "copy_view", "move_view", "end_view", "use_view", "write_view_scalar"}:
             self.view_operation(op, state)
         elif name == "acquire":
             typ = self.slot(op["dest"])["type"]
@@ -695,6 +698,19 @@ class _Verifier:
         elif name == "end_view":
             del state.views[src]
             state.initialized.difference_update(self.tokens(src))
+        elif name == "write_view_scalar":
+            # This writes the Copy *field owned by the view record*, never
+            # the referent or the borrowed slice. A borrowed read view can
+            # own a mutable Copy label without upgrading loan permissions.
+            field_name = _id(op["field"])
+            label_types = {item["name"]: item["type"] for item in descriptor["scalars"]}
+            label_type = label_types.get(field_name)
+            if (label_type is None
+                    or self.slot(op["value"])["type"] != label_type
+                    or self.owned[label_type] or self.has_view[label_type]):
+                _fail("E_RIR_VIEW_SCALAR", "Scalar write needs a declared Copy label and exact value type")
+            if not self.mutable(src):
+                _fail("E_RIR_VIEW_MUTABILITY", "Scalar write needs a mutable local record")
         else:
             mode = _mode(op["mode"], {"read", "write"})
             if mode == "write" and (descriptor["mode"] != "mut" or not self.mutable(src)):
