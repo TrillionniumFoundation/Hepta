@@ -29,6 +29,27 @@ _MAX_COMPDB_PATH_BYTES = 4096
 _MAX_COMPDB_ARGUMENT_BYTES = 16384
 
 
+_DATABASE_FIELDS = frozenset({"path", "sha256"})
+_COMPILER_FIELDS = frozenset({"path", "executable_sha256", "version", "target"})
+_CONFIGURATION_FIELDS = frozenset({
+    "index", "source", "directory", "original_arguments",
+    "frontend_arguments", "omitted_arguments", "all_dependencies",
+    "local_dependencies", "preprocessed_sha256",
+    "predefined_macros_sha256", "abi_predefined_macros_sha256",
+    "abi_model_arguments", "model",
+})
+_DEPENDENCY_FIELDS = frozenset({"path", "sha256", "bytes", "project_input"})
+_ABI_MODEL_FIELDS = frozenset({"long_bits", "char_unsigned", "pointer_bits"})
+
+
+def _complete(value: object, expected: frozenset[str], label: str) -> dict:
+    """Closed captured-data records cannot grow unreviewed capabilities."""
+    if not isinstance(value, dict) or set(value) != expected:
+        raise MigrationRejected("E_C_BUILD_IDENTITY", "Unreviewed " + label + " metadata")
+    return value
+
+
+
 def _checked_string(value: object, label: str, limit: int) -> str:
     if not isinstance(value, str) or not value or "\x00" in value:
         raise MigrationRejected("E_C_BUILD_JSON", f"{label} must be a nonempty string without NUL")
@@ -176,6 +197,37 @@ def _flags(argv: list[str], source: Path, directory: Path) -> tuple[list[str], l
         # Never guess a compiler's default language standard.
         raise MigrationRejected("E_C_BUILD_STANDARD", "An explicit -std=c99/c11/c17 is required")
     return forwarded, omitted
+
+
+
+
+def _abi_model_arguments(flags: list[str]) -> list[str]:
+    """Only the reviewed frontend options can determine ABI probes.
+
+    Rechecking this derivation on replay defeats a syntactically well-formed
+    and rehashed capture that injected arbitrary compiler arguments into
+    the separately recorded ABI model probe.
+    """
+    result: list[str] = []
+    index = 0
+    if not isinstance(flags, list):
+        raise MigrationRejected("E_C_BUILD_IDENTITY", "Malformed captured C frontend flags")
+    while index < len(flags):
+        flag = flags[index]
+        if not isinstance(flag, str):
+            raise MigrationRejected("E_C_BUILD_IDENTITY", "Invalid captured C flag type")
+        if flag in {"-I", "-isystem", "-iquote", "-D", "-U"}:
+            if index + 1 >= len(flags) or not isinstance(flags[index + 1], str):
+                raise MigrationRejected("E_C_BUILD_IDENTITY", "Truncated captured C frontend flag")
+            index += 2
+        elif flag.startswith(("-I", "-D", "-U")) and len(flag) > 2:
+            index += 1
+        elif flag.startswith("-std=") or flag in {"-funsigned-char", "-fsigned-char"}:
+            result.append(flag)
+            index += 1
+        else:
+            raise MigrationRejected("E_C_BUILD_IDENTITY", "Unreviewed captured C ABI model option")
+    return result
 
 
 def _dependencies(clang: str, flags: list[str], source: Path, directory: Path, *, system: bool) -> list[Path]:
@@ -334,16 +386,7 @@ def capture_project(database: str | Path, *, clang: str = "clang") -> dict:
         # affect preprocessed source semantics, but cannot attest native ABI
         # sizes or char signedness. Probe those with the actual semantic
         # compiler options only, independently of user macro overrides.
-        model_flags = []
-        flag_index = 0
-        while flag_index < len(flags):
-            flag = flags[flag_index]
-            if flag in {"-I", "-isystem", "-iquote", "-D", "-U"}:
-                flag_index += 2
-                continue
-            if flag.startswith("-std=") or flag in {"-funsigned-char", "-fsigned-char"}:
-                model_flags.append(flag)
-            flag_index += 1
+        model_flags = _abi_model_arguments(flags)
         abi_macros = invoke([executable, *model_flags, "-dM", "-E", "-x", "c", "-"], directory, stdin="")
         numeric = dict(re.findall(r"^#define (__[A-Z0-9_]+__) (\d+)$", abi_macros, flags=re.M))
         if any(numeric.get(name) != value for name, value in {
