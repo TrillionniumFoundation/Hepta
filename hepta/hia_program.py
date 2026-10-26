@@ -21,9 +21,11 @@ import re
 SCHEMA = "hepta.hia.program.v1"
 SCHEMA_V2 = "hepta.hia.program.v2"
 SCHEMA_V3 = "hepta.hia.program.v3"
+SCHEMA_V4 = "hepta.hia.program.v4"
 PROFILE = "closed-ssa-integer-byte-resources-64-v1"
 PROFILE_V2 = "closed-ssa-integer-byte-resources-bulk-64-v2"
 PROFILE_V3 = "closed-ssa-integer-byte-resources-overlap-64-v3"
+PROFILE_V4 = "closed-ssa-integer-byte-resources-swap-64-v4"
 WORD_BITS = 64
 WIDTHS = {**{f"{s}{n}": n for s in ("i", "u") for n in (8, 16, 32, 64)},
           "isize": 64, "usize": 64}
@@ -168,7 +170,8 @@ class VerifiedProgram:
         # report rechecks the immutable bytes instead of trusting its class.
         checked = verify_program(self)
         data = checked.as_dict()
-        profile = (PROFILE_V3 if data["schema"] == SCHEMA_V3 else
+        profile = (PROFILE_V4 if data["schema"] == SCHEMA_V4 else
+                   PROFILE_V3 if data["schema"] == SCHEMA_V3 else
                    PROFILE_V2 if data["schema"] == SCHEMA_V2 else PROFILE)
         return {"schema": "hepta.hia.program-verification.v1", "ok": True,
                 "profile": profile, "program_sha256": checked.sha256,
@@ -314,10 +317,11 @@ def _function_shape(fn):
 
 
 class _BlockCheck:
-    def __init__(self, fn, block, capabilities, functions, *, bulk_memory=False, inplace_memory=False):
+    def __init__(self, fn, block, capabilities, functions, *, bulk_memory=False, inplace_memory=False, byte_swap=False):
         self.fn, self.block, self.functions = fn, block, functions
         self.bulk_memory = bulk_memory
         self.inplace_memory = inplace_memory
+        self.byte_swap = byte_swap
         self.env = {p["name"]: p["type"] for p in block["params"]}
         self.caps = dict(capabilities)
         self.required = set()
@@ -508,6 +512,17 @@ class _BlockCheck:
                 _reject("in-place move requires mutbuf, dest, source, length as usize", "E_HIA_TYPE")
             expected = []
             self.required.update({"read", "write", "trap"})
+        elif op == "buffer.swap":
+            # v4: two byte positions in ONE live uniquely borrowed owner.
+            # The runtime and LLVM must check BOTH bounds before mutation.
+            if not self.byte_swap:
+                _reject("byte swap requires HIA program v4", "E_HIA_OPCODE")
+            arity(3)
+            self.access(args[0], True)
+            if actual != ["mutbuf", "usize", "usize"]:
+                _reject("swap requires mutbuf, left, right as usize", "E_HIA_TYPE")
+            expected = []
+            self.required.update({"read", "write", "trap"})
         elif op == "call":
             _keys(attrs, {"function"}, op)
             callee_name = _ident(attrs["function"], "callee")
@@ -615,7 +630,7 @@ def verify_program(program) -> VerifiedProgram:
     """
     data, raw = _decode(program)
     _keys(data, {"schema", "module", "functions"}, "program")
-    if data["schema"] not in {SCHEMA, SCHEMA_V2, SCHEMA_V3}:
+    if data["schema"] not in {SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4}:
         _reject("unsupported program schema", "E_HIA_SCHEMA")
     _ident(data["module"], "module")
     if type(data["functions"]) is not list or not 1 <= len(data["functions"]) <= MAX_FUNCTIONS:
@@ -640,8 +655,9 @@ def verify_program(program) -> VerifiedProgram:
             processed.add(ident)
             block = blocks[ident]
             check = _BlockCheck(fn, block, incoming[ident], functions,
-                                bulk_memory=data["schema"] in {SCHEMA_V2, SCHEMA_V3},
-                                inplace_memory=data["schema"] == SCHEMA_V3)
+                                bulk_memory=data["schema"] in {SCHEMA_V2, SCHEMA_V3, SCHEMA_V4},
+                                inplace_memory=data["schema"] in {SCHEMA_V3, SCHEMA_V4},
+                                byte_swap=data["schema"] == SCHEMA_V4)
             for ins in block["ops"]:
                 check.instruction(ins)
             check.finish()

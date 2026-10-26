@@ -34,6 +34,8 @@ PROFILE_V2 = "hepta.hia.program.llvm-linux-x86_64-bulk.v2"
 PROFILE_AARCH64_V2 = "hepta.hia.program.llvm-linux-aarch64-bulk-object.v2"
 PROFILE_V3 = "hepta.hia.program.llvm-linux-x86_64-overlap.v3"
 PROFILE_AARCH64_V3 = "hepta.hia.program.llvm-linux-aarch64-overlap-object.v3"
+PROFILE_V4 = "hepta.hia.program.llvm-linux-x86_64-byte-swap.v4"
+PROFILE_AARCH64_V4 = "hepta.hia.program.llvm-linux-aarch64-byte-swap-object.v4"
 MAX_LLVM_BYTES = 16 * 1024 * 1024
 MAX_ARTIFACT_BYTES = 64 * 1024 * 1024
 _WIDTHS = {**{f"{sign}{bits}": bits for sign in ("i", "u")
@@ -378,6 +380,19 @@ class _FunctionEmitter:
             # ranges may partially or entirely overlap.
             self.line("call void @llvm.memmove.p0.p0.i64(ptr align 1 " + dst_pointer +
                       ", ptr align 1 " + src_pointer + ", i64 " + size + ", i1 false)")
+        elif op == "buffer.swap":
+            # v4: finite same-owner byte exchange. Two independent guards must
+            # dominate BOTH loads/stores. Same-index swap is well defined.
+            pointer, extent = self.buffer_parts(arguments[0][0])
+            left, right = arguments[1][0], arguments[2][0]
+            self.guard(self.instruction("icmp ult i64 " + left + ", " + extent))
+            self.guard(self.instruction("icmp ult i64 " + right + ", " + extent))
+            left_ptr = self.instruction("getelementptr i8, ptr " + pointer + ", i64 " + left)
+            right_ptr = self.instruction("getelementptr i8, ptr " + pointer + ", i64 " + right)
+            left_byte = self.instruction("load i8, ptr " + left_ptr + ", align 1")
+            right_byte = self.instruction("load i8, ptr " + right_ptr + ", align 1")
+            self.line("store i8 " + right_byte + ", ptr " + left_ptr + ", align 1")
+            self.line("store i8 " + left_byte + ", ptr " + right_ptr + ", align 1")
         else:
             _reject("unimplemented verified operation " + op)
         if len(results) != len(outputs):
@@ -558,7 +573,7 @@ def emit_program_llvm(program, *, target=TARGET):
         _reject("unsupported 64-bit native target")
     before = _implementation_hash()
     verified = _verified(program)
-    from .hia_program import SCHEMA_V2, SCHEMA_V3
+    from .hia_program import SCHEMA_V2, SCHEMA_V3, SCHEMA_V4
     document = verified.as_dict()
     emitter = _Emitter(document, target)
     text = emitter.render()
@@ -566,7 +581,9 @@ def emit_program_llvm(program, *, target=TARGET):
         _reject("generated LLVM exceeds the closed textual profile")
     if _implementation_hash() != before:
         _reject("verifier/emitter implementation changed during generation", "E_HIA_PROGRAM_STALE")
-    if document["schema"] == SCHEMA_V3:
+    if document["schema"] == SCHEMA_V4:
+        profile = PROFILE_V4 if target == TARGET else PROFILE_AARCH64_V4
+    elif document["schema"] == SCHEMA_V3:
         profile = PROFILE_V3 if target == TARGET else PROFILE_AARCH64_V3
     elif document["schema"] == SCHEMA_V2:
         profile = PROFILE_V2 if target == TARGET else PROFILE_AARCH64_V2

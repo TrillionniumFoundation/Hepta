@@ -269,6 +269,17 @@ class _Machine:
                 except MemoryError as exc:
                     raise HIAProgramBudgetExceeded(
                         "host_memory", "in-place copy needs temporary host memory") from exc
+        elif op == "buffer.swap":
+            owner = _underlying(args[0])
+            left, right = args[1:]
+            if not isinstance(args[0], _View) or not args[0].mutable:
+                raise HIAProgramRejected("swap needs one live mutable borrow",
+                                         "E_HIA_RUNTIME_INVARIANT")
+            # Snapshot both source bytes before modifying either position.
+            if left >= len(owner.data) or right >= len(owner.data):
+                raise HIAProgramTrap("bounds", "swap byte offset outside owner extent")
+            a, b = owner.data[left], owner.data[right]
+            owner.data[left], owner.data[right] = b, a
         elif op == "call":
             callee = self.functions[attrs["function"]]
             for name, param in zip(names, callee["params"]):
