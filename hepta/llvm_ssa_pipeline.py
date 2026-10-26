@@ -19,6 +19,7 @@ from .pipeline import analyze_project
 from .ssa import lower_cfg_scalar_ssa
 from .ssa_verify import verify_scalar_ssa
 from .object_symbols import inspect_object_symbols
+from .elf_shared_abi import inspect_owned_shared_elf, ELFSharedABIRejected
 from .artifact_publication import (PublicationRejected, publish_verified,
                                    verify_published, withdraw_own_link)
 
@@ -49,6 +50,7 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
             "source_bound_resource_cfg_checked": False,
             "ssa_cfg_origin_rechecked": False,
             "native_artifact_compiled": False,
+            "host_elf_dynamic_symbols_checked": False,
             "target_program_executed": False,
             "foreign_c_abi_qualified": False,
             "backend_refinement_proved": False,
@@ -182,6 +184,7 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
             # Do not trust a matching SHA or a self-asserted native receipt.
             # Re-read actual staged ELF/COFF/Mach-O symbol tables from this
             # strict source-facing entrypoint; no merely named functions pass.
+            host_dynamic_abi = None
             if target is not None:
                 fmt, machine = _TARGETS[target]
                 inspected = inspect_object_symbols(artifact, fmt, machine)
@@ -191,6 +194,32 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
                         or native["undefined_external_symbols"] != sorted(inspected["undefined"])):
                     raise LLVMSSARejected(
                         "E_LLVM_SSA_SYMBOLS: native object or receipt differs from source-verified exports/imports")
+            else:
+                # The shared ELF path previously relied on the reported
+                # artifact digest only. That does not prove that the *actual*
+                # native library exports only source-reviewed C functions.
+                # Reuse the existing strict owned-LLVM dynamic ELF parser;
+                # do not introduce an independent, weaker symbol authority.
+                try:
+                    host_dynamic_abi = inspect_owned_shared_elf(
+                        artifact, tuple(ir.functions))
+                except ELFSharedABIRejected as exc:
+                    raise LLVMSSARejected(
+                        "E_LLVM_SSA_HOST_ABI: " + str(exc)) from exc
+                if (type(host_dynamic_abi) is not dict
+                        or host_dynamic_abi.get("schema") != "hepta.elf-shared-abi.v1"
+                        or host_dynamic_abi.get("format") != "ELF64"
+                        or host_dynamic_abi.get("machine") != 62
+                        or host_dynamic_abi.get("kind") != "ET_DYN"
+                        or host_dynamic_abi.get("dynamic_exports") != list(ir.functions)
+                        or host_dynamic_abi.get("source_exports_rechecked") is not True
+                        or host_dynamic_abi.get("claims") != {
+                            "binary_abi_observed": True,
+                            "native_execution_proven": False,
+                            "whole_language_memory_safety_proven": False,
+                            "backend_refinement_proven": False}):
+                    raise LLVMSSARejected(
+                        "E_LLVM_SSA_HOST_ABI: dynamic symbols or proof scope differ from checked source")
             if not project.unchanged():
                 raise LLVMSSARejected("E_LLVM_SSA_STALE: graph changed during native compilation")
             # Use the *single* publication authority also used by Owned LLVM:
@@ -217,6 +246,9 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
                 raise LLVMSSARejected("E_LLVM_SSA_PUBLICATION: final receipt mismatch")
             published_bytes = artifact
         result["native_backend"] = dict(native)
+        if host_dynamic_abi is not None:
+            result["native_backend"]["host_dynamic_abi"] = host_dynamic_abi
+            result["claims"]["host_elf_dynamic_symbols_checked"] = True
         result["native_backend"]["output"] = str(dest)
         result["native_backend"]["artifact_sha256"] = sha256(published_bytes).hexdigest()
         result["claims"]["native_artifact_compiled"] = True
