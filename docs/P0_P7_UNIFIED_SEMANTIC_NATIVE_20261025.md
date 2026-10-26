@@ -112,18 +112,21 @@ refinement theorem. No new runtime accounting is claimed.
 Independent exact-file verification:
 
 - `hepta/static_resource_contracts.py` Git blob
-  `68b3e4ef4ceabfbdeda05d81a760351609297667`
+  `6663d1dd27c0c2e0766a5dcf37f5daf35cefbc4c`
 - `tests/test_static_resource_policy.py` Git blob
-  `8032ab23c5aacca92b50042cbd5acd434aa58e65`
+  `fa6122ecf7d2b4250b862ce30de6f1341e24ece3`
 
 Local `git hash-object` confirmed both identities and Python 3.13.5
-executed **12/12** policy tests without skips. Combined with the
+executed the resource rule with the exact EFFECTS vocabulary of
+`hepta.checker` represented by a minimal local constant-only stub (not
+a substitute for running the full frontend). The runtime then
+executed **13/13** policy tests without skips. Combined with the
 15/15 previously verified publisher suite, the local exact-byte
-result is **27/27 passed**. The separate committed
+result is **28/28 passed**. The separate committed
 `tests/test_static_resource_lowering.py` runs real Hepta
 checker/resource lowering/Owned LLVM integration and remains
 **unexecuted** in this restricted local environment; it is
-not counted in the 27 local tests.
+not counted in the 28 local tests.
 
 ## Current P0–P7 remaining work
 
