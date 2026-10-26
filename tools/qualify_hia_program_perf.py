@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Fixed same-safety Rust comparisons for the new standalone HIA backend.
 
-Preserves the frozen native workload, formula oracle, 63-sample ordering and
-quality/performance limits while building the source-free core. The standalone
+Preserves the frozen native workload, formula oracle, 63-sample inventory and
+quality/performance limits while counterbalancing backend positions by stable
+kernel identity and building the source-free core. The standalone
 driver additionally observes CPU time and scheduling outside the timed loop.
 No result trimming, retries, calibration or threshold overrides are supported.
 The raw JSON retains failed samples. Passing is a finite host qualification,
@@ -34,8 +35,8 @@ from hepta.hia_program_source import lower_source
 from hepta.hia_program_llvm import HIAProgramLLVMRejected, emit_program_llvm, compile_program_llvm
 from hepta.pipeline import analyze, compiler_hash
 from tools.qualify_llvm_owned import (PROTOCOL as ORIGINAL_PROTOCOL, RUST_REFERENCE,
-    OBSERVER, WRAP_FLAGS, correctness_cases, driver_commands, sample_order,
-    evaluate_samples, timed_checksum, KERNELS, BACKENDS, execute, successful,
+    OBSERVER, WRAP_FLAGS, correctness_cases, driver_commands,
+    evaluate_samples as evaluate_fixed_samples, timed_checksum, KERNELS, BACKENDS, execute, successful,
     identity, sha, wire, NativeCommandFailed)
 
 SOURCE_PATH = ROOT / "examples/hia_program/benchmarks.hepta"
@@ -50,7 +51,8 @@ BUILD_LAYOUT = {"root": str(BUILD_ROOT), "directory_prefix": BUILD_PREFIX,
                 "caller_tmpdir_used_for_build": False,
                 "retention": "copy exact files after sampling or failure; verify source/copy hashes against recorded measured identities",
                 "identity_scope": "fixed path length; random path strings can reorder pooled data and references; whole-ELF or whole-.text equality is not claimed"}
-PROTOCOL = {**ORIGINAL_PROTOCOL, "id": "hepta.hia.program.perf.v2",
+PROTOCOL = {**ORIGINAL_PROTOCOL, "id": "hepta.hia.program.perf.v3",
+            "ordering": "rotate kernels by group; rotate backends by group+original-kernel-index; reverse on odd groups",
             "profile": "closed-ssa-integer-byte-resources-64-v1",
             "implementation_mapping": {"llvm": "standalone HIA direct LLVM",
                 "rust": "same Hepta input to checked Rust",
@@ -75,6 +77,26 @@ def input_hashes():
 def require(condition, message):
     if not condition:
         raise ValueError("E_HIA_PERF: " + message)
+
+
+def sample_order():
+    """Counterbalance each kernel using its stable index, not its rotated slot."""
+    result = []
+    for group in range(PROTOCOL["paired_groups"]):
+        rotation = group % len(KERNELS)
+        for kernel in KERNELS[rotation:] + KERNELS[:rotation]:
+            offset = (group + KERNELS.index(kernel)) % len(BACKENDS)
+            backends = BACKENDS[offset:] + BACKENDS[:offset]
+            if group % 2:
+                backends = backends[::-1]
+            result.extend((group, kernel, backend) for backend in backends)
+    return result
+
+
+def evaluate_samples(rows):
+    # The standalone profile's code determines the schedule. A report's rows
+    # cannot supply an alternative order to authorize their own rearrangement.
+    return evaluate_fixed_samples(rows, expected_order=sample_order())
 
 
 def interference_summary(samples):

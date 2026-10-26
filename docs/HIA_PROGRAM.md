@@ -438,7 +438,7 @@ python tools/qualify_hia_program_composite.py --clang clang \
   --workdir /tmp/hia-composite-qualified
 ```
 
-Performance protocol `hepta.hia.program.perf.v2` builds in a fixed-length
+Performance protocol `hepta.hia.program.perf.v3` builds in a fixed-length
 `/tmp/hepta-hia-perf-*` directory, independently of `TMPDIR` and the requested
 artifact retention parent. After the attempt, it copies the exact measured
 files, verifies both hashes, and records the original-to-retained path mapping.
@@ -452,6 +452,16 @@ string references in unrelated standard-library helpers. No Rust safety flags,
 workload, sample count, outlier rule or performance threshold changes with this
 retention policy. Retained receipts keep their original build paths; extraction
 does not turn a historical receipt into a new native execution.
+
+V3 also rotates the backend order by the group and each kernel's original
+index, independently of the rotated kernel position. Together with reversal
+on odd groups, each kernel uses all six backend permutations; over seven groups
+each backend occupies each position two or three times. The historical v1/v2
+double rotation left handwritten Rust in the middle for every constructor
+group. Historical records keep that limitation. The shared evaluator preserves
+the legacy default order; standalone HIA evaluation explicitly requires its
+own fixed v3 schedule. Correcting this order confound does not establish a
+physical cause for earlier timing variation or guarantee a future pass.
 
 Legacy envelopes can be imported using `hia import-executable` or
 `hia import-scalar`, both with `--source`. Scalar import additionally requires

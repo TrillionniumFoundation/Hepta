@@ -1,6 +1,9 @@
 """Standalone performance evidence regressions; no timing samples are run."""
 from __future__ import annotations
 
+from collections import Counter
+from copy import deepcopy
+from itertools import permutations
 import os
 import json
 from pathlib import Path
@@ -13,6 +16,7 @@ from unittest.mock import patch
 
 from hepta.hia_program_llvm import HIAProgramLLVM, HIAProgramLLVMRejected
 from tools import qualify_hia_program_perf as q
+from tools import qualify_llvm_owned as historical
 
 
 CLANG = os.environ.get("CLANG", "/usr/lib/llvm-20/bin/clang")
@@ -129,7 +133,7 @@ class StandalonePerformancePolicyTests(unittest.TestCase):
             self.assertFalse((destination / "artifact-retention.json").exists())
 
     def test_frozen_workload_and_thresholds_are_unchanged_and_c_is_not_claimed(self):
-        self.assertEqual(q.PROTOCOL["id"], "hepta.hia.program.perf.v2")
+        self.assertEqual(q.PROTOCOL["id"], "hepta.hia.program.perf.v3")
         self.assertEqual(q.PROTOCOL["build_layout"]["root"], "/tmp")
         self.assertFalse(q.PROTOCOL["build_layout"]["retention_parent_used_for_build"])
         self.assertFalse(q.PROTOCOL["build_layout"]["caller_tmpdir_used_for_build"])
@@ -137,10 +141,51 @@ class StandalonePerformancePolicyTests(unittest.TestCase):
         for key in ("paired_groups", "native_calls_per_sample", "warmup_calls_per_process",
                     "kernel_buffer_sizes", "minimum_sample_seconds", "maximum_sample_seconds",
                     "maximum_relative_mad", "maximum_geometric_mean_paired_time_ratio",
-                    "maximum_kernel_paired_time_ratio", "ordering", "outlier_policy"):
+                    "maximum_kernel_paired_time_ratio", "outlier_policy"):
             self.assertEqual(q.PROTOCOL[key], q.ORIGINAL_PROTOCOL[key])
         self.assertEqual(q.PROTOCOL["c_backend_scope"],
                          "no C correctness or performance backend is executed by this qualification")
+
+    def test_stable_kernel_index_fixes_the_historical_fixed_middle_position(self):
+        old, new = historical.sample_order(), q.sample_order()
+        self.assertEqual([(g, k) for g, k, _ in old], [(g, k) for g, k, _ in new])
+        self.assertEqual(len(new), 63)
+        self.assertEqual(len(set(new)), 63)
+        for kernel in q.KERNELS:
+            before = [tuple(b for g, k, b in old if g == group and k == kernel) for group in range(7)]
+            after = [tuple(b for g, k, b in new if g == group and k == kernel) for group in range(7)]
+            self.assertEqual(len({order[1] for order in before}), 1, "reproduce the discovered defect")
+            self.assertEqual(set(after), set(permutations(q.BACKENDS)))
+            for position in range(3):
+                self.assertEqual(sorted(Counter(order[position] for order in after).values()), [2, 2, 3])
+            # Independently express the specified stable-index rotation.
+            for group, order in enumerate(after):
+                offset = (group + q.KERNELS.index(kernel)) % 3
+                expected = tuple(q.BACKENDS[(offset + step) % 3] for step in range(3))
+                self.assertEqual(order, expected[::-1] if group % 2 else expected)
+
+    def test_v3_evaluator_rejects_historical_or_resealed_reordered_rows(self):
+        def samples(order):
+            return [{"group": g, "kernel": k, "backend": b, "sample_index": i,
+                     "elapsed_ns": 100_000_000, "checksum": q.timed_checksum(k)}
+                    for i, (g, k, b) in enumerate(order)]
+        rows = samples(q.sample_order())
+        self.assertTrue(q.evaluate_samples(rows)["ok"])
+        old = samples(historical.sample_order())
+        self.assertTrue(historical.evaluate_samples(old)["ok"])
+        with self.assertRaisesRegex(ValueError, "sample order/identity"):
+            historical.evaluate_samples(rows)
+        reordered = deepcopy(rows)
+        reordered[0], reordered[1] = reordered[1], reordered[0]
+        for i, row in enumerate(reordered):
+            row["sample_index"] = i
+        duplicate = deepcopy(rows)
+        duplicate[1] = {**duplicate[0], "sample_index": 1}
+        for bad in (old, reordered, duplicate, rows[:-1]):
+            with self.subTest(length=len(bad)), self.assertRaises(ValueError):
+                q.evaluate_samples(bad)
+        with self.assertRaises(TypeError):
+            q.evaluate_samples(reordered, expected_order=[(r["group"], r["kernel"], r["backend"]) for r in reordered])
 
     def test_unrelated_compiler_failure_is_not_a_successful_origin_control(self):
         ir = HIAProgramLLVM("  call void @free(ptr %data) nobuiltin\n", "0" * 64, "0" * 64, "0" * 64, ("two_alloc",))
