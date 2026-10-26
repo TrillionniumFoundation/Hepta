@@ -132,3 +132,55 @@ def qualify_native_resource_source(program, checked, *, canonical_hsir_sha256: s
             "whole_language_memory_safety_proved": False,
         },
     }
+
+# The strict native consumer must verify the *whole* versioned receipt.
+# Checking only a few positive booleans would allow missing hashes or false
+# proof flags to be repackaged as a valid source-bound native capability.
+_NATIVE_RECEIPT_FIELDS = frozenset({
+    "schema", "status", "canonical_hsir_sha256", "resource_ir_sha256",
+    "resource_source_receipt_schema", "source_sha256", "project_sha256",
+    "functions_checked", "claims",
+})
+_NATIVE_RECEIPT_CLAIMS = {
+    "exact_checked_source_resource_graph_rederived": True,
+    "independent_resource_cfg_verified": True,
+    "foreign_resource_obligations_absent": True,
+    "source_to_resource_ir_refinement_proved": False,
+    "native_codegen_consumes_resource_ir": False,
+    "whole_language_memory_safety_proved": False,
+}
+
+
+def require_native_resource_receipt(receipt: object, *,
+                                    canonical_hsir_sha256: str,
+                                    source_sha256: str,
+                                    project_sha256: str | None,
+                                    expected_functions: int) -> None:
+    """Fail closed unless a native resource receipt has the exact trusted shape.
+
+    This verifies *identity and scope*, not that a malicious replacement Python
+    module is trustworthy or that source/IR/codegen refinement is proved.
+    """
+    if (not isinstance(receipt, dict) or set(receipt) != _NATIVE_RECEIPT_FIELDS
+            or receipt.get("schema") != "hepta.native.resource-gate.v1"
+            or receipt.get("status") !=
+            "source_bound_resource_cfg_checked_not_refinement_proof"):
+        _reject("native compiler received an unknown resource receipt schema")
+    claims = receipt.get("claims")
+    if (not isinstance(claims, dict) or set(claims) != set(_NATIVE_RECEIPT_CLAIMS)
+            or any(claims[key] is not value
+                   for key, value in _NATIVE_RECEIPT_CLAIMS.items())):
+        _reject("native resource receipt contains missing or elevated proof claims")
+    if (not isinstance(receipt.get("resource_ir_sha256"), str)
+            or _HEX.fullmatch(receipt["resource_ir_sha256"]) is None
+            or not isinstance(source_sha256, str)
+            or _HEX.fullmatch(source_sha256) is None
+            or receipt.get("source_sha256") != source_sha256
+            or receipt.get("canonical_hsir_sha256") != canonical_hsir_sha256
+            or receipt.get("project_sha256") != project_sha256
+            or receipt.get("resource_source_receipt_schema") !=
+            "hepta.resource.source-origin.v1"
+            or type(expected_functions) is not int or expected_functions < 1
+            or type(receipt.get("functions_checked")) is not int
+            or receipt["functions_checked"] != expected_functions):
+        _reject("native resource receipt does not bind exact source, graph and IR identities")
