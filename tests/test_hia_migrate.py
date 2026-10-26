@@ -108,7 +108,7 @@ class MigrationProtocolTests(unittest.TestCase):
     def test_forged_native_llvm_identity_rejects(self):
         def bogus(*a, **k):
             result=fake_build(*a, **k)
-            result['native_backend']['llvm_ir_sha256']='d'*64
+            result['native_backend']['llvm_ir_sha256']='0'*64
             return result
         self.assertFalse(self.run_migration(build=bogus)['ok'])
         self.assertFalse(self.dest.exists())
@@ -120,7 +120,7 @@ class MigrationProtocolTests(unittest.TestCase):
                 if field == 'rust_reference':
                     result[field]['checks']['rust_borrows_types']='frontend_only'
                 else:
-                    result[field]['core_sha256']='d'*64
+                    result['output']='/tmp/forged-native-stage.so'
                 return result
             with self.subTest(field=field):
                 self.assertFalse(self.run_migration(build=bogus)['ok'])
@@ -223,6 +223,25 @@ class MigrationProtocolTests(unittest.TestCase):
         res=self.run_migration()
         self.assertFalse(res['ok'])
         self.assertEqual((self.dest/'protected').read_text(),'do-not-touch')
+    def test_mismatched_core_proof_and_backend_target_never_publish(self):
+        for case in ('core', 'compiler', 'proof', 'target', 'publication'):
+            def bogus(*a, **kw):
+                r = fake_build(*a, **kw)
+                if case == 'core':
+                    r['identities']['hia_program_sha256'] = '0' * 64
+                elif case == 'compiler':
+                    r['identities']['compiler_sha256'] = '0' * 64
+                elif case == 'proof':
+                    r['claims']['whole_language_soundness_proved'] = 1
+                elif case == 'target':
+                    r['native_backend']['target'] = 'aarch64-unknown-linux-gnu'
+                else:
+                    r['publication']['sha256'] = '0' * 64
+                return r
+            with self.subTest(case=case):
+                self.assertFalse(self.run_migration(build=bogus)['ok'])
+                self.assertFalse(self.dest.exists())
+
     def test_unsupported_language_rejected(self):
         res=self.run_migration(language='rust')
         self.assertFalse(res['ok'])
