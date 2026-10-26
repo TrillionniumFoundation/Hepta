@@ -11,11 +11,11 @@ import tempfile
 
 try:
     from .local_model_common import (canonical, digest, file_digest, model_identity,
-                                    validate_config, validate_lock)
+                                    validate_config, validate_lock, validate_service_locks)
     from .local_model_service import service_identity
 except ImportError:
     from local_model_common import (canonical, digest, file_digest, model_identity,
-                                   validate_config, validate_lock)
+                                   validate_config, validate_lock, validate_service_locks)
     from local_model_service import service_identity
 
 HERE = Path(__file__).resolve().parent
@@ -29,10 +29,10 @@ def export_bundle(service, output, metadata_out, *, port, python='/usr/bin/pytho
     locks = service.get('locks')
     if not isinstance(locks, list) or not 1 <= len(locks) <= 16:
         raise ValueError('E_LOCAL_EXPORT: complete model locks required')
-    for lock in locks: validate_lock(lock)
+    validate_service_locks(locks)
     models = [model_identity(lock) for lock in locks]
     upstream = [(v['repository'], v['repository_revision']) for v in locks]
-    weights = [tuple((f['sha256'], f['bytes']) for f in v['files'] if f['path'].endswith('.safetensors'))
+    weights = [tuple(sorted((f['sha256'], f['bytes']) for f in v['files'] if f['path'].endswith('.safetensors')))
                for v in locks]
     if len(set(upstream)) != len(upstream) or len(set(weights)) != len(weights):
         raise ValueError('E_LOCAL_EXPORT: generation settings do not turn identical weights into distinct models')

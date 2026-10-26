@@ -24,6 +24,26 @@ execution tool. It is a trusted inference process, analogous to a provider
 endpoint; it is not a hostile-host attestation mechanism. Start it with a
 dedicated model directory and evidence directory, without evaluator secrets.
 
+The post-study policy revision rejects different Torch intraop thread counts
+within one service **before** loading any model: Torch's setting is process
+global. It checks the effective generation strategy after `do_sample=False`,
+requiring one greedy sequence, one beam/group, tensor output, unchanged prompt
+prefixes, and the declared EOS/length/deadline stopping policy. Encoder-decoder
+models, token healing, custom stop strings/time limits, contrastive/constrained
+strategies, multiple return sequences and dictionary generation output reject.
+The returned tensor must contain one sequence beginning with the complete input
+IDs before its suffix can become an output-token receipt. Unexpected output
+shapes remain unknown-cost runtime failures rather than zero-token successes.
+The verified generation-config copy is passed to every actual `generate` call
+with `use_model_defaults=False`, and the same copy determines EOS accounting.
+This prevents Transformers' model-default merging or legacy `config.json`
+reconstruction from silently restoring a beam/contrastive policy after checking.
+
+The 2026-10-26 study used frozen provider v1 with two identical thread settings
+and ordinary greedy Llama configurations. Its original source, logs and runtime
+identity remain in `experiments/crossfile_eval/local_study_20261026`; later policy
+hardening is a different service/code identity and does not relabel those runs.
+
 Prompt rendering is also frozen. `tokenizer_chat_template` uses the locked
 tokenizer's own template and never silently falls back. `chatml_v1` explicitly
 serializes every message as `<|im_start|>ROLE\nCONTENT<|im_end|>\n`, then appends
@@ -119,6 +139,10 @@ complete study requires at least two distinct exact model identities. Changing
 only generation settings for the same upstream/weights cannot qualify as a
 second model in the exporter. Single-model exports are useful for transport
 qualification, but the existing study plan rejects them as incomplete studies.
+Weight deduplication compares the sorted `(SHA-256, byte length)` multiset of
+declared safetensors files, so renaming/reordering identical shards does not
+produce a second model. This is file-inventory identity, not a proof against
+semantically identical weights repacked into different safetensors bytes.
 
 Freeze each model **before** inference:
 

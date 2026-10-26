@@ -1,6 +1,6 @@
 # 全量实现与验收记录：2026-10-26
 
-本轮交付了可执行安全核心、资源组合资格、C/C++ 迁移扩展、真实目标执行和本地模型实验接口。七项长期目标仍有未关闭项；下面将可执行实现、有限测试结果和剩余义务分别列出。
+本轮交付了可执行安全核心、资源组合资格、C/C++ 迁移扩展、真实目标执行，以及全部 40 格真实本地模型实验和原始账本。七项长期目标仍有未关闭项；下面将可执行实现、有限测试结果和剩余义务分别列出。
 
 ## 源码与证据身份
 
@@ -9,6 +9,7 @@
 - 最终编译器 SHA-256：`dbeb5311dfb81d01d8704ef26800b5672bca89976efa6b74e10a9b255efb9f97`。
 - 当前原生验收目录：[`evidence/full-scale-20261026/qualified`](../evidence/full-scale-20261026/qualified)。`compiler-source.json` 列出全部 73 个编译器 Python 文件的大小及 SHA-256，并把完整 C 模块的来源清单关联到同一编译器内容。
 - 性能与模型实验固定在较早的源码提交 `bf5b7fc05fd459292773d7bc67f36f60ca464f87`，编译器 SHA-256 为 `91ab73f35b5fede9582b2b1066a0f38d910426c51239fcfe557154fc3fd850cb`。之后只读审查发现并收紧了新 Core 的准入边界。实验没有换候选、重抽顺序或被追认成后续源码的结果。
+- 模型实验实际使用的 provider v1 单独固定在 `92a13e1e21b80f4979828b3f02c38bb3017780c5`；完整代码、提示、token IDs 与请求收据保存在 [`local_study_20261026`](../experiments/crossfile_eval/local_study_20261026)。实验后的适配器加固不属于这次冻结运行。
 
 GitHub 发布通过官方连接器完成。本地初始提交 `0d56303ee0459c2a1be84e5747dcc837007abba5` 与公开提交 `bf5b7fc05fd459292773d7bc67f36f60ca464f87` 的 Git tree 完全相同，都是 `375cf3044c6d1473b3cb68c36f7df84452b1730c`；作者及提交时间导致 commit SHA 不同。第二组本地提交 `43feb123dcb5d5c7c20d3e77f690a3089e0ea6a6` 与公开提交 `5da30269a94057fb4abe50b51a711e91003339b6` 的 tree 均为 `2aab8ebb9f73a86ced25957326e3647db304a65b`。原始性能报告中的本地提交号保留原样。
 
@@ -22,7 +23,7 @@ GitHub 发布通过官方连接器完成。本地初始提交 `0d56303ee0459c2a1
 | 4. C++ 自动桥接 | v4 闭合的 `std::size_t` 非类型模板实参；真实 `std::array<T,N>`、scoped/handle 生命周期、异常边界；Boost 回归 | 桥接继续执行外部 C++，不能据此证明库内部内存安全；N=4→8 只测实例再生成成本 |
 | 5. C++ 安全实现迁移 | 完整标量值类的局部变量、for/while/do、字段更新与声明身份绑定；三路原生差分与链接来源证据 | 原始类实现不进入迁移目标；任意析构、存储引用、虚继承、异常栈展开、回调逃逸及一般资源类仍未迁移 |
 | 6. 性能与硬件 | 固定协议 63 个性能样本；AArch64 真实 Hepta 模块和两个错误实现执行；Cortex-M4 启动/MMIO/IRQ 与故障控制 | 性能稳定性门未通过，结论为 measurement_inconclusive。目标执行属于 QEMU；实体硬件、DMA、GPU、设备时序尚未验收 |
-| 7. 真实 Agent 实验 | 两个不同真实权重、本地推理服务、独立模型锁和 token 账本、原四 arm 隔离协议、40 格随机计划 | 最终结果与解释见实验归档。小模型生成、合法工具调用和端到端正确任务分别计数；生成日志不能替代 coding 或语言优势证据 |
+| 7. 真实 Agent 实验 | 两个不同真实权重 × 5 个任务 × 4 个 arm，40 次实际生成全部保留；94,369 个实际 token，独立账本核对通过 | 合法工具动作 0，成功任务 0/40；全部触及 512 输出 token 上限。代码回归率未测，语言与工具的生产力优势未建立 |
 
 ## 1. 同一份核心如何被执行
 
@@ -48,12 +49,14 @@ Core 准入同时运行真实 LLVM emitter 的纯 Python 可表示性检查，�
 公共命令：
 
 ```sh
-python -m hepta executable-core program.hepta -o core.json
-python -m hepta verify-executable-core program.hepta core.json
-python -m hepta run-executable-core program.hepta \
-  --core core.json --function entry --arguments '[16,7]'
-python -m hepta build-executable-core program.hepta -o library.so
+python -m hepta executable-core examples/executable_core/owned.hepta -o core.json
+python -m hepta verify-executable-core examples/executable_core/owned.hepta core.json
+python -m hepta run-executable-core examples/executable_core/owned.hepta \
+  --core core.json --function checksum --arguments '[16,7]'
+python -m hepta build-executable-core examples/executable_core/owned.hepta -o library.so
 ```
+
+这个已提供的例子分配 16 字节、写入 7、借用求和并释放 owner；`checksum(16,7)` 在解释器与实际 Core→LLVM 共享库中均返回 `112`，原始收据见 [`core-example.json`](../evidence/full-scale-20261026/qualified/core-example.json)。
 
 解释执行另有 `--max-steps`、`--max-heap-bytes` 和 `--allocation-fail-at`。解释器预算耗尽、语言 guard trap、显式错误返回及真实原生退出分别记录，不能相互替代。
 
@@ -125,15 +128,30 @@ ARM64 发布物仍是 relocatable object；实际执行的是包含相同 object
 
 工具链安装还修复了一项真实遇到的问题：Rust `install.sh` 可能在 `cp` 因空间不足失败后仍退出 0。新的安装收据逐 payload 校验文件大小、SHA-256、执行权限和 symlink 边界；相关 8 个测试含实际截断/空文件和逃逸负例。
 
-## 6. 真实模型实验的解释原则
+## 6. 真实模型实验：40 格完成，未建立编码收益
 
-实验使用两个不同的 135M 真实权重、5 个任务和 4 个 arm，共 40 格预先冻结的随机顺序。模型来源 revision、权重/tokenizer hash、CPU dtype、线程、提示格式、运行时包、provider 源码及任务快照均锁定。原 namespace、文件权限、native check 和隐藏评分门禁保持不变。
+实验使用 SmolLM2-135M-Instruct 与 SmolLM2-135M base 两个不同的真实权重，运行 5 个任务 × Rust/Hepta × 文本/语义工具，共 40 格预先冻结的随机顺序。它们属于同一模型系列，base 未经指令微调，不能充当多家族强 coding 模型研究。模型来源 revision、权重/tokenizer hash、CPU bfloat16、2 线程、ChatML、运行时包、provider 源码及任务快照均锁定。原 namespace、文件权限、native check 和隐藏评分门禁保持不变。
 
-原始报告和独立账本审计会分别给出：真实生成次数、合法工具调用次数、端到端完成数、是否实际进入代码正确性评分、输入/输出 token、推理请求时长、初始化/工具时长、人工介入、外部推理 API 支出和未知的本机计算币值。只有原始 token IDs 与文本以及冻结计划对应的实际调用才计入真实模型分母；测试 fixture 和合成协议响应不计入。
+| 观察量 | 实际结果 | 解释 |
+|---|---:|---|
+| 计划 / 保留 / 真实生成 | 40 / 40 / 40 | 按原随机顺序执行；重试数为 0 |
+| 合法工具动作 / 成功任务 | 0 / 0 | 没有形成有效实现变更，实际 native 评分提交数为 0 |
+| 在输出上限停止 | 40 / 40 | 每次生成上限固定为 512 个新 token；没有事后扩大上限修复结果 |
+| 输入 / 输出 / 总 token | 73,889 / 20,480 / 94,369 | 逐条使用原始 token IDs 记账，保留全部失败成本 |
+| 推理请求 / Agent 总时长 | 2,089.155250 / 2,100.927639 秒 | 后者约 35 分钟；共享宿主时长不用于推导语言性能 |
+| 样本执行期间人工介入 | 0 秒 | 不包含方案、实现、环境准备和分析工作 |
+| 外部商业推理 API 支出 | $0 | 本机推理；硬件、电力、网络和存储币值未测，总金额保持 null |
+| 回归率 / 每次成功成本 | 未定义 | 没有有效代码修改或成功任务，不能报告零回归或零成功成本 |
 
-小模型即使产生完整生成账本，也未必能完成编码协议。没有有效工具操作或正确补丁时，不能推导出 Hepta 的 coding 优势，更不能外推到其他模型系列或更强的 coding agent。共享宿主上的推理时长波动不会被归因于编译器或语义工具。
+完整计划、分臂观察、摘要、账本审计和 433 个原始文件的归档位于 [`local_study_20261026`](../experiments/crossfile_eval/local_study_20261026)。独立账本审计核对了全部 40 对请求/响应/收据，并使用冻结 tokenizer 重建输入 token IDs 与输出文本。未完成请求、未知 token 成本和未被报告接收的已计量调用均为 0。耗时约 130 秒的最长样本原样保留，没有被排除。
 
-本次 provider 的独立只读审计见 [`LOCAL_MODEL_ADAPTER_REVIEW.md`](LOCAL_MODEL_ADAPTER_REVIEW.md)。模型锁的相同线程值和实际生成配置已核对；审计器是内容与账本对应检查，不是对不受信任主机的模型执行认证。
+框架状态 `complete_adapter_attested_pilot` 表示完整分母、回执和隔离条件符合框架约束；这不表示完成了有效 coding agent 对照实验。五个 production workspace 的 native fixture 资格单独通过，但不计入模型成功数。归档不包含模型权重或第三方运行库，包含其精确来源和哈希。
+
+本次结果只适用于冻结的两个小模型、提示策略和输出上限。它没有证明 Hepta 或语义工具更优，也没有证明两种语言能力相等；不能外推到更长输出、约束解码、其他模型系列或更强的 coding agent。当前任务集也未覆盖新 `executable_core` 指令集，因此这批数据不能用作新核心的 AI 原生优势证据。
+
+本次 provider 的独立只读审计见 [`LOCAL_MODEL_ADAPTER_REVIEW.md`](LOCAL_MODEL_ADAPTER_REVIEW.md)。两份模型锁的相同线程值和实际 greedy 配置已核对；审计器是可信宿主上的内容与账本对应检查，没有提供对不受信任主机的模型执行认证。
+
+研究完成后，provider 另行加固了进程级线程一致性、单序列 greedy 生成、decoder-only 输入前缀计费，以及对权重分片换名/换序的重复模型识别。经检查的生成配置被显式传到实际 `generate` 调用，并关闭模型默认配置回填，避免验证和执行之间出现配置差异。相关 89 项协议与策略回归通过；这些是控制测试，新增真实模型运行数和原生编译调用数均为 0。独立收据见 [`local-model-hardening.json`](../evidence/full-scale-20261026/qualified/local-model-hardening.json)，没有将 v2 加固结果追认到冻结的 v1 实验。
 
 ## 继续关闭全量目标所需的工作
 

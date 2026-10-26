@@ -2,14 +2,18 @@
 from __future__ import annotations
 
 import copy
+from contextlib import nullcontext
 import hashlib
 import json
 from pathlib import Path
 import tempfile
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from tools.provider_adapter import local_model_adapter as adapter
 from tools.provider_adapter import local_model_common as common
+from tools.provider_adapter import local_model_service as local_service
 from tools.provider_adapter.local_model_export import export_bundle
 from tools.provider_adapter.local_model_service import Service, service_identity, validate_request, render_prompt
 from experiments.agent_eval.harness import Budget, validate_usage
@@ -294,7 +298,7 @@ class LocalLockTests(unittest.TestCase):
     def test_changed_settings_do_not_count_as_second_model(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td); one = fake_assets(root / 'model')
-            two = copy.deepcopy(one); two['generation']['threads'] = 3
+            two = copy.deepcopy(one); two['generation']['max_new_tokens'] = 512
             two['lock_sha256'] = common.digest(common.canonical({k: v for k, v in two.items() if k != 'lock_sha256'}))
             locks = [one, two]
             service = {'schema': 'hepta.local_service.v1', 'locks': locks,
@@ -331,6 +335,150 @@ class LocalServiceTests(unittest.TestCase):
             mutated = copy.deepcopy(value); mutated[field] = replacement
             with self.subTest(field=field), self.assertRaises(ValueError):
                 validate_request(mutated, CONFIG['service_sha256'], [MODEL])
+
+
+class UnitGenerationConfig:
+    """API-shaped control, with no runtime/model weights or claimed generation."""
+    def __init__(self, **changes):
+        self.__dict__.update(num_beams=1, num_beam_groups=1, num_return_sequences=1,
+                             return_dict_in_generate=False, token_healing=False,
+                             stop_strings=None, max_time=None, do_sample=False, mode_override=None)
+        self.__dict__.update(changes)
+
+    def get_generation_mode(self):
+        return SimpleNamespace(value=self.mode_override or ('sample' if self.do_sample else 'greedy_search'))
+
+
+class LocalPolicyTests(unittest.TestCase):
+    def test_uniform_thread_policy_allows_equal_counts(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            locks = [fake_assets(root / 'first'), fake_assets(root / 'second', b'other-unit-test-only')]
+            self.assertEqual(common.validate_service_locks(locks), locks)
+
+    def test_mixed_threads_reject_before_runtime_or_engine_startup_in_both_orders(self):
+        for reverse in (False, True):
+            with self.subTest(reverse=reverse), tempfile.TemporaryDirectory() as td:
+                root = Path(td)
+                locks = [fake_assets(root / 'first'), fake_assets(root / 'second')]
+                locks[1]['generation']['threads'] = 3
+                locks[1]['lock_sha256'] = common.digest(common.canonical(
+                    {k: v for k, v in locks[1].items() if k != 'lock_sha256'}))
+                if reverse: locks.reverse()
+                arguments = ['serve', '--port', '19073', '--evidence-dir', str(root / 'evidence')]
+                for index, lock in enumerate(locks):
+                    path = root / ('lock-' + str(index) + '.json'); path.write_bytes(common.canonical(lock))
+                    arguments += ['--lock', str(path), '--model-dir', str(root / ('first' if index == 0 else 'second'))]
+                with patch.object(local_service, 'TransformersEngine') as engine, patch.object(local_service, 'runtime_identity') as runtime:
+                    with self.assertRaisesRegex(ValueError, 'E_LOCAL_THREADS'):
+                        local_service.main(arguments)
+                    engine.assert_not_called(); runtime.assert_not_called()
+                self.assertFalse((root / 'evidence').exists())
+
+    def sharded_service(self, root, contents):
+        locks = []
+        for index, shards in enumerate(contents):
+            directory = root / ('model-' + str(index)); fake_assets(directory)
+            (directory / 'model.safetensors').unlink()
+            for number, data in enumerate(shards):
+                (directory / ('part-' + str(number) + '.safetensors')).write_bytes(data)
+            locks.append(common.freeze_model(directory, 'unit-test/model-' + str(index), str(index + 1) * 40))
+        service = {'schema': 'hepta.local_service.v1', 'locks': locks,
+                   'models': [common.model_identity(v) for v in locks], 'runtime': {'unit_test_only': True}}
+        service['service_sha256'] = service_identity(locks, service['runtime'])
+        return service
+
+    def test_renamed_same_weight_shards_are_not_a_second_model(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td); service = self.sharded_service(root, [(b'unit-a', b'unit-b'), (b'unit-b', b'unit-a')])
+            with self.assertRaisesRegex(ValueError, 'identical weights'):
+                export_bundle(service, root / 'bundle', root / 'configs.json', port=19073)
+            self.assertFalse((root / 'bundle').exists())
+
+    def test_distinct_weight_shards_still_export(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td); service = self.sharded_service(root, [(b'unit-a', b'unit-b'), (b'unit-a', b'unit-c')])
+            result = export_bundle(service, root / 'bundle', root / 'configs.json', port=19073)
+            self.assertTrue(result['complete_study_model_requirement_met'])
+            self.assertEqual(result['actual_ai_model_runs'], 0)
+
+    def test_sampling_override_is_effectively_greedy_without_mutating_saved_config(self):
+        saved = UnitGenerationConfig(do_sample=True)
+        effective = local_service.validate_greedy_generation(saved)
+        self.assertFalse(effective.do_sample)
+        self.assertTrue(saved.do_sample)
+
+    def test_generate_receives_validated_config_and_disables_model_default_rebuild(self):
+        class Tensor:
+            ndim = 2
+            def __init__(self, rows): self.rows, self.shape = rows, (len(rows), len(rows[0]))
+            def __getitem__(self, index): return SimpleNamespace(tolist=lambda: self.rows[index])
+            def tolist(self): return self.rows
+
+        class Model:
+            def __init__(self): self.generation_config = UnitGenerationConfig(eos_token_id=0)
+            def generate(self, **kwargs):
+                self.kwargs = kwargs
+                # Regression control for Transformers' legacy config.json
+                # reconstruction/default merge when no explicit config is used.
+                if 'generation_config' not in kwargs or kwargs.get('use_model_defaults') is not False:
+                    return Tensor([[1, 2, 3, 7, 99], [1, 2, 3, 8, 99]])
+                if kwargs['generation_config'].num_beams != 1:
+                    raise AssertionError('unit control: unvalidated strategy reached generation')
+                return Tensor([[1, 2, 3, 7, 0]])
+
+        class Tokenizer:
+            pad_token_id = eos_token_id = 0
+            def __call__(self, rendered, **kwargs): return {'input_ids': Tensor([[1, 2, 3]])}
+            def decode(self, ids, **kwargs): return 'unit-test-only completion'
+
+        engine = local_service.TransformersEngine.__new__(local_service.TransformersEngine)
+        engine.model = Model(); engine.tokenizer = Tokenizer(); engine.context_limit = 32
+        engine.effective_generation = local_service.validate_greedy_generation(engine.model.generation_config)
+        engine.model.generation_config.num_beams = 2
+        engine.model.generation_config.eos_token_id = 99
+        engine.lock = {'lock_sha256': 'a' * 64,
+                       'generation': {'prompt_format': 'chatml_v1', 'max_input_tokens': 20, 'max_new_tokens': 10}}
+        fake_torch = SimpleNamespace(is_tensor=lambda value: isinstance(value, Tensor), inference_mode=nullcontext)
+        fake_transformers = SimpleNamespace(StoppingCriteria=type('StoppingCriteria', (), {}), StoppingCriteriaList=list)
+        payload = {'messages': [{'role': 'user', 'content': 'unit-test-only input'}],
+                   'remaining_tokens': {'input_tokens': 20, 'output_tokens': 10, 'total_tokens': 30}, 'wall_seconds': 10.0}
+        with patch.dict('sys.modules', {'torch': fake_torch, 'transformers': fake_transformers}):
+            result = engine.generate(payload)
+        self.assertIs(engine.model.kwargs['generation_config'], engine.effective_generation)
+        self.assertFalse(engine.model.kwargs['use_model_defaults'])
+        self.assertEqual(result['status'], 'completed')
+        self.assertEqual(result['usage']['output_tokens'], 2)
+        self.assertEqual(result['usage']['finish_reason'], 'eos')
+
+    def test_beams_multiple_sequences_dictionary_and_custom_stopping_reject(self):
+        changes = [{'num_beams': 2}, {'num_beam_groups': 2}, {'num_return_sequences': 2},
+                   {'num_beams': True}, {'return_dict_in_generate': True}, {'token_healing': True},
+                   {'stop_strings': ['END']}, {'max_time': 1.0}]
+        for change in changes:
+            with self.subTest(change=change), self.assertRaisesRegex(ValueError, 'E_LOCAL_GENERATION_CONFIG'):
+                local_service.validate_greedy_generation(UnitGenerationConfig(**change))
+
+    def test_contrastive_constrained_and_other_effective_strategies_reject(self):
+        for mode in ('contrastive_search', 'constrained_beam_search', 'beam_search', 'sample', 'assisted_generation'):
+            with self.subTest(mode=mode), self.assertRaisesRegex(ValueError, 'not greedy'):
+                local_service.validate_greedy_generation(UnitGenerationConfig(mode_override=mode))
+
+    def test_encoder_decoder_configuration_rejects_before_suffix_accounting(self):
+        local_service.require_decoder_only(SimpleNamespace(is_encoder_decoder=False))
+        for value in (True, 1, None):
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, 'decoder-only'):
+                local_service.require_decoder_only(SimpleNamespace(is_encoder_decoder=value))
+
+    def test_suffix_counts_exact_generated_tokens_including_eos(self):
+        self.assertEqual(local_service.generated_suffix([1, 2, 3], [[1, 2, 3, 9, 0]]), [9, 0])
+
+    def test_changed_prefix_missing_prefix_multi_sequence_and_invalid_ids_reject(self):
+        invalid = [[[1, 2, 99, 4]], [[1, 2]], [[1, 2, 3, 4], [1, 2, 3, 5]],
+                   {'sequences': [[1, 2, 3, 4]]}, [[1, 2, 3, True]], [[1, 2, 3, -1]], [[1, 2, 3, 1.5]]]
+        for sequences in invalid:
+            with self.subTest(sequences=sequences), self.assertRaisesRegex(ValueError, 'E_LOCAL_OUTPUT_SHAPE'):
+                local_service.generated_suffix([1, 2, 3], sequences)
 
 
 if __name__ == '__main__':

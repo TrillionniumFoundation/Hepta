@@ -94,6 +94,19 @@ def model_identity(lock):
     return {'provider': PROVIDER, 'name': lock['repository'], 'revision': lock['lock_sha256']}
 
 
+def validate_service_locks(locks):
+    """Torch intraop threads are process-global, so one service needs one value."""
+    if not isinstance(locks, list) or not 1 <= len(locks) <= 16:
+        raise ValueError('E_LOCAL_CONFIG: bounded model locks required')
+    for lock in locks:
+        validate_lock(lock)
+    if len({lock['lock_sha256'] for lock in locks}) != len(locks):
+        raise ValueError('E_LOCAL_CONFIG: duplicate model lock')
+    if len({lock['generation']['threads'] for lock in locks}) != 1:
+        raise ValueError('E_LOCAL_THREADS: one process cannot promise different per-model intraop thread counts')
+    return locks
+
+
 def verify_assets(lock, directory):
     validate_lock(lock)
     directory = Path(directory)

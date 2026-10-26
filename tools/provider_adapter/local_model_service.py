@@ -7,6 +7,7 @@ never downloads weights, uses remote model code, or reads evaluator solutions.
 from __future__ import annotations
 
 import argparse
+import copy
 import datetime
 import importlib.metadata
 import json
@@ -20,10 +21,10 @@ import uuid
 
 try:
     from .local_model_common import (canonical, digest, file_digest, freeze_model,
-                                    model_identity, regular, validate_lock, verify_assets)
+                                    model_identity, regular, validate_lock, validate_service_locks, verify_assets)
 except ImportError:
     from local_model_common import (canonical, digest, file_digest, freeze_model,
-                                   model_identity, regular, validate_lock, verify_assets)
+                                   model_identity, regular, validate_lock, validate_service_locks, verify_assets)
 
 MAX_BODY = 4 * 1024**2
 
@@ -39,6 +40,37 @@ def render_prompt(tokenizer, messages, prompt_format):
     raise ValueError('E_LOCAL_PROMPT_FORMAT')
 
 
+def require_decoder_only(config):
+    if getattr(config, 'is_encoder_decoder', False) is not False:
+        raise ValueError('E_LOCAL_MODEL: decoder-only generation with the original input prefix required')
+
+
+def validate_greedy_generation(config):
+    """Check the effective strategy after our explicit do_sample=False override."""
+    effective = copy.deepcopy(config)
+    effective.do_sample = False
+    if (any(type(getattr(effective, field, None)) is not int or getattr(effective, field) != 1
+            for field in ('num_beams', 'num_beam_groups', 'num_return_sequences'))
+            or getattr(effective, 'return_dict_in_generate', False) is not False
+            or getattr(effective, 'token_healing', False) is not False
+            or getattr(effective, 'stop_strings', None) is not None
+            or getattr(effective, 'max_time', None) is not None):
+        raise ValueError('E_LOCAL_GENERATION_CONFIG: single-sequence greedy tensor output and fixed stopping policy required')
+    mode = effective.get_generation_mode()
+    if getattr(mode, 'value', mode) != 'greedy_search':
+        raise ValueError('E_LOCAL_GENERATION_CONFIG: the effective model strategy is not greedy search')
+    return effective
+
+
+def generated_suffix(input_ids, sequences):
+    if (not isinstance(sequences, list) or len(sequences) != 1
+            or not isinstance(sequences[0], list) or len(sequences[0]) < len(input_ids)
+            or any(type(token) is not int or token < 0 for token in sequences[0])
+            or sequences[0][:len(input_ids)] != input_ids):
+        raise ValueError('E_LOCAL_OUTPUT_SHAPE: exact original input prefix and one generated sequence required')
+    return sequences[0][len(input_ids):]
+
+
 def runtime_identity():
     return {'python_version': platform.python_version(),
             'python_executable_sha256': file_digest(Path(sys.executable).resolve()),
@@ -46,6 +78,7 @@ def runtime_identity():
                          for name in ('torch', 'transformers', 'tokenizers', 'safetensors')},
             'engine_source_sha256': file_digest(Path(__file__)),
             'common_source_sha256': file_digest(Path(__file__).with_name('local_model_common.py')),
+            'generation_policy': 'validated_greedy_single_sequence_decoder_only_uniform_intraop_threads_v2',
             'scope': 'versions_python_executable_engine_source_not_shared_library_attestation'}
 
 
@@ -94,6 +127,8 @@ class TransformersEngine:
         self.model = AutoModelForCausalLM.from_pretrained(str(directory), local_files_only=True,
                          trust_remote_code=False, use_safetensors=True,
                          dtype=getattr(torch, generation['dtype']))
+        require_decoder_only(self.model.config)
+        self.effective_generation = validate_greedy_generation(self.model.generation_config)
         self.model.to('cpu').eval()
         self.context_limit = int(getattr(self.model.config, 'max_position_embeddings',
                                         generation['max_input_tokens'] + generation['max_new_tokens']))
@@ -109,6 +144,9 @@ class TransformersEngine:
         rendered = render_prompt(self.tokenizer, request['messages'],
                                  generation.get('prompt_format', 'tokenizer_chat_template'))
         inputs = self.tokenizer(rendered, add_special_tokens=False, return_tensors='pt')
+        if (not torch.is_tensor(inputs.get('input_ids')) or inputs['input_ids'].ndim != 2
+                or inputs['input_ids'].shape[0] != 1):
+            return {'status': 'rejected_pre_inference', 'inference_started': False, 'usage': None}
         input_ids = inputs['input_ids'][0].tolist()
         input_count = len(input_ids)
         maximum = min(generation['max_new_tokens'], remaining['output_tokens'],
@@ -126,12 +164,16 @@ class TransformersEngine:
         stop = Deadline()
         with torch.inference_mode():
             output = self.model.generate(**inputs, do_sample=False, max_new_tokens=maximum,
+                        generation_config=self.effective_generation, use_model_defaults=False,
+                        return_dict_in_generate=False,
                         stopping_criteria=StoppingCriteriaList([stop]),
                         pad_token_id=(self.tokenizer.pad_token_id if self.tokenizer.pad_token_id is not None
                                       else self.tokenizer.eos_token_id))
-        output_ids = output[0, input_count:].tolist()
+        if not torch.is_tensor(output) or output.ndim != 2 or output.shape[0] != 1:
+            raise ValueError('E_LOCAL_OUTPUT_SHAPE: only one tensor sequence can be accounted')
+        output_ids = generated_suffix(input_ids, output.tolist())
         text = self.tokenizer.decode(output_ids, skip_special_tokens=True)
-        end_ids = self.model.generation_config.eos_token_id
+        end_ids = self.effective_generation.eos_token_id
         if isinstance(end_ids, int): end_ids = [end_ids]
         end_ids = end_ids or [self.tokenizer.eos_token_id]
         reason = 'deadline' if stop.hit else ('eos' if output_ids and output_ids[-1] in end_ids else 'length')
@@ -155,6 +197,9 @@ def write_new(path, value):
 
 class Service:
     def __init__(self, locks, engines, runtime, evidence_dir):
+        validate_service_locks(locks)
+        if len(engines) != len(locks):
+            raise ValueError('E_LOCAL_CONFIG: one engine required for every model lock')
         self.locks, self.models, self.engines = locks, [model_identity(v) for v in locks], engines
         self.runtime, self.sha256 = runtime, service_identity(locks, runtime)
         self.evidence_dir = Path(evidence_dir)
@@ -254,8 +299,7 @@ def main(argv=None):
     if len(args.lock) != len(args.model_dir) or not 1 <= len(args.lock) <= 16:
         raise ValueError('E_LOCAL_CONFIG: pair every immutable lock and model directory')
     locks = [validate_lock(json.loads(regular(path).read_bytes())) for path in args.lock]
-    if len({v['lock_sha256'] for v in locks}) != len(locks):
-        raise ValueError('E_LOCAL_CONFIG: duplicate model lock')
+    validate_service_locks(locks)
     runtime = runtime_identity()
     engines = [TransformersEngine(lock, directory) for lock, directory in zip(locks, args.model_dir)]
     service = Service(locks, engines, runtime, args.evidence_dir)
