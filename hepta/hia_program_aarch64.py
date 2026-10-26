@@ -41,6 +41,7 @@ _SIGNATURES = {
     "int_shr_checked_i64": (["i64", "i64"], ["i64"]),
     "cast_i8_u64": (["u64"], ["i8"]),
     "bounds_trap": (["usize"], ["u8"]),
+    "move_bytes": (["usize", "usize", "usize", "usize", "usize"], ["u8"]),
 }
 
 # The native harness checks these same fixed values after real ABI calls.
@@ -65,6 +66,21 @@ CASES = (
     ("int_shr_checked_i64", (-1024, 3), -128, None),
     ("cast_i8_u64", (255,), -1, None),
 )
+
+# Eight real ABI calls use one allocated 5-byte owner per invocation. The
+# expected values exercise both overlap directions, an identical range,
+# zero-length movement and normal Drop of every owner.
+_OVERLAP_CASES = (
+    ((5, 1, 0, 4, 0), 11),
+    ((5, 1, 0, 4, 2), 22),
+    ((5, 1, 0, 4, 4), 44),
+    ((5, 0, 1, 4, 0), 22),
+    ((5, 0, 1, 4, 3), 55),
+    ((5, 2, 2, 3, 4), 55),
+    ((5, 5, 5, 0, 0), 11),
+    ((5, 0, 0, 0, 4), 55),
+)
+
 
 _ADAPTER = r"""
 /* The standalone Core requests zero-filled bytes through this exact adapter. */
@@ -149,10 +165,11 @@ def _literal(value, typ):
 
 
 def _runtime_source(document, mode):
-    if mode not in {"matrix", "bounds_trap"}:
+    if mode not in {"matrix", "bounds_trap", "overlap_move"}:
         _reject("unsupported fixed target driver mode")
     functions = {fn["name"]: fn for fn in document["functions"]}
-    required = ({row[0] for row in CASES} if mode == "matrix" else {"bounds_trap"})
+    required = ({row[0] for row in CASES} if mode == "matrix"
+                else {"move_bytes"} if mode == "overlap_move" else {"bounds_trap"})
     declarations = []
     for name in sorted(required):
         params, returns = _SIGNATURES[name]
@@ -171,9 +188,21 @@ def _runtime_source(document, mode):
         lines += ["    write_counters();",
                   "    if (successful_allocations != 4 || releases != 4 || outstanding != 0 || denied_allocations != 1) return 38;",
                   "    return 0;"]
+    elif mode == "overlap_move":
+        # This is the same fixed scalar ABI + arena as the historical corpus.
+        # Only the single 5-byte owned buffer is live during each call;
+        # memmove must preserve overlapping original byte values.
+        params, returns = _SIGNATURES["move_bytes"]
+        for index, (arguments, expected) in enumerate(_OVERLAP_CASES):
+            call = "move_bytes(" + ", ".join(
+                _literal(v, t) for v, t in zip(arguments, params)) + ")"
+            lines.append("    if (" + call + " != " +
+                         _literal(expected, returns[0]) + ") return " + str(50 + index) + ";")
+        lines += ["    write_counters();",
+                  "    if (successful_allocations != 8 || releases != 8 || outstanding != 0 || denied_allocations != 0) return 79;",
+                  "    return 0;"]
     else:
-        # Reference write_counters so strict C warnings remain identical in both
-        # modes; reaching it demonstrates that the expected trap was absent.
+        # Reaching this would demonstrate that the expected trap was absent.
         lines += ["    (void)bounds_trap(1);", "    write_counters();", "    return 41;"]
     lines += ["}", "__attribute__((noreturn)) void _start(void) { hepta_exit((hepta_u32)smoke()); }"]
     return _runtime_prefix() + _ADAPTER + "\n".join(declarations + lines) + "\n", required
