@@ -3,6 +3,9 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import platform
+import shutil
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -88,6 +91,38 @@ class ArtifactPublicationTests(unittest.TestCase):
     def test_empty_payload_rejected(self):
         with self.assertRaisesRegex(PublicationRejected, "E_PUBLISH_INPUT"):
             publish_verified(self.stage, self.dest, b"")
+
+    @unittest.skipUnless(platform.system() == "Linux"
+                         and platform.machine() in {"x86_64", "amd64"}
+                         and shutil.which("clang") and shutil.which("gcc"),
+                         "native ELF object execution requires Linux x86-64 Clang and GCC")
+    def test_actual_clang_llvm_object_is_published_and_executed_by_gcc(self):
+        # This qualifies the publication boundary with a real machine-code
+        # artifact, NOT Hepta source-to-LLVM refinement or whole-program ABI.
+        source = self.root / "module.ll"
+        source.write_text(
+            'target triple = "x86_64-unknown-linux-gnu"\\n'
+            'define i32 @hepta_native_check(i32 %x) {\\n'
+            'entry:\\n  %y = add nsw i32 %x, 1\\n  ret i32 %y\\n}\\n')
+        staged = self.root / "module.o"
+        published = self.root / "linked.o"
+        subprocess.run(["clang", "--target=x86_64-unknown-linux-gnu", "-x", "ir",
+                        "-O2", "-c", str(source), "-o", str(staged)],
+                       check=True, capture_output=True, timeout=30)
+        object_bytes = staged.read_bytes()
+        self.assertTrue(object_bytes.startswith(b"\\x7fELF"))
+        receipt = publish_verified(staged, published, object_bytes)
+        self.assertEqual(receipt["bytes"], len(object_bytes))
+        self.assertEqual(published.read_bytes(), object_bytes)
+        harness = self.root / "driver.c"
+        harness.write_text(
+            'extern int hepta_native_check(int);\\n'
+            'int main(void) { return hepta_native_check(41)==42 ? 0 : 13; }\\n')
+        binary = self.root / "driver"
+        subprocess.run(["gcc", str(harness), str(published), "-o", str(binary)],
+                       check=True, capture_output=True, timeout=30)
+        executed = subprocess.run([str(binary)], capture_output=True, timeout=10)
+        self.assertEqual(executed.returncode, 0, executed.stderr)
 
     def test_same_input_and_output_rejected(self):
         with self.assertRaisesRegex(PublicationRejected, "E_PUBLISH_INPUT"):
