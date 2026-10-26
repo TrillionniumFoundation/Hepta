@@ -8,9 +8,10 @@ from __future__ import annotations
 import unittest
 from unittest.mock import patch
 
-from hepta.llvm_owned_backend import LLVMOwnedRejected, emit_owned_llvm
+from hepta.llvm_owned_backend import LLVMOwnedRejected, emit_owned_llvm, _Emitter
 from hepta.owned_drop_sites import VerifiedDropSites, qualify_drop_sites
 from hepta.pipeline import analyze
+from hepta.resource_lowering import lower_resource_ir
 from hepta.resource_ir import verify_resource_ir
 
 
@@ -75,6 +76,15 @@ class OwnedDropNativeSiteTests(unittest.TestCase):
                            side_effect=forged):
                     with self.assertRaisesRegex(LLVMOwnedRejected, "E_LLVM_OWNED_RESOURCE"):
                         emit_owned_llvm(src.program, src.checked)
+
+    def test_internal_emitter_cannot_omit_verified_resource_gate(self):
+        src = checked()
+        graph = lower_resource_ir(src.program, src.checked)
+        with self.assertRaisesRegex(LLVMOwnedRejected, "E_LLVM_OWNED_DROP_SITE"):
+            _Emitter(src.program, src.checked, resource_types=graph["types"])
+        with self.assertRaisesRegex(LLVMOwnedRejected, "E_LLVM_OWNED_DROP_PLAN"):
+            _Emitter(src.program, src.checked,
+                     resource_drop_sites=VerifiedDropSites("0" * 64, ()))
 
     def test_forged_site_graph_identity_rejects(self):
         src = checked()

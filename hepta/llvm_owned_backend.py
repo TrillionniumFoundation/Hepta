@@ -117,7 +117,7 @@ class _Function:
         # verified Resource IR, not merely inferred from checked AST types.
         # Generic instances still lack a concrete per-specialization site graph.
         try:
-            self.drop_sites = (None if declaration.type_params or self.e.drop_sites is None
+            self.drop_sites = (None if declaration.type_params
                                else self.e.drop_sites.for_function(declaration.name))
         except DropSiteRejected as exc:
             reject(str(exc), "E_LLVM_OWNED_DROP_SITE")
@@ -610,10 +610,10 @@ def _resources_allowed(fn, checked) -> bool:
 class _Emitter:
     def __init__(self, program, checked, *, resource_types=None, resource_drop_sites=None):
         self.program, self.checked = program, checked
-        if resource_types is not None and type(resource_types) is not dict:
+        if type(resource_types) is not dict:
             reject("Verified Resource IR type inventory required", "E_LLVM_OWNED_DROP_PLAN")
         self.resource_types = resource_types
-        if resource_drop_sites is not None and not isinstance(resource_drop_sites, VerifiedDropSites):
+        if not isinstance(resource_drop_sites, VerifiedDropSites):
             reject("A verified Resource IR Drop-site inventory is required",
                    "E_LLVM_OWNED_DROP_SITE")
         self.drop_sites = resource_drop_sites
