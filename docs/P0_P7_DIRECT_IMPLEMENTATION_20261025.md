@@ -35,6 +35,15 @@ staged inode. It is used in both the new owning LLVM source/native compilation
 paths and the owning C++ source migrator. Tests inject mutations and symlink
 path swaps, including a competing file which must **not** be deleted.
 
+An independent **real native object smoke execution** also completed on
+the available Linux host: Clang generated a 616-byte x86-64 ELF object from
+minimal LLVM IR, the shared publication helper bound its 616 exact bytes to
+a new hard link, GCC linked a C executable, and executing the binary returned
+`hepta_native_check(41) == 42`. A matching in-repository native regression
+has been committed. This exercises publication with actual executable object
+bytes but does **not** run the Hepta source language or qualify owned LLVM
+semantic refinement.
+
 A further **9/9 isolated negative/positive resource-clause tests passed**.
 The bounded owned LLVM emitter no longer rejects all resource clauses
 unconditionally: it accepts checked `heap_allocations=0`, `may_block=false`,
