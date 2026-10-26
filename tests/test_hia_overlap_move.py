@@ -78,6 +78,13 @@ def empty_program():
 
 
 class HIAOverlapMoveTests(unittest.TestCase):
+    def test_standalone_agent_example_replays_exact_verified_core(self):
+        path = Path(__file__).resolve().parents[1] / "examples/hia_program/overlap_move_v3.hia"
+        snapshot = verify_program(path.read_text(encoding="utf-8"))
+        self.assertEqual(snapshot.canonical_bytes, verify_program(move_program()).canonical_bytes)
+        self.assertEqual(
+            execute_program(snapshot, "move_bytes", [5, 1, 0, 4, 2])["result"], 22)
+
     def test_right_and_left_overlaps_and_exact_same_range(self):
         checked = verify_program(move_program())
         scenarios = (

@@ -32,6 +32,15 @@ All three offsets/count values are exactly usize (unsigned 64-bit). First verify
 
 The new opcode is **not** on the zero-initialization elision whitelist: bytes remain initialized whenever this memory operation may read them. Raw pointers, foreign address assumptions, device and DMA capabilities are still unsupported by the standalone core.
 
+## Agent-addressable standalone Core example
+
+`examples/hia_program/overlap_move_v3.hia` is a complete, parseable
+JSON-form assembly program with one C-compatible scalar export and real
+owned allocation, unique borrowing, five byte stores, overlap-safe move,
+read, loan.end and owner.drop. The regression re-verifies this file and
+requires byte-identical canonical Core to the directly constructed test
+program, so the public example cannot drift away from the checker.
+
 ## Exact-checkout tests
 
     python -m unittest tests.test_hia_overlap_move tests.test_hia_bulk_memory \
