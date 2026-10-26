@@ -232,7 +232,8 @@ def build_checked_hepta_hia_native(source, output, *, rustc=None, clang="clang",
             if (type(static_resource_limits) is not dict
                     or not static_resource_limits
                     or not set(static_resource_limits) <= {
-                        "max_allocator_interactions", "max_vm_ticks", "max_call_depth"}):
+                        "max_allocator_interactions", "max_vm_ticks", "max_call_depth",
+                        "max_live_heap_bytes"}):
                 _reject("static resource policy has unknown or missing fields")
             if any(type(v) is not int or v < 0
                    for v in static_resource_limits.values()):
@@ -289,6 +290,18 @@ def build_checked_hepta_hia_native(source, output, *, rustc=None, clang="clang",
                     or budget.get("claims", {}).get("native_cpu_time_or_rss_proved") is not False
                     or budget.get("claims", {}).get("whole_language_soundness_proved") is not False):
                 _reject("static resource bound does not match checked HIA Core")
+            if "max_live_heap_bytes" in static_resource_limits:
+                limit = static_resource_limits["max_live_heap_bytes"]
+                if (type(budget.get("limits")) is not dict
+                        or budget["limits"].get("max_live_heap_bytes") != limit
+                        or budget.get("claims", {}).get(
+                            "requested_live_payload_bytes_upper_bounded") is not True
+                        or type(budget.get("functions")) is not list
+                        or any(type(row) is not dict
+                               or type(row.get("max_live_heap_bytes")) is not int
+                               or not 0 <= row["max_live_heap_bytes"] <= limit
+                               for row in budget["functions"])):
+                    _reject("live payload-byte budget is not backed by checked Core")
             report["static_resource_budget"] = budget
         # No other compiler path may produce the native machine code. The
         # canonical HIA Program is reverified again inside emit/compile.
