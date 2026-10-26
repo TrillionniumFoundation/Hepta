@@ -73,6 +73,31 @@ def _mutate_elf(data):
     raise AssertionError("No ELF exported function found")
 
 
+def _elf_global_to_gnu_unique(data):
+    """Mutate the additional public data symbol to ELF STB_GNU_UNIQUE (10)."""
+    table, sections = _u64(data, 40), _u16(data, 60)
+    for index in range(sections):
+        section = table + index * 64
+        if _u32(data, section + 4) != 2:
+            continue
+        linked = _u32(data, section + 40)
+        strings = table + 64 * linked
+        name_start = _u64(data, strings + 24)
+        name_size = _u64(data, strings + 32)
+        begin, size = _u64(data, section + 24), _u64(data, section + 32)
+        for pos in range(begin, begin + size, 24):
+            name_off = _u32(data, pos)
+            if not 0 < name_off < name_size:
+                continue
+            if data[name_start + name_off:name_start + name_off + 24].startswith(
+                    b"hepta_unapproved_global\0"):
+                assert data[pos + 4] == 0x11  # STB_GLOBAL + STT_OBJECT
+                modified = bytearray(data)
+                modified[pos + 4] = 0xa1  # STB_GNU_UNIQUE + STT_OBJECT
+                return bytes(modified)
+    raise AssertionError("Did not find an external data symbol to mutate")
+
+
 def _mutate_coff(data):
     table, count = _u32(data, 8), _u32(data, 12)
     end = table + 18 * count
@@ -165,6 +190,30 @@ class ExecutableSymbolExtentTests(unittest.TestCase):
                             ObjectSymbolsRejected,
                             "E_OBJECT_SYMBOL_(EXPORT_KIND|LOCATION)"):
                         inspect_object_symbols(data, fmt, machine)
+
+    def test_gnu_unique_data_export_is_not_hidden_from_elf_inventory(self):
+        # The original scanner skipped ELF binding 10 as neither GLOBAL nor
+        # WEAK and would certify the ordinary function while hiding this
+        # globally visible GNU-unique data symbol.
+        with tempfile.TemporaryDirectory(prefix="hepta-gnu-unique-") as tmp:
+            root = Path(tmp)
+            source = root / "unique.ll"
+            source.write_text(
+                "@hepta_unapproved_global = global i64 77, align 8\n" + _SOURCE)
+            for target, machine in (("x86_64-unknown-linux-gnu", 62),
+                                    ("aarch64-unknown-linux-gnu", 183)):
+                with self.subTest(target=target):
+                    artifact = root / (target + ".o")
+                    compiled = subprocess.run(
+                        ["clang", "--target=" + target, "-x", "ir", "-O2",
+                         "-c", str(source), "-o", str(artifact)],
+                        capture_output=True, text=True, timeout=30)
+                    self.assertEqual(compiled.returncode, 0, compiled.stderr)
+                    mutated = _elf_global_to_gnu_unique(artifact.read_bytes())
+                    self.assertTrue(qualified_object(mutated, "ELF64", machine))
+                    with self.assertRaisesRegex(ObjectSymbolsRejected,
+                                                "E_OBJECT_SYMBOL_EXPORT_KIND"):
+                        inspect_object_symbols(mutated, "ELF64", machine)
 
     def test_all_five_native_object_profiles(self):
         with tempfile.TemporaryDirectory() as tmp:
