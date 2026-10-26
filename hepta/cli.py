@@ -27,7 +27,7 @@ def main(argv=None) -> int:
     hia = sub.add_parser("hia", help="Independent typed HIA program verification, execution and native compilation")
     hia_actions = hia.add_subparsers(dest="hia_action", required=True)
     for action in ("verify", "inspect", "run", "emit", "build", "lower", "patch",
-                   "import-executable", "import-scalar"):
+                   "impact", "import-executable", "import-scalar"):
         h = hia_actions.add_parser(action)
         h.add_argument("input", help="Standalone HIA JSON program; lower accepts Hepta source")
         if action in {"emit", "build", "lower", "patch", "import-executable", "import-scalar"}:
@@ -49,7 +49,7 @@ def main(argv=None) -> int:
         if action in {"import-executable", "import-scalar"}:
             h.add_argument("--source", required=True, help="Legacy origin authentication only")
             h.add_argument("--project-sha256", required=action == "import-scalar")
-        if action == "patch":
+        if action in {"patch", "impact"}:
             h.add_argument("--request", required=True)
     doctor = sub.add_parser("doctor", help="Inspect the actual native toolchain")
     doctor.add_argument("--rustc")
@@ -263,6 +263,15 @@ def main(argv=None) -> int:
                                  "status": "emitted_not_compiled"})
                 else:
                     print(ir.text, end="")
+                return 0
+            if args.hia_action == "impact":
+                # Read-only Agent advisory: same verified patch implementation,
+                # with old/new exact callgraph traversal and no publication.
+                from .hia_patch_impact import analyze_patch_impact
+                _revised, receipt, impact = analyze_patch_impact(program, read_bounded(args.request))
+                output_json({"schema": "hepta.hia.impact-query.v1", "ok": True,
+                             "status": "verified_unpublished",
+                             "patch": receipt, "impact": impact})
                 return 0
             if args.hia_action == "patch":
                 revised, receipt = apply_program_patch(program, read_bounded(args.request))
