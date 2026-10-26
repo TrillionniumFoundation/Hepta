@@ -64,3 +64,35 @@ the extra GNU-unique global, while the new scanner rejected it with
 positive/negative smoke against the current exact scanner; all observations
 remain correct. These are direct isolated parser+Clang17 tests, not a complete
 Rust-qualified Hepta native build.
+
+## Follow-up: strong loaded-code guarantees for declared exports
+
+The reviewed source C export should be a **strong** function with real code
+in a loader-allocated executable section. On the previous parser, mutating
+an ELF function from GLOBAL to WEAK (still STT_FUNC), or clearing SHF_ALLOC
+while leaving SHF_EXECINSTR set, preserved the apparent authorized function.
+Likewise a Mach-O function declared N_WEAK_DEF could still satisfy the
+`__TEXT,__text` location check. A weak symbol may be replaced by another
+linker definition, invalidating the source-bound object identity assumption.
+
+The exact new scanner Git blob is
+`3a08491cc38f5340afd7215ed89cf92a2e8b708c`:
+- ELF defined function exports must have GLOBAL binding, not WEAK, and their
+  SHT_PROGBITS section must have **both** SHF_ALLOC and SHF_EXECINSTR.
+- Mach-O defined public functions must not carry N_WEAK_DEF.
+- The earlier C/COFF, ELF data and GNU-unique export refusals remain.
+
+Local direct execution again matched both pre-patch and post-patch exact Git
+blob identities. Native Clang17 Linux x86-64 and AArch64 objects mutated to
+weak-defined functions and unallocated executable sections were structurally
+valid: the pre-patch scanner accepted all four altered native objects, while
+the patched scanner rejected each. Real Clang17 Darwin x86-64 and arm64
+objects mutated only to add N_WEAK_DEF also remained structurally valid:
+the pre-patch scanner accepted both, the patched scanner rejected both.
+
+The full direct standalone test set, including the independent first+second
+publication helper and actual Clang → ELF → GCC execution, was rerun:
+**11/11 test methods passed, zero skips** on Python 3.13.5 / Clang17 / GCC14.
+These tests exercise exact scanner/publication source and real native object
+emission, **not** the full Hepta Rust1.90/Clang20 source-to-binary pipeline
+or complete P0–P7 production qualification.
