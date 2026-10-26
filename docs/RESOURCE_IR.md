@@ -99,6 +99,44 @@ or dropping the call's obligation is rejected. A passing report with such
 declarations has status `resource_cfg_verified_with_external_assumptions`.
 There is no claim that a foreign implementation satisfies those assumptions.
 
+## Versioned local borrowed records with Copy scalar fields (v5)
+
+Version `hepta.resource-ir.v4` keeps its original **one-field stored u8 loan**
+contract. The opt-in `hepta.resource-ir.v5` contract adds **at most four**
+declared Copy scalar labels beside exactly one `read` or `mut` borrowed
+`[u8]` field. All fields are verified by declaration identity, type,
+evaluation order and explicit binding operands; absent, substituted and
+reordered metadata rejects. Both shared-copy and exclusive-move views keep
+the original borrow token and checked lifetime end rules.
+
+Example admitted by v5's finite source lowerer (the type checker and Rust
+backend already support this source profile):
+
+```hepta
+struct Tagged<'a> { data: read 'a [u8], tag: u64, valid: bool }
+fn f(data: read [u8]) -> Unit effects { panic } {
+    let one = Tagged { valid: true, data: read data, tag: 7 };
+    let two = one;
+    assert(two.tag == 7);
+    assert(len(one.data) == 4);
+}
+```
+
+A v5 view type has the usual `field`, `mode`, `pointee` inventory plus a
+closed `scalars` array, e.g. `[{"name":"tag","type":"u64"},
+{"name":"valid","type":"bool"}]`. Each `bind_view` supplies the
+`scalars` label-to-typed-source-slot mapping in declaration order.
+A v4 graph cannot introduce these fields, and no v5 graph can omit them.
+The verifier checks label source slot types and rejects owned,
+reference, nested or duplicate label metadata.
+
+This **does not** independently prove scalar values, source-to-IR refinement
+or Rust lifetime equality, and it still rejects interprocedural stored views,
+named function lifetime regions, generic lifetime composition, labels written
+through stored views, a second borrowed field and reference-bearing labels.
+The v5 verifier remains data-only, without importing the parser/checker.
+`whole_language_soundness_proved=false`.
+
 ## Source lowering profile
 
 The implemented source translator handles concrete `Buffer<u8>`, owned
