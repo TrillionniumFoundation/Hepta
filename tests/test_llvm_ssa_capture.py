@@ -9,23 +9,50 @@ import unittest
 from unittest.mock import patch
 
 from hepta.clang_capture import CaptureRejected, CaptureResult
+from hepta.llvm_ir_profile import HEADER, DECLARATIONS
 from hepta.llvm_ssa_backend import (LLVMSSARejected, SSA_LLVM_IR, _clang_run,
                                     compile_scalar_ssa_llvm)
 from hepta.llvm_ssa_target import compile_ssa_target_object
 
 
 def fixture() -> SSA_LLVM_IR:
-    ir = ("define i32 @hepta_test(i32 %x) {\n"
-          "entry:\n"
-          "  %plus = add i32 %x, 1\n"
-          "  ret i32 %plus\n"
-          "}\n")
+    # Use the same closed LLVM header and label vocabulary as the native
+    # scalar SSA emitter. A generic LLVM example is not a valid profile fixture.
+    ir = "\n".join((
+        HEADER, *DECLARATIONS, "",
+        "define i32 @hepta_test(i32 %r_x_0) {",
+        "b0000:",
+        "  ret i32 %r_x_0",
+        "}",
+        "",
+    ))
     return SSA_LLVM_IR(
         ir, sha256(ir.encode()).hexdigest(), ("hepta_test",),
         "a"*64, "b"*64)
 
 
 class CaptureBoundaryTests(unittest.TestCase):
+    def test_fixture_uses_restricted_llvm_profile(self):
+        # The fixture itself must pass the exact production syntax guard.
+        fixture().check_identity()
+
+    def test_illegal_llvm_instruction_rejected_without_compiler_capture(self):
+        baseline = fixture()
+        injected = baseline.text.replace(
+            "  ret i32 %r_x_0",
+            "  store i32 123, ptr null\n  ret i32 %r_x_0",
+        )
+        forged = SSA_LLVM_IR(injected, sha256(injected.encode()).hexdigest(),
+                            baseline.functions, baseline.source_ssa_sha256,
+                            baseline.verification_sha256)
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / "host.so"
+            with patch("hepta.llvm_ssa_backend.run_bounded") as capture:
+                with self.assertRaisesRegex(LLVMSSARejected, "E_LLVM_SSA_PROFILE"):
+                    compile_scalar_ssa_llvm(forged, output=output)
+                capture.assert_not_called()
+            self.assertFalse(output.exists())
+
     def test_large_compiler_output_rejected_explicitly(self):
         with patch("hepta.llvm_ssa_backend.run_bounded",
                    side_effect=CaptureRejected("E_CAPTURE_OUTPUT_SIZE", "limit")):
