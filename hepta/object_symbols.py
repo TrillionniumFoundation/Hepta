@@ -71,13 +71,16 @@ def inspect_object_symbols(data: bytes, fmt: str, machine: int) -> dict[str, fro
                 binding, kind = info >> 4, info & 0x0f
                 if not name_off:
                     continue
-                # STB_GNU_UNIQUE (10) has externally visible linkage just as
-                # GLOBAL/WEAK do. Ignoring it could hide an extra data export
-                # while the required function is still present.
-                if binding == 10:
+                # Only STB_LOCAL(0), STB_GLOBAL(1) and STB_WEAK(2) have
+                # explicit semantics in this closed Hepta object profile.
+                # GNU_UNIQUE(10) and other OS/processor-specific/reserved
+                # bindings (3..15) cannot be silently treated as private:
+                # doing so hides symbols from the external export/import
+                # inventory while preserving a legitimate expected function.
+                if binding not in (0, 1, 2):
                     raise ObjectSymbolsRejected(
-                        "E_OBJECT_SYMBOL_EXPORT_KIND: unreviewed ELF GNU-unique export")
-                if binding not in (1, 2):
+                        "E_OBJECT_SYMBOL_EXPORT_KIND: unreviewed ELF symbol binding")
+                if binding == 0:
                     continue
                 if name_off >= names_size:
                     raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_NAME: bad ELF name")
