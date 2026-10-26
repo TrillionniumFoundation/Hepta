@@ -12,7 +12,8 @@ import tempfile
 
 from .cfg import lower_hsir_cfg
 from .hsir import lower_checked_program, verify_checked_source_projection
-from .native_resource_gate import qualify_native_resource_source
+from .native_resource_gate import (
+    qualify_native_resource_source, require_native_resource_receipt)
 from .llvm_ssa_backend import LLVMSSARejected, compile_scalar_ssa_llvm, emit_scalar_ssa_llvm
 from .llvm_ssa_target import _TARGETS, compile_ssa_target_object
 from .pipeline import analyze_project
@@ -94,17 +95,12 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
             analyzed.program, analyzed.checked,
             canonical_hsir_sha256=semantic_origin["canonical_sha256"],
             project_sha256=graph_sha)
-        if (resource_receipt.get("status") !=
-                "source_bound_resource_cfg_checked_not_refinement_proof"
-                or resource_receipt.get("claims", {}).get(
-                    "exact_checked_source_resource_graph_rederived") is not True
-                or resource_receipt.get("claims", {}).get(
-                    "independent_resource_cfg_verified") is not True
-                or resource_receipt.get("claims", {}).get(
-                    "foreign_resource_obligations_absent") is not True
-                or resource_receipt.get("claims", {}).get(
-                    "whole_language_memory_safety_proved") is not False):
-            raise LLVMSSARejected("E_NATIVE_RESOURCE_GATE: missing qualified source resource gate receipt")
+        require_native_resource_receipt(
+            resource_receipt,
+            canonical_hsir_sha256=semantic_origin["canonical_sha256"],
+            source_sha256=semantic_origin["source_sha256"],
+            project_sha256=graph_sha,
+            expected_functions=sum(not fn.extern_c for fn in analyzed.program.functions))
         result["claims"]["source_bound_resource_cfg_checked"] = True
         result["resource_verification"] = resource_receipt
         cfg = lower_hsir_cfg(scalar_hsir)
