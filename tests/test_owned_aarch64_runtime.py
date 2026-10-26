@@ -134,6 +134,7 @@ class FiniteOwnedRuntimeTests(unittest.TestCase):
                          sorted(("owned_case", "malloc", "free", "abort",
                                  "memcpy", "memmove", "memset", "_start")))
         self.assertTrue(report["real_finite_allocator_linked"])
+        self.assertIsNone(report["execution"])
         for field in ("qemu_user_mode_executed", "real_target_device_executed",
                       "general_allocator_qualified", "general_linux_abi_qualified",
                       "whole_language_soundness_proved"):
@@ -146,6 +147,21 @@ class FiniteOwnedRuntimeTests(unittest.TestCase):
                 qemu_aarch64="qemu-aarch64")
             self.assertEqual(emulated["status"], "finite_qemu_userspace_execution_passed")
             self.assertTrue(emulated["qemu_user_mode_executed"])
+            self.assertEqual(emulated["execution"]["returncode"], 0)
+            self.assertEqual(emulated["execution"]["linked_sha256"], emulated["linked_sha256"])
+            self.assertEqual(emulated["execution"]["runner_sha256"], emulated["runner_sha256"])
+
+    @unittest.skipUnless(shutil.which("qemu-aarch64"), "actual QEMU AArch64 runner required")
+    def test_failed_actual_emulation_retains_the_bound_process_record(self):
+        _, owner = self.build("aarch64-unknown-linux-gnu", STANDIN.replace("return answer;", "return answer+1;"))
+        with self.assertRaises(OwnedAArch64RuntimeRejected) as caught:
+            probe_finite_owned_aarch64_runtime(
+                owner.read_bytes(), ("owned_case",), clang=self.clang, qemu_aarch64="qemu-aarch64")
+        record = caught.exception.execution
+        self.assertIsInstance(record, dict)
+        self.assertEqual(record["returncode"], 11)
+        self.assertEqual(record["runner_sha256"], sha256(Path(shutil.which("qemu-aarch64")).read_bytes()).hexdigest())
+        self.assertEqual(record["stdout_sha256"], sha256(record["stdout"].encode()).hexdigest())
 
     def test_wrong_export_and_unavailable_runner_reject(self):
         _, owner = self.build("aarch64-unknown-linux-gnu")

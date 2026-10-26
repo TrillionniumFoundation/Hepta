@@ -77,6 +77,35 @@ def main(argv=None) -> int:
     llvm_owned.add_argument("--clang", default="clang")
     llvm_owned.add_argument("--kind", choices=["shared", "object"], default="shared")
     llvm_owned.add_argument("--locked", action="store_true")
+    llvm_arm = sub.add_parser("build-llvm-owned-aarch64", help="Source-bound Owned LLVM ARM64 object with optional finite runtime execution")
+    llvm_arm.add_argument("source")
+    llvm_arm.add_argument("--output", "-o", required=True)
+    llvm_arm.add_argument("--rustc")
+    llvm_arm.add_argument("--clang", default="clang")
+    llvm_arm.add_argument("--locked", action="store_true")
+    llvm_arm.add_argument("--synthetic-link-probe", action="store_true")
+    llvm_arm.add_argument("--finite-runtime-link-probe", action="store_true")
+    llvm_arm.add_argument("--qemu-aarch64")
+    core = sub.add_parser("executable-core", help="Export the source-bound executable integer/Buffer/Result core")
+    core.add_argument("source")
+    core.add_argument("--output", "-o", help="New JSON output file; otherwise write the core to stdout")
+    core_verify = sub.add_parser("verify-executable-core", help="Replay source and recheck supplied executable core operations")
+    core_verify.add_argument("source")
+    core_verify.add_argument("core")
+    core_run = sub.add_parser("run-executable-core", help="Interpret checked core operations with explicit execution limits")
+    core_run.add_argument("source")
+    core_run.add_argument("--core", help="Optional previously exported core; checked against the exact source")
+    core_run.add_argument("--function", required=True)
+    core_run.add_argument("--arguments", default="[]", help="JSON array of scalar arguments")
+    core_run.add_argument("--max-steps", type=int, default=1000000)
+    core_run.add_argument("--max-heap-bytes", type=int, default=1048576)
+    core_run.add_argument("--allocation-fail-at", type=int)
+    core_build = sub.add_parser("build-executable-core", help="Compile LLVM from decoded core operations after the pinned Rust gate")
+    core_build.add_argument("source")
+    core_build.add_argument("--output", "-o", required=True)
+    core_build.add_argument("--rustc")
+    core_build.add_argument("--clang", default="clang")
+    core_build.add_argument("--kind", choices=["shared", "object"], default="shared")
     resource_source = sub.add_parser("verify-resource-source", help="Recheck actual source and match a complete independent resource graph")
     resource_source.add_argument("source")
     resource_source.add_argument("graph")
@@ -227,6 +256,62 @@ def main(argv=None) -> int:
                                             clang=args.clang, kind=args.kind, locked=args.locked)
             output_json(result)
             return 0 if result["ok"] else 1
+        if args.command == "build-llvm-owned-aarch64":
+            from .llvm_owned_aarch64 import build_owned_aarch64_source
+            result = build_owned_aarch64_source(
+                args.source, args.output, rustc=args.rustc, clang=args.clang,
+                locked=args.locked, synthetic_link_probe=args.synthetic_link_probe,
+                finite_runtime_probe=args.finite_runtime_link_probe,
+                qemu_aarch64=args.qemu_aarch64)
+            output_json(result)
+            return 0 if result["ok"] else 1
+        if args.command == "build-executable-core":
+            from .executable_core import build_executable_core_source
+            result = build_executable_core_source(
+                args.source, args.output, rustc=args.rustc, clang=args.clang, kind=args.kind)
+            output_json(result)
+            return 0 if result.get("ok") is True else 1
+        if args.command in {"executable-core", "verify-executable-core", "run-executable-core"}:
+            from .executable_core import (
+                MAX_SOURCE_BYTES, MAX_CORE_BYTES, lower_executable_core,
+                verify_executable_core, execute_executable_core,
+            )
+            from .parser import parse
+            source_path = Path(args.source).resolve()
+            def read_bounded(path, limit):
+                with Path(path).open("rb") as stream:
+                    data = stream.read(limit + 1)
+                if len(data) > limit:
+                    raise ValueError("Executable-core input exceeds its byte limit")
+                return data.decode("utf-8")
+            source = read_bounded(source_path, MAX_SOURCE_BYTES)
+            core_path = getattr(args, "core", None)
+            document = (json.loads(read_bounded(core_path, MAX_CORE_BYTES)) if core_path
+                        else lower_executable_core(parse(source, str(source_path))))
+            if args.command == "verify-executable-core":
+                result = verify_executable_core(document, source=source, path=str(source_path))
+            elif args.command == "run-executable-core":
+                if len(args.arguments.encode("utf-8")) > 65536:
+                    raise ValueError("Executable-core arguments exceed their byte limit")
+                result = execute_executable_core(
+                    document, args.function, json.loads(args.arguments), source=source,
+                    path=str(source_path), max_steps=args.max_steps,
+                    max_heap_bytes=args.max_heap_bytes, allocation_fail_at=args.allocation_fail_at)
+            elif args.output:
+                destination = Path(args.output).absolute()
+                # A saved core is evidence of these exact operations, never a
+                # replacement for source or an existing report/artifact.
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                with destination.open("x", encoding="utf-8") as stream:
+                    stream.write(json.dumps(document, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+                result = {"schema": "hepta.executable-core-output.v1", "ok": True,
+                          "status": "exported_not_native_qualified", "output": str(destination),
+                          "core_sha256": document["sha256"], "claims": document["claims"]}
+            else:
+                output_json(document)
+                return 0
+            output_json(result)
+            return 0 if result.get("ok") is True else 1
         if args.command == "verify-resource-source":
             from .resource_source import main as verify_source_main
             forwarded = [args.source, args.graph]

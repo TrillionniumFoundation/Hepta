@@ -1,9 +1,10 @@
-"""AArch64 Linux *object-only* backend for source-bound Owned LLVM.
+"""AArch64 Linux object backend with opt-in finite source-bound execution.
 
 Reuses Hepta's one checked source/Resource IR/Owned LLVM emitter, bounded Clang
 runner, ELF structure/symbol scanner and verified artifact publisher.  A cross
-object does NOT qualify target ABI calling behavior, Linux runtime, native
-Rust borrow checks on AArch64, or physical hardware execution.
+object alone does NOT qualify target ABI calling behavior or a Linux runtime.
+The separate finite runtime probe qualifies only its exact emulated ABI. It
+does not establish target Rust checks or physical hardware execution.
 """
 from __future__ import annotations
 
@@ -28,8 +29,8 @@ from .pipeline import analyze_project, compiler_hash
 TARGET_AARCH64 = "aarch64-unknown-linux-gnu"
 MACHINE_AARCH64 = 183
 MAX_OBJECT_BYTES = 16 * 1024 * 1024
-# Explicit ABI *assumptions* for this object-only profile. Linker/runtime
-# implementations are not checked and nothing is linked or executed.
+# Object inspection leaves these imports as ABI assumptions. The optional
+# finite runtime probe below supplies separate, narrowly scoped evidence.
 _ALLOWED_IMPORTS = frozenset({"malloc", "free", "abort", "memset", "memcpy", "memmove"})
 
 
@@ -267,6 +268,22 @@ def build_owned_aarch64_source(source, output, *, rustc=None, clang="clang",
                         or finite_runtime.get("whole_language_soundness_proved") is not False):
                     reject("Finite runtime receipt diverges from checked source or scope",
                            "E_LLVM_OWNED_TARGET_RUNTIME")
+                execution = finite_runtime.get("execution")
+                if qemu_aarch64 is None:
+                    if execution is not None:
+                        reject("Link-only receipt cannot contain an execution",
+                               "E_LLVM_OWNED_TARGET_RUNTIME")
+                elif (type(execution) is not dict
+                      or type(execution.get("returncode")) is not int
+                      or execution["returncode"] != 0
+                      or execution.get("linked_sha256") != finite_runtime.get("linked_sha256")
+                      or execution.get("runner_sha256") != finite_runtime.get("runner_sha256")
+                      or any(type(execution.get(stream)) is not str
+                             or execution.get(stream + "_sha256") !=
+                                sha256(execution[stream].encode("utf-8")).hexdigest()
+                             for stream in ("stdout", "stderr"))):
+                    reject("Executed runtime receipt lacks the bound successful process result",
+                           "E_LLVM_OWNED_TARGET_RUNTIME")
             if synthetic_link_probe:
                 # This only validates link-time relocation against deliberately
                 # NONFUNCTIONAL freestanding C shims. Never publish the linked
@@ -305,7 +322,17 @@ def build_owned_aarch64_source(source, output, *, rustc=None, clang="clang",
                 withdraw_own_link(stage, destination)
                 raise LLVMOwnedRejected(
                     "E_LLVM_OWNED_TARGET_PUBLICATION: " + str(exc)) from exc
-        report.update(ok=True, status="cross_object_only_not_executed",
+        # The published artifact remains an object. Optional qualification
+        # describes a separately linked image containing these exact bytes.
+        qualification_status = (
+            finite_runtime["status"] if finite_runtime is not None else
+            synthetic_link["status"] if synthetic_link is not None else
+            "cross_object_only_not_executed")
+        report.update(ok=True, status=qualification_status,
+                      artifact_kind="relocatable_object",
+                      published_artifact_executed=False,
+                      linked_image_executed=(finite_runtime is not None and
+                                             finite_runtime.get("qemu_user_mode_executed") is True),
                       native_backend=backend,
                       synthetic_link_probe=synthetic_link,
                       synthetic_link_probe_attempted=synthetic_link_probe,
@@ -317,6 +344,10 @@ def build_owned_aarch64_source(source, output, *, rustc=None, clang="clang",
                                       "source_sha256": analyzed.report.get("source_sha256"),
                                       "compiler_sha256": ir.compiler_sha256})
     except (ValueError, OSError) as exc:
+        if isinstance(getattr(exc, "execution", None), dict):
+            # Preserve a real failed execution for negative controls without
+            # publishing the object or promoting failure to qualification.
+            report["failed_execution"] = exc.execution
         report["diagnostics"] = [{"code": str(exc).split(":", 1)[0]
                                   if str(exc).startswith("E_") else "E_LLVM_OWNED_TARGET",
                                   "message": str(exc)}]

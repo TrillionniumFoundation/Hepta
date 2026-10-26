@@ -32,7 +32,9 @@ _REVIEWED_RUNTIME_SHA256 = "5caa9cbc33df5734626ff17045159add08b850abceb021b038dd
 
 
 class OwnedAArch64RuntimeRejected(ValueError):
-    pass
+    def __init__(self, message: str, *, execution: dict | None = None):
+        super().__init__(message)
+        self.execution = execution
 
 
 def _reject(message: str) -> None:
@@ -117,6 +119,7 @@ def probe_finite_owned_aarch64_runtime(object_bytes: bytes, exports: tuple[str, 
             _reject("compiler or finite runtime changed during link")
         ran = False
         runner_sha = None
+        execution_record = None
         if qemu_aarch64 is not None:
             if type(qemu_aarch64) is not str or not qemu_aarch64:
                 _reject("QEMU runner must be an explicit executable")
@@ -128,12 +131,24 @@ def probe_finite_owned_aarch64_runtime(object_bytes: bytes, exports: tuple[str, 
                 _reject("runner is not QEMU AArch64")
             runner_sha = sha256(runner_path.read_bytes()).hexdigest()
             execution = _clang_run([str(runner_path), str(linked)], timeout=25)
-            if execution.returncode != 0:
-                _reject("real finite test exited unsuccessfully under QEMU: "
-                        + str(execution.returncode) + " " + execution.stderr[:300])
             if (sha256(runner_path.read_bytes()).hexdigest() != runner_sha or
                     sha256(linked.read_bytes()).hexdigest() != sha256(payload).hexdigest()):
                 _reject("runner or linked executable changed after emulation")
+            execution_record = {
+                "argv": [str(runner_path), str(linked)],
+                "returncode": execution.returncode,
+                "stdout": execution.stdout,
+                "stderr": execution.stderr,
+                "stdout_sha256": sha256(execution.stdout.encode("utf-8")).hexdigest(),
+                "stderr_sha256": sha256(execution.stderr.encode("utf-8")).hexdigest(),
+                "linked_sha256": sha256(payload).hexdigest(),
+                "runner_sha256": runner_sha,
+            }
+            if execution.returncode != 0:
+                raise OwnedAArch64RuntimeRejected(
+                    "E_OWNED_AARCH64_RUNTIME: real finite test exited unsuccessfully under QEMU: "
+                    + str(execution.returncode) + " " + execution.stderr[:300],
+                    execution=execution_record)
             ran = True
         return {
             "schema": "hepta.owned-aarch64-finite-runtime.v1",
@@ -147,6 +162,7 @@ def probe_finite_owned_aarch64_runtime(object_bytes: bytes, exports: tuple[str, 
             "linked_bytes": len(payload),
             "compiler_sha256": compiler_before,
             "runner_sha256": runner_sha,
+            "execution": execution_record,
             "symbols": shape,
             "scope": "one_selected_owned_case_C_ABI_and_4096_byte_single_live_allocation",
             "real_finite_allocator_linked": True,

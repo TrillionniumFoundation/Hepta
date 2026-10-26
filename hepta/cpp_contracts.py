@@ -21,6 +21,7 @@ from .c_migrate import MigrationRejected, _IDENT
 SCHEMA = "hepta.cpp-contract.v1"
 SCHEMA_V2 = "hepta.cpp-contract.v2"
 SCHEMA_V3 = "hepta.cpp-contract.v3"
+SCHEMA_V4 = "hepta.cpp-contract.v4"
 _QUALIFIED = re.compile(r"[A-Za-z_][A-Za-z_0-9]*(?:::[A-Za-z_][A-Za-z_0-9]*)*\Z")
 _SCALARS = {
     "i8": ("std::int8_t", "int8_t"), "u8": ("std::uint8_t", "uint8_t"),
@@ -64,12 +65,29 @@ def _array(value: object, context: str, maximum: int = 32) -> list:
     return value
 
 
+def _template_argument(value: object, *, sizes: bool) -> str:
+    """Render only checked types or an explicitly bounded size constant.
+
+    A v4 size is a typed value, never a pasted C++ expression. Earlier wire
+    schemas retain their type-only interpretation. In particular bool is not
+    accepted as an integer, and no negative/floating/string value is coerced.
+    """
+    if isinstance(value, str):
+        return _SCALARS[_choice(value, set(_SCALARS), "concrete scalar template argument")][0]
+    if not sizes:
+        _reject("Non-type template arguments require the explicit v4 schema")
+    item = _fields(value, {"kind", "value"}, "non-type template argument")
+    if item["kind"] != "size" or type(item["value"]) is not int or not 0 <= item["value"] <= 65536:
+        _reject("Non-type template argument must be an exact size integer in [0, 65536]")
+    return "static_cast<std::size_t>(" + str(item["value"]) + ")"
+
+
 def _validate(contract: object) -> dict:
     if not isinstance(contract, dict):
         _reject("contract must be an object")
     c = _fields(contract, {"schema", "module", "pod_types", "functions", "handles"}
-                | ({"scopes"} if contract.get("schema") == SCHEMA_V3 else set()), "contract")
-    _choice(c["schema"], {SCHEMA, SCHEMA_V2, SCHEMA_V3}, "C++ contract schema")
+                | ({"scopes"} if contract.get("schema") in (SCHEMA_V3, SCHEMA_V4) else set()), "contract")
+    _choice(c["schema"], {SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4}, "C++ contract schema")
     _name(c["module"], "module name")
     pods = {}
     for pod in _array(c["pod_types"], "pod_types", 16):
@@ -132,7 +150,7 @@ def _validate(contract: object) -> dict:
         else:
             _name(fn["cpp_name"], "C++ function", qualified=True)
             for t in _array(fn["template_args"], "template arguments", 4):
-                _choice(t, set(_SCALARS), "concrete scalar template argument")
+                _template_argument(t, sizes=c["schema"] == SCHEMA_V4)
             _choice(fn["threading"], {"any_thread", "caller_synchronized"}, "threading")
             _choice(fn["reentrancy"], {"allowed", "caller_prevents"}, "reentrancy")
             _choice(fn["allocation"], {"none_declared", "cpp_internal"}, "allocation")
@@ -145,11 +163,11 @@ def _validate(contract: object) -> dict:
         symbols.add(f["name"])
     for h in _array(c["handles"], "handles", 8):
         _fields(h, {"name", "cpp_type", "template_args", "threading", "reentrancy",
-                    "allocator", "destruction", "methods"} | ({"constructors"} if c["schema"] in {SCHEMA_V2, SCHEMA_V3} else set()), "handle")
+                    "allocator", "destruction", "methods"} | ({"constructors"} if c["schema"] in {SCHEMA_V2, SCHEMA_V3, SCHEMA_V4} else set()), "handle")
         _name(h["name"], "handle name")
         _name(h["cpp_type"], "C++ handle type", qualified=True)
         for t in _array(h["template_args"], "template arguments", 4):
-            _choice(t, set(_SCALARS), "concrete scalar template argument")
+            _template_argument(t, sizes=c["schema"] == SCHEMA_V4)
         _choice(h["threading"], {"serialized", "creator_thread"}, "handle threading")
         _choice(h["reentrancy"], {"allow", "reject"}, "handle reentrancy")
         if h["allocator"] != "cpp_shared_owner" or h["destruction"] != "nothrow_defer_inflight":
@@ -158,10 +176,10 @@ def _validate(contract: object) -> dict:
         if not methods:
             _reject("A handle needs at least one method")
         names = {"destroy"}
-        if c["schema"] in {SCHEMA_V2, SCHEMA_V3}:
+        if c["schema"] in {SCHEMA_V2, SCHEMA_V3, SCHEMA_V4}:
             constructors = _array(h["constructors"], "constructors", 8)
             if not constructors:
-                _reject("A v2/v3 handle needs at least one explicit constructor contract")
+                _reject("A v2/v3/v4 handle needs at least one explicit constructor contract")
             for constructor in constructors:
                 _fields(constructor, {"name", "params", "exception"}, "constructor")
                 _name(constructor["name"], "constructor export name")
@@ -244,8 +262,10 @@ def _cpp_type(typ: str, pods: dict, *, abi: bool = False, prefix: str = "") -> s
     return prefix + typ if abi else pods[typ]["cpp_type"]
 
 
-def _concrete(name: str, args: list[str]) -> str:
-    return name + ("<" + ", ".join(_SCALARS[t][0] for t in args) + ">" if args else "")
+def _concrete(name: str, args: list[object]) -> str:
+    # The schema gate has already selected the argument grammar. Recheck the
+    # actual values here as well so this helper cannot emit arbitrary C++.
+    return name + ("<" + ", ".join(_template_argument(t, sizes=True) for t in args) + ">" if args else "")
 
 
 class _Generator:
@@ -671,6 +691,15 @@ def bridge_cpp_contracts(header: str | Path, contract: dict | str | Path,
                            "hepta_validation": checked.report, "status_codes": STATUS,
                            "cost_accounting": generator.costs, "constructor_checks": generator.constructor_checks,
                            "scoped_lifetime_checks": generator.scoped_checks,
+                           "template_specializations": [
+                               {"kind": kind, "export": item["name"],
+                                "cpp": _concrete(item[key], item["template_args"]),
+                                "arguments": item["template_args"],
+                                "selected_instantiation_native_checked": True,
+                                "all_template_instantiations_qualified": False}
+                               for kind, items, key in (("function", c["functions"], "cpp_name"),
+                                                        ("object", c["handles"], "cpp_type"))
+                               for item in items if item["template_args"]],
                            "abi": "selected_C++_compiler_host_C_ABI",
                            "assumptions": ["Foreign code respects declared effects, reentrancy and synchronization requirements.",
                                            "Borrowed pointers name live initialized aligned allocations of the stated extent with valid aliasing.",
