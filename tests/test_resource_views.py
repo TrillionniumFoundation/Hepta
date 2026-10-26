@@ -238,6 +238,16 @@ class StoredViewResourceTests(unittest.TestCase):
             with self.subTest(code=code):
                 self.reject(altered(mutate), code)
 
+    def test_v5_cannot_be_resealed_without_any_labelled_view_type(self):
+        graph = lower("""struct Tagged<'a>{data:read 'a [u8],tag:u64}
+        fn f(data:read [u8])->Unit effects {panic} {
+            let tagged=Tagged{data:read data,tag:7};
+            assert(tagged.tag==7);
+        }""")
+        self.assertTrue(verify_resource_ir(graph)["ok"])
+        graph["types"]["Tagged<'_>"]["scalars"] = []
+        self.reject(graph, "E_RIR_VIEW_TYPE")
+
     def test_preexisting_v4_view_profiles_stay_strict_and_unchanged(self):
         graph = lower(SHARED)
         self.assertEqual(graph["schema"], "hepta.resource-ir.v4")
