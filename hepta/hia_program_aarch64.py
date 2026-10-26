@@ -42,6 +42,7 @@ _SIGNATURES = {
     "cast_i8_u64": (["u64"], ["i8"]),
     "bounds_trap": (["usize"], ["u8"]),
     "move_bytes": (["usize", "usize", "usize", "usize", "usize"], ["u8"]),
+    "fill_range": (["usize", "usize", "usize", "u8", "usize"], ["u8"]),
 }
 
 # The native harness checks these same fixed values after real ABI calls.
@@ -79,6 +80,19 @@ _OVERLAP_CASES = (
     ((5, 2, 2, 3, 4), 55),
     ((5, 5, 5, 0, 0), 11),
     ((5, 0, 0, 0, 4), 55),
+)
+
+# Eight fixed ABI calls, one 1- or 5-byte owner per call. All range
+# checks are in the verified Core LLVM, not duplicated by this C oracle.
+_RANGE_FILL_CASES = (
+    ((5, 1, 3, 7, 0), 0),
+    ((5, 1, 3, 7, 1), 7),
+    ((5, 1, 3, 7, 3), 7),
+    ((5, 1, 3, 7, 4), 0),
+    ((5, 5, 0, 7, 4), 0),
+    ((1, 0, 0, 99, 0), 0),
+    ((1, 0, 1, 99, 0), 99),
+    ((5, 0, 5, 42, 4), 42),
 )
 
 
@@ -165,11 +179,12 @@ def _literal(value, typ):
 
 
 def _runtime_source(document, mode):
-    if mode not in {"matrix", "bounds_trap", "overlap_move"}:
+    if mode not in {"matrix", "bounds_trap", "overlap_move", "range_fill"}:
         _reject("unsupported fixed target driver mode")
     functions = {fn["name"]: fn for fn in document["functions"]}
     required = ({row[0] for row in CASES} if mode == "matrix"
-                else {"move_bytes"} if mode == "overlap_move" else {"bounds_trap"})
+                else {"move_bytes"} if mode == "overlap_move"
+                else {"fill_range"} if mode == "range_fill" else {"bounds_trap"})
     declarations = []
     for name in sorted(required):
         params, returns = _SIGNATURES[name]
@@ -200,6 +215,18 @@ def _runtime_source(document, mode):
                          _literal(expected, returns[0]) + ") return " + str(50 + index) + ";")
         lines += ["    write_counters();",
                   "    if (successful_allocations != 8 || releases != 8 || outstanding != 0 || denied_allocations != 0) return 79;",
+                  "    return 0;"]
+    elif mode == "range_fill":
+        # Directly invoke the emitted HIA v6 function with the reviewed
+        # single-owner runtime, including partial writes and zero-count.
+        params, returns = _SIGNATURES["fill_range"]
+        for index, (arguments, expected) in enumerate(_RANGE_FILL_CASES):
+            call = "fill_range(" + ", ".join(
+                _literal(value, typ) for value, typ in zip(arguments, params)) + ")"
+            lines.append("    if (" + call + " != " +
+                         _literal(expected, returns[0]) + ") return " + str(80 + index) + ";")
+        lines += ["    write_counters();",
+                  "    if (successful_allocations != 8 || releases != 8 || outstanding != 0 || denied_allocations != 0) return 99;",
                   "    return 0;"]
     else:
         # Reaching this would demonstrate that the expected trap was absent.

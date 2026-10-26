@@ -46,6 +46,25 @@ class CMigrationAdversarial(unittest.TestCase):
         self.assertTrue(result["ok"], result)
         self.assertTrue(self.output.exists())
 
+    def test_macro_generated_main_globals_must_be_in_inventory(self):
+        for source in (
+            "int pure(int x){return x;}\n#define G int hidden=7;\nG\n",
+            "#define G int hidden=7;\nG\nint pure(int x){return x;}\n",
+            "int pure(int x){return x;}\n#define G(n) int n=7;\nG(hidden)\n",
+        ):
+            with self.subTest(source=source):
+                self.reject(source, "E_C_TOPLEVEL")
+
+    def test_macro_generated_prototypes_must_not_disappear(self):
+        self.reject("int pure(int x){return x;}\n#define P int legacy(int);\nP\n", "E_C_TOPLEVEL")
+
+    def test_header_macro_expansion_belongs_to_main_c_file(self):
+        (self.root / "defs.h").write_text("#define G int hidden=7;\n", encoding="utf-8")
+        self.reject('#include "defs.h"\nint pure(int x){return x;}\nG\n', "E_C_TOPLEVEL")
+
+    def test_macro_defined_function_is_not_certified_by_missing_offset(self):
+        self.reject("#define F int pure(int x){return x;}\nF\n", "E_C_TOPLEVEL")
+
     def test_existing_output_is_not_overwritten(self):
         self.output.write_text("old")
         self.source.write_text("int f(int x){return x;}")

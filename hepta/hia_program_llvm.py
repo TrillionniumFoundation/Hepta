@@ -38,6 +38,8 @@ PROFILE_V4 = "hepta.hia.program.llvm-linux-x86_64-byte-swap.v4"
 PROFILE_AARCH64_V4 = "hepta.hia.program.llvm-linux-aarch64-byte-swap-object.v4"
 PROFILE_V5 = "hepta.hia.program.llvm-linux-x86_64-offset-copy.v5"
 PROFILE_AARCH64_V5 = "hepta.hia.program.llvm-linux-aarch64-offset-copy-object.v5"
+PROFILE_V6 = "hepta.hia.program.llvm-linux-x86_64-range-fill.v6"
+PROFILE_AARCH64_V6 = "hepta.hia.program.llvm-linux-aarch64-range-fill-object.v6"
 MAX_LLVM_BYTES = 16 * 1024 * 1024
 MAX_ARTIFACT_BYTES = 64 * 1024 * 1024
 _WIDTHS = {**{f"{sign}{bits}": bits for sign in ("i", "u")
@@ -382,6 +384,25 @@ class _FunctionEmitter:
             # ranges may partially or entirely overlap.
             self.line("call void @llvm.memmove.p0.p0.i64(ptr align 1 " + dst_pointer +
                       ", ptr align 1 " + src_pointer + ", i64 " + size + ", i1 false)")
+        elif op == "buffer.fill_range":
+            # v6 partial memset: both guards dominate the address and write.
+            # A zero count needs no derived pointer (zero-size owners use null).
+            pointer, extent = self.buffer_parts(arguments[0][0])
+            offset, size, value = (arg[0] for arg in arguments[1:])
+            self.guard(self.instruction("icmp ule i64 " + offset + ", " + extent))
+            remaining = self.instruction("sub i64 " + extent + ", " + offset)
+            self.guard(self.instruction("icmp ule i64 " + size + ", " + remaining))
+            self.serial += 1
+            suffix = str(self.serial)
+            nonempty, after = "fill_nonempty_" + suffix, "fill_after_" + suffix
+            positive = self.instruction("icmp ne i64 " + size + ", 0")
+            self.line("br i1 " + positive + ", label %" + nonempty + ", label %" + after)
+            self.lines.append(nonempty + ":")
+            dest = self.instruction("getelementptr i8, ptr " + pointer + ", i64 " + offset)
+            self.line("call void @llvm.memset.p0.i64(ptr align 1 " + dest +
+                      ", i8 " + value + ", i64 " + size + ", i1 false)")
+            self.line("br label %" + after)
+            self.lines.append(after + ":")
         elif op == "buffer.copy_range":
             # Two independently owned allocations permit memcpy rather than memmove.
             destination, dst_size = self.buffer_parts(arguments[0][0])
@@ -529,7 +550,7 @@ class _Emitter:
         self.functions = {fn["name"]: fn for fn in document["functions"]}
         self.bulk_operations = {operation["op"] for fn in document["functions"]
                                 for block in fn["blocks"] for operation in block["ops"]
-                                if operation["op"] in {"buffer.fill", "buffer.copy", "buffer.move_within", "buffer.copy_range"}}
+                                if operation["op"] in {"buffer.fill", "buffer.fill_range", "buffer.copy", "buffer.move_within", "buffer.copy_range"}}
         self.indices = {fn["name"]: index for index, fn in enumerate(document["functions"])}
         self.intrinsics = set()
         self.exports = []
@@ -572,7 +593,7 @@ class _Emitter:
                         'declare ptr @calloc(i64, i64) "no-builtins"',
                         'declare ptr @malloc(i64) "no-builtins"',
                         'declare void @free(ptr) "no-builtins"']
-        if "buffer.fill" in self.bulk_operations:
+        if "buffer.fill" in self.bulk_operations or "buffer.fill_range" in self.bulk_operations:
             declarations.append("declare void @llvm.memset.p0.i64(ptr, i8, i64, i1 immarg)")
         if "buffer.copy" in self.bulk_operations or "buffer.copy_range" in self.bulk_operations:
             declarations.append("declare void @llvm.memcpy.p0.p0.i64(ptr, ptr, i64, i1 immarg)")
@@ -593,7 +614,7 @@ def emit_program_llvm(program, *, target=TARGET):
         _reject("unsupported 64-bit native target")
     before = _implementation_hash()
     verified = _verified(program)
-    from .hia_program import SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5
+    from .hia_program import SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6
     document = verified.as_dict()
     emitter = _Emitter(document, target)
     text = emitter.render()
@@ -601,7 +622,9 @@ def emit_program_llvm(program, *, target=TARGET):
         _reject("generated LLVM exceeds the closed textual profile")
     if _implementation_hash() != before:
         _reject("verifier/emitter implementation changed during generation", "E_HIA_PROGRAM_STALE")
-    if document["schema"] == SCHEMA_V5:
+    if document["schema"] == SCHEMA_V6:
+        profile = PROFILE_V6 if target == TARGET else PROFILE_AARCH64_V6
+    elif document["schema"] == SCHEMA_V5:
         profile = PROFILE_V5 if target == TARGET else PROFILE_AARCH64_V5
     elif document["schema"] == SCHEMA_V4:
         profile = PROFILE_V4 if target == TARGET else PROFILE_AARCH64_V4
