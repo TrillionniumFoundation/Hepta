@@ -1,0 +1,103 @@
+{
+  "compiler_tree_sha256": "59f914fdba2acf80ca5b1e0c39935f9675ec13657d852110a5017f376e899bd0",
+  "deliverables": [
+    {
+      "id": 1,
+      "implemented": "Actual executable-Core operations and scalar HIA SSA/PHIs converge on the same standalone verifier, resource semantics, interpreter and LLVM backend.",
+      "remaining": "Broader historical source/backend features remain outside v1; no full-language convergence claim.",
+      "status": "integrated_for_declared_v1_profile"
+    },
+    {
+      "id": 2,
+      "implemented": "Source-free bounded HIA JSON; independent verify_core; interpreter; direct native targets; atomic semantic patch protocol; tamper/resource/CFG rejection.",
+      "remaining": "Only the specified integer/byte-resource 64-bit profile and declared targets are admitted.",
+      "status": "implemented_and_scoped_qualified"
+    },
+    {
+      "id": 3,
+      "implemented": "Concrete records/Result, closed generic specialization, multiple owners, owner moves, local stored loans/reborrows, loops/joins, ordinary error returns.",
+      "remaining": "General nominal ADTs, escaping/stored source lifetimes, tasks, cancellation and channels are not closed in standalone HIA.",
+      "status": "partial"
+    },
+    {
+      "id": 4,
+      "implemented": "Actual compilation database C with two owners; scalar C++ value class; actual closed C++ owner migration into standalone HIA with 475 native vectors per implementation.",
+      "remaining": "Arbitrary C++ templates/STL/custom RAII/class ABI, source-equivalence theorem and total human migration cost remain unqualified.",
+      "status": "expanded_bounded_migration_qualified"
+    },
+    {
+      "id": 5,
+      "implemented": "Actual x86-64 native, AArch64 QEMU, separately labeled Rust/Cortex-M4 QEMU, same-check Rust baselines and complete fixed timing protocol.",
+      "performance_status": "measurement_inconclusive",
+      "remaining": "Fixed performance gate must pass; physical hardware/device timing/DMA/GPU and whole-language Rust parity are unqualified.",
+      "status": "performance_and_physical_hardware_not_qualified"
+    },
+    {
+      "id": 6,
+      "implemented": "Typed edit protocol, native positive/negative controls, frozen four-arm pilot plan and actual model capability probes.",
+      "pilot_status": "model_capability_preflight_failed",
+      "remaining": "Available locked model failed eligibility; zero comparative task attempts. Independent success/error/maintenance/total-cost benefit is unproved.",
+      "status": "benefit_not_established"
+    }
+  ],
+  "full_six_deliverables_complete": false,
+  "performance_remaining_analysis": {
+    "additional_timing_samples": 0,
+    "artifact": "performance_diagnosis/full_lifecycle_static_v2/README.md",
+    "causal_percentage_established": false,
+    "observed_static_difference": "Additional per-byte HIA bounds branch in checksum; different vector-tail handling; all main fill loops vectorized. Both Rust implementations still initialize the buffer.",
+    "scope": "HIA and handwritten Rust retained binary identities match final measurement. Generated Rust static rebuild source/toolchain/flags match, binary hash differs.",
+    "source_changes_after_qualification": false
+  },
+  "prior_attempts": [
+    {
+      "directory": "hia_unified_20261026",
+      "reason": "Linker ENOSPC during unit regression; confirmed source edge cases required a new version. Interrupted timing is not a passing sample set.",
+      "source": "35422e8fd58e23bf1440699a65b0f5154c35444f",
+      "status": "interrupted"
+    },
+    {
+      "directory": "hia_unified_fixed_20261026",
+      "performance_status": "measurement_inconclusive",
+      "reason": "Legacy test/API mismatches were corrected without weakening rejection. A conservative unread-byte allocation optimization addresses the confirmed zero-fill cost.",
+      "source": "9fe295e87352295de4b4eb396bda239ceef2a474",
+      "status": "7_of_9_scoped_gates_passed",
+      "timing_samples": 63,
+      "unit_errors": 1,
+      "unit_failures": 15,
+      "unit_tests": 1723
+    }
+  ],
+  "schema": "hepta.hia.six-delivery-ledger.v1",
+  "scoped_qualification": {
+    "completed_gates": 9,
+    "ok": false,
+    "passed_gates": 8,
+    "status": "scoped_gates_not_all_qualified",
+    "unchanged_source": true
+  },
+  "source": {
+    "identical_git_tree": "4d7b498e7b3cec6304ee0755e7c0ddf42c26842f",
+    "integration_parents": [
+      "ea4337d60332373341190682a346f26fbe8727e5",
+      "fe08c39ca2c75b80e5a0d7b7b597ff1ab3284a03"
+    ],
+    "interpretation": "Commit metadata differs between local git and the connected GitHub API. The complete Git source tree is byte-identical; later evidence-only commits do not expand qualification scope.",
+    "local_qualification_commit": "06266df5df19cb2b08ec3756ac750699cd987b81",
+    "publication_method": "authenticated GitHub Git Data API; local git transport lacked HTTP credentials",
+    "remote_branch": "implement/hia-unified-native-20261026",
+    "remote_integration_commit": "5b4f3727f3b7848bc240c3ad0f454db53f3ae58d",
+    "remote_source_commit": "b5687ecd4a633489e86894457545c6367b6acf20",
+    "remote_tree_and_ref_verified_by_read": true,
+    "schema": "hepta.hia.publication-source-binding.v1"
+  },
+  "source_snapshot_sha256": "3806e85f3f1841574475925af1ba588866da868b2d4e8bf4eb30e6719476a326",
+  "unit_regression": {
+    "errors": 0,
+    "failures": 0,
+    "passed": true,
+    "seconds": 507.1810108260106,
+    "skipped": 0,
+    "tests_run": 1730
+  }
+}

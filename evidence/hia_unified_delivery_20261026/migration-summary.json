@@ -1,0 +1,176 @@
+{
+  "actual_fault_executions": 212,
+  "c_active_declarations": 4,
+  "c_inventory_complete": true,
+  "claims": {
+    "all_c_cpp_supported": false,
+    "backend_refinement_proved": false,
+    "c_multi_owner_whole_program_ast_template": false,
+    "cpp_owned_complete_protocol_ast_match": true,
+    "human_labor_reduction_measured": false,
+    "original_implementations_linked_into_targets": false,
+    "rust_performance_parity_proved": false,
+    "source_equivalence_proved": false,
+    "source_required_for_hia_execution": false,
+    "standalone_core_consumed": true
+  },
+  "cpp_owned_cpp_class_abi_preserved": false,
+  "cpp_owned_foreign_cpp_link_inputs": [],
+  "cpp_owned_interpreter_cases": 112,
+  "cpp_owned_member_inventory": [
+    {
+      "clang_id": "0x564f85615c90",
+      "disposition": "checked_protocol_constraint",
+      "kind": "CXXRecordDecl",
+      "name": "OwnedBytes",
+      "role": "injected_class_name"
+    },
+    {
+      "clang_id": "0x564f85615d90",
+      "disposition": "translated",
+      "kind": "FieldDecl",
+      "name": "data_",
+      "role": "exclusive_byte_pointer"
+    },
+    {
+      "clang_id": "0x564f85615e00",
+      "disposition": "translated",
+      "kind": "FieldDecl",
+      "name": "size_",
+      "role": "buffer_extent"
+    },
+    {
+      "clang_id": "0x564f85615e58",
+      "disposition": "checked_protocol_constraint",
+      "kind": "AccessSpecDecl",
+      "name": null,
+      "role": "public_access"
+    },
+    {
+      "clang_id": "0x564f85616088",
+      "disposition": "translated",
+      "kind": "CXXConstructorDecl",
+      "name": "OwnedBytes",
+      "role": "fallible_zeroed_allocation_with_post_allocation_rejection"
+    },
+    {
+      "clang_id": "0x564f85616340",
+      "disposition": "translated",
+      "kind": "CXXConstructorDecl",
+      "name": "OwnedBytes",
+      "role": "exclusive_move_and_source_reset"
+    },
+    {
+      "clang_id": "0x564f856165c8",
+      "disposition": "checked_protocol_constraint",
+      "kind": "CXXConstructorDecl",
+      "name": "OwnedBytes",
+      "role": "deleted_copy_constructor"
+    },
+    {
+      "clang_id": "0x564f85616860",
+      "disposition": "checked_protocol_constraint",
+      "kind": "CXXMethodDecl",
+      "name": "operator=",
+      "role": "deleted_copy_assignment"
+    },
+    {
+      "clang_id": "0x564f856383c0",
+      "disposition": "checked_protocol_constraint",
+      "kind": "CXXMethodDecl",
+      "name": "operator=",
+      "role": "deleted_move_assignment"
+    },
+    {
+      "clang_id": "0x564f85638520",
+      "disposition": "translated",
+      "kind": "CXXDestructorDecl",
+      "name": "~OwnedBytes",
+      "role": "array_destructor"
+    },
+    {
+      "clang_id": "0x564f85638688",
+      "disposition": "translated",
+      "kind": "CXXMethodDecl",
+      "name": "size",
+      "role": "extent_read"
+    },
+    {
+      "clang_id": "0x564f856387e8",
+      "disposition": "translated",
+      "kind": "CXXMethodDecl",
+      "name": "data",
+      "role": "borrowed_read_view"
+    },
+    {
+      "clang_id": "0x564f856389c0",
+      "disposition": "translated",
+      "kind": "CXXMethodDecl",
+      "name": "fill",
+      "role": "byte_fill"
+    },
+    {
+      "clang_id": "0x564f85638ba8",
+      "disposition": "translated",
+      "kind": "CXXMethodDecl",
+      "name": "get",
+      "role": "byte_get"
+    },
+    {
+      "clang_id": "0x564f85638e30",
+      "disposition": "translated",
+      "kind": "CXXMethodDecl",
+      "name": "set",
+      "role": "byte_set"
+    }
+  ],
+  "cpp_owned_migration_strategy": "complete_normalized_ast_protocol",
+  "cpp_owned_observations": {
+    "original_cpp": {
+      "allocations": 359,
+      "cases": 475,
+      "frees": 359,
+      "live": 0,
+      "observations_fnv64": "76b9c7dcdcefd304",
+      "ok": true,
+      "refusals": 98
+    },
+    "standalone_hia": {
+      "allocations": 359,
+      "cases": 475,
+      "frees": 359,
+      "live": 0,
+      "observations_fnv64": "76b9c7dcdcefd304",
+      "ok": true,
+      "refusals": 98
+    }
+  },
+  "cpp_owned_source_declarations": 2,
+  "cpp_owned_target_link_argv": [
+    "cc",
+    "-std=c11",
+    "-O2",
+    "-fno-lto",
+    "-Werror=implicit-function-declaration",
+    "-fno-builtin-calloc",
+    "-fno-builtin-malloc",
+    "-fno-builtin-free",
+    "-Wl,--wrap=calloc",
+    "-Wl,--wrap=malloc",
+    "-Wl,--wrap=free",
+    "-I/workspace/scratch/06ad8295a712/hepta-unified/evidence/hia_unified_final_20261026/migration/cpp_owned",
+    "-include",
+    "/workspace/scratch/06ad8295a712/hepta-unified/evidence/hia_unified_final_20261026/migration/cpp_owned/owned_case.h",
+    "/workspace/scratch/06ad8295a712/hepta-unified/examples/cpp/owned_migration/harness.c",
+    "/workspace/scratch/06ad8295a712/hepta-unified/evidence/hia_unified_final_20261026/migration/cpp_owned/owned.o",
+    "-o",
+    "/workspace/scratch/06ad8295a712/hepta-unified/evidence/hia_unified_final_20261026/migration/cpp_owned/standalone_hia"
+  ],
+  "multi_owner_c_cases": 56,
+  "native_result_executions": 1102,
+  "ok": true,
+  "owned_cpp_cases": 475,
+  "scalar_cpp_cases": 20,
+  "schema": "hepta.hia.delivery-migration-summary.v1",
+  "status": "finite_source_to_hia_native_qualification_passed"
+}

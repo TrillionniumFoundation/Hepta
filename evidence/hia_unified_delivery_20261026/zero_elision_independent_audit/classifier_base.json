@@ -1,0 +1,112 @@
+{
+  "blocks": [
+    {
+      "id": "entry",
+      "ops": [
+        {
+          "args": [
+            "n"
+          ],
+          "attrs": {},
+          "op": "buffer.try_new",
+          "out": [
+            {
+              "name": "b",
+              "type": "buffer"
+            },
+            {
+              "name": "ok",
+              "type": "bool"
+            }
+          ]
+        }
+      ],
+      "params": [
+        {
+          "name": "n",
+          "type": "usize"
+        }
+      ],
+      "term": {
+        "args": [
+          "b"
+        ],
+        "op": "jump",
+        "target": "later"
+      }
+    },
+    {
+      "id": "later",
+      "ops": [
+        {
+          "args": [
+            "lb"
+          ],
+          "attrs": {},
+          "op": "borrow.read",
+          "out": [
+            {
+              "name": "lr",
+              "type": "readbuf"
+            }
+          ]
+        },
+        {
+          "args": [
+            "lr"
+          ],
+          "attrs": {},
+          "op": "buffer.len",
+          "out": [
+            {
+              "name": "length",
+              "type": "usize"
+            }
+          ]
+        },
+        {
+          "args": [
+            "lr"
+          ],
+          "attrs": {},
+          "op": "loan.end",
+          "out": []
+        },
+        {
+          "args": [
+            "lb"
+          ],
+          "attrs": {},
+          "op": "owner.drop",
+          "out": []
+        }
+      ],
+      "params": [
+        {
+          "name": "lb",
+          "type": "buffer"
+        }
+      ],
+      "term": {
+        "op": "ret",
+        "values": [
+          "length"
+        ]
+      }
+    }
+  ],
+  "effects": [
+    "alloc"
+  ],
+  "entry": "entry",
+  "name": "candidate",
+  "params": [
+    {
+      "name": "n",
+      "type": "usize"
+    }
+  ],
+  "returns": [
+    "usize"
+  ]
+}
