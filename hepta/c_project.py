@@ -303,7 +303,7 @@ def verify_capture(capture: dict) -> None:
         all_paths, local_paths = config["all_dependencies"], config["local_dependencies"]
         if not isinstance(all_paths, list) or not isinstance(local_paths, list):
             raise MigrationRejected("E_C_BUILD_IDENTITY", "Malformed configuration dependency inventories")
-        if (any(not isinstance(path, str) or not path or "\\x00" in path
+        if (any(not isinstance(path, str) or not path or "\x00" in path
                 for path in [*all_paths, *local_paths])
                 or len(set(all_paths)) != len(all_paths)
                 or len(set(local_paths)) != len(local_paths)
