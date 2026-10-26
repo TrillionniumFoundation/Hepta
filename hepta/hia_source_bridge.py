@@ -197,7 +197,8 @@ def lower_checked_owned_hia(program, checked, *, project_sha256: str) -> Checked
 
 def build_checked_hepta_hia_native(source, output, *, rustc=None, clang="clang",
                                    target="x86_64-unknown-linux-gnu", kind="shared",
-                                   locked=False, profile="scalar") -> dict:
+                                   locked=False, profile="scalar",
+                                   static_resource_limits=None) -> dict:
     """Build actual verified Core using the existing native HIA LLVM emitter.
 
     Mandatory *real* pinned Rust validation precedes source-to-HIA conversion;
@@ -213,6 +214,7 @@ def build_checked_hepta_hia_native(source, output, *, rustc=None, clang="clang",
     from .hia_program_llvm import (TARGET, TARGET_AARCH64, _read_artifact,
                                    compile_program_llvm, emit_program_llvm)
     from .pipeline import analyze_project, compiler_hash
+    from .hia_static_budget import analyze_static_budget
 
     report = {"schema": "hepta.build-checked-hia-source.v1", "ok": False,
               "status": "rejected", "source": str(source), "output": str(output),
@@ -226,6 +228,15 @@ def build_checked_hepta_hia_native(source, output, *, rustc=None, clang="clang",
     try:
         if type(profile) is not str or profile not in {"scalar", "owned"}:
             _reject("unknown checked-source Core profile")
+        if static_resource_limits is not None:
+            if (type(static_resource_limits) is not dict
+                    or not static_resource_limits
+                    or not set(static_resource_limits) <= {
+                        "max_allocator_interactions", "max_vm_ticks", "max_call_depth"}):
+                _reject("static resource policy has unknown or missing fields")
+            if any(type(v) is not int or v < 0
+                   for v in static_resource_limits.values()):
+                _reject("static resource policy requires nonnegative integers")
         if profile == "owned":
             report["schema"] = "hepta.build-checked-hia-owned-source.v1"
             report["source_profile"] = "verified-byte-owner-core-v1"
@@ -264,6 +275,21 @@ def build_checked_hepta_hia_native(source, output, *, rustc=None, clang="clang",
             analyzed.program, analyzed.checked, project_sha256=project.identity))
         if compiler_hash() != compiler_identity:
             _reject("compiler changed during source-to-Core lowering")
+        # Strict optional resource admission belongs *before* LLVM emission.
+        # It verifies the existing immutable Core, rejects any recursive/loop
+        # CFG rather than inventing a finite bound, and counts every nested
+        # call and potential allocator interaction conservatively.
+        # Omitted policy leaves the original HIA program profile unchanged.
+        if static_resource_limits is not None:
+            budget = analyze_static_budget(
+                derived.program, **static_resource_limits)
+            if (type(budget) is not dict
+                    or budget.get("schema") != "hepta.hia.static-budget.v1"
+                    or budget.get("core_sha256") != derived.program.sha256
+                    or budget.get("claims", {}).get("native_cpu_time_or_rss_proved") is not False
+                    or budget.get("claims", {}).get("whole_language_soundness_proved") is not False):
+                _reject("static resource bound does not match checked HIA Core")
+            report["static_resource_budget"] = budget
         # No other compiler path may produce the native machine code. The
         # canonical HIA Program is reverified again inside emit/compile.
         ir = emit_program_llvm(derived.program, target=target)
@@ -332,8 +358,9 @@ def build_checked_hepta_hia_native(source, output, *, rustc=None, clang="clang",
 
 def build_checked_owned_hia_native(source, output, *, rustc=None, clang="clang",
                                    target="x86_64-unknown-linux-gnu", kind="shared",
-                                   locked=False) -> dict:
+                                   locked=False, static_resource_limits=None) -> dict:
     """Source→verified owned Core→LLVM: no Rust/C output-code fallback."""
     return build_checked_hepta_hia_native(
         source, output, rustc=rustc, clang=clang, target=target, kind=kind,
-        locked=locked, profile="owned")
+        locked=locked, profile="owned",
+        static_resource_limits=static_resource_limits)
