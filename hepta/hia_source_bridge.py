@@ -15,6 +15,10 @@ from .cfg import lower_hsir_cfg
 from .core import from_scalar_core
 from .hia_core import seal_hia_scalar_core
 from .hia_program import VerifiedProgram, verify_program
+# Preserve the genuine analyzer entrypoint during this source module's import.
+# Runtime substitution of the builder's public analyzer must not silently
+# change the quantitative acceptance reference.
+from .hia_static_budget import analyze_static_budget as _replay_static_budget
 from .hsir import lower_checked_program
 from .native_resource_gate import qualify_native_resource_source
 from .ssa import lower_cfg_scalar_ssa
@@ -112,6 +116,19 @@ def _validate_static_budget_receipt(program, limits: dict, receipt: dict) -> Non
         for key, upper in limits.items():
             if row[key] > upper:
                 _reject("static budget exceeds a requested bound")
+
+    # A well-formed, self-rehashed receipt is not evidence its resource
+    # numbers were calculated from the current Core. Recompute from the
+    # independently reverified immutable HIA bytes, not from receipt rows.
+    # This is a deterministic replay of the ONE established analyzer, not a
+    # second numeric authority or proof of the analyzer's soundness.
+    try:
+        canonical = _replay_static_budget(checked, **limits)
+    except (ValueError, TypeError, KeyError, OverflowError, RecursionError) as exc:
+        raise HIAHeptaBridgeRejected(
+            "E_HIA_HEPTA_BRIDGE: canonical resource replay rejected") from exc
+    if canonical != receipt:
+        _reject("static budget quantities differ from the canonical Core replay")
 
 
 @dataclass(frozen=True)
