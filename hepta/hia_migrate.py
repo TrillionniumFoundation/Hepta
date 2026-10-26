@@ -16,6 +16,7 @@ import tempfile
 
 from .c_migrate import migrate_c
 from .cpp2hepta import migrate_cpp
+from .hia_l1_receipt import validate_migration_receipt
 from .hia_source_bridge import build_checked_hepta_hia_native
 from .hia_bundle_atomic import (AtomicBundleRejected, AtomicBundleUncertain,
                                 publish_hia_bundle)
@@ -102,6 +103,12 @@ def migrate_scalar_to_hia(source: str | Path, output_directory: str | Path, *,
             if (not code or len(code) > 1_000_000
                     or candidate_report.get("output_sha256") != _sha(code)):
                 _reject("candidate bytes disagree with source migration receipt")
+            # Exact source bytes and closed L1 schema precede any native build.
+            # No migration receipt may elevate ABI, equivalence or memory-safety claims.
+            validate_migration_receipt(
+                candidate_report, language=language, source=str(src),
+                output=str(hepta), source_sha256=result["source_sha256"],
+                output_sha256=_sha(code))
             result["artifacts"]["candidate.hepta"] = {"sha256": _sha(code), "bytes": len(code)}
             # P0/P2: one native executable HIA Core consumer. Never return to
             # the older scalar-core.v0 -> independent SSA LLVM publisher.
