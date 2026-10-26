@@ -181,15 +181,17 @@ def compile_owned_aarch64_object(ir: OwnedLLVM, *, program, checked, output,
                        "whole_language_memory_safety_proved": False}}
 
 
-def build_owned_aarch64_source(source, output, *, rustc=None, clang="clang", locked=False) -> dict:
+def build_owned_aarch64_source(source, output, *, rustc=None, clang="clang",
+                               locked=False, synthetic_link_probe=False) -> dict:
     """User-facing strict source build: Rust reference + resource checks first."""
     report = {"schema": "hepta.build-llvm-owned-aarch64.v1", "ok": False,
               "status": "rejected", "source": str(source), "output": str(output),
               "target": TARGET_AARCH64,
               "whole_project_blockers_closed": False}
     try:
-        if type(locked) is not bool:
-            reject("Locked flag must be a boolean", "E_LLVM_OWNED_TARGET_INPUT")
+        if type(locked) is not bool or type(synthetic_link_probe) is not bool:
+            reject("Locked and synthetic-link flags must be booleans",
+                   "E_LLVM_OWNED_TARGET_INPUT")
         analyzed = analyze_project(source, backend="rust", native=True, rustc=rustc,
                                    locked=locked, crate_type="rlib")
         report["reference_validation"] = analyzed.report
@@ -220,6 +222,21 @@ def build_owned_aarch64_source(source, output, *, rustc=None, clang="clang", loc
                 project_sha256=project.identity, clang=clang)
             data = stage.read_bytes() if stage.is_file() else b""
             layout = backend.get("target_layout_probe")
+            synthetic_link = None
+            if synthetic_link_probe:
+                # This only validates link-time relocation against deliberately
+                # NONFUNCTIONAL freestanding C shims. Never publish the linked
+                # synthetic image or turn its result into runtime/ABI proof.
+                from .owned_aarch64_link import probe_owned_aarch64_freestanding_link
+                synthetic_link = probe_owned_aarch64_freestanding_link(
+                    data, ir.functions, clang=clang)
+                if (synthetic_link.get("status") !=
+                        "synthetic_freestanding_link_only_not_executed"
+                        or synthetic_link.get("object_sha256") != sha256(data).hexdigest()
+                        or synthetic_link.get("real_allocator_linked") is not False
+                        or synthetic_link.get("c_abi_execution_qualified") is not False):
+                    reject("Synthetic link receipt differs from checked native object",
+                           "E_LLVM_OWNED_TARGET_LINK")
             if (not data or len(data) != backend.get("artifact_bytes")
                     or sha256(data).hexdigest() != backend.get("artifact_sha256")
                     or type(layout) is not dict
@@ -246,6 +263,8 @@ def build_owned_aarch64_source(source, output, *, rustc=None, clang="clang", loc
                     "E_LLVM_OWNED_TARGET_PUBLICATION: " + str(exc)) from exc
         report.update(ok=True, status="cross_object_only_not_executed",
                       native_backend=backend,
+                      synthetic_link_probe=synthetic_link,
+                      synthetic_link_probe_attempted=synthetic_link_probe,
                       published_artifact_sha256=publication["sha256"],
                       published_artifact_bytes=publication["bytes"],
                       source_binding={"project_sha256": project.identity,
@@ -266,10 +285,13 @@ def main(argv=None):
     parser.add_argument("--rustc")
     parser.add_argument("--clang", default="clang")
     parser.add_argument("--locked", action="store_true")
+    parser.add_argument("--synthetic-link-probe", action="store_true",
+                        help="Check only ARM64 relocations against NONFUNCTIONAL dummy stubs; never run the linked image")
     args = parser.parse_args(argv)
     report = build_owned_aarch64_source(args.source, args.output,
                                         rustc=args.rustc, clang=args.clang,
-                                        locked=args.locked)
+                                        locked=args.locked,
+                                        synthetic_link_probe=args.synthetic_link_probe)
     print(json.dumps(report, sort_keys=True, allow_nan=False))
     return 0 if report["ok"] else 2
 

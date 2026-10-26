@@ -128,6 +128,18 @@ class OwnedAArch64ObjectTests(unittest.TestCase):
 
 
 class OwnedAArch64ReferenceGateTests(unittest.TestCase):
+    def test_malformed_link_option_fails_before_reference_or_clang(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "owned-arm64.o"
+            with patch("hepta.llvm_owned_aarch64.analyze_project",
+                       side_effect=AssertionError("invalid flags must never start source checking")):
+                report = build_owned_aarch64_source(
+                    Path(directory) / "entry.hepta", target,
+                    synthetic_link_probe="true")
+            self.assertFalse(report["ok"])
+            self.assertFalse(target.exists())
+            self.assertEqual(report["diagnostics"][0]["code"], "E_LLVM_OWNED_TARGET_INPUT")
+
     def test_frontend_only_cannot_publish_a_target_object(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
