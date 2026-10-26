@@ -84,8 +84,36 @@ def _signature(node: dict, *, constructor: bool = False) -> tuple[str, bool, dic
     return ("Unit" if signature[1] == "void" else SCALARS[signature[1]]), bool(signature[3]), by_id
 
 
+def _local_bindings(body: dict) -> dict[str, dict]:
+    """Bind automatic scalar declarations by identity before rewriting uses.
+
+    Source spelling never identifies a variable: shadowed for indices receive
+    different bindings. The shared C statement lowerer still owns scope and
+    declaration-placement acceptance, so collecting an identity is not a claim
+    that its declaration is legal in every position.
+    """
+    found = {}
+    pending = [body]
+    while pending:
+        node = pending.pop()
+        if node.get("kind") == "VarDecl":
+            ident = node.get("id")
+            if (not isinstance(ident, str) or ident in found or len(found) >= 64
+                    or node.get("storageClass") is not None or node.get("tls") is not None
+                    or node.get("constexpr") or node.get("isConstexpr") or node.get("inline")
+                    or node.get("init") is None or len(_children(node)) != 1):
+                _reject("Method locals need one initialized automatic scalar and a distinct identity",
+                        "E_CPP_CLASS_LOCAL")
+            found[ident] = {"name": _name(node.get("name")), "type": _scalar(node),
+                            "cpp_type": node["type"]["qualType"],
+                            "binding": "localbinding" + str(len(found))}
+        pending.extend(reversed(_children(node)))
+    return found
+
+
 def _rewrite(node: dict, params: dict[str, dict], fields: dict[str, dict], class_name: str,
-             *, const: bool, allow_fields: bool = True) -> dict:
+             *, const: bool, allow_fields: bool = True,
+             local_bindings: dict[str, dict] | None = None) -> dict:
     """Bind each accepted source field to one checked scalar-lowerer place.
 
     A MemberExpr is admitted only when it refers by Clang identity to one of
@@ -113,39 +141,72 @@ def _rewrite(node: dict, params: dict[str, dict], fields: dict[str, dict], class
                     "type": {"qualType": field["cpp_type"]}}}
     if kind == "DeclRefExpr":
         decl = node.get("referencedDecl", {})
-        param = params.get(decl.get("id"))
-        if (decl.get("kind") != "ParmVarDecl" or param is None or decl.get("name") != param["name"]
-                or decl.get("type", {}).get("qualType") != param["cpp_type"]
-                or node.get("type", {}).get("qualType") != param["cpp_type"] or _children(node)):
-            _reject("Expression refers to something other than its own scalar parameter", "E_CPP_CLASS_REFERENCE")
+        binding = (params.get(decl.get("id")) if decl.get("kind") == "ParmVarDecl"
+                   else (local_bindings or {}).get(decl.get("id")) if decl.get("kind") == "VarDecl"
+                   else None)
+        if (binding is None or decl.get("name") != binding["name"]
+                or decl.get("type", {}).get("qualType") != binding["cpp_type"]
+                or node.get("type", {}).get("qualType") != binding["cpp_type"] or _children(node)):
+            _reject("Expression refers to something other than its own bound scalar parameter/local", "E_CPP_CLASS_REFERENCE")
         rewritten = copy.deepcopy(node)
-        rewritten["referencedDecl"]["name"] = param["hepta_name"]
+        rewritten["referencedDecl"]["name"] = binding.get("hepta_name", binding.get("binding"))
         return rewritten
     if kind == "CXXThisExpr":
         _reject("The this pointer cannot escape or be used as a scalar", "E_CPP_CLASS_MEMBER")
     rewritten = {key: copy.deepcopy(value) for key, value in node.items() if key != "inner"}
+    if kind == "VarDecl":
+        binding = (local_bindings or {}).get(node.get("id"))
+        if binding is None or binding["name"] != node.get("name"):
+            _reject("Local declaration is not inventoried", "E_CPP_CLASS_LOCAL")
+        rewritten["name"] = binding["binding"]
     if "inner" in node:
-        rewritten["inner"] = [_rewrite(child, params, fields, class_name, const=const, allow_fields=allow_fields)
+        rewritten["inner"] = [_rewrite(child, params, fields, class_name, const=const, allow_fields=allow_fields,
+                                         local_bindings=local_bindings)
                               for child in _children(node)]
     return rewritten
 
 
 def _body(node: dict, args: dict[str, str], places: dict, model: dict, returns: str,
-          *, const: bool, depth: int = 1) -> list[str]:
+          *, const: bool, depth: int = 1, reserved_names: set[str] | None = None,
+          allow_local_prefix: bool = False) -> list[str]:
     kind, children = node.get("kind"), _children(node)
     indent = "    " * depth
     if kind == "CompoundStmt":
-        return [line for child in children for line in _body(child, args, places, model, returns, const=const, depth=depth)]
+        lines = []
+        saw_executable = False
+        for child in children:
+            if child.get("kind") == "DeclStmt":
+                if not allow_local_prefix or saw_executable:
+                    _reject("Method scalar locals must be a top-level prefix", "E_CPP_CLASS_LOCAL_SCOPE")
+                declarations = _children(child)
+                if len(declarations) != 1 or declarations[0].get("kind") != "VarDecl":
+                    _reject("Local statements require one scalar declaration", "E_CPP_CLASS_LOCAL")
+                var = declarations[0]
+                name, ident, typ = var.get("name"), var.get("id"), _scalar(var)
+                if name in args or name in places or not isinstance(ident, str) or len(_children(var)) != 1:
+                    _reject("Conflicting or incomplete local declaration", "E_CPP_CLASS_LOCAL")
+                initial, actual = _expr(_children(var)[0], args, model, typ, places)
+                if actual != typ:
+                    _reject("Local initializer changes scalar type", "E_CPP_CLASS_LOCAL")
+                lines.append(f"{indent}let mut {name}: {typ} = {initial};")
+                places[name] = (typ, ident, name)
+            else:
+                saw_executable = True
+                lines += _body(child, args, places, model, returns, const=const, depth=depth,
+                               reserved_names=reserved_names)
+        return lines
     if kind == "IfStmt" and len(children) in {2, 3}:
         predicate, typ = _predicate(children[0], args, model, places)
         if typ != "bool":
             _reject("Unsupported method condition")
         lines = [indent + "if " + predicate + " {"]
-        lines += _body(children[1], args, places, model, returns, const=const, depth=depth + 1)
+        lines += _body(children[1], args, places, model, returns, const=const, depth=depth + 1,
+                       reserved_names=reserved_names)
         lines += [indent + "}"]
         if len(children) == 3:
             lines += [indent + "else {"]
-            lines += _body(children[2], args, places, model, returns, const=const, depth=depth + 1)
+            lines += _body(children[2], args, places, model, returns, const=const, depth=depth + 1,
+                           reserved_names=reserved_names)
             lines += [indent + "}"]
         return lines
     if kind == "ReturnStmt":
@@ -155,11 +216,23 @@ def _body(node: dict, args: dict[str, str], places: dict, model: dict, returns: 
             return [indent + "return;"]
         if len(children) != 1:
             _reject("Scalar methods require one return value")
-        return _stmt(node, args, model, returns, depth=depth, locals=places)
+        return _stmt(node, args, model, returns, depth=depth, locals=places, reserved_names=reserved_names)
     if kind == "BinaryOperator" and node.get("opcode") == "=" and len(children) == 2:
-        if const:
+        if const and children[0].get("referencedDecl", {}).get("name", "").startswith("fieldbinding"):
             _reject("Const methods cannot update fields")
-        return _stmt(node, args, model, returns, depth=depth, locals=places)
+        return _stmt(node, args, model, returns, depth=depth, locals=places, reserved_names=reserved_names)
+    if kind in {"ForStmt", "WhileStmt", "DoStmt", "UnaryOperator"}:
+        # This uses the same typed statement lowering as C and scalar C++.
+        # No break/continue/goto or in-loop declaration is silently erased.
+        pending = [node]
+        while pending:
+            current = pending.pop()
+            operands = _children(current)
+            if (const and current.get("opcode") in {"=", "++", "--"} and operands
+                    and operands[0].get("referencedDecl", {}).get("name", "").startswith("fieldbinding")):
+                _reject("Const methods cannot update fields")
+            pending.extend(operands)
+        return _stmt(node, args, model, returns, depth=depth, locals=places, reserved_names=reserved_names)
     _reject(f"Unsupported method statement: {kind}", "E_CPP_CLASS_STATEMENT")
 
 
@@ -257,9 +330,12 @@ def _translate(record: dict, model: dict) -> tuple[str, dict]:
         bodies = [n for n in children if n.get("kind") == "CompoundStmt"]
         if len(bodies) != 1:
             _reject("Every method must be defined in the class")
-        body = _rewrite(bodies[0], params, fields, name, const=const)
+        locals_ = _local_bindings(bodies[0])
+        body = _rewrite(bodies[0], params, fields, name, const=const, local_bindings=locals_)
         args = {p["hepta_name"]: p["type"] for p in params.values()}
-        rendered = _body(body, args, places, model, returns, const=const)
+        reserved = set(args) | set(places) | {entry["binding"] for entry in locals_.values()}
+        rendered = _body(body, args, dict(places), model, returns, const=const,
+                         reserved_names=reserved, allow_local_prefix=True)
         signature = ", ".join(["receiver: " + ("read " if const else "mut ") + name,
                                *[p["hepta_name"] + ": " + p["type"] for p in params.values()]])
         effects = "panic" if const else "panic, write"
@@ -267,7 +343,8 @@ def _translate(record: dict, model: dict) -> tuple[str, dict]:
                   *rendered, "}", ""]
         mappings.append({"cpp_method": method_name, "hepta_function": name + "_" + method_name,
                          "receiver": "read" if const else "mut", "returns": returns,
-                         "parameters": list(params.values())})
+                         "parameters": list(params.values()), "automatic_scalar_locals": len(locals_),
+                         "scalar_statement_authority": "hepta.c_migrate._stmt"})
     return "\n".join(lines), {"name": name,
                               "fields": [{k: f[k] for k in ("name", "type", "cpp_type")} for f in fields.values()],
                               "constructor": {"hepta_function": name + "_new", "parameters": list(ctor_params.values())},

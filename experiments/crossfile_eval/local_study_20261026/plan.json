@@ -1,0 +1,390 @@
+{
+  "adapter_configs": [
+    {
+      "bundle_sha256": "dc5fb52a98059b994155cc9ddd804859daa47c7085ae659367d3377f037e4975",
+      "command": [
+        "/usr/bin/python3",
+        "{adapter}/local_model_adapter.py"
+      ],
+      "executable_sha256": "a92f0f95e883390c7256b2e441484aac06b1002dbe1d924141a77c8d82f96223",
+      "model": {
+        "name": "HuggingFaceTB/SmolLM2-135M-Instruct",
+        "provider": "local-transformers",
+        "revision": "346671a617262a07e66bcb23b08d32c31f4dd243aef0a4c9e922135ebc3287b4"
+      },
+      "network_requested": true,
+      "passed_environment_names": []
+    },
+    {
+      "bundle_sha256": "dc5fb52a98059b994155cc9ddd804859daa47c7085ae659367d3377f037e4975",
+      "command": [
+        "/usr/bin/python3",
+        "{adapter}/local_model_adapter.py"
+      ],
+      "executable_sha256": "a92f0f95e883390c7256b2e441484aac06b1002dbe1d924141a77c8d82f96223",
+      "model": {
+        "name": "HuggingFaceTB/SmolLM2-135M",
+        "provider": "local-transformers",
+        "revision": "07f283586c6dc9a185375c1531d520db910860dba33ffccb6739648fb1a3af11"
+      },
+      "network_requested": true,
+      "passed_environment_names": []
+    }
+  ],
+  "arms": {
+    "hepta_plain": {
+      "language": "hepta",
+      "semantic_tools": false
+    },
+    "hepta_protocol": {
+      "backend": "hepta.workspace/hepta.patch.v4",
+      "language": "hepta",
+      "semantic_tools": true
+    },
+    "rust_plain": {
+      "language": "rust",
+      "semantic_tools": false
+    },
+    "rust_semantic": {
+      "language": "rust",
+      "semantic_tools": true
+    }
+  },
+  "budget": {
+    "input_tokens": 32000,
+    "output_tokens": 12000,
+    "protocol_bytes": 2097152,
+    "tool_calls": 32,
+    "total_tokens": 44000,
+    "wall_seconds": 300.0
+  },
+  "compiler": {
+    "architecture": "x86_64",
+    "archiver": {
+      "executable_sha256": "ab3ec9fd1f53ec6b0ebc927ac253750c0a9f6738c3b7c6826dd4b455d6c3d57c",
+      "path": "/usr/bin/x86_64-linux-gnu-ar",
+      "target": "",
+      "version": "GNU ar (GNU Binutils for Ubuntu) 2.42"
+    },
+    "crossfile_rust_argv": [
+      "--sysroot",
+      "/tmp/hepta-ai-rust-1.90.0",
+      "-C",
+      "linker=/usr/bin/x86_64-linux-gnu-gcc-13",
+      "-C",
+      "link-arg=-fuse-ld=bfd"
+    ],
+    "ffi_profile": "c11_cpp17_static_objects_exceptions_caught_at_c_abi",
+    "gcc": {
+      "executable_sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26",
+      "path": "/usr/bin/x86_64-linux-gnu-gcc-13",
+      "target": "x86_64-linux-gnu",
+      "version": "x86_64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0"
+    },
+    "gcc_executable_sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26",
+    "gcc_path": "/usr/bin/gcc",
+    "gxx": {
+      "executable_sha256": "1353e9bdd29a7295c7226bf6c63abccce056d8cac31f112e5cdbecc3f28c2769",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-13",
+      "target": "x86_64-linux-gnu",
+      "version": "x86_64-linux-gnu-g++-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0"
+    },
+    "hepta_compiler_sha256": "91ab73f35b5fede9582b2b1066a0f38d910426c51239fcfe557154fc3fd850cb",
+    "native_instrumentation": "byte_layout_allocator_and_linker_pthread_wrap_v2_separate_candidate_crate",
+    "native_profile": {
+      "candidate_paths_remapped_to": "/candidate",
+      "codegen_units": 1,
+      "edition": "2021",
+      "opt_level": 3,
+      "overflow_checks": true,
+      "panic": "abort"
+    },
+    "native_support_link": "ar_rcs_static_whole_archive_before_runtime_libraries",
+    "python_version": "3.12.14",
+    "rustc": {
+      "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+      "host": "x86_64-unknown-linux-gnu",
+      "path": "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+      "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+      "sysroot_discovery": "verified_compiler_prefix",
+      "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+    },
+    "system": "Linux",
+    "target_support": "linux_pthreads_gnu_linker_host_only"
+  },
+  "design": "paired_task_language_by_semantic_tool_2x2_same_nominal_budgets_fresh_sessions",
+  "evaluator_sha256": "0e5f7ea5d89be4a17326073fffb6ff8490a767cf1d94d9a3db81250f25792b28",
+  "inference_scope": "five_task_systems_pilot_no_general_productivity_advantage_claim",
+  "missing_policy": "all_planned_cells_in_denominator_failures_timeouts_missing_not_dropped",
+  "models": [
+    {
+      "name": "HuggingFaceTB/SmolLM2-135M-Instruct",
+      "provider": "local-transformers",
+      "revision": "346671a617262a07e66bcb23b08d32c31f4dd243aef0a4c9e922135ebc3287b4"
+    },
+    {
+      "name": "HuggingFaceTB/SmolLM2-135M",
+      "provider": "local-transformers",
+      "revision": "07f283586c6dc9a185375c1531d520db910860dba33ffccb6739648fb1a3af11"
+    }
+  ],
+  "plan_sha256": "258f245ebe621d1c9c01b07dacd3e1724854108cd76bf45a99208b672168ef43",
+  "production_workspace_v4_exercised": false,
+  "production_workspace_v4_required_for_hepta_protocol": true,
+  "protocol": "hepta.crossfile_study.v2",
+  "provider_ready": true,
+  "replicates": 1,
+  "schedule": [
+    {
+      "arm": "rust_semantic",
+      "model_index": 1,
+      "replicate": 0,
+      "task": "resource_cancel"
+    },
+    {
+      "arm": "rust_plain",
+      "model_index": 0,
+      "replicate": 0,
+      "task": "api_migration"
+    },
+    {
+      "arm": "rust_semantic",
+      "model_index": 0,
+      "replicate": 0,
+      "task": "owned_result"
+    },
+    {
+      "arm": "hepta_protocol",
+      "model_index": 0,
+      "replicate": 0,
+      "task": "api_migration"
+    },
+    {
+      "arm": "rust_plain",
+      "model_index": 0,
+      "replicate": 0,
+      "task": "native_bridge"
+    },
+    {
+      "arm": "rust_semantic",
+      "model_index": 1,
+      "replicate": 0,
+      "task": "owned_result"
+    },
+    {
+      "arm": "hepta_protocol",
+      "model_index": 0,
+      "replicate": 0,
+      "task": "resource_cancel"
+    },
+    {
+      "arm": "rust_semantic",
+      "model_index": 0,
+      "replicate": 0,
+      "task": "defect_repair"
+    },
+    {
+      "arm": "hepta_plain",
+      "model_index": 1,
+      "replicate": 0,
+      "task": "owned_result"
+    },
+    {
+      "arm": "rust_semantic",
+      "model_index": 1,
+      "replicate": 0,
+      "task": "native_bridge"
+    },
+    {
+      "arm": "rust_plain",
+      "model_index": 1,
+      "replicate": 0,
+      "task": "owned_result"
+    },
+    {
+      "arm": "rust_plain",
+      "model_index": 1,
+      "replicate": 0,
+      "task": "resource_cancel"
+    },
+    {
+      "arm": "rust_semantic",
+      "model_index": 0,
+      "replicate": 0,
+      "task": "native_bridge"
+    },
+    {
+      "arm": "rust_semantic",
+      "model_index": 0,
+      "replicate": 0,
+      "task": "resource_cancel"
+    },
+    {
+      "arm": "rust_plain",
+      "model_index": 0,
+      "replicate": 0,
+      "task": "resource_cancel"
+    },
+    {
+      "arm": "hepta_protocol",
+      "model_index": 1,
+      "replicate": 0,
+      "task": "defect_repair"
+    },
+    {
+      "arm": "rust_plain",
+      "model_index": 0,
+      "replicate": 0,
+      "task": "owned_result"
+    },
+    {
+      "arm": "hepta_plain",
+      "model_index": 0,
+      "replicate": 0,
+      "task": "defect_repair"
+    },
+    {
+      "arm": "hepta_protocol",
+      "model_index": 1,
+      "replicate": 0,
+      "task": "api_migration"
+    },
+    {
+      "arm": "hepta_protocol",
+      "model_index": 1,
+      "replicate": 0,
+      "task": "resource_cancel"
+    },
+    {
+      "arm": "rust_plain",
+      "model_index": 1,
+      "replicate": 0,
+      "task": "defect_repair"
+    },
+    {
+      "arm": "rust_semantic",
+      "model_index": 0,
+      "replicate": 0,
+      "task": "api_migration"
+    },
+    {
+      "arm": "hepta_protocol",
+      "model_index": 0,
+      "replicate": 0,
+      "task": "native_bridge"
+    },
+    {
+      "arm": "rust_plain",
+      "model_index": 0,
+      "replicate": 0,
+      "task": "defect_repair"
+    },
+    {
+      "arm": "hepta_protocol",
+      "model_index": 1,
+      "replicate": 0,
+      "task": "owned_result"
+    },
+    {
+      "arm": "hepta_plain",
+      "model_index": 1,
+      "replicate": 0,
+      "task": "defect_repair"
+    },
+    {
+      "arm": "hepta_plain",
+      "model_index": 0,
+      "replicate": 0,
+      "task": "api_migration"
+    },
+    {
+      "arm": "hepta_protocol",
+      "model_index": 1,
+      "replicate": 0,
+      "task": "native_bridge"
+    },
+    {
+      "arm": "hepta_plain",
+      "model_index": 1,
+      "replicate": 0,
+      "task": "resource_cancel"
+    },
+    {
+      "arm": "hepta_protocol",
+      "model_index": 0,
+      "replicate": 0,
+      "task": "defect_repair"
+    },
+    {
+      "arm": "rust_plain",
+      "model_index": 1,
+      "replicate": 0,
+      "task": "api_migration"
+    },
+    {
+      "arm": "rust_semantic",
+      "model_index": 1,
+      "replicate": 0,
+      "task": "api_migration"
+    },
+    {
+      "arm": "hepta_plain",
+      "model_index": 0,
+      "replicate": 0,
+      "task": "owned_result"
+    },
+    {
+      "arm": "hepta_plain",
+      "model_index": 1,
+      "replicate": 0,
+      "task": "native_bridge"
+    },
+    {
+      "arm": "rust_semantic",
+      "model_index": 1,
+      "replicate": 0,
+      "task": "defect_repair"
+    },
+    {
+      "arm": "hepta_plain",
+      "model_index": 0,
+      "replicate": 0,
+      "task": "resource_cancel"
+    },
+    {
+      "arm": "hepta_plain",
+      "model_index": 1,
+      "replicate": 0,
+      "task": "api_migration"
+    },
+    {
+      "arm": "hepta_plain",
+      "model_index": 0,
+      "replicate": 0,
+      "task": "native_bridge"
+    },
+    {
+      "arm": "rust_plain",
+      "model_index": 1,
+      "replicate": 0,
+      "task": "native_bridge"
+    },
+    {
+      "arm": "hepta_protocol",
+      "model_index": 0,
+      "replicate": 0,
+      "task": "owned_result"
+    }
+  ],
+  "schedule_seed": 2026102411,
+  "schema": "hepta.crossfile_plan.v2",
+  "tasks": [
+    "api_migration",
+    "owned_result",
+    "native_bridge",
+    "resource_cancel",
+    "defect_repair"
+  ],
+  "taskset_sha256": "0f3c49558300c504d19def88695cdcefbd95be85ea9715320f3a89c5deb43e0d",
+  "usage_policy": "exact_revision_provider_receipts_adapter_attested_not_independently_verified"
+}

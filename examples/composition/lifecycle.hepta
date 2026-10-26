@@ -1,0 +1,72 @@
+module lifecycle_composition;
+
+// Stored views stay inside a worker. The owner alone crosses the task boundary.
+struct Bytes<'a> { data: read 'a [u8] }
+struct Edit<'a> { data: mut 'a [u8] }
+
+fn forward<T: Owned>(value: take T) -> T effects {} { return move value; }
+fn finish<T: Owned, E: Copy>(value: take T, success: bool, error: E)
+    -> Result<T, E> effects {alloc, block} {
+    if !success { drop(move value); return Result::Err(error); }
+    return Result::Ok(move forward::<T>(move value));
+}
+fn bytes<'a>(value: read 'a Buffer<u8>) -> Bytes<'a> effects {} {
+    return Bytes { data: read value };
+}
+fn edit<'a>(value: mut 'a Buffer<u8>) -> Edit<'a> effects {} {
+    return Edit { data: mut value };
+}
+fn sum<'a>(value: Bytes<'a>) -> u64 effects {panic} {
+    let mut total: u64 = 0;
+    for index in 1..len(value.data) {
+        total = wrapping_add(total, value.data[index] as u64);
+    }
+    return total;
+}
+
+fn worker(input: take Buffer<u8>, token: read Cancellation) -> u64
+effects {alloc, block, panic, write} {
+    let mut owner = forward::<Buffer<u8>>(move input);
+    let mode = owner[0];
+    let mut changing = edit(mut owner);
+    for index in 1..len(changing.data) { changing.data[index] = index as u8; }
+    drop(move changing);
+    let snapshot = bytes(read owner);
+    let copied = snapshot;
+    let total = sum(copied);
+    assert(len(snapshot.data) == len(owner));
+    match finish::<Buffer<u8>, u8>(move owner, mode != 1, 13) {
+        Result::Err(code) => { return 1000 + code as u64; },
+        Result::Ok(accepted) => {
+            let retained = forward::<Buffer<u8>>(move accepted);
+            if mode == 2 {
+                while !cancelled(read token) { }
+                drop(move retained);
+                return 2000 + total;
+            }
+            drop(move retained);
+            return total;
+        }
+    }
+}
+
+fn payload(mode: u8, size: usize) -> Buffer<u8> effects {alloc, block, panic, write} {
+    let mut data = buffer(size);
+    data[0] = mode;
+    return move data;
+}
+
+fn main() -> Unit effects {alloc, block, panic, write, spawn, io} {
+    let normal = spawn(worker, move payload(0, 17));
+    let normal_result = join(move normal);
+    assert(normal_result == 136);
+    let error = spawn(worker, move payload(1, 19));
+    let error_result = join(move error);
+    assert(error_result == 1013);
+    let pending = spawn(worker, move payload(2, 23));
+    let cancelled_result = cancel_and_join(move pending);
+    assert(cancelled_result == 2253);
+    print_i64(normal_result as i64);
+    print_i64(error_result as i64);
+    print_i64(cancelled_result as i64);
+}

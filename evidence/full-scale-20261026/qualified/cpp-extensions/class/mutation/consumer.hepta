@@ -1,0 +1,21 @@
+module mixer_consumer;
+import mixer;
+
+export "C" fn mixer_trace(seed: u32, first_count: u32, second_count: u32) -> u32
+effects {panic, write} {
+    let mut state = mixer::Mixer_new(seed);
+    let snapshot = state;
+    let first = mixer::Mixer_advance(mut state, first_count);
+    let checksum = mixer::Mixer_checksum(read state, second_count);
+    let drained = mixer::Mixer_drain(mut state, second_count);
+    let second = mixer::Mixer_advance(mut state, second_count);
+    return first ^ checksum ^ drained ^ second ^ mixer::Mixer_shadowed(read snapshot, first_count);
+}
+
+export "C" fn mixer_read_guard(seed: u32, count: u32) -> u32
+effects {panic, write} {
+    let mut state = mixer::Mixer_new(seed);
+    let checksum = mixer::Mixer_checksum(read state, count);
+    let shadowed = mixer::Mixer_shadowed(read state, count);
+    return mixer::Mixer_advance(mut state, 0);
+}

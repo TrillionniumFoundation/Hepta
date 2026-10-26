@@ -9,6 +9,9 @@ safety of a foreign implementation.
 
 V1 and v2 retain their original descriptor shapes and entry points. V3
 uses v2 explicit constructors and additionally requires a `scopes` array.
+V4 keeps that shape and permits explicitly bounded size-valued template
+arguments, including real `std::array<T,N>` specializations; see
+[sized template instantiations](CPP_LOOPS_AND_SIZED_TEMPLATES.md).
 
 ## Supported contract
 

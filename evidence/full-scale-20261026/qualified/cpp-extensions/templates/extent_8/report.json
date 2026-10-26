@@ -1,0 +1,783 @@
+{
+  "abi": "selected_C++_compiler_host_C_ABI",
+  "assumptions": [
+    "Foreign code respects declared effects, reentrancy and synchronization requirements.",
+    "Borrowed pointers name live initialized aligned allocations of the stated extent with valid aliasing.",
+    "Foreign code does not retain call_only pointers, spans or const references, or create data races through aliases.",
+    "Output pointers are live writable appropriately aligned nonoverlapping storage.",
+    "C++ code obeys noexcept; termination, hardware faults and undefined behavior are not catchable exceptions.",
+    "All handle-owned allocation and release stay in the same C++ module; callers explicitly destroy handles.",
+    "Scoped operations keep their C++ automatic object inside the call; generated APIs expose no object handle or reference. Foreign nonretention is unproved.",
+    "Scoped RAII cleanup covers normal return and C++ exception unwinding, not process termination, longjmp, nontermination or foreign undefined behavior.",
+    "Handles belong to their generating bridge module and type; integers from other loaded modules are not authenticated capabilities.",
+    "Cancellation and exception status do not roll back foreign side effects or borrowed-buffer writes."
+  ],
+  "borrow_retention_proved": false,
+  "caller_pointer_validity_proved": false,
+  "compiler": {
+    "executable_sha256": "1353e9bdd29a7295c7226bf6c63abccce056d8cac31f112e5cdbecc3f28c2769",
+    "path": "/usr/bin/x86_64-linux-gnu-g++-13",
+    "target": "x86_64-linux-gnu",
+    "version": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0"
+  },
+  "compiler_user_header_dependencies": "/tmp/hepta-cpp-contract-6k40pkrx/bridge.o: \\\n /tmp/hepta-cpp-contract-6k40pkrx/bridge.cpp \\\n /tmp/hepta-cpp-contract-6k40pkrx/bridge.h \\\n /workspace/scratch/100b1728036f/Hepta-work/examples/cpp/template_sizes/foreign.hpp\n",
+  "constructor_checks": [
+    {
+      "argument_types": [],
+      "borrow_retention_proved": false,
+      "construction_check": "native_constructibility_with_declared_argument_categories",
+      "cpp_type": "std::array<std::uint32_t, static_cast<std::size_t>(8)>",
+      "declared_exception": "noexcept",
+      "exact_constructor_parameter_signature_proved": false,
+      "nothrow_object_construction_checked": true,
+      "symbol": "hepta_cpp_sized_Array_new",
+      "wrapper_allocation_exception_boundary": "catch_status"
+    },
+    {
+      "argument_types": [
+        "std::uint32_t"
+      ],
+      "borrow_retention_proved": false,
+      "construction_check": "native_constructibility_with_declared_argument_categories",
+      "cpp_type": "sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(8)>",
+      "declared_exception": "catch_status",
+      "exact_constructor_parameter_signature_proved": false,
+      "nothrow_object_construction_checked": false,
+      "symbol": "hepta_cpp_sized_Counted_new",
+      "wrapper_allocation_exception_boundary": "catch_status"
+    }
+  ],
+  "contract_schema": "hepta.cpp-contract.v4",
+  "contract_sha256": "01fc4e353c7a61414dd1cf6901196299a97a6fe65068766fbd81a08afcb452fe",
+  "cost_accounting": [
+    {
+      "exception_boundary": "native_noexcept_type_checked",
+      "foreign_allocation": "none_declared",
+      "foreign_allocation_verified": false,
+      "input_buffer_copy_bytes": 0,
+      "pod_field_conversion": false,
+      "route": "direct_value",
+      "symbol": "hepta_cpp_sized_add",
+      "wrapper_heap_allocations": 0,
+      "wrapper_mutex_acquisitions": 0,
+      "wrapper_registry_lookups": 0
+    },
+    {
+      "allocation": "entry_and_object_shared_owners_plus_registry_node_and_possible_bucket_growth",
+      "borrow_retention_proved": false,
+      "constructor_exception": "noexcept",
+      "exception_boundary": "catch_status",
+      "foreign_constructor_allocations": "unverified",
+      "foreign_input_copy": "constructor_dependent_unverified",
+      "output_write": "only_after_successful_registry_insertion",
+      "registry_lifetime": "process",
+      "route": "handle_create",
+      "symbol": "hepta_cpp_sized_Array_new",
+      "wrapper_input_buffer_copy_bytes": 0
+    },
+    {
+      "accounting_scope": "successful_call_after_registry_initialization",
+      "exception_boundary": "catch_status",
+      "foreign_allocation": "method_dependent_unverified",
+      "input_buffer_copy_bytes": 0,
+      "lazy_registry_allocation": "possible_on_first_call",
+      "reentrancy": "reject",
+      "route": "dynamic_handle",
+      "symbol": "hepta_cpp_sized_Array_fill",
+      "thread_identity_allocation": "none",
+      "threading": "serialized",
+      "wrapper_heap_allocations": 0,
+      "wrapper_mutex_acquisitions": 2,
+      "wrapper_registry_lookups": 1,
+      "wrapper_shared_owner_copies": 2
+    },
+    {
+      "accounting_scope": "successful_call_after_registry_initialization",
+      "exception_boundary": "catch_status",
+      "foreign_allocation": "method_dependent_unverified",
+      "input_buffer_copy_bytes": 0,
+      "lazy_registry_allocation": "possible_on_first_call",
+      "reentrancy": "reject",
+      "route": "dynamic_handle",
+      "symbol": "hepta_cpp_sized_Array_at",
+      "thread_identity_allocation": "none",
+      "threading": "serialized",
+      "wrapper_heap_allocations": 0,
+      "wrapper_mutex_acquisitions": 2,
+      "wrapper_registry_lookups": 1,
+      "wrapper_shared_owner_copies": 2
+    },
+    {
+      "abandoned_handles": "not_automatically_reclaimed",
+      "deallocation": "same_C++_shared_owner_module",
+      "destruction": "nothrow_defer_inflight",
+      "route": "handle_destroy",
+      "symbol": "hepta_cpp_sized_Array_destroy"
+    },
+    {
+      "allocation": "entry_and_object_shared_owners_plus_registry_node_and_possible_bucket_growth",
+      "borrow_retention_proved": false,
+      "constructor_exception": "catch_status",
+      "exception_boundary": "catch_status",
+      "foreign_constructor_allocations": "unverified",
+      "foreign_input_copy": "constructor_dependent_unverified",
+      "output_write": "only_after_successful_registry_insertion",
+      "registry_lifetime": "process",
+      "route": "handle_create",
+      "symbol": "hepta_cpp_sized_Counted_new",
+      "wrapper_input_buffer_copy_bytes": 0
+    },
+    {
+      "accounting_scope": "successful_call_after_registry_initialization",
+      "exception_boundary": "catch_status",
+      "foreign_allocation": "method_dependent_unverified",
+      "input_buffer_copy_bytes": 0,
+      "lazy_registry_allocation": "possible_on_first_call",
+      "reentrancy": "reject",
+      "route": "dynamic_handle",
+      "symbol": "hepta_cpp_sized_Counted_fill",
+      "thread_identity_allocation": "none",
+      "threading": "serialized",
+      "wrapper_heap_allocations": 0,
+      "wrapper_mutex_acquisitions": 2,
+      "wrapper_registry_lookups": 1,
+      "wrapper_shared_owner_copies": 2
+    },
+    {
+      "accounting_scope": "successful_call_after_registry_initialization",
+      "exception_boundary": "catch_status",
+      "foreign_allocation": "method_dependent_unverified",
+      "input_buffer_copy_bytes": 0,
+      "lazy_registry_allocation": "possible_on_first_call",
+      "reentrancy": "reject",
+      "route": "dynamic_handle",
+      "symbol": "hepta_cpp_sized_Counted_at",
+      "thread_identity_allocation": "none",
+      "threading": "serialized",
+      "wrapper_heap_allocations": 0,
+      "wrapper_mutex_acquisitions": 2,
+      "wrapper_registry_lookups": 1,
+      "wrapper_shared_owner_copies": 2
+    },
+    {
+      "abandoned_handles": "not_automatically_reclaimed",
+      "deallocation": "same_C++_shared_owner_module",
+      "destruction": "nothrow_defer_inflight",
+      "route": "handle_destroy",
+      "symbol": "hepta_cpp_sized_Counted_destroy"
+    },
+    {
+      "accounting_scope": "generated_wrapper_only",
+      "automatic_foreign_objects": 1,
+      "exception_boundary": "catch_status",
+      "foreign_allocation": "constructor_and_methods_dependent_unverified",
+      "foreign_stack_usage": "sizeof_selected_type_plus_compiler_generated_temporaries",
+      "input_buffer_copy_bytes": 0,
+      "method_invocations": 2,
+      "pod_field_conversion": false,
+      "route": "call_scoped_cpp_raii",
+      "symbol": "hepta_cpp_sized_array_roundtrip",
+      "wrapper_heap_allocations": 0,
+      "wrapper_mutex_acquisitions": 0,
+      "wrapper_registry_lookups": 0,
+      "wrapper_shared_owner_copies": 0
+    },
+    {
+      "accounting_scope": "generated_wrapper_only",
+      "automatic_foreign_objects": 1,
+      "exception_boundary": "catch_status",
+      "foreign_allocation": "constructor_and_methods_dependent_unverified",
+      "foreign_stack_usage": "sizeof_selected_type_plus_compiler_generated_temporaries",
+      "input_buffer_copy_bytes": 0,
+      "method_invocations": 2,
+      "pod_field_conversion": false,
+      "route": "call_scoped_cpp_raii",
+      "symbol": "hepta_cpp_sized_counted_roundtrip",
+      "wrapper_heap_allocations": 0,
+      "wrapper_mutex_acquisitions": 0,
+      "wrapper_registry_lookups": 0,
+      "wrapper_shared_owner_copies": 0
+    }
+  ],
+  "cpp_flags": [
+    "-std=c++20",
+    "-O2",
+    "-fPIC",
+    "-pthread",
+    "-Werror"
+  ],
+  "diagnostics": [],
+  "execution": "not_run",
+  "foreign_library_soundness_proved": false,
+  "foreign_thread_safety_proved": false,
+  "header": "/workspace/scratch/100b1728036f/Hepta-work/examples/cpp/template_sizes/foreign.hpp",
+  "header_sha256": "dd62e9e741eb4ee11a6c5f881812db998be71e2e327c7ce4d34426d9fad28b43",
+  "hepta_validation": {
+    "assumptions": [
+      {
+        "abi": "C",
+        "declared_effects": [
+          "ffi",
+          "unsafe"
+        ],
+        "function": "hepta_cpp_sized_add",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "value",
+            "type": "u32"
+          }
+        ],
+        "return_type": "u32",
+        "status": "assumed_not_verified"
+      },
+      {
+        "abi": "C",
+        "declared_effects": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "function": "hepta_cpp_sized_Array_new",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "out",
+            "type": "raw mut u64"
+          }
+        ],
+        "return_type": "i32",
+        "status": "assumed_not_verified"
+      },
+      {
+        "abi": "C",
+        "declared_effects": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "function": "hepta_cpp_sized_Array_destroy",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "handle",
+            "type": "u64"
+          }
+        ],
+        "return_type": "i32",
+        "status": "assumed_not_verified"
+      },
+      {
+        "abi": "C",
+        "declared_effects": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "function": "hepta_cpp_sized_Array_fill",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "handle",
+            "type": "u64"
+          },
+          {
+            "name": "value",
+            "type": "u32"
+          }
+        ],
+        "return_type": "i32",
+        "status": "assumed_not_verified"
+      },
+      {
+        "abi": "C",
+        "declared_effects": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "function": "hepta_cpp_sized_Array_at",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "handle",
+            "type": "u64"
+          },
+          {
+            "name": "index",
+            "type": "usize"
+          },
+          {
+            "name": "out",
+            "type": "raw mut u32"
+          }
+        ],
+        "return_type": "i32",
+        "status": "assumed_not_verified"
+      },
+      {
+        "abi": "C",
+        "declared_effects": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "function": "hepta_cpp_sized_Counted_new",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "reject",
+            "type": "u32"
+          },
+          {
+            "name": "out",
+            "type": "raw mut u64"
+          }
+        ],
+        "return_type": "i32",
+        "status": "assumed_not_verified"
+      },
+      {
+        "abi": "C",
+        "declared_effects": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "function": "hepta_cpp_sized_Counted_destroy",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "handle",
+            "type": "u64"
+          }
+        ],
+        "return_type": "i32",
+        "status": "assumed_not_verified"
+      },
+      {
+        "abi": "C",
+        "declared_effects": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "function": "hepta_cpp_sized_Counted_fill",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "handle",
+            "type": "u64"
+          },
+          {
+            "name": "value",
+            "type": "u32"
+          }
+        ],
+        "return_type": "i32",
+        "status": "assumed_not_verified"
+      },
+      {
+        "abi": "C",
+        "declared_effects": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "function": "hepta_cpp_sized_Counted_at",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "handle",
+            "type": "u64"
+          },
+          {
+            "name": "index",
+            "type": "usize"
+          },
+          {
+            "name": "out",
+            "type": "raw mut u32"
+          }
+        ],
+        "return_type": "i32",
+        "status": "assumed_not_verified"
+      },
+      {
+        "abi": "C",
+        "declared_effects": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "function": "hepta_cpp_sized_array_roundtrip",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "value",
+            "type": "u32"
+          },
+          {
+            "name": "index",
+            "type": "usize"
+          },
+          {
+            "name": "out",
+            "type": "raw mut u32"
+          }
+        ],
+        "return_type": "i32",
+        "status": "assumed_not_verified"
+      },
+      {
+        "abi": "C",
+        "declared_effects": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "function": "hepta_cpp_sized_counted_roundtrip",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "reject",
+            "type": "u32"
+          },
+          {
+            "name": "value",
+            "type": "u32"
+          },
+          {
+            "name": "index",
+            "type": "usize"
+          },
+          {
+            "name": "out",
+            "type": "raw mut u32"
+          }
+        ],
+        "return_type": "i32",
+        "status": "assumed_not_verified"
+      }
+    ],
+    "backend": {
+      "check_only": true,
+      "crate_type": "rlib",
+      "diagnostics": [],
+      "flags": [
+        "edition=2021",
+        "opt-level=3",
+        "overflow-checks=yes",
+        "panic=abort",
+        "codegen-units=1",
+        "sysroot=/tmp/hepta-ai-rust-1.90.0"
+      ],
+      "link_args": [],
+      "linker": null,
+      "ok": true,
+      "rust_sha256": "9e4af31a0bfd8d42809abedbff2017d5a713e54c0158acea83b643932f1ce7f5",
+      "rustc_crate_type": "lib",
+      "status": "rustc_checked",
+      "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+      "target": "x86_64-unknown-linux-gnu",
+      "toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+        "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "validation_artifact_sha256": "3c37a43b2187284830360a076c46c2743cd67b6ddf7570a2885239632b365d29"
+    },
+    "checks": {
+      "rust_borrows_types": "rustc_checked",
+      "syntax": "passed",
+      "types_effects_resources": "passed_in_supported_subset"
+    },
+    "claims": {
+      "all_programs_faster_than_rust": false,
+      "bounded_cancellation_latency_proved": false,
+      "deadlock_freedom_proved": false,
+      "hardware_execution_verified": false,
+      "whole_language_soundness_proved": false
+    },
+    "compiler_sha256": "dbeb5311dfb81d01d8704ef26800b5672bca89976efa6b74e10a9b255efb9f97",
+    "compiler_version": "0.2.0",
+    "diagnostics": [],
+    "effects": {
+      "hepta_cpp_sized_Array_at": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_cpp_sized_Array_destroy": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_cpp_sized_Array_fill": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_cpp_sized_Array_new": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_cpp_sized_Counted_at": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_cpp_sized_Counted_destroy": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_cpp_sized_Counted_fill": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_cpp_sized_Counted_new": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_cpp_sized_add": [
+        "ffi",
+        "unsafe"
+      ],
+      "hepta_cpp_sized_array_roundtrip": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_cpp_sized_counted_roundtrip": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ]
+    },
+    "interface_sha256": "074acc337eb293c697731bfeda4eeeb6b361ebde107e7b9f778adca28e06d8e0",
+    "ok": true,
+    "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_8/bridge.hepta",
+    "profile": {
+      "crate_type": "rlib",
+      "no_std": false,
+      "overflow_checks": true,
+      "panic": "abort"
+    },
+    "resource_contracts": [],
+    "rust_sha256": "9e4af31a0bfd8d42809abedbff2017d5a713e54c0158acea83b643932f1ce7f5",
+    "schema": "hepta.check.v1",
+    "source_sha256": "3130b1247e382abc84a4b85851af86aac5d8a83184a7dc289964d0d4d66d80b3",
+    "status": "checked_with_external_assumptions"
+  },
+  "native_link_qualified": false,
+  "object_bytes": 44288,
+  "object_sha256": "48bde08378e8472f31920a219bc9afa976d69c4a79773ca9acbbaa6932e44040",
+  "ok": true,
+  "outputs": {
+    "bridge.cpp": {
+      "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_8/bridge.cpp",
+      "sha256": "5488fb150924accd2b7667d9a6d1f2b504cfbe159f64e327c5e56e10ad40f0fc"
+    },
+    "bridge.h": {
+      "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_8/bridge.h",
+      "sha256": "ab11eff993164f5bf5cdf72f5e49fdebae157930548132f7b2300a01e115f980"
+    },
+    "bridge.hepta": {
+      "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_8/bridge.hepta",
+      "sha256": "3130b1247e382abc84a4b85851af86aac5d8a83184a7dc289964d0d4d66d80b3"
+    },
+    "contract.json": {
+      "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_8/contract.json",
+      "sha256": "5163ae6b67e2b4ca9862c96b439fe7ce0a0e71f33548e2947d5c8122a33c9c82"
+    }
+  },
+  "paired_toolchain_abi_qualified": false,
+  "schema": "hepta.cpp-bridge-contract-report.v1",
+  "scoped_lifetime_checks": [
+    {
+      "cleanup": "C++_RAII_on_normal_return_and_caught_C++_exceptions",
+      "constructor": "new",
+      "cpp_type": "std::array<std::uint32_t, static_cast<std::size_t>(8)>",
+      "destructor_nothrow_native_checked": true,
+      "foreign_implementation_rewritten": false,
+      "foreign_nonretention_proved": false,
+      "lifetime": "one_call_cpp_automatic_object",
+      "methods": [
+        "fill",
+        "at"
+      ],
+      "object_handle_exported": false,
+      "output_published_after_destructor": true,
+      "reference_result_copied_before_destructor": true,
+      "result_type": "u32",
+      "symbol": "hepta_cpp_sized_array_roundtrip",
+      "whole_library_memory_safety_proved": false
+    },
+    {
+      "cleanup": "C++_RAII_on_normal_return_and_caught_C++_exceptions",
+      "constructor": "new",
+      "cpp_type": "sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(8)>",
+      "destructor_nothrow_native_checked": true,
+      "foreign_implementation_rewritten": false,
+      "foreign_nonretention_proved": false,
+      "lifetime": "one_call_cpp_automatic_object",
+      "methods": [
+        "fill",
+        "at"
+      ],
+      "object_handle_exported": false,
+      "output_published_after_destructor": true,
+      "reference_result_copied_before_destructor": true,
+      "result_type": "u32",
+      "symbol": "hepta_cpp_sized_counted_roundtrip",
+      "whole_library_memory_safety_proved": false
+    }
+  ],
+  "status": "cpp_object_and_hepta_native_checked",
+  "status_codes": {
+    "cpp_exception": 3,
+    "handle_exhausted": 4,
+    "misaligned_pointer": 8,
+    "null_pointer": 1,
+    "reentrancy_rejected": 6,
+    "span_too_large": 7,
+    "stale_handle": 2,
+    "success": 0,
+    "wrong_thread": 5
+  },
+  "template_specializations": [
+    {
+      "all_template_instantiations_qualified": false,
+      "arguments": [
+        {
+          "kind": "size",
+          "value": 8
+        }
+      ],
+      "cpp": "sized_example::add_size<static_cast<std::size_t>(8)>",
+      "export": "add",
+      "kind": "function",
+      "selected_instantiation_native_checked": true
+    },
+    {
+      "all_template_instantiations_qualified": false,
+      "arguments": [
+        "u32",
+        {
+          "kind": "size",
+          "value": 8
+        }
+      ],
+      "cpp": "std::array<std::uint32_t, static_cast<std::size_t>(8)>",
+      "export": "Array",
+      "kind": "object",
+      "selected_instantiation_native_checked": true
+    },
+    {
+      "all_template_instantiations_qualified": false,
+      "arguments": [
+        "u32",
+        {
+          "kind": "size",
+          "value": 8
+        }
+      ],
+      "cpp": "sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(8)>",
+      "export": "Counted",
+      "kind": "object",
+      "selected_instantiation_native_checked": true
+    }
+  ],
+  "transitive_dependency_lock": "not_established_rebuild_from_current_headers_required"
+}

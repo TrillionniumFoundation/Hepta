@@ -191,8 +191,9 @@ class CppClassPublicationIdentityTests(unittest.TestCase):
             os.link(staged, published)
             _verify_published_class(staged, published, original)
             published.write_bytes(b"module changed;")
-            with self.assertRaisesRegex(MigrationRejected, "E_CPP_CLASS_RACE"):
+            with self.assertRaises(MigrationRejected) as rejected:
                 _verify_published_class(staged, published, original)
+            self.assertEqual(rejected.exception.code, "E_CPP_CLASS_RACE")
 
     def test_other_inode_and_symlink_deny_success(self):
         with tempfile.TemporaryDirectory(prefix="hepta-cpp-publication-") as directory:
@@ -201,12 +202,14 @@ class CppClassPublicationIdentityTests(unittest.TestCase):
             original = b"module unchanged;"
             staged.write_bytes(original)
             published.write_bytes(original)
-            with self.assertRaisesRegex(MigrationRejected, "E_CPP_CLASS_RACE"):
+            with self.assertRaises(MigrationRejected) as rejected:
                 _verify_published_class(staged, published, original)
+            self.assertEqual(rejected.exception.code, "E_CPP_CLASS_RACE")
             published.unlink()
             published.symlink_to(staged)
-            with self.assertRaisesRegex(MigrationRejected, "E_CPP_CLASS_RACE"):
+            with self.assertRaises(MigrationRejected) as rejected:
                 _verify_published_class(staged, published, original)
+            self.assertEqual(rejected.exception.code, "E_CPP_CLASS_RACE")
 
 
 @unittest.skipUnless(NATIVE, "class differential needs Clang 20, GCC and pinned Rust 1.90")

@@ -58,8 +58,11 @@ The accepted forms are:
 - One to thirty-two uniquely named, in-class `noexcept` methods returning
   one of those scalar types or `void`. Parameters are scalar values. Bodies
   may read fields and parameters, assign their own fields, return a checked
-  scalar expression, and use the supported pure scalar conditions in `if`
-  statements. `void` maps to `Unit`.
+  scalar expression, use the supported pure scalar conditions in `if`
+  statements, and use initialized scalar locals and the bounded shared
+  `for`/`while`/`do` lowering. `void` maps to `Unit`. The precise local-scope,
+  loop and native execution boundaries are described in
+  [the stateful class extension](CPP_LOOPS_AND_SIZED_TEMPLATES.md).
 - Const methods become `read` receiver parameters. Other methods become
   `mut` receiver parameters. Source field references are checked by Clang
   `FieldDecl` identity on the actual `this` receiver; parameters are checked
@@ -127,8 +130,8 @@ method would otherwise expose that difference.
 
 Pointer/reference parameters and returns, escaped `this`, method calls,
 foreign calls, default arguments, constructor side effects, missing
-initializers and undefined method bodies are rejected. This first profile
-also rejects local declarations and loops inside methods. Preprocessing,
+initializers and undefined method bodies are rejected. Uninitialized locals,
+late/nested declarations and unmodeled loop control remain rejected. Preprocessing,
 includes, namespaces, additional classes, globals and hidden `extern`
 declarations require another project migration profile; none are dropped
 from an accepted translation unit.

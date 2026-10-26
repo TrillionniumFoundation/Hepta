@@ -1,0 +1,3232 @@
+{
+  "all_cpp_supported": false,
+  "all_template_instantiations_qualified": false,
+  "class_implementation_migration": {
+    "builds": {
+      "c": {
+        "foreign_cpp_link_inputs": [],
+        "frontend": {
+          "assumptions": [],
+          "backend": {
+            "backend": "c11-gcc",
+            "check_only": true,
+            "crate_type": "cdylib",
+            "diagnostics": [],
+            "flags": [
+              "-std=c11",
+              "-O3",
+              "-fexcess-precision=standard",
+              "-ffp-contract=off",
+              "-fno-strict-aliasing",
+              "-Wall",
+              "-Wextra",
+              "-Werror=implicit-function-declaration",
+              "-Werror=incompatible-pointer-types"
+            ],
+            "link_args": [],
+            "ok": true,
+            "optimization_profile": "default",
+            "rustc_used": false,
+            "source_sha256": "a3c62534add3aaf380bc11c935aa037acefa72e6650f774f87b7b9751a65451c",
+            "status": "gcc_checked",
+            "target": "x86_64-linux-gnu",
+            "toolchain": {
+              "executable_sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26",
+              "path": "/usr/bin/gcc",
+              "version": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+            },
+            "validation_artifact_sha256": "0922f4350ef0ce533adcec87cbc4e3fbe8bff1006bad73630b65831c688c3ed1"
+          },
+          "c_sha256": "a3c62534add3aaf380bc11c935aa037acefa72e6650f774f87b7b9751a65451c",
+          "checks": {
+            "c_types_codegen": "gcc_checked",
+            "rust_borrows_types": "not_run",
+            "syntax": "passed",
+            "types_effects_resources": "passed_in_supported_subset"
+          },
+          "claims": {
+            "all_programs_faster_than_rust": false,
+            "bounded_cancellation_latency_proved": false,
+            "deadlock_freedom_proved": false,
+            "hardware_execution_verified": false,
+            "whole_language_soundness_proved": false
+          },
+          "compiler_sha256": "dbeb5311dfb81d01d8704ef26800b5672bca89976efa6b74e10a9b255efb9f97",
+          "compiler_version": "0.2.0",
+          "diagnostics": [],
+          "effects": {
+            "Mc866f98b7c09dcac_Mixer_advance": [
+              "write"
+            ],
+            "Mc866f98b7c09dcac_Mixer_checksum": [],
+            "Mc866f98b7c09dcac_Mixer_drain": [
+              "write"
+            ],
+            "Mc866f98b7c09dcac_Mixer_new": [],
+            "Mc866f98b7c09dcac_Mixer_shadowed": [],
+            "mixer_read_guard": [
+              "panic",
+              "write"
+            ],
+            "mixer_trace": [
+              "panic",
+              "write"
+            ]
+          },
+          "interface_sha256": "e543dd8b2149c9b6f78c93e07f8da49a9f60fcb9d494d29bb1d60d85e6feca1b",
+          "ok": true,
+          "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/consumer.hepta",
+          "profile": {
+            "c_optimization": "default",
+            "crate_type": "cdylib",
+            "no_std": false,
+            "overflow_checks": true,
+            "panic": "abort"
+          },
+          "project": {
+            "c_imports": [],
+            "entry": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/consumer.hepta",
+            "locked": false,
+            "modules": [
+              {
+                "imports": {},
+                "module": "cpp_class_migrated",
+                "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/mixer.hepta",
+                "symbols": {
+                  "Mixer": "Mc866f98b7c09dcac_Mixer",
+                  "Mixer_advance": "Mc866f98b7c09dcac_Mixer_advance",
+                  "Mixer_checksum": "Mc866f98b7c09dcac_Mixer_checksum",
+                  "Mixer_drain": "Mc866f98b7c09dcac_Mixer_drain",
+                  "Mixer_new": "Mc866f98b7c09dcac_Mixer_new",
+                  "Mixer_shadowed": "Mc866f98b7c09dcac_Mixer_shadowed"
+                }
+              },
+              {
+                "imports": {
+                  "mixer": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/mixer.hepta"
+                },
+                "module": "mixer_consumer",
+                "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/consumer.hepta",
+                "symbols": {
+                  "mixer_read_guard": "mixer_read_guard",
+                  "mixer_trace": "mixer_trace"
+                }
+              }
+            ],
+            "package": null,
+            "path_bindings": {
+              "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/consumer.hepta": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/consumer.hepta",
+              "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/mixer.hepta": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/mixer.hepta"
+            },
+            "schema": "hepta.module-graph.v1",
+            "sha256": "be9e942b2196738dd5e4cacac62d2b84eb3eebd43c33d6df79301236cc8b7184",
+            "sources": {
+              "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/consumer.hepta": "036c147a66165651864f554c8ae23c4962e0ef7635b26140e6e1ab4e0be31555",
+              "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/mixer.hepta": "3dc23f158280f9f07ac0b6c73f0d89faa2f7dbb278644d02a1f7a1c74320e146"
+            }
+          },
+          "resource_contracts": [],
+          "schema": "hepta.check.v1",
+          "source_sha256": "036c147a66165651864f554c8ae23c4962e0ef7635b26140e6e1ab4e0be31555",
+          "status": "checked"
+        },
+        "generated_source": {
+          "bytes": 31038,
+          "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/generated.c",
+          "sha256": "a3c62534add3aaf380bc11c935aa037acefa72e6650f774f87b7b9751a65451c"
+        },
+        "library": {
+          "bytes": 16320,
+          "path_during_execution": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/mixer_c.so",
+          "retained": false,
+          "sha256": "11887ead8c88c6bfe387c35d22f94d9d51d9fc53d0de29a3cce42513c8e05a90"
+        },
+        "linker_map": {
+          "bytes": 17544,
+          "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/link_c.map",
+          "sha256": "7dd5241120e43b0095932cc95536976ce735c8e838452e5bfefd2c7349858c00"
+        },
+        "native": {
+          "artifact_bytes": 16320,
+          "artifact_path_during_execution": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/mixer_c.so",
+          "artifact_retained": false,
+          "artifact_sha256": "11887ead8c88c6bfe387c35d22f94d9d51d9fc53d0de29a3cce42513c8e05a90",
+          "backend": "c11-gcc",
+          "check_only": false,
+          "crate_type": "cdylib",
+          "diagnostics": [],
+          "flags": [
+            "-std=c11",
+            "-O3",
+            "-fexcess-precision=standard",
+            "-ffp-contract=off",
+            "-fno-strict-aliasing",
+            "-Wall",
+            "-Wextra",
+            "-Werror=implicit-function-declaration",
+            "-Werror=incompatible-pointer-types",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=all"
+          ],
+          "link_args": [
+            "-Wl,-Map,/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/link_c.map"
+          ],
+          "ok": true,
+          "optimization_profile": "default",
+          "rustc_used": false,
+          "source_sha256": "a3c62534add3aaf380bc11c935aa037acefa72e6650f774f87b7b9751a65451c",
+          "status": "gcc_checked",
+          "target": "x86_64-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26",
+            "path": "/usr/bin/gcc",
+            "version": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+          },
+          "validation_artifact_sha256": "11887ead8c88c6bfe387c35d22f94d9d51d9fc53d0de29a3cce42513c8e05a90"
+        },
+        "original_cpp_reference_inputs_in_linker_map": false
+      },
+      "rust": {
+        "foreign_cpp_link_inputs": [],
+        "frontend": {
+          "assumptions": [],
+          "backend": {
+            "check_only": true,
+            "crate_type": "cdylib",
+            "diagnostics": [],
+            "flags": [
+              "edition=2021",
+              "opt-level=3",
+              "overflow-checks=yes",
+              "panic=abort",
+              "codegen-units=1",
+              "sysroot=/tmp/hepta-ai-rust-1.90.0"
+            ],
+            "link_args": [],
+            "linker": null,
+            "ok": true,
+            "rust_sha256": "64830df49209a6f8de511c34f276440a0979d63d00a42316883d146eb755248f",
+            "rustc_crate_type": "lib",
+            "status": "rustc_checked",
+            "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+            "target": "x86_64-unknown-linux-gnu",
+            "toolchain": {
+              "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+              "host": "x86_64-unknown-linux-gnu",
+              "path": "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+              "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+              "sysroot_discovery": "verified_compiler_prefix",
+              "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+            },
+            "validation_artifact_sha256": "6f2edd034952ed81b553be53ce4e4db05a49a28c7f855e62ac84a8c8a0b4d0cc"
+          },
+          "checks": {
+            "rust_borrows_types": "rustc_checked",
+            "syntax": "passed",
+            "types_effects_resources": "passed_in_supported_subset"
+          },
+          "claims": {
+            "all_programs_faster_than_rust": false,
+            "bounded_cancellation_latency_proved": false,
+            "deadlock_freedom_proved": false,
+            "hardware_execution_verified": false,
+            "whole_language_soundness_proved": false
+          },
+          "compiler_sha256": "dbeb5311dfb81d01d8704ef26800b5672bca89976efa6b74e10a9b255efb9f97",
+          "compiler_version": "0.2.0",
+          "diagnostics": [],
+          "effects": {
+            "Mc866f98b7c09dcac_Mixer_advance": [
+              "write"
+            ],
+            "Mc866f98b7c09dcac_Mixer_checksum": [],
+            "Mc866f98b7c09dcac_Mixer_drain": [
+              "write"
+            ],
+            "Mc866f98b7c09dcac_Mixer_new": [],
+            "Mc866f98b7c09dcac_Mixer_shadowed": [],
+            "mixer_read_guard": [
+              "panic",
+              "write"
+            ],
+            "mixer_trace": [
+              "panic",
+              "write"
+            ]
+          },
+          "interface_sha256": "e543dd8b2149c9b6f78c93e07f8da49a9f60fcb9d494d29bb1d60d85e6feca1b",
+          "ok": true,
+          "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/consumer.hepta",
+          "profile": {
+            "crate_type": "cdylib",
+            "no_std": false,
+            "overflow_checks": true,
+            "panic": "abort"
+          },
+          "project": {
+            "c_imports": [],
+            "entry": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/consumer.hepta",
+            "locked": false,
+            "modules": [
+              {
+                "imports": {},
+                "module": "cpp_class_migrated",
+                "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/mixer.hepta",
+                "symbols": {
+                  "Mixer": "Mc866f98b7c09dcac_Mixer",
+                  "Mixer_advance": "Mc866f98b7c09dcac_Mixer_advance",
+                  "Mixer_checksum": "Mc866f98b7c09dcac_Mixer_checksum",
+                  "Mixer_drain": "Mc866f98b7c09dcac_Mixer_drain",
+                  "Mixer_new": "Mc866f98b7c09dcac_Mixer_new",
+                  "Mixer_shadowed": "Mc866f98b7c09dcac_Mixer_shadowed"
+                }
+              },
+              {
+                "imports": {
+                  "mixer": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/mixer.hepta"
+                },
+                "module": "mixer_consumer",
+                "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/consumer.hepta",
+                "symbols": {
+                  "mixer_read_guard": "mixer_read_guard",
+                  "mixer_trace": "mixer_trace"
+                }
+              }
+            ],
+            "package": null,
+            "path_bindings": {
+              "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/consumer.hepta": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/consumer.hepta",
+              "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/mixer.hepta": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/mixer.hepta"
+            },
+            "schema": "hepta.module-graph.v1",
+            "sha256": "be9e942b2196738dd5e4cacac62d2b84eb3eebd43c33d6df79301236cc8b7184",
+            "sources": {
+              "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/consumer.hepta": "036c147a66165651864f554c8ae23c4962e0ef7635b26140e6e1ab4e0be31555",
+              "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/mixer.hepta": "3dc23f158280f9f07ac0b6c73f0d89faa2f7dbb278644d02a1f7a1c74320e146"
+            }
+          },
+          "resource_contracts": [],
+          "rust_sha256": "64830df49209a6f8de511c34f276440a0979d63d00a42316883d146eb755248f",
+          "schema": "hepta.check.v1",
+          "source_sha256": "036c147a66165651864f554c8ae23c4962e0ef7635b26140e6e1ab4e0be31555",
+          "status": "checked"
+        },
+        "generated_source": {
+          "bytes": 17589,
+          "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/generated.rs",
+          "sha256": "64830df49209a6f8de511c34f276440a0979d63d00a42316883d146eb755248f"
+        },
+        "library": {
+          "bytes": 3823256,
+          "path_during_execution": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/mixer_rust.so",
+          "retained": false,
+          "sha256": "230263ce703fa871db297db10aeb77e76356e6ef322606c085e1c55d681b4e25"
+        },
+        "linker_map": {
+          "bytes": 596856,
+          "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/link_rust.map",
+          "sha256": "7d7cc7db2e63c66a4128cdba8a56b6bc398bf71947ecfcc99725693f230ed940"
+        },
+        "native": {
+          "artifact_bytes": 3823256,
+          "artifact_path_during_execution": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/mixer_rust.so",
+          "artifact_retained": false,
+          "artifact_sha256": "230263ce703fa871db297db10aeb77e76356e6ef322606c085e1c55d681b4e25",
+          "check_only": false,
+          "crate_type": "cdylib",
+          "diagnostics": [],
+          "flags": [
+            "edition=2021",
+            "opt-level=3",
+            "overflow-checks=yes",
+            "panic=abort",
+            "codegen-units=1",
+            "sysroot=/tmp/hepta-ai-rust-1.90.0"
+          ],
+          "link_args": [
+            "-Wl,-Map,/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/link_rust.map"
+          ],
+          "linker": null,
+          "ok": true,
+          "rust_sha256": "64830df49209a6f8de511c34f276440a0979d63d00a42316883d146eb755248f",
+          "rustc_crate_type": "cdylib",
+          "status": "rustc_checked",
+          "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+            "host": "x86_64-unknown-linux-gnu",
+            "path": "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+            "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+            "sysroot_discovery": "verified_compiler_prefix",
+            "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+          },
+          "validation_artifact_sha256": "230263ce703fa871db297db10aeb77e76356e6ef322606c085e1c55d681b4e25"
+        },
+        "original_cpp_reference_inputs_in_linker_map": false
+      }
+    },
+    "execution": {
+      "cases_per_backend": 592,
+      "independent_python_integer_oracle": true,
+      "input_vectors_sha256": "2c555519ca5e382be19c90048454fd49efb97199037a09a6accdc3409a9026bb",
+      "observations_sha256": {
+        "c": "757abd3020a2e64e0ae1aa72dcf9400890de31efa030a11438779a9302e7ec27",
+        "cpp": "757abd3020a2e64e0ae1aa72dcf9400890de31efa030a11438779a9302e7ec27",
+        "rust": "757abd3020a2e64e0ae1aa72dcf9400890de31efa030a11438779a9302e7ec27"
+      },
+      "ok": true,
+      "raw_results": {
+        "bytes": 125395,
+        "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/observations.json",
+        "sha256": "cb516165130f2f0d8379a551957d04a07b5ec245763c264af8bb9538cf3499f3"
+      },
+      "read_preservation_cases": 296,
+      "seed": 12651093,
+      "trace_cases": 296
+    },
+    "migration": {
+      "cpp_abi_preserved": false,
+      "differential_validation": "not_run",
+      "foreign_calls_introduced": 0,
+      "foreign_cpp_implementation_retained": false,
+      "hepta_frontend": {
+        "assumptions": [],
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "dbeb5311dfb81d01d8704ef26800b5672bca89976efa6b74e10a9b255efb9f97",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "Mixer_advance": [
+            "write"
+          ],
+          "Mixer_checksum": [],
+          "Mixer_drain": [
+            "write"
+          ],
+          "Mixer_new": [],
+          "Mixer_shadowed": []
+        },
+        "interface_sha256": "d552f5078b8cfd109ea18d7a953b0a8a11e0661f683686e0897406ec966cd8b6",
+        "ok": true,
+        "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/mixer.hepta",
+        "profile": {
+          "crate_type": "rlib",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [],
+        "rust_sha256": "236acc0e699af3d35b371e87b08a0234a9dcf91781431883112806b41c70949b",
+        "schema": "hepta.check.v1",
+        "source_sha256": "3dc23f158280f9f07ac0b6c73f0d89faa2f7dbb278644d02a1f7a1c74320e146",
+        "status": "frontend_only"
+      },
+      "limitations": [
+        "Only the fully inventoried public scalar class is translated.",
+        "Original C++ undefined arithmetic inputs are outside the equivalence domain.",
+        "Class layout, mangled ABI, whole-program equivalence and resource RAII migration are not claimed."
+      ],
+      "native_trivial_lifecycle_checked": true,
+      "native_validation": "not_run",
+      "ok": true,
+      "output": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/mixer.hepta",
+      "output_sha256": "3dc23f158280f9f07ac0b6c73f0d89faa2f7dbb278644d02a1f7a1c74320e146",
+      "profile": "cpp20-public-scalar-value-class-trivial-lifecycle-v1",
+      "rejected": [],
+      "resource_owning_raii_translated": false,
+      "schema": "hepta.cpp-class-migration.v1",
+      "source": "/workspace/scratch/100b1728036f/Hepta-work/examples/cpp/class_loops/mixer.cpp",
+      "source_equivalence_proved": false,
+      "source_sha256": "5c0c76415b460a26d4e4a2fe5034c353878d19b0425f962c66c8da731b9c831b",
+      "status": "class_implementation_translated_frontend_checked",
+      "target_model": {
+        "clang_version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)",
+        "compiler_sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+        "sizeof_int": 4,
+        "sizeof_long": 8,
+        "sizeof_long_long": 8,
+        "sizeof_pointer": 8,
+        "target": "x86_64-pc-linux-gnu"
+      },
+      "tier": "L1",
+      "translated_class": {
+        "constructor": {
+          "hepta_function": "Mixer_new",
+          "parameters": [
+            {
+              "cpp_type": "unsigned int",
+              "hepta_name": "arg0",
+              "name": "seed",
+              "type": "u32"
+            }
+          ]
+        },
+        "copy_semantics": "trivial_scalar_value_copy",
+        "declaration_inventory": [
+          {
+            "disposition": "implicit_injected_class_name",
+            "kind": "CXXRecordDecl",
+            "name": "Mixer"
+          },
+          {
+            "disposition": "translated",
+            "kind": "FieldDecl",
+            "name": "state"
+          },
+          {
+            "disposition": "translated",
+            "kind": "CXXConstructorDecl",
+            "name": "Mixer"
+          },
+          {
+            "disposition": "translated",
+            "kind": "CXXMethodDecl",
+            "name": "advance"
+          },
+          {
+            "disposition": "translated",
+            "kind": "CXXMethodDecl",
+            "name": "checksum"
+          },
+          {
+            "disposition": "translated",
+            "kind": "CXXMethodDecl",
+            "name": "drain"
+          },
+          {
+            "disposition": "translated",
+            "kind": "CXXMethodDecl",
+            "name": "shadowed"
+          }
+        ],
+        "destructor": "implicit_trivial",
+        "fields": [
+          {
+            "cpp_type": "unsigned int",
+            "name": "state",
+            "type": "u32"
+          }
+        ],
+        "methods": [
+          {
+            "automatic_scalar_locals": 2,
+            "cpp_method": "advance",
+            "hepta_function": "Mixer_advance",
+            "parameters": [
+              {
+                "cpp_type": "unsigned int",
+                "hepta_name": "arg0",
+                "name": "count",
+                "type": "u32"
+              }
+            ],
+            "receiver": "mut",
+            "returns": "u32",
+            "scalar_statement_authority": "hepta.c_migrate._stmt"
+          },
+          {
+            "automatic_scalar_locals": 2,
+            "cpp_method": "checksum",
+            "hepta_function": "Mixer_checksum",
+            "parameters": [
+              {
+                "cpp_type": "unsigned int",
+                "hepta_name": "arg0",
+                "name": "count",
+                "type": "u32"
+              }
+            ],
+            "receiver": "read",
+            "returns": "u32",
+            "scalar_statement_authority": "hepta.c_migrate._stmt"
+          },
+          {
+            "automatic_scalar_locals": 1,
+            "cpp_method": "drain",
+            "hepta_function": "Mixer_drain",
+            "parameters": [
+              {
+                "cpp_type": "unsigned int",
+                "hepta_name": "arg0",
+                "name": "count",
+                "type": "u32"
+              }
+            ],
+            "receiver": "mut",
+            "returns": "u32",
+            "scalar_statement_authority": "hepta.c_migrate._stmt"
+          },
+          {
+            "automatic_scalar_locals": 3,
+            "cpp_method": "shadowed",
+            "hepta_function": "Mixer_shadowed",
+            "parameters": [
+              {
+                "cpp_type": "unsigned int",
+                "hepta_name": "arg0",
+                "name": "count",
+                "type": "u32"
+              }
+            ],
+            "receiver": "read",
+            "returns": "u32",
+            "scalar_statement_authority": "hepta.c_migrate._stmt"
+          }
+        ],
+        "name": "Mixer",
+        "unconverted_members": []
+      },
+      "whole_language_memory_safety_proved": false
+    },
+    "native_binaries_retained": false,
+    "native_symbol_evidence": {
+      "c": {
+        "command": [
+          "nm",
+          "-D",
+          "--defined-only",
+          "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/mixer_c.so"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "00000000000011f0 T __hepta_cb_fn_Mc866f98b7c09dcac_Mixer_advance\n0000000000001240 T __hepta_cb_fn_Mc866f98b7c09dcac_Mixer_checksum\n0000000000001340 T __hepta_cb_fn_Mc866f98b7c09dcac_Mixer_drain\n00000000000011e0 T __hepta_cb_fn_Mc866f98b7c09dcac_Mixer_new\n00000000000013b0 T __hepta_cb_fn_Mc866f98b7c09dcac_Mixer_shadowed\n0000000000001640 T mixer_read_guard\n0000000000001590 T mixer_trace\n",
+        "stdout_sha256": "b292fc65e5a14d1b610100c67b709585679439dacc5fcc367c7bec9849ffd3c7"
+      },
+      "cpp": {
+        "command": [
+          "nm",
+          "-D",
+          "--defined-only",
+          "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/reference.so"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "0000000000001310 T mixer_read_guard\n0000000000001110 T mixer_trace\n0000000000001100 T original_cpp_mixer_marker\n",
+        "stdout_sha256": "55553e333ea70e4accf683bd4c62195a171908553e1a8adedf54df06f08a48c3"
+      },
+      "rust": {
+        "command": [
+          "nm",
+          "-D",
+          "--defined-only",
+          "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/mixer_rust.so"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "00000000000128b0 T mixer_read_guard\n00000000000126b0 T mixer_trace\n",
+        "stdout_sha256": "c2b761744ad1288966b93efa9a41830af3bcd71882564df8bc3c1d041fda35df"
+      }
+    },
+    "negative_control": {
+      "arguments": [
+        7,
+        5,
+        3
+      ],
+      "artifact": {
+        "bytes": 16320,
+        "path_during_execution": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/mutation/mixer_c.so",
+        "retained": false,
+        "sha256": "3860ab82c53415456c4060d2af449ccef7288849f245cbf5c8df304915059c66"
+      },
+      "detected": true,
+      "expected": 636436372,
+      "observed": 3489946306
+    },
+    "ok": true,
+    "original_cpp_implementation_linked_into_migrated_libraries": false,
+    "reference_build": {
+      "command": [
+        "/usr/lib/llvm-20/bin/clang++",
+        "-std=c++20",
+        "-O2",
+        "-shared",
+        "-fPIC",
+        "-Werror",
+        "/workspace/scratch/100b1728036f/Hepta-work/examples/cpp/class_loops/reference.cpp",
+        "-o",
+        "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/reference.so"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "reference_library": {
+      "bytes": 15416,
+      "path_during_execution": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/class/reference.so",
+      "retained": false,
+      "sha256": "a78bd0908acfe4bf2c56048c6dc1d1a4d19fdae53d90008e3bb5814a803d37ae"
+    },
+    "reference_only_marker_present_only_in_reference_library": true,
+    "source_equivalence_proved": false
+  },
+  "inputs_sha256": {
+    "examples/cpp/class_loops/consumer.hepta": "036c147a66165651864f554c8ae23c4962e0ef7635b26140e6e1ab4e0be31555",
+    "examples/cpp/class_loops/mixer.cpp": "5c0c76415b460a26d4e4a2fe5034c353878d19b0425f962c66c8da731b9c831b",
+    "examples/cpp/class_loops/reference.cpp": "062274415c623412929bf0d756ede9b72d60b13a86f358f07e3975bb6d0ce031",
+    "examples/cpp/template_sizes/consumer.hepta": "74e82682091abdd91bde3a7c56f2608a62f9f293384fef7d683e42d70e4e5799",
+    "examples/cpp/template_sizes/contract.json": "78c721ec29eb8d9ef0a45c1a309a567d9b60c3f01c6fc2c8d254acc02812a8ef",
+    "examples/cpp/template_sizes/foreign.hpp": "dd62e9e741eb4ee11a6c5f881812db998be71e2e327c7ce4d34426d9fad28b43",
+    "examples/cpp/template_sizes/verify.cpp": "bf185ac72f27b44e4c9590e4b84541654f40eac33694d7fb07a50ee73116a0bd",
+    "hepta/backend.py": "d04254f5d7c235f19544940bf73305c0e704bccf345a8dc8165136de372747a1",
+    "hepta/c_backend.py": "80bf509997f4f09014efc9b22c4d2356e6b47134a205a0ace8f1c98d4647acf8",
+    "hepta/c_migrate.py": "4f080885d40d7b4a679bc594660ce933eacb6c5232449f7da798ac123a0415b7",
+    "hepta/checker.py": "94663b5260ec9c51c8a2c6f469a595335fb9426b81faa4bb3e972dbdd36fc015",
+    "hepta/cpp_class_migrate.py": "dc03c3994e2f65e7ffa5f862faaf0d86b4ba0d79fbd97ffb1355397d660b9bd2",
+    "hepta/cpp_contracts.py": "09bf14f6ee598bd36732b57b253d27ce9c6b7a6a88cd4f83ed1f6f7728b24b58",
+    "hepta/parser.py": "b3cc04259c953d112e1ffbf4482b380cbb15fdd994a5924507dd1d11d5c0c5cf",
+    "hepta/pipeline.py": "9f7d329d7e0fa1bb3784d3d9be2bb250724242455a648e78f1f76eef3072af5f",
+    "tools/validate_cpp_extensions.py": "d7fd44320dce6a1a9f34701375084ff867f6659fe09f07ebd0cd38a11021b8fe"
+  },
+  "ok": true,
+  "performance_parity_with_rust_proved": false,
+  "schema": "hepta.cpp-extensions-qualification.v1",
+  "sized_template_bridging": {
+    "foreign_cpp_implementation_retained": true,
+    "foreign_nonretention_proved": false,
+    "native_link_qualified": true,
+    "ok": true,
+    "upgrade_experiment": {
+      "consumer_source_edits": 0,
+      "contract_size_values_changed": 3,
+      "covers_library_version_upgrade": false,
+      "from_extent": 4,
+      "generated_c_header_identical": true,
+      "generated_cpp_bytes": [
+        14168,
+        14168
+      ],
+      "generated_cpp_lines_added": 26,
+      "generated_cpp_lines_removed": 26,
+      "generation_and_native_check_ns": [
+        1097744166,
+        1141172263
+      ],
+      "human_maintenance_minutes": null,
+      "native_cpp_object_bytes": [
+        44256,
+        44288
+      ],
+      "native_variants_executed": 2,
+      "source_diff": {
+        "bytes": 13190,
+        "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/specialization-change.diff",
+        "sha256": "303c5c8bf63da4be0af620e0b002e6788fe54312e583439413ad00bbd59c8daa"
+      },
+      "to_extent": 8
+    },
+    "variants": [
+      {
+        "execution": {
+          "array_and_lifecycle_observations": [
+            {
+              "array_output": 0,
+              "array_status": 0,
+              "counted_output": 0,
+              "counted_status": 0,
+              "destroyed_delta": 1,
+              "expected_output": 0,
+              "expected_status": 0,
+              "index": 0,
+              "live_members": 0,
+              "value": 0
+            },
+            {
+              "array_output": 0,
+              "array_status": 0,
+              "counted_output": 0,
+              "counted_status": 0,
+              "destroyed_delta": 1,
+              "expected_output": 0,
+              "expected_status": 0,
+              "index": 3,
+              "live_members": 0,
+              "value": 0
+            },
+            {
+              "array_output": 4207809076,
+              "array_status": 3,
+              "counted_output": 4207809076,
+              "counted_status": 3,
+              "destroyed_delta": 1,
+              "expected_output": 4207809076,
+              "expected_status": 3,
+              "index": 4,
+              "live_members": 0,
+              "value": 0
+            },
+            {
+              "array_output": 4207809076,
+              "array_status": 3,
+              "counted_output": 4207809076,
+              "counted_status": 3,
+              "destroyed_delta": 1,
+              "expected_output": 4207809076,
+              "expected_status": 3,
+              "index": 18446744073709551615,
+              "live_members": 0,
+              "value": 0
+            },
+            {
+              "array_output": 1,
+              "array_status": 0,
+              "counted_output": 1,
+              "counted_status": 0,
+              "destroyed_delta": 1,
+              "expected_output": 1,
+              "expected_status": 0,
+              "index": 0,
+              "live_members": 0,
+              "value": 1
+            },
+            {
+              "array_output": 1,
+              "array_status": 0,
+              "counted_output": 1,
+              "counted_status": 0,
+              "destroyed_delta": 1,
+              "expected_output": 1,
+              "expected_status": 0,
+              "index": 3,
+              "live_members": 0,
+              "value": 1
+            },
+            {
+              "array_output": 4207809076,
+              "array_status": 3,
+              "counted_output": 4207809076,
+              "counted_status": 3,
+              "destroyed_delta": 1,
+              "expected_output": 4207809076,
+              "expected_status": 3,
+              "index": 4,
+              "live_members": 0,
+              "value": 1
+            },
+            {
+              "array_output": 4207809076,
+              "array_status": 3,
+              "counted_output": 4207809076,
+              "counted_status": 3,
+              "destroyed_delta": 1,
+              "expected_output": 4207809076,
+              "expected_status": 3,
+              "index": 18446744073709551615,
+              "live_members": 0,
+              "value": 1
+            },
+            {
+              "array_output": 2147483647,
+              "array_status": 0,
+              "counted_output": 2147483647,
+              "counted_status": 0,
+              "destroyed_delta": 1,
+              "expected_output": 2147483647,
+              "expected_status": 0,
+              "index": 0,
+              "live_members": 0,
+              "value": 2147483647
+            },
+            {
+              "array_output": 2147483647,
+              "array_status": 0,
+              "counted_output": 2147483647,
+              "counted_status": 0,
+              "destroyed_delta": 1,
+              "expected_output": 2147483647,
+              "expected_status": 0,
+              "index": 3,
+              "live_members": 0,
+              "value": 2147483647
+            },
+            {
+              "array_output": 4207809076,
+              "array_status": 3,
+              "counted_output": 4207809076,
+              "counted_status": 3,
+              "destroyed_delta": 1,
+              "expected_output": 4207809076,
+              "expected_status": 3,
+              "index": 4,
+              "live_members": 0,
+              "value": 2147483647
+            },
+            {
+              "array_output": 4207809076,
+              "array_status": 3,
+              "counted_output": 4207809076,
+              "counted_status": 3,
+              "destroyed_delta": 1,
+              "expected_output": 4207809076,
+              "expected_status": 3,
+              "index": 18446744073709551615,
+              "live_members": 0,
+              "value": 2147483647
+            },
+            {
+              "array_output": 2147483648,
+              "array_status": 0,
+              "counted_output": 2147483648,
+              "counted_status": 0,
+              "destroyed_delta": 1,
+              "expected_output": 2147483648,
+              "expected_status": 0,
+              "index": 0,
+              "live_members": 0,
+              "value": 2147483648
+            },
+            {
+              "array_output": 2147483648,
+              "array_status": 0,
+              "counted_output": 2147483648,
+              "counted_status": 0,
+              "destroyed_delta": 1,
+              "expected_output": 2147483648,
+              "expected_status": 0,
+              "index": 3,
+              "live_members": 0,
+              "value": 2147483648
+            },
+            {
+              "array_output": 4207809076,
+              "array_status": 3,
+              "counted_output": 4207809076,
+              "counted_status": 3,
+              "destroyed_delta": 1,
+              "expected_output": 4207809076,
+              "expected_status": 3,
+              "index": 4,
+              "live_members": 0,
+              "value": 2147483648
+            },
+            {
+              "array_output": 4207809076,
+              "array_status": 3,
+              "counted_output": 4207809076,
+              "counted_status": 3,
+              "destroyed_delta": 1,
+              "expected_output": 4207809076,
+              "expected_status": 3,
+              "index": 18446744073709551615,
+              "live_members": 0,
+              "value": 2147483648
+            },
+            {
+              "array_output": 4294967294,
+              "array_status": 0,
+              "counted_output": 4294967294,
+              "counted_status": 0,
+              "destroyed_delta": 1,
+              "expected_output": 4294967294,
+              "expected_status": 0,
+              "index": 0,
+              "live_members": 0,
+              "value": 4294967294
+            },
+            {
+              "array_output": 4294967294,
+              "array_status": 0,
+              "counted_output": 4294967294,
+              "counted_status": 0,
+              "destroyed_delta": 1,
+              "expected_output": 4294967294,
+              "expected_status": 0,
+              "index": 3,
+              "live_members": 0,
+              "value": 4294967294
+            },
+            {
+              "array_output": 4207809076,
+              "array_status": 3,
+              "counted_output": 4207809076,
+              "counted_status": 3,
+              "destroyed_delta": 1,
+              "expected_output": 4207809076,
+              "expected_status": 3,
+              "index": 4,
+              "live_members": 0,
+              "value": 4294967294
+            },
+            {
+              "array_output": 4207809076,
+              "array_status": 3,
+              "counted_output": 4207809076,
+              "counted_status": 3,
+              "destroyed_delta": 1,
+              "expected_output": 4207809076,
+              "expected_status": 3,
+              "index": 18446744073709551615,
+              "live_members": 0,
+              "value": 4294967294
+            },
+            {
+              "array_output": 4294967295,
+              "array_status": 0,
+              "counted_output": 4294967295,
+              "counted_status": 0,
+              "destroyed_delta": 1,
+              "expected_output": 4294967295,
+              "expected_status": 0,
+              "index": 0,
+              "live_members": 0,
+              "value": 4294967295
+            },
+            {
+              "array_output": 4294967295,
+              "array_status": 0,
+              "counted_output": 4294967295,
+              "counted_status": 0,
+              "destroyed_delta": 1,
+              "expected_output": 4294967295,
+              "expected_status": 0,
+              "index": 3,
+              "live_members": 0,
+              "value": 4294967295
+            },
+            {
+              "array_output": 4207809076,
+              "array_status": 3,
+              "counted_output": 4207809076,
+              "counted_status": 3,
+              "destroyed_delta": 1,
+              "expected_output": 4207809076,
+              "expected_status": 3,
+              "index": 4,
+              "live_members": 0,
+              "value": 4294967295
+            },
+            {
+              "array_output": 4207809076,
+              "array_status": 3,
+              "counted_output": 4207809076,
+              "counted_status": 3,
+              "destroyed_delta": 1,
+              "expected_output": 4207809076,
+              "expected_status": 3,
+              "index": 18446744073709551615,
+              "live_members": 0,
+              "value": 4294967295
+            }
+          ],
+          "constructor_failure_output": 4207809076,
+          "constructor_failure_paths": 1,
+          "constructor_failure_status": 3,
+          "counted_lifecycle_cases": 24,
+          "extent": 4,
+          "function_observations": [
+            {
+              "observed": 4,
+              "value": 0
+            },
+            {
+              "observed": 5,
+              "value": 1
+            },
+            {
+              "observed": 2147483651,
+              "value": 2147483647
+            },
+            {
+              "observed": 2147483652,
+              "value": 2147483648
+            },
+            {
+              "observed": 2,
+              "value": 4294967294
+            },
+            {
+              "observed": 3,
+              "value": 4294967295
+            }
+          ],
+          "function_template_cases": 6,
+          "handle_statuses": [
+            0,
+            0,
+            0,
+            3,
+            0,
+            2,
+            2
+          ],
+          "handle_transitions": 7,
+          "live_members": 0,
+          "null_output_paths": 2,
+          "null_output_statuses": [
+            1,
+            1
+          ],
+          "ok": true,
+          "std_array_differential_cases": 24
+        },
+        "execution_process": {
+          "command": [
+            "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_4/native"
+          ],
+          "returncode": 0,
+          "stderr": "",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout": "{\"ok\":true,\"extent\":4,\"std_array_differential_cases\":24,\"counted_lifecycle_cases\":24,\"function_template_cases\":6,\"constructor_failure_paths\":1,\"null_output_paths\":2,\"handle_transitions\":7,\"live_members\":0,\"array_and_lifecycle_observations\":[{\"value\":0,\"index\":0,\"expected_status\":0,\"expected_output\":0,\"array_status\":0,\"array_output\":0,\"counted_status\":0,\"counted_output\":0,\"live_members\":0,\"destroyed_delta\":1},{\"value\":0,\"index\":3,\"expected_status\":0,\"expected_output\":0,\"array_status\":0,\"array_output\":0,\"counted_status\":0,\"counted_output\":0,\"live_members\":0,\"destroyed_delta\":1},{\"value\":0,\"index\":4,\"expected_status\":3,\"expected_output\":4207809076,\"array_status\":3,\"array_output\":4207809076,\"counted_status\":3,\"counted_output\":4207809076,\"live_members\":0,\"destroyed_delta\":1},{\"value\":0,\"index\":18446744073709551615,\"expected_status\":3,\"expected_output\":4207809076,\"array_status\":3,\"array_output\":4207809076,\"counted_status\":3,\"counted_output\":4207809076,\"live_members\":0,\"destroyed_delta\":1},{\"value\":1,\"index\":0,\"expected_status\":0,\"expected_output\":1,\"array_status\":0,\"array_output\":1,\"counted_status\":0,\"counted_output\":1,\"live_members\":0,\"destroyed_delta\":1},{\"value\":1,\"index\":3,\"expected_status\":0,\"expected_output\":1,\"array_status\":0,\"array_output\":1,\"counted_status\":0,\"counted_output\":1,\"live_members\":0,\"destroyed_delta\":1},{\"value\":1,\"index\":4,\"expected_status\":3,\"expected_output\":4207809076,\"array_status\":3,\"array_output\":4207809076,\"counted_status\":3,\"counted_output\":4207809076,\"live_members\":0,\"destroyed_delta\":1},{\"value\":1,\"index\":18446744073709551615,\"expected_status\":3,\"expected_output\":4207809076,\"array_status\":3,\"array_output\":4207809076,\"counted_status\":3,\"counted_output\":4207809076,\"live_members\":0,\"destroyed_delta\":1},{\"value\":2147483647,\"index\":0,\"expected_status\":0,\"expected_output\":2147483647,\"array_status\":0,\"array_output\":2147483647,\"counted_status\":0,\"counted_output\":2147483647,\"live_members\":0,\"destroyed_delta\":1},{\"value\":2147483647,\"index\":3,\"expected_status\":0,\"expected_output\":2147483647,\"array_status\":0,\"array_output\":2147483647,\"counted_status\":0,\"counted_output\":2147483647,\"live_members\":0,\"destroyed_delta\":1},{\"value\":2147483647,\"index\":4,\"expected_status\":3,\"expected_output\":4207809076,\"array_status\":3,\"array_output\":4207809076,\"counted_status\":3,\"counted_output\":4207809076,\"live_members\":0,\"destroyed_delta\":1},{\"value\":2147483647,\"index\":18446744073709551615,\"expected_status\":3,\"expected_output\":4207809076,\"array_status\":3,\"array_output\":4207809076,\"counted_status\":3,\"counted_output\":4207809076,\"live_members\":0,\"destroyed_delta\":1},{\"value\":2147483648,\"index\":0,\"expected_status\":0,\"expected_output\":2147483648,\"array_status\":0,\"array_output\":2147483648,\"counted_status\":0,\"counted_output\":2147483648,\"live_members\":0,\"destroyed_delta\":1},{\"value\":2147483648,\"index\":3,\"expected_status\":0,\"expected_output\":2147483648,\"array_status\":0,\"array_output\":2147483648,\"counted_status\":0,\"counted_output\":2147483648,\"live_members\":0,\"destroyed_delta\":1},{\"value\":2147483648,\"index\":4,\"expected_status\":3,\"expected_output\":4207809076,\"array_status\":3,\"array_output\":4207809076,\"counted_status\":3,\"counted_output\":4207809076,\"live_members\":0,\"destroyed_delta\":1},{\"value\":2147483648,\"index\":18446744073709551615,\"expected_status\":3,\"expected_output\":4207809076,\"array_status\":3,\"array_output\":4207809076,\"counted_status\":3,\"counted_output\":4207809076,\"live_members\":0,\"destroyed_delta\":1},{\"value\":4294967294,\"index\":0,\"expected_status\":0,\"expected_output\":4294967294,\"array_status\":0,\"array_output\":4294967294,\"counted_status\":0,\"counted_output\":4294967294,\"live_members\":0,\"destroyed_delta\":1},{\"value\":4294967294,\"index\":3,\"expected_status\":0,\"expected_output\":4294967294,\"array_status\":0,\"array_output\":4294967294,\"counted_status\":0,\"counted_output\":4294967294,\"live_members\":0,\"destroyed_delta\":1},{\"value\":4294967294,\"index\":4,\"expected_status\":3,\"expected_output\":4207809076,\"array_status\":3,\"array_output\":4207809076,\"counted_status\":3,\"counted_output\":4207809076,\"live_members\":0,\"destroyed_delta\":1},{\"value\":4294967294,\"index\":18446744073709551615,\"expected_status\":3,\"expected_output\":4207809076,\"array_status\":3,\"array_output\":4207809076,\"counted_status\":3,\"counted_output\":4207809076,\"live_members\":0,\"destroyed_delta\":1},{\"value\":4294967295,\"index\":0,\"expected_status\":0,\"expected_output\":4294967295,\"array_status\":0,\"array_output\":4294967295,\"counted_status\":0,\"counted_output\":4294967295,\"live_members\":0,\"destroyed_delta\":1},{\"value\":4294967295,\"index\":3,\"expected_status\":0,\"expected_output\":4294967295,\"array_status\":0,\"array_output\":4294967295,\"counted_status\":0,\"counted_output\":4294967295,\"live_members\":0,\"destroyed_delta\":1},{\"value\":4294967295,\"index\":4,\"expected_status\":3,\"expected_output\":4207809076,\"array_status\":3,\"array_output\":4207809076,\"counted_status\":3,\"counted_output\":4207809076,\"live_members\":0,\"destroyed_delta\":1},{\"value\":4294967295,\"index\":18446744073709551615,\"expected_status\":3,\"expected_output\":4207809076,\"array_status\":3,\"array_output\":4207809076,\"counted_status\":3,\"counted_output\":4207809076,\"live_members\":0,\"destroyed_delta\":1}],\"function_observations\":[{\"value\":0,\"observed\":4},{\"value\":1,\"observed\":5},{\"value\":2147483647,\"observed\":2147483651},{\"value\":2147483648,\"observed\":2147483652},{\"value\":4294967294,\"observed\":2},{\"value\":4294967295,\"observed\":3}],\"constructor_failure_status\":3,\"constructor_failure_output\":4207809076,\"null_output_statuses\":[1,1],\"handle_statuses\":[0,0,0,3,0,2,2]}\n",
+          "stdout_sha256": "a59a8e10a778216b93b85061d1e17b4977eb552de26e3bec16726ec10bfdb7b2"
+        },
+        "extent": 4,
+        "generation": {
+          "abi": "selected_C++_compiler_host_C_ABI",
+          "assumptions": [
+            "Foreign code respects declared effects, reentrancy and synchronization requirements.",
+            "Borrowed pointers name live initialized aligned allocations of the stated extent with valid aliasing.",
+            "Foreign code does not retain call_only pointers, spans or const references, or create data races through aliases.",
+            "Output pointers are live writable appropriately aligned nonoverlapping storage.",
+            "C++ code obeys noexcept; termination, hardware faults and undefined behavior are not catchable exceptions.",
+            "All handle-owned allocation and release stay in the same C++ module; callers explicitly destroy handles.",
+            "Scoped operations keep their C++ automatic object inside the call; generated APIs expose no object handle or reference. Foreign nonretention is unproved.",
+            "Scoped RAII cleanup covers normal return and C++ exception unwinding, not process termination, longjmp, nontermination or foreign undefined behavior.",
+            "Handles belong to their generating bridge module and type; integers from other loaded modules are not authenticated capabilities.",
+            "Cancellation and exception status do not roll back foreign side effects or borrowed-buffer writes."
+          ],
+          "borrow_retention_proved": false,
+          "caller_pointer_validity_proved": false,
+          "compiler": {
+            "executable_sha256": "1353e9bdd29a7295c7226bf6c63abccce056d8cac31f112e5cdbecc3f28c2769",
+            "path": "/usr/bin/x86_64-linux-gnu-g++-13",
+            "target": "x86_64-linux-gnu",
+            "version": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0"
+          },
+          "compiler_user_header_dependencies": "/tmp/hepta-cpp-contract-ov_5cunw/bridge.o: \\\n /tmp/hepta-cpp-contract-ov_5cunw/bridge.cpp \\\n /tmp/hepta-cpp-contract-ov_5cunw/bridge.h \\\n /workspace/scratch/100b1728036f/Hepta-work/examples/cpp/template_sizes/foreign.hpp\n",
+          "constructor_checks": [
+            {
+              "argument_types": [],
+              "borrow_retention_proved": false,
+              "construction_check": "native_constructibility_with_declared_argument_categories",
+              "cpp_type": "std::array<std::uint32_t, static_cast<std::size_t>(4)>",
+              "declared_exception": "noexcept",
+              "exact_constructor_parameter_signature_proved": false,
+              "nothrow_object_construction_checked": true,
+              "symbol": "hepta_cpp_sized_Array_new",
+              "wrapper_allocation_exception_boundary": "catch_status"
+            },
+            {
+              "argument_types": [
+                "std::uint32_t"
+              ],
+              "borrow_retention_proved": false,
+              "construction_check": "native_constructibility_with_declared_argument_categories",
+              "cpp_type": "sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(4)>",
+              "declared_exception": "catch_status",
+              "exact_constructor_parameter_signature_proved": false,
+              "nothrow_object_construction_checked": false,
+              "symbol": "hepta_cpp_sized_Counted_new",
+              "wrapper_allocation_exception_boundary": "catch_status"
+            }
+          ],
+          "contract_schema": "hepta.cpp-contract.v4",
+          "contract_sha256": "e73a4f1ef92821d3150b8391587b841fd6cb087b13200f449c51920d79850fdd",
+          "cost_accounting": [
+            {
+              "exception_boundary": "native_noexcept_type_checked",
+              "foreign_allocation": "none_declared",
+              "foreign_allocation_verified": false,
+              "input_buffer_copy_bytes": 0,
+              "pod_field_conversion": false,
+              "route": "direct_value",
+              "symbol": "hepta_cpp_sized_add",
+              "wrapper_heap_allocations": 0,
+              "wrapper_mutex_acquisitions": 0,
+              "wrapper_registry_lookups": 0
+            },
+            {
+              "allocation": "entry_and_object_shared_owners_plus_registry_node_and_possible_bucket_growth",
+              "borrow_retention_proved": false,
+              "constructor_exception": "noexcept",
+              "exception_boundary": "catch_status",
+              "foreign_constructor_allocations": "unverified",
+              "foreign_input_copy": "constructor_dependent_unverified",
+              "output_write": "only_after_successful_registry_insertion",
+              "registry_lifetime": "process",
+              "route": "handle_create",
+              "symbol": "hepta_cpp_sized_Array_new",
+              "wrapper_input_buffer_copy_bytes": 0
+            },
+            {
+              "accounting_scope": "successful_call_after_registry_initialization",
+              "exception_boundary": "catch_status",
+              "foreign_allocation": "method_dependent_unverified",
+              "input_buffer_copy_bytes": 0,
+              "lazy_registry_allocation": "possible_on_first_call",
+              "reentrancy": "reject",
+              "route": "dynamic_handle",
+              "symbol": "hepta_cpp_sized_Array_fill",
+              "thread_identity_allocation": "none",
+              "threading": "serialized",
+              "wrapper_heap_allocations": 0,
+              "wrapper_mutex_acquisitions": 2,
+              "wrapper_registry_lookups": 1,
+              "wrapper_shared_owner_copies": 2
+            },
+            {
+              "accounting_scope": "successful_call_after_registry_initialization",
+              "exception_boundary": "catch_status",
+              "foreign_allocation": "method_dependent_unverified",
+              "input_buffer_copy_bytes": 0,
+              "lazy_registry_allocation": "possible_on_first_call",
+              "reentrancy": "reject",
+              "route": "dynamic_handle",
+              "symbol": "hepta_cpp_sized_Array_at",
+              "thread_identity_allocation": "none",
+              "threading": "serialized",
+              "wrapper_heap_allocations": 0,
+              "wrapper_mutex_acquisitions": 2,
+              "wrapper_registry_lookups": 1,
+              "wrapper_shared_owner_copies": 2
+            },
+            {
+              "abandoned_handles": "not_automatically_reclaimed",
+              "deallocation": "same_C++_shared_owner_module",
+              "destruction": "nothrow_defer_inflight",
+              "route": "handle_destroy",
+              "symbol": "hepta_cpp_sized_Array_destroy"
+            },
+            {
+              "allocation": "entry_and_object_shared_owners_plus_registry_node_and_possible_bucket_growth",
+              "borrow_retention_proved": false,
+              "constructor_exception": "catch_status",
+              "exception_boundary": "catch_status",
+              "foreign_constructor_allocations": "unverified",
+              "foreign_input_copy": "constructor_dependent_unverified",
+              "output_write": "only_after_successful_registry_insertion",
+              "registry_lifetime": "process",
+              "route": "handle_create",
+              "symbol": "hepta_cpp_sized_Counted_new",
+              "wrapper_input_buffer_copy_bytes": 0
+            },
+            {
+              "accounting_scope": "successful_call_after_registry_initialization",
+              "exception_boundary": "catch_status",
+              "foreign_allocation": "method_dependent_unverified",
+              "input_buffer_copy_bytes": 0,
+              "lazy_registry_allocation": "possible_on_first_call",
+              "reentrancy": "reject",
+              "route": "dynamic_handle",
+              "symbol": "hepta_cpp_sized_Counted_fill",
+              "thread_identity_allocation": "none",
+              "threading": "serialized",
+              "wrapper_heap_allocations": 0,
+              "wrapper_mutex_acquisitions": 2,
+              "wrapper_registry_lookups": 1,
+              "wrapper_shared_owner_copies": 2
+            },
+            {
+              "accounting_scope": "successful_call_after_registry_initialization",
+              "exception_boundary": "catch_status",
+              "foreign_allocation": "method_dependent_unverified",
+              "input_buffer_copy_bytes": 0,
+              "lazy_registry_allocation": "possible_on_first_call",
+              "reentrancy": "reject",
+              "route": "dynamic_handle",
+              "symbol": "hepta_cpp_sized_Counted_at",
+              "thread_identity_allocation": "none",
+              "threading": "serialized",
+              "wrapper_heap_allocations": 0,
+              "wrapper_mutex_acquisitions": 2,
+              "wrapper_registry_lookups": 1,
+              "wrapper_shared_owner_copies": 2
+            },
+            {
+              "abandoned_handles": "not_automatically_reclaimed",
+              "deallocation": "same_C++_shared_owner_module",
+              "destruction": "nothrow_defer_inflight",
+              "route": "handle_destroy",
+              "symbol": "hepta_cpp_sized_Counted_destroy"
+            },
+            {
+              "accounting_scope": "generated_wrapper_only",
+              "automatic_foreign_objects": 1,
+              "exception_boundary": "catch_status",
+              "foreign_allocation": "constructor_and_methods_dependent_unverified",
+              "foreign_stack_usage": "sizeof_selected_type_plus_compiler_generated_temporaries",
+              "input_buffer_copy_bytes": 0,
+              "method_invocations": 2,
+              "pod_field_conversion": false,
+              "route": "call_scoped_cpp_raii",
+              "symbol": "hepta_cpp_sized_array_roundtrip",
+              "wrapper_heap_allocations": 0,
+              "wrapper_mutex_acquisitions": 0,
+              "wrapper_registry_lookups": 0,
+              "wrapper_shared_owner_copies": 0
+            },
+            {
+              "accounting_scope": "generated_wrapper_only",
+              "automatic_foreign_objects": 1,
+              "exception_boundary": "catch_status",
+              "foreign_allocation": "constructor_and_methods_dependent_unverified",
+              "foreign_stack_usage": "sizeof_selected_type_plus_compiler_generated_temporaries",
+              "input_buffer_copy_bytes": 0,
+              "method_invocations": 2,
+              "pod_field_conversion": false,
+              "route": "call_scoped_cpp_raii",
+              "symbol": "hepta_cpp_sized_counted_roundtrip",
+              "wrapper_heap_allocations": 0,
+              "wrapper_mutex_acquisitions": 0,
+              "wrapper_registry_lookups": 0,
+              "wrapper_shared_owner_copies": 0
+            }
+          ],
+          "cpp_flags": [
+            "-std=c++20",
+            "-O2",
+            "-fPIC",
+            "-pthread",
+            "-Werror"
+          ],
+          "diagnostics": [],
+          "execution": "not_run",
+          "foreign_library_soundness_proved": false,
+          "foreign_thread_safety_proved": false,
+          "header": "/workspace/scratch/100b1728036f/Hepta-work/examples/cpp/template_sizes/foreign.hpp",
+          "header_sha256": "dd62e9e741eb4ee11a6c5f881812db998be71e2e327c7ce4d34426d9fad28b43",
+          "hepta_validation": {
+            "assumptions": [
+              {
+                "abi": "C",
+                "declared_effects": [
+                  "ffi",
+                  "unsafe"
+                ],
+                "function": "hepta_cpp_sized_add",
+                "kind": "extern_contract",
+                "obligations": [
+                  "foreign implementation obeys the declared ABI and effect upper bound",
+                  "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+                ],
+                "parameters": [
+                  {
+                    "name": "value",
+                    "type": "u32"
+                  }
+                ],
+                "return_type": "u32",
+                "status": "assumed_not_verified"
+              },
+              {
+                "abi": "C",
+                "declared_effects": [
+                  "alloc",
+                  "block",
+                  "ffi",
+                  "unsafe",
+                  "write"
+                ],
+                "function": "hepta_cpp_sized_Array_new",
+                "kind": "extern_contract",
+                "obligations": [
+                  "foreign implementation obeys the declared ABI and effect upper bound",
+                  "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+                ],
+                "parameters": [
+                  {
+                    "name": "out",
+                    "type": "raw mut u64"
+                  }
+                ],
+                "return_type": "i32",
+                "status": "assumed_not_verified"
+              },
+              {
+                "abi": "C",
+                "declared_effects": [
+                  "alloc",
+                  "block",
+                  "ffi",
+                  "unsafe",
+                  "write"
+                ],
+                "function": "hepta_cpp_sized_Array_destroy",
+                "kind": "extern_contract",
+                "obligations": [
+                  "foreign implementation obeys the declared ABI and effect upper bound",
+                  "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+                ],
+                "parameters": [
+                  {
+                    "name": "handle",
+                    "type": "u64"
+                  }
+                ],
+                "return_type": "i32",
+                "status": "assumed_not_verified"
+              },
+              {
+                "abi": "C",
+                "declared_effects": [
+                  "alloc",
+                  "block",
+                  "ffi",
+                  "unsafe",
+                  "write"
+                ],
+                "function": "hepta_cpp_sized_Array_fill",
+                "kind": "extern_contract",
+                "obligations": [
+                  "foreign implementation obeys the declared ABI and effect upper bound",
+                  "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+                ],
+                "parameters": [
+                  {
+                    "name": "handle",
+                    "type": "u64"
+                  },
+                  {
+                    "name": "value",
+                    "type": "u32"
+                  }
+                ],
+                "return_type": "i32",
+                "status": "assumed_not_verified"
+              },
+              {
+                "abi": "C",
+                "declared_effects": [
+                  "alloc",
+                  "block",
+                  "ffi",
+                  "unsafe",
+                  "write"
+                ],
+                "function": "hepta_cpp_sized_Array_at",
+                "kind": "extern_contract",
+                "obligations": [
+                  "foreign implementation obeys the declared ABI and effect upper bound",
+                  "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+                ],
+                "parameters": [
+                  {
+                    "name": "handle",
+                    "type": "u64"
+                  },
+                  {
+                    "name": "index",
+                    "type": "usize"
+                  },
+                  {
+                    "name": "out",
+                    "type": "raw mut u32"
+                  }
+                ],
+                "return_type": "i32",
+                "status": "assumed_not_verified"
+              },
+              {
+                "abi": "C",
+                "declared_effects": [
+                  "alloc",
+                  "block",
+                  "ffi",
+                  "unsafe",
+                  "write"
+                ],
+                "function": "hepta_cpp_sized_Counted_new",
+                "kind": "extern_contract",
+                "obligations": [
+                  "foreign implementation obeys the declared ABI and effect upper bound",
+                  "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+                ],
+                "parameters": [
+                  {
+                    "name": "reject",
+                    "type": "u32"
+                  },
+                  {
+                    "name": "out",
+                    "type": "raw mut u64"
+                  }
+                ],
+                "return_type": "i32",
+                "status": "assumed_not_verified"
+              },
+              {
+                "abi": "C",
+                "declared_effects": [
+                  "alloc",
+                  "block",
+                  "ffi",
+                  "unsafe",
+                  "write"
+                ],
+                "function": "hepta_cpp_sized_Counted_destroy",
+                "kind": "extern_contract",
+                "obligations": [
+                  "foreign implementation obeys the declared ABI and effect upper bound",
+                  "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+                ],
+                "parameters": [
+                  {
+                    "name": "handle",
+                    "type": "u64"
+                  }
+                ],
+                "return_type": "i32",
+                "status": "assumed_not_verified"
+              },
+              {
+                "abi": "C",
+                "declared_effects": [
+                  "alloc",
+                  "block",
+                  "ffi",
+                  "unsafe",
+                  "write"
+                ],
+                "function": "hepta_cpp_sized_Counted_fill",
+                "kind": "extern_contract",
+                "obligations": [
+                  "foreign implementation obeys the declared ABI and effect upper bound",
+                  "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+                ],
+                "parameters": [
+                  {
+                    "name": "handle",
+                    "type": "u64"
+                  },
+                  {
+                    "name": "value",
+                    "type": "u32"
+                  }
+                ],
+                "return_type": "i32",
+                "status": "assumed_not_verified"
+              },
+              {
+                "abi": "C",
+                "declared_effects": [
+                  "alloc",
+                  "block",
+                  "ffi",
+                  "unsafe",
+                  "write"
+                ],
+                "function": "hepta_cpp_sized_Counted_at",
+                "kind": "extern_contract",
+                "obligations": [
+                  "foreign implementation obeys the declared ABI and effect upper bound",
+                  "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+                ],
+                "parameters": [
+                  {
+                    "name": "handle",
+                    "type": "u64"
+                  },
+                  {
+                    "name": "index",
+                    "type": "usize"
+                  },
+                  {
+                    "name": "out",
+                    "type": "raw mut u32"
+                  }
+                ],
+                "return_type": "i32",
+                "status": "assumed_not_verified"
+              },
+              {
+                "abi": "C",
+                "declared_effects": [
+                  "alloc",
+                  "block",
+                  "ffi",
+                  "unsafe",
+                  "write"
+                ],
+                "function": "hepta_cpp_sized_array_roundtrip",
+                "kind": "extern_contract",
+                "obligations": [
+                  "foreign implementation obeys the declared ABI and effect upper bound",
+                  "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+                ],
+                "parameters": [
+                  {
+                    "name": "value",
+                    "type": "u32"
+                  },
+                  {
+                    "name": "index",
+                    "type": "usize"
+                  },
+                  {
+                    "name": "out",
+                    "type": "raw mut u32"
+                  }
+                ],
+                "return_type": "i32",
+                "status": "assumed_not_verified"
+              },
+              {
+                "abi": "C",
+                "declared_effects": [
+                  "alloc",
+                  "block",
+                  "ffi",
+                  "unsafe",
+                  "write"
+                ],
+                "function": "hepta_cpp_sized_counted_roundtrip",
+                "kind": "extern_contract",
+                "obligations": [
+                  "foreign implementation obeys the declared ABI and effect upper bound",
+                  "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+                ],
+                "parameters": [
+                  {
+                    "name": "reject",
+                    "type": "u32"
+                  },
+                  {
+                    "name": "value",
+                    "type": "u32"
+                  },
+                  {
+                    "name": "index",
+                    "type": "usize"
+                  },
+                  {
+                    "name": "out",
+                    "type": "raw mut u32"
+                  }
+                ],
+                "return_type": "i32",
+                "status": "assumed_not_verified"
+              }
+            ],
+            "backend": {
+              "check_only": true,
+              "crate_type": "rlib",
+              "diagnostics": [],
+              "flags": [
+                "edition=2021",
+                "opt-level=3",
+                "overflow-checks=yes",
+                "panic=abort",
+                "codegen-units=1",
+                "sysroot=/tmp/hepta-ai-rust-1.90.0"
+              ],
+              "link_args": [],
+              "linker": null,
+              "ok": true,
+              "rust_sha256": "367ee3ea342ded16bfd84c98c45346f32558de317cee3eb39293add2913ae482",
+              "rustc_crate_type": "lib",
+              "status": "rustc_checked",
+              "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+              "target": "x86_64-unknown-linux-gnu",
+              "toolchain": {
+                "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+                "host": "x86_64-unknown-linux-gnu",
+                "path": "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+                "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+                "sysroot_discovery": "verified_compiler_prefix",
+                "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+              },
+              "validation_artifact_sha256": "ee7ca5075b9749010d6558c631422dbe62afcb16a76214f80b0067d5bb89d4b6"
+            },
+            "checks": {
+              "rust_borrows_types": "rustc_checked",
+              "syntax": "passed",
+              "types_effects_resources": "passed_in_supported_subset"
+            },
+            "claims": {
+              "all_programs_faster_than_rust": false,
+              "bounded_cancellation_latency_proved": false,
+              "deadlock_freedom_proved": false,
+              "hardware_execution_verified": false,
+              "whole_language_soundness_proved": false
+            },
+            "compiler_sha256": "dbeb5311dfb81d01d8704ef26800b5672bca89976efa6b74e10a9b255efb9f97",
+            "compiler_version": "0.2.0",
+            "diagnostics": [],
+            "effects": {
+              "hepta_cpp_sized_Array_at": [
+                "alloc",
+                "block",
+                "ffi",
+                "unsafe",
+                "write"
+              ],
+              "hepta_cpp_sized_Array_destroy": [
+                "alloc",
+                "block",
+                "ffi",
+                "unsafe",
+                "write"
+              ],
+              "hepta_cpp_sized_Array_fill": [
+                "alloc",
+                "block",
+                "ffi",
+                "unsafe",
+                "write"
+              ],
+              "hepta_cpp_sized_Array_new": [
+                "alloc",
+                "block",
+                "ffi",
+                "unsafe",
+                "write"
+              ],
+              "hepta_cpp_sized_Counted_at": [
+                "alloc",
+                "block",
+                "ffi",
+                "unsafe",
+                "write"
+              ],
+              "hepta_cpp_sized_Counted_destroy": [
+                "alloc",
+                "block",
+                "ffi",
+                "unsafe",
+                "write"
+              ],
+              "hepta_cpp_sized_Counted_fill": [
+                "alloc",
+                "block",
+                "ffi",
+                "unsafe",
+                "write"
+              ],
+              "hepta_cpp_sized_Counted_new": [
+                "alloc",
+                "block",
+                "ffi",
+                "unsafe",
+                "write"
+              ],
+              "hepta_cpp_sized_add": [
+                "ffi",
+                "unsafe"
+              ],
+              "hepta_cpp_sized_array_roundtrip": [
+                "alloc",
+                "block",
+                "ffi",
+                "unsafe",
+                "write"
+              ],
+              "hepta_cpp_sized_counted_roundtrip": [
+                "alloc",
+                "block",
+                "ffi",
+                "unsafe",
+                "write"
+              ]
+            },
+            "interface_sha256": "074acc337eb293c697731bfeda4eeeb6b361ebde107e7b9f778adca28e06d8e0",
+            "ok": true,
+            "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_4/bridge.hepta",
+            "profile": {
+              "crate_type": "rlib",
+              "no_std": false,
+              "overflow_checks": true,
+              "panic": "abort"
+            },
+            "resource_contracts": [],
+            "rust_sha256": "367ee3ea342ded16bfd84c98c45346f32558de317cee3eb39293add2913ae482",
+            "schema": "hepta.check.v1",
+            "source_sha256": "3130b1247e382abc84a4b85851af86aac5d8a83184a7dc289964d0d4d66d80b3",
+            "status": "checked_with_external_assumptions"
+          },
+          "native_link_qualified": false,
+          "object_bytes": 44256,
+          "object_sha256": "f9196a99d80a6f9a4af123d9687e3c0f8dc48ced7a32e92ee72ed9f66903fc62",
+          "ok": true,
+          "outputs": {
+            "bridge.cpp": {
+              "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_4/bridge.cpp",
+              "sha256": "d2e0912f980883e7370c90cfdbc1588e4fa0cb6308338e793d07e7f8342cc280"
+            },
+            "bridge.h": {
+              "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_4/bridge.h",
+              "sha256": "ab11eff993164f5bf5cdf72f5e49fdebae157930548132f7b2300a01e115f980"
+            },
+            "bridge.hepta": {
+              "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_4/bridge.hepta",
+              "sha256": "3130b1247e382abc84a4b85851af86aac5d8a83184a7dc289964d0d4d66d80b3"
+            },
+            "contract.json": {
+              "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_4/contract.json",
+              "sha256": "7b4d0858da06a36011ab204c035ed3b02c2fbfdbade48a9259eb5214e4eb4f4b"
+            }
+          },
+          "paired_toolchain_abi_qualified": false,
+          "schema": "hepta.cpp-bridge-contract-report.v1",
+          "scoped_lifetime_checks": [
+            {
+              "cleanup": "C++_RAII_on_normal_return_and_caught_C++_exceptions",
+              "constructor": "new",
+              "cpp_type": "std::array<std::uint32_t, static_cast<std::size_t>(4)>",
+              "destructor_nothrow_native_checked": true,
+              "foreign_implementation_rewritten": false,
+              "foreign_nonretention_proved": false,
+              "lifetime": "one_call_cpp_automatic_object",
+              "methods": [
+                "fill",
+                "at"
+              ],
+              "object_handle_exported": false,
+              "output_published_after_destructor": true,
+              "reference_result_copied_before_destructor": true,
+              "result_type": "u32",
+              "symbol": "hepta_cpp_sized_array_roundtrip",
+              "whole_library_memory_safety_proved": false
+            },
+            {
+              "cleanup": "C++_RAII_on_normal_return_and_caught_C++_exceptions",
+              "constructor": "new",
+              "cpp_type": "sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(4)>",
+              "destructor_nothrow_native_checked": true,
+              "foreign_implementation_rewritten": false,
+              "foreign_nonretention_proved": false,
+              "lifetime": "one_call_cpp_automatic_object",
+              "methods": [
+                "fill",
+                "at"
+              ],
+              "object_handle_exported": false,
+              "output_published_after_destructor": true,
+              "reference_result_copied_before_destructor": true,
+              "result_type": "u32",
+              "symbol": "hepta_cpp_sized_counted_roundtrip",
+              "whole_library_memory_safety_proved": false
+            }
+          ],
+          "status": "cpp_object_and_hepta_native_checked",
+          "status_codes": {
+            "cpp_exception": 3,
+            "handle_exhausted": 4,
+            "misaligned_pointer": 8,
+            "null_pointer": 1,
+            "reentrancy_rejected": 6,
+            "span_too_large": 7,
+            "stale_handle": 2,
+            "success": 0,
+            "wrong_thread": 5
+          },
+          "template_specializations": [
+            {
+              "all_template_instantiations_qualified": false,
+              "arguments": [
+                {
+                  "kind": "size",
+                  "value": 4
+                }
+              ],
+              "cpp": "sized_example::add_size<static_cast<std::size_t>(4)>",
+              "export": "add",
+              "kind": "function",
+              "selected_instantiation_native_checked": true
+            },
+            {
+              "all_template_instantiations_qualified": false,
+              "arguments": [
+                "u32",
+                {
+                  "kind": "size",
+                  "value": 4
+                }
+              ],
+              "cpp": "std::array<std::uint32_t, static_cast<std::size_t>(4)>",
+              "export": "Array",
+              "kind": "object",
+              "selected_instantiation_native_checked": true
+            },
+            {
+              "all_template_instantiations_qualified": false,
+              "arguments": [
+                "u32",
+                {
+                  "kind": "size",
+                  "value": 4
+                }
+              ],
+              "cpp": "sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(4)>",
+              "export": "Counted",
+              "kind": "object",
+              "selected_instantiation_native_checked": true
+            }
+          ],
+          "transitive_dependency_lock": "not_established_rebuild_from_current_headers_required"
+        },
+        "generation_and_native_check_ns": 1097744166,
+        "native_binaries_retained": false,
+        "native_binary": {
+          "bytes": 47680,
+          "path_during_execution": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_4/native",
+          "retained": false,
+          "sha256": "0961ef5bebaaaf67aef712364d90caa99e91737db338138d28f8d104aa8367ba"
+        },
+        "native_build": {
+          "artifact_bytes": 20949400,
+          "artifact_path_during_execution": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_4/consumer.a",
+          "artifact_retained": false,
+          "artifact_sha256": "984d2267bb0ba32b2a7d4cee40df659eaa13263f6d085dab7401d4e076ebb68d",
+          "check_only": false,
+          "crate_type": "staticlib",
+          "diagnostics": [],
+          "flags": [
+            "edition=2021",
+            "opt-level=3",
+            "overflow-checks=yes",
+            "panic=abort",
+            "codegen-units=1",
+            "sysroot=/tmp/hepta-ai-rust-1.90.0"
+          ],
+          "link_args": [],
+          "linker": null,
+          "ok": true,
+          "rust_sha256": "375dacf64b713a83c6514b12b4256b0f77901faa119eb53e0a63289286a2f6a7",
+          "rustc_crate_type": "staticlib",
+          "status": "rustc_checked",
+          "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+            "host": "x86_64-unknown-linux-gnu",
+            "path": "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+            "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+            "sysroot_discovery": "verified_compiler_prefix",
+            "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+          },
+          "validation_artifact_sha256": "984d2267bb0ba32b2a7d4cee40df659eaa13263f6d085dab7401d4e076ebb68d"
+        },
+        "native_link": {
+          "command": [
+            "g++",
+            "-std=c++20",
+            "-O2",
+            "-pthread",
+            "-Werror",
+            "-DHEPTA_TEST_EXTENT=4",
+            "-I/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_4",
+            "-I/workspace/scratch/100b1728036f/Hepta-work/examples/cpp/template_sizes",
+            "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_4/bridge.cpp",
+            "/workspace/scratch/100b1728036f/Hepta-work/examples/cpp/template_sizes/verify.cpp",
+            "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_4/consumer.a",
+            "-ldl",
+            "-lm",
+            "-o",
+            "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_4/native"
+          ],
+          "returncode": 0,
+          "stderr": "",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout": "",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "ok": true
+      },
+      {
+        "execution": {
+          "array_and_lifecycle_observations": [
+            {
+              "array_output": 0,
+              "array_status": 0,
+              "counted_output": 0,
+              "counted_status": 0,
+              "destroyed_delta": 1,
+              "expected_output": 0,
+              "expected_status": 0,
+              "index": 0,
+              "live_members": 0,
+              "value": 0
+            },
+            {
+              "array_output": 0,
+              "array_status": 0,
+              "counted_output": 0,
+              "counted_status": 0,
+              "destroyed_delta": 1,
+              "expected_output": 0,
+              "expected_status": 0,
+              "index": 7,
+              "live_members": 0,
+              "value": 0
+            },
+            {
+              "array_output": 4207809076,
+              "array_status": 3,
+              "counted_output": 4207809076,
+              "counted_status": 3,
+              "destroyed_delta": 1,
+              "expected_output": 4207809076,
+              "expected_status": 3,
+              "index": 8,
+              "live_members": 0,
+              "value": 0
+            },
+            {
+              "array_output": 4207809076,
+              "array_status": 3,
+              "counted_output": 4207809076,
+              "counted_status": 3,
+              "destroyed_delta": 1,
+              "expected_output": 4207809076,
+              "expected_status": 3,
+              "index": 18446744073709551615,
+              "live_members": 0,
+              "value": 0
+            },
+            {
+              "array_output": 1,
+              "array_status": 0,
+              "counted_output": 1,
+              "counted_status": 0,
+              "destroyed_delta": 1,
+              "expected_output": 1,
+              "expected_status": 0,
+              "index": 0,
+              "live_members": 0,
+              "value": 1
+            },
+            {
+              "array_output": 1,
+              "array_status": 0,
+              "counted_output": 1,
+              "counted_status": 0,
+              "destroyed_delta": 1,
+              "expected_output": 1,
+              "expected_status": 0,
+              "index": 7,
+              "live_members": 0,
+              "value": 1
+            },
+            {
+              "array_output": 4207809076,
+              "array_status": 3,
+              "counted_output": 4207809076,
+              "counted_status": 3,
+              "destroyed_delta": 1,
+              "expected_output": 4207809076,
+              "expected_status": 3,
+              "index": 8,
+              "live_members": 0,
+              "value": 1
+            },
+            {
+              "array_output": 4207809076,
+              "array_status": 3,
+              "counted_output": 4207809076,
+              "counted_status": 3,
+              "destroyed_delta": 1,
+              "expected_output": 4207809076,
+              "expected_status": 3,
+              "index": 18446744073709551615,
+              "live_members": 0,
+              "value": 1
+            },
+            {
+              "array_output": 2147483647,
+              "array_status": 0,
+              "counted_output": 2147483647,
+              "counted_status": 0,
+              "destroyed_delta": 1,
+              "expected_output": 2147483647,
+              "expected_status": 0,
+              "index": 0,
+              "live_members": 0,
+              "value": 2147483647
+            },
+            {
+              "array_output": 2147483647,
+              "array_status": 0,
+              "counted_output": 2147483647,
+              "counted_status": 0,
+              "destroyed_delta": 1,
+              "expected_output": 2147483647,
+              "expected_status": 0,
+              "index": 7,
+              "live_members": 0,
+              "value": 2147483647
+            },
+            {
+              "array_output": 4207809076,
+              "array_status": 3,
+              "counted_output": 4207809076,
+              "counted_status": 3,
+              "destroyed_delta": 1,
+              "expected_output": 4207809076,
+              "expected_status": 3,
+              "index": 8,
+              "live_members": 0,
+              "value": 2147483647
+            },
+            {
+              "array_output": 4207809076,
+              "array_status": 3,
+              "counted_output": 4207809076,
+              "counted_status": 3,
+              "destroyed_delta": 1,
+              "expected_output": 4207809076,
+              "expected_status": 3,
+              "index": 18446744073709551615,
+              "live_members": 0,
+              "value": 2147483647
+            },
+            {
+              "array_output": 2147483648,
+              "array_status": 0,
+              "counted_output": 2147483648,
+              "counted_status": 0,
+              "destroyed_delta": 1,
+              "expected_output": 2147483648,
+              "expected_status": 0,
+              "index": 0,
+              "live_members": 0,
+              "value": 2147483648
+            },
+            {
+              "array_output": 2147483648,
+              "array_status": 0,
+              "counted_output": 2147483648,
+              "counted_status": 0,
+              "destroyed_delta": 1,
+              "expected_output": 2147483648,
+              "expected_status": 0,
+              "index": 7,
+              "live_members": 0,
+              "value": 2147483648
+            },
+            {
+              "array_output": 4207809076,
+              "array_status": 3,
+              "counted_output": 4207809076,
+              "counted_status": 3,
+              "destroyed_delta": 1,
+              "expected_output": 4207809076,
+              "expected_status": 3,
+              "index": 8,
+              "live_members": 0,
+              "value": 2147483648
+            },
+            {
+              "array_output": 4207809076,
+              "array_status": 3,
+              "counted_output": 4207809076,
+              "counted_status": 3,
+              "destroyed_delta": 1,
+              "expected_output": 4207809076,
+              "expected_status": 3,
+              "index": 18446744073709551615,
+              "live_members": 0,
+              "value": 2147483648
+            },
+            {
+              "array_output": 4294967294,
+              "array_status": 0,
+              "counted_output": 4294967294,
+              "counted_status": 0,
+              "destroyed_delta": 1,
+              "expected_output": 4294967294,
+              "expected_status": 0,
+              "index": 0,
+              "live_members": 0,
+              "value": 4294967294
+            },
+            {
+              "array_output": 4294967294,
+              "array_status": 0,
+              "counted_output": 4294967294,
+              "counted_status": 0,
+              "destroyed_delta": 1,
+              "expected_output": 4294967294,
+              "expected_status": 0,
+              "index": 7,
+              "live_members": 0,
+              "value": 4294967294
+            },
+            {
+              "array_output": 4207809076,
+              "array_status": 3,
+              "counted_output": 4207809076,
+              "counted_status": 3,
+              "destroyed_delta": 1,
+              "expected_output": 4207809076,
+              "expected_status": 3,
+              "index": 8,
+              "live_members": 0,
+              "value": 4294967294
+            },
+            {
+              "array_output": 4207809076,
+              "array_status": 3,
+              "counted_output": 4207809076,
+              "counted_status": 3,
+              "destroyed_delta": 1,
+              "expected_output": 4207809076,
+              "expected_status": 3,
+              "index": 18446744073709551615,
+              "live_members": 0,
+              "value": 4294967294
+            },
+            {
+              "array_output": 4294967295,
+              "array_status": 0,
+              "counted_output": 4294967295,
+              "counted_status": 0,
+              "destroyed_delta": 1,
+              "expected_output": 4294967295,
+              "expected_status": 0,
+              "index": 0,
+              "live_members": 0,
+              "value": 4294967295
+            },
+            {
+              "array_output": 4294967295,
+              "array_status": 0,
+              "counted_output": 4294967295,
+              "counted_status": 0,
+              "destroyed_delta": 1,
+              "expected_output": 4294967295,
+              "expected_status": 0,
+              "index": 7,
+              "live_members": 0,
+              "value": 4294967295
+            },
+            {
+              "array_output": 4207809076,
+              "array_status": 3,
+              "counted_output": 4207809076,
+              "counted_status": 3,
+              "destroyed_delta": 1,
+              "expected_output": 4207809076,
+              "expected_status": 3,
+              "index": 8,
+              "live_members": 0,
+              "value": 4294967295
+            },
+            {
+              "array_output": 4207809076,
+              "array_status": 3,
+              "counted_output": 4207809076,
+              "counted_status": 3,
+              "destroyed_delta": 1,
+              "expected_output": 4207809076,
+              "expected_status": 3,
+              "index": 18446744073709551615,
+              "live_members": 0,
+              "value": 4294967295
+            }
+          ],
+          "constructor_failure_output": 4207809076,
+          "constructor_failure_paths": 1,
+          "constructor_failure_status": 3,
+          "counted_lifecycle_cases": 24,
+          "extent": 8,
+          "function_observations": [
+            {
+              "observed": 8,
+              "value": 0
+            },
+            {
+              "observed": 9,
+              "value": 1
+            },
+            {
+              "observed": 2147483655,
+              "value": 2147483647
+            },
+            {
+              "observed": 2147483656,
+              "value": 2147483648
+            },
+            {
+              "observed": 6,
+              "value": 4294967294
+            },
+            {
+              "observed": 7,
+              "value": 4294967295
+            }
+          ],
+          "function_template_cases": 6,
+          "handle_statuses": [
+            0,
+            0,
+            0,
+            3,
+            0,
+            2,
+            2
+          ],
+          "handle_transitions": 7,
+          "live_members": 0,
+          "null_output_paths": 2,
+          "null_output_statuses": [
+            1,
+            1
+          ],
+          "ok": true,
+          "std_array_differential_cases": 24
+        },
+        "execution_process": {
+          "command": [
+            "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_8/native"
+          ],
+          "returncode": 0,
+          "stderr": "",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout": "{\"ok\":true,\"extent\":8,\"std_array_differential_cases\":24,\"counted_lifecycle_cases\":24,\"function_template_cases\":6,\"constructor_failure_paths\":1,\"null_output_paths\":2,\"handle_transitions\":7,\"live_members\":0,\"array_and_lifecycle_observations\":[{\"value\":0,\"index\":0,\"expected_status\":0,\"expected_output\":0,\"array_status\":0,\"array_output\":0,\"counted_status\":0,\"counted_output\":0,\"live_members\":0,\"destroyed_delta\":1},{\"value\":0,\"index\":7,\"expected_status\":0,\"expected_output\":0,\"array_status\":0,\"array_output\":0,\"counted_status\":0,\"counted_output\":0,\"live_members\":0,\"destroyed_delta\":1},{\"value\":0,\"index\":8,\"expected_status\":3,\"expected_output\":4207809076,\"array_status\":3,\"array_output\":4207809076,\"counted_status\":3,\"counted_output\":4207809076,\"live_members\":0,\"destroyed_delta\":1},{\"value\":0,\"index\":18446744073709551615,\"expected_status\":3,\"expected_output\":4207809076,\"array_status\":3,\"array_output\":4207809076,\"counted_status\":3,\"counted_output\":4207809076,\"live_members\":0,\"destroyed_delta\":1},{\"value\":1,\"index\":0,\"expected_status\":0,\"expected_output\":1,\"array_status\":0,\"array_output\":1,\"counted_status\":0,\"counted_output\":1,\"live_members\":0,\"destroyed_delta\":1},{\"value\":1,\"index\":7,\"expected_status\":0,\"expected_output\":1,\"array_status\":0,\"array_output\":1,\"counted_status\":0,\"counted_output\":1,\"live_members\":0,\"destroyed_delta\":1},{\"value\":1,\"index\":8,\"expected_status\":3,\"expected_output\":4207809076,\"array_status\":3,\"array_output\":4207809076,\"counted_status\":3,\"counted_output\":4207809076,\"live_members\":0,\"destroyed_delta\":1},{\"value\":1,\"index\":18446744073709551615,\"expected_status\":3,\"expected_output\":4207809076,\"array_status\":3,\"array_output\":4207809076,\"counted_status\":3,\"counted_output\":4207809076,\"live_members\":0,\"destroyed_delta\":1},{\"value\":2147483647,\"index\":0,\"expected_status\":0,\"expected_output\":2147483647,\"array_status\":0,\"array_output\":2147483647,\"counted_status\":0,\"counted_output\":2147483647,\"live_members\":0,\"destroyed_delta\":1},{\"value\":2147483647,\"index\":7,\"expected_status\":0,\"expected_output\":2147483647,\"array_status\":0,\"array_output\":2147483647,\"counted_status\":0,\"counted_output\":2147483647,\"live_members\":0,\"destroyed_delta\":1},{\"value\":2147483647,\"index\":8,\"expected_status\":3,\"expected_output\":4207809076,\"array_status\":3,\"array_output\":4207809076,\"counted_status\":3,\"counted_output\":4207809076,\"live_members\":0,\"destroyed_delta\":1},{\"value\":2147483647,\"index\":18446744073709551615,\"expected_status\":3,\"expected_output\":4207809076,\"array_status\":3,\"array_output\":4207809076,\"counted_status\":3,\"counted_output\":4207809076,\"live_members\":0,\"destroyed_delta\":1},{\"value\":2147483648,\"index\":0,\"expected_status\":0,\"expected_output\":2147483648,\"array_status\":0,\"array_output\":2147483648,\"counted_status\":0,\"counted_output\":2147483648,\"live_members\":0,\"destroyed_delta\":1},{\"value\":2147483648,\"index\":7,\"expected_status\":0,\"expected_output\":2147483648,\"array_status\":0,\"array_output\":2147483648,\"counted_status\":0,\"counted_output\":2147483648,\"live_members\":0,\"destroyed_delta\":1},{\"value\":2147483648,\"index\":8,\"expected_status\":3,\"expected_output\":4207809076,\"array_status\":3,\"array_output\":4207809076,\"counted_status\":3,\"counted_output\":4207809076,\"live_members\":0,\"destroyed_delta\":1},{\"value\":2147483648,\"index\":18446744073709551615,\"expected_status\":3,\"expected_output\":4207809076,\"array_status\":3,\"array_output\":4207809076,\"counted_status\":3,\"counted_output\":4207809076,\"live_members\":0,\"destroyed_delta\":1},{\"value\":4294967294,\"index\":0,\"expected_status\":0,\"expected_output\":4294967294,\"array_status\":0,\"array_output\":4294967294,\"counted_status\":0,\"counted_output\":4294967294,\"live_members\":0,\"destroyed_delta\":1},{\"value\":4294967294,\"index\":7,\"expected_status\":0,\"expected_output\":4294967294,\"array_status\":0,\"array_output\":4294967294,\"counted_status\":0,\"counted_output\":4294967294,\"live_members\":0,\"destroyed_delta\":1},{\"value\":4294967294,\"index\":8,\"expected_status\":3,\"expected_output\":4207809076,\"array_status\":3,\"array_output\":4207809076,\"counted_status\":3,\"counted_output\":4207809076,\"live_members\":0,\"destroyed_delta\":1},{\"value\":4294967294,\"index\":18446744073709551615,\"expected_status\":3,\"expected_output\":4207809076,\"array_status\":3,\"array_output\":4207809076,\"counted_status\":3,\"counted_output\":4207809076,\"live_members\":0,\"destroyed_delta\":1},{\"value\":4294967295,\"index\":0,\"expected_status\":0,\"expected_output\":4294967295,\"array_status\":0,\"array_output\":4294967295,\"counted_status\":0,\"counted_output\":4294967295,\"live_members\":0,\"destroyed_delta\":1},{\"value\":4294967295,\"index\":7,\"expected_status\":0,\"expected_output\":4294967295,\"array_status\":0,\"array_output\":4294967295,\"counted_status\":0,\"counted_output\":4294967295,\"live_members\":0,\"destroyed_delta\":1},{\"value\":4294967295,\"index\":8,\"expected_status\":3,\"expected_output\":4207809076,\"array_status\":3,\"array_output\":4207809076,\"counted_status\":3,\"counted_output\":4207809076,\"live_members\":0,\"destroyed_delta\":1},{\"value\":4294967295,\"index\":18446744073709551615,\"expected_status\":3,\"expected_output\":4207809076,\"array_status\":3,\"array_output\":4207809076,\"counted_status\":3,\"counted_output\":4207809076,\"live_members\":0,\"destroyed_delta\":1}],\"function_observations\":[{\"value\":0,\"observed\":8},{\"value\":1,\"observed\":9},{\"value\":2147483647,\"observed\":2147483655},{\"value\":2147483648,\"observed\":2147483656},{\"value\":4294967294,\"observed\":6},{\"value\":4294967295,\"observed\":7}],\"constructor_failure_status\":3,\"constructor_failure_output\":4207809076,\"null_output_statuses\":[1,1],\"handle_statuses\":[0,0,0,3,0,2,2]}\n",
+          "stdout_sha256": "4ee2be68ac8607dc5298d0bd1f6a7cda237e4153b1bdc6dbca0409df661d5c3d"
+        },
+        "extent": 8,
+        "generation": {
+          "abi": "selected_C++_compiler_host_C_ABI",
+          "assumptions": [
+            "Foreign code respects declared effects, reentrancy and synchronization requirements.",
+            "Borrowed pointers name live initialized aligned allocations of the stated extent with valid aliasing.",
+            "Foreign code does not retain call_only pointers, spans or const references, or create data races through aliases.",
+            "Output pointers are live writable appropriately aligned nonoverlapping storage.",
+            "C++ code obeys noexcept; termination, hardware faults and undefined behavior are not catchable exceptions.",
+            "All handle-owned allocation and release stay in the same C++ module; callers explicitly destroy handles.",
+            "Scoped operations keep their C++ automatic object inside the call; generated APIs expose no object handle or reference. Foreign nonretention is unproved.",
+            "Scoped RAII cleanup covers normal return and C++ exception unwinding, not process termination, longjmp, nontermination or foreign undefined behavior.",
+            "Handles belong to their generating bridge module and type; integers from other loaded modules are not authenticated capabilities.",
+            "Cancellation and exception status do not roll back foreign side effects or borrowed-buffer writes."
+          ],
+          "borrow_retention_proved": false,
+          "caller_pointer_validity_proved": false,
+          "compiler": {
+            "executable_sha256": "1353e9bdd29a7295c7226bf6c63abccce056d8cac31f112e5cdbecc3f28c2769",
+            "path": "/usr/bin/x86_64-linux-gnu-g++-13",
+            "target": "x86_64-linux-gnu",
+            "version": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0"
+          },
+          "compiler_user_header_dependencies": "/tmp/hepta-cpp-contract-6k40pkrx/bridge.o: \\\n /tmp/hepta-cpp-contract-6k40pkrx/bridge.cpp \\\n /tmp/hepta-cpp-contract-6k40pkrx/bridge.h \\\n /workspace/scratch/100b1728036f/Hepta-work/examples/cpp/template_sizes/foreign.hpp\n",
+          "constructor_checks": [
+            {
+              "argument_types": [],
+              "borrow_retention_proved": false,
+              "construction_check": "native_constructibility_with_declared_argument_categories",
+              "cpp_type": "std::array<std::uint32_t, static_cast<std::size_t>(8)>",
+              "declared_exception": "noexcept",
+              "exact_constructor_parameter_signature_proved": false,
+              "nothrow_object_construction_checked": true,
+              "symbol": "hepta_cpp_sized_Array_new",
+              "wrapper_allocation_exception_boundary": "catch_status"
+            },
+            {
+              "argument_types": [
+                "std::uint32_t"
+              ],
+              "borrow_retention_proved": false,
+              "construction_check": "native_constructibility_with_declared_argument_categories",
+              "cpp_type": "sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(8)>",
+              "declared_exception": "catch_status",
+              "exact_constructor_parameter_signature_proved": false,
+              "nothrow_object_construction_checked": false,
+              "symbol": "hepta_cpp_sized_Counted_new",
+              "wrapper_allocation_exception_boundary": "catch_status"
+            }
+          ],
+          "contract_schema": "hepta.cpp-contract.v4",
+          "contract_sha256": "01fc4e353c7a61414dd1cf6901196299a97a6fe65068766fbd81a08afcb452fe",
+          "cost_accounting": [
+            {
+              "exception_boundary": "native_noexcept_type_checked",
+              "foreign_allocation": "none_declared",
+              "foreign_allocation_verified": false,
+              "input_buffer_copy_bytes": 0,
+              "pod_field_conversion": false,
+              "route": "direct_value",
+              "symbol": "hepta_cpp_sized_add",
+              "wrapper_heap_allocations": 0,
+              "wrapper_mutex_acquisitions": 0,
+              "wrapper_registry_lookups": 0
+            },
+            {
+              "allocation": "entry_and_object_shared_owners_plus_registry_node_and_possible_bucket_growth",
+              "borrow_retention_proved": false,
+              "constructor_exception": "noexcept",
+              "exception_boundary": "catch_status",
+              "foreign_constructor_allocations": "unverified",
+              "foreign_input_copy": "constructor_dependent_unverified",
+              "output_write": "only_after_successful_registry_insertion",
+              "registry_lifetime": "process",
+              "route": "handle_create",
+              "symbol": "hepta_cpp_sized_Array_new",
+              "wrapper_input_buffer_copy_bytes": 0
+            },
+            {
+              "accounting_scope": "successful_call_after_registry_initialization",
+              "exception_boundary": "catch_status",
+              "foreign_allocation": "method_dependent_unverified",
+              "input_buffer_copy_bytes": 0,
+              "lazy_registry_allocation": "possible_on_first_call",
+              "reentrancy": "reject",
+              "route": "dynamic_handle",
+              "symbol": "hepta_cpp_sized_Array_fill",
+              "thread_identity_allocation": "none",
+              "threading": "serialized",
+              "wrapper_heap_allocations": 0,
+              "wrapper_mutex_acquisitions": 2,
+              "wrapper_registry_lookups": 1,
+              "wrapper_shared_owner_copies": 2
+            },
+            {
+              "accounting_scope": "successful_call_after_registry_initialization",
+              "exception_boundary": "catch_status",
+              "foreign_allocation": "method_dependent_unverified",
+              "input_buffer_copy_bytes": 0,
+              "lazy_registry_allocation": "possible_on_first_call",
+              "reentrancy": "reject",
+              "route": "dynamic_handle",
+              "symbol": "hepta_cpp_sized_Array_at",
+              "thread_identity_allocation": "none",
+              "threading": "serialized",
+              "wrapper_heap_allocations": 0,
+              "wrapper_mutex_acquisitions": 2,
+              "wrapper_registry_lookups": 1,
+              "wrapper_shared_owner_copies": 2
+            },
+            {
+              "abandoned_handles": "not_automatically_reclaimed",
+              "deallocation": "same_C++_shared_owner_module",
+              "destruction": "nothrow_defer_inflight",
+              "route": "handle_destroy",
+              "symbol": "hepta_cpp_sized_Array_destroy"
+            },
+            {
+              "allocation": "entry_and_object_shared_owners_plus_registry_node_and_possible_bucket_growth",
+              "borrow_retention_proved": false,
+              "constructor_exception": "catch_status",
+              "exception_boundary": "catch_status",
+              "foreign_constructor_allocations": "unverified",
+              "foreign_input_copy": "constructor_dependent_unverified",
+              "output_write": "only_after_successful_registry_insertion",
+              "registry_lifetime": "process",
+              "route": "handle_create",
+              "symbol": "hepta_cpp_sized_Counted_new",
+              "wrapper_input_buffer_copy_bytes": 0
+            },
+            {
+              "accounting_scope": "successful_call_after_registry_initialization",
+              "exception_boundary": "catch_status",
+              "foreign_allocation": "method_dependent_unverified",
+              "input_buffer_copy_bytes": 0,
+              "lazy_registry_allocation": "possible_on_first_call",
+              "reentrancy": "reject",
+              "route": "dynamic_handle",
+              "symbol": "hepta_cpp_sized_Counted_fill",
+              "thread_identity_allocation": "none",
+              "threading": "serialized",
+              "wrapper_heap_allocations": 0,
+              "wrapper_mutex_acquisitions": 2,
+              "wrapper_registry_lookups": 1,
+              "wrapper_shared_owner_copies": 2
+            },
+            {
+              "accounting_scope": "successful_call_after_registry_initialization",
+              "exception_boundary": "catch_status",
+              "foreign_allocation": "method_dependent_unverified",
+              "input_buffer_copy_bytes": 0,
+              "lazy_registry_allocation": "possible_on_first_call",
+              "reentrancy": "reject",
+              "route": "dynamic_handle",
+              "symbol": "hepta_cpp_sized_Counted_at",
+              "thread_identity_allocation": "none",
+              "threading": "serialized",
+              "wrapper_heap_allocations": 0,
+              "wrapper_mutex_acquisitions": 2,
+              "wrapper_registry_lookups": 1,
+              "wrapper_shared_owner_copies": 2
+            },
+            {
+              "abandoned_handles": "not_automatically_reclaimed",
+              "deallocation": "same_C++_shared_owner_module",
+              "destruction": "nothrow_defer_inflight",
+              "route": "handle_destroy",
+              "symbol": "hepta_cpp_sized_Counted_destroy"
+            },
+            {
+              "accounting_scope": "generated_wrapper_only",
+              "automatic_foreign_objects": 1,
+              "exception_boundary": "catch_status",
+              "foreign_allocation": "constructor_and_methods_dependent_unverified",
+              "foreign_stack_usage": "sizeof_selected_type_plus_compiler_generated_temporaries",
+              "input_buffer_copy_bytes": 0,
+              "method_invocations": 2,
+              "pod_field_conversion": false,
+              "route": "call_scoped_cpp_raii",
+              "symbol": "hepta_cpp_sized_array_roundtrip",
+              "wrapper_heap_allocations": 0,
+              "wrapper_mutex_acquisitions": 0,
+              "wrapper_registry_lookups": 0,
+              "wrapper_shared_owner_copies": 0
+            },
+            {
+              "accounting_scope": "generated_wrapper_only",
+              "automatic_foreign_objects": 1,
+              "exception_boundary": "catch_status",
+              "foreign_allocation": "constructor_and_methods_dependent_unverified",
+              "foreign_stack_usage": "sizeof_selected_type_plus_compiler_generated_temporaries",
+              "input_buffer_copy_bytes": 0,
+              "method_invocations": 2,
+              "pod_field_conversion": false,
+              "route": "call_scoped_cpp_raii",
+              "symbol": "hepta_cpp_sized_counted_roundtrip",
+              "wrapper_heap_allocations": 0,
+              "wrapper_mutex_acquisitions": 0,
+              "wrapper_registry_lookups": 0,
+              "wrapper_shared_owner_copies": 0
+            }
+          ],
+          "cpp_flags": [
+            "-std=c++20",
+            "-O2",
+            "-fPIC",
+            "-pthread",
+            "-Werror"
+          ],
+          "diagnostics": [],
+          "execution": "not_run",
+          "foreign_library_soundness_proved": false,
+          "foreign_thread_safety_proved": false,
+          "header": "/workspace/scratch/100b1728036f/Hepta-work/examples/cpp/template_sizes/foreign.hpp",
+          "header_sha256": "dd62e9e741eb4ee11a6c5f881812db998be71e2e327c7ce4d34426d9fad28b43",
+          "hepta_validation": {
+            "assumptions": [
+              {
+                "abi": "C",
+                "declared_effects": [
+                  "ffi",
+                  "unsafe"
+                ],
+                "function": "hepta_cpp_sized_add",
+                "kind": "extern_contract",
+                "obligations": [
+                  "foreign implementation obeys the declared ABI and effect upper bound",
+                  "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+                ],
+                "parameters": [
+                  {
+                    "name": "value",
+                    "type": "u32"
+                  }
+                ],
+                "return_type": "u32",
+                "status": "assumed_not_verified"
+              },
+              {
+                "abi": "C",
+                "declared_effects": [
+                  "alloc",
+                  "block",
+                  "ffi",
+                  "unsafe",
+                  "write"
+                ],
+                "function": "hepta_cpp_sized_Array_new",
+                "kind": "extern_contract",
+                "obligations": [
+                  "foreign implementation obeys the declared ABI and effect upper bound",
+                  "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+                ],
+                "parameters": [
+                  {
+                    "name": "out",
+                    "type": "raw mut u64"
+                  }
+                ],
+                "return_type": "i32",
+                "status": "assumed_not_verified"
+              },
+              {
+                "abi": "C",
+                "declared_effects": [
+                  "alloc",
+                  "block",
+                  "ffi",
+                  "unsafe",
+                  "write"
+                ],
+                "function": "hepta_cpp_sized_Array_destroy",
+                "kind": "extern_contract",
+                "obligations": [
+                  "foreign implementation obeys the declared ABI and effect upper bound",
+                  "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+                ],
+                "parameters": [
+                  {
+                    "name": "handle",
+                    "type": "u64"
+                  }
+                ],
+                "return_type": "i32",
+                "status": "assumed_not_verified"
+              },
+              {
+                "abi": "C",
+                "declared_effects": [
+                  "alloc",
+                  "block",
+                  "ffi",
+                  "unsafe",
+                  "write"
+                ],
+                "function": "hepta_cpp_sized_Array_fill",
+                "kind": "extern_contract",
+                "obligations": [
+                  "foreign implementation obeys the declared ABI and effect upper bound",
+                  "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+                ],
+                "parameters": [
+                  {
+                    "name": "handle",
+                    "type": "u64"
+                  },
+                  {
+                    "name": "value",
+                    "type": "u32"
+                  }
+                ],
+                "return_type": "i32",
+                "status": "assumed_not_verified"
+              },
+              {
+                "abi": "C",
+                "declared_effects": [
+                  "alloc",
+                  "block",
+                  "ffi",
+                  "unsafe",
+                  "write"
+                ],
+                "function": "hepta_cpp_sized_Array_at",
+                "kind": "extern_contract",
+                "obligations": [
+                  "foreign implementation obeys the declared ABI and effect upper bound",
+                  "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+                ],
+                "parameters": [
+                  {
+                    "name": "handle",
+                    "type": "u64"
+                  },
+                  {
+                    "name": "index",
+                    "type": "usize"
+                  },
+                  {
+                    "name": "out",
+                    "type": "raw mut u32"
+                  }
+                ],
+                "return_type": "i32",
+                "status": "assumed_not_verified"
+              },
+              {
+                "abi": "C",
+                "declared_effects": [
+                  "alloc",
+                  "block",
+                  "ffi",
+                  "unsafe",
+                  "write"
+                ],
+                "function": "hepta_cpp_sized_Counted_new",
+                "kind": "extern_contract",
+                "obligations": [
+                  "foreign implementation obeys the declared ABI and effect upper bound",
+                  "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+                ],
+                "parameters": [
+                  {
+                    "name": "reject",
+                    "type": "u32"
+                  },
+                  {
+                    "name": "out",
+                    "type": "raw mut u64"
+                  }
+                ],
+                "return_type": "i32",
+                "status": "assumed_not_verified"
+              },
+              {
+                "abi": "C",
+                "declared_effects": [
+                  "alloc",
+                  "block",
+                  "ffi",
+                  "unsafe",
+                  "write"
+                ],
+                "function": "hepta_cpp_sized_Counted_destroy",
+                "kind": "extern_contract",
+                "obligations": [
+                  "foreign implementation obeys the declared ABI and effect upper bound",
+                  "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+                ],
+                "parameters": [
+                  {
+                    "name": "handle",
+                    "type": "u64"
+                  }
+                ],
+                "return_type": "i32",
+                "status": "assumed_not_verified"
+              },
+              {
+                "abi": "C",
+                "declared_effects": [
+                  "alloc",
+                  "block",
+                  "ffi",
+                  "unsafe",
+                  "write"
+                ],
+                "function": "hepta_cpp_sized_Counted_fill",
+                "kind": "extern_contract",
+                "obligations": [
+                  "foreign implementation obeys the declared ABI and effect upper bound",
+                  "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+                ],
+                "parameters": [
+                  {
+                    "name": "handle",
+                    "type": "u64"
+                  },
+                  {
+                    "name": "value",
+                    "type": "u32"
+                  }
+                ],
+                "return_type": "i32",
+                "status": "assumed_not_verified"
+              },
+              {
+                "abi": "C",
+                "declared_effects": [
+                  "alloc",
+                  "block",
+                  "ffi",
+                  "unsafe",
+                  "write"
+                ],
+                "function": "hepta_cpp_sized_Counted_at",
+                "kind": "extern_contract",
+                "obligations": [
+                  "foreign implementation obeys the declared ABI and effect upper bound",
+                  "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+                ],
+                "parameters": [
+                  {
+                    "name": "handle",
+                    "type": "u64"
+                  },
+                  {
+                    "name": "index",
+                    "type": "usize"
+                  },
+                  {
+                    "name": "out",
+                    "type": "raw mut u32"
+                  }
+                ],
+                "return_type": "i32",
+                "status": "assumed_not_verified"
+              },
+              {
+                "abi": "C",
+                "declared_effects": [
+                  "alloc",
+                  "block",
+                  "ffi",
+                  "unsafe",
+                  "write"
+                ],
+                "function": "hepta_cpp_sized_array_roundtrip",
+                "kind": "extern_contract",
+                "obligations": [
+                  "foreign implementation obeys the declared ABI and effect upper bound",
+                  "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+                ],
+                "parameters": [
+                  {
+                    "name": "value",
+                    "type": "u32"
+                  },
+                  {
+                    "name": "index",
+                    "type": "usize"
+                  },
+                  {
+                    "name": "out",
+                    "type": "raw mut u32"
+                  }
+                ],
+                "return_type": "i32",
+                "status": "assumed_not_verified"
+              },
+              {
+                "abi": "C",
+                "declared_effects": [
+                  "alloc",
+                  "block",
+                  "ffi",
+                  "unsafe",
+                  "write"
+                ],
+                "function": "hepta_cpp_sized_counted_roundtrip",
+                "kind": "extern_contract",
+                "obligations": [
+                  "foreign implementation obeys the declared ABI and effect upper bound",
+                  "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+                ],
+                "parameters": [
+                  {
+                    "name": "reject",
+                    "type": "u32"
+                  },
+                  {
+                    "name": "value",
+                    "type": "u32"
+                  },
+                  {
+                    "name": "index",
+                    "type": "usize"
+                  },
+                  {
+                    "name": "out",
+                    "type": "raw mut u32"
+                  }
+                ],
+                "return_type": "i32",
+                "status": "assumed_not_verified"
+              }
+            ],
+            "backend": {
+              "check_only": true,
+              "crate_type": "rlib",
+              "diagnostics": [],
+              "flags": [
+                "edition=2021",
+                "opt-level=3",
+                "overflow-checks=yes",
+                "panic=abort",
+                "codegen-units=1",
+                "sysroot=/tmp/hepta-ai-rust-1.90.0"
+              ],
+              "link_args": [],
+              "linker": null,
+              "ok": true,
+              "rust_sha256": "9e4af31a0bfd8d42809abedbff2017d5a713e54c0158acea83b643932f1ce7f5",
+              "rustc_crate_type": "lib",
+              "status": "rustc_checked",
+              "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+              "target": "x86_64-unknown-linux-gnu",
+              "toolchain": {
+                "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+                "host": "x86_64-unknown-linux-gnu",
+                "path": "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+                "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+                "sysroot_discovery": "verified_compiler_prefix",
+                "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+              },
+              "validation_artifact_sha256": "3c37a43b2187284830360a076c46c2743cd67b6ddf7570a2885239632b365d29"
+            },
+            "checks": {
+              "rust_borrows_types": "rustc_checked",
+              "syntax": "passed",
+              "types_effects_resources": "passed_in_supported_subset"
+            },
+            "claims": {
+              "all_programs_faster_than_rust": false,
+              "bounded_cancellation_latency_proved": false,
+              "deadlock_freedom_proved": false,
+              "hardware_execution_verified": false,
+              "whole_language_soundness_proved": false
+            },
+            "compiler_sha256": "dbeb5311dfb81d01d8704ef26800b5672bca89976efa6b74e10a9b255efb9f97",
+            "compiler_version": "0.2.0",
+            "diagnostics": [],
+            "effects": {
+              "hepta_cpp_sized_Array_at": [
+                "alloc",
+                "block",
+                "ffi",
+                "unsafe",
+                "write"
+              ],
+              "hepta_cpp_sized_Array_destroy": [
+                "alloc",
+                "block",
+                "ffi",
+                "unsafe",
+                "write"
+              ],
+              "hepta_cpp_sized_Array_fill": [
+                "alloc",
+                "block",
+                "ffi",
+                "unsafe",
+                "write"
+              ],
+              "hepta_cpp_sized_Array_new": [
+                "alloc",
+                "block",
+                "ffi",
+                "unsafe",
+                "write"
+              ],
+              "hepta_cpp_sized_Counted_at": [
+                "alloc",
+                "block",
+                "ffi",
+                "unsafe",
+                "write"
+              ],
+              "hepta_cpp_sized_Counted_destroy": [
+                "alloc",
+                "block",
+                "ffi",
+                "unsafe",
+                "write"
+              ],
+              "hepta_cpp_sized_Counted_fill": [
+                "alloc",
+                "block",
+                "ffi",
+                "unsafe",
+                "write"
+              ],
+              "hepta_cpp_sized_Counted_new": [
+                "alloc",
+                "block",
+                "ffi",
+                "unsafe",
+                "write"
+              ],
+              "hepta_cpp_sized_add": [
+                "ffi",
+                "unsafe"
+              ],
+              "hepta_cpp_sized_array_roundtrip": [
+                "alloc",
+                "block",
+                "ffi",
+                "unsafe",
+                "write"
+              ],
+              "hepta_cpp_sized_counted_roundtrip": [
+                "alloc",
+                "block",
+                "ffi",
+                "unsafe",
+                "write"
+              ]
+            },
+            "interface_sha256": "074acc337eb293c697731bfeda4eeeb6b361ebde107e7b9f778adca28e06d8e0",
+            "ok": true,
+            "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_8/bridge.hepta",
+            "profile": {
+              "crate_type": "rlib",
+              "no_std": false,
+              "overflow_checks": true,
+              "panic": "abort"
+            },
+            "resource_contracts": [],
+            "rust_sha256": "9e4af31a0bfd8d42809abedbff2017d5a713e54c0158acea83b643932f1ce7f5",
+            "schema": "hepta.check.v1",
+            "source_sha256": "3130b1247e382abc84a4b85851af86aac5d8a83184a7dc289964d0d4d66d80b3",
+            "status": "checked_with_external_assumptions"
+          },
+          "native_link_qualified": false,
+          "object_bytes": 44288,
+          "object_sha256": "48bde08378e8472f31920a219bc9afa976d69c4a79773ca9acbbaa6932e44040",
+          "ok": true,
+          "outputs": {
+            "bridge.cpp": {
+              "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_8/bridge.cpp",
+              "sha256": "5488fb150924accd2b7667d9a6d1f2b504cfbe159f64e327c5e56e10ad40f0fc"
+            },
+            "bridge.h": {
+              "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_8/bridge.h",
+              "sha256": "ab11eff993164f5bf5cdf72f5e49fdebae157930548132f7b2300a01e115f980"
+            },
+            "bridge.hepta": {
+              "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_8/bridge.hepta",
+              "sha256": "3130b1247e382abc84a4b85851af86aac5d8a83184a7dc289964d0d4d66d80b3"
+            },
+            "contract.json": {
+              "path": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_8/contract.json",
+              "sha256": "5163ae6b67e2b4ca9862c96b439fe7ce0a0e71f33548e2947d5c8122a33c9c82"
+            }
+          },
+          "paired_toolchain_abi_qualified": false,
+          "schema": "hepta.cpp-bridge-contract-report.v1",
+          "scoped_lifetime_checks": [
+            {
+              "cleanup": "C++_RAII_on_normal_return_and_caught_C++_exceptions",
+              "constructor": "new",
+              "cpp_type": "std::array<std::uint32_t, static_cast<std::size_t>(8)>",
+              "destructor_nothrow_native_checked": true,
+              "foreign_implementation_rewritten": false,
+              "foreign_nonretention_proved": false,
+              "lifetime": "one_call_cpp_automatic_object",
+              "methods": [
+                "fill",
+                "at"
+              ],
+              "object_handle_exported": false,
+              "output_published_after_destructor": true,
+              "reference_result_copied_before_destructor": true,
+              "result_type": "u32",
+              "symbol": "hepta_cpp_sized_array_roundtrip",
+              "whole_library_memory_safety_proved": false
+            },
+            {
+              "cleanup": "C++_RAII_on_normal_return_and_caught_C++_exceptions",
+              "constructor": "new",
+              "cpp_type": "sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(8)>",
+              "destructor_nothrow_native_checked": true,
+              "foreign_implementation_rewritten": false,
+              "foreign_nonretention_proved": false,
+              "lifetime": "one_call_cpp_automatic_object",
+              "methods": [
+                "fill",
+                "at"
+              ],
+              "object_handle_exported": false,
+              "output_published_after_destructor": true,
+              "reference_result_copied_before_destructor": true,
+              "result_type": "u32",
+              "symbol": "hepta_cpp_sized_counted_roundtrip",
+              "whole_library_memory_safety_proved": false
+            }
+          ],
+          "status": "cpp_object_and_hepta_native_checked",
+          "status_codes": {
+            "cpp_exception": 3,
+            "handle_exhausted": 4,
+            "misaligned_pointer": 8,
+            "null_pointer": 1,
+            "reentrancy_rejected": 6,
+            "span_too_large": 7,
+            "stale_handle": 2,
+            "success": 0,
+            "wrong_thread": 5
+          },
+          "template_specializations": [
+            {
+              "all_template_instantiations_qualified": false,
+              "arguments": [
+                {
+                  "kind": "size",
+                  "value": 8
+                }
+              ],
+              "cpp": "sized_example::add_size<static_cast<std::size_t>(8)>",
+              "export": "add",
+              "kind": "function",
+              "selected_instantiation_native_checked": true
+            },
+            {
+              "all_template_instantiations_qualified": false,
+              "arguments": [
+                "u32",
+                {
+                  "kind": "size",
+                  "value": 8
+                }
+              ],
+              "cpp": "std::array<std::uint32_t, static_cast<std::size_t>(8)>",
+              "export": "Array",
+              "kind": "object",
+              "selected_instantiation_native_checked": true
+            },
+            {
+              "all_template_instantiations_qualified": false,
+              "arguments": [
+                "u32",
+                {
+                  "kind": "size",
+                  "value": 8
+                }
+              ],
+              "cpp": "sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(8)>",
+              "export": "Counted",
+              "kind": "object",
+              "selected_instantiation_native_checked": true
+            }
+          ],
+          "transitive_dependency_lock": "not_established_rebuild_from_current_headers_required"
+        },
+        "generation_and_native_check_ns": 1141172263,
+        "native_binaries_retained": false,
+        "native_binary": {
+          "bytes": 47680,
+          "path_during_execution": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_8/native",
+          "retained": false,
+          "sha256": "4143aa9075ec7b90107432236cd4ee2056b6be96ae2f0ba5fc0843869831d34a"
+        },
+        "native_build": {
+          "artifact_bytes": 20949400,
+          "artifact_path_during_execution": "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_8/consumer.a",
+          "artifact_retained": false,
+          "artifact_sha256": "984d2267bb0ba32b2a7d4cee40df659eaa13263f6d085dab7401d4e076ebb68d",
+          "check_only": false,
+          "crate_type": "staticlib",
+          "diagnostics": [],
+          "flags": [
+            "edition=2021",
+            "opt-level=3",
+            "overflow-checks=yes",
+            "panic=abort",
+            "codegen-units=1",
+            "sysroot=/tmp/hepta-ai-rust-1.90.0"
+          ],
+          "link_args": [],
+          "linker": null,
+          "ok": true,
+          "rust_sha256": "0fe7debc815bedaf7375bcdf35fbe9717fd56bd0f7ac58232c64a38bc1b89802",
+          "rustc_crate_type": "staticlib",
+          "status": "rustc_checked",
+          "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+            "host": "x86_64-unknown-linux-gnu",
+            "path": "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+            "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+            "sysroot_discovery": "verified_compiler_prefix",
+            "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+          },
+          "validation_artifact_sha256": "984d2267bb0ba32b2a7d4cee40df659eaa13263f6d085dab7401d4e076ebb68d"
+        },
+        "native_link": {
+          "command": [
+            "g++",
+            "-std=c++20",
+            "-O2",
+            "-pthread",
+            "-Werror",
+            "-DHEPTA_TEST_EXTENT=8",
+            "-I/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_8",
+            "-I/workspace/scratch/100b1728036f/Hepta-work/examples/cpp/template_sizes",
+            "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_8/bridge.cpp",
+            "/workspace/scratch/100b1728036f/Hepta-work/examples/cpp/template_sizes/verify.cpp",
+            "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_8/consumer.a",
+            "-ldl",
+            "-lm",
+            "-o",
+            "/workspace/scratch/100b1728036f/Hepta-work/evidence/full-scale-20261026/qualified/cpp-extensions/templates/extent_8/native"
+          ],
+          "returncode": 0,
+          "stderr": "",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout": "",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "ok": true
+      }
+    ],
+    "whole_library_memory_safety_proved": false
+  },
+  "toolchains": {
+    "cc": {
+      "bytes": 1023032,
+      "path": "/usr/bin/x86_64-linux-gnu-gcc-13",
+      "sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26",
+      "version_process": {
+        "command": [
+          "/usr/bin/x86_64-linux-gnu-gcc-13",
+          "--version"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "x86_64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+        "stdout_sha256": "ae487f55927d605284a32711e4ecf6bc3be2bcd5a9de414ace0936264b741f85"
+      }
+    },
+    "clangxx": {
+      "bytes": 132448,
+      "path": "/usr/lib/llvm-20/bin/clang",
+      "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+      "version_process": {
+        "command": [
+          "/usr/lib/llvm-20/bin/clang",
+          "--version"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)\nTarget: x86_64-pc-linux-gnu\nThread model: posix\nInstalledDir: /usr/lib/llvm-20/bin\n",
+        "stdout_sha256": "fc7eaa7835f292237f1a4c1ba25055189c8219ecb87e27bb3db4d3478ca1949a"
+      }
+    },
+    "cxx": {
+      "bytes": 1027128,
+      "path": "/usr/bin/x86_64-linux-gnu-g++-13",
+      "sha256": "1353e9bdd29a7295c7226bf6c63abccce056d8cac31f112e5cdbecc3f28c2769",
+      "version_process": {
+        "command": [
+          "/usr/bin/x86_64-linux-gnu-g++-13",
+          "--version"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "x86_64-linux-gnu-g++-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+        "stdout_sha256": "39553616934606f58b27c04bed0cdbbe5b00c92c831a9aaadebd7ceda61d1334"
+      }
+    },
+    "nm": {
+      "bytes": 44544,
+      "path": "/usr/bin/x86_64-linux-gnu-nm",
+      "sha256": "096b96ed1dbeee61397773d3f5858cca10da7004792213569a78237356c15e98",
+      "version_process": {
+        "command": [
+          "/usr/bin/x86_64-linux-gnu-nm",
+          "--version"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "GNU nm (GNU Binutils for Ubuntu) 2.42\nCopyright (C) 2024 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) any later version.\nThis program has absolutely no warranty.\n",
+        "stdout_sha256": "cdd2926db3359fc64e866ce795b6ac786975191007611989da83d5c58e6821ca"
+      }
+    },
+    "rustc": {
+      "bytes": 656496,
+      "path": "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+      "sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+      "version_process": {
+        "command": [
+          "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+          "--version",
+          "--verbose"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8\n",
+        "stdout_sha256": "938db28b83089ab88301ca425f99fa1d8b61ee66e0371babe1db6373ae9810a3"
+      }
+    }
+  }
+}

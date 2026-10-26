@@ -1,0 +1,17 @@
+module sized_consumer;
+import bridge;
+
+export "C" fn sized_roundtrip(value: u32, index: usize, out: raw mut u32) -> i32
+effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_sized_array_roundtrip(value, index, out); }
+}
+
+export "C" fn sized_counted(reject: u32, value: u32, index: usize, out: raw mut u32) -> i32
+effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_sized_counted_roundtrip(reject, value, index, out); }
+}
+
+export "C" fn sized_add(value: u32) -> u32
+effects {ffi, unsafe} {
+    unsafe { return bridge::hepta_cpp_sized_add(value); }
+}
