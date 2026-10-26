@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 
-from .hia_program import SCHEMA_V4, VerifiedProgram, verify_program
+from .hia_program import SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, VerifiedProgram, verify_program
 
 
 @dataclass(frozen=True)
@@ -59,7 +59,7 @@ def _match(a, b, c, d, uses):
 def rewrite_byte_swap(program) -> ByteSwapOptimization:
     """Rewrite only a proven finite local pattern; reverify the entire result.
 
-    This accepts HIA v1-v4, preserves all interfaces/effects/other operations,
+    This accepts HIA v1-v6, preserves all interfaces/effects/other operations,
     and has no reliance on caller-supplied optimization/equivalence claims.
     It does not certify LLVM/refinement or unspecified source C/C++ behavior.
     """
@@ -84,7 +84,11 @@ def rewrite_byte_swap(program) -> ByteSwapOptimization:
                     replacements += 1
             block["ops"] = result
     if replacements:
-        data["schema"] = SCHEMA_V4
+        # The byte.swap opcode first exists in v4. Upgrading an older schema
+        # is required, but downgrading v5/v6 would invalidate their independent
+        # bulk-memory opcodes or silently change the authenticated version.
+        if data["schema"] not in {SCHEMA_V4, SCHEMA_V5, SCHEMA_V6}:
+            data["schema"] = SCHEMA_V4
         checked = verify_program(data)
     else:
         checked = base

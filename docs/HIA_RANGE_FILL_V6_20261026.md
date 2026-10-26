@@ -77,3 +77,14 @@ assert report["execution"]["returncode"] == 0
 
 The separate Clang17 cross-object control is *not* a QEMU execution; this
 driver extension does not demonstrate physical ARM64 target execution.
+
+## Optimizer schema preservation
+
+The existing four-op `rewrite_byte_swap` peephole now preserves the original
+schema for v4, v5 and v6 programs. Older v1–v3 code still upgrades to v4
+*only if* an exact byte-swap pattern is actually replaced. This prevents
+new v5 `buffer.copy_range` and v6 `buffer.fill_range` operations from
+becoming illegal after a valid local optimization. The optimizer still calls
+the sole authoritative `verify_program` on the candidate and retains its
+false proof claims. New combined VM/LLVM structural regression:
+`python -m unittest tests.test_hia_swap_schema_retain -v`.
