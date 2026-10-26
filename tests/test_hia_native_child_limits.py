@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import json
+import os
 import platform
 import shutil
 import subprocess
@@ -51,8 +52,9 @@ int32_t huge_virtual_allocation(void) {
 """
 
 
-@unittest.skipUnless(platform.system() == "Linux" and shutil.which("clang"),
-                     "real Linux host Clang required for finite C transport")
+@unittest.skipUnless(platform.system() == "Linux" and shutil.which("clang")
+                     and hasattr(os, "memfd_create"),
+                     "real Linux host, sealed memfd and Clang required")
 class NativeChildHardLimitTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -70,8 +72,13 @@ class NativeChildHardLimitTests(unittest.TestCase):
         cls.directory.cleanup()
 
     def observe(self, function):
-        return differential._observe_native(
-            self.library, function, "i32", [], timeout=3.0)
+        _, _, pinned_fd = differential._pin_native_artifact(self.library)
+        try:
+            return differential._observe_native(
+                self.library, function, "i32", [], timeout=3.0,
+                pinned_fd=pinned_fd)
+        finally:
+            os.close(pinned_fd)
 
     def test_nonflooding_return_and_true_sigabrt_unchanged(self):
         self.assertEqual(self.observe("healthy"), ("value", 7))
@@ -141,8 +148,13 @@ int32_t fork_and_stall(void) {
                            check=True, timeout=30)
             with self.assertRaisesRegex(
                     differential.HIADifferentialRejected, "timed out"):
-                differential._observe_native(
-                    library, "fork_and_stall", "i32", [], timeout=0.3)
+                _, _, pinned_fd = differential._pin_native_artifact(library)
+                try:
+                    differential._observe_native(
+                        library, "fork_and_stall", "i32", [], timeout=0.3,
+                        pinned_fd=pinned_fd)
+                finally:
+                    os.close(pinned_fd)
             # Enough wall time for a surviving child to write the marker.
             time.sleep(2.3)
             self.assertFalse(marker.exists(),

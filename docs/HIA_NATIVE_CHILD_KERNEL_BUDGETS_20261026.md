@@ -95,3 +95,23 @@ SIGKILL and no marker was created after 2.3 seconds. The in-repo test
 fresh native C shared object and checks the same condition.
 
 This local C control is not a full Hepta/Core/LLVM native qualification.
+
+## Reconciliation with latest native artifact pinning
+
+The evolving parent PR #220 at exact commit
+`fa5484ab6ddc260cd77794910e883a16b7f168e5` already adds a
+kernel `RLIMIT_FSIZE=4096` worker guard and sealed `memfd` artifact
+loading with exact entry signature replay. This child PR **retains all
+of those upstream changes**. Relative to that parent, its remaining
+increment is `RLIMIT_AS`, `RLIMIT_CPU`, worker process-group timeout
+cleanup, and the two new native-control suites (one source test file
+containing file-size, address-space, SIGABRT and fork tests).
+
+The subprocess launch preserves `pass_fds=(pinned_fd,)` and the
+`/proc/self/fd/<number>` native library pathname; it does not revert
+to loading an untrusted mutable path or bypass ABI arity checks.
+The in-repository test uses `_pin_native_artifact` and closes its pinned
+descriptor in a `finally` block.
+
+This is still not a proof of arbitrary native sandbox isolation or
+general Owner/Loan/Drop provenance soundness.
