@@ -89,6 +89,21 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
             analyzed.program, analyzed.checked,
             project_sha256=project.identity,
             scalar_hsir=scalar_hsir, ssa=ssa)
+        resource_claims = resource_receipt.get("claims") if isinstance(resource_receipt, dict) else None
+        if (not isinstance(resource_claims, dict)
+                or resource_receipt.get("schema") != "hepta.llvm-native-resource-origin.v1"
+                or resource_receipt.get("status") !=
+                    "source_bound_copy_scalar_resource_cfg_checked_not_refinement_proved"
+                or resource_receipt.get("cfg_sha256") != cfg.sha256
+                or resource_receipt.get("ssa_sha256") != ssa.sha256
+                or resource_receipt.get("scalar_hsir_sha256") != scalar_hsir.sha256
+                or resource_receipt.get("project_sha256") != project.identity
+                or resource_claims.get("source_resource_ir_origin_rechecked") is not True
+                or resource_claims.get("independent_abstract_resource_flow_checked") is not True
+                or resource_claims.get("source_to_ir_refinement_proved") is not False
+                or resource_claims.get("native_codegen_uses_resource_ir") is not False
+                or resource_claims.get("whole_language_soundness_proved") is not False):
+            raise LLVMSSARejected("E_LLVM_SSA_RESOURCE_RECEIPT: unqualified resource source provenance")
         result["claims"]["source_bound_resource_flow_checked"] = True
         ir = emit_scalar_ssa_llvm(ssa, cfg)
         if verification.sha256 != ir.verification_sha256:
