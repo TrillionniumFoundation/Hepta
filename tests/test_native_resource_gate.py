@@ -7,6 +7,7 @@ resources, source mismatch and refusal to publish an artifact on gate failure.
 from __future__ import annotations
 
 from copy import deepcopy
+from hashlib import sha256
 from pathlib import Path
 from types import SimpleNamespace
 import tempfile
@@ -20,6 +21,7 @@ from hepta.resource_lowering import lower_resource_ir, verify_resource_source_or
 from hepta.resource_ir import verify_resource_ir
 from hepta.native_resource_gate import (
     NativeResourceGateRejected, qualify_native_resource_source,
+    require_native_resource_receipt,
 )
 from hepta.llvm_ssa_pipeline import build_llvm_ssa_source
 
@@ -78,6 +80,69 @@ class NativeResourceGateTests(unittest.TestCase):
             qualify_native_resource_source(
                 program, checked, canonical_hsir_sha256=project_bound,
                 project_sha256="e" * 64)
+
+    def test_native_receipt_is_exact_and_proof_flags_cannot_be_repackaged(self):
+        program, checked, digest = fixture()
+        receipt = qualify_native_resource_source(
+            program, checked, canonical_hsir_sha256=digest)
+        source_sha = sha256(program.source.encode("utf-8")).hexdigest()
+        parameters = dict(canonical_hsir_sha256=digest, source_sha256=source_sha,
+                          project_sha256=None, expected_functions=1)
+        require_native_resource_receipt(receipt, **parameters)
+        transformations = (
+            lambda x: x.update(schema="hepta.native.resource-gate.v0"),
+            lambda x: x.update(resource_ir_sha256="0"),
+            lambda x: x.update(source_sha256="f" * 64),
+            lambda x: x.update(project_sha256="e" * 64),
+            lambda x: x.update(functions_checked=True),
+            lambda x: x.update(functions_checked=0),
+            lambda x: x["claims"].update(independent_resource_cfg_verified=1),
+            lambda x: x["claims"].update(whole_language_memory_safety_proved=0),
+            lambda x: x.pop("resource_source_receipt_schema"),
+            lambda x: x.update(unreviewed_capability=True),
+        )
+        for mutation in transformations:
+            with self.subTest(mutator=str(mutation)):
+                invalid = deepcopy(receipt)
+                mutation(invalid)
+                with self.assertRaisesRegex(NativeResourceGateRejected,
+                                           "E_NATIVE_RESOURCE_GATE"):
+                    require_native_resource_receipt(invalid, **parameters)
+
+    def test_native_pipeline_rejects_a_forged_success_receipt_without_native_io(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "native.hepta"
+            source.write_text(_SOURCE, encoding="utf-8")
+            target = root / "unpublished.so"
+            program, checked, _ = fixture()
+            project = SimpleNamespace(
+                entry=source, sources={str(source): "source"}, identity="a" * 64,
+                unchanged=lambda: True)
+            analysis = SimpleNamespace(
+                program=program, checked=checked, project=project,
+                report={"ok": True, "checks": {"rust_borrows_types": "rustc_checked"},
+                        "source_sha256": "b" * 64, "compiler_sha256": "c" * 64})
+            fake_receipt = {
+                "status": "source_bound_resource_cfg_checked_not_refinement_proof",
+                "resource_ir_sha256": None,  # Missing identity must reject.
+                "claims": {
+                    "exact_checked_source_resource_graph_rederived": True,
+                    "independent_resource_cfg_verified": True,
+                    "foreign_resource_obligations_absent": True,
+                    "whole_language_memory_safety_proved": False,
+                },
+            }
+            with (patch("hepta.llvm_ssa_pipeline.analyze_project", return_value=analysis),
+                  patch("hepta.llvm_ssa_pipeline.qualify_native_resource_source",
+                        return_value=fake_receipt),
+                  patch("hepta.llvm_ssa_pipeline.compile_scalar_ssa_llvm") as native):
+                result = build_llvm_ssa_source(source, target)
+            self.assertFalse(result["ok"])
+            self.assertEqual(result["diagnostics"][0]["code"], "E_NATIVE_RESOURCE_GATE")
+            self.assertFalse(result["claims"]["native_artifact_compiled"])
+            self.assertFalse(target.exists())
+            native.assert_not_called()
 
     def test_source_hsir_mismatch_and_invalid_inputs_reject(self):
         program, checked, digest = fixture()
