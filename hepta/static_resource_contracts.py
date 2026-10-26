@@ -7,6 +7,8 @@ LLVM backend and the resource abstractor must use the same predicate.
 """
 from __future__ import annotations
 
+from .checker import EFFECTS as _CHECKED_EFFECTS
+
 
 def finite_static_contract_allowed(fn, checked) -> bool:
     """Accept typed no-cost clauses only when transitive effects agree.
@@ -31,6 +33,13 @@ def finite_static_contract_allowed(fn, checked) -> bool:
     if type(inferred) is not set or any(type(v) is not str for v in inferred | declared):
         return False
     upper = declared | inferred
+    if upper - _CHECKED_EFFECTS:
+        return False
+    # This finite Owned LLVM policy cannot infer the allocation or blocking
+    # behavior of arbitrary foreign, unsafe or host-I/O operations. Their
+    # absence is a required assumption for a nonempty no-cost contract.
+    if clauses and upper & {"ffi", "unsafe", "io"}:
+        return False
     for key, value in clauses.items():
         if key == "heap_allocations":
             if type(value) is not int or value != 0 or "alloc" in upper:
