@@ -41,10 +41,39 @@ read, loan.end and owner.drop. The regression re-verifies this file and
 requires byte-identical canonical Core to the directly constructed test
 program, so the public example cannot drift away from the checker.
 
+## AArch64 finite target execution driver
+
+The existing `hepta.hia_program_aarch64` driver now admits **explicit**
+`mode="overlap_move"` with the same reviewed 4096-byte, one-live-owner
+runtime, native compiler/linker/QEMU identity requirements and ELF parser.
+It refuses missing/mismatched `move_bytes(usize,usize,usize,usize,usize)->u8`
+C ABI exports before any target launch. Eight fixed scalar ABI calls exercise
+both overlap directions, exact self-copy and a zero-length move, then demand
+the reviewed allocator counters: allocations=8, frees=8, outstanding=0,
+denials=0. It cannot silently change existing matrix/bounds modes.
+
+Use a complete source checkout and exact pinned tool paths to execute it:
+
+    from pathlib import Path
+    from hepta.hia_program import verify_program
+    from hepta.hia_program_aarch64 import run_finite_program_aarch64
+
+    source = Path("examples/hia_program/overlap_move_v3.hia").read_text()
+    verified = verify_program(source)
+    result = run_finite_program_aarch64(
+        verified, clang="/exact/clang20", linker="/exact/ld.lld",
+        qemu_aarch64="/exact/qemu-aarch64", mode="overlap_move")
+    assert result["execution"]["returncode"] == 0
+
+`tests.test_hia_overlap_aarch64` checks exact reviewed runtime-driver
+construction and wrong C ABI rejection without claiming that pinned QEMU
+has actually executed in the current environment. A compiled ARM64 .o
+header is **not** proof of target execution.
+
 ## Exact-checkout tests
 
-    python -m unittest tests.test_hia_overlap_move tests.test_hia_bulk_memory \
-      tests.test_hia_program tests.test_hia_program_llvm -v
+    python -m unittest tests.test_hia_overlap_move tests.test_hia_overlap_aarch64 \
+      tests.test_hia_bulk_memory tests.test_hia_program tests.test_hia_program_llvm -v
 
 The new regression suite covers actual HIA verifier and interpreter with overlapping left/right and same-range cases, empty owners, bounds errors, type/effect/borrow negatives, old-schema rejection, LLVM output and ARM64 text profile checks, native host LLVM execution and a wrong-bound SIGABRT control.
 
