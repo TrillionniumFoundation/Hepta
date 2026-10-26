@@ -48,6 +48,9 @@ class OwnedOperationWitness:
     project_sha256: str | None
     functions: tuple[tuple[str, int, int, int], ...]
     schema: str = _SCHEMA
+    # Only a one-block normal-return CFG has a reviewed lexical site order.
+    # None means the multi-block CFG has NOT received an order proof.
+    ordered_sites: tuple[tuple[str, tuple[str, ...] | None], ...] = ()
 
     @property
     def names(self) -> tuple[str, ...]:
@@ -69,6 +72,45 @@ class OwnedOperationWitness:
         _, buffers, fallible_buffers, drops = matched[0]
         if (emitted["buffer"], emitted["try_buffer"], emitted["drop"]) != (buffers, fallible_buffers, drops):
             _fail(f"{name}: native acquire/drop sites differ from source-bound Resource IR")
+
+    def require_ordered(self, name: str, sequence: tuple[str, ...]) -> bool:
+        """Check emitted lexical order for a *single-block normal-return* CFG.
+
+        False is an explicit unqualified scope, NOT an order verification:
+        branches, loops, unwind and exceptional paths need a control-flow-
+        sensitive operational IR. require_emitted must also be called on every
+        function, including ones with multiple blocks.
+        """
+        if (self.schema != _SCHEMA or not _digest(self.graph_sha256)
+                or not _digest(self.source_sha256)
+                or self.project_sha256 is not None and not _digest(self.project_sha256)
+                or type(name) is not str or _NAME.fullmatch(name) is None
+                or type(sequence) is not tuple or len(sequence) > _MAX_OPS
+                or any(type(op) is not str or op not in _SITES for op in sequence)
+                or type(self.functions) is not tuple
+                or type(self.ordered_sites) is not tuple
+                or len(self.functions) != len(self.ordered_sites)
+                or any(type(item) is not tuple or len(item) != 4
+                       or type(item[0]) is not str for item in self.functions)
+                or any(type(item) is not tuple or len(item) != 2
+                       or type(item[0]) is not str
+                       or item[1] is not None and type(item[1]) is not tuple
+                       for item in self.ordered_sites)):
+            _fail("malformed ordered owner site observation or witness")
+        candidates = [expected for function, expected in self.ordered_sites
+                      if function == name]
+        if (len(candidates) != 1
+                or tuple(function for function, *_ in self.functions)
+                != tuple(function for function, _ in self.ordered_sites)):
+            _fail("ordered witness lacks exact verified function inventory")
+        expected = candidates[0]
+        if expected is None:
+            return False
+        if type(expected) is not tuple or any(type(op) is not str or op not in _SITES for op in expected):
+            _fail("invalid verified single-block owner sequence")
+        if sequence != expected:
+            _fail(f"{name}: native source-site order differs from Resource IR")
+        return True
 
 
 def derive_owned_operation_witness(graph: dict, verified: dict) -> OwnedOperationWitness:
@@ -110,6 +152,7 @@ def derive_owned_operation_witness(graph: dict, verified: dict) -> OwnedOperatio
             or type(reports) is not list or len(reports) != len(functions)):
         _fail("missing verified function inventory")
     findings = []
+    ordered = []
     count = 0
     seen = set()
     for fn, report in zip(functions, reports):
@@ -128,6 +171,7 @@ def derive_owned_operation_witness(graph: dict, verified: dict) -> OwnedOperatio
                 or report["reachable_blocks"] != len(blocks)):
             _fail("missing or unverified resource CFG blocks")
         sites = {"buffer": 0, "try_buffer": 0, "drop": 0}
+        site_order = []
         for block in blocks:
             if type(block) is not dict or type(block.get("ops")) is not list:
                 _fail("malformed resource operation block")
@@ -142,11 +186,23 @@ def derive_owned_operation_witness(graph: dict, verified: dict) -> OwnedOperatio
                     if type(kind) is not str or kind not in {"buffer", "try_buffer"}:
                         _fail("unrecognized resource allocation semantics")
                     sites[kind] += 1
+                    site_order.append(kind)
                 elif op["op"] == "drop":
                     sites["drop"] += 1
+                    site_order.append("drop")
+        # The verifier has already qualified block reachability and linearity.
+        # Only a single entry block with normal return is safely comparable to
+        # the emitter's sequential lexical walk. This does not imply dynamic
+        # execution counts or order qualification for multi-block functions.
+        sole = blocks[0] if len(blocks) == 1 else None
+        is_linear = (sole is not None and fn.get("entry") == sole.get("id")
+                     and type(sole.get("term")) is dict
+                     and sole["term"].get("op") == "return")
+        ordered.append((fn["name"], tuple(site_order) if is_linear else None))
         findings.append((fn["name"], sites["buffer"], sites["try_buffer"], sites["drop"]))
     if (type(verified.get("operations_checked")) is not int
             or verified["operations_checked"] != count):
         _fail("operation coverage differs from independent verifier")
     return OwnedOperationWitness(graph_sha, graph["source_sha256"],
-                                 graph["project_sha256"], tuple(findings))
+                                 graph["project_sha256"], tuple(findings),
+                                 ordered_sites=tuple(ordered))
