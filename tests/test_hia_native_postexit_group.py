@@ -11,6 +11,7 @@ import os
 import platform
 from pathlib import Path
 import shutil
+import signal
 import subprocess
 import tempfile
 import time
@@ -57,7 +58,7 @@ class HIANativePostExitGroupTests(unittest.TestCase):
             self.assertEqual(self._run(library, "healthy"), ("value", 7))
             self.assertEqual(self._run(library, "trapping"), ("trap", None))
 
-    def test_successful_parent_with_lingering_fork_is_rejected_and_killed(self):
+    def test_fork_before_parent_return_is_denied_by_kernel(self):
         with tempfile.TemporaryDirectory() as td:
             marker = Path(td) / "fork_survived"
             library = self._compile(Path(td), f"""
@@ -77,12 +78,12 @@ class HIANativePostExitGroupTests(unittest.TestCase):
                 }}
             """)
             with self.assertRaisesRegex(HIADifferentialRejected,
-                                        "surviving in-group descendants"):
+                                        "unexpected error/signal " + str(-signal.SIGSYS)):
                 self._run(library, "spawn")
             time.sleep(1.15)
             self.assertFalse(marker.exists(), "native fork escaped post-exit cleanup")
 
-    def test_timeout_terminates_worker_and_its_descendants(self):
+    def test_fork_before_long_parent_sleep_is_denied_by_kernel(self):
         with tempfile.TemporaryDirectory() as td:
             marker = Path(td) / "timeout_survived"
             library = self._compile(Path(td), f"""
@@ -102,10 +103,21 @@ class HIANativePostExitGroupTests(unittest.TestCase):
                     return 7;
                 }}
             """)
-            with self.assertRaisesRegex(HIADifferentialRejected, "timed out"):
+            with self.assertRaisesRegex(
+                    HIADifferentialRejected,
+                    "unexpected error/signal " + str(-signal.SIGSYS)):
                 self._run(library, "stall", timeout=0.35)
             time.sleep(1.1)
-            self.assertFalse(marker.exists(), "native fork escaped timeout cleanup")
+            self.assertFalse(marker.exists(), "native fork escaped pre-load syscall denial")
+
+    def test_nonforking_timeout_still_terminates_worker(self):
+        with tempfile.TemporaryDirectory() as td:
+            library = self._compile(Path(td), """
+                #include <unistd.h>
+                int stall(void) { sleep(4); return 7; }
+            """)
+            with self.assertRaisesRegex(HIADifferentialRejected, "timed out"):
+                self._run(library, "stall", timeout=0.25)
 
 
     def test_direct_worker_reap_wait_has_an_explicit_deadline(self):

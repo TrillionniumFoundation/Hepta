@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import signal
 import shutil
 import subprocess
 import tempfile
@@ -52,8 +53,9 @@ int32_t huge_virtual_allocation(void) {
 """
 
 
-@unittest.skipUnless(platform.system() == "Linux" and shutil.which("clang")
-                     and hasattr(os, "memfd_create"),
+@unittest.skipUnless(platform.system() == "Linux"
+                     and platform.machine().lower() in {"x86_64", "amd64"}
+                     and shutil.which("clang") and hasattr(os, "memfd_create"),
                      "real Linux host, sealed memfd and Clang required")
 class NativeChildHardLimitTests(unittest.TestCase):
     @classmethod
@@ -121,10 +123,9 @@ class NativeChildHardLimitTests(unittest.TestCase):
 
 
     def test_worker_timeout_and_normal_exit_both_reap_forked_descendants(self):
-        # subprocess.run(timeout=...) only kills its direct child. A native
-        # constructor/callee can fork, then either block or return normally;
-        # both descendants must be killed before the evaluator returns.
-        # This covers only children remaining in the worker's process group.
+        # Kernel seccomp now SIGSYS-kills any fork/clone before the DSO can
+        # create a descendant. A separate non-forking stall still checks the
+        # bounded timeout/process-group cleanup path.
         with tempfile.TemporaryDirectory(prefix="hia-group-control-") as folder:
             root = Path(folder)
             marker = root / "escaped-child-wrote-marker"
@@ -152,34 +153,36 @@ int32_t fork_and_stall(void) {
     return value;
 }
 int32_t fork_and_return(void) { return spawn_child(); }
+int32_t stall_only(void) { sleep(3); return 7; }
 """
             c_source.write_text(code, encoding="utf-8")
             subprocess.run(["clang", "-O0", "-shared", "-fPIC",
                             str(c_source), "-o", str(library)],
                            check=True, timeout=30)
             for symbol, timeout in (("fork_and_stall", 0.2),
-                                    ("fork_and_return", 3.0)):
+                                    ("fork_and_return", 3.0),
+                                    ("stall_only", 0.2)):
                 with self.subTest(symbol=symbol):
                     original, identity, fd = differential._pin_native_artifact(library)
                     try:
                         differential._check_artifact_unchanged(library, original, identity)
-                        if symbol == "fork_and_stall":
+                        if symbol == "stall_only":
                             with self.assertRaisesRegex(
                                     differential.HIADifferentialRejected, "timed out"):
                                 differential._observe_native(
                                     library, symbol, "i32", [], timeout=timeout, pinned_fd=fd)
                         else:
-                            # A correct scalar cannot excuse a still-running
-                            # in-group fork. Terminate AND reject this corpus
-                            # case instead of accepting its parent output.
+                            # Native fork attempts must SIGSYS-fail before
+                            # any child can start or escape the process group.
                             with self.assertRaisesRegex(
                                     differential.HIADifferentialRejected,
-                                    "surviving in-group descendants"):
+                                    "unexpected error/signal " + str(-signal.SIGSYS)):
                                 differential._observe_native(
                                     library, symbol, "i32", [], timeout=timeout, pinned_fd=fd)
                     finally:
                         os.close(fd)
-                    # The forked child would create this marker after 0.8s.
+                    # Without pre-dlopen seccomp the fork would create this
+                    # marker after 0.8s; even setsid must not evade rejection.
                     time.sleep(1.1)
                     self.assertFalse(marker.exists(),
                         "native child must not leave an ordinary forked descendant running")

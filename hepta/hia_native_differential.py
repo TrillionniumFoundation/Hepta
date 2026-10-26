@@ -35,6 +35,38 @@ resource.setrlimit(resource.RLIMIT_FSIZE, (4096, 4096))
 # Child evaluator limits: these do not prove HIA heap/RSS or OS sandboxing.
 resource.setrlimit(resource.RLIMIT_AS, (512 * 1024 * 1024, 512 * 1024 * 1024))
 resource.setrlimit(resource.RLIMIT_CPU, (10, 10))
+# Fail-closed Linux x86-64 seccomp policy BEFORE loading the foreign DSO.
+# Process-group cleanup alone cannot contain a forked child calling setsid().
+# Keep the worker's unrestricted Python setup above this point; the native
+# library and all ELF constructors run after the irreversible kernel filter.
+class _BpfRule(ctypes.Structure):
+    _fields_ = [("code", ctypes.c_ushort), ("jt", ctypes.c_ubyte),
+                ("jf", ctypes.c_ubyte), ("k", ctypes.c_uint32)]
+class _BpfProgram(ctypes.Structure):
+    _fields_ = [("len", ctypes.c_ushort),
+                ("filter", ctypes.POINTER(_BpfRule))]
+# seccomp_data.nr at offset 0; arch at offset 4. Audit x86-64 0xc000003e.
+# Deny the x32 syscall ABI bit to prevent alternate syscall-number bypass.
+# Bad arch, x32 number and forbidden syscall all SIGSYS-kill this worker:
+# returning EPERM would let native code hide an attempted escape and return 7.
+_rules = [(0x20, 0, 0, 4), (0x15, 1, 0, 0xC000003E),
+          (0x06, 0, 0, 0x80000000),
+          (0x20, 0, 0, 0), (0x35, 0, 1, 0x40000000),
+          (0x06, 0, 0, 0x80000000)]
+# clone/fork/vfork/clone3, execve/execveat, process session/group escape,
+# namespace escape, ptrace and io_uring kernel-worker creation.
+# This is NOT a general syscall sandbox: other file/network side effects
+# remain unsupported by this bounded finite differential oracle.
+for _nr in (56, 57, 58, 435, 59, 322, 109, 112, 272, 308, 101, 425):
+    _rules += [(0x15, 0, 1, _nr), (0x06, 0, 0, 0x80000000)]
+_rules.append((0x06, 0, 0, 0x7FFF0000))
+_rules_array = (_BpfRule * len(_rules))(*(_BpfRule(*r) for r in _rules))
+_filter = _BpfProgram(len(_rules), _rules_array)
+_libc = ctypes.CDLL(None, use_errno=True)
+if _libc.prctl(38, 1, 0, 0, 0) != 0:
+    raise OSError(ctypes.get_errno(), "seccomp no_new_privs required")
+if _libc.prctl(22, 2, ctypes.byref(_filter), 0, 0) != 0:
+    raise OSError(ctypes.get_errno(), "seccomp syscall filter required")
 lib, symbol, word, packed = sys.argv[1:]
 args = json.loads(packed)
 c = ctypes.c_int32 if word == "i32" else ctypes.c_uint32
@@ -205,8 +237,8 @@ def _has_in_group_descendant(pgid: int) -> bool:
 
     Linux waitid(WNOWAIT) keeps the original worker PID from being reused.
     The worker itself is excluded; no external process may be silently
-    accepted as a harmless effect of native code. Setsid escapes remain
-    outside this deliberately limited policy.
+    accepted as a harmless effect of native code. Kernel-filtered fork/clone/setsid attempts SIGSYS-kill the native worker;
+    the remaining process-group scan defends against unexpected descendants.
     """
     seen = 0
     try:
@@ -251,7 +283,8 @@ def _observe_native(library: Path, function: str, word: str, args: list[int], *,
             # running after the evaluator returns. Even a worker that exits
             # successfully may have spawned descendants: kill the process
             # group on *every* exit, before accepting its output.
-            # This does not stop setsid escapes or make native code sandboxed.
+            # The pre-dlopen kernel filter now blocks fork/clone/setsid;
+            # other native side effects still require stronger containment.
             proc = subprocess.Popen(
                 [sys.executable, "-I", "-c", _WORKER,
                  "/proc/self/fd/" + str(pinned_fd),
@@ -284,7 +317,7 @@ def _observe_native(library: Path, function: str, word: str, args: list[int], *,
             finally:
                 # Clear the entire ordinary session/group for BOTH timeout
                 # and successful or trapped native exit, before waitpid reaps
-                # its leader. A native setsid escape remains out of scope.
+                # its leader. Seccomp blocks native fork/session escapes.
                 try:
                     os.killpg(proc.pid, signal.SIGKILL)
                 except ProcessLookupError:
