@@ -41,21 +41,24 @@ class ResourceSourceOriginTests(unittest.TestCase):
         forged["source_sha256"] = "0" * 64
         # An independent graph verifier never sees the checked source AST.
         self.assertTrue(verify_resource_ir(forged)["ok"])
-        with self.assertRaisesRegex(ResourceIRError, "SOURCE_ORIGIN"):
+        with self.assertRaises(ResourceIRError) as origin:
             verify_resource_source_origin(program, checked, forged)
+        self.assertEqual(origin.exception.code, "E_RIR_SOURCE_ORIGIN")
         forged = copy.deepcopy(graph)
         forged["project_sha256"] = "1" * 64
         self.assertTrue(verify_resource_ir(forged)["ok"])
-        with self.assertRaisesRegex(ResourceIRError, "SOURCE_ORIGIN"):
+        with self.assertRaises(ResourceIRError) as origin:
             verify_resource_source_origin(program, checked, forged)
+        self.assertEqual(origin.exception.code, "E_RIR_SOURCE_ORIGIN")
 
     def test_different_accepted_source_rejects_stale_graph(self):
         original, checked = accepted()
         graph = lower_resource_ir(original, checked)
         revised, revised_checked = accepted(_SOURCE.replace("buffer(4)", "buffer(5)"))
         self.assertTrue(verify_resource_ir(graph)["ok"])
-        with self.assertRaisesRegex(ResourceIRError, "SOURCE_ORIGIN"):
+        with self.assertRaises(ResourceIRError) as origin:
             verify_resource_source_origin(revised, revised_checked, graph)
+        self.assertEqual(origin.exception.code, "E_RIR_SOURCE_ORIGIN")
 
 
 if __name__ == "__main__":
