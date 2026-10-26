@@ -205,7 +205,12 @@ def verify_capture(capture: dict) -> None:
     if capture["scope"] != "all_listed_commands_only_not_unlisted_platforms_or_configurations":
         raise MigrationRejected("E_C_BUILD_IDENTITY", "Unexpected capture scope")
     database = Path(capture["database"]["path"])
-    _, entries = _load_compdb(database)
+    parsed_bytes, entries = _load_compdb(database)
+    # The same exact bytes must supply both the parsed replay commands and
+    # the captured content identity. Do not attest a second, independently
+    # read file snapshot that could differ from the parsed input.
+    if digest(parsed_bytes) != capture["database"].get("sha256"):
+        raise MigrationRejected("E_C_BUILD_CHANGED", "Parsed compilation database content changed")
     configs = capture["configurations"]
     if (not isinstance(entries, list) or not isinstance(configs, list)
             or len(entries) != len(configs) or not 1 <= len(entries) <= 32):
