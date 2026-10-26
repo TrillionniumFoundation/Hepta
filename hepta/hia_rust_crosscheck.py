@@ -11,11 +11,13 @@ import json
 import os
 from pathlib import Path
 import re
+import selectors
 import signal
 import stat
 import subprocess
 import sys
 import tempfile
+import time
 
 MAX_EXECUTABLE_BYTES = 32 * 1024 * 1024
 MAX_OUTPUT_BYTES = 32 * 1024
@@ -136,6 +138,91 @@ def _validate_report(raw: bytes, profile: str, checked):
     return report
 
 
+def _run_bounded_shadow(cmd: list[str], payload: bytes, timeout: float):
+    """Bound stdin/stdout/stderr in memory; do not spool child output to disk.
+
+    Exact executable byte pinning is a separate precondition. This pump is not
+    a malicious-binary sandbox, but it cannot buffer unlimited output and
+    will kill its process group on a transport violation or deadline.
+    """
+    proc = None
+    try:
+        proc = subprocess.Popen(
+            cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            start_new_session=True,
+            env={"LANG": "C", "LC_ALL": "C", "PYTHONIOENCODING": "utf-8"},
+        )
+        pipes = {"stdin": proc.stdin, "stdout": proc.stdout, "stderr": proc.stderr}
+        collected = {"stdout": bytearray(), "stderr": bytearray()}
+        offset = 0
+        deadline = time.monotonic() + timeout
+        with selectors.DefaultSelector() as selector:
+            for kind, stream in pipes.items():
+                os.set_blocking(stream.fileno(), False)
+                if kind == "stdin" and not payload:
+                    stream.close()
+                else:
+                    selector.register(stream, selectors.EVENT_WRITE if kind == "stdin"
+                                      else selectors.EVENT_READ, kind)
+            while selector.get_map():
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    _reject("shadow exceeded execution deadline")
+                for key, _mask in selector.select(remaining):
+                    kind = key.data
+                    stream = key.fileobj
+                    if kind == "stdin":
+                        try:
+                            count = os.write(stream.fileno(), memoryview(payload)[offset:offset + 65536])
+                        except BrokenPipeError:
+                            count = 0
+                        if count <= 0:
+                            selector.unregister(stream)
+                            stream.close()
+                        else:
+                            offset += count
+                            if offset == len(payload):
+                                selector.unregister(stream)
+                                stream.close()
+                    else:
+                        try:
+                            chunk = os.read(stream.fileno(), 4096)
+                        except BlockingIOError:
+                            continue
+                        if not chunk:
+                            selector.unregister(stream)
+                            stream.close()
+                        else:
+                            buf = collected[kind]
+                            if len(buf) + len(chunk) >= MAX_OUTPUT_BYTES:
+                                _reject("shadow exceeded bounded output budget")
+                            buf.extend(chunk)
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                _reject("shadow exceeded execution deadline")
+            proc.wait(timeout=remaining)
+            return bytes(collected["stdout"]), bytes(collected["stderr"]), proc.returncode
+    except (subprocess.TimeoutExpired, OSError) as exc:
+        raise HIARustCrosscheckRejected(
+            "E_HIA_RUST_CROSSCHECK: bounded shadow child unavailable or timed out"
+        ) from exc
+    finally:
+        if proc is not None:
+            if proc.poll() is None:
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                try:
+                    proc.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    # A kernel-blocked process remains unqualified; never wait forever.
+                    pass
+            for stream in (proc.stdin, proc.stdout, proc.stderr):
+                if stream is not None and not stream.closed:
+                    stream.close()
+
+
 def crosscheck_rust_shadow(program, executable: str | Path, *, executable_sha256: str,
                            profile: str = "owned", timeout: float = 8.0):
     """Corroborate canonical Core with pinned opt-in Rust executable.
@@ -162,29 +249,11 @@ def crosscheck_rust_shadow(program, executable: str | Path, *, executable_sha256
             os.fchmod(fd, 0o700)
         finally:
             os.close(fd)
-        with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
-            cmd = [str(destination)] + (["--owned-shadow"] if profile == "owned" else [])
-            try:
-                worker = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=out, stderr=err,
-                                          start_new_session=True,
-                                          env={"LANG": "C", "LC_ALL": "C", "PYTHONIOENCODING": "utf-8"})
-                try:
-                    worker.communicate(input=checked.canonical_bytes, timeout=timeout)
-                except subprocess.TimeoutExpired as exc:
-                    os.killpg(worker.pid, signal.SIGKILL)
-                    worker.wait(timeout=2)
-                    raise HIARustCrosscheckRejected(
-                        "E_HIA_RUST_CROSSCHECK: shadow exceeded execution deadline") from exc
-                out.seek(0)
-                err.seek(0)
-                stdout = out.read(MAX_OUTPUT_BYTES)
-                stderr = err.read(MAX_OUTPUT_BYTES)
-            except OSError as exc:
-                raise HIARustCrosscheckRejected(
-                    "E_HIA_RUST_CROSSCHECK: shadow executable unavailable") from exc
-            if worker.returncode != 0 or stderr:
-                _reject("shadow rejected canonical HIA or emitted unexpected diagnostics")
-            report = _validate_report(stdout, profile, checked)
+        cmd = [str(destination)] + (["--owned-shadow"] if profile == "owned" else [])
+        stdout, stderr, returncode = _run_bounded_shadow(cmd, checked.canonical_bytes, timeout)
+        if returncode != 0 or stderr:
+            _reject("shadow rejected canonical HIA or emitted unexpected diagnostics")
+        report = _validate_report(stdout, profile, checked)
     return {
         "schema": "hepta.hia.rust-crosscheck.v1", "status": "shadow_corroborated_not_authority",
         "core_sha256": checked.sha256, "shadow_executable_sha256": executable_sha256,
