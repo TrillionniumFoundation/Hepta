@@ -158,6 +158,31 @@ class SharedELFTests(unittest.TestCase):
         forged[name_offset:name_offset+3]=b'foo'
         self.assert_reject(bytes(forged),('foo',))
 
+    def test_native_c_callers_and_wrong_code_oracle(self):
+        if not shutil.which('gcc'):
+            self.skipTest('GCC required for independent native caller')
+        correct = self.compile('int foo(int x){return x+7;}\n','correct.so')
+        wrong = self.compile('int foo(int x){return x+8;}\n','wrong.so')
+        for artifact in (correct, wrong):
+            self.assertEqual(inspect_owned_shared_elf(artifact, ('foo',))['dynamic_exports'], ['foo'])
+        # ABI symbol/layout checks alone cannot decide behavioral equivalence.
+        # A separate C consumer with an independent expectation must detect it.
+        source = self.root/'caller.c'
+        source.write_text('extern int foo(int); int main(void){for(int x=-7;x<8;x++)'
+                          'if(foo(x)!=x+7)return 19;return 0;}\n')
+        for compiler in ('gcc','clang'):
+            for opt in ('-O0','-O2'):
+                for library, expected in (('correct.so',0),('wrong.so',19)):
+                    with self.subTest(compiler=compiler,opt=opt,library=library):
+                        exe=self.root/(compiler+opt+library)
+                        run=subprocess.run([compiler,'-std=c11','-Wall','-Wextra','-Werror',opt,
+                                            str(source),str(self.root/library),
+                                            '-Wl,-rpath,'+str(self.root),'-o',str(exe)],
+                                           text=True,capture_output=True,timeout=15)
+                        self.assertEqual(run.returncode,0,run.stderr)
+                        executed=subprocess.run([str(exe)],text=True,capture_output=True,timeout=10)
+                        self.assertEqual(executed.returncode,expected,executed.stderr)
+
     def test_empty_public_export_profile(self):
         data=self.compile('static int hidden(int x){return x+7;}\n','empty.so')
         result=inspect_owned_shared_elf(data,())
