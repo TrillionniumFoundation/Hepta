@@ -21,6 +21,7 @@ from .llvm_owned_backend import (OwnedLLVM, LLVMOwnedRejected, PROFILE, TARGET,
 from .llvm_ssa_backend import _clang_run
 from .object_structure import qualified_object
 from .object_symbols import ObjectSymbolsRejected, inspect_object_symbols
+from .owned_target_layout import OwnedTargetLayoutRejected, probe_owned_target_layout
 from .pipeline import analyze_project, compiler_hash
 
 
@@ -119,6 +120,12 @@ def compile_owned_aarch64_object(ir: OwnedLLVM, *, program, checked, output,
     if destination.is_symlink() or destination.exists() or not destination.parent.is_dir():
         reject("A new ordinary output under an existing directory is required",
                "E_LLVM_OWNED_TARGET_OUTPUT")
+    # Verify target data layout with independent target-C compiler static
+    # assertions. An ELF machine ID alone says nothing about ptr/len offsets.
+    try:
+        target_layout = probe_owned_target_layout(compiler, TARGET_AARCH64, target_text)
+    except OwnedTargetLayoutRejected as exc:
+        raise LLVMOwnedRejected("E_LLVM_OWNED_TARGET_LAYOUT: " + str(exc)) from exc
     with tempfile.TemporaryDirectory(prefix=".hepta-owned-aarch64-", dir=destination.parent) as folder:
         ll = Path(folder) / "native.ll"
         stage = Path(folder) / "native.o"
@@ -162,7 +169,9 @@ def compile_owned_aarch64_object(ir: OwnedLLVM, *, program, checked, output,
             "toolchain": {"path": str(compiler), "sha256": tool_hash,
                           "version": version.stdout.splitlines()[0]},
             "symbols": observed,
+            "target_layout_probe": target_layout,
             "claims": {"source_and_resource_origin_regenerated": True,
+                       "target_c_layout_compiled": True,
                        "aarch64_elf_object_compiled": True,
                        "target_object_executed": False, "target_link_succeeded": False,
                        "foreign_abi_qualified": False,
@@ -210,8 +219,16 @@ def build_owned_aarch64_source(source, output, *, rustc=None, clang="clang", loc
                 ir, program=analyzed.program, checked=analyzed.checked, output=stage,
                 project_sha256=project.identity, clang=clang)
             data = stage.read_bytes() if stage.is_file() else b""
+            layout = backend.get("target_layout_probe")
             if (not data or len(data) != backend.get("artifact_bytes")
                     or sha256(data).hexdigest() != backend.get("artifact_sha256")
+                    or type(layout) is not dict
+                    or layout.get("status") != "target_c_static_assertions_compiled_not_executed"
+                    or layout.get("target") != TARGET_AARCH64
+                    or layout.get("bound_llvm_sha256") != backend.get("target_llvm_sha256")
+                    or layout.get("compiler_checked") is not True
+                    or layout.get("native_abi_execution_qualified") is not False
+                    or layout.get("llvm_layout_equivalence_proved") is not False
                     or not project.unchanged() or compiler_hash() != ir.compiler_sha256):
                 reject("Source or native artifact changed before source-level publication",
                        "E_LLVM_OWNED_TARGET_STALE")

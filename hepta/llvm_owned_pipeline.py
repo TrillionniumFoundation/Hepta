@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 import tempfile
 
-from .llvm_owned_backend import PROFILE, LLVMOwnedRejected, compile_owned_llvm, emit_owned_llvm
+from .llvm_owned_backend import PROFILE, TARGET, LLVMOwnedRejected, compile_owned_llvm, emit_owned_llvm
 from .pipeline import analyze_project, compiler_hash
 from .resource_ir import verify_resource_ir
 from .resource_lowering import lower_resource_ir
@@ -64,8 +64,17 @@ def build_llvm_owned_source(source, output, *, rustc=None, clang="clang", kind="
             native = compile_owned_llvm(ir, program=analysis.program, checked=analysis.checked,
                 project_sha256=project.identity, output=stage, clang=clang, kind=kind)
             data = stage.read_bytes() if stage.is_file() else b""
+            layout = native.get("target_layout_probe")
             if (native.get("ok") is not True or native.get("status") != "native_compiled_not_executed"
-                    or native.get("profile") != PROFILE or native.get("kind") != kind
+                    or native.get("profile") != PROFILE or native.get("target") != TARGET
+                    or type(layout) is not dict
+                    or layout.get("target") != TARGET
+                    or layout.get("status") != "target_c_static_assertions_compiled_not_executed"
+                    or layout.get("bound_llvm_sha256") != ir.sha256
+                    or layout.get("compiler_checked") is not True
+                    or layout.get("llvm_layout_equivalence_proved") is not False
+                    or layout.get("native_abi_execution_qualified") is not False
+                    or native.get("kind") != kind
                     or native.get("llvm_ir_sha256") != ir.sha256
                     or native.get("semantic_sha256") != ir.semantic_sha256
                     or native.get("resource_ir_sha256") != ir.resource_ir_sha256

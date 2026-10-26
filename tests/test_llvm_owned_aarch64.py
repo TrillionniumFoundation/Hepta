@@ -58,6 +58,13 @@ class OwnedAArch64ObjectTests(unittest.TestCase):
         self.assertEqual(receipt["artifact_bytes"], len(object_bytes))
         self.assertEqual(receipt["target"], TARGET_AARCH64)
         self.assertEqual(receipt["symbols"]["exports"], ["checked_owner_length"])
+        layout = receipt["target_layout_probe"]
+        self.assertEqual(layout["target"], TARGET_AARCH64)
+        self.assertEqual(layout["bound_llvm_sha256"], receipt["target_llvm_sha256"])
+        self.assertEqual(layout["status"], "target_c_static_assertions_compiled_not_executed")
+        self.assertEqual(layout["observed_requirements"]["buffer_alignment"], 8)
+        self.assertTrue(receipt["claims"]["target_c_layout_compiled"])
+        self.assertIs(layout["llvm_layout_equivalence_proved"], False)
         self.assertTrue(receipt["claims"]["source_and_resource_origin_regenerated"])
         for flag in ("target_object_executed", "target_link_succeeded",
                      "foreign_abi_qualified", "physical_hardware_tested",

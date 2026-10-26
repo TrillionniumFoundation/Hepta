@@ -27,6 +27,7 @@ from .artifact_publication import PublicationRejected, publish_verified
 from .resource_lowering import lower_resource_ir
 from .semantic_ir import lower_checked_program
 from .elf_shared_abi import ELFSharedABIRejected, inspect_owned_shared_elf
+from .owned_target_layout import OwnedTargetLayoutRejected, probe_owned_target_layout
 
 PROFILE = "hepta.llvm-owned-bytes-host.v1"
 TARGET = "x86_64-unknown-linux-gnu"
@@ -907,6 +908,10 @@ def compile_owned_llvm(ir, *, program, checked, output, project_sha256=None, cla
     if destination.is_symlink() or destination.exists() or not destination.parent.is_dir():
         reject("A new output in an existing directory is required", "E_LLVM_OWNED_OUTPUT")
     compiler_digest = _hash(compiler.read_bytes())
+    try:
+        target_layout = probe_owned_target_layout(compiler, TARGET, ir.text)
+    except OwnedTargetLayoutRejected as exc:
+        reject(str(exc), "E_LLVM_OWNED_LAYOUT")
     with tempfile.TemporaryDirectory(prefix=".hepta-llvm-owned-", dir=destination.parent) as directory:
         source, artifact = Path(directory) / "module.ll", Path(directory) / ("native.so" if kind == "shared" else "native.o")
         source.write_text(ir.text)
@@ -943,6 +948,7 @@ def compile_owned_llvm(ir, *, program, checked, output, project_sha256=None, cla
             "profile": PROFILE, "kind": kind, "target": TARGET, "output": str(destination),
             "artifact_sha256": publication["sha256"], "artifact_bytes": publication["bytes"],
             "dynamic_abi": dynamic_abi,
+            "target_layout_probe": target_layout,
             "llvm_ir_sha256": ir.sha256, "semantic_sha256": ir.semantic_sha256,
             "resource_ir_sha256": ir.resource_ir_sha256,
             "resource_verification_sha256": ir.resource_verification_sha256,
