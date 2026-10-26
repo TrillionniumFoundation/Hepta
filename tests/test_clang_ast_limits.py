@@ -88,8 +88,13 @@ class BoundedClangASTTests(unittest.TestCase):
     @unittest.skipUnless(shutil.which("clang") and shutil.which("clang++"),
                          "Migration fail-closed checks require native Clang")
     def test_both_migrators_reject_forged_deep_ast_without_output(self):
+        # A 48-level AST is below the default 128-depth budget: admit it.
+        shallow = ('{"kind":"TranslationUnitDecl","body":' +
+                   '{"child":' * 48 + "null" + "}" * 48 + "}")
+        self.assertEqual(_load_bounded_clang_ast(shallow)["kind"], "TranslationUnitDecl")
+        # The forged compiler output must exceed the actual default budget.
         deep = ('{"kind":"TranslationUnitDecl","body":' +
-                '{"child":' * 48 + "null" + "}" * 48 + "}")
+                '{"child":' * 140 + "null" + "}" * 140 + "}")
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             for language in ("c", "cpp"):
