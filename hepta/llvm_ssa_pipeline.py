@@ -19,7 +19,8 @@ from .pipeline import analyze_project
 from .ssa import lower_cfg_scalar_ssa
 from .ssa_verify import verify_scalar_ssa
 from .object_symbols import inspect_object_symbols
-from .elf_shared_abi import inspect_owned_shared_elf, ELFSharedABIRejected
+from .elf_shared_abi import ELFSharedABIRejected
+from .scalar_host_abi import inspect_scalar_host_elf
 from .artifact_publication import (PublicationRejected, publish_verified,
                                    verify_published, withdraw_own_link)
 
@@ -201,7 +202,7 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
                 # Reuse the existing strict owned-LLVM dynamic ELF parser;
                 # do not introduce an independent, weaker symbol authority.
                 try:
-                    host_dynamic_abi = inspect_owned_shared_elf(
+                    host_dynamic_abi = inspect_scalar_host_elf(
                         artifact, tuple(ir.functions))
                 except ELFSharedABIRejected as exc:
                     raise LLVMSSARejected(
