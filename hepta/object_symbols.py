@@ -97,6 +97,12 @@ def inspect_object_symbols(data: bytes, fmt: str, machine: int) -> dict[str, fro
                     if name in exported or name in undefined:
                         raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_DUPLICATE: ELF function identity reused")
                     exported.add(name)
+                elif name:
+                    # An unlisted global STT_OBJECT/NOTYPE/IFUNC/TLS symbol
+                    # must not disappear from the export inventory merely
+                    # because this verifier records callable exports only.
+                    raise ObjectSymbolsRejected(
+                        "E_OBJECT_SYMBOL_EXPORT_KIND: unexpected defined ELF global")
         if not observed:
             raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_TABLE: no ELF symbol table")
     elif fmt == "COFF":
@@ -147,6 +153,11 @@ def inspect_object_symbols(data: bytes, fmt: str, machine: int) -> dict[str, fro
                     if name in exported or name in undefined:
                         raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_DUPLICATE: COFF function identity reused")
                     exported.add(name)
+                elif storage in (2, 105) and section != 0 and name:
+                    # IMAGE_SYM_CLASS_EXTERNAL data/absolute/common symbols
+                    # are public API too, even when Type is not a function.
+                    raise ObjectSymbolsRejected(
+                        "E_OBJECT_SYMBOL_EXPORT_KIND: unexpected defined COFF global")
             idx += 1 + aux
     elif fmt == "MACHO64":
         pos, commands, symbol_table = 32, _u32(data, 16), None
@@ -207,6 +218,11 @@ def inspect_object_symbols(data: bytes, fmt: str, machine: int) -> dict[str, fro
                 if normalized in exported or normalized in undefined:
                     raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_DUPLICATE: Mach-O function identity reused")
                 exported.add(normalized)
+            else:
+                # N_ABS/N_INDR and other nonfunction defined externs are not
+                # declared by Hepta's closed scalar C function export profile.
+                raise ObjectSymbolsRejected(
+                    "E_OBJECT_SYMBOL_EXPORT_KIND: unexpected Mach-O external kind")
     else:
         raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_FORMAT: unsupported object profile")
     if not exported:
