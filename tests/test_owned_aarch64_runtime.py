@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from hashlib import sha256
+import os
 import shutil
 import subprocess
 import tempfile
@@ -30,6 +31,54 @@ class ReviewedFiniteRuntimeSourceGateTests(unittest.TestCase):
         self.assertEqual(content_sha, runtime._REVIEWED_RUNTIME_SHA256)
         # The allocator's HEPTA_CAPACITY remains exactly 4096 bytes.
         self.assertIn(b"#define HEPTA_CAPACITY 4096u", source)
+
+    def test_exact_runtime_reader_never_uses_unbounded_path_read_bytes(self):
+        with patch.object(Path, "read_bytes",
+                          side_effect=AssertionError("unbounded source read forbidden")):
+            actual, observed_sha = runtime._read_reviewed_runtime()
+        self.assertEqual(len(actual), 4259)
+        self.assertEqual(observed_sha, runtime._REVIEWED_RUNTIME_SHA256)
+
+    def test_symlink_and_sparse_oversized_source_reject_before_open(self):
+        with tempfile.TemporaryDirectory(prefix="hepta-p7-source-special-") as td:
+            root = Path(td)
+            target = root / "valid.c"
+            target.write_bytes(runtime._FIXTURE.read_bytes())
+            alias = root / "alias.c"
+            alias.symlink_to(target)
+            with patch.object(runtime, "_FIXTURE", alias):
+                with self.assertRaisesRegex(
+                        OwnedAArch64RuntimeRejected, "out-of-profile"):
+                    runtime._read_reviewed_runtime()
+            huge = root / "huge.c"
+            with huge.open("wb") as output:
+                output.truncate(runtime._MAX_RUNTIME_SOURCE_BYTES + 1)
+            with (patch.object(runtime, "_FIXTURE", huge),
+                  patch.object(Path, "read_bytes",
+                               side_effect=AssertionError("huge read not allowed"))):
+                with self.assertRaisesRegex(
+                        OwnedAArch64RuntimeRejected, "out-of-profile"):
+                    runtime._read_reviewed_runtime()
+
+    def test_replaced_runtime_between_lstat_and_open_is_rejected(self):
+        with tempfile.TemporaryDirectory(prefix="hepta-p7-source-race-") as td:
+            root = Path(td)
+            original = root / "current.c"
+            replacement = root / "replacement.c"
+            reviewed = runtime._FIXTURE.read_bytes()
+            original.write_bytes(reviewed)
+            replacement.write_bytes(reviewed)
+            actual_open = os.open
+
+            def exchange_before_open(path, flags, *args, **kwargs):
+                os.replace(replacement, original)
+                return actual_open(path, flags, *args, **kwargs)
+
+            with (patch.object(runtime, "_FIXTURE", original),
+                  patch.object(runtime.os, "open", side_effect=exchange_before_open)):
+                with self.assertRaisesRegex(
+                        OwnedAArch64RuntimeRejected, "changed before reading"):
+                    runtime._read_reviewed_runtime()
 
     def test_wrong_or_oversized_runtime_source_fails_closed_before_compilation(self):
         original = runtime._FIXTURE
