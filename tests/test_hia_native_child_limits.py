@@ -169,10 +169,14 @@ int32_t fork_and_return(void) { return spawn_child(); }
                                 differential._observe_native(
                                     library, symbol, "i32", [], timeout=timeout, pinned_fd=fd)
                         else:
-                            self.assertEqual(
+                            # A correct scalar cannot excuse a still-running
+                            # in-group fork. Terminate AND reject this corpus
+                            # case instead of accepting its parent output.
+                            with self.assertRaisesRegex(
+                                    differential.HIADifferentialRejected,
+                                    "surviving in-group descendants"):
                                 differential._observe_native(
-                                    library, symbol, "i32", [], timeout=timeout, pinned_fd=fd),
-                                ("value", 7))
+                                    library, symbol, "i32", [], timeout=timeout, pinned_fd=fd)
                     finally:
                         os.close(fd)
                     # The forked child would create this marker after 0.8s.
