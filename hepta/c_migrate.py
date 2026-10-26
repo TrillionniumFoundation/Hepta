@@ -382,7 +382,9 @@ def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 
         # break, goto, in-loop declaration, or observed step return exists.
         # Thus init; while (condition) { body; increment; } is equivalent
         # on the source language's defined signed-arithmetic input domain.
-        if (len(children) != 5 or children[1] is not None
+        # Clang serializes an absent condition-variable slot as {} (and some
+        # frontends use None). Admit only those two empty markers.
+        if (len(children) != 5 or children[1] not in (None, {})
                 or any(part is None for part in (children[0], children[2], children[3], children[4]))):
             raise MigrationRejected("E_C_FOR_SHAPE", "For requires explicit init, comparison, step and body")
         initial, _, condition, advance, loop_body = children
