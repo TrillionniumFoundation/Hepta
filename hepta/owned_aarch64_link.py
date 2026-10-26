@@ -74,7 +74,10 @@ def inspect_synthetic_aarch64_elf(data: bytes, exports: tuple[str, ...]) -> dict
             or shoff < 64 or shoff + 64 * shnum > len(data)):
         _reject("truncated executable program/section header inventory")
     entry = _u64(data, 24)
-    executable_segment = False
+    # Collect only file-backed executable LOAD extents. An executable ELF
+    # section is not sufficient unless the OS loader actually maps all of
+    # the claimed function bytes from this file.
+    executable_segments = []
     for index in range(phnum):
         pos = phoff + 56 * index
         kind, flags = _u32(data, pos), _u32(data, pos + 4)
@@ -83,9 +86,9 @@ def inspect_synthetic_aarch64_elf(data: bytes, exports: tuple[str, ...]) -> dict
         if (kind in {2, 3} or  # PT_DYNAMIC / PT_INTERP are forbidden
                 filebytes > membytes or offset + filebytes > len(data)):
             _reject("dynamic loader, malformed program segment or missing backing bytes")
-        if kind == 1 and flags & 1 and filebytes and addr <= entry < addr + filebytes:
-            executable_segment = True
-    if not executable_segment:
+        if kind == 1 and flags & 1 and filebytes:
+            executable_segments.append((addr, addr + filebytes))
+    if not any(start <= entry < end for start, end in executable_segments):
         _reject("entrypoint does not reside in a file-backed executable PT_LOAD")
     observed = {}
     tables = 0
@@ -131,9 +134,16 @@ def inspect_synthetic_aarch64_elf(data: bytes, exports: tuple[str, ...]) -> dict
             section_header = shoff + 64 * shndx
             section_start, section_size = _u64(data, section_header + 16), _u64(data, section_header + 32)
             section_flags = _u64(data, section_header + 8)
-            if ((section_flags & 6) != 6 or not section_start <= value
-                    or length > section_size or value - section_start > section_size - length):
-                _reject("global function does not lie within allocated executable section")
+            section_kind = _u32(data, section_header + 4)
+            section_file_offset = _u64(data, section_header + 24)
+            if (section_kind != 1  # SHT_PROGBITS, never executable SHT_NOBITS
+                    or (section_flags & 6) != 6
+                    or section_file_offset + section_size > len(data)
+                    or not section_start <= value
+                    or length > section_size or value - section_start > section_size - length
+                    or not any(start <= value and value + length <= end
+                               for start, end in executable_segments)):
+                _reject("global function not fully backed by executable file bytes")
             observed[name] = {"address": value, "bytes": length}
     if tables != 1 or set(observed) != set(exports) | _STUBS:
         _reject("linked image has missing or additional external functions")
