@@ -456,7 +456,7 @@ def verify_checked_source_projection(program: Any, checked: Any,
     payload = snapshot.as_dict()
     if payload.get("source_semantic_sha256") != canonical["sha256"]:
         raise HSIRRejected("E_HSIR_SOURCE_ORIGIN: canonical semantic digest disagrees")
-    return {
+    result = {
         "schema": "hepta.hsir.source-origin.v1",
         "status": "exact_source_rederived_not_semantic_refinement_proof",
         "canonical_schema": CANONICAL_SCHEMA,
@@ -464,7 +464,6 @@ def verify_checked_source_projection(program: Any, checked: Any,
         "derived_schema": SCHEMA,
         "derived_sha256": snapshot.sha256,
         "source_sha256": canonical["source_sha256"],
-        "project_sha256": canonical["project_sha256"],
         "claims": {
             "canonical_semantic_producer_unique": True,
             "checked_source_projection_rederived": True,
@@ -472,3 +471,9 @@ def verify_checked_source_projection(program: Any, checked: Any,
             "native_backend_refinement_proven": False,
         },
     }
+    # Preserve the frozen no-project v1 receipt shape. A project-bound
+    # semantic receipt has a new version rather than silently extending v1.
+    if project_sha256 is not None:
+        result["schema"] = "hepta.hsir.source-origin.v2"
+        result["project_sha256"] = canonical["project_sha256"]
+    return result
