@@ -172,13 +172,18 @@ def _path(value: str, directory: Path) -> Path:
     return (directory / path).resolve() if not path.is_absolute() else path.resolve()
 
 
-def _flags(argv: list[str], source: Path, directory: Path) -> tuple[list[str], list[dict]]:
+def _flags(argv: list[str], source: Path, directory: Path, *, language: str = "c") -> tuple[list[str], list[dict]]:
+    if language not in {"c", "c++"}:
+        raise MigrationRejected("E_C_BUILD_COMMAND", "Unsupported captured source language")
     if not argv or any(not isinstance(x, str) or "\x00" in x for x in argv):
         raise MigrationRejected("E_C_BUILD_COMMAND", "Expected a nonempty argv string list")
     # The database compiler is recorded but not executed; Clang is selected by
     # the caller. Wrappers, shell syntax, response files and compiler plugins
     # are not guessed or expanded.
-    if Path(argv[0]).name not in {"cc", "gcc", "clang", "clang-20", "clang-19", "clang-18"}:
+    drivers = ({"cc", "gcc", "clang", "clang-20", "clang-19", "clang-18"}
+               if language == "c" else
+               {"c++", "g++", "clang++", "clang++-20", "clang++-19", "clang++-18"})
+    if Path(argv[0]).name not in drivers:
         raise MigrationRejected("E_C_BUILD_COMMAND", "Unsupported database compiler or wrapper")
     forwarded, omitted = [], []
     seen_source = 0
@@ -196,7 +201,7 @@ def _flags(argv: list[str], source: Path, directory: Path) -> tuple[list[str], l
             forwarded.extend([value, operand])
         elif value.startswith(("-I", "-D", "-U")) and len(value) > 2:
             forwarded.append(value)
-        elif value in {"-std=c99", "-std=c11", "-std=c17"}:
+        elif value in ({"-std=c99", "-std=c11", "-std=c17"} if language == "c" else {"-std=c++20"}):
             forwarded.append(value)
         elif value in {"-funsigned-char", "-fsigned-char"}:
             # Plain-char signedness is semantic and enters the probed model;
@@ -217,7 +222,7 @@ def _flags(argv: list[str], source: Path, directory: Path) -> tuple[list[str], l
         raise MigrationRejected("E_C_BUILD_COMMAND", "Each command must name its C source exactly once")
     if not any(x.startswith("-std=") for x in forwarded):
         # Never guess a compiler's default language standard.
-        raise MigrationRejected("E_C_BUILD_STANDARD", "An explicit -std=c99/c11/c17 is required")
+        raise MigrationRejected("E_C_BUILD_STANDARD", "An explicit captured language standard is required")
     return forwarded, omitted
 
 
@@ -259,8 +264,9 @@ def verify_capture(capture: dict) -> None:
     expected_fields = {"schema", "database", "compiler", "configurations",
                        "dependencies", "scope", "sha256"}
     if (not isinstance(capture, dict) or set(capture) != expected_fields
-            or capture.get("schema") != "hepta.c-build.v1"):
+            or capture.get("schema") not in {"hepta.c-build.v1", "hepta.cpp-build.v1"}):
         raise MigrationRejected("E_C_BUILD_IDENTITY", "Missing or unknown captured build fields")
+    language = "c++" if capture["schema"] == "hepta.cpp-build.v1" else "c"
     bound = capture["sha256"]
     try:
         serialized = json.dumps({key: value for key, value in capture.items() if key != "sha256"},
@@ -305,7 +311,10 @@ def verify_capture(capture: dict) -> None:
         argv = entry.get("arguments")
         if argv is None:
             argv = shlex.split(entry["command"], posix=True)
-        flags, omitted = _flags(argv, source, directory)
+        suffixes = {".c"} if language == "c" else {".cc", ".cpp", ".cxx"}
+        if source.suffix not in suffixes:
+            raise MigrationRejected("E_C_BUILD_SOURCE", "Source suffix differs from captured language")
+        flags, omitted = _flags(argv, source, directory, language=language)
         if (config["index"] != index or config["source"] != str(source)
                 or config["directory"] != str(directory)
                 or config["original_arguments"] != argv
@@ -370,10 +379,10 @@ def verify_capture(capture: dict) -> None:
         # Macro inventories and ABI model flags are distinct from a TU's
         # preprocessed bytes. A changed *unused* predefined macro can alter a
         # future translated declaration or invalidate recorded target facts.
-        current_macros = invoke([compiler["path"], *flags, "-dM", "-E", "-x", "c", "-"],
+        current_macros = invoke([compiler["path"], *flags, "-dM", "-E", "-x", language, "-"],
                                 directory, stdin="")
         current_abi_macros = invoke([compiler["path"], *config["abi_model_arguments"],
-                                     "-dM", "-E", "-x", "c", "-"], directory, stdin="")
+                                     "-dM", "-E", "-x", language, "-"], directory, stdin="")
         if (digest(current_macros.encode()) != config["predefined_macros_sha256"]
                 or digest(current_abi_macros.encode()) != config["abi_predefined_macros_sha256"]):
             raise MigrationRejected("E_C_BUILD_CHANGED", "Predefined or ABI macro model changed")
@@ -387,13 +396,15 @@ def verify_capture(capture: dict) -> None:
         raise MigrationRejected("E_C_BUILD_CHANGED", "Compilation database changed during replay")
 
 
-def capture_project(database: str | Path, *, clang: str = "clang") -> dict:
+def capture_project(database: str | Path, *, clang: str = "clang", language: str = "c") -> dict:
     """Capture all configurations; duplicate sources require a separate run/db.
 
     The migration profile deliberately rejects multiple configurations of the
     same source in one artifact. Their behavior can differ after preprocessing.
     Users may supply one complete compilation database per intended build.
     """
+    if language not in {"c", "c++"}:
+        raise MigrationRejected("E_C_BUILD_COMMAND", "Unsupported captured source language")
     db = Path(database).resolve()
     raw, entries = _load_compdb(db)
     executable = shutil.which(clang)
@@ -409,8 +420,9 @@ def capture_project(database: str | Path, *, clang: str = "clang") -> dict:
             raise MigrationRejected("E_C_BUILD_DATABASE", "Commands require file and directory strings")
         directory = _path(entry["directory"], db.parent)
         source = _path(entry["file"], directory)
-        if source.suffix != ".c" or not source.is_file() or source in seen:
-            raise MigrationRejected("E_C_BUILD_SOURCE", "Missing .c source or duplicate source configuration")
+        suffixes = {".c"} if language == "c" else {".cc", ".cpp", ".cxx"}
+        if source.suffix not in suffixes or not source.is_file() or source in seen:
+            raise MigrationRejected("E_C_BUILD_SOURCE", "Missing captured-language source or duplicate source configuration")
         seen.add(source)
         argv = entry.get("arguments")
         if argv is None:
@@ -419,7 +431,7 @@ def capture_project(database: str | Path, *, clang: str = "clang") -> dict:
             argv = shlex.split(entry["command"], posix=True)
         if not isinstance(argv, list):
             raise MigrationRejected("E_C_BUILD_COMMAND", "arguments must be a string list")
-        flags, omitted = _flags(argv, source, directory)
+        flags, omitted = _flags(argv, source, directory, language=language)
         all_deps = _dependencies(executable, flags, source, directory, system=True)
         local_deps = set(_dependencies(executable, flags, source, directory, system=False))
         for path in all_deps:
@@ -433,13 +445,13 @@ def capture_project(database: str | Path, *, clang: str = "clang") -> dict:
                 item["project_input"] |= previous["project_input"]
             dependencies[str(path)] = item
         preprocessed = invoke([executable, *flags, "-E", str(source)], directory)
-        macros = invoke([executable, *flags, "-dM", "-E", "-x", "c", "-"], directory, stdin="")
+        macros = invoke([executable, *flags, "-dM", "-E", "-x", language, "-"], directory, stdin="")
         # User -D/-U macros may intentionally spell predefined names. They
         # affect preprocessed source semantics, but cannot attest native ABI
         # sizes or char signedness. Probe those with the actual semantic
         # compiler options only, independently of user macro overrides.
         model_flags = _abi_model_arguments(flags)
-        abi_macros = invoke([executable, *model_flags, "-dM", "-E", "-x", "c", "-"], directory, stdin="")
+        abi_macros = invoke([executable, *model_flags, "-dM", "-E", "-x", language, "-"], directory, stdin="")
         numeric = dict(re.findall(r"^#define (__[A-Z0-9_]+__) (\d+)$", abi_macros, flags=re.M))
         if any(numeric.get(name) != value for name, value in {
             "__CHAR_BIT__": "8", "__SIZEOF_INT__": "4", "__SIZEOF_LONG_LONG__": "8",
@@ -458,7 +470,7 @@ def capture_project(database: str | Path, *, clang: str = "clang") -> dict:
                         "model": {"long_bits": 8 * int(numeric.get("__SIZEOF_LONG__", "0")),
                                   "char_unsigned": "#define __CHAR_UNSIGNED__ 1" in abi_macros,
                                   "pointer_bits": 64}})
-    capture = {"schema": "hepta.c-build.v1", "database": {"path": str(db), "sha256": digest(raw)},
+    capture = {"schema": "hepta.c-build.v1" if language == "c" else "hepta.cpp-build.v1", "database": {"path": str(db), "sha256": digest(raw)},
                "compiler": compiler, "configurations": configs,
                "dependencies": sorted(dependencies.values(), key=lambda item: item["path"]),
                "scope": "all_listed_commands_only_not_unlisted_platforms_or_configurations"}

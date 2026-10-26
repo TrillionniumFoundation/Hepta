@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import json
 from pathlib import Path
 import shutil
 import tempfile
@@ -16,6 +17,50 @@ CLANG = os.environ.get("CLANG", "/usr/lib/llvm-20/bin/clang")
 
 
 class StandalonePerformancePolicyTests(unittest.TestCase):
+    def test_interference_observations_never_censor_or_repair_noisy_samples(self):
+        samples = [{"elapsed_ns": 1000, "process_cpu_ns": cpu, "voluntary_context_switches": 0,
+                    "involuntary_context_switches": switches, "minor_page_faults": 1,
+                    "major_page_faults": 0} for cpu, switches in ((250, 50), (1001, 0))]
+        result = q.interference_summary(samples)
+        self.assertEqual(result["sample_count"], 2)
+        self.assertEqual(result["cpu_to_wall_ratio"], {"minimum": 0.25, "median": 0.6255, "maximum": 1.001})
+        self.assertEqual(result["totals"]["involuntary_context_switches"], 50)
+        self.assertEqual(result["samples_excluded"], 0)
+        self.assertFalse(result["acceptance_thresholds_adjusted"])
+        for field in ("process_cpu_ns", "involuntary_context_switches"):
+            changed = [{**samples[0], field: True}]
+            with self.assertRaises(ValueError):
+                q.interference_summary(changed)
+
+    def test_requested_artifacts_are_exactly_retained_after_a_failed_attempt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            destination = Path(directory) / "attempt"
+            report = {}
+            payload = b"not a rebuilt substitute\x00native bytes"
+            with self.assertRaisesRegex(RuntimeError, "actual attempted failure"):
+                with q.artifact_workspace(destination, report) as workspace:
+                    (workspace / "measured.so").write_bytes(payload)
+                    raise RuntimeError("actual attempted failure")
+            self.assertEqual((destination / "measured.so").read_bytes(), payload)
+            manifest_bytes = (destination / "artifact-retention.json").read_bytes()
+            manifest = json.loads(manifest_bytes)
+            self.assertEqual(manifest["files"], {"measured.so": {"bytes": len(payload), "sha256": q.sha(payload)}})
+            self.assertEqual(report["artifact_retention"]["manifest_sha256"], q.sha(manifest_bytes))
+            self.assertEqual(report["artifact_retention"]["files"], manifest["files"])
+
+    def test_retention_rejects_existing_directory_without_replacing_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            destination = Path(directory)
+            sentinel = destination / "unchanged"
+            sentinel.write_text("existing evidence")
+            report = {}
+            with self.assertRaisesRegex(ValueError, "must be new"):
+                with q.artifact_workspace(destination, report):
+                    self.fail("existing directory admitted")
+            self.assertEqual(sentinel.read_text(), "existing evidence")
+            self.assertNotIn("artifact_retention", report)
+            self.assertFalse((destination / "artifact-retention.json").exists())
+
     def test_frozen_workload_and_thresholds_are_unchanged_and_c_is_not_claimed(self):
         self.assertEqual(len(q.sample_order()), 63)
         for key in ("paired_groups", "native_calls_per_sample", "warmup_calls_per_process",

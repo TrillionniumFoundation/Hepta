@@ -272,6 +272,7 @@ class _Machine:
     def report(self, function, status, values=None, error=None):
         result = {"schema": "hepta.hia.program-execution.v1", "status": status,
                   "program_sha256": self.program.sha256, "function": function,
+                  "input_sha256": self.program.input_sha256,
                   "steps": self.steps, "resources": self.resources(),
                   "word_bits": 64, "source_used": False,
                   "claims": {"finite_core_execution": True,
@@ -302,6 +303,8 @@ def execute_program(program, function, arguments, *, max_steps=1_000_000,
             or allocation_fail_at is not None and
                (type(allocation_fail_at) is not int or allocation_fail_at < 1)):
         raise HIAProgramRejected("invalid entry arguments/evaluator limits", "E_HIA_INPUT")
+    if function not in checked.scalar_entrypoints:
+        raise HIAProgramRejected("nominal/internal signatures are not public scalar entries", "E_HIA_INPUT")
     machine = _Machine(checked, max_steps, max_heap_bytes, allocation_fail_at, max_call_depth)
     fn = machine.functions.get(function)
     if fn is None or len(fn["params"]) != len(arguments):

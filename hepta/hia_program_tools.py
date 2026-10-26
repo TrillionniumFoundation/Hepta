@@ -80,6 +80,8 @@ def inspect_program(document):
     return {
         "schema": "hepta.hia.inspect.v1", "ok": True,
         "program_sha256": verified.sha256, "module": data["module"],
+        "input_sha256": getattr(verified, "input_sha256", verified.sha256),
+        "normalization": getattr(verified, "normalization_report", None),
         "functions": [{
             "name": fn["name"], "params": fn["params"],
             "returns": fn["returns"], "effects": fn["effects"],
@@ -189,6 +191,8 @@ def apply_program_patch(document, request):
         "schema": "hepta.hia.patch-result.v1", "ok": True,
         "status": "verified_unpublished", "before_sha256": original.sha256,
         "after_sha256": verified.sha256, "edits": len(edits),
+        "edit_domain": "independently_verified_normalized_core",
+        "original_input_sha256": getattr(original, "input_sha256", original.sha256),
         "interface_changes": sorted(name for name in set(before) | set(after)
                                     if before.get(name) != after.get(name)),
         "claims": {"whole_module_rechecked": True, "behavior_equivalence_proved": False,
@@ -215,4 +219,7 @@ def publish_program(document, destination):
         receipt = publish_verified(stage, destination, payload)
     return {"schema": "hepta.hia.output.v1", "ok": True,
             "status": "verified_program_published", "output": str(destination),
-            "program_sha256": verified.sha256, "publication": receipt}
+            "program_sha256": verified.sha256,
+            "input_sha256": getattr(verified, "input_sha256", verified.sha256),
+            "published_representation": "independently_verified_normalized_core",
+            "publication": receipt}

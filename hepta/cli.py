@@ -26,12 +26,15 @@ def main(argv=None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
     hia = sub.add_parser("hia", help="Independent typed HIA program verification, execution and native compilation")
     hia_actions = hia.add_subparsers(dest="hia_action", required=True)
-    for action in ("verify", "inspect", "run", "emit", "build", "lower", "patch",
-                   "import-executable", "import-scalar"):
+    for action in ("verify", "inspect", "run", "emit", "build", "lower", "patch", "normalize",
+                   "import-executable", "import-scalar", "import-cpp-project"):
         h = hia_actions.add_parser(action)
         h.add_argument("input", help="Standalone HIA JSON program; lower accepts Hepta source")
-        if action in {"emit", "build", "lower", "patch", "import-executable", "import-scalar"}:
+        if action in {"emit", "build", "lower", "patch", "normalize", "import-executable", "import-scalar", "import-cpp-project"}:
             h.add_argument("--output", "-o", required=action == "build")
+        if action == "import-cpp-project":
+            h.add_argument("--clangxx", default="clang++")
+            h.add_argument("--report", help="New file for the complete capture and declaration ledger")
         if action == "run":
             h.add_argument("--function", required=True)
             h.add_argument("--arguments", default="[]")
@@ -197,6 +200,18 @@ def main(argv=None) -> int:
             from .hia_program import verify_program
             from .hia_program_tools import (read_bounded, decode_json, inspect_program,
                                             apply_program_patch, publish_program)
+            if args.hia_action == "import-cpp-project":
+                from .cpp_project_migrate import lower_cpp_project
+                migrated = lower_cpp_project(args.input, clangxx=args.clangxx)
+                program = verify_program(migrated.pop("program"))
+                migrated.update(schema="hepta.hia.cpp-project-import.v1",
+                                program_sha256=program.sha256, native_executed=False)
+                if args.report:
+                    with Path(args.report).open("x", encoding="utf-8") as stream:
+                        json.dump(migrated, stream, sort_keys=True, indent=2)
+                        stream.write("\n")
+                output_json(publish_program(program, args.output) if args.output else program.as_dict())
+                return 0
             if args.hia_action in {"import-executable", "import-scalar"}:
                 from .core import from_executable_core, from_scalar_core
                 source = read_bounded(args.source).decode("utf-8")
@@ -224,6 +239,9 @@ def main(argv=None) -> int:
                 output_json(result)
                 return 0
             program = verify_program(read_bounded(args.input))
+            if args.hia_action == "normalize":
+                output_json(publish_program(program, args.output) if args.output else program.as_dict())
+                return 0
             if args.hia_action == "verify":
                 output_json({**program.report(), "status": "standalone_core_checked",
                              "native_executed": False})

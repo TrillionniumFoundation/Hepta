@@ -1,0 +1,289 @@
+{
+  "schema": "hepta.hia.program.v2",
+  "module": "composite_test",
+  "types": [
+    {
+      "name": "Stored",
+      "params": [],
+      "kind": "record",
+      "fields": [
+        {
+          "name": "owner",
+          "type": "buffer"
+        },
+        {
+          "name": "writer",
+          "type": "mutbuf"
+        },
+        {
+          "name": "reader",
+          "type": "readbuf"
+        }
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "stored",
+      "params": [
+        {
+          "name": "flag",
+          "type": "bool"
+        }
+      ],
+      "returns": [
+        "u8"
+      ],
+      "effects": [
+        "alloc",
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "flag",
+              "type": "bool"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "one",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "buffer.new",
+              "args": [
+                "one"
+              ],
+              "out": [
+                {
+                  "name": "owner",
+                  "type": "buffer"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "borrow.mut",
+              "args": [
+                "owner"
+              ],
+              "out": [
+                {
+                  "name": "writer",
+                  "type": "mutbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "borrow.read",
+              "args": [
+                "writer"
+              ],
+              "out": [
+                {
+                  "name": "reader",
+                  "type": "readbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "record.make",
+              "args": [
+                "owner",
+                "writer",
+                "reader"
+              ],
+              "out": [
+                {
+                  "name": "stored_value",
+                  "type": "Stored"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "flag",
+            "then": {
+              "target": "use",
+              "args": [
+                "stored_value"
+              ]
+            },
+            "else": {
+              "target": "use",
+              "args": [
+                "stored_value"
+              ]
+            }
+          }
+        },
+        {
+          "id": "use",
+          "params": [
+            {
+              "name": "bundle",
+              "type": "Stored"
+            }
+          ],
+          "ops": [
+            {
+              "op": "record.unpack",
+              "args": [
+                "bundle"
+              ],
+              "out": [
+                {
+                  "name": "moved",
+                  "type": "buffer"
+                },
+                {
+                  "name": "parent",
+                  "type": "mutbuf"
+                },
+                {
+                  "name": "child",
+                  "type": "readbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "zero",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "buffer.load",
+              "args": [
+                "child",
+                "zero"
+              ],
+              "out": [
+                {
+                  "name": "before",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "child"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "byte",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 91
+              }
+            },
+            {
+              "op": "buffer.store",
+              "args": [
+                "parent",
+                "zero",
+                "byte"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "parent"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "borrow.read",
+              "args": [
+                "moved"
+              ],
+              "out": [
+                {
+                  "name": "last",
+                  "type": "readbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.load",
+              "args": [
+                "last",
+                "zero"
+              ],
+              "out": [
+                {
+                  "name": "after",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "last"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "owner.drop",
+              "args": [
+                "moved"
+              ],
+              "out": [],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "after"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

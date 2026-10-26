@@ -1,12 +1,15 @@
-# HIA standalone program v1: normative executable profile
+# HIA standalone programs: normative executable profiles
 
-This document defines the standalone `hepta.hia.program.v1` profile. Its
+This document defines the primitive `hepta.hia.program.v1` profile and the
+structural nominal `hepta.hia.program.v2` input profile. Their
 executable admission authority is `hepta.hia_program.verify_core` (also exposed
 as `hepta.core.verify_core` and `verify_program`). The direct interpreter and
 LLVM backend consume the same immutable, reverified program bytes. No original
 Hepta, C, C++, Rust or assembly source is required to admit or execute this
 program. A caller-provided hash, proof claim or producer receipt grants no
-additional permission.
+additional permission. V2 is structurally elaborated into the same primitive
+core and that complete core is independently rechecked. It is not admitted by
+a source-language checker or a producer's assertion.
 
 This is a typed, resource-aware assembly/IR for agent editing. It deliberately
 retains explicit values, control-flow edges, calls and resource instructions;
@@ -54,11 +57,20 @@ nonfinite values, floating JSON numbers, invalid identifiers, unknown fields
 and unsupported schemas reject. Limits include 8 MiB encoded input, nesting
 depth 64, 262,144 structural nodes, 1,024 functions and 4,096 blocks per function.
 
-The complete top-level shape is:
+The primitive top-level shape is:
 
 ```json
 {"schema":"hepta.hia.program.v1","module":"example","functions":[]}
 ```
+
+An optional `exports` list declares the exact public scalar entrypoints. It
+must contain unique existing function names with primitive scalar parameters
+and results. When absent, the original v1 rule exposes scalar-signature
+functions; existing canonical v1 identities do not change. V2 normalization
+always emits `exports`. Both the interpreter and native backend obey the core's
+list after serialization and reload; source origin is not needed to preserve
+the public boundary. Exporting an owner/view descriptor is forbidden. Native
+C wrappers additionally require at most one scalar result.
 
 The example above illustrates fields only: a real program must have at least
 one function. A function has exactly `name`, `params`, `returns`, `effects`,
@@ -184,6 +196,15 @@ operation in Core. The allocator must supply a fresh, nonaliasing region or
 NULL, and free must accept either allocation family or NULL. It does not promise
 that different allocator implementations fail on the same physical request.
 
+Native allocation lowering also exposes the helper's exact length invariant:
+the owner length is the requested size on success and zero on failure. For an
+infallible constructor, the requested length is used only after its success
+guard; for a fallible constructor an explicit success-dependent select is
+used. This is true for zero, oversized and NULL-refused requests too. Every
+byte access still emits a bounds guard. LLVM may eliminate a redundant guard
+when it derives the same length relation, without an unchecked operation,
+`llvm.assume`, or recognition of a particular benchmark loop.
+
 Loans carry a root owner or external borrowed parameter and a parent loan.
 Reborrowing suspends use of the parent until the child ends. A view can cross
 blocks and loop iterations only with its root and parent capability. Incoming
@@ -228,12 +249,12 @@ as checked borrow/reborrow operations and ends local loans after their use;
 reading a Copy field produces an independent scalar value. It does not emit
 an escaping loan as a function result or enable stored source references.
 
-The exact source frontend scope is recorded by its rejection tests and the
-current qualification report. Arbitrary nominal enums/ADTs, custom destructors,
-stored/returned lifetimes, asynchronous tasks, cancellation, channels, FFI,
-inline assembly, atomics, MMIO, floats and 32-bit word models remain excluded.
-Their existence in a broader historical backend does not enable them in this
-standalone core.
+The exact high-level source frontend scope is recorded by its rejection tests
+and current qualification report. The source adapter does not yet emit the
+nominal/task input described below. Custom destructors, escaping lifetimes,
+background asynchronous tasks, channels, foreign calls, inline assembly,
+atomics, MMIO, floats and 32-bit word models remain excluded from standalone
+HIA. Historical backend support does not enable a standalone operation.
 
 `tools/qualify_hia_migration.py` exercises actual frontend output: a C
 compilation-database input with two byte owners, a migrated C++ scalar value
@@ -246,6 +267,91 @@ it does not link the original C++ implementation. Declaration/member inventory,
 source/IR/artifact hashes and allocator traces remain separate evidence. This
 qualifies the declared normalized owner protocol, not arbitrary C++ class
 bodies, STL templates, class-layout ABI compatibility or migration labor cost.
+
+The concrete C++ project frontend additionally accepts a real captured C++20
+compilation database, translates Clang's instantiated scalar template bodies,
+resolves overloads by declaration identity, and accounts for every active
+declaration. `tools/qualify_cpp_project_hia.py` separately checks original C++,
+the interpreter and direct HIA native output. See `CPP_PROJECT_HIA.md` for the
+finite profile, ODR checks and explicit ABI/equivalence limits.
+
+## Nominal products, enums and cooperative tasks
+
+The standalone v2 input has exactly `schema`, `module`, `types`, and
+`functions`. Function/block/instruction structure follows v1; parameter,
+result and instruction-output types may additionally name declared nominal
+types. A generic application is `{"name":"Pair","args":["buffer","usize"]}`.
+A declared type has `name`, a unique `params` list and `kind`:
+
+| Kind | Additional declaration fields | Executable meaning |
+| --- | --- | --- |
+| `record` | `fields`, each with `name` and `type` | Product of primitive values and capabilities |
+| `enum` | `variants`, each with `name` and `fields` | Checked discriminant plus variant payloads |
+| `task` | `state`, `result`, `poll`, `cancel` | Concrete, linear cooperative protocol |
+
+Named record/enum types are nominal even when layouts match. Type and layout
+resolution rejects unknown names, wrong generic arity, recursive by-value
+layouts and resource-budget expansion. Type definitions, instantiations,
+nesting and flattened fields have explicit finite limits. Unused declarations
+are checked for shape, type references and cycles; generic layouts are fully
+checked at concrete instantiation. V2 provides generic nominal type parameters;
+bounded generic function specialization belongs to the existing source adapter.
+
+`record.make` consumes linear fields into a record. `record.unpack` consumes a
+linear record and returns all fields. `record.get` may copy a non-linear field;
+it cannot duplicate an owner, loan or nested task. Stored owner/parent/child
+loans retain their primitive provenance through packing, branches and
+unpacking. The parent remains suspended while its child exists and owner drop
+still requires all loans ended. These are local records; stored loans cannot
+escape a function or be kept in task state/results. Enum payloads containing
+loans are also rejected in this profile.
+
+`enum.make` selects a declared variant. Inactive owner slots are real
+zero-length owners with no allocator call, so every control-flow edge can
+account for them. `enum.tag` observes the tag without consuming the enum.
+The `match` terminator must list every variant exactly once; each case has
+`variant`, `target`, and `args`. Its target receives the selected payload fields
+followed by explicit case arguments. Inactive owners are consumed on that edge.
+An invalid erased tag takes a real trap edge, including the final case; it is
+never interpreted as an arbitrary valid variant.
+
+Task declarations are concrete. Their poll function consumes one state and
+returns an enum of exactly `pending(state)` or `ready(result)`; cancellation
+consumes one state and returns nothing. Each task also carries a zero-length
+owner token. The primitive verifier therefore retains linear transfer/drop
+obligations even when both state and result are scalar after normalization.
+
+| Operation | Required state and result |
+| --- | --- |
+| `task.create` | Consumes initial state; produces pending task (`0`) |
+| `task.start` | Pending → running (`1`); consumes/replaces the task value |
+| `task.poll` | Calls the checked poll function only while running; yields running or succeeded (`2`) |
+| `task.state` | Returns the state tag while preserving the task |
+| `task.cancel` | Pending/running executes cancellation once and yields cancelled (`3`); cancelled/succeeded is unchanged |
+| `task.join` | Consumes a succeeded task and yields its result |
+| `task.close` | Consumes a cancelled task and its empty token |
+
+Static checks establish nominal type agreement, exhaustive cases, linear
+consumption, call signatures, effects and loan provenance. State transitions
+use runtime guards: a type-correct second start or premature join traps.
+Cancellation after success retains the completed result for an explicit join.
+There are no detached threads, preemptive scheduling, I/O wakeups or cleanup
+guarantees after abort/budget exhaustion. The allocator, ABI and compiler
+assumptions remain the same as the primitive core.
+
+`verify_core` elaborates v2, verifies every primitive operation/edge and stores
+the canonical core. A `VerifiedProgram` may additionally retain canonical v2
+bytes for audit identity. Public consumers re-elaborate such retained bytes
+and require exact core equality; a forged origin/core pair rejects even if a
+caller recomputes a digest. `input_sha256` and `program_sha256` distinguish the
+input representation from the executable core. `hia normalize` publishes the
+core, including its export policy, as a self-contained v1 program. Later
+semantic patches operate on that core and report this edit domain explicitly.
+
+The checked examples are `generic_owned_enum.hia`, `stored_loan_record.hia`
+and `cooperative_task.hia` in `examples/hia_program/`. The task example composes
+generic records/enums, owner transfer, nested stored loans, byte reads/writes,
+ordinary allocation failure, polling, success, cancellation and final cleanup.
 
 ## Interpreter, native code and external conditions
 
@@ -319,7 +425,17 @@ python tools/qualify_hia_program_aarch64.py --clang clang \
   --linker /absolute/path/to/ld.lld --qemu-aarch64 /absolute/path/to/qemu-aarch64-static \
   --output /tmp/hia-aarch64.json
 python tools/qualify_hia_program_perf.py --clang clang \
-  --rustc /absolute/path/to/rustc --output /tmp/hia-perf.json
+  --rustc /absolute/path/to/rustc --output /tmp/hia-perf.json \
+  --artifact-directory /tmp/hia-perf-artifacts
+python -m hepta hia verify examples/hia_program/cooperative_task.hia
+python -m hepta hia run examples/hia_program/cooperative_task.hia \
+  --function task_case --arguments '[2]'
+python -m hepta hia normalize examples/hia_program/cooperative_task.hia \
+  --output /tmp/task-core.hia
+python -m hepta hia import-cpp-project /absolute/path/to/compile_commands.json \
+  --clangxx clang++ --output /tmp/cpp-project.hia --report /tmp/cpp-capture.json
+python tools/qualify_hia_program_composite.py --clang clang \
+  --workdir /tmp/hia-composite-qualified
 ```
 
 Legacy envelopes can be imported using `hia import-executable` or
@@ -342,8 +458,21 @@ latency, tool/native-validation cost and later maintenance, with missing and
 failed attempts retained. Historical scripted fixture qualification and failed
 small-model pilots must not be counted as successful agent outcomes.
 
+`tools/qualify_hia_agent_gguf.py` executes the same frozen four-task, four-arm
+pilot using a hash-bound local GGUF model and an owned offline llama.cpp
+process. A private Unix socket and Linux peer credentials bind every response
+to that process. Actual native controls must execute, including buggy controls;
+a compilation failure cannot masquerade as a successful negative test. The
+plan is frozen before inference, full context fits the same response budget,
+and every attempted inference is counted. A timeout retains unknown token
+usage rather than treating it as zero. Generated responses, raw token IDs,
+native candidates and all errors are retained. These four single-site repairs
+measure a limited language/interface comparison; they cannot establish human
+maintenance effort or total development cost.
+
 The integrated frozen-source run is `tools/qualify_hia_unified.py`. It executes
-the regression suite, independent native/resource/migration/AArch64 gates,
+the regression suite, independent native/primitive-resource/composite-resource,
+C/C++ owner and actual template-migration, and AArch64 gates,
 historical Core/composition/board regression gates and the 63-sample performance
 protocol. It retains each command/log, refuses to count skipped tests as a
 complete pass, and compares source snapshots before/after. Its

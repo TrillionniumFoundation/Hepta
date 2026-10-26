@@ -147,6 +147,7 @@ class VerifiedProgram:
     """Immutable bytes, not an unforgeable receipt; consumers reverify them."""
 
     canonical_bytes: bytes
+    structured_bytes: bytes | None = None
 
     @property
     def sha256(self):
@@ -155,6 +156,34 @@ class VerifiedProgram:
     @property
     def canonical_json(self):
         return self.canonical_bytes.decode("utf-8")
+
+    @property
+    def input_sha256(self):
+        return sha256(self.structured_bytes if self.structured_bytes is not None
+                      else self.canonical_bytes).hexdigest()
+
+    @property
+    def scalar_entrypoints(self):
+        # A nominal aggregate erased into scalar slots is still not a scalar
+        # public signature.  Generated protocol helpers are internal too.
+        document = self.as_dict()
+        if "exports" in document:
+            return frozenset(document["exports"])
+        return frozenset(fn["name"] for fn in document["functions"]
+                         if all(type(p["type"]) is str and p["type"] in SCALARS for p in fn["params"])
+                         and all(type(t) is str and t in SCALARS for t in fn["returns"]))
+
+    @property
+    def normalization_report(self):
+        checked = verify_program(self)
+        return {"input_sha256": checked.input_sha256,
+                "core_sha256": checked.sha256,
+                "input_schema": "hepta.hia.program.v2" if checked.structured_bytes is not None else SCHEMA,
+                "core_schema": SCHEMA,
+                "structured_elaboration_rechecked": checked.structured_bytes is not None,
+                "primitive_core_rechecked": True,
+                "source_ast_required": False,
+                "public_scalar_entrypoints": sorted(checked.scalar_entrypoints)}
 
     def as_dict(self):
         return json.loads(self.canonical_bytes)
@@ -166,6 +195,8 @@ class VerifiedProgram:
         data = checked.as_dict()
         return {"schema": "hepta.hia.program-verification.v1", "ok": True,
                 "profile": PROFILE, "program_sha256": checked.sha256,
+                "input_sha256": checked.input_sha256,
+                "normalization": checked.normalization_report,
                 "word_bits": WORD_BITS, "functions_checked": len(data["functions"]),
                 "blocks_checked": sum(len(f["blocks"]) for f in data["functions"]),
                 "source_required": False,
@@ -175,7 +206,11 @@ class VerifiedProgram:
                            "backend_refinement_proved": False,
                            "foreign_code_supported": False,
                            "escaping_loans_supported": False,
-                           "concurrency_supported": False}}
+                           "concurrency_supported": False,
+                           "nominal_products_and_enums_checked": checked.structured_bytes is not None,
+                           "local_stored_loan_identity_checked": checked.structured_bytes is not None,
+                           "cooperative_task_protocol_checked": checked.structured_bytes is not None,
+                           "background_tasks_supported": False}}
 
 
 @dataclass(frozen=True)
@@ -573,8 +608,25 @@ def verify_program(program) -> VerifiedProgram:
     Even a manually constructed VerifiedProgram is parsed and fully rechecked.
     Caller-owned dictionaries and decoded dictionaries never back execution.
     """
+    if isinstance(program, VerifiedProgram) and program.structured_bytes is not None:
+        if type(program.structured_bytes) is not bytes:
+            _reject("structured input must be immutable canonical bytes", "E_HIA_FORMAT")
+        checked = verify_program(program.structured_bytes)
+        if (checked.structured_bytes != program.structured_bytes
+                or checked.canonical_bytes != program.canonical_bytes):
+            _reject("structured input and executable core differ", "E_HIA_CORE")
+        return checked
     data, raw = _decode(program)
-    _keys(data, {"schema", "module", "functions"}, "program")
+    if type(data) is dict and data.get("schema") == "hepta.hia.program.v2":
+        from .hia_program_composite import elaborate_program
+        # The entire input was bounded/strictly decoded above.  The whole
+        # generated program is independently checked, with no receipt bypass.
+        core = verify_program(elaborate_program(data))
+        return VerifiedProgram(core.canonical_bytes, raw)
+    fields = {"schema", "module", "functions"}
+    if type(data) is dict and "exports" in data:
+        fields.add("exports")
+    _keys(data, fields, "program")
     if data["schema"] != SCHEMA:
         _reject("unsupported program schema", "E_HIA_SCHEMA")
     _ident(data["module"], "module")
@@ -586,6 +638,16 @@ def verify_program(program) -> VerifiedProgram:
         if fn["name"] in functions:
             _reject("duplicate function", "E_HIA_NAME")
         functions[fn["name"]], block_maps[fn["name"]] = fn, blocks
+    if "exports" in data:
+        _names(data["exports"], "explicit scalar exports")
+        if len(data["exports"]) != len(set(data["exports"])):
+            _reject("duplicate explicit scalar export", "E_HIA_NAME")
+        for name in data["exports"]:
+            if name not in functions:
+                _reject("explicit export names a missing function", "E_HIA_CALL")
+            fn = functions[name]
+            if any(p["type"] not in SCALARS for p in fn["params"]) or any(t not in SCALARS for t in fn["returns"]):
+                _reject("public exports cannot carry resource descriptors", "E_HIA_TYPE")
     for fn in functions.values():
         blocks = block_maps[fn["name"]]
         initial = {p["name"]: _Capability(p["type"], p["name"], external=p["type"] != "buffer")
