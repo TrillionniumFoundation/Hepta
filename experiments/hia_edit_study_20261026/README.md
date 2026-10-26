@@ -81,3 +81,39 @@ Source/model/tool hashes, every request and response, accepted candidate
 sources, native artifacts, failure records and terminal reports are retained
 under the selected directory. Exact results belong in the associated evidence
 bundle, not in this preregistration.
+
+## Separate native JSON object experiment
+
+`--json-object` starts an independently frozen experiment with protocol
+`hepta.hia.edit-study.native-json.v1`. Omitting this option retains the original
+`hepta.hia.edit-study.v1` strict-response experiment. Use a new output directory
+and preserve the original strict run, including format-preflight failures,
+rejected responses and unfinished cells. Results from the original run are
+never stripped of Markdown fences, retried or rescored under this protocol.
+
+The only experimental intervention is an identical native decoder constraint
+on every preflight and task request for both models and all four arms:
+`json_schema={"type":"object"}`. This constrains JSON object syntax without
+enumerating permissible keys, instruction names, replacements or answers. It
+does not expose the task oracle or guarantee a complete object within the
+response budget. A truncated object or an object with invalid fields still
+fails the unchanged strict response parser and is counted as a rejected
+response. Native compilation and oracle checks remain unchanged.
+
+The frozen task definitions, model lock, prompts, rotating schedule, greedy
+seed-zero sampling, 256-token output budget, one attempt per cell and minimum
+seven-of-eight HIA-query successes are identical to the strict experiment.
+The plan records this decoder policy before native controls or inference and
+binds the study source, decoder implementation and compiler sources by hash.
+Raw requests, completions and effective decoder settings are retained. The
+experiment does not establish general coding productivity or total development
+cost even if its finite comparison criteria pass.
+
+```sh
+python tools/qualify_hia_edit_study.py \
+  --output /tmp/hepta-edit-study-native-json-new \
+  --models-lock experiments/hia_edit_study_20261026/models.lock.json \
+  --binary /absolute/path/to/llama-server \
+  --clang /absolute/path/to/clang \
+  --rustc /absolute/path/to/rustc --threads 4 --json-object
+```

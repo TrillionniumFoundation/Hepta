@@ -35,8 +35,10 @@ def valid_tokens(value):
     return type(value) is list and all(type(x) is int and 0 <= x < 2**31 for x in value)
 
 
-def validate_completion(raw, input_ids, limit):
+def validate_completion(raw, input_ids, limit, *, json_object=False):
     """Do not report an accepted generation when the server changes the budget."""
+    if type(json_object) is not bool:
+        raise ValueError("E_GGUF_CONFIG: json_object must be an explicit bool")
     if (type(raw) is not dict or type(raw.get("content")) is not str
             or not valid_tokens(raw.get("tokens")) or raw.get("truncated") is not False
             or raw.get("stop_type") not in {"eos", "limit"}
@@ -47,6 +49,12 @@ def validate_completion(raw, input_ids, limit):
     sampling = settings.get("params", settings)
     if sampling.get("temperature") != 0 or sampling.get("seed") != 0:
         raise ValueError("E_GGUF_RESPONSE: actual greedy settings differ")
+    if json_object and (type(sampling.get("grammar")) is not str
+                        or not sampling["grammar"].strip()
+                        or sampling.get("grammar_lazy") is not False):
+        raise ValueError("E_GGUF_RESPONSE: JSON object grammar was not active for every token")
+    # A budget-limited partial JSON object is a completed inference, not a
+    # transport failure. Candidate parsing belongs to the study/evaluator.
     # EOS may count as a predicted token without appearing in returned text.
     predicted = raw.get("timings", {}).get("predicted_n")
     if (type(predicted) is not int or not len(raw["tokens"]) <= predicted <= len(raw["tokens"]) + 1
@@ -57,9 +65,12 @@ def validate_completion(raw, input_ids, limit):
 
 
 class LlamaCppEngine:
-    def __init__(self, *, binary, model, model_sha256, output_dir, threads=4, context=8192):
-        if type(threads) is not int or not 1 <= threads <= 64 or context != 8192:
+    def __init__(self, *, binary, model, model_sha256, output_dir, threads=4, context=8192,
+                 json_object=False):
+        if (type(threads) is not int or not 1 <= threads <= 64 or context != 8192
+                or type(json_object) is not bool):
             raise ValueError("E_GGUF_CONFIG")
+        self.json_object = json_object
         self.binary = Path(binary).resolve(strict=True)
         self.model = Path(model).resolve(strict=True)
         self.output = Path(output_dir)
@@ -88,6 +99,9 @@ class LlamaCppEngine:
                          "model": self.model_identity, "runtime_files": self.runtime_identity,
                          "version_stdout": version.stdout, "version_stderr": version.stderr,
                          "threads": threads, "context": context,
+                         "decoder": ({"mode": "json_object", "json_schema": {"type": "object"},
+                                      "scope": "syntax_only_no_task_fields_or_answers"}
+                                     if json_object else {"mode": "unconstrained"}),
                          "cpu_affinity": sorted(os.sched_getaffinity(0)),
                          "transport": "private_unix_socket_with_linux_so_peercred_pid_uid_check",
                          "scope": "owned process and file hashes, not remote/hardware attestation"}
@@ -165,6 +179,11 @@ class LlamaCppEngine:
                    "top_k": 0, "top_p": 1, "min_p": 0, "repeat_penalty": 1,
                    "cache_prompt": False, "return_tokens": True, "stream": False,
                    "stop": [], "ignore_eos": False}
+        if self.json_object:
+            # b11669 server-schema.cpp converts this unconstrained object
+            # schema to an output-format grammar. No task fields, allowed
+            # replacements or correct answers enter the decoder.
+            payload["json_schema"] = {"type": "object"}
         self.generation_count += 1
         stem = "transport-" + str(self.generation_count).zfill(3)
         (self.output / (stem + ".request.json")).write_bytes(canonical({
@@ -174,7 +193,7 @@ class LlamaCppEngine:
         self.response_count += 1
         elapsed = time.monotonic_ns() - started
         (self.output / (stem + ".response.json")).write_bytes(canonical(raw) + b"\n")
-        usage = validate_completion(raw, ids, limit)
+        usage = validate_completion(raw, ids, limit, json_object=self.json_object)
         return {"schema": "hepta.gguf-generation.v1", "status": "completed",
                 "text": raw["content"], "rendered_prompt": rendered,
                 "input_token_ids": ids, "output_token_ids": raw["tokens"],

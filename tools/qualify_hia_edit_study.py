@@ -35,6 +35,7 @@ ARMS = ("hia_full_context", "hia_edit_query", "rust_full_context", "rust_edit_qu
 LIMIT = 256
 MINIMUM_SUCCESSES = 7
 PROTOCOL = "hepta.hia.edit-study.v1"
+NATIVE_JSON_PROTOCOL = "hepta.hia.edit-study.native-json.v1"
 SCORED_STATES = frozenset({"correct", "observable_wrong", "expected_overflow_trap", "response_rejected"})
 
 
@@ -350,14 +351,15 @@ def _error(exc):
     return {"type":type(exc).__name__,"message":str(exc)}
 
 
-def _run_model(model,mindex,tasks,out,binary,clang,rustc,threads,initial):
+def _run_model(model,mindex,tasks,out,binary,clang,rustc,threads,initial,*,json_object=False):
     folder=out/model["id"];folder.mkdir()
     planned=scheduled_cells(tasks,mindex)
     write(folder/"attempt-started.json",{"model":model,"planned_cells":planned,"attempts_per_cell":1})
     rows=[];preflight=[];status="model_startup_failed";error=None;engine=None
     identity={"model_unchanged":False,"runtime_unchanged":False,"available":False}
     try:
-        engine=LlamaCppEngine(binary=binary,model=model["path"],model_sha256=model["sha256"],output_dir=folder/"engine",threads=threads)
+        engine=LlamaCppEngine(binary=binary,model=model["path"],model_sha256=model["sha256"],
+                             output_dir=folder/"engine",threads=threads,json_object=json_object)
         status="execution_incomplete"
         for name,wanted in (("hia",'{"op":"bit.and"}'),("rust",'{"replacement":"&"}')):
             item={"language":name,"ok":False,"status":"started"};preflight.append(item)
@@ -434,7 +436,9 @@ def _run_model(model,mindex,tasks,out,binary,clang,rustc,threads,initial):
     return report
 
 
-def run_study(output,models,binary,clang,rustc,threads=4):
+def run_study(output,models,binary,clang,rustc,threads=4,*,json_object=False):
+    if type(json_object) is not bool:
+        raise ValueError("E_STUDY_DECODER: json_object must be boolean")
     if (type(models) is not list or len(models)!=2
             or any(type(m) is not dict or not {"id","path","sha256","repository","revision"}.issubset(m) for m in models)
             or any(type(m["id"]) is not str or re.fullmatch(r"[a-z][a-z0-9_]{0,63}",m["id"]) is None for m in models)
@@ -443,7 +447,8 @@ def run_study(output,models,binary,clang,rustc,threads=4):
         raise ValueError("E_STUDY_MODELS: two distinct, identified models are required")
     out=Path(output).absolute();out.mkdir(parents=True,exist_ok=False)
     tasks=fixtures();initial=bindings()
-    plan={"schema":PROTOCOL,"tasks":tasks,"arms":list(ARMS),"models":models,"source_bindings":initial,
+    protocol=NATIVE_JSON_PROTOCOL if json_object else PROTOCOL
+    plan={"schema":protocol,"tasks":tasks,"arms":list(ARMS),"models":models,"source_bindings":initial,
           "runtime":file_identity(binary),"clang":file_identity(clang),"rustc":file_identity(rustc),
           "max_new_tokens":LIMIT,"threads":threads,"greedy":True,"seed":0,"attempts_per_cell":1,
           "schedule":"model order fixed by lock; arms rotate by task index plus model index",
@@ -455,6 +460,14 @@ def run_study(output,models,binary,clang,rustc,threads=4):
           "secondary_rule":"per model, HIA query succeeds on at least 7/8 tasks, success >= HIA full success, tokens < HIA full tokens",
           "source_structure":{"hia":"two functions in one module","rust":"caller and kernel in two source files"},
           "scope":"eight fixed single-site repairs with real cross-function callers; no HIA multi-module, population or total-cost claim"}
+    if json_object:
+        plan["decoder_policy"]={
+            "mode":"native_json_object","json_schema":{"type":"object"},
+            "scope":"the same decoder constraint for both model preflights and every task arm",
+            "answer_fields_constrained":False,"answers_enumerated":False,
+            "response_budget_unchanged":True,"complete_object_within_budget_guaranteed":False,
+            "evaluation":"unchanged strict JSON admission; partial or invalid objects count as response rejections",
+            "relationship":"separate frozen experiment; no extraction, retries or rescoring of strict-protocol results"}
     plan_hash=sha(canonical(plan));write(out/"plan.json",{**plan,"plan_sha256":plan_hash})
     controls=[]
     for task in tasks:
@@ -471,7 +484,7 @@ def run_study(output,models,binary,clang,rustc,threads=4):
     reports=[]
     if all(r["passed"] for r in controls):
         for mindex,model in enumerate(models):
-            reports.append(_run_model(model,mindex,tasks,out,binary,clang,rustc,threads,initial))
+            reports.append(_run_model(model,mindex,tasks,out,binary,clang,rustc,threads,initial,json_object=json_object))
     else:
         for mindex,model in enumerate(models):
             cells=scheduled_cells(tasks,mindex)
@@ -491,7 +504,7 @@ def run_study(output,models,binary,clang,rustc,threads=4):
         and all(r["status"]=="completed" and len(r["completed_cells"])==32 and not r["unfinished_cells"] and not r["unresolved_requests"]
                 and r["identity"]["model_unchanged"] and r["identity"]["runtime_unchanged"] for r in reports))
     criteria=[comparison_criteria(report["summary"],complete) for report in reports]
-    result={"schema":PROTOCOL,"status":"completed" if complete else "incomplete_or_identity_failure","plan_sha256":plan_hash,
+    result={"schema":protocol,"status":"completed" if complete else "incomplete_or_identity_failure","plan_sha256":plan_hash,
             "source_unchanged":source_stable,"toolchain_unchanged":toolchain_stable,"final_tool_identities":final_tools,"identity_errors":identity_errors,
             "models":reports,"native_controls":len(controls),"native_controls_passed":sum(r["passed"] for r in controls),
             "primary_criteria_per_model":[row[0] for row in criteria],"secondary_criteria_per_model":[row[1] for row in criteria],
@@ -509,6 +522,8 @@ def main():
     parser.add_argument("--output",required=True);parser.add_argument("--models-lock",required=True)
     parser.add_argument("--binary",required=True);parser.add_argument("--clang",required=True);parser.add_argument("--rustc",required=True)
     parser.add_argument("--threads",type=int,default=4)
+    parser.add_argument("--json-object",action="store_true",
+                        help="run the separate native-JSON-object experiment; do not rescore strict results")
     args=vars(parser.parse_args());lock=json.loads(Path(args.pop("models_lock")).read_text())
     result=run_study(models=lock["models"],**args)
     print(json.dumps({k:result.get(k) for k in ("status","source_unchanged","primary_criteria_per_model","secondary_criteria_per_model")}))

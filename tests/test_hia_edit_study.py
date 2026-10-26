@@ -164,9 +164,11 @@ class _FakeEngine:
 
     def __init__(self,**kwargs):
         self.generation_count=0;self.response_count=0;self.closed=False
+        self.options=kwargs;self.calls=[]
         self.instances.append(self)
 
     def generate(self,messages,**kwargs):
+        self.calls.append({"messages":messages,"options":kwargs})
         self.generation_count+=1
         content=messages[0]["content"]
         preflight=content.startswith("Return exactly this JSON object and nothing else: ")
@@ -189,7 +191,7 @@ def fake_native(task,candidate,language,directory,clang,rustc):
 
 
 class StudyFailureRetentionTests(unittest.TestCase):
-    def run_mock_study(self,root,engine,*,native_impl=fake_native,identity=None):
+    def run_mock_study(self,root,engine,*,native_impl=fake_native,identity=None,json_object=False):
         models=[{"id":"small","path":"/mock/small","sha256":"a"*64,"repository":"test/model","revision":"1"*40},
                 {"id":"medium","path":"/mock/medium","sha256":"b"*64,"repository":"test/model","revision":"2"*40}]
         identity=identity or (lambda path:{"path":str(path),"bytes":1,"sha256":"c"*64})
@@ -197,7 +199,52 @@ class StudyFailureRetentionTests(unittest.TestCase):
              patch("tools.qualify_hia_edit_study.file_identity",side_effect=identity), \
              patch("tools.qualify_hia_edit_study.bindings",return_value={"source":"fixed"}), \
              patch("tools.qualify_hia_edit_study.native",side_effect=native_impl):
-            return run_study(root,models,"/mock/engine","/mock/clang","/mock/rustc")
+            return run_study(root,models,"/mock/engine","/mock/clang","/mock/rustc",json_object=json_object)
+
+    def test_native_json_is_a_separate_protocol_with_identical_tasks_and_requests(self):
+        class ObservedEngine(_FakeEngine):instances=[]
+        with tempfile.TemporaryDirectory() as root, patch("builtins.print"):
+            plans=[];reports=[]
+            for mode in (False,True):
+                output=Path(root)/str(mode)
+                reports.append(self.run_mock_study(output,ObservedEngine,json_object=mode))
+                plans.append(json.loads((output/"plan.json").read_text()))
+            self.assertEqual([report["schema"] for report in reports],
+                             ["hepta.hia.edit-study.v1","hepta.hia.edit-study.native-json.v1"])
+            self.assertEqual([plan["schema"] for plan in plans],[report["schema"] for report in reports])
+            self.assertNotIn("decoder_policy",plans[0])
+            decoder=plans[1]["decoder_policy"]
+            self.assertEqual(decoder["json_schema"],{"type":"object"})
+            self.assertFalse(decoder["answer_fields_constrained"])
+            self.assertFalse(decoder["answers_enumerated"])
+            self.assertFalse(decoder["complete_object_within_budget_guaranteed"])
+            differences={"schema","decoder_policy","plan_sha256"}
+            self.assertEqual({k:v for k,v in plans[0].items() if k not in differences},
+                             {k:v for k,v in plans[1].items() if k not in differences})
+            self.assertNotEqual(plans[0]["plan_sha256"],plans[1]["plan_sha256"])
+            engines=ObservedEngine.instances
+            self.assertEqual([engine.options["json_object"] for engine in engines],[False,False,True,True])
+            for index in range(2):
+                self.assertEqual(engines[index].calls,engines[index+2].calls)
+                self.assertEqual(len(engines[index+2].calls),34)
+                self.assertTrue(all(call["options"]["limit"]==256 for call in engines[index+2].calls))
+
+    def test_native_json_does_not_extract_fences_or_salvage_partial_objects(self):
+        for text in ('```json\n{"op":"compare.lt"}\n```','{"op":'):
+            class MalformedEngine(_FakeEngine):task_text=text
+            with self.subTest(text=text),tempfile.TemporaryDirectory() as root,patch("builtins.print"):
+                report=self.run_mock_study(Path(root)/"study",MalformedEngine,json_object=True)
+                self.assertEqual(report["status"],"completed")
+                self.assertEqual(report["primary_criteria_per_model"],[False,False])
+                for model in report["models"]:
+                    self.assertEqual(model["responses_received"],34)
+                    self.assertEqual(len(model["completed_cells"]),32)
+                    self.assertTrue(all(row["state"]=="response_rejected" for row in model["rows"]))
+
+    def test_json_object_requires_an_explicit_boolean(self):
+        for value in (0,1,None,"true"):
+            with self.subTest(value=value),self.assertRaisesRegex(ValueError,"E_STUDY_DECODER"):
+                run_study("/unused",[],"/unused","/unused","/unused",json_object=value)
 
     def test_each_model_startup_failure_has_terminal_report_and_all_pending_cells(self):
         with tempfile.TemporaryDirectory() as root, patch("builtins.print"):
