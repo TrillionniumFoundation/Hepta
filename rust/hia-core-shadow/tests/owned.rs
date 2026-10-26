@@ -162,8 +162,7 @@ fn v5_range_copy_proves_distinct_roots_before_admission() {
     d["schema"] = json!("hepta.hia.program.v4");
     assert!(!checked(&d));
     d["schema"] = json!("hepta.hia.program.v5");
-    entry = &mut d["functions"][0]["blocks"][0];
-    entry["ops"][5]["args"][1] = json!("v"); // same owner alias
+    d["functions"][0]["blocks"][0]["ops"][5]["args"][1] = json!("v"); // same owner alias
     assert!(!checked(&d));
 }
 
