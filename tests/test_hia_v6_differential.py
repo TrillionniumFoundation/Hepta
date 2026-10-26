@@ -65,6 +65,17 @@ class ExistingV6CoreDifferentialTests(unittest.TestCase):
             self.assertFalse(report["claims"]["native_compiled_from_program_verified"])
             self.assertFalse(report["claims"]["checked_hepta_source_replayed"])
 
+    def test_wrong_hia_argument_count_refused_before_native_load(self):
+        # Retain PR #221's independent Core-v6 native preflight regression.
+        core = checked_core()
+        for vectors in ([[99]], [[1, 2]], [[], [5]]):
+            with self.subTest(args=vectors):
+                with patch("hepta.hia_native_differential._observe_native") as runner:
+                    with self.assertRaisesRegex(HIADifferentialRejected, "ABI argument arity"):
+                        compare_verified_hia_program(core, "not_a_library.so",
+                                                     {"drop_case": vectors})
+                    runner.assert_not_called()
+
     def test_missing_native_export_cannot_count_as_full_qualification(self):
         core = checked_core()
         with patch("hepta.hia_native_differential._observe_native") as runner:
