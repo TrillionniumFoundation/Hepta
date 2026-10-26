@@ -113,6 +113,7 @@ class BulkMemoryV2Tests(unittest.TestCase):
         generated = emit_program_llvm(verified)
         text = generated.text
         self.assertEqual(generated.core_sha256, verified.sha256)
+        self.assertTrue(generated.profile.endswith(".v2"))
         self.assertIn("declare void @llvm.memset.p0.i64(", text)
         self.assertIn("declare void @llvm.memcpy.p0.p0.i64(", text)
         self.assertIn("call void @llvm.memset.p0.i64(", text)

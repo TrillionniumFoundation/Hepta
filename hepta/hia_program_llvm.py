@@ -30,6 +30,8 @@ PROFILE = "hepta.hia.program.llvm-linux-x86_64.v1"
 TARGET = "x86_64-unknown-linux-gnu"
 TARGET_AARCH64 = "aarch64-unknown-linux-gnu"
 PROFILE_AARCH64 = "hepta.hia.program.llvm-linux-aarch64-object.v1"
+PROFILE_V2 = "hepta.hia.program.llvm-linux-x86_64-bulk.v2"
+PROFILE_AARCH64_V2 = "hepta.hia.program.llvm-linux-aarch64-bulk-object.v2"
 MAX_LLVM_BYTES = 16 * 1024 * 1024
 MAX_ARTIFACT_BYTES = 64 * 1024 * 1024
 _WIDTHS = {**{f"{sign}{bits}": bits for sign in ("i", "u")
@@ -532,15 +534,18 @@ def emit_program_llvm(program, *, target=TARGET):
         _reject("unsupported 64-bit native target")
     before = _implementation_hash()
     verified = _verified(program)
-    emitter = _Emitter(verified.as_dict(), target)
+    from .hia_program import SCHEMA_V2
+    document = verified.as_dict()
+    emitter = _Emitter(document, target)
     text = emitter.render()
     if not text.isascii() or len(text.encode()) > MAX_LLVM_BYTES:
         _reject("generated LLVM exceeds the closed textual profile")
     if _implementation_hash() != before:
         _reject("verifier/emitter implementation changed during generation", "E_HIA_PROGRAM_STALE")
+    profile = (PROFILE_V2 if target == TARGET else PROFILE_AARCH64_V2) if document["schema"] == SCHEMA_V2 \
+        else (PROFILE if target == TARGET else PROFILE_AARCH64)
     return HIAProgramLLVM(text, sha256(text.encode()).hexdigest(), verified.sha256,
-                          before, tuple(sorted(emitter.exports)),
-                          PROFILE if target == TARGET else PROFILE_AARCH64, target)
+                          before, tuple(sorted(emitter.exports)), profile, target)
 
 
 def _read_artifact(path):
