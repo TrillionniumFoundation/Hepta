@@ -18,6 +18,7 @@ import tempfile
 
 from .c_migrate import MigrationRejected, _load_bounded_clang_ast, _run
 from .cpp2hepta import _model
+from .artifact_publication import PublicationRejected, publish_verified
 from .pipeline import analyze, compiler_hash
 from .resource_lowering import lower_resource_ir
 from .resource_ir import ResourceIRError, verify_resource_ir
@@ -203,7 +204,26 @@ def migrate_cpp_owned(source_file, destination_file, *, clangxx="clang++"):
             if (source.read_bytes() != original or _sha(compiler.read_bytes()) != native_hash
                     or compiler_hash() != hepta_hash):
                 _reject("Source/compiler changed before publication", "E_CPP_OWNED_RACE")
-            os.link(staged, output)
+            try:
+                published = publish_verified(staged, output, rendered.encode("utf-8"))
+            except PublicationRejected as exc:
+                _reject(str(exc), "E_CPP_OWNED_PUBLICATION")
+            # A file can be published successfully while the original C++
+            # translation unit changes concurrently. Recheck the full source
+            # and compiler identities, revoking only the output we still own.
+            if (source.read_bytes() != original or _sha(compiler.read_bytes()) != native_hash
+                    or compiler_hash() != hepta_hash):
+                try:
+                    original_info, output_info = staged.stat(), output.lstat()
+                    if ((original_info.st_dev, original_info.st_ino) ==
+                            (output_info.st_dev, output_info.st_ino)):
+                        output.unlink()
+                except OSError:
+                    pass
+                _reject("Original source/compiler changed after publication", "E_CPP_OWNED_RACE")
+            if (published["sha256"] != _sha(rendered.encode("utf-8"))
+                    or published["bytes"] != len(rendered.encode("utf-8"))):
+                _reject("Published source receipt disagrees with checked text", "E_CPP_OWNED_PUBLICATION")
         finally:
             if staged is not None:
                 staged.unlink(missing_ok=True)
