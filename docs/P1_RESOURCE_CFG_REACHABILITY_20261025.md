@@ -44,3 +44,35 @@ Then run actual bounded source→IR→LLVM checks on the same exact checkout and
 **Current P0–P7 scope:** selected finite language profiles can progress independently of CI queue status. General type/lifetime and pointer provenance soundness, arbitrary C/C++ L2/L3, global allocator/FFI accounting, all-target ABI runtime execution, full owned-LLVM coverage, live AI model A/B, sustained production workloads and physical DMA/GPU/NPU testing remain open.
 
 `whole_project_blockers_closed=false`.
+
+## Follow-on: reject all unreviewed named ELF bindings, not just GNU_UNIQUE
+
+PR #140's first symbol guard rejected binding 10 (GNU unique), and explicitly
+permitted GLOBAL=1/WEAK=2 while **continuing past** every other binding
+number. That left a second closed-profile bypass: a defined public data symbol
+can be retagged as a reserved/OS/processor-specific binding (3..9,11..15) and
+disappear from the verifier's exact `defined`/`undefined` inventory.
+
+The combined branch changes only the existing ELF symbol filter: accept
+recognized LOCAL=0, GLOBAL=1 and WEAK=2, with local names not counted as
+external API; reject **every other named binding**. It does not infer that
+any particular vendor-specific binding is public or private: unknown linkage
+semantics are not permitted to claim a safe exact native export inventory.
+
+Two real Clang 17 LLVM-to-ELF compilations were executed directly on this
+host targeting x86-64 Linux and AArch64 Linux. Each included a declared
+`hepta_symbol_target` function and an extra global data object. The real
+symbol entry for the data object had original STB_GLOBAL+STT_OBJECT
+(`st_info=0x11`). Independently mutated that byte to all of the bindings
+`3,9,10,11,12,13,15` while retaining the ELF header, symbol strings,
+section table and byte length. All 14 mutation specimens passed the
+**separate structural/field-level assertions** (not the full Hepta scanner
+runtime); under the pre-patch logic 12 of the 14 would be silently skipped,
+while binding=10 was already rejected. Under the closed new filter all
+14 must reject with `E_OBJECT_SYMBOL_EXPORT_KIND`.
+
+A new exact-source regression is committed in
+`tests/test_object_executable_exports.py`, compiling the two target objects
+and invoking the actual object scanner on all 14 mutations. That **repository
+test has not been executed** on this final combined HEAD, and no whole-Hepta,
+cross-host ABI, LLVM-refinement or real-device qualification follows.
