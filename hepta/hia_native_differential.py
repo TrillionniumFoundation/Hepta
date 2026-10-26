@@ -18,6 +18,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 
 _IDENT = re.compile(r"[A-Za-z_][A-Za-z_0-9]*\Z")
 _TYPES = {"i32": (-2**31, 2**31 - 1), "u32": (0, 2**32 - 1)}
@@ -209,11 +210,48 @@ def _observe_native(library: Path, function: str, word: str, args: list[int], *,
         _reject("bounded Linux host and sealed native fd required")
     try:
         with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
-            proc = subprocess.run([sys.executable, "-I", "-c", _WORKER,
-                                   "/proc/self/fd/" + str(pinned_fd),
-                                   function, word, json.dumps(args, separators=(",", ":"))],
-                                  stdout=out, stderr=err, check=False, timeout=timeout,
-                                  pass_fds=(pinned_fd,))
+            # The sealed memfd and checked ABI come from the unchanged
+            # canonical native observer. Give each finite case its own session
+            # so a timed-out worker cannot leave ordinary forked children
+            # running after the evaluator returns. Even a worker that exits
+            # successfully may have spawned descendants: kill the process
+            # group on *every* exit, before accepting its output.
+            # This does not stop setsid escapes or make native code sandboxed.
+            proc = subprocess.Popen(
+                [sys.executable, "-I", "-c", _WORKER,
+                 "/proc/self/fd/" + str(pinned_fd),
+                 function, word, json.dumps(args, separators=(",", ":"))],
+                stdout=out, stderr=err, pass_fds=(pinned_fd,),
+                start_new_session=True)
+            # Linux waitid(WNOWAIT) observes direct-child termination
+            # without reaping its PID. Popen.wait() would reap first, then
+            # killpg(pid) could race a reused PID/PGID. Keep the zombie as
+            # identity anchor until group cleanup, then reap exactly once.
+            deadline = time.monotonic() + timeout
+            timed_out = False
+            try:
+                while True:
+                    status = os.waitid(os.P_PID, proc.pid,
+                                       os.WEXITED | os.WNOWAIT | os.WNOHANG)
+                    if status is not None:
+                        break
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        timed_out = True
+                        break
+                    time.sleep(min(0.01, remaining))
+            finally:
+                # Clear the entire ordinary session/group for BOTH timeout
+                # and successful or trapped native exit, before waitpid reaps
+                # its leader. A native setsid escape remains out of scope.
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                finally:
+                    proc.wait()
+            if timed_out:
+                _reject("native child timed out; process group terminated")
             out.seek(0)
             err.seek(0)
             child_stdout = out.read(4097)
@@ -225,11 +263,19 @@ def _observe_native(library: Path, function: str, word: str, args: list[int], *,
     if len(child_stdout) >= 4096 or len(child_stderr) >= 4096:
         _reject("native subprocess exceeded output budget")
     if proc.returncode == -signal.SIGABRT:
+        # HIA scalar profiles have no user-visible IO. A glibc diagnostic,
+        # constructor print or other output before SIGABRT cannot be accepted
+        # as the VM's defined checked trap; this is still a finite oracle,
+        # not a proof that a silent SIGABRT had the expected root cause.
+        if child_stdout or child_stderr:
+            _reject("native trap emitted unqualified stdout/stderr")
         return ("trap", None)
     if proc.returncode == -signal.SIGXFSZ:
         _reject("native subprocess exceeded output budget")
     if proc.returncode != 0:
         _reject("native child exited with unexpected error/signal " + str(proc.returncode))
+    if child_stderr:
+        _reject("native result emitted unexpected stderr")
     try:
         value = json.loads(child_stdout)
     except (ValueError, UnicodeError) as exc:
@@ -238,6 +284,12 @@ def _observe_native(library: Path, function: str, word: str, args: list[int], *,
     if (type(value) is not dict or set(value) != {"value"}
             or type(value["value"]) is not int or not low <= value["value"] <= high):
         _reject("native child returned invalid scalar observation")
+    # The checked worker prints one exact compact JSON object and newline.
+    # Duplicate-key, whitespace, trailing material or native-injected output
+    # must not become an apparently qualified observation through json.loads.
+    # Native code capable of forging this *exact* record remains out of scope.
+    if child_stdout != _canonical({"value": value["value"]}) + b"\n":
+        _reject("native child output is not one canonical worker record")
     return ("value", value["value"])
 
 
