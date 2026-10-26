@@ -83,6 +83,13 @@ def inspect_synthetic_aarch64_elf(data: bytes, exports: tuple[str, ...]) -> dict
         if (kind in {2, 3} or  # PT_DYNAMIC / PT_INTERP are forbidden
                 filebytes > membytes or offset + filebytes > len(data)):
             _reject("dynamic loader, malformed program segment or missing backing bytes")
+        # An executable stack or a simultaneously writable+executable load
+        # segment is outside the reviewed non-runtime synthetic-link profile.
+        # Checking the entrypoint alone leaves those executable mappings
+        # invisible to the qualification receipt.
+        if (kind == 0x6474e551 and flags & 1  # PT_GNU_STACK with PF_X
+                or kind == 1 and flags & 3 == 3):  # PT_LOAD: PF_X | PF_W
+            _reject("executable stack or writable executable load segment")
         if kind == 1 and flags & 1 and filebytes and addr <= entry < addr + filebytes:
             executable_segment = True
     if not executable_segment:
