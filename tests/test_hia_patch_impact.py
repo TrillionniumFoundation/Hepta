@@ -171,6 +171,9 @@ class HIAPatchImpactTests(unittest.TestCase):
             lambda value: value["claims"].update(behavior_equivalence_proved=0),
             lambda value: value.update(interface_changes=["unexpected"]),
             lambda value: value["claims"].update(external_callers_revalidated=True),
+            lambda value: value["claims"].update(native_execution_proved=True),
+            lambda value: value.update(publication={"unreviewed": True}),
+            lambda value: value["claims"].pop("native_executed"),
         ):
             with self.subTest(attack=attack):
                 def fake(document, packet):

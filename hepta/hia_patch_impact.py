@@ -15,6 +15,28 @@ from .hia_program_tools import apply_program_patch
 
 SCHEMA = "hepta.hia.patch-impact.v1"
 MAX_FUNCTIONS = 1024
+_RECEIPT_FIELDS = {
+    "hepta.hia.patch-result.v1": frozenset({
+        "schema", "ok", "status", "before_sha256", "after_sha256",
+        "edits", "interface_changes", "claims"}),
+    "hepta.hia.patch-result.v2": frozenset({
+        "schema", "ok", "status", "before_sha256", "after_sha256",
+        "edits", "interface_changes", "interface_policy", "claims"}),
+}
+_RECEIPT_CLAIMS = {
+    "hepta.hia.patch-result.v1": {
+        "whole_module_rechecked": True,
+        "behavior_equivalence_proved": False,
+        "native_executed": False,
+    },
+    "hepta.hia.patch-result.v2": {
+        "whole_module_rechecked": True,
+        "behavior_equivalence_proved": False,
+        "native_executed": False,
+        "interface_preserved": None,  # checked against exact ABI comparison
+        "external_callers_revalidated": False,
+    },
+}
 
 
 class HIAImpactRejected(ValueError):
@@ -76,19 +98,20 @@ def analyze_patch_impact(document, request):
     checked = verify_program(candidate)
     if checked.canonical_bytes != candidate.canonical_bytes:
         _reject("patch output changed after validation")
-    if (type(patch_receipt) is not dict
-            or patch_receipt.get("schema") not in {
-                "hepta.hia.patch-result.v1", "hepta.hia.patch-result.v2"}
+    schema = patch_receipt.get("schema") if type(patch_receipt) is dict else None
+    claims = patch_receipt.get("claims") if schema in _RECEIPT_FIELDS else None
+    if (schema not in _RECEIPT_FIELDS
+            or set(patch_receipt) != _RECEIPT_FIELDS[schema]
+            or type(claims) is not dict
+            or set(claims) != set(_RECEIPT_CLAIMS[schema])
+            or any(claims[k] is not expected for k, expected in
+                   _RECEIPT_CLAIMS[schema].items() if expected is not None)
             or patch_receipt.get("status") != "verified_unpublished"
             or patch_receipt.get("ok") is not True
             or patch_receipt.get("before_sha256") != original.sha256
             or patch_receipt.get("after_sha256") != checked.sha256
             or type(patch_receipt.get("edits")) is not int
-            or patch_receipt["edits"] < 1
-            or type(patch_receipt.get("claims")) is not dict
-            or patch_receipt["claims"].get("whole_module_rechecked") is not True
-            or patch_receipt["claims"].get("behavior_equivalence_proved") is not False
-            or patch_receipt["claims"].get("native_executed") is not False):
+            or patch_receipt["edits"] < 1):
         _reject("unqualified or fabricated Agent patch receipt")
 
     before, after = _functions(original), _functions(checked)
