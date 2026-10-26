@@ -108,6 +108,54 @@ class BulkMemoryV2Tests(unittest.TestCase):
         with self.assertRaisesRegex(HIAProgramRejected, "E_HIA_FORMAT"):
             verify_program(doc)
 
+    def test_actual_emitted_llvm_host_execution_and_trap(self):
+        # Finite native differential using the EXACT HIA emitter output, not
+        # a handwritten LLVM stand-in. This does not establish compiler proof.
+        import ctypes
+        import platform
+        import shutil
+        import signal
+        import subprocess
+        import tempfile
+        from pathlib import Path
+
+        compiler = shutil.which("clang")
+        if compiler is None or platform.system() != "Linux" or platform.machine() not in ("x86_64", "amd64"):
+            self.skipTest("Linux x86-64 with Clang required for native smoke")
+        checked = verify_program(bulk_program())
+        emitted = emit_program_llvm(checked)
+        with tempfile.TemporaryDirectory(prefix="hia-v2-native-") as root:
+            root = Path(root)
+            assembly = root / "bulk.ll"
+            library = root / "libbulk.so"
+            assembly.write_text(emitted.text, encoding="ascii")
+            command = [compiler, "-x", "ir", "-O2", "-shared", "-fPIC",
+                       str(assembly), "-o", str(library)]
+            built = subprocess.run(command, capture_output=True, text=True, timeout=60)
+            self.assertEqual(built.returncode, 0, built.stderr)
+            native = ctypes.CDLL(str(library)).bulk
+            native.argtypes = [ctypes.c_uint64, ctypes.c_uint64, ctypes.c_uint8]
+            native.restype = ctypes.c_uint8
+            for args in ((1, 1, 255), (16, 10, 7), (16, 0, 7),
+                         (128, 128, 0), (4096, 4096, 197)):
+                with self.subTest(args=args):
+                    self.assertEqual(native(*args),
+                                     execute_program(checked, "bulk", list(args))["result"])
+
+            # Wrong runtime extent must SIGABRT in a child process, not merely
+            # return a plausible value from unchecked LLVM memcpy.
+            harness = root / "bounds.c"
+            exe = root / "bounds"
+            harness.write_text("#include <stdint.h>\\n"
+                               "uint8_t bulk(uint64_t,uint64_t,uint8_t);\\n"
+                               "int main(void){return bulk(1,2,7); }\\n")
+            linked = subprocess.run([compiler, str(harness), str(library),
+                                     "-Wl,-rpath," + str(root), "-o", str(exe)],
+                                    capture_output=True, text=True, timeout=60)
+            self.assertEqual(linked.returncode, 0, linked.stderr)
+            child = subprocess.run([str(exe)], capture_output=True, timeout=30)
+            self.assertEqual(child.returncode, -signal.SIGABRT)
+
     def test_real_llvm_lowerer_consumes_v2_and_keeps_v1_unmodified(self):
         verified = verify_program(bulk_program())
         generated = emit_program_llvm(verified)
