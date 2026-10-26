@@ -28,6 +28,15 @@ fn main() -> Unit effects {alloc,block,panic} {
 }
 """
 
+FALLIBLE = """\
+export "C" fn attempt(n:usize)->u32 effects {alloc,block,panic} {
+    match try_buffer(n) {
+        Result::Err(code)=>{return code as u32;},
+        Result::Ok(bytes)=>{drop(move bytes);return 0;},
+    }
+}
+"""
+
 BRANCHED = """\
 fn forward<T:Owned>(value:take T)->T effects {} {return move value;}
 export "C" fn case(n:usize, early:u32)->u64 effects {alloc,block,panic} {
@@ -55,8 +64,9 @@ def fixture(source=BASIC):
 class OwnedOperationWitnessTests(unittest.TestCase):
     def test_real_resource_verifier_and_emitter_agree(self):
         for source, name, counts in (
-            (BASIC, "main", (1, 1)),
-            (BRANCHED, "case", (1, 2)),
+            (BASIC, "main", (1, 0, 1)),
+            (BRANCHED, "case", (1, 0, 2)),
+            (FALLIBLE, "attempt", (0, 1, 1)),
         ):
             with self.subTest(name=name):
                 program, checked, graph, verified = fixture(source)
@@ -64,7 +74,7 @@ class OwnedOperationWitnessTests(unittest.TestCase):
                 actual = {entry[0]: entry[1:] for entry in witness.functions}
                 self.assertEqual(actual[name], counts)
                 self.assertEqual(witness.names, tuple(f.name for f in program.functions))
-                witness.require_emitted(name, dict(zip(("acquire", "drop"), counts)))
+                witness.require_emitted(name, dict(zip(("buffer", "try_buffer", "drop"), counts)))
                 ir = emit_owned_llvm(program, checked, project_sha256="f" * 64)
                 self.assertIn("call void @__hepta_owned_try_buffer(", ir.text)
                 self.assertIn("call void @__hepta_owned_drop", ir.text)
@@ -102,6 +112,24 @@ class OwnedOperationWitnessTests(unittest.TestCase):
             with self.assertRaisesRegex(LLVMOwnedRejected, "E_OWNED_OPERATION_WITNESS"):
                 emit_owned_llvm(program, checked, project_sha256="f" * 64)
 
+    def test_missing_buffer_abort_guard_rejects(self):
+        program, checked, _, _ = fixture()
+        with patch.object(_Function, "guard", return_value=None):
+            with self.assertRaisesRegex(LLVMOwnedRejected, "E_OWNED_OPERATION_WITNESS"):
+                emit_owned_llvm(program, checked, project_sha256="f" * 64)
+
+    def test_buffer_try_buffer_misclassification_rejects(self):
+        program, checked, _, _ = fixture()
+        genuine = _Function.observe_owned_call
+
+        def wrong_kind(self, operation, fragment, start=None):
+            return genuine(self, "try_buffer" if operation == "buffer" else operation,
+                           fragment, start)
+
+        with patch.object(_Function, "observe_owned_call", wrong_kind):
+            with self.assertRaisesRegex(LLVMOwnedRejected, "E_OWNED_OPERATION_WITNESS"):
+                emit_owned_llvm(program, checked, project_sha256="f" * 64)
+
     def test_independent_receipt_identity_and_claim_forgery_rejected(self):
         _, _, graph, verified = fixture()
         for mutate in (
@@ -124,17 +152,17 @@ class OwnedOperationWitnessTests(unittest.TestCase):
         _, _, graph, verified = fixture()
         witness = derive_owned_operation_witness(graph, verified)
         for emitted in (
-            {"acquire": 1, "drop": 0},
-            {"acquire": 0, "drop": 1},
-            {"acquire": True, "drop": 1},
-            {"acquire": 1, "drop": False},
-            {"acquire": 1, "drop": 1, "unsafe": 0},
+            {"buffer": 1, "try_buffer": 0, "drop": 0},
+            {"buffer": 0, "try_buffer": 1, "drop": 1},
+            {"buffer": True, "try_buffer": 0, "drop": 1},
+            {"buffer": 1, "try_buffer": 0, "drop": False},
+            {"buffer": 1, "try_buffer": 0, "drop": 1, "unsafe": 0},
         ):
             with self.subTest(emitted=emitted):
                 with self.assertRaisesRegex(OwnedOperationWitnessRejected, "E_OWNED_OPERATION_WITNESS"):
                     witness.require_emitted("main", emitted)
         with self.assertRaisesRegex(OwnedOperationWitnessRejected, "E_OWNED_OPERATION_WITNESS"):
-            witness.require_emitted("missing", {"acquire": 1, "drop": 1})
+            witness.require_emitted("missing", {"buffer": 1, "try_buffer": 0, "drop": 1})
 
 
 if __name__ == "__main__":

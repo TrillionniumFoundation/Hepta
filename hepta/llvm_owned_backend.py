@@ -111,7 +111,7 @@ class _Function:
         self.block_counter = 0
         self.current = "entry"
         self.terminated = False
-        self.owner_sites = {"acquire": 0, "drop": 0}
+        self.owner_sites = {"buffer": 0, "try_buffer": 0, "drop": 0}
         self.return_type = self.resolve(declaration.return_type)
         self.return_slot = self.e.uses_return_slot(self.return_type, declaration.return_mode)
         for index, parameter in enumerate(declaration.params):
@@ -144,11 +144,19 @@ class _Function:
             reject("Instruction after a terminator", "E_LLVM_OWNED_CFG")
         self.lines.append("  " + instruction)
 
-    def observe_owned_call(self, operation, fragment):
-        """Count only an actually emitted native LLVM resource call site."""
+    def observe_owned_call(self, operation, fragment, start=None):
+        """Observe a real emitted call and buffer's required abort-on-failure guard."""
         if (operation not in self.owner_sites or not self.lines
-                or self.lines[-1].count(fragment) != 1):
-            reject("Resource operation has no matching LLVM call instruction",
+                or start is not None and (type(start) is not int or not 0 <= start < len(self.lines))):
+            reject("Missing owned native emission site", "E_OWNED_OPERATION_WITNESS")
+        emitted = self.lines[-1:] if start is None else self.lines[start:]
+        if sum(fragment in line for line in emitted) != 1:
+            reject("Native owner call instruction missing or duplicated",
+                   "E_OWNED_OPERATION_WITNESS")
+        if operation == "buffer" and (not any("call void @abort()" in line for line in emitted)
+                                     or not any(line.strip().startswith("br i1 ") for line in emitted)
+                                     or not any(line.strip() == "unreachable" for line in emitted)):
+            reject("Infallible buffer constructor lacks checked abort edge",
                    "E_OWNED_OPERATION_WITNESS")
         self.owner_sites[operation] += 1
 
@@ -431,14 +439,18 @@ class _Function:
             if name in {"buffer", "try_buffer"}:
                 size = self.value(children[0])
                 output = self.slot(ALLOCATION_RESULT)
+                start_owned_call = len(self.lines)
                 self.emit(f"call void @__hepta_owned_try_buffer(ptr sret({self.e.typ(ALLOCATION_RESULT)}) "
                           + f"{output.pointer}, i64 {size})")
-                self.observe_owned_call("acquire", "call void @__hepta_owned_try_buffer(")
                 result = self.load(ALLOCATION_RESULT, output.pointer)
                 if name == "try_buffer":
+                    self.observe_owned_call("try_buffer", "call void @__hepta_owned_try_buffer(",
+                                            start=start_owned_call)
                     return result
                 tag = self.extract(ALLOCATION_RESULT, result, (0,))
                 self.guard(self.result(f"icmp eq i32 {tag}, 0"))
+                self.observe_owned_call("buffer", "call void @__hepta_owned_try_buffer(",
+                                        start=start_owned_call)
                 return self.extract(ALLOCATION_RESULT, result, (1, 0))
             if name in {"drop", "release"}:
                 owner = self.typ(children[0])

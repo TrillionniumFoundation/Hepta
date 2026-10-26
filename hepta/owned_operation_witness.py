@@ -21,7 +21,7 @@ _CLAIMS = frozenset({
 })
 _NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
 _HASH = re.compile(r"[0-9a-f]{64}\Z")
-_SITES = ("acquire", "drop")
+_SITES = ("buffer", "try_buffer", "drop")
 _MAX_FUNCTIONS = 256
 _MAX_BLOCKS = 4096
 _MAX_OPS = 100000
@@ -46,12 +46,12 @@ class OwnedOperationWitness:
     graph_sha256: str
     source_sha256: str
     project_sha256: str | None
-    functions: tuple[tuple[str, int, int], ...]
+    functions: tuple[tuple[str, int, int, int], ...]
     schema: str = _SCHEMA
 
     @property
     def names(self) -> tuple[str, ...]:
-        return tuple(name for name, _, _ in self.functions)
+        return tuple(name for name, _, _, _ in self.functions)
 
     def require_emitted(self, name: str, emitted: dict) -> None:
         """Reject mismatch before any LLVM source or native bytes are returned."""
@@ -66,8 +66,8 @@ class OwnedOperationWitness:
         matched = [item for item in self.functions if item[0] == name]
         if len(matched) != 1:
             _fail("LLVM function is absent or duplicated in verified Resource IR")
-        _, allocations, drops = matched[0]
-        if (emitted["acquire"], emitted["drop"]) != (allocations, drops):
+        _, buffers, fallible_buffers, drops = matched[0]
+        if (emitted["buffer"], emitted["try_buffer"], emitted["drop"]) != (buffers, fallible_buffers, drops):
             _fail(f"{name}: native acquire/drop sites differ from source-bound Resource IR")
 
 
@@ -127,7 +127,7 @@ def derive_owned_operation_witness(graph: dict, verified: dict) -> OwnedOperatio
                 or report["total_blocks"] != len(blocks)
                 or report["reachable_blocks"] != len(blocks)):
             _fail("missing or unverified resource CFG blocks")
-        sites = {"acquire": 0, "drop": 0}
+        sites = {"buffer": 0, "try_buffer": 0, "drop": 0}
         for block in blocks:
             if type(block) is not dict or type(block.get("ops")) is not list:
                 _fail("malformed resource operation block")
@@ -137,9 +137,14 @@ def derive_owned_operation_witness(graph: dict, verified: dict) -> OwnedOperatio
             for op in block["ops"]:
                 if type(op) is not dict or type(op.get("op")) is not str:
                     _fail("malformed resource operation")
-                if op["op"] in sites:
-                    sites[op["op"]] += 1
-        findings.append((fn["name"], sites["acquire"], sites["drop"]))
+                if op["op"] == "acquire":
+                    kind = op.get("kind")
+                    if kind not in {"buffer", "try_buffer"}:
+                        _fail("unrecognized resource allocation semantics")
+                    sites[kind] += 1
+                elif op["op"] == "drop":
+                    sites["drop"] += 1
+        findings.append((fn["name"], sites["buffer"], sites["try_buffer"], sites["drop"]))
     if (type(verified.get("operations_checked")) is not int
             or verified["operations_checked"] != count):
         _fail("operation coverage differs from independent verifier")

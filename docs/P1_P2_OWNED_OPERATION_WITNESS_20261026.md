@@ -16,8 +16,8 @@ never a second parser, resource checker, LLVM backend or C/C++ migrator.
 3. The existing Owned LLVM emitter schedules nongeneric function compilation
    from the verified graph's function order, rather than a separately
    enumerated unchecked function list. Every emitted concrete function
-   specialization must match the graph's **static syntactic acquire/drop
-   site inventory**.
+   specialization must match the graph's **static syntactic buffer,
+   try_buffer and drop site inventory**.
 4. An allocation is counted only after the existing emitter has appended
    its actual \`@__hepta_owned_try_buffer\` LLVM call. A drop is counted only
    after the concrete \`@__hepta_owned_drop*\` call is appended. Missing calls,
@@ -54,9 +54,10 @@ python tools/release_check.py
 \`\`\`
 
 The added source test covers a real checked Buffer allocation/drop,
-early-return plus generic-owner-transfer branch, original native LLVM
-emission, fake receipt/claims, integer-for-Boolean forgery, dropped
-allocation/drop call via emitter monkeypatch, and missing event observation.
+fallible Result-based try_buffer, early-return plus generic-owner-transfer
+branch, original native LLVM emission, fake receipt/claims,
+integer-for-Boolean forgery, dropped allocation/drop call, missing infallible
+abort guard, incorrectly tagged constructor mode and missing event observation.
 Historical evidence and another commit's unit run must not be inherited.
 
 **Acceptance boundary:** full exact-source compiled/tested receipt not yet
