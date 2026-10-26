@@ -92,6 +92,34 @@ def _read_reviewed_runtime() -> tuple[bytes, str]:
     return raw, observed_sha
 
 
+def _read_bounded_artifact(path: Path, limit: int, role: str) -> bytes:
+    """Read compiler-produced bytes only after bounding size and inode.
+
+    Never call read_bytes() on an unchecked compiler output. An untrusted or
+    broken native driver may write a giant object before exiting with zero.
+    This local file check is not a sandbox or foreign-code safety proof.
+    """
+    try:
+        previous = path.lstat()
+        if (not stat.S_ISREG(previous.st_mode)
+                or not 0 < previous.st_size <= limit):
+            _reject("missing or oversized " + role)
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        with os.fdopen(fd, "rb") as stream:
+            if _source_identity(os.fstat(stream.fileno())) != _source_identity(previous):
+                _reject(role + " changed before reading")
+            data = stream.read(limit + 1)
+            if (len(data) != previous.st_size
+                    or _source_identity(os.fstat(stream.fileno())) != _source_identity(previous)):
+                _reject(role + " changed during bounded reading")
+        if _source_identity(path.lstat()) != _source_identity(previous):
+            _reject(role + " output path was replaced")
+        return data
+    except OSError as exc:
+        raise OwnedAArch64RuntimeRejected(
+            "E_OWNED_AARCH64_RUNTIME: " + role + " identity unavailable") from exc
+
+
 def probe_finite_owned_aarch64_runtime(object_bytes: bytes, exports: tuple[str, ...],
                                        *, clang: str = "clang",
                                        qemu_aarch64: str | None = None) -> dict:
@@ -128,9 +156,8 @@ def probe_finite_owned_aarch64_runtime(object_bytes: bytes, exports: tuple[str, 
             timeout=35)
         if native.returncode != 0:
             _reject("real finite runtime C compile failed: " + native.stderr[:1000])
-        data = runtime_obj.read_bytes() if runtime_obj.is_file() else b""
-        if not 0 < len(data) <= 1_048_576:
-            _reject("missing or oversized finite runtime object")
+        data = _read_bounded_artifact(runtime_obj, 1_048_576,
+                                      "finite runtime object")
         try:
             symbols = inspect_object_symbols(data, "ELF64", 183)
         except ObjectSymbolsRejected as exc:
@@ -145,9 +172,9 @@ def probe_finite_owned_aarch64_runtime(object_bytes: bytes, exports: tuple[str, 
             timeout=45)
         if link.returncode != 0:
             _reject("real allocator ARM64 link failed: " + link.stderr[:1000])
-        payload = linked.read_bytes() if linked.is_file() else b""
-        if not 512 <= len(payload) <= _MAX_LINKED_BYTES:
-            _reject("linked image missing or oversized")
+        payload = _read_bounded_artifact(linked, _MAX_LINKED_BYTES, "linked ELF")
+        if len(payload) < 512:
+            _reject("linked image has no bounded executable content")
         shape = inspect_synthetic_aarch64_elf(payload, _EXPORT)
         if (_read_reviewed_runtime()[0] != runtime_bytes or
                 _tool_digest(compiler) != compiler_before):
@@ -169,7 +196,7 @@ def probe_finite_owned_aarch64_runtime(object_bytes: bytes, exports: tuple[str, 
                 _reject("real finite test exited unsuccessfully under QEMU: "
                         + str(execution.returncode) + " " + execution.stderr[:300])
             if (_tool_digest(runner_path) != runner_sha or
-                    sha256(linked.read_bytes()).hexdigest() != sha256(payload).hexdigest()):
+                    _read_bounded_artifact(linked, _MAX_LINKED_BYTES, "linked ELF") != payload):
                 _reject("runner or linked executable changed after emulation")
             ran = True
         return {
