@@ -9,9 +9,70 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .resource_ir import _SCALARS
+
 
 class DropPlanRejected(ValueError):
     """A reviewed Resource IR type table cannot describe this native Drop."""
+
+
+def _validate_resource_shape(key: str, info: object) -> None:
+    """Check exact known Resource IR type descriptors before native Drop use.
+
+    This is defense in depth; it is not a substitute for the independent
+    source-derived Resource IR verifier or a proof of native refinement.
+    """
+    if type(key) is not str or type(info) is not dict or type(info.get("kind")) is not str:
+        raise DropPlanRejected("E_DROP_PLAN: malformed type descriptor")
+    kind = info["kind"]
+    if kind == "scalar":
+        if set(info) != {"kind", "name"} or info["name"] != key or key not in _SCALARS:
+            raise DropPlanRejected("E_DROP_PLAN: forged scalar type identity")
+    elif kind == "buffer":
+        if set(info) != {"kind", "element"} or key != "Buffer<u8>" or info["element"] != "u8":
+            raise DropPlanRejected("E_DROP_PLAN: invalid owned buffer type")
+    elif kind == "parameter":
+        if (set(info) != {"kind", "function", "name", "bound"}
+                or type(info["function"]) is not str or type(info["name"]) is not str
+                or key != "@" + info["function"] + "::" + info["name"]
+                or info["bound"] not in {"Copy", "Owned"}):
+            raise DropPlanRejected("E_DROP_PLAN: generic resource identity mismatch")
+    elif kind in {"array", "slice"}:
+        expected = {"kind", "element"} | ({"length"} if kind == "array" else set())
+        if set(info) != expected or type(info["element"]) is not str:
+            raise DropPlanRejected("E_DROP_PLAN: malformed sequence type")
+        if kind == "array":
+            size = info["length"]
+            if type(size) is not int or not 0 <= size <= 2**32 or key != f"[{info['element']}; {size}]":
+                raise DropPlanRejected("E_DROP_PLAN: array type identity mismatch")
+        elif key != f"[{info['element']}]":
+            raise DropPlanRejected("E_DROP_PLAN: slice type identity mismatch")
+    elif kind in {"struct", "enum"}:
+        member_key = "fields" if kind == "struct" else "variants"
+        if (set(info) != {"kind", "name", "args", member_key}
+                or type(info["name"]) is not str or type(info["args"]) is not list
+                or not all(type(arg) is str for arg in info["args"])
+                or key != info["name"] + ("<" + ", ".join(info["args"]) + ">" if info["args"] else "")):
+            raise DropPlanRejected("E_DROP_PLAN: nominal type identity mismatch")
+        members = info[member_key]
+        if type(members) is not list or len(members) > 128:
+            raise DropPlanRejected("E_DROP_PLAN: aggregate exceeds finite layout")
+        seen = set()
+        for member in members:
+            expected = {"name", "type"} if kind == "struct" else {"name", "fields"}
+            if (type(member) is not dict or set(member) != expected
+                    or type(member["name"]) is not str or not member["name"]
+                    or member["name"] in seen):
+                raise DropPlanRejected("E_DROP_PLAN: malformed/duplicate aggregate field")
+            seen.add(member["name"])
+            if kind == "struct":
+                if type(member["type"]) is not str:
+                    raise DropPlanRejected("E_DROP_PLAN: malformed struct type")
+            elif (type(member["fields"]) is not list or len(member["fields"]) > 128
+                  or not all(type(field) is str for field in member["fields"])):
+                raise DropPlanRejected("E_DROP_PLAN: malformed enum payload")
+    else:
+        raise DropPlanRejected("E_DROP_PLAN: unsupported native resource kind " + kind)
 
 
 @dataclass(frozen=True)
@@ -46,8 +107,7 @@ def derive_resource_drop_plan(types: dict, type_key: str) -> DropPlan | None:
             raise DropPlanRejected("E_DROP_PLAN: recursive owned type")
         active.add(key)
         info = types[key]
-        if type(info) is not dict or type(info.get("kind")) is not str:
-            raise DropPlanRejected("E_DROP_PLAN: invalid dependent type descriptor")
+        _validate_resource_shape(key, info)
         kind = info["kind"]
         if kind == "scalar":
             result = False
@@ -84,9 +144,10 @@ def derive_resource_drop_plan(types: dict, type_key: str) -> DropPlan | None:
         return result
 
     info = types[type_key]
-    if type(info) is not dict:
-        raise DropPlanRejected("E_DROP_PLAN: invalid target type descriptor")
-    kind = info.get("kind")
+    # Validate the root descriptor, not merely the dependent children:
+    # an apparently owned struct may itself be a forged nominal layout.
+    owns(type_key)
+    kind = info["kind"]
     if kind == "buffer":
         owns(type_key)
         return DropPlan("buffer")

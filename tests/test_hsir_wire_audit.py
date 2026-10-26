@@ -21,7 +21,10 @@ def signed(fields):
 
 def source_bound():
     return signed({"schema": "hepta.hsir.v0", "profile": "checked_typed_ast_not_verified_mir",
-                   "module": "sample", "source_sha256": "a" * 64, "project_sha256": None,
+                   "module": "sample", "path": "sample.hepta", "source_sha256": "a" * 64,
+                   "project_sha256": None, "imports": [], "structs": [], "enums": [],
+                   "untyped_expressions": [], "volatile_accesses": [],
+                   "foreign_assumptions": [], "resource_contracts": [], "owned_types": [],
                    "functions": [], "external_obligations": [], "all_expressions_typed": True,
                    "claims": {"native_borrow_validation": False,
                               "translation_correctness_proved": False,
@@ -32,6 +35,7 @@ def source_bound():
 def frozen():
     return signed({"schema": "hepta.hsir.v0", "status": "checked_frontend_snapshot_not_proved",
                    "program": "sample", "source_sha256": "a" * 64,
+                   "imports": [], "structs": [], "enums": [], "resource_contracts": [],
                    "functions": [], "external_assumptions": [], "typed_expression_count": 0,
                    "claims": {"lifetimes_fully_modeled": False,
                               "pointer_provenance_proved": False,
@@ -221,6 +225,27 @@ class WireAuditTests(unittest.TestCase):
                                             "E_HSIR_EXTERNAL_ASSUMPTION"):
                     module.fingerprint(signed(record))
 
+
+    def test_rehashed_unknown_fields_and_false_claims_reject(self):
+        for build in (source_bound, frozen):
+            with self.subTest(profile=build.__name__):
+                payload = build()
+                del payload["sha256"]
+                payload["compatibility_proved"] = False
+                with self.assertRaisesRegex(module.HSIRWireRejected, "E_HSIR_UNKNOWN_FIELDS"):
+                    module.fingerprint(signed(payload))
+                del payload["compatibility_proved"]
+                payload["claims"]["unrecognized_future_proof"] = False
+                with self.assertRaisesRegex(module.HSIRWireRejected, "PROOF_CLAIM"):
+                    module.fingerprint(signed(payload))
+
+    def test_missing_producer_inventory_is_not_compatible(self):
+        for build in (source_bound, frozen):
+            payload = build()
+            del payload["sha256"]
+            del payload["structs"]
+            with self.assertRaisesRegex(module.HSIRWireRejected, "E_HSIR_MISSING_FIELDS"):
+                module.fingerprint(signed(payload))
 
 if __name__ == "__main__":
     unittest.main()

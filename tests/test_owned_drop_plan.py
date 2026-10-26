@@ -58,5 +58,25 @@ class DropPlanTests(unittest.TestCase):
             derive_resource_drop_plan(TYPES, True)
 
 
+    def test_malformed_type_identity_cannot_change_native_drop_plan(self):
+        cases = [
+            ("u64", {"kind": "scalar", "name": "u8"}),
+            ("Buffer<u8>", {"kind": "scalar", "name": "Buffer<u8>"}),
+            ("Buffer<u8>", {"kind": "buffer", "element": "u8", "proved": True}),
+            ("Buffer<u8>", {"kind": "buffer", "element": "u64"}),
+            ("Pair", {**TYPES["Pair"], "args": ["forged"]}),
+            ("Pair", {**TYPES["Pair"], "fields": [
+                {"name": "data", "type": "Buffer<u8>", "safe": True}]}),
+            ("Choice", {**TYPES["Choice"], "variants": [
+                {"name": "Some", "fields": ["Pair"], "proved": True}]}),
+        ]
+        for name, entry in cases:
+            with self.subTest(name=name):
+                forged = dict(TYPES)
+                forged[name] = entry
+                target = "Choice" if name in {"Choice", "u64"} else "Pair"
+                with self.assertRaisesRegex(DropPlanRejected, "E_DROP_PLAN"):
+                    derive_resource_drop_plan(forged, target)
+
 if __name__ == '__main__':
     unittest.main()
