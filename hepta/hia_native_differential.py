@@ -72,6 +72,11 @@ _FORBIDDEN_SYSCALLS = (
     # openat2 takes pointer-to-flags: fail closed; also reject foreign FD
     # duplication, remote-memory writes and process-scoped signalling.
     437, 438, 311, 62, 200, 129, 297, 424,
+    # Additional operations with observable filesystem or kernel effects.
+    # Extends (never weakens) the reviewed native side-effect policy.
+    188, 189, 190, 197, 198, 199, 285,
+    155, 165, 166, 428, 429, 430, 431, 432, 433, 442,
+    298, 302, 319, 321, 323, 426, 427, 434,
 )
 if len(_FORBIDDEN_SYSCALLS) != len(set(_FORBIDDEN_SYSCALLS)):
     raise RuntimeError("duplicated native evaluator syscall policy")
