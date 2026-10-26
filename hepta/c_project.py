@@ -22,6 +22,96 @@ def digest(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+_MAX_COMPDB_BYTES = 2_000_000
+_MAX_COMPDB_ENTRIES = 32
+_MAX_COMPDB_ARGS = 256
+_MAX_COMPDB_PATH_BYTES = 4096
+_MAX_COMPDB_ARGUMENT_BYTES = 16384
+
+
+def _checked_string(value: object, label: str, limit: int) -> str:
+    if not isinstance(value, str) or not value or "\x00" in value:
+        raise MigrationRejected("E_C_BUILD_JSON", f"{label} must be a nonempty string without NUL")
+    try:
+        size = len(value.encode("utf-8"))
+    except UnicodeError as exc:
+        raise MigrationRejected("E_C_BUILD_JSON", f"{label} has invalid Unicode") from exc
+    if size > limit:
+        raise MigrationRejected("E_C_BUILD_SIZE", f"{label} exceeds the configured UTF-8 byte budget")
+    return value
+
+
+def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict:
+    obj = {}
+    for key, value in pairs:
+        if key in obj:
+            raise MigrationRejected("E_C_BUILD_JSON", f"Duplicate compile database field: {key!r}")
+        obj[key] = value
+    return obj
+
+
+def _reject_nonfinite_constant(value: str):
+    raise MigrationRejected("E_C_BUILD_JSON", f"Nonfinite compile database JSON constant: {value}")
+
+
+def _load_compdb(database: Path) -> tuple[bytes, list[dict]]:
+    """Bounded, unambiguous compilation-database intake shared by capture/replay.
+
+    A source graph and its flags cannot be attested from ambiguous duplicate
+    JSON keys or a different parse from the original capture. Neither method
+    runs a database-provided command; each forwards only the reviewed flags.
+    """
+    try:
+        with database.open("rb") as stream:
+            raw = stream.read(_MAX_COMPDB_BYTES + 1)
+    except OSError as exc:
+        raise MigrationRejected("E_C_BUILD_DATABASE", f"Cannot read compile database: {exc}") from exc
+    if len(raw) > _MAX_COMPDB_BYTES:
+        raise MigrationRejected("E_C_BUILD_SIZE", "Compilation database exceeds 2 MB")
+    try:
+        entries = json.loads(raw.decode("utf-8"),
+                             object_pairs_hook=_reject_duplicate_keys,
+                             parse_constant=_reject_nonfinite_constant)
+    except MigrationRejected:
+        raise
+    except (UnicodeError, ValueError, TypeError, RecursionError, OverflowError) as exc:
+        raise MigrationRejected("E_C_BUILD_JSON", "Invalid or unbounded compile database JSON") from exc
+    if not isinstance(entries, list) or not 1 <= len(entries) <= _MAX_COMPDB_ENTRIES:
+        raise MigrationRejected("E_C_BUILD_DATABASE", "Expected 1–32 compilation commands")
+    for i, entry in enumerate(entries):
+        if not isinstance(entry, dict):
+            raise MigrationRejected("E_C_BUILD_JSON", f"Compilation command #{i} is not a record")
+        keys = set(entry)
+        required = {"directory", "file"}
+        permitted = required | {"arguments", "command", "output"}
+        if (not required <= keys or not keys <= permitted
+                or ("arguments" in keys) == ("command" in keys)):
+            raise MigrationRejected(
+                "E_C_BUILD_JSON",
+                f"Command #{i} requires exactly one of arguments/command and no unknown keys")
+        _checked_string(entry["directory"], "directory", _MAX_COMPDB_PATH_BYTES)
+        _checked_string(entry["file"], "file", _MAX_COMPDB_PATH_BYTES)
+        if "output" in entry:
+            _checked_string(entry["output"], "output", _MAX_COMPDB_PATH_BYTES)
+        if "arguments" in entry:
+            argv = entry["arguments"]
+            if not isinstance(argv, list) or not 1 <= len(argv) <= _MAX_COMPDB_ARGS:
+                raise MigrationRejected("E_C_BUILD_JSON", "Invalid or excessive arguments")
+            for arg in argv:
+                _checked_string(arg, "argument", _MAX_COMPDB_ARGUMENT_BYTES)
+        else:
+            command = _checked_string(entry["command"], "command", _MAX_COMPDB_ARGUMENT_BYTES)
+            try:
+                argv = shlex.split(command, posix=True)
+            except ValueError as exc:
+                raise MigrationRejected("E_C_BUILD_JSON", "Invalid quoted compilation command") from exc
+            if not 1 <= len(argv) <= _MAX_COMPDB_ARGS:
+                raise MigrationRejected("E_C_BUILD_JSON", "Invalid or excessive command tokens")
+            for arg in argv:
+                _checked_string(arg, "command argument", _MAX_COMPDB_ARGUMENT_BYTES)
+    return raw, entries
+
+
 def invoke(args: list[str], directory: Path, *, stdin: str | None = None) -> str:
     try:
         run = run_bounded(args, cwd=directory, input_text=stdin, timeout=45,
@@ -115,7 +205,7 @@ def verify_capture(capture: dict) -> None:
     if capture["scope"] != "all_listed_commands_only_not_unlisted_platforms_or_configurations":
         raise MigrationRejected("E_C_BUILD_IDENTITY", "Unexpected capture scope")
     database = Path(capture["database"]["path"])
-    entries = json.loads(database.read_bytes())
+    _, entries = _load_compdb(database)
     configs = capture["configurations"]
     if (not isinstance(entries, list) or not isinstance(configs, list)
             or len(entries) != len(configs) or not 1 <= len(entries) <= 32):
@@ -194,10 +284,7 @@ def capture_project(database: str | Path, *, clang: str = "clang") -> dict:
     Users may supply one complete compilation database per intended build.
     """
     db = Path(database).resolve()
-    raw = db.read_bytes()
-    entries = json.loads(raw)
-    if not isinstance(entries, list) or not 1 <= len(entries) <= 32:
-        raise MigrationRejected("E_C_BUILD_DATABASE", "Expected 1–32 compilation commands")
+    raw, entries = _load_compdb(db)
     executable = shutil.which(clang)
     if executable is None:
         raise MigrationRejected("E_C_BUILD_TOOL", "Clang executable unavailable")
