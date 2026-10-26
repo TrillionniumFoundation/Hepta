@@ -201,15 +201,36 @@ def build_owned_aarch64_source(source, output, *, rustc=None, clang="clang", loc
             reject("Input source graph was modified", "E_LLVM_OWNED_TARGET_STALE")
         ir = emit_owned_llvm(analyzed.program, analyzed.checked,
                              project_sha256=project.identity)
-        backend = compile_owned_aarch64_object(
-            ir, program=analyzed.program, checked=analyzed.checked, output=destination,
-            project_sha256=project.identity, clang=clang)
-        # Native artifact is visible now; never promote a stale-source result.
-        if not project.unchanged() or compiler_hash() != ir.compiler_sha256:
-            reject("Source graph or compiler changed after target object publication",
-                   "E_LLVM_OWNED_TARGET_STALE")
+        # First compile into a staging directory. No requested output is
+        # visible while source/ABI/receipt checks are still running.
+        with tempfile.TemporaryDirectory(prefix=".hepta-owned-aarch64-source-",
+                                         dir=destination.parent) as directory:
+            stage = Path(directory) / "verified.o"
+            backend = compile_owned_aarch64_object(
+                ir, program=analyzed.program, checked=analyzed.checked, output=stage,
+                project_sha256=project.identity, clang=clang)
+            data = stage.read_bytes() if stage.is_file() else b""
+            if (not data or len(data) != backend.get("artifact_bytes")
+                    or sha256(data).hexdigest() != backend.get("artifact_sha256")
+                    or not project.unchanged() or compiler_hash() != ir.compiler_sha256):
+                reject("Source or native artifact changed before source-level publication",
+                       "E_LLVM_OWNED_TARGET_STALE")
+            try:
+                publication = publish_verified(stage, destination, data)
+                if publication["sha256"] != backend["artifact_sha256"]:
+                    raise PublicationRejected("E_PUBLISH_RECEIPT: backend digest differs")
+                if not project.unchanged() or compiler_hash() != ir.compiler_sha256:
+                    raise PublicationRejected("E_PUBLISH_SOURCE: source/compiler changed after link")
+                if verify_published(stage, destination, data) != publication:
+                    raise PublicationRejected("E_PUBLISH_RECEIPT: staged/published bytes changed")
+            except PublicationRejected as exc:
+                withdraw_own_link(stage, destination)
+                raise LLVMOwnedRejected(
+                    "E_LLVM_OWNED_TARGET_PUBLICATION: " + str(exc)) from exc
         report.update(ok=True, status="cross_object_only_not_executed",
                       native_backend=backend,
+                      published_artifact_sha256=publication["sha256"],
+                      published_artifact_bytes=publication["bytes"],
                       source_binding={"project_sha256": project.identity,
                                       "source_sha256": analyzed.report.get("source_sha256"),
                                       "compiler_sha256": ir.compiler_sha256})
