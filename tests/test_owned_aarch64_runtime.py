@@ -80,6 +80,29 @@ class ReviewedFiniteRuntimeSourceGateTests(unittest.TestCase):
                         OwnedAArch64RuntimeRejected, "changed before reading"):
                     runtime._read_reviewed_runtime()
 
+    def test_native_object_and_linked_elf_are_bounded_before_read(self):
+        with tempfile.TemporaryDirectory(prefix="hepta-p7-native-artifact-") as td:
+            root = Path(td)
+            regular = root / "module.o"
+            regular.write_bytes(b"valid-boundary-bytes")
+            with patch.object(Path, "read_bytes",
+                              side_effect=AssertionError("artifact read_bytes forbidden")):
+                self.assertEqual(runtime._read_bounded_artifact(
+                    regular, 1024, "native object"), b"valid-boundary-bytes")
+                oversized = root / "huge.o"
+                with oversized.open("wb") as stream:
+                    stream.truncate(1025)
+                with self.assertRaisesRegex(
+                        OwnedAArch64RuntimeRejected, "oversized native object"):
+                    runtime._read_bounded_artifact(
+                        oversized, 1024, "native object")
+            link = root / "redirect.elf"
+            link.symlink_to(regular)
+            with self.assertRaisesRegex(
+                    OwnedAArch64RuntimeRejected, "oversized linked ELF"):
+                runtime._read_bounded_artifact(
+                    link, 1024, "linked ELF")
+
     def test_wrong_or_oversized_runtime_source_fails_closed_before_compilation(self):
         original = runtime._FIXTURE
         with tempfile.TemporaryDirectory(prefix="hepta-p7-runtime-source-") as root:
