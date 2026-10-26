@@ -3,7 +3,7 @@
 This composes the ONE existing migration authority and HIA LLVM pipeline. It
 accepts only their common finite scalar profile. No second parser, semantics,
 C++ mangled ABI preservation, source-equivalence proof, or safety certification.
-The three-file output bundle is manifest-last, NOT crash-atomic.
+The three-file output bundle uses Linux renameat2 no-replace atomic directory publication.
 """
 from __future__ import annotations
 
@@ -17,6 +17,8 @@ import tempfile
 from .c_migrate import migrate_c
 from .cpp2hepta import migrate_cpp
 from .llvm_ssa_pipeline import build_llvm_ssa_source
+from .hia_bundle_atomic import (AtomicBundleRejected, AtomicBundleUncertain,
+                                publish_hia_bundle)
 
 
 class HIAMigrationRejected(ValueError):
@@ -48,7 +50,7 @@ def migrate_scalar_to_hia(source: str | Path, output_directory: str | Path, *,
         "schema": "hepta.hia-l1-migration.v1", "ok": False,
         "status": "rejected", "language": language,
         "source": str(src), "output_directory": str(out),
-        "publication": "new_directory_manifest_last_not_crash_atomic",
+        "publication": "linux_renameat2_noreplace_fsync_v1",
         "migration": None, "hia_build": None, "artifacts": {},
         "diagnostics": [],
         "claims": {
@@ -158,30 +160,30 @@ def migrate_scalar_to_hia(source: str | Path, output_directory: str | Path, *,
                 os.fsync(stream.fileno())
             if out.exists() or out.is_symlink() or src.read_bytes() != before:
                 _reject("destination appeared or source changed before publication")
-            out.mkdir()  # Refuse to replace a pre-existing directory.
-            published = []
-            try:
-                for filename, data in (("candidate.hepta", code), (binary_name, binary),
-                                       ("migration-hia.json", manifest_bytes)):
-                    path = out / filename
-                    os.link(stage / filename, path)
-                    published.append((path, _sha(data)))
-                    if _sha(path.read_bytes()) != _sha(data):
-                        _reject("published bundle bytes changed")
-                if src.read_bytes() != before:
-                    _reject("source changed during publication")
-            except (OSError, HIAMigrationRejected):
-                # Best effort only: crash recovery and hostile editors are not solved.
-                for path, expected in reversed(published):
-                    if path.is_file() and not path.is_symlink() and _sha(path.read_bytes()) == expected:
-                        path.unlink()
-                try:
-                    out.rmdir()
-                except OSError:
-                    pass
-                raise
+            # All three files are already verified. Only one kernel-level
+            # rename makes the entire directory visible; never create an
+            # empty destination followed by per-file hardlinks.
+            receipt = publish_hia_bundle(
+                stage, out,
+                {"candidate.hepta": code, binary_name: binary,
+                 "migration-hia.json": manifest_bytes},
+                lambda: src.read_bytes() == before)
+            if (receipt.get("method") != "linux_renameat2_noreplace_fsync_v1"
+                    or receipt.get("atomic_directory_visible") is not True
+                    or receipt.get("parent_directory_fsynced") is not True):
+                # Once the atomic rename succeeds, it must not be rolled
+                # back by blindly deleting a bundle visible to readers.
+                raise AtomicBundleUncertain(
+                    "E_HIA_BUNDLE: incomplete durable publication receipt")
         return result
-    except (HIAMigrationRejected, OSError, ValueError, UnicodeError, TypeError, KeyError) as exc:
+    except AtomicBundleUncertain as exc:
+        result["ok"] = False
+        result["status"] = "recovery_required"
+        result["diagnostics"].append({
+            "code": "E_HIA_BUNDLE_UNCERTAIN", "message": str(exc)})
+        return result
+    except (HIAMigrationRejected, AtomicBundleRejected, OSError, ValueError,
+            UnicodeError, TypeError, KeyError) as exc:
         result["ok"] = False
         result["status"] = "rejected"
         result["diagnostics"].append({"code": "E_HIA_MIGRATE", "message": str(exc)})
