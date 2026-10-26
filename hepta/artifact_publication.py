@@ -76,3 +76,23 @@ def publish_verified(stage: str | Path, destination: str | Path, expected: bytes
             pass
         raise
     return {"sha256": sha256(expected).hexdigest(), "bytes": len(expected)}
+
+def recheck_verified_publication(stage: str | Path, destination: str | Path,
+                                 expected: bytes) -> dict:
+    """Independently re-read both hardlink paths before a source-facing receipt.
+
+    The native backend may have verified a first publication into a staging
+    path, and the source compiler subsequently publishes a *second* path.
+    This check is intentionally separate from publish_verified, so a
+    post-publication mutation cannot be credited on the prior check alone.
+    It does not defend against a later privileged/same-user writer.
+    """
+    stage, destination = Path(stage), Path(destination)
+    if type(expected) is not bytes or not expected or stage.absolute() == destination.absolute():
+        raise PublicationRejected("E_PUBLISH_INPUT: distinct paths and exact bytes required")
+    staged_identity = _read_exact(stage, expected)
+    _read_exact(destination, expected, identity=staged_identity)
+    # A changed shared inode must invalidate both source and destination.
+    if _read_exact(stage, expected) != staged_identity:
+        raise PublicationRejected("E_PUBLISH_RACE: staged object changed during final recheck")
+    return {"sha256": sha256(expected).hexdigest(), "bytes": len(expected)}
