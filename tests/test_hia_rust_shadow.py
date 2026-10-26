@@ -76,8 +76,21 @@ class RustScalarShadow(unittest.TestCase):
             self.assertNotEqual(self.run_rust(bad).returncode, 0)
 
     def test_python_accepts_resource_but_rust_shadow_rejects(self):
-        from tests.test_hia_program import resource_program
-        source = resource_program()
+        source = {
+            "schema": "hepta.hia.program.v1", "module": "resource_test",
+            "functions": [{
+                "name": "owned", "params": [{"name": "n", "type": "usize"}],
+                "returns": [], "effects": ["alloc", "trap"], "entry": "entry",
+                "blocks": [{
+                    "id": "entry", "params": [{"name": "n", "type": "usize"}],
+                    "ops": [
+                        {"op": "buffer.new", "args": ["n"],
+                         "out": [{"name": "buf", "type": "buffer"}], "attrs": {}},
+                        {"op": "owner.drop", "args": ["buf"], "out": [], "attrs": {}}
+                    ], "term": {"op": "ret", "values": []}
+                }]
+            }]
+        }
         reference = verify_program(source)
         rust = self.run_rust(reference.canonical_bytes)
         self.assertNotEqual(rust.returncode, 0)
