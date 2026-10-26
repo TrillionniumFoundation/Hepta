@@ -131,6 +131,33 @@ class HIAPatchImpactTests(unittest.TestCase):
         self.assertEqual(impact["patch_result_schema"], "hepta.hia.patch-result.v1")
         self.assertEqual(execute_program(checked, "move_bytes", [5, 0, 0, 0, 0])["result"], 89)
 
+    def test_read_only_cli_impact_for_v3(self):
+        from contextlib import redirect_stdout
+        import io
+        import json
+        from pathlib import Path
+        import tempfile
+        from hepta.cli import main
+
+        original = move_program()
+        request = patch_packet(original, patch_initial_byte(original))
+        with tempfile.TemporaryDirectory(prefix="hia-impact-cli-") as root:
+            source = Path(root) / "program.hia"
+            request_path = Path(root) / "patch.json"
+            source.write_text(json.dumps(original), encoding="utf-8")
+            request_path.write_text(json.dumps(request), encoding="utf-8")
+            with io.StringIO() as stream, redirect_stdout(stream):
+                rc = main(["hia", "impact", str(source), "--request", str(request_path)])
+                output = json.loads(stream.getvalue())
+            self.assertEqual(rc, 0, output)
+            self.assertEqual(output["schema"], "hepta.hia.impact-query.v1")
+            self.assertEqual(output["status"], "verified_unpublished")
+            self.assertEqual(output["impact"]["direct_changed_functions"], ["move_bytes"])
+            self.assertFalse(output["impact"]["claims"]["native_execution_qualified"])
+            self.assertNotIn("publication", output)
+            self.assertEqual(sorted(path.name for path in Path(root).iterdir()),
+                             ["patch.json", "program.hia"])
+
     def test_stale_digest_and_untrusted_receipt_fail_closed(self):
         original = move_program()
         request = patch_packet(original, patch_initial_byte(original))

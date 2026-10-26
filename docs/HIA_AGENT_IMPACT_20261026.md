@@ -58,6 +58,20 @@ or overriding the stronger PR #186 ARM64/LLVM implementation:
 - Old/new reverse caller closure including unrelated functions.
 - Stale snapshot and forged Boolean/inventory/receipt rejection.
 
+## Agent CLI
+
+The existing `hepta hia` subcommand now provides a read-only entry point:
+
+    hepta hia impact ./program-v3.hia --request ./patch-v2.json
+
+It returns `hepta.hia.impact-query.v1` with the verified-but-unpublished
+patch receipt and conservative impact analysis. Unlike `hia patch --output`,
+this command never exposes a published candidate or creates a destination.
+The normal CLI's bounded ordinary-file reader and JSON diagnostics remain
+in effect. A dedicated regression checks the command's real arguments and
+that no output file is created; that full-repository CLI test still requires
+execution on the exact stacked checkout.
+
 ## Actual evidence and limits
 
 The exact new helper source passed Python 3.13.5 `py_compile` and six isolated
