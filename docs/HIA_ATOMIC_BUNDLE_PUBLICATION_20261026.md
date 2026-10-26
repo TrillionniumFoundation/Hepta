@@ -42,12 +42,14 @@ qualifications are introduced.
 
 The exact `hepta/hia_bundle_atomic.py` and
 `tests/test_hia_bundle_atomic.py` Git blobs match the local Python
-3.13 tested byte-for-byte sources. **10/10 filesystem tests passed**,
+3.13 tested byte-for-byte sources. **12/12 filesystem tests passed**,
 including a real Linux `RENAME_NOREPLACE`, empty-dir/symlink collisions,
 destination name race, mutated/symlink staged files, pre/post-rename source
 changes, injected parent fsync failure, TemporaryDirectory teardown after
 rename, and **actual child process death immediately after successful
-rename** (all three files were visible together).
+rename** (all three files were visible together). The follow-up checks
+non-Linux rejection before using OS-specific flags and rejects an inode-swapped
+staging directory before kernel rename.
 
 This evidence is an isolated publication helper test, not a full Hepta
 migration/compiler/native/ABI test. `tests/test_hia_migrate.py` has three

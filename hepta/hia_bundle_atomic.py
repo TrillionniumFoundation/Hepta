@@ -106,6 +106,10 @@ def publish_hia_bundle(stage: Path, destination: Path,
     if (stage.name in ("", ".", "..") or destination.name in ("", ".", "..")
             or stage.parent != destination.parent or stage == destination):
         _reject("staged and final directories must be distinct siblings")
+    if (sys.platform != "linux" or
+            any(not hasattr(os, flag) for flag in
+                ("O_DIRECTORY", "O_CLOEXEC", "O_NOFOLLOW"))):
+        _reject("Linux host and no-follow directory descriptors required")
     flags = os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC | os.O_NOFOLLOW
     committed = False
     parent_fd = -1
@@ -113,7 +117,13 @@ def publish_hia_bundle(stage: Path, destination: Path,
     try:
         parent_fd = os.open(stage.parent, flags)
         stage_fd = os.open(stage, flags)
-        if os.fstat(stage_fd).st_dev != os.fstat(parent_fd).st_dev:
+        stage_stat = os.fstat(stage_fd)
+        named_stage = os.stat(stage.name, dir_fd=parent_fd, follow_symlinks=False)
+        if (not stat.S_ISDIR(named_stage.st_mode)
+                or (stage_stat.st_dev, stage_stat.st_ino) !=
+                   (named_stage.st_dev, named_stage.st_ino)):
+            _reject("staged path identity differs from parent directory")
+        if stage_stat.st_dev != os.fstat(parent_fd).st_dev:
             _reject("staging and destination must reside on one filesystem")
         if set(os.listdir(stage_fd)) != set(expected):
             _reject("staged directory contains missing or unreviewed entries")
@@ -122,6 +132,11 @@ def publish_hia_bundle(stage: Path, destination: Path,
         os.fsync(stage_fd)
         if source_guard() is not True:
             _reject("source changed before atomic publication")
+        current_stage = os.stat(stage.name, dir_fd=parent_fd, follow_symlinks=False)
+        if (not stat.S_ISDIR(current_stage.st_mode)
+                or (current_stage.st_dev, current_stage.st_ino) !=
+                   (stage_stat.st_dev, stage_stat.st_ino)):
+            _reject("staged directory was rebound before atomic rename")
         _rename_noreplace(parent_fd, stage.name, destination.name)
         committed = True
         # The rename is atomic now; persistence additionally requires the

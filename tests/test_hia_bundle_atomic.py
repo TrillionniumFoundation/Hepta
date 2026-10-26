@@ -130,6 +130,27 @@ class AtomicBundleTests(unittest.TestCase):
         self.assertTrue(self.dest.is_dir())
         self.assertEqual((self.dest/"migration-hia.json").read_bytes(), self.data["migration-hia.json"])
 
+    def test_staged_directory_rebinding_before_commit_refuses_publication(self):
+        # Simulate a stage-name swap during the source replay callback.
+        moved = self.root / "original-stage"
+        def rebind():
+            self.stage.rename(moved)
+            self.stage.mkdir()
+            for name, data in self.data.items():
+                (self.stage/name).write_bytes(data)
+            return True
+        with self.assertRaises(AtomicBundleRejected):
+            self.publish(rebind)
+        self.assertFalse(self.dest.exists())
+        self.assertTrue(moved.is_dir())
+
+    def test_explicit_non_linux_rejection_before_os_flags_or_rename(self):
+        from hepta import hia_bundle_atomic
+        with patch.object(hia_bundle_atomic.sys, "platform", "win32"):
+            with self.assertRaisesRegex(AtomicBundleRejected, "Linux host"):
+                self.publish()
+        self.assertFalse(self.dest.exists())
+
     def test_filesystem_name_race_rejected_with_no_overwrite(self):
         from hepta import hia_bundle_atomic
         original = hia_bundle_atomic._rename_noreplace
