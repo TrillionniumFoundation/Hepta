@@ -23,7 +23,11 @@ def finite_static_contract_allowed(fn, checked) -> bool:
         return False
     if not isinstance(name, str) or not name:
         return False
-    inferred = effects.get(name, set())
+    # The real frontend materializes transitive effects for every function.
+    # A missing entry is an unverified graph, not an empty/pure effect set.
+    if name not in effects:
+        return False
+    inferred = effects[name]
     if type(inferred) is not set or any(type(v) is not str for v in inferred | declared):
         return False
     upper = declared | inferred
