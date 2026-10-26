@@ -58,7 +58,7 @@ class ResourceStaticCompilerTests(unittest.TestCase):
             lower_resource_ir(analysis.program, analysis.checked)
 
     def test_transitive_allocation_or_blocking_invalidates_zero_cost_guarantee(self):
-        for effect in ("alloc", "block", "spawn"):
+        for effect in ("alloc", "block", "spawn", "ffi", "unsafe", "io"):
             with self.subTest(effect=effect):
                 analysis = checked()
                 analysis.checked.effects["constrained"].add(effect)
