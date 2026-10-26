@@ -1,5 +1,13 @@
 # HIA standalone program v1: normative executable profile
 
+> **Schema/version isolation (2026-10-26):** This document is the frozen
+> `hepta.hia.program.v1` profile. The independently checked
+> `hepta.hia.program.v2` adds capability-safe `buffer.fill` and
+> `buffer.copy` and has its own native backend profile. V1 rejects these
+> instructions. See [the v2 bulk-memory ISA contract](HIA_PROGRAM_BULK_V2_20261026.md).
+> Both profiles retain unproved whole-language and backend-refinement claims.
+
+
 This document defines the standalone `hepta.hia.program.v1` profile. Its
 executable admission authority is `hepta.hia_program.verify_core` (also exposed
 as `hepta.core.verify_core` and `verify_program`). The direct interpreter and
