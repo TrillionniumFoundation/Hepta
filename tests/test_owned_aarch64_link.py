@@ -9,7 +9,7 @@ import unittest
 
 from hepta.owned_aarch64_link import (
     OwnedAArch64LinkRejected, inspect_synthetic_aarch64_elf,
-    probe_owned_aarch64_freestanding_link,
+    probe_owned_aarch64_freestanding_link, _SHIM,
 )
 
 
@@ -81,6 +81,71 @@ class AArch64LinkProbeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "(IMPORT|LINK)"):
             probe_owned_aarch64_freestanding_link(
                 file.read_bytes(), ("hepta_owner_test",), clang=self.compiler)
+
+    def test_real_linked_elf_rejects_unbacked_executable_functions(self):
+        # Build the same finite nonfunctional shim without running it. A
+        # correctly linked image is a positive control for both mutations.
+        shim = self.root / "link-shim.c"
+        shim_object = self.root / "link-shim.o"
+        target = self.root / "link-only.elf"
+        shim.write_text(_SHIM, encoding="ascii")
+        compiler = subprocess.run(
+            [self.compiler, "--target=aarch64-unknown-linux-gnu", "-x", "c",
+             "-std=c11", "-ffreestanding", "-nostdinc", "-fno-builtin",
+             "-fno-stack-protector", "-O0", "-Wall", "-Wextra", "-Werror",
+             "-c", str(shim), "-o", str(shim_object)],
+            capture_output=True, text=True, timeout=30)
+        self.assertEqual(compiler.returncode, 0, compiler.stderr)
+        linker = subprocess.run(
+            [self.compiler, "--target=aarch64-unknown-linux-gnu",
+             "-fuse-ld=lld", "-nostdlib", "-static", "-Wl,-e,_start",
+             str(self.path), str(shim_object), "-o", str(target)],
+            capture_output=True, text=True, timeout=30)
+        self.assertEqual(linker.returncode, 0, linker.stderr)
+        original = target.read_bytes()
+        functions = ("hepta_owner_test",)
+        self.assertTrue(inspect_synthetic_aarch64_elf(
+            original, functions)["no_unresolved_symbols"])
+
+        # SHT_NOBITS has no actual text bytes, even if its flags claim
+        # executable+allocated. A forged section header cannot pass.
+        no_bits = bytearray(original)
+        shoff = int.from_bytes(no_bits[40:48], "little")
+        shnum = int.from_bytes(no_bits[60:62], "little")
+        executable_sections = [
+            shoff + 64 * index
+            for index in range(shnum)
+            if int.from_bytes(no_bits[shoff + 64 * index + 4:
+                                     shoff + 64 * index + 8], "little") == 1
+            and int.from_bytes(no_bits[shoff + 64 * index + 8:
+                                       shoff + 64 * index + 16], "little") & 6 == 6
+        ]
+        self.assertTrue(executable_sections)
+        at = executable_sections[0]
+        no_bits[at + 4:at + 8] = (8).to_bytes(4, "little")
+        with self.assertRaisesRegex(OwnedAArch64LinkRejected, "LINK"):
+            inspect_synthetic_aarch64_elf(bytes(no_bits), functions)
+
+        # Keep the entrypoint just inside a file-backed RX PT_LOAD but
+        # truncate its mapped size so _start's remaining bytes are absent.
+        short = bytearray(original)
+        entry = int.from_bytes(short[24:32], "little")
+        phoff = int.from_bytes(short[32:40], "little")
+        phnum = int.from_bytes(short[56:58], "little")
+        patched = False
+        for i in range(phnum):
+            at = phoff + i * 56
+            if (int.from_bytes(short[at:at + 4], "little") == 1
+                    and int.from_bytes(short[at + 4:at + 8], "little") & 1):
+                addr = int.from_bytes(short[at + 16:at + 24], "little")
+                size = int.from_bytes(short[at + 32:at + 40], "little")
+                if addr <= entry < addr + size and entry + 1 - addr < size:
+                    short[at + 32:at + 40] = (entry + 1 - addr).to_bytes(8, "little")
+                    patched = True
+                    break
+        self.assertTrue(patched)
+        with self.assertRaisesRegex(OwnedAArch64LinkRejected, "LINK"):
+            inspect_synthetic_aarch64_elf(bytes(short), functions)
 
     def test_linked_image_negative_header_controls(self):
         # Unit-level header refusal applies without executing foreign code.
