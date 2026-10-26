@@ -492,6 +492,28 @@ int main(void) {
         self.assertFalse(stale.exists())
         self.assertIn("STALE", result["diagnostics"][0]["code"])
 
+    def test_source_changed_during_publisher_does_not_mint_native_receipt(self):
+        from hepta import llvm_owned_pipeline
+        project = self.root / "post-publication"
+        project.mkdir()
+        for name in ("main.hepta", "owned.hepta"):
+            shutil.copyfile(ROOT / "examples/llvm_owned" / name, project / name)
+        output = self.root / "postpublication.so"
+        original = llvm_owned_pipeline.publish_verified
+
+        def modify_after_publish(stage, destination, expected):
+            receipt = original(stage, destination, expected)
+            (project / "owned.hepta").write_text(OWNED + "\n// post-publication edit\n")
+            return receipt
+
+        with patch.object(llvm_owned_pipeline, "publish_verified",
+                          side_effect=modify_after_publish):
+            report = build_llvm_owned_source(project / "main.hepta", output)
+        self.assertFalse(report["ok"], report)
+        self.assertFalse(output.exists())
+        self.assertEqual(report["diagnostics"][0]["code"], "E_LLVM_OWNED_STALE")
+
+
 
 if __name__ == "__main__":
     unittest.main()
