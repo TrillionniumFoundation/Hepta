@@ -10,13 +10,16 @@ from __future__ import annotations
 
 from hashlib import sha256
 from pathlib import Path
+import os
 import shutil
+import stat
 import tempfile
 
 from .llvm_owned_aarch64 import TARGET_AARCH64, MAX_OBJECT_BYTES, inspect_owned_aarch64_object
 from .llvm_ssa_backend import _clang_run
 from .object_symbols import ObjectSymbolsRejected, inspect_object_symbols
 from .owned_aarch64_link import inspect_synthetic_aarch64_elf
+from .native_tool_identity import ToolIdentityRejected, digest_executable
 
 _FIXTURE = Path(__file__).resolve().parents[1] / "examples/llvm_owned/finite_aarch64_runtime.c"
 _RUNTIME_EXPORTS = frozenset({"malloc", "free", "abort", "memcpy", "memmove", "memset", "_start"})
@@ -41,20 +44,82 @@ def _reject(message: str) -> None:
     raise OwnedAArch64RuntimeRejected("E_OWNED_AARCH64_RUNTIME: " + message)
 
 
-def _read_reviewed_runtime() -> tuple[bytes, str]:
-    """Read a bounded, exactly pinned runtime independent of allocator size."""
+def _tool_digest(path: Path) -> str:
+    """Share the bounded compiler/runner identity guard across P7 probes."""
     try:
-        raw = _FIXTURE.read_bytes()
+        return digest_executable(path)
+    except ToolIdentityRejected as exc:
+        raise OwnedAArch64RuntimeRejected(
+            "E_OWNED_AARCH64_RUNTIME: native tool identity rejected") from exc
+
+
+def _source_identity(info: os.stat_result) -> tuple[int, int, int, int, int, int]:
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_size,
+            info.st_mtime_ns, info.st_ctime_ns)
+
+
+def _read_reviewed_runtime() -> tuple[bytes, str]:
+    """Bounded, non-symlinked source read with exact file-identity replay.
+
+    A file-size check after read_bytes() permits an attacker to force an
+    unbounded memory allocation *before* the safety gate can reject it.
+    Read no more than MAX+1 bytes and compare the same fd/path identity
+    before and after. This remains a local race check, not remote attestation.
+    """
+    try:
+        previous = _FIXTURE.lstat()
+        if (not stat.S_ISREG(previous.st_mode)
+                or not 0 < previous.st_size <= _MAX_RUNTIME_SOURCE_BYTES):
+            _reject("missing or out-of-profile reviewed finite runtime source")
+        fd = os.open(_FIXTURE, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        with os.fdopen(fd, "rb") as stream:
+            original = os.fstat(stream.fileno())
+            if _source_identity(original) != _source_identity(previous):
+                _reject("reviewed runtime source changed before reading")
+            raw = stream.read(_MAX_RUNTIME_SOURCE_BYTES + 1)
+            observed = os.fstat(stream.fileno())
+            if (len(raw) != previous.st_size
+                    or _source_identity(observed) != _source_identity(previous)):
+                _reject("reviewed runtime source changed during bounded reading")
+        if _source_identity(_FIXTURE.lstat()) != _source_identity(previous):
+            _reject("reviewed runtime source path was replaced")
     except OSError as exc:
         raise OwnedAArch64RuntimeRejected(
-            "E_OWNED_AARCH64_RUNTIME: reviewed runtime source unavailable") from exc
-    if (not raw or len(raw) > _MAX_RUNTIME_SOURCE_BYTES
-            or not raw.startswith(b"/* Experimental finite, single-owner Linux runtime")):
-        _reject("missing or out-of-profile reviewed finite runtime source")
+            "E_OWNED_AARCH64_RUNTIME: reviewed runtime file identity unavailable") from exc
+    if not raw.startswith(b"/* Experimental finite, single-owner Linux runtime"):
+        _reject("missing reviewed runtime source marker")
     observed_sha = sha256(raw).hexdigest()
     if observed_sha != _REVIEWED_RUNTIME_SHA256:
         _reject("finite allocator source differs from reviewed exact bytes")
     return raw, observed_sha
+
+
+def _read_bounded_artifact(path: Path, limit: int, role: str) -> bytes:
+    """Read compiler-produced bytes only after bounding size and inode.
+
+    Never call read_bytes() on an unchecked compiler output. An untrusted or
+    broken native driver may write a giant object before exiting with zero.
+    This local file check is not a sandbox or foreign-code safety proof.
+    """
+    try:
+        previous = path.lstat()
+        if (not stat.S_ISREG(previous.st_mode)
+                or not 0 < previous.st_size <= limit):
+            _reject("missing or oversized " + role)
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        with os.fdopen(fd, "rb") as stream:
+            if _source_identity(os.fstat(stream.fileno())) != _source_identity(previous):
+                _reject(role + " changed before reading")
+            data = stream.read(limit + 1)
+            if (len(data) != previous.st_size
+                    or _source_identity(os.fstat(stream.fileno())) != _source_identity(previous)):
+                _reject(role + " changed during bounded reading")
+        if _source_identity(path.lstat()) != _source_identity(previous):
+            _reject(role + " output path was replaced")
+        return data
+    except OSError as exc:
+        raise OwnedAArch64RuntimeRejected(
+            "E_OWNED_AARCH64_RUNTIME: " + role + " identity unavailable") from exc
 
 
 def probe_finite_owned_aarch64_runtime(object_bytes: bytes, exports: tuple[str, ...],
@@ -75,7 +140,7 @@ def probe_finite_owned_aarch64_runtime(object_bytes: bytes, exports: tuple[str, 
     if not selected:
         _reject("Clang unavailable")
     compiler = Path(selected).resolve(strict=True)
-    compiler_before = sha256(compiler.read_bytes()).hexdigest()
+    compiler_before = _tool_digest(compiler)
     runtime_bytes, source_sha = _read_reviewed_runtime()
     with tempfile.TemporaryDirectory(prefix=".hepta-finite-arm64-") as temp:
         folder = Path(temp)
@@ -93,9 +158,8 @@ def probe_finite_owned_aarch64_runtime(object_bytes: bytes, exports: tuple[str, 
             timeout=35)
         if native.returncode != 0:
             _reject("real finite runtime C compile failed: " + native.stderr[:1000])
-        data = runtime_obj.read_bytes() if runtime_obj.is_file() else b""
-        if not 0 < len(data) <= 1_048_576:
-            _reject("missing or oversized finite runtime object")
+        data = _read_bounded_artifact(runtime_obj, 1_048_576,
+                                      "finite runtime object")
         try:
             symbols = inspect_object_symbols(data, "ELF64", 183)
         except ObjectSymbolsRejected as exc:
@@ -110,12 +174,12 @@ def probe_finite_owned_aarch64_runtime(object_bytes: bytes, exports: tuple[str, 
             timeout=45)
         if link.returncode != 0:
             _reject("real allocator ARM64 link failed: " + link.stderr[:1000])
-        payload = linked.read_bytes() if linked.is_file() else b""
-        if not 512 <= len(payload) <= _MAX_LINKED_BYTES:
-            _reject("linked image missing or oversized")
+        payload = _read_bounded_artifact(linked, _MAX_LINKED_BYTES, "linked ELF")
+        if len(payload) < 512:
+            _reject("linked image has no bounded executable content")
         shape = inspect_synthetic_aarch64_elf(payload, _EXPORT)
-        if (_FIXTURE.read_bytes() != runtime_bytes or
-                sha256(compiler.read_bytes()).hexdigest() != compiler_before):
+        if (_read_reviewed_runtime()[0] != runtime_bytes or
+                _tool_digest(compiler) != compiler_before):
             _reject("compiler or finite runtime changed during link")
         ran = False
         runner_sha = None
@@ -129,10 +193,10 @@ def probe_finite_owned_aarch64_runtime(object_bytes: bytes, exports: tuple[str, 
             runner_path = Path(candidate).resolve(strict=True)
             if not runner_path.is_file() or not runner_path.name.startswith("qemu-aarch64"):
                 _reject("runner is not QEMU AArch64")
-            runner_sha = sha256(runner_path.read_bytes()).hexdigest()
+            runner_sha = _tool_digest(runner_path)
             execution = _clang_run([str(runner_path), str(linked)], timeout=25)
-            if (sha256(runner_path.read_bytes()).hexdigest() != runner_sha or
-                    sha256(linked.read_bytes()).hexdigest() != sha256(payload).hexdigest()):
+            if (_tool_digest(runner_path) != runner_sha or
+                    _read_bounded_artifact(linked, _MAX_LINKED_BYTES, "linked ELF") != payload):
                 _reject("runner or linked executable changed after emulation")
             execution_record = {
                 "argv": [str(runner_path), str(linked)],

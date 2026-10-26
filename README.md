@@ -5,7 +5,15 @@ human and coding-agent collaboration. Its checked ownership model, explicit
 effects, source-bound interfaces, and transaction protocol make resource and
 interface obligations visible to tools.
 
-The current reference backend emits Rust and requires **Rust 1.90.0** for
+The standalone **HIA program v1** accepts AI-authored typed SSA programs
+without original high-level source. `python -m hepta hia verify`, `run`,
+`build`, and `patch` share an independent ownership/effect verifier. Its direct
+LLVM path does not invoke Rust. Existing executable Core operations and HIA
+scalar SSA can both be imported into this same executable authority. The
+[HIA program specification](docs/HIA_PROGRAM.md) defines the exact instruction,
+resource, ABI and target scope; the broader hosted language remains separate.
+
+The reference backend emits Rust and requires **Rust 1.90.0** for
 native type/borrow validation. A separate C11 backend supports a narrower
 hosted subset. This repository contains working implementations and native
 qualification tools; it does not claim a production-complete language,
@@ -20,6 +28,10 @@ Both require a native Rust reference check; neither silently falls back to
 Rust machine-code generation. Hosted task/I/O runtimes remain outside LLVM.
 
 ## Implemented capabilities
+
+The table describes the union of the explicitly qualified profiles in this
+repository. It does not imply that every feature is available in standalone
+HIA or in every native backend.
 
 | Area | Current implementation |
 | --- | --- |
@@ -64,6 +76,17 @@ The [resource IR](docs/RESOURCE_IR.md),
 [next-stage acceptance map](docs/NEXT_STAGE_EXECUTION.md) describe their exact scopes.
 
 ## Build and run
+
+The independent HIA entry works with Python and a qualified Clang for native
+builds; no Rust installation or original source is needed:
+
+```sh
+python -m hepta hia verify examples/hia_program/counter.hia
+python -m hepta hia run examples/hia_program/counter.hia --function increment --arguments '[40]'
+python -m hepta hia build examples/hia_program/counter.hia --clang clang -o /tmp/counter.so
+python -m hepta hia patch examples/hia_program/counter.hia \
+  --request examples/hia_program/add_two.patch.json -o /tmp/counter-v2.hia
+```
 
 The bootstrap compiler uses Python's standard library. Install the pinned Rust
 components with the repository's checksum-checked installer, or set `RUSTC` to

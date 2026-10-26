@@ -506,6 +506,14 @@ class CTranslator:
             return [f"{pad}{lhs.text} = {cast(rhs, lhs.typ, c_conversion=True).text};"]
         if kind == "UnaryOperator" and node.get("opcode") in {"++", "--"} and len(children) == 1:
             lhs = self.lvalue(children[0])
+            # C promotes these operands to int for the arithmetic and then
+            # converts back to the small signed destination.  Computing in
+            # i8/i16 instead would trap where the captured compiler narrows.
+            # This profile rejects unqualified signed narrowing elsewhere;
+            # statement-form increments must obey the same admission rule.
+            if lhs.typ in {"i8", "i16"}:
+                raise MigrationRejected("E_C_SIGNED_CONVERSION",
+                    "Small signed ++/-- requires integer promotion and unqualified signed narrowing")
             rhs = self.arithmetic(lhs, self._numeric("1", lhs.typ), "+" if node["opcode"] == "++" else "-", lhs.typ)
             return [f"{pad}{lhs.text} = {rhs.text};"]
         if kind == "CallExpr":

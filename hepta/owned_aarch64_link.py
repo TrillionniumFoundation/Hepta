@@ -17,6 +17,7 @@ from .llvm_owned_aarch64 import (
     TARGET_AARCH64, MAX_OBJECT_BYTES, inspect_owned_aarch64_object,
 )
 from .llvm_ssa_backend import _clang_run
+from .native_tool_identity import ToolIdentityRejected, digest_executable
 
 
 _MAX_LINK_BYTES = 16 * 1024 * 1024
@@ -164,6 +165,11 @@ def probe_owned_aarch64_freestanding_link(object_bytes: bytes, exports: tuple[st
     if executable is None:
         _reject("Clang compiler unavailable for cross-link check")
     executable = str(Path(executable).resolve())
+    try:
+        compiler_before = digest_executable(executable)
+    except ToolIdentityRejected as exc:
+        raise OwnedAArch64LinkRejected(
+            "E_OWNED_AARCH64_LINK: bounded Clang identity unavailable") from exc
     with tempfile.TemporaryDirectory(prefix=".hepta-aarch64-synthetic-link-") as directory:
         folder = Path(directory)
         obj, shim, shim_obj, linked = [folder / name for name in
@@ -188,6 +194,12 @@ def probe_owned_aarch64_freestanding_link(object_bytes: bytes, exports: tuple[st
             _reject("linked ELF missing or exceeds bounded artifact size")
         payload = linked.read_bytes()
         observed = inspect_synthetic_aarch64_elf(payload, exports)
+        try:
+            compiler_stable = digest_executable(executable) == compiler_before
+        except ToolIdentityRejected:
+            compiler_stable = False
+        if not compiler_stable:
+            _reject("selected native compiler changed during synthetic link")
         return {"schema": "hepta.owned-aarch64-synthetic-link.v1",
                 "status": "synthetic_freestanding_link_only_not_executed",
                 "target": TARGET_AARCH64, "object_sha256": sha256(object_bytes).hexdigest(),

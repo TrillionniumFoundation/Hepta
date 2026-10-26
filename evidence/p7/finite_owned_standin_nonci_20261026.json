@@ -1,0 +1,57 @@
+{
+  "schema": "hepta.p7.finite-runtime-standin.v1",
+  "scope": "freestanding_C_standin_not_Hepta_source_to_native",
+  "execution_mode": "local_non_ci",
+  "source_ref": "examples/llvm_owned/finite_aarch64_runtime.c",
+  "reviewed_runtime_git_blob": "a28d0a26d9510f4016cac6c106d697f5345cf0be",
+  "reviewed_runtime_sha256": "5caa9cbc33df5734626ff17045159add08b850abceb021b038ddb110db6f402c",
+  "reviewed_runtime_bytes": 4259,
+  "native_tools": {
+    "clang_version": "clang version 17.0.0 (https://github.com/swiftlang/llvm-project.git 10999b6d034fe318f3d56c83bddb657259a8bb0)",
+    "clang_sha256": "aa7389d9766be7e61df76cf094ac4f1861fd067e12908d1e9fd5cd7eb2a078f4",
+    "lld_version": "LLD 17.0.0",
+    "lld_sha256": "5a87fb0aa6b15f972f76a51419ac5d1de8c7807e1a0fdd8dfba900f7d61bbbdd"
+  },
+  "source_standins": {
+    "valid_sha256": "cba9b7ddd69e02d57b6690b7619a894e3d35973c4e980040f1b2a07df585c065",
+    "deliberate_wrong_sha256": "3e439d6a1517c63e97f046e5224f399650533769cbf5b89fe40d29379d2da7b1"
+  },
+  "artifacts": {
+    "x86_valid_elf_sha256": "c53f091af05cc35766dd6d8a29157bc185bf58ca6d3fd1f643a42a6879104540",
+    "x86_valid_elf_bytes": 3856,
+    "x86_wrong_elf_sha256": "0dd43697395bd39fa0b3a6b9fdca1bd3ab2c8ea47e0bf1498c927c05e1d7dec3",
+    "x86_wrong_elf_bytes": 3864,
+    "arm64_elf_sha256": "859f9d6a8e942b9cf707589e86d63e6bcecdd1db9daf18e7e3d4a8d8c0b69cf4",
+    "arm64_elf_bytes": 3792,
+    "arm64_elf_type": "ET_EXEC",
+    "arm64_machine": 183,
+    "arm64_text_permissions": "RX",
+    "arm64_data_permissions": "RW",
+    "arm64_stack_permissions": "RW_no_X"
+  },
+  "observations": {
+    "x86_native_valid_exit_code": 0,
+    "x86_native_wrong_exit_code": 11,
+    "aarch64_cross_link_success": true,
+    "aarch64_executed": false,
+    "qemu_runner_available": false,
+    "rust_reference_compilation_executed": false,
+    "full_hepta_source_to_llvm_executed": false,
+    "physical_hardware_executed": false
+  },
+  "claims": {
+    "functional_finite_C_standin_qualified_on_x86": true,
+    "AArch64_static_elf_link_qualified": true,
+    "AArch64_execution_qualified": false,
+    "general_allocator_qualified": false,
+    "whole_language_soundness_proved": false,
+    "whole_project_blockers_closed": false
+  },
+  "reproduction": [
+    "clang --target=x86_64-unknown-linux-gnu -x c -std=c11 -ffreestanding -nostdinc -fno-builtin -fno-stack-protector -O2 -Wall -Wextra -Werror -c <each-source>",
+    "clang --target=x86_64-unknown-linux-gnu -fuse-ld=lld -nostdlib -static -Wl,-z,noexecstack -Wl,-e,_start runtime-x86.o standin-x86.o -o native-x86.elf",
+    "./native-x86.elf (exit 0)",
+    "./native-wrong.elf (exit 11)",
+    "clang --target=aarch64-unknown-linux-gnu -fuse-ld=lld -nostdlib -static -Wl,-z,noexecstack -Wl,-e,_start runtime-arm64.o standin-arm64.o -o linked-arm64.elf"
+  ]
+}

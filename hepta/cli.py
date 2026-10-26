@@ -24,6 +24,33 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="hepta", description="Hepta native systems language")
     parser.add_argument("--version", action="version", version="hepta " + __version__)
     sub = parser.add_subparsers(dest="command", required=True)
+    hia = sub.add_parser("hia", help="Independent typed HIA program verification, execution and native compilation")
+    hia_actions = hia.add_subparsers(dest="hia_action", required=True)
+    for action in ("verify", "inspect", "run", "emit", "build", "lower", "patch",
+                   "import-executable", "import-scalar"):
+        h = hia_actions.add_parser(action)
+        h.add_argument("input", help="Standalone HIA JSON program; lower accepts Hepta source")
+        if action in {"emit", "build", "lower", "patch", "import-executable", "import-scalar"}:
+            h.add_argument("--output", "-o", required=action == "build")
+        if action == "run":
+            h.add_argument("--function", required=True)
+            h.add_argument("--arguments", default="[]")
+            h.add_argument("--max-steps", type=int, default=1000000)
+            h.add_argument("--max-heap-bytes", type=int, default=1048576)
+            h.add_argument("--allocation-fail-at", type=int)
+        if action == "build":
+            h.add_argument("--clang", default="clang")
+            h.add_argument("--kind", choices=["shared", "object"], default="shared")
+        if action in {"emit", "build"}:
+            h.add_argument("--target", choices=["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu"],
+                           default="x86_64-unknown-linux-gnu")
+        if action in {"lower", "import-executable", "import-scalar"}:
+            h.add_argument("--module", default="migrated")
+        if action in {"import-executable", "import-scalar"}:
+            h.add_argument("--source", required=True, help="Legacy origin authentication only")
+            h.add_argument("--project-sha256", required=action == "import-scalar")
+        if action == "patch":
+            h.add_argument("--request", required=True)
     doctor = sub.add_parser("doctor", help="Inspect the actual native toolchain")
     doctor.add_argument("--rustc")
     lock = sub.add_parser("lock", help="Lock local package source and dependency bytes")
@@ -166,6 +193,86 @@ def main(argv=None) -> int:
             p.add_argument("--apply", action="store_true", help="Atomically apply after native validation")
     args = parser.parse_args(argv)
     try:
+        if args.command == "hia":
+            from .hia_program import verify_program
+            from .hia_program_tools import (read_bounded, decode_json, inspect_program,
+                                            apply_program_patch, publish_program)
+            if args.hia_action in {"import-executable", "import-scalar"}:
+                from .core import from_executable_core, from_scalar_core
+                source = read_bounded(args.source).decode("utf-8")
+                raw = read_bounded(args.input)
+                if args.hia_action == "import-executable":
+                    program = from_executable_core(decode_json(raw), source=source,
+                        project_sha256=args.project_sha256, module=args.module)
+                else:
+                    from hashlib import sha256
+                    from .hia_core import HIAScalarCore
+                    from .checker import check
+                    from .parser import parse
+                    original = parse(source, str(Path(args.source).absolute()))
+                    old = HIAScalarCore(raw.decode("utf-8"), sha256(raw).hexdigest())
+                    program = from_scalar_core(old, program=original, checked=check(original),
+                        project_sha256=args.project_sha256, module=args.module)
+                output_json(publish_program(program, args.output) if args.output else program.as_dict())
+                return 0
+            if args.hia_action == "lower":
+                from .hia_program_source import lower_source
+                program = verify_program(lower_source(
+                    read_bounded(args.input).decode("utf-8"), path=str(Path(args.input).absolute()),
+                    module=args.module))
+                result = publish_program(program, args.output) if args.output else program.as_dict()
+                output_json(result)
+                return 0
+            program = verify_program(read_bounded(args.input))
+            if args.hia_action == "verify":
+                output_json({**program.report(), "status": "standalone_core_checked",
+                             "native_executed": False})
+                return 0
+            if args.hia_action == "inspect":
+                output_json(inspect_program(program))
+                return 0
+            if args.hia_action == "run":
+                from .hia_program_runtime import (execute_program, HIAProgramTrap,
+                                                  HIAProgramBudgetExceeded)
+                if len(args.arguments.encode("utf-8")) > 65536:
+                    raise ValueError("HIA entry arguments exceed their byte limit")
+                try:
+                    result = execute_program(program, args.function, decode_json(args.arguments),
+                                             max_steps=args.max_steps, max_heap_bytes=args.max_heap_bytes,
+                                             allocation_fail_at=args.allocation_fail_at)
+                except (HIAProgramTrap, HIAProgramBudgetExceeded) as exc:
+                    output_json(exc.report)
+                    return 1
+                output_json(result)
+                return 0 if result.get("status") == "returned" else 1
+            if args.hia_action in {"emit", "build"}:
+                from .hia_program_llvm import emit_program_llvm, build_program_native
+                if args.hia_action == "build":
+                    result = build_program_native(program, args.output, clang=args.clang,
+                                                  kind=args.kind, target=args.target)
+                    output_json(result)
+                    return 0 if result.get("ok") is True else 1
+                ir = emit_program_llvm(program, target=args.target)
+                if args.output:
+                    destination = Path(args.output).absolute()
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    with destination.open("x", encoding="utf-8") as stream:
+                        stream.write(ir.text)
+                    output_json({"schema": "hepta.hia.llvm-output.v1", "ok": True,
+                                 "program_sha256": program.sha256, "output": str(destination),
+                                 "status": "emitted_not_compiled"})
+                else:
+                    print(ir.text, end="")
+                return 0
+            if args.hia_action == "patch":
+                revised, receipt = apply_program_patch(program, read_bounded(args.request))
+                if args.output:
+                    receipt["publication"] = publish_program(revised, args.output)
+                    receipt["status"] = "verified_new_snapshot_published"
+                else:
+                    receipt["program"] = revised.as_dict()
+                output_json(receipt)
+                return 0
         if getattr(args, "debug", False) and args.c_opt != "default":
             raise ValueError("--debug disables optimization and cannot use --c-opt unroll")
         if args.command == "workspace":

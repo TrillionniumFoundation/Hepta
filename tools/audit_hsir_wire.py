@@ -33,6 +33,23 @@ PROFILES = {
     },
 }
 
+PROFILE_LAYOUTS = {
+    # Two historical producers accidentally share a schema name; only their
+    # exact known envelopes are admissible for audit, not for execution.
+    "source_bound_dict_v0": frozenset({
+        "schema", "profile", "module", "path", "source_sha256",
+        "project_sha256", "imports", "structs", "enums", "functions",
+        "untyped_expressions", "all_expressions_typed", "external_obligations",
+        "volatile_accesses", "foreign_assumptions", "resource_contracts",
+        "owned_types", "claims", "sha256",
+    }),
+    "frozen_snapshot_v0": frozenset({
+        "schema", "status", "program", "source_sha256", "imports",
+        "structs", "enums", "functions", "external_assumptions",
+        "resource_contracts", "typed_expression_count", "claims", "sha256",
+    }),
+}
+
 class HSIRWireRejected(ValueError):
     pass
 
@@ -172,8 +189,13 @@ def fingerprint(record: dict) -> dict:
             name, profile = candidate, settings
     if profile is None or ("profile" in record and "status" in record):
         raise HSIRWireRejected("E_HSIR_UNKNOWN_PROFILE")
-    if any(key not in record for key in profile["required"]):
+    # A rehashed unknown field must not slip through as an accepted version.
+    # This audit never treats a recognized layout as semantic equivalence.
+    actual_fields = set(record)
+    if PROFILE_LAYOUTS[name] - actual_fields:
         raise HSIRWireRejected("E_HSIR_MISSING_FIELDS")
+    if actual_fields - PROFILE_LAYOUTS[name]:
+        raise HSIRWireRejected("E_HSIR_UNKNOWN_FIELDS")
     if not isinstance(record.get("functions"), list):
         raise HSIRWireRejected("E_HSIR_INVALID_FUNCTIONS")
     if not isinstance(record.get("source_sha256"), str) or not SHA256.fullmatch(record["source_sha256"]):
@@ -190,7 +212,8 @@ def fingerprint(record: dict) -> dict:
             raise HSIRWireRejected("E_HSIR_TYPE_COUNT")
         require_unproved_external_assumptions(record["external_assumptions"])
     claims = record.get("claims")
-    if not isinstance(claims, dict) or not all(claims.get(k) is False for k in profile["denied_claims"]):
+    if (type(claims) is not dict or set(claims) != set(profile["denied_claims"])
+            or not all(claims.get(k) is False for k in profile["denied_claims"])):
         raise HSIRWireRejected("E_HSIR_UNSUPPORTED_PROOF_CLAIM")
     if any(value is not False for value in claims.values()):
         raise HSIRWireRejected("E_HSIR_UNRECOGNIZED_PROOF_CLAIM")
