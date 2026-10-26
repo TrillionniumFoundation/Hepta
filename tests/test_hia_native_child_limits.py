@@ -6,12 +6,14 @@ HIA owner/memory backend; those retain their separate full-suite acceptance.
 """
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 import platform
 import shutil
 import subprocess
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 
@@ -50,8 +52,9 @@ int32_t huge_virtual_allocation(void) {
 """
 
 
-@unittest.skipUnless(platform.system() == "Linux" and shutil.which("clang"),
-                     "real Linux host Clang required for finite C transport")
+@unittest.skipUnless(platform.system() == "Linux" and shutil.which("clang")
+                     and hasattr(os, "memfd_create"),
+                     "real Linux host, sealed memfd and Clang required")
 class NativeChildHardLimitTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -115,6 +118,67 @@ class NativeChildHardLimitTests(unittest.TestCase):
         # address space. This is an evaluator budget, not the language's
         # native heap bound or a general process security sandbox.
         self.assertEqual(self.observe("huge_virtual_allocation"), ("value", 7))
+
+
+    def test_worker_timeout_and_normal_exit_both_reap_forked_descendants(self):
+        # subprocess.run(timeout=...) only kills its direct child. A native
+        # constructor/callee can fork, then either block or return normally;
+        # both descendants must be killed before the evaluator returns.
+        # This covers only children remaining in the worker's process group.
+        with tempfile.TemporaryDirectory(prefix="hia-group-control-") as folder:
+            root = Path(folder)
+            marker = root / "escaped-child-wrote-marker"
+            c_source = root / "fork.c"
+            library = root / "fork.so"
+            code = """
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <stdint.h>
+static int32_t spawn_child(void) {
+    pid_t pid = fork();
+    if (pid < 0) return 99;
+    if (pid == 0) {
+        usleep(800000);
+        int fd = open(""" + json.dumps(str(marker)) + """, O_WRONLY|O_CREAT, 0600);
+        if (fd >= 0) close(fd);
+        _exit(0);
+    }
+    return 7;
+}
+int32_t fork_and_stall(void) {
+    int32_t value = spawn_child();
+    sleep(4);
+    return value;
+}
+int32_t fork_and_return(void) { return spawn_child(); }
+"""
+            c_source.write_text(code, encoding="utf-8")
+            subprocess.run(["clang", "-O0", "-shared", "-fPIC",
+                            str(c_source), "-o", str(library)],
+                           check=True, timeout=30)
+            for symbol, timeout in (("fork_and_stall", 0.2),
+                                    ("fork_and_return", 3.0)):
+                with self.subTest(symbol=symbol):
+                    original, identity, fd = differential._pin_native_artifact(library)
+                    try:
+                        differential._check_artifact_unchanged(library, original, identity)
+                        if symbol == "fork_and_stall":
+                            with self.assertRaisesRegex(
+                                    differential.HIADifferentialRejected, "timed out"):
+                                differential._observe_native(
+                                    library, symbol, "i32", [], timeout=timeout, pinned_fd=fd)
+                        else:
+                            self.assertEqual(
+                                differential._observe_native(
+                                    library, symbol, "i32", [], timeout=timeout, pinned_fd=fd),
+                                ("value", 7))
+                    finally:
+                        os.close(fd)
+                    # The forked child would create this marker after 0.8s.
+                    time.sleep(1.1)
+                    self.assertFalse(marker.exists(),
+                        "native child must not leave an ordinary forked descendant running")
 
 
 if __name__ == "__main__":

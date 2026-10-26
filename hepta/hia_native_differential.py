@@ -209,11 +209,36 @@ def _observe_native(library: Path, function: str, word: str, args: list[int], *,
         _reject("bounded Linux host and sealed native fd required")
     try:
         with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
-            proc = subprocess.run([sys.executable, "-I", "-c", _WORKER,
-                                   "/proc/self/fd/" + str(pinned_fd),
-                                   function, word, json.dumps(args, separators=(",", ":"))],
-                                  stdout=out, stderr=err, check=False, timeout=timeout,
-                                  pass_fds=(pinned_fd,))
+            # The sealed memfd and checked ABI come from the unchanged
+            # canonical native observer. Give each finite case its own session
+            # so a timed-out worker cannot leave ordinary forked children
+            # running after the evaluator returns. Even a worker that exits
+            # successfully may have spawned descendants: kill the process
+            # group on *every* exit, before accepting its output.
+            # This does not stop setsid escapes or make native code sandboxed.
+            proc = subprocess.Popen(
+                [sys.executable, "-I", "-c", _WORKER,
+                 "/proc/self/fd/" + str(pinned_fd),
+                 function, word, json.dumps(args, separators=(",", ":"))],
+                stdout=out, stderr=err, pass_fds=(pinned_fd,),
+                start_new_session=True)
+            timed_out = False
+            try:
+                proc.wait(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                timed_out = True
+            finally:
+                # A forked child can outlive its direct worker. Reap the
+                # process group even for ordinary exit/trap; reject unexpected
+                # OS failures rather than silently accepting containment.
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                if proc.poll() is None:
+                    proc.wait()
+            if timed_out:
+                _reject("native child timed out; process group terminated")
             out.seek(0)
             err.seek(0)
             child_stdout = out.read(4097)
