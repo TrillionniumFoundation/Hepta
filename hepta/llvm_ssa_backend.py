@@ -23,6 +23,7 @@ from .ssa import SSASnapshot
 from .ssa_verify import verify_scalar_ssa
 from .llvm_ir_profile import (DECLARATIONS, HEADER, TYPE_MARKER,
                               LLVMProfileRejected, validate_scalar_llvm_profile)
+from .native_tool_identity import ToolIdentityRejected, digest_executable
 
 
 class LLVMSSARejected(ValueError):
@@ -314,6 +315,10 @@ def compile_scalar_ssa_llvm(ir: SSA_LLVM_IR, *, clang: str = "clang", output: st
     version = _clang_run([str(compiler), "--version"], timeout=10)
     if version.returncode or not version.stdout.strip():
         raise LLVMSSARejected("E_LLVM_SSA_TOOLCHAIN: compiler identity unavailable")
+    try:
+        compiler_digest = digest_executable(compiler)
+    except ToolIdentityRejected as exc:
+        raise LLVMSSARejected("E_LLVM_SSA_TOOLCHAIN: compiler file identity unavailable") from exc
     # Do not resolve the output leaf: a dangling symlink could publish
     # the compiled library to a different pathname.
     target = Path(output).absolute()
@@ -328,6 +333,12 @@ def compile_scalar_ssa_llvm(ir: SSA_LLVM_IR, *, clang: str = "clang", output: st
         result = _clang_run(cmd, timeout=45)
         if result.returncode or not library.is_file() or library.stat().st_size == 0:
             raise LLVMSSARejected("E_LLVM_SSA_NATIVE: clang compilation failed: " + result.stderr[:1800])
+        try:
+            stable_toolchain = digest_executable(compiler) == compiler_digest
+        except ToolIdentityRejected:
+            stable_toolchain = False
+        if not stable_toolchain:
+            raise LLVMSSARejected("E_LLVM_SSA_STALE: compiler changed during native build")
         if target.is_symlink() or target.exists():
             raise LLVMSSARejected("E_LLVM_SSA_OUTPUT: destination created during build")
         os.link(library, target)
@@ -339,7 +350,7 @@ def compile_scalar_ssa_llvm(ir: SSA_LLVM_IR, *, clang: str = "clang", output: st
             "artifact_sha256": sha256(target.read_bytes()).hexdigest(),
             "artifact_bytes": target.stat().st_size,
             "toolchain": {"version": version.stdout.splitlines()[0],
-                          "compiler_sha256": sha256(compiler.read_bytes()).hexdigest()},
+                          "compiler_sha256": compiler_digest},
             "claims": {"backend_refinement_proven": False, "cross_target_abi_qualified": False,
                        "runtime_execution_qualified": False, "whole_p6_gate_closed": False,
                        "ssa_cfg_origin_rechecked": origin_rechecked}}
