@@ -68,6 +68,13 @@ mirror of the checked language's actual set:
   and 'blocking function claiming may_suspend=false' returned True.
 - After patch: both return False; 9/9 locally exercised
   positive/adversarial policy cases passed.
+- Executed the complete **15/15 isolated source-file unit tests**, no skips,
+  on Python 3.13.5 using the exact new module and test source blobs
+  `346ccb0308d9bbf9bbb699112ff880abb30a4f0d` and
+  `f8b2cc5ebb04c441983dfb7b7003d16d0f39a330`. The only local
+  substitution was a one-line checker.EFFECTS vocabulary stub copied
+  exactly from the pinned real frontend; no Hepta end-to-end execution
+  or pinned Rust borrow validation is implied.
 
 Committed tests additionally cover the shared predicate, its use from
 both Resource IR and Owned LLVM, malformed booleans, blocking/spawning,
