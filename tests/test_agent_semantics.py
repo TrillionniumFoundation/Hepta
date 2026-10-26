@@ -149,6 +149,15 @@ class AgentSemanticTests(unittest.TestCase):
                     with self.assertRaisesRegex(WorkspaceError, "source graph identity"):
                         agent_semantics.inspect_pinned_semantics("/immutable/store")
 
+        # An absent attribute must also be rejected through the normal
+        # WorkspaceError contract, never an uncaught AttributeError.
+        del self.graph.identity
+        with (patch.object(agent_semantics, "inspect_workspace", return_value=self.snapshot),
+              patch.object(agent_semantics, "load_project", return_value=self.graph),
+              patch.object(agent_semantics, "compiler_hash", return_value=self.COMPILER)):
+            with self.assertRaisesRegex(WorkspaceError, "source graph identity"):
+                agent_semantics.inspect_pinned_semantics("/immutable/store")
+
     def test_compiler_identity_change_rejected(self):
         self.snapshot["snapshot"]["manifest"]["compiler_sha256"] = "f" * 64
         with (patch.object(agent_semantics, "inspect_workspace", return_value=self.snapshot),
@@ -158,7 +167,8 @@ class AgentSemanticTests(unittest.TestCase):
 
     def test_source_graph_race_after_lowering_rejected(self):
         states = iter([True, False])
-        self.graph = SimpleNamespace(program=object(), unchanged=lambda: next(states))
+        self.graph = SimpleNamespace(program=object(), identity="f" * 64,
+                                     unchanged=lambda: next(states))
         with (patch.object(agent_semantics, "inspect_workspace", return_value=self.snapshot),
               patch.object(agent_semantics, "load_project", return_value=self.graph),
               patch.object(agent_semantics, "check", return_value=self.checked),

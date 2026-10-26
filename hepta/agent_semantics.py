@@ -75,7 +75,8 @@ def inspect_pinned_semantics(store: str | Path, *,
     graph = load_project(Path(snapshot["entry"]))
     # The entry file alone does NOT identify an imported module closure.
     # Use the canonical project loader's import-edge/source digest authority.
-    if not isinstance(graph.identity, str) or not _HASH.fullmatch(graph.identity):
+    graph_identity = getattr(graph, "identity", None)
+    if not isinstance(graph_identity, str) or not _HASH.fullmatch(graph_identity):
         raise WorkspaceError("E_AGENT_IDENTITY", "Missing exact pinned source graph identity")
     if not graph.unchanged():
         raise WorkspaceError("E_AGENT_RACE", "Pinned import graph changed during semantic inspection")
@@ -122,7 +123,7 @@ def inspect_pinned_semantics(store: str | Path, *,
         "compiler_sha256": meta["compiler_sha256"],
         "source_semantic_sha256": hsir["sha256"],
         "source_sha256": hsir["source_sha256"],  # entry file only
-        "source_graph_sha256": graph.identity,  # every resolved import/sidecar
+        "source_graph_sha256": graph_identity,  # every resolved import/sidecar
         "validated_sources": meta.get("validated_sources"),
         "nodes": inspected.get("nodes"),
         "functions": [{
