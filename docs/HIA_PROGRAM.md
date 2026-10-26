@@ -172,6 +172,18 @@ preserves calls through declaration-level `"no-builtins"` plus call-site
 the measured LLVM optimizer. Native evidence separately intercepts allocator
 calls and NULL returns, including a missing-free machine-code negative control.
 
+The backend may omit zero writes only when the complete verified function has
+scalar parameters/results and every block uses an explicit closed whitelist
+that excludes all calls, byte loads and byte stores. Unknown instructions,
+unknown boundary types and unknown terminators disable this optimization.
+These local owners cannot escape or expose their byte contents; `malloc`
+replaces `calloc` while preserving the allocation attempt, NULL branch, live
+storage and explicit free. All functions that can observe bytes retain zeroed
+allocation. This is an implementation optimization, not an uninitialized-buffer
+operation in Core. The allocator must supply a fresh, nonaliasing region or
+NULL, and free must accept either allocation family or NULL. It does not promise
+that different allocator implementations fail on the same physical request.
+
 Loans carry a root owner or external borrowed parameter and a parent loan.
 Reborrowing suspends use of the parent until the child ends. A view can cross
 blocks and loop iterations only with its root and parent capability. Incoming
@@ -223,6 +235,18 @@ inline assembly, atomics, MMIO, floats and 32-bit word models remain excluded.
 Their existence in a broader historical backend does not enable them in this
 standalone core.
 
+`tools/qualify_hia_migration.py` exercises actual frontend output: a C
+compilation-database input with two byte owners, a migrated C++ scalar value
+class, and freshly generated output from the closed C++ exclusive-owner
+migrator. The owned-class path loads the generated Hepta module and its
+consumer, lowers their real checked AST to standalone HIA, and compares all
+475 existing lifecycle/fault vectors against a separately compiled original.
+The target links the generated HIA object and a scalar C observation driver;
+it does not link the original C++ implementation. Declaration/member inventory,
+source/IR/artifact hashes and allocator traces remain separate evidence. This
+qualifies the declared normalized owner protocol, not arbitrary C++ class
+bodies, STL templates, class-layout ABI compatibility or migration labor cost.
+
 ## Interpreter, native code and external conditions
 
 `execute_program` admits scalar arguments and scalar return values at its
@@ -262,7 +286,7 @@ Publication creates a new file without replacing an existing path.
 | Static checker | Typed closed SSA, complete local linear flows, nonconflicting loan graph, effect coverage | Whole-language soundness theorem, frontend/backend refinement theorem |
 | Runtime checks | Integer overflow/division/shift/cast guards, byte bounds, fallible allocation | All program logic, termination, performance, operating-system isolation |
 | Native qualification | Actual finite outputs, aborts, allocation/refusal/cleanup traces, artifact inventory | Exhaustive input equivalence or all machine/optimizer behaviors |
-| External conditions | Allocator must return distinct initialized live regions; free must accept its live allocation or NULL; platform ABI must hold | Arbitrary foreign callers, malicious same-user artifact modification, device protocol correctness |
+| External conditions | Allocators return fresh disjoint live regions or NULL; calloc initializes bytes, while malloc is used only when bytes cannot be observed; free accepts either family or NULL; platform ABI holds | Arbitrary foreign callers, malicious same-user artifact modification, device protocol correctness |
 
 The compiler and Python checker, LLVM/Clang, the native runtime, libc and the
 platform are part of the present trusted implementation. Foreign code has no

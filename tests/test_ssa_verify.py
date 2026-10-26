@@ -211,7 +211,13 @@ class SSAVerificationTests(unittest.TestCase):
                     verify_scalar_ssa(encoded(forged), cfg)
 
     def test_literal_types_and_source_spans_survive_ssa_rehash(self):
-        cfg = snapshot([block(0, [let("x", i(0))], kind="return", value=i(0))])
+        instruction = let("x", i(0))
+        # The generic hand-built CFG helpers intentionally use span=None.
+        # This attack needs a real zero-valued source coordinate: False must
+        # not impersonate 0 after the SSA envelope has been rehashed.
+        instruction["span"] = {"path": "ssa-origin.hepta", "start": 0,
+                               "end": 1, "line": 1, "column": 1}
+        cfg = snapshot([block(0, [instruction], kind="return", value=i(0))])
         ssa = lower_cfg_scalar_ssa(cfg)
         self.assertTrue(verify_scalar_ssa(ssa, cfg).as_dict())
         for name, mutation in {
@@ -221,6 +227,8 @@ class SSAVerificationTests(unittest.TestCase):
                 lambda f: f["blocks"][0]["terminator"]["value"].update(value=False),
             "span_start_bool_instead_of_zero":
                 lambda f: f["blocks"][0]["instructions"][0]["span"].update(start=False),
+            "span_removed":
+                lambda f: f["blocks"][0]["instructions"][0].update(span=None),
         }.items():
             with self.subTest(case=name):
                 forged = ssa.as_dict()
@@ -228,6 +236,18 @@ class SSAVerificationTests(unittest.TestCase):
                 mutation(forged["functions"][0])
                 with self.assertRaisesRegex(SSAVerificationRejected, "ORIGIN"):
                     verify_scalar_ssa(encoded(forged), cfg)
+
+    def test_absent_source_span_is_preserved_and_cannot_be_invented_after_rehash(self):
+        cfg = snapshot([block(0, [let("x", i(0))], kind="return", value=i(0))])
+        ssa = lower_cfg_scalar_ssa(cfg)
+        self.assertTrue(verify_scalar_ssa(ssa, cfg).as_dict())
+        self.assertIsNone(ssa.as_dict()["functions"][0]["blocks"][0]["instructions"][0]["span"])
+        forged = ssa.as_dict()
+        forged.pop("sha256")
+        forged["functions"][0]["blocks"][0]["instructions"][0]["span"] = {
+            "path": "invented.hepta", "start": 0, "end": 1, "line": 1, "column": 1}
+        with self.assertRaisesRegex(SSAVerificationRejected, "ORIGIN"):
+            verify_scalar_ssa(encoded(forged), cfg)
 
     def test_duplicate_definition_wrong_count(self):
         cfg, ssa = self.fixture()

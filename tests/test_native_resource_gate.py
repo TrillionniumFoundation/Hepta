@@ -121,11 +121,28 @@ class NativeResourceGateTests(unittest.TestCase):
                     with (patch("hepta.llvm_ssa_pipeline.analyze_project", return_value=analysis),
                           patch("hepta.llvm_ssa_pipeline.qualify_native_resource_source",
                                 return_value=forged),
+                          patch("hepta.hia_core.qualify_native_resource_source",
+                                wraps=qualify_native_resource_source) as replay,
+                          patch("hepta.llvm_ssa_pipeline.emit_scalar_ssa_llvm") as emitter,
                           patch("hepta.llvm_ssa_pipeline.compile_scalar_ssa_llvm") as compiler):
                         report = build_llvm_ssa_source(src, dest)
                     self.assertFalse(report["ok"], report)
-                    self.assertEqual(report["diagnostics"][0]["code"], "E_NATIVE_RESOURCE_GATE")
+                    if label == "unbound_graph":
+                        # A well-shaped but unrelated graph digest passes the
+                        # receipt shape check. The mandatory HIA source replay
+                        # independently rederives the graph and rejects the
+                        # mismatch before LLVM emission or native compilation.
+                        self.assertEqual(report["diagnostics"][0]["code"], "E_HIA_CORE")
+                        self.assertIn("resource gate does not replay from checked source",
+                                      report["diagnostics"][0]["message"])
+                        replay.assert_called_once()
+                    else:
+                        self.assertEqual(report["diagnostics"][0]["code"], "E_NATIVE_RESOURCE_GATE")
+                        replay.assert_not_called()
+                    self.assertFalse(report["claims"]["hia_scalar_core_source_replayed"])
+                    self.assertFalse(report["claims"]["native_artifact_compiled"])
                     self.assertFalse(dest.exists())
+                    emitter.assert_not_called()
                     compiler.assert_not_called()
 
     def test_noncanonical_source_foreign_obligations_refused(self):

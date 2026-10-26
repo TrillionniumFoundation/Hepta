@@ -17,7 +17,8 @@ from hepta.clang_capture import run_bounded
 from hepta.hia_program import execute_program, verify_program
 from hepta.hia_program_runtime import HIAProgramTrap
 from hepta.hia_program_llvm import (
-    HIAProgramLLVMRejected, TARGET_AARCH64, build_program_native, compile_program_llvm, emit_program_llvm,
+    HIAProgramLLVMRejected, TARGET_AARCH64, _can_elide_zero_initialization,
+    build_program_native, compile_program_llvm, emit_program_llvm,
 )
 
 
@@ -220,6 +221,103 @@ class StandaloneHIANativeTests(unittest.TestCase):
                                      output=self.path / "forged-arm.o", clang=CLANG, kind="object")
             with self.assertRaisesRegex(HIAProgramLLVMRejected, "unsupported"):
                 emit_program_llvm(self.program, target="riscv64-unknown-linux-gnu")
+
+    def test_unread_allocation_keeps_zero_reads_null_guards_and_real_allocator_events(self):
+        from tools.qualify_hia_program import block, constant, function, jump, operation, ret
+        unused = function("unused_buffer", [("n", "usize")], ["u64"], ["alloc"], [
+            block("entry", [("n", "usize")], [
+                operation("buffer.try_new", ["n"], [("owner", "buffer"), ("ok", "bool")]),
+                operation("buffer.len", ["owner"], [("length", "usize")]),
+                operation("owner.drop", ["owner"]),
+                operation("int.cast", ["length"], [("wide", "u64")], mode="wrap"),
+                constant("error", "u64", 99),
+                operation("select", ["ok", "wide", "error"], [("answer", "u64")]),
+            ], ret("answer")),
+        ])
+        read = function("read_zero_bytes", [("n", "usize")], ["u8"], ["alloc", "read", "trap"], [
+            block("entry", [("n", "usize")], [operation("buffer.new", ["n"], [("owner", "buffer")])],
+                  jump("later", "owner")),
+            block("later", [("later_owner", "buffer")], [
+                constant("at", "usize", 0), operation("borrow.read", ["later_owner"], [("view", "readbuf")]),
+                operation("buffer.load", ["view", "at"], [("byte", "u8")]),
+                operation("loan.end", ["view"]), operation("owner.drop", ["later_owner"]),
+            ], ret("byte")),
+        ])
+        infallible = function("new_unused", [("n", "usize")], ["u64"], ["alloc", "trap"], [
+            block("entry", [("n", "usize")], [
+                operation("buffer.new", ["n"], [("owner", "buffer")]),
+                operation("buffer.len", ["owner"], [("length", "usize")]), operation("owner.drop", ["owner"]),
+                operation("int.cast", ["length"], [("answer", "u64")], mode="wrap"),
+            ], ret("answer")),
+        ])
+        core = verify_program({"schema": "hepta.hia.program.v1", "module": "unread_allocation", "functions": [unused, read, infallible]})
+        self.assertTrue(_can_elide_zero_initialization(unused))
+        self.assertFalse(_can_elide_zero_initialization(read))
+        self.assertTrue(_can_elide_zero_initialization(infallible))
+        self.assertEqual(execute_program(core, "read_zero_bytes", [17])["result"], 0)
+        self.assertEqual(execute_program(core, "unused_buffer", [12281], allocation_fail_at=1)["result"], 99)
+        driver = r"""
+#include <stdint.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+void *__real_malloc(size_t); void *__real_calloc(size_t,size_t); void __real_free(void *);
+static void *addresses[8];
+static size_t plain=0,zeroed=0,releases=0,live=0,refused=0;
+static void *remember(void *p) {
+  if(p){size_t i;for(i=0;i<8;i++)if(!addresses[i])break;
+    if(i==8)exit(80);addresses[i]=p;live++;}return p;
+}
+void *__wrap_malloc(size_t n) {
+  if(n==12281){refused++;return NULL;}
+  void *p=__real_malloc(n);if(p){memset(p,0xa5,n);plain++;}return remember(p);
+}
+void *__wrap_calloc(size_t n,size_t width) {
+  if(n==1 && width==12281){refused++;return NULL;}
+  void *p=__real_calloc(n,width);if(p)zeroed++;return remember(p);
+}
+void __wrap_free(void *p) {
+  if(p){size_t i;for(i=0;i<8;i++)if(addresses[i]==p)break;
+    if(i==8)exit(81);addresses[i]=NULL;releases++;live--;}__real_free(p);
+}
+uint64_t unused_buffer(size_t); uint8_t read_zero_bytes(size_t); uint64_t new_unused(size_t);
+int main(int argc,char **argv) {
+  (void)argv;
+  if(argc>1)return (int)new_unused(12281);
+  if(unused_buffer(17)!=17 || unused_buffer(0)!=0 || unused_buffer(12281)!=99 || unused_buffer(SIZE_MAX)!=99)return 82;
+  if(read_zero_bytes(17)!=0 || read_zero_bytes(17)!=0 || new_unused(17)!=17)return 83;
+  printf("%zu %zu %zu %zu %zu\n",plain,zeroed,releases,live,refused);
+  return plain!=2 || zeroed!=2 || releases!=4 || live!=0 || refused!=1;
+}
+"""
+        with tempfile.TemporaryDirectory(dir=self.path) as temporary:
+            folder = Path(temporary); obj, source, binary = folder / "program.o", folder / "driver.c", folder / "driver"
+            compile_program_llvm(emit_program_llvm(core), program=core, output=obj, clang=CLANG, kind="object")
+            source.write_text(driver)
+            linked = run_bounded([CLANG, "-O2", str(source), str(obj), "-Wl,--wrap=malloc",
+                                  "-Wl,--wrap=calloc", "-Wl,--wrap=free", "-o", str(binary)])
+            self.assertEqual(linked.returncode, 0, linked.stderr)
+            executed = run_bounded([str(binary)])
+            self.assertEqual(executed.returncode, 0, executed.stdout + executed.stderr)
+            self.assertEqual(executed.stdout.strip(), "2 2 4 0 1")
+            self.assertEqual(run_bounded([str(binary), "trap"]).returncode, -6)
+
+    def test_zero_initialization_elision_rejects_future_ops_types_and_terminators(self):
+        from copy import deepcopy
+        function = self.functions["sum_to"]
+        self.assertTrue(_can_elide_zero_initialization(function))
+        for name in ("buffer.load", "buffer.store", "call", "future.byte_operation"):
+            changed = deepcopy(function)
+            changed["blocks"][-1]["ops"].append({"op": name, "args": [], "out": [], "attrs": {}})
+            self.assertFalse(_can_elide_zero_initialization(changed))
+        for typ in ("buffer", "readbuf", "mutbuf", "future_resource"):
+            changed = deepcopy(function); changed["params"][0]["type"] = typ
+            self.assertFalse(_can_elide_zero_initialization(changed))
+            changed = deepcopy(function); changed["returns"] = [typ]
+            self.assertFalse(_can_elide_zero_initialization(changed))
+        changed = deepcopy(function); changed["blocks"][-1]["term"]["op"] = "future_escape"
+        self.assertFalse(_can_elide_zero_initialization(changed))
 
 
 if __name__ == "__main__":

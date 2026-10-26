@@ -31,14 +31,34 @@ python tools/qualify_hia_migration.py --workdir /tmp/hia-migration-run \
   --clang /usr/lib/llvm-20/bin/clang --clangxx /usr/lib/llvm-20/bin/clang++
 ```
 
-The current case inventory contains 56 C multi-owner cases and 20 existing
-C++ `ScalarState` migration cases. Each executes both the separate original
-implementation and the HIA native target, for 152 native result observations;
-16 observations include a real intercepted allocator refusal. The standalone
-HIA interpreter is a third consumer. Reports retain commands, raw process
-output, declaration inventory, hashes, link inputs and observed allocation/free
-counts. These are finite correctness and cleanup observations, not performance
-or engineering-cost measurements.
+The current case inventory contains 56 C multi-owner cases, 20 existing
+C++ `ScalarState` migration cases, and all 475 existing C++ `OwnedBytes`
+lifecycle vectors. Each executes both the separate original implementation and
+the HIA native target, for 1,102 native result observations. There are 212
+actual allocator-refusal observations: 16 in the C multi-owner cases and 196
+across the two C++ owner implementations. The HIA interpreter also executes
+the C/scalar-class vectors and all C++ owner vectors whose extent is at most
+17 bytes. Reports retain commands, raw process output, declaration inventory,
+hashes, link inputs and observed allocation/free counts. These are finite
+correctness and cleanup observations, not performance or engineering-cost
+measurements.
+
+The C++ owner path invokes `migrate_cpp_owned` on the actual original source,
+resolves its freshly generated module with the actual consumer, and feeds that
+AST into standalone HIA. It accounts for both top-level declarations and all
+15 inventoried class members. This existing migrator accepts a complete
+normalized AST ownership/lifecycle protocol; it is narrower than the C
+multi-owner structural translator and does not migrate arbitrary RAII code.
+C++ allocation/constructor exceptions become explicit `Result` errors, moves
+consume owners, and borrowed reads end before explicit drop. C++ class ABI
+preservation and general C++ exception unwinding are not claimed.
+
+The 475-vector native owner run observes 359 allocations, 359 releases, 98
+allocator refusals and zero live allocations in each implementation. The HIA
+target links its direct LLVM object with the C observation harness and an
+explicit `owned_case` scalar prototype; missing declarations are compile
+errors. The original C++ implementation is linked only into its separate
+oracle executable.
 
 ## Concrete generic instances
 

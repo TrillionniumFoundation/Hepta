@@ -50,6 +50,33 @@ def _command(argv, timeout=1800):
                 "seconds": time.monotonic() - started}
 
 
+def unittest_outcome(stderr, returncode):
+    """Retain failed-run counts without accepting partial or skipped runs."""
+    match = re.search(
+        r"(?m)^Ran ([0-9]+) tests? in [0-9.]+s\s+"
+        r"(OK|FAILED)(?: \(([^\n]*)\))?\s*\Z", stderr)
+    result = {"tests_run": None, "skipped": None, "failures": None,
+              "errors": None, "passed": False}
+    if match is None:
+        return result
+    result.update(tests_run=int(match.group(1)), skipped=0, failures=0, errors=0)
+    details = match.group(3)
+    if details:
+        for item in details.split(", "):
+            field = re.fullmatch(r"(skipped|failures|errors)=([0-9]+)", item)
+            if field is None:
+                # Expected/unexpected successes or a changed summary format
+                # require an explicit policy before the aggregate can pass.
+                return result
+            result[field.group(1)] = int(field.group(2))
+    result["passed"] = (returncode == 0 and match.group(2) == "OK"
+                        and result["tests_run"] > 0
+                        and result["skipped"] == 0
+                        and result["failures"] == 0
+                        and result["errors"] == 0)
+    return result
+
+
 def qualify(output, *, clang, rustc, qemu_aarch64, qemu_system_arm, linker):
     output = Path(output).absolute()
     if output.exists() or output.is_symlink():
@@ -122,10 +149,7 @@ def qualify(output, *, clang, rustc, qemu_aarch64, qemu_system_arm, linker):
                     write_new(logfile, raw)
                     row[channel] = {"path": str(logfile.relative_to(output)), "sha256": sha(raw), "bytes": len(raw)}
                 if evidence is None:
-                    match = re.search(r"(?m)^Ran ([0-9]+) tests? in [0-9.]+s\s+OK(?: \(skipped=([0-9]+)\))?\s*\Z", executed["stderr"])
-                    row["tests_run"] = int(match.group(1)) if match else None
-                    row["skipped"] = int(match.group(2) or 0) if match else None
-                    row["passed"] = executed["returncode"] == 0 and bool(match) and row["skipped"] == 0
+                    row.update(unittest_outcome(executed["stderr"], executed["returncode"]))
                 elif evidence.is_file() and not evidence.is_symlink():
                     raw = evidence.read_bytes()
                     payload = json.loads(raw)
