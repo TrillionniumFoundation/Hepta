@@ -13,6 +13,7 @@ from .pipeline import analyze_project, compiler_hash
 from .resource_ir import verify_resource_ir
 from .resource_lowering import lower_resource_ir
 from .elf_shared_abi import inspect_owned_shared_elf
+from .llvm_ssa_target import _verified_publication
 
 
 def build_llvm_owned_source(source, output, *, rustc=None, clang="clang", kind="shared", locked=False):
@@ -90,7 +91,17 @@ def build_llvm_owned_source(source, output, *, rustc=None, clang="clang", kind="
             if not project.unchanged() or compiler_hash() != ir.compiler_sha256:
                 raise LLVMOwnedRejected("E_LLVM_OWNED_STALE: source/compiler changed during native build")
             os.link(stage, destination)
-        report["native_backend"] = dict(native, output=str(destination))
+            # The source-facing hardlink is separate from the backend's
+            # internal publication. Bind final bytes + inode to the exact
+            # already-verified LLVM and dynamic ABI artifact.
+            try:
+                published_bytes = _verified_publication(stage, destination, data)
+            except ValueError as exc:
+                raise LLVMOwnedRejected(
+                    "E_LLVM_OWNED_PUBLICATION: final artifact identity or bytes changed") from exc
+        report["native_backend"] = dict(native, output=str(destination),
+                                        artifact_sha256=hashlib.sha256(published_bytes).hexdigest(),
+                                        artifact_bytes=len(published_bytes))
         report["claims"].update(actual_source_replayed=True, independent_resource_cfg_verified=True,
                                 native_artifact_compiled=True)
         report.update(ok=True, status="native_compiled_not_executed")
