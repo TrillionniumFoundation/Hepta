@@ -9,7 +9,7 @@ from hepta.static_resource_contracts import finite_static_contract_allowed
 
 def allowed(clauses, *, declared=(), inferred=()):
     fn = SimpleNamespace(name="example", resources=clauses, effects=set(declared))
-    checked = SimpleNamespace(effects={"example": set(inferred)})
+    checked = SimpleNamespace(ok=True, effects={"example": set(inferred)})
     return finite_static_contract_allowed(fn, checked)
 
 
@@ -74,6 +74,29 @@ class StaticResourcePolicyTests(unittest.TestCase):
             fn, SimpleNamespace(effects={"example": ["alloc"]})))
         self.assertFalse(finite_static_contract_allowed(
             fn, SimpleNamespace(effects={"example": {42}})))
+
+    def test_successful_checker_identity_is_mandatory(self):
+        fn = SimpleNamespace(name="example", resources={"heap_allocations": 0}, effects=set())
+        for checked in (
+            SimpleNamespace(effects={"example": set()}),
+            SimpleNamespace(ok=False, effects={"example": set()}),
+            SimpleNamespace(ok=0, effects={"example": set()}),
+            SimpleNamespace(ok=1, effects={"example": set()}),
+            SimpleNamespace(ok="validated", effects={"example": set()}),
+        ):
+            with self.subTest(checked=repr(checked)):
+                self.assertFalse(finite_static_contract_allowed(fn, checked))
+        self.assertTrue(finite_static_contract_allowed(
+            fn, SimpleNamespace(ok=True, effects={"example": set()})))
+
+    def test_no_suspend_must_not_silently_admit_block_or_spawn_effects(self):
+        for effect in ("block", "spawn"):
+            with self.subTest(effect=effect):
+                self.assertFalse(allowed({"may_suspend": False}, declared=(effect,)))
+                self.assertFalse(allowed({"may_suspend": False}, inferred=(effect,)))
+        self.assertTrue(allowed({"may_suspend": False}, inferred=("panic",)))
+        # An unconstrained function need not assert that it cannot suspend.
+        self.assertTrue(allowed({}, inferred=("block", "spawn")))
 
     def test_transitively_unconstrained_legacy_effects_preserved(self):
         # Reject only explicitly requested no-cost bounds. This helper must

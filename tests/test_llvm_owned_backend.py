@@ -178,7 +178,7 @@ class LLVMOwnedIdentityTests(unittest.TestCase):
         from types import SimpleNamespace
         def permitted(resources, declared=(), inferred=()):
             fn = SimpleNamespace(name="f", resources=resources, effects=set(declared))
-            checked_effects = SimpleNamespace(effects={"f": set(inferred)})
+            checked_effects = SimpleNamespace(ok=True, effects={"f": set(inferred)})
             return _resources_allowed(fn, checked_effects)
 
         self.assertTrue(permitted({}))
@@ -192,6 +192,8 @@ class LLVMOwnedIdentityTests(unittest.TestCase):
             ("suspend-true", {"may_suspend": True}, (), ()),
             ("allocation-effect", {"heap_allocations": 0}, (), ("alloc",)),
             ("blocking-effect", {"may_block": False}, ("block",), ()),
+            ("suspension-block", {"may_suspend": False}, ("block",), ()),
+            ("suspension-spawn", {"may_suspend": False}, (), ("spawn",)),
             ("spawning-effect", {"may_spawn": False}, (), ("spawn",)),
             ("unknown-resource", {"max_rss_bytes": 4096}, (), ()),
         ):

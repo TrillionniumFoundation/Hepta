@@ -66,6 +66,27 @@ class ResourceStaticCompilerTests(unittest.TestCase):
                 with self.assertRaisesRegex(ResourceIRError, "E_RIR_LOWER_UNSUPPORTED"):
                     lower_resource_ir(analysis.program, analysis.checked)
 
+    def test_unchecked_frontend_cannot_authorize_zero_cost_contract(self):
+        analysis = checked()
+        # The real CheckResult.ok property must turn false when a diagnostic
+        # appears, even if its inferred effect inventory still looks pure.
+        analysis.checked.diagnostics.append("synthetic rejected source")
+        self.assertFalse(analysis.checked.ok)
+        self.assertFalse(_resources_allowed(analysis.program.functions[0], analysis.checked))
+        with self.assertRaisesRegex(ResourceIRError, "E_RIR_LOWER_REJECTED"):
+            lower_resource_ir(analysis.program, analysis.checked)
+
+    def test_non_suspending_claim_excludes_unmodelled_block_and_spawn(self):
+        for effect in ("block", "spawn"):
+            with self.subTest(effect=effect):
+                analysis = checked()
+                # Isolation: no other resource clauses can force the refusal.
+                analysis.program.functions[0].resources = {"may_suspend": False}
+                analysis.checked.effects["constrained"].add(effect)
+                self.assertFalse(_resources_allowed(analysis.program.functions[0], analysis.checked))
+                with self.assertRaisesRegex(ResourceIRError, "E_RIR_LOWER_UNSUPPORTED"):
+                    lower_resource_ir(analysis.program, analysis.checked)
+
     def test_unconstrained_legacy_functions_keep_original_resource_ir(self):
         analysis = checked("""\
 module resource_static;
