@@ -68,6 +68,14 @@ class HIAHeapBoundTests(unittest.TestCase):
         core = verify_program(scalar_call())
         self.assertEqual(analyze_constant_live_heap(core), {"inner": 7, "parent": 10})
 
+    def test_future_core_schema_must_be_audited_before_budget_qualification(self):
+        document = local_buffers()
+        document["schema"] = "hepta.hia.program.v7"
+        accepted_by_future = SimpleNamespace(as_dict=lambda: document)
+        with patch("hepta.hia_heap_bound.verify_program", return_value=accepted_by_future):
+            with self.assertRaisesRegex(HIAHeapBoundRejected, "unknown HIA executable schema"):
+                analyze_constant_live_heap(document)
+
     def test_unreviewed_future_opcode_cannot_silently_skip_byte_accounting(self):
         # This deliberately stubs a future canonical verifier accepting one
         # additional opcode; today verify_program itself rejects it.

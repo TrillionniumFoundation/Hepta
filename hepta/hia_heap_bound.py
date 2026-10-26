@@ -11,6 +11,9 @@ from __future__ import annotations
 from .hia_program import verify_program
 
 MAX_REQUEST = (1 << 63) - 1
+# Versioned closed interpretation: a future schema could change the semantics
+# of an existing opcode and must never inherit this byte bound automatically.
+_ALLOWED_SCHEMAS = frozenset(f"hepta.hia.program.v{version}" for version in range(1, 7))
 # New executable Core opcodes must be explicitly audited before any native
 # resource policy can rely on this analysis. Never guess "does not allocate".
 _NO_ALLOCATION_OPS = frozenset({
@@ -142,7 +145,10 @@ def analyze_constant_live_heap(program) -> dict:
     metadata, transient OS memory or native process RSS.
     """
     checked = verify_program(program)
-    functions = checked.as_dict()["functions"]
+    document = checked.as_dict()
+    if type(document) is not dict or document.get("schema") not in _ALLOWED_SCHEMAS:
+        _reject("unknown HIA executable schema needs a fresh heap-bound review")
+    functions = document["functions"]
     by_name = {fn["name"]: fn for fn in functions}
     calls = {fn["name"]: {ins["attrs"]["function"]
                           for block in fn["blocks"] for ins in block["ops"]
