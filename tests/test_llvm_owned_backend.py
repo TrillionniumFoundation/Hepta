@@ -264,6 +264,21 @@ class LLVMOwnedNativeTests(unittest.TestCase):
         cls.loaded.clear()
         cls.temp.cleanup()
 
+    def test_owned_llvm_native_artifact_must_survive_verified_publication(self):
+        from hepta import artifact_publication
+        target = self.root / "tampered-after-link.so"
+        original_link = artifact_publication.os.link
+
+        def corrupt_after_link(stage, output, *args, **kwargs):
+            original_link(stage, output, *args, **kwargs)
+            Path(output).write_bytes(b"forged-ELF-payload")
+
+        with patch.object(artifact_publication.os, "link", side_effect=corrupt_after_link):
+            with self.assertRaisesRegex(LLVMOwnedRejected, "E_LLVM_OWNED_PUBLICATION"):
+                compile_owned_llvm(self.ir, program=self.analyzed.program,
+                    checked=self.analyzed.checked, output=target)
+        self.assertFalse(target.exists())
+
     def test_same_hepta_source_executes_all_owned_result_paths_on_three_backends(self):
         functions = []
         for library in self.loaded.values():
