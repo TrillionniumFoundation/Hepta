@@ -857,6 +857,25 @@ class _Verifier:
         entry = _id(fn["entry"])
         if entry not in blocks:
             _fail("E_RIR_CFG", "Entry block is missing")
+        # Do not certify a CFG with semantically unchecked dead blocks.
+        # The old worklist validates transitions only from the entry, while
+        # the preflight above checks merely operation/terminator shapes on
+        # unreachable blocks. A self-authored IR could otherwise hide a
+        # malformed known operation (such as drop of an unknown owner) and
+        # still receive a general resource_cfg_verified receipt.
+        # The checked source lowerer does not emit structurally dead blocks;
+        # unmodelled dead code must fail rather than be silently certified.
+        structurally_reachable = {entry}
+        frontier = deque([entry])
+        while frontier:
+            current = frontier.popleft()
+            for successor in self.term_targets(blocks[current]["term"]):
+                if successor not in structurally_reachable:
+                    structurally_reachable.add(successor)
+                    frontier.append(successor)
+        if len(structurally_reachable) != len(blocks):
+            _fail("E_RIR_UNREACHABLE",
+                  "Resource CFG contains dead blocks whose ownership operations were not independently checked")
         initial = _State(set().union(*(self.tokens(p["id"]) for p in fn["params"] if p["mode"] == "take")))
         incoming = {entry: initial}
         pending = deque([entry])
