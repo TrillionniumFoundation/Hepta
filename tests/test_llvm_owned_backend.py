@@ -15,7 +15,7 @@ from unittest.mock import patch
 
 from hepta.backend import compile_rust
 from hepta.c_backend import compile_c
-from hepta.llvm_owned_backend import LLVMOwnedRejected, compile_owned_llvm, emit_owned_llvm
+from hepta.llvm_owned_backend import LLVMOwnedRejected, compile_owned_llvm, emit_owned_llvm, _resources_allowed
 from hepta.llvm_owned_pipeline import build_llvm_owned_source
 from hepta.pipeline import analyze
 
@@ -157,6 +157,47 @@ def checked(source):
 
 
 class LLVMOwnedIdentityTests(unittest.TestCase):
+    def test_checked_nonallocating_nonblocking_source_clauses_lower(self):
+        source = '''
+        export "C" fn constrained(value:u32)->u32
+        effects {panic}
+        resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {
+            return value + 1;
+        }
+        '''
+        analyzed = checked(source)
+        self.assertEqual(analyzed.program.functions[0].resources,
+                         {"heap_allocations": 0, "may_block": False,
+                          "may_suspend": False, "may_spawn": False})
+        self.assertTrue(_resources_allowed(analyzed.program.functions[0], analyzed.checked))
+        ir = emit_owned_llvm(analyzed.program, analyzed.checked)
+        self.assertEqual(ir.functions, ("constrained",))
+        self.assertIn("define", ir.text)
+
+    def test_owned_llvm_resource_contract_literals_and_effects_fail_closed(self):
+        from types import SimpleNamespace
+        def permitted(resources, declared=(), inferred=()):
+            fn = SimpleNamespace(name="f", resources=resources, effects=set(declared))
+            checked_effects = SimpleNamespace(effects={"f": set(inferred)})
+            return _resources_allowed(fn, checked_effects)
+
+        self.assertTrue(permitted({}))
+        self.assertTrue(permitted({"heap_allocations": 0, "may_block": False,
+                                   "may_spawn": False, "may_suspend": False},
+                                  declared=("panic",)))
+        for case, resources, declared, inferred in (
+            ("allocation-bool", {"heap_allocations": False}, (), ()),
+            ("may-block-int", {"may_block": 0}, (), ()),
+            ("may-spawn-int", {"may_spawn": 0}, (), ()),
+            ("suspend-true", {"may_suspend": True}, (), ()),
+            ("allocation-effect", {"heap_allocations": 0}, (), ("alloc",)),
+            ("blocking-effect", {"may_block": False}, ("block",), ()),
+            ("spawning-effect", {"may_spawn": False}, (), ("spawn",)),
+            ("unknown-resource", {"max_rss_bytes": 4096}, (), ()),
+        ):
+            with self.subTest(case=case):
+                self.assertFalse(permitted(resources, declared, inferred))
+
     def test_excessive_aggregate_return_leaf_expansion_rejects(self):
         fields = ",".join(f"f{index}:u8" for index in range(128))
         values = ",".join(f"f{index}:0" for index in range(128))
