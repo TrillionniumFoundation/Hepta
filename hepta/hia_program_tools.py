@@ -18,6 +18,7 @@ from .artifact_publication import publish_verified
 MAX_INPUT_BYTES = 8 * 1024 * 1024
 MAX_EDITS = 64
 PATCH_SCHEMA = "hepta.hia.patch.v1"
+PATCH_SCHEMA_V2 = "hepta.hia.patch.v2"
 
 
 class HIAEditRejected(ValueError):
@@ -104,8 +105,21 @@ def apply_program_patch(document, request):
         except (TypeError, ValueError, RecursionError) as exc:
             raise HIAEditRejected("E_HIA_EDIT: invalid patch data") from exc
         request = decode_json(encoded)
-    _keys(request, {"schema", "expected_sha256", "edits"}, "patch")
-    if request["schema"] != PATCH_SCHEMA:
+    # v1 remains source-snapshot bound, but is now explicitly
+    # interface-preserving. ABI/effect changes require a v2 request with
+    # an unambiguous migration policy; no implicit interface expansion.
+    if type(request) is not dict:
+        _reject("patch must be a structured request")
+    schema = request.get("schema")
+    if schema == PATCH_SCHEMA:
+        _keys(request, {"schema", "expected_sha256", "edits"}, "patch")
+        interface_policy = "preserve"
+    elif schema == PATCH_SCHEMA_V2:
+        _keys(request, {"schema", "expected_sha256", "interface_policy", "edits"}, "patch")
+        interface_policy = request["interface_policy"]
+        if type(interface_policy) is not str or interface_policy not in {"preserve", "migrate"}:
+            _reject("v2 interface_policy must be preserve or migrate")
+    else:
         _reject("unsupported patch schema")
     expected = request["expected_sha256"]
     if type(expected) is not str or not re.fullmatch(r"[0-9a-f]{64}", expected):
@@ -185,15 +199,26 @@ def apply_program_patch(document, request):
               for f in original.as_dict()["functions"]}
     after = {f["name"]: (f["params"], f["returns"], f["effects"])
              for f in verified.as_dict()["functions"]}
-    return verified, {
+    changed = sorted(name for name in set(before) | set(after)
+                     if before.get(name) != after.get(name))
+    if changed and interface_policy != "migrate":
+        _reject("interface change needs explicit v2 migrate policy: " + ", ".join(changed[:8]))
+    receipt = {
         "schema": "hepta.hia.patch-result.v1", "ok": True,
         "status": "verified_unpublished", "before_sha256": original.sha256,
         "after_sha256": verified.sha256, "edits": len(edits),
-        "interface_changes": sorted(name for name in set(before) | set(after)
-                                    if before.get(name) != after.get(name)),
+        "interface_changes": changed,
         "claims": {"whole_module_rechecked": True, "behavior_equivalence_proved": False,
                    "native_executed": False},
     }
+    if schema == PATCH_SCHEMA_V2:
+        receipt["schema"] = "hepta.hia.patch-result.v2"
+        receipt["interface_policy"] = interface_policy
+        receipt["claims"]["interface_preserved"] = not changed
+        # A complete self-contained Core has no external client graph.
+        # Explicit migration only permits, never proves, downstream ABI safety.
+        receipt["claims"]["external_callers_revalidated"] = False
+    return verified, receipt
 
 
 def publish_program(document, destination):

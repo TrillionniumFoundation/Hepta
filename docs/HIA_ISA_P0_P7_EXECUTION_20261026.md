@@ -60,3 +60,31 @@ exact-head qualification. Remote CI queue or not-run status is not an
 engineering stop, but cannot be upgraded to `passed`. Full native, target,
 physical GPU, real Agent/model, and formal refinement acceptance remain OPEN.
 `whole_project_blockers_closed=false`.
+
+## 2026-10-26 later standalone-HIA integration increment
+
+- P0: A new schema `hepta.hia.program.v2` is *not* published under the v1
+  identity. Unknown bulk opcodes under v1 reject; actual v2 native receipts
+  use a distinct backend profile. Canonical arbitrary legacy HSIR migration
+  remains OPEN.
+- P1/P2: PR #183 introduces exactly two verified owned byte operations:
+  `buffer.fill(mutbuf,u8)`, and `buffer.copy(mutbuf,readbuf,usize)`.
+  Source and target loans, distinct owner roots, effects and dynamic extent
+  guards precede direct LLVM intrinsic emission. This is a finite byte-buffer
+  subprofile, **not** general Memory SSA provenance or proof of LLVM refinement.
+- P6: The existing PR #182 Agent policy enforces explicit interface migration
+  authorization; a true two-parent merge on PR #184 preserves it together
+  with v2. A new cross-line regression tests v2 body patches, migration
+  authorization and invalid loan edits.
+- Locally executed instruction-level native checks were 12/12 fill/copy
+  results, 100/100 length-checked copies, 3/3 expected bounds aborts, and
+  1/1 zero-length/null intrinsic execution on Linux x86-64 Clang 17.
+  Those separate LLVM probes are **not** exact-HEAD Hepta verifier/interpreter/
+  native source qualification. The new in-repository regressions and full
+  pinned compiler matrix have not been executed on the integrated source.
+- P3/P4/P5/P7 continue to require comprehensive migration, independent
+  production workloads and physical/accelerator platform evidence.
+  P6 still requires real-model multi-arm Agent A/B, token/error/cost receipts.
+
+`whole_project_blockers_closed=false`. No CI queue is used as a development
+stop or as evidence of final safety.
