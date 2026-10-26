@@ -105,6 +105,22 @@ class NativeResourceGateTests(unittest.TestCase):
                 qualify_native_resource_source(
                     program, checked, canonical_hsir_sha256=digest)
 
+    def test_malformed_resource_function_inventory_is_controlled_rejection(self):
+        program, checked, digest = fixture()
+        original = verify_resource_ir(lower_resource_ir(program, checked))
+        self.assertTrue(original["ok"])
+        for inventory in ([None], [{"function": 7}], [{"function": None}],
+                          [{"function": "unlisted"}], [{}]):
+            with self.subTest(inventory=inventory):
+                invalid = deepcopy(original)
+                invalid["functions"] = inventory
+                with patch("hepta.native_resource_gate.verify_resource_ir",
+                           return_value=invalid):
+                    with self.assertRaisesRegex(NativeResourceGateRejected,
+                                               "E_NATIVE_RESOURCE_GATE"):
+                        qualify_native_resource_source(
+                            program, checked, canonical_hsir_sha256=digest)
+
     def test_foreign_obligations_cannot_be_hidden(self):
         program, checked, digest = fixture()
         graph = lower_resource_ir(program, checked)
