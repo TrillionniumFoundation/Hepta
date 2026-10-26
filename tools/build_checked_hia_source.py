@@ -32,12 +32,15 @@ def main(argv=None) -> int:
     parser.add_argument("--max-allocator-interactions", type=int)
     parser.add_argument("--max-vm-ticks", type=int)
     parser.add_argument("--max-call-depth", type=int)
+    parser.add_argument("--max-live-heap-bytes", type=int,
+                        help="Require a conservative static upper bound on simultaneously live HIA Buffer payload bytes; reject dynamic sizes")
     args = parser.parse_args(argv)
     limits = {
         key: value for key, value in (
             ("max_allocator_interactions", args.max_allocator_interactions),
             ("max_vm_ticks", args.max_vm_ticks),
-            ("max_call_depth", args.max_call_depth))
+            ("max_call_depth", args.max_call_depth),
+            ("max_live_heap_bytes", args.max_live_heap_bytes))
         if value is not None
     }
     result = build_checked_hepta_hia_native(

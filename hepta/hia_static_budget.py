@@ -95,7 +95,8 @@ def _bound_function(fn: dict, calculated: dict[str, dict]) -> dict:
 
 
 def analyze_static_budget(program, *, max_allocator_interactions=None,
-                          max_vm_ticks=None, max_call_depth=None) -> dict:
+                          max_vm_ticks=None, max_call_depth=None,
+                          max_live_heap_bytes=None) -> dict:
     """Reverify canonical HIA and reject any unbounded control/call graph.
 
     All limits are upper bounds per one public invocation, across any
@@ -109,6 +110,7 @@ def analyze_static_budget(program, *, max_allocator_interactions=None,
     _limit(max_allocator_interactions, "max_allocator_interactions")
     _limit(max_vm_ticks, "max_vm_ticks")
     _limit(max_call_depth, "max_call_depth")
+    _limit(max_live_heap_bytes, "max_live_heap_bytes")
     checked = verify_program(program)
     functions = checked.as_dict()["functions"]
     by_name = {fn["name"]: fn for fn in functions}
@@ -123,6 +125,21 @@ def analyze_static_budget(program, *, max_allocator_interactions=None,
     for fn_name in reversed(order):
         calculated[fn_name] = _bound_function(by_name[fn_name], calculated)
     rows = [calculated[fn["name"]] for fn in functions]
+    if max_live_heap_bytes is not None:
+        # Opt-in payload-byte bound: run over the SAME verified executable
+        # Core and reject unknown allocation extents, cycles or resource
+        # arguments instead of importing assumptions from source metadata.
+        from .hia_heap_bound import analyze_constant_live_heap
+        bounds = analyze_constant_live_heap(checked)
+        if (set(bounds) != {row["function"] for row in rows}
+                or any(type(value) is not int or value < 0 for value in bounds.values())):
+            _reject("E_HIA_BUDGET_GRAPH", "incomplete heap-bound inventory")
+        for row in rows:
+            observed = bounds[row["function"]]
+            row["max_live_heap_bytes"] = observed
+            if observed > max_live_heap_bytes:
+                _reject("E_HIA_BUDGET_EXCEEDED",
+                        f"{row['function']}: requested live payload bytes exceed explicit policy")
     for row in rows:
         for key, limit in (("max_allocator_interactions", max_allocator_interactions),
                            ("max_vm_ticks", max_vm_ticks),
@@ -140,6 +157,9 @@ def analyze_static_budget(program, *, max_allocator_interactions=None,
                          "native_cpu_time_or_rss_proved": False,
                          "full_source_to_core_refinement_proved": False,
                          "whole_language_soundness_proved": False}}
+    if max_live_heap_bytes is not None:
+        result["limits"]["max_live_heap_bytes"] = max_live_heap_bytes
+        result["claims"]["requested_live_payload_bytes_upper_bounded"] = True
     content = json.dumps(result, sort_keys=True, separators=(",", ":"),
                          ensure_ascii=False, allow_nan=False).encode("utf-8")
     result["sha256"] = sha256(content).hexdigest()
