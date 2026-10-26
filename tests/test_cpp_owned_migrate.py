@@ -135,6 +135,22 @@ class CppOwnedMigrationTests(unittest.TestCase):
         self.assertEqual(rejected["diagnostics"][0]["code"], "E_CPP_OWNED_TOOLCHAIN")
         self.assertFalse(missing.exists())
 
+    def test_checked_owned_migration_rejects_tampered_publication(self):
+        import hepta.cpp_owned_migrate as migrator
+        source, output = self.root / "publication-race.cpp", self.root / "publication-race.hepta"
+        source.write_text(self.source)
+        original = migrator.os.link
+
+        def corrupt(stage, destination, *args, **kwargs):
+            original(stage, destination, *args, **kwargs)
+            Path(destination).write_bytes(b"module forged;")
+
+        with patch.object(migrator.os, "link", side_effect=corrupt):
+            report = migrate_cpp_owned(source, output, clangxx=CLANGXX)
+        self.assertFalse(report["ok"], report)
+        self.assertEqual(report["diagnostics"][0]["code"], "E_CPP_OWNED_PUBLICATION")
+        self.assertFalse(output.exists())
+
     def test_source_mutation_after_ast_capture_preserves_rejection(self):
         import hepta.cpp_owned_migrate as migrator
         original, output = self.root / "race.cpp", self.root / "race.hepta"
