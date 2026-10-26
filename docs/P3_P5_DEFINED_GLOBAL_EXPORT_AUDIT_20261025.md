@@ -38,3 +38,29 @@ The positive objects exported only `hepta_symbol_target` with no unbound imports
 This **does not** execute the full Hepta checkout, rustc, verified SSA-to-object pipeline, Windows/macOS binaries, QEMU, GPU or actual devices. Cross-target artifact parsing is not execution or ABI qualification. The new code must receive its own complete pinned-release acceptance before mainline publication.
 
 `whole_project_blockers_closed=false`. The general P0–P7 blockers (language soundness/refinement, owned ABI, full C++ L3, genuine Agent A/B, physical DMA/hardware and GPU/NPU) remain open.
+
+## Follow-up: ELF GNU-unique binding is also externally visible
+
+The first patch (Git blob `fff2b071ca69faf91d619c968ad587e406571216`)
+still had a separate bypass through `STB_GNU_UNIQUE` (ELF symbol binding 10).
+The scanner previously skipped every binding not equal to GLOBAL=1 or
+WEAK=2. A malicious object could retain an ordinary authorized function and
+also define an extra public GNU-unique data symbol, while the verifier still
+returned only the authorized function.
+
+The updated exact symbol scanner Git blob is
+`eb0794979fc9c4777f4c8ad0b74c8a9dc56a93ef`. It rejects named
+GNU-unique symbols under the closed native profile. The additional committed
+test builds actual Linux x86-64 and AArch64 Clang objects containing the
+authorized function and an extra ordinary data global, then changes only the
+global's ELF `st_info` binding from 1/OBJECT to 10/OBJECT. The structure
+validator still accepts these files, but the new symbol verifier rejects them.
+
+**Executed local evidence:** reconstructed both exact pre-fix/post-fix source
+blobs and matched Git SHA identities; for each of two real native objects,
+the pre-fix scanner returned the authorized function set without surfacing
+the extra GNU-unique global, while the new scanner rejected it with
+`E_OBJECT_SYMBOL_EXPORT_KIND`. Re-ran the earlier five-target normal/data
+positive/negative smoke against the current exact scanner; all observations
+remain correct. These are direct isolated parser+Clang17 tests, not a complete
+Rust-qualified Hepta native build.
