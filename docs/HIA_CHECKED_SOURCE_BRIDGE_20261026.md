@@ -11,28 +11,27 @@ CFG/SSA/independent `ssa_verify`, `native_resource_gate` and
 
 `hepta.hia_source_bridge.lower_checked_scalar_hia` receives an actual checked
 Hepta AST plus exact project SHA. It reuses every existing frontend, resource,
-CFG and SSA gate, then converts a **finite reviewed subset** to a versioned
-standalone `hepta.hia.program.v1`. The destination Core is executable by the
-existing HIA bytecode interpreter and accepted by its existing LLVM generator.
-It is not an AST-rendered LLVM backend.
+CFG and SSA gate, seals the existing legacy scalar HIA Core, then calls
+**the already existing** `hepta.core.from_scalar_core` to convert its verified
+SSA/PHI subset into standalone `hepta.hia.program.v1`. This module introduces
+**no separate SSA conversion algorithm**. The resulting Core executes using
+the existing HIA interpreter and LLVM backend.
 
-Input source SSA PHIs become explicit typed HIA block parameters. A bounded
-backward liveness fixed point derives all cross-block SSA arguments, including
-values forwarded through a loop and edge-specific PHI operands. SSA names are
-hygienic, and the existing HIA verifier checks all resulting CFG/resource
-transitions. The bridge rejects undefined nonlocal refs, missing PHI inputs,
-noncanonical source/profile identities, unsupported effects, and untranslatable
-expressions before any native code can be produced.
+The existing `core.from_scalar_core` owns SSA-PHI-to-block-argument conversion,
+including bounded liveness and predecessor-specific PHI edge binding. The
+old scalar native profile is revalidated before conversion, and the new HIA
+verifier checks the resulting program. Untranslatable semantics and source
+identity mismatches reject; no new semantics are inferred.
 
 ### Covered initial language profile
 
 - Every function must be a C-exported homogeneous `i32` or `u32` function with
   zero to sixteen by-value parameters, no foreign assumptions or ownership
   values, and declared/inferred effects restricted to `panic`.
-- Scalar arithmetic `+`, `-`, `*`, `/`, `%`, shifts, bitwise ops,
-  checked negation, comparisons, byte-width-preserving typed values, wrapping
-  integer casts, and internal Boolean predicates where the independent
-  verifier accepts them.
+- The **existing** `core.from_scalar_core` mapping of `+`, `-`, `*`,
+  comparisons, integer/Boolean literals, source references and checked unary
+  negation. Division, remainder, shifts, casts and other operations are not
+  yet admitted by the reused old-scalar-to-HIA adapter.
 - Straight-line computations, explicit branches, early returns, and while
   loops with SSA PHI joins and required value forwarding.
 - **No** `&&`/`||` source short-circuit translation, because eagerly
@@ -60,11 +59,14 @@ independent proof that source and HIA are semantically equivalent.
 ### Isolated local evidence on original bridge source
 
 The exact Python 3.13.5 source and in-repository test text were syntax-compiled
-in this working container. A lightweight stub-based bridge harness generated
-HIA blocks for straight-line, diamond and loop/PHI cases, executed 8 bounded
-loop inputs with independent results, and rejected a `&&` short-circuit
-case. **This was not a full Hepta repository unit run**: the stub harness
-substituted upstream source/resource checkers and a finite HIA interpreter.
+in this working container. The initial standalone converter prototype was locally smoke-tested for
+straight-line, diamond and loop/PHI cases (8 bounded loop inputs) and then
+**removed** after discovering the existing `core.from_scalar_core`. The
+final source module passed syntax checks and a stub-only orchestration test
+that verified it calls the canonical converter and rejects invalid project
+identities. The eight earlier loop comparisons are evidence about the discarded
+prototype, **not** this final reused-converter implementation. Full-source
+parser/checker/native tests remain unexecuted in this environment.
 The committed `tests/test_hia_source_bridge.py` uses the **real** Hepta parser,
 checker, independent Resource IR gate, SSA, HIA verifier/interpreter and LLVM
 source emitter; it still requires execution in a complete exact-source

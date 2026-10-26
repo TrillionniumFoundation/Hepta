@@ -104,7 +104,7 @@ class HIAHeptaSourceBridgeTests(unittest.TestCase):
         self.assertIn("icmp ult i32", emitted.text)
 
     def test_short_circuit_with_possible_rhs_trap_fails_closed(self):
-        with self.assertRaisesRegex(HIAHeptaBridgeRejected, "unqualified lowering"):
+        with self.assertRaisesRegex(HIAHeptaBridgeRejected, "E_HIA_HEPTA_BRIDGE"):
             lower(SHORT_CIRCUIT)
 
     def test_corrupted_resource_gate_never_generates_hia(self):
