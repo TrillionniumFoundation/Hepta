@@ -22,6 +22,36 @@ def digest(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+_MAX_DEPENDENCY_BYTES = 8_000_000
+
+
+def _read_dependency(path: Path) -> bytes:
+    """Bound captured input bytes before loading even an attacker-sized header."""
+    try:
+        with path.open("rb") as stream:
+            data = stream.read(_MAX_DEPENDENCY_BYTES + 1)
+    except OSError as exc:
+        raise MigrationRejected("E_C_BUILD_CHANGED", f"Captured dependency unavailable: {path}") from exc
+    if len(data) > _MAX_DEPENDENCY_BYTES:
+        raise MigrationRejected("E_C_BUILD_SIZE", f"Dependency exceeds 8 MB: {path}")
+    return data
+
+
+def _file_digest(path: Path) -> str:
+    """Stream large compiler executables instead of loading them into memory."""
+    digest_ = hashlib.sha256()
+    try:
+        with path.open("rb") as stream:
+            while True:
+                chunk = stream.read(1024 * 1024)
+                if not chunk:
+                    break
+                digest_.update(chunk)
+    except OSError as exc:
+        raise MigrationRejected("E_C_BUILD_CHANGED", f"Captured toolchain unavailable: {path}") from exc
+    return digest_.hexdigest()
+
+
 _MAX_COMPDB_BYTES = 2_000_000
 _MAX_COMPDB_ENTRIES = 32
 _MAX_COMPDB_ARGS = 256
@@ -332,12 +362,12 @@ def verify_capture(capture: dict) -> None:
         path = Path(item["path"])
         if not path.is_file():
             raise MigrationRejected("E_C_BUILD_CHANGED", "Captured build input disappeared: " + str(path))
-        content = path.read_bytes()
+        content = _read_dependency(path)
         if digest(content) != item["sha256"]:
             raise MigrationRejected("E_C_BUILD_CHANGED", "Captured build input changed: " + str(path))
         if len(content) != item["bytes"]:
             raise MigrationRejected("E_C_BUILD_IDENTITY", "Dependency byte count differs from captured content")
-    if digest(Path(compiler["path"]).read_bytes()) != compiler["executable_sha256"]:
+    if _file_digest(Path(compiler["path"])) != compiler["executable_sha256"]:
         raise MigrationRejected("E_C_BUILD_CHANGED", "Selected compiler changed")
     # The same binary may report a different driver/target identity under a
     # changed runtime environment. Do not silently replay stale target facts.
@@ -390,7 +420,7 @@ def capture_project(database: str | Path, *, clang: str = "clang") -> dict:
     if executable is None:
         raise MigrationRejected("E_C_BUILD_TOOL", "Clang executable unavailable")
     executable = str(Path(executable).resolve())
-    compiler = {"path": executable, "executable_sha256": digest(Path(executable).read_bytes()),
+    compiler = {"path": executable, "executable_sha256": _file_digest(Path(executable)),
                 "version": invoke([executable, "--version"], db.parent).splitlines()[0],
                 "target": invoke([executable, "-dumpmachine"], db.parent).strip()}
     configs, dependencies, seen = [], {}, set()
@@ -413,9 +443,7 @@ def capture_project(database: str | Path, *, clang: str = "clang") -> dict:
         all_deps = _dependencies(executable, flags, source, directory, system=True)
         local_deps = set(_dependencies(executable, flags, source, directory, system=False))
         for path in all_deps:
-            content = path.read_bytes()
-            if len(content) > 8_000_000:
-                raise MigrationRejected("E_C_BUILD_SIZE", "Dependency exceeds 8 MB: " + str(path))
+            content = _read_dependency(path)
             item = {"path": str(path), "sha256": digest(content), "bytes": len(content),
                     "project_input": path in local_deps}
             if str(path) in dependencies:
