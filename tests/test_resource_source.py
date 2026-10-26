@@ -174,6 +174,19 @@ class ResourceSourceTests(unittest.TestCase):
         report = self.assert_rejected(graph, "E_RIR_SOURCE_REJECTED", native=True)
         self.assertIn("E0505", {d["code"] for d in report["source_validation"]["diagnostics"]})
 
+    def test_dead_cfg_owner_forgery_fails_before_native_source_work(self):
+        # Even a self-consistent source hash cannot grant the data-only IR
+        # permission to certify semantically unchecked unreachable blocks.
+        graph = exported(self.source)
+        function(graph, "main")["blocks"].append({
+            "id": "dead_owner_forgery",
+            "ops": [{"op": "drop", "src": "missing_owner"}],
+            "term": {"op": "return", "value": None, "loan": None},
+        })
+        report = self.assert_rejected(graph, "E_RIR_UNREACHABLE")
+        self.assertIsNone(report["source_validation"])
+        self.assertFalse(report["source_binding_verified"])
+
     def test_resource_leak_is_rejected_before_native_source_work(self):
         graph = exported(self.source)
         for block in function(graph, "main")["blocks"]:

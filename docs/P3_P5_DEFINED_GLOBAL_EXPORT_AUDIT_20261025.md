@@ -1,0 +1,98 @@
+# P3/P5 defined-global export audit — 2026-10-25
+
+## Confirmed trust-boundary defect
+
+The finite `inspect_object_symbols` scanner in the combined native-object branch recorded callable exports (`ELF STT_FUNC`, COFF external functions, Mach-O public `__TEXT,__text`) and undefined imports. It could **ignore an additional publicly defined data/global symbol** on ELF64 or COFF and still return the declared function inventory. The source-facing `llvm_ssa_pipeline` then compared only that returned inventory with the checked Hepta export list.
+
+This is not an LLVM code-generation bug nor proof of arbitrary source conversion: it is a **native artifact authority flaw** for unexpected global exports in compiler-produced/forged object bytes.
+
+## Exact implementation and bounded policy
+
+- Original scanner Git blob: `75c27ba7b446b39633427a344bf32f66838225eb`.
+- New scanner Git blob: `fff2b071ca69faf91d619c968ad587e406571216`.
+- Unchanged structural validator blob: `5231ee37ef4ca65a3175a1162178ea21b9503082`.
+- Reject ELF global/weak **defined non-function** symbols including STT_OBJECT/NOTYPE/TLS/IFUNC instead of excluding them from the inventory.
+- Reject COFF externally defined data/absolute symbols even when the symbol type is not marked function.
+- Reject unsupported Mach-O externally defined kinds (N_ABS/N_INDR and other unreviewed symbols); existing exported `__DATA` section checks remain.
+- Keep source-checked function exports and the existing abort-only import allowlist intact. This is intentionally strict for Hepta's finite scalar object profile, not a generalized ELF/COFF/Mach-O linker or broad C++ ABI model.
+- Add a real Clang five-target negative regression: the expected function remains present while `@hepta_unapproved_global = global i64 77, align 8` is also defined. Object files must pass structural validation and then reject symbol qualification.
+
+## Executed direct host probe — without CI
+
+Actual tools: Python **3.13.5**, Clang **17**, Linux **x86-64** host with cross-target Clang object emission. Both exact old and new scanner sources and the unchanged object structure source were recreated locally, and `git hash-object` matched all three Git blob SHA values.
+
+For **five** configured targets, each produced a valid positive relocatable object and a valid structurally well-formed negative object with an extra public global data export (10 real native object compilations). The **new exact scanner accepted all five positive objects and rejected all five negatives**.
+
+Exact original scanner comparison on the *same negative objects*:
+
+| Target | Original scanner | Patched scanner |
+| --- | --- | --- |
+| Linux x86-64 ELF | **Accepted, omitted public data export** | Rejected: `E_OBJECT_SYMBOL_EXPORT_KIND` |
+| Linux AArch64 ELF | **Accepted, omitted public data export** | Rejected: `E_OBJECT_SYMBOL_EXPORT_KIND` |
+| Windows x86-64 COFF | **Accepted, omitted public data export** | Rejected: `E_OBJECT_SYMBOL_EXPORT_KIND` |
+| macOS x86-64 Mach-O | Rejected: data outside executable text | Rejected |
+| macOS arm64 Mach-O | Rejected: data outside executable text | Rejected |
+
+The positive objects exported only `hepta_symbol_target` with no unbound imports. The regression test is committed in `tests/test_object_executable_exports.py`.
+
+This **does not** execute the full Hepta checkout, rustc, verified SSA-to-object pipeline, Windows/macOS binaries, QEMU, GPU or actual devices. Cross-target artifact parsing is not execution or ABI qualification. The new code must receive its own complete pinned-release acceptance before mainline publication.
+
+`whole_project_blockers_closed=false`. The general P0–P7 blockers (language soundness/refinement, owned ABI, full C++ L3, genuine Agent A/B, physical DMA/hardware and GPU/NPU) remain open.
+
+## Follow-up: ELF GNU-unique binding is also externally visible
+
+The first patch (Git blob `fff2b071ca69faf91d619c968ad587e406571216`)
+still had a separate bypass through `STB_GNU_UNIQUE` (ELF symbol binding 10).
+The scanner previously skipped every binding not equal to GLOBAL=1 or
+WEAK=2. A malicious object could retain an ordinary authorized function and
+also define an extra public GNU-unique data symbol, while the verifier still
+returned only the authorized function.
+
+The updated exact symbol scanner Git blob is
+`eb0794979fc9c4777f4c8ad0b74c8a9dc56a93ef`. It rejects named
+GNU-unique symbols under the closed native profile. The additional committed
+test builds actual Linux x86-64 and AArch64 Clang objects containing the
+authorized function and an extra ordinary data global, then changes only the
+global's ELF `st_info` binding from 1/OBJECT to 10/OBJECT. The structure
+validator still accepts these files, but the new symbol verifier rejects them.
+
+**Executed local evidence:** reconstructed both exact pre-fix/post-fix source
+blobs and matched Git SHA identities; for each of two real native objects,
+the pre-fix scanner returned the authorized function set without surfacing
+the extra GNU-unique global, while the new scanner rejected it with
+`E_OBJECT_SYMBOL_EXPORT_KIND`. Re-ran the earlier five-target normal/data
+positive/negative smoke against the current exact scanner; all observations
+remain correct. These are direct isolated parser+Clang17 tests, not a complete
+Rust-qualified Hepta native build.
+
+## Follow-up: strong loaded-code guarantees for declared exports
+
+The reviewed source C export should be a **strong** function with real code
+in a loader-allocated executable section. On the previous parser, mutating
+an ELF function from GLOBAL to WEAK (still STT_FUNC), or clearing SHF_ALLOC
+while leaving SHF_EXECINSTR set, preserved the apparent authorized function.
+Likewise a Mach-O function declared N_WEAK_DEF could still satisfy the
+`__TEXT,__text` location check. A weak symbol may be replaced by another
+linker definition, invalidating the source-bound object identity assumption.
+
+The exact new scanner Git blob is
+`3a08491cc38f5340afd7215ed89cf92a2e8b708c`:
+- ELF defined function exports must have GLOBAL binding, not WEAK, and their
+  SHT_PROGBITS section must have **both** SHF_ALLOC and SHF_EXECINSTR.
+- Mach-O defined public functions must not carry N_WEAK_DEF.
+- The earlier C/COFF, ELF data and GNU-unique export refusals remain.
+
+Local direct execution again matched both pre-patch and post-patch exact Git
+blob identities. Native Clang17 Linux x86-64 and AArch64 objects mutated to
+weak-defined functions and unallocated executable sections were structurally
+valid: the pre-patch scanner accepted all four altered native objects, while
+the patched scanner rejected each. Real Clang17 Darwin x86-64 and arm64
+objects mutated only to add N_WEAK_DEF also remained structurally valid:
+the pre-patch scanner accepted both, the patched scanner rejected both.
+
+The full direct standalone test set, including the independent first+second
+publication helper and actual Clang → ELF → GCC execution, was rerun:
+**11/11 test methods passed, zero skips** on Python 3.13.5 / Clang17 / GCC14.
+These tests exercise exact scanner/publication source and real native object
+emission, **not** the full Hepta Rust1.90/Clang20 source-to-binary pipeline
+or complete P0–P7 production qualification.

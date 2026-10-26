@@ -68,9 +68,38 @@ def _mutate_elf(data):
                     "out_of_range": _write(data, pos + 8, 8, original_bytes + 1),
                     "non_executable": _write(data, target + 8, 8,
                                              _u64(data, target + 8) & ~0x4),
+                    "not_allocated": _write(data, target + 8, 8,
+                                             _u64(data, target + 8) & ~0x2),
+                    "weak_override": _write(data, pos + 4, 1,
+                                             (data[pos + 4] & 0x0f) | 0x20),
                     "zero_length": _write(data, pos + 16, 8, 0),
                 }
     raise AssertionError("No ELF exported function found")
+
+
+def _elf_global_to_gnu_unique(data, *, binding=10):
+    """Retag one real Clang public ELF data symbol without changing section bytes."""
+    table, sections = _u64(data, 40), _u16(data, 60)
+    for index in range(sections):
+        section = table + index * 64
+        if _u32(data, section + 4) != 2:
+            continue
+        linked = _u32(data, section + 40)
+        strings = table + 64 * linked
+        name_start = _u64(data, strings + 24)
+        name_size = _u64(data, strings + 32)
+        begin, size = _u64(data, section + 24), _u64(data, section + 32)
+        for pos in range(begin, begin + size, 24):
+            name_off = _u32(data, pos)
+            if not 0 < name_off < name_size:
+                continue
+            if data[name_start + name_off:name_start + name_off + 24].startswith(
+                    b"hepta_unapproved_global\0"):
+                assert data[pos + 4] == 0x11  # STB_GLOBAL + STT_OBJECT
+                modified = bytearray(data)
+                modified[pos + 4] = (binding << 4) | 1  # chosen binding + STT_OBJECT
+                return bytes(modified)
+    raise AssertionError("Did not find an external data symbol to mutate")
 
 
 def _mutate_coff(data):
@@ -134,6 +163,8 @@ def _mutate_macho(data):
                                          flags & ~(0x80000000 | 0x400)),
                 "zerofill_masquerading_as_text": _write(data, section + 64, 4,
                                                         (flags & ~0xff) | 0x1),
+                "weak_definition": _write(data, symbol + 6, 2,
+                                           _u16(data, symbol + 6) | 0x80),
                 "false_text_name": data[:section] + b"__data" + data[section + 6:],
             }
     raise AssertionError("No Mach-O export found")
@@ -141,6 +172,136 @@ def _mutate_macho(data):
 
 @unittest.skipUnless(shutil.which("clang"), "Native Clang is required")
 class ExecutableSymbolExtentTests(unittest.TestCase):
+    def test_unapproved_global_data_exports_fail_across_all_targets(self):
+        # Keep a legitimate source function and add one unexpected *defined*
+        # exported data object. The previous scanner returned only STT_FUNC /
+        # COFF function symbols and could silently omit data exports.
+        with tempfile.TemporaryDirectory(prefix="hepta-extra-native-export-") as tmp:
+            root = Path(tmp)
+            source = root / "extra.ll"
+            source.write_text(
+                "@hepta_unapproved_global = global i64 77, align 8\n" + _SOURCE,
+                encoding="utf-8")
+            for target, (fmt, machine) in _TARGETS.items():
+                with self.subTest(target=target):
+                    artifact = root / (target + ".o")
+                    result = subprocess.run(
+                        ["clang", "--target=" + target, "-x", "ir", "-O2",
+                         "-c", str(source), "-o", str(artifact)],
+                        capture_output=True, text=True, timeout=30)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    data = artifact.read_bytes()
+                    self.assertTrue(qualified_object(data, fmt, machine))
+                    with self.assertRaisesRegex(
+                            ObjectSymbolsRejected,
+                            "E_OBJECT_SYMBOL_(EXPORT_KIND|LOCATION)"):
+                        inspect_object_symbols(data, fmt, machine)
+
+    def test_gnu_unique_data_export_is_not_hidden_from_elf_inventory(self):
+        # The original scanner skipped ELF binding 10 as neither GLOBAL nor
+        # WEAK and would certify the ordinary function while hiding this
+        # globally visible GNU-unique data symbol.
+        with tempfile.TemporaryDirectory(prefix="hepta-gnu-unique-") as tmp:
+            root = Path(tmp)
+            source = root / "unique.ll"
+            source.write_text(
+                "@hepta_unapproved_global = global i64 77, align 8\n" + _SOURCE)
+            for target, machine in (("x86_64-unknown-linux-gnu", 62),
+                                    ("aarch64-unknown-linux-gnu", 183)):
+                with self.subTest(target=target):
+                    artifact = root / (target + ".o")
+                    compiled = subprocess.run(
+                        ["clang", "--target=" + target, "-x", "ir", "-O2",
+                         "-c", str(source), "-o", str(artifact)],
+                        capture_output=True, text=True, timeout=30)
+                    self.assertEqual(compiled.returncode, 0, compiled.stderr)
+                    mutated = _elf_global_to_gnu_unique(artifact.read_bytes())
+                    self.assertTrue(qualified_object(mutated, "ELF64", machine))
+                    with self.assertRaisesRegex(ObjectSymbolsRejected,
+                                                "E_OBJECT_SYMBOL_EXPORT_KIND"):
+                        inspect_object_symbols(mutated, "ELF64", machine)
+
+    def test_unreviewed_elf_bindings_cannot_hide_extra_data_exports(self):
+        # Binding 10 (GNU_UNIQUE) was already rejected. The previous scanner
+        # continued to skip bindings 3..9 and 11..15, despite not having
+        # specified visibility semantics for them. All must fail closed.
+        with tempfile.TemporaryDirectory(prefix="hepta-unreviewed-binding-") as tmp:
+            root = Path(tmp)
+            source = root / "unreviewed.ll"
+            source.write_text(
+                "@hepta_unapproved_global = global i64 77, align 8\n" + _SOURCE)
+            for target, machine in (("x86_64-unknown-linux-gnu", 62),
+                                    ("aarch64-unknown-linux-gnu", 183)):
+                artifact = root / (target + ".o")
+                run = subprocess.run(
+                    ["clang", "--target=" + target, "-x", "ir", "-O2",
+                     "-c", str(source), "-o", str(artifact)],
+                    capture_output=True, text=True, timeout=30)
+                self.assertEqual(run.returncode, 0, run.stderr)
+                original = artifact.read_bytes()
+                self.assertTrue(qualified_object(original, "ELF64", machine))
+                for binding in (3, 9, 10, 11, 12, 13, 15):
+                    with self.subTest(target=target, binding=binding):
+                        forged = _elf_global_to_gnu_unique(original, binding=binding)
+                        self.assertTrue(qualified_object(forged, "ELF64", machine))
+                        with self.assertRaisesRegex(
+                                ObjectSymbolsRejected, "E_OBJECT_SYMBOL_EXPORT_KIND"):
+                            inspect_object_symbols(forged, "ELF64", machine)
+
+    def test_coff_abort_import_must_not_be_weak_external(self):
+        # A defined checked overflow trap imports strong abort. Retagging its
+        # COFF symbol as WEAK_EXTERNAL (105) must never silently preserve the
+        # apparently authorized "abort" import in source-native receipts.
+        source_text = """declare void @abort()
+define i32 @hepta_symbol_target(i32 %x) {
+entry:
+  %cond = icmp eq i32 %x, 0
+  br i1 %cond, label %bad, label %ok
+bad:
+  call void @abort()
+  unreachable
+ok:
+  ret i32 %x
+}
+"""
+        with tempfile.TemporaryDirectory(prefix="hepta-weak-abort-") as tmp:
+            root = Path(tmp)
+            source = root / "abort.ll"
+            artifact = root / "abort.obj"
+            source.write_text(source_text)
+            compiled = subprocess.run(
+                ["clang", "--target=x86_64-pc-windows-msvc", "-x", "ir",
+                 "-O2", "-c", str(source), "-o", str(artifact)],
+                capture_output=True, text=True, timeout=30)
+            self.assertEqual(compiled.returncode, 0, compiled.stderr)
+            original = artifact.read_bytes()
+            self.assertTrue(qualified_object(original, "COFF", 0x8664))
+            expected = inspect_object_symbols(original, "COFF", 0x8664)
+            self.assertEqual(expected["defined"], frozenset({"hepta_symbol_target"}))
+            self.assertEqual(expected["undefined"], frozenset({"abort"}))
+            symbol_at, count = _u32(original, 8), _u32(original, 12)
+            strings_at = symbol_at + 18 * count
+            found = False
+            index = 0
+            while index < count:
+                position = symbol_at + 18 * index
+                if original[position:position + 4] == b"\0" * 4:
+                    name_at = strings_at + _u32(original, position + 4)
+                    name = original[name_at:original.index(b"\0", name_at)]
+                else:
+                    name = original[position:position + 8].split(b"\0", 1)[0]
+                if name == b"abort":
+                    self.assertEqual(original[position + 16], 2)
+                    changed = _write(original, position + 16, 1, 105)
+                    self.assertTrue(qualified_object(changed, "COFF", 0x8664))
+                    with self.assertRaisesRegex(
+                            ObjectSymbolsRejected, "E_OBJECT_SYMBOL_WEAK"):
+                        inspect_object_symbols(changed, "COFF", 0x8664)
+                    found = True
+                    break
+                index += 1 + original[position + 17]
+            self.assertTrue(found, "Expected actual Clang-generated abort import")
+
     def test_all_five_native_object_profiles(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -168,7 +329,7 @@ class ExecutableSymbolExtentTests(unittest.TestCase):
                             # executable placement, not from a broken header.
                             self.assertTrue(qualified_object(forged, fmt, machine))
                             with self.assertRaisesRegex(
-                                    ObjectSymbolsRejected, "E_OBJECT_SYMBOL_LOCATION"):
+                                    ObjectSymbolsRejected, "E_OBJECT_SYMBOL_(LOCATION|WEAK)"):
                                 inspect_object_symbols(forged, fmt, machine)
 
 
