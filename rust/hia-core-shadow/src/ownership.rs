@@ -33,6 +33,12 @@ fn params(v: &Value) -> R<Vec<Param>> {
 #[derive(Clone, PartialEq, Eq)]
 struct Cap { ty: String, root: String, parent: Option<String>, external: bool }
 type Caps = BTreeMap<String, Cap>;
+#[derive(Clone)]
+struct FunctionSig {
+    params: Vec<Param>,
+    returns: Vec<String>,
+    effects: BTreeSet<String>,
+}
 struct Flow {
     vars: BTreeMap<String, String>,
     caps: Caps,
@@ -107,7 +113,7 @@ impl Flow {
         });
         Ok(())
     }
-    fn instr(&mut self, v: &Value, version: u8) -> R<()> {
+    fn instr(&mut self, v: &Value, version: u8, signatures: &BTreeMap<String, FunctionSig>) -> R<()> {
         let o = object(v, &["op", "args", "out", "attrs"], "instruction")?;
         let op = string(&o["op"], "opcode")?;
         let args = names(&o["args"])?;
@@ -116,16 +122,17 @@ impl Flow {
             "borrow.read" | "borrow.mut" | "loan.end" | "owner.move" |
             "owner.drop" | "buffer.load" | "buffer.store" |
             "buffer.fill" | "buffer.copy" | "buffer.move_within" |
-            "buffer.swap" | "buffer.copy_range" | "buffer.fill_range") {
+            "buffer.swap" | "buffer.copy_range" | "buffer.fill_range" | "call") {
             // Reuse, rather than reimplement, exact scalar instruction checks.
-            // Calls, foreign resources and unknown extensions remain unsupported.
-            if op == "call" {
-                return failure("E_HIA_RUST_UNSUPPORTED", "resource calls not yet modeled");
-            }
+            // Foreign opcodes and unknown extensions remain unsupported.
             let empty = BTreeMap::<String, Signature>::new();
             return scalar_instruction(v, &mut self.vars, &empty, &mut self.required);
         }
-        object(&o["attrs"], &[], "resource attributes")?;
+        if op == "call" {
+            object(&o["attrs"], &["function"], "call attributes")?;
+        } else {
+            object(&o["attrs"], &[], "resource attributes")?;
+        }
         if ((matches!(op, "buffer.fill" | "buffer.copy") && version < 2)
             || (op == "buffer.move_within" && version < 3)
             || (op == "buffer.swap" && version < 4)
@@ -135,6 +142,7 @@ impl Flow {
         }
         let actual: Vec<String> = args.iter().map(|n| self.ty(n)).collect::<R<_>>()?;
         let actual: Vec<&str> = actual.iter().map(String::as_str).collect();
+        let mut call_returns = Vec::<String>::new();
         let expected: Vec<&str> = match op {
             "buffer.new" | "buffer.try_new" => {
                 if actual.as_slice() != ["usize"] { return failure("E_HIA_TYPE", "size must be usize"); }
@@ -250,6 +258,42 @@ impl Flow {
                 self.required.extend(["write".into(), "trap".into()]);
                 vec![]
             }
+            "call" => {
+                let callee = ident(&o["attrs"]["function"])?;
+                let Some(sig) = signatures.get(&callee) else {
+                    return failure("E_HIA_CALL", "unknown callee");
+                };
+                if args.len() != sig.params.len() {
+                    return failure("E_HIA_CALL", "call operand count mismatch");
+                }
+                let mut moved_owners = BTreeSet::new();
+                let mut observed_views: Vec<(String, bool)> = Vec::new();
+                for (idx, arg) in args.iter().enumerate() {
+                    let input_ty = actual[idx];
+                    let formal_ty = sig.params[idx].ty.as_str();
+                    if input_ty != formal_ty && !(input_ty == "mutbuf" && formal_ty == "readbuf") {
+                        return failure("E_HIA_CALL", "call argument type mismatch");
+                    }
+                    if input_ty == "buffer" {
+                        self.owner_free(arg)?;
+                        if !moved_owners.insert(arg.clone()) {
+                            return failure("E_HIA_RESOURCE", "same owner consumed twice by call");
+                        }
+                    } else if matches!(input_ty, "readbuf" | "mutbuf") {
+                        self.access(arg, formal_ty == "mutbuf")?;
+                        let root = self.cap(arg)?.root.clone();
+                        if observed_views.iter().any(|(seen, was_mut)| {
+                            seen == &root && (*was_mut || formal_ty == "mutbuf")
+                        }) {
+                            return failure("E_HIA_LOAN", "exclusive call view aliases another view");
+                        }
+                        observed_views.push((root, formal_ty == "mutbuf"));
+                    }
+                }
+                self.required.extend(sig.effects.iter().cloned());
+                call_returns = sig.returns.clone();
+                call_returns.iter().map(String::as_str).collect()
+            }
             _ => return failure("E_HIA_RUST_UNSUPPORTED", "unqualified resource opcode"),
         };
         if output.iter().map(|p| p.ty.as_str()).collect::<Vec<_>>() != expected {
@@ -277,6 +321,19 @@ impl Flow {
                 self.caps.insert(n.clone(), Cap {
                     ty: "buffer".into(), root: n, parent: None, external: false,
                 });
+            }
+            "call" => {
+                for (name, ty) in args.iter().zip(actual.iter()) {
+                    if *ty == "buffer" { self.caps.remove(name); }
+                }
+                for p in &output {
+                    if p.ty == "buffer" {
+                        self.caps.insert(p.name.clone(), Cap {
+                            ty: "buffer".into(), root: p.name.clone(), parent: None,
+                            external: false,
+                        });
+                    }
+                }
             }
             _ => {}
         }
@@ -351,7 +408,7 @@ impl Flow {
         Ok(caps)
     }
 }
-fn check_function(f: &Value, version: u8) -> R<usize> {
+fn check_function(f: &Value, version: u8, signatures: &BTreeMap<String, FunctionSig>) -> R<usize> {
     let function = object(f, &["name", "params", "returns", "effects", "entry", "blocks"], "function")?;
     let n = ident(&function["name"])?;
     if matches!(n.as_str(), "abort"|"calloc"|"malloc"|"free"|"memcpy"|"memmove"|"memset") {
@@ -443,7 +500,7 @@ fn check_function(f: &Value, version: u8) -> R<usize> {
         let b = by_id[&n];
         let mut flow = Flow::new(&ps[&n], incoming[&n].clone());
         for instr in array(&b["ops"], "operations")? {
-            flow.instr(instr, version)?;
+            flow.instr(instr, version, signatures)?;
         }
         flow.finish(&b["term"], &results, &declared)?;
         for e in term_edges(&b["term"])? {
@@ -486,14 +543,27 @@ pub(super) fn verify_owned(input: &[u8]) -> R<Value> {
     if fs.is_empty() || fs.len() > super::MAX_FUNCTIONS {
         return failure("E_HIA_FORMAT", "invalid function count");
     }
-    let mut function_names = BTreeSet::new();
-    let mut count = 0;
+    let mut signatures = BTreeMap::<String, FunctionSig>::new();
     for f in fs {
-        let n = ident(&object(f, &["name", "params", "returns", "effects", "entry", "blocks"], "function")?["name"])?;
-        if !function_names.insert(n) {
+        let obj = object(f, &["name", "params", "returns", "effects", "entry", "blocks"], "function")?;
+        let n = ident(&obj["name"])?;
+        let args = params(&obj["params"])?;
+        let mut returns = Vec::new();
+        for t in array(&obj["returns"], "call return types")? {
+            let ty = valid_type(t)?;
+            if matches!(ty.as_str(), "readbuf" | "mutbuf") {
+                return failure("E_HIA_LOAN", "callee may not return borrowed view");
+            }
+            returns.push(ty);
+        }
+        let effects = effects(&obj["effects"])?;
+        if signatures.insert(n, FunctionSig { params: args, returns, effects }).is_some() {
             return failure("E_HIA_NAME", "duplicate function");
         }
-        count += check_function(f, version)?;
+    }
+    let mut count = 0;
+    for f in fs {
+        count += check_function(f, version, &signatures)?;
     }
     let digest = Sha256::digest(&canonical);
     Ok(json!({
@@ -505,7 +575,8 @@ pub(super) fn verify_owned(input: &[u8]) -> R<Value> {
             "finite_owner_loan_cfg_checked": true,
             "cross_block_owner_loan_state_checked": true,
             "v2_v6_bulk_byte_opcode_types_loans_and_effects_checked": true,
-            "interprocedural_resource_calls_checked": false,
+            "interprocedural_resource_calls_checked": true,
+            "recursion_or_stack_bounds_proved": false,
             "general_memory_provenance_proved": false,
             "full_source_to_core_refinement_proved": false,
             "llvm_backend_refinement_proved": false,
