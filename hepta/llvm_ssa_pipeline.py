@@ -12,12 +12,15 @@ import tempfile
 
 from .cfg import lower_hsir_cfg
 from .hsir import lower_checked_program
+from .native_resource_gate import qualify_native_resource_source
 from .llvm_ssa_backend import LLVMSSARejected, compile_scalar_ssa_llvm, emit_scalar_ssa_llvm
 from .llvm_ssa_target import _TARGETS, compile_ssa_target_object
 from .pipeline import analyze_project
 from .ssa import lower_cfg_scalar_ssa
 from .ssa_verify import verify_scalar_ssa
 from .object_symbols import inspect_object_symbols
+from .elf_shared_abi import ELFSharedABIRejected
+from .scalar_host_abi import inspect_scalar_host_elf
 from .artifact_publication import (PublicationRejected, publish_verified,
                                    verify_published, withdraw_own_link)
 
@@ -45,8 +48,10 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
         "claims": {
             "native_rust_reference_required": True,
             "independent_scalar_ssa_structure_checked": False,
+            "source_bound_resource_cfg_checked": False,
             "ssa_cfg_origin_rechecked": False,
             "native_artifact_compiled": False,
+            "host_elf_dynamic_symbols_checked": False,
             "target_program_executed": False,
             "foreign_c_abi_qualified": False,
             "backend_refinement_proved": False,
@@ -76,6 +81,49 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
         if not project.unchanged():
             raise LLVMSSARejected("E_LLVM_SSA_STALE: source graph changed before semantic projection")
         scalar_hsir = lower_checked_program(analyzed.program, analyzed.checked)
+        # The scalar adapter's canonical-source digest is not a native safety
+        # receipt. Require the same checked AST to produce and independently
+        # validate a complete owner/loan Resource IR *before* Clang runs.
+        scalar_source = scalar_hsir.as_dict()
+        resource_gate = qualify_native_resource_source(
+            analyzed.program, analyzed.checked,
+            canonical_hsir_sha256=scalar_source["source_semantic_sha256"],
+            project_sha256=project.identity)
+        expected_claims = {
+            "exact_checked_source_resource_graph_rederived": True,
+            "independent_resource_cfg_verified": True,
+            "foreign_resource_obligations_absent": True,
+            "source_to_resource_ir_refinement_proved": False,
+            "native_codegen_consumes_resource_ir": False,
+            "whole_language_memory_safety_proved": False,
+        }
+        if (type(resource_gate) is not dict
+                or set(resource_gate) != {
+                    "schema", "status", "canonical_hsir_sha256",
+                    "resource_ir_sha256", "source_sha256", "project_sha256",
+                    "functions_checked", "claims"}
+                or resource_gate.get("schema") != "hepta.native.resource-gate.v1"
+                or resource_gate.get("status") !=
+                    "source_bound_resource_cfg_checked_not_refinement_proof"
+                or resource_gate.get("canonical_hsir_sha256") !=
+                    scalar_source["source_semantic_sha256"]
+                or resource_gate.get("source_sha256") != scalar_source["source_sha256"]
+                or resource_gate.get("project_sha256") != project.identity
+                or type(resource_gate.get("resource_ir_sha256")) is not str
+                or len(resource_gate["resource_ir_sha256"]) != 64
+                or any(value not in "0123456789abcdef" for value in
+                       resource_gate["resource_ir_sha256"])
+                or type(resource_gate.get("functions_checked")) is not int
+                or resource_gate["functions_checked"] != sum(
+                    not function.extern_c for function in analyzed.program.functions)
+                or type(resource_gate.get("claims")) is not dict
+                or set(resource_gate["claims"]) != set(expected_claims)
+                or any(resource_gate["claims"][key] is not value
+                       for key, value in expected_claims.items())):
+            raise LLVMSSARejected(
+                "E_NATIVE_RESOURCE_GATE: missing trusted checked-source Resource IR receipt")
+        result["resource_verification"] = resource_gate
+        result["claims"]["source_bound_resource_cfg_checked"] = True
         cfg = lower_hsir_cfg(scalar_hsir)
         ssa = lower_cfg_scalar_ssa(cfg)
         verification = verify_scalar_ssa(ssa, cfg)
@@ -86,6 +134,9 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
         result["identities"] = {
             "source_sha256": analyzed.report.get("source_sha256"),
             "compiler_sha256": analyzed.report.get("compiler_sha256"),
+            "canonical_hsir_sha256": scalar_source["source_semantic_sha256"],
+            "resource_ir_sha256": resource_gate["resource_ir_sha256"],
+            "native_resource_gate_schema": resource_gate["schema"],
             "canonical_ssa_sha256": ssa.sha256,
             "structural_verification_sha256": verification.sha256,
             "llvm_ir_sha256": ir.sha256,
@@ -134,6 +185,7 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
             # Do not trust a matching SHA or a self-asserted native receipt.
             # Re-read actual staged ELF/COFF/Mach-O symbol tables from this
             # strict source-facing entrypoint; no merely named functions pass.
+            host_dynamic_abi = None
             if target is not None:
                 fmt, machine = _TARGETS[target]
                 inspected = inspect_object_symbols(artifact, fmt, machine)
@@ -143,6 +195,45 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
                         or native["undefined_external_symbols"] != sorted(inspected["undefined"])):
                     raise LLVMSSARejected(
                         "E_LLVM_SSA_SYMBOLS: native object or receipt differs from source-verified exports/imports")
+            else:
+                # The shared ELF path previously relied on the reported
+                # artifact digest only. That does not prove that the *actual*
+                # native library exports only source-reviewed C functions.
+                # Reuse the existing strict owned-LLVM dynamic ELF parser;
+                # do not introduce an independent, weaker symbol authority.
+                try:
+                    host_dynamic_abi = inspect_scalar_host_elf(
+                        artifact, tuple(ir.functions))
+                except ELFSharedABIRejected as exc:
+                    raise LLVMSSARejected(
+                        "E_LLVM_SSA_HOST_ABI: " + str(exc)) from exc
+                abi_claims = {
+                    "binary_abi_observed": True,
+                    "native_execution_proven": False,
+                    "whole_language_memory_safety_proven": False,
+                    "backend_refinement_proven": False,
+                }
+                if (type(host_dynamic_abi) is not dict
+                        or set(host_dynamic_abi) != {
+                            "schema", "format", "machine", "kind",
+                            "dynamic_exports", "unresolved_imports",
+                            "source_exports_rechecked", "claims"}
+                        or host_dynamic_abi.get("schema") != "hepta.elf-shared-abi.v1"
+                        or host_dynamic_abi.get("format") != "ELF64"
+                        or type(host_dynamic_abi.get("machine")) is not int
+                        or host_dynamic_abi["machine"] != 62
+                        or host_dynamic_abi.get("kind") != "ET_DYN"
+                        or host_dynamic_abi.get("dynamic_exports") != list(ir.functions)
+                        or type(host_dynamic_abi.get("unresolved_imports")) is not list
+                        or any(type(symbol) is not str
+                               for symbol in host_dynamic_abi["unresolved_imports"])
+                        or host_dynamic_abi.get("source_exports_rechecked") is not True
+                        or type(host_dynamic_abi.get("claims")) is not dict
+                        or set(host_dynamic_abi["claims"]) != set(abi_claims)
+                        or any(host_dynamic_abi["claims"][key] is not val
+                               for key, val in abi_claims.items())):
+                    raise LLVMSSARejected(
+                        "E_LLVM_SSA_HOST_ABI: dynamic symbols or proof scope differ from checked source")
             if not project.unchanged():
                 raise LLVMSSARejected("E_LLVM_SSA_STALE: graph changed during native compilation")
             # Use the *single* publication authority also used by Owned LLVM:
@@ -169,6 +260,9 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
                 raise LLVMSSARejected("E_LLVM_SSA_PUBLICATION: final receipt mismatch")
             published_bytes = artifact
         result["native_backend"] = dict(native)
+        if host_dynamic_abi is not None:
+            result["native_backend"]["host_dynamic_abi"] = host_dynamic_abi
+            result["claims"]["host_elf_dynamic_symbols_checked"] = True
         result["native_backend"]["output"] = str(dest)
         result["native_backend"]["artifact_sha256"] = sha256(published_bytes).hexdigest()
         result["claims"]["native_artifact_compiled"] = True
