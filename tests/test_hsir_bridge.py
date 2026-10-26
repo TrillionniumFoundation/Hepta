@@ -66,6 +66,33 @@ class HSIRBridgeTests(unittest.TestCase):
         self.assertFalse(bridge.as_dict()["claims"]["source_semantics_refined"])
         self.assertFalse(ssa.as_dict()["claims"]["native_backend_refinement_proven"])
 
+    def test_project_graph_bound_hsir_and_scalar_projection_share_identity(self):
+        from hepta.hsir import verify_checked_source_projection
+        program, checked = _checked(_SOURCE)
+        project = "b" * 64
+        canonical = canonical_hsir(program, checked, project_sha256=project)
+        derived = lower_checked_program(program, checked, project_sha256=project)
+        self.assertEqual(derived.as_dict()["project_sha256"], project)
+        self.assertEqual(derived.as_dict()["source_semantic_sha256"], canonical["sha256"])
+        receipt = verify_checked_source_projection(
+            program, checked, derived, project_sha256=project)
+        self.assertEqual(receipt["canonical_sha256"], canonical["sha256"])
+        self.assertEqual(receipt["schema"], "hepta.hsir.source-origin.v2")
+        self.assertEqual(receipt["project_sha256"], project)
+        legacy = verify_checked_source_projection(
+            program, checked, lower_checked_program(program, checked))
+        self.assertEqual(legacy["schema"], "hepta.hsir.source-origin.v1")
+        self.assertNotIn("project_sha256", legacy)
+        self.assertFalse(receipt["claims"]["whole_language_soundness_proven"])
+        # A self-rehashed source snapshot for another project must not qualify.
+        with self.assertRaisesRegex(HSIRRejected, "SOURCE_ORIGIN"):
+            verify_checked_source_projection(
+                program, checked, derived, project_sha256="c" * 64)
+        with self.assertRaisesRegex(HSIRRejected, "SOURCE_ORIGIN"):
+            verify_checked_source_projection(program, checked, derived)
+        self.assertNotEqual(
+            derived.sha256, lower_checked_program(program, checked).sha256)
+
     def test_distinct_versioned_hsir_wire_formats_cannot_be_confused(self):
         program, checked = _checked(_SOURCE)
         canonical = canonical_hsir(program, checked)

@@ -12,6 +12,8 @@ import tempfile
 
 from .cfg import lower_hsir_cfg
 from .hsir import lower_checked_program, verify_checked_source_projection
+from .native_resource_gate import (
+    qualify_native_resource_source, require_native_resource_receipt)
 from .llvm_ssa_backend import LLVMSSARejected, compile_scalar_ssa_llvm, emit_scalar_ssa_llvm
 from .llvm_ssa_target import _TARGETS, compile_ssa_target_object
 from .pipeline import analyze_project
@@ -44,6 +46,10 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
             "independent_scalar_ssa_structure_checked": False,
             "native_ssa_cfg_origin_rechecked": False,
             "semantic_source_projection_rechecked": False,
+            "source_bound_resource_cfg_checked": False,
+            "source_to_resource_ir_refinement_proved": False,
+            "native_codegen_consumes_resource_ir": False,
+            "whole_language_memory_safety_proved": False,
             "native_artifact_compiled": False,
             "target_program_executed": False,
             "foreign_c_abi_qualified": False,
@@ -73,9 +79,30 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
             raise LLVMSSARejected("E_LLVM_SSA_OUTPUT: refusing to write into a source input")
         if not project.unchanged():
             raise LLVMSSARejected("E_LLVM_SSA_STALE: source graph changed before semantic projection")
-        scalar_hsir = lower_checked_program(analyzed.program, analyzed.checked)
-        semantic_origin = verify_checked_source_projection(analyzed.program, analyzed.checked, scalar_hsir)
+        # The HSIR and Resource IR producers must include *the same* exact
+        # loaded project graph identity. Including it in only one changes the
+        # canonical digest and invalidates every source-bound receipt.
+        graph_sha = project.identity
+        scalar_hsir = lower_checked_program(
+            analyzed.program, analyzed.checked, project_sha256=graph_sha)
+        semantic_origin = verify_checked_source_projection(
+            analyzed.program, analyzed.checked, scalar_hsir,
+            project_sha256=graph_sha)
         result["claims"]["semantic_source_projection_rechecked"] = True
+        # P1 is a *mandatory* pre-codegen condition, not a sidecar. An
+        # unsupported resource profile/loan CFG fails closed without Clang.
+        resource_receipt = qualify_native_resource_source(
+            analyzed.program, analyzed.checked,
+            canonical_hsir_sha256=semantic_origin["canonical_sha256"],
+            project_sha256=graph_sha)
+        require_native_resource_receipt(
+            resource_receipt,
+            canonical_hsir_sha256=semantic_origin["canonical_sha256"],
+            source_sha256=semantic_origin["source_sha256"],
+            project_sha256=graph_sha,
+            expected_functions=sum(not fn.extern_c for fn in analyzed.program.functions))
+        result["claims"]["source_bound_resource_cfg_checked"] = True
+        result["resource_verification"] = resource_receipt
         cfg = lower_hsir_cfg(scalar_hsir)
         ssa = lower_cfg_scalar_ssa(cfg)
         verification = verify_scalar_ssa(ssa, cfg)
@@ -88,6 +115,10 @@ def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
             "compiler_sha256": analyzed.report.get("compiler_sha256"),
             "canonical_source_semantic_sha256": semantic_origin["canonical_sha256"],
             "semantic_origin_receipt_schema": semantic_origin["schema"],
+            "project_sha256": graph_sha,
+            "resource_ir_sha256": resource_receipt["resource_ir_sha256"],
+            "resource_origin_receipt_schema": resource_receipt["resource_source_receipt_schema"],
+            "native_resource_gate_schema": resource_receipt["schema"],
             "derived_scalar_hsir_sha256": scalar_hsir.sha256,
             "cfg_sha256": cfg.sha256,
             "canonical_ssa_sha256": ssa.sha256,
