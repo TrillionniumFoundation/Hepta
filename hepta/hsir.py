@@ -431,12 +431,15 @@ def _walk_expressions(obj: Any):
             yield from _walk_expressions(value)
 
 
-def lower_checked_program(program: Any, checked: Any) -> HSIRSnapshot:
-    """Reference frontend checker -> single canonical semantic IR -> scalar adapter."""
-    return from_canonical_snapshot(_lower_canonical(program, checked))
+def lower_checked_program(program: Any, checked: Any, *,
+                          project_sha256: str | None = None) -> HSIRSnapshot:
+    """One canonical checked semantic producer, with optional exact project graph."""
+    return from_canonical_snapshot(
+        _lower_canonical(program, checked, project_sha256=project_sha256))
 
 def verify_checked_source_projection(program: Any, checked: Any,
-                                    snapshot: HSIRSnapshot) -> dict:
+                                    snapshot: HSIRSnapshot, *,
+                                    project_sha256: str | None = None) -> dict:
     """Re-derive the scalar view from the *same* sole canonical producer.
 
     This source-identity gate catches rehashed scalar snapshots submitted as
@@ -445,7 +448,8 @@ def verify_checked_source_projection(program: Any, checked: Any,
     """
     if not isinstance(snapshot, HSIRSnapshot):
         raise HSIRRejected("E_HSIR_SOURCE_ORIGIN: typed scalar snapshot required")
-    canonical = _lower_canonical(program, checked)
+    canonical = _lower_canonical(
+        program, checked, project_sha256=project_sha256)
     expected = from_canonical_snapshot(canonical)
     if snapshot != expected:
         raise HSIRRejected("E_HSIR_SOURCE_ORIGIN: derived snapshot differs from checked source")
@@ -460,6 +464,7 @@ def verify_checked_source_projection(program: Any, checked: Any,
         "derived_schema": SCHEMA,
         "derived_sha256": snapshot.sha256,
         "source_sha256": canonical["source_sha256"],
+        "project_sha256": canonical["project_sha256"],
         "claims": {
             "canonical_semantic_producer_unique": True,
             "checked_source_projection_rederived": True,
