@@ -73,3 +73,29 @@ fn call_rejects_unknown_callee_or_forged_effects() {
     d["functions"][1]["blocks"][0]["ops"][0]["attrs"]["unsafe_proof"] = json!(true);
     assert!(!checked(&d));
 }
+
+#[test]
+fn exclusive_mutable_call_arguments_must_not_share_root() {
+    let mut d = program();
+    d["functions"].as_array_mut().unwrap().push(json!({
+        "name":"double","params":[
+            {"name":"left","type":"mutbuf"},{"name":"right","type":"mutbuf"}],
+        "returns":[],"effects":[],"entry":"entry",
+        "blocks":[{"id":"entry","params":[
+            {"name":"left","type":"mutbuf"},{"name":"right","type":"mutbuf"}],
+            "ops":[],"term":{"op":"ret","values":[]}}]
+    }));
+    let ops = d["functions"][1]["blocks"][0]["ops"].as_array_mut().unwrap();
+    ops.insert(1,json!({
+        "op":"borrow.mut","args":["owned"],
+        "out":[{"name":"writer","type":"mutbuf"}],"attrs":{}
+    }));
+    ops.insert(2,json!({
+        "op":"call","args":["writer","writer"],"out":[],
+        "attrs":{"function":"double"}
+    }));
+    ops.insert(3,json!({
+        "op":"loan.end","args":["writer"],"out":[],"attrs":{}
+    }));
+    assert!(!checked(&d));
+}
