@@ -28,6 +28,15 @@ class HIAStaticBudgetCLITests(unittest.TestCase):
                           "max_vm_ticks": 17, "max_call_depth": 2})
         self.assertEqual(builder.call_args.kwargs["profile"], "owned")
 
+    def test_live_heap_budget_is_forwarded_without_expanding_default_policy(self):
+        with patch("tools.build_checked_hia_source.build_checked_hepta_hia_native",
+                   return_value={"ok": False}) as builder:
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(main(["example.hepta", "-o", "out.so",
+                                       "--max-live-heap-bytes", "4096"]), 2)
+        self.assertEqual(builder.call_args.kwargs["static_resource_limits"],
+                         {"max_live_heap_bytes": 4096})
+
     def test_unset_policy_does_not_change_original_builder_request(self):
         with patch("tools.build_checked_hia_source.build_checked_hepta_hia_native",
                    return_value={"ok": True}) as builder:
