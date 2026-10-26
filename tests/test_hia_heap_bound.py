@@ -62,6 +62,25 @@ class HIAHeapBoundTests(unittest.TestCase):
         self.assertEqual(analyze_constant_live_heap(core), {"finite": 12})
         self.assertEqual(analyze_constant_live_heap(core), analyze_constant_live_heap(core))
 
+    def test_constant_arithmetic_size_is_bounded_with_exact_machine_width(self):
+        source = m(f("computed", [], [], ["alloc", "trap"], [
+            b("entry", [], [c("a", "usize", 5), c("b", "usize", 7),
+                i("int.add.checked", ["a", "b"], [("extent", "usize")]),
+                i("buffer.new", ["extent"], [("obj", "buffer")]),
+                i("owner.drop", ["obj"])], ret()),
+        ]))
+        self.assertEqual(analyze_constant_live_heap(verify_program(source)), {"computed": 12})
+        operation = source["functions"][0]["blocks"][0]["ops"][2]
+        operation["op"] = "int.sub.wrap"
+        operation["args"] = ["b", "a"]
+        self.assertEqual(analyze_constant_live_heap(verify_program(source)), {"computed": 2})
+        # Modular underflow becomes 2^64 - 2, which is above HIA's
+        # admitted maximum object extent; no integer underflow or truncation
+        # may silently turn it into a small allocation budget.
+        operation["args"] = ["a", "b"]
+        with self.assertRaisesRegex(HIAHeapBoundRejected, "allocator extent"):
+            analyze_constant_live_heap(verify_program(source))
+
     def test_conditional_phi_owner_sizes_take_safe_maximum(self):
         core = verify_program(joined_max())
         self.assertEqual(analyze_constant_live_heap(core), {"select_heap": 9})

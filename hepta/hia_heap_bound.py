@@ -94,6 +94,32 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) 
                 if type(value) in {int, bool}:
                     known[out_names[0]] = value
                 # unit constants are intentionally not used as sizes.
+            elif op in {"int.add.checked", "int.sub.checked", "int.mul.checked",
+                        "int.add.wrap", "int.sub.wrap", "int.mul.wrap"}:
+                # Pure constant folding is only an admission-time fact. Both
+                # operands have a known exact value and the existing Core
+                # verifier has already checked their matching integer type.
+                # A potentially trapping checked calculation is deliberately
+                # refused rather than guessed as an allocation extent.
+                if len(args) == 2 and all(type(known.get(arg)) is int for arg in args):
+                    from .hia_program import WIDTHS, integer_range
+                    typ = outputs[0]["type"]
+                    if typ not in WIDTHS:
+                        _reject(f"{fn['name']}/{name}: folded value has unsupported type")
+                    left, right = (known[arg] for arg in args)
+                    action = op.split(".")[1]
+                    value = (left + right if action == "add" else
+                             left - right if action == "sub" else left * right)
+                    lo, hi = integer_range(typ)
+                    if op.endswith("checked"):
+                        if not lo <= value <= hi:
+                            _reject(f"{fn['name']}/{name}: checked constant arithmetic may trap")
+                    else:
+                        width = WIDTHS[typ]
+                        value &= (1 << width) - 1
+                        if lo < 0 and value > hi:
+                            value -= 1 << width
+                    known[out_names[0]] = value
             elif op in {"buffer.new", "buffer.try_new"}:
                 size = known.get(args[0])
                 if type(size) is not int or size < 0 or size > MAX_REQUEST:

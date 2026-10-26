@@ -32,7 +32,12 @@ counted at its possible successful extent.
 - Dynamic/unknown allocation size (including a function input passed to
   `buffer.new` or `buffer.try_new`); only exactly typed integer constants
   that dominate the allocation and propagate through existing CFG parameters
-  are admitted. Calculated values are unknown for this initial profile.
+  are admitted. Constant-only checked/wrapping add/sub/mul operations are
+  also evaluated using the Core integer width/range conventions. Unknown
+  operands remain unknown and any checked arithmetic that can trap rejects
+  this finite budget profile; wrapped values exceeding the admitted object
+  extent reject, never truncate to a small allocation. Other calculated
+  values remain unknown.
 - Any resource-typed function argument/return or interprocedural Owner/Loan
   transfer, pending a source-bound extent invariant.
 - A CFG loop, direct or mutual recursion, inconsistent owner inventories at
