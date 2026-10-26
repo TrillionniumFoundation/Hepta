@@ -21,26 +21,38 @@ def fake_migrate(path, out, **kwargs):
 
 
 def fake_build(src, out, **kwargs):
-    data = b'fake-object-only-not-a-Hepta-compiler-output'
+    data = b'fake-object-not-an-actual-native-Hepta-result'
     Path(out).write_bytes(data)
+    artifact = {'sha256': h(data), 'bytes': len(data)}
+    source_digest = h(Path(src).read_bytes())
+    target = kwargs['target']
+    kind = kwargs['kind']
     return {
-        'ok':True,'status':'cross_object_only_not_executed' if kwargs['target'] else 'native_host_compiled_unqualified',
-        'output':str(out),
-        'reference_validation':{'ok':True,'checks':{'rust_borrows_types':'rustc_checked'}},
-        'claims':{
-            'native_rust_reference_required':True, 'source_bound_resource_cfg_checked':True,
-            'ssa_cfg_origin_rechecked':True, 'hia_scalar_core_source_replayed':True,
-            'independent_scalar_ssa_structure_checked':True,'native_artifact_compiled':True,
-            'target_program_executed':False,'foreign_c_abi_qualified':False,
-            'host_elf_dynamic_symbols_checked':kwargs['target'] is None,
-            'backend_refinement_proved':False},
-        'identities':{'source_sha256':h(Path(src).read_bytes()),
-                      'native_resource_gate_schema':'hepta.native.resource-gate.v1',
-                      'llvm_ir_sha256':'b'*64,
-                      'hia_scalar_core_schema':'hepta.hia.scalar-core.v0','hia_scalar_core_sha256':'a'*64},
-        'native_backend':{'llvm_ir_sha256':'b'*64,'output':str(out),
-                          'artifact_sha256':h(data),'artifact_bytes':len(data)}
-    }
+        'schema': 'hepta.build-checked-hia-source.v1',
+        'ok': True, 'status': 'native_compiled_not_executed',
+        'output': str(out), 'target': target,
+        'rust_reference': {
+            'ok': True, 'source_sha256': source_digest, 'compiler_sha256': 'e'*64,
+            'checks': {'rust_borrows_types': 'rustc_checked'}},
+        'claims': {
+            'pinned_rust_reference_validated': True,
+            'source_bound_resource_ir_checked': True,
+            'native_codegen_consumed_verified_hia_core': True,
+            'native_executed': False,
+            'source_to_core_refinement_proved': False,
+            'whole_language_soundness_proved': False},
+        'identities': {
+            'project_sha256': 'f'*64, 'compiler_sha256': 'e'*64,
+            'source_semantic_sha256': 'a'*64, 'resource_ir_sha256': 'b'*64,
+            'hia_program_sha256': 'c'*64, 'llvm_ir_sha256': 'd'*64,
+            'scalar_ssa_sha256': 'a'*64, 'ssa_verification_sha256': 'b'*64},
+        'native_backend': {
+            'status': 'native_compiled_not_executed', 'target': target,
+            'kind': kind, 'core_sha256': 'c'*64, 'llvm_ir_sha256': 'd'*64,
+            'claims': {'backend_refinement_proved': False,
+                       'native_execution_qualified': False},
+            'artifact_sha256': h(data), 'artifact_bytes': len(data)},
+        'publication': artifact}
 
 
 class MigrationProtocolTests(unittest.TestCase):
@@ -51,7 +63,7 @@ class MigrationProtocolTests(unittest.TestCase):
     def run_migration(self,language='c',target=None,build=fake_build):
         with patch('hepta.hia_migrate.migrate_c',side_effect=fake_migrate), \
              patch('hepta.hia_migrate.migrate_cpp',side_effect=fake_migrate), \
-             patch('hepta.hia_migrate.build_llvm_ssa_source',side_effect=build):
+             patch('hepta.hia_migrate.build_checked_hepta_hia_native',side_effect=build):
             return migrate_scalar_to_hia(self.src,self.dest,language=language,target=target)
     def test_success_writes_source_object_and_manifest_last(self):
         res=self.run_migration()
@@ -72,7 +84,7 @@ class MigrationProtocolTests(unittest.TestCase):
     def test_hia_claim_mismatch_never_publishes(self):
         def bogus(*a,**k):
             p=fake_build(*a,**k)
-            p['claims']['hia_scalar_core_source_replayed']=False
+            p['claims']['native_codegen_consumed_verified_hia_core']=False
             return p
         res=self.run_migration(build=bogus)
         self.assertFalse(res['ok'])
@@ -80,7 +92,7 @@ class MigrationProtocolTests(unittest.TestCase):
     def test_forged_proof_and_core_digest_reject(self):
         def bogus(*a, **k):
             p = fake_build(*a, **k)
-            p["identities"]["hia_scalar_core_sha256"] = "X"*64
+            p["identities"]["hia_program_sha256"] = "X"*64
             return p
         self.assertFalse(self.run_migration(build=bogus)["ok"])
         self.assertFalse(self.dest.exists())
@@ -88,7 +100,7 @@ class MigrationProtocolTests(unittest.TestCase):
     def test_forged_hia_source_identity_rejects(self):
         def bogus(*a, **k):
             result=fake_build(*a, **k)
-            result['identities']['source_sha256']='c'*64
+            result['rust_reference']['source_sha256']='c'*64
             return result
         self.assertFalse(self.run_migration(build=bogus)['ok'])
         self.assertFalse(self.dest.exists())
@@ -96,19 +108,19 @@ class MigrationProtocolTests(unittest.TestCase):
     def test_forged_native_llvm_identity_rejects(self):
         def bogus(*a, **k):
             result=fake_build(*a, **k)
-            result['native_backend']['llvm_ir_sha256']='d'*64
+            result['native_backend']['llvm_ir_sha256']='0'*64
             return result
         self.assertFalse(self.run_migration(build=bogus)['ok'])
         self.assertFalse(self.dest.exists())
 
     def test_reference_receipt_and_native_stage_binding_required(self):
-        for field in ('reference_validation', 'native_backend'):
+        for field in ('rust_reference', 'native_backend'):
             def bogus(*a, **k):
                 result=fake_build(*a, **k)
-                if field == 'reference_validation':
+                if field == 'rust_reference':
                     result[field]['checks']['rust_borrows_types']='frontend_only'
                 else:
-                    result[field]['output']='/tmp/forged-artifact.so'
+                    result['output']='/tmp/forged-native-stage.so'
                 return result
             with self.subTest(field=field):
                 self.assertFalse(self.run_migration(build=bogus)['ok'])
@@ -172,11 +184,64 @@ class MigrationProtocolTests(unittest.TestCase):
         self.assertEqual(outcome['status'], 'recovery_required')
         self.assertTrue((self.dest/'candidate.hepta').exists())
 
+    def test_legacy_scalar_core_v0_receipt_is_never_accepted(self):
+        def bogus(*a, **k):
+            result = fake_build(*a, **k)
+            result['schema'] = 'hepta.build-llvm-ssa.v1'
+            result['identities']['hia_scalar_core_schema'] = 'hepta.hia.scalar-core.v0'
+            return result
+        self.assertFalse(self.run_migration(build=bogus)['ok'])
+        self.assertFalse(self.dest.exists())
+
+    def test_wrong_core_provenance_or_compiler_identity_rejects(self):
+        for case in ('core', 'compiler', 'native', 'proof'):
+            def bogus(*a, **k):
+                result = fake_build(*a, **k)
+                if case == 'core':
+                    result['native_backend']['core_sha256'] = '0'*64
+                elif case == 'compiler':
+                    result['rust_reference']['compiler_sha256'] = '0'*64
+                elif case == 'native':
+                    result['native_backend']['kind'] = 'shared' if k['kind'] == 'object' else 'object'
+                else:
+                    result['claims']['source_to_core_refinement_proved'] = True
+                return result
+            with self.subTest(case=case):
+                self.assertFalse(self.run_migration(build=bogus)['ok'])
+                self.assertFalse(self.dest.exists())
+
+    def test_native_publication_receipt_mismatch_rejects(self):
+        def bogus(*a, **k):
+            result = fake_build(*a, **k)
+            result['publication']['bytes'] += 1
+            return result
+        self.assertFalse(self.run_migration(build=bogus)['ok'])
+        self.assertFalse(self.dest.exists())
+
     def test_existing_destination_preserved(self):
         self.dest.mkdir(); (self.dest/'protected').write_text('do-not-touch')
         res=self.run_migration()
         self.assertFalse(res['ok'])
         self.assertEqual((self.dest/'protected').read_text(),'do-not-touch')
+    def test_mismatched_core_proof_and_backend_target_never_publish(self):
+        for case in ('core', 'compiler', 'proof', 'target', 'publication'):
+            def bogus(*a, **kw):
+                r = fake_build(*a, **kw)
+                if case == 'core':
+                    r['identities']['hia_program_sha256'] = '0' * 64
+                elif case == 'compiler':
+                    r['identities']['compiler_sha256'] = '0' * 64
+                elif case == 'proof':
+                    r['claims']['whole_language_soundness_proved'] = 1
+                elif case == 'target':
+                    r['native_backend']['target'] = 'aarch64-unknown-linux-gnu'
+                else:
+                    r['publication']['sha256'] = '0' * 64
+                return r
+            with self.subTest(case=case):
+                self.assertFalse(self.run_migration(build=bogus)['ok'])
+                self.assertFalse(self.dest.exists())
+
     def test_unsupported_language_rejected(self):
         res=self.run_migration(language='rust')
         self.assertFalse(res['ok'])

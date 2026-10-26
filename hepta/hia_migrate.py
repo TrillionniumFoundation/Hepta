@@ -16,7 +16,7 @@ import tempfile
 
 from .c_migrate import migrate_c
 from .cpp2hepta import migrate_cpp
-from .llvm_ssa_pipeline import build_llvm_ssa_source
+from .hia_source_bridge import build_checked_hepta_hia_native
 from .hia_bundle_atomic import (AtomicBundleRejected, AtomicBundleUncertain,
                                 publish_hia_bundle)
 
@@ -41,7 +41,7 @@ def migrate_scalar_to_hia(source: str | Path, output_directory: str | Path, *,
 
     Source and target bytes are rechecked before publication. The native pipeline
     independently checks the Hepta project against the pinned Rust toolchain,
-    seals and replays scalar HIA, and validates LLVM ELF/COFF/Mach-O publication.
+    seals and replays executable HIA Core v1, and validates native LLVM publication.
     This wrapper never turns a source translator's claimed equivalence into proof.
     """
     src = Path(source).resolve(strict=False)
@@ -57,6 +57,7 @@ def migrate_scalar_to_hia(source: str | Path, output_directory: str | Path, *,
             "bounded_l1_profile_only": True,
             "rust_reference_required": True,
             "hia_source_replay_required": True,
+            "executable_hia_core_v1_required": True,
             "original_c_or_cpp_semantics_proved": False,
             "foreign_pointer_contracts_proved": False,
             "cpp_mangled_abi_preserved": False,
@@ -68,6 +69,9 @@ def migrate_scalar_to_hia(source: str | Path, output_directory: str | Path, *,
     try:
         if language not in {"c", "cpp"}:
             _reject("language must be c or cpp")
+        if target is not None and target not in {
+                "x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu"}:
+            _reject("target is outside explicitly admitted native HIA profiles")
         valid_ext = {".c"} if language == "c" else {".cc", ".cpp", ".cxx"}
         if (not src.is_file() or src.suffix not in valid_ext
                 or out.exists() or out.is_symlink() or not out.parent.is_dir()
@@ -99,50 +103,70 @@ def migrate_scalar_to_hia(source: str | Path, output_directory: str | Path, *,
                     or candidate_report.get("output_sha256") != _sha(code)):
                 _reject("candidate bytes disagree with source migration receipt")
             result["artifacts"]["candidate.hepta"] = {"sha256": _sha(code), "bytes": len(code)}
-            build = build_llvm_ssa_source(hepta, native, rustc=rustc, clang=clang, target=target)
+            # P0/P2: one native executable HIA Core consumer. Never return to
+            # the older scalar-core.v0 -> independent SSA LLVM publisher.
+            native_target = target or "x86_64-unknown-linux-gnu"
+            native_kind = "object" if target is not None else "shared"
+            build = build_checked_hepta_hia_native(
+                hepta, native, rustc=rustc, clang=clang,
+                target=native_target, kind=native_kind, profile="scalar")
             result["hia_build"] = build
             claims = build.get("claims") if type(build) is dict else None
             ids = build.get("identities") if type(build) is dict else None
             native_report = build.get("native_backend") if type(build) is dict else None
-            reference = build.get("reference_validation") if type(build) is dict else None
+            reference = build.get("rust_reference") if type(build) is dict else None
             reference_checks = reference.get("checks") if type(reference) is dict else None
-            expected_status = "cross_object_only_not_executed" if target else "native_host_compiled_unqualified"
+            expected_status = "native_compiled_not_executed"
+            expected_claims = {
+                "pinned_rust_reference_validated": True,
+                "source_bound_resource_ir_checked": True,
+                "native_codegen_consumed_verified_hia_core": True,
+                "native_executed": False,
+                "source_to_core_refinement_proved": False,
+                "whole_language_soundness_proved": False,
+            }
+
+            def digest(value):
+                return (type(value) is str and len(value) == 64
+                        and all(c in "0123456789abcdef" for c in value))
+
             if (type(build) is not dict or build.get("ok") is not True
+                    or build.get("schema") != "hepta.build-checked-hia-source.v1"
                     or build.get("status") != expected_status
                     or build.get("output") != str(native)
+                    or build.get("target") != native_target
                     or type(reference) is not dict or reference.get("ok") is not True
+                    or reference.get("source_sha256") != _sha(code)
                     or type(reference_checks) is not dict
                     or reference_checks.get("rust_borrows_types") != "rustc_checked"
                     or type(claims) is not dict
-                    or claims.get("native_rust_reference_required") is not True
-                    or claims.get("source_bound_resource_cfg_checked") is not True
-                    or claims.get("ssa_cfg_origin_rechecked") is not True
-                    or claims.get("target_program_executed") is not False
-                    or claims.get("foreign_c_abi_qualified") is not False
-                    or claims.get("host_elf_dynamic_symbols_checked") is not (target is None)
-                    or claims.get("hia_scalar_core_source_replayed") is not True
-                    or claims.get("independent_scalar_ssa_structure_checked") is not True
-                    or claims.get("native_artifact_compiled") is not True
-                    or claims.get("backend_refinement_proved") is not False
-                    or type(ids) is not dict or ids.get("hia_scalar_core_schema") != "hepta.hia.scalar-core.v0"
-                    or ids.get("source_sha256") != _sha(code)
-                    or ids.get("native_resource_gate_schema") != "hepta.native.resource-gate.v1"
-                    or type(ids.get("llvm_ir_sha256")) is not str
-                    or len(ids["llvm_ir_sha256"]) != 64
-                    or any(c not in "0123456789abcdef" for c in ids["llvm_ir_sha256"])
-                    or type(ids.get("hia_scalar_core_sha256")) is not str
-                    or len(ids["hia_scalar_core_sha256"]) != 64
-                    or any(c not in "0123456789abcdef" for c in ids["hia_scalar_core_sha256"])
+                    or set(claims) != set(expected_claims)
+                    or any(claims[key] is not value for key, value in expected_claims.items())
+                    or type(ids) is not dict
+                    or not all(digest(ids.get(key)) for key in (
+                        "project_sha256", "compiler_sha256", "source_semantic_sha256",
+                        "resource_ir_sha256", "hia_program_sha256", "llvm_ir_sha256",
+                        "scalar_ssa_sha256", "ssa_verification_sha256"))
+                    or reference.get("compiler_sha256") != ids["compiler_sha256"]
                     or type(native_report) is not dict
+                    or native_report.get("status") != expected_status
+                    or native_report.get("target") != native_target
+                    or native_report.get("kind") != native_kind
+                    or native_report.get("core_sha256") != ids["hia_program_sha256"]
                     or native_report.get("llvm_ir_sha256") != ids["llvm_ir_sha256"]
-                    or native_report.get("output") != str(native)):
-                _reject("source-bound HIA and LLVM qualification incomplete")
+                    or type(native_report.get("claims")) is not dict
+                    or native_report["claims"].get("backend_refinement_proved") is not False
+                    or native_report["claims"].get("native_execution_qualified") is not False):
+                _reject("source-bound executable HIA Core and LLVM qualification incomplete")
             if not native.is_file() or native.is_symlink():
                 _reject("native pipeline did not publish a real staged object")
             binary = native.read_bytes()
+            publication = build.get("publication")
             if (not binary or native_report.get("artifact_sha256") != _sha(binary)
-                    or native_report.get("artifact_bytes") != len(binary)):
-                _reject("native artifact changed after HIA build receipt")
+                    or native_report.get("artifact_bytes") != len(binary)
+                    or type(publication) is not dict
+                    or publication != {"sha256": _sha(binary), "bytes": len(binary)}):
+                _reject("native artifact or publication changed after HIA Core build")
             binary_name = "candidate.o" if target else "candidate.so"
             result["artifacts"][binary_name] = {"sha256": _sha(binary), "bytes": len(binary)}
             if src.read_bytes() != before or hepta.read_bytes() != code or native.read_bytes() != binary:
