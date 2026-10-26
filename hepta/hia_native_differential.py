@@ -28,6 +28,13 @@ _MAX_BYTES = 8 * 1024 * 1024
 _WORKER = r'''
 import ctypes, json, resource, sys
 resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+# File-backed capture must be *kernel bounded before native code executes*.
+# A 4097-byte read after child exit does not bound bytes written to disk.
+resource.setrlimit(resource.RLIMIT_FSIZE, (4096, 4096))
+# Keep finite native differential observations from exhausting host memory
+# or CPU even if a malformed foreign DSO is supplied. This is NOT a sandbox.
+resource.setrlimit(resource.RLIMIT_AS, (512 * 1024 * 1024, 512 * 1024 * 1024))
+resource.setrlimit(resource.RLIMIT_CPU, (10, 10))
 lib, symbol, word, packed = sys.argv[1:]
 args = json.loads(packed)
 c = ctypes.c_int32 if word == "i32" else ctypes.c_uint32
@@ -98,7 +105,11 @@ def _observe_native(library: Path, function: str, word: str, args: list[int], *,
             child_stderr = err.read(4097)
     except (subprocess.TimeoutExpired, OSError) as exc:
         raise HIADifferentialRejected("E_HIA_DIFFERENTIAL: native child unavailable or timed out") from exc
-    if len(child_stdout) > 4096 or len(child_stderr) > 4096:
+    # RLIMIT_FSIZE may terminate the worker, or Python may catch EFBIG during
+    # final JSON printing and exit nonzero. Treat an exactly full file as a
+    # flood even if no SIGXFSZ was delivered; no legal scalar JSON is 4 KiB.
+    if (len(child_stdout) >= 4096 or len(child_stderr) >= 4096
+            or proc.returncode == -signal.SIGXFSZ):
         _reject("native subprocess exceeded output budget")
     if proc.returncode == -signal.SIGABRT:
         return ("trap", None)
