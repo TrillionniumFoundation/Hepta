@@ -5,6 +5,8 @@ import os
 import json
 from pathlib import Path
 import shutil
+import struct
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -14,6 +16,7 @@ from tools import qualify_hia_program_perf as q
 
 
 CLANG = os.environ.get("CLANG", "/usr/lib/llvm-20/bin/clang")
+RUSTC = os.environ.get("RUSTC") or shutil.which("rustc")
 
 
 class StandalonePerformancePolicyTests(unittest.TestCase):
@@ -39,7 +42,11 @@ class StandalonePerformancePolicyTests(unittest.TestCase):
             payload = b"not a rebuilt substitute\x00native bytes"
             with self.assertRaisesRegex(RuntimeError, "actual attempted failure"):
                 with q.artifact_workspace(destination, report) as workspace:
+                    self.assertNotEqual(workspace, destination)
+                    self.assertEqual(workspace.parent, Path("/tmp"))
                     (workspace / "measured.so").write_bytes(payload)
+                    (workspace / "measured.so").chmod(0o700)
+                    self.assertFalse((destination / "measured.so").exists())
                     raise RuntimeError("actual attempted failure")
             self.assertEqual((destination / "measured.so").read_bytes(), payload)
             manifest_bytes = (destination / "artifact-retention.json").read_bytes()
@@ -47,6 +54,66 @@ class StandalonePerformancePolicyTests(unittest.TestCase):
             self.assertEqual(manifest["files"], {"measured.so": {"bytes": len(payload), "sha256": q.sha(payload)}})
             self.assertEqual(report["artifact_retention"]["manifest_sha256"], q.sha(manifest_bytes))
             self.assertEqual(report["artifact_retention"]["files"], manifest["files"])
+            self.assertEqual(manifest["path_mapping"], {"measured.so": {
+                "original": str(workspace / "measured.so"),
+                "retained": str(destination / "measured.so"),
+                "bytes": len(payload), "sha256": q.sha(payload),
+                "source_and_copy_hashes_verified": True}})
+            self.assertEqual(report["artifact_retention"]["path_mapping"], manifest["path_mapping"])
+            self.assertEqual(report["artifact_retention"]["status"], "complete")
+            self.assertTrue(os.access(destination / "measured.so", os.X_OK))
+            self.assertFalse(workspace.exists())
+
+    def test_no_retention_uses_the_same_explicit_tmp_layout_even_when_tmpdir_changes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            caller_temp = Path(directory) / ("long_caller_tmpdir_" + "x" * 140)
+            caller_temp.mkdir()
+            report = {}
+            with patch.dict(os.environ, {"TMPDIR": str(caller_temp)}), patch.object(tempfile, "tempdir", str(caller_temp)):
+                with q.artifact_workspace(None, report) as workspace:
+                    self.assertEqual(workspace.parent, Path("/tmp"))
+                    self.assertEqual(len(workspace.name), len(q.BUILD_PREFIX) + q.BUILD_SUFFIX_CHARACTERS)
+                    self.assertEqual(report["build_layout"]["directory"], str(workspace))
+            self.assertEqual(report["artifact_retention"], {"retained": False})
+            self.assertFalse(workspace.exists())
+
+    def test_corrupted_copy_is_rejected_and_not_reported_retained(self):
+        original_chmod = Path.chmod
+        with tempfile.TemporaryDirectory() as directory:
+            destination = Path(directory) / "attempt"
+            report = {}
+            def corrupt_after_copy(path, mode, **kwargs):
+                original_chmod(path, mode, **kwargs)
+                if path == destination / "measured.so":
+                    path.write_bytes(b"different bytes")
+            with self.assertRaisesRegex(ValueError, "retained artifact differs"):
+                with patch.object(Path, "chmod", corrupt_after_copy):
+                    with q.artifact_workspace(destination, report) as workspace:
+                        (workspace / "measured.so").write_bytes(b"measured bytes")
+            self.assertFalse(report["artifact_retention"]["retained"])
+            self.assertNotIn("manifest_sha256", report["artifact_retention"])
+            self.assertFalse((destination / "artifact-retention.json").exists())
+
+    def test_recorded_measured_identity_cannot_be_replaced_before_retention(self):
+        for observation in (False, True):
+            with self.subTest(resource_observation=observation), tempfile.TemporaryDirectory() as directory:
+                destination = Path(directory) / "attempt"
+                report = {}
+                with self.assertRaisesRegex(ValueError, "recorded measured identity"):
+                    with q.artifact_workspace(destination, report) as workspace:
+                        measured = workspace / "measured.so"
+                        measured.write_bytes(b"actually measured bytes")
+                        expected = q.identity(measured)
+                        if observation:
+                            report["resource_observation"] = {"artifacts": {"measured": expected}}
+                        else:
+                            report["artifacts"] = {"measured": expected}
+                        measured.write_bytes(b"changed before finally copies")
+                self.assertFalse(report["artifact_retention"]["retained"])
+                self.assertEqual((destination / "measured.so").read_bytes(), b"changed before finally copies")
+                self.assertNotEqual(report["artifact_retention"]["files"]["measured.so"]["sha256"], expected["sha256"])
+                self.assertNotIn("manifest_sha256", report["artifact_retention"])
+                self.assertFalse((destination / "artifact-retention.json").exists())
 
     def test_retention_rejects_existing_directory_without_replacing_files(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -62,6 +129,10 @@ class StandalonePerformancePolicyTests(unittest.TestCase):
             self.assertFalse((destination / "artifact-retention.json").exists())
 
     def test_frozen_workload_and_thresholds_are_unchanged_and_c_is_not_claimed(self):
+        self.assertEqual(q.PROTOCOL["id"], "hepta.hia.program.perf.v2")
+        self.assertEqual(q.PROTOCOL["build_layout"]["root"], "/tmp")
+        self.assertFalse(q.PROTOCOL["build_layout"]["retention_parent_used_for_build"])
+        self.assertFalse(q.PROTOCOL["build_layout"]["caller_tmpdir_used_for_build"])
         self.assertEqual(len(q.sample_order()), 63)
         for key in ("paired_groups", "native_calls_per_sample", "warmup_calls_per_process",
                     "kernel_buffer_sizes", "minimum_sample_seconds", "maximum_sample_seconds",
@@ -82,6 +153,127 @@ class StandalonePerformancePolicyTests(unittest.TestCase):
                         q.observe(ir, None, Path(directory), CLANG, observation=observation)
         self.assertEqual(observation["status"], "running")
         self.assertNotIn("rehashed_llvm_rejected", observation)
+
+
+@unittest.skipUnless(RUSTC, "actual pinned Rust compiler required")
+class StandalonePerformanceBuildLayoutTests(unittest.TestCase):
+    def code_inventory(self, path):
+        """Read ELF code bytes and actual symbol addresses, without binutils."""
+        data = path.read_bytes()
+        self.assertEqual(data[:6], b"\x7fELF\x02\x01")
+        offset = struct.unpack_from("<Q", data, 40)[0]
+        entry_size, count, names_index = struct.unpack_from("<HHH", data, 58)
+        self.assertEqual(entry_size, 64)
+        self.assertTrue(0 < names_index < count)
+        headers = [struct.unpack_from("<IIQQQQIIQQ", data, offset + i * entry_size) for i in range(count)]
+        names_header = headers[names_index]
+        names = data[names_header[4]:names_header[4] + names_header[5]]
+        sections = [(i, header) for i, header in enumerate(headers)
+                    if names[header[0]:].split(b"\0", 1)[0] == b".text"]
+        self.assertEqual(len(sections), 1)
+        section_index, section = sections[0]
+        text = data[section[4]:section[4] + section[5]]
+        self.assertTrue(text)
+        self.assertEqual(len(text), section[5])
+        functions, code = {}, {}
+        for symbols in headers:
+            if symbols[1] != 2:  # SHT_SYMTAB includes local allocation helpers.
+                continue
+            strings_header = headers[symbols[6]]
+            strings = data[strings_header[4]:strings_header[4] + strings_header[5]]
+            self.assertEqual(symbols[9], 24)
+            for index in range(0, symbols[5], symbols[9]):
+                name_offset, info, _, section_id, address, length = struct.unpack_from(
+                    "<IBBHQQ", data, symbols[4] + index)
+                if info & 15 != 2 or section_id != section_index or length == 0:
+                    continue
+                name = strings[name_offset:].split(b"\0", 1)[0].decode()
+                # Compare every defined allocation-named function as well as
+                # all timed kernels, including RawVec and Rust allocator shims.
+                if name not in q.KERNELS and "alloc" not in name:
+                    continue
+                start = address - section[3]
+                self.assertTrue(0 <= start < len(text) and start + length <= len(text))
+                code[name] = text[start:start + length]
+                functions[name] = {"address": address, "bytes": length, "sha256": q.sha(code[name])}
+        self.assertTrue(set(q.KERNELS).issubset(functions))
+        self.assertTrue(any("finish_grow" in name for name in functions))
+        self.assertTrue(any("__rdl_alloc" in name for name in functions))
+        return ({"text": {"address": section[3], "bytes": len(text), "sha256": q.sha(text)},
+                 "functions": functions}, {"text": text, "functions": code})
+
+    def test_real_rust_kernel_code_is_independent_of_retention_parent_length(self):
+        analysis = q.analyze(q.SOURCE, str(q.SOURCE_PATH), native=False, crate_type="cdylib")
+        self.assertTrue(analysis.report["ok"])
+        sources = {"rust": analysis.rust, "handwritten_rust": q.RUST_REFERENCE}
+        runner = subprocess.run
+        observations, actual_code = [], []
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            parents = [root / "s", root / ("long_retention_" + "x" * 160) / ("another_component_" + "y" * 160)]
+            self.assertGreater(len(str(parents[1])) - len(str(parents[0])), 300)
+            for parent in parents:
+                parent.mkdir(parents=True)
+                destination, report, commands = parent / "attempt", {}, []
+                def record_command(command, *args, **kwargs):
+                    if "--crate-name=hepta_program" in command:
+                        commands.append([str(argument) for argument in command])
+                    return runner(command, *args, **kwargs)
+                row = {"retention_parent": str(parent), "retention_parent_characters": len(str(parent)), "baselines": {}}
+                code_by_baseline = {}
+                with patch.dict(os.environ, {"TMPDIR": str(parent)}), patch.object(tempfile, "tempdir", str(parent)):
+                    with q.artifact_workspace(destination, report) as workspace:
+                        row["build_directory"] = str(workspace)
+                        self.assertEqual(workspace.parent, Path("/tmp"))
+                        with patch.object(subprocess, "run", side_effect=record_command):
+                            for name, source in sources.items():
+                                library = workspace / (name + ".so")
+                                (workspace / (name + ".rs")).write_text(source)
+                                receipt = q.compile_rust(source, rustc=RUSTC, crate_type="cdylib", output=library)
+                                self.assertTrue(receipt["ok"], receipt)
+                                inventory, code_by_baseline[name] = self.code_inventory(library)
+                                row["baselines"][name] = {"binary": q.identity(library), **inventory,
+                                    "source_sha256": q.sha(source.encode()), "flags": receipt["flags"],
+                                    "toolchain": receipt["toolchain"]}
+                        self.assertEqual(len(commands), 2)
+                        for name, command in zip(sources, commands):
+                            actual_source = Path(command[1])
+                            self.assertEqual(actual_source.parent.parent, workspace)
+                            self.assertEqual(actual_source.name, "program.rs")
+                            row["baselines"][name]["actual_compiler_command"] = command
+                            row["baselines"][name]["actual_source_path_characters"] = len(str(actual_source))
+                        report["artifacts"] = {name: data["binary"] for name, data in row["baselines"].items()}
+                row["retention"] = report["artifact_retention"]
+                for name in sources:
+                    retained = destination / (name + ".so")
+                    self.assertEqual(q.sha(retained.read_bytes()), row["baselines"][name]["binary"]["sha256"])
+                observations.append(row)
+                actual_code.append(code_by_baseline)
+        self.build_observations = observations
+        self.build_comparison = {}
+        self.assertEqual(len(observations[0]["build_directory"]), len(observations[1]["build_directory"]))
+        for name in sources:
+            left, right = (row["baselines"][name] for row in observations)
+            left_code, right_code = (code[name] for code in actual_code)
+            differences = [{"offset": i, "address": left["text"]["address"] + i,
+                            "before": before, "after": after}
+                           for i, (before, after) in enumerate(zip(left_code["text"], right_code["text"]))
+                           if before != after]
+            self.build_comparison[name] = {"whole_text_equal": left_code["text"] == right_code["text"],
+                "whole_text_byte_differences": differences, "compared_function_count": len(left["functions"]),
+                "function_selection": "all measured kernels and every defined allocation-named function",
+                "whole_binary_equal": left["binary"]["sha256"] == right["binary"]["sha256"]}
+            self.assertEqual(left["actual_source_path_characters"], right["actual_source_path_characters"])
+            self.assertEqual(left["text"]["address"], right["text"]["address"])
+            self.assertEqual(left["text"]["bytes"], right["text"]["bytes"])
+            self.assertEqual(left["functions"], right["functions"])
+            self.assertEqual(left_code["functions"], right_code["functions"])
+            self.assertEqual(left["flags"], right["flags"])
+            self.assertEqual(left["source_sha256"], right["source_sha256"])
+            # Whole .text/ELF equality is deliberately not claimed. Random
+            # source-path strings can reorder pooled strings and change RIP
+            # references in unrelated std helpers, despite identical kernel
+            # code and placement. Preserve all hashes and differing bytes.
 
 
 @unittest.skipUnless(shutil.which(CLANG), "actual Clang required")

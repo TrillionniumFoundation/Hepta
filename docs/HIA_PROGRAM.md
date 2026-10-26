@@ -438,6 +438,21 @@ python tools/qualify_hia_program_composite.py --clang clang \
   --workdir /tmp/hia-composite-qualified
 ```
 
+Performance protocol `hepta.hia.program.perf.v2` builds in a fixed-length
+`/tmp/hepta-hia-perf-*` directory, independently of `TMPDIR` and the requested
+artifact retention parent. After the attempt, it copies the exact measured
+files, verifies both hashes, and records the original-to-retained path mapping.
+It never rebuilds a binary to stand in for a measured one. This corrects a
+measurement dependency: embedded generated Rust source paths can affect linked
+code placement when retention directories have different lengths. The build
+layout regression compares real Rust kernel and allocation-helper bytes and
+addresses across widely different retention paths. Whole ELF or whole `.text`
+bit identity is not promised: equal-length random source names can still alter
+string references in unrelated standard-library helpers. No Rust safety flags,
+workload, sample count, outlier rule or performance threshold changes with this
+retention policy. Retained receipts keep their original build paths; extraction
+does not turn a historical receipt into a new native execution.
+
 Legacy envelopes can be imported using `hia import-executable` or
 `hia import-scalar`, both with `--source`. Scalar import additionally requires
 the exact `--project-sha256`. Those origin checks occur at conversion. The

@@ -41,7 +41,16 @@ from tools.qualify_llvm_owned import (PROTOCOL as ORIGINAL_PROTOCOL, RUST_REFERE
 SOURCE_PATH = ROOT / "examples/hia_program/benchmarks.hepta"
 SOURCE = SOURCE_PATH.read_text()
 DRIVER = (ROOT / "examples/hia_program/perf_driver.c").read_text()
-PROTOCOL = {**ORIGINAL_PROTOCOL, "id": "hepta.hia.program.perf.v1",
+BUILD_ROOT = Path("/tmp")
+BUILD_PREFIX = "hepta-hia-perf-"
+BUILD_SUFFIX_CHARACTERS = 8
+BUILD_LAYOUT = {"root": str(BUILD_ROOT), "directory_prefix": BUILD_PREFIX,
+                "temporary_suffix_characters": BUILD_SUFFIX_CHARACTERS,
+                "retention_parent_used_for_build": False,
+                "caller_tmpdir_used_for_build": False,
+                "retention": "copy exact files after sampling or failure; verify source/copy hashes against recorded measured identities",
+                "identity_scope": "fixed path length; random path strings can reorder pooled data and references; whole-ELF or whole-.text equality is not claimed"}
+PROTOCOL = {**ORIGINAL_PROTOCOL, "id": "hepta.hia.program.perf.v2",
             "profile": "closed-ssa-integer-byte-resources-64-v1",
             "implementation_mapping": {"llvm": "standalone HIA direct LLVM",
                 "rust": "same Hepta input to checked Rust",
@@ -51,6 +60,7 @@ PROTOCOL = {**ORIGINAL_PROTOCOL, "id": "hepta.hia.program.perf.v1",
             "c_backend_scope": "no C correctness or performance backend is executed by this qualification",
             "allocation_optimization_scope": "HIA preserves allocator effects; Rust baselines use their standard allocator optimization rules",
             "interference_observation": "CPU time, context switches and page faults are retained per sample; informational only, no sample exclusion or acceptance adjustment",
+            "build_layout": BUILD_LAYOUT,
             "scope": "Linux x86-64; finite integer/byte-owner kernels; source-free HIA execution"}
 INPUTS = ("tools/qualify_hia_program_perf.py", "tools/qualify_llvm_owned.py",
           "tools/evidence_checks.py", "examples/hia_program/benchmarks.hepta",
@@ -103,39 +113,74 @@ def scheduler_environment():
 
 @contextmanager
 def artifact_workspace(directory, report):
-    """Keep the exact measured files when explicitly requested, even on failure.
+    """Build in one fixed-length layout, then retain exact files on request.
 
-    A new directory is mandatory. Retention does not alter sample collection,
-    acceptance, or artifact identity checks and never substitutes a rebuild for
-    the binary which produced a sample.
+    Rust embeds source paths which can affect linked code placement. Neither
+    the retention parent nor the caller's TMPDIR may choose the build location.
+    Copying happens after the body, including failed attempts; no rebuild can
+    substitute for the binary which produced a sample. Receipts keep their
+    original paths and the manifest explicitly maps them to retained copies.
     """
-    if directory is None:
-        with tempfile.TemporaryDirectory(prefix="hepta-hia-perf-") as temporary:
-            report["artifact_retention"] = {"retained": False}
-            yield Path(temporary)
-        return
-    destination = Path(os.path.abspath(directory))
-    require(destination.parent.is_dir() and not destination.exists() and not destination.is_symlink(),
-            "artifact directory must be new and have an existing parent")
-    destination.mkdir(mode=0o700)
-    report["artifact_retention"] = {"retained": True, "directory": str(destination)}
-    try:
-        yield destination
-    finally:
-        inventory = {}
-        for item in sorted(destination.rglob("*")):
-            metadata = item.lstat()
-            if stat.S_ISDIR(metadata.st_mode):
-                continue
-            require(stat.S_ISREG(metadata.st_mode), "retained artifact is not an ordinary file")
-            inventory[item.relative_to(destination).as_posix()] = {
-                "bytes": metadata.st_size, "sha256": sha(item.read_bytes())}
-        manifest = {"schema": "hepta.hia.program-perf-artifacts.v1", "files": inventory,
-                    "scope": "exact files retained from this attempt, including failed attempts; no rebuilds"}
-        encoded = wire(manifest)
-        with (destination / "artifact-retention.json").open("xb") as stream:
-            stream.write(encoded + b"\n")
-        report["artifact_retention"].update(manifest_sha256=sha(encoded + b"\n"), files=inventory)
+    destination = None
+    if directory is not None:
+        destination = Path(os.path.abspath(directory))
+        require(destination.parent.is_dir() and not destination.exists() and not destination.is_symlink(),
+                "artifact directory must be new and have an existing parent")
+        destination.mkdir(mode=0o700)
+    report["artifact_retention"] = {"retained": False}
+    if destination is not None:
+        report["artifact_retention"].update(directory=str(destination), status="pending_copy")
+    with tempfile.TemporaryDirectory(prefix=BUILD_PREFIX, dir=BUILD_ROOT) as temporary:
+        workspace = Path(temporary)
+        require(workspace.parent == BUILD_ROOT and
+                len(workspace.name) == len(BUILD_PREFIX) + BUILD_SUFFIX_CHARACTERS,
+                "temporary build path does not match the fixed-length protocol")
+        report["build_layout"] = {**BUILD_LAYOUT, "directory": str(workspace),
+                                  "directory_characters": len(str(workspace))}
+        try:
+            yield workspace
+        finally:
+            if destination is not None:
+                inventory, mapping = {}, {}
+                report["artifact_retention"].update(status="copying", files=inventory, path_mapping=mapping)
+                for item in sorted(workspace.rglob("*")):
+                    metadata = item.lstat()
+                    if stat.S_ISDIR(metadata.st_mode):
+                        continue
+                    require(stat.S_ISREG(metadata.st_mode), "retained artifact is not an ordinary file")
+                    relative = item.relative_to(workspace)
+                    retained = destination / relative
+                    retained.parent.mkdir(parents=True, exist_ok=True)
+                    payload = item.read_bytes()
+                    original = {"bytes": metadata.st_size, "sha256": sha(payload)}
+                    require(len(payload) == metadata.st_size, "artifact size changed before retention")
+                    with retained.open("xb") as stream:
+                        stream.write(payload)
+                    retained.chmod(stat.S_IMODE(metadata.st_mode))
+                    require(item.stat().st_size == original["bytes"] and sha(item.read_bytes()) == original["sha256"],
+                            "original artifact changed while retaining its measured bytes")
+                    require(retained.stat().st_size == original["bytes"] and sha(retained.read_bytes()) == original["sha256"],
+                            "retained artifact differs from its measured original")
+                    inventory[relative.as_posix()] = original
+                    mapping[relative.as_posix()] = {"original": str(item), "retained": str(retained),
+                        **original, "source_and_copy_hashes_verified": True}
+                # A matching source/copy pair must also match the identities
+                # recorded before measurement/observation. Copy every actual
+                # file first so a mismatch still leaves failure evidence.
+                copied = {entry["original"]: inventory[name] for name, entry in mapping.items()}
+                for recorded in (report.get("artifacts", {}),
+                                 report.get("resource_observation", {}).get("artifacts", {})):
+                    for expected in recorded.values():
+                        require(copied.get(expected["path"]) ==
+                                {"bytes": expected["bytes"], "sha256": expected["sha256"]},
+                                "retained artifact differs from its recorded measured identity")
+                manifest = {"schema": "hepta.hia.program-perf-artifacts.v1", "files": inventory,
+                            "path_mapping": mapping, "build_layout": report["build_layout"],
+                            "scope": "exact files copied after this attempt, including failed attempts; no rebuilds"}
+                encoded = wire(manifest) + b"\n"
+                with (destination / "artifact-retention.json").open("xb") as stream:
+                    stream.write(encoded)
+                report["artifact_retention"].update(retained=True, status="complete", manifest_sha256=sha(encoded))
 
 
 _CORRECTNESS_CHILD = r"""
@@ -307,6 +352,8 @@ def qualify(*, clang="clang", rustc=None, artifact_directory=None):
             report["claims"]["host_performance_gate_passed"] = report["ok"]
             report["phase"] = "complete"
     except (ValueError, OSError, RuntimeError, KeyError, TypeError) as error:
+        report["ok"] = False
+        report["claims"]["host_performance_gate_passed"] = False
         report["diagnostic"] = {"message": str(error)}
         if isinstance(error, NativeCommandFailed):
             report["failed_command"] = error.record
