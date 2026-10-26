@@ -99,6 +99,38 @@ class SharedELFTests(unittest.TestCase):
             with self.subTest(reason=reason):
                 self.assert_reject(mutated)
 
+    def test_real_elf_load_permissions_and_nonexecutable_stack_are_mandatory(self):
+        # Reparse actual Clang-produced PT_LOAD/PT_GNU_STACK headers. Dynamic
+        # exports and section inventory are deliberately left unchanged: an
+        # ABI symbol match must not authorize RWX code/data or an exec stack.
+        data = self.compile('int foo(int x) {return x+7;}\\n', 'wx-policy.so')
+        good = inspect_owned_shared_elf(data, ('foo',))
+        self.assertEqual(good['dynamic_exports'], ['foo'])
+        phoff, nph = _u(data, 32, 8), _u(data, 56, 2)
+        headers = [(phoff + 56*i, _u(data, phoff + 56*i, 4),
+                    _u(data, phoff + 56*i + 4, 4)) for i in range(nph)]
+        rx = [p for p, kind, flags in headers if kind == 1 and flags == 5]
+        rw = [p for p, kind, flags in headers if kind == 1 and flags == 6]
+        stack = [p for p, kind, flags in headers if kind == 0x6474E551 and flags == 6]
+        relro = [p for p, kind, _flags in headers if kind == 0x6474E552]
+        self.assertTrue(rx, 'real Clang ELF must contain an RX load')
+        self.assertTrue(rw, 'real Clang ELF must contain an RW load')
+        self.assertEqual(len(stack), 1, 'real Clang ELF must declare a nonexec stack')
+        cases = {
+            'RX to RWX': _set(data, rx[0] + 4, 4, 7),
+            'RW to RWX': _set(data, rw[0] + 4, 4, 7),
+            'RX to executable-only': _set(data, rx[0] + 4, 4, 1),
+            'unreviewed load PF flags': _set(data, rx[0] + 4, 4, 5 | 0x80000000),
+            'RW GNU_STACK to executable': _set(data, stack[0] + 4, 4, 7),
+            'GNU_STACK missing': _set(data, stack[0], 4, 0),
+        }
+        if relro:
+            duplicated = _set(data, relro[0], 4, 0x6474E551)
+            cases['duplicated GNU_STACK'] = _set(duplicated, relro[0] + 4, 4, 6)
+        for reason, forged in cases.items():
+            with self.subTest(reason=reason):
+                self.assert_reject(forged)
+
     def test_executable_segment_is_mandatory(self):
         data=self.compile('int foo(int x) {return x+7;}\n')
         phoff, nph = _u(data,32,8), _u(data,56,2)

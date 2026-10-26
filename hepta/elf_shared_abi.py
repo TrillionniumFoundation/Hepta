@@ -85,19 +85,34 @@ def inspect_owned_shared_elf(data: bytes, expected_exports: tuple[str, ...]) -> 
         _fail("missing or invalid program headers")
     executable_segments: list[tuple[int, int]] = []
     dynamic_segments: list[tuple[int, int]] = []
+    stack_headers = 0
     for index in range(nsegments):
         pos = phoff + index * 56
         typ, flags = _u(data, pos, 4), _u(data, pos + 4, 4)
         vaddr, filesz, off = _u(data, pos + 16, 8), _u(data, pos + 32, 8), _u(data, pos + 8, 8)
+        if typ == 0x6474E551:  # PT_GNU_STACK
+            stack_headers += 1
+            # An absent/duplicated or executable stack is outside the
+            # native Hepta host profile. Do not trust section metadata or
+            # ELF symbol inventories to establish process memory permissions.
+            if flags != 6:  # PF_R | PF_W; no PF_X/unknown permission bits
+                _fail("PT_GNU_STACK requires reviewed non-executable RW permissions")
         if typ == 2:  # PT_DYNAMIC is what the loader actually consumes
             if not _range(data, off, filesz) or filesz % 16:
                 _fail("invalid loader dynamic table bounds")
             dynamic_segments.append((off, filesz))
         if typ == 1:  # PT_LOAD
+            # LLVM may emit correct symbols into a loader segment with
+            # unsafe permissions. Reject RWX, X-only, W-only and unreviewed
+            # PF_* bits; the reviewed Clang/GCC profile emits R/RX/RW loads.
+            if flags not in (4, 5, 6):
+                _fail("PT_LOAD has unreviewed permissions or is writable-executable")
             if not _range(data, off, filesz) or vaddr + filesz > (1 << 64):
                 _fail("invalid load segment range")
             if flags & 1:  # PF_X
                 executable_segments.append((vaddr, vaddr + filesz))
+    if stack_headers != 1:
+        _fail("missing or duplicated explicit non-executable PT_GNU_STACK")
     if not executable_segments:
         _fail("no executable load segment")
     if len(dynamic_segments) != 1:
