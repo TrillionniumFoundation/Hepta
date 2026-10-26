@@ -6,6 +6,7 @@ typedef __SIZE_TYPE__ hepta_size;
 typedef __UINT8_TYPE__ hepta_u8;
 typedef __UINT32_TYPE__ hepta_u32;
 typedef __UINT64_TYPE__ hepta_u64;
+typedef __UINTPTR_TYPE__ hepta_uintptr;
 #if !defined(__BYTE_ORDER__) || (__BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__)
 #error requires little endian
 #endif
@@ -62,7 +63,10 @@ void *memmove(void *dest, const void *src, hepta_size n) {
     hepta_u8 *d = (hepta_u8 *)dest;
     const hepta_u8 *s = (const hepta_u8 *)src;
     if (d == s || n == 0) return dest;
-    if (d < s) { for (hepta_size i = 0; i < n; ++i) d[i] = s[i]; }
+    /* Flat LP64 addresses: do not relationally compare unrelated C pointers. */
+    if ((hepta_uintptr)d < (hepta_uintptr)s) {
+        for (hepta_size i = 0; i < n; ++i) d[i] = s[i];
+    }
     else { for (hepta_size i = n; i > 0; --i) d[i - 1] = s[i - 1]; }
     return dest;
 }
