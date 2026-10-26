@@ -1,5 +1,7 @@
 """Deterministic differential tests for bytewise VM operations (not native HIA)."""
+import ctypes
 import random
+import sys
 import unittest
 
 from hepta.hia_bounded_memory import fill_bytes, move_bytes, _CHUNK
@@ -62,6 +64,38 @@ class BoundedByteMemoryTests(unittest.TestCase):
                 move_bytes(value, dest, src, length)
             self.assertEqual(value, bytearray(b"abc"))
         self.assertEqual(_CHUNK, 4096)
+
+
+    def test_actual_linux_libc_memmove_memset_differential(self):
+        if not sys.platform.startswith("linux"):
+            self.skipTest("independent native libc comparison targets Linux")
+        libc = ctypes.CDLL(None)
+        memmove = libc.memmove
+        memmove.argtypes = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t)
+        memmove.restype = ctypes.c_void_p
+        memset = libc.memset
+        memset.argtypes = (ctypes.c_void_p, ctypes.c_int, ctypes.c_size_t)
+        memset.restype = ctypes.c_void_p
+        rng = random.Random(20261026)
+        for trial in range(1000):
+            size = rng.randrange(1, 32768)
+            initial = rng.randbytes(size)
+            actual, native = bytearray(initial), bytearray(initial)
+            src = rng.randrange(size + 1)
+            count = rng.randrange(size - src + 1)
+            dst = rng.randrange(size - count + 1)
+            move_bytes(actual, dst, src, count)
+            ptr = (ctypes.c_ubyte * size).from_buffer(native)
+            if count:
+                memmove(ctypes.byref(ptr, dst), ctypes.byref(ptr, src), count)
+            self.assertEqual(actual, native, ("memmove", trial, dst, src, count))
+            offset = rng.randrange(size + 1)
+            fill_count = rng.randrange(size - offset + 1)
+            value = rng.randrange(256)
+            fill_bytes(actual, offset, fill_count, value)
+            if fill_count:
+                memset(ctypes.byref(ptr, offset), value, fill_count)
+            self.assertEqual(actual, native, ("memset", trial, offset, fill_count))
 
 
 if __name__ == "__main__":
