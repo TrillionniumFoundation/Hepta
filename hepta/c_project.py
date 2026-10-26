@@ -41,6 +41,126 @@ def digest(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+_MAX_DEPENDENCY_BYTES = 8_000_000
+
+
+def _read_dependency(path: Path) -> bytes:
+    """Limit source/header bytes before allocating a potentially hostile file."""
+    try:
+        with path.open("rb") as handle:
+            data = handle.read(_MAX_DEPENDENCY_BYTES + 1)
+    except OSError as exc:
+        raise MigrationRejected("E_C_BUILD_CHANGED", "Captured dependency unavailable") from exc
+    if len(data) > _MAX_DEPENDENCY_BYTES:
+        raise MigrationRejected("E_C_BUILD_SIZE", "Captured dependency exceeds 8 MB")
+    return data
+
+
+def _file_digest(path: Path) -> str:
+    """Incremental native compiler identity without unbounded read_bytes."""
+    identity = hashlib.sha256()
+    try:
+        with path.open("rb") as handle:
+            while True:
+                chunk = handle.read(1024 * 1024)
+                if not chunk:
+                    break
+                identity.update(chunk)
+    except OSError as exc:
+        raise MigrationRejected("E_C_BUILD_CHANGED", "Selected compiler unavailable") from exc
+    return identity.hexdigest()
+
+
+_MAX_COMPDB_BYTES = 2_000_000
+_MAX_COMPDB_ENTRIES = 32
+_MAX_COMPDB_ARGS = 256
+_MAX_COMPDB_PATH_BYTES = 4096
+_MAX_COMPDB_ARGUMENT_BYTES = 16384
+
+
+def _checked_string(value: object, label: str, limit: int) -> str:
+    if not isinstance(value, str) or not value or "\x00" in value:
+        raise MigrationRejected("E_C_BUILD_JSON", f"{label} must be a nonempty string without NUL")
+    try:
+        size = len(value.encode("utf-8"))
+    except UnicodeError as exc:
+        raise MigrationRejected("E_C_BUILD_JSON", f"{label} has invalid Unicode") from exc
+    if size > limit:
+        raise MigrationRejected("E_C_BUILD_SIZE", f"{label} exceeds the configured UTF-8 byte budget")
+    return value
+
+
+def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict:
+    obj = {}
+    for key, value in pairs:
+        if key in obj:
+            raise MigrationRejected("E_C_BUILD_JSON", f"Duplicate compile database field: {key!r}")
+        obj[key] = value
+    return obj
+
+
+def _reject_nonfinite_constant(value: str):
+    raise MigrationRejected("E_C_BUILD_JSON", f"Nonfinite compile database JSON constant: {value}")
+
+
+def _load_compdb(database: Path) -> tuple[bytes, list[dict]]:
+    """Bounded, unambiguous compilation-database intake shared by capture/replay.
+
+    A source graph and its flags cannot be attested from ambiguous duplicate
+    JSON keys or a different parse from the original capture. Neither method
+    runs a database-provided command; each forwards only the reviewed flags.
+    """
+    try:
+        with database.open("rb") as stream:
+            raw = stream.read(_MAX_COMPDB_BYTES + 1)
+    except OSError as exc:
+        raise MigrationRejected("E_C_BUILD_DATABASE", f"Cannot read compile database: {exc}") from exc
+    if len(raw) > _MAX_COMPDB_BYTES:
+        raise MigrationRejected("E_C_BUILD_SIZE", "Compilation database exceeds 2 MB")
+    try:
+        entries = json.loads(raw.decode("utf-8"),
+                             object_pairs_hook=_reject_duplicate_keys,
+                             parse_constant=_reject_nonfinite_constant)
+    except MigrationRejected:
+        raise
+    except (UnicodeError, ValueError, TypeError, RecursionError, OverflowError) as exc:
+        raise MigrationRejected("E_C_BUILD_JSON", "Invalid or unbounded compile database JSON") from exc
+    if not isinstance(entries, list) or not 1 <= len(entries) <= _MAX_COMPDB_ENTRIES:
+        raise MigrationRejected("E_C_BUILD_DATABASE", "Expected 1–32 compilation commands")
+    for i, entry in enumerate(entries):
+        if not isinstance(entry, dict):
+            raise MigrationRejected("E_C_BUILD_JSON", f"Compilation command #{i} is not a record")
+        keys = set(entry)
+        required = {"directory", "file"}
+        permitted = required | {"arguments", "command", "output"}
+        if (not required <= keys or not keys <= permitted
+                or ("arguments" in keys) == ("command" in keys)):
+            raise MigrationRejected(
+                "E_C_BUILD_JSON",
+                f"Command #{i} requires exactly one of arguments/command and no unknown keys")
+        _checked_string(entry["directory"], "directory", _MAX_COMPDB_PATH_BYTES)
+        _checked_string(entry["file"], "file", _MAX_COMPDB_PATH_BYTES)
+        if "output" in entry:
+            _checked_string(entry["output"], "output", _MAX_COMPDB_PATH_BYTES)
+        if "arguments" in entry:
+            argv = entry["arguments"]
+            if not isinstance(argv, list) or not 1 <= len(argv) <= _MAX_COMPDB_ARGS:
+                raise MigrationRejected("E_C_BUILD_JSON", "Invalid or excessive arguments")
+            for arg in argv:
+                _checked_string(arg, "argument", _MAX_COMPDB_ARGUMENT_BYTES)
+        else:
+            command = _checked_string(entry["command"], "command", _MAX_COMPDB_ARGUMENT_BYTES)
+            try:
+                argv = shlex.split(command, posix=True)
+            except ValueError as exc:
+                raise MigrationRejected("E_C_BUILD_JSON", "Invalid quoted compilation command") from exc
+            if not 1 <= len(argv) <= _MAX_COMPDB_ARGS:
+                raise MigrationRejected("E_C_BUILD_JSON", "Invalid or excessive command tokens")
+            for arg in argv:
+                _checked_string(arg, "command argument", _MAX_COMPDB_ARGUMENT_BYTES)
+    return raw, entries
+
+
 def invoke(args: list[str], directory: Path, *, stdin: str | None = None) -> str:
     try:
         run = run_bounded(args, cwd=directory, input_text=stdin, timeout=45,
@@ -107,6 +227,30 @@ def _flags(argv: list[str], source: Path, directory: Path) -> tuple[list[str], l
     return forwarded, omitted
 
 
+def _abi_model_arguments(flags: list[str]) -> list[str]:
+    """Derive ABI probe options from the *actual* allowlisted frontend flags."""
+    if type(flags) is not list:
+        raise MigrationRejected("E_C_BUILD_IDENTITY", "Malformed C frontend options")
+    result = []
+    pos = 0
+    while pos < len(flags):
+        option = flags[pos]
+        if type(option) is not str:
+            raise MigrationRejected("E_C_BUILD_IDENTITY", "Frontend argument has invalid type")
+        if option in {"-I", "-isystem", "-iquote", "-D", "-U"}:
+            if pos + 1 >= len(flags) or type(flags[pos + 1]) is not str:
+                raise MigrationRejected("E_C_BUILD_IDENTITY", "Truncated captured option")
+            pos += 2
+        elif option.startswith(("-I", "-D", "-U")) and len(option) > 2:
+            pos += 1
+        elif option.startswith("-std=") or option in {"-funsigned-char", "-fsigned-char"}:
+            result.append(option)
+            pos += 1
+        else:
+            raise MigrationRejected("E_C_BUILD_IDENTITY", "Unknown ABI probe option")
+    return result
+
+
 def _dependencies(clang: str, flags: list[str], source: Path, directory: Path, *, system: bool) -> list[Path]:
     text = invoke([clang, *flags, "-M" if system else "-MM", "-MT", "hepta_dependencies", str(source)], directory)
     body = text.replace("\\\n", " ").partition(":")[2]
@@ -139,7 +283,9 @@ def verify_capture(capture: dict) -> None:
             or any(type(compiler[key]) is not str for key in _COMPILER_FIELDS)):
         raise MigrationRejected("E_C_BUILD_IDENTITY", "Malformed compiler/database identity")
     database = Path(db_record["path"])
-    entries = json.loads(database.read_bytes())
+    original_database_bytes, entries = _load_compdb(database)
+    if digest(original_database_bytes) != db_record["sha256"]:
+        raise MigrationRejected("E_C_BUILD_CHANGED", "Parsed compilation database differs from captured bytes")
     configs = capture["configurations"]
     if (not isinstance(entries, list) or not isinstance(configs, list)
             or len(entries) != len(configs) or not 1 <= len(entries) <= 32):
@@ -172,8 +318,17 @@ def verify_capture(capture: dict) -> None:
                 or config["frontend_arguments"] != flags
                 or config["omitted_arguments"] != omitted):
             raise MigrationRejected("E_C_BUILD_IDENTITY", "Recorded compiler invocation differs from database")
-        dependencies_seen.update(config["all_dependencies"])
-        local_dependencies_seen.update(config["local_dependencies"])
+        if config["abi_model_arguments"] != _abi_model_arguments(flags):
+            raise MigrationRejected("E_C_BUILD_IDENTITY", "ABI probe options differ from captured frontend flags")
+        all_paths, local_paths = config["all_dependencies"], config["local_dependencies"]
+        if (len(set(all_paths)) != len(all_paths)
+                or len(set(local_paths)) != len(local_paths)
+                or all_paths != sorted(all_paths)
+                or local_paths != sorted(local_paths)
+                or not set(local_paths) <= set(all_paths)):
+            raise MigrationRejected("E_C_BUILD_IDENTITY", "Unreviewed dependency order or locality")
+        dependencies_seen.update(all_paths)
+        local_dependencies_seen.update(local_paths)
     dependencies = capture["dependencies"]
     if type(dependencies) is not list:
         raise MigrationRejected("E_C_BUILD_IDENTITY", "Malformed dependency inventory")
@@ -189,16 +344,14 @@ def verify_capture(capture: dict) -> None:
     if (len(set(recorded_paths)) != len(recorded_paths)
             or set(recorded_paths) != dependencies_seen):
         raise MigrationRejected("E_C_BUILD_IDENTITY", "Dependency inventory is incomplete or duplicated")
-    for item in [db_record, *dependencies]:
+    for item in dependencies:
         path = Path(item["path"])
-        if not path.is_file():
-            raise MigrationRejected("E_C_BUILD_CHANGED", "Captured build input disappeared: " + str(path))
-        content = path.read_bytes()
+        content = _read_dependency(path)
         if digest(content) != item["sha256"]:
             raise MigrationRejected("E_C_BUILD_CHANGED", "Captured build input changed: " + str(path))
-        if item is not db_record and len(content) != item["bytes"]:
+        if len(content) != item["bytes"]:
             raise MigrationRejected("E_C_BUILD_IDENTITY", "Dependency byte count differs from captured input")
-    if digest(Path(compiler["path"]).read_bytes()) != compiler["executable_sha256"]:
+    if _file_digest(Path(compiler["path"])) != compiler["executable_sha256"]:
         raise MigrationRejected("E_C_BUILD_CHANGED", "Selected compiler changed")
     # The same binary may report a different driver/target identity under a
     # changed runtime environment. Do not silently replay stale target facts.
@@ -236,6 +389,8 @@ def verify_capture(capture: dict) -> None:
                     "pointer_bits": 8 * int(observed.get("__SIZEOF_POINTER__", "0"))}
         if config["model"] != expected:
             raise MigrationRejected("E_C_BUILD_CHANGED", "Captured C ABI model differs from actual compiler")
+    if _load_compdb(database)[0] != original_database_bytes:
+        raise MigrationRejected("E_C_BUILD_CHANGED", "Compilation database changed during replay")
 
 
 def capture_project(database: str | Path, *, clang: str = "clang") -> dict:
@@ -246,15 +401,12 @@ def capture_project(database: str | Path, *, clang: str = "clang") -> dict:
     Users may supply one complete compilation database per intended build.
     """
     db = Path(database).resolve()
-    raw = db.read_bytes()
-    entries = json.loads(raw)
-    if not isinstance(entries, list) or not 1 <= len(entries) <= 32:
-        raise MigrationRejected("E_C_BUILD_DATABASE", "Expected 1–32 compilation commands")
+    raw, entries = _load_compdb(db)
     executable = shutil.which(clang)
     if executable is None:
         raise MigrationRejected("E_C_BUILD_TOOL", "Clang executable unavailable")
     executable = str(Path(executable).resolve())
-    compiler = {"path": executable, "executable_sha256": digest(Path(executable).read_bytes()),
+    compiler = {"path": executable, "executable_sha256": _file_digest(Path(executable)),
                 "version": invoke([executable, "--version"], db.parent).splitlines()[0],
                 "target": invoke([executable, "-dumpmachine"], db.parent).strip()}
     configs, dependencies, seen = [], {}, set()
@@ -277,9 +429,7 @@ def capture_project(database: str | Path, *, clang: str = "clang") -> dict:
         all_deps = _dependencies(executable, flags, source, directory, system=True)
         local_deps = set(_dependencies(executable, flags, source, directory, system=False))
         for path in all_deps:
-            content = path.read_bytes()
-            if len(content) > 8_000_000:
-                raise MigrationRejected("E_C_BUILD_SIZE", "Dependency exceeds 8 MB: " + str(path))
+            content = _read_dependency(path)
             item = {"path": str(path), "sha256": digest(content), "bytes": len(content),
                     "project_input": path in local_deps}
             if str(path) in dependencies:
@@ -294,16 +444,7 @@ def capture_project(database: str | Path, *, clang: str = "clang") -> dict:
         # affect preprocessed source semantics, but cannot attest native ABI
         # sizes or char signedness. Probe those with the actual semantic
         # compiler options only, independently of user macro overrides.
-        model_flags = []
-        flag_index = 0
-        while flag_index < len(flags):
-            flag = flags[flag_index]
-            if flag in {"-I", "-isystem", "-iquote", "-D", "-U"}:
-                flag_index += 2
-                continue
-            if flag.startswith("-std=") or flag in {"-funsigned-char", "-fsigned-char"}:
-                model_flags.append(flag)
-            flag_index += 1
+        model_flags = _abi_model_arguments(flags)
         abi_macros = invoke([executable, *model_flags, "-dM", "-E", "-x", "c", "-"], directory, stdin="")
         numeric = dict(re.findall(r"^#define (__[A-Z0-9_]+__) (\d+)$", abi_macros, flags=re.M))
         if any(numeric.get(name) != value for name, value in {
