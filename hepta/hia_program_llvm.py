@@ -674,7 +674,12 @@ def _read_artifact(path):
     if not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= MAX_ARTIFACT_BYTES:
         _reject("native artifact must be a bounded ordinary nonempty file")
     key = lambda st: (st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns)
-    with os.fdopen(os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)), "rb") as stream:
+    # The lstat/open gap can replace a regular artifact with a FIFO. A
+    # blocking O_RDONLY would hang before fstat can reject the wrong inode.
+    # O_NONBLOCK is inert for legitimate regular files, but fail-closes that
+    # name race without changing digest, size or provenance validation.
+    with os.fdopen(os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_CLOEXEC |
+                           getattr(os, "O_NOFOLLOW", 0)), "rb") as stream:
         if key(os.fstat(stream.fileno())) != key(before):
             _reject("artifact changed before reading")
         data = stream.read(before.st_size + 1)
