@@ -81,3 +81,36 @@ loader behavior or machine-code functional equivalence.
 
 Do not set `whole_project_blockers_closed=true` or call any
 historical report a qualification of the final integrated head.
+
+
+## Source-facing second-publication race closed (P5 increment)
+
+The native backends had an inner compiler artifact publication which was
+already protected by the PR #127 staged-inode/bytes check. However, the
+outermost source build uses an **additional** no-overwrite hard link from
+native backend output to the final destination. This final link is a distinct
+publication boundary; previously its bytes could be changed after the last
+stage validation but before emitting a successful source-build receipt.
+
+Both `build_llvm_ssa_source` and `build_llvm_owned_source` now reuse the
+existing `llvm_ssa_target._verified_publication` helper **after the final
+hard link**: the destination must be a regular file pointing to the exact
+stage inode, the descriptor and pathname identity must stay unchanged during
+the read, and all destination bytes must equal the stage-checked bytes. The
+success receipt uses those independently re-read published bytes. The Owned
+LLVM pipeline maps helper errors to the specific
+`E_LLVM_OWNED_PUBLICATION` failure.
+
+New actual-source integration negative tests in
+`tests/test_llvm_ssa_cli.py` and `tests/test_llvm_owned_backend.py` patch
+the *second* hardlink operation so a concurrent writer corrupts only the
+outermost destination. Those tests require full native Rust/Clang20 to run;
+they are **committed but not executed on this integrated SHA**. Their
+presence does not establish same-user filesystem adversary isolation or
+guarantee absence of mutations after the validation returns. It makes the
+before-success receipt fail closed on the tested race window.
+
+Replay the new source publication attacks with:
+
+    python -m unittest tests.test_llvm_ssa_cli tests.test_llvm_owned_backend -v
+
