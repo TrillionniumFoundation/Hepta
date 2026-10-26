@@ -50,6 +50,18 @@ object, toolchain receipts, exact source graph identity before and after
 compilation, and no-replace artifact publication. Any race or failed gate
 must not publish a successful source-native receipt.
 
+Command line (requires the same pinned rustc and Clang20+ expected by the
+existing native HIA backend; this does not execute the compiled artifact):
+
+```bash
+python tools/build_checked_hia_source.py examples/llvm_scalar/main.hepta \
+  --rustc /path/to/pinned/rustc --clang /path/to/clang \
+  --target x86_64-unknown-linux-gnu --kind shared -o /tmp/new-output.so
+```
+
+The CLI prints a source/binary bound JSON receipt and exits nonzero on any
+failure. It never automatically falls back to another compiler backend.
+
 The native output is a Linux x86-64 shared/object or AArch64 object in the
 existing LLVM target profiles; AArch64 object production is not target
 execution. The compiled artifact is never claimed to be Rust codegen. A
@@ -67,7 +79,8 @@ that verified it calls the canonical converter and rejects invalid project
 identities. The eight earlier loop comparisons are evidence about the discarded
 prototype, **not** this final reused-converter implementation. Full-source
 parser/checker/native tests remain unexecuted in this environment.
-The committed `tests/test_hia_source_bridge.py` uses the **real** Hepta parser,
+The committed `tests/test_hia_source_bridge.py` includes ten methods with
+stale-graph and no-rustc nonpublication controls, using the **real** Hepta parser,
 checker, independent Resource IR gate, SSA, HIA verifier/interpreter and LLVM
 source emitter; it still requires execution in a complete exact-source
 checkout. No real rustc or Clang-native final artifact was built here.
