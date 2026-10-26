@@ -238,6 +238,21 @@ class StoredViewResourceTests(unittest.TestCase):
             with self.subTest(code=code):
                 self.reject(altered(mutate), code)
 
+    def test_local_labelled_resource_example_keeps_owner_until_view_end(self):
+        path = ROOT / "examples/resource_views/labelled_view.hepta"
+        graph = exported(path)
+        self.assertEqual(graph["schema"], "hepta.resource-ir.v5")
+        report = verify_resource_ir(graph)
+        self.assertTrue(report["ok"], report)
+        self.assertEqual(report["stored_views"]["profile"],
+                         "local_single_u8_slice_records_v2_copy_scalars")
+        operations = [op["op"] for block in function(graph, "main")["blocks"]
+                      for op in block["ops"]]
+        self.assertIn("bind_view", operations)
+        self.assertIn("copy_view", operations)
+        self.assertIn("end_view", operations)
+        self.assertIn("drop", operations)
+
     def test_v5_cannot_be_resealed_without_any_labelled_view_type(self):
         graph = lower("""struct Tagged<'a>{data:read 'a [u8],tag:u64}
         fn f(data:read [u8])->Unit effects {panic} {
