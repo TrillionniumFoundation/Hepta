@@ -269,6 +269,21 @@ class _Machine:
                 except MemoryError as exc:
                     raise HIAProgramBudgetExceeded(
                         "host_memory", "in-place copy needs temporary host memory") from exc
+        elif op == "buffer.fill_range":
+            view, offset, size, value = args
+            owner = _underlying(view)
+            if not isinstance(view, _View) or not view.mutable:
+                raise HIAProgramRejected("range fill requires unique mutable loan",
+                                         "E_HIA_RUNTIME_INVARIANT")
+            extent = len(owner.data)
+            if offset > extent or size > extent - offset:
+                raise HIAProgramTrap("bounds", "fill range exceeds owned extent")
+            if size:
+                try:
+                    owner.data[offset:offset + size] = bytes((value,)) * size
+                except MemoryError as exc:
+                    raise HIAProgramBudgetExceeded(
+                        "host_memory", "range fill temporary exceeds host memory") from exc
         elif op == "buffer.copy_range":
             dest_view, src_view = args[:2]
             destination, source = _underlying(dest_view), _underlying(src_view)

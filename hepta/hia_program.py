@@ -23,11 +23,13 @@ SCHEMA_V2 = "hepta.hia.program.v2"
 SCHEMA_V3 = "hepta.hia.program.v3"
 SCHEMA_V4 = "hepta.hia.program.v4"
 SCHEMA_V5 = "hepta.hia.program.v5"
+SCHEMA_V6 = "hepta.hia.program.v6"
 PROFILE = "closed-ssa-integer-byte-resources-64-v1"
 PROFILE_V2 = "closed-ssa-integer-byte-resources-bulk-64-v2"
 PROFILE_V3 = "closed-ssa-integer-byte-resources-overlap-64-v3"
 PROFILE_V4 = "closed-ssa-integer-byte-resources-swap-64-v4"
 PROFILE_V5 = "closed-ssa-integer-byte-resources-offset-copy-64-v5"
+PROFILE_V6 = "closed-ssa-integer-byte-resources-range-fill-64-v6"
 WORD_BITS = 64
 WIDTHS = {**{f"{s}{n}": n for s in ("i", "u") for n in (8, 16, 32, 64)},
           "isize": 64, "usize": 64}
@@ -172,7 +174,8 @@ class VerifiedProgram:
         # report rechecks the immutable bytes instead of trusting its class.
         checked = verify_program(self)
         data = checked.as_dict()
-        profile = (PROFILE_V5 if data["schema"] == SCHEMA_V5 else
+        profile = (PROFILE_V6 if data["schema"] == SCHEMA_V6 else
+                   PROFILE_V5 if data["schema"] == SCHEMA_V5 else
                    PROFILE_V4 if data["schema"] == SCHEMA_V4 else
                    PROFILE_V3 if data["schema"] == SCHEMA_V3 else
                    PROFILE_V2 if data["schema"] == SCHEMA_V2 else PROFILE)
@@ -320,12 +323,13 @@ def _function_shape(fn):
 
 
 class _BlockCheck:
-    def __init__(self, fn, block, capabilities, functions, *, bulk_memory=False, inplace_memory=False, byte_swap=False, offset_copy=False):
+    def __init__(self, fn, block, capabilities, functions, *, bulk_memory=False, inplace_memory=False, byte_swap=False, offset_copy=False, range_fill=False):
         self.fn, self.block, self.functions = fn, block, functions
         self.bulk_memory = bulk_memory
         self.inplace_memory = inplace_memory
         self.byte_swap = byte_swap
         self.offset_copy = offset_copy
+        self.range_fill = range_fill
         self.env = {p["name"]: p["type"] for p in block["params"]}
         self.caps = dict(capabilities)
         self.required = set()
@@ -516,6 +520,18 @@ class _BlockCheck:
                 _reject("in-place move requires mutbuf, dest, source, length as usize", "E_HIA_TYPE")
             expected = []
             self.required.update({"read", "write", "trap"})
+        elif op == "buffer.fill_range":
+            # v6: checked partial write under exactly one live mutable loan.
+            # Native and VM guard offset <= extent and count <= extent-offset
+            # before computing an address or performing any mutation.
+            if not self.range_fill:
+                _reject("range fill requires HIA program v6", "E_HIA_OPCODE")
+            arity(4)
+            self.access(args[0], True)
+            if actual != ["mutbuf", "usize", "usize", "u8"]:
+                _reject("fill_range needs mutbuf, offset, count, u8", "E_HIA_TYPE")
+            expected = []
+            self.required.update({"write", "trap"})
         elif op == "buffer.copy_range":
             # v5: checked offset memcpy between two *distinct* owner roots.
             if not self.offset_copy:
@@ -647,7 +663,7 @@ def verify_program(program) -> VerifiedProgram:
     """
     data, raw = _decode(program)
     _keys(data, {"schema", "module", "functions"}, "program")
-    if data["schema"] not in {SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5}:
+    if data["schema"] not in {SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6}:
         _reject("unsupported program schema", "E_HIA_SCHEMA")
     _ident(data["module"], "module")
     if type(data["functions"]) is not list or not 1 <= len(data["functions"]) <= MAX_FUNCTIONS:
@@ -672,10 +688,11 @@ def verify_program(program) -> VerifiedProgram:
             processed.add(ident)
             block = blocks[ident]
             check = _BlockCheck(fn, block, incoming[ident], functions,
-                                bulk_memory=data["schema"] in {SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5},
-                                inplace_memory=data["schema"] in {SCHEMA_V3, SCHEMA_V4, SCHEMA_V5},
-                                byte_swap=data["schema"] in {SCHEMA_V4, SCHEMA_V5},
-                                offset_copy=data["schema"] == SCHEMA_V5)
+                                bulk_memory=data["schema"] in {SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6},
+                                inplace_memory=data["schema"] in {SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6},
+                                byte_swap=data["schema"] in {SCHEMA_V4, SCHEMA_V5, SCHEMA_V6},
+                                offset_copy=data["schema"] in {SCHEMA_V5, SCHEMA_V6},
+                                range_fill=data["schema"] == SCHEMA_V6)
             for ins in block["ops"]:
                 check.instruction(ins)
             check.finish()
