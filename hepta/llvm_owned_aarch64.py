@@ -181,16 +181,39 @@ def compile_owned_aarch64_object(ir: OwnedLLVM, *, program, checked, output,
                        "whole_language_memory_safety_proved": False}}
 
 
+def _finite_runtime_abi_allowed(program, ir: OwnedLLVM) -> bool:
+    """One exact C signature; no generic exported C ABI is inferred by name."""
+    if ir.functions != ("owned_case",):
+        return False
+    exported = [fn for fn in program.functions if fn.export_c]
+    if len(exported) != 1:
+        return False
+    fn = exported[0]
+    expected = ("usize", "u8", "usize", "u32", "u32")
+    return (fn.name == "owned_case" and not fn.extern_c and fn.body is not None
+            and not fn.type_params and not fn.lifetime_params
+            and fn.return_mode == "value" and fn.return_type.name == "u64"
+            and not fn.return_type.args and len(fn.params) == len(expected)
+            and all(p.mode == "value" and p.type.name == typ and
+                    not p.type.args and not p.type.lifetimes and p.type.length is None
+                    for p, typ in zip(fn.params, expected)))
+
+
 def build_owned_aarch64_source(source, output, *, rustc=None, clang="clang",
-                               locked=False, synthetic_link_probe=False) -> dict:
+                               locked=False, synthetic_link_probe=False,
+                               finite_runtime_probe=False, qemu_aarch64=None) -> dict:
     """User-facing strict source build: Rust reference + resource checks first."""
     report = {"schema": "hepta.build-llvm-owned-aarch64.v1", "ok": False,
               "status": "rejected", "source": str(source), "output": str(output),
               "target": TARGET_AARCH64,
               "whole_project_blockers_closed": False}
     try:
-        if type(locked) is not bool or type(synthetic_link_probe) is not bool:
-            reject("Locked and synthetic-link flags must be booleans",
+        if (type(locked) is not bool or type(synthetic_link_probe) is not bool
+                or type(finite_runtime_probe) is not bool
+                or (qemu_aarch64 is not None and
+                    (type(qemu_aarch64) is not str or not qemu_aarch64 or
+                     not finite_runtime_probe))):
+            reject("Locked and probe flags must be booleans; QEMU requires finite runtime probe",
                    "E_LLVM_OWNED_TARGET_INPUT")
         analyzed = analyze_project(source, backend="rust", native=True, rustc=rustc,
                                    locked=locked, crate_type="rlib")
@@ -212,6 +235,9 @@ def build_owned_aarch64_source(source, output, *, rustc=None, clang="clang",
             reject("Input source graph was modified", "E_LLVM_OWNED_TARGET_STALE")
         ir = emit_owned_llvm(analyzed.program, analyzed.checked,
                              project_sha256=project.identity)
+        if finite_runtime_probe and not _finite_runtime_abi_allowed(analyzed.program, ir):
+            reject("Finite runtime requires exact exported owned_case(usize,u8,usize,u32,u32)->u64",
+                   "E_LLVM_OWNED_TARGET_ABI")
         # First compile into a staging directory. No requested output is
         # visible while source/ABI/receipt checks are still running.
         with tempfile.TemporaryDirectory(prefix=".hepta-owned-aarch64-source-",
@@ -223,6 +249,24 @@ def build_owned_aarch64_source(source, output, *, rustc=None, clang="clang",
             data = stage.read_bytes() if stage.is_file() else b""
             layout = backend.get("target_layout_probe")
             synthetic_link = None
+            finite_runtime = None
+            if finite_runtime_probe:
+                from .owned_aarch64_runtime import probe_finite_owned_aarch64_runtime
+                finite_runtime = probe_finite_owned_aarch64_runtime(
+                    data, ir.functions, clang=clang, qemu_aarch64=qemu_aarch64)
+                expected_status = ("finite_qemu_userspace_execution_passed"
+                                   if qemu_aarch64 is not None
+                                   else "finite_real_runtime_linked_not_executed")
+                if (finite_runtime.get("status") != expected_status
+                        or finite_runtime.get("target") != TARGET_AARCH64
+                        or finite_runtime.get("object_sha256") != sha256(data).hexdigest()
+                        or finite_runtime.get("real_finite_allocator_linked") is not True
+                        or finite_runtime.get("qemu_user_mode_executed") is not
+                           (qemu_aarch64 is not None)
+                        or finite_runtime.get("real_target_device_executed") is not False
+                        or finite_runtime.get("whole_language_soundness_proved") is not False):
+                    reject("Finite runtime receipt diverges from checked source or scope",
+                           "E_LLVM_OWNED_TARGET_RUNTIME")
             if synthetic_link_probe:
                 # This only validates link-time relocation against deliberately
                 # NONFUNCTIONAL freestanding C shims. Never publish the linked
@@ -265,6 +309,8 @@ def build_owned_aarch64_source(source, output, *, rustc=None, clang="clang",
                       native_backend=backend,
                       synthetic_link_probe=synthetic_link,
                       synthetic_link_probe_attempted=synthetic_link_probe,
+                      finite_runtime_probe=finite_runtime,
+                      finite_runtime_probe_attempted=finite_runtime_probe,
                       published_artifact_sha256=publication["sha256"],
                       published_artifact_bytes=publication["bytes"],
                       source_binding={"project_sha256": project.identity,
@@ -287,11 +333,17 @@ def main(argv=None):
     parser.add_argument("--locked", action="store_true")
     parser.add_argument("--synthetic-link-probe", action="store_true",
                         help="Check only ARM64 relocations against NONFUNCTIONAL dummy stubs; never run the linked image")
+    parser.add_argument("--finite-runtime-link-probe", action="store_true",
+                        help="Link a bounded 4 KiB single-owner REAL runtime for one exact owned_case ABI")
+    parser.add_argument("--qemu-aarch64",
+                        help="Opt-in QEMU AArch64 user-mode execution of the bounded functional test image")
     args = parser.parse_args(argv)
     report = build_owned_aarch64_source(args.source, args.output,
                                         rustc=args.rustc, clang=args.clang,
                                         locked=args.locked,
-                                        synthetic_link_probe=args.synthetic_link_probe)
+                                        synthetic_link_probe=args.synthetic_link_probe,
+                                        finite_runtime_probe=args.finite_runtime_link_probe,
+                                        qemu_aarch64=args.qemu_aarch64)
     print(json.dumps(report, sort_keys=True, allow_nan=False))
     return 0 if report["ok"] else 2
 
