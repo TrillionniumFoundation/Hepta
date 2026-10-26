@@ -237,6 +237,13 @@ class _Verifier:
 
         for tid in self.types:
             owned(tid)
+        # A v5 marker without *any* Copy-labelled view is not a legitimate
+        # format upgrade; never permit a self-rehashed empty v5 envelope to
+        # disguise an old single-field v4 claim.
+        if (self.doc["schema"] == LABELLED_VIEW_SCHEMA
+                and not any(desc["kind"] == "view" and desc["scalars"]
+                            for desc in self.types.values())):
+            _fail("E_RIR_VIEW_TYPE", "v5 requires at least one copied scalar view field")
 
     def validate_signatures(self) -> None:
         if not isinstance(self.doc["obligations"], dict) or len(self.doc["obligations"]) > 512:
