@@ -99,8 +99,9 @@ def analyze_patch_impact(document, request):
     if checked.canonical_bytes != candidate.canonical_bytes:
         _reject("patch output changed after validation")
     schema = patch_receipt.get("schema") if type(patch_receipt) is dict else None
-    claims = patch_receipt.get("claims") if schema in _RECEIPT_FIELDS else None
-    if (schema not in _RECEIPT_FIELDS
+    claims = (patch_receipt.get("claims") if type(schema) is str
+              and schema in _RECEIPT_FIELDS else None)
+    if (type(schema) is not str or schema not in _RECEIPT_FIELDS
             or set(patch_receipt) != _RECEIPT_FIELDS[schema]
             or type(claims) is not dict
             or set(claims) != set(_RECEIPT_CLAIMS[schema])
