@@ -48,9 +48,9 @@ class CMigrationAdversarial(unittest.TestCase):
 
     def test_macro_generated_main_globals_never_disappear(self):
         for source in (
-            "int pure(int x){return x;}\\n#define G int hidden=7;\\nG\\n",
-            "#define G int hidden=7;\\nG\\nint pure(int x){return x;}\\n",
-            "int pure(int x){return x;}\\n#define G(n) int n=7;\\nG(hidden)\\n",
+            "int pure(int x){return x;}\n#define G int hidden=7;\nG\n",
+            "#define G int hidden=7;\nG\nint pure(int x){return x;}\n",
+            "int pure(int x){return x;}\n#define G(n) int n=7;\nG(hidden)\n",
         ):
             with self.subTest(source=source):
                 self.reject(source, "E_C_TOPLEVEL")
