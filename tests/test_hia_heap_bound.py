@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from hepta.hia_heap_bound import HIAHeapBoundRejected, analyze_constant_live_heap
 from hepta.hia_program import verify_program
@@ -65,6 +67,17 @@ class HIAHeapBoundTests(unittest.TestCase):
     def test_nested_scalar_only_call_adds_concurrent_live_bytes(self):
         core = verify_program(scalar_call())
         self.assertEqual(analyze_constant_live_heap(core), {"inner": 7, "parent": 10})
+
+    def test_unreviewed_future_opcode_cannot_silently_skip_byte_accounting(self):
+        # This deliberately stubs a future canonical verifier accepting one
+        # additional opcode; today verify_program itself rejects it.
+        document = local_buffers()
+        document["functions"][0]["blocks"][0]["ops"].insert(
+            0, i("buffer.unknown_allocator", out=[]))
+        accepted_by_future = SimpleNamespace(as_dict=lambda: document)
+        with patch("hepta.hia_heap_bound.verify_program", return_value=accepted_by_future):
+            with self.assertRaisesRegex(HIAHeapBoundRejected, "unreviewed opcode"):
+                analyze_constant_live_heap(document)
 
     def test_unknown_dynamic_extents_fail_closed(self):
         core = verify_program(unknown_size())

@@ -41,6 +41,10 @@ counted at its possible successful extent.
 - Malformed/forged canonical programs, unknown opcodes, undeclared effects
   and invalid resource flows: these are already refused by the mandatory
   existing HIA Core verifier and are never upgraded by this analyzer.
+- Future opcodes are independently refused by this budget analyzer until
+  each operation is added to its explicit nonallocation whitelist or given
+  a reviewed allocation transition. A canonical-verifier upgrade alone
+  cannot silently lower an established byte budget.
 
 The metric is **requested simultaneously live Buffer payload bytes** for
 finite normal paths under admitted constant extents, *not* an exact number of

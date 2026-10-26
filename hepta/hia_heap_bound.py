@@ -11,6 +11,20 @@ from __future__ import annotations
 from .hia_program import verify_program
 
 MAX_REQUEST = (1 << 63) - 1
+# New executable Core opcodes must be explicitly audited before any native
+# resource policy can rely on this analysis. Never guess "does not allocate".
+_NO_ALLOCATION_OPS = frozenset({
+    "int.cast", "int.neg.checked", "select",
+    "bool.not", "bool.and", "bool.or",
+    "bit.and", "bit.or", "bit.xor", "bit.not",
+    "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge",
+    "int.add.checked", "int.sub.checked", "int.mul.checked",
+    "int.add.wrap", "int.sub.wrap", "int.mul.wrap",
+    "int.div.checked", "int.rem.checked", "int.shl.checked", "int.shr.checked",
+    "buffer.len", "borrow.read", "borrow.mut", "loan.end",
+    "buffer.load", "buffer.store", "buffer.fill", "buffer.copy",
+    "buffer.move_within", "buffer.fill_range", "buffer.copy_range", "buffer.swap",
+})
 
 
 class HIAHeapBoundRejected(ValueError):
@@ -99,9 +113,10 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) 
                 if child["name"] not in calculated:
                     _reject(f"{fn['name']}/{name}: callee heap bound not available")
                 peak = max(peak, sum(owner.values()) + calculated[child["name"]])
-            # All other verified operations either use existing buffers or
-            # create scalar values that remain unknown to this analysis.
-            # Those unknown scalars cannot later qualify an allocation size.
+            elif op not in _NO_ALLOCATION_OPS:
+                _reject(f"{fn['name']}/{name}: unreviewed opcode {op} has no heap accounting")
+            # Audited nonallocating scalar/memory operations produce unknown
+            # scalar values; unknowns cannot later qualify allocation size.
         for edge in _paths(block["term"]):
             target = blocks[edge["target"]]
             next_owner, next_known = {}, {}
