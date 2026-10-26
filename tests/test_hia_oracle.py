@@ -6,6 +6,7 @@ source/backend refinement or a general ownership proof.
 from __future__ import annotations
 
 import ctypes
+from dataclasses import replace
 import os
 from pathlib import Path
 import shutil
@@ -102,6 +103,12 @@ class HIAScalarOracleTests(unittest.TestCase):
     def test_zero_argument_export(self):
         _, _, _, oracle = fixture(_ZERO)
         self.assertEqual(oracle.run("value", []), 7)
+
+    def test_prepared_ssa_bytes_cannot_mutate_without_rejection(self):
+        _, _, _, oracle = fixture(_LOOP)
+        corrupted = replace(oracle, ssa_canonical_json=oracle.ssa_canonical_json + " ")
+        with self.assertRaisesRegex(HIAOracleRejected, "changed"):
+            corrupted.run("count", [2])
 
     def test_stale_core_cannot_prepare_oracle(self):
         program, checked, core, _ = fixture(_LOOP)

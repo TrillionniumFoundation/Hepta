@@ -8,6 +8,7 @@ interpreter, a general soundness proof, or an authorization to publish code.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from hashlib import sha256
 import json
 import re
 
@@ -51,7 +52,8 @@ class HIAScalarOracle:
     core_sha256: str
     ssa_sha256: str
     project_sha256: str
-    functions: tuple[dict, ...]
+    ssa_canonical_json: str
+    return_words: tuple[tuple[str, str], ...]
 
     def run(self, function: str, arguments: tuple[int, ...] | list[int], *,
             max_steps: int = 20000) -> int:
@@ -59,7 +61,20 @@ class HIAScalarOracle:
                 or type(arguments) not in (tuple, list)
                 or type(max_steps) is not int or not 1 <= max_steps <= _MAX_STEPS):
             _reject("invalid function, argument collection or finite step budget")
-        found = [fn for fn in self.functions if fn.get("name") == function]
+        # Keep the prepared executable graph as immutable canonical bytes,
+        # not a publicly mutable tuple of nested dictionaries. Refuse drift
+        # from the exact prepared SSA digest on *every* evaluation.
+        if type(self.ssa_canonical_json) is not str:
+            _reject("prepared executable graph has invalid wire type")
+        try:
+            if sha256(self.ssa_canonical_json.encode("utf-8")).hexdigest() != self.ssa_sha256:
+                _reject("prepared SSA bytes have changed")
+            functions = json.loads(self.ssa_canonical_json).get("functions")
+        except (UnicodeError, ValueError, TypeError, AttributeError) as exc:
+            raise HIAOracleRejected("E_HIA_ORACLE: malformed prepared SSA bytes") from exc
+        if type(functions) is not list:
+            _reject("missing SSA functions")
+        found = [fn for fn in functions if type(fn) is dict and fn.get("name") == function]
         if len(found) != 1:
             _reject("missing or ambiguous exported scalar function")
         fn = found[0]
@@ -70,7 +85,14 @@ class HIAScalarOracle:
         entry = fn.get("entry")
         if type(entry) is not str or len(parameters) != len(arguments):
             _reject("wrong argument count or entry block")
-        word = fn.get("_hia_word")
+        if (type(self.return_words) is not tuple or
+                any(type(x) is not tuple or len(x) != 2 or
+                    type(x[0]) is not str or type(x[1]) is not str for x in self.return_words)):
+            _reject("return type inventory has invalid shape")
+        words = dict(self.return_words)
+        if len(words) != len(self.return_words) or len(words) != len(functions):
+            _reject("return type inventory must match each unique function")
+        word = words.get(function)
         if word not in _LOW or any(type(ty) is not str or ty != word
                                    for ty in types.values()):
             _reject("only one homogeneous signed or unsigned 32-bit type")
@@ -230,5 +252,6 @@ def prepare_scalar_oracle(core: HIAScalarCore, program, checked, *,
         word = ret.get("type") if type(ret) is dict else None
         if word not in _LOW or ret != _type(word):
             _reject("only homogeneous checked 32-bit native return values")
-        qualified.append({**fn, "_hia_word": word})
-    return HIAScalarOracle(core.sha256, ssa.sha256, project_sha256, tuple(qualified))
+        qualified.append((fn["name"], word))
+    return HIAScalarOracle(core.sha256, ssa.sha256, project_sha256,
+                           ssa.canonical_json, tuple(qualified))
