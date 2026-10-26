@@ -76,3 +76,29 @@ A new exact-source regression is committed in
 and invoking the actual object scanner on all 14 mutations. That **repository
 test has not been executed** on this final combined HEAD, and no whole-Hepta,
 cross-host ABI, LLVM-refinement or real-device qualification follows.
+
+## Follow-on: COFF weak external cannot authorize the checked abort import
+
+An independent Clang 17 `--target=x86_64-pc-windows-msvc` compilation
+produced a real COFF object with `hepta_symbol_target` defined and an
+ordinary strong undefined `abort` symbol (storage class 2). Replacing only
+that `abort` symbol's storage byte with 105 created a structurally bounded
+object whose *previous* symbol reader would still return exactly the same
+`undefined={"abort"}` inventory.
+
+Separate direct native observation also compiled LLVM `extern_weak` abort:
+Clang produced COFF storage class 105 with one auxiliary record and additional
+linkage machinery. This establishes that 105 is a real weak-linkage class, not
+an equivalent representation of the reviewed hard-abort declaration; the
+additional symbols are not qualifications of the Hepta source path.
+
+The strict scanner now refuses **all** COFF storage class 105 symbols with
+`E_OBJECT_SYMBOL_WEAK`, including weak fallbacks named abort. It continues
+to accept ordinary strong `abort` imports and strongly defined executable
+Hepta exports. The repository regression builds a real strong-import COFF
+object, mutates the abort storage byte, requires continued object structural
+validity, then checks refusal.
+
+These direct observations exercised real compiler-emitted object bytes and
+format-field mutation, **not** execution of the final integrated Hepta scanner,
+Windows native linking, or the pinned Rust-qualified native pipeline.
