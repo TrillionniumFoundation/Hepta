@@ -51,6 +51,12 @@ an artifact. `build_checked_owned_hia_native` forwards the same optional policy.
 Omitting this argument preserves existing loop/recursive-program behavior.
 These declared finite policies are distinct from runtime VM `max_heap_bytes`.
 
+The existing `tools/build_checked_hia_source.py` now forwards opt-in CLI flags
+`--max-allocator-interactions N`, `--max-vm-ticks N`, and `--max-call-depth N`
+to that same builder for `--profile scalar` and `--profile owned`. If no flags
+are supplied, it preserves the previous builder argument set. Negative and
+noninteger policy inputs fail closed before native code generation.
+
 ## Evidence and limitations
 
 Focused independently run Python 3.13.5 algorithm-smoke suite: 5/5 using a
@@ -58,11 +64,12 @@ stub of the existing HIA verifier; it checks DAG max paths, repeated calls,
 cycle/recursion refusal, typed limits and reproducible receipts. The actual
 in-repository `tests.test_hia_static_budget` additionally exercises the real
 verified Core, interpreter observations and a source-to-native pre-LLVM
-negative control, but it has **not** run on a complete exact-head checkout.
+negative control, but it has **not** run on a complete exact-head checkout. The real patched CLI file (matching its Git blob) passed 3/3 isolated argument-forwarding tests with the native builder mocked.
 
 Recommended exact checkout commands:
 
-    python -m unittest tests.test_hia_static_budget tests.test_hia_program \
+    python -m unittest tests.test_hia_static_budget tests.test_hia_static_budget_cli \
+      tests.test_hia_program \
       tests.test_hia_program_llvm tests.test_hia_owned_source_bridge -v
     python tools/release_check.py
 
