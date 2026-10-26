@@ -28,11 +28,9 @@ _MAX_BYTES = 8 * 1024 * 1024
 _WORKER = r'''
 import ctypes, json, resource, sys
 resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
-# File-backed capture must be *kernel bounded before native code executes*.
-# A 4097-byte read after child exit does not bound bytes written to disk.
+# Kernel-enforced before native code can write to file-backed capture.
 resource.setrlimit(resource.RLIMIT_FSIZE, (4096, 4096))
-# Keep finite native differential observations from exhausting host memory
-# or CPU even if a malformed foreign DSO is supplied. This is NOT a sandbox.
+# Conservative child evaluator limits, not OS process sandboxing.
 resource.setrlimit(resource.RLIMIT_AS, (512 * 1024 * 1024, 512 * 1024 * 1024))
 resource.setrlimit(resource.RLIMIT_CPU, (10, 10))
 lib, symbol, word, packed = sys.argv[1:]
@@ -66,7 +64,7 @@ def _corpus(cases, return_words):
     for item in return_words:
         if (type(item) is not tuple or len(item) != 2
                 or type(item[0]) is not str or _IDENT.fullmatch(item[0]) is None
-                or item[0] in words or item[1] not in _TYPES):
+                or item[0] in words or type(item[1]) is not str or item[1] not in _TYPES):
             _reject("invalid or duplicated native ABI function inventory")
         words[item[0]] = item[1]
     if set(cases) != set(words):
@@ -89,10 +87,39 @@ def _corpus(cases, return_words):
     return words, total
 
 
+def _require_exact_argument_arities(cases: dict, signatures: tuple[tuple[str, int], ...]) -> None:
+    """Refuse a ctypes call whose argument count differs from verified Core.
+
+    The ELF symbol table cannot attest an implementation's C parameter types;
+    this gate only binds each *test vector* to the already independently
+    verified source/Core signature before loading a foreign shared object.
+    Raw externally supplied oracle mode has no authenticated signatures.
+    """
+    if (type(cases) is not dict or type(signatures) is not tuple
+            or not 1 <= len(signatures) <= 32):
+        _reject("complete HIA native argument signature inventory required")
+    arities = {}
+    for entry in signatures:
+        if (type(entry) is not tuple or len(entry) != 2
+                or type(entry[0]) is not str or _IDENT.fullmatch(entry[0]) is None
+                or type(entry[1]) is not int or not 0 <= entry[1] <= 16
+                or entry[0] in arities):
+            _reject("unreviewed HIA native parameter signature")
+        arities[entry[0]] = entry[1]
+    if set(cases) != set(arities):
+        _reject("corpus differs from verified HIA ABI export inventory")
+    for name, vectors in cases.items():
+        if type(vectors) is not list or not vectors:
+            _reject("native export requires a nonempty typed corpus")
+        for index, args in enumerate(vectors):
+            if type(args) is not list or len(args) != arities[name]:
+                _reject(f"native ABI argument arity mismatch at {name} case {index}")
+
+
 def _observe_native(library: Path, function: str, word: str, args: list[int], *, timeout: float):
     if (platform.system() != "Linux" or not 0 < timeout <= 10
             or type(function) is not str or _IDENT.fullmatch(function) is None
-            or word not in _TYPES):
+            or type(word) is not str or word not in _TYPES):
         _reject("bounded Linux x86-64 scalar host required")
     try:
         with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
@@ -105,9 +132,9 @@ def _observe_native(library: Path, function: str, word: str, args: list[int], *,
             child_stderr = err.read(4097)
     except (subprocess.TimeoutExpired, OSError) as exc:
         raise HIADifferentialRejected("E_HIA_DIFFERENTIAL: native child unavailable or timed out") from exc
-    # RLIMIT_FSIZE may terminate the worker, or Python may catch EFBIG during
-    # final JSON printing and exit nonzero. Treat an exactly full file as a
-    # flood even if no SIGXFSZ was delivered; no legal scalar JSON is 4 KiB.
+    # A capped file can finish at exactly 4096 bytes. Python may then
+    # catch EFBIG while printing its own scalar response and exit nonzero.
+    # Detect the actual file cap independently of that exit status.
     if (len(child_stdout) >= 4096 or len(child_stderr) >= 4096
             or proc.returncode == -signal.SIGXFSZ):
         _reject("native subprocess exceeded output budget")
@@ -175,6 +202,7 @@ def compare_oracle_with_native(oracle, library: str | Path, cases: dict, *,
         "defined_traps_observed": traps,
         "claims": {"finite_native_oracle_match": True,
                    "checked_hepta_source_replayed": False,
+                   "core_corpus_argument_arity_checked": False,
                    "backend_refinement_proved": False,
                    "whole_language_soundness_proved": False,
                    "physical_target_qualified": False},
@@ -225,6 +253,13 @@ def qualify_scalar_source(source: str | Path, cases: dict, *, rustc=None,
                                     project_sha256=project_sha)
         oracle = prepare_scalar_oracle(core, analyzed.program, analyzed.checked,
                                        project_sha256=project_sha)
+        scalar_fns = json.loads(ssa.canonical_json).get("functions")
+        if (type(scalar_fns) is not list
+                or any(type(fn) is not dict or type(fn.get("name")) is not str
+                       or type(fn.get("parameters")) is not list for fn in scalar_fns)):
+            _reject("missing source-derived scalar parameter inventory")
+        _require_exact_argument_arities(
+            cases, tuple((fn["name"], len(fn["parameters"])) for fn in scalar_fns))
         record = compiled.get("identities", {})
         native = compiled.get("native_backend", {})
         if (record.get("hia_scalar_core_sha256") != core.sha256
@@ -241,6 +276,7 @@ def qualify_scalar_source(source: str | Path, cases: dict, *, rustc=None,
         result["ssa_sha256"] = ssa.sha256
         result["compiler_sha256"] = record.get("compiler_sha256")
         result["claims"]["checked_hepta_source_replayed"] = True
+        result["claims"]["core_corpus_argument_arity_checked"] = True
         return result
 
 
@@ -274,6 +310,7 @@ def compare_verified_hia_program(program, library: str | Path, cases: dict, *,
             set(cases) != set(exported)):
         _reject("corpus must cover the exact HIA native scalar export inventory")
     words = []
+    argument_arities = []
     for name in sorted(exported):
         fn = by_name[name]
         result_types = fn.get("returns")
@@ -283,6 +320,10 @@ def compare_verified_hia_program(program, library: str | Path, cases: dict, *,
                 or any(type(p) is not dict or p.get("type") != result_types[0] for p in params)):
             _reject("HIA native differential supports homogeneous i32/u32 wrappers only")
         words.append((name, result_types[0]))
+        argument_arities.append((name, len(params)))
+    # Never dispatch foreign ABI calls before checking actual Core arity.
+    # The old corpus gate checked widths/upper counts, not exact counts.
+    _require_exact_argument_arities(cases, tuple(argument_arities))
 
     class _ExecutableHIAOracle:
         return_words = tuple(words)
@@ -309,6 +350,7 @@ def compare_verified_hia_program(program, library: str | Path, cases: dict, *,
     report["executable_hia_program_sha256"] = checked.sha256
     report["executable_hia_llvm_sha256"] = emitted.sha256
     report["claims"]["executable_hia_program_reverified"] = True
+    report["claims"]["core_corpus_argument_arity_checked"] = True
     report["claims"]["native_compiled_from_program_verified"] = False
     # This helper only compares an arbitrary provided artifact to the actual
     # Core VM. compile/qualification provenance belongs to the wrappers below.
@@ -340,24 +382,36 @@ def qualify_executable_hia_program(program, cases: dict, *, clang="clang") -> di
 
 
 def qualify_checked_hia_source(source: str | Path, cases: dict, *, profile="owned",
-                               rustc=None, clang="clang", locked=False) -> dict:
+                               rustc=None, clang="clang", locked=False,
+                               static_resource_limits=None) -> dict:
     """Pinned Hepta source -> single executable HIA v1-v6 -> native LLVM -> VM.
 
     Unlike the historical scalar-only route, this uses hia_source_bridge's
     canonical verified Program producer and hia_program_llvm exclusively.
     """
     from .pipeline import analyze_project, compiler_hash
-    from .hia_source_bridge import (build_checked_hepta_hia_native,
+    from .hia_source_bridge import (HIAHeptaBridgeRejected,
+                                    _validate_static_budget_receipt,
+                                    build_checked_hepta_hia_native,
                                     lower_checked_scalar_hia,
                                     lower_checked_owned_hia)
 
     if profile not in {"scalar", "owned"} or platform.system() != "Linux":
         _reject("verified Core differential requires supported source profile and Linux")
+    if static_resource_limits is not None and (
+            type(static_resource_limits) is not dict or not static_resource_limits
+            or not set(static_resource_limits) <= {
+                "max_allocator_interactions", "max_vm_ticks",
+                "max_call_depth", "max_live_heap_bytes"}
+            or any(type(v) is not int or v < 0
+                   for v in static_resource_limits.values())):
+        _reject("invalid typed opt-in static resource policy")
     with tempfile.TemporaryDirectory(prefix="hia-checked-native-diff-") as temp:
         shared = Path(temp) / "checked.so"
         native = build_checked_hepta_hia_native(source, shared, rustc=rustc,
                                                 clang=clang, locked=locked,
-                                                profile=profile, kind="shared")
+                                                profile=profile, kind="shared",
+                                                static_resource_limits=static_resource_limits)
         if (native.get("ok") is not True
                 or native.get("claims", {}).get("native_codegen_consumed_verified_hia_core") is not True):
             _reject("checked source->Core native qualification rejected")
@@ -373,6 +427,24 @@ def qualify_checked_hia_source(source: str | Path, cases: dict, *, profile="owne
                    if profile == "owned" else
                    lower_checked_scalar_hia(analyzed.program, analyzed.checked,
                                             project_sha256=project.identity))
+        # Native build acceptance alone cannot promote an optional resource
+        # claim into a source-checked finite bound. Replay its exact budget
+        # with the existing source bridge validator against independently
+        # regenerated *current HIA Core bytes* before any native child call.
+        # This validator re-runs the single established budget analyzer;
+        # neither a JSON digest nor a self-asserted builder receipt suffices.
+        qualified_budget = None
+        if static_resource_limits is not None:
+            qualified_budget = native.get("static_resource_budget")
+            try:
+                _validate_static_budget_receipt(
+                    lowered.program, static_resource_limits, qualified_budget)
+            except (HIAHeptaBridgeRejected, ValueError, TypeError,
+                    KeyError, OverflowError, RecursionError) as exc:
+                raise HIADifferentialRejected(
+                    "E_HIA_DIFFERENTIAL: source static resource budget replay rejected") from exc
+        elif "static_resource_budget" in native:
+            _reject("unexpected unrequested static resource budget receipt")
         ids = native.get("identities", {})
         artifact = native.get("native_backend", {})
         if (ids.get("hia_program_sha256") != lowered.program.sha256
@@ -388,6 +460,10 @@ def qualify_checked_hia_source(source: str | Path, cases: dict, *, profile="owne
             _reject("source, compiler or native bytes changed during differential execution")
         result["claims"]["native_compiled_from_program_verified"] = True
         result["claims"]["checked_hepta_source_replayed"] = True
+        result["claims"]["source_static_resource_budget_replayed"] = qualified_budget is not None
+        if qualified_budget is not None:
+            result["static_resource_budget_sha256"] = qualified_budget["sha256"]
+            result["static_resource_limits"] = dict(static_resource_limits)
         result["source_project_sha256"] = project.identity
         result["source_compiler_sha256"] = ids["compiler_sha256"]
         return result
