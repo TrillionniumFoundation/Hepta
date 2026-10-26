@@ -26,7 +26,7 @@ borrow this ABI evidence.
 `malloc` returns null on zero or oversize or overlapping requests, and
 `free` aborts invalid/double frees. It provides bytewise `memset`,
 `memcpy` and overlap-correct `memmove` on **valid caller-owned ranges**.
-These functions cannot enforce pointer provenance on arbitrary C callers.
+These functions cannot enforce pointer provenance on arbitrary C callers.\nThe memmove direction test uses the reviewed flat-address LP64 unsigned\nuintptr representation rather than undefined ordering of unrelated C pointers.
 Linux syscall 93 exits on ARM64 and syscall 60 exits on x86-64.
 
 An explicit `_start` executes seven fixed `owned_case` controls (normal
@@ -36,7 +36,7 @@ balanced allocations/releases plus observed allocation refusal. A nonzero
 exit means a failed actual runtime observation.
 
 The literal exact reviewed runtime SHA-256 is
-`c258eae09d7f2d506bd18e4ce0f0db89c5296dcc9d9772759a2283984cf855cb`.
+`97000140eb68610f85f5e627210483c05e1c0a2ef6bce2816a74e4afc6f9efa5`.
 The probe refuses silently changed runtime C source. Source, compiler,
 original target object, functional runtime object and linked ELF identities
 are retained in the typed receipt.
