@@ -59,6 +59,8 @@ class MigrationProtocolTests(unittest.TestCase):
         self.assertEqual(sorted(p.name for p in self.dest.iterdir()),['candidate.hepta','candidate.so','migration-hia.json'])
         receipt=json.loads((self.dest/'migration-hia.json').read_text())
         self.assertEqual(receipt['status'],'native_emitted_L1_not_equivalence_proved')
+        self.assertEqual(receipt['publication'], 'linux_renameat2_noreplace_fsync_v1')
+        self.assertEqual(res['publication'], 'linux_renameat2_noreplace_fsync_v1')
         self.assertFalse(receipt['claims']['original_c_or_cpp_semantics_proved'])
         self.assertEqual(receipt['artifacts']['candidate.so']['sha256'],h((self.dest/'candidate.so').read_bytes()))
     def test_cpp_does_not_promote_abi(self):
@@ -128,6 +130,48 @@ class MigrationProtocolTests(unittest.TestCase):
         res=self.run_migration(build=malicious)
         self.assertFalse(res['ok'])
         self.assertFalse(self.dest.exists())
+
+    def test_atomic_destination_race_refuses_replacement(self):
+        from hepta import hia_bundle_atomic
+        original = hia_bundle_atomic._rename_noreplace
+        def race(parent_fd, staged, target):
+            self.dest.mkdir()
+            return original(parent_fd, staged, target)
+        with patch('hepta.hia_bundle_atomic._rename_noreplace', side_effect=race):
+            outcome = self.run_migration()
+        self.assertFalse(outcome['ok'])
+        self.assertTrue(self.dest.is_dir())
+        self.assertEqual(list(self.dest.iterdir()), [])
+
+    def test_parent_fsync_failure_is_recovery_required_not_success(self):
+        from hepta import hia_bundle_atomic
+        import os
+        original = os.fsync
+        def fault(fd):
+            if os.fstat(fd).st_ino == self.dest.parent.stat().st_ino:
+                raise OSError('injected parent directory fsync failure')
+            return original(fd)
+        with patch('hepta.hia_bundle_atomic.os.fsync', side_effect=fault):
+            outcome = self.run_migration()
+        self.assertFalse(outcome['ok'])
+        self.assertEqual(outcome['status'], 'recovery_required')
+        self.assertEqual(outcome['diagnostics'][0]['code'], 'E_HIA_BUNDLE_UNCERTAIN')
+        self.assertTrue((self.dest/'candidate.hepta').is_file())
+        self.assertTrue((self.dest/'migration-hia.json').is_file())
+
+    def test_source_race_after_atomic_commit_reports_recovery(self):
+        from hepta import hia_bundle_atomic
+        original = hia_bundle_atomic._rename_noreplace
+        def publish_then_change(parent_fd, staged, target):
+            original(parent_fd, staged, target)
+            self.src.write_text('int f(int x) { return 13; }')
+        with patch('hepta.hia_bundle_atomic._rename_noreplace',
+                   side_effect=publish_then_change):
+            outcome = self.run_migration()
+        self.assertFalse(outcome['ok'])
+        self.assertEqual(outcome['status'], 'recovery_required')
+        self.assertTrue((self.dest/'candidate.hepta').exists())
+
     def test_existing_destination_preserved(self):
         self.dest.mkdir(); (self.dest/'protected').write_text('do-not-touch')
         res=self.run_migration()
