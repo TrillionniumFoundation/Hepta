@@ -141,6 +141,31 @@ def _mutate_macho(data):
 
 @unittest.skipUnless(shutil.which("clang"), "Native Clang is required")
 class ExecutableSymbolExtentTests(unittest.TestCase):
+    def test_unapproved_global_data_exports_fail_across_all_targets(self):
+        # Keep a legitimate source function and add one unexpected *defined*
+        # exported data object. The previous scanner returned only STT_FUNC /
+        # COFF function symbols and could silently omit data exports.
+        with tempfile.TemporaryDirectory(prefix="hepta-extra-native-export-") as tmp:
+            root = Path(tmp)
+            source = root / "extra.ll"
+            source.write_text(
+                "@hepta_unapproved_global = global i64 77, align 8\n" + _SOURCE,
+                encoding="utf-8")
+            for target, (fmt, machine) in _TARGETS.items():
+                with self.subTest(target=target):
+                    artifact = root / (target + ".o")
+                    result = subprocess.run(
+                        ["clang", "--target=" + target, "-x", "ir", "-O2",
+                         "-c", str(source), "-o", str(artifact)],
+                        capture_output=True, text=True, timeout=30)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    data = artifact.read_bytes()
+                    self.assertTrue(qualified_object(data, fmt, machine))
+                    with self.assertRaisesRegex(
+                            ObjectSymbolsRejected,
+                            "E_OBJECT_SYMBOL_(EXPORT_KIND|LOCATION)"):
+                        inspect_object_symbols(data, fmt, machine)
+
     def test_all_five_native_object_profiles(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
