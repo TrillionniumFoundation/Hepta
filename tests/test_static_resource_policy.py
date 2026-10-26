@@ -49,6 +49,12 @@ class StaticResourcePolicyTests(unittest.TestCase):
         self.assertFalse(allowed({"may_spawn": False}, inferred=("spawn",)))
         self.assertFalse(allowed({"may_suspend": False}, declared=("suspend",)))
 
+    def test_external_unknown_and_unsafe_effects_cannot_prove_zero_cost(self):
+        for effect in ("ffi", "unsafe", "io", "unreviewed_future_effect"):
+            with self.subTest(effect=effect):
+                self.assertFalse(allowed({"heap_allocations": 0}, inferred=(effect,)))
+                self.assertFalse(allowed({"may_block": False}, declared=(effect,)))
+
     def test_arbitrary_budgets_must_not_be_reinterpreted(self):
         for kind in ("max_rss_bytes", "max_tasks", "stack_bytes", "cpu_cycles"):
             with self.subTest(kind=kind):
