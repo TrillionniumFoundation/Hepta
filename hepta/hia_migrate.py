@@ -102,20 +102,38 @@ def migrate_scalar_to_hia(source: str | Path, output_directory: str | Path, *,
             claims = build.get("claims") if type(build) is dict else None
             ids = build.get("identities") if type(build) is dict else None
             native_report = build.get("native_backend") if type(build) is dict else None
+            reference = build.get("reference_validation") if type(build) is dict else None
+            reference_checks = reference.get("checks") if type(reference) is dict else None
             expected_status = "cross_object_only_not_executed" if target else "native_host_compiled_unqualified"
             if (type(build) is not dict or build.get("ok") is not True
                     or build.get("status") != expected_status
+                    or build.get("output") != str(native)
+                    or type(reference) is not dict or reference.get("ok") is not True
+                    or type(reference_checks) is not dict
+                    or reference_checks.get("rust_borrows_types") != "rustc_checked"
                     or type(claims) is not dict
                     or claims.get("native_rust_reference_required") is not True
+                    or claims.get("source_bound_resource_cfg_checked") is not True
+                    or claims.get("ssa_cfg_origin_rechecked") is not True
+                    or claims.get("target_program_executed") is not False
+                    or claims.get("foreign_c_abi_qualified") is not False
+                    or claims.get("host_elf_dynamic_symbols_checked") is not (target is None)
                     or claims.get("hia_scalar_core_source_replayed") is not True
                     or claims.get("independent_scalar_ssa_structure_checked") is not True
                     or claims.get("native_artifact_compiled") is not True
                     or claims.get("backend_refinement_proved") is not False
                     or type(ids) is not dict or ids.get("hia_scalar_core_schema") != "hepta.hia.scalar-core.v0"
+                    or ids.get("source_sha256") != _sha(code)
+                    or ids.get("native_resource_gate_schema") != "hepta.native.resource-gate.v1"
+                    or type(ids.get("llvm_ir_sha256")) is not str
+                    or len(ids["llvm_ir_sha256"]) != 64
+                    or any(c not in "0123456789abcdef" for c in ids["llvm_ir_sha256"])
                     or type(ids.get("hia_scalar_core_sha256")) is not str
                     or len(ids["hia_scalar_core_sha256"]) != 64
                     or any(c not in "0123456789abcdef" for c in ids["hia_scalar_core_sha256"])
-                    or type(native_report) is not dict):
+                    or type(native_report) is not dict
+                    or native_report.get("llvm_ir_sha256") != ids["llvm_ir_sha256"]
+                    or native_report.get("output") != str(native)):
                 _reject("source-bound HIA and LLVM qualification incomplete")
             if not native.is_file() or native.is_symlink():
                 _reject("native pipeline did not publish a real staged object")
