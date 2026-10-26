@@ -27,6 +27,7 @@ from .artifact_publication import PublicationRejected, publish_verified
 from .resource_lowering import lower_resource_ir
 from .semantic_ir import lower_checked_program
 from .elf_shared_abi import ELFSharedABIRejected, inspect_owned_shared_elf
+from .native_tool_identity import ToolIdentityRejected, digest_executable
 
 PROFILE = "hepta.llvm-owned-bytes-host.v1"
 TARGET = "x86_64-unknown-linux-gnu"
@@ -906,7 +907,10 @@ def compile_owned_llvm(ir, *, program, checked, output, project_sha256=None, cla
     destination = Path(os.path.abspath(output))
     if destination.is_symlink() or destination.exists() or not destination.parent.is_dir():
         reject("A new output in an existing directory is required", "E_LLVM_OWNED_OUTPUT")
-    compiler_digest = _hash(compiler.read_bytes())
+    try:
+        compiler_digest = digest_executable(compiler)
+    except ToolIdentityRejected as exc:
+        reject("Compiler file identity unavailable: " + str(exc), "E_LLVM_OWNED_TOOLCHAIN")
     with tempfile.TemporaryDirectory(prefix=".hepta-llvm-owned-", dir=destination.parent) as directory:
         source, artifact = Path(directory) / "module.ll", Path(directory) / ("native.so" if kind == "shared" else "native.o")
         source.write_text(ir.text)
@@ -933,7 +937,11 @@ def compile_owned_llvm(ir, *, program, checked, output, project_sha256=None, cla
             except ELFSharedABIRejected as exc:
                 raise LLVMOwnedRejected(
                     "E_LLVM_OWNED_ARTIFACT: dynamic export/import identity rejected: " + str(exc)) from exc
-        if _hash(compiler.read_bytes()) != compiler_digest or compiler_hash() != ir.compiler_sha256:
+        try:
+            compiler_still_identical = digest_executable(compiler) == compiler_digest
+        except ToolIdentityRejected:
+            compiler_still_identical = False
+        if not compiler_still_identical or compiler_hash() != ir.compiler_sha256:
             reject("Compiler identity changed during native build", "E_LLVM_OWNED_STALE")
         try:
             publication = publish_verified(artifact, destination, data)
