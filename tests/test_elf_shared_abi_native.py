@@ -131,6 +131,49 @@ class SharedELFTests(unittest.TestCase):
             with self.subTest(reason=reason):
                 self.assert_reject(forged)
 
+    def test_real_elf_unreviewed_dynamic_loader_redirects_refused(self):
+        # The imported symbol list alone cannot detect injected loader
+        # RPATH/RUNPATH/auditing/filtering or text-relocation authority.
+        # Mutate only one actual PT_DYNAMIC tag; preserve all other
+        # sections/exports from a real Clang shared library.
+        data = self.compile('int foo(int x) {return x+7;}\\n', 'loader-tags.so')
+        self.assertEqual(inspect_owned_shared_elf(data, ('foo',))['dynamic_exports'], ['foo'])
+        phoff, nph = _u(data, 32, 8), _u(data, 56, 2)
+        dynamic = None
+        for i in range(nph):
+            ph = phoff + 56 * i
+            if _u(data, ph, 4) == 2:
+                dynamic = (_u(data, ph + 8, 8), _u(data, ph + 32, 8))
+                break
+        self.assertIsNotNone(dynamic)
+        offset, extent = dynamic
+        fini = None
+        for position in range(offset, offset + extent, 16):
+            tag = _u(data, position, 8)
+            if tag == 13:  # DT_FINI present in normal Clang CRT linkage.
+                fini = position
+                break
+            if tag == 0:
+                break
+        self.assertIsNotNone(fini, 'reviewed native ELF must contain DT_FINI')
+        forbidden_tags = {
+            'RPATH': 15, 'SYMBOLIC': 16, 'TEXTREL': 22,
+            'RUNPATH': 29, 'CONFIG': 0x6FFFFEFA,
+            'DEPAUDIT': 0x6FFFFEFB, 'AUDIT': 0x6FFFFEFC,
+            'AUXILIARY': 0x7FFFFFFD, 'FILTER': 0x7FFFFFFF,
+        }
+        for name, tag in forbidden_tags.items():
+            with self.subTest(tag=name):
+                self.assert_reject(_set(data, fini, 8, tag))
+        for flags in (1, 2, 4):  # DF_ORIGIN/SYMBOLIC/TEXTREL
+            with self.subTest(dt_flags=flags):
+                variant = _set(data, fini, 8, 30)
+                self.assert_reject(_set(variant, fini + 8, 8, flags))
+        for flags in (0x10, 0x80, 0x1000000):
+            with self.subTest(dt_flags_1=flags):
+                variant = _set(data, fini, 8, 0x6FFFFFFB)
+                self.assert_reject(_set(variant, fini + 8, 8, flags))
+
     def test_executable_segment_is_mandatory(self):
         data=self.compile('int foo(int x) {return x+7;}\n')
         phoff, nph = _u(data,32,8), _u(data,56,2)

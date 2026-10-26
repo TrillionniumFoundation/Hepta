@@ -51,6 +51,16 @@ _ALLOWED_UNDEFINED = frozenset({
     "_ITM_registerTMCloneTable", "_ITM_deregisterTMCloneTable", "__gmon_start__",
 })
 
+# Section and dynamic-symbol inventories are not the loader's entire behavior.
+# Do not admit tags which can redirect the ELF loader to a new library or
+# alter writable text/symbol binding outside the reviewed Hepta native ABI.
+# Numeric constants are from the generic ELF dynamic tag specification.
+_UNREVIEWED_LOADER_TAGS = frozenset({
+    15, 16, 22, 29,                  # RPATH, SYMBOLIC, TEXTREL, RUNPATH
+    0x6FFFFEFA, 0x6FFFFEFB, 0x6FFFFEFC, # CONFIG, DEPAUDIT, AUDIT
+    0x7FFFFFFD, 0x7FFFFFFF,         # AUXILIARY, FILTER
+})
+
 
 def inspect_owned_shared_elf(data: bytes, expected_exports: tuple[str, ...]) -> dict:
     """Fail closed if the dynamic ABI differs from the checked export surface.
@@ -136,6 +146,14 @@ def inspect_owned_shared_elf(data: bytes, expected_exports: tuple[str, ...]) -> 
         if tag == 0:
             terminated = True
             break
+        if tag in _UNREVIEWED_LOADER_TAGS:
+            _fail("unreviewed dynamic loader redirect, audit, filter or text-relocation tag")
+        if tag == 30 and value & (0x1 | 0x2 | 0x4):  # DT_FLAGS: ORIGIN/SYMBOLIC/TEXTREL
+            _fail("DT_FLAGS enables unreviewed origin, symbolic binding or text relocations")
+        if tag == 0x6FFFFFFB and value & (0x10 | 0x80 | 0x1000000):
+            # DT_FLAGS_1: LOADFLTR, ORIGIN or GLOBAUDIT. These are not
+            # required for native Hepta scalar/owned checked profiles.
+            _fail("DT_FLAGS_1 enables unreviewed loader side effects")
         if tag == 1:  # DT_NEEDED library name offset into dynamic strtab
             needed.append(value)
         elif tag in (5, 6, 10, 11):  # STRTAB, SYMTAB, STRSZ, SYMENT

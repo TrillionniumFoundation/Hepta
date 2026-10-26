@@ -64,3 +64,27 @@ cross-target ABI execution, physical DMA/IRQ/GPU/NPU, live Agent A/B and
 stabilized production performance. CI status is not an engineering stop.
 
 `whole_project_blockers_closed=false`.
+
+
+## Follow-up: reject unreviewed ELF dynamic-loader redirection
+
+The earlier scanner parsed PT_DYNAMIC but used only DT_NEEDED, STRTAB,
+SYMTAB, STRSZ and SYMENT, silently ignoring loader search redirection and
+auditing tags. Even with an exact Hepta C-export inventory, DT_RPATH,
+DT_RUNPATH, DT_AUDIT/DT_DEPAUDIT, DT_FILTER/DT_AUXILIARY, DT_CONFIG,
+DT_SYMBOLIC and DT_TEXTREL could alter the ELF loader's behavior or execute
+unreviewed code. The scanner now explicitly refuses these tags. DT_FLAGS
+ORIGIN/SYMBOLIC/TEXTREL and DT_FLAGS_1 LOADFLTR/ORIGIN/GLOBAUDIT bits also
+reject without adding a separate parser. The existing CRT DT_INIT/FINI,
+init/fini arrays, GNU hash, symbol and relocation metadata remain admitted
+according to the narrow existing native profile. This is not a complete
+check of arbitrary ELF constructors, relocations or all loader extensions.
+
+**Independent native controls actually executed:** Clang and GCC, -O0/-O2,
+produced four genuine ELF64 ET_DYN libraries, all satisfying the finite
+dynamic-tag predicate. Mutating real PT_DYNAMIC records produced 60 rejected
+negative samples (nine forbidden tags and six dangerous DT_FLAGS/FLAGS_1
+values per original). The dedicated in-repository Clang regression now calls
+the actual scanner on equivalent modified binary data. This repository
+regression remains **not run on a complete exact checkout**; the standalone
+controls are not a release qualification or proof of whole-language safety.
