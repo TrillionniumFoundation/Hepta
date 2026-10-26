@@ -15,6 +15,7 @@ import tempfile
 from .cfg import CFGSnapshot
 from .ssa import SSASnapshot
 from .object_symbols import ObjectSymbolsRejected, inspect_object_symbols
+from .native_tool_identity import ToolIdentityRejected, digest_executable
 from .llvm_ssa_backend import (SSA_LLVM_IR, LLVMSSARejected, _clang_run,
                                require_exact_ssa_origin)
 
@@ -189,6 +190,10 @@ def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
     version = _clang_run([str(compiler), "--version"], timeout=10)
     if version.returncode or not version.stdout.strip():
         raise LLVMSSARejected("E_LLVM_SSA_TOOLCHAIN: missing compiler identity")
+    try:
+        compiler_digest = digest_executable(compiler)
+    except ToolIdentityRejected as exc:
+        raise LLVMSSARejected("E_LLVM_SSA_TOOLCHAIN: compiler image unavailable") from exc
     # Do not dereference a dangling destination symlink: resolving the final
     # component would silently publish the object to the symlink target.
     # os.link below is no-replace, including when a new symlink races us.
@@ -219,6 +224,12 @@ def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
         if symbols["undefined"] - {"abort"}:
             raise LLVMSSARejected("E_LLVM_SSA_TARGET_IMPORT: unreviewed native object imports")
         try:
+            stable_toolchain = digest_executable(compiler) == compiler_digest
+        except ToolIdentityRejected:
+            stable_toolchain = False
+        if not stable_toolchain:
+            raise LLVMSSARejected("E_LLVM_SSA_STALE: compiler changed during target object build")
+        try:
             os.link(artifact, destination)
         except FileExistsError as exc:
             raise LLVMSSARejected("E_LLVM_SSA_OUTPUT: destination race or overwrite rejected") from exc
@@ -241,7 +252,7 @@ def compile_ssa_target_object(ir: SSA_LLVM_IR, *, target: str,
         "artifact_sha256": sha256(published_bytes).hexdigest(),
         "artifact_bytes": len(published_bytes),
         "compiler": {"version": version.stdout.splitlines()[0],
-                     "sha256": sha256(compiler.read_bytes()).hexdigest()},
+                     "sha256": compiler_digest},
         "claims": {"target_object_compiled": True,
                    "target_program_executed": False,
                    "foreign_c_abi_qualified": False,

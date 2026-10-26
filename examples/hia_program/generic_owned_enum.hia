@@ -1,0 +1,320 @@
+{
+  "schema": "hepta.hia.program.v2",
+  "module": "composite_test",
+  "types": [
+    {
+      "name": "Choice",
+      "params": [
+        "T",
+        "E"
+      ],
+      "kind": "enum",
+      "variants": [
+        {
+          "name": "ok",
+          "fields": [
+            {
+              "name": "value",
+              "type": "T"
+            }
+          ]
+        },
+        {
+          "name": "error",
+          "fields": [
+            {
+              "name": "error",
+              "type": "E"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "choose",
+      "params": [
+        {
+          "name": "flag",
+          "type": "bool"
+        },
+        {
+          "name": "size",
+          "type": "usize"
+        }
+      ],
+      "returns": [
+        "usize"
+      ],
+      "effects": [
+        "alloc",
+        "trap"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "flag",
+              "type": "bool"
+            },
+            {
+              "name": "size",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "buffer.try_new",
+              "args": [
+                "size"
+              ],
+              "out": [
+                {
+                  "name": "owned",
+                  "type": "buffer"
+                },
+                {
+                  "name": "ok",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "flag",
+            "then": {
+              "target": "left",
+              "args": [
+                "owned"
+              ]
+            },
+            "else": {
+              "target": "right",
+              "args": [
+                "owned"
+              ]
+            }
+          }
+        },
+        {
+          "id": "left",
+          "params": [
+            {
+              "name": "left_owner",
+              "type": "buffer"
+            }
+          ],
+          "ops": [
+            {
+              "op": "enum.make",
+              "args": [
+                "left_owner"
+              ],
+              "out": [
+                {
+                  "name": "left_value",
+                  "type": {
+                    "name": "Choice",
+                    "args": [
+                      "buffer",
+                      "buffer"
+                    ]
+                  }
+                }
+              ],
+              "attrs": {
+                "variant": "ok"
+              }
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "inspect",
+            "args": [
+              "left_value"
+            ]
+          }
+        },
+        {
+          "id": "right",
+          "params": [
+            {
+              "name": "right_owner",
+              "type": "buffer"
+            }
+          ],
+          "ops": [
+            {
+              "op": "enum.make",
+              "args": [
+                "right_owner"
+              ],
+              "out": [
+                {
+                  "name": "right_value",
+                  "type": {
+                    "name": "Choice",
+                    "args": [
+                      "buffer",
+                      "buffer"
+                    ]
+                  }
+                }
+              ],
+              "attrs": {
+                "variant": "error"
+              }
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "inspect",
+            "args": [
+              "right_value"
+            ]
+          }
+        },
+        {
+          "id": "inspect",
+          "params": [
+            {
+              "name": "value",
+              "type": {
+                "name": "Choice",
+                "args": [
+                  "buffer",
+                  "buffer"
+                ]
+              }
+            }
+          ],
+          "ops": [],
+          "term": {
+            "op": "match",
+            "value": "value",
+            "cases": [
+              {
+                "variant": "ok",
+                "target": "yes",
+                "args": []
+              },
+              {
+                "variant": "error",
+                "target": "no",
+                "args": []
+              }
+            ]
+          }
+        },
+        {
+          "id": "yes",
+          "params": [
+            {
+              "name": "yes_owner",
+              "type": "buffer"
+            }
+          ],
+          "ops": [
+            {
+              "op": "buffer.len",
+              "args": [
+                "yes_owner"
+              ],
+              "out": [
+                {
+                  "name": "yes_length",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "owner.drop",
+              "args": [
+                "yes_owner"
+              ],
+              "out": [],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "yes_length"
+            ]
+          }
+        },
+        {
+          "id": "no",
+          "params": [
+            {
+              "name": "no_owner",
+              "type": "buffer"
+            }
+          ],
+          "ops": [
+            {
+              "op": "buffer.len",
+              "args": [
+                "no_owner"
+              ],
+              "out": [
+                {
+                  "name": "no_length",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "owner.drop",
+              "args": [
+                "no_owner"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "ten",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 10
+              }
+            },
+            {
+              "op": "int.add.checked",
+              "args": [
+                "no_length",
+                "ten"
+              ],
+              "out": [
+                {
+                  "name": "with_error",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "with_error"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

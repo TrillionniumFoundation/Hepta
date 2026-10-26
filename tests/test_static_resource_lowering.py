@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import unittest
 
-from hepta.pipeline import analyze
+from hepta.pipeline import analyze, resource_ir_analysis
 from hepta.resource_ir import ResourceIRError, verify_resource_ir
 from hepta.resource_lowering import lower_resource_ir
 from hepta.llvm_owned_backend import emit_owned_llvm, _resources_allowed
@@ -27,6 +27,24 @@ def checked(source=SAFE):
 
 
 class ResourceStaticCompilerTests(unittest.TestCase):
+    def test_resource_error_keeps_code_separate_from_human_message(self):
+        analysis = checked()
+        analysis.program.functions[0].resources["heap_allocations"] = False
+        with self.assertRaises(ResourceIRError) as rejected:
+            lower_resource_ir(analysis.program, analysis.checked)
+        # ResourceIRError exposes a structured code; its text is the message
+        # consumed by the JSON diagnostics API, not a code-prefixed string.
+        self.assertEqual(rejected.exception.code, "E_RIR_LOWER_UNSUPPORTED")
+        self.assertEqual(str(rejected.exception),
+                         "Unknown, ill-typed or effect-inconsistent static resource clause")
+        exported = resource_ir_analysis(analysis)
+        self.assertFalse(exported["ok"])
+        self.assertEqual(exported["diagnostics"], [{
+            "phase": "resource-ir",
+            "code": rejected.exception.code,
+            "message": str(rejected.exception),
+        }])
+
     def test_checked_static_contract_reaches_both_resource_ir_and_native_emitter(self):
         analysis = checked()
         self.assertTrue(_resources_allowed(analysis.program.functions[0], analysis.checked))
@@ -47,15 +65,17 @@ class ResourceStaticCompilerTests(unittest.TestCase):
                 analysis = checked()
                 analysis.program.functions[0].resources[resource] = fake_value
                 self.assertFalse(_resources_allowed(analysis.program.functions[0], analysis.checked))
-                with self.assertRaisesRegex(ResourceIRError, "E_RIR_LOWER_UNSUPPORTED"):
+                with self.assertRaises(ResourceIRError) as rejected:
                     lower_resource_ir(analysis.program, analysis.checked)
+                self.assertEqual(rejected.exception.code, "E_RIR_LOWER_UNSUPPORTED")
 
     def test_unreviewed_runtime_budget_does_not_enter_owner_ir(self):
         analysis = checked()
         analysis.program.functions[0].resources["max_tasks"] = 8
         self.assertFalse(_resources_allowed(analysis.program.functions[0], analysis.checked))
-        with self.assertRaisesRegex(ResourceIRError, "E_RIR_LOWER_UNSUPPORTED"):
+        with self.assertRaises(ResourceIRError) as rejected:
             lower_resource_ir(analysis.program, analysis.checked)
+        self.assertEqual(rejected.exception.code, "E_RIR_LOWER_UNSUPPORTED")
 
     def test_transitive_allocation_or_blocking_invalidates_zero_cost_guarantee(self):
         for effect in ("alloc", "block", "spawn", "ffi", "unsafe", "io"):
@@ -63,8 +83,9 @@ class ResourceStaticCompilerTests(unittest.TestCase):
                 analysis = checked()
                 analysis.checked.effects["constrained"].add(effect)
                 self.assertFalse(_resources_allowed(analysis.program.functions[0], analysis.checked))
-                with self.assertRaisesRegex(ResourceIRError, "E_RIR_LOWER_UNSUPPORTED"):
+                with self.assertRaises(ResourceIRError) as rejected:
                     lower_resource_ir(analysis.program, analysis.checked)
+                self.assertEqual(rejected.exception.code, "E_RIR_LOWER_UNSUPPORTED")
 
     def test_unchecked_frontend_cannot_authorize_zero_cost_contract(self):
         analysis = checked()
@@ -73,8 +94,9 @@ class ResourceStaticCompilerTests(unittest.TestCase):
         analysis.checked.diagnostics.append("synthetic rejected source")
         self.assertFalse(analysis.checked.ok)
         self.assertFalse(_resources_allowed(analysis.program.functions[0], analysis.checked))
-        with self.assertRaisesRegex(ResourceIRError, "E_RIR_LOWER_REJECTED"):
+        with self.assertRaises(ResourceIRError) as rejected:
             lower_resource_ir(analysis.program, analysis.checked)
+        self.assertEqual(rejected.exception.code, "E_RIR_LOWER_REJECTED")
 
     def test_non_suspending_claim_excludes_unmodelled_block_and_spawn(self):
         for effect in ("block", "spawn"):
@@ -84,8 +106,9 @@ class ResourceStaticCompilerTests(unittest.TestCase):
                 analysis.program.functions[0].resources = {"may_suspend": False}
                 analysis.checked.effects["constrained"].add(effect)
                 self.assertFalse(_resources_allowed(analysis.program.functions[0], analysis.checked))
-                with self.assertRaisesRegex(ResourceIRError, "E_RIR_LOWER_UNSUPPORTED"):
+                with self.assertRaises(ResourceIRError) as rejected:
                     lower_resource_ir(analysis.program, analysis.checked)
+                self.assertEqual(rejected.exception.code, "E_RIR_LOWER_UNSUPPORTED")
 
     def test_unconstrained_legacy_functions_keep_original_resource_ir(self):
         analysis = checked("""\

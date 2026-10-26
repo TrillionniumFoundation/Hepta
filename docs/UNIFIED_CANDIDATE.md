@@ -1,4 +1,21 @@
-# Unified native candidate — 2026-10-25
+# Unified native candidate — standalone HIA integration, 2026-10-26
+
+## Standalone executable authority
+
+The new [HIA program v1 specification](HIA_PROGRAM.md) defines an independent
+typed SSA/resource program. `hepta.core.verify_core` is the common admission
+authority for its direct interpreter and LLVM backends. Both previous
+implementation lines now have executable conversions: actual structured Core
+operations become checked AST then closed SSA; actual scalar HIA instructions
+and PHIs become closed SSA with explicit liveness. Conversions retain original
+source-authentication gates, but the resulting program verifies and runs
+without any source. Tests exercise both conversions through the same native
+backend, including loops and resource cleanup.
+
+The sections below retain the wider source-language and historical backend
+scopes. Features in those profiles do not implicitly expand the standalone
+profile. The current direct core is not whole-language complete and does not
+silently call a historical backend for unsupported operations.
 
 The implementation branch unifies the 51287478 candidate, source-bound
 resource replay, verified i32/u32 SSA/LLVM origin checks, native Clang C/C++
@@ -10,10 +27,12 @@ profile; it does not close an unsupported feature or a research theorem.
 
 ## Semantic authority
 
-[SPEC.md](SPEC.md) is the implemented-language specification. The project
+[SPEC.md](SPEC.md) is the source-language specification. The project
 loader and shared checker own source meaning; `semantic_ir.py` is the sole
 canonical checked semantic encoder. CFG/SSA/resource projections consume that
-meaning and retain their own precise scopes. Rehashed IR is not a replacement
+meaning and retain their own precise scopes. For independently authored
+HIA, the exact instructions and `verify_core` are the executable authority;
+source correspondence is only an obligation of a source import. Rehashed IR is not a replacement
 for source correspondence. Current production blockers remain in
 [BLOCKERS.md](BLOCKERS.md); historical execution reports describe their own
 source snapshots, not this branch automatically.

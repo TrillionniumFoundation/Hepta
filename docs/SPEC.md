@@ -12,6 +12,13 @@ test reports do not silently extend the language or a backend's supported
 profile. See [UNIFIED_CANDIDATE.md](UNIFIED_CANDIDATE.md) for the current backend
 and migration acceptance matrix.
 
+The standalone `hepta.hia.program.v1` compilation profile is specified by
+[HIA_PROGRAM.md](HIA_PROGRAM.md). Its typed executable operations are admitted
+by `verify_core` without high-level source and consumed directly by the core
+interpreter and LLVM backend. This is a narrower, separately qualified profile;
+the source-language features below do not implicitly widen it. Source imports
+must lower into and pass that same independent checker.
+
 ## 1. Compilation profiles and trust
 
 UTF-8 source is parsed into a closed AST. The module loader resolves an explicit

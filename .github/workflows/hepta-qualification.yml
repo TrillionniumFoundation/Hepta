@@ -10,6 +10,7 @@ on:
       - dot/hepta-p0-p7-integration-20261025
       - codex/hepta-p4-p6-guardrails-20261025
       - assistant/hepta-p0-p7-semantic-budget-20261025
+      - implement/hia-unified-native-20261026
   pull_request:
     branches:
       - main
@@ -82,6 +83,18 @@ jobs:
           python tools/release_check.py
           --output-directory artifacts/candidate
           --continue-on-failure
+      - name: Qualify the standalone HIA interpreter and direct native paths
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          export LEAN="$GITHUB_WORKSPACE/../toolchains/lean-4.19.0/bin/lean"
+          python tools/qualify_hia_unified.py \
+            --output-directory artifacts/hia-unified \
+            --clang /usr/lib/llvm-20/bin/clang \
+            --rustc "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/bin/rustc" \
+            --linker "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld" \
+            --qemu-aarch64 "$GITHUB_WORKSPACE/../toolchains/qemu-8.2.2/qemu-aarch64-static" \
+            --qemu-system-arm /usr/bin/qemu-system-arm
       - name: Preserve failures and all raw evidence
         if: always()
         uses: actions/upload-artifact@v4
