@@ -284,6 +284,19 @@ int sum_to(int n) {
         for n in (-4, 0, 1, 2, 5, 40, 100):
             self.assertEqual(old(n), new(n), n)
 
+    def test_for_condition_variable_slot_forgery_stays_rejected(self):
+        # Clang uses {} for an *absent* ForStmt condition-variable slot.
+        # A populated slot must never be silently dropped during lowering.
+        fake = {"kind": "ForStmt", "inner": [
+            {"kind": "DeclStmt"}, {"kind": "VarDecl", "name": "hidden"},
+            {"kind": "BinaryOperator"}, {"kind": "UnaryOperator"},
+            {"kind": "CompoundStmt"},
+        ]}
+        with self.assertRaisesRegex(strict_migrator.MigrationRejected,
+                                    "For requires explicit init"):
+            strict_migrator._stmt(fake, {}, {}, "i32")
+        self.assertFalse(self.hepta.exists())
+
     def test_counted_for_original_c_vs_hepta_native(self):
         self.c.write_text("""
 int sum_for(int n) {
