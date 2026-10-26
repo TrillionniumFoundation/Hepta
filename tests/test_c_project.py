@@ -114,6 +114,25 @@ class CProjectMigrationTests(unittest.TestCase):
                     verify_capture(reseal(forged))
         verify_capture(original)
 
+    def test_replay_refuses_compdb_change_during_compiler_probes(self):
+        self.project({"input.c": "int value(int x){return x + 3;}"})
+        snapshot = capture_project(self.database, clang=self.clang)
+        from hepta import c_project
+        actual = c_project.invoke
+        changed = False
+
+        def mutate_before_first_compiler_probe(args, directory, *, stdin=None):
+            nonlocal changed
+            if not changed:
+                changed = True
+                self.database.write_bytes(self.database.read_bytes() + b"\n")
+            return actual(args, directory, stdin=stdin)
+
+        with patch("hepta.c_project.invoke", side_effect=mutate_before_first_compiler_probe):
+            with self.assertRaisesRegex(MigrationRejected, "changed during replay"):
+                verify_capture(snapshot)
+        self.assertTrue(changed)
+
     def test_capture_includes_flags_headers_and_rejects_changed_inputs(self):
         (self.root / "inc.h").write_text("#define LOCAL_FACTOR 3\n")
         self.project({"input.c": '#include "inc.h"\nunsigned int scale(unsigned int x){return x*LOCAL_FACTOR*FACTOR;}'}, ["-DFACTOR=2"])
