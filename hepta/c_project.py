@@ -16,6 +16,7 @@ import shutil
 
 from .clang_capture import CaptureRejected, run_bounded
 from .c_migrate import MigrationRejected
+from .native_tool_identity import ToolIdentityRejected, digest_executable
 
 
 _DATABASE_FIELDS = frozenset({"path", "sha256"})
@@ -57,18 +58,11 @@ def _read_dependency(path: Path) -> bytes:
 
 
 def _file_digest(path: Path) -> str:
-    """Incremental native compiler identity without unbounded read_bytes."""
-    identity = hashlib.sha256()
+    """Same regular-file, bounded streamed tool identity as native backends."""
     try:
-        with path.open("rb") as handle:
-            while True:
-                chunk = handle.read(1024 * 1024)
-                if not chunk:
-                    break
-                identity.update(chunk)
-    except OSError as exc:
-        raise MigrationRejected("E_C_BUILD_CHANGED", "Selected compiler unavailable") from exc
-    return identity.hexdigest()
+        return digest_executable(path)
+    except ToolIdentityRejected as exc:
+        raise MigrationRejected("E_C_BUILD_CHANGED", "Selected compiler identity failed") from exc
 
 
 _MAX_COMPDB_BYTES = 2_000_000

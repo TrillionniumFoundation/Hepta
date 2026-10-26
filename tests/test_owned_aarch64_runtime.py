@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from hashlib import sha256
+import os
 import shutil
 import subprocess
 import tempfile
@@ -30,6 +31,77 @@ class ReviewedFiniteRuntimeSourceGateTests(unittest.TestCase):
         self.assertEqual(content_sha, runtime._REVIEWED_RUNTIME_SHA256)
         # The allocator's HEPTA_CAPACITY remains exactly 4096 bytes.
         self.assertIn(b"#define HEPTA_CAPACITY 4096u", source)
+
+    def test_exact_runtime_reader_never_uses_unbounded_path_read_bytes(self):
+        with patch.object(Path, "read_bytes",
+                          side_effect=AssertionError("unbounded source read forbidden")):
+            actual, observed_sha = runtime._read_reviewed_runtime()
+        self.assertEqual(len(actual), 4259)
+        self.assertEqual(observed_sha, runtime._REVIEWED_RUNTIME_SHA256)
+
+    def test_symlink_and_sparse_oversized_source_reject_before_open(self):
+        with tempfile.TemporaryDirectory(prefix="hepta-p7-source-special-") as td:
+            root = Path(td)
+            target = root / "valid.c"
+            target.write_bytes(runtime._FIXTURE.read_bytes())
+            alias = root / "alias.c"
+            alias.symlink_to(target)
+            with patch.object(runtime, "_FIXTURE", alias):
+                with self.assertRaisesRegex(
+                        OwnedAArch64RuntimeRejected, "out-of-profile"):
+                    runtime._read_reviewed_runtime()
+            huge = root / "huge.c"
+            with huge.open("wb") as output:
+                output.truncate(runtime._MAX_RUNTIME_SOURCE_BYTES + 1)
+            with (patch.object(runtime, "_FIXTURE", huge),
+                  patch.object(Path, "read_bytes",
+                               side_effect=AssertionError("huge read not allowed"))):
+                with self.assertRaisesRegex(
+                        OwnedAArch64RuntimeRejected, "out-of-profile"):
+                    runtime._read_reviewed_runtime()
+
+    def test_replaced_runtime_between_lstat_and_open_is_rejected(self):
+        with tempfile.TemporaryDirectory(prefix="hepta-p7-source-race-") as td:
+            root = Path(td)
+            original = root / "current.c"
+            replacement = root / "replacement.c"
+            reviewed = runtime._FIXTURE.read_bytes()
+            original.write_bytes(reviewed)
+            replacement.write_bytes(reviewed)
+            actual_open = os.open
+
+            def exchange_before_open(path, flags, *args, **kwargs):
+                os.replace(replacement, original)
+                return actual_open(path, flags, *args, **kwargs)
+
+            with (patch.object(runtime, "_FIXTURE", original),
+                  patch.object(runtime.os, "open", side_effect=exchange_before_open)):
+                with self.assertRaisesRegex(
+                        OwnedAArch64RuntimeRejected, "changed before reading"):
+                    runtime._read_reviewed_runtime()
+
+    def test_native_object_and_linked_elf_are_bounded_before_read(self):
+        with tempfile.TemporaryDirectory(prefix="hepta-p7-native-artifact-") as td:
+            root = Path(td)
+            regular = root / "module.o"
+            regular.write_bytes(b"valid-boundary-bytes")
+            with patch.object(Path, "read_bytes",
+                              side_effect=AssertionError("artifact read_bytes forbidden")):
+                self.assertEqual(runtime._read_bounded_artifact(
+                    regular, 1024, "native object"), b"valid-boundary-bytes")
+                oversized = root / "huge.o"
+                with oversized.open("wb") as stream:
+                    stream.truncate(1025)
+                with self.assertRaisesRegex(
+                        OwnedAArch64RuntimeRejected, "oversized native object"):
+                    runtime._read_bounded_artifact(
+                        oversized, 1024, "native object")
+            link = root / "redirect.elf"
+            link.symlink_to(regular)
+            with self.assertRaisesRegex(
+                    OwnedAArch64RuntimeRejected, "oversized linked ELF"):
+                runtime._read_bounded_artifact(
+                    link, 1024, "linked ELF")
 
     def test_wrong_or_oversized_runtime_source_fails_closed_before_compilation(self):
         original = runtime._FIXTURE
@@ -146,6 +218,18 @@ class FiniteOwnedRuntimeTests(unittest.TestCase):
                 qemu_aarch64="qemu-aarch64")
             self.assertEqual(emulated["status"], "finite_qemu_userspace_execution_passed")
             self.assertTrue(emulated["qemu_user_mode_executed"])
+
+    def test_compiler_change_during_real_runtime_link_rejects(self):
+        # This runs the actual Clang ARM64 compile+link while replacing only
+        # the tool digest observations. No QEMU or physical execution claimed.
+        _, owner = self.build("aarch64-unknown-linux-gnu")
+        with patch.object(runtime, "_tool_digest",
+                          side_effect=["a" * 64, "b" * 64]) as digest:
+            with self.assertRaisesRegex(OwnedAArch64RuntimeRejected,
+                                        "compiler or finite runtime changed"):
+                probe_finite_owned_aarch64_runtime(
+                    owner.read_bytes(), ("owned_case",), clang=self.clang)
+        self.assertEqual(digest.call_count, 2)
 
     def test_wrong_export_and_unavailable_runner_reject(self):
         _, owner = self.build("aarch64-unknown-linux-gnu")
