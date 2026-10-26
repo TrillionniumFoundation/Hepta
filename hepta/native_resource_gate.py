@@ -93,9 +93,11 @@ def qualify_native_resource_source(program, checked, *, canonical_hsir_sha256: s
         fn.name for fn in program.functions if not fn.extern_c)
     verified_functions = structural.get("functions")
     if (not isinstance(verified_functions, list)
-            or sorted(item.get("function") for item in verified_functions
-                      if isinstance(item, dict)) != expected_functions
-            or len(verified_functions) != len(expected_functions)):
+            or len(verified_functions) != len(expected_functions)
+            or any(not isinstance(item, dict)
+                   or not isinstance(item.get("function"), str)
+                   for item in verified_functions)
+            or sorted(item["function"] for item in verified_functions) != expected_functions):
         _reject("resource function inventory differs from checked source")
     if (not isinstance(source, dict)
             or source.get("schema") != "hepta.resource.source-origin.v1"
