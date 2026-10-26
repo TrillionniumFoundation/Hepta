@@ -354,10 +354,20 @@ class _FunctionEmitter:
             pass
         elif op == "owner.drop":
             ptr = self.instruction("extractvalue %hia.buffer " + arguments[0][0] + ", 0")
-            # Allocation refusal and deallocation events are observable in this
-            # explicit resource profile. libc-name recognition must not erase
-            # them simply because no surviving value refers to the bytes.
+            # HIA's zero-size and failed try_new owners contain a null pointer
+            # and do not own a native allocation. The Python Core VM therefore
+            # observes zero frees for these owners. Calling free(NULL) is legal
+            # C but still observable by an allocator wrapper: avoid that call.
+            # Non-null pointers must retain their real, nobuiltin free event.
+            nonnull = self.instruction("icmp ne ptr " + ptr + ", null")
+            self.serial += 1
+            suffix = str(self.serial)
+            release, after = "drop_nonnull_" + suffix, "drop_after_" + suffix
+            self.line("br i1 " + nonnull + ", label %" + release + ", label %" + after)
+            self.lines.append(release + ":")
             self.line("call void @free(ptr " + ptr + ") nobuiltin")
+            self.line("br label %" + after)
+            self.lines.append(after + ":")
         elif op in {"buffer.load", "buffer.store"}:
             pointer, length = self.buffer_parts(arguments[0][0])
             index = arguments[1][0]
