@@ -101,23 +101,23 @@ class ArtifactPublicationTests(unittest.TestCase):
         # artifact, NOT Hepta source-to-LLVM refinement or whole-program ABI.
         source = self.root / "module.ll"
         source.write_text(
-            'target triple = "x86_64-unknown-linux-gnu"\\n'
-            'define i32 @hepta_native_check(i32 %x) {\\n'
-            'entry:\\n  %y = add nsw i32 %x, 1\\n  ret i32 %y\\n}\\n')
+            'target triple = "x86_64-unknown-linux-gnu"\n'
+            'define i32 @hepta_native_check(i32 %x) {\n'
+            'entry:\n  %y = add nsw i32 %x, 1\n  ret i32 %y\n}\n')
         staged = self.root / "module.o"
         published = self.root / "linked.o"
         subprocess.run(["clang", "--target=x86_64-unknown-linux-gnu", "-x", "ir",
                         "-O2", "-c", str(source), "-o", str(staged)],
                        check=True, capture_output=True, timeout=30)
         object_bytes = staged.read_bytes()
-        self.assertTrue(object_bytes.startswith(b"\\x7fELF"))
+        self.assertTrue(object_bytes.startswith(b"\x7fELF"))
         receipt = publish_verified(staged, published, object_bytes)
         self.assertEqual(receipt["bytes"], len(object_bytes))
         self.assertEqual(published.read_bytes(), object_bytes)
         harness = self.root / "driver.c"
         harness.write_text(
-            'extern int hepta_native_check(int);\\n'
-            'int main(void) { return hepta_native_check(41)==42 ? 0 : 13; }\\n')
+            'extern int hepta_native_check(int);\n'
+            'int main(void) { return hepta_native_check(41)==42 ? 0 : 13; }\n')
         binary = self.root / "driver"
         subprocess.run(["gcc", str(harness), str(published), "-o", str(binary)],
                        check=True, capture_output=True, timeout=30)
