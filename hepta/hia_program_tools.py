@@ -71,7 +71,7 @@ def decode_json(payload):
 
 def _keys(value, expected, label):
     if type(value) is not dict or set(value) != set(expected):
-        _reject(label + " has unknown or missing fields")
+        _reject(label + " requires exactly its declared fields; unknown or missing fields")
 
 
 def inspect_program(document):
