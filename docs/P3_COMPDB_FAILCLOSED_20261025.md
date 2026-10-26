@@ -1,0 +1,111 @@
+# P3 C compilation database: fail-closed capture and replay — 2026-10-25
+
+This is a narrowly scoped C migration qualification increment. It closes
+the duplicate/ambiguous/unbounded compile database *intake* gap; it does
+**not** close P3 general C migration, P1 memory safety, P4 C++ interoperability,
+or production P0–P7 qualification.
+
+## Parent and sole authority
+
+- Source parent: `0edacd07e0c723b720e885fb9497045755ac8daa`
+  (existing P1 native resource-gate development branch, stacked on PR #121).
+- Independent continuation: `agent/hepta-p3-compdb-failclosed-20261025-v2`.
+- Keep the existing `hepta.c_project` project capture and C migrator
+  as the **only** C configuration interpretation authority.
+- Both initial `capture_project` and `verify_capture` replay now call
+  `_load_compdb`. No alternative language frontend, semantic IR,
+  compiler execution method, or implicit safe code certification is introduced.
+
+## Reviewed data contract
+
+The untrusted `compile_commands.json` must now:
+- decode strict UTF-8 and contain no duplicate JSON keys, including in nested
+  objects; malformed, nonfinite and unbounded JSON fails closed;
+- be at most 2,000,000 bytes, with 1..32 translation-unit configurations;
+- contain records with `directory`, `file`, exactly **one** of
+  `arguments` and `command`, and optionally `output`;
+- contain no unreviewed metadata fields, empty/NUL-bearing field values,
+  oversized UTF-8 paths (4096 bytes), oversized arguments (16384 bytes),
+  or more than 256 command arguments;
+- use syntactically correct shell-style quoting when the `command` string
+  field is used. `shlex.split` only tokenizes data; no shell is executed.
+
+The existing `_flags` allowlist still governs which compiler flags may
+reach the selected real Clang binary. Compilation databases do not control
+the executed compiler identity. Changed source files, headers, macros,
+preprocessing and target/ABI probe facts continue to invalidate a capture.
+
+For replay, the SHA-256 of the **exact bytes parsed by _load_compdb**
+must match the bound original database digest. A second unrelated disk
+read cannot serve as the proof identity for an earlier parse.
+
+## P0/P3 source-level integration of existing provenance rules
+
+A separate development branch already contained useful strict captured-build
+metadata rules. Rather than introducing a competing C capture authority,
+this candidate directly reconciles those rules into the existing
+`hepta.c_project` next to the unique compilation-database parser:
+
+- Every database, compiler, configuration, target data model and dependency
+  record must have an exact reviewed field inventory, with required scalar
+  field types (including **actual** booleans rather than integers 0/1).
+- `abi_model_arguments` are recomputed solely from the allowlisted
+  frontend compiler flags in both the capture and replay paths. A rehashed
+  capture cannot inject extra Clang arguments into the ABI probe.
+- Every per-translation-unit dependency inventory must contain typed,
+  distinct, sorted paths, and every local dependency must be included
+  among compiler-discovered dependencies.
+- Every recorded `project_input` header provenance bit must match the
+  exact union of local dependency inventories, not a claimed bool.
+- Recorded dependency byte lengths and content digests are checked against
+  actual file bytes during replay.
+
+These checks guard configuration *identity* and make forgery or accidental
+schema widening fail closed; they do not show that the C source was converted
+safely or that the compiler itself is formally verified.
+
+## Bounded I/O and replay-time race check
+
+- The 8 MB per-header limit is now enforced **before** reading a captured
+  dependency into memory, during both capture and replay; a maliciously large
+  header cannot cause an unbounded `Path.read_bytes()` allocation.
+- Compiler executable SHA-256 identity is now calculated incrementally in
+  1 MiB chunks instead of loading the entire native toolchain binary into
+  the Python process.
+- After the real Clang dependency, macro and ABI probing commands complete,
+  replay reads the database through the **same** bounded parser and requires
+  byte-for-byte equality with the initially parsed snapshot. A database
+  mutation during the actual probes fails closed before migration publication.
+
+## Executed evidence and scoped test sources
+
+A standalone Python 3.13 mirror containing the exact new parser logic ran
+**19/19 positive and negative tests** successfully on this host; these
+exercise valid argument/command records, duplicate names, NaN, invalid
+Unicode, NUL fields, mismatched types, forbidden combinations, quoted
+commands, argument count, source count, byte limits and unknown metadata, ABI probe flag derivation, bounded header reads and streamed binary digests.
+That mirror is **not** a run of the full Hepta source tree.
+
+Repository test files added/updated:
+- `tests/test_compdb_intake.py`: compiler-independent parser
+  roundtrips and negative controls;
+- `tests/test_c_project.py`: real Clang capture/replay rejects duplicate
+  keys even after a hostile actor recomputes the database and manifest
+  digests.
+
+The expanded integration tests also include rehashed ABI probe options, local-header provenance, dependency path/order and byte-count tampering. The same repository suite also adds a capture/replay mutation during Clang probes. These integrated tests have not run against the final source
+candidate in this current local container. Do not infer broader C ABI
+or pointer ownership properties from passing intake tests.
+
+## Reproduce
+
+    python -m unittest tests.test_compdb_intake -v
+    python -m unittest tests.test_c_project -v
+    python -m unittest discover -s tests -v
+
+Scope limitations remain: only explicitly listed build configurations,
+hosted 64-bit C profile, and a restricted safe migration subset. Full
+C/C++ language coverage, arbitrary pointer provenance, FFI allocation/
+lifetime guarantees and inter-target equivalence are not established.
+
+Keep `whole_project_blockers_closed=false`.
