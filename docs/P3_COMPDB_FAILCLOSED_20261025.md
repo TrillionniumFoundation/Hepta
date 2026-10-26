@@ -39,6 +39,31 @@ For replay, the SHA-256 of the **exact bytes parsed by _load_compdb**
 must match the bound original database digest. A second unrelated disk
 read cannot serve as the proof identity for an earlier parse.
 
+## P0/P3 source-level integration of existing provenance rules
+
+A separate development branch already contained useful strict captured-build
+metadata rules. Rather than introducing a competing C capture authority,
+this candidate directly reconciles those rules into the existing
+`hepta.c_project` next to the unique compilation-database parser:
+
+- Every database, compiler, configuration, target data model and dependency
+  record must have an exact reviewed field inventory, with required scalar
+  field types (including **actual** booleans rather than integers 0/1).
+- `abi_model_arguments` are recomputed solely from the allowlisted
+  frontend compiler flags in both the capture and replay paths. A rehashed
+  capture cannot inject extra Clang arguments into the ABI probe.
+- Every per-translation-unit dependency inventory must contain typed,
+  distinct, sorted paths, and every local dependency must be included
+  among compiler-discovered dependencies.
+- Every recorded `project_input` header provenance bit must match the
+  exact union of local dependency inventories, not a claimed bool.
+- Recorded dependency byte lengths and content digests are checked against
+  actual file bytes during replay.
+
+These checks guard configuration *identity* and make forgery or accidental
+schema widening fail closed; they do not show that the C source was converted
+safely or that the compiler itself is formally verified.
+
 ## Executed evidence and scoped test sources
 
 A standalone Python 3.13 mirror containing the exact new parser logic ran
@@ -55,7 +80,7 @@ Repository test files added/updated:
   keys even after a hostile actor recomputes the database and manifest
   digests.
 
-The latter integrated tests have not run against the final source
+The expanded integration tests also include rehashed ABI probe options, local-header provenance, dependency path/order and byte-count tampering. These integrated tests have not run against the final source
 candidate in this current local container. Do not infer broader C ABI
 or pointer ownership properties from passing intake tests.
 
