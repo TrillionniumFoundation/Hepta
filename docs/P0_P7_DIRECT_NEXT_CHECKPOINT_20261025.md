@@ -41,6 +41,17 @@ mutation cleanup, competing destination replacement protection and native
 \`clang -x ir\` → ELF object publication → \`gcc\` C executable execution
 (return code 0). A separate five-test local unittest parser probe also passed.
 These tests do **not** require Rust or GitHub Actions.
+A separate twelve-case local source-contract policy probe passed **12/12**,
+including supported zero-allocation/nonblocking clauses, Boolean/integer type
+confusion, transitive allocation/blocking/spawning effects, float counts and
+unsupported process-wide memory claims. This is **isolated policy execution**,
+not the entire Hepta frontend/backend or native resource application.
+
+After integrating the shared publisher, the source-facing Owned LLVM pipeline
+also performs a post-publication source-graph and compiler identity recheck,
+removing its own still-identical output upon stale input. A new native test
+injects an imported-source edit during publication; that full Hepta test is
+committed but has not executed here.
 
 Complete Hepta Python/Rust/Clang20/native/Lean/device test suites on the new
 combined source SHA have not executed in the current environment, which has
