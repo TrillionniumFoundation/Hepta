@@ -137,7 +137,14 @@ def inspect_object_symbols(data: bytes, fmt: str, machine: int) -> dict[str, fro
             kind, storage, aux = _u16(data, pos + 14), data[pos + 16], data[pos + 17]
             if idx + 1 + aux > count:
                 raise ObjectSymbolsRejected("E_OBJECT_SYMBOL_TABLE: truncated COFF auxiliary symbol")
-            if storage in (2, 105):
+            # IMAGE_SYM_CLASS_WEAK_EXTERNAL=105 has linker fallback
+            # semantics not described by the source-checked Hepta function
+            # import contract. Even a weak symbol spelled "abort" must not
+            # satisfy the sole permitted *strong* fatal-error import.
+            if storage == 105:
+                raise ObjectSymbolsRejected(
+                    "E_OBJECT_SYMBOL_WEAK: unreviewed COFF weak external")
+            if storage == 2:
                 if data[pos:pos + 4] == b"\0" * 4:
                     name_off = _u32(data, pos + 4)
                     if not 4 <= name_off < size:
