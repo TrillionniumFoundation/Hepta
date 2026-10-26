@@ -22,10 +22,11 @@ from .borrowed_storage import has_borrowed_storage
 from .checker import is_owned_type, substitute_type
 from .llvm_ssa_backend import _clang_run
 from .pipeline import compiler_hash
-from .resource_ir import verify_resource_ir
+from .resource_ir import verify_resource_ir, _CLAIMS as RESOURCE_CLAIMS
 from .artifact_publication import PublicationRejected, publish_verified
 from .resource_lowering import lower_resource_ir
 from .owned_drop_plan import DropPlanRejected, derive_resource_drop_plan
+from .owned_drop_sites import DropSiteRejected, VerifiedDropSites, qualify_drop_sites
 from .semantic_ir import lower_checked_program
 from .elf_shared_abi import ELFSharedABIRejected, inspect_owned_shared_elf
 from .owned_target_layout import OwnedTargetLayoutRejected, probe_owned_target_layout
@@ -112,6 +113,14 @@ class _Function:
         self.terminated = False
         self.return_type = self.resolve(declaration.return_type)
         self.return_slot = self.e.uses_return_slot(self.return_type, declaration.return_mode)
+        # Non-generic static Drop sites must be authorized by the separately
+        # verified Resource IR, not merely inferred from checked AST types.
+        # Generic instances still lack a concrete per-specialization site graph.
+        try:
+            self.drop_sites = (None if declaration.type_params or self.e.drop_sites is None
+                               else self.e.drop_sites.for_function(declaration.name))
+        except DropSiteRejected as exc:
+            reject(str(exc), "E_LLVM_OWNED_DROP_SITE")
         for index, parameter in enumerate(declaration.params):
             typ = self.resolve(parameter.type)
             value = "%arg" + str(index)
@@ -432,6 +441,13 @@ class _Function:
             if name in {"drop", "release"}:
                 owner = self.typ(children[0])
                 value = self.value(children[0])
+                if self.drop_sites is not None:
+                    key = str(owner)
+                    available = self.drop_sites.get(key, 0)
+                    if type(available) is not int or available <= 0:
+                        reject("Native Drop site lacks a matching verified Resource IR operation: " + key,
+                               "E_LLVM_OWNED_DROP_SITE")
+                    self.drop_sites[key] = available - 1
                 helper = self.e.drop(owner)
                 self.emit(f"call void @{helper}({self.e.typ(owner)} {value})")
                 return "0"
@@ -567,6 +583,9 @@ class _Function:
 
     def render(self, name):
         self.block(self.fn.body or [])
+        if self.drop_sites is not None and any(remaining != 0 for remaining in self.drop_sites.values()):
+            reject("Not all independently verified static Drop sites reached native codegen",
+                   "E_LLVM_OWNED_DROP_SITE")
         if not self.terminated:
             if self.return_type.name != "Unit" or self.fn.return_mode != "value":
                 reject("A non-Unit function has a continuing exit", "E_LLVM_OWNED_CFG")
@@ -589,11 +608,15 @@ def _resources_allowed(fn, checked) -> bool:
     return finite_static_contract_allowed(fn, checked)
 
 class _Emitter:
-    def __init__(self, program, checked, *, resource_types=None):
+    def __init__(self, program, checked, *, resource_types=None, resource_drop_sites=None):
         self.program, self.checked = program, checked
         if resource_types is not None and type(resource_types) is not dict:
             reject("Verified Resource IR type inventory required", "E_LLVM_OWNED_DROP_PLAN")
         self.resource_types = resource_types
+        if resource_drop_sites is not None and not isinstance(resource_drop_sites, VerifiedDropSites):
+            reject("A verified Resource IR Drop-site inventory is required",
+                   "E_LLVM_OWNED_DROP_SITE")
+        self.drop_sites = resource_drop_sites
         self.functions = {fn.name: fn for fn in program.functions}
         self.structs = {st.name: st for st in program.structs}
         self.enums = {enum.name: enum for enum in program.enums}
@@ -913,9 +936,28 @@ def emit_owned_llvm(program, checked, *, project_sha256=None):
         reject("Exact typed safe source without external assumptions is required", "E_LLVM_OWNED_SOURCE")
     graph = lower_resource_ir(program, checked, project_sha256=project_sha256)
     verification = verify_resource_ir(json.loads(_wire(graph)))
-    if verification.get("ok") is not True or verification.get("external_obligations"):
-        reject("Independent resource CFG verification rejected", "E_LLVM_OWNED_RESOURCE")
-    emitter = _Emitter(program, checked, resource_types=graph["types"])
+    graph_digest = _hash(_wire(graph))
+    if (type(verification) is not dict or verification.get("ok") is not True
+            or verification.get("status") != "resource_cfg_verified"
+            or verification.get("ir_sha256") != graph_digest
+            or verification.get("external_obligations") != {}
+            or type(verification.get("claims")) is not dict
+            or set(verification["claims"]) != set(RESOURCE_CLAIMS)
+            or any(verification["claims"][key] is not value
+                   for key, value in RESOURCE_CLAIMS.items())
+            or graph.get("source_sha256") != semantic["source_sha256"]
+            or graph.get("project_sha256") != project_sha256):
+        reject("Source-bound independent resource CFG receipt rejected", "E_LLVM_OWNED_RESOURCE")
+    try:
+        sites = qualify_drop_sites(graph, verification)
+    except DropSiteRejected as exc:
+        reject(str(exc), "E_LLVM_OWNED_DROP_SITE")
+    if (not isinstance(sites, VerifiedDropSites)
+            or sites.resource_ir_sha256 != graph_digest):
+        reject("Verified Drop-site inventory is not bound to the checked graph",
+               "E_LLVM_OWNED_DROP_SITE")
+    emitter = _Emitter(program, checked, resource_types=graph["types"],
+                       resource_drop_sites=sites)
     text = emitter.render()
     result = OwnedLLVM(text, _hash(text.encode()), semantic["sha256"], _hash(_wire(graph)),
                        _hash(_wire(verification)), compiler_hash(),
