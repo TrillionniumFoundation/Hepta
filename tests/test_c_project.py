@@ -135,6 +135,54 @@ class CProjectMigrationTests(unittest.TestCase):
                     verify_capture(forged)
                 self.assertEqual(caught.exception.code, "E_C_BUILD_IDENTITY")
 
+    def test_duplicate_compdb_key_rejected_after_resealing(self):
+        self.project({"input.c": "int answer(int x){return x+7;}"})
+        original = capture_project(self.database, clang=self.clang)
+        raw = self.database.read_text()
+        self.assertIn('"file": "input.c", ', raw)
+        modified = raw.replace('"file": "input.c", ',
+                               '"file": "input.c", "file": "input.c", ', 1)
+        self.database.write_text(modified)
+        forged = copy.deepcopy(original)
+        forged["database"]["sha256"] = hashlib.sha256(modified.encode()).hexdigest()
+        forged["sha256"] = hashlib.sha256(json.dumps(
+            {key: value for key, value in forged.items() if key != "sha256"},
+            sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+        with self.assertRaisesRegex(MigrationRejected, "Duplicate"):
+            verify_capture(forged)
+        with self.assertRaisesRegex(MigrationRejected, "Duplicate"):
+            capture_project(self.database, clang=self.clang)
+
+    def test_compdb_edit_during_actual_clang_probes_rejected(self):
+        self.project({"input.c": "int f(int x){return x+3;}"})
+        original = capture_project(self.database, clang=self.clang)
+        from hepta import c_project
+        actual = c_project.invoke
+        touched = False
+
+        def mutate(args, directory, *, stdin=None):
+            nonlocal touched
+            if not touched:
+                touched = True
+                self.database.write_bytes(self.database.read_bytes() + b"\n")
+            return actual(args, directory, stdin=stdin)
+
+        with patch("hepta.c_project.invoke", side_effect=mutate):
+            with self.assertRaisesRegex(MigrationRejected, "changed during replay"):
+                verify_capture(original)
+        self.assertTrue(touched)
+
+    def test_resigned_abi_probe_argument_injection_rejected(self):
+        self.project({"input.c": "int f(int x){return x;}"}, ["-DUSER_FLAG=1"])
+        snapshot = capture_project(self.database, clang=self.clang)
+        changed = copy.deepcopy(snapshot)
+        changed["configurations"][0]["abi_model_arguments"] += ["-D__CHAR_UNSIGNED__=1"]
+        changed["sha256"] = hashlib.sha256(json.dumps(
+            {key: value for key, value in changed.items() if key != "sha256"},
+            sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+        with self.assertRaisesRegex(MigrationRejected, "ABI probe options"):
+            verify_capture(changed)
+
     def test_macro_model_identity_rechecked_even_when_source_preprocessing_is_equal(self):
         # Only the compiler's -dM transcript changes; the source, dependency
         # list and ordinary -E output remain bit-for-bit the same.
