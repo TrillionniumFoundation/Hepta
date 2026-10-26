@@ -264,6 +264,16 @@ class LLVMOwnedNativeTests(unittest.TestCase):
         cls.loaded.clear()
         cls.temp.cleanup()
 
+    def test_owned_llvm_shared_exposes_only_checked_source_dynamic_abi(self):
+        from hepta.elf_shared_abi import inspect_owned_shared_elf
+
+        exact_bytes = (self.root / "llvm.so").read_bytes()
+        independently_rechecked = inspect_owned_shared_elf(exact_bytes, self.ir.functions)
+        self.assertEqual(self.llvm_receipt["dynamic_abi"], independently_rechecked)
+        self.assertEqual(independently_rechecked["dynamic_exports"], list(self.ir.functions))
+        self.assertTrue(independently_rechecked["source_exports_rechecked"])
+        self.assertFalse(independently_rechecked["claims"]["backend_refinement_proven"])
+
     def test_same_hepta_source_executes_all_owned_result_paths_on_three_backends(self):
         functions = []
         for library in self.loaded.values():
@@ -409,6 +419,10 @@ int main(void) {
         report = build_llvm_owned_source(project / "main.hepta", destination)
         self.assertTrue(report["ok"], report)
         self.assertTrue(report["claims"]["actual_source_replayed"])
+        from hepta.elf_shared_abi import inspect_owned_shared_elf
+        native_abi = inspect_owned_shared_elf(destination.read_bytes(),
+                                               tuple(report["source_binding"]["exports"]))
+        self.assertEqual(report["native_backend"]["dynamic_abi"], native_abi)
         self.assertFalse(report["claims"]["fallback_used"])
         real_compile = compile_owned_llvm
         def changed(*args, **kwargs):
