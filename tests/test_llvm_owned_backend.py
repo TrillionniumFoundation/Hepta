@@ -313,6 +313,11 @@ class LLVMOwnedNativeTests(unittest.TestCase):
         exact_bytes = (self.root / "llvm.so").read_bytes()
         independently_rechecked = inspect_owned_shared_elf(exact_bytes, self.ir.functions)
         self.assertEqual(self.llvm_receipt["dynamic_abi"], independently_rechecked)
+        layout = self.llvm_receipt["target_layout_probe"]
+        self.assertEqual(layout["target"], "x86_64-unknown-linux-gnu")
+        self.assertEqual(layout["bound_llvm_sha256"], self.ir.sha256)
+        self.assertTrue(layout["compiler_checked"])
+        self.assertFalse(layout["llvm_layout_equivalence_proved"])
         self.assertEqual(independently_rechecked["dynamic_exports"], list(self.ir.functions))
         self.assertTrue(independently_rechecked["source_exports_rechecked"])
         self.assertFalse(independently_rechecked["claims"]["backend_refinement_proven"])
