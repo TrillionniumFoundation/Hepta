@@ -48,18 +48,18 @@ __attribute__((noinline)) void free(void *p) {
     outstanding = 0;
     ++releases;
 }
-void *memset(void *dest, int value, hepta_size n) {
+__attribute__((noinline)) void *memset(void *dest, int value, hepta_size n) {
     hepta_u8 *d = (hepta_u8 *)dest;
     for (hepta_size i = 0; i < n; ++i) d[i] = (hepta_u8)value;
     return dest;
 }
-void *memcpy(void *dest, const void *src, hepta_size n) {
+__attribute__((noinline)) void *memcpy(void *dest, const void *src, hepta_size n) {
     hepta_u8 *d = (hepta_u8 *)dest;
     const hepta_u8 *s = (const hepta_u8 *)src;
     for (hepta_size i = 0; i < n; ++i) d[i] = s[i];
     return dest;
 }
-void *memmove(void *dest, const void *src, hepta_size n) {
+__attribute__((noinline)) void *memmove(void *dest, const void *src, hepta_size n) {
     hepta_u8 *d = (hepta_u8 *)dest;
     const hepta_u8 *s = (const hepta_u8 *)src;
     if (d == s || n == 0) return dest;
@@ -71,10 +71,32 @@ void *memmove(void *dest, const void *src, hepta_size n) {
     return dest;
 }
 
+/* Independently exercise both directions of overlap and disjoint objects. */
+static int memory_primitives_ok(void) {
+    hepta_u8 a[8], b[8];
+    memset(a, 0, 8);
+    for (hepta_size i = 0; i < 8; ++i) a[i] = (hepta_u8)(i + 1);
+    memcpy(b, a, 8);
+    memmove(b + 1, b, 7);
+    for (hepta_size i = 0; i < 7; ++i) {
+        if (b[i + 1] != a[i]) return 0;
+    }
+    memmove(b, b + 1, 7);
+    for (hepta_size i = 0; i < 7; ++i) {
+        if (b[i] != a[i]) return 0;
+    }
+    memmove(b, a, 8);
+    for (hepta_size i = 0; i < 8; ++i) {
+        if (b[i] != a[i]) return 0;
+    }
+    return 1;
+}
+
 /* Exact selected Hepta export; unlike the synthetic stub, invoked for real. */
 extern hepta_u64 owned_case(hepta_size size, hepta_u8 value, hepta_size index,
                             hepta_u32 reject, hepta_u32 early);
 static int smoke(void) {
+    if (!memory_primitives_ok()) return 19;
     if (owned_case(16, 7, 3, 0, 0) != 30) return 11;
     if (owned_case(16, 7, 0, 0, 0) != 202) return 12;
     if (owned_case(16, 7, 12, 0, 1) != 2002) return 13;
