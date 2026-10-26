@@ -14,6 +14,7 @@ from pathlib import Path
 import platform
 import re
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -28,6 +29,8 @@ _MAX_BYTES = 8 * 1024 * 1024
 _WORKER = r'''
 import ctypes, json, resource, sys
 resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+# A hostile foreign constructor must not fill a host disk before timeout.
+resource.setrlimit(resource.RLIMIT_FSIZE, (4096, 4096))
 lib, symbol, word, packed = sys.argv[1:]
 args = json.loads(packed)
 c = ctypes.c_int32 if word == "i32" else ctypes.c_uint32
@@ -59,7 +62,7 @@ def _corpus(cases, return_words):
     for item in return_words:
         if (type(item) is not tuple or len(item) != 2
                 or type(item[0]) is not str or _IDENT.fullmatch(item[0]) is None
-                or item[0] in words or item[1] not in _TYPES):
+                or item[0] in words or type(item[1]) is not str or item[1] not in _TYPES):
             _reject("invalid or duplicated native ABI function inventory")
         words[item[0]] = item[1]
     if set(cases) != set(words):
@@ -82,26 +85,146 @@ def _corpus(cases, return_words):
     return words, total
 
 
-def _observe_native(library: Path, function: str, word: str, args: list[int], *, timeout: float):
-    if (platform.system() != "Linux" or not 0 < timeout <= 10
+
+
+def _require_exact_argument_arities(cases: dict, signatures: tuple[tuple[str, int], ...]) -> None:
+    """Verify every tested vector against checked Core ABI parameter count.
+
+    A shared-library ELF symbol alone does not authenticate the callee's
+    parameter types. This is the *source/Core-derived call-site* proof,
+    never an arbitrary raw oracle's trust credential.
+    """
+    if (type(cases) is not dict or type(signatures) is not tuple
+            or not 1 <= len(signatures) <= 32):
+        _reject("complete HIA native argument signature inventory required")
+    arities = {}
+    for entry in signatures:
+        if (type(entry) is not tuple or len(entry) != 2
+                or type(entry[0]) is not str or _IDENT.fullmatch(entry[0]) is None
+                or type(entry[1]) is not int or not 0 <= entry[1] <= 16
+                or entry[0] in arities):
+            _reject("unreviewed HIA native parameter signature")
+        arities[entry[0]] = entry[1]
+    if set(cases) != set(arities):
+        _reject("corpus differs from verified HIA ABI export inventory")
+    for name, vectors in cases.items():
+        if type(vectors) is not list or not vectors:
+            _reject("native export requires a nonempty typed corpus")
+        for index, args in enumerate(vectors):
+            if type(args) is not list or len(args) != arities[name]:
+                _reject(f"HIA ABI argument arity differs from verified function signature: {name} case {index}")
+
+
+def _read_regular_artifact(path: Path):
+    """Read exactly one no-follow regular-file inode, bounded before allocation.
+
+    Opening with O_NONBLOCK prevents FIFOs/devices from blocking an admission
+    thread; O_NOFOLLOW prevents a final-component symlink substitution.
+    fstat before/after reads rejects concurrent in-place size/metadata drift.
+    """
+    if platform.system() != "Linux":
+        _reject("native artifact identity pinning requires Linux")
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_CLOEXEC | os.O_NONBLOCK | os.O_NOFOLLOW)
+    except OSError as exc:
+        raise HIADifferentialRejected("E_HIA_DIFFERENTIAL: cannot open no-follow native artifact") from exc
+    try:
+        before = os.fstat(fd)
+        if not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= _MAX_BYTES:
+            _reject("native artifact must be bounded regular file")
+        chunks = []
+        remaining = before.st_size + 1
+        while remaining:
+            part = os.read(fd, min(1 << 20, remaining))
+            if not part:
+                break
+            chunks.append(part)
+            remaining -= len(part)
+        contents = b"".join(chunks)
+        after = os.fstat(fd)
+        identity = (before.st_dev, before.st_ino, before.st_size,
+                    before.st_mtime_ns, before.st_ctime_ns)
+        observed = (after.st_dev, after.st_ino, after.st_size,
+                    after.st_mtime_ns, after.st_ctime_ns)
+        if len(contents) != before.st_size or observed != identity:
+            _reject("native artifact changed during identity-bound read")
+        return contents, identity
+    except OSError as exc:
+        raise HIADifferentialRejected("E_HIA_DIFFERENTIAL: native artifact read failed") from exc
+    finally:
+        os.close(fd)
+
+
+def _pin_native_artifact(path: Path):
+    """Create a sealed Linux memfd from the exact identity-checked artifact.
+
+    Native children load /proc/self/fd/<N>, not the mutable original pathname.
+    If memfd sealing is unavailable, fail closed rather than weakening the
+    differential's executable-byte identity guarantee.
+    """
+    original, identity = _read_regular_artifact(path)
+    fd = None
+    try:
+        # Keep the module importable on non-Linux hosts; the execution path
+        # itself still refuses anything except qualified Linux.
+        import fcntl
+        fd = os.memfd_create("hepta-hia-native", os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
+        remaining = memoryview(original)
+        while remaining:
+            count = os.write(fd, remaining)
+            if count <= 0:
+                _reject("sealed native snapshot write made no progress")
+            remaining = remaining[count:]
+        expected_seals = (fcntl.F_SEAL_WRITE | fcntl.F_SEAL_GROW |
+                          fcntl.F_SEAL_SHRINK | fcntl.F_SEAL_SEAL)
+        fcntl.fcntl(fd, fcntl.F_ADD_SEALS, expected_seals)
+        if (os.fstat(fd).st_size != len(original) or
+                fcntl.fcntl(fd, fcntl.F_GET_SEALS) & expected_seals != expected_seals or
+                os.pread(fd, len(original), 0) != original):
+            _reject("sealed executable-byte snapshot differs from source")
+        return original, identity, fd
+    except (OSError, AttributeError, ImportError) as exc:
+        raise HIADifferentialRejected("E_HIA_DIFFERENTIAL: sealed executable snapshot unavailable") from exc
+    finally:
+        # Ownership of a successfully sealed descriptor transfers to caller.
+        if fd is not None and sys.exc_info()[0] is not None:
+            os.close(fd)
+
+
+def _check_artifact_unchanged(path: Path, original: bytes, identity) -> None:
+    current, metadata = _read_regular_artifact(path)
+    if current != original or metadata != identity:
+        _reject("native artifact path/inode/bytes changed during differential execution")
+
+def _observe_native(library: Path, function: str, word: str, args: list[int], *,
+                    timeout: float, pinned_fd: int):
+    if (platform.system() != "Linux" or platform.machine().lower() not in {"x86_64", "amd64"}
+            or not 0 < timeout <= 10
             or type(function) is not str or _IDENT.fullmatch(function) is None
-            or word not in _TYPES):
-        _reject("bounded Linux x86-64 scalar host required")
+            or type(word) is not str or word not in _TYPES
+            or type(pinned_fd) is not int or pinned_fd < 0):
+        _reject("bounded Linux host and sealed native fd required")
     try:
         with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
-            proc = subprocess.run([sys.executable, "-I", "-c", _WORKER, str(library),
+            proc = subprocess.run([sys.executable, "-I", "-c", _WORKER,
+                                   "/proc/self/fd/" + str(pinned_fd),
                                    function, word, json.dumps(args, separators=(",", ":"))],
-                                  stdout=out, stderr=err, check=False, timeout=timeout)
+                                  stdout=out, stderr=err, check=False, timeout=timeout,
+                                  pass_fds=(pinned_fd,))
             out.seek(0)
             err.seek(0)
             child_stdout = out.read(4097)
             child_stderr = err.read(4097)
     except (subprocess.TimeoutExpired, OSError) as exc:
         raise HIADifferentialRejected("E_HIA_DIFFERENTIAL: native child unavailable or timed out") from exc
-    if len(child_stdout) > 4096 or len(child_stderr) > 4096:
+    # RLIMIT_FSIZE can surface as SIGXFSZ, a child write exception, or a
+    # Python exit code after a partial 4096-byte write. All are refusals.
+    if len(child_stdout) >= 4096 or len(child_stderr) >= 4096:
         _reject("native subprocess exceeded output budget")
     if proc.returncode == -signal.SIGABRT:
         return ("trap", None)
+    if proc.returncode == -signal.SIGXFSZ:
+        _reject("native subprocess exceeded output budget")
     if proc.returncode != 0:
         _reject("native child exited with unexpected error/signal " + str(proc.returncode))
     try:
@@ -128,31 +251,30 @@ def compare_oracle_with_native(oracle, library: str | Path, cases: dict, *,
         _reject("invalid execution limits")
     words, total = _corpus(cases, getattr(oracle, "return_words", None))
     binary = Path(library)
-    if (binary.is_symlink() or not binary.is_file() or
-            not 0 < binary.stat().st_size <= _MAX_BYTES):
-        _reject("native artifact must be bounded regular file")
-    original = binary.read_bytes()
+    original, identity, pinned_fd = _pin_native_artifact(binary)
     artifact_sha = sha256(original).hexdigest()
     matches = traps = 0
-    # Iterate canonically so receipt and first failure do not depend on map order.
-    for function in sorted(cases):
-        for index, args in enumerate(cases[function]):
-            if binary.read_bytes() != original:
-                _reject("native artifact changed during differential execution")
-            try:
-                expected = ("value", oracle.run(function, args, max_steps=max_steps))
-            except HIAOracleTrap:
-                expected = ("trap", None)
-            except (HIAOracleBudgetExceeded, HIAOracleRejected) as exc:
-                raise HIADifferentialRejected(
-                    "E_HIA_DIFFERENTIAL: oracle failed or exhausted budget, never native trap") from exc
-            observed = _observe_native(binary, function, words[function], args, timeout=timeout)
-            if observed != expected:
-                _reject(f"native mismatch at {function} case {index}: expected {expected}, observed {observed}")
-            matches += 1
-            traps += observed[0] == "trap"
-    if binary.read_bytes() != original:
-        _reject("native artifact changed after differential execution")
+    try:
+        # Iterate canonically so receipt and first failure do not depend on map order.
+        for function in sorted(cases):
+            for index, args in enumerate(cases[function]):
+                _check_artifact_unchanged(binary, original, identity)
+                try:
+                    expected = ("value", oracle.run(function, args, max_steps=max_steps))
+                except HIAOracleTrap:
+                    expected = ("trap", None)
+                except (HIAOracleBudgetExceeded, HIAOracleRejected) as exc:
+                    raise HIADifferentialRejected(
+                        "E_HIA_DIFFERENTIAL: oracle failed or exhausted budget, never native trap") from exc
+                observed = _observe_native(binary, function, words[function], args,
+                                           timeout=timeout, pinned_fd=pinned_fd)
+                if observed != expected:
+                    _reject(f"native mismatch at {function} case {index}: expected {expected}, observed {observed}")
+                matches += 1
+                traps += observed[0] == "trap"
+        _check_artifact_unchanged(binary, original, identity)
+    finally:
+        os.close(pinned_fd)
     if matches != total:
         _reject("complete finite denominator not executed")
     return {
@@ -164,6 +286,7 @@ def compare_oracle_with_native(oracle, library: str | Path, cases: dict, *,
         "defined_traps_observed": traps,
         "claims": {"finite_native_oracle_match": True,
                    "checked_hepta_source_replayed": False,
+                   "core_corpus_argument_arity_checked": False,
                    "backend_refinement_proved": False,
                    "whole_language_soundness_proved": False,
                    "physical_target_qualified": False},
@@ -214,6 +337,13 @@ def qualify_scalar_source(source: str | Path, cases: dict, *, rustc=None,
                                     project_sha256=project_sha)
         oracle = prepare_scalar_oracle(core, analyzed.program, analyzed.checked,
                                        project_sha256=project_sha)
+        scalar_fns = json.loads(ssa.canonical_json).get("functions")
+        if (type(scalar_fns) is not list
+                or any(type(fn) is not dict or type(fn.get("name")) is not str
+                       or type(fn.get("parameters")) is not list for fn in scalar_fns)):
+            _reject("missing source-derived scalar parameter inventory")
+        _require_exact_argument_arities(
+            cases, tuple((fn["name"], len(fn["parameters"])) for fn in scalar_fns))
         record = compiled.get("identities", {})
         native = compiled.get("native_backend", {})
         if (record.get("hia_scalar_core_sha256") != core.sha256
@@ -230,6 +360,7 @@ def qualify_scalar_source(source: str | Path, cases: dict, *, rustc=None,
         result["ssa_sha256"] = ssa.sha256
         result["compiler_sha256"] = record.get("compiler_sha256")
         result["claims"]["checked_hepta_source_replayed"] = True
+        result["claims"]["core_corpus_argument_arity_checked"] = True
         return result
 
 
@@ -263,6 +394,7 @@ def compare_verified_hia_program(program, library: str | Path, cases: dict, *,
             set(cases) != set(exported)):
         _reject("corpus must cover the exact HIA native scalar export inventory")
     words = []
+    argument_arities = []
     for name in sorted(exported):
         fn = by_name[name]
         result_types = fn.get("returns")
@@ -272,6 +404,11 @@ def compare_verified_hia_program(program, library: str | Path, cases: dict, *,
                 or any(type(p) is not dict or p.get("type") != result_types[0] for p in params)):
             _reject("HIA native differential supports homogeneous i32/u32 wrappers only")
         words.append((name, result_types[0]))
+        argument_arities.append((name, len(params)))
+    # Reuse the one strict parameter admission for both executable HIA Core
+    # and historical source-qualified scalar SSA. No foreign child starts
+    # before this exact signature check.
+    _require_exact_argument_arities(cases, tuple(argument_arities))
 
     class _ExecutableHIAOracle:
         return_words = tuple(words)
@@ -298,6 +435,7 @@ def compare_verified_hia_program(program, library: str | Path, cases: dict, *,
     report["executable_hia_program_sha256"] = checked.sha256
     report["executable_hia_llvm_sha256"] = emitted.sha256
     report["claims"]["executable_hia_program_reverified"] = True
+    report["claims"]["core_corpus_argument_arity_checked"] = True
     report["claims"]["native_compiled_from_program_verified"] = False
     # This helper only compares an arbitrary provided artifact to the actual
     # Core VM. compile/qualification provenance belongs to the wrappers below.
@@ -329,24 +467,36 @@ def qualify_executable_hia_program(program, cases: dict, *, clang="clang") -> di
 
 
 def qualify_checked_hia_source(source: str | Path, cases: dict, *, profile="owned",
-                               rustc=None, clang="clang", locked=False) -> dict:
+                               rustc=None, clang="clang", locked=False,
+                               static_resource_limits=None) -> dict:
     """Pinned Hepta source -> single executable HIA v1-v6 -> native LLVM -> VM.
 
     Unlike the historical scalar-only route, this uses hia_source_bridge's
     canonical verified Program producer and hia_program_llvm exclusively.
     """
     from .pipeline import analyze_project, compiler_hash
-    from .hia_source_bridge import (build_checked_hepta_hia_native,
+    from .hia_source_bridge import (HIAHeptaBridgeRejected,
+                                    _validate_static_budget_receipt,
+                                    build_checked_hepta_hia_native,
                                     lower_checked_scalar_hia,
                                     lower_checked_owned_hia)
 
     if profile not in {"scalar", "owned"} or platform.system() != "Linux":
         _reject("verified Core differential requires supported source profile and Linux")
+    if static_resource_limits is not None and (
+            type(static_resource_limits) is not dict or not static_resource_limits
+            or not set(static_resource_limits) <= {
+                "max_allocator_interactions", "max_vm_ticks",
+                "max_call_depth", "max_live_heap_bytes"}
+            or any(type(v) is not int or v < 0
+                   for v in static_resource_limits.values())):
+        _reject("invalid typed opt-in static resource policy")
     with tempfile.TemporaryDirectory(prefix="hia-checked-native-diff-") as temp:
         shared = Path(temp) / "checked.so"
         native = build_checked_hepta_hia_native(source, shared, rustc=rustc,
                                                 clang=clang, locked=locked,
-                                                profile=profile, kind="shared")
+                                                profile=profile, kind="shared",
+                                                static_resource_limits=static_resource_limits)
         if (native.get("ok") is not True
                 or native.get("claims", {}).get("native_codegen_consumed_verified_hia_core") is not True):
             _reject("checked source->Core native qualification rejected")
@@ -362,6 +512,22 @@ def qualify_checked_hia_source(source: str | Path, cases: dict, *, profile="owne
                    if profile == "owned" else
                    lower_checked_scalar_hia(analyzed.program, analyzed.checked,
                                             project_sha256=project.identity))
+        # Replay the optional *numeric* resource budget against independently
+        # re-derived checked-source HIA Core, before any native/VM child.
+        # The established source bridge validator re-runs its original
+        # analyzer; a rehashed synthetic receipt cannot justify a limit.
+        qualified_budget = None
+        if static_resource_limits is not None:
+            qualified_budget = native.get("static_resource_budget")
+            try:
+                _validate_static_budget_receipt(
+                    lowered.program, static_resource_limits, qualified_budget)
+            except (HIAHeptaBridgeRejected, ValueError, TypeError,
+                    KeyError, OverflowError, RecursionError) as exc:
+                raise HIADifferentialRejected(
+                    "E_HIA_DIFFERENTIAL: source static resource budget replay rejected") from exc
+        elif "static_resource_budget" in native:
+            _reject("unexpected unrequested static resource budget receipt")
         ids = native.get("identities", {})
         artifact = native.get("native_backend", {})
         if (ids.get("hia_program_sha256") != lowered.program.sha256
@@ -377,6 +543,10 @@ def qualify_checked_hia_source(source: str | Path, cases: dict, *, profile="owne
             _reject("source, compiler or native bytes changed during differential execution")
         result["claims"]["native_compiled_from_program_verified"] = True
         result["claims"]["checked_hepta_source_replayed"] = True
+        result["claims"]["source_static_resource_budget_replayed"] = qualified_budget is not None
+        if qualified_budget is not None:
+            result["static_resource_budget_sha256"] = qualified_budget["sha256"]
+            result["static_resource_limits"] = dict(static_resource_limits)
         result["source_project_sha256"] = project.identity
         result["source_compiler_sha256"] = ids["compiler_sha256"]
         return result
