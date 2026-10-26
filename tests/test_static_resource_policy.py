@@ -57,6 +57,7 @@ class StaticResourcePolicyTests(unittest.TestCase):
     def test_malformed_contexts_fail_closed(self):
         fn = SimpleNamespace(name="example", resources={}, effects=set())
         self.assertFalse(finite_static_contract_allowed(fn, SimpleNamespace(effects=[])))
+        self.assertFalse(finite_static_contract_allowed(fn, SimpleNamespace(effects={})))
         self.assertFalse(finite_static_contract_allowed(
             SimpleNamespace(name="example", resources=[], effects=set()),
             SimpleNamespace(effects={"example": set()})))
