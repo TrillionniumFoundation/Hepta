@@ -25,6 +25,7 @@ from .pipeline import compiler_hash
 from .resource_ir import verify_resource_ir
 from .resource_lowering import lower_resource_ir
 from .semantic_ir import lower_checked_program
+from .elf_shared_abi import ELFSharedABIRejected, inspect_owned_shared_elf
 
 PROFILE = "hepta.llvm-owned-bytes-host.v1"
 TARGET = "x86_64-unknown-linux-gnu"
@@ -915,12 +916,23 @@ def compile_owned_llvm(ir, *, program, checked, output, project_sha256=None, cla
                                   or int.from_bytes(data[16:18], "little") != 3
                                   or int.from_bytes(data[18:20], "little") != 62):
             reject("Native shared-library target identity differs", "E_LLVM_OWNED_ARTIFACT")
+        dynamic_abi = None
+        if kind == "shared":
+            # ELF magic and ET_DYN are necessary, not an ABI inventory.
+            # Read the actual loader's dynamic symbol/string table and reject
+            # extra exports, foreign imports and invalid executable extents.
+            try:
+                dynamic_abi = inspect_owned_shared_elf(data, ir.functions)
+            except ELFSharedABIRejected as exc:
+                raise LLVMOwnedRejected(
+                    "E_LLVM_OWNED_ARTIFACT: dynamic export/import identity rejected: " + str(exc)) from exc
         if _hash(compiler.read_bytes()) != compiler_digest or compiler_hash() != ir.compiler_sha256:
             reject("Compiler identity changed during native build", "E_LLVM_OWNED_STALE")
         os.link(artifact, destination)
     return {"schema": "hepta.llvm-owned-native.v1", "ok": True, "status": "native_compiled_not_executed",
             "profile": PROFILE, "kind": kind, "target": TARGET, "output": str(destination),
             "artifact_sha256": _hash(data), "artifact_bytes": len(data),
+            "dynamic_abi": dynamic_abi,
             "llvm_ir_sha256": ir.sha256, "semantic_sha256": ir.semantic_sha256,
             "resource_ir_sha256": ir.resource_ir_sha256,
             "resource_verification_sha256": ir.resource_verification_sha256,
