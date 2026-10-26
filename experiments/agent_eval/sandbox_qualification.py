@@ -106,6 +106,17 @@ sys.exit(0 if result.get('execution',{}).get('returncode')==0 and result.get('wo
 """
 
 
+def _host_path_evidence(path: str) -> dict:
+    """Record advisory host visibility without treating LSM-denied procfs as absent."""
+    try:
+        return {"path": path, "host_exists": Path(path).exists()}
+    except OSError as exc:
+        # The sandbox's inside-capsule access checks are the security verdict;
+        # host /proc/*/root may be unreadable to the CI runner itself.
+        return {"path": path, "host_exists": None,
+                "host_stat_error": {"errno": exc.errno, "type": type(exc).__name__}}
+
+
 def _boundary_observation(parent: Path, capsule: Path, selected: Path):
     oracle = parent / "parent_oracle_canary"
     credentials = parent / "parent_credentials_canary"
@@ -166,8 +177,7 @@ def _boundary_observation(parent: Path, capsule: Path, selected: Path):
         return {"returncode": process.returncode, "stderr": stderr, "remaining_stdout": stdout,
                 "namespaces": namespaces, "required_namespaces": list(REQUIRED_NAMESPACES),
                 "inside": inside, "parent_listener_received_connection": accepted,
-                "paths": {name: {"path": path, "host_exists": Path(path).exists()}
-                          for name, path in paths.items()}}
+                "paths": {name: _host_path_evidence(path) for name, path in paths.items()}}
     finally:
         if process is not None:
             kill_process(process)
