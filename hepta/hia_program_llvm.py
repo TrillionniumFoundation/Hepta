@@ -340,6 +340,20 @@ class _FunctionEmitter:
                 results = [self.instruction("load i8, ptr " + address + ", align 1")]
             else:
                 self.line("store i8 " + arguments[2][0] + ", ptr " + address + ", align 1")
+        elif op == "buffer.fill":
+            pointer, length = self.buffer_parts(arguments[0][0])
+            self.line("call void @llvm.memset.p0.i64(ptr align 1 " + pointer +
+                      ", i8 " + arguments[1][0] + ", i64 " + length + ", i1 false)")
+        elif op == "buffer.copy":
+            destination, dest_len = self.buffer_parts(arguments[0][0])
+            source, source_len = self.buffer_parts(arguments[1][0])
+            size = arguments[2][0]
+            self.guard(self.instruction("icmp ule i64 " + size + ", " + dest_len))
+            self.guard(self.instruction("icmp ule i64 " + size + ", " + source_len))
+            # The verifier requires a unique destination loan and a different
+            # source owner root, so nonoverlapping LLVM memcpy is admissible.
+            self.line("call void @llvm.memcpy.p0.p0.i64(ptr align 1 " + destination +
+                      ", ptr align 1 " + source + ", i64 " + size + ", i1 false)")
         else:
             _reject("unimplemented verified operation " + op)
         if len(results) != len(outputs):
@@ -454,6 +468,9 @@ class _Emitter:
         self.document = document
         self.target = target
         self.functions = {fn["name"]: fn for fn in document["functions"]}
+        self.bulk_operations = {operation["op"] for fn in document["functions"]
+                                for block in fn["blocks"] for operation in block["ops"]
+                                if operation["op"] in {"buffer.fill", "buffer.copy"}}
         self.indices = {fn["name"]: index for index, fn in enumerate(document["functions"])}
         self.intrinsics = set()
         self.exports = []
@@ -496,6 +513,10 @@ class _Emitter:
                         'declare ptr @calloc(i64, i64) "no-builtins"',
                         'declare ptr @malloc(i64) "no-builtins"',
                         'declare void @free(ptr) "no-builtins"']
+        if "buffer.fill" in self.bulk_operations:
+            declarations.append("declare void @llvm.memset.p0.i64(ptr, i8, i64, i1 immarg)")
+        if "buffer.copy" in self.bulk_operations:
+            declarations.append("declare void @llvm.memcpy.p0.p0.i64(ptr, ptr, i64, i1 immarg)")
         declarations += ["declare { i" + str(bits) + ", i1 } @" + name + "(i" + str(bits) + ", i" + str(bits) + ")"
                          for name, bits in sorted(self.intrinsics)]
         return ("; Standalone HIA: verified core -> LLVM. No source AST or Rust safety gate.\n"

@@ -19,7 +19,9 @@ import re
 
 
 SCHEMA = "hepta.hia.program.v1"
+SCHEMA_V2 = "hepta.hia.program.v2"
 PROFILE = "closed-ssa-integer-byte-resources-64-v1"
+PROFILE_V2 = "closed-ssa-integer-byte-resources-bulk-64-v2"
 WORD_BITS = 64
 WIDTHS = {**{f"{s}{n}": n for s in ("i", "u") for n in (8, 16, 32, 64)},
           "isize": 64, "usize": 64}
@@ -164,8 +166,9 @@ class VerifiedProgram:
         # report rechecks the immutable bytes instead of trusting its class.
         checked = verify_program(self)
         data = checked.as_dict()
+        profile = PROFILE_V2 if data["schema"] == SCHEMA_V2 else PROFILE
         return {"schema": "hepta.hia.program-verification.v1", "ok": True,
-                "profile": PROFILE, "program_sha256": checked.sha256,
+                "profile": profile, "program_sha256": checked.sha256,
                 "word_bits": WORD_BITS, "functions_checked": len(data["functions"]),
                 "blocks_checked": sum(len(f["blocks"]) for f in data["functions"]),
                 "source_required": False,
@@ -308,8 +311,9 @@ def _function_shape(fn):
 
 
 class _BlockCheck:
-    def __init__(self, fn, block, capabilities, functions):
+    def __init__(self, fn, block, capabilities, functions, *, bulk_memory=False):
         self.fn, self.block, self.functions = fn, block, functions
+        self.bulk_memory = bulk_memory
         self.env = {p["name"]: p["type"] for p in block["params"]}
         self.caps = dict(capabilities)
         self.required = set()
@@ -468,6 +472,27 @@ class _BlockCheck:
                 _reject("store needs usize index and u8 value", "E_HIA_TYPE")
             expected = []
             self.required.update({"write", "trap"})
+        elif op == "buffer.fill":
+            if not self.bulk_memory:
+                _reject("bulk byte operations require HIA program v2", "E_HIA_OPCODE")
+            arity(2)
+            self.access(args[0], True)
+            if actual != ["mutbuf", "u8"]:
+                _reject("fill requires a mutable byte view and u8 value", "E_HIA_TYPE")
+            expected = []
+            self.required.add("write")
+        elif op == "buffer.copy":
+            if not self.bulk_memory:
+                _reject("bulk byte operations require HIA program v2", "E_HIA_OPCODE")
+            arity(3)
+            self.access(args[0], True)
+            self.access(args[1])
+            if actual != ["mutbuf", "readbuf", "usize"]:
+                _reject("copy requires distinct mutable/read byte views and usize length", "E_HIA_TYPE")
+            if self.caps[args[0]].root == self.caps[args[1]].root:
+                _reject("bulk copy aliases the destination owner", "E_HIA_LOAN")
+            expected = []
+            self.required.update({"read", "write", "trap"})
         elif op == "call":
             _keys(attrs, {"function"}, op)
             callee_name = _ident(attrs["function"], "callee")
@@ -575,7 +600,7 @@ def verify_program(program) -> VerifiedProgram:
     """
     data, raw = _decode(program)
     _keys(data, {"schema", "module", "functions"}, "program")
-    if data["schema"] != SCHEMA:
+    if data["schema"] not in {SCHEMA, SCHEMA_V2}:
         _reject("unsupported program schema", "E_HIA_SCHEMA")
     _ident(data["module"], "module")
     if type(data["functions"]) is not list or not 1 <= len(data["functions"]) <= MAX_FUNCTIONS:
@@ -599,7 +624,8 @@ def verify_program(program) -> VerifiedProgram:
                 continue
             processed.add(ident)
             block = blocks[ident]
-            check = _BlockCheck(fn, block, incoming[ident], functions)
+            check = _BlockCheck(fn, block, incoming[ident], functions,
+                                bulk_memory=data["schema"] == SCHEMA_V2)
             for ins in block["ops"]:
                 check.instruction(ins)
             check.finish()

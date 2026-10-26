@@ -228,6 +228,26 @@ class _Machine:
             if index >= len(owner.data):
                 raise HIAProgramTrap("bounds", "byte store outside the borrowed buffer")
             owner.data[index] = value
+        elif op == "buffer.fill":
+            owner, value = _underlying(args[0]), args[1]
+            if not isinstance(args[0], _View) or not args[0].mutable:
+                raise HIAProgramRejected("fill without a mutable view", "E_HIA_RUNTIME_INVARIANT")
+            # One verified operation, with no byte-by-byte interpreter overhead.
+            # This may allocate temporary Python storage, not a Core owner.
+            try:
+                owner.data[:] = bytes((value,)) * len(owner.data)
+            except MemoryError as exc:
+                raise HIAProgramBudgetExceeded("host_memory", "bulk fill exceeds host memory") from exc
+        elif op == "buffer.copy":
+            destination, source, size = _underlying(args[0]), _underlying(args[1]), args[2]
+            if not isinstance(args[0], _View) or not args[0].mutable or not isinstance(args[1], _View):
+                raise HIAProgramRejected("copy requires checked mutable and shared loans", "E_HIA_RUNTIME_INVARIANT")
+            if destination is source:
+                raise HIAProgramRejected("copy alias escaped static owner verification", "E_HIA_RUNTIME_INVARIANT")
+            if size > len(destination.data) or size > len(source.data):
+                raise HIAProgramTrap("bounds", "bulk copy exceeds an owner extent")
+            # Distinct live allocations are guaranteed by the verified roots.
+            memoryview(destination.data)[:size] = memoryview(source.data)[:size]
         elif op == "call":
             callee = self.functions[attrs["function"]]
             for name, param in zip(names, callee["params"]):
