@@ -31,6 +31,9 @@ import ctypes, json, resource, sys
 resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
 # A hostile foreign constructor must not fill a host disk before timeout.
 resource.setrlimit(resource.RLIMIT_FSIZE, (4096, 4096))
+# Child evaluator limits: these do not prove HIA heap/RSS or OS sandboxing.
+resource.setrlimit(resource.RLIMIT_AS, (512 * 1024 * 1024, 512 * 1024 * 1024))
+resource.setrlimit(resource.RLIMIT_CPU, (10, 10))
 lib, symbol, word, packed = sys.argv[1:]
 args = json.loads(packed)
 c = ctypes.c_int32 if word == "i32" else ctypes.c_uint32
