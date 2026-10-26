@@ -83,6 +83,24 @@ require true QEMU/physical target execution separately before making target
 execution claims. An unexecuted exact-head test, an unproven LLVM translation,
 or historical CI results never imply qualification.
 
+
+## Existing Agent patch policy on HIA v3
+
+No new Agent patch verifier is introduced. \`hia_program_tools.apply_program_patch\`
+binds the expected original program SHA, performs edits only inside its
+existing approved actions, and sends the complete candidate to the same
+\`verify_program\` checker. HIA v3 may be edited through legacy interface-
+preserving \`hepta.hia.patch.v1\` or explicit-policy \`hepta.hia.patch.v2\`,
+without changing the program schema.
+
+The separate \`tests/test_hia_v3_agent_policy.py\` regression now checks
+valid body edits, stale identity, forbidden loan/type changes even under
+an explicit migration policy, missing effect rejection, return-interface
+migration only with \`migrate\`, and explicit denial of schema confusion.
+A valid migration still has
+\`external_callers_revalidated=false\` and
+\`behavior_equivalence_proved=false\`.
+
 ## P0–P7 remaining blockers
 
 This closes only a finite **language/LLVM capability gap** relevant to
