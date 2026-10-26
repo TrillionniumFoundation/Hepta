@@ -24,7 +24,7 @@ waiting for CI. No CI status is used to claim a blocker is closed.
 | P1 | Exact JSON literal source/SSA origin; closed PHI/SSA nested inventories; reject zero-input entry PHIs | Bounded scalar SSA, not general lifetime/alias provenance or whole-language soundness |
 | P2/P3 | Captured C translation unit dependency provenance, byte count and typed ABI manifest enforcement | Actual listed compilation database only; unsupported arbitrary C and cross-compiler configurations still reject |
 | P4 | C++ scalar value class postpublication identity, and actual owning-C++ byte protocol migration using shared exact-byte native-Hepta source publication | Only closed scalar/trivial value class and closed exclusive-byte owner protocols; general RAII not automated |
-| P5 | Scalar LLVM native object publication; owned LLVM source and backend native publication both use exact staged data/inode checks | Scalar and finite owned-byte profiles only, not full-memory LLVM backend or cross-target owned execution |
+| P5 | Scalar LLVM native object publication; owned LLVM source and backend native publication both use exact staged data/inode checks; finite source-checked zero-allocation/nonblocking resource clauses now lower through owned LLVM | Scalar and finite owned-byte profiles only, not full-memory LLVM backend or cross-target owned execution; static clauses are not full-process budgets |
 | P6 | Pinned Agent semantics return lifetime/volatile inventory and typed bool/int/foreign-obligation diff | Versioned read-only metadata only; no live model A/B or functional equivalence proof |
 | P7 | No unsupported real-device execution claim was changed | Physical board, DMA, GPU/NPU and long-running service qualification remain open |
 
@@ -34,6 +34,14 @@ A failed publication only unlinks a destination that still refers to its own
 staged inode. It is used in both the new owning LLVM source/native compilation
 paths and the owning C++ source migrator. Tests inject mutations and symlink
 path swaps, including a competing file which must **not** be deleted.
+
+A further **9/9 isolated negative/positive resource-clause tests passed**.
+The bounded owned LLVM emitter no longer rejects all resource clauses
+unconditionally: it accepts checked `heap_allocations=0`, `may_block=false`,
+`may_suspend=false`, and `may_spawn=false` only with exact JSON/Python literal
+types and transitive effect exclusions. The source and LLVM positive smoke
+test is committed but not executed on the full source in this environment.
+This is a finite compile-time contract facility, not a universal memory budget.
 
 A local isolated Python/POSIX probe of this publication helper initially found
 that hard-link creation legitimately changes inode `ctime`. The implementation
