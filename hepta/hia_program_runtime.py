@@ -11,6 +11,7 @@ from dataclasses import dataclass
 
 from .hia_program import (HIAProgramRejected, RESOURCES, SCALARS, WIDTHS,
                           integer_range, scalar_value_valid, verify_program)
+from .hia_bounded_memory import fill_bytes, move_bytes
 
 
 class HIAProgramTrap(ArithmeticError):
@@ -232,10 +233,10 @@ class _Machine:
             owner, value = _underlying(args[0]), args[1]
             if not isinstance(args[0], _View) or not args[0].mutable:
                 raise HIAProgramRejected("fill without a mutable view", "E_HIA_RUNTIME_INVARIANT")
-            # One verified operation, with no byte-by-byte interpreter overhead.
-            # This may allocate temporary Python storage, not a Core owner.
+            # Bounded host scratch, not an O(owner_length) temporary.
+            # The HIA Owner allocation and its declared effects are unchanged.
             try:
-                owner.data[:] = bytes((value,)) * len(owner.data)
+                fill_bytes(owner.data, 0, len(owner.data), value)
             except MemoryError as exc:
                 raise HIAProgramBudgetExceeded("host_memory", "bulk fill exceeds host memory") from exc
         elif op == "buffer.copy":
@@ -262,13 +263,12 @@ class _Machine:
                     or size > extent - destination or size > extent - source):
                 raise HIAProgramTrap("bounds", "in-place byte range exceeds owned extent")
             if size:
-                # RHS materializes an independent bytearray snapshot, so
-                # overlapping regions copy as if through a temporary.
+                # Match memmove overlap semantics without O(size) host scratch.
                 try:
-                    owner.data[destination:destination + size] = owner.data[source:source + size]
+                    move_bytes(owner.data, destination, source, size)
                 except MemoryError as exc:
                     raise HIAProgramBudgetExceeded(
-                        "host_memory", "in-place copy needs temporary host memory") from exc
+                        "host_memory", "in-place copy exceeds host memory") from exc
         elif op == "buffer.fill_range":
             view, offset, size, value = args
             owner = _underlying(view)
@@ -280,10 +280,10 @@ class _Machine:
                 raise HIAProgramTrap("bounds", "fill range exceeds owned extent")
             if size:
                 try:
-                    owner.data[offset:offset + size] = bytes((value,)) * size
+                    fill_bytes(owner.data, offset, size, value)
                 except MemoryError as exc:
                     raise HIAProgramBudgetExceeded(
-                        "host_memory", "range fill temporary exceeds host memory") from exc
+                        "host_memory", "range fill exceeds host memory") from exc
         elif op == "buffer.copy_range":
             dest_view, src_view = args[:2]
             destination, source = _underlying(dest_view), _underlying(src_view)
