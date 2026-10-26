@@ -180,5 +180,58 @@ class OwnedOperationWitnessTests(unittest.TestCase):
             witness.require_emitted("missing", {"buffer": 1, "try_buffer": 0, "drop": 1})
 
 
+    def test_one_block_owned_site_order_is_verified_before_native_ir(self):
+        program, checked, graph, verified = fixture(BASIC)
+        witness = derive_owned_operation_witness(graph, verified)
+        self.assertEqual(witness.ordered_sites, (("main", ("buffer", "drop")),))
+        self.assertTrue(witness.require_ordered("main", ("buffer", "drop")))
+        for swapped in (("drop", "buffer"), ("buffer",), ("buffer", "drop", "drop"),
+                        ["buffer", "drop"], ("buffer", 0)):
+            with self.subTest(swapped=swapped):
+                with self.assertRaisesRegex(OwnedOperationWitnessRejected, "E_OWNED_OPERATION_WITNESS"):
+                    witness.require_ordered("main", swapped)
+
+        real_observer = _Function.observe_owned_call
+        def dishonest_order(self, operation, fragment, start=None):
+            # Keep the exact same total counts and real emitted LLVM calls,
+            # but corrupt the attested order before the final native gate.
+            real_observer(self, operation, fragment, start)
+            if operation == "drop":
+                self.owner_order.reverse()
+
+        with patch.object(_Function, "observe_owned_call", dishonest_order):
+            with self.assertRaisesRegex(LLVMOwnedRejected, "E_OWNED_OPERATION_WITNESS"):
+                emit_owned_llvm(program, checked, project_sha256="f" * 64)
+
+    def test_branching_program_has_explicitly_unqualified_order(self):
+        program, checked, graph, verified = fixture(BRANCHED)
+        witness = derive_owned_operation_witness(graph, verified)
+        self.assertIsNone(dict(witness.ordered_sites)["case"])
+        self.assertFalse(witness.require_ordered("case", ("buffer", "drop", "drop")))
+        # No accidental claim that the branch/early-return path is linear.
+        ir = emit_owned_llvm(program, checked, project_sha256="f" * 64)
+        self.assertIn("call void @__hepta_owned_drop", ir.text)
+
+    def test_order_metadata_forgery_does_not_bypass_native_gate(self):
+        from dataclasses import replace
+        _, _, graph, verified = fixture()
+        witness = derive_owned_operation_witness(graph, verified)
+        for bad in (
+            (),
+            (("different", ("buffer", "drop")),),
+            (("main", ("drop", "buffer")),),
+            (("main", ["buffer", "drop"]),),
+            (("main", ("buffer", True)),),
+            (("main", ("buffer", [])),),
+            (("main",),),
+            ("malformed",),
+            (("main", ("buffer", "drop")), ("main", None)),
+        ):
+            with self.subTest(bad=bad):
+                forged = replace(witness, ordered_sites=bad)
+                with self.assertRaisesRegex(OwnedOperationWitnessRejected, "E_OWNED_OPERATION_WITNESS"):
+                    forged.require_ordered("main", ("buffer", "drop"))
+
+
 if __name__ == "__main__":
     unittest.main()
