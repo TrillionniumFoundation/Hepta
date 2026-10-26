@@ -116,6 +116,7 @@ class _Function:
         self.current = "entry"
         self.terminated = False
         self.owner_sites = {"buffer": 0, "try_buffer": 0, "drop": 0}
+        self.owner_order = []
         self.return_type = self.resolve(declaration.return_type)
         self.return_slot = self.e.uses_return_slot(self.return_type, declaration.return_mode)
         # Non-generic static Drop sites must be authorized by the separately
@@ -171,6 +172,9 @@ class _Function:
             reject("Infallible buffer constructor lacks checked abort edge",
                    "E_OWNED_OPERATION_WITNESS")
         self.owner_sites[operation] += 1
+        # Record only a call that was actually appended to the LLVM body.
+        # The verified Resource IR owns expected lexical sites.
+        self.owner_order.append(operation)
 
     def result(self, instruction):
         name = self.reg()
@@ -612,6 +616,7 @@ class _Function:
         self.block(self.fn.body or [])
         try:
             self.e.owner_witness.require_emitted(self.fn.name, self.owner_sites)
+            self.e.owner_witness.require_ordered(self.fn.name, tuple(self.owner_order))
         except OwnedOperationWitnessRejected as exc:
             raise LLVMOwnedRejected(str(exc)) from exc
         if self.drop_sites is not None and any(remaining != 0 for remaining in self.drop_sites.values()):
