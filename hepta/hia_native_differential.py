@@ -28,7 +28,7 @@ _MAX_BYTES = 8 * 1024 * 1024
 # No repository import or source parsing occurs in the native child. Only the
 # already published shared object, an exact exported symbol and integer args.
 _WORKER = r'''
-import ctypes, json, resource, sys
+import ctypes, json, os, resource, sys
 resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
 # A hostile foreign constructor must not fill a host disk before timeout.
 resource.setrlimit(resource.RLIMIT_FSIZE, (4096, 4096))
@@ -55,14 +55,74 @@ _rules = [(0x20, 0, 0, 4), (0x15, 1, 0, 0xC000003E),
           (0x06, 0, 0, 0x80000000)]
 # clone/fork/vfork/clone3, execve/execveat, process session/group escape,
 # namespace escape, ptrace and io_uring kernel-worker creation.
-# This is NOT a general syscall sandbox: other file/network side effects
-# remain unsupported by this bounded finite differential oracle.
-for _nr in (56, 57, 58, 435, 59, 322, 109, 112, 272, 308, 101, 425):
+# No socket/network channel is required for typed finite scalar observation.
+# Deny direct filesystem mutation syscalls and newer openat2 (whose pointer
+# flags cannot be examined by classic BPF). The worker still has read-only
+# filesystem visibility and writable stdout/stderr; this is NOT a complete
+# hostile-code sandbox or a proof of zero external side effects.
+_FORBIDDEN_SYSCALLS = (
+    56, 57, 58, 435, 59, 322, 109, 112, 272, 308, 101, 425,
+    # socket, connect, accept, send/recv, bind, listen, socketpair, options
+    41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55,
+    288, 299, 307,
+    # create/modify/remove/rename/link filesystem objects or metadata
+    76, 77, 82, 83, 84, 85, 86, 87, 88, 90, 91, 92, 93, 94,
+    132, 133, 235, 258, 259, 260, 261, 263, 264, 265, 266, 268,
+    280, 316, 452,
+    # openat2 takes pointer-to-flags: fail closed; also reject foreign FD
+    # duplication, remote-memory writes and process-scoped signalling.
+    437, 438, 311, 62, 200, 129, 297, 424,
+)
+if len(_FORBIDDEN_SYSCALLS) != len(set(_FORBIDDEN_SYSCALLS)):
+    raise RuntimeError("duplicated native evaluator syscall policy")
+for _nr in _FORBIDDEN_SYSCALLS:
     _rules += [(0x15, 0, 1, _nr), (0x06, 0, 0, 0x80000000)]
+# Glibc abort()/raise(SIGABRT) on Linux x86-64 uses tgkill(234) to
+# signal the executing thread. Do not whitelist arbitrary tgkill: it can
+# target the parent or unrelated same-user threads. Admit ONLY the
+# exact original worker PID and native TID, with signal SIGABRT=6.
+# Kernel gettid() must be observed before installing seccomp.
+_libc = ctypes.CDLL(None, use_errno=True)
+_worker_pid = os.getpid()
+_worker_tid = _libc.syscall(186)
+if (not 0 < _worker_pid < (1 << 32)
+        or not 0 < _worker_tid < (1 << 32)):
+    raise RuntimeError("invalid exact worker PID/TID for seccomp")
+# Non-tgkill jumps nine instructions forward to the nr reload. Each
+# successful argument comparison skips its adjacent SIGSYS-kill.
+_rules += [
+    (0x15, 0, 9, 234),  # tgkill? otherwise reload syscall nr
+    (0x20, 0, 0, 16),  # tgkill arg0: thread group (low 32 bits)
+    (0x15, 1, 0, _worker_pid),
+    (0x06, 0, 0, 0x80000000),
+    (0x20, 0, 0, 24),  # tgkill arg1: native thread ID
+    (0x15, 1, 0, _worker_tid),
+    (0x06, 0, 0, 0x80000000),
+    (0x20, 0, 0, 32),  # tgkill arg2: signal
+    (0x15, 1, 0, 6),  # SIGABRT exclusively
+    (0x06, 0, 0, 0x80000000),
+    (0x20, 0, 0, 0),  # restore syscall nr for open()/openat() rules
+]
+# seccomp_data.args[1] starts at byte 24 for open(), args[2] at byte 32
+# for openat(). Both are little-endian low 32-bit flags on x86-64.
+# Reject writable opens, O_CREAT, O_TRUNC, O_APPEND and the
+# __O_TMPFILE-exclusive bit (0x400000). Do NOT mask the whole O_TMPFILE
+# macro (0x410000): its O_DIRECTORY bit would kill valid read-only directory
+# opens. Read-only dynamic loader and directory opens remain available.
+# Each nonmatching syscall or read-only open reloads nr for the next rule.
+_WRITE_OPEN_FLAGS = 0x3 | 0x40 | 0x200 | 0x400 | 0x400000
+for _nr, _flags_offset in ((2, 24), (257, 32)):
+    _rules += [
+        (0x15, 0, 4, _nr),  # other syscall: skip to reload nr
+        (0x20, 0, 0, _flags_offset),  # LD W ABS flags (low 32-bit)
+        (0x54, 0, 0, _WRITE_OPEN_FLAGS),  # AND write/create/truncate flags
+        (0x15, 1, 0, 0),  # zero flags: skip KILL; otherwise SIGSYS
+        (0x06, 0, 0, 0x80000000),
+        (0x20, 0, 0, 0),  # restore syscall number for subsequent tests
+    ]
 _rules.append((0x06, 0, 0, 0x7FFF0000))
 _rules_array = (_BpfRule * len(_rules))(*(_BpfRule(*r) for r in _rules))
 _filter = _BpfProgram(len(_rules), _rules_array)
-_libc = ctypes.CDLL(None, use_errno=True)
 if _libc.prctl(38, 1, 0, 0, 0) != 0:
     raise OSError(ctypes.get_errno(), "seccomp no_new_privs required")
 if _libc.prctl(22, 2, ctypes.byref(_filter), 0, 0) != 0:
@@ -289,8 +349,8 @@ def _observe_native(library: Path, function: str, word: str, args: list[int], *,
                 [sys.executable, "-I", "-c", _WORKER,
                  "/proc/self/fd/" + str(pinned_fd),
                  function, word, json.dumps(args, separators=(",", ":"))],
-                stdout=out, stderr=err, pass_fds=(pinned_fd,),
-                start_new_session=True)
+                stdin=subprocess.DEVNULL, stdout=out, stderr=err,
+                pass_fds=(pinned_fd,), start_new_session=True)
             # Linux waitid(WNOWAIT) observes direct-child termination
             # without reaping its PID. Popen.wait() would reap first, then
             # killpg(pid) could race a reused PID/PGID. Keep the zombie as
