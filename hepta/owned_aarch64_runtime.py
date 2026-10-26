@@ -24,7 +24,7 @@ _EXPORT = ("owned_case",)
 _MAX_LINKED_BYTES = 16 * 1024 * 1024
 # Pin exact reviewed single-owner runtime semantics; editing the fixture
 # without deliberately updating this identity fails before compilation.
-_REVIEWED_RUNTIME_SHA256 = "c258eae09d7f2d506bd18e4ce0f0db89c5296dcc9d9772759a2283984cf855cb"
+_REVIEWED_RUNTIME_SHA256 = "97000140eb68610f85f5e627210483c05e1c0a2ef6bce2816a74e4afc6f9efa5"
 
 
 class OwnedAArch64RuntimeRejected(ValueError):
