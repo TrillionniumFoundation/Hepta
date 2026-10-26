@@ -13,6 +13,11 @@ interprets the verified SSA, **not** the source AST or generated LLVM text.
 The preparatory source identity applies to the immutable snapshot used at
 preparation, and is not a filesystem monitor or independent compiler proof.
 
+The prepared SSA is retained as immutable canonical bytes and rehashed before
+each evaluation; callers cannot mutate a nested Python dict while keeping the
+previous prepared graph identity. This is an integrity guard, not a proof
+against a malicious caller forging a new Python object.
+
 ## Explicit operational semantics
 
 - Finite `i32` and `u32` inputs with strict integer-vs-bool checking.
