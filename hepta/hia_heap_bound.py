@@ -90,6 +90,26 @@ def _bounded_bitand_mask(lhs, rhs):
     return _bounded(0, min(maxima)) if maxima else None
 
 
+def _bounded_bitnot(value, typ):
+    """Fixed-width ones' complement reverses a *verified* interval.
+
+    For signed two's-complement integers, ~x = -x - 1 and the signed
+    domain maps to itself. For unsigned w-bit integers, the result is
+    (2**w - 1) - x. Both maps reverse interval endpoints exactly,
+    with no caller-derived assumptions or undefined shifts.
+    """
+    interval = _span(value)
+    if interval is None:
+        return None
+    minimum, maximum = integer_range(typ)
+    if not minimum <= interval.lo <= interval.hi <= maximum:
+        return None
+    if typ.startswith("i"):
+        return _bounded(-interval.hi - 1, -interval.lo - 1)
+    word_mask = (1 << WIDTHS[typ]) - 1
+    return _bounded(word_mask - interval.hi, word_mask - interval.lo)
+
+
 def _wrap(value, typ):
     bits = WIDTHS[typ]
     value &= (1 << bits) - 1
@@ -372,6 +392,11 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) 
                     # arbitrary 64-bit value. This is a bit-level bound, not
                     # an assumed input restriction or extra owner permission.
                     folded = _bounded_bitand_mask(known.get(args[0]), known.get(args[1]))
+                elif folded is None and op == "bit.not":
+                    # The operational VM/LLVM both implement fixed-width
+                    # one's complement. A nonexact typed interval can be
+                    # propagated without assuming any particular input.
+                    folded = _bounded_bitnot(known.get(args[0]), outputs[0]["type"])
                 if folded is not None:
                     known[out_names[0]] = folded
             elif op == "int.neg.checked":

@@ -1,6 +1,6 @@
 """HIA exact scalar byte-budget transfer on genuinely verified Core/VM inputs.
 
-The analyzer only gains knowledge of already known exact values. Unknown input
+The analyzer only gains knowledge of already known exact values. Unbounded input
 and dynamic overflow must still fail closed; VM and budget are independent.
 """
 from __future__ import annotations
@@ -137,14 +137,21 @@ class HIAExactScalarBudgetTests(unittest.TestCase):
                     execute_program(core, "failing", [])
                 self.assertEqual(observed.exception.code, code)
 
-    def test_unknown_scalar_inputs_cannot_certify_heap_size(self):
+    def test_unknown_u8_bitnot_is_bounded_by_full_type_domain(self):
+        # The value is unknown, but every u8 bitwise complement is still
+        # in 0..255. This uses the checked machine width, never one sample
+        # input or an unproved caller-side size constraint.
         core = verify_program(unknown_operand())
-        with self.assertRaisesRegex(
-                HIAHeapBoundRejected, "E_HIA_BUDGET_UNBOUNDED"):
-            analyze_constant_live_heap(core)
-        with self.assertRaisesRegex(ValueError, "E_HIA_BUDGET_UNBOUNDED"):
-            analyze_static_budget(core, max_live_heap_bytes=15)
-        self.assertEqual(execute_program(core, "unknown", [23])["result"], (~23) & 255)
+        self.assertEqual(analyze_constant_live_heap(core), {"unknown": 255})
+        self.assertEqual(
+            analyze_static_budget(core, max_live_heap_bytes=255)
+            ["functions"][0]["max_live_heap_bytes"], 255)
+        with self.assertRaisesRegex(ValueError, "E_HIA_BUDGET_EXCEEDED"):
+            analyze_static_budget(core, max_live_heap_bytes=254)
+        for value in (0, 1, 23, 127, 255):
+            observed = execute_program(core, "unknown", [value])
+            self.assertEqual(observed["result"], (~value) & 255)
+            self.assertLessEqual(observed["resources"]["peak_bytes"], 255)
 
     def test_proved_nonnegative_bitmask_bounds_dynamic_byte_extents(self):
         # Unlike arbitrary dynamic arithmetic, masking by a verified
