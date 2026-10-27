@@ -1,0 +1,95 @@
+{
+  "schema": "hepta.hia.program.v1",
+  "module": "standalone_test",
+  "functions": [
+    {
+      "name": "calculate",
+      "params": [
+        {
+          "name": "a",
+          "type": "i32"
+        }
+      ],
+      "returns": [
+        "i32"
+      ],
+      "effects": [
+        "trap"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "a",
+              "type": "i32"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "x",
+                  "type": "i32"
+                }
+              ],
+              "attrs": {
+                "value": 6
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "y",
+                  "type": "i32"
+                }
+              ],
+              "attrs": {
+                "value": 7
+              }
+            },
+            {
+              "op": "int.mul.checked",
+              "args": [
+                "x",
+                "y"
+              ],
+              "out": [
+                {
+                  "name": "product",
+                  "type": "i32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "a",
+                "product"
+              ],
+              "out": [
+                {
+                  "name": "r",
+                  "type": "i32"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "r"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

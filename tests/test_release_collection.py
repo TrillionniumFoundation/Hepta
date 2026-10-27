@@ -31,7 +31,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ReleaseCollectionTests(unittest.TestCase):
-    def driver(self, root, *, special=None, directory=True, keep_going=True):
+    def driver(self, root, *, special=None, directory=True, keep_going=True, snapshots=None):
         output = root / "evidence/candidate" if directory else root / "artifacts"
         calls = []
 
@@ -54,7 +54,9 @@ class ReleaseCollectionTests(unittest.TestCase):
         args = (["--output-directory", str(output)] if directory else [])
         if keep_going:
             args += ["--continue-on-failure"]
-        with patch.object(release, "ROOT", root), patch.object(release, "snapshot", return_value={"sha256": "a" * 64, "files": {}}), \
+        snapshot_patch = (patch.object(release, "snapshot", side_effect=snapshots) if snapshots is not None
+                          else patch.object(release, "snapshot", return_value={"sha256": "a" * 64, "files": {}}))
+        with patch.object(release, "ROOT", root), snapshot_patch, \
                 patch.object(release, "compiler_hash", return_value="b" * 64), \
                 patch.object(release.subprocess, "run", side_effect=run), contextlib.redirect_stdout(io.StringIO()):
             code = release.main(args)
@@ -138,6 +140,22 @@ class ReleaseCollectionTests(unittest.TestCase):
             self.assertEqual(len(calls), 1)
             self.assertEqual(len(report["gates"]), 1)
             self.assertEqual(report["status"], "failed")
+
+    def test_source_drift_keeps_both_exact_inventories_and_changed_paths(self):
+        before = {"sha256": "1" * 64, "files": {
+            "source.py": "a" * 64, "removed.py": "b" * 64, "stable.py": "c" * 64}}
+        after = {"sha256": "2" * 64, "files": {
+            "source.py": "d" * 64, "rust/hia-core-shadow/target/new": "e" * 64,
+            "stable.py": "c" * 64}}
+        with tempfile.TemporaryDirectory(prefix="hepta-release-drift-") as td:
+            code, report, _, _ = self.driver(Path(td), snapshots=[before, after])
+        self.assertEqual(code, 1)
+        self.assertFalse(report["snapshot_unchanged"])
+        self.assertEqual(report["source_snapshot"], before)
+        self.assertEqual(report["source_snapshot_after"], after)
+        self.assertEqual(report["source_snapshot_changes"], {
+            "added": ["rust/hia-core-shadow/target/new"],
+            "removed": ["removed.py"], "modified": ["source.py"]})
 
 
 class SourceQualificationTests(unittest.TestCase):

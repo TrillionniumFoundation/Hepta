@@ -1,0 +1,121 @@
+name: HIA verified optimization and native NDU integration
+
+on:
+  push:
+    branches:
+      - codex/hia-contract-integration-20261027
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/test_hia_*'
+      - 'tests/test_cpp_scoped_ownership_migration.py'
+      - 'tools/qualify_hia_*'
+      - 'tools/build_hia_ndu_bridge.py'
+      - 'tools/build_hia_recursive_ndu_bridge.py'
+      - 'tools/qualify_cpp_scoped_ownership.py'
+      - 'examples/cpp/scoped_ownership_migration/**'
+      - 'experiments/hia_optimizer_eval/**'
+      - 'pyproject.toml'
+      - '.github/workflows/hepta-verified-optimization.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verified-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      HEPTA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      RECURSIVE_NDU_SOURCE_SHA: 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
+      CLANG: /usr/bin/clang-20
+      CLANGXX: /usr/bin/clang++-20
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_SOURCE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pin source and install the qualified solver
+        run: |
+          test "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+          test -z "$(git status --porcelain)"
+          mkdir -p artifacts/verified-optimization
+          git rev-parse HEAD > artifacts/verified-optimization/source-sha.txt
+          python -m pip install -e '.[optimization,verification]'
+      - name: Install the existing signed LLVM 20 profile
+        run: |
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hepta-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          hepta_llvm_fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hepta-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$hepta_llvm_fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hepta-llvm.asc" /usr/share/keyrings/hepta-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list
+          sudo apt-get update
+          sudo apt-get install --yes clang-20 libclang-rt-20-dev llvm-20 lld-20
+          printf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"
+      - name: Install the pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.90.0 --profile minimal
+          echo "RUSTC=$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
+          echo "CARGO=$(rustup which --toolchain 1.90.0 cargo)" >> "$GITHUB_ENV"
+          dirname "$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_PATH"
+      - uses: actions/checkout@v4
+        with:
+          repository: TrillionniumFoundation/hepta-private-ci
+          ref: ${{ env.RECURSIVE_NDU_SOURCE_SHA }}
+          path: recursive-ndu-source
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /codex-rs/Cargo.toml
+            /codex-rs/hepta-ndu/
+            /codex-rs/hepta-types/
+            /codex-rs/hepta-contracts/
+            /tools/hia-ndu-bridge/
+      - name: Build the original recursive NDU bridge with exact source identity
+        run: |
+          CARGO_INCREMENTAL=0 CARGO_PROFILE_RELEASE_DEBUG=0 python tools/build_hia_recursive_ndu_bridge.py \
+            --ndu-source recursive-ndu-source --expected-source "$RECURSIVE_NDU_SOURCE_SHA" \
+            --cargo "$CARGO" --rustc "$RUSTC" --output "$RUNNER_TEMP/hia-recursive-ndu"
+          printf 'HEPTA_RECURSIVE_NDU_BRIDGE=%s\nHEPTA_RECURSIVE_NDU_IDENTITY=%s\n' \
+            "$RUNNER_TEMP/hia-recursive-ndu/target/release/hepta-hia-ndu-bridge" \
+            "$RUNNER_TEMP/hia-recursive-ndu/identity.json" >> "$GITHUB_ENV"
+      - name: Build the separate ranking NDU protocol for combined contract tests
+        run: |
+          hepta_ranking_checkout="$RUNNER_TEMP/hepta-ranking-ndu-source"
+          hepta_ranking_build="$RUNNER_TEMP/hepta-ranking-ndu-build"
+          hepta_ranking_commit=$(python -c 'import json; print(json.load(open("rust/hia-ndu-bridge/upstream.json"))["commit"])')
+          git init "$hepta_ranking_checkout"
+          git -C "$hepta_ranking_checkout" remote add origin https://github.com/TrillionniumFoundation/hepta-private-ci.git
+          git -C "$hepta_ranking_checkout" config remote.origin.promisor true
+          git -C "$hepta_ranking_checkout" config remote.origin.partialclonefilter blob:none
+          git -C "$hepta_ranking_checkout" -c protocol.version=2 fetch --filter=blob:none --depth=1 origin "$hepta_ranking_commit"
+          test "$(git -C "$hepta_ranking_checkout" rev-parse FETCH_HEAD)" = "$hepta_ranking_commit"
+          CARGO_TARGET_DIR="$RUNNER_TEMP/hepta-ranking-ndu-target" python tools/build_hia_ndu_bridge.py \
+            --upstream "$hepta_ranking_checkout" --output "$hepta_ranking_build" --cargo "$CARGO"
+          printf 'HEPTA_NDU_BRIDGE=%s\nHEPTA_NDU_BUILD=%s\nHEPTA_NDU_UPSTREAM=%s\n' \
+            "$RUNNER_TEMP/hepta-ranking-ndu-target/debug/hia-ndu-bridge" "$hepta_ranking_build" \
+            "$hepta_ranking_checkout" >> "$GITHUB_ENV"
+      - name: Run actual native integration and regression gates without skipped tests
+        run: |
+          python tools/qualify_hia_verified_increment.py --output artifacts/verified-optimization/regression
+      - name: Retain real finite NDU loop and migration/runtime evidence
+        run: |
+          python tools/qualify_hia_ndu_loop.py --identity "$HEPTA_RECURSIVE_NDU_IDENTITY" \
+            --bridge "$HEPTA_RECURSIVE_NDU_BRIDGE" --clang "$CLANG" --output artifacts/verified-optimization/ndu-loop
+          python tools/qualify_cpp_scoped_ownership.py --workdir artifacts/verified-optimization/cpp-scoped --clangxx "$CLANGXX" --clang "$CLANG" --rustc "$RUSTC" --cc gcc
+          python tools/qualify_hia_adaptive.py --workdir artifacts/verified-optimization/adaptive --clang "$CLANG"
+      - name: Retain all completed and failed evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-verified-optimization-${{ env.HEPTA_SOURCE_SHA }}
+          path: |
+            artifacts/verified-optimization
+            ${{ runner.temp }}/hia-recursive-ndu/identity.json
+            ${{ runner.temp }}/hepta-ranking-ndu-build/build-receipt.json
+          if-no-files-found: error

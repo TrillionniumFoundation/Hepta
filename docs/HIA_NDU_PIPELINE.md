@@ -1,5 +1,9 @@
 # HIA: independently proved finite optimization with native NDU
 
+This document describes the candidate-ranking bridge. The integrated tree also
+retains a separate recursive-utility bridge; see [the two bridge contracts](HIA_NDU_BRIDGES.md)
+for their distinct builders, environments, receipts and source pins.
+
 This increment connects the existing HIA Core to the original Rust NDU
 evaluator. It does not make NDU a verifier or turn the six research goals into
 closed production claims. The executable authority remains `verify_program`;

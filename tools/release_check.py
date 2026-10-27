@@ -1096,6 +1096,14 @@ def main(argv=None):
         if gate["status"] != "passed" and not args.continue_on_failure:
             break
     after = snapshot()
+    report["source_snapshot_after"] = after
+    before_files, after_files = before["files"], after["files"]
+    report["source_snapshot_changes"] = {
+        "added": sorted(set(after_files) - set(before_files)),
+        "removed": sorted(set(before_files) - set(after_files)),
+        "modified": sorted(name for name in before_files.keys() & after_files.keys()
+                           if before_files[name] != after_files[name]),
+    }
     report["snapshot_unchanged"] = before == after
     report["status"] = "passed" if len(report["gates"]) == len(commands) and all(g["status"] == "passed" for g in report["gates"]) and before == after else "failed"
     report["completed_utc"] = datetime.datetime.now(datetime.timezone.utc).isoformat()

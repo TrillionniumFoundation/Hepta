@@ -749,9 +749,13 @@ class _Emitter:
         # InferFunctionAttrs from assigning libc alloc-family/memory effects.
         # Keep both boundaries explicit: our language exposes allocation
         # refusal and cleanup, including calls later observed by link wrappers.
+        # The existing runtime contract already requires fresh, disjoint live
+        # allocations. Express only that return-value fact. Keep calls opaque
+        # and nullable: no alloc-family/memory/nonnull attributes may erase a
+        # visible allocation attempt, refusal, allocator trace or free.
         declarations = ["declare void @abort() noreturn",
-                        'declare ptr @calloc(i64, i64) "no-builtins"',
-                        'declare ptr @malloc(i64) "no-builtins"',
+                        'declare noalias ptr @calloc(i64, i64) "no-builtins"',
+                        'declare noalias ptr @malloc(i64) "no-builtins"',
                         'declare void @free(ptr) "no-builtins"']
         if "buffer.fill" in self.bulk_operations or "buffer.fill_range" in self.bulk_operations:
             declarations.append("declare void @llvm.memset.p0.i64(ptr, i8, i64, i1 immarg)")

@@ -262,7 +262,16 @@ class _Translator:
                 for value in reversed(list(env.values())) if value["type"] == "owner" and value["alive"]]
 
     def statements(self, statements, env, *, context, returns, const=False, depth=1,
-                   constructor_fields=(), catch=None, nested=False):
+                   constructor_fields=(), catch=None, nested=False,
+                   scope_ids=None, scope_depth=0):
+        # Allocation success arms recurse over the rest of this same C++ scope.
+        # Their generated match blocks do not create a new source lifetime.
+        # Branches and explicit compound statements do create a source scope:
+        # only owners introduced there are consumed on ordinary fallthrough.
+        if scope_ids is None:
+            scope_ids = frozenset(env)
+        if scope_depth > 16:
+            _reject("Lexical ownership nesting exceeds sixteen scopes", "E_CPP_COMPOSED_SCOPE")
         lines, indent = [], "    " * depth
         for offset, node in enumerate(statements):
             kind, children = node.get("kind"), _children(node)
@@ -278,7 +287,8 @@ class _Translator:
                         lines.append(indent + "else {")
                     branch_env = copy.deepcopy(env)
                     branch_lines, done = self.statements(_children(branch), branch_env, context=context, returns=returns,
-                        const=const, depth=depth + 1, constructor_fields=constructor_fields, catch=catch, nested=True)
+                        const=const, depth=depth + 1, constructor_fields=constructor_fields, catch=catch,
+                        nested=True, scope_depth=scope_depth + 1)
                     lines += branch_lines + [indent + "}"]; states.append(branch_env); terminated.append(done)
                 if len(states) == 1:
                     states.append(copy.deepcopy(env)); terminated.append(False)
@@ -292,6 +302,21 @@ class _Translator:
                     if len(set(live)) != 1:
                         _reject("Conditional ownership changes need matching continuation states")
                     env[ident]["alive"] = live[0]
+            elif kind == "CompoundStmt":
+                scoped = copy.deepcopy(env)
+                block_lines, done = self.statements(children, scoped, context=context, returns=returns,
+                    const=const, depth=depth, constructor_fields=constructor_fields, catch=catch,
+                    nested=True, scope_depth=scope_depth + 1)
+                # All generated identifiers are fresh. Flattening a source block
+                # is safe after its explicit exits and cleanup are emitted; its
+                # declarations never enter the enclosing source environment.
+                lines += block_lines
+                if done:
+                    if offset != len(statements) - 1:
+                        _reject("Unreachable statements after a terminating scope")
+                    return lines, True
+                for ident in env:
+                    env[ident]["alive"] = scoped[ident]["alive"]
             elif kind == "ReturnStmt" and context != "constructor":
                 self.stats["source_returns"] += 1
                 if returns == "Unit" and not children:
@@ -330,8 +355,8 @@ class _Translator:
                 self.mark(variable, "owner_local" if _qual(variable) == self.class_name else "scalar_local")
                 emitted = self.fresh("local")
                 if _qual(variable) == self.class_name:
-                    if context != "lifecycle" or nested or initializer.get("kind") != "CXXConstructExpr":
-                        _reject("Owner construction/moves require the linear lifecycle spine")
+                    if context != "lifecycle" or initializer.get("kind") != "CXXConstructExpr":
+                        _reject("Owner construction/moves require the checked lifecycle body")
                     if _qual(initializer) != self.class_name or initializer.get("constructionKind") != "complete":
                         _reject("Unsupported owner construction kind")
                     arguments = _children(initializer)
@@ -366,10 +391,12 @@ class _Translator:
                         lines += [indent + "    },", indent + "    Result::Ok(" + emitted + "value) => {",
                                   indent + "        let mut " + emitted + " = move " + emitted + "value;"]
                         env[variable["id"]] = entry
-                        rest, done = self.statements(statements[offset + 1:], env, context=context, returns=returns, depth=depth + 2, catch=catch)
-                        if not done:
+                        rest, done = self.statements(statements[offset + 1:], env, context=context,
+                            returns=returns, const=const, depth=depth + 2, catch=catch,
+                            nested=nested, scope_ids=scope_ids, scope_depth=scope_depth)
+                        if not done and not nested:
                             _reject("Lifecycle must return and consume all live owners")
-                        return lines + rest + [indent + "    },", indent + "}"], True
+                        return lines + rest + [indent + "    },", indent + "}"], done
                 else:
                     typ = _scalar(variable); value, actual = self.expr(initializer, env, context=context, const=const)
                     if typ != actual:
@@ -378,6 +405,12 @@ class _Translator:
                     lines.append(indent + f"let {emitted}: {typ} = {value};"); self.stats["scalar_locals"] += 1
             else:
                 _reject("Unsupported statement: " + str(kind), "E_CPP_COMPOSED_STATEMENT")
+        if nested:
+            locals_ = {ident: value for ident, value in env.items() if ident not in scope_ids}
+            lines += [indent + line for line in self.cleanup(locals_)]
+            for value in locals_.values():
+                if value["type"] == "owner":
+                    value["alive"] = False
         return lines, False
 
     def catch_lines(self, error, catch):
