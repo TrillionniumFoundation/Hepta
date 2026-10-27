@@ -72,6 +72,7 @@ def _read_snapshot(path: Path, limit: int) -> bytes:
         raise HIAMigrationRejected(
             "E_HIA_MIGRATE: source/stage intake unavailable") from exc
 
+
 def migrate_scalar_to_hia(source: str | Path, output_directory: str | Path, *,
                           language: str, rustc: str | None = None,
                           clang: str = "clang", clangxx: str = "clang++",
