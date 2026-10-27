@@ -154,7 +154,7 @@ class ScopedAllocatingLoopTests(unittest.TestCase):
                          {"count_down": (1 << 32) - 1})
         self.assertEqual(execute_program(verified, "count_down", [7])["resources"]["peak_bytes"], 7)
 
-    def test_unproved_arithmetic_extent_still_rejects_on_cycle(self):
+    def test_reviewed_arithmetic_extent_has_finite_cyclic_peak(self):
         source = scoped_loop()
         body = next(x for x in source["functions"][0]["blocks"] if x["id"] == "body")
         body["ops"] = [
@@ -166,10 +166,17 @@ class ScopedAllocatingLoopTests(unittest.TestCase):
             *body["ops"][4:],
         ]
         verified = verify_program(source)
-        # This loop profile intentionally does not reimplement the complete
-        # numeric SSA transfer; unreviewed local arithmetic stays unknown.
+        # The existing interval transfer now proves all u32 input values
+        # fit after widening to usize, then adding one without 64-bit overflow.
+        # This is a peak live-HIA-payload bound, NOT a tick/allocator count.
+        self.assertEqual(analyze_constant_live_heap(verified),
+                         {"count_down": 1 << 32})
+        for n in (1, 2, 7):
+            observed = execute_program(verified, "count_down", [n])
+            self.assertEqual(observed["resources"]["peak_bytes"], n + 1)
+            self.assertEqual(observed["resources"]["live_bytes"], 0)
         with self.assertRaisesRegex(HIAStaticBudgetRejected, "E_HIA_BUDGET_UNBOUNDED"):
-            analyze_constant_live_heap(verified)
+            analyze_static_budget(verified)
 
     def test_owner_transferred_across_block_boundary_remains_unqualified(self):
         source = scoped_loop()

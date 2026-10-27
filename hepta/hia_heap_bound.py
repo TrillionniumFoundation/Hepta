@@ -100,6 +100,20 @@ def _scoped_allocating_cycle_peak(fn: dict) -> int | None:
                                        outputs[0]["type"], attrs["mode"])
                 if folded is not None:
                     known[outputs[0]["name"]] = folded
+            elif op in {
+                    "int.add.checked", "int.sub.checked", "int.mul.checked",
+                    "int.add.wrap", "int.sub.wrap", "int.mul.wrap"}:
+                # This is the EXACT existing DAG arithmetic transfer, reused
+                # on block-local SSA only. It admits intervals without
+                # possible wrapping, or exact wrapped operands. Partial
+                # wrapping/overflow and unknown values still fail closed.
+                if len(args) != 2 or len(outputs) != 1:
+                    return None
+                folded = _bounded_binary(
+                    op, known.get(args[0]), known.get(args[1]),
+                    outputs[0]["type"])
+                if folded is not None:
+                    known[outputs[0]["name"]] = folded
             elif op == "buffer.new":
                 # Exclude proven-all-zero and fallible owners from this narrow
                 # cycle proof. A size derived from an unproved SSA operation
