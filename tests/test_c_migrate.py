@@ -537,7 +537,7 @@ int clamp(int x) { int y=0; y = x > 0 ? x : 0; return y; }
     def test_standalone_increment_c11_vs_hepta_c_native(self):
         # Standalone x++ is now implemented. Keep a native oracle rather than
         # falsely requiring blanket rejection for an accepted scalar feature.
-        self.c.write_text("int f(int n) { int x=0; x++; return x+n; }\\n")
+        self.c.write_text("int f(int n) { int x=0; x++; return x+n; }\n")
         report = migrate_c(self.c, self.hepta)
         self.assertTrue(report["ok"], report)
         self.assertFalse(report["source_equivalence_proved"])
