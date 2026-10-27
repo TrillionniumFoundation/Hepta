@@ -106,16 +106,78 @@ class ScopedAllocatingLoopTests(unittest.TestCase):
                 self.assertEqual(report["resources"]["peak_bytes"], expected)
                 self.assertEqual(report["resources"]["live_bytes"], 0)
 
-    def test_try_new_zero_length_loop_keeps_historical_rejection(self):
+    def test_scoped_fallible_owner_loop_bounds_success_and_allocation_failure(self):
         source = scoped_loop()
         body = next(x for x in source["functions"][0]["blocks"] if x["id"] == "body")
         body["ops"][1] = i("buffer.try_new", ["scope_bytes"],
                             [("local", "buffer"), ("allocated", "bool")])
-        # The loop profile is intentionally *not* a generic fallible owner
-        # lifetime/allocator proof. It preserves the preexisting fail-closed
-        # cyclic try_new handling.
+        verified = verify_program(source)
+        self.assertEqual(analyze_constant_live_heap(verified), {"count_down": 9})
+        receipt = qualify_live_heap_budget(verified, max_live_heap_bytes=9)
+        self.assertEqual(receipt["peak_bounds"], {"count_down": 9})
+        self.assertIs(receipt["claims"]["allocator_interactions_bounded"], False)
+        with self.assertRaisesRegex(HIAHeapBoundRejected, "E_HIA_BUDGET_EXCEEDED"):
+            qualify_live_heap_budget(verified, max_live_heap_bytes=8)
+        for n in (0, 1, 3, 7):
+            for fail_at in (None, 1, 3, 7):
+                with self.subTest(iterations=n, fail_at=fail_at):
+                    result = execute_program(verified, "count_down", [n],
+                                             allocation_fail_at=fail_at)
+                    successful = n - int(fail_at is not None and fail_at <= n)
+                    self.assertEqual(result["result"], 0)
+                    self.assertEqual(result["resources"]["allocations"], successful)
+                    self.assertEqual(result["resources"]["frees"], successful)
+                    self.assertEqual(result["resources"]["allocation_attempts"], n)
+                    self.assertEqual(result["resources"]["owners_created"], n)
+                    self.assertEqual(result["resources"]["owners_dropped"], n)
+                    self.assertEqual(result["resources"]["peak_bytes"],
+                                     9 if successful else 0)
+                    self.assertEqual(result["resources"]["live_bytes"], 0)
+                    self.assertEqual(result["resources"]["live_owners"], 0)
+        # This is a peak-live proof, not a bound on repeated allocator calls.
         with self.assertRaisesRegex(HIAStaticBudgetRejected, "E_HIA_BUDGET_UNBOUNDED"):
-            analyze_constant_live_heap(verify_program(source))
+            analyze_static_budget(verified, max_live_heap_bytes=9)
+
+    def test_scoped_try_new_dynamic_bound_is_conservative_on_failure(self):
+        source = scoped_loop()
+        body = next(x for x in source["functions"][0]["blocks"] if x["id"] == "body")
+        body["ops"] = [
+            i("int.cast", ["r"], [("small", "u8")], mode="checked"),
+            i("int.cast", ["small"], [("size", "usize")], mode="checked"),
+            i("buffer.try_new", ["size"],
+              [("dynamic_owner", "buffer"), ("allocated", "bool")]),
+            i("owner.drop", ["dynamic_owner"]),
+            *body["ops"][4:],
+        ]
+        verified = verify_program(source)
+        self.assertEqual(analyze_constant_live_heap(verified), {"count_down": 255})
+        for n in (1, 2, 7):
+            for fail_at in (None, 1):
+                with self.subTest(n=n, fail_at=fail_at):
+                    result = execute_program(verified, "count_down", [n],
+                                             allocation_fail_at=fail_at)
+                    self.assertLessEqual(result["resources"]["peak_bytes"], 255)
+                    self.assertEqual(result["resources"]["live_bytes"], 0)
+                    self.assertEqual(result["resources"]["live_owners"], 0)
+
+    def test_scoped_try_new_requires_owner_cleanup_before_every_cfg_edge(self):
+        from hepta.hia_program import HIAProgramRejected
+        source = scoped_loop()
+        fn = source["functions"][0]
+        body = next(x for x in fn["blocks"] if x["id"] == "body")
+        body["ops"] = [
+            c("size", "usize", 6),
+            i("buffer.try_new", ["size"], [("pending", "buffer"), ("ok", "bool")]),
+            *body["ops"][4:],
+        ]
+        # Without a matching drop, the canonical verifier refuses a normal
+        # loop edge before any live-heap analysis may issue a receipt.
+        with self.assertRaisesRegex(HIAProgramRejected, "E_HIA_RESOURCE"):
+            analyze_constant_live_heap(source)
+        body["ops"].insert(2, i("owner.drop", ["pending"]))
+        self.assertEqual(analyze_constant_live_heap(verify_program(source)),
+                         {"count_down": 6})
+
 
     def test_checked_small_cast_bounds_dynamic_loop_even_without_termination(self):
         source = scoped_loop()
