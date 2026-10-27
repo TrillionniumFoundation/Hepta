@@ -190,8 +190,10 @@ class HIAExactScalarBudgetTests(unittest.TestCase):
                     self.assertEqual(report["result"], size)
                     self.assertLessEqual(report["resources"]["peak_bytes"], limit)
 
-    def test_unsigned_wide_and_signed_dynamic_parameters_still_refuse(self):
-        for typ in ("u64", "usize", "i8", "i16", "i32"):
+    def test_wide_dynamic_parameters_remain_unbounded_without_a_small_cast(self):
+        # Small signed parameters now admit a checked nonnegative subset;
+        # full-width parameters still lack a usable small payload bound.
+        for typ in ("u64", "usize", "i64", "isize"):
             with self.subTest(typ=typ):
                 core = verify_program(bounded_input(typ))
                 with self.assertRaisesRegex(
