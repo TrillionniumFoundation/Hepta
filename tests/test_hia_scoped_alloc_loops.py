@@ -9,7 +9,8 @@ from __future__ import annotations
 from copy import deepcopy
 import unittest
 
-from hepta.hia_heap_bound import analyze_constant_live_heap
+from hepta.hia_heap_bound import (HIAHeapBoundRejected, analyze_constant_live_heap,
+                                  qualify_live_heap_budget)
 from hepta.hia_program import verify_program
 from hepta.hia_program_runtime import execute_program
 from hepta.hia_static_budget import HIAStaticBudgetRejected, analyze_static_budget
@@ -59,6 +60,33 @@ class ScopedAllocatingLoopTests(unittest.TestCase):
         # A finite peak does NOT bound the cumulative number of allocations.
         with self.assertRaisesRegex(HIAStaticBudgetRejected, "E_HIA_BUDGET_UNBOUNDED"):
             analyze_static_budget(verified, max_live_heap_bytes=9)
+
+    def test_strict_live_heap_only_admission_cannot_promote_other_budgets(self):
+        verified = verify_program(scoped_loop(two_allocations=True))
+        accepted = qualify_live_heap_budget(verified, max_live_heap_bytes=13)
+        self.assertEqual(accepted["schema"], "hepta.hia.live-heap-admission.v1")
+        self.assertEqual(accepted["program_sha256"], verified.sha256)
+        self.assertEqual(accepted["peak_bounds"], {"count_down": 13})
+        self.assertEqual(accepted["limit_bytes"], 13)
+        self.assertTrue(accepted["claims"]["requested_live_payload_bounded"])
+        for claim in ("source_origin_authenticated", "allocator_interactions_bounded",
+                      "vm_ticks_bounded", "process_rss_bounded",
+                      "native_backend_refinement_proved",
+                      "whole_language_soundness_proved"):
+            self.assertIs(accepted["claims"][claim], False)
+        with self.assertRaisesRegex(HIAHeapBoundRejected, "E_HIA_BUDGET_EXCEEDED"):
+            qualify_live_heap_budget(verified, max_live_heap_bytes=12)
+        for invalid in (True, False, -1, 13.0, None, (1 << 63), "13"):
+            with self.subTest(policy=invalid):
+                with self.assertRaisesRegex(HIAHeapBoundRejected, "E_HIA_BUDGET_POLICY"):
+                    qualify_live_heap_budget(verified, max_live_heap_bytes=invalid)
+        # Snapshot digest is not a self-authenticating compiler proof.
+        modified = scoped_loop()
+        modified["functions"][0]["blocks"][0]["ops"].append(
+            i("forged_heap_effect", [], []))
+        from hepta.hia_program import HIAProgramRejected
+        with self.assertRaises(HIAProgramRejected):
+            qualify_live_heap_budget(modified, max_live_heap_bytes=100)
 
     def test_two_concurrently_live_block_local_owners_are_summed(self):
         verified = verify_program(scoped_loop(two_allocations=True))

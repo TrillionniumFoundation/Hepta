@@ -727,3 +727,44 @@ def analyze_constant_live_heap(program) -> dict:
     for fn_name in reversed(order):
         calculated[fn_name] = _function(by_name[fn_name], by_name, calculated)
     return {fn["name"]: calculated[fn["name"]] for fn in functions}
+
+
+def qualify_live_heap_budget(program, *, max_live_heap_bytes: int) -> dict:
+    """Admit ONLY a finite requested-live-HIA-byte budget.
+
+    Unlike analyze_static_budget this narrow admission may cover cyclic
+    block-scoped buffers, but says nothing about allocation *count*, VM
+    steps, termination or process RSS. The immutable reverified Program
+    is the sole input to the analyzer; caller-supplied receipts are ignored.
+    """
+    if (type(max_live_heap_bytes) is not int
+            or not 0 <= max_live_heap_bytes <= MAX_REQUEST):
+        raise HIAHeapBoundRejected(
+            "E_HIA_BUDGET_POLICY",
+            "requested-live-payload policy must be an integer in 0..2^63-1")
+    checked = verify_program(program)
+    peaks = analyze_constant_live_heap(checked)
+    bounded = {name: peaks[name] for name in sorted(peaks)}
+    exceeded = [name for name, upper in bounded.items()
+                if type(upper) is not int or upper < 0 or upper > max_live_heap_bytes]
+    if exceeded:
+        raise HIAHeapBoundRejected(
+            "E_HIA_BUDGET_EXCEEDED",
+            "live payload budget is exceeded by " + ", ".join(exceeded))
+    return {
+        "schema": "hepta.hia.live-heap-admission.v1",
+        "status": "standalone_verified_hia_payload_only",
+        "program_sha256": checked.sha256,
+        "limit_bytes": max_live_heap_bytes,
+        "peak_bounds": bounded,
+        "claims": {
+            "canonical_core_reverified": True,
+            "requested_live_payload_bounded": True,
+            "source_origin_authenticated": False,
+            "allocator_interactions_bounded": False,
+            "vm_ticks_bounded": False,
+            "process_rss_bounded": False,
+            "native_backend_refinement_proved": False,
+            "whole_language_soundness_proved": False,
+        },
+    }
