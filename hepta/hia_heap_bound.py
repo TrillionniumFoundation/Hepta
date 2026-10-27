@@ -118,6 +118,8 @@ def _bounded_cast(value, typ, mode):
     Wrapped casts may be nonmonotone; when partial modular wrap is possible,
     only a complete *small* destination domain can safely be propagated.
     """
+    if type(mode) is not str or mode not in {"checked", "wrap"}:
+        _reject("unreviewed integer cast mode cannot qualify a heap budget")
     source = _span(value)
     minimum, maximum = integer_range(typ)
     if source is None:

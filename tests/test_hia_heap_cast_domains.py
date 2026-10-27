@@ -110,6 +110,13 @@ class HIASuccessfulCastBudgetTests(unittest.TestCase):
         self.assertIsNone(_bounded_cast(None, "usize", "checked"))
         self.assertIsNone(_bounded_cast(_Span(-128, 127), "usize", "wrap"))
 
+    def test_unreviewed_or_wrongly_typed_cast_mode_never_mints_bounds(self):
+        for mode in ("unchecked", "saturating", 0, False, None):
+            with self.subTest(mode=mode):
+                with self.assertRaisesRegex(
+                        HIAHeapBoundRejected, "E_HIA_BUDGET_UNBOUNDED"):
+                    _bounded_cast(None, "u8", mode)
+
     def test_unknown_full_width_allocation_still_refuses_before_native_codegen(self):
         core = verify_program(no_cast_allocation())
         with self.assertRaisesRegex(HIAHeapBoundRejected, "E_HIA_BUDGET_UNBOUNDED"):
