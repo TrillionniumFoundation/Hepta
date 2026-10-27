@@ -14,12 +14,16 @@ import stat
 import tempfile
 
 from .artifact_publication import publish_verified
+from .hia_json_preflight import preflight_hia_json
 
 MAX_INPUT_BYTES = 8 * 1024 * 1024
 MAX_EDITS = 64
 # Agent patch/query envelopes add layers outside the 64-level HIA Core.
 # Bound them independently before invoking the recursive stdlib JSON encoder.
 MAX_AGENT_JSON_DEPTH = 128
+# Textual Agent patch envelopes need a pre-materialization node ceiling too.
+# Reuse the existing HIA syntax preflight; no second JSON parser or checker.
+MAX_AGENT_JSON_NODES = 262144
 PATCH_SCHEMA = "hepta.hia.patch.v1"
 PATCH_SCHEMA_V2 = "hepta.hia.patch.v2"
 
@@ -64,7 +68,20 @@ def decode_json(payload):
         size = len(payload.encode("utf-8")) if type(payload) is str else len(payload)
         if size > MAX_INPUT_BYTES:
             _reject("JSON input exceeds byte limit")
-        return json.loads(payload, object_pairs_hook=_pairs,
+        # The old byte-only gate could materialize hundreds of thousands
+        # of JSON nodes (or hundreds of nested containers) before applying
+        # any structural limits. Run the EXISTING source-free HIA JSON
+        # syntax preflight before the stdlib decoder; all edit/publish logic
+        # and whole-program verification remain unchanged.
+        source = payload.decode("utf-8") if type(payload) is bytes else payload
+        try:
+            preflight_hia_json(source, max_nodes=MAX_AGENT_JSON_NODES,
+                              max_depth=MAX_AGENT_JSON_DEPTH)
+        except OverflowError as exc:
+            raise HIAEditRejected(
+                "E_HIA_EDIT: JSON node/depth budget exceeded before decoding"
+            ) from exc
+        return json.loads(source, object_pairs_hook=_pairs,
                           parse_constant=lambda value: _reject("nonfinite JSON number"))
     except HIAEditRejected:
         raise
