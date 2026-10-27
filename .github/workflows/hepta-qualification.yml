@@ -11,9 +11,11 @@ on:
       - codex/hepta-p4-p6-guardrails-20261025
       - assistant/hepta-p0-p7-semantic-budget-20261025
       - implement/hia-unified-native-20261026
+      - codex/hia-ndu-verified-optimization-20261027
   pull_request:
     branches:
       - main
+      - codex/hia-p0-p7-convergence-20261027
   workflow_dispatch:
 
 # Qualify the PR head, not GitHub's synthetic merge commit. Different source
@@ -48,8 +50,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Verification archive dependency
-        run: python -m pip install zstandard
+      - name: Verification archive and pinned SMT dependencies
+        run: python -m pip install zstandard z3-solver==4.15.4.0
       - name: Native compilers and required namespace runtime
         run: |
           sudo apt-get update
@@ -129,6 +131,22 @@ jobs:
           test -x "$hepta_cargo"
           "$hepta_cargo" --version
           "$hepta_cargo" fetch --locked --manifest-path rust/hia-core-shadow/Cargo.toml
+      - name: Build the original pinned NDU evaluator in an isolated workspace
+        shell: bash
+        run: |
+          hepta_ndu_checkout="$RUNNER_TEMP/hepta-ndu-source"
+          hepta_ndu_build="$RUNNER_TEMP/hepta-ndu-build"
+          hepta_ndu_commit=$(python -c 'import json; print(json.load(open("rust/hia-ndu-bridge/upstream.json"))["commit"])')
+          git init "$hepta_ndu_checkout"
+          git -C "$hepta_ndu_checkout" remote add origin https://github.com/TrillionniumFoundation/hepta-private-ci.git
+          git -C "$hepta_ndu_checkout" config remote.origin.promisor true
+          git -C "$hepta_ndu_checkout" config remote.origin.partialclonefilter blob:none
+          git -C "$hepta_ndu_checkout" -c protocol.version=2 fetch --filter=blob:none --depth=1 origin "$hepta_ndu_commit"
+          test "$(git -C "$hepta_ndu_checkout" rev-parse FETCH_HEAD)" = "$hepta_ndu_commit"
+          CARGO_TARGET_DIR="$RUNNER_TEMP/hepta-ndu-target" python tools/build_hia_ndu_bridge.py \
+            --upstream "$hepta_ndu_checkout" --output "$hepta_ndu_build"
+          printf 'HEPTA_NDU_BRIDGE=%s\nHEPTA_NDU_BUILD=%s\nHEPTA_NDU_UPSTREAM=%s\n' \
+            "$RUNNER_TEMP/hepta-ndu-target/debug/hia-ndu-bridge" "$hepta_ndu_build" "$hepta_ndu_checkout" >> "$GITHUB_ENV"
       - name: Install SHA-256-locked Lean and QEMU tools
         run: python tools/bootstrap_verification.py
       - name: Export verification tools for every qualification step
@@ -170,6 +188,15 @@ jobs:
             --qemu-riscv64 /usr/bin/qemu-riscv64 \
             --qemu-system-arm /usr/bin/qemu-system-arm \
             --cxx /usr/bin/g++
+      - name: Qualify proof-gated NDU and finite background/native mechanisms
+        if: ${{ !cancelled() }}
+        run: >-
+          python tools/qualify_hia_ndu_pipeline.py
+          --output-directory artifacts/hia-ndu
+          --clang /usr/lib/llvm-20/bin/clang
+          --bridge "$HEPTA_NDU_BRIDGE"
+          --bridge-build-receipt "$HEPTA_NDU_BUILD/build-receipt.json"
+          --upstream "$HEPTA_NDU_UPSTREAM"
       - name: Preserve failures and all raw evidence
         if: always()
         uses: actions/upload-artifact@v4
