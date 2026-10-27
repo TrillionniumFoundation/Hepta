@@ -751,7 +751,8 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
 
 def migrate_c_project(database: str | Path, output_directory: str | Path, *,
                       contracts: dict | None = None, clang: str = "clang",
-                      rustc: str | None = None, verify_native: bool = False) -> dict:
+                      rustc: str | None = None, verify_native: bool = False,
+                      command_indices: list[int] | None = None) -> dict:
     """Migrate the bounded project profile; see docs/C_MIGRATION.md.
 
     This separate entry point preserves the original fail-closed scalar pilot.
@@ -759,4 +760,5 @@ def migrate_c_project(database: str | Path, output_directory: str | Path, *,
     """
     from .c_migration_project import migrate_project
     return migrate_project(database, output_directory, contracts=contracts,
-                           clang=clang, rustc=rustc, verify_native=verify_native)
+                           clang=clang, rustc=rustc, verify_native=verify_native,
+                           command_indices=command_indices)

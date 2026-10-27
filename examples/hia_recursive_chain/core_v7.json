@@ -1,0 +1,2073 @@
+{
+  "schema": "hepta.hia.program.v7",
+  "module": "recursive_chain",
+  "functions": [
+    {
+      "name": "build_chain",
+      "params": [
+        {
+          "name": "n",
+          "type": "usize"
+        }
+      ],
+      "returns": [
+        "chain",
+        "bool"
+      ],
+      "effects": [
+        "alloc",
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "n",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "chain.empty",
+              "args": [],
+              "out": [
+                {
+                  "name": "initial",
+                  "type": "chain"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "zero",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "loop",
+            "args": [
+              "initial",
+              "zero",
+              "n"
+            ]
+          }
+        },
+        {
+          "id": "loop",
+          "params": [
+            {
+              "name": "tail",
+              "type": "chain"
+            },
+            {
+              "name": "index",
+              "type": "usize"
+            },
+            {
+              "name": "limit",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "compare.lt",
+              "args": [
+                "index",
+                "limit"
+              ],
+              "out": [
+                {
+                  "name": "more",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "more",
+            "then": {
+              "target": "allocate",
+              "args": [
+                "tail",
+                "index",
+                "limit"
+              ]
+            },
+            "else": {
+              "target": "complete",
+              "args": [
+                "tail"
+              ]
+            }
+          }
+        },
+        {
+          "id": "allocate",
+          "params": [
+            {
+              "name": "alloc_tail",
+              "type": "chain"
+            },
+            {
+              "name": "alloc_index",
+              "type": "usize"
+            },
+            {
+              "name": "alloc_limit",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "one",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "buffer.try_new",
+              "args": [
+                "one"
+              ],
+              "out": [
+                {
+                  "name": "payload",
+                  "type": "buffer"
+                },
+                {
+                  "name": "payload_ok",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "payload_ok",
+            "then": {
+              "target": "fill",
+              "args": [
+                "alloc_tail",
+                "payload",
+                "alloc_index",
+                "alloc_limit"
+              ]
+            },
+            "else": {
+              "target": "payload_error",
+              "args": [
+                "alloc_tail",
+                "payload"
+              ]
+            }
+          }
+        },
+        {
+          "id": "fill",
+          "params": [
+            {
+              "name": "fill_tail",
+              "type": "chain"
+            },
+            {
+              "name": "fill_payload",
+              "type": "buffer"
+            },
+            {
+              "name": "fill_index",
+              "type": "usize"
+            },
+            {
+              "name": "fill_limit",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "borrow.mut",
+              "args": [
+                "fill_payload"
+              ],
+              "out": [
+                {
+                  "name": "writer",
+                  "type": "mutbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "position",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "int.cast",
+              "args": [
+                "fill_index"
+              ],
+              "out": [
+                {
+                  "name": "byte",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "mode": "wrap"
+              }
+            },
+            {
+              "op": "buffer.store",
+              "args": [
+                "writer",
+                "position",
+                "byte"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "writer"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "chain.try_push",
+              "args": [
+                "fill_tail",
+                "fill_payload"
+              ],
+              "out": [
+                {
+                  "name": "pushed",
+                  "type": "chain"
+                },
+                {
+                  "name": "remainder",
+                  "type": "buffer"
+                },
+                {
+                  "name": "push_ok",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "owner.drop",
+              "args": [
+                "remainder"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "step",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "int.add.checked",
+              "args": [
+                "fill_index",
+                "step"
+              ],
+              "out": [
+                {
+                  "name": "next_index",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "push_ok",
+            "then": {
+              "target": "loop",
+              "args": [
+                "pushed",
+                "next_index",
+                "fill_limit"
+              ]
+            },
+            "else": {
+              "target": "node_error",
+              "args": [
+                "pushed"
+              ]
+            }
+          }
+        },
+        {
+          "id": "payload_error",
+          "params": [
+            {
+              "name": "payload_error_tail",
+              "type": "chain"
+            },
+            {
+              "name": "empty_payload",
+              "type": "buffer"
+            }
+          ],
+          "ops": [
+            {
+              "op": "owner.drop",
+              "args": [
+                "empty_payload"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "payload_false",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "value": false
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "payload_error_tail",
+              "payload_false"
+            ]
+          }
+        },
+        {
+          "id": "node_error",
+          "params": [
+            {
+              "name": "node_error_tail",
+              "type": "chain"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "node_false",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "value": false
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "node_error_tail",
+              "node_false"
+            ]
+          }
+        },
+        {
+          "id": "complete",
+          "params": [
+            {
+              "name": "complete_tail",
+              "type": "chain"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "completed",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "value": true
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "complete_tail",
+              "completed"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "drain_chain",
+      "params": [
+        {
+          "name": "owned",
+          "type": "chain"
+        }
+      ],
+      "returns": [
+        "u64"
+      ],
+      "effects": [
+        "alloc",
+        "read",
+        "trap"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "owned",
+              "type": "chain"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "sum_zero",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "drain",
+            "args": [
+              "owned",
+              "sum_zero"
+            ]
+          }
+        },
+        {
+          "id": "drain",
+          "params": [
+            {
+              "name": "rest",
+              "type": "chain"
+            },
+            {
+              "name": "sum",
+              "type": "u64"
+            }
+          ],
+          "ops": [
+            {
+              "op": "chain.pop",
+              "args": [
+                "rest"
+              ],
+              "out": [
+                {
+                  "name": "next",
+                  "type": "chain"
+                },
+                {
+                  "name": "item",
+                  "type": "buffer"
+                },
+                {
+                  "name": "present",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "present",
+            "then": {
+              "target": "add",
+              "args": [
+                "next",
+                "item",
+                "sum"
+              ]
+            },
+            "else": {
+              "target": "done",
+              "args": [
+                "next",
+                "item",
+                "sum"
+              ]
+            }
+          }
+        },
+        {
+          "id": "add",
+          "params": [
+            {
+              "name": "add_rest",
+              "type": "chain"
+            },
+            {
+              "name": "add_item",
+              "type": "buffer"
+            },
+            {
+              "name": "add_sum",
+              "type": "u64"
+            }
+          ],
+          "ops": [
+            {
+              "op": "borrow.read",
+              "args": [
+                "add_item"
+              ],
+              "out": [
+                {
+                  "name": "reader",
+                  "type": "readbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "offset",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "buffer.load",
+              "args": [
+                "reader",
+                "offset"
+              ],
+              "out": [
+                {
+                  "name": "value",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "reader"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "int.cast",
+              "args": [
+                "value"
+              ],
+              "out": [
+                {
+                  "name": "wide",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "mode": "wrap"
+              }
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "add_sum",
+                "wide"
+              ],
+              "out": [
+                {
+                  "name": "added",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "owner.drop",
+              "args": [
+                "add_item"
+              ],
+              "out": [],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "drain",
+            "args": [
+              "add_rest",
+              "added"
+            ]
+          }
+        },
+        {
+          "id": "done",
+          "params": [
+            {
+              "name": "done_rest",
+              "type": "chain"
+            },
+            {
+              "name": "empty_item",
+              "type": "buffer"
+            },
+            {
+              "name": "total",
+              "type": "u64"
+            }
+          ],
+          "ops": [
+            {
+              "op": "owner.drop",
+              "args": [
+                "empty_item"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "owner.drop",
+              "args": [
+                "done_rest"
+              ],
+              "out": [],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "total"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "chain_checksum",
+      "params": [
+        {
+          "name": "count",
+          "type": "usize"
+        }
+      ],
+      "returns": [
+        "u64"
+      ],
+      "effects": [
+        "alloc",
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "count",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "call",
+              "args": [
+                "count"
+              ],
+              "out": [
+                {
+                  "name": "built",
+                  "type": "chain"
+                },
+                {
+                  "name": "all_ok",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "function": "build_chain"
+              }
+            },
+            {
+              "op": "call",
+              "args": [
+                "built"
+              ],
+              "out": [
+                {
+                  "name": "total",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "drain_chain"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "fine",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "failed",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 1000000
+              }
+            },
+            {
+              "op": "select",
+              "args": [
+                "all_ok",
+                "fine",
+                "failed"
+              ],
+              "out": [
+                {
+                  "name": "code",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "total",
+                "code"
+              ],
+              "out": [
+                {
+                  "name": "result",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "result"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "chain_cancel",
+      "params": [
+        {
+          "name": "count",
+          "type": "usize"
+        }
+      ],
+      "returns": [
+        "bool"
+      ],
+      "effects": [
+        "alloc",
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "count",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "call",
+              "args": [
+                "count"
+              ],
+              "out": [
+                {
+                  "name": "built",
+                  "type": "chain"
+                },
+                {
+                  "name": "all_ok",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "function": "build_chain"
+              }
+            },
+            {
+              "op": "owner.move",
+              "args": [
+                "built"
+              ],
+              "out": [
+                {
+                  "name": "moved",
+                  "type": "chain"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "owner.drop",
+              "args": [
+                "moved"
+              ],
+              "out": [],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "all_ok"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "chain_head_update",
+      "params": [
+        {
+          "name": "count",
+          "type": "usize"
+        }
+      ],
+      "returns": [
+        "u64"
+      ],
+      "effects": [
+        "alloc",
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "count",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "call",
+              "args": [
+                "count"
+              ],
+              "out": [
+                {
+                  "name": "built",
+                  "type": "chain"
+                },
+                {
+                  "name": "all_ok",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "function": "build_chain"
+              }
+            },
+            {
+              "op": "chain.is_empty",
+              "args": [
+                "built"
+              ],
+              "out": [
+                {
+                  "name": "empty",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "empty",
+            "then": {
+              "target": "none",
+              "args": [
+                "built"
+              ]
+            },
+            "else": {
+              "target": "some",
+              "args": [
+                "built"
+              ]
+            }
+          }
+        },
+        {
+          "id": "none",
+          "params": [
+            {
+              "name": "none_chain",
+              "type": "chain"
+            }
+          ],
+          "ops": [
+            {
+              "op": "owner.drop",
+              "args": [
+                "none_chain"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "none_zero",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "none_zero"
+            ]
+          }
+        },
+        {
+          "id": "some",
+          "params": [
+            {
+              "name": "some_chain",
+              "type": "chain"
+            }
+          ],
+          "ops": [
+            {
+              "op": "chain.head_mut",
+              "args": [
+                "some_chain"
+              ],
+              "out": [
+                {
+                  "name": "writer",
+                  "type": "mutbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "borrow.read",
+              "args": [
+                "writer"
+              ],
+              "out": [
+                {
+                  "name": "child",
+                  "type": "readbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "zero",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "buffer.load",
+              "args": [
+                "child",
+                "zero"
+              ],
+              "out": [
+                {
+                  "name": "before",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "child"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "replacement",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 255
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "count_one",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "buffer.fill_range",
+              "args": [
+                "writer",
+                "zero",
+                "count_one",
+                "replacement"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "writer"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "call",
+              "args": [
+                "some_chain"
+              ],
+              "out": [
+                {
+                  "name": "total",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "drain_chain"
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "total"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "chain_empty_pop",
+      "params": [],
+      "returns": [
+        "bool"
+      ],
+      "effects": [
+        "alloc"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [],
+          "ops": [
+            {
+              "op": "chain.empty",
+              "args": [],
+              "out": [
+                {
+                  "name": "empty",
+                  "type": "chain"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "chain.pop",
+              "args": [
+                "empty"
+              ],
+              "out": [
+                {
+                  "name": "rest",
+                  "type": "chain"
+                },
+                {
+                  "name": "item",
+                  "type": "buffer"
+                },
+                {
+                  "name": "present",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "owner.drop",
+              "args": [
+                "rest"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "owner.drop",
+              "args": [
+                "item"
+              ],
+              "out": [],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "present"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "chain_empty_head",
+      "params": [],
+      "returns": [
+        "u8"
+      ],
+      "effects": [
+        "alloc",
+        "read",
+        "trap"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [],
+          "ops": [
+            {
+              "op": "chain.empty",
+              "args": [],
+              "out": [
+                {
+                  "name": "empty",
+                  "type": "chain"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "chain.head_read",
+              "args": [
+                "empty"
+              ],
+              "out": [
+                {
+                  "name": "reader",
+                  "type": "readbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "zero",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "buffer.load",
+              "args": [
+                "reader",
+                "zero"
+              ],
+              "out": [
+                {
+                  "name": "value",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "reader"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "owner.drop",
+              "args": [
+                "empty"
+              ],
+              "out": [],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "value"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "chain_empty_payloads",
+      "params": [
+        {
+          "name": "count",
+          "type": "usize"
+        }
+      ],
+      "returns": [
+        "bool"
+      ],
+      "effects": [
+        "alloc",
+        "trap"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "count",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "chain.empty",
+              "args": [],
+              "out": [
+                {
+                  "name": "empty",
+                  "type": "chain"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "zero",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "loop",
+            "args": [
+              "empty",
+              "zero",
+              "count"
+            ]
+          }
+        },
+        {
+          "id": "loop",
+          "params": [
+            {
+              "name": "tail",
+              "type": "chain"
+            },
+            {
+              "name": "index",
+              "type": "usize"
+            },
+            {
+              "name": "limit",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "compare.lt",
+              "args": [
+                "index",
+                "limit"
+              ],
+              "out": [
+                {
+                  "name": "more",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "more",
+            "then": {
+              "target": "push",
+              "args": [
+                "tail",
+                "index",
+                "limit"
+              ]
+            },
+            "else": {
+              "target": "done",
+              "args": [
+                "tail"
+              ]
+            }
+          }
+        },
+        {
+          "id": "push",
+          "params": [
+            {
+              "name": "push_tail",
+              "type": "chain"
+            },
+            {
+              "name": "push_index",
+              "type": "usize"
+            },
+            {
+              "name": "push_limit",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "payload_size",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "buffer.try_new",
+              "args": [
+                "payload_size"
+              ],
+              "out": [
+                {
+                  "name": "payload",
+                  "type": "buffer"
+                },
+                {
+                  "name": "payload_ok",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "chain.try_push",
+              "args": [
+                "push_tail",
+                "payload"
+              ],
+              "out": [
+                {
+                  "name": "pushed",
+                  "type": "chain"
+                },
+                {
+                  "name": "fallback",
+                  "type": "buffer"
+                },
+                {
+                  "name": "ok",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "owner.drop",
+              "args": [
+                "fallback"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "one",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "int.add.checked",
+              "args": [
+                "push_index",
+                "one"
+              ],
+              "out": [
+                {
+                  "name": "next",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "ok",
+            "then": {
+              "target": "loop",
+              "args": [
+                "pushed",
+                "next",
+                "push_limit"
+              ]
+            },
+            "else": {
+              "target": "error",
+              "args": [
+                "pushed"
+              ]
+            }
+          }
+        },
+        {
+          "id": "done",
+          "params": [
+            {
+              "name": "done_chain",
+              "type": "chain"
+            }
+          ],
+          "ops": [
+            {
+              "op": "owner.drop",
+              "args": [
+                "done_chain"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "yes",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "value": true
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "yes"
+            ]
+          }
+        },
+        {
+          "id": "error",
+          "params": [
+            {
+              "name": "error_chain",
+              "type": "chain"
+            }
+          ],
+          "ops": [
+            {
+              "op": "owner.drop",
+              "args": [
+                "error_chain"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "no",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "value": false
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "no"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "chain_recover",
+      "params": [
+        {
+          "name": "count",
+          "type": "usize"
+        }
+      ],
+      "returns": [
+        "u64"
+      ],
+      "effects": [
+        "alloc",
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "count",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "call",
+              "args": [
+                "count"
+              ],
+              "out": [
+                {
+                  "name": "tail",
+                  "type": "chain"
+                },
+                {
+                  "name": "built",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "function": "build_chain"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "one",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "buffer.new",
+              "args": [
+                "one"
+              ],
+              "out": [
+                {
+                  "name": "payload",
+                  "type": "buffer"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "borrow.mut",
+              "args": [
+                "payload"
+              ],
+              "out": [
+                {
+                  "name": "writer",
+                  "type": "mutbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "zero",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "byte",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 73
+              }
+            },
+            {
+              "op": "buffer.store",
+              "args": [
+                "writer",
+                "zero",
+                "byte"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "writer"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "chain.try_push",
+              "args": [
+                "tail",
+                "payload"
+              ],
+              "out": [
+                {
+                  "name": "after",
+                  "type": "chain"
+                },
+                {
+                  "name": "fallback",
+                  "type": "buffer"
+                },
+                {
+                  "name": "ok",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "ok",
+            "then": {
+              "target": "success",
+              "args": [
+                "after",
+                "fallback"
+              ]
+            },
+            "else": {
+              "target": "failure",
+              "args": [
+                "after",
+                "fallback"
+              ]
+            }
+          }
+        },
+        {
+          "id": "success",
+          "params": [
+            {
+              "name": "success_chain",
+              "type": "chain"
+            },
+            {
+              "name": "empty_fallback",
+              "type": "buffer"
+            }
+          ],
+          "ops": [
+            {
+              "op": "owner.drop",
+              "args": [
+                "empty_fallback"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "chain.pop",
+              "args": [
+                "success_chain"
+              ],
+              "out": [
+                {
+                  "name": "success_tail",
+                  "type": "chain"
+                },
+                {
+                  "name": "recovered",
+                  "type": "buffer"
+                },
+                {
+                  "name": "present",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "success_code",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "observe",
+            "args": [
+              "success_tail",
+              "recovered",
+              "success_code"
+            ]
+          }
+        },
+        {
+          "id": "failure",
+          "params": [
+            {
+              "name": "failure_tail",
+              "type": "chain"
+            },
+            {
+              "name": "retained",
+              "type": "buffer"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "failure_code",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 1000000
+              }
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "observe",
+            "args": [
+              "failure_tail",
+              "retained",
+              "failure_code"
+            ]
+          }
+        },
+        {
+          "id": "observe",
+          "params": [
+            {
+              "name": "observe_tail",
+              "type": "chain"
+            },
+            {
+              "name": "observe_payload",
+              "type": "buffer"
+            },
+            {
+              "name": "code",
+              "type": "u64"
+            }
+          ],
+          "ops": [
+            {
+              "op": "borrow.read",
+              "args": [
+                "observe_payload"
+              ],
+              "out": [
+                {
+                  "name": "reader",
+                  "type": "readbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "position",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "buffer.load",
+              "args": [
+                "reader",
+                "position"
+              ],
+              "out": [
+                {
+                  "name": "value",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "reader"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "owner.drop",
+              "args": [
+                "observe_payload"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "int.cast",
+              "args": [
+                "value"
+              ],
+              "out": [
+                {
+                  "name": "wide",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "mode": "wrap"
+              }
+            },
+            {
+              "op": "call",
+              "args": [
+                "observe_tail"
+              ],
+              "out": [
+                {
+                  "name": "tail_sum",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "drain_chain"
+              }
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "tail_sum",
+                "wide"
+              ],
+              "out": [
+                {
+                  "name": "sum",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "sum",
+                "code"
+              ],
+              "out": [
+                {
+                  "name": "result",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "result"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

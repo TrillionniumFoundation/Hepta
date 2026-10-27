@@ -298,7 +298,9 @@ def bindings():
     return {str(p.relative_to(ROOT)):file_identity(p)["sha256"] for p in sorted(names)}
 
 
-def summarize(rows):
+def summarize(rows, *, planned_tasks=8):
+    if type(planned_tasks) is not int or planned_tasks < 1:
+        raise ValueError("E_STUDY_TASK_COUNT")
     result={}
     for arm in ARMS:
         subset=[r for r in rows if r["arm"]==arm]
@@ -311,7 +313,7 @@ def summarize(rows):
         known_output=sum(u["output_tokens"] for u in usages)
         known_inference=sum(r["inference_ns"] for r in subset if "inference_ns" in r)
         known_evaluation=sum(r["evaluation_ns"] for r in subset if "evaluation_ns" in r)
-        result[arm]={"planned_tasks":8,"attempted_tasks":len(subset),"completed_tasks":len(scored),
+        result[arm]={"planned_tasks":planned_tasks,"attempted_tasks":len(subset),"completed_tasks":len(scored),
             "successes":sum(r["ok"] for r in scored),
             "accepted_but_wrong":sum(r.get("state") in {"observable_wrong","expected_overflow_trap"} for r in scored),
             "rejected":sum(r.get("state")=="response_rejected" for r in scored),
@@ -351,7 +353,21 @@ def _error(exc):
     return {"type":type(exc).__name__,"message":str(exc)}
 
 
-def _run_model(model,mindex,tasks,out,binary,clang,rustc,threads,initial,*,json_object=False):
+def preflight_matches(text, wanted):
+    """Exact JSON kinds matter when a protocol includes numeric site IDs."""
+    try:
+        return canonical(decode_json(text.strip())) == canonical(decode_json(wanted))
+    except (ValueError, TypeError, AttributeError):
+        return False
+
+
+def _run_model(model,mindex,tasks,out,binary,clang,rustc,threads,initial,*,json_object=False,
+               prompt_fn=None,parse_fn=None,native_fn=None,bindings_fn=None,
+               response_limit=LIMIT,preflight_formats=None):
+    prompt_fn = prompt if prompt_fn is None else prompt_fn
+    parse_fn = parse_response if parse_fn is None else parse_fn
+    native_fn = native if native_fn is None else native_fn
+    bindings_fn = bindings if bindings_fn is None else bindings_fn
     folder=out/model["id"];folder.mkdir()
     planned=scheduled_cells(tasks,mindex)
     write(folder/"attempt-started.json",{"model":model,"planned_cells":planned,"attempts_per_cell":1})
@@ -361,38 +377,38 @@ def _run_model(model,mindex,tasks,out,binary,clang,rustc,threads,initial,*,json_
         engine=LlamaCppEngine(binary=binary,model=model["path"],model_sha256=model["sha256"],
                              output_dir=folder/"engine",threads=threads,json_object=json_object)
         status="execution_incomplete"
-        for name,wanted in (("hia",'{"op":"bit.and"}'),("rust",'{"replacement":"&"}')):
+        formats = preflight_formats or (("hia",'{"op":"bit.and"}'),("rust",'{"replacement":"&"}'))
+        for name,wanted in formats:
             item={"language":name,"ok":False,"status":"started"};preflight.append(item)
-            response=engine.generate([{"role":"user","content":"Return exactly this JSON object and nothing else: "+wanted}],limit=LIMIT)
+            response=engine.generate([{"role":"user","content":"Return exactly this JSON object and nothing else: "+wanted}],limit=response_limit)
             write(folder/("preflight_"+name+".json"),response)
-            try: valid=decode_json(response["text"].strip())==json.loads(wanted)
-            except ValueError: valid=False
+            valid=preflight_matches(response["text"],wanted)
             item.update(ok=valid,status="completed",usage=response["usage"])
         if not all(p["ok"] for p in preflight):
             status="model_format_preflight_failed"
         else:
             tasks_by_id={task["id"]:task for task in tasks}
             for cell in planned:
-                if bindings()!=initial:raise RuntimeError("E_STUDY_SOURCE_DRIFT")
+                if bindings_fn()!=initial:raise RuntimeError("E_STUDY_SOURCE_DRIFT")
                 task=tasks_by_id[cell["task"]];arm=cell["arm"];cell_id=cell["id"]
-                messages=[{"role":"user","content":prompt(task,arm)}]
-                write(folder/(cell_id+".request.json"),{"messages":messages,"limit":LIMIT})
+                messages=[{"role":"user","content":prompt_fn(task,arm)}]
+                write(folder/(cell_id+".request.json"),{"messages":messages,"limit":response_limit})
                 row={"task":task["id"],"arm":arm,"id":cell_id,"attempt_started":True,
                      "accepted":False,"ok":False,"state":"inference_started"}
                 rows.append(row)
                 try:
-                    response=engine.generate(messages,limit=LIMIT,wall_seconds=180)
+                    response=engine.generate(messages,limit=response_limit,wall_seconds=180)
                     write(folder/(cell_id+".response.json"),response)
                     row.update(generation={"usage":response["usage"],"response":cell_id+".response.json"},
                                inference_ns=response["wall_nanoseconds"],state="evaluating")
                     started=time.monotonic_ns()
                     try:
-                        candidate=parse_response(task,arm,response["text"])
+                        candidate=parse_fn(task,arm,response["text"])
                     except ValueError as exc:
                         row.update(state="response_rejected",error=_error(exc))
                     else:
                         row["accepted"]=True
-                        result=native(task,candidate,"hia" if arm.startswith("hia") else "rust",folder/"candidates"/cell_id,clang,rustc)
+                        result=native_fn(task,candidate,"hia" if arm.startswith("hia") else "rust",folder/"candidates"/cell_id,clang,rustc)
                         row.update(native=result,ok=result["ok"],state=result["status"])
                         if result["status"]=="infrastructure_error":
                             raise RuntimeError("E_STUDY_NATIVE_INFRASTRUCTURE: "+str(result.get("reason",result.get("error"))))
@@ -427,7 +443,7 @@ def _run_model(model,mindex,tasks,out,binary,clang,rustc,threads,initial,*,json_
         completed={row["id"] for row in rows if row.get("state") in SCORED_STATES}
         started={row["id"] for row in rows}
         requests=getattr(engine,"generation_count",0);responses=getattr(engine,"response_count",0)
-        report={"model":model,"status":status,"error":error,"preflight":preflight,"rows":rows,"summary":summarize(rows),
+        report={"model":model,"status":status,"error":error,"preflight":preflight,"rows":rows,"summary":summarize(rows,planned_tasks=len(tasks)),
                 "identity":identity,"attempt_started":True,"planned_cells":planned,
                 "completed_cells":sorted(completed),"unfinished_cells":[cell for cell in planned if cell["id"] not in completed],
                 "unstarted_cells":[cell for cell in planned if cell["id"] not in started],

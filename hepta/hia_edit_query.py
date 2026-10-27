@@ -102,7 +102,7 @@ def apply_edit(document, query, response):
     selector = query.get("selector")
     if type(selector) is not dict or set(selector) != {"function", "block", "output"}:
         _reject("invalid query selector")
-    reconstructed = prepare_edit(document, **selector, fields=query.get("fields"))
+    reconstructed = prepare_edit(original, **selector, fields=query.get("fields"))
     try:
         exact = _wire(query) == _wire(reconstructed)
     except (TypeError, ValueError, RecursionError) as exc:

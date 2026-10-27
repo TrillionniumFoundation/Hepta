@@ -20,6 +20,44 @@ from .c_translation import CTranslator, Expression, INTEGER, NUMBER, cast, ident
 class CRecordViewTranslator(CTranslator):
     allow_record_views = True
 
+    def check_pointer_alias_profile(self, pointers):
+        # This profile checks every mutable pair numerically before creating
+        # any Rust references. Internal generated calls remain subject to the
+        # ordinary Hepta borrow checker. The value-only C route retains its
+        # stricter rejection, since it has no corresponding ABI range guards.
+        pass
+
+    def repeated_definition(self, previous, node, item):
+        """Coalesce the same preprocessed inline header body across C units.
+
+        Location identity alone is insufficient: different macro expansions
+        at the same header offset can have different behavior. Require both
+        source location and the complete AST after removing only Clang's
+        per-invocation identities/positions and use-count annotations. Ordinary
+        repeated external definitions, different headers and changed bodies
+        still reject. Actual native export linkage is qualified separately.
+        """
+        old = previous["node"]
+        if (not old.get("inline") or not node.get("inline")
+                or old.get("storageClass") == "static" or node.get("storageClass") == "static"
+                or previous["inventory"]["file"] != item["file"]
+                or previous["inventory"]["offset"] != item["offset"]
+                or previous["unit"] == item["unit"]):
+            return False
+
+        ignored = {"id", "loc", "range", "previousDecl", "typeAliasDeclId", "referencedMemberDecl",
+                   "isUsed", "isReferenced"}
+
+        def semantic(value):
+            if isinstance(value, dict):
+                return {key: semantic(child) for key, child in value.items()
+                        if key not in ignored}
+            if isinstance(value, list):
+                return [semantic(child) for child in value]
+            return value
+
+        return semantic(old) == semantic(node)
+
     def __init__(self, capture: dict, contracts: dict):
         if (set(contracts) != {"schema", "records", "functions"}
                 or contracts.get("schema") != "hepta.c-record-views.v1"
@@ -149,6 +187,16 @@ class CRecordViewTranslator(CTranslator):
                     if source_param is None or not source_param["pointer"] or source_param.get("record") or source_param["mode"] != "mut" or source_param["type"] != self.views[typ[2:]][field].get("element"):
                         raise MigrationRejected("E_C_VIEW_INIT", "Initializer buffer source must be a compatible mutable slice parameter")
         result["shape"] = (result["return"], [(p["type"], p["pointer"], p["mode"], p.get("c_const"), p.get("c_void"), p.get("initialize")) for p in result["params"]])
+        generated = []
+        for param in result["params"]:
+            name = "p_" + param["name"]
+            generated.append(name)
+            if param.get("record") and param.get("initialize") is None:
+                generated.extend(name + "_f_" + field for field in self.views[param["type"][2:]])
+            elif param["pointer"] and not param.get("record"):
+                generated.append(name + "_offset")
+        if len(generated) != len(set(generated)):
+            raise MigrationRejected("E_C_VIEW_NAME", "C parameter names collide with generated record-view or cursor bindings")
         return result
 
     def _validate_initializer(self, fn):

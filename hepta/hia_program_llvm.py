@@ -24,11 +24,16 @@ from .clang_capture import run_bounded
 from .elf_shared_abi import inspect_owned_shared_elf
 from .native_tool_identity import digest_executable
 from .object_symbols import inspect_object_symbols
+from .hia_schema import supports_feature
 
 
 PROFILE = "hepta.hia.program.llvm-linux-x86_64.v1"
 TARGET = "x86_64-unknown-linux-gnu"
 TARGET_AARCH64 = "aarch64-unknown-linux-gnu"
+TARGET_RISCV64 = "riscv64-unknown-linux-gnu"
+# RV64GC, LP64D: only the integer scalar ABI and explicit allocator/runtime imports.
+_RISCV64_PROFILES = {version: f"hepta.hia.program.llvm-linux-riscv64-lp64d-object.v{version}"
+                     for version in range(1, 8)}
 PROFILE_AARCH64 = "hepta.hia.program.llvm-linux-aarch64-object.v1"
 PROFILE_V2 = "hepta.hia.program.llvm-linux-x86_64-bulk.v2"
 PROFILE_AARCH64_V2 = "hepta.hia.program.llvm-linux-aarch64-bulk-object.v2"
@@ -40,6 +45,8 @@ PROFILE_V5 = "hepta.hia.program.llvm-linux-x86_64-offset-copy.v5"
 PROFILE_AARCH64_V5 = "hepta.hia.program.llvm-linux-aarch64-offset-copy-object.v5"
 PROFILE_V6 = "hepta.hia.program.llvm-linux-x86_64-range-fill.v6"
 PROFILE_AARCH64_V6 = "hepta.hia.program.llvm-linux-aarch64-range-fill-object.v6"
+PROFILE_V7 = "hepta.hia.program.llvm-linux-x86_64-recursive-chain.v7"
+PROFILE_AARCH64_V7 = "hepta.hia.program.llvm-linux-aarch64-recursive-chain-object.v7"
 MAX_LLVM_BYTES = 16 * 1024 * 1024
 MAX_ARTIFACT_BYTES = 64 * 1024 * 1024
 _WIDTHS = {**{f"{sign}{bits}": bits for sign in ("i", "u")
@@ -121,6 +128,8 @@ def _llvm_type(typ):
         return "i8"
     if typ in _BUFFERS:
         return "%hia.buffer"
+    if typ == "chain":
+        return "ptr"
     _reject("unsupported type " + repr(typ))
 
 
@@ -137,6 +146,10 @@ def _abi_attr(typ, target=TARGET):
     # the SysV x86-64 signext/zeroext LLVM parameter attributes.
     if target == TARGET_AARCH64:
         return ""
+    # RISC-V psABI widens to 32 bits by signedness, then sign-extends to XLEN.
+    # In particular unsigned i32 also requires signext at both C ABI boundaries.
+    if target == TARGET_RISCV64 and typ in {"i32", "u32"}:
+        return "signext "
     if typ in {"i8", "i16"}:
         return "signext "
     if typ in {"u8", "u16", "bool"}:
@@ -363,10 +376,27 @@ class _FunctionEmitter:
                 results = [owner, success]
         elif op == "buffer.len":
             results = [self.instruction("extractvalue %hia.buffer " + arguments[0][0] + ", 1")]
+        elif op == "chain.empty":
+            results = ["null"]
+        elif op == "chain.is_empty":
+            results = [self.instruction("icmp eq ptr " + arguments[0][0] + ", null")]
+        elif op in {"chain.try_push", "chain.pop"}:
+            operand_text = "ptr " + arguments[0][0]
+            if op == "chain.try_push":
+                operand_text += ", %hia.buffer " + arguments[1][0]
+            helper = "__hia_chain_push" if op == "chain.try_push" else "__hia_chain_pop"
+            result = self.instruction("call %hia.chain.result @" + helper + "(" + operand_text + ")")
+            results = [self.instruction("extractvalue %hia.chain.result " + result + ", " + str(i))
+                       for i in range(3)]
+        elif op in {"chain.head_read", "chain.head_mut"}:
+            self.guard(self.instruction("icmp ne ptr " + arguments[0][0] + ", null"))
+            results = [self.instruction("load %hia.buffer, ptr " + arguments[0][0] + ", align 8")]
         elif op in {"owner.move", "borrow.read", "borrow.mut"}:
             results = [arguments[0][0]]
         elif op == "loan.end":
             pass
+        elif op == "owner.drop" and arguments[0][1] == "chain":
+            self.line("call void @__hia_chain_drop(ptr " + arguments[0][0] + ")")
         elif op == "owner.drop":
             ptr = self.instruction("extractvalue %hia.buffer " + arguments[0][0] + ", 0")
             # HIA's zero-size and failed try_new owners contain a null pointer
@@ -598,6 +628,75 @@ failed:
 """
 
 
+_CHAIN_RUNTIME = r"""
+; v7 inductive owner: Nil | Node(buffer payload, chain tail).
+; No raw pointer constructor is admitted. push consumes both input owners.
+; Its failure returns both unchanged, while success returns an empty fallback.
+define internal %hia.chain.result @__hia_chain_push(ptr %tail, %hia.buffer %payload) {
+entry:
+  %node = call ptr @malloc(i64 24) nobuiltin
+  %ok = icmp ne ptr %node, null
+  br i1 %ok, label %ready, label %failed
+ready:
+  store %hia.buffer %payload, ptr %node, align 8
+  %tail_slot = getelementptr %hia.chain.node, ptr %node, i32 0, i32 1
+  store ptr %tail, ptr %tail_slot, align 8
+  %r0 = insertvalue %hia.chain.result zeroinitializer, ptr %node, 0
+  %r1 = insertvalue %hia.chain.result %r0, i1 true, 2
+  ret %hia.chain.result %r1
+failed:
+  %f0 = insertvalue %hia.chain.result zeroinitializer, ptr %tail, 0
+  %f1 = insertvalue %hia.chain.result %f0, %hia.buffer %payload, 1
+  ret %hia.chain.result %f1
+}
+
+; Empty pop returns Nil, an empty payload owner, and false. Nonempty pop
+; deallocates exactly the header and transfers payload/tail ownership out.
+define internal %hia.chain.result @__hia_chain_pop(ptr %head) {
+entry:
+  %empty = icmp eq ptr %head, null
+  br i1 %empty, label %none, label %some
+none:
+  ret %hia.chain.result zeroinitializer
+some:
+  %payload = load %hia.buffer, ptr %head, align 8
+  %tail_slot = getelementptr %hia.chain.node, ptr %head, i32 0, i32 1
+  %tail = load ptr, ptr %tail_slot, align 8
+  call void @free(ptr %head) nobuiltin
+  %r0 = insertvalue %hia.chain.result zeroinitializer, ptr %tail, 0
+  %r1 = insertvalue %hia.chain.result %r0, %hia.buffer %payload, 1
+  %r2 = insertvalue %hia.chain.result %r1, i1 true, 2
+  ret %hia.chain.result %r2
+}
+
+; Explicit loop bounds native stack usage independently of recursive length.
+; Every nonempty payload and node receives one real free; empty payloads do not.
+define internal void @__hia_chain_drop(ptr %initial) {
+entry:
+  br label %loop
+loop:
+  %head = phi ptr [ %initial, %entry ], [ %tail, %release_node ]
+  %empty = icmp eq ptr %head, null
+  br i1 %empty, label %done, label %read_node
+read_node:
+  %payload = load %hia.buffer, ptr %head, align 8
+  %payload_ptr = extractvalue %hia.buffer %payload, 0
+  %tail_slot = getelementptr %hia.chain.node, ptr %head, i32 0, i32 1
+  %tail = load ptr, ptr %tail_slot, align 8
+  %has_payload = icmp ne ptr %payload_ptr, null
+  br i1 %has_payload, label %release_payload, label %release_node
+release_payload:
+  call void @free(ptr %payload_ptr) nobuiltin
+  br label %release_node
+release_node:
+  call void @free(ptr %head) nobuiltin
+  br label %loop
+done:
+  ret void
+}
+"""
+
+
 class _Emitter:
     def __init__(self, document, target, allowed_exports):
         self.document = document
@@ -661,20 +760,24 @@ class _Emitter:
             declarations.append("declare void @llvm.memmove.p0.p0.i64(ptr, ptr, i64, i1 immarg)")
         declarations += ["declare { i" + str(bits) + ", i1 } @" + name + "(i" + str(bits) + ", i" + str(bits) + ")"
                          for name, bits in sorted(self.intrinsics)]
+        recursive = supports_feature(self.document["schema"], "recursive_chain")
+        chain_types = ("%hia.chain.node = type { %hia.buffer, ptr }\n"
+                       "%hia.chain.result = type { ptr, %hia.buffer, i1 }\n") if recursive else ""
         return ("; Standalone HIA: verified core -> LLVM. No source AST or Rust safety gate.\n"
                 'target triple = "' + self.target + '"\n'
                 "%hia.buffer = type { ptr, i64 }\n%hia.alloc = type { %hia.buffer, i1 }\n"
-                + "\n".join(declarations) + "\n" + _BUFFER_RUNTIME + "\n"
+                + chain_types + "\n".join(declarations) + "\n" + _BUFFER_RUNTIME + "\n"
+                + (_CHAIN_RUNTIME if recursive else "")
                 + "\n\n".join(bodies + [wrapper for wrapper in wrappers if wrapper]) + "\n")
 
 
 def emit_program_llvm(program, *, target=TARGET):
     """Emit LLVM from an independently verified immutable standalone program."""
-    if target not in {TARGET, TARGET_AARCH64}:
+    if target not in {TARGET, TARGET_AARCH64, TARGET_RISCV64}:
         _reject("unsupported 64-bit native target")
     before = _implementation_hash()
     verified = _verified(program)
-    from .hia_program import SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6
+    from .hia_program import SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7
     document = verified.as_dict()
     emitter = _Emitter(document, target, verified.scalar_entrypoints)
     text = emitter.render()
@@ -682,7 +785,15 @@ def emit_program_llvm(program, *, target=TARGET):
         _reject("generated LLVM exceeds the closed textual profile")
     if _implementation_hash() != before:
         _reject("verifier/emitter implementation changed during generation", "E_HIA_PROGRAM_STALE")
-    if document["schema"] == SCHEMA_V6:
+    if target == TARGET_RISCV64:
+        # The verifier has already selected a known primitive schema; never infer
+        # a layout/ABI from an arbitrary version suffix before verification.
+        versions = {SCHEMA: 1, SCHEMA_V2: 2, SCHEMA_V3: 3, SCHEMA_V4: 4,
+                    SCHEMA_V5: 5, SCHEMA_V6: 6, SCHEMA_V7: 7}
+        profile = _RISCV64_PROFILES[versions[document["schema"]]]
+    elif document["schema"] == SCHEMA_V7:
+        profile = PROFILE_V7 if target == TARGET else PROFILE_AARCH64_V7
+    elif document["schema"] == SCHEMA_V6:
         profile = PROFILE_V6 if target == TARGET else PROFILE_AARCH64_V6
     elif document["schema"] == SCHEMA_V5:
         profile = PROFILE_V5 if target == TARGET else PROFILE_AARCH64_V5
@@ -731,8 +842,8 @@ def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared"):
         _reject("LLVM differs from independently reverified standalone program", "E_HIA_PROGRAM_ORIGIN")
     if kind not in {"shared", "object"}:
         _reject("only shared libraries and relocatable objects are supported")
-    if ir.target == TARGET_AARCH64 and kind != "object":
-        _reject("AArch64 builds produce relocatable objects; execution requires a separate target runtime")
+    if ir.target in {TARGET_AARCH64, TARGET_RISCV64} and kind != "object":
+        _reject("cross-target builds produce relocatable objects; execution requires a separate target runtime")
     if platform.system() != "Linux" or platform.machine() not in {"x86_64", "amd64"}:
         _reject("native profile requires a Linux x86-64 host")
     found = shutil.which(clang)
@@ -754,6 +865,8 @@ def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared"):
         artifact = Path(directory) / ("program.so" if kind == "shared" else "program.o")
         source.write_text(ir.text, encoding="ascii")
         flags = ["--target=" + ir.target, "-x", "ir", "-O3", "-fPIC", "-shared" if kind == "shared" else "-c"]
+        if ir.target == TARGET_RISCV64:
+            flags += ["-march=rv64gc", "-mabi=lp64d"]
         command = [str(compiler), *flags, str(source), "-o", str(artifact)]
         compiled = run_bounded(command, timeout=60, stdout_limit=65536, stderr_limit=1048576)
         if compiled.returncode:
@@ -762,7 +875,10 @@ def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared"):
         if kind == "shared":
             inventory = inspect_owned_shared_elf(data, ir.exports)
         else:
-            symbols = inspect_object_symbols(data, "ELF64", 62 if ir.target == TARGET else 183)
+            machine = {TARGET: 62, TARGET_AARCH64: 183, TARGET_RISCV64: 243}[ir.target]
+            symbols = inspect_object_symbols(data, "ELF64", machine)
+            if ir.target == TARGET_RISCV64 and int.from_bytes(data[48:52], "little") != 5:
+                _reject("RISC-V object requires the reviewed RV64GC LP64D ELF flags")
             exports = symbols.get("defined")
             imports = symbols.get("undefined")
             if exports != frozenset(ir.exports) or imports is None or not imports <= _IMPORTS:
@@ -788,7 +904,7 @@ def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared"):
             "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
             "runtime_assumptions": ["Linux LP64 target with 64-bit pointers and size_t",
                                     "C calloc returns null or an initialized nonaliasing allocation of the requested size",
-                                    "C malloc returns null or a fresh nonaliasing allocation of the requested size; used only when byte contents cannot be observed",
+                                    "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
                                     "C free accepts a live allocation from calloc or malloc, or null",
                                     "abort terminates execution; no cleanup after traps is promised",
                                     "native compiler, linker, loader, libc and host hardware are trusted"],

@@ -1,5 +1,10 @@
 # C++ interoperation: declared contracts, native checks and measured costs
 
+[Contract v5 composed RAII pipelines](CPP_COMPOSED_RAII.md) add multiple
+automatic objects and copied scalar/POD dataflow within a call. Actual STL and
+two-version nlohmann/json execution, allocation failures and foreign destructor
+termination remain separately counted bridge evidence.
+
 The C++ bridge APIs have two entry points. The original `bridge_cpp` imports
 one flat scalar-method class through a bounded, name-filtered Clang AST. The
 new `bridge_cpp_contracts` binds explicitly selected functions and concrete

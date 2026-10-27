@@ -18,15 +18,17 @@ import json
 import re
 
 from .hia_schema import (
-    COMPOSITE_SCHEMA, PRIMITIVE_SCHEMAS, PROFILE, PROFILE_V2, PROFILE_V3,
-    PROFILE_V4, PROFILE_V5, PROFILE_V6, SCHEMA, SCHEMA_V2, SCHEMA_V3,
-    SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, profile_for_schema, supports_feature,
+    COMPOSITE_SCHEMA, COMPOSITE_SCHEMAS, PRIMITIVE_SCHEMAS, PROFILE, PROFILE_V2, PROFILE_V3,
+    PROFILE_V4, PROFILE_V5, PROFILE_V6, PROFILE_V7, SCHEMA, SCHEMA_V2, SCHEMA_V3,
+    SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, profile_for_schema, supports_feature,
 )
 WORD_BITS = 64
 WIDTHS = {**{f"{s}{n}": n for s in ("i", "u") for n in (8, 16, 32, 64)},
           "isize": 64, "usize": 64}
 SCALARS = frozenset(WIDTHS) | {"bool", "unit"}
-RESOURCES = frozenset({"buffer", "readbuf", "mutbuf"})
+OWNERS = frozenset({"buffer", "chain"})
+BYTE_RESOURCES = frozenset({"buffer", "readbuf", "mutbuf"})
+RESOURCES = BYTE_RESOURCES | OWNERS
 TYPES = SCALARS | RESOURCES
 EFFECTS = frozenset({"alloc", "read", "write", "trap"})
 TRAP_CODES = frozenset({"user", "overflow", "division_by_zero", "bounds", "allocation"})
@@ -65,7 +67,7 @@ def _ident(value, where):
 
 def _type(value):
     if type(value) is not str or value not in TYPES:
-        _reject("type is outside the closed v1 profile", "E_HIA_TYPE")
+        _reject("type is outside the closed primitive profile", "E_HIA_TYPE")
     return value
 
 
@@ -221,6 +223,7 @@ class VerifiedProgram:
                            "cooperative_task_protocol_checked": checked.structured_bytes is not None,
                            "background_tasks_supported": False,
                            "recursive_heap_adts_supported": False,
+                           "recursive_buffer_chains_supported": supports_feature(data["schema"], "recursive_chain"),
                            "preemptive_or_async_cancellation_supported": False}}
 
 
@@ -284,7 +287,7 @@ def _edges(term):
     _reject("unknown terminator", "E_HIA_CFG")
 
 
-def _function_shape(fn):
+def _function_shape(fn, *, recursive_chain=False):
     _keys(fn, {"name", "params", "returns", "effects", "entry", "blocks"}, "function")
     name = _ident(fn["name"], "function")
     if name in _RESERVED_FUNCTIONS:
@@ -350,17 +353,24 @@ def _function_shape(fn):
         pending.extend(graph[ident])
     if reached != set(by_id):
         _reject("unreachable blocks are not admitted", "E_HIA_CFG")
+    if not recursive_chain:
+        declared = [p["type"] for p in fn["params"]] + fn["returns"]
+        declared += [p["type"] for block in fn["blocks"] for p in block["params"]]
+        declared += [p["type"] for block in fn["blocks"] for ins in block["ops"] for p in ins["out"]]
+        if "chain" in declared:
+            _reject("recursive chain types require HIA program v7", "E_HIA_TYPE")
     return by_id
 
 
 class _BlockCheck:
-    def __init__(self, fn, block, capabilities, functions, *, bulk_memory=False, inplace_memory=False, byte_swap=False, offset_copy=False, range_fill=False):
+    def __init__(self, fn, block, capabilities, functions, *, bulk_memory=False, inplace_memory=False, byte_swap=False, offset_copy=False, range_fill=False, recursive_chain=False):
         self.fn, self.block, self.functions = fn, block, functions
         self.bulk_memory = bulk_memory
         self.inplace_memory = inplace_memory
         self.byte_swap = byte_swap
         self.offset_copy = offset_copy
         self.range_fill = range_fill
+        self.recursive_chain = recursive_chain
         self.env = {p["name"]: p["type"] for p in block["params"]}
         self.caps = dict(capabilities)
         self.required = set()
@@ -386,7 +396,7 @@ class _BlockCheck:
         return out
 
     def owner_free(self, name):
-        if self.value(name) != "buffer":
+        if self.value(name) not in OWNERS:
             _reject("operation requires an owner", "E_HIA_TYPE")
         if any(cap.root == name and other != name for other, cap in self.caps.items()):
             _reject("owner moved/dropped/returned while borrowed", "E_HIA_LOAN")
@@ -398,9 +408,9 @@ class _BlockCheck:
         if self.children(name):
             _reject("parent view is suspended until child loans end", "E_HIA_LOAN")
 
-    def borrow(self, source, output, mutable):
+    def borrow(self, source, output, mutable, *, chain_head=False):
         typ = self.value(source)
-        allowed = {"buffer", "mutbuf"} if mutable else RESOURCES
+        allowed = {"chain"} if chain_head else ({"buffer", "mutbuf"} if mutable else BYTE_RESOURCES)
         if typ not in allowed:
             _reject("invalid borrow permission", "E_HIA_LOAN")
         root = self.caps[source].root
@@ -416,6 +426,8 @@ class _BlockCheck:
         actual = [self.value(a) for a in args]
         names, types = [o["name"] for o in out], [o["type"] for o in out]
         expected = None
+        if op.startswith("chain.") and not self.recursive_chain:
+            _reject("recursive chain operations require HIA program v7", "E_HIA_OPCODE")
 
         def arity(n):
             if len(args) != n:
@@ -484,9 +496,38 @@ class _BlockCheck:
                 self.required.add("trap")
         elif op == "buffer.len":
             arity(1)
-            if actual[0] not in RESOURCES:
+            if actual[0] not in BYTE_RESOURCES:
                 _reject("buffer length requires owner/view", "E_HIA_TYPE")
             expected = ["usize"]
+        elif op == "chain.empty":
+            arity(0)
+            expected = ["chain"]
+        elif op == "chain.try_push":
+            arity(2)
+            if actual != ["chain", "buffer"]:
+                _reject("chain.try_push requires an owned tail and owned byte payload", "E_HIA_TYPE")
+            for name in args:
+                self.owner_free(name)
+            expected = ["chain", "buffer", "bool"]
+            self.required.add("alloc")
+        elif op == "chain.pop":
+            arity(1)
+            if actual != ["chain"]:
+                _reject("chain.pop requires an owned chain", "E_HIA_TYPE")
+            self.owner_free(args[0])
+            expected = ["chain", "buffer", "bool"]
+            self.required.add("alloc")
+        elif op == "chain.is_empty":
+            arity(1)
+            if actual != ["chain"]:
+                _reject("chain.is_empty requires an owned chain", "E_HIA_TYPE")
+            expected = ["bool"]
+        elif op in {"chain.head_read", "chain.head_mut"}:
+            arity(1)
+            if actual != ["chain"]:
+                _reject("chain head borrowing requires an owned chain", "E_HIA_TYPE")
+            expected = ["readbuf" if op == "chain.head_read" else "mutbuf"]
+            self.required.update({"read", "trap"})
         elif op in {"borrow.read", "borrow.mut"}:
             arity(1)
             expected = ["readbuf" if op == "borrow.read" else "mutbuf"]
@@ -502,7 +543,7 @@ class _BlockCheck:
         elif op in {"owner.move", "owner.drop"}:
             arity(1)
             self.owner_free(args[0])
-            expected = ["buffer"] if op == "owner.move" else []
+            expected = actual if op == "owner.move" else []
             if op == "owner.drop":
                 self.required.add("alloc")
         elif op == "buffer.load":
@@ -600,7 +641,7 @@ class _BlockCheck:
                 formal = param["type"]
                 if typ != formal and not (formal == "readbuf" and typ == "mutbuf"):
                     _reject("call argument type mismatch", "E_HIA_CALL")
-                if typ == "buffer":
+                if typ in OWNERS:
                     self.owner_free(name)
                     if name in used_owners:
                         _reject("owner supplied twice to call", "E_HIA_RESOURCE")
@@ -623,20 +664,30 @@ class _BlockCheck:
         # Resource transitions happen only after all operand/output checks.
         if op in {"buffer.new", "buffer.try_new"}:
             self.caps[names[0]] = _Capability("buffer", names[0])
+        elif op == "chain.empty":
+            self.caps[names[0]] = _Capability("chain", names[0])
+        elif op in {"chain.try_push", "chain.pop"}:
+            for name in args:
+                del self.caps[name]
+            for name, typ in zip(names, types):
+                if typ in OWNERS:
+                    self.caps[name] = _Capability(typ, name)
+        elif op in {"chain.head_read", "chain.head_mut"}:
+            self.borrow(args[0], names[0], op == "chain.head_mut", chain_head=True)
         elif op in {"borrow.read", "borrow.mut"}:
             self.borrow(args[0], names[0], op == "borrow.mut")
         elif op in {"loan.end", "owner.drop"}:
             del self.caps[args[0]]
         elif op == "owner.move":
             del self.caps[args[0]]
-            self.caps[names[0]] = _Capability("buffer", names[0])
+            self.caps[names[0]] = _Capability(actual[0], names[0])
         elif op == "call":
             for name, typ in zip(args, actual):
-                if typ == "buffer":
+                if typ in OWNERS:
                     del self.caps[name]
             for name, typ in zip(names, types):
-                if typ == "buffer":
-                    self.caps[name] = _Capability("buffer", name)
+                if typ in OWNERS:
+                    self.caps[name] = _Capability(typ, name)
         self.env.update(zip(names, types))
 
     def transfer(self, edge, target):
@@ -672,7 +723,7 @@ class _BlockCheck:
             types = [self.value(n) for n in names]
             if types != self.fn["returns"]:
                 _reject("return type/arity mismatch", "E_HIA_TYPE")
-            owners = [n for n, t in zip(names, types) if t == "buffer"]
+            owners = [n for n, t in zip(names, types) if t in OWNERS]
             if len(owners) != len(set(owners)):
                 _reject("same owner returned twice", "E_HIA_RESOURCE")
             for name in owners:
@@ -701,7 +752,8 @@ def verify_program(program) -> VerifiedProgram:
             _reject("structured input and executable core differ", "E_HIA_CORE")
         return checked
     data, raw = _decode(program)
-    if type(data) is dict and data.get("schema") == COMPOSITE_SCHEMA:
+    if (type(data) is dict and type(data.get("schema")) is str
+            and data["schema"] in COMPOSITE_SCHEMAS):
         from .hia_program_composite import elaborate_program
         # The entire input was bounded/strictly decoded above.  The whole
         # generated program is independently checked, with no receipt bypass.
@@ -722,7 +774,7 @@ def verify_program(program) -> VerifiedProgram:
         _reject("invalid function inventory", "E_HIA_FORMAT")
     functions, block_maps = {}, {}
     for fn in data["functions"]:
-        blocks = _function_shape(fn)
+        blocks = _function_shape(fn, recursive_chain=supports_feature(data["schema"], "recursive_chain"))
         if fn["name"] in functions:
             _reject("duplicate function", "E_HIA_NAME")
         functions[fn["name"]], block_maps[fn["name"]] = fn, blocks
@@ -738,7 +790,7 @@ def verify_program(program) -> VerifiedProgram:
                 _reject("public exports cannot carry resource descriptors", "E_HIA_TYPE")
     for fn in functions.values():
         blocks = block_maps[fn["name"]]
-        initial = {p["name"]: _Capability(p["type"], p["name"], external=p["type"] != "buffer")
+        initial = {p["name"]: _Capability(p["type"], p["name"], external=p["type"] not in OWNERS)
                    for p in fn["params"] if p["type"] in RESOURCES}
         incoming = {fn["entry"]: initial}
         pending = deque([fn["entry"]])
@@ -754,7 +806,8 @@ def verify_program(program) -> VerifiedProgram:
                                 inplace_memory=supports_feature(data["schema"], "inplace_memory"),
                                 byte_swap=supports_feature(data["schema"], "byte_swap"),
                                 offset_copy=supports_feature(data["schema"], "offset_copy"),
-                                range_fill=supports_feature(data["schema"], "range_fill"))
+                                range_fill=supports_feature(data["schema"], "range_fill"),
+                                recursive_chain=supports_feature(data["schema"], "recursive_chain"))
             for ins in block["ops"]:
                 check.instruction(ins)
             check.finish()

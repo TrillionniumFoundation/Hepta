@@ -1,5 +1,10 @@
 # Separate native C build variants
 
+The separate [contracted resource matrix](C_RESOURCE_MATRIX.md) now covers the
+unchanged real Ring-Buffer module and a cross-unit caller using mutable record
+and slice contracts. That route emits safe Hepta/Rust targets and keeps its
+denominator separate from the standalone scalar HIA route described here.
+
 `hepta.c_scalar_matrix.lower_c_project_matrix` uses the existing C project AST,
 expression and statement translator to produce an independently checked HIA
 program for every explicitly listed build. It adds build-matrix selection and

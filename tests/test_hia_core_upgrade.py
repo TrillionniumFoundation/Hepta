@@ -4,7 +4,8 @@ from __future__ import annotations
 from copy import deepcopy
 import unittest
 
-from hepta.hia_core_upgrade import upgrade_core_to_v6
+from hepta.hia_core_upgrade import upgrade_core_to_v6, upgrade_core_to_v7
+from hepta.hia_schema import SCHEMA_V7, PROFILE_V2
 from hepta.hia_program import (
     HIAProgramRejected, SCHEMA, SCHEMA_V2, SCHEMA_V3,
     SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, verify_program,
@@ -57,6 +58,25 @@ def owned(schema=SCHEMA):
 
 
 class UpgradeTests(unittest.TestCase):
+    def test_explicit_v7_preserves_old_payload_and_v6_does_not_downgrade(self):
+        for version in (SCHEMA, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7):
+            with self.subTest(version=version):
+                source = owned(version)
+                upgraded, receipt = upgrade_core_to_v7(source)
+                self.assertEqual(upgraded.as_dict(), {**source, "schema": SCHEMA_V7})
+                self.assertEqual(execute_program(upgraded, "use_owner", [37])["result"], 37)
+                self.assertEqual(receipt["target_schema"], SCHEMA_V7)
+        with self.assertRaises(HIAProgramRejected):
+            upgrade_core_to_v6(upgraded)
+
+    def test_v7_upgrade_preserves_explicit_legacy_selection_requirement(self):
+        with self.assertRaisesRegex(HIAProgramRejected, "E_HIA_VERSION_COLLISION"):
+            upgrade_core_to_v7(scalar(SCHEMA_V2))
+        upgraded, _ = upgrade_core_to_v7(scalar(SCHEMA_V2), legacy_profile=PROFILE_V2)
+        self.assertEqual(execute_program(upgraded, "compute", [7, 9])["result"], 16)
+        with self.assertRaisesRegex(HIAProgramRejected, "E_HIA_VERSION_COLLISION"):
+            upgrade_core_to_v7(upgraded, legacy_profile=PROFILE_V2)
+
     def test_safe_versions_are_reverified_and_payload_is_identical(self):
         for version in (SCHEMA, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6):
             with self.subTest(version=version):

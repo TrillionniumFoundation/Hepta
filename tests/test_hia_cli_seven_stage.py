@@ -29,6 +29,36 @@ class SevenStageCLIIntegrationTests(unittest.TestCase):
             code = main(["hia", *map(str, args)])
         return code, out.getvalue(), err.getvalue()
 
+    def test_atomic_batch_cli_publishes_only_the_combined_valid_borrow_change(self):
+        from tests.test_hia_edit_batch import loans, selected, swaps
+        paths = {name: self.root / (name + ".json") for name in ("source", "selections", "query", "response", "target")}
+        paths["source"].write_text(json.dumps(loans()))
+        paths["selections"].write_text(json.dumps([selected("reader"), selected("writer")]))
+        paths["response"].write_text(json.dumps(swaps()))
+        code, out, err = self.run_cli("edit-batch-query", paths["source"], "--selections", paths["selections"],
+                                      "--output", paths["query"])
+        self.assertEqual(code, 0, (out, err))
+        code, out, err = self.run_cli("edit-batch-apply", paths["source"], "--query", paths["query"],
+                                      "--response", paths["response"], "--output", paths["target"])
+        self.assertEqual(code, 0, (out, err))
+        self.assertEqual(execute_program(paths["target"].read_bytes(), "work", [])["result"], 0)
+        original = paths["target"].read_bytes()
+        self.assertNotEqual(self.run_cli("edit-batch-apply", paths["source"], "--query", paths["query"],
+                                        "--response", paths["response"], "--output", paths["target"])[0], 0)
+        self.assertEqual(paths["target"].read_bytes(), original)
+
+    def test_explicit_version_upgrade_cli_and_riscv_emission_share_core(self):
+        from tests.test_hia_core_upgrade import scalar
+        source, target, report = (self.root / name for name in ("old.json", "v7.json", "upgrade.json"))
+        source.write_text(json.dumps(scalar()))
+        code, out, err = self.run_cli("upgrade-v7", source, "--output", target, "--report", report)
+        self.assertEqual(code, 0, (out, err))
+        self.assertEqual(json.loads(target.read_text())["schema"], "hepta.hia.program.v7")
+        self.assertEqual(self.run_cli("verify", target)[0], 0)
+        code, out, err = self.run_cli("emit", target, "--target", "riscv64-unknown-linux-gnu")
+        self.assertEqual(code, 0, (out, err))
+        self.assertIn('target triple = "riscv64-unknown-linux-gnu"', out)
+
     def test_compact_query_roundtrip_preserves_interface_and_publishes_no_replace(self):
         source, query, response, target = (self.root / name for name in ("source.hia", "query.json", "response.json", "target.hia"))
         source.write_text(json.dumps(fixture()))

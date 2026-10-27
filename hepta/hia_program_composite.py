@@ -16,10 +16,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .hia_program import (EFFECTS, MAX_BLOCKS, MAX_FUNCTIONS, RESOURCES, SCALARS,
+from .hia_program import (EFFECTS, MAX_BLOCKS, MAX_FUNCTIONS, OWNERS, BYTE_RESOURCES, RESOURCES, SCALARS,
                           TYPES, _ident, _keys, _names, _reject)
 from .hia_schema import (CANONICAL_CORE_SCHEMA, COMPOSITE_OPERATIONS,
-                         COMPOSITE_PROFILE, COMPOSITE_SCHEMA,
+                         COMPOSITE_PROFILE, COMPOSITE_SCHEMA, COMPOSITE_SCHEMAS,
+                         COMPOSITE_SCHEMA_V2, composite_core_schema,
                          LEGACY_COMPOSITE_OPERATIONS)
 
 SCHEMA = COMPOSITE_SCHEMA
@@ -62,7 +63,7 @@ class _Type:
     @property
     def owns(self):
         if self.kind == "primitive":
-            return self.key == "buffer"
+            return self.key in OWNERS
         if self.kind == "task":
             return True
         if self.kind == "record":
@@ -71,10 +72,12 @@ class _Type:
 
 
 class _Types:
-    def __init__(self, definitions):
+    def __init__(self, definitions, *, recursive_chain=False):
         if type(definitions) is not list or len(definitions) > MAX_DEFINITIONS:
             _reject("invalid nominal type inventory", "E_HIA_LIMIT")
         self.definitions, self.cache, self.active = {}, {}, set()
+        self.recursive_chain = recursive_chain
+        self.primitive_types = TYPES if recursive_chain else TYPES - {"chain"}
         for item in definitions:
             if type(item) is not dict or type(item.get("kind")) is not str:
                 _reject("nominal type requires a kind", "E_HIA_TYPE")
@@ -85,14 +88,14 @@ class _Types:
                 _reject("unknown nominal type kind", "E_HIA_TYPE")
             _keys(item, {"name", "params", "kind"} | fields, "nominal type")
             name = _name(item["name"], "nominal type")
-            if name in TYPES or name in self.definitions:
+            if name in self.primitive_types or name in self.definitions:
                 _reject("duplicate/reserved nominal type", "E_HIA_TYPE")
             params = item["params"]
             if type(params) is not list or len(params) > 16:
                 _reject("invalid type parameter list", "E_HIA_TYPE")
             for param in params:
                 _name(param, "type parameter")
-                if param in TYPES or param == name:
+                if param in self.primitive_types or param == name:
                     _reject("reserved type parameter", "E_HIA_TYPE")
             if len(params) != len(set(params)):
                 _reject("duplicate type parameter", "E_HIA_TYPE")
@@ -176,7 +179,10 @@ class _Types:
         if depth > MAX_TYPE_DEPTH:
             _reject("type reference nesting exceeds budget", "E_HIA_LIMIT")
         if type(ref) is str:
-            if ref in TYPES or ref in params:
+            if (ref == "chain" and not self.recursive_chain
+                    and ref not in self.definitions and ref not in params):
+                _reject("recursive chain types require composite v2", "E_HIA_TYPE")
+            if ref in self.primitive_types or ref in params:
                 return
             _name(ref, "type reference")
             if ref not in self.definitions or self.definitions[ref]["params"]:
@@ -197,7 +203,7 @@ class _Types:
             _reject("nominal layout nesting exceeds budget", "E_HIA_LIMIT")
         if type(ref) is str and ref in bindings:
             return bindings[ref]
-        if type(ref) is str and ref in TYPES:
+        if type(ref) is str and ref in self.primitive_types:
             return _Type(ref, "primitive", (ref,), linear=ref in RESOURCES)
         self._reference(ref, set(bindings))
         if type(ref) is str:
@@ -280,12 +286,14 @@ def _ret(values):
 class _Elaborator:
     def __init__(self, document, *, legacy=False):
         _keys(document, {"schema", "module", "types", "functions"}, "nominal program")
-        if document["schema"] != SCHEMA:
+        if type(document["schema"]) is not str or document["schema"] not in COMPOSITE_SCHEMAS:
             _reject("unsupported nominal program schema", "E_HIA_SCHEMA")
+        if legacy and document["schema"] != SCHEMA:
+            _reject("legacy nominal adapter only targets composite v1", "E_HIA_SCHEMA")
         _name(document["module"], "module")
         self.document, self.serial, self.value_slots = document, 0, 0
         self.nominal_operations = LEGACY_COMPOSITE_OPERATIONS if legacy else COMPOSITE_OPERATIONS
-        self.types = _Types(document["types"])
+        self.types = _Types(document["types"], recursive_chain=document["schema"] == COMPOSITE_SCHEMA_V2)
         functions = document["functions"]
         if type(functions) is not list or not 1 <= len(functions) <= MAX_FUNCTIONS:
             _reject("invalid nominal function inventory", "E_HIA_FORMAT")
@@ -365,6 +373,10 @@ class _Elaborator:
                 owner, ok = self.fresh(), self.fresh()
                 ops.append(_ins("buffer.try_new", [zero], [(owner, "buffer"), (ok, "bool")]))
                 result.append(owner)
+            elif typ == "chain":
+                owner = self.fresh()
+                ops.append(_ins("chain.empty", outputs=[(owner, "chain")]))
+                result.append(owner)
             elif typ in {"readbuf", "mutbuf"}:
                 _reject("cannot invent an inactive loan", "E_HIA_LOAN")
             else:
@@ -374,7 +386,7 @@ class _Elaborator:
     @staticmethod
     def drop_padding(names, types, ops):
         for name, typ in zip(names, types):
-            if typ == "buffer":
+            if typ in OWNERS:
                 ops.append(_ins("owner.drop", [name]))
             elif typ in {"readbuf", "mutbuf"}:
                 _reject("inactive padding contains a loan", "E_HIA_LOAN")
@@ -404,7 +416,7 @@ class _Elaborator:
         name = self.fresh()
         self.helper_names[key] = name
         effects = {"trap"}
-        if "buffer" in typ.flat:
+        if any(t in OWNERS for t in typ.flat):
             effects.add("alloc")
         if operation == "poll":
             effects.update(self.functions[typ.poll]["effects"])
@@ -651,7 +663,7 @@ class _Elaborator:
                     offset, found = 0, False
                     for field, typ in actual[0].typ.fields:
                         if field == attrs["field"]:
-                            if typ.kind != "primitive" or typ.key not in RESOURCES:
+                            if typ.kind != "primitive" or typ.key not in BYTE_RESOURCES:
                                 _reject("record.borrow requires a primitive owner/view field",
                                         "E_HIA_TYPE")
                             loan_type = self.types.resolve("mutbuf" if attrs["mode"] == "mut" else "readbuf")
@@ -743,7 +755,7 @@ class _Elaborator:
                 else:
                     if any(v.typ.kind != "primitive" for v in actual) or any(t.kind != "primitive" for _, t in declared):
                         _reject("primitive instruction cannot reinterpret a nominal value", "E_HIA_TYPE")
-                    if op in {"owner.move", "owner.drop", "loan.end"}:
+                    if op in {"owner.move", "owner.drop", "loan.end", "chain.try_push", "chain.pop"}:
                         for name in args:
                             consume(name)
                     for name, typ in declared:
@@ -864,7 +876,7 @@ class _Elaborator:
         exports = sorted(name for name, (params, returns) in self.signatures.items()
                          if all(t.kind == "primitive" and t.key in SCALARS for _, t in params)
                          and all(t.kind == "primitive" and t.key in SCALARS for t in returns))
-        return {"schema": CANONICAL_CORE_SCHEMA, "module": self.document["module"],
+        return {"schema": composite_core_schema(self.document["schema"]), "module": self.document["module"],
                 "exports": exports, "functions": functions}
 
 

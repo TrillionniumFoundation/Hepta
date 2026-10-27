@@ -9,9 +9,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .hia_program import (HIAProgramRejected, RESOURCES, SCALARS, WIDTHS,
+from .hia_program import (HIAProgramRejected, OWNERS, RESOURCES, SCALARS, WIDTHS,
                           integer_range, scalar_value_valid, verify_program)
 from .hia_bounded_memory import fill_bytes, move_bytes
+from .hia_schema import supports_feature
 
 
 class HIAProgramTrap(ArithmeticError):
@@ -44,6 +45,26 @@ class _View:
     active: bool = True
 
 
+@dataclass(eq=False)
+class _ChainNode:
+    storage: _Owner
+    payload: _Owner
+    tail: _ChainNode | None
+
+
+@dataclass(eq=False)
+class _Chain:
+    ident: int
+    head: _ChainNode | None
+    active: bool = True
+
+
+# The native v7 object model has a 16-byte buffer descriptor and one 8-byte
+# successor pointer. Node storage is charged to the same live-byte budget as
+# user buffers, and consumes the same allocation-failure sequence.
+CHAIN_NODE_BYTES = 24
+
+
 def _underlying(value):
     seen = set()
     while isinstance(value, _View):
@@ -74,13 +95,18 @@ def _checked(value, typ):
 class _Machine:
     def __init__(self, program, max_steps, max_heap_bytes, allocation_fail_at, max_call_depth):
         self.program = program
-        self.functions = {f["name"]: f for f in program.as_dict()["functions"]}
+        document = program.as_dict()
+        self.functions = {f["name"]: f for f in document["functions"]}
+        self.recursive_chain = supports_feature(document["schema"], "recursive_chain")
         self.max_steps, self.max_heap_bytes = max_steps, max_heap_bytes
         self.allocation_fail_at, self.max_call_depth = allocation_fail_at, max_call_depth
         self.steps = self.allocations = self.frees = self.allocation_attempts = 0
         self.live_bytes = self.peak_bytes = self.owner_count = self.drops = 0
         self.loans_started = self.loans_ended = 0
         self.owners = {}
+        self.chains = {}
+        self.chains_created = self.chains_consumed = 0
+        self.chain_nodes_created = self.chain_nodes_dropped = 0
 
     def tick(self):
         self.steps += 1
@@ -88,13 +114,55 @@ class _Machine:
             raise HIAProgramBudgetExceeded("steps", "finite step limit reached")
 
     def resources(self):
-        return {"allocations": self.allocations, "frees": self.frees,
+        result = {"allocations": self.allocations, "frees": self.frees,
                 "allocation_attempts": self.allocation_attempts,
                 "owners_created": self.owner_count, "owners_dropped": self.drops,
                 "live_owners": len(self.owners), "live_bytes": self.live_bytes,
                 "peak_bytes": self.peak_bytes,
                 "loans_started": self.loans_started, "loans_ended": self.loans_ended,
                 "live_local_loans": self.loans_started - self.loans_ended}
+        # Existing profiles retain the original report shape. New counters
+        # describe the recursive data structure independently of byte owners.
+        if self.recursive_chain:
+            result.update({"chains_created": self.chains_created,
+                           "chains_consumed": self.chains_consumed,
+                           "live_chains": len(self.chains),
+                           "chain_nodes_created": self.chain_nodes_created,
+                           "chain_nodes_dropped": self.chain_nodes_dropped,
+                           "live_chain_nodes": self.chain_nodes_created - self.chain_nodes_dropped})
+        return result
+
+    def new_chain(self, head=None):
+        self.chains_created += 1
+        chain = _Chain(self.chains_created, head)
+        self.chains[chain.ident] = chain
+        return chain
+
+    def chain_head(self, chain):
+        if not isinstance(chain, _Chain) or not chain.active or self.chains.get(chain.ident) is not chain:
+            raise HIAProgramRejected("expired runtime chain", "E_HIA_RUNTIME_INVARIANT")
+        return chain.head
+
+    def consume_chain(self, chain):
+        head = self.chain_head(chain)
+        del self.chains[chain.ident]
+        chain.active, chain.head = False, None
+        self.chains_consumed += 1
+        return head
+
+    def drop_chain(self, chain):
+        head = self.consume_chain(chain)
+        # Destruction is iterative. A runtime-sized list does not consume one
+        # Python/native stack frame per node. Charge work to the step budget;
+        # an interrupted destruction is a budget stop, not claimed cleanup.
+        while head is not None:
+            self.tick()
+            tail = head.tail
+            self.drop(head.payload)
+            self.drop(head.storage)
+            self.chain_nodes_dropped += 1
+            head.tail = None
+            head = tail
 
     def new_owner(self, data):
         self.owner_count += 1
@@ -199,6 +267,47 @@ class _Machine:
             result = [owner] + ([ok] if op == "buffer.try_new" else [])
         elif op == "buffer.len":
             result = [len(_underlying(args[0]).data)]
+        elif op == "chain.empty":
+            result = [self.new_chain()]
+        elif op == "chain.try_push":
+            chain, payload = args
+            head = self.chain_head(chain)
+            _underlying(payload)
+            storage, ok = self.allocate(CHAIN_NODE_BYTES, True)
+            if ok:
+                node = _ChainNode(storage, payload, head)
+                self.chain_nodes_created += 1
+                fallback = self.new_owner(bytearray())
+                self.consume_chain(chain)
+                result = [self.new_chain(node), fallback, True]
+            else:
+                # The failed allocation's logical empty owner is internal.
+                # Both caller-owned inputs survive in fresh output names.
+                self.drop(storage)
+                self.consume_chain(chain)
+                result = [self.new_chain(head), payload, False]
+            for name in names:
+                del env[name]
+        elif op == "chain.pop":
+            head = self.consume_chain(args[0])
+            if head is None:
+                result = [self.new_chain(), self.new_owner(bytearray()), False]
+            else:
+                tail, payload = head.tail, head.payload
+                self.drop(head.storage)
+                self.chain_nodes_dropped += 1
+                head.tail = None
+                result = [self.new_chain(tail), payload, True]
+            del env[names[0]]
+        elif op == "chain.is_empty":
+            result = [self.chain_head(args[0]) is None]
+        elif op in {"chain.head_read", "chain.head_mut"}:
+            head = self.chain_head(args[0])
+            if head is None:
+                raise HIAProgramTrap("bounds", "head borrow of an empty chain")
+            _underlying(head.payload)
+            result = [_View(head.payload, op == "chain.head_mut")]
+            self.loans_started += 1
         elif op in {"borrow.read", "borrow.mut"}:
             _underlying(args[0])
             result = [_View(args[0], op == "borrow.mut")]
@@ -212,10 +321,16 @@ class _Machine:
             self.loans_ended += 1
             del env[names[0]]
         elif op == "owner.move":
-            _underlying(args[0])
+            if isinstance(args[0], _Chain):
+                self.chain_head(args[0])
+            else:
+                _underlying(args[0])
             result = [env.pop(names[0])]
         elif op == "owner.drop":
-            self.drop(args[0])
+            if isinstance(args[0], _Chain):
+                self.drop_chain(args[0])
+            else:
+                self.drop(args[0])
             del env[names[0]]
         elif op == "buffer.load":
             owner, index = _underlying(args[0]), args[1]
@@ -313,7 +428,7 @@ class _Machine:
         elif op == "call":
             callee = self.functions[attrs["function"]]
             for name, param in zip(names, callee["params"]):
-                if param["type"] == "buffer":
+                if param["type"] in OWNERS:
                     del env[name]
             result = self.invoke(callee, args, depth + 1)
         else:
@@ -407,6 +522,6 @@ def execute_program(program, function, arguments, *, max_steps=1_000_000,
         limit = HIAProgramBudgetExceeded("calls", "host recursion limit reached")
         limit.report = machine.report(function, "budget_exceeded", error=limit)
         raise limit from exc
-    if machine.owners or machine.loans_started != machine.loans_ended:
+    if machine.owners or machine.chains or machine.loans_started != machine.loans_ended:
         raise HIAProgramRejected("successful scalar entry leaked a verified resource", "E_HIA_RUNTIME_INVARIANT")
     return machine.report(function, "returned", values)

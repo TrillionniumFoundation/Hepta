@@ -82,6 +82,49 @@ def upgrade_core_to_v6(document: object, *, legacy_profile: str | None = None
     return upgraded, report
 
 
+def upgrade_core_to_v7(document: object, *, legacy_profile: str | None = None
+                       ) -> tuple[VerifiedProgram, dict]:
+    """Explicitly reverify an unchanged primitive program under the v7 grammar.
+
+    Old programs cannot acquire chain types/opcodes before this conversion:
+    source verification happens first.  The v6 adapter remains version-fixed.
+    A canonical Core conversion does not rewrite the original nominal source.
+    """
+    from .hia_schema import SCHEMA_V7
+    source = verify_program(document)
+    old = source.as_dict()
+    if old["schema"] == SCHEMA_V7:
+        if legacy_profile is not None:
+            raise HIAProgramRejected("legacy profile does not match v7", "E_HIA_VERSION_COLLISION")
+        upgraded = source
+    else:
+        # Preserve the existing explicit selection rule for ambiguous old v2.
+        upgrade_core_to_v6(source, legacy_profile=legacy_profile)
+        equivalent = dict(old)
+        equivalent["schema"] = SCHEMA_V7
+        upgraded = verify_program(equivalent)
+    expected = dict(old)
+    expected["schema"] = SCHEMA_V7
+    if upgraded.as_dict() != expected:
+        raise HIAProgramRejected("upgrade changed operational payload", "E_HIA_UPGRADE")
+    return upgraded, {
+        "schema": "hepta.hia.core-upgrade.v2", "ok": True,
+        "source_schema": old["schema"], "target_schema": SCHEMA_V7,
+        "source_profile": profile_for_schema(old["schema"]),
+        "target_profile": profile_for_schema(SCHEMA_V7),
+        "source_input_schema": source.normalization_report["input_schema"],
+        "source_input_sha256": source.input_sha256,
+        "source_program_sha256": source.sha256, "target_program_sha256": upgraded.sha256,
+        "selected_legacy_profile": legacy_profile,
+        "claims": {"source_hia_program_reverified": True, "target_hia_program_reverified": True,
+                   "operational_payload_unchanged_excluding_schema": True,
+                   "original_nominal_source_rewritten": False,
+                   "source_to_core_refinement_proved": False,
+                   "llvm_backend_refinement_proved": False,
+                   "whole_language_soundness_proved": False},
+    }
+
+
 def import_legacy_composite_v2(document: object) -> tuple[VerifiedProgram, dict]:
     """Explicitly import the historical finite nominal profile into composite v1.
 

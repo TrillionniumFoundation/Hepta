@@ -7,6 +7,7 @@ validity remain stated obligations, never conclusions inferred from a schema.
 """
 from __future__ import annotations
 
+from copy import deepcopy
 import hashlib
 import json
 from pathlib import Path
@@ -22,6 +23,7 @@ SCHEMA = "hepta.cpp-contract.v1"
 SCHEMA_V2 = "hepta.cpp-contract.v2"
 SCHEMA_V3 = "hepta.cpp-contract.v3"
 SCHEMA_V4 = "hepta.cpp-contract.v4"
+SCHEMA_V5 = "hepta.cpp-contract.v5"
 _QUALIFIED = re.compile(r"[A-Za-z_][A-Za-z_0-9]*(?:::[A-Za-z_][A-Za-z_0-9]*)*\Z")
 _SCALARS = {
     "i8": ("std::int8_t", "int8_t"), "u8": ("std::uint8_t", "uint8_t"),
@@ -86,8 +88,9 @@ def _validate(contract: object) -> dict:
     if not isinstance(contract, dict):
         _reject("contract must be an object")
     c = _fields(contract, {"schema", "module", "pod_types", "functions", "handles"}
-                | ({"scopes"} if contract.get("schema") in (SCHEMA_V3, SCHEMA_V4) else set()), "contract")
-    _choice(c["schema"], {SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4}, "C++ contract schema")
+                | ({"scopes"} if contract.get("schema") in (SCHEMA_V3, SCHEMA_V4, SCHEMA_V5) else set())
+                | ({"pipelines"} if contract.get("schema") == SCHEMA_V5 else set()), "contract")
+    _choice(c["schema"], {SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5}, "C++ contract schema")
     _name(c["module"], "module name")
     pods = {}
     for pod in _array(c["pod_types"], "pod_types", 16):
@@ -150,7 +153,7 @@ def _validate(contract: object) -> dict:
         else:
             _name(fn["cpp_name"], "C++ function", qualified=True)
             for t in _array(fn["template_args"], "template arguments", 4):
-                _template_argument(t, sizes=c["schema"] == SCHEMA_V4)
+                _template_argument(t, sizes=c["schema"] in (SCHEMA_V4, SCHEMA_V5))
             _choice(fn["threading"], {"any_thread", "caller_synchronized"}, "threading")
             _choice(fn["reentrancy"], {"allowed", "caller_prevents"}, "reentrancy")
             _choice(fn["allocation"], {"none_declared", "cpp_internal"}, "allocation")
@@ -163,11 +166,11 @@ def _validate(contract: object) -> dict:
         symbols.add(f["name"])
     for h in _array(c["handles"], "handles", 8):
         _fields(h, {"name", "cpp_type", "template_args", "threading", "reentrancy",
-                    "allocator", "destruction", "methods"} | ({"constructors"} if c["schema"] in {SCHEMA_V2, SCHEMA_V3, SCHEMA_V4} else set()), "handle")
+                    "allocator", "destruction", "methods"} | ({"constructors"} if c["schema"] in {SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5} else set()), "handle")
         _name(h["name"], "handle name")
         _name(h["cpp_type"], "C++ handle type", qualified=True)
         for t in _array(h["template_args"], "template arguments", 4):
-            _template_argument(t, sizes=c["schema"] == SCHEMA_V4)
+            _template_argument(t, sizes=c["schema"] in (SCHEMA_V4, SCHEMA_V5))
         _choice(h["threading"], {"serialized", "creator_thread"}, "handle threading")
         _choice(h["reentrancy"], {"allow", "reject"}, "handle reentrancy")
         if h["allocator"] != "cpp_shared_owner" or h["destruction"] != "nothrow_defer_inflight":
@@ -176,7 +179,7 @@ def _validate(contract: object) -> dict:
         if not methods:
             _reject("A handle needs at least one method")
         names = {"destroy"}
-        if c["schema"] in {SCHEMA_V2, SCHEMA_V3, SCHEMA_V4}:
+        if c["schema"] in {SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5}:
             constructors = _array(h["constructors"], "constructors", 8)
             if not constructors:
                 _reject("A v2/v3/v4 handle needs at least one explicit constructor contract")
@@ -249,9 +252,102 @@ def _validate(contract: object) -> dict:
             arguments_(call["args"], methods[method])
         if used != set(params):
             _reject("Every scoped input must be used by construction or a method")
+    for pipeline in _array(c.get("pipelines", []), "pipelines", 16):
+        _fields(pipeline, {"name", "params", "steps", "return", "lifetime"}, "RAII pipeline")
+        name = _name(pipeline["name"], "pipeline export name")
+        if name in symbols:
+            _reject("Conflicting pipeline export name")
+        symbols.add(name)
+        parameters_(pipeline["params"], constructor=True)
+        _pipeline_plan(pipeline, handles)
     if not symbols:
         _reject("Contract must export at least one function or handle")
     return c
+
+
+def _pipeline_plan(pipeline: dict, handles: dict) -> dict:
+    """Resolve a finite typed sequence with copied scalar/POD dataflow only.
+
+    Foreign objects and references never become value bindings. Inputs retain
+    their declared categories. A copied method result can feed value/const_ref
+    arguments of exactly the same type; no numeric conversions, borrowed spans,
+    raw addresses, object moves or escaping references are synthesized.
+    """
+    if pipeline["lifetime"] != "call_scoped_cpp_raii":
+        _reject("RAII pipelines require call_scoped_cpp_raii")
+    values = {p["name"]: {"kind": "input", "specification": p} for p in pipeline["params"]}
+    objects, used_values, used_objects, steps = {}, set(), set(), []
+
+    def arguments(arguments, target):
+        names = _array(arguments, "pipeline arguments", 16)
+        if len(names) != len(target["params"]):
+            _reject("Pipeline argument count differs from selected contract")
+        for name, expected in zip(names, target["params"]):
+            _name(name, "pipeline value reference")
+            if name not in values:
+                _reject("Pipeline arguments must name earlier copied values or inputs")
+            binding = values[name]
+            if binding["kind"] == "input":
+                actual = binding["specification"]
+                if any(actual.get(k) != expected.get(k) for k in ("type", "mode", "retention")):
+                    _reject("Pipeline input type, mode and retention must match exactly")
+            elif (binding["type"] != expected["type"] or expected["mode"] not in {"value", "const_ref"}):
+                _reject("Copied pipeline values require identical scalar/POD value or const_ref types")
+            used_values.add(name)
+
+    for number, step in enumerate(_array(pipeline["steps"], "pipeline steps", 32)):
+        if type(step) is not dict:
+            _reject("Each pipeline step must be an object")
+        operation = _choice(step.get("op"), {"construct", "call"}, "pipeline operation")
+        if operation == "construct":
+            _fields(step, {"op", "name", "handle", "constructor", "args"}, "pipeline construction")
+            name = _name(step["name"], "pipeline object name")
+            handle_name = _name(step["handle"], "pipeline object type")
+            if name in values or name in objects or len(objects) >= 8:
+                _reject("Pipeline object names must be fresh; at most eight objects are admitted")
+            if handle_name not in handles:
+                _reject("Unknown pipeline handle type")
+            handle = handles[handle_name]
+            constructor_name = _name(step["constructor"], "pipeline constructor name")
+            constructors = {c["name"]: c for c in handle["constructors"]}
+            if constructor_name not in constructors:
+                _reject("Unknown pipeline constructor")
+            target = constructors[constructor_name]
+            arguments(step["args"], target)
+            objects[name] = {"handle": handle, "cpp_name": "hepta_pipeline_object" + str(len(objects))}
+            steps.append({"step": step, "target": target, "object": objects[name]})
+        else:
+            _fields(step, {"op", "object", "method", "args", "result"}, "pipeline method call")
+            name = _name(step["object"], "pipeline receiver")
+            method_name = _name(step["method"], "pipeline method name")
+            if name not in objects:
+                _reject("Pipeline receiver must name an earlier constructed object")
+            obj = objects[name]
+            methods = {m["name"]: m for m in obj["handle"]["methods"]}
+            if method_name not in methods:
+                _reject("Unknown pipeline method")
+            target = methods[method_name]
+            arguments(step["args"], target)
+            used_objects.add(name)
+            result = step["result"]
+            if result is not None:
+                _name(result, "pipeline copied result")
+                if result in values or result in objects or target["returns"] == "Unit":
+                    _reject("Pipeline result must be a fresh scalar/POD copy of a nonvoid method")
+                values[result] = {"kind": "copy", "type": target["returns"],
+                                  "cpp_name": "hepta_pipeline_value" + str(number)}
+            steps.append({"step": step, "target": target, "object": obj})
+    output = pipeline["return"]
+    result_type = "Unit"
+    if output is not None:
+        _name(output, "pipeline returned value")
+        if output not in values or values[output]["kind"] != "copy":
+            _reject("A pipeline can return only an earlier copied scalar/POD method result")
+        result_type = values[output]["type"]
+        used_values.add(output)
+    if not objects or used_objects != set(objects) or used_values != set(values):
+        _reject("Every pipeline object, input and copied value must participate in the sequence")
+    return {"steps": steps, "objects": objects, "values": values, "returns": result_type}
 
 
 def _cpp_type(typ: str, pods: dict, *, abi: bool = False, prefix: str = "") -> str:
@@ -287,6 +383,7 @@ class _Generator:
         self.costs = []
         self.constructor_checks = []
         self.scoped_checks = []
+        self.pipeline_checks = []
 
     def cpp_type(self, typ: str, *, abi: bool = False) -> str:
         return _cpp_type(typ, self.pods, abi=abi, prefix=self.prefix)
@@ -606,8 +703,77 @@ class _Generator:
         self.functions_()
         self.handles_()
         self.scopes_()
+        self.pipelines_()
         self.h += ["#ifdef __cplusplus", "}", "#endif", "#undef HEPTA_CPP_NOEXCEPT"]
         return tuple("\n".join(lines) + "\n" for lines in (self.cpp, self.h, self.hp))
+
+    def pipelines_(self) -> None:
+        """Compose ordinary C++ automatic lifetimes and copied value edges."""
+        handles = {h["name"]: h for h in self.c["handles"]}
+        for pipeline in self.c.get("pipelines", []):
+            plan = _pipeline_plan(pipeline, handles)
+            fn = {"params": pipeline["params"], "returns": plan["returns"]}
+            name = self.prefix + pipeline["name"]
+            parameters = self.parameters(fn, handle=False, checked=True)
+            input_names = self.argument_names(fn)
+
+            def arguments(names, target):
+                result = []
+                for value, expected in zip(names, target["params"]):
+                    binding = plan["values"][value]
+                    if binding["kind"] == "input":
+                        result.append(self.cpp_arg({**expected, "name": value}, input_names))
+                    else:
+                        result.append("static_cast<" + self.cpp_arg_type(expected) + ">(" + binding["cpp_name"] + ")")
+                return ", ".join(result)
+
+            self.cpp += [self.declare(name, "i32", *parameters, {"ffi", "unsafe", "write", "alloc", "block"})]
+            self.cpp += self.checks(fn) + ["    try {"]
+            assignment = "auto hepta_pipeline_result = " if plan["returns"] != "Unit" else ""
+            self.cpp += ["        " + assignment + "[&]() -> " + self.cpp_type(plan["returns"]) + " {"]
+            for row in plan["steps"]:
+                step, target, obj = row["step"], row["target"], row["object"]
+                handle = obj["handle"]
+                typ = _concrete(handle["cpp_type"], handle["template_args"])
+                if step["op"] == "construct":
+                    self.cpp += ["            auto " + obj["cpp_name"] + " = " + typ + "(" + arguments(step["args"], target) + ");"]
+                else:
+                    receiver = ("const " if target["const"] else "") + typ + "&"
+                    expression = ("static_cast<" + receiver + ">(" + obj["cpp_name"] + ")." + target["cpp_method"]
+                                  + "(" + arguments(step["args"], target) + ")")
+                    if step["result"] is None:
+                        self.cpp += ["            (void)" + expression + ";"]
+                    else:
+                        binding = plan["values"][step["result"]]
+                        # An explicit value type materializes reference returns
+                        # before subsequent mutation or destruction of the owner.
+                        self.cpp += ["            const " + self.cpp_type(binding["type"]) + " " + binding["cpp_name"] + " = " + expression + ";"]
+            if plan["returns"] != "Unit":
+                self.cpp += ["            return " + plan["values"][pipeline["return"]]["cpp_name"] + ";"]
+            self.cpp += ["        }();"]
+            if plan["returns"] != "Unit":
+                self.cpp += ["        *out = " + self.value_out("hepta_pipeline_result", plan["returns"]) + ";"]
+            self.cpp += ["        return 0;", "    } catch (...) { return 3; }", "}"]
+            self.pipeline_checks.append({
+                "symbol": name, "objects_in_construction_order": list(plan["objects"]),
+                "normal_destruction_order": list(reversed(plan["objects"])),
+                "copied_value_edges": sum(b["kind"] == "copy" for b in plan["values"].values()),
+                "result_type": plan["returns"], "object_or_reference_escape": False,
+                "output_published_after_all_destructors": plan["returns"] != "Unit",
+                "cleanup": "completed_objects_reverse_order_on_return_or_C++_unwinding",
+                "destructor_nothrow_native_checked": True,
+                "foreign_implementation_rewritten": False, "foreign_nonretention_proved": False,
+                "whole_library_memory_safety_proved": False,
+            })
+            self.costs.append({
+                "symbol": name, "route": "composed_call_scoped_cpp_raii",
+                "automatic_foreign_objects": len(plan["objects"]),
+                "method_invocations": sum(row["step"]["op"] == "call" for row in plan["steps"]),
+                "wrapper_heap_allocations": 0, "wrapper_registry_lookups": 0,
+                "wrapper_mutex_acquisitions": 0, "wrapper_shared_owner_copies": 0,
+                "foreign_allocation": "constructors_and_methods_dependent_unverified",
+                "exception_boundary": "catch_status", "accounting_scope": "generated_pipeline_wrapper_only",
+            })
 
 
 def _command(argv: list[str], *, timeout: int = 90) -> CaptureResult:
@@ -635,6 +801,7 @@ def bridge_cpp_contracts(header: str | Path, contract: dict | str | Path,
     An existing output directory is never replaced. Success writes source and
     a contract receipt; it does not link or execute the foreign library. The
     separate native qualification tool performs actual bidirectional execution.
+    Validation, rendering, and the receipt share one private contract snapshot.
     """
     src, dest = Path(header).resolve(), Path(output_dir).resolve()
     report = {"schema": "hepta.cpp-bridge-contract-report.v1", "ok": False, "status": "rejected",
@@ -647,7 +814,11 @@ def bridge_cpp_contracts(header: str | Path, contract: dict | str | Path,
         if original_dest.is_symlink() or dest.exists() or not src.is_file() or src.suffix not in {".h", ".hpp", ".hh"}:
             _reject("Need an existing header and a new, nonsymlink output directory", "E_CPP_PATH")
         raw_contract = contract if isinstance(contract, dict) else json.loads(Path(contract).read_text(encoding="utf-8"))
-        c = _validate(raw_contract)
+        # The dict API must not retain caller-owned nested JSON containers:
+        # edits during native validation cannot rebind the receipt to a
+        # different contract from the one used to render the checked object.
+        # Copy before validation and preserve its exact types/schema rules.
+        c = _validate(deepcopy(raw_contract))
         report["contract_schema"] = c["schema"]
         header_bytes = src.read_bytes()
         if len(header_bytes) > 256_000:
@@ -691,6 +862,7 @@ def bridge_cpp_contracts(header: str | Path, contract: dict | str | Path,
                            "hepta_validation": checked.report, "status_codes": STATUS,
                            "cost_accounting": generator.costs, "constructor_checks": generator.constructor_checks,
                            "scoped_lifetime_checks": generator.scoped_checks,
+                           "pipeline_lifetime_checks": generator.pipeline_checks,
                            "template_specializations": [
                                {"kind": kind, "export": item["name"],
                                 "cpp": _concrete(item[key], item["template_args"]),

@@ -49,11 +49,13 @@ def main(argv=None) -> int:
     hia_actions = hia.add_subparsers(dest="hia_action", required=True)
     for action in ("verify", "inspect", "run", "emit", "build", "lower", "patch", "normalize",
                    "impact", "import-executable", "import-scalar", "import-cpp-project",
-                   "import-cpp-matrix", "import-composite-v2", "edit-query", "edit-apply"):
+                   "import-cpp-matrix", "import-composite-v2", "upgrade-v7",
+                   "edit-query", "edit-apply", "edit-batch-query", "edit-batch-apply"):
         h = hia_actions.add_parser(action)
         h.add_argument("input", help="Standalone HIA JSON program; lower accepts Hepta source")
         if action in {"emit", "build", "lower", "patch", "normalize", "import-executable", "import-scalar",
-                      "import-cpp-project", "import-cpp-matrix", "import-composite-v2", "edit-query", "edit-apply"}:
+                      "import-cpp-project", "import-cpp-matrix", "import-composite-v2", "upgrade-v7",
+                      "edit-query", "edit-apply", "edit-batch-query", "edit-batch-apply"}:
             h.add_argument("--output", "-o", required=action == "build")
         if action in {"import-cpp-project", "import-cpp-matrix"}:
             h.add_argument("--clangxx", default="clang++")
@@ -62,12 +64,18 @@ def main(argv=None) -> int:
             h.add_argument("--variant", required=True, help="Exact declared variant to publish after all builds verify")
         if action == "import-composite-v2":
             h.add_argument("--report", help="New file for explicit legacy import and reverification provenance")
+        if action == "upgrade-v7":
+            from .hia_schema import PROFILE_V2
+            h.add_argument("--legacy-profile", choices=[PROFILE_V2])
+            h.add_argument("--report", help="New file for the explicit Core version transition")
+        if action == "edit-batch-query":
+            h.add_argument("--selections", required=True, help="JSON list of function/block/output/fields selections")
         if action == "edit-query":
             h.add_argument("--function", required=True)
             h.add_argument("--block", required=True)
             h.add_argument("--value", required=True, help="SSA output selecting one value-producing instruction")
             h.add_argument("--fields", required=True, help="Comma-separated subset of op,args,attrs")
-        if action == "edit-apply":
+        if action in {"edit-apply", "edit-batch-apply"}:
             h.add_argument("--query", required=True)
             h.add_argument("--response", required=True)
         if action == "run":
@@ -80,7 +88,8 @@ def main(argv=None) -> int:
             h.add_argument("--clang", default="clang")
             h.add_argument("--kind", choices=["shared", "object"], default="shared")
         if action in {"emit", "build"}:
-            h.add_argument("--target", choices=["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu"],
+            h.add_argument("--target", choices=["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu",
+                                               "riscv64-unknown-linux-gnu"],
                            default="x86_64-unknown-linux-gnu")
         if action in {"lower", "import-executable", "import-scalar"}:
             h.add_argument("--module", default="migrated")
@@ -89,6 +98,13 @@ def main(argv=None) -> int:
             h.add_argument("--project-sha256", required=action == "import-scalar")
         if action in {"patch", "impact"}:
             h.add_argument("--request", required=True)
+        if action == "verify":
+            h.add_argument("--rust-shadow-bin",
+                           help="opt-in exact-byte Rust shadow executable (not native admission)")
+            h.add_argument("--rust-shadow-sha256",
+                           help="required exact lowercase SHA-256 when Rust shadow is selected")
+            h.add_argument("--rust-shadow-profile", choices=("scalar", "owned"),
+                           help="scalar or Owner/Loan Rust shadow; requires both executable flags")
     doctor = sub.add_parser("doctor", help="Inspect the actual native toolchain")
     doctor.add_argument("--rustc")
     lock = sub.add_parser("lock", help="Lock local package source and dependency bytes")
@@ -299,6 +315,29 @@ def main(argv=None) -> int:
                 output_json(result)
                 return 0
             program = verify_program(read_bounded(args.input))
+            if args.hia_action == "upgrade-v7":
+                from .hia_core_upgrade import upgrade_core_to_v7
+                revised, receipt = upgrade_core_to_v7(program, legacy_profile=args.legacy_profile)
+                if args.report:
+                    publish_json_view(receipt, args.report)
+                output_json(publish_program(revised, args.output) if args.output else revised.as_dict())
+                return 0
+            if args.hia_action == "edit-batch-query":
+                from .hia_edit_batch import prepare_batch
+                query = prepare_batch(program, decode_json(read_bounded(args.selections)))
+                output_json(publish_json_view(query, args.output) if args.output else query)
+                return 0
+            if args.hia_action == "edit-batch-apply":
+                from .hia_edit_batch import apply_batch, MAX_QUERY_BYTES, MAX_RESPONSE_BYTES
+                revised, receipt = apply_batch(program, read_bounded(args.query, limit=MAX_QUERY_BYTES),
+                                               read_bounded(args.response, limit=MAX_RESPONSE_BYTES))
+                if args.output:
+                    receipt["publication"] = publish_program(revised, args.output)
+                    receipt["status"] = "verified_new_snapshot_published"
+                else:
+                    receipt["program"] = revised.as_dict()
+                output_json(receipt)
+                return 0
             if args.hia_action == "edit-query":
                 from .hia_edit_query import prepare_edit
                 query = prepare_edit(program, function=args.function, block=args.block,
@@ -320,8 +359,19 @@ def main(argv=None) -> int:
                 output_json(publish_program(program, args.output) if args.output else program.as_dict())
                 return 0
             if args.hia_action == "verify":
-                output_json({**program.report(), "status": "standalone_core_checked",
-                             "native_executed": False})
+                report = {**program.report(), "status": "standalone_core_checked",
+                          "native_executed": False}
+                selected_shadow = any(value is not None for value in (
+                    args.rust_shadow_bin, args.rust_shadow_sha256, args.rust_shadow_profile))
+                if selected_shadow:
+                    if not args.rust_shadow_bin or not args.rust_shadow_sha256:
+                        raise ValueError("Rust shadow requires both --rust-shadow-bin and --rust-shadow-sha256")
+                    from .hia_rust_crosscheck import crosscheck_rust_shadow
+                    report["rust_crosscheck"] = crosscheck_rust_shadow(
+                        program, args.rust_shadow_bin,
+                        executable_sha256=args.rust_shadow_sha256,
+                        profile=args.rust_shadow_profile or "owned")
+                output_json(report)
                 return 0
             if args.hia_action == "inspect":
                 output_json(inspect_program(program))

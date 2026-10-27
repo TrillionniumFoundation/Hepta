@@ -87,7 +87,7 @@ def unittest_outcome(stderr, returncode):
     return result
 
 
-def qualify(output, *, clang, rustc, qemu_aarch64, qemu_system_arm, linker, lean):
+def qualify(output, *, clang, rustc, qemu_aarch64, qemu_riscv64, qemu_system_arm, linker, lean, cxx):
     output = Path(output).absolute()
     if output.exists() or output.is_symlink():
         raise ValueError("output directory must be new")
@@ -109,6 +109,8 @@ def qualify(output, *, clang, rustc, qemu_aarch64, qemu_system_arm, linker, lean
         ("composite_bulk_targets", [python, "tools/qualify_hia_composite_bulk.py", "--clang", clang,
                                     "--linker", linker, "--qemu-aarch64", qemu_aarch64,
                                     "--output-directory", output / "composite-bulk"], output / "composite-bulk/qualification.json"),
+        ("recursive_resource_chains", [python, "tools/qualify_hia_recursive_chain.py", "--clang", clang,
+                                       "--output-directory", output / "recursive-chain"], output / "recursive-chain/qualification.json"),
         ("source_migration", [python, "tools/qualify_hia_migration.py", "--clang", clang,
                               "--clangxx", str(Path(clang).with_name("clang++")),
                               "--workdir", output / "migration"], output / "migration/qualification.json"),
@@ -120,11 +122,20 @@ def qualify(output, *, clang, rustc, qemu_aarch64, qemu_system_arm, linker, lean
         ("cpp_configuration_matrix", [python, "tools/qualify_cpp_project_matrix.py", "--clang", clang,
                                       "--clangxx", str(Path(clang).with_name("clang++")),
                                       "--workdir", output / "cpp-matrix"], output / "cpp-matrix/qualification.json"),
+        ("upstream_c_resource_matrix", [python, "tools/qualify_c_resource_matrix.py", "--clang", clang,
+                                       "--rustc", rustc, "--workdir", output / "c-resource-matrix"], output / "c-resource-matrix/qualification.json"),
+        ("upstream_cpp_composed_lifetimes", [python, "tools/qualify_cpp_composed.py", "--cxx", cxx,
+                                           "--rustc", rustc, "--workdir", output / "cpp-composed"], output / "cpp-composed/qualification.json"),
         ("selected_core_formal", [python, "tools/qualify_hia_selected_formal.py", "--lean", lean,
                                   "--clang", clang, "--output-directory", output / "selected-formal"], output / "selected-formal/qualification.json"),
         ("standalone_aarch64_qemu", [python, "tools/qualify_hia_program_aarch64.py", "--clang", clang,
                                    "--linker", linker, "--qemu-aarch64", qemu_aarch64,
                                    "--output", output / "aarch64.json"], output / "aarch64.json"),
+        ("standalone_riscv64_qemu", [python, "tools/qualify_hia_riscv64.py", "--clang", clang,
+                                    "--linker", str(Path(clang).with_name("ld.lld")),
+                                    "--readobj", str(Path(clang).with_name("llvm-readobj")),
+                                    "--qemu-riscv64", qemu_riscv64,
+                                    "--output-directory", output / "riscv64"], output / "riscv64/qualification.json"),
         ("legacy_executable_core", [python, "-m", "hepta.executable_core_qualify", "--clang", clang,
                                     "--rustc", rustc, "--report", output / "legacy-core.json"], output / "legacy-core.json"),
         ("legacy_hosted_composition", [python, "-m", "tools.qualify_lifecycle_composition",
@@ -135,15 +146,17 @@ def qualify(output, *, clang, rustc, qemu_aarch64, qemu_system_arm, linker, lean
                                     "--rustc", rustc, "--output", output / "performance.json",
                                     "--artifact-directory", output / "performance-artifacts"], output / "performance.json"),
     ]
-    report = {"schema": "hepta.hia.unified-qualification.v1", "git_commit": commit["stdout"].strip(),
+    report = {"schema": "hepta.hia.unified-qualification.v2", "git_commit": commit["stdout"].strip(),
         "compiler_tree_sha256": compiler_hash(), "source_snapshot_before": before,
         "temporary_directory": tempfile.gettempdir(),
         "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "planned_gates": [name for name, _, _ in plan], "gates": [],
         "full_six_deliverables_complete": False,
         "full_seven_deliverables_complete": False,
-        "scope_limits": ["Recursive heap ADTs, escaping stored loans and background scheduling/channels remain outside the current core",
+        "scope_limits": ["Dynamic recursive buffer chains are admitted; general recursive heap ADTs, escaping stored loans and background scheduling/channels remain outside the current core",
             "C/C++ migration covers declared finite profiles, not arbitrary historical libraries",
+            "The upstream C resource matrix uses safe Hepta/Rust lowering; C++ composed pipelines remain foreign-library bridges",
+            "C++ noexcept termination observations do not establish allocation-failure recovery",
             "QEMU is not physical hardware or device timing/protocol qualification",
             "Agent productivity and independent total development-cost improvement require their own qualified trials",
             "Whole-compiler soundness and Rust-wide performance superiority are unproved"]}
@@ -217,13 +230,15 @@ def main():
     parser.add_argument("--clang", default=shutil.which("clang") or "clang")
     parser.add_argument("--rustc", default=os.environ.get("RUSTC") or shutil.which("rustc") or "rustc")
     parser.add_argument("--qemu-aarch64", required=True)
+    parser.add_argument("--qemu-riscv64", required=True)
     parser.add_argument("--qemu-system-arm", default=shutil.which("qemu-system-arm") or "qemu-system-arm")
     parser.add_argument("--linker", required=True)
     parser.add_argument("--lean", required=True)
+    parser.add_argument("--cxx", default=shutil.which("g++") or "g++")
     args = parser.parse_args()
     result = qualify(args.output_directory, clang=args.clang, rustc=args.rustc,
-                     qemu_aarch64=args.qemu_aarch64, qemu_system_arm=args.qemu_system_arm,
-                     linker=args.linker, lean=args.lean)
+                     qemu_aarch64=args.qemu_aarch64, qemu_riscv64=args.qemu_riscv64,
+                     qemu_system_arm=args.qemu_system_arm, linker=args.linker, lean=args.lean, cxx=args.cxx)
     print(json.dumps({key: result[key] for key in ("ok", "status", "passed_gates", "completed_gates", "unchanged_source", "full_seven_deliverables_complete")}))
     return 0 if result["ok"] else 1
 
