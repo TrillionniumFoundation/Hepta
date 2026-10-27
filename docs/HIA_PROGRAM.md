@@ -530,7 +530,7 @@ does not automatically qualify every analyzer or shadow implementation:
 | `hia_static_budget.qualify_vm_call_depth` | Primitive v1–v7 with a closed acyclic call graph; CFG loops may remain | Root-inclusive synchronous VM frames only; no tick, allocation, recursive-chain destruction cost, native stack-byte, CPU-time or RSS bound |
 | Rust shadow default checker and `--scalar-run` | Resource-free scalar subset of primitive v1–v7 | Independent finite scalar checking/execution; rejects owner, loan and chain programs |
 | Rust `--owned-shadow` | Primitive v1–v7 typed owner/loan CFG subset, including v7 chain transitions | Opt-in static cross-check; no chain runtime, native refinement proof or production admission authority |
-| Rust `--owned-run` | Primitive v1–v7, one function/one block, scalar entry/results and ten byte-owner/loan operations | Explicit bounded execution with Python full-ledger differential checks; no resource calls, CFG execution, chains, nominal input or production authority; see [finite execution profile](HIA_RUST_BYTE_OWNER_VM_20261027.md) |
+| Rust `--owned-run` | Primitive v1–v7 byte-owner/loan operations, CFG/loops and bounded internal resource calls; scalar public entry/results; profile `cfg-call-byte-owner-v2` | Explicit bounded execution with Python full-ledger differential checks and selected native allocator controls; no bulk/chain execution, direct nominal input, general refinement proof or production authority; see [finite execution profile](HIA_RUST_BYTE_OWNER_VM_20261027.md) |
 
 The Rust routes consume primitive Core, so nominal input must first undergo
 the canonical normalization. The Python verifier remains mandatory for

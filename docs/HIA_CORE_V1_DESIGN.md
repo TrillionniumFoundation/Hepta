@@ -1,10 +1,23 @@
 # HIA Core v1: proposed executable ownership-SSA contract
 
-**Status: design only.** This is not the implemented HIA scalar-core.v0,
-not a new semantic authority and not evidence of whole-language safety.
-Current authority remains Hepta canonical checked source and the existing
-strict, independent verification passes. A new v1 may replace this design
-status only after producer/consumer proof and negative native qualification.
+**Status: historical design with remaining general-language obligations.**
+This document preserves the broader ownership-SSA proposal; its numbered
+"Core v1" design is not an executable wire-schema alias. The subsequently
+implemented standalone primitive v1–v7 and composite v1/v2 profiles are
+defined by [HIA_PROGRAM.md](HIA_PROGRAM.md) and the shared `hia_schema`
+registry. Their admission authority is `hepta.hia_program.verify_core`
+(also exposed through `hepta.core`), which checks actual operations and
+resource flow without requiring original source. The interpreter and direct
+LLVM backend consume that same independently reverified Core.
+
+Canonical checked source remains relevant to historical source frontends and
+compatibility paths; it is not required to admit a standalone HIA program.
+Neither this proposal nor a schema version grants safety or execution
+authority. The general typed-place, initialization, memory/effect-token,
+concurrency and foreign/device obligations below remain design targets where
+the normative implemented profile does not cover them. Their completion
+still requires producer/consumer correspondence and actual qualification;
+the existing finite implementation is not whole-language soundness evidence.
 
 ## Operational scope
 

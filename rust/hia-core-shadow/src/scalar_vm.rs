@@ -214,6 +214,10 @@ impl<'a> Machine<'a> {
         let by_name: BTreeMap<&str, &Value> = blocks.iter()
             .map(|b| (b["id"].as_str().unwrap_or(""), b)).collect();
         let mut current = function["entry"].as_str().ok_or(Halt::Internal)?;
+        let (args, formals) = match self.memory.as_mut() {
+            Some(memory) => memory.enter_call(&function["params"], args)?,
+            None => (args, Vec::new()),
+        };
         let mut env = bind(&function["params"], args)?;
         loop {
             let block = *by_name.get(current).ok_or(Halt::Internal)?;
@@ -223,6 +227,17 @@ impl<'a> Machine<'a> {
                 let operands = resolve(&env, &op["args"])?;
                 let outputs = if op_name == "call" {
                     let callee = op["attrs"]["function"].as_str().ok_or(Halt::Internal)?;
+                    if let Some(memory) = self.memory.as_ref() {
+                        let signature = *self.functions.get(callee).ok_or(Halt::Internal)?;
+                        for (index, parameter) in signature["params"].as_array()
+                            .ok_or(Halt::Internal)?.iter().enumerate() {
+                            if parameter["type"] == "buffer" {
+                                memory.free_owner(operands.get(index).ok_or(Halt::Internal)?)?;
+                                let consumed = op["args"][index].as_str().ok_or(Halt::Internal)?;
+                                env.remove(consumed).ok_or(Halt::Internal)?;
+                            }
+                        }
+                    }
                     self.invoke(callee, operands, depth + 1)?
                 } else if ByteMemory::supports(op_name) {
                     self.memory.as_mut().ok_or(Halt::Internal)?.operation(op_name, &operands)?
@@ -252,7 +267,11 @@ impl<'a> Machine<'a> {
             self.tick()?;
             let term = &block["term"];
             match term["op"].as_str().ok_or(Halt::Internal)? {
-                "ret" => return resolve(&env, &term["values"]),
+                "ret" => {
+                    let values = resolve(&env, &term["values"])?;
+                    if let Some(memory) = self.memory.as_mut() { memory.leave_call(&formals)?; }
+                    return Ok(values);
+                }
                 "trap" => {
                     let code = term["code"].as_str().ok_or(Halt::Internal)?;
                     return match code {
@@ -291,7 +310,8 @@ pub fn execute_scalar(input: &[u8], function: &str, arguments: &[Value],
 }
 
 /// Opt-in finite byte-owner execution in the SAME Machine as scalar execution.
-/// One function/block, scalar entry/return and no call/branch/chain/bulk opcode.
+/// Byte owners, loans, resource calls and CFG; scalar public entry/return only.
+/// Chain and bulk operations remain outside this finite execution profile.
 /// Static ownership admission still comes from the existing verify_owned.
 pub fn execute_owned(input: &[u8], function: &str, arguments: &[Value],
                      max_steps: u64, max_heap_bytes: u64,
@@ -310,29 +330,29 @@ fn owned_execution_profile(document: &Value) -> R<()> {
     let functions = document["functions"].as_array().ok_or_else(|| super::VerifyError {
         code: "E_HIA_RUST_UNSUPPORTED", detail: "missing function inventory".into(),
     })?;
-    if functions.len() != 1 {
-        return failure("E_HIA_RUST_UNSUPPORTED", "byte-owner execution requires exactly one function");
-    }
-    let function = &functions[0];
-    for param in function["params"].as_array().unwrap() {
-        super::scalar(&param["type"])?;
-    }
-    for ty in function["returns"].as_array().unwrap() { super::scalar(ty)?; }
-    let blocks = function["blocks"].as_array().unwrap();
-    if blocks.len() != 1 || !matches!(blocks[0]["term"]["op"].as_str(), Some("ret" | "trap")) {
-        return failure("E_HIA_RUST_UNSUPPORTED", "byte-owner execution requires one terminal block");
-    }
-    for op in blocks[0]["ops"].as_array().unwrap() {
-        let opcode = op["op"].as_str().unwrap();
-        let scalar = matches!(opcode,
-            "const" | "int.add.checked" | "int.sub.checked" | "int.mul.checked" |
-            "int.add.wrap" | "int.sub.wrap" | "int.mul.wrap" | "int.div.checked" |
-            "int.rem.checked" | "int.shl.checked" | "int.shr.checked" | "int.neg.checked" |
-            "bit.and" | "bit.or" | "bit.xor" | "bit.not" | "compare.eq" | "compare.ne" |
-            "compare.lt" | "compare.le" | "compare.gt" | "compare.ge" | "bool.not" |
-            "bool.and" | "bool.or" | "int.cast" | "select");
-        if !scalar && !ByteMemory::supports(opcode) {
-            return failure("E_HIA_RUST_UNSUPPORTED", format!("byte-owner execution refuses {opcode}"));
+    let check_type = |ty: &Value| -> R<()> {
+        if matches!(ty.as_str(), Some("buffer" | "readbuf" | "mutbuf")) { return Ok(()); }
+        super::scalar(ty).map(|_| ())
+    };
+    for function in functions {
+        for param in function["params"].as_array().unwrap() { check_type(&param["type"])?; }
+        for ty in function["returns"].as_array().unwrap() { check_type(ty)?; }
+        for block in function["blocks"].as_array().unwrap() {
+            for param in block["params"].as_array().unwrap() { check_type(&param["type"])?; }
+            for op in block["ops"].as_array().unwrap() {
+                for output in op["out"].as_array().unwrap() { check_type(&output["type"])?; }
+                let opcode = op["op"].as_str().unwrap();
+                let scalar = matches!(opcode,
+                    "const" | "int.add.checked" | "int.sub.checked" | "int.mul.checked" |
+                    "int.add.wrap" | "int.sub.wrap" | "int.mul.wrap" | "int.div.checked" |
+                    "int.rem.checked" | "int.shl.checked" | "int.shr.checked" | "int.neg.checked" |
+                    "bit.and" | "bit.or" | "bit.xor" | "bit.not" | "compare.eq" | "compare.ne" |
+                    "compare.lt" | "compare.le" | "compare.gt" | "compare.ge" | "bool.not" |
+                    "bool.and" | "bool.or" | "int.cast" | "select" | "call");
+                if !scalar && !ByteMemory::supports(opcode) {
+                    return failure("E_HIA_RUST_UNSUPPORTED", format!("byte-owner execution refuses {opcode}"));
+                }
+            }
         }
     }
     Ok(())
@@ -370,7 +390,8 @@ fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
     };
     if parameters.len() != arguments.len() || parameters.iter().zip(arguments).any(|(p, v)| {
         !p["type"].as_str().is_some_and(|ty| valid_constant(ty, v))
-    }) {
+    }) || entry["returns"].as_array().is_none_or(|types|
+        types.iter().any(|ty| super::scalar(ty).is_err())) {
         return failure("E_HIA_INPUT", "entry arguments do not match exact scalar types");
     }
     let mut machine = Machine { functions: by_name, steps: 0, limit: max_steps,
@@ -396,14 +417,16 @@ fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
     });
     if let Some(memory) = machine.memory.as_ref() {
         report["schema"] = json!("hepta.hia.rust-byte-owner-execution.v1");
-        report["profile"] = json!("single-block-byte-owner-v1");
+        report["profile"] = json!("cfg-call-byte-owner-v2");
         report["resources"] = memory.report(document["schema"] == "hepta.hia.program.v7");
         report["max_heap_bytes"] = json!(owned_policy.unwrap().0);
         report["allocation_fail_at"] = json!(owned_policy.unwrap().1);
         report["claims"] = json!({
             "finite_scalar_execution": true,
             "finite_byte_owner_execution": true,
-            "single_block_scalar_entry_only": true,
+            "single_block_scalar_entry_only": false,
+            "scalar_public_entry_only": true,
+            "byte_owner_cfg_and_calls": true,
             "general_resource_execution": false,
             "production_admission_authorized": false,
             "whole_language_soundness_proved": false,

@@ -1,6 +1,6 @@
 //! Optional finite byte storage for the existing execution Machine.
 //! Static linear/loan admission belongs to the existing ownership verifier.
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use serde_json::{json, Value};
 use super::{Exec, Halt, RuntimeValue};
 
@@ -8,6 +8,8 @@ struct Loan {
     parent: RuntimeValue,
     root: u64,
     mutable: bool,
+    // Call-formal witnesses are not source borrow instructions.
+    external: bool,
 }
 
 pub(super) struct ByteMemory {
@@ -22,6 +24,7 @@ pub(super) struct ByteMemory {
     owners_dropped: u64,
     loans_started: u64,
     loans_ended: u64,
+    next_loan_id: u64,
     live_bytes: u64,
     peak_bytes: u64,
 }
@@ -30,7 +33,7 @@ impl ByteMemory {
     pub(super) fn new(max_heap: u64, fail_at: Option<u64>) -> Self {
         Self { owners: BTreeMap::new(), loans: BTreeMap::new(), max_heap, fail_at,
             attempts: 0, allocations: 0, frees: 0, owners_created: 0,
-            owners_dropped: 0, loans_started: 0, loans_ended: 0,
+            owners_dropped: 0, loans_started: 0, loans_ended: 0, next_loan_id: 0,
             live_bytes: 0, peak_bytes: 0 }
     }
 
@@ -103,6 +106,73 @@ impl ByteMemory {
         self.loans.values().any(|loan| matches!(loan.parent, RuntimeValue::Loan(parent) if parent == id))
     }
 
+    pub(super) fn free_owner(&self, value: &RuntimeValue) -> Exec<u64> {
+        let RuntimeValue::Owner(id) = value else { return Err(Halt::Internal); };
+        self.root(value)?;
+        if self.loans.values().any(|loan| loan.root == *id) { return Err(Halt::Internal); }
+        Ok(*id)
+    }
+
+    fn borrow(&mut self, value: &RuntimeValue, mutable: bool) -> Exec<RuntimeValue> {
+        let root = self.root(value)?;
+        let mut ancestors = BTreeSet::new();
+        let mut current = value;
+        while let RuntimeValue::Loan(id) = current {
+            if !ancestors.insert(*id) { return Err(Halt::Internal); }
+            let loan = self.loans.get(id).ok_or(Halt::Internal)?;
+            if mutable && !loan.mutable { return Err(Halt::Internal); }
+            current = &loan.parent;
+        }
+        if self.loans.iter().any(|(id, loan)| loan.root == root
+            && !ancestors.contains(id) && (mutable || loan.mutable)) {
+            return Err(Halt::Internal);
+        }
+        self.loans_started += 1;
+        self.next_loan_id += 1;
+        let id = self.next_loan_id;
+        self.loans.insert(id, Loan { root, mutable, parent: value.clone(), external: false });
+        Ok(RuntimeValue::Loan(id))
+    }
+
+    pub(super) fn enter_call(&mut self, params: &Value, mut values: Vec<RuntimeValue>)
+        -> Exec<(Vec<RuntimeValue>, Vec<u64>)> {
+        let parameters = params.as_array().ok_or(Halt::Internal)?;
+        if parameters.len() != values.len() { return Err(Halt::Internal); }
+        // Validate all actual loans before installing any formal witnesses:
+        // two shared formals may legally alias the same mutable caller loan.
+        let mut views = Vec::new();
+        for (parameter, value) in parameters.iter().zip(&values) {
+            if !matches!(parameter["type"].as_str(), Some("readbuf" | "mutbuf")) { continue; }
+            let mutable = parameter["type"] == "mutbuf";
+            let root = self.access(value, mutable)?;
+            if views.iter().any(|(other_root, exclusive)|
+                *other_root == root && (*exclusive || mutable)) { return Err(Halt::Internal); }
+            views.push((root, mutable));
+        }
+        let mut formals = Vec::new();
+        for (parameter, value) in parameters.iter().zip(&mut values) {
+            if !matches!(parameter["type"].as_str(), Some("readbuf" | "mutbuf")) { continue; }
+            let root = self.root(value)?;
+            self.next_loan_id += 1;
+            let id = self.next_loan_id;
+            // A child of `left` must not suspend an aliased readonly `right`.
+            self.loans.insert(id, Loan { root, parent: value.clone(),
+                mutable: parameter["type"] == "mutbuf", external: true });
+            *value = RuntimeValue::Loan(id);
+            formals.push(id);
+        }
+        Ok((values, formals))
+    }
+
+    pub(super) fn leave_call(&mut self, formals: &[u64]) -> Exec<()> {
+        for id in formals {
+            let loan = self.loans.get(id).ok_or(Halt::Internal)?;
+            if !loan.external || self.child_exists(*id) { return Err(Halt::Internal); }
+            self.loans.remove(id).ok_or(Halt::Internal)?;
+        }
+        Ok(())
+    }
+
     fn access(&self, value: &RuntimeValue, mutable: bool) -> Exec<u64> {
         let RuntimeValue::Loan(id) = value else { return Err(Halt::Internal); };
         let loan = self.loans.get(id).ok_or(Halt::Internal)?;
@@ -127,34 +197,24 @@ impl ByteMemory {
                 let root = self.root(first)?;
                 Ok(vec![RuntimeValue::Scalar(json!(self.owners[&root].len()))])
             }
-            "borrow.read" | "borrow.mut" => {
-                let root = self.root(first)?;
-                let mutable = op == "borrow.mut";
-                if let RuntimeValue::Loan(id) = first {
-                    if mutable && !self.loans[id].mutable { return Err(Halt::Internal); }
-                }
-                self.loans_started += 1;
-                self.loans.insert(self.loans_started, Loan { root, mutable, parent: first.clone() });
-                Ok(vec![RuntimeValue::Loan(self.loans_started)])
-            }
+            "borrow.read" | "borrow.mut" => Ok(vec![self.borrow(first, op == "borrow.mut")?]),
             "loan.end" => {
                 self.root(first)?;
                 let RuntimeValue::Loan(id) = first else { return Err(Halt::Internal); };
-                if self.child_exists(*id) { return Err(Halt::Internal); }
+                if self.loans.get(id).ok_or(Halt::Internal)?.external || self.child_exists(*id) {
+                    return Err(Halt::Internal);
+                }
                 self.loans.remove(id).ok_or(Halt::Internal)?;
                 self.loans_ended += 1;
                 Ok(vec![])
             }
             "owner.move" => {
-                let RuntimeValue::Owner(id) = first else { return Err(Halt::Internal); };
-                self.root(first)?;
-                if self.loans.values().any(|loan| loan.root == *id) { return Err(Halt::Internal); }
+                self.free_owner(first)?;
                 Ok(vec![first.clone()])
             }
             "owner.drop" => {
-                let RuntimeValue::Owner(id) = first else { return Err(Halt::Internal); };
-                if self.loans.values().any(|loan| loan.root == *id) { return Err(Halt::Internal); }
-                let bytes = self.owners.remove(id).ok_or(Halt::Internal)?;
+                let id = self.free_owner(first)?;
+                let bytes = self.owners.remove(&id).ok_or(Halt::Internal)?;
                 self.owners_dropped += 1;
                 if !bytes.is_empty() { self.frees += 1; }
                 self.live_bytes -= bytes.len() as u64;
@@ -188,7 +248,8 @@ impl ByteMemory {
             "owners_created": self.owners_created, "owners_dropped": self.owners_dropped,
             "live_owners": self.owners.len(), "live_bytes": self.live_bytes,
             "peak_bytes": self.peak_bytes, "loans_started": self.loans_started,
-            "loans_ended": self.loans_ended, "live_local_loans": self.loans.len()
+            "loans_ended": self.loans_ended,
+            "live_local_loans": self.loans.values().filter(|loan| !loan.external).count()
         });
         if v7 {
             // The v7 Python ledger includes chain counters even in a program
