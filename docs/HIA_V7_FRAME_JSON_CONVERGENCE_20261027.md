@@ -12,6 +12,16 @@
 - Existing HIA v7 Core/schema, canonical verifier, native LLVM, C/C++ ABI
   and migration code are unchanged. This is not an unsafe whole-tree merge.
 
+## Follow-up P0 donor: hidden runtime-reflection aliases
+
+PR #285 exact `95c65ca5174d24de0fab26f293916b3b7a78924a`
+was reviewed against our then-current P0 audit blobs. All three touched
+paths were byte-identical to that donor's exact parent (PR #284), so
+their new reviewed Git blobs are imported unchanged. This hardens the
+existing syntax-only schema collision detector against indirect names
+and aliases of reflective Python namespace operations. It does **not**
+make a static Python scan a runtime immutability proof.
+
 ## Real release-contract mismatch that blocked convergence
 
 `tests.test_hia_v7_call_depth` from PR #284 previously called

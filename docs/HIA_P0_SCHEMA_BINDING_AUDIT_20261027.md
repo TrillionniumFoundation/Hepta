@@ -59,3 +59,24 @@ P5 remains actual held-out model A/B with cost/error controls.
 P6 still requires physical hardware and stable representative performance.
 P7 requires machine-checked scoped refinement and production qualification.
 CI queueing does not change these semantic acceptance conditions.
+
+## 2026-10-27 P0: reflection-helper alias hardening
+
+A standalone CPython 3.13 AST control exposed a fail-open case:
+`from builtins import globals as g; g()["SCHEMA"] = ...` bypassed the
+old bare-name-call guard while potentially mutating the declared schema.
+The new static audit conservatively rejects AST references to common
+reflection helpers, qualified attributes and imported aliases, including
+an alias stored before later indirect invocation.
+
+Six in-repository negative patterns cover imported `globals`, `exec`,
+qualified `builtins.exec`, a stored `globals`, aliased `getattr` and
+renamed `__import__`. It is intentional that benign uses of these
+reflection helpers may now reject; the tool is a fail-closed inventory
+audit, not a general Python runtime verifier or a promise that arbitrary
+dynamic mutation is impossible.
+
+An independent local AST model passed four selected controls. The exact
+full-Hepta parser, Cargo/native tests and complete source checkout have
+NOT been executed in this container. No P0–P7 production gate was
+implicitly promoted: `whole_project_blockers_closed=false`.
