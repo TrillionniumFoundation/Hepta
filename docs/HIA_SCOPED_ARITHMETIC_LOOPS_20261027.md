@@ -27,3 +27,9 @@ cargo test --manifest-path rust/hia-core-shadow/Cargo.toml
 ```
 
 **Claims remain limited to requested live HIA Owner payload bytes.** No finite cumulative allocations, VM steps, termination, process RSS/CPU, source→Core refinement, LLVM/backend correctness, physical GPU/DMA, broad C/C++ L2/L3 or real-Agent A/B claim follows. `whole_project_blockers_closed=false`.
+
+## Existing regression rebaselining
+
+The earlier `tests.test_hia_scoped_alloc_loops.test_unproved_arithmetic_extent_still_rejects_on_cycle` had hardcoded a refusal for the now-reviewed `u32 → checked usize → +1` arithmetic case. It is updated to assert the mathematically conservative upper bound `2^32` requested bytes and verify finite VM observations, while `analyze_static_budget` continues to refuse cyclic tick/allocator *count* proofs. Otherwise the newly supported semantics would falsely fail the existing acceptance suite.
+
+Additional positive tests cover checked or nonwrapping `usize` subtraction with peak bound 260 and nonwrapping modular multiplication with bound 1020; uncertain partial modular wrapping remains a negative case. These are committed **test inputs**, not test runs on a full Hepta checkout.
