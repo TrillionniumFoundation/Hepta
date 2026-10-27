@@ -185,18 +185,73 @@ class RustScalarVmParity(unittest.TestCase):
                 else:
                     self.assertEqual(rust["error"]["code"], python["error"]["code"])
 
-    def test_v7_requires_separate_rust_scalar_profile_qualification(self):
+    def test_v7_scalar_is_equivalent_but_v7_chain_is_not_admitted(self):
         source = arithmetic("int.add.wrap", "u32", effects=())
         source["schema"] = "hepta.hia.program.v7"
         checked = verify_program(source)
-        self.assertEqual(execute_program(checked, "calc", [3, 4])["result"], 7)
-        # Rust's opt-in scalar shadow has verified v1-v6 grammars only.
-        # A valid Python v7 program must not acquire implicit permission.
+        python = execute_program(checked, "calc", [3, 4], max_call_depth=32)
+        rust = self.rust(source, "calc", [3, 4])
+        self.assertEqual(rust["status"], python["status"])
+        self.assertEqual(rust["values"], python["values"])
+        self.assertEqual(rust["steps"], python["steps"])
+
+        # Independently accepted v7 chain/Owner operations remain OUTSIDE
+        # the Rust scalar verifier; this is a real canonical positive fixture.
+        chain = {
+            "schema": "hepta.hia.program.v7", "module": "chain_shadow_boundary",
+            "functions": [{
+                "name": "empty_chain", "params": [], "returns": [],
+                "effects": ["alloc"], "entry": "entry",
+                "blocks": [{
+                    "id": "entry", "params": [],
+                    "ops": [
+                        {"op": "chain.empty", "args": [],
+                         "out": [{"name": "head", "type": "chain"}], "attrs": {}},
+                        {"op": "owner.drop", "args": ["head"], "out": [], "attrs": {}}
+                    ],
+                    "term": {"op": "ret", "values": []}
+                }]
+            }]
+        }
+        canon = verify_program(chain)
         denied = subprocess.run([
             "cargo", "run", "--quiet", "--offline", "--manifest-path", str(MANIFEST),
-            "--", "--scalar-run", "calc", "[3,4]"
-        ], input=checked.canonical_bytes, cwd=ROOT, capture_output=True, timeout=60)
+            "--", "--scalar-run", "empty_chain", "[]"
+        ], input=canon.canonical_bytes, cwd=ROOT, capture_output=True, timeout=60)
         self.assertNotEqual(denied.returncode, 0)
+
+    def test_v7_scalar_differential_matrix_and_v6_equivalence(self):
+        cases = (
+            (arithmetic("int.mul.wrap", "u64", effects=()),
+             "calc", [2**64 - 1, 2**64 - 1], 100_000),
+            (arithmetic("int.rem.checked", "i64"),
+             "calc", [-2**63, -1], 100_000),
+            (phi_loop(), "counter", [5], 100_000),
+            (nested_calls(), "outer", [7], 100_000),
+            (depth_boundary(), "bounded", [31], 100_000),
+            (depth_boundary(), "bounded", [32], 100_000),
+        )
+        for source, entry, args, limit in cases:
+            outcomes = []
+            for version in (6, 7):
+                source["schema"] = f"hepta.hia.program.v{version}"
+                canonical = verify_program(source)
+                rust = self.rust(canonical, entry, args, max_steps=limit)
+                try:
+                    python = execute_program(canonical, entry, args,
+                                             max_steps=limit, max_call_depth=32)
+                except (HIAProgramTrap, HIAProgramBudgetExceeded) as exc:
+                    python = exc.report
+                self.assertEqual(rust["status"], python["status"])
+                self.assertEqual(rust["steps"], python["steps"])
+                if python["status"] == "returned":
+                    self.assertEqual(rust["values"], python["values"])
+                    outcomes.append(("returned", tuple(rust["values"]), rust["steps"]))
+                else:
+                    self.assertEqual(rust["error"]["code"], python["error"]["code"])
+                    outcomes.append((rust["status"], rust["error"]["code"], rust["steps"]))
+            self.assertEqual(outcomes[0], outcomes[1],
+                             f"v6-v7 scalar semantic drift in {entry!r} {args!r}")
 
     def test_explicit_public_exports_and_internal_calls_match_canonical_core(self):
         source = nested_calls()

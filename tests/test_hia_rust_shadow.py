@@ -48,7 +48,7 @@ class RustScalarShadow(unittest.TestCase):
         return result
 
     def test_reference_scalar_digest(self):
-        for version in range(1, 7):
+        for version in range(1, 8):
             source = sample()
             source["schema"] = f"hepta.hia.program.v{version}"
             reference = verify_program(source)
@@ -74,6 +74,31 @@ class RustScalarShadow(unittest.TestCase):
             with self.assertRaises(HIAProgramRejected):
                 verify_program(bad)
             self.assertNotEqual(self.run_rust(bad).returncode, 0)
+
+    def test_v7_hidden_resource_function_cannot_bypass_whole_module_check(self):
+        # A public scalar export cannot smuggle a separate uncalled v7
+        # resource function into the shadow's claimed scalar-only module.
+        source = sample()
+        source["schema"] = "hepta.hia.program.v7"
+        source["exports"] = ["add"]
+        source["functions"].append({
+            "name": "hidden_chain", "params": [], "returns": [],
+            "effects": ["alloc"], "entry": "hidden_entry",
+            "blocks": [{
+                "id": "hidden_entry", "params": [],
+                "ops": [
+                    {"op": "chain.empty", "args": [],
+                     "out": [{"name": "chain_owner", "type": "chain"}], "attrs": {}},
+                    {"op": "owner.drop", "args": ["chain_owner"],
+                     "out": [], "attrs": {}}
+                ],
+                "term": {"op": "ret", "values": []}
+            }]
+        })
+        canonical = verify_program(source)
+        refused = self.run_rust(canonical.canonical_bytes)
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertIn(b"E_HIA_RUST_UNSUPPORTED", refused.stderr)
 
     def test_python_accepts_resource_but_rust_shadow_rejects(self):
         source = {

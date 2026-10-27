@@ -27,7 +27,7 @@ fn check(v: &Value) -> bool {
 
 #[test]
 fn accepts_scalar_ssa_in_all_known_envelopes() {
-    for v in 1..=6 {
+    for v in 1..=7 {
         let value = scalar(&format!("hepta.hia.program.v{v}"));
         let report = verify(&serde_json::to_vec(&value).unwrap()).unwrap();
         assert_eq!(report["claims"]["scalar_ssa_and_cfg_checked"], true);
@@ -37,7 +37,7 @@ fn accepts_scalar_ssa_in_all_known_envelopes() {
 }
 #[test]
 fn rejects_unknown_versions_and_unknown_keys() {
-    let mut v = scalar("hepta.hia.program.v7");
+    let mut v = scalar("hepta.hia.program.v8");
     assert!(!check(&v));
     v["schema"] = json!("hepta.hia.program.v1");
     v["extra"] = json!(false);
@@ -106,4 +106,28 @@ fn accepts_explicit_phi_arguments_and_checks_edge_types() {
     assert!(check(&v));
     v["functions"][0]["blocks"][1]["params"][0]["type"] = json!("i32");
     assert!(!check(&v));
+}
+
+#[test]
+fn valid_v7_chain_program_is_not_a_scalar_program() {
+    let doc = json!({
+        "schema": "hepta.hia.program.v7", "module": "chain_shadow_boundary",
+        "functions": [{
+            "name": "empty_chain", "params": [], "returns": [],
+            "effects": ["alloc"], "entry": "entry",
+            "blocks": [{
+                "id": "entry", "params": [],
+                "ops": [
+                    {"op": "chain.empty", "args": [],
+                     "out": [{"name":"head","type":"chain"}], "attrs": {}},
+                    {"op": "owner.drop", "args": ["head"], "out": [], "attrs": {}}
+                ],
+                "term": {"op": "ret", "values": []}
+            }]
+        }]
+    });
+    assert!(!check(&doc), "v7 chain cannot inherit scalar safety");
+    let report = verify(&serde_json::to_vec(&scalar("hepta.hia.program.v7")).unwrap()).unwrap();
+    assert_eq!(report["claims"]["v7_scalar_only_checked"], true);
+    assert_eq!(report["claims"]["v7_chain_resources_supported"], false);
 }

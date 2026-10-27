@@ -51,9 +51,10 @@ python tools/qualify_hia_unified.py \
 Cargo 1.90.0 and its locked dependencies must be available for the new Rust
 shadow tests. Put its binary on PATH with the pinned rustc, and set
 `CARGO_TARGET_DIR` to a build directory outside the source checkout so generated
-artifacts cannot change the source snapshot. The Rust shadow supports only
-primitive v1..v6 and does not grant native admission; v7 is explicitly rejected.
-The old static budget analyzer also rejects v7 instead of counting a dynamic
+artifacts cannot change the source snapshot. The Rust shadow accepts independently checked resource-free scalar programs
+under v1..v7. Recursive chains, Owner/Loan and unverified memory/resource
+semantics under v7 remain refused, and Rust cannot grant native admission.
+The static budget analyzer also rejects v7 instead of counting a dynamic
 chain destructor as one constant-time/free event.
 
 Run the full Linux native-isolation suite with a native Linux Python exposing

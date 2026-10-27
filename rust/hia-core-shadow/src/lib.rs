@@ -575,10 +575,16 @@ pub fn verify(input: &[u8]) -> R<Value> {
     let schema = string(&top["schema"], "schema")?;
     if !matches!(schema, "hepta.hia.program.v1" | "hepta.hia.program.v2"
         | "hepta.hia.program.v3" | "hepta.hia.program.v4"
-        | "hepta.hia.program.v5" | "hepta.hia.program.v6")
+        | "hepta.hia.program.v5" | "hepta.hia.program.v6"
+        | "hepta.hia.program.v7")
     {
         return failure("E_HIA_SCHEMA", "unrecognized or ambiguous HIA schema");
     }
+    // Version 7 extends the RESOURCE ISA, not the scalar machine. Every
+    // function (including unused ones) is still fully checked by scalar()
+    // and instruction(): Chain/Owner/Loan and any unknown opcode fail closed.
+    // This does NOT authorize v7 resource verification or native final-use.
+
     ident(&top["module"])?;
     let fs = array(&top["functions"], "functions")?;
     if fs.is_empty() || fs.len() > MAX_FUNCTIONS {
@@ -639,6 +645,8 @@ pub fn verify(input: &[u8]) -> R<Value> {
         "source_required": false,
         "claims": {
             "scalar_ssa_and_cfg_checked": true,
+            "v7_scalar_only_checked": schema == "hepta.hia.program.v7",
+            "v7_chain_resources_supported": false,
             "resource_provenance_verified": false,
             "full_hia_verifier_replaced": false,
             "whole_language_soundness_proved": false,
