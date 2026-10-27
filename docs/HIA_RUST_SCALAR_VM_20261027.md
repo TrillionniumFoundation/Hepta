@@ -69,3 +69,10 @@ this environment; code review and mathematical spot checks cannot be
 reported as an end-to-end native pass.
 
 `whole_project_blockers_closed=false`.
+
+The native LLVM regression suite also now contains a new actual-child
+SIGABRT test for signed `MIN % -1` across i8/i16/i32/i64, paired with valid
+`(MIN+1) % -1 == 0` controls. It links against genuine emitted HIA LLVM
+shared-library exports, not a handwritten approximation. These committed
+native tests require the pinned Clang toolchain and have **not been run**
+on this exact merge head in the current container.
