@@ -75,8 +75,25 @@ cleanup is not reported as an executed Hepta `owner.drop` or `loan.end`.
 
 ## Executed evidence
 
-On 2026-10-27, Rust/Cargo 1.90.0 and `/usr/bin/python3` 3.12.3 executed the full
-crate suite and all Rust shadow Python modules:
+### Historical implementation before workspace recovery
+
+The initial local implementation commit was
+`44e586d728cb637f91c149e856db5d741ab7cc85`, based on
+`ddac4e3de71794853ccef2d012a43eb40a97d39e`. Its earlier development run recorded
+52 passing Rust tests, 45 passing Python tests and 124 full-ledger differential
+observations. The original scratch logs and manifest were lost when the
+workspace was reclaimed. Those counts describe that historical source only;
+they are not retained execution evidence for a recovered or integrated SHA.
+
+### Recovered implementation: fresh execution
+
+The recovered implementation was actually rerun from clean commit
+`79e5dbc8916a3e426e0bf97cfcc94216a5856de5` on 2026-10-27, from
+13:53:52 UTC to 13:54:05 UTC. Rust 1.90.0
+(`1159e78c4 2025-09-14`), Cargo 1.90.0
+(`840b83a10 2025-07-30`) and `/usr/bin/python3` 3.12.3 executed these two
+commands with `CARGO_NET_OFFLINE=true` and the external
+`CARGO_TARGET_DIR=/workspace/scratch/d930f2b45e07/rust-recovery-target`:
 
 ```bash
 cargo test --locked --offline --manifest-path rust/hia-core-shadow/Cargo.toml
@@ -88,6 +105,11 @@ cargo test --locked --offline --manifest-path rust/hia-core-shadow/Cargo.toml
 ```
 
 Results: **52 Rust tests passed; 45 Python tests passed; zero skipped tests**.
+The tracked source was clean before and after execution; HEAD and every
+recorded implementation/authority source hash remained unchanged. These are
+scoped development results for the exact recovered commit above. They do not
+qualify the later integrated source SHA or substitute for its 35-gate run.
+
 The new dedicated Python module contributed 10 tests and **124 actual
 Rust/Python full-ledger parity observations**. It builds the real binary using
 Cargo's compiler-artifact executable path, verifies each positive document
@@ -104,6 +126,17 @@ scalar overflow while an owner is live, and explicit traps with live loans.
 Negative tests cover illegal aliases/loan lifetimes, fabricated public
 handles, explicit non-exported entries, policies outside the finite bounds,
 and hidden or unsupported program content.
+
+The fresh logs and manifest are retained under
+`/workspace/scratch/d930f2b45e07/hepta-rust-recovery-validation`. The manifest
+records the tested HEAD, toolchain versions, complete command arguments,
+process results, timestamps, source hashes and unchanged-source checks.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `cargo.log` | `b6bc7151a8b325081d8e3818f1bcd26b087c6317e5dd90e52ada19cc26c1192b` |
+| `python.log` | `4840162da1ac456eb87b1d1a4248d958d36aa0e0c52d89de6b9fc11b740ec3f8` |
+| `validation.json` | `c8e159dbc12846c148e8494c390c6d26befb4a68bfa1a4abda6afaf1b97e0a9b` |
 
 This evidence establishes the tested finite interpreter correspondence. It
 does not establish general resource execution, recursive resource calls,

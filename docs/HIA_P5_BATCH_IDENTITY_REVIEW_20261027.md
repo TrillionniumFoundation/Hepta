@@ -1,6 +1,11 @@
 # P5 independent review: batch presentation identity
 
 Review base: `0e0f07a48c1e66d608875800a8e51dc3eb7c29e0`.
+That original local review tree was published as
+`072d0d4d5c8049709b16a29b7d2025988832670a` (the same Git tree,
+`6358a2db01811a055363cced9eee5b8b68fd15fb`). The original local workspace
+was subsequently reclaimed; historical observations below are not a claim
+that the original raw logs remain available.
 The review read the v2 query traversal, batch preparation/application/rendering,
 and the CFG/control-context tests. Reproduction and changes were isolated from
 the integration and Rust worktrees.
@@ -61,6 +66,12 @@ then applies the atomic edits and executes the resulting program.
 
 Result on Python 3.12.3: **37 passed, zero skipped**. This is a scoped review
 run, not another whole-repository qualification claim.
+
+The implementation and dedicated test were restored at
+`94ad42edef749e246afaf38fe47476749d0da54f`; their SHA-256 digests match the
+original review inventory. The same six-module command was rerun after
+restoration and again passed all 37 tests with zero skips. Qualification of
+the combined source is recorded separately by the unified collector.
 
 ## Traversal assessment and remaining boundaries
 
