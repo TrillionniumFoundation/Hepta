@@ -26,11 +26,11 @@ fn main() -> ExitCode {
                     }
                 }
             } else { 100_000 };
-            match serde_json::from_str::<Vec<serde_json::Value>>(arguments) {
+            match hia_core_shadow::decode_scalar_arguments(arguments) {
                 Ok(values) => hia_core_shadow::execute_scalar(
                     &input, function, &values, max_steps),
-                Err(_) => {
-                    eprintln!("E_HIA_INPUT: expected a JSON array of typed scalar arguments");
+                Err(error) => {
+                    eprintln!("{error}");
                     return ExitCode::FAILURE;
                 }
             }

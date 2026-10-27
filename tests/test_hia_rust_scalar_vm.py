@@ -287,6 +287,20 @@ class RustScalarVmParity(unittest.TestCase):
                 else:
                     self.assertEqual(rust["error"]["code"], python["error"]["code"])
 
+    def test_rust_cli_arguments_refuse_nested_or_nonscalar_json(self):
+        program = arithmetic("int.add.wrap", "u32", effects=())
+        raw = verify_program(program).canonical_bytes
+        for arguments in ('[[2],3]', '[{"x":2},3]', '["2",3]', '[2.5,3]'):
+            with self.subTest(arguments=arguments):
+                rejected = subprocess.run([
+                    "cargo", "run", "--quiet", "--offline",
+                    "--manifest-path", str(MANIFEST),
+                    "--", "--scalar-run", "calc", arguments,
+                ], input=raw, cwd=ROOT, capture_output=True, timeout=60)
+                self.assertNotEqual(rejected.returncode, 0)
+                self.assertIn("E_HIA_", rejected.stderr.decode(errors="replace"))
+        self.assertEqual(self.rust(program, "calc", [2, 3])["values"], [5])
+
     def test_failure_is_input_or_verifier_rejection_not_execution(self):
         source = arithmetic("int.add.checked", "u32")
         canonical = verify_program(source).canonical_bytes

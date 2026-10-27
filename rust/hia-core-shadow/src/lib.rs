@@ -525,6 +525,33 @@ fn decode_hia(input: &[u8]) -> R<(Value, Vec<u8>)> {
     Ok((doc, canonical))
 }
 
+/// Bounded untrusted CLI argument decoder for the existing scalar oracle.
+///
+/// Reuses the SAME depth/node/duplicate-key-safe deserializer as HIA Core
+/// source. No Value tree is allocated for a payload over the byte budget.
+/// Scalar *type* and arity remain independently checked by execute_scalar.
+pub const MAX_SCALAR_ARGS_BYTES: usize = 128 * 1024;
+pub const MAX_SCALAR_ARGS: usize = 8_192;
+pub fn decode_scalar_arguments(text: &str) -> R<Vec<Value>> {
+    if text.len() > MAX_SCALAR_ARGS_BYTES {
+        return failure("E_HIA_INPUT", "scalar argument text exceeds the 128 KiB cap");
+    }
+    // This is a syntax/value-shape parser, NOT the HIA program validator.
+    // decode_hia already rejects deep/dense JSON and duplicate object keys
+    // before constructing an unrestricted serde_json::Value graph.
+    let (value, _) = decode_hia(text.as_bytes())?;
+    let Value::Array(arguments) = value else {
+        return failure("E_HIA_INPUT", "scalar arguments must be a JSON array");
+    };
+    if arguments.len() > MAX_SCALAR_ARGS || arguments.iter().any(|item| {
+        !matches!(item, Value::Number(_) | Value::Bool(_) | Value::Null)
+    }) {
+        return failure("E_HIA_INPUT", "scalar arguments exceed count/type profile");
+    }
+    Ok(arguments)
+}
+
+
 /// Independently check a conservative HIA v1 Owner/Loan CFG subset.
 /// This is never a source/native admission or proof authorization.
 pub fn verify_owned(input: &[u8]) -> R<Value> {

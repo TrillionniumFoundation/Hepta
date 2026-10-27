@@ -1,4 +1,4 @@
-use hia_core_shadow::execute_scalar;
+use hia_core_shadow::{decode_scalar_arguments, execute_scalar, MAX_SCALAR_ARGS, MAX_SCALAR_ARGS_BYTES};
 use serde_json::{json, Value};
 
 fn machine(op: &str, ty: &str, effects: Vec<&str>) -> Value {
@@ -22,6 +22,35 @@ fn machine(op: &str, ty: &str, effects: Vec<&str>) -> Value {
 fn run(document: &Value, function: &str, args: Vec<Value>, steps: u64) -> Value {
     execute_scalar(&serde_json::to_vec(document).unwrap(), function, &args, steps).unwrap()
 }
+#[test]
+fn scalar_cli_argument_decoder_is_bounded_before_untrusted_value_materialization() {
+    assert_eq!(
+        decode_scalar_arguments("[2,3,true,null]").unwrap(),
+        vec![json!(2), json!(3), json!(true), Value::Null]
+    );
+    assert_eq!(decode_scalar_arguments("[]").unwrap(), Vec::<Value>::new());
+    // Shape, count and byte limits are independent of the function signature.
+    for invalid in ["{}", "[{}]", "[[]]", "[\"opaque\"]", "3", "[1.5]"] {
+        assert!(decode_scalar_arguments(invalid).is_err(), "{invalid}");
+    }
+    let oversized = format!("[{}]", "1".repeat(MAX_SCALAR_ARGS_BYTES));
+    let byte_err = decode_scalar_arguments(&oversized).unwrap_err();
+    assert_eq!(byte_err.code, "E_HIA_INPUT");
+
+    // The delimiter/context may be short enough in bytes but must never
+    // materialize more than the explicitly admitted element count.
+    let many = format!("[{}]", vec!["0"; MAX_SCALAR_ARGS + 1].join(","));
+    let count_err = decode_scalar_arguments(&many).unwrap_err();
+    assert_eq!(count_err.code, "E_HIA_INPUT");
+    // Depth is rejected by the EXISTING bounded UniqueJson decoder.
+    let nested = format!("{}0{}", "[".repeat(100), "]".repeat(100));
+    assert!(decode_scalar_arguments(&nested).is_err());
+    // The original interpreter consumes typed scalars unchanged.
+    let program = machine("int.add.wrap", "u32", vec![]);
+    let passed = decode_scalar_arguments("[2,3]").unwrap();
+    assert_eq!(run(&program, "calculate", passed, 100)["values"], json!([5]));
+}
+
 #[test]
 fn checked_and_wrapping_u64_arithmetic_are_distinct() {
     let a = json!(u64::MAX);
