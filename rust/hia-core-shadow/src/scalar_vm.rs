@@ -83,6 +83,13 @@ fn opcode_results(v: &Value, values: &[Value]) -> Exec<Vec<Value>> {
         "int.div.checked" | "int.rem.checked" => {
             let (a, b) = binary(values)?;
             if b == 0 { return Err(Halt::Trap("division_by_zero")); }
+            // The HIA ISA traps signed MIN / -1 for BOTH quotient and
+            // remainder. Computing the remainder in i128 would otherwise
+            // yield zero and silently disagree with Python and native LLVM.
+            let (signed, width) = int_bits(ty).ok_or(Halt::Internal)?;
+            if signed && a == -(1_i128 << (width - 1)) && b == -1 {
+                return Err(Halt::Trap("overflow"));
+            }
             let quotient = a / b; // i128 division truncates toward zero.
             let n = if opcode == "int.div.checked" { quotient } else { a - quotient * b };
             vec![typed_integer(n, ty, false)?]

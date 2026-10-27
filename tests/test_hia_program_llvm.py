@@ -183,6 +183,42 @@ class StandaloneHIANativeTests(unittest.TestCase):
                 child = run_bounded([str(binary)])
                 self.assertEqual(child.returncode, -6)
 
+    def test_signed_minimum_remainder_traps_in_native_for_all_widths(self):
+        # Canonical Python and Rust scalar VM must both agree with emitted
+        # native LLVM: signed MIN % -1 traps, never silently returns zero.
+        cases = (
+            ("i8", "int8_t", "INT8_MIN"),
+            ("i16", "int16_t", "INT16_MIN"),
+            ("i32", "int32_t", "INT32_MIN"),
+            ("i64", "int64_t", "INT64_MIN"),
+        )
+        with tempfile.TemporaryDirectory(dir=self.path) as temporary:
+            folder = Path(temporary)
+            for suffix, c_type, minimum in cases:
+                for should_trap in (True, False):
+                    with self.subTest(width=suffix, should_trap=should_trap):
+                        label = suffix + ("_trap" if should_trap else "_valid")
+                        source = folder / (label + ".c")
+                        executable = folder / label
+                        first = minimum if should_trap else "(" + minimum + " + 1)"
+                        body = ("(void)int_rem_checked_" + suffix + "(" + first +
+                                ", -1); return 91;" if should_trap else
+                                "return int_rem_checked_" + suffix + "(" + first +
+                                ", -1) != 0;")
+                        source.write_text(
+                            "#include <stdint.h>\n" +
+                            c_type + " int_rem_checked_" + suffix +
+                            "(" + c_type + ", " + c_type + ");\n" +
+                            "int main(void) { " + body + " }\n")
+                        compiled = run_bounded([
+                            CLANG, str(source), str(self.library_path),
+                            "-Wl,-rpath," + str(self.path), "-o", str(executable)
+                        ])
+                        self.assertEqual(compiled.returncode, 0, compiled.stderr)
+                        executed = run_bounded([str(executable)])
+                        self.assertEqual(executed.returncode, -6 if should_trap else 0,
+                                         executed.stdout + executed.stderr)
+
     def test_rehashed_wrong_llvm_is_rejected_before_native_tool_runs(self):
         wrong = self.ir.text + "define i32 @extra(){ret i32 9}\n"
         forged = replace(self.ir, text=wrong, sha256=sha256(wrong.encode()).hexdigest())
