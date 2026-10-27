@@ -98,7 +98,8 @@ class HIADynamicModuloHeapTests(unittest.TestCase):
                     analyze_constant_live_heap(core)
         self.assertIsNone(
             _bounded_divrem("int.rem.checked", None, _Span(0, 7), "u8"))
-        self.assertIsNone(_bounded_divrem("int.div.checked", None, 7, "u64"))
+        self.assertEqual(_bounded_divrem("int.div.checked", None, 7, "u64"),
+                         _Span(0, ((1 << 64) - 1) // 7))
         self.assertIsNone(_bounded_divrem("int.rem.checked", None, 7, "i64"))
 
     def test_zero_divisor_still_traps_in_actual_vm(self):

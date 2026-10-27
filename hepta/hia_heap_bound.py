@@ -179,7 +179,9 @@ def _bounded_divrem(op, lhs, rhs, typ):
     For *unsigned remainder only*, any independently proven positive divisor
     interval [lo,hi] implies a result in [0,hi-1], even when the dividend
     is an arbitrary full-width u64/usize argument. Never infer a finite
-    bound for signed/unknown divisors, possible zero or unknown quotient.
+    bound for signed/unknown divisors or possible zero. For unsigned
+    division, a verified positive divisor lower bound also bounds the
+    successful quotient, even for arbitrary typed full-width dividends.
     """
     a, b = _span(lhs), _span(rhs)
     if b is None:
@@ -193,6 +195,23 @@ def _bounded_divrem(op, lhs, rhs, typ):
         # strictly below the positive divisor on every nontrapping execution.
         # In particular, no arithmetic on an unknown usize is performed here.
         return _bounded(0, b.hi - 1)
+    if op == "int.div.checked" and not typ.startswith("i") and b.lo > 0:
+        # The checked HIA verifier guarantees same-width unsigned operands.
+        # Use the COMPLETE unsigned type domain for an unknown input rather
+        # than a guessed caller value. With strictly positive d:
+        # floor(x_min / d_max) <= x/d <= floor(x_max / d_min).
+        # Overflow cannot occur for unsigned division; zero never reaches
+        # the continuation. The allocator enforces MAX_REQUEST separately.
+        type_lo, type_hi = integer_range(typ)
+        numerator = a if a is not None else _Span(type_lo, type_hi)
+        if (type_lo <= numerator.lo <= numerator.hi <= type_hi
+                and type_lo < b.lo <= b.hi <= type_hi):
+            if (numerator.lo != numerator.hi or b.lo != b.hi):
+                return _bounded(numerator.lo // b.hi,
+                                numerator.hi // b.lo)
+        else:
+            # Malformed direct abstract-domain input must not mint a bound.
+            return None
     if a is None or a.lo != a.hi or b.lo != b.hi:
         return None
     dividend, divisor = a.lo, b.lo
