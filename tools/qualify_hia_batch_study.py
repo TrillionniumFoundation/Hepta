@@ -31,7 +31,19 @@ from tools.qualify_hia_edit_study import (ARMS, SCORED_STATES, _run_model, bindi
                                         fixtures as single_fixtures, instruction, scheduled_cells,
                                         sha, summarize, write)
 
-PROTOCOL = "hepta.hia.atomic-maintenance-study.v1"
+PROTOCOL = "hepta.hia.atomic-maintenance-study.v2"
+CHOICE_DISCLOSURE_POLICY = {
+    "previous_protocol": "hepta.hia.atomic-maintenance-study.v1",
+    "rationale": "v1 enforced per-site candidate inventories without showing them in prompts; v2 prospectively discloses the unchanged exact typed choices",
+    "scope": "every task, both sites, both languages and all four arms",
+    "ordering": "lexicographic canonical JSON bytes; independent of gold labels",
+    "full_query_same_choices_within_language": True,
+    "candidate_inventories_changed": False,
+    "gold_labels_disclosed": False,
+    "cases_or_expected_values_disclosed": False,
+    "decoder_changed": False,
+    "prior_attempts_rescored": False,
+}
 LIMIT = 512
 PAIRS = (("capacity_roundup", "capacity", "ceil_half"),
          ("tagged_octet", "low_byte", "xor_tag"),
@@ -112,6 +124,15 @@ def rust_sources(task, replacements):
     return sources
 
 
+def candidate_choices(task, language):
+    """Publish the parser's exact values without ranking or selecting repairs."""
+    hia = language == "hia"
+    return [{"site": index, "field": part["field"] if hia else "replacement",
+             "allowed_values": sorted(copy.deepcopy(part["allowed"] if hia else part["rust_allowed"]),
+                                      key=canonical)}
+            for index, part in enumerate(task["parts"])]
+
+
 def prompt(task, arm):
     hia = arm.startswith("hia")
     language = "hia" if hia else "rust"
@@ -133,7 +154,11 @@ def prompt(task, arm):
     return ("Repair both helper sites in one atomic response. Return ONLY JSON, without fences or explanation.\n"
             + "Contracts:\n" + "\n".join(contracts)
             + "\nThe unchanged caller passes x,y (only x to unary helpers) and returns part_0 * 31 + part_1 modulo 2^32.\n"
-            + rules + "\nContext:\n" + context
+            + rules
+            + "\nFor each site, select one exact JSON value from allowed_values for changes[field]. "
+              "Preserve its JSON type and structure; other values are rejected."
+            + "\nAllowed replacements (closed set):\n" + canonical(candidate_choices(task, language)).decode()
+            + "\nContext:\n" + context
             + "\nChange only the marked fields. Correct both entries in this response object:\n"
             + canonical(response_for(task, language, 0)).decode())
 
@@ -279,6 +304,9 @@ def run_study(output, models, binary, clang, rustc, threads=4, *, controls_only=
     tasks, initial = fixtures(), bindings()
     plan = {"schema": PROTOCOL, "tasks": tasks, "arms": list(ARMS), "models": models,
             "source_bindings": initial, "git_commit": commit, "source_was_committed": not bool(status),
+            "candidate_disclosure": copy.deepcopy(CHOICE_DISCLOSURE_POLICY),
+            "disclosed_choices": {task["id"]: {language: candidate_choices(task, language)
+                                               for language in ("hia", "rust")} for task in tasks},
             "mode": "development_controls_only" if controls_only else "frozen_complete_study",
             "runtime": file_identity(binary), "clang": file_identity(clang), "rustc": file_identity(rustc),
             "max_new_tokens": LIMIT, "threads": threads, "greedy": True, "seed": 0, "attempts_per_cell": 1,
@@ -336,6 +364,7 @@ def run_study(output, models, binary, clang, rustc, threads=4, *, controls_only=
     comparisons = [criteria(report["summary"], complete) for report in reports]
     result = {"schema": PROTOCOL, "status": "completed" if complete else "development_controls_only" if controls_only else "incomplete",
               "plan_sha256": plan_hash, "git_commit": commit, "source_unchanged": source_stable,
+              "candidate_disclosure": plan["candidate_disclosure"],
               "toolchain_unchanged": toolchain_stable, "final_tool_identities": tools_after,
               "native_controls": len(controls), "native_controls_passed": sum(row["passed"] for row in controls),
               "models": reports, "primary_criteria_per_model": [c["primary"] for c in comparisons],
