@@ -90,6 +90,26 @@ def _bounded_bitand_mask(lhs, rhs):
     return _bounded(0, min(maxima)) if maxima else None
 
 
+def _bounded_positive_or_xor(lhs, rhs, typ):
+    """Sound bit envelope for two proven nonnegative typed intervals.
+
+    If 0 <= a <= A and 0 <= b <= B, neither bitwise OR nor XOR can set
+    a bit above the highest bit present in max(A, B). The result therefore
+    lies in [0, 2**max(A.bit_length(), B.bit_length()) - 1].
+    Negative or unbounded inputs do NOT qualify; both bounds are required.
+    """
+    left, right = _span(lhs), _span(rhs)
+    if left is None or right is None:
+        return None
+    minimum, maximum = integer_range(typ)
+    if (left.lo < 0 or right.lo < 0 or left.lo > left.hi or right.lo > right.hi
+            or left.hi > maximum or right.hi > maximum):
+        return None
+    top = max(left.hi, right.hi)
+    ceiling = (1 << top.bit_length()) - 1
+    return _bounded(0, ceiling) if ceiling <= maximum else None
+
+
 def _bounded_bitnot(value, typ):
     """Fixed-width ones' complement reverses a *verified* interval.
 
@@ -397,6 +417,11 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) 
                     # one's complement. A nonexact typed interval can be
                     # propagated without assuming any particular input.
                     folded = _bounded_bitnot(known.get(args[0]), outputs[0]["type"])
+                elif folded is None and op in {"bit.or", "bit.xor"}:
+                    # Only two independently proven nonnegative intervals
+                    # can authorize this finite highest-bit envelope.
+                    folded = _bounded_positive_or_xor(
+                        known.get(args[0]), known.get(args[1]), outputs[0]["type"])
                 if folded is not None:
                     known[out_names[0]] = folded
             elif op == "int.neg.checked":
