@@ -58,6 +58,11 @@ _NO_ALLOCATION_OPS = frozenset({
 # outstanding heap bytes accumulate over any number of backedges.  This does
 # NOT bound cumulative allocator interactions, steps, termination or RSS.
 # Keep try_new, calls, memory operations and borrowed owners out of scope.
+# Reuse the already-audited typed interval transfer: no second arithmetic oracle.
+_SCOPED_CYCLE_INTERVAL_ARITH = frozenset({
+    "int.add.checked", "int.sub.checked", "int.mul.checked",
+    "int.add.wrap", "int.sub.wrap", "int.mul.wrap",
+})
 _SCOPED_CYCLE_OPS = _ZERO_HEAP_CYCLIC_SCALARS | frozenset({
     "buffer.new", "owner.move", "owner.drop",
 })
@@ -78,8 +83,9 @@ def _scoped_allocating_cycle_peak(fn: dict) -> int | None:
     saw_allocation = False
     for block in fn["blocks"]:
         # Seed the preexisting abstract domain with intrinsic machine-type
-        # bounds, independent of caller values. Only constants and the
-        # reviewed cast transfer may refine sizes inside this block.
+        # bounds, independent of caller values. Only constants, the
+        # reviewed cast transfer and audited integer interval arithmetic
+        # may refine sizes inside this block.
         known = _typed_entry_bounds(block["params"])
         live: dict[str, int] = {}
         live_bytes = 0
@@ -98,6 +104,16 @@ def _scoped_allocating_cycle_peak(fn: dict) -> int | None:
                 # finite domain as well.
                 folded = _bounded_cast(known.get(args[0]),
                                        outputs[0]["type"], attrs["mode"])
+                if folded is not None:
+                    known[outputs[0]["name"]] = folded
+            elif op in _SCOPED_CYCLE_INTERVAL_ARITH:
+                # Reuse the finite, machine-width, checked-vs-wrapping
+                # arithmetic interval transfer already used by the acyclic
+                # analyzer. A partially overflowing interval returns unknown.
+                # No previous block's inferred value or caller-side assertion
+                # is imported; this SSA definition must be in this block.
+                folded = _bounded_binary(op, known.get(args[0]), known.get(args[1]),
+                                         outputs[0]["type"])
                 if folded is not None:
                     known[outputs[0]["name"]] = folded
             elif op == "buffer.new":
@@ -131,9 +147,8 @@ def _scoped_allocating_cycle_peak(fn: dict) -> int | None:
                 if len(args) != 1 or args[0] not in live:
                     return None
                 live_bytes -= live.pop(args[0])
-            # Other admitted scalar instructions can alter future branch
-            # decisions but cannot create/destroy HIA ownership. We do not
-            # infer allocator extents from their results in this profile.
+            # Remaining scalar instructions may affect control flow but cannot
+            # mint a resource bound without an explicit reviewed transfer.
         # A path can revisit this block only via an edge; enforce a fully
         # balanced owner state at EVERY normal outgoing edge. A trap has no
         # continuation, and promises no eventual destructor cleanup.

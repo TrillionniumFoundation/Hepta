@@ -154,7 +154,26 @@ class ScopedAllocatingLoopTests(unittest.TestCase):
                          {"count_down": (1 << 32) - 1})
         self.assertEqual(execute_program(verified, "count_down", [7])["resources"]["peak_bytes"], 7)
 
-    def test_unproved_arithmetic_extent_still_rejects_on_cycle(self):
+    def test_same_block_checked_constant_arithmetic_qualifies_cyclic_peak(self):
+        source = scoped_loop()
+        body = next(x for x in source["functions"][0]["blocks"] if x["id"] == "body")
+        body["ops"] = [
+            c("base_size", "usize", 4),
+            c("added_size", "usize", 5),
+            i("int.add.checked", ["base_size", "added_size"], [("total", "usize")]),
+            i("buffer.new", ["total"], [("local", "buffer")]),
+            i("owner.drop", ["local"]),
+            *body["ops"][4:],
+        ]
+        verified = verify_program(source)
+        self.assertEqual(analyze_constant_live_heap(verified), {"count_down": 9})
+        for n in (0, 1, 3):
+            result = execute_program(verified, "count_down", [n])
+            self.assertEqual(result["resources"]["peak_bytes"], 9 if n else 0)
+            self.assertEqual(result["resources"]["live_bytes"], 0)
+            self.assertEqual(result["resources"]["allocations"], n)
+
+    def test_proven_u32_interval_plus_one_qualifies_without_caller_assumptions(self):
         source = scoped_loop()
         body = next(x for x in source["functions"][0]["blocks"] if x["id"] == "body")
         body["ops"] = [
@@ -166,10 +185,48 @@ class ScopedAllocatingLoopTests(unittest.TestCase):
             *body["ops"][4:],
         ]
         verified = verify_program(source)
-        # This loop profile intentionally does not reimplement the complete
-        # numeric SSA transfer; unreviewed local arithmetic stays unknown.
-        with self.assertRaisesRegex(HIAStaticBudgetRejected, "E_HIA_BUDGET_UNBOUNDED"):
-            analyze_constant_live_heap(verified)
+        # Full typed u32 input domain is [0, 2**32 - 1], and adding
+        # one cannot overflow a checked 64-bit usize.
+        self.assertEqual(analyze_constant_live_heap(verified),
+                         {"count_down": 1 << 32})
+        for n in (0, 1, 2, 7):
+            result = execute_program(verified, "count_down", [n])
+            self.assertEqual(result["resources"]["peak_bytes"], n + 1 if n else 0)
+            self.assertEqual(result["resources"]["live_bytes"], 0)
+
+    def test_proven_exact_wrapping_extent_matches_fixed_width_native_semantics(self):
+        source = scoped_loop()
+        body = next(x for x in source["functions"][0]["blocks"] if x["id"] == "body")
+        body["ops"] = [
+            c("max_usize", "usize", (1 << 64) - 1),
+            c("increment", "usize", 8),
+            i("int.add.wrap", ["max_usize", "increment"], [("computed_size", "usize")]),
+            i("buffer.new", ["computed_size"], [("owner", "buffer")]),
+            i("owner.drop", ["owner"]),
+            *body["ops"][4:],
+        ]
+        verified = verify_program(source)
+        self.assertEqual(analyze_constant_live_heap(verified), {"count_down": 7})
+        self.assertEqual(execute_program(verified, "count_down", [3])["resources"]["peak_bytes"], 7)
+
+    def test_partially_overflowing_or_wrapping_interval_stays_unqualified(self):
+        for instruction in ("int.add.checked", "int.add.wrap"):
+            with self.subTest(instruction=instruction):
+                source = scoped_loop()
+                body = next(x for x in source["functions"][0]["blocks"] if x["id"] == "body")
+                body["ops"] = [
+                    i("int.cast", ["r"], [("first", "usize")], mode="checked"),
+                    c("large", "usize", (1 << 64) - 1),
+                    i(instruction, ["first", "large"], [("unproved", "usize")]),
+                    i("buffer.new", ["unproved"], [("owner", "buffer")]),
+                    i("owner.drop", ["owner"]),
+                    *body["ops"][4:],
+                ]
+                # Valid HIA program, but this interval partially crosses
+                # the machine arithmetic boundary; no narrow peak admitted.
+                verified = verify_program(source)
+                with self.assertRaisesRegex(HIAStaticBudgetRejected, "E_HIA_BUDGET_UNBOUNDED"):
+                    analyze_constant_live_heap(verified)
 
     def test_owner_transferred_across_block_boundary_remains_unqualified(self):
         source = scoped_loop()
