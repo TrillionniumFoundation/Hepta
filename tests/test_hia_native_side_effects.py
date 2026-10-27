@@ -24,6 +24,12 @@ _SUPPORTED = (platform.system() == "Linux"
               and hasattr(signal, "SIGSYS")
               and shutil.which("clang") is not None)
 
+# The observer's deadline includes isolated Python startup, imports, seccomp
+# setup, dlopen/constructors and signal-exit observation. Shared CI runners can
+# exceed three seconds before that observation completes. Use the observer's
+# existing bounded maximum; timeout is still a failure, never accepted as SIGSYS.
+_OBSERVATION_TIMEOUT_SECONDS = 10.0
+
 
 @unittest.skipUnless(_SUPPORTED, "requires Linux x86-64, native Clang and seccomp")
 class NativeSideEffectRejectionTests(unittest.TestCase):
@@ -39,7 +45,8 @@ class NativeSideEffectRejectionTests(unittest.TestCase):
         try:
             native._check_artifact_unchanged(path, original, ident)
             return native._observe_native(
-                path, function, "i32", [], timeout=3, pinned_fd=descriptor)
+                path, function, "i32", [], timeout=_OBSERVATION_TIMEOUT_SECONDS,
+                pinned_fd=descriptor)
         finally:
             os.close(descriptor)
 

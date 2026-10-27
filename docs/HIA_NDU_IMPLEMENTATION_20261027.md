@@ -97,6 +97,8 @@ Agent 实验使用实际 Qwen2.5-Coder 0.5B、同一量化模型和固定预算�
 
 `tools/qualify_hia_verified_increment.py` 对最终冻结的实现运行 22 个测试模块：**201 项通过，0 failure、0 error、0 skip**，源码身份前后一致。日志与源码清单在 [集成验证目录](../experiments/hia_verified_integration/run_20261027/result.json)。
 
+发布后的首轮 [GitHub CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/40545121868) 出现一项失败：ELF constructor 测试在观察到预期 `SIGSYS` 前先触发了 3 秒子进程期限。完整失败 artifact 已保留于 [CI 初次记录](../experiments/hia_verified_integration/ci_20261027_initial/summary.json)。修复只将该测试辅助函数的观测预算提高到已有接口支持的 10 秒；精确 `SIGSYS`、文件不得生成、超时仍拒绝以及不重试的断言保持不变，编译器和隔离实现未改动。四项真实原生测试及延迟 constructor 对照见 [修复证据](../experiments/hia_verified_integration/ci_timeout_fix/README.md)。对照区分了超时和实际 syscall 拒绝，没有把人为延迟冒充为 CI 宿主的唯一根因。随后完整本地复验记录在 [修复后的集成目录](../experiments/hia_verified_integration/run_20261027_ci_fix/result.json)，远端状态以 [PR #325](https://github.com/TrillionniumFoundation/Hepta/pull/325) 的对应提交为准。
+
 最终 compiler identity：
 
 ```text
