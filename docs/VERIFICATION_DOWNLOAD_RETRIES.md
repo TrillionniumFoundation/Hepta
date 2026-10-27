@@ -6,8 +6,9 @@ bounded network retry mechanism between the Lean and QEMU installers.
 
 Each installation makes at most **four download attempts**, with **1, 2 and 4
 seconds** between attempts. The existing 60-second `urlopen` timeout, locked
-URLs, SHA-256 identities, selected Lean components and command-line options
-remain unchanged. JSON lines on stderr identify the component, attempt number,
+SHA-256 identities, selected Lean components and command-line options remain
+unchanged. The explicit QEMU source repair below changes its download address
+without changing the package or executable identity. JSON lines on stderr identify the component, attempt number,
 maximum attempts, HTTP status when present, next delay and terminal exhaustion.
 The existing successful JSON result stays on stdout.
 
@@ -50,3 +51,26 @@ when that dependency is absent. Full qualification CI already installs it.
 These tests establish the bounded retry and publication behavior under the
 simulated failures. They do not establish availability of the upstream download
 service or completion of a subsequent hosted CI run.
+
+## Explicit QEMU source repair
+
+Both CI runs `40432186614` and `40433338725` failed at the same Ubuntu snapshot
+URL. A subsequent single GET from the local host also returned HTTP 503. A
+single GET from Ubuntu's official archive returned the complete 14,709,858-byte
+package with the already locked SHA-256:
+
+```text
+5bb397f66063efa349f6fd5cb3b68cd96f29edd0994e4ba5115cf0859a716bf0
+```
+
+`formal/qemu-toolchain-lock.json` now names that verified archive URL. Its
+package version, package digest and extracted executable digest remain
+unchanged. This is an explicit lock-file source change; the installer still
+uses one configured URL and does not search mirrors or substitute a different
+package when verification fails. The prior snapshot URL, actual HTTP results,
+fresh installation log and executable identity are retained in
+`evidence/ci_prerequisites_20261026/qemu_source_repair/`.
+
+The source probes establish availability from the observed host at that time.
+They do not identify the snapshot service's root cause or establish that a
+subsequent hosted CI run completed.
