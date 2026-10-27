@@ -138,7 +138,7 @@ class HIAExactScalarBudgetTests(unittest.TestCase):
             analyze_constant_live_heap(core)
         with self.assertRaisesRegex(ValueError, "E_HIA_BUDGET_UNBOUNDED"):
             analyze_static_budget(core, max_live_heap_bytes=15)
-        self.assertEqual(execute_program(core, "unknown", [23])["result"], 7)
+        self.assertEqual(execute_program(core, "unknown", [23])["result"], (~23) & 255)
 
     def test_proved_nonnegative_bitmask_bounds_dynamic_byte_extents(self):
         # Unlike arbitrary dynamic arithmetic, masking by a verified
@@ -169,7 +169,7 @@ class HIAExactScalarBudgetTests(unittest.TestCase):
                 HIAHeapBoundRejected, "E_HIA_BUDGET_UNBOUNDED"):
             analyze_constant_live_heap(core)
         with self.assertRaises(HIAProgramTrap) as trapped:
-            execute_program(core, "masked_unknown", [1])
+            execute_program(core, "masked_unknown", [-1])
         self.assertEqual(trapped.exception.code, "overflow")
 
     def test_exact_signed_bitwise_machine_width(self):
