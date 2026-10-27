@@ -55,6 +55,22 @@ class SchemaBindingAuditTests(unittest.TestCase):
                 with self.assertRaises(HIAWireAuditRejected):
                     declarations(BASE + injected)
 
+    def test_reflection_aliases_cannot_launder_schema_changes(self):
+        # A literal SCHEMA/PROFILE pair cannot be certified when an imported
+        # or stored reflection helper can rebind its module after scanning.
+        aliases = (
+            b'from builtins import globals as g\ng()["SCHEMA"] = "hepta.hia.program.v7"\n',
+            b'from builtins import exec as run\nrun("SCHEMA = 1")\n',
+            b'import builtins as bi\nbi.exec("SCHEMA = 1")\n',
+            b'helper = globals\nhelper()["PROFILE"] = "changed"\n',
+            b'get = getattr\nrun = get(__builtins__, "exec")\nrun("SCHEMA=1")\n',
+            b'from builtins import __import__ as load\nload("builtins")\n',
+        )
+        for payload in aliases:
+            with self.subTest(payload=payload):
+                with self.assertRaisesRegex(HIAWireAuditRejected, "E_HIA_SCHEMA_AUDIT"):
+                    declarations(BASE + payload)
+
     def test_compare_rejects_duplicate_and_malformed_inventories(self):
         valid = declarations(BASE)
         cases = []
