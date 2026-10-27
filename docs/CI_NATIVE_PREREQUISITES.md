@@ -84,7 +84,31 @@ composite-bulk execution, edit-study overflow controls and the selected Lean
 kernel tests are verified separately with the installed tools; the next full
 workflow must still finish under its own source identity.
 
-## Scope of the repair
+## Host procfs metadata during boundary qualification
+
+The complete 7ef57d1b CI run exposed another runner assumption after its actual
+namespace boundary probe had already executed. Collecting optional host-side
+`/proc/1/root/...` existence metadata raised `PermissionError`, preventing the
+completed boundary observation from being returned. The report consequently
+left nine checks unrecorded. This was not evidence that a parent path became
+readable inside the sandbox.
+
+Host-path metadata now uses an explicit `stat` observation: present and absent
+are separate from **unobservable**, which records `host_exists: null` and the
+actual errno. A denied host observation is never labelled absent. The required
+host canaries and private oracle module are still checked before execution.
+The sandbox still has to make every tested path unreadable, expose an empty
+`/proc`, use distinct required namespaces, drop capabilities, reject the host
+network, exclude credentials and mount system/toolchain files read-only. Both
+actual native execution checks remain mandatory; the ten-check denominator and
+the strict release collector are unchanged.
+
+The targeted probe includes a real namespace/native run with denied host-stat
+metadata and a separately configured negative control that exposes only the
+qualification canary. That readable canary must still fail the boundary gate.
+No host security policy or production sandbox mount is relaxed by this repair.
+
+## Scope of the repairs
 
 These fixes address toolchain selection and runner prerequisites. They do not
 establish compiler soundness, stable performance, a successful whole-candidate
