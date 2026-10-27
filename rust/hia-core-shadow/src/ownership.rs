@@ -1,7 +1,8 @@
-//! Conservative Rust shadow of HIA v1 Owner/Loan control-flow semantics.
-//! The existing Python verify_program is still the sole admission authority.
-//! This shadow refuses interprocedural owners, arbitrary pointers, SIMD,
-//! unknown instructions and all v2-v6 bulk-memory extensions.
+//! Conservative Rust shadow of HIA v1-v7 Owner/Loan control-flow semantics.
+//! Python verify_program is the sole executable admission authority.
+//! This shadow checks finite byte/chain ownership and borrowed-head loans,
+//! not dynamic heap correctness, arbitrary pointer provenance, native LLVM,
+//! external FFI or whole-language resource soundness.
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -9,7 +10,14 @@ use sha2::{Digest, Sha256};
 use super::{array, effects, failure, ident, names, object, string, term_edges,
             instruction as scalar_instruction, R, Signature, VerifyError};
 
-fn is_cap(t: &str) -> bool { matches!(t, "buffer" | "readbuf" | "mutbuf") }
+fn is_owner(t: &str) -> bool { matches!(t, "buffer" | "chain") }
+fn is_cap(t: &str) -> bool { is_owner(t) || matches!(t, "readbuf" | "mutbuf") }
+fn check_chain_type(version: u8, ty: &str) -> R<()> {
+    if version < 7 && ty == "chain" {
+        return failure("E_HIA_TYPE", "recursive chain type requires HIA program v7");
+    }
+    Ok(())
+}
 fn valid_type(v: &Value) -> R<String> {
     let t = string(v, "type")?;
     if is_cap(t) || matches!(t, "i8"|"i16"|"i32"|"i64"|"isize"|
@@ -69,8 +77,8 @@ impl Flow {
         self.caps.values().any(|c| c.parent.as_deref() == Some(name))
     }
     fn owner_free(&self, name: &str) -> R<()> {
-        if self.ty(name)? != "buffer" {
-            return failure("E_HIA_TYPE", "move/drop/return requires owner");
+        if !is_owner(&self.ty(name)?) {
+            return failure("E_HIA_TYPE", "move/drop/return requires linear owner");
         }
         if self.caps.iter().any(|(other, c)| other.as_str() != name && c.root == name) {
             return failure("E_HIA_LOAN", "owner still has live loans");
@@ -86,10 +94,16 @@ impl Flow {
         if self.has_child(name) { return failure("E_HIA_LOAN", "parent is suspended"); }
         Ok(())
     }
-    fn borrow(&mut self, name: &str, output: &str, mutable: bool) -> R<()> {
+    fn borrow(&mut self, name: &str, output: &str, mutable: bool, chain_head: bool) -> R<()> {
         let ty = self.ty(name)?;
-        if (mutable && !matches!(ty.as_str(), "buffer" | "mutbuf"))
-            || (!mutable && !is_cap(&ty)) {
+        let permitted = if chain_head {
+            ty == "chain"
+        } else if mutable {
+            matches!(ty.as_str(), "buffer" | "mutbuf")
+        } else {
+            matches!(ty.as_str(), "buffer" | "readbuf" | "mutbuf")
+        };
+        if !permitted {
             return failure("E_HIA_LOAN", "invalid loan permission");
         }
         let root = self.cap(name)?.root.clone();
@@ -121,6 +135,8 @@ impl Flow {
         if !matches!(op, "buffer.new" | "buffer.try_new" | "buffer.len" |
             "borrow.read" | "borrow.mut" | "loan.end" | "owner.move" |
             "owner.drop" | "buffer.load" | "buffer.store" |
+            "chain.empty" | "chain.try_push" | "chain.pop" |
+            "chain.is_empty" | "chain.head_read" | "chain.head_mut" |
             "buffer.fill" | "buffer.copy" | "buffer.move_within" |
             "buffer.swap" | "buffer.copy_range" | "buffer.fill_range" | "call") {
             // Reuse, rather than reimplement, exact scalar instruction checks.
@@ -133,12 +149,13 @@ impl Flow {
         } else {
             object(&o["attrs"], &[], "resource attributes")?;
         }
-        if ((matches!(op, "buffer.fill" | "buffer.copy") && version < 2)
+        if (op.starts_with("chain.") && version < 7)
+            || ((matches!(op, "buffer.fill" | "buffer.copy") && version < 2)
             || (op == "buffer.move_within" && version < 3)
             || (op == "buffer.swap" && version < 4)
             || (op == "buffer.copy_range" && version < 5)
             || (op == "buffer.fill_range" && version < 6)) {
-            return failure("E_HIA_OPCODE", "memory opcode outside declared ISA version");
+            return failure("E_HIA_OPCODE", "opcode outside declared HIA ISA version");
         }
         let actual: Vec<String> = args.iter().map(|n| self.ty(n)).collect::<R<_>>()?;
         let actual: Vec<&str> = actual.iter().map(String::as_str).collect();
@@ -153,15 +170,49 @@ impl Flow {
                 } else { vec!["buffer", "bool"] }
             }
             "buffer.len" => {
-                if actual.len() != 1 || !is_cap(actual[0]) {
-                    return failure("E_HIA_TYPE", "buffer.len needs live resource");
+                if actual.len() != 1 || !matches!(actual[0], "buffer" | "readbuf" | "mutbuf") {
+                    return failure("E_HIA_TYPE", "buffer.len needs a byte owner/view");
                 }
                 vec!["usize"]
             }
+            "chain.empty" => {
+                if !actual.is_empty() { return failure("E_HIA_TYPE", "chain.empty takes zero operands"); }
+                vec!["chain"]
+            }
+            "chain.try_push" => {
+                if actual.as_slice() != ["chain", "buffer"] {
+                    return failure("E_HIA_TYPE", "chain.try_push needs owned chain and byte payload");
+                }
+                for name in &args { self.owner_free(name)?; }
+                self.required.insert("alloc".into());
+                vec!["chain", "buffer", "bool"]
+            }
+            "chain.pop" => {
+                if actual.as_slice() != ["chain"] {
+                    return failure("E_HIA_TYPE", "chain.pop requires owned chain");
+                }
+                self.owner_free(&args[0])?;
+                self.required.insert("alloc".into());
+                vec!["chain", "buffer", "bool"]
+            }
+            "chain.is_empty" => {
+                if actual.as_slice() != ["chain"] {
+                    return failure("E_HIA_TYPE", "chain.is_empty requires owned chain");
+                }
+                vec!["bool"]
+            }
+            "chain.head_read" | "chain.head_mut" => {
+                if actual.as_slice() != ["chain"] {
+                    return failure("E_HIA_TYPE", "chain head requires owned chain");
+                }
+                self.required.extend(["read".into(), "trap".into()]);
+                vec![if op == "chain.head_read" { "readbuf" } else { "mutbuf" }]
+            }
             "borrow.read" | "borrow.mut" => {
                 if actual.len() != 1 { return failure("E_HIA_TYPE", "borrow arity"); }
-                if (op == "borrow.mut" && !matches!(actual[0], "buffer"|"mutbuf"))
-                    || (op == "borrow.read" && !is_cap(actual[0])) {
+                if (op == "borrow.mut" && !matches!(actual[0], "buffer" | "mutbuf"))
+                    || (op == "borrow.read" &&
+                        !matches!(actual[0], "buffer" | "readbuf" | "mutbuf")) {
                     return failure("E_HIA_LOAN", "borrow type mismatch");
                 }
                 vec![if op == "borrow.read" { "readbuf" } else { "mutbuf" }]
@@ -184,7 +235,7 @@ impl Flow {
                 if op == "owner.drop" {
                     self.required.insert("alloc".into());
                     vec![]
-                } else { vec!["buffer"] }
+                } else { vec![actual[0]] }
             }
             "buffer.load" => {
                 if actual.len() != 2 || actual[1] != "usize" {
@@ -274,7 +325,7 @@ impl Flow {
                     if input_ty != formal_ty && !(input_ty == "mutbuf" && formal_ty == "readbuf") {
                         return failure("E_HIA_CALL", "call argument type mismatch");
                     }
-                    if input_ty == "buffer" {
+                    if is_owner(input_ty) {
                         self.owner_free(arg)?;
                         if !moved_owners.insert(arg.clone()) {
                             return failure("E_HIA_RESOURCE", "same owner consumed twice by call");
@@ -311,25 +362,45 @@ impl Flow {
                     ty: "buffer".into(), root: n, parent: None, external: false,
                 });
             }
+            "chain.empty" => {
+                let n = output[0].name.clone();
+                self.caps.insert(n.clone(), Cap {
+                    ty: "chain".into(), root: n, parent: None, external: false,
+                });
+            }
+            "chain.try_push" | "chain.pop" => {
+                for name in &args { self.caps.remove(name); }
+                for p in &output {
+                    if is_owner(&p.ty) {
+                        self.caps.insert(p.name.clone(), Cap {
+                            ty: p.ty.clone(), root: p.name.clone(), parent: None,
+                            external: false,
+                        });
+                    }
+                }
+            }
+            "chain.head_read" | "chain.head_mut" => {
+                self.borrow(&args[0], &output[0].name, op == "chain.head_mut", true)?;
+            }
             "borrow.read" | "borrow.mut" => {
-                self.borrow(&args[0], &output[0].name, op == "borrow.mut")?;
+                self.borrow(&args[0], &output[0].name, op == "borrow.mut", false)?;
             }
             "loan.end" | "owner.drop" => { self.caps.remove(&args[0]); }
             "owner.move" => {
                 self.caps.remove(&args[0]);
                 let n = output[0].name.clone();
                 self.caps.insert(n.clone(), Cap {
-                    ty: "buffer".into(), root: n, parent: None, external: false,
+                    ty: actual[0].into(), root: n, parent: None, external: false,
                 });
             }
             "call" => {
                 for (name, ty) in args.iter().zip(actual.iter()) {
-                    if *ty == "buffer" { self.caps.remove(name); }
+                    if is_owner(ty) { self.caps.remove(name); }
                 }
                 for p in &output {
-                    if p.ty == "buffer" {
+                    if is_owner(&p.ty) {
                         self.caps.insert(p.name.clone(), Cap {
-                            ty: "buffer".into(), root: p.name.clone(), parent: None,
+                            ty: p.ty.clone(), root: p.name.clone(), parent: None,
                             external: false,
                         });
                     }
@@ -351,7 +422,7 @@ impl Flow {
             if types.as_slice() != results { return failure("E_HIA_TYPE", "return mismatch"); }
             let mut consumed = BTreeSet::new();
             for (n, t) in vals.iter().zip(&types) {
-                if t == "buffer" {
+                if is_owner(t) {
                     if !consumed.insert(n.clone()) {
                         return failure("E_HIA_RESOURCE", "owner returned twice");
                     }
@@ -440,6 +511,7 @@ fn check_function(f: &Value, version: u8, signatures: &BTreeMap<String, Function
         }
         let parameters = params(&b["params"])?;
         for p in &parameters {
+            check_chain_type(version, &p.ty)?;
             if !definitions.insert(p.name.clone()) {
                 return failure("E_HIA_SSA", "globally duplicated parameter");
             }
@@ -452,6 +524,7 @@ fn check_function(f: &Value, version: u8, signatures: &BTreeMap<String, Function
                 return failure("E_HIA_FORMAT", "attrs is not object");
             }
             for p in params(&o["out"])? {
+                check_chain_type(version, &p.ty)?;
                 if !definitions.insert(p.name) {
                     return failure("E_HIA_SSA", "globally duplicated result");
                 }
@@ -490,7 +563,7 @@ fn check_function(f: &Value, version: u8, signatures: &BTreeMap<String, Function
     let initial: Caps = formal.iter().filter(|p| is_cap(&p.ty))
         .map(|p| (p.name.clone(), Cap {
             ty: p.ty.clone(), root: p.name.clone(),
-            parent: None, external: p.ty != "buffer"
+            parent: None, external: !is_owner(&p.ty)
         })).collect();
     let mut incoming: BTreeMap<String, Caps> = BTreeMap::from([(entry.clone(), initial)]);
     let mut pending = VecDeque::from([entry]);
@@ -522,11 +595,15 @@ fn check_function(f: &Value, version: u8, signatures: &BTreeMap<String, Function
 }
 pub(super) fn verify_owned(input: &[u8]) -> R<Value> {
     let (doc, canonical) = super::decode_hia(input)?;
-    let top = object(&doc, &["schema", "module", "functions"], "program")?;
+    let fields: &[&str] = if doc.get("exports").is_some() {
+        &["schema", "module", "functions", "exports"]
+    } else { &["schema", "module", "functions"] };
+    let top = object(&doc, fields, "program")?;
     let schema = string(&top["schema"], "schema")?;
     if !matches!(schema, "hepta.hia.program.v1" | "hepta.hia.program.v2" |
         "hepta.hia.program.v3" | "hepta.hia.program.v4" |
-        "hepta.hia.program.v5" | "hepta.hia.program.v6") {
+        "hepta.hia.program.v5" | "hepta.hia.program.v6" |
+        "hepta.hia.program.v7") {
         return failure("E_HIA_SCHEMA", "unsupported/ambiguous ISA version");
     }
     let version = match schema {
@@ -536,6 +613,7 @@ pub(super) fn verify_owned(input: &[u8]) -> R<Value> {
         "hepta.hia.program.v4" => 4,
         "hepta.hia.program.v5" => 5,
         "hepta.hia.program.v6" => 6,
+        "hepta.hia.program.v7" => 7,
         _ => return failure("E_HIA_SCHEMA", "unsupported ISA version"),
     };
     ident(&top["module"])?;
@@ -548,9 +626,11 @@ pub(super) fn verify_owned(input: &[u8]) -> R<Value> {
         let obj = object(f, &["name", "params", "returns", "effects", "entry", "blocks"], "function")?;
         let n = ident(&obj["name"])?;
         let args = params(&obj["params"])?;
+        for p in &args { check_chain_type(version, &p.ty)?; }
         let mut returns = Vec::new();
         for t in array(&obj["returns"], "call return types")? {
             let ty = valid_type(t)?;
+            check_chain_type(version, &ty)?;
             if matches!(ty.as_str(), "readbuf" | "mutbuf") {
                 return failure("E_HIA_LOAN", "callee may not return borrowed view");
             }
@@ -559,6 +639,22 @@ pub(super) fn verify_owned(input: &[u8]) -> R<Value> {
         let effects = effects(&obj["effects"])?;
         if signatures.insert(n, FunctionSig { params: args, returns, effects }).is_some() {
             return failure("E_HIA_NAME", "duplicate function");
+        }
+    }
+    if let Some(raw_exports) = top.get("exports") {
+        let mut seen = BTreeSet::new();
+        for item in array(raw_exports, "scalar exports")? {
+            let name = ident(item)?;
+            let Some(sig) = signatures.get(&name) else {
+                return failure("E_HIA_CALL", "export names nonexistent function");
+            };
+            if !seen.insert(name) {
+                return failure("E_HIA_NAME", "duplicate export");
+            }
+            if sig.params.iter().any(|p| is_cap(&p.ty)) ||
+               sig.returns.iter().any(|t| is_cap(t)) {
+                return failure("E_HIA_TYPE", "resource descriptor cannot be publicly exported");
+            }
         }
     }
     let mut count = 0;
@@ -576,6 +672,8 @@ pub(super) fn verify_owned(input: &[u8]) -> R<Value> {
             "cross_block_owner_loan_state_checked": true,
             "v2_v6_bulk_byte_opcode_types_loans_and_effects_checked": true,
             "interprocedural_resource_calls_checked": true,
+            "v7_chain_owner_loan_cfg_checked": version == 7,
+            "v7_chain_native_semantics_proved": false,
             "recursion_or_stack_bounds_proved": false,
             "general_memory_provenance_proved": false,
             "full_source_to_core_refinement_proved": false,
