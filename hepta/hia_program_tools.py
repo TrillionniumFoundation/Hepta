@@ -92,7 +92,11 @@ def _bounded_json_string_size(value: str, maximum: int, ensure_ascii: bool) -> i
         elif point in (34, 92):  # quote or backslash
             width = 2
         elif point < 128:
-            width = 1
+            # CPython json.JSONEncoder escapes DEL (U+007F) as \\u007f
+            # when ensure_ascii=True, despite DEL being below U+0080.
+            # Without this exception a small raw string can allocate a
+            # fragment six times the admitted byte budget before refusal.
+            width = 6 if point == 127 and ensure_ascii else 1
         elif ensure_ascii:
             width = 6 if point <= 0xffff else 12
         elif 0xd800 <= point <= 0xdfff:
