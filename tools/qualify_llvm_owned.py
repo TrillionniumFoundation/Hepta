@@ -35,13 +35,14 @@ from hepta.clang_capture import CaptureRejected, run_bounded
 from hepta.llvm_owned_backend import PROFILE, TARGET, compile_owned_llvm, emit_owned_llvm
 from hepta.pipeline import analyze, compiler_hash
 from tools.evidence_checks import is_sha, native_build, normalized_errors, require, strict_equal, text
+from tools.performance_observation import observe_call, validate_observations
 
 EXAMPLE = ROOT / "examples/llvm_owned"
 SOURCE = (EXAMPLE / "owned.hepta").read_text() + "\n" + (EXAMPLE / "qualification.hepta").read_text()
 RUST_REFERENCE = (EXAMPLE / "reference.rs").read_text()
 DRIVER = (EXAMPLE / "driver.c").read_text()
 OBSERVER = (EXAMPLE / "observe.c").read_text()
-INPUTS = ("tools/qualify_llvm_owned.py", "tools/evidence_checks.py",
+INPUTS = ("tools/qualify_llvm_owned.py", "tools/evidence_checks.py", "tools/performance_observation.py",
           *("examples/llvm_owned/" + name for name in
             ("owned.hepta", "qualification.hepta", "reference.rs", "driver.c", "observe.c")))
 SCHEMA = "hepta.llvm-owned-qualification.v1"
@@ -511,6 +512,10 @@ def validate_report(report, *, expected_git_commit=None, require_pass=True):
                 and row["library_sha256"] == artifacts[row["backend"] + "_library"]["sha256"]
                 and row["driver_sha256"] == artifacts["driver_binary"]["sha256"],
                 "timed native outputs/artifacts were altered")
+    validate_observations(report.get("process_observations"), [
+        {"sample": {key: row[key] for key in ("sample_index", "group", "kernel", "backend")},
+         "command": [str(directory / "driver"), str(directory / (row["backend"] + ".so")), row["kernel"]]}
+        for row in rows])
     require(strict_equal(report["evaluation"], evaluation) and report["status"] == evaluation["status"]
             and report["ok"] is evaluation["ok"], "outer status masks fixed sample evaluation")
     require(not require_pass or evaluation["ok"] is True, "fixed native performance/quality gates did not pass")
@@ -551,7 +556,7 @@ def qualify(*, clang="clang", rustc=None, cc="gcc"):
         "handwritten_rust_sha256": sha(RUST_REFERENCE.encode()), "driver_source_sha256": sha(DRIVER.encode()),
         "observer_source_sha256": sha(OBSERVER.encode()),
         "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "raw_samples": [], "compile_wall_seconds": {}, "native_receipts": {},
+        "raw_samples": [], "process_observations": [], "compile_wall_seconds": {}, "native_receipts": {},
         "claims": {**LIMITS, "finite_correctness_checked": False, "actual_owned_cleanup_checked": False,
                    "handwritten_rust_baseline_checked": False, "host_owned_performance_gate_passed": False}}
     affinity = None
@@ -641,7 +646,10 @@ def qualify(*, clang="clang", rustc=None, cc="gcc"):
                 timed_checksum(kernel)  # Python oracle computation occurs outside native timing.
             report["phase"] = "measurement"
             for group, kernel, backend in sample_order():
-                execution = execute([temp / "driver", libraries[backend], kernel])
+                command = [temp / "driver", libraries[backend], kernel]
+                sample = {"group": group, "kernel": kernel, "backend": backend,
+                          "sample_index": len(report["raw_samples"])}
+                execution = observe_call(report["process_observations"], command, sample, lambda: execute(command))
                 report["failed_sample"] = {"group": group, "kernel": kernel, "backend": backend,
                     "sample_index": len(report["raw_samples"]), "execution": execution,
                     "library_sha256": report["artifacts"][backend + "_library"]["sha256"],

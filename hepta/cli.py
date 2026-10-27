@@ -121,6 +121,10 @@ def main(argv=None) -> int:
     cpp_owned.add_argument("source")
     cpp_owned.add_argument("--output", "-o", required=True)
     cpp_owned.add_argument("--clang", default="clang++")
+    cpp_composed = sub.add_parser("migrate-cpp-composed", help="Translate the checked two-to-four-resource C++ composition profile")
+    cpp_composed.add_argument("source")
+    cpp_composed.add_argument("--output", "-o", required=True)
+    cpp_composed.add_argument("--clang", default="clang++")
     project_migrator = sub.add_parser("migrate-c-project", help="Capture a C compilation database and migrate its supported complete declaration set")
     project_migrator.add_argument("database")
     project_migrator.add_argument("--output", "-o", required=True)
@@ -444,6 +448,11 @@ def main(argv=None) -> int:
         if args.command == "migrate-cpp-owned":
             from .cpp_owned_migrate import migrate_cpp_owned
             result = migrate_cpp_owned(args.source, args.output, clangxx=args.clang)
+            output_json(result)
+            return 0 if result["ok"] else 1
+        if args.command == "migrate-cpp-composed":
+            from .cpp_composed_migrate import migrate_cpp_composed
+            result = migrate_cpp_composed(args.source, args.output, clangxx=args.clang)
             output_json(result)
             return 0 if result["ok"] else 1
         if args.command == "migrate-c-project":

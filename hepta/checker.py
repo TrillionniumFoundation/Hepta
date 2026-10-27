@@ -14,6 +14,7 @@ from .ast import Diagnostic, Enum, EnumVariant, Expr, Function, Param, Program, 
 from .borrowed_storage import REFERENCE_TYPES, contains_storage, infer_lifetimes, substitute_lifetimes, value_type
 from .runtime_concurrency import BUDGET_REPORT, GROUP, GROUP_BUILTINS, GROUP_TYPE_NAMES, REPORT, SENDER, TREE_REPORT, budget_report_struct, report_struct, tree_report_struct
 from .runtime_io import IO_BUILTINS, IO_OWNER_TYPES, IO_PAIR, IO_REACTOR, IO_REPORT, IO_REQUEST, IO_TYPE_NAMES, io_structs
+from .runtime_task_io import GROUP_IO_REPORT, group_io_struct
 
 
 INTS = {"i8", "i16", "i32", "i64", "i128", "isize", "u8", "u16", "u32", "u64", "u128", "usize"}
@@ -150,7 +151,7 @@ class _Checker:
     def __init__(self, program: Program):
         self.program = program
         self.result = CheckResult()
-        self.structs: dict[str, Struct] = {"GroupReport": report_struct(), "GroupBudgetReport": budget_report_struct(), "GroupTreeReport": tree_report_struct(), **{s.name:s for s in io_structs()}}
+        self.structs: dict[str, Struct] = {"GroupReport": report_struct(), "GroupBudgetReport": budget_report_struct(), "GroupTreeReport": tree_report_struct(), "GroupIoReport": group_io_struct(), **{s.name:s for s in io_structs()}}
         self.enums: dict[str, Enum] = {"Result": Enum("Result", [EnumVariant("Ok", [Type("$ResultOk")]), EnumVariant("Err", [Type("$ResultErr")])], ("$ResultOk", "$ResultErr"), True)}
         self.type_params: set[str] = set()
         self.owned_type_params: set[str] = set()
@@ -1123,7 +1124,7 @@ class _Checker:
                 self.error("E_AST", "malformed struct expression", expr.span)
             else:
                 name = expr.value.get("name")
-                if name in {"GroupReport", "GroupBudgetReport", "GroupTreeReport", "IoPair", "IoReport"}:
+                if name in {"GroupReport", "GroupBudgetReport", "GroupTreeReport", "GroupIoReport", "IoPair", "IoReport"}:
                     self.error("E_REPORT_CONSTRUCTION", f"{name} values can only be returned by the runtime", expr.span)
                 fields = expr.value.get("fields", [])
                 struct = self.structs.get(name)
@@ -1299,6 +1300,9 @@ class _Checker:
             "io_close_port": ([('mut', IO_REACTOR), ('value', Type('u64'))], BOOL),
             "io_report": ([('read', IO_REACTOR)], IO_REPORT),
             "io_shutdown": ([('take', IO_REACTOR)], IO_REPORT),
+            "io_attach": ([('mut', IO_REACTOR), ('read', SENDER)], Type('u8')),
+            "group_io_configure": ([('mut', GROUP)] + [('value', USIZE)] * 4, BOOL),
+            "group_io_snapshot": ([('read', GROUP)], GROUP_IO_REPORT),
         }[name]
         parameters, result = signature
         if len(args) != len(parameters):
@@ -1324,6 +1328,32 @@ class _Checker:
                 'excludes': ['preadmission_buffers', 'refused_submission_buffers', 'allocator_metadata',
                              'kernel_socket_buffers', 'other_reactors', 'process_RSS', 'CPU_time'],
                 'configuration_can_be_refused': True,
+            })
+        if name == 'group_io_configure':
+            self.result.resource_contracts.append({
+                'kind': 'task_tree_io_pool', 'scope': 'existing_explicit_shared_task_pool',
+                'platform': 'x86_64_unknown_linux_gnu_hosted',
+                'function': self.current.name if self.current else None,
+                'path': expr.span.path, 'line': expr.span.line,
+                'limits': {key: arg.value if arg.kind == 'int' else 'dynamic_runtime_value'
+                           for key, arg in zip(('attached_reactors', 'reserved_endpoint_slots_including_wake_pair',
+                                                'reserved_request_slots', 'admitted_buffer_capacity_bytes'), args[1:])},
+                'enforcement': 'atomic_per_pool_admission_and_release_after_local_cleanup',
+                'includes_completed_uncollected_requests': True, 'configuration_can_be_refused': True,
+                'excludes': ['preadmission_and_refused_buffers', 'worker_and_FFI_allocations',
+                             'runtime_metadata', 'kernel_socket_buffers', 'actual_OS_stack_bytes', 'process_RSS', 'CPU_time'],
+            })
+        if name == 'io_attach':
+            self.result.resource_contracts.append({
+                'kind': 'task_worker_io_attachment', 'scope': 'one_worker_owned_reactor',
+                'function': self.current.name if self.current else None,
+                'path': expr.span.path, 'line': expr.span.line,
+                'authority': 'nonconstructible_read_Sender_u64',
+                'cancellation': 'tree_flag_and_owned_wake_socket_observed_by_exclusive_pump',
+                'join': 'worker_must_consume_all_local_io_owners_before_return',
+                'attachment_can_be_refused': True, 'maximum_attachments_per_group': 64,
+                'excludes': ['forced_foreign_call_interruption', 'hard_realtime_latency',
+                             'async_await', 'TCP_TLS', 'independent_IR_refinement'],
             })
         return result
 

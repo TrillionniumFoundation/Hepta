@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from hepta.pipeline import compiler_hash
 from tools import qualify_llvm_native as qualifier
+from tools import performance_observation as observation
 from tools.qualify_llvm_native import KERNELS, PROTOCOL, evaluate_samples, validate_report
 
 
@@ -21,6 +22,14 @@ def samples(ratio=1.0):
 
 
 class LLVMNativeQualificationPolicyTests(unittest.TestCase):
+    def test_diagnostics_leave_frozen_workload_and_protocol_bytes_unchanged(self):
+        receipt = qualifier.ROOT / "evidence/P6_LLVM_NATIVE_V2_FIRST_RUN_20261025.json"
+        frozen = json.loads(receipt.read_text())
+        self.assertEqual(qualifier.PROTOCOL, frozen["protocol"])
+        self.assertEqual(qualifier.sha(qualifier.wire(qualifier.PROTOCOL).encode()), frozen["protocol_sha256"])
+        self.assertEqual(qualifier.sha(qualifier.SOURCE.encode()), frozen["source_sha256"])
+        self.assertEqual(qualifier.sha(qualifier.DRIVER.encode()), frozen["driver_source_sha256"])
+
     def test_comparable_correct_stable_samples_pass(self):
         result = evaluate_samples(samples(1.0))
         self.assertTrue(result["ok"])
@@ -76,12 +85,37 @@ class LLVMNativeReportValidationTests(unittest.TestCase):
         # without running a compiler, executing native code or collecting time.
         cls.synthetic = deepcopy(cls.observed_inconclusive)
         cls.synthetic["qualifier_sha256"] = qualifier.digest(qualifier.__file__)
+        cls.synthetic["process_observer_sha256"] = observation.source_sha256()
         cls.synthetic["compiler_tree_sha256"] = compiler_hash()
         cls.synthetic["reference_validation"]["compiler_sha256"] = compiler_hash()
         cls.synthetic["ok"], cls.synthetic["status"] = True, "passed"
         cls.synthetic["claims"]["host_scalar32_performance_gate_passed"] = True
         for row in cls.synthetic["raw_samples"]:
             row["elapsed_ns"] = 100_000_000
+        # Explicit synthetic diagnostic fixtures, never historical observations.
+        # No attempt is made to invent missing telemetry for the old run.
+        cls.synthetic["process_observations"] = []
+        directory = Path(cls.synthetic["reference_validation"]["path"]).parent
+        for row in cls.synthetic["raw_samples"]:
+            index = row["sample_index"]
+            child = {"status": "observed", "counters": dict.fromkeys(observation.RUSAGE_FIELDS, 0), "error": None}
+            linux = {}
+            for name, path in observation.LINUX_FILES.items():
+                absent = {"path": path, "status": "unavailable", "raw": None, "raw_sha256": None,
+                          "counters": None, "error": {"type": "SyntheticFixtureUnavailable", "errno": None}}
+                linux[name] = {"before": deepcopy(absent), "after": deepcopy(absent),
+                               "status": "unavailable", "delta": None, "decreased_counters": []}
+            cls.synthetic["process_observations"].append({"schema": observation.SCHEMA,
+                "scope": dict(observation.SCOPE), "sample": {key: row[key] for key in ("sample_index", "group", "kernel", "backend")},
+                "command": [str(directory / "driver"), str(directory / (row["backend"] + ".so")), row["kernel"],
+                            str(PROTOCOL["kernel_iterations"]), str(PROTOCOL["native_calls_per_sample"]),
+                            str(PROTOCOL["warmup_calls_per_process"])],
+                "state": "complete", "capture_exception": None,
+                "clock": {"start_monotonic_ns": index * 200_000_000,
+                          "end_monotonic_ns": index * 200_000_000 + 100_000_000, "wall_ns": 100_000_000},
+                "children": {"before": deepcopy(child), "after": deepcopy(child), "status": "observed",
+                             "delta": dict.fromkeys(observation.RUSAGE_FIELDS, 0), "decreased_counters": []},
+                "linux": linux})
         cls.synthetic["evaluation"] = evaluate_samples(cls.synthetic["raw_samples"])
 
     def test_complete_synthetic_data_passes_and_can_bind_candidate_commit(self):
@@ -118,6 +152,7 @@ class LLVMNativeReportValidationTests(unittest.TestCase):
             (["source_sha256"], "0" * 64),
             (["driver_source_sha256"], "0" * 64),
             (["qualifier_sha256"], "0" * 64),
+            (["process_observer_sha256"], "0" * 64),
             (["compiler_tree_sha256"], "0" * 64),
             (["generated_rust_sha256"], "0" * 64),
             (["llvm_ir_sha256"], "0" * 64),
@@ -150,6 +185,10 @@ class LLVMNativeReportValidationTests(unittest.TestCase):
             lambda r: r["raw_samples"][0].update(checksum=True),
             lambda r: r["raw_samples"][0].update(clock_resolution_ns=0),
             lambda r: r["raw_samples"][0].update(sample_index=1),
+            lambda r: r["process_observations"].pop(),
+            lambda r: r["process_observations"].reverse(),
+            lambda r: r["process_observations"][0]["scope"].update(native_elapsed_replaced=True),
+            lambda r: r["process_observations"][0]["children"]["delta"].update(user_cpu_ns=-1),
         ):
             data = deepcopy(self.synthetic)
             mutation(data)

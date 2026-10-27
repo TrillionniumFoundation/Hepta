@@ -9,11 +9,12 @@ from dataclasses import fields, is_dataclass
 from .ast import Expr, Param, Struct, Type
 
 IO_OWNER_TYPES = {"IoReactor", "IoRequest"}
-IO_TYPE_NAMES = IO_OWNER_TYPES | {"IoPair", "IoReport"}
+IO_TYPE_NAMES = IO_OWNER_TYPES | {"IoPair", "IoReport", "GroupIoReport"}
 IO_BUILTINS = {
     "io_reactor", "io_local_pair", "io_read", "io_write", "io_poll",
     "io_cancel", "io_request_status", "io_take", "io_wait", "io_close_port",
     "io_report", "io_shutdown",
+    "io_attach", "group_io_configure", "group_io_snapshot",
 }
 IO_REACTOR = Type("IoReactor")
 IO_REQUEST = Type("IoRequest")
@@ -85,6 +86,9 @@ const IO_PORT:u8=11;
 const IO_ALLOCATION:u8=12;
 const IO_IDENTITIES:u8=13;
 const IO_PORT_LIMIT:u8=14;
+const IO_BINDING:u8=15;
+const IO_SHARED_LIMIT:u8=16;
+const IO_REGISTRATION_LIMIT:u8=17;
 const IO_PENDING:u8=255;
 const IO_MAX_MILLIS:u64=86_400_000;
 static IO_NEXT_ID:AtomicU64=AtomicU64::new(1);
@@ -131,9 +135,16 @@ pub struct HeptaIoRequest {
     // slot or metadata; the linear ticket still has to be consumed.
     immediate:Option<(Vec<u8>,u8)>,
 }
+trait IoTaskBinding {
+    fn cancelled(&self)->bool;
+    fn wake_fd(&self)->i32;
+    fn reserve_bytes(&self,bytes:usize)->bool;
+    fn release_bytes(&self,bytes:usize);
+}
 pub struct HeptaIoReactor {
     identity:u64, ports:Vec<Option<IoPort>>, operations:Vec<Option<IoOperation>>,
     pollfds:Vec<IoPollFd>, report:H_IoReport, cursor:usize,
+    task:Option<std::sync::Arc<dyn IoTaskBinding>>,
     // The native reactor is deliberately single-owner/single-thread. Source
     // callers borrow it mutably for every mutation; even raw Rust callers
     // cannot move/share it across threads through Send/Sync.
@@ -142,7 +153,7 @@ pub struct HeptaIoReactor {
 
 pub fn __hepta_io_reactor(port_limit:usize,request_limit:usize,byte_limit:usize)->HeptaIoReactor {
     let mut result=HeptaIoReactor {
-        identity:0,ports:Vec::new(),operations:Vec::new(),pollfds:Vec::new(),
+        identity:0,ports:Vec::new(),operations:Vec::new(),pollfds:Vec::new(),task:None,
         report:H_IoReport {h_port_limit:port_limit,h_request_limit:request_limit,h_byte_limit:byte_limit,
                           ..H_IoReport::default()},cursor:0,thread_affinity:std::marker::PhantomData,
     };
@@ -169,6 +180,7 @@ pub fn __hepta_io_local_pair(io:&mut HeptaIoReactor)->H_IoPair {
         H_IoPair{h_left:0,h_right:0,h_status:status}
     };
     if io.report.h_status!=IO_OK{let status=io.report.h_status;return failed(io,status)}
+    if io_task_cancelled(io){return failed(io,IO_CANCELLED)}
     let mut empty=io.ports.iter().enumerate().filter(|(_,p)|p.is_none()).map(|(i,_)|i);
     let (Some(left_index),Some(right_index))=(empty.next(),empty.next()) else {
         return failed(io,IO_PORT_LIMIT)
@@ -204,6 +216,7 @@ fn io_submit(io:&mut HeptaIoReactor,port:u64,data:Vec<u8>,requested:usize,millis
         HeptaIoRequest{reactor:io.identity,token:0,immediate:Some((data,status))}
     };
     if io.report.h_status!=IO_OK {let status=io.report.h_status;return rejected(io,data,status)}
+    if io_task_cancelled(io){return rejected(io,data,IO_CANCELLED)}
     if requested>data.len() || millis>IO_MAX_MILLIS {return rejected(io,data,IO_INVALID)}
     let Some(deadline)=Instant::now().checked_add(Duration::from_millis(millis)) else{return rejected(io,data,IO_INVALID)};
     let Some(port_index)=io.ports.iter().position(|p|p.as_ref().map_or(false,|p|p.token==port)) else{return rejected(io,data,IO_PORT)};
@@ -213,6 +226,9 @@ fn io_submit(io:&mut HeptaIoReactor,port:u64,data:Vec<u8>,requested:usize,millis
     let Some(reserved)=io.report.h_reserved_bytes.checked_add(data.capacity()) else{return rejected(io,data,IO_BYTE_LIMIT)};
     if reserved>io.report.h_byte_limit{return rejected(io,data,IO_BYTE_LIMIT)}
     let Some(token)=io_ids(1) else{return rejected(io,data,IO_IDENTITIES)};
+    if io.task.as_ref().map_or(false,|task|!task.reserve_bytes(data.capacity())) {
+        return rejected(io,data,IO_SHARED_LIMIT)
+    }
     io.operations[index]=Some(IoOperation{token,port,writing,data,requested,transferred:0,deadline,status:IO_PENDING});
     let endpoint=io.ports[port_index].as_mut().unwrap();
     if writing {endpoint.writing=true}else{endpoint.reading=true}
@@ -247,6 +263,9 @@ pub fn __hepta_io_cancel(io:&mut HeptaIoReactor,request:&HeptaIoRequest)->bool {
 // Each scan gives each pending request at most one nonblocking syscall.
 // Descriptor ownership remains in ports for the whole call, and the exclusive
 // reactor borrow prevents close/reuse while poll or Read/Write accesses it.
+fn io_task_cancelled(io:&HeptaIoReactor)->bool {
+    io.task.as_ref().map_or(false,|task|task.cancelled())
+}
 fn io_progress(io:&mut HeptaIoReactor) {
     let count=io.operations.len();
     if count==0{return}
@@ -254,6 +273,7 @@ fn io_progress(io:&mut HeptaIoReactor) {
     io.cursor=(start+1)%count;
     for step in 0..count {
         let index=(start+step)%count;
+        if io_task_cancelled(io) {io_finish_slot(io,index,IO_CANCELLED);continue}
         let Some(operation)=io.operations[index].as_mut() else{continue};
         if operation.status!=IO_PENDING{continue}
         if Instant::now()>=operation.deadline {io_finish_slot(io,index,IO_TIMEOUT);continue}
@@ -305,6 +325,11 @@ pub fn __hepta_io_poll(io:&mut HeptaIoReactor,millis:u64)->Result<usize,u8> {
         let endpoint=io.ports.iter().flatten().find(|p|p.token==operation.port).unwrap();
         io.pollfds.push(IoPollFd{fd:endpoint.socket.as_raw_fd(),events:if operation.writing{IO_POLLOUT}else{IO_POLLIN},revents:0});
     }
+    if let Some(task)=&io.task {
+        // Attach reserved this extra entry. The read endpoint outlives this
+        // exclusive poll even if another thread closes its cancellation peer.
+        io.pollfds.push(IoPollFd{fd:task.wake_fd(),events:IO_POLLIN,revents:0});
+    }
     // Round up rather than repeatedly waking before a sub-millisecond deadline.
     let timeout=((wait.as_nanos()+999_999)/1_000_000).min(i32::MAX as u128) as i32;
     io.report.h_poll_calls=io.report.h_poll_calls.saturating_add(1);
@@ -318,7 +343,7 @@ pub fn __hepta_io_poll(io:&mut HeptaIoReactor,millis:u64)->Result<usize,u8> {
         let error=std::io::Error::last_os_error();
         if error.kind()==std::io::ErrorKind::Interrupted {
             io.report.h_poll_interruptions=io.report.h_poll_interruptions.saturating_add(1);
-        } else {
+        } else if !io_task_cancelled(io) {
             io.report.h_poll_failures=io.report.h_poll_failures.saturating_add(1);
             io_os_error(io,error);
             for index in 0..io.operations.len(){io_finish_slot(io,index,IO_SYSTEM)}
@@ -331,6 +356,7 @@ pub fn __hepta_io_poll(io:&mut HeptaIoReactor,millis:u64)->Result<usize,u8> {
 }
 fn io_remove(io:&mut HeptaIoReactor,index:usize)->IoOperation {
     let operation=io.operations[index].take().unwrap();
+    if let Some(task)=&io.task {task.release_bytes(operation.data.capacity())}
     io.report.h_reserved_bytes-=operation.data.capacity();
     io.report.h_occupied_requests-=1;
     operation
@@ -360,16 +386,23 @@ pub fn __hepta_io_close_port(io:&mut HeptaIoReactor,port:u64)->bool {
     io.ports[index]=None;io.report.h_open_ports-=1;true
 }
 pub fn __hepta_io_report(io:&HeptaIoReactor)->H_IoReport {io.report}
-pub fn __hepta_io_shutdown(mut io:HeptaIoReactor)->H_IoReport {
+fn io_cleanup(io:&mut HeptaIoReactor) {
+    if io.report.h_shutdown {return}
     for index in 0..io.operations.len() {
-        io_finish_slot(&mut io,index,IO_CANCELLED);
+        io_finish_slot(io,index,IO_CANCELLED);
         if io.operations[index].is_some() {
-            let _=io_remove(&mut io,index);
+            let _=io_remove(io,index);
             io.report.h_abandoned=io.report.h_abandoned.saturating_add(1);
         }
     }
-    io.ports.clear();io.report.h_open_ports=0;io.report.h_shutdown=true;io.report
+    io.ports.clear();io.report.h_open_ports=0;io.pollfds.clear();
+    io.task=None;io.report.h_shutdown=true;
 }
+impl Drop for HeptaIoReactor {fn drop(&mut self){io_cleanup(self)}}
+pub fn __hepta_io_shutdown(mut io:HeptaIoReactor)->H_IoReport {
+    io_cleanup(&mut io);io.report
+}
+// HEPTA_IO_GROUP_INSERTION
 // HEPTA_IO_TEST_INSERTION
 }
 #[cfg(all(target_os = "linux", target_arch = "x86_64", target_env = "gnu", target_pointer_width = "64"))]

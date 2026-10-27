@@ -131,6 +131,7 @@ fn __hepta_tree_stop(shared: &HeptaGroupShared, failure: Option<u64>, discard: b
             }
         }
         shared.cancel.store(true, std::sync::atomic::Ordering::Release);
+        __hepta_group_io_notify(&mut state);
         if discard {
             state.report.h_discarded = state.report.h_discarded.saturating_add(state.len);
             state.len = 0;

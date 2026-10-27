@@ -414,8 +414,19 @@ local socket endpoints, nonblocking operations, an explicit `io_poll` readiness
 pump, monotonic deadlines, cancellation and explicit completion consumption.
 Only `x86_64-unknown-linux-gnu` is admitted. It has fixed metadata/request limits
 and counts actual retained Buffer capacity. `ASYNC_IO.md` specifies refusal,
-partial progress, EOF, shutdown and remaining obligations. This is not
-async/await, TCP/TLS, an executor, or composition with task-tree cancellation.
+partial progress, EOF, shutdown and remaining obligations.
+
+The explicit task pool can be configured once, before worker admission, with
+`group_io_configure` and observed with `group_io_snapshot`. `io_attach` binds
+an unused worker-owned reactor to the worker's existing `Sender` group. The
+pool accounts for reactor slots, endpoint slots including two wake descriptors,
+request slots and the actual capacity of admitted buffers. Task-tree
+cancellation closes an owned socket peer to wake native polling; it does not
+access the reactor from another thread. Completion, reactor drop and join
+retain their resource obligations. These rules, refusals and external limits
+are specified in [TASK_TREE_IO_COMPOSITION.md](TASK_TREE_IO_COMPOSITION.md).
+General async/await, TCP/TLS, arbitrary file I/O, an executor and whole-process
+allocation/stack budgets remain unsupported.
 
 ## 11. C ABI and native header import
 
@@ -548,7 +559,12 @@ The complete module is regenerated and compared before native compilation.
 
 Public C boundaries contain supported ordinary scalars; owner, enum and slice
 layouts stay internal. The `alloc`, `block`, `write` and `panic` effect profile
-is supported. Stored lifetime records, task/I/O resources, raw/foreign access,
+is supported. The local v4 single-field byte-slice view profile described in
+[LLVM_LOCAL_VIEWS.md](LLVM_LOCAL_VIEWS.md) is admitted after independent resource
+verification. Shared views copy descriptors, exclusive views move, and ending
+a view does not release its owner's allocation. This profile also reaches the
+independent C backend. General stored lifetime records, labelled v5 views,
+task/I/O resources, raw/foreign access,
 resource clauses, floating point, arrays and foreign-target resource execution
 reject. There is no automatic fallback. Allocation failure is explicit;
 overflow/bounds/infallible-allocation failure aborts, without unwind-cleanup

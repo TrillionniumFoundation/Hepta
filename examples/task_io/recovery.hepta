@@ -1,0 +1,27 @@
+fn recovery(data:take Buffer<u8>,cancel:read Cancellation,sender:read Sender<u64>)->u64 effects {alloc,block,panic,io,write} {
+    release(move data);let mut io=io_reactor(2,2,64);assert(io_attach(mut io,read sender)==0);
+    let mut refused=io_reactor(2,2,64);assert(io_attach(mut refused,read sender)==16);io_shutdown(move refused);
+    let pair=io_local_pair(mut io);assert(pair.status==0);
+    let a=buffer(8);let reading=io_read(mut io,pair.left,move a,8,30000);
+    let b=buffer(1);let denied=io_write(mut io,pair.right,move b,1,1000);
+    let mut count:usize=0;let mut status:u8=0;
+    let kept=io_take(mut io,move denied,mut count,mut status);assert(status==16 && len(kept)==1 && count==0);release(move kept);
+    let cancelled=io_take(mut io,move reading,mut count,mut status);assert(status==1);release(move cancelled);
+    let timeout_data=buffer(8);let timeout=io_read(mut io,pair.left,move timeout_data,8,0);
+    let timed=io_wait(mut io,move timeout,mut count,mut status);assert(status==2 && count==0);release(move timed);
+    assert(io_close_port(mut io,pair.left));let broken_data=buffer(1);
+    let broken=io_write(mut io,pair.right,move broken_data,1,1000);
+    let broken_back=io_wait(mut io,move broken,mut count,mut status);assert(status==5);release(move broken_back);
+    assert(io_close_port(mut io,pair.right));let recovered=io_local_pair(mut io);assert(recovered.status==0);
+    let empty=buffer(0);let zero=io_read(mut io,recovered.left,move empty,0,0);
+    let zero_back=io_wait(mut io,move zero,mut count,mut status);assert(status==0);release(move zero_back);
+    let done=io_shutdown(move io);assert(done.reserved_bytes==0 && done.open_ports==0);return 16;
+}
+fn main()->Unit effects {alloc,block,panic,io,write,spawn} {
+    let mut root=task_group(1,1,1);assert(group_budget_configure(mut root,1,1,2,65536,65536));
+    assert(group_io_configure(mut root,1,4,2,8));let mut observer=task_group(0,0,1);assert(group_budget_share(mut observer,read root));
+    assert(group_spawn(mut root,recovery,move buffer(1)));let done=group_tree_join(move root);let io=group_io_snapshot(read observer);
+    assert(done.sum==16 && done.active_tasks==0);assert(io.attachment_refusals==1 && io.buffer_refusals==1);
+    assert(io.attached_reactors==0 && io.reserved_bytes==0 && io.reserved_port_slots==0 && io.reserved_request_slots==0);
+    group_tree_join(move observer);print_i64(io.attachment_refusals as i64);print_i64(io.buffer_refusals as i64);print_i64(done.sum as i64);
+}
