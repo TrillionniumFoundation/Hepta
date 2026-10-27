@@ -77,6 +77,22 @@ _FORBIDDEN_SYSCALLS = (
     188, 189, 190, 197, 198, 199, 285,
     155, 165, 166, 428, 429, 430, 431, 432, 433, 442,
     298, 302, 319, 321, 323, 426, 427, 434,
+    # System V shared-memory, semaphore and message queues. A native DSO
+    # must never mutate IPC resources outside this observer's worker group.
+    29, 30, 31, 64, 65, 66, 67, 68, 69, 70, 71, 220,
+    # Kernel keyrings persist beyond a worker and are shared OS resources.
+    248, 249, 250,
+    # Refuse scheduling/priority changes that can affect same-user processes.
+    141, 142, 144, 203, 251, 314,
+    # Block fd rebinding and all fcntl commands. F_DUPFD and F_GETFD share
+    # syscall 72, so admitting fcntl by syscall number would permit FD dup.
+    32, 33, 72, 292,
+    # POSIX message queues are a *separate* IPC API from SysV, including
+    # mq_open/mq_unlink and timed send/receive and queue notification.
+    240, 241, 242, 243, 244, 245,
+    # Legacy Linux AIO can create kernel asynchronous I/O contexts without
+    # using io_uring. The finite scalar evaluator needs neither family.
+    206, 207, 208, 209, 210,
 )
 if len(_FORBIDDEN_SYSCALLS) != len(set(_FORBIDDEN_SYSCALLS)):
     raise RuntimeError("duplicated native evaluator syscall policy")

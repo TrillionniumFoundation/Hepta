@@ -172,6 +172,46 @@ def _bounded_shift(op, lhs, count, typ):
             return None
     return _bounded(low, high)
 
+def _bounded_positive_or_xor(lhs, rhs, typ):
+    """Sound bit envelope for two proven nonnegative typed intervals.
+
+    If 0 <= a <= A and 0 <= b <= B, neither bitwise OR nor XOR can set
+    a bit above the highest bit present in max(A, B). The result therefore
+    lies in [0, 2**max(A.bit_length(), B.bit_length()) - 1].
+    Negative or unbounded inputs do NOT qualify; both bounds are required.
+    """
+    left, right = _span(lhs), _span(rhs)
+    if left is None or right is None:
+        return None
+    minimum, maximum = integer_range(typ)
+    if (left.lo < 0 or right.lo < 0 or left.lo > left.hi or right.lo > right.hi
+            or left.hi > maximum or right.hi > maximum):
+        return None
+    top = max(left.hi, right.hi)
+    ceiling = (1 << top.bit_length()) - 1
+    return _bounded(0, ceiling) if ceiling <= maximum else None
+
+
+def _bounded_bitnot(value, typ):
+    """Fixed-width ones' complement reverses a *verified* interval.
+
+    For signed two's-complement integers, ~x = -x - 1 and the signed
+    domain maps to itself. For unsigned w-bit integers, the result is
+    (2**w - 1) - x. Both maps reverse interval endpoints exactly,
+    with no caller-derived assumptions or undefined shifts.
+    """
+    interval = _span(value)
+    if interval is None:
+        return None
+    minimum, maximum = integer_range(typ)
+    if not minimum <= interval.lo <= interval.hi <= maximum:
+        return None
+    if typ.startswith("i"):
+        return _bounded(-interval.hi - 1, -interval.lo - 1)
+    word_mask = (1 << WIDTHS[typ]) - 1
+    return _bounded(word_mask - interval.hi, word_mask - interval.lo)
+
+
 def _bounded_nonnegative_and_mask(lhs, rhs, typ):
     """Any proven nonnegative mask interval bounds the AND result.
 
@@ -394,6 +434,15 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) 
                     # A verified *interval* of nonnegative bit masks is enough
                     # to bound arbitrary typed inputs, not just exact masks.
                     folded = _bounded_nonnegative_and_mask(
+                        known.get(args[0]), known.get(args[1]), outputs[0]["type"])
+                elif folded is None and op == "bit.not":
+                    # Typed fixed-width ones' complement reverses a proven
+                    # interval without assuming any particular caller input.
+                    folded = _bounded_bitnot(known.get(args[0]), outputs[0]["type"])
+                elif folded is None and op in {"bit.or", "bit.xor"}:
+                    # Only two independently proven nonnegative intervals
+                    # can authorize the finite highest-bit envelope.
+                    folded = _bounded_positive_or_xor(
                         known.get(args[0]), known.get(args[1]), outputs[0]["type"])
                 if folded is not None:
                     known[out_names[0]] = folded
