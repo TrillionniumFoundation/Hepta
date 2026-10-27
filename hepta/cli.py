@@ -47,16 +47,23 @@ def main(argv=None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
     hia = sub.add_parser("hia", help="Independent typed HIA program verification, execution and native compilation")
     hia_actions = hia.add_subparsers(dest="hia_action", required=True)
+    hia_actions.add_parser("routes", help="Exact source, historical IR and backend compatibility inventory")
     for action in ("verify", "inspect", "run", "emit", "build", "lower", "patch", "normalize",
                    "impact", "import-executable", "import-scalar", "import-cpp-project",
                    "import-cpp-matrix", "import-composite-v2", "upgrade-v7",
-                   "edit-query", "edit-apply", "edit-batch-query", "edit-batch-apply"):
+                   "edit-query", "edit-apply", "edit-batch-query", "edit-batch-apply",
+                   "verify-optimization", "optimize", "build-optimized"):
         h = hia_actions.add_parser(action)
         h.add_argument("input", help="Standalone HIA JSON program; lower accepts Hepta source")
         if action in {"emit", "build", "lower", "patch", "normalize", "import-executable", "import-scalar",
                       "import-cpp-project", "import-cpp-matrix", "import-composite-v2", "upgrade-v7",
-                      "edit-query", "edit-apply", "edit-batch-query", "edit-batch-apply"}:
-            h.add_argument("--output", "-o", required=action == "build")
+                      "edit-query", "edit-apply", "edit-batch-query", "edit-batch-apply",
+                      "optimize", "build-optimized"}:
+            h.add_argument("--output", "-o", required=action in {"build", "build-optimized"})
+        if action in {"verify-optimization", "optimize", "build-optimized"}:
+            h.add_argument("--policy", help="Exact versioned optimization policy JSON")
+        if action in {"verify-optimization", "build-optimized"}:
+            h.add_argument("--candidate", required=True, help="Actual proposed HIA bytes, never a verification receipt")
         if action in {"import-cpp-project", "import-cpp-matrix"}:
             h.add_argument("--clangxx", default="clang++")
             h.add_argument("--report", help="New file for the complete capture and declaration ledger")
@@ -84,7 +91,7 @@ def main(argv=None) -> int:
             h.add_argument("--max-steps", type=int, default=1000000)
             h.add_argument("--max-heap-bytes", type=int, default=1048576)
             h.add_argument("--allocation-fail-at", type=int)
-        if action == "build":
+        if action in {"build", "build-optimized"}:
             h.add_argument("--clang", default="clang")
             h.add_argument("--kind", choices=["shared", "object"], default="shared")
         if action in {"emit", "build"}:
@@ -253,8 +260,12 @@ def main(argv=None) -> int:
     try:
         if args.command == "hia":
             from .hia_program import verify_program
+            from .hia_routes import admit_route, route_inventory
             from .hia_program_tools import (read_bounded, decode_json, inspect_program,
                                             apply_program_patch, publish_program)
+            if args.hia_action == "routes":
+                output_json(route_inventory())
+                return 0
             if args.hia_action == "import-composite-v2":
                 from .hia_core_upgrade import import_legacy_composite_v2
                 program, report = import_legacy_composite_v2(read_bounded(args.input))
@@ -293,32 +304,49 @@ def main(argv=None) -> int:
                 output_json(publish_program(program, args.output) if args.output else program.as_dict())
                 return 0
             if args.hia_action in {"import-executable", "import-scalar"}:
-                from .core import from_executable_core, from_scalar_core
                 source = read_bounded(args.source).decode("utf-8")
                 raw = read_bounded(args.input)
-                if args.hia_action == "import-executable":
-                    program = from_executable_core(decode_json(raw), source=source,
-                        project_sha256=args.project_sha256, module=args.module)
-                else:
-                    from hashlib import sha256
-                    from .hia_core import HIAScalarCore
-                    from .checker import check
-                    from .parser import parse
-                    original = parse(source, str(Path(args.source).absolute()))
-                    old = HIAScalarCore(raw.decode("utf-8"), sha256(raw).hexdigest())
-                    program = from_scalar_core(old, program=original, checked=check(original),
-                        project_sha256=args.project_sha256, module=args.module)
+                route = "legacy-executable" if args.hia_action == "import-executable" else "legacy-scalar"
+                program = admit_route(route, raw, source=source,
+                    path=str(Path(args.source).absolute()) if route == "legacy-scalar" else None,
+                    project_sha256=args.project_sha256, module=args.module)
                 output_json(publish_program(program, args.output) if args.output else program.as_dict())
                 return 0
             if args.hia_action == "lower":
-                from .hia_program_source import lower_source
-                program = verify_program(lower_source(
-                    read_bounded(args.input).decode("utf-8"), path=str(Path(args.input).absolute()),
-                    module=args.module))
+                program = admit_route("hepta-source", read_bounded(args.input),
+                                      path=str(Path(args.input).absolute()), module=args.module)
                 result = publish_program(program, args.output) if args.output else program.as_dict()
                 output_json(result)
                 return 0
-            program = verify_program(read_bounded(args.input))
+            program = admit_route("standalone-hia", read_bounded(args.input))
+            if args.hia_action in {"verify-optimization", "optimize", "build-optimized"}:
+                from .hia_optimization import verify_optimization, fold_constants, build_optimized_native
+                policy = decode_json(read_bounded(args.policy)) if args.policy else None
+                generation = None
+                if args.hia_action == "optimize":
+                    candidate, generation = fold_constants(program)
+                else:
+                    candidate = admit_route("standalone-hia", read_bounded(args.candidate))
+                if args.hia_action == "build-optimized":
+                    result = build_optimized_native(program, candidate, args.output,
+                                                    policy=policy, clang=args.clang, kind=args.kind)
+                    output_json(result)
+                    return 0
+                result = verify_optimization(program, candidate, policy)
+                if generation is not None:
+                    # Keep the verification receipt immutable; generated edits
+                    # and publication are a separate enclosing record.
+                    wrapper = {"schema": "hepta.hia.optimization-proposal.v1",
+                               "generation": generation, "verification": result}
+                    if result["status"] == "verified":
+                        if args.output:
+                            wrapper["publication"] = publish_program(candidate, args.output)
+                        else:
+                            wrapper["program"] = candidate.as_dict()
+                    output_json(wrapper)
+                else:
+                    output_json(result)
+                return 0 if result["status"] == "verified" else 1
             if args.hia_action == "upgrade-v7":
                 from .hia_core_upgrade import upgrade_core_to_v7
                 revised, receipt = upgrade_core_to_v7(program, legacy_profile=args.legacy_profile)
