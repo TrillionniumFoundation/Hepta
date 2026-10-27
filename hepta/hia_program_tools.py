@@ -117,10 +117,12 @@ def _bounded_json_string_size(value: str, maximum: int, ensure_ascii: bool) -> i
             # Without this exception a small raw string can allocate a
             # fragment six times the admitted byte budget before refusal.
             width = 6 if point == 127 and ensure_ascii else 1
+        elif 0xd800 <= point <= 0xdfff:
+            # ASCII escaping a lone surrogate still yields text rejected by
+            # HIA JSON predecode; never serialize that invalid wire form.
+            _reject("unpaired Unicode surrogate in UTF-8 JSON")
         elif ensure_ascii:
             width = 6 if point <= 0xffff else 12
-        elif 0xd800 <= point <= 0xdfff:
-            _reject("unpaired Unicode surrogate in UTF-8 JSON")
         elif point < 0x800:
             width = 2
         elif point < 0x10000:
