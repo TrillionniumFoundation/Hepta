@@ -119,6 +119,58 @@ def _bounded_cast(value, typ, mode):
     return None
 
 
+
+def _exact_scalar(op, inputs, typ):
+    """Only fold values that are exact in already verified typed HIA SSA.
+
+    Never infer a finite allocation extent from a partial interval, unknown
+    argument, throwing arithmetic result, or Python's unbounded integer rules.
+    Integer output uses the same fixed-width operations as the canonical VM.
+    """
+    if op.startswith("compare."):
+        a, b = inputs
+        if type(a) is bool or type(b) is bool:
+            if type(a) is not bool or type(b) is not bool or op not in {
+                    "compare.eq", "compare.ne"}:
+                return None
+            return a == b if op == "compare.eq" else a != b
+    spans = [_span(value) for value in inputs]
+    if any(span is None or span.lo != span.hi for span in spans):
+        return None
+    vals = [span.lo for span in spans]
+
+    if op.startswith("compare."):
+        a, b = vals
+        return {
+            "compare.eq": a == b, "compare.ne": a != b,
+            "compare.lt": a < b, "compare.le": a <= b,
+            "compare.gt": a > b, "compare.ge": a >= b,
+        }[op]
+    if op == "bit.not":
+        return _wrap(~vals[0], typ)
+    if op in {"bit.and", "bit.or", "bit.xor"}:
+        a, b = vals
+        result = (a & b if op == "bit.and" else
+                  a | b if op == "bit.or" else a ^ b)
+        return _wrap(result, typ)
+    if op in {"int.div.checked", "int.rem.checked"}:
+        a, b = vals
+        if b == 0:
+            _reject("constant division/remainder by zero may trap")
+        lower, _ = integer_range(typ)
+        if typ.startswith("i") and a == lower and b == -1:
+            _reject("signed minimum divided by minus one may trap")
+        quotient = abs(a) // abs(b)
+        if (a < 0) != (b < 0):
+            quotient = -quotient
+        return quotient if op == "int.div.checked" else a - quotient * b
+    if op in {"int.shl.checked", "int.shr.checked"}:
+        a, b = vals
+        if not 0 <= b < WIDTHS[typ]:
+            _reject("constant shift count outside machine width may trap")
+        return _wrap(a << b, typ) if op == "int.shl.checked" else a >> b
+    return None
+
 def _paths(term: dict) -> list[dict]:
     if term["op"] == "jump":
         return [{"target": term["target"], "args": term["args"]}]
@@ -191,6 +243,15 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) 
             elif op == "int.cast":
                 folded = _bounded_cast(known.get(args[0]), outputs[0]["type"],
                                        attrs["mode"])
+                if folded is not None:
+                    known[out_names[0]] = folded
+            elif op in {
+                    "bit.not", "bit.and", "bit.or", "bit.xor",
+                    "compare.eq", "compare.ne", "compare.lt", "compare.le",
+                    "compare.gt", "compare.ge", "int.div.checked", "int.rem.checked",
+                    "int.shl.checked", "int.shr.checked"}:
+                folded = _exact_scalar(op, [known.get(arg) for arg in args],
+                                       outputs[0]["type"])
                 if folded is not None:
                     known[out_names[0]] = folded
             elif op == "int.neg.checked":
