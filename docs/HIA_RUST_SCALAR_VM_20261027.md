@@ -14,7 +14,7 @@ unchanged. Do not use this oracle to grant production Final-use.
   constants, checked/wrapping integer arithmetic (including full-width u64
   products), signed truncating div/rem, checked shifts, bitwise, compare,
   boolean, cast, select, branching, block arguments, direct internal calls.
-- Bounded execution: 1..1,000,000 evaluator steps, at most 32 nested calls;
+- Bounded execution: 1..1,000,000 evaluator steps, at most 32 simultaneous call frames **including the root**;
   resource/foreign opcodes rejected at whole-module verification, not deferred
   until their basic block is reached. Errors separate language traps, budgets
   and malformed/unsupported inputs.
@@ -76,3 +76,18 @@ SIGABRT test for signed `MIN % -1` across i8/i16/i32/i64, paired with valid
 shared-library exports, not a handwritten approximation. These committed
 native tests require the pinned Clang toolchain and have **not been run**
 on this exact merge head in the current container.
+
+## 2026-10-27 P2 root-inclusive recursive-call correction
+
+The pre-existing canonical HIA VM source and its independent regression
+(`tests/test_hia_vm_call_depth.py`) enforce a root-inclusive dynamic call
+budget: for `max_call_depth=32`, depth 0..31 may enter, depth 32 refuses
+before its invocation tick. A subsequent Rust scalar VM shadow patch
+inadvertently admitted depth 32 by using `depth > MAX_CALL_DEPTH`.
+The correction restores `>=`. The infinite one-call recursion fixture
+therefore consumes **64**, not 66, ticks at the standard limit. The finite
+boundary is `n=31` returns and `n=32` refuses. Details and negative
+regressions: `docs/HIA_RUST_DEPTH_PARITY_P2_20261027.md`.
+
+No production source→LLVM equivalence or rustc/Cargo qualification is
+claimed by this documentation correction.
