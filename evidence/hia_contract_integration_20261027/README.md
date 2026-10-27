@@ -14,7 +14,7 @@
 
 七主机 C ABI 记录 2534 次 foreign calls、21 个类型负例和 7 个错误结果负例。七个原始 ZIP 都保留；其中只有报告与日志，没有七平台的 native binary。Windows 的 CRLF 文件身份差异另有真实对照记录。范围是既有有限 C ABI，不是新 HIA runtime 在所有平台通过。
 
-完整远程资格状态仅按已捕获的 API 快照记录：40559504509: pending/None; 40559493121: in_progress/None。其状态与本地全量、219 项选择性 CI、七主机结果分别记录；运行中或失败不转换为通过。
+源码 817713b163b6812a6516179951412b4a6c93ae2b 的完整 push workflow [40559493121](https://github.com/TrillionniumFoundation/Hepta/actions/runs/40559493121) 已由实际 API 确认为 completed/success。原始 release 报告 50/50 门禁通过，源码快照不变；独立核对原日志得到 2718 项测试、0 failure/error/skip。后续 standalone 报告 35/35 门禁通过，bounded NDU 9/9 通过，各自源码前后不变。这些是同一源码的独立执行，重复测试和子门禁不叠加为唯一测试总数。同源码其他完整流程的最后快照为：40559504509 (pull_request): in_progress/None；不声称所有 PR/push 运行全部结束。
 
 ## 新的递归 NDU 对照仍没有收益优势
 
@@ -56,3 +56,11 @@ qualification.json 是逐字节原始本地最终报告；audit.json 是独立�
 tested-source.bundle 的 SHA-256 为 4c836863f4fd76687a396edae8503e511095b0a9f8d27f284acf4db825f397b8，包含实际受测 HEAD，要求现有仓库先有父提交 a4ab87889616925306b84f9699316d1a850c183d。它不是整个仓库的自包含备份。旧 a4ab bundle 也在历史目录保留，仍要求它原来的两个父提交。先 git bundle verify，再从 bundle fetch HEAD，可检出 817713b163b6812a6516179951412b4a6c93ae2b。完整实际 argv、环境和工具身份在 frozen-plan/qualification 记录中。
 
 raw-evidence.tar.gz SHA-256：06e0766d59422407b5d249b84934eeb332687c27dea7938bf71c190a96ce8597。打包不执行测试、基准或模型推理；哈希证明本地文件一致性，不能认证恶意宿主自造观测。验证器、SMT 编码/Z3、编译器、loader、硬件与可信测量仍是明确边界；全语言 soundness、普遍 Rust 性能优势、绝对 foreign 安全和全局最优均未建立。
+
+## 完整 CI 的追加证据
+
+历史数据提交 44e2c4df67cc3f6d5297f4e8362252d0fdd5885b 保持原样。此更新以独立补充包加入随后完成的 CI，原 raw-evidence.tar.gz 和 manifest 完全不变，SHA-256 仍为 06e0766d59422407b5d249b84934eeb332687c27dea7938bf71c190a96ce8597。新增 ci-completion.tar.gz 包含 71 个普通文件，SHA-256 为 44834dfc6dd796b09a7c3af7c87b3e0f705be60c133f5cac775a0399ff330d83；所有成员重开逐字节与模式核对，原来已归档的 CI 文件均重新校验，没有覆盖旧状态或旧失败。
+
+旧源码 a4ab878 的完整 push workflow [40556426840](https://github.com/TrillionniumFoundation/Hepta/actions/runs/40556426840) 的实际终态为 completed/failure；其 release 状态 failed，49/50 子门禁通过，原日志完整测试 2716 项、failure 10、error 0、skip 0。其原日志和报告一起保留，不重标为修复后的源码。
+
+当前/历史完整原始 ZIP 的全包摘要实际验证标志分别为 True/False；精确范围原文分别为 complete original ZIP downloaded and SHA-256 matched to GitHub artifact digest; selected member CRC and SHA-256 checks recorded separately / selected ZIP members verified by CRC and SHA-256 after exact HTTP 206 ranges; original complete ZIP not downloaded or digest-verified。大型完整 ZIP 不重复放入 Git 补充包；其原始路径、实际摘要、GitHub 摘要及 artifact ID/稳定下载 URL 保存在收据中。若存在分段获取，仅对应选取字节/CRC 的验证成立，不能声称未下载的完整 ZIP 摘要已验证。这次更新没有重新测试、重新运行 CI 或改变任何源码；NDU 净收益和全局最优等未建立标志保持原值。
