@@ -1,0 +1,317 @@
+{
+  "schema": "hepta.audit.source-operand-differential.v1",
+  "phase": "after",
+  "git_base_commit": "eb722984c488a721bd6c69d2bd9a69d7c600def1",
+  "git_status": " M docs/CPP_PROJECT_HIA.md\n M docs/C_MIGRATION.md\n M hepta/c_project.py\n M hepta/c_translation.py\n M hepta/cpp_project_migrate.py\n M tests/test_c_project_semantic_flags.py\n M tools/qualify_c_project_matrix.py\n M tools/qualify_cpp_project_hia.py\n M tools/qualify_cpp_project_matrix.py\n?? tests/test_c_project_source_arguments.py\n",
+  "source_files_sha256": {
+    "hepta/c_project.py": "d75706830e2dbc9ca5da9f360652845228ceafd8dda996c3f1f7a10760df8356",
+    "hepta/c_translation.py": "36d29d13cab5d75095aed1f5ad586942b6c5581a6ac8b6b63e6826212db3dd9e",
+    "hepta/cpp_project_migrate.py": "8fe8d0258380276fafb3dca4068d785d16fb2cbc63872b99c63e14a448d7ad7a",
+    "tools/qualify_c_project_matrix.py": "db0dc467774d61da8c04b78c36eed501cb980e216222157e4acc0fc3fa6700b5",
+    "tools/qualify_cpp_project_matrix.py": "a9c457cf92330b3b044dfc2e43a27e485091bdf9e316404166a4d6ae1b9134c3",
+    "tools/qualify_cpp_project_hia.py": "94a0875dc7df5bc77954523e446ffa8e009ac40170ec164a289270d95e8bc173",
+    "tests/test_c_project_source_arguments.py": "b164a0a30668e5ab27ef01dc281fe9cef67aab84b653a00d46e0ccd6684d106d",
+    "tests/test_c_project_semantic_flags.py": "04e2158b22352fd6a74c38fb518ff9f9de46a21fe70ba3b7234f3780dffde896"
+  },
+  "before_report_sha256": "7d95042e7dc800a5966503e0c8901386c317ee147cff8707291feaf7b1c643b0",
+  "cases": [
+    {
+      "language": "c",
+      "scenario": "file_include",
+      "input": 7,
+      "original": 9,
+      "interpreter": {
+        "schema": "hepta.hia.program-execution.v1",
+        "status": "returned",
+        "program_sha256": "89f64b6c743691182ea668b2f6c6568d7b7277f9298b0de08286a469c2332b4e",
+        "function": "c_probe",
+        "input_sha256": "89f64b6c743691182ea668b2f6c6568d7b7277f9298b0de08286a469c2332b4e",
+        "steps": 5,
+        "resources": {
+          "allocations": 0,
+          "frees": 0,
+          "allocation_attempts": 0,
+          "owners_created": 0,
+          "owners_dropped": 0,
+          "live_owners": 0,
+          "live_bytes": 0,
+          "peak_bytes": 0,
+          "loans_started": 0,
+          "loans_ended": 0,
+          "live_local_loans": 0
+        },
+        "word_bits": 64,
+        "source_used": false,
+        "claims": {
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false,
+          "backend_refinement_proved": false
+        },
+        "values": [
+          9
+        ],
+        "result": 9
+      },
+      "hia_native": 9,
+      "agrees": true,
+      "original_same_as_before": true,
+      "original_compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-c",
+        "sub/input.c",
+        "-o",
+        "/tmp/hepta-p3-path-semantics-audit/after/c-file_include/original.o"
+      ],
+      "original_compile_directory": "/tmp/hepta-p3-path-semantics-audit/before/c-file_include",
+      "source_sha256": "e3db20719ebcc96b789598c489219ece1553bd0b9a98cee1a40a9dc413b9e846",
+      "database_sha256": "f60967f3fbc1e89c034b5e7ba641899327a6f25eeb9ee1d4041fb56d9be30126",
+      "capture_sha256": "0e2e537afe0429c5c53444bc95286832ec00fd7d802a558640f871494a000ba5",
+      "compiler": {
+        "path": "/usr/lib/llvm-20/bin/clang",
+        "executable_sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+        "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)",
+        "target": "x86_64-pc-linux-gnu"
+      }
+    },
+    {
+      "language": "c++",
+      "scenario": "file_include",
+      "input": 7,
+      "original": 9,
+      "interpreter": {
+        "schema": "hepta.hia.program-execution.v1",
+        "status": "returned",
+        "program_sha256": "9c8b6fe48a9be620b525b4120ae486a4fef5ab8bbf35045f27c1389e9e6518c4",
+        "function": "probe",
+        "input_sha256": "9c8b6fe48a9be620b525b4120ae486a4fef5ab8bbf35045f27c1389e9e6518c4",
+        "steps": 5,
+        "resources": {
+          "allocations": 0,
+          "frees": 0,
+          "allocation_attempts": 0,
+          "owners_created": 0,
+          "owners_dropped": 0,
+          "live_owners": 0,
+          "live_bytes": 0,
+          "peak_bytes": 0,
+          "loans_started": 0,
+          "loans_ended": 0,
+          "live_local_loans": 0
+        },
+        "word_bits": 64,
+        "source_used": false,
+        "claims": {
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false,
+          "backend_refinement_proved": false
+        },
+        "values": [
+          9
+        ],
+        "result": 9
+      },
+      "hia_native": 9,
+      "agrees": true,
+      "original_same_as_before": true,
+      "original_compile_argv": [
+        "/usr/lib/llvm-20/bin/clang++",
+        "-std=c++20",
+        "-c",
+        "sub/input.cpp",
+        "-o",
+        "/tmp/hepta-p3-path-semantics-audit/after/cpp-file_include/original.o"
+      ],
+      "original_compile_directory": "/tmp/hepta-p3-path-semantics-audit/before/cpp-file_include",
+      "source_sha256": "efef04e71310413e4d118cabacddc1b4dc096d46fe33da09e7fb55132031921b",
+      "database_sha256": "f55ad733dfaf6648664e0c7432f3835ce5d722a59cfe563390f9b21856cc8c5f",
+      "capture_sha256": "41e58b6532039509276ec7c34a8ae75d865173c82ee6c0e8cf0a9eba687cb486",
+      "compiler": {
+        "path": "/usr/lib/llvm-20/bin/clang",
+        "executable_sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+        "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)",
+        "target": "x86_64-pc-linux-gnu"
+      }
+    },
+    {
+      "language": "c",
+      "scenario": "symlink_include",
+      "input": 7,
+      "original": 9,
+      "interpreter": {
+        "schema": "hepta.hia.program-execution.v1",
+        "status": "returned",
+        "program_sha256": "89f64b6c743691182ea668b2f6c6568d7b7277f9298b0de08286a469c2332b4e",
+        "function": "c_probe",
+        "input_sha256": "89f64b6c743691182ea668b2f6c6568d7b7277f9298b0de08286a469c2332b4e",
+        "steps": 5,
+        "resources": {
+          "allocations": 0,
+          "frees": 0,
+          "allocation_attempts": 0,
+          "owners_created": 0,
+          "owners_dropped": 0,
+          "live_owners": 0,
+          "live_bytes": 0,
+          "peak_bytes": 0,
+          "loans_started": 0,
+          "loans_ended": 0,
+          "live_local_loans": 0
+        },
+        "word_bits": 64,
+        "source_used": false,
+        "claims": {
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false,
+          "backend_refinement_proved": false
+        },
+        "values": [
+          9
+        ],
+        "result": 9
+      },
+      "hia_native": 9,
+      "agrees": true,
+      "original_same_as_before": true,
+      "original_compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-c",
+        "alias/input.c",
+        "-o",
+        "/tmp/hepta-p3-path-semantics-audit/after/c-symlink_include/original.o"
+      ],
+      "original_compile_directory": "/tmp/hepta-p3-path-semantics-audit/before/c-symlink_include",
+      "source_sha256": "f3e4b9329ab54155a3f4e518688a6f6c9c8ff0b8c0223b860c00a734ae14e4de",
+      "database_sha256": "610a4af2017120714d82245d80bcbeb7b64f1a10c7c718d8c6d73cfff9b6923f",
+      "capture_sha256": "4ad22f1f67fc8239dbd89ab7656021a2d256e6271a2c86d5fd1a231db1e1b777",
+      "compiler": {
+        "path": "/usr/lib/llvm-20/bin/clang",
+        "executable_sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+        "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)",
+        "target": "x86_64-pc-linux-gnu"
+      }
+    },
+    {
+      "language": "c++",
+      "scenario": "symlink_include",
+      "input": 7,
+      "original": 9,
+      "interpreter": {
+        "schema": "hepta.hia.program-execution.v1",
+        "status": "returned",
+        "program_sha256": "9c8b6fe48a9be620b525b4120ae486a4fef5ab8bbf35045f27c1389e9e6518c4",
+        "function": "probe",
+        "input_sha256": "9c8b6fe48a9be620b525b4120ae486a4fef5ab8bbf35045f27c1389e9e6518c4",
+        "steps": 5,
+        "resources": {
+          "allocations": 0,
+          "frees": 0,
+          "allocation_attempts": 0,
+          "owners_created": 0,
+          "owners_dropped": 0,
+          "live_owners": 0,
+          "live_bytes": 0,
+          "peak_bytes": 0,
+          "loans_started": 0,
+          "loans_ended": 0,
+          "live_local_loans": 0
+        },
+        "word_bits": 64,
+        "source_used": false,
+        "claims": {
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false,
+          "backend_refinement_proved": false
+        },
+        "values": [
+          9
+        ],
+        "result": 9
+      },
+      "hia_native": 9,
+      "agrees": true,
+      "original_same_as_before": true,
+      "original_compile_argv": [
+        "/usr/lib/llvm-20/bin/clang++",
+        "-std=c++20",
+        "-c",
+        "alias/input.cpp",
+        "-o",
+        "/tmp/hepta-p3-path-semantics-audit/after/cpp-symlink_include/original.o"
+      ],
+      "original_compile_directory": "/tmp/hepta-p3-path-semantics-audit/before/cpp-symlink_include",
+      "source_sha256": "7c57196c9cfa20e4fcd50ebd09502369a167663ac8812e393fceadbc802fe6f6",
+      "database_sha256": "6aa25ff45e2bbc3a609c4b328a31efdcadc96dbd879edca95867e4aa63a87c84",
+      "capture_sha256": "82b46ec4913d68c35721607864f5d8fd666129b267e924fcd6e226f724dde7ac",
+      "compiler": {
+        "path": "/usr/lib/llvm-20/bin/clang",
+        "executable_sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+        "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)",
+        "target": "x86_64-pc-linux-gnu"
+      }
+    },
+    {
+      "language": "c++",
+      "scenario": "template_sizeof_file",
+      "input": 7,
+      "original": 35,
+      "interpreter": {
+        "schema": "hepta.hia.program-execution.v1",
+        "status": "returned",
+        "program_sha256": "b697e54a9a23672e712c433ee272ec9b5de3bbe246f2654b8b4b312074920996",
+        "function": "probe",
+        "input_sha256": "b697e54a9a23672e712c433ee272ec9b5de3bbe246f2654b8b4b312074920996",
+        "steps": 8,
+        "resources": {
+          "allocations": 0,
+          "frees": 0,
+          "allocation_attempts": 0,
+          "owners_created": 0,
+          "owners_dropped": 0,
+          "live_owners": 0,
+          "live_bytes": 0,
+          "peak_bytes": 0,
+          "loans_started": 0,
+          "loans_ended": 0,
+          "live_local_loans": 0
+        },
+        "word_bits": 64,
+        "source_used": false,
+        "claims": {
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false,
+          "backend_refinement_proved": false
+        },
+        "values": [
+          35
+        ],
+        "result": 35
+      },
+      "hia_native": 35,
+      "agrees": true,
+      "original_same_as_before": true,
+      "original_compile_argv": [
+        "/usr/lib/llvm-20/bin/clang++",
+        "-std=c++20",
+        "-c",
+        "sub/input.cpp",
+        "-o",
+        "/tmp/hepta-p3-path-semantics-audit/after/cpp-template_sizeof_file/original.o"
+      ],
+      "original_compile_directory": "/tmp/hepta-p3-path-semantics-audit/before/cpp-template_sizeof_file",
+      "source_sha256": "d98e6d27d69736d4b915a98aa7c193cf59a29785451c363feef748c7cd8e791c",
+      "database_sha256": "de2855b75a4aa5789a31554ebc7470c2128e349fe9c69c77c8f15f2fb99d9114",
+      "capture_sha256": "e104495ee7d1ee71ac641aa4c0bfb4257bf4f986f2a6c49bb8d36efad8c57f3a",
+      "compiler": {
+        "path": "/usr/lib/llvm-20/bin/clang",
+        "executable_sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+        "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)",
+        "target": "x86_64-pc-linux-gnu"
+      }
+    }
+  ],
+  "case_count": 5,
+  "all_agree": true,
+  "original_inputs_and_results_preserved": true
+}

@@ -29,6 +29,44 @@ class SevenStageCLIIntegrationTests(unittest.TestCase):
             code = main(["hia", *map(str, args)])
         return code, out.getvalue(), err.getvalue()
 
+    def test_public_schema_discovery_agrees_with_actual_primitive_admission(self):
+        from tests.test_hia_core_upgrade import scalar
+        code, out, err = self.run_cli("schema")
+        self.assertEqual(code, 0, (out, err))
+        registry = json.loads(out)
+        self.assertTrue(registry["schemas_are_not_safety_receipts"])
+        self.assertFalse(registry["legacy_nominal"]["implicit_dispatch"])
+        for entry in registry["primitive"]:
+            with self.subTest(schema=entry["schema"]):
+                source = self.root / "primitive.json"
+                source.write_text(json.dumps(scalar(entry["schema"])))
+                code, out, err = self.run_cli("verify", source)
+                self.assertEqual(code, 0, (out, err))
+                self.assertEqual(json.loads(out)["profile"], entry["profile"])
+                code, out, err = self.run_cli("normalize", source)
+                self.assertEqual(code, 0, (out, err))
+                self.assertEqual(json.loads(out)["schema"], entry["schema"])
+        # Publishing a schema name cannot confer executable validity.
+        self.assertNotEqual(self.run_cli("verify", source.parent / "missing.json")[0], 0)
+        source.write_text(json.dumps({**scalar(), "schema": "hepta.hia.program.v999"}))
+        self.assertNotEqual(self.run_cli("verify", source)[0], 0)
+
+    def test_public_schema_composite_targets_match_normalization_without_implicit_upgrade(self):
+        registry = json.loads(self.run_cli("schema")[1])
+        source = self.root / "nominal.json"
+        for entry in registry["composite_versions"]:
+            with self.subTest(schema=entry["schema"]):
+                document = stored_loan_program()
+                document["schema"] = entry["schema"]
+                source.write_text(json.dumps(document))
+                code, out, err = self.run_cli("normalize", source)
+                self.assertEqual(code, 0, (out, err))
+                self.assertEqual(json.loads(out)["schema"], entry["normalizes_to"])
+                self.assertEqual(execute_program(json.loads(out), "stored", [True])["result"], 91)
+        document["schema"] = registry["legacy_nominal"]["schema"]
+        source.write_text(json.dumps(document))
+        self.assertNotEqual(self.run_cli("normalize", source)[0], 0)
+
     def test_atomic_batch_cli_publishes_only_the_combined_valid_borrow_change(self):
         from tests.test_hia_edit_batch import loans, selected, swaps
         paths = {name: self.root / (name + ".json") for name in ("source", "selections", "query", "response", "target")}

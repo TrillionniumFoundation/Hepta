@@ -11,12 +11,12 @@ const MAX_STEPS: u64 = 1_000_000;
 const MAX_CALL_DEPTH: u32 = 32;
 
 #[derive(Debug)]
-enum Halt {
+pub(super) enum Halt {
     Trap(&'static str),
     Budget(&'static str),
     Internal,
 }
-type Exec<T> = Result<T, Halt>;
+pub(super) type Exec<T> = Result<T, Halt>;
 
 fn integer(v: &Value) -> Exec<i128> {
     v.as_i64().map(i128::from)
@@ -55,7 +55,7 @@ fn elem<'a>(a: &'a [Value], index: usize) -> Exec<&'a Value> {
 fn binary(a: &[Value]) -> Exec<(i128, i128)> {
     Ok((integer(elem(a, 0)?)?, integer(elem(a, 1)?)?))
 }
-fn opcode_results(v: &Value, values: &[Value]) -> Exec<Vec<Value>> {
+pub(super) fn opcode_results(v: &Value, values: &[Value]) -> Exec<Vec<Value>> {
     let opcode = v["op"].as_str().ok_or(Halt::Internal)?;
     let outputs = v["out"].as_array().ok_or(Halt::Internal)?;
     let ty = outputs.first().and_then(|x| x["type"].as_str()).unwrap_or("unit");

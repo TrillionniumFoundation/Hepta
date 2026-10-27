@@ -15,6 +15,29 @@ fn main() -> ExitCode {
         [] => hia_core_shadow::verify(&input),
         [flag] if flag == "--owned-shadow" => hia_core_shadow::verify_owned(&input),
         [mode, function, arguments] | [mode, function, arguments, _]
+            if mode == "--owned-run" => {
+            let options = if args.len() == 4 {
+                if args[3].len() > 4096 {
+                    eprintln!("E_HIA_BUDGET_POLICY: options exceed byte budget");
+                    return ExitCode::FAILURE;
+                }
+                match serde_json::from_str::<hia_core_shadow::OwnedOptions>(&args[3]) {
+                    Ok(value) => value,
+                    Err(error) => {
+                        eprintln!("E_HIA_BUDGET_POLICY: invalid owned options: {error}");
+                        return ExitCode::FAILURE;
+                    }
+                }
+            } else { hia_core_shadow::OwnedOptions::default() };
+            match hia_core_shadow::decode_scalar_arguments(arguments) {
+                Ok(values) => hia_core_shadow::execute_owned(&input, function, &values, options),
+                Err(error) => {
+                    eprintln!("{error}");
+                    return ExitCode::FAILURE;
+                }
+            }
+        },
+        [mode, function, arguments] | [mode, function, arguments, _]
             if mode == "--scalar-run" => {
             // One optional explicit step budget. Unknown/reordered flags reject.
             let max_steps = if args.len() == 4 {
@@ -36,7 +59,7 @@ fn main() -> ExitCode {
             }
         },
         _ => {
-            eprintln!("E_HIA_RUST_UNSUPPORTED: expected no args, --owned-shadow or --scalar-run FUNCTION JSON_ARGS [MAX_STEPS]");
+            eprintln!("E_HIA_RUST_UNSUPPORTED: expected no args, --owned-shadow, --scalar-run FUNCTION JSON_ARGS [MAX_STEPS], or --owned-run FUNCTION JSON_ARGS [OPTIONS_JSON]");
             return ExitCode::FAILURE;
         }
     };

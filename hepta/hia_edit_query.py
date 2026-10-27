@@ -51,6 +51,24 @@ def _cfg_edges(term):
     return ()
 
 
+def _terminator_inputs(term):
+    """SSA values needed to understand a displayed block's actual exit.
+
+    A predicate, alternative edge argument or return value can be independent
+    of the edit and still decide the block's behavior. Showing its name without
+    its local definition produces a dangling reference in the Agent view.
+    These dependencies do not become affected values or control-flow proofs.
+    """
+    if term["op"] == "ret":
+        return list(term["values"])
+    if term["op"] in {"jump", "branch"}:
+        inputs = [term["cond"]] if term["op"] == "branch" else []
+        return inputs + [arg for edge in _cfg_edges(term) for arg in edge["args"]]
+    if term["op"] == "trap":
+        return []
+    _reject("unsupported terminator in verified edit context")
+
+
 def _cfg_downstream_slice(fn, source_block, affected, shown_count):
     """Bounded transitive *explicit SSA value* uses across CFG block arguments.
 
@@ -111,6 +129,7 @@ def _cfg_downstream_slice(fn, source_block, affected, shown_count):
                      for index, ins in enumerate(block["ops"]) for out in ins["out"]}
         needed = set()
         pending_inputs = [arg for i in consumer_indices for arg in block["ops"][i]["args"]]
+        pending_inputs.extend(_terminator_inputs(block["term"]))
         while pending_inputs:
             value = pending_inputs.pop()
             producer = producers.get(value)
@@ -173,10 +192,12 @@ def prepare_edit(document, *, function, block, output, fields):
     shown = {index, *(item["index"] for item in consumers)}
     producers = {value["name"]: i for i, op in enumerate(node["ops"])
                  for value in op["out"]}
-    # Close every displayed instruction's inputs, including the consumer's
-    # other operands. Their definitions may follow the selected instruction.
+    # Close every displayed instruction and terminator input, including the
+    # consumer's other operands and unaffected branch/return/edge values.
+    # Their definitions may follow the selected instruction.
     needed = set()
     pending = [arg for i in shown for arg in node["ops"][i]["args"]]
+    pending.extend(_terminator_inputs(node["term"]))
     while pending:
         value = pending.pop()
         producer = producers.get(value)

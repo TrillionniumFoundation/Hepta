@@ -1,0 +1,35 @@
+{
+  "schema": "hepta.audit.source-operand-final-recheck.v1",
+  "runs": [
+    {
+      "label": "final-five-counterexamples",
+      "argv": [
+        "/usr/bin/python3",
+        "-u",
+        "/tmp/hepta-p3-path-semantics-audit/replay_final.py"
+      ],
+      "returncode": 0,
+      "wall_seconds": 16.184862539001188,
+      "log_path": "/tmp/hepta-p3-path-semantics-audit/final-five-counterexamples.log",
+      "log_sha256": "d24838b46ff2cb2b19ac27fedf4f17ce5c636154039dc2ad7470643866a56de2"
+    },
+    {
+      "label": "final-entry-negative-controls",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "unittest",
+        "-v",
+        "test_c_project_source_arguments.CapturedSourceArgumentsTests.test_source_replay_cannot_introduce_response_expansion_options_or_stdin"
+      ],
+      "returncode": 0,
+      "wall_seconds": 1.4823042940006417,
+      "log_path": "/tmp/hepta-p3-path-semantics-audit/final-entry-negative-controls.log",
+      "log_sha256": "7f40090791ba2d11e99bf924a717e10a90602c6882be4b5767f82fc797509505"
+    }
+  ],
+  "all_passed": true,
+  "scope": "Five original/interpreter/native counterexamples rerun with unchanged original input paths/configurations after qualifier cwd repair; one unittest method checks four rejected source/output entry controls.",
+  "model_performance_or_full_suite_executed": false,
+  "previous_failed_targeted_attempt_preserved": true
+}

@@ -1,0 +1,325 @@
+{
+  "schema": "hepta.audit.source-operand-differential.v1",
+  "phase": "before",
+  "git_commit": "eb722984c488a721bd6c69d2bd9a69d7c600def1",
+  "git_status": "",
+  "cases": [
+    {
+      "language": "c",
+      "scenario": "file_include",
+      "input": 7,
+      "original": 9,
+      "interpreter": {
+        "schema": "hepta.hia.program-execution.v1",
+        "status": "returned",
+        "program_sha256": "e68d628790b83bb8743adf5933b5e4d551bbe2ccc3415a283339fbd24e486ff4",
+        "function": "c_probe",
+        "input_sha256": "e68d628790b83bb8743adf5933b5e4d551bbe2ccc3415a283339fbd24e486ff4",
+        "steps": 5,
+        "resources": {
+          "allocations": 0,
+          "frees": 0,
+          "allocation_attempts": 0,
+          "owners_created": 0,
+          "owners_dropped": 0,
+          "live_owners": 0,
+          "live_bytes": 0,
+          "peak_bytes": 0,
+          "loans_started": 0,
+          "loans_ended": 0,
+          "live_local_loans": 0
+        },
+        "word_bits": 64,
+        "source_used": false,
+        "claims": {
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false,
+          "backend_refinement_proved": false
+        },
+        "values": [
+          8
+        ],
+        "result": 8
+      },
+      "hia_native": 8,
+      "source": "#if __has_include(__FILE__)\nunsigned probe(unsigned x) { return x + 1u; }\n#else\nunsigned probe(unsigned x) { return x + 2u; }\n#endif\n",
+      "source_sha256": "e3db20719ebcc96b789598c489219ece1553bd0b9a98cee1a40a9dc413b9e846",
+      "database": {
+        "directory": "/tmp/hepta-p3-path-semantics-audit/before/c-file_include",
+        "file": "sub/input.c",
+        "arguments": [
+          "clang",
+          "-std=c11",
+          "-c",
+          "sub/input.c",
+          "-o",
+          "original.o"
+        ]
+      },
+      "database_sha256": "f60967f3fbc1e89c034b5e7ba641899327a6f25eeb9ee1d4041fb56d9be30126",
+      "captured_source": "/tmp/hepta-p3-path-semantics-audit/before/c-file_include/sub/input.c",
+      "capture_sha256": "3d6d25a1f1c3f6436a4fe64d21c268c56afa62af8f4c785ffb1d66ff712082ff",
+      "compiler": {
+        "path": "/usr/lib/llvm-20/bin/clang",
+        "executable_sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+        "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)",
+        "target": "x86_64-pc-linux-gnu"
+      },
+      "agrees": false
+    },
+    {
+      "language": "c++",
+      "scenario": "file_include",
+      "input": 7,
+      "original": 9,
+      "interpreter": {
+        "schema": "hepta.hia.program-execution.v1",
+        "status": "returned",
+        "program_sha256": "5d0757b16d5b4e599e018e6e6ffb31af35f7baed54ce32cc4d88d6f52cf8b83d",
+        "function": "probe",
+        "input_sha256": "5d0757b16d5b4e599e018e6e6ffb31af35f7baed54ce32cc4d88d6f52cf8b83d",
+        "steps": 5,
+        "resources": {
+          "allocations": 0,
+          "frees": 0,
+          "allocation_attempts": 0,
+          "owners_created": 0,
+          "owners_dropped": 0,
+          "live_owners": 0,
+          "live_bytes": 0,
+          "peak_bytes": 0,
+          "loans_started": 0,
+          "loans_ended": 0,
+          "live_local_loans": 0
+        },
+        "word_bits": 64,
+        "source_used": false,
+        "claims": {
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false,
+          "backend_refinement_proved": false
+        },
+        "values": [
+          8
+        ],
+        "result": 8
+      },
+      "hia_native": 8,
+      "source": "#if __has_include(__FILE__)\nextern \"C\" unsigned probe(unsigned x) noexcept { return x + 1u; }\n#else\nextern \"C\" unsigned probe(unsigned x) noexcept { return x + 2u; }\n#endif\n",
+      "source_sha256": "efef04e71310413e4d118cabacddc1b4dc096d46fe33da09e7fb55132031921b",
+      "database": {
+        "directory": "/tmp/hepta-p3-path-semantics-audit/before/cpp-file_include",
+        "file": "sub/input.cpp",
+        "arguments": [
+          "clang++",
+          "-std=c++20",
+          "-c",
+          "sub/input.cpp",
+          "-o",
+          "original.o"
+        ]
+      },
+      "database_sha256": "f55ad733dfaf6648664e0c7432f3835ce5d722a59cfe563390f9b21856cc8c5f",
+      "captured_source": "/tmp/hepta-p3-path-semantics-audit/before/cpp-file_include/sub/input.cpp",
+      "capture_sha256": "1abb5df6f3d6d461c92e8841a9dabdb2215b689b285feb871c3d2cec758b8ee3",
+      "compiler": {
+        "path": "/usr/lib/llvm-20/bin/clang",
+        "executable_sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+        "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)",
+        "target": "x86_64-pc-linux-gnu"
+      },
+      "agrees": false
+    },
+    {
+      "language": "c",
+      "scenario": "symlink_include",
+      "input": 7,
+      "original": 9,
+      "interpreter": {
+        "schema": "hepta.hia.program-execution.v1",
+        "status": "returned",
+        "program_sha256": "e68d628790b83bb8743adf5933b5e4d551bbe2ccc3415a283339fbd24e486ff4",
+        "function": "c_probe",
+        "input_sha256": "e68d628790b83bb8743adf5933b5e4d551bbe2ccc3415a283339fbd24e486ff4",
+        "steps": 5,
+        "resources": {
+          "allocations": 0,
+          "frees": 0,
+          "allocation_attempts": 0,
+          "owners_created": 0,
+          "owners_dropped": 0,
+          "live_owners": 0,
+          "live_bytes": 0,
+          "peak_bytes": 0,
+          "loans_started": 0,
+          "loans_ended": 0,
+          "live_local_loans": 0
+        },
+        "word_bits": 64,
+        "source_used": false,
+        "claims": {
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false,
+          "backend_refinement_proved": false
+        },
+        "values": [
+          8
+        ],
+        "result": 8
+      },
+      "hia_native": 8,
+      "source": "#include \"local.h\"\nunsigned probe(unsigned x) { return x + OFFSET; }\n",
+      "source_sha256": "f3e4b9329ab54155a3f4e518688a6f6c9c8ff0b8c0223b860c00a734ae14e4de",
+      "database": {
+        "directory": "/tmp/hepta-p3-path-semantics-audit/before/c-symlink_include",
+        "file": "alias/input.c",
+        "arguments": [
+          "clang",
+          "-std=c11",
+          "-c",
+          "alias/input.c",
+          "-o",
+          "original.o"
+        ]
+      },
+      "database_sha256": "610a4af2017120714d82245d80bcbeb7b64f1a10c7c718d8c6d73cfff9b6923f",
+      "captured_source": "/tmp/hepta-p3-path-semantics-audit/before/c-symlink_include/sub/input.c",
+      "capture_sha256": "a7b6d1ad40ff4d9c1bc82ca4f42100f8ac2585af3e4190e184ec1c224de74d3d",
+      "compiler": {
+        "path": "/usr/lib/llvm-20/bin/clang",
+        "executable_sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+        "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)",
+        "target": "x86_64-pc-linux-gnu"
+      },
+      "agrees": false
+    },
+    {
+      "language": "c++",
+      "scenario": "symlink_include",
+      "input": 7,
+      "original": 9,
+      "interpreter": {
+        "schema": "hepta.hia.program-execution.v1",
+        "status": "returned",
+        "program_sha256": "5d0757b16d5b4e599e018e6e6ffb31af35f7baed54ce32cc4d88d6f52cf8b83d",
+        "function": "probe",
+        "input_sha256": "5d0757b16d5b4e599e018e6e6ffb31af35f7baed54ce32cc4d88d6f52cf8b83d",
+        "steps": 5,
+        "resources": {
+          "allocations": 0,
+          "frees": 0,
+          "allocation_attempts": 0,
+          "owners_created": 0,
+          "owners_dropped": 0,
+          "live_owners": 0,
+          "live_bytes": 0,
+          "peak_bytes": 0,
+          "loans_started": 0,
+          "loans_ended": 0,
+          "live_local_loans": 0
+        },
+        "word_bits": 64,
+        "source_used": false,
+        "claims": {
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false,
+          "backend_refinement_proved": false
+        },
+        "values": [
+          8
+        ],
+        "result": 8
+      },
+      "hia_native": 8,
+      "source": "#include \"local.h\"\nextern \"C\" unsigned probe(unsigned x) noexcept { return x + OFFSET; }\n",
+      "source_sha256": "7c57196c9cfa20e4fcd50ebd09502369a167663ac8812e393fceadbc802fe6f6",
+      "database": {
+        "directory": "/tmp/hepta-p3-path-semantics-audit/before/cpp-symlink_include",
+        "file": "alias/input.cpp",
+        "arguments": [
+          "clang++",
+          "-std=c++20",
+          "-c",
+          "alias/input.cpp",
+          "-o",
+          "original.o"
+        ]
+      },
+      "database_sha256": "6aa25ff45e2bbc3a609c4b328a31efdcadc96dbd879edca95867e4aa63a87c84",
+      "captured_source": "/tmp/hepta-p3-path-semantics-audit/before/cpp-symlink_include/sub/input.cpp",
+      "capture_sha256": "ca83bdb87a89542466029b39cffb1a1656829f4c9ef5d3451d6feeccc60a20e1",
+      "compiler": {
+        "path": "/usr/lib/llvm-20/bin/clang",
+        "executable_sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+        "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)",
+        "target": "x86_64-pc-linux-gnu"
+      },
+      "agrees": false
+    },
+    {
+      "language": "c++",
+      "scenario": "template_sizeof_file",
+      "input": 7,
+      "original": 35,
+      "interpreter": {
+        "schema": "hepta.hia.program-execution.v1",
+        "status": "returned",
+        "program_sha256": "0bb9685cf45761469823291e9af789d011ff0f8371412afcbbee2adc51ebc37e",
+        "function": "probe",
+        "input_sha256": "0bb9685cf45761469823291e9af789d011ff0f8371412afcbbee2adc51ebc37e",
+        "steps": 8,
+        "resources": {
+          "allocations": 0,
+          "frees": 0,
+          "allocation_attempts": 0,
+          "owners_created": 0,
+          "owners_dropped": 0,
+          "live_owners": 0,
+          "live_bytes": 0,
+          "peak_bytes": 0,
+          "loans_started": 0,
+          "loans_ended": 0,
+          "live_local_loans": 0
+        },
+        "word_bits": 64,
+        "source_used": false,
+        "claims": {
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false,
+          "backend_refinement_proved": false
+        },
+        "values": [
+          169
+        ],
+        "result": 169
+      },
+      "hia_native": 169,
+      "source": "template<unsigned N> unsigned selected(unsigned x) noexcept { return x + N; }\nextern \"C\" unsigned probe(unsigned x) noexcept { return selected<sizeof(__FILE__) + sizeof(__BASE_FILE__)>(x); }\n",
+      "source_sha256": "d98e6d27d69736d4b915a98aa7c193cf59a29785451c363feef748c7cd8e791c",
+      "database": {
+        "directory": "/tmp/hepta-p3-path-semantics-audit/before/cpp-template_sizeof_file",
+        "file": "sub/input.cpp",
+        "arguments": [
+          "clang++",
+          "-std=c++20",
+          "-c",
+          "sub/input.cpp",
+          "-o",
+          "original.o"
+        ]
+      },
+      "database_sha256": "de2855b75a4aa5789a31554ebc7470c2128e349fe9c69c77c8f15f2fb99d9114",
+      "captured_source": "/tmp/hepta-p3-path-semantics-audit/before/cpp-template_sizeof_file/sub/input.cpp",
+      "capture_sha256": "63d29c775829f1f5aba39b5241c7ea0f4235bb5e1136c72fd74fd3eae591265a",
+      "compiler": {
+        "path": "/usr/lib/llvm-20/bin/clang",
+        "executable_sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+        "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)",
+        "target": "x86_64-pc-linux-gnu"
+      },
+      "agrees": false
+    }
+  ],
+  "case_count": 5,
+  "all_agree": false
+}

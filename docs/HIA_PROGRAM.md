@@ -1,15 +1,16 @@
 # HIA standalone programs: normative executable profiles
 
 This document defines the independently checked primitive
-`hepta.hia.program.v1` through `hepta.hia.program.v6` profiles and the distinct
-structural nominal input namespace `hepta.hia.composite.v1`. Their
+`hepta.hia.program.v1` through `hepta.hia.program.v7` profiles and the distinct
+structural nominal input namespaces `hepta.hia.composite.v1` and `.v2`. Their
 executable admission authority is `hepta.hia_program.verify_core` (also exposed
 as `hepta.core.verify_core` and `verify_program`). The direct interpreter and
 LLVM backend consume the same immutable, reverified program bytes. No original
 Hepta, C, C++, Rust or assembly source is required to admit or execute this
 program. A caller-provided hash, proof claim or producer receipt grants no
-additional permission. Composite input is structurally elaborated into primitive v6
-core and that complete core is independently rechecked. It is not admitted by
+additional permission. Composite v1 input is structurally elaborated into
+primitive v6; composite v2 elaborates into primitive v7. That complete core
+is independently rechecked. It is not admitted by
 a source-language checker or a producer's assertion.
 
 This is a typed, resource-aware assembly/IR for agent editing. It deliberately
@@ -52,7 +53,10 @@ in this core.
 
 ## Wire format and immutable identity
 
-`hepta/hia_schema.py` is the shared version registry. A schema selects an
+`hepta/hia_schema.py` is the shared version registry, available without a source
+file or native toolchain through `python -m hepta hia schema`. The command
+serializes that registry directly; it is not a separately maintained list.
+A schema selects an
 instruction grammar; it is never a safety receipt or permission to skip
 verification. Primitive schemas remain exact, cumulative capabilities:
 
@@ -64,7 +68,14 @@ verification. Primitive schemas remain exact, cumulative capabilities:
 | `hepta.hia.program.v4` | Byte swap | Original v4 bytes |
 | `hepta.hia.program.v5` | Copy with source and destination offsets | Original v5 bytes |
 | `hepta.hia.program.v6` | Fill a checked subrange | Original v6 bytes |
+| `hepta.hia.program.v7` | Dynamically allocated linear buffer chains | Original v7 bytes |
 | `hepta.hia.composite.v1` | Generic nominal products, enums, stored local loans and cooperative tasks over all v6 operations | Independently checked primitive v6 normalization |
+| `hepta.hia.composite.v2` | The same nominal operations over all v7 operations, including owned chains | Independently checked primitive v7 normalization |
+
+`canonical_core_schema` retains the v6 normalization target of composite v1;
+`latest_core_schema` identifies v7. These fields do not request an automatic
+upgrade. A v1 through v6 document keeps its exact declared grammar, and
+composite v1 cannot acquire chain instructions through a newer loader.
 
 Historical development also used the spelling `hepta.hia.program.v2` for a
 nominal format. Ordinary loaders now interpret that spelling only as primitive
@@ -243,6 +254,31 @@ borrowed parameters. Aliased exclusive arguments reject. Owned results may
 return; returning an owner with outstanding loans rejects. Multiple internal
 results are permitted.
 
+### Recursive buffer chains in v7
+
+The additional linear owner type is `chain = Nil | Node(buffer, chain)`.
+It supports actual runtime-sized chains, with one 24-byte header per node in
+the fixed 64-bit object model. It does not introduce arbitrary recursive ADTs,
+cyclic/shared graphs, integer pointers or escaping references. Primitive v1
+through v6 and composite v1 reject this capability.
+
+| Operation | Result and ownership transition |
+| --- | --- |
+| `chain.empty()` | One valid empty chain owner |
+| `chain.try_push(tail,payload)` | Consumes both inputs; success returns the new chain, an empty buffer owner and true; failure returns the unchanged tail, unchanged payload and false |
+| `chain.pop(chain)` | Consumes the input; returns owned tail, owned payload and true, or empty owners and false for Nil; frees only the removed header |
+| `chain.is_empty(chain)` | Boolean observation without consuming the owner |
+| `chain.head_read/mut(chain)` | A read/mutable byte loan rooted in the chain; Nil traps before dereference |
+| `owner.move/drop(chain)` | Linear transfer or iterative destruction of all remaining nodes and payloads |
+
+Push, pop, consuming calls and destruction reject while a head loan is live.
+Every returned owner, including empty and failure owners, must be consumed on
+ordinary paths. Header and payload allocations share the deterministic failure
+sequence and live-byte accounting. Iterative destruction charges each step;
+a budget stop or trap retains the stopped resource state rather than claiming
+cleanup. The complete operation effects, representation and evidence contract
+are specified in [HIA_RECURSIVE_CHAIN_V7.md](HIA_RECURSIVE_CHAIN_V7.md).
+
 ## Frontend representations and current exclusions
 
 Concrete source records are scalarized into an ordered collection of scalar
@@ -302,13 +338,16 @@ finite profile, ODR checks and explicit ABI/equivalence limits.
 
 ## Nominal products, enums and cooperative tasks
 
-The standalone `hepta.hia.composite.v1` input has exactly `schema`, `module`,
+The standalone `hepta.hia.composite.v1` or `.v2` input has exactly `schema`, `module`,
 `types`, and `functions`. It automatically exports original scalar-signature
 functions. An explicit narrower export list can be expressed in its normalized
 primitive Core; the nominal input itself does not accept `exports`.
 Function/block/instruction
-structure follows the primitive grammar; all v1 through v6 instructions are
-available under their checked resource rules. Parameter,
+structure follows the primitive grammar; composite v1 admits primitive v1
+through v6 instructions, and composite v2 additionally admits v7 chains.
+Only composite v2 reserves `chain` as a primitive type; an existing composite
+v1 nominal definition or generic parameter with that name retains its meaning.
+All instructions remain subject to their checked resource rules. Parameter,
 result and instruction-output types may additionally name declared nominal
 types. A generic application is `{"name":"Pair","args":["buffer","usize"]}`.
 A declared type has `name`, a unique `params` list and `kind`:
@@ -381,12 +420,14 @@ guarantees after abort/budget exhaustion. The allocator, ABI and compiler
 assumptions remain the same as the primitive core.
 
 `verify_core` elaborates composite input, verifies every primitive operation/edge and stores
-the canonical v6 core. A `VerifiedProgram` may additionally retain canonical composite
+the canonical core for that input version: v6 for composite v1, v7 for composite
+v2. A `VerifiedProgram` may additionally retain canonical composite
 bytes for audit identity. Public consumers re-elaborate such retained bytes
 and require exact core equality; a forged origin/core pair rejects even if a
 caller recomputes a digest. `input_sha256` and `program_sha256` distinguish the
 input representation from the executable core. `hia normalize` publishes the
-core, including its export policy, as a self-contained v6 program. Later
+core, including its export policy, as a self-contained primitive program of
+that same version. Later
 semantic patches operate on that core and report this edit domain explicitly.
 
 The checked examples are `generic_owned_enum.hia`, `stored_loan_record.hia`
@@ -404,6 +445,18 @@ and exits nonzero. A step, heap or call-depth budget is an evaluator limit,
 not a language allocation failure or proof of nontermination. Counters report
 the state at the stop and do not invent cleanup after an aborted computation.
 
+The optional Rust shadow has separate static and execution modes. Its
+`--owned-shadow` checker covers the admitted finite Owner/Loan CFG rules,
+including v7 chains; `--scalar-run` executes resource-free scalar v1–v7.
+`--owned-run FUNCTION JSON_ARGS OPTIONS_JSON` independently executes only
+primitive v1 byte resources, calls and CFG, including allocation failure and
+stopped resource accounting. It checks the whole module before execution and
+rejects v2–v7, even when the selected entry uses only old operations. Its
+finite limits are 1–1,000,000 steps, 0–64 MiB live requested bytes and 32
+simultaneously active calls; defaults are 100,000 steps and 16 MiB. These are
+oracle policy limits, not new Core semantics or native runtime guarantees.
+None of these modes replaces Python Core admission or proves LLVM refinement.
+
 The native backend exposes only functions with integer/Boolean parameters and
 at most one scalar result as external C wrappers; a unit result maps to void,
 and a unit parameter is not exported. Owned/borrowed parameters and
@@ -412,9 +465,11 @@ integer and Boolean ABI extension rules are target-specific. Cross-target
 object generation, emulator execution and physical hardware acceptance are
 separate qualifications; a host success cannot qualify a new target.
 
-The current emitter admits `x86_64-unknown-linux-gnu` shared libraries/objects
-and `aarch64-unknown-linux-gnu` objects. AArch64 shared-library builds reject.
-Its explicit finite execution gate links the independently emitted object to
+The current emitter admits `x86_64-unknown-linux-gnu` shared libraries/objects,
+`aarch64-unknown-linux-gnu` objects and `riscv64-unknown-linux-gnu` RV64GC LP64D
+objects. Cross-target shared-library builds reject. The RISC-V execution and
+ABI limits are specified in [HIA_RISCV64_LP64D.md](HIA_RISCV64_LP64D.md).
+For AArch64, the explicit finite execution gate links the independently emitted object to
 a reviewed 4096-byte, one-live-allocation runtime and executes it with the
 pinned QEMU user-mode binary. That runtime's abort exits with code 134; the
 host libc abort controls instead observe SIGABRT. Neither result is a physical
@@ -533,7 +588,10 @@ output name. Its query binds the input/core hashes, the selected operation,
 the editable subset of `op`, `args`, `attrs`, and a deterministic context view.
 That view contains the function interface/effects, block inputs, direct
 consumers, and the transitive local producers of every displayed operation's
-inputs, together with the terminator and referenced callee signatures.
+and terminator's inputs, together with referenced callee signatures. This
+includes unchanged branch predicates, both alternative edge arguments and
+return values in each displayed block; their inclusion does not mark them as
+affected values. Dependencies count toward the same bounded context budget.
 The compact view preserves original instruction order.
 Output definitions are never editable through this interface.
 
@@ -587,7 +645,7 @@ changes context and representation together.
 
 The integrated frozen-source run is `tools/qualify_hia_unified.py`. It executes
 the regression suite, independent native/primitive-resource/composite-resource,
-C/C++ owner and actual template-migration, and AArch64 gates,
+C/C++ owner and actual template-migration, AArch64 and RISC-V gates,
 historical Core/composition/board regression gates and the 63-sample performance
 protocol. It retains each command/log, refuses to count skipped tests as a
 complete pass, and compares source snapshots before/after. It also executes

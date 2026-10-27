@@ -12,7 +12,7 @@ from pathlib import Path
 import re
 
 from .c_migrate import MigrationRejected
-from .c_project import invoke
+from .c_project import captured_source_argument, invoke
 
 
 INTEGER = {f"{s}{w}" for s in ("u", "i") for w in (8, 16, 32, 64)} | {"usize", "isize"}
@@ -132,7 +132,8 @@ class CTranslator:
         for config in self.capture["configurations"]:
             directory = Path(config["directory"])
             tree = json.loads(invoke([self.capture["compiler"]["path"], *config["frontend_arguments"],
-                                     "-Werror", "-fsyntax-only", "-Xclang", "-ast-dump=json", config["source"]], directory))
+                                     "-Werror", "-fsyntax-only", "-Xclang", "-ast-dump=json",
+                                     captured_source_argument(config)], directory))
             if tree.get("kind") != "TranslationUnitDecl":
                 raise MigrationRejected("E_C_AST", "Clang did not produce a translation unit")
             active_file = None

@@ -14,7 +14,7 @@ import json
 from pathlib import Path
 
 from .c_migrate import MigrationRejected
-from .c_project import capture_project, invoke, verify_capture
+from .c_project import captured_source_argument, capture_project, invoke, verify_capture
 from .c_translation import CTranslator, Expression, INTEGER, ident
 from .hia_program_source import lower_source
 
@@ -227,7 +227,8 @@ class _ConcreteTranslator(CTranslator):
             _reject("All captured C++ units must use the same actual scalar model")
         for config in self.capture["configurations"]:
             raw = invoke([self.capture["compiler"]["path"], *config["frontend_arguments"],
-                          "-Werror", "-fsyntax-only", "-Xclang", "-ast-dump=json", config["source"]],
+                          "-Werror", "-fsyntax-only", "-Xclang", "-ast-dump=json",
+                          captured_source_argument(config, language="c++")],
                          Path(config["directory"]))
             tree = json.loads(raw)
             if tree.get("kind") != "TranslationUnitDecl":

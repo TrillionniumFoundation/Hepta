@@ -86,8 +86,9 @@ class HIAProgramToolsTests(unittest.TestCase):
             change(patch)
             with self.assertRaises(ValueError):
                 apply_program_patch(document, patch)
-        with self.assertRaisesRegex(HIAEditRejected, "duplicate"):
-            decode_json('{"x": 1, "x": 2}')
+        for duplicate in ('{"x": 1, "x": 2}', '{"x": 1, "\\u0078": 2}'):
+            with self.subTest(duplicate=duplicate), self.assertRaisesRegex(HIAEditRejected, "duplicate"):
+                decode_json(duplicate)
         from unittest.mock import patch
         with patch("hepta.hia_program_tools.MAX_INPUT_BYTES", 16):
             with self.assertRaisesRegex(HIAEditRejected, "byte limit"):
