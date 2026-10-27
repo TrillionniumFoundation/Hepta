@@ -51,11 +51,11 @@ class BoundedAgentJSONTests(unittest.TestCase):
         # Raw string size may be below the budget even when a single encoded
         # JSONEncoder fragment would be several times larger.
         cases = (
-            ({"control": "\\x00" * 350}, 1024, True),
+            ({"control": "\x00" * 350}, 1024, True),
             ({"non_ascii": "é" * 300}, 1024, True),
             ({"astral": "🌍" * 150}, 1024, True),
-            ({"surrogate": "\\ud800" * 200}, 1024, True),
-            ({"key\\x00" * 300: 1}, 1024, False),
+            ({"surrogate": "\ud800" * 200}, 1024, True),
+            ({"key\x00" * 300: 1}, 1024, False),
             ({"astral": "🌍" * 300}, 1024, False),
         )
         for value, budget, ascii_mode in cases:
@@ -68,8 +68,8 @@ class BoundedAgentJSONTests(unittest.TestCase):
 
     def test_string_preflight_matches_encoder_with_ascii_and_unicode(self):
         for ascii_mode in (True, False):
-            for string in ("plain", '"back\\\\slash"', "\\x00\\n\\t\\b\\f\\r",
-                           "é中🌍", "\\u2028", "a" * 1022):
+            for string in ("plain", '"back\\\\slash"', "\x00\n\t\b\f\r",
+                           "é中🌍", "\u2028", "a" * 1022):
                 with self.subTest(ascii_mode=ascii_mode, value=string):
                     value = {"key": string}
                     expected = json.dumps(value, ensure_ascii=ascii_mode, sort_keys=True,
