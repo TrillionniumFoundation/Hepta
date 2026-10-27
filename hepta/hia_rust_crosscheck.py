@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from hashlib import sha256
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -21,6 +22,27 @@ import time
 
 MAX_EXECUTABLE_BYTES = 32 * 1024 * 1024
 MAX_OUTPUT_BYTES = 32 * 1024
+# Per-process limits for the pinned development shadow, not host-wide RSS
+# bounds or hostile-binary confinement. Linux RLIMIT_AS limits virtual address
+# space; RLIMIT_CPU limits CPU seconds (not aggregate child/group CPU).
+_SHADOW_AS_LIMIT = 1024 * 1024 * 1024
+_SHADOW_NOFILE_LIMIT = 64
+# Run these pre-exec limits in a fresh isolated Python helper, never via
+# subprocess.Popen(preexec_fn=...) from a potentially multithreaded host.
+# The helper inherits the same session/process group as the actual shadow.
+_SHADOW_RESOURCE_LAUNCHER = r'''import os, resource, sys
+cpu = int(sys.argv[1])
+for kind, value in (
+    (resource.RLIMIT_AS, 1024 * 1024 * 1024),
+    (resource.RLIMIT_CPU, cpu),
+    (resource.RLIMIT_FSIZE, 0),
+    (resource.RLIMIT_CORE, 0),
+    (resource.RLIMIT_NOFILE, 64),
+):
+    resource.setrlimit(kind, (value, value))
+os.execve(sys.argv[2], sys.argv[2:], {
+    "LANG": "C", "LC_ALL": "C", "PYTHONIOENCODING": "utf-8"})
+'''
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 
 _SCALAR_CLAIMS = {
@@ -257,6 +279,24 @@ def _run_bounded_shadow(cmd: list[str], payload: bytes, timeout: float):
                     stream.close()
 
 
+
+def _limited_shadow_command(executable: Path, profile: str, timeout: float) -> list[str]:
+    """Launch an exact staged binary after independent per-process RLIMITs.
+
+    A separate Python interpreter sets limits and uses os.execve so the actual
+    verifier is not replaced with a Python simulation. The pinned executable
+    file bytes remain the same staged bytes. Limits also apply to descendants
+    that inherit them, but this is not a cgroup or a complete sandbox.
+    """
+    if sys.platform != "linux":
+        _reject("CPU/address-space resource limits require Linux")
+    if profile not in {"scalar", "owned"} or type(timeout) not in (int, float) or not 0 < timeout <= 15:
+        _reject("invalid shadow profile or deadline")
+    cpu = math.ceil(timeout) + 1
+    return [sys.executable, "-I", "-S", "-c", _SHADOW_RESOURCE_LAUNCHER,
+            str(cpu), str(executable)] + (["--owned-shadow"] if profile == "owned" else [])
+
+
 def crosscheck_rust_shadow(program, executable: str | Path, *, executable_sha256: str,
                            profile: str = "owned", timeout: float = 8.0):
     """Corroborate canonical Core with pinned opt-in Rust executable.
@@ -283,7 +323,7 @@ def crosscheck_rust_shadow(program, executable: str | Path, *, executable_sha256
             os.fchmod(fd, 0o700)
         finally:
             os.close(fd)
-        cmd = [str(destination)] + (["--owned-shadow"] if profile == "owned" else [])
+        cmd = _limited_shadow_command(destination, profile, timeout)
         stdout, stderr, returncode = _run_bounded_shadow(cmd, checked.canonical_bytes, timeout)
         if returncode != 0 or stderr:
             _reject("shadow rejected canonical HIA or emitted unexpected diagnostics")
