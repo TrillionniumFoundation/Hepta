@@ -36,7 +36,29 @@ fn failure<T>(code: &'static str, detail: impl Into<String>) -> R<T> {
     Err(VerifyError { code, detail: detail.into() })
 }
 
-struct UniqueJson(Value);
+// Reject deeply nested or dense input while deserializing it.  The old
+// post-parse structure() gate cannot prevent a hostile JSON payload from
+// allocating an oversized Value tree before it is checked.
+struct UniqueJson {
+    value: Value,
+    nodes: usize,
+    depth: usize,
+}
+impl UniqueJson {
+    fn leaf(value: Value) -> Self {
+        Self { value, nodes: 1, depth: 0 }
+    }
+}
+fn bounded_child<E: de::Error>(nodes: &mut usize, depth: &mut usize,
+                               child: &UniqueJson) -> Result<(), E> {
+    *nodes = (*nodes).checked_add(child.nodes)
+        .ok_or_else(|| E::custom("HIA_DECODE_LIMIT: node count overflow"))?;
+    *depth = (*depth).max(child.depth.saturating_add(1));
+    if *nodes > MAX_NODES || *depth > MAX_DEPTH {
+        return Err(E::custom("HIA_DECODE_LIMIT: node/depth budget exceeded"));
+    }
+    Ok(())
+}
 struct UniqueVisitor;
 impl<'de> Deserialize<'de> for UniqueJson {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
@@ -49,45 +71,51 @@ impl<'de> Visitor<'de> for UniqueVisitor {
         f.write_str("finite JSON without duplicate keys or floating values")
     }
     fn visit_bool<E: de::Error>(self, v: bool) -> Result<Self::Value, E> {
-        Ok(UniqueJson(Value::Bool(v)))
+        Ok(UniqueJson::leaf(Value::Bool(v)))
     }
     fn visit_i64<E: de::Error>(self, v: i64) -> Result<Self::Value, E> {
-        Ok(UniqueJson(Value::Number(v.into())))
+        Ok(UniqueJson::leaf(Value::Number(v.into())))
     }
     fn visit_u64<E: de::Error>(self, v: u64) -> Result<Self::Value, E> {
-        Ok(UniqueJson(Value::Number(v.into())))
+        Ok(UniqueJson::leaf(Value::Number(v.into())))
     }
     fn visit_f64<E: de::Error>(self, _: f64) -> Result<Self::Value, E> {
         Err(E::custom("HIA does not admit floating JSON numbers"))
     }
     fn visit_str<E: de::Error>(self, v: &str) -> Result<Self::Value, E> {
-        Ok(UniqueJson(Value::String(v.to_owned())))
+        Ok(UniqueJson::leaf(Value::String(v.to_owned())))
     }
     fn visit_string<E: de::Error>(self, v: String) -> Result<Self::Value, E> {
-        Ok(UniqueJson(Value::String(v)))
+        Ok(UniqueJson::leaf(Value::String(v)))
     }
     fn visit_unit<E: de::Error>(self) -> Result<Self::Value, E> {
-        Ok(UniqueJson(Value::Null))
+        Ok(UniqueJson::leaf(Value::Null))
     }
     fn visit_none<E: de::Error>(self) -> Result<Self::Value, E> {
-        Ok(UniqueJson(Value::Null))
+        Ok(UniqueJson::leaf(Value::Null))
     }
     fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
-        let mut v = Vec::new();
+        let mut values = Vec::new();
+        let (mut nodes, mut depth) = (1_usize, 0_usize);
         while let Some(next) = seq.next_element::<UniqueJson>()? {
-            v.push(next.0);
+            bounded_child::<A::Error>(&mut nodes, &mut depth, &next)?;
+            values.push(next.value);
         }
-        Ok(UniqueJson(Value::Array(v)))
+        Ok(UniqueJson { value: Value::Array(values), nodes, depth })
     }
     fn visit_map<M: MapAccess<'de>>(self, mut map: M) -> Result<Self::Value, M::Error> {
-        let mut v = Map::new();
-        while let Some((key, next)) = map.next_entry::<String, UniqueJson>()? {
-            if v.contains_key(&key) {
+        let mut values = Map::new();
+        let (mut nodes, mut depth) = (1_usize, 0_usize);
+        // Refuse duplicate keys before even parsing the duplicate value.
+        while let Some(key) = map.next_key::<String>()? {
+            if values.contains_key(&key) {
                 return Err(de::Error::custom("duplicate JSON object key"));
             }
-            v.insert(key, next.0);
+            let next = map.next_value::<UniqueJson>()?;
+            bounded_child::<M::Error>(&mut nodes, &mut depth, &next)?;
+            values.insert(key, next.value);
         }
-        Ok(UniqueJson(Value::Object(v)))
+        Ok(UniqueJson { value: Value::Object(values), nodes, depth })
     }
 }
 
@@ -466,16 +494,27 @@ fn check_function(fn_value: &Value, sig: &Signature, functions: &BTreeMap<String
     Ok(blocks.len())
 }
 mod ownership;
+mod scalar_vm;
+pub use scalar_vm::execute_scalar;
 
 fn decode_hia(input: &[u8]) -> R<(Value, Vec<u8>)> {
     if input.len() > MAX_BYTES {
         return failure("E_HIA_LIMIT", "encoded HIA program exceeds 8 MiB");
     }
     let mut d = serde_json::Deserializer::from_slice(input);
-    let parsed = UniqueJson::deserialize(&mut d)
-        .map_err(|e| VerifyError { code: "E_HIA_FORMAT", detail: e.to_string() })?;
+    let parsed = UniqueJson::deserialize(&mut d).map_err(|e| {
+        let detail = e.to_string();
+        VerifyError {
+            code: if detail.starts_with("HIA_DECODE_LIMIT:") {
+                "E_HIA_LIMIT"
+            } else {
+                "E_HIA_FORMAT"
+            },
+            detail,
+        }
+    })?;
     d.end().map_err(|e| VerifyError { code: "E_HIA_FORMAT", detail: e.to_string() })?;
-    let doc = parsed.0;
+    let doc = parsed.value;
     structure(&doc)?;
     let canonical = serde_json::to_vec(&doc).map_err(|e| VerifyError {
         code: "E_HIA_FORMAT", detail: e.to_string(),
@@ -497,7 +536,15 @@ pub fn verify_owned(input: &[u8]) -> R<Value> {
 /// or production final-use authorization.
 pub fn verify(input: &[u8]) -> R<Value> {
     let (doc, _canonical_bytes) = decode_hia(input)?;
-    let top = object(&doc, &["schema", "module", "functions"], "program")?;
+    // A verified standalone scalar program may explicitly restrict the
+    // public entrypoints. This field is part of executable Core identity,
+    // not an untrusted producer permission or a second schema authority.
+    let top_keys: &[&str] = if doc.get("exports").is_some() {
+        &["schema", "module", "functions", "exports"]
+    } else {
+        &["schema", "module", "functions"]
+    };
+    let top = object(&doc, top_keys, "program")?;
     let schema = string(&top["schema"], "schema")?;
     if !matches!(schema, "hepta.hia.program.v1" | "hepta.hia.program.v2"
         | "hepta.hia.program.v3" | "hepta.hia.program.v4"
@@ -526,6 +573,22 @@ pub fn verify(input: &[u8]) -> R<Value> {
         };
         if signatures.insert(name, sig).is_some() {
             return failure("E_HIA_NAME", "duplicate function name");
+        }
+    }
+    // Match canonical verify_program's explicit scalar-export contract.
+    // The whole Rust shadow module is scalar-only; exported names must still
+    // be unique, existing and valid. An empty list exports nothing.
+    if let Some(export_list) = top.get("exports") {
+        let exports = array(export_list, "explicit scalar exports")?;
+        let mut seen = BTreeSet::new();
+        for entry in exports {
+            let name = ident(entry)?;
+            if !signatures.contains_key(&name) {
+                return failure("E_HIA_CALL", "export references a missing function");
+            }
+            if !seen.insert(name) {
+                return failure("E_HIA_NAME", "duplicate explicit scalar export");
+            }
         }
     }
     let mut blocks_checked = 0;
