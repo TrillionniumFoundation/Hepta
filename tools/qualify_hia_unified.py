@@ -34,6 +34,16 @@ IMPORTED_QUALIFICATION_NAMES = {
     "cpp_composed_implementation_llvm": "cpp_composed_to_llvm",
     "llvm_local_stored_views": "llvm_local_stored_views",
     "task_io_composition": "task_io_composition",
+    "bounded_concurrency": "bounded_concurrency",
+    "shared_runtime": "shared_runtime",
+    "independent_concurrent_ir": "independent_concurrent_ir",
+    "structured_task_trees": "structured_task_trees",
+    "bounded_async_io": "bounded_async_io",
+    "native_host_gcc": "native_host_abi",
+    "native_host_clang": "native_host_abi",
+    "provenance_and_type_core": "provenance_and_type_core",
+    "formal_core": "formal_core",
+    "application_performance": "application_performance",
 }
 
 
@@ -119,7 +129,7 @@ def cargo_test_outcome(stdout, returncode):
     return result
 
 
-def qualification_plan(output, *, python, clang, rustc, cargo, qemu_aarch64,
+def qualification_plan(output, *, python, clang, cc, rustc, cargo, qemu_aarch64,
                        qemu_riscv64, qemu_system_arm, linker, lean, cxx):
     """The complete declared candidate plan; no feature is selected by availability."""
     output = Path(output)
@@ -131,7 +141,14 @@ def qualification_plan(output, *, python, clang, rustc, cargo, qemu_aarch64,
                                 "tests.test_hia_rust_shadow", "tests.test_hia_rust_owned_shadow",
                                 "tests.test_hia_rust_calls_shadow", "tests.test_hia_rust_chain_shadow",
                                 "tests.test_hia_rust_scalar_vm", "tests.test_hia_rust_crosscheck",
-                                "tests.test_hia_rust_crosscheck_cli", "-v"], None),
+                                "tests.test_hia_rust_crosscheck_cli", "tests.test_hia_rust_owned_vm",
+                                "-v"], None),
+        ("agent_query_semantics", [python, "-m", "unittest",
+                                   "tests.test_hia_edit_query", "tests.test_hia_edit_batch",
+                                   "tests.test_hia_edit_transitive_context", "tests.test_hia_edit_cfg_context",
+                                   "tests.test_hia_edit_control_context", "tests.test_hia_edit_batch_identity",
+                                   "tests.test_hia_cfg_render_convergence", "tests.test_hia_context_render_input",
+                                   "-v"], None),
         ("standalone_native", [python, "tools/qualify_hia_program.py", "--clang", clang,
                                "--output", output / "native.json"], output / "native.json"),
         ("standalone_resources", [python, "tools/qualify_hia_program_resources.py",
@@ -160,14 +177,14 @@ def qualification_plan(output, *, python, clang, rustc, cargo, qemu_aarch64,
                                            "--rustc", rustc, "--workdir", output / "cpp-composed"], output / "cpp-composed/qualification.json"),
         ("cpp_composed_implementation_llvm", [python, "tools/qualify_cpp_composed_llvm.py",
                                              "--clang", clang, "--clangxx", str(Path(clang).with_name("clang++")),
-                                             "--rustc", rustc, "--cc", clang,
+                                             "--rustc", rustc, "--cc", cc,
                                              "--workdir", output / "cpp-composed-llvm",
                                              "--output", output / "cpp-composed-llvm.json"], output / "cpp-composed-llvm.json"),
         ("llvm_local_stored_views", [python, "tools/qualify_llvm_local_views.py", "--clang", clang,
-                                    "--rustc", rustc, "--cc", clang,
+                                    "--rustc", rustc, "--cc", cc,
                                     "--output", output / "llvm-local-views.json"], output / "llvm-local-views.json"),
         ("task_io_composition", [python, "tools/qualify_task_io.py", "--rustc", rustc,
-                                 "--cc", clang, "--repeats", "3",
+                                 "--cc", cc, "--repeats", "3",
                                  "--output", output / "task-io.json"], output / "task-io.json"),
         ("selected_core_formal", [python, "tools/qualify_hia_selected_formal.py", "--lean", lean,
                                   "--clang", clang, "--output-directory", output / "selected-formal"], output / "selected-formal/qualification.json"),
@@ -175,23 +192,54 @@ def qualification_plan(output, *, python, clang, rustc, cargo, qemu_aarch64,
                                    "--linker", linker, "--qemu-aarch64", qemu_aarch64,
                                    "--output", output / "aarch64.json"], output / "aarch64.json"),
         ("standalone_riscv64_qemu", [python, "tools/qualify_hia_riscv64.py", "--clang", clang,
-                                    "--linker", str(Path(clang).with_name("ld.lld")),
+                                    "--linker", linker,
                                     "--readobj", str(Path(clang).with_name("llvm-readobj")),
                                     "--qemu-riscv64", qemu_riscv64,
                                     "--output-directory", output / "riscv64"], output / "riscv64/qualification.json"),
         ("legacy_executable_core", [python, "-m", "hepta.executable_core_qualify", "--clang", clang,
-                                    "--rustc", rustc, "--report", output / "legacy-core.json"], output / "legacy-core.json"),
+                                    "--cc", cc, "--rustc", rustc,
+                                    "--report", output / "legacy-core.json"], output / "legacy-core.json"),
         ("legacy_hosted_composition", [python, "-m", "tools.qualify_lifecycle_composition",
                                        "--rustc", rustc, "--output", output / "hosted-composition.json"], output / "hosted-composition.json"),
         ("legacy_cortex_m4_qemu", [python, "tools/validate_board.py", "--rustc", rustc,
                                    "--qemu", qemu_system_arm, "--output", output / "board.json"], output / "board.json"),
+        ("bounded_concurrency", [python, "tools/validate_groups.py", "--rustc", rustc,
+                                 "--repeats", "3", "--output", output / "groups.json"], output / "groups.json"),
+        ("shared_runtime", [python, "tools/validate_shared_runtime.py", "--rustc", rustc,
+                            "--cc", cc, "--repeats", "3",
+                            "--output", output / "shared-runtime.json"], output / "shared-runtime.json"),
+        ("independent_concurrent_ir", [python, "tools/validate_concurrent_ir.py",
+                                      "--output", output / "concurrent-ir.json"], output / "concurrent-ir.json"),
+        ("structured_task_trees", [python, "tools/validate_task_tree.py", "--rustc", rustc,
+                                   "--cc", cc, "--repeats", "3",
+                                   "--output", output / "task-trees.json"], output / "task-trees.json"),
+        ("bounded_async_io", [python, "tools/validate_io.py", "--rustc", rustc,
+                              "--cc", cc, "--repeats", "3",
+                              "--output", output / "async-io.json"], output / "async-io.json"),
+        ("native_host_gcc", [python, "tools/validate_native_host.py", "--rustc", rustc,
+                             "--cc", cc, "--cc-family", "gcc",
+                             "--expected-system", "Linux", "--expected-machine", "x86_64",
+                             "--output", output / "native-host-gcc.json"], output / "native-host-gcc.json"),
+        ("native_host_clang", [python, "tools/validate_native_host.py", "--rustc", rustc,
+                               "--cc", clang, "--cc-family", "clang",
+                               "--expected-system", "Linux", "--expected-machine", "x86_64",
+                               "--output", output / "native-host-clang.json"], output / "native-host-clang.json"),
+        ("provenance_and_type_core", [python, "tools/verify_memory.py", "--lean", lean,
+                                      "--output", output / "memory-proofs.json"], output / "memory-proofs.json"),
+        ("formal_core", [python, "tools/verify_formal.py", "--lean", lean,
+                         "--output", output / "formal-core.json"], output / "formal-core.json"),
+        # Timed gates run last, after compiler/hosted/formal correctness work.
+        # Application requests are sequential ABI calls, not network SLOs.
+        ("application_performance", [python, "tools/benchmark_applications.py", "--rustc", rustc,
+                                     "--cc", cc, "--trials", "3", "--requests", "96", "--warmups", "16",
+                                     "--output", output / "applications.json"], output / "applications.json"),
         ("standalone_performance", [python, "tools/qualify_hia_program_perf.py", "--clang", clang,
                                     "--rustc", rustc, "--output", output / "performance.json",
                                     "--artifact-directory", output / "performance-artifacts"], output / "performance.json"),
     ]
 
 
-def qualify(output, *, clang, rustc, cargo, qemu_aarch64, qemu_riscv64,
+def qualify(output, *, clang, cc, rustc, cargo, qemu_aarch64, qemu_riscv64,
             qemu_system_arm, linker, lean, cxx):
     output = Path(output).absolute()
     if output.exists() or output.is_symlink():
@@ -202,7 +250,7 @@ def qualify(output, *, clang, rustc, cargo, qemu_aarch64, qemu_riscv64,
     if commit["returncode"] != 0 or dirty["returncode"] != 0 or dirty["stdout"].strip():
         raise ValueError("commit tracked implementation before running the qualification")
     output.mkdir(parents=True)
-    plan = qualification_plan(output, python=sys.executable, clang=clang, rustc=rustc, cargo=cargo,
+    plan = qualification_plan(output, python=sys.executable, clang=clang, cc=cc, rustc=rustc, cargo=cargo,
                               qemu_aarch64=qemu_aarch64, qemu_riscv64=qemu_riscv64,
                               qemu_system_arm=qemu_system_arm, linker=linker, lean=lean, cxx=cxx)
     report = {"schema": "hepta.hia.unified-qualification.v3", "git_commit": commit["stdout"].strip(),
@@ -215,7 +263,9 @@ def qualify(output, *, clang, rustc, cargo, qemu_aarch64, qemu_riscv64,
         "scope_limits": ["Dynamic recursive buffer chains are admitted; general recursive heap ADTs, escaping stored loans and background scheduling/channels remain outside the current core",
             "C/C++ migration covers declared finite profiles, not arbitrary historical libraries",
             "The upstream C resource matrix uses safe Hepta/Rust lowering; the upstream C++ library study is a bridge, while a separate bounded composed-owner profile rewrites implementations to native LLVM",
-            "Rust remains an opt-in shadow: verifier and scalar execution parity do not qualify a resource VM or transfer production admission authority",
+            "Rust remains an opt-in shadow: verifier, scalar and finite single-block byte-owner parity do not qualify general resource execution or transfer production admission authority",
+            "Hosted concurrency, task/I/O, ABI and formal profiles retain their own finite scopes and do not become standalone Core guarantees",
+            "Application measurements are sequential in-process ABI requests, not an external network service or service-level objective",
             "C++ noexcept termination observations do not establish allocation-failure recovery",
             "QEMU is not physical hardware or device timing/protocol qualification",
             "Agent productivity and independent total development-cost improvement require their own qualified trials",
@@ -225,7 +275,10 @@ def qualify(output, *, clang, rustc, cargo, qemu_aarch64, qemu_riscv64,
         "commands": [{"name": name, "argv": list(map(str, argv))} for name, argv, _ in plan]},
         indent=2, sort_keys=True) + "\n").encode())
     previous_cwd = Path.cwd()
-    environment = {"RUSTC": rustc, "CLANG": clang, "LEAN": lean,
+    environment = {"RUSTC": rustc, "CLANG": clang, "CC": cc, "LEAN": lean,
+                   "HEPTA_LLD": linker,
+                   "HEPTA_LLVM_READOBJ": str(Path(clang).with_name("llvm-readobj")),
+                   "HEPTA_QEMU_AARCH64": qemu_aarch64, "HEPTA_QEMU_RISCV64": qemu_riscv64,
                    "CARGO_TARGET_DIR": str(output / "rust-shadow-target"),
                    "CARGO_NET_OFFLINE": "true", "PYTHONDONTWRITEBYTECODE": "1"}
     old_environment = {name: os.environ.get(name) for name in (*environment, "PATH")}
@@ -235,6 +288,8 @@ def qualify(output, *, clang, rustc, cargo, qemu_aarch64, qemu_riscv64,
             bin_dir = Path(directory)
             if Path(qemu_aarch64).is_file():
                 (bin_dir / "qemu-aarch64").symlink_to(Path(qemu_aarch64).resolve())
+            if Path(qemu_riscv64).is_file():
+                (bin_dir / "qemu-riscv64").symlink_to(Path(qemu_riscv64).resolve())
             if Path(linker).is_file():
                 (bin_dir / "ld.lld").symlink_to(Path(linker).resolve())
             if Path(cargo).is_file():
@@ -265,9 +320,14 @@ def qualify(output, *, clang, rustc, cargo, qemu_aarch64, qemu_riscv64,
                             raise ValueError("gate evidence must be a JSON object")
                         row["evidence"] = {"path": str(evidence.relative_to(output)), "sha256": sha(raw),
                                            "status": payload.get("status"), "ok": payload.get("ok")}
-                        scoped_ok = payload.get("ok") is True or (name == "legacy_cortex_m4_qemu" and payload.get("status") == "passed")
                         if name in IMPORTED_QUALIFICATION_NAMES:
+                            # Existing producers have different success fields.
+                            # Their shared validator owns that convention and
+                            # the complete nested evidence requirements.
                             require_collected_qualification(IMPORTED_QUALIFICATION_NAMES[name], payload)
+                            scoped_ok = True
+                        else:
+                            scoped_ok = payload.get("ok") is True or (name == "legacy_cortex_m4_qemu" and payload.get("status") == "passed")
                         row["passed"] = executed["returncode"] == 0 and scoped_ok
                     except (OSError, ValueError, TypeError) as exc:
                         row["evidence_error"] = {"type": type(exc).__name__, "message": str(exc)}
@@ -296,6 +356,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-directory", required=True)
     parser.add_argument("--clang", default=shutil.which("clang") or "clang")
+    parser.add_argument("--cc", default=shutil.which("gcc") or "gcc")
     parser.add_argument("--rustc", default=os.environ.get("RUSTC") or shutil.which("rustc") or "rustc")
     parser.add_argument("--cargo", default=os.environ.get("CARGO") or shutil.which("cargo") or "cargo")
     parser.add_argument("--qemu-aarch64", required=True)
@@ -305,7 +366,7 @@ def main():
     parser.add_argument("--lean", required=True)
     parser.add_argument("--cxx", default=shutil.which("g++") or "g++")
     args = parser.parse_args()
-    result = qualify(args.output_directory, clang=args.clang, rustc=args.rustc, cargo=args.cargo,
+    result = qualify(args.output_directory, clang=args.clang, cc=args.cc, rustc=args.rustc, cargo=args.cargo,
                      qemu_aarch64=args.qemu_aarch64, qemu_riscv64=args.qemu_riscv64,
                      qemu_system_arm=args.qemu_system_arm, linker=args.linker, lean=args.lean, cxx=args.cxx)
     print(json.dumps({key: result[key] for key in ("ok", "status", "passed_gates", "completed_gates", "unchanged_source", "full_seven_deliverables_complete")}))

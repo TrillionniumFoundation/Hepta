@@ -12,8 +12,14 @@ import unittest
 from unittest.mock import patch
 
 from hepta.clang_capture import CaptureFailure, CaptureRejected
-from tools.qualify_hia_unified import (_command, cargo_test_outcome, main,
+from tools.qualify_hia_unified import (IMPORTED_QUALIFICATION_NAMES, _command, cargo_test_outcome, main,
                                       qualification_plan, qualify, unittest_outcome)
+
+
+SELECTED_TOOLS = dict(clang="/tools/clang", cc="/tools/gcc", rustc="/tools/rustc", cargo="/tools/cargo",
+                      qemu_aarch64="/tools/qemu-aarch64", qemu_riscv64="/tools/qemu-riscv64",
+                      qemu_system_arm="/tools/qemu-system-arm", linker="/tools/ld.lld",
+                      lean="/tools/lean", cxx="/tools/g++")
 
 
 class UnifiedQualificationSummaryTests(unittest.TestCase):
@@ -71,15 +77,26 @@ class UnifiedQualificationSummaryTests(unittest.TestCase):
                 self.assertFalse(cargo_test_outcome(output, code)["passed"])
 
     def test_candidate_executes_merged_paths_and_never_credits_missing_native_reports(self):
-        selected = dict(clang="/tools/clang", rustc="/tools/rustc", cargo="/tools/cargo",
-                        qemu_aarch64="/tools/qemu-aarch64", qemu_riscv64="/tools/qemu-riscv64",
-                        qemu_system_arm="/tools/qemu-system-arm", linker="/tools/ld.lld",
-                        lean="/tools/lean", cxx="/tools/g++")
+        selected = SELECTED_TOOLS.copy()
         invocations = []
+        success_flag_only = {
+            "tools/qualify_task_io.py", "tools/validate_groups.py", "tools/validate_shared_runtime.py",
+            "tools/validate_concurrent_ir.py", "tools/validate_task_tree.py", "tools/validate_io.py",
+            "tools/validate_native_host.py", "tools/benchmark_applications.py", "tools/verify_memory.py",
+            "tools/verify_formal.py",
+        }
 
         def completed(argv, timeout=1800):
             argv = list(map(str, argv))
             invocations.append(argv)
+            if argv[0] != "git":
+                for key, value in {
+                    "CC": selected["cc"], "HEPTA_LLD": selected["linker"],
+                    "HEPTA_LLVM_READOBJ": "/tools/llvm-readobj",
+                    "HEPTA_QEMU_AARCH64": selected["qemu_aarch64"],
+                    "HEPTA_QEMU_RISCV64": selected["qemu_riscv64"],
+                }.items():
+                    self.assertEqual(os.environ.get(key), value)
             stdout, stderr = "", ""
             if "rev-parse" in argv:
                 stdout = "a" * 40 + "\n"
@@ -88,7 +105,7 @@ class UnifiedQualificationSummaryTests(unittest.TestCase):
                           "0 measured; 0 filtered out; finished in 0.01s\n")
             elif "unittest" in argv:
                 stderr = "Ran 2 tests in 0.010s\n\nOK\n"
-            elif "tools/qualify_task_io.py" in argv:
+            elif any(command in argv for command in success_flag_only):
                 Path(argv[argv.index("--output") + 1]).write_text(
                     json.dumps({"ok": True, "status": "passed"}))
             return dict(argv=argv, returncode=0, stdout=stdout, stderr=stderr, seconds=0.01)
@@ -111,12 +128,82 @@ class UnifiedQualificationSummaryTests(unittest.TestCase):
         self.assertEqual(len(invocations), len(plan) + 2)
         self.assertTrue(gates["rust_shadow_cargo"]["passed"])
         self.assertTrue(gates["rust_shadow_parity"]["passed"])
-        for name in ("cpp_composed_implementation_llvm", "llvm_local_stored_views", "task_io_composition"):
+        self.assertTrue(gates["agent_query_semantics"]["passed"])
+        for name in IMPORTED_QUALIFICATION_NAMES:
             self.assertFalse(gates[name]["passed"])
             self.assertEqual(gates[name]["returncode"], 0)
         self.assertIn("evidence_error", gates["task_io_composition"])
         self.assertFalse(report["ok"])
         self.assertFalse(report["full_seven_deliverables_complete"])
+
+    def test_plan_keeps_hosted_denominators_compilers_and_timing_order_explicit(self):
+        plan = qualification_plan(Path("/evidence"), python="python", **SELECTED_TOOLS)
+        names = [name for name, _, _ in plan]
+        self.assertEqual(len(plan), 35)
+        self.assertEqual(len(set(names)), 35)
+        self.assertEqual(names[-2:], ["application_performance", "standalone_performance"])
+        commands = {name: list(map(str, argv)) for name, argv, _ in plan}
+        reports = [str(path) for _, _, path in plan if path is not None]
+        self.assertEqual(len(reports), len(set(reports)))
+        self.assertIn("tests.test_hia_rust_owned_vm", commands["rust_shadow_parity"])
+        for module in ("tests.test_hia_edit_query", "tests.test_hia_edit_batch",
+                       "tests.test_hia_edit_control_context", "tests.test_hia_edit_batch_identity"):
+            self.assertIn(module, commands["agent_query_semantics"])
+        for name in ("bounded_concurrency", "shared_runtime", "structured_task_trees", "bounded_async_io"):
+            argv = commands[name]
+            self.assertEqual(argv[argv.index("--repeats") + 1], "3")
+            self.assertEqual(IMPORTED_QUALIFICATION_NAMES[name], name)
+        for name, compiler, family in (("native_host_gcc", "/tools/gcc", "gcc"),
+                                       ("native_host_clang", "/tools/clang", "clang")):
+            argv = commands[name]
+            self.assertEqual(argv[argv.index("--cc") + 1], compiler)
+            self.assertEqual(argv[argv.index("--cc-family") + 1], family)
+            self.assertEqual(argv[argv.index("--expected-system") + 1], "Linux")
+            self.assertEqual(argv[argv.index("--expected-machine") + 1], "x86_64")
+            self.assertEqual(IMPORTED_QUALIFICATION_NAMES[name], "native_host_abi")
+        application = commands["application_performance"]
+        for flag, value in (("--trials", "3"), ("--requests", "96"), ("--warmups", "16")):
+            self.assertEqual(application[application.index(flag) + 1], value)
+        for name in ("cpp_composed_implementation_llvm", "llvm_local_stored_views", "task_io_composition",
+                     "shared_runtime", "structured_task_trees", "bounded_async_io",
+                     "legacy_executable_core", "application_performance"):
+            argv = commands[name]
+            self.assertEqual(argv[argv.index("--cc") + 1], "/tools/gcc")
+        riscv = commands["standalone_riscv64_qemu"]
+        self.assertEqual(riscv[riscv.index("--linker") + 1], SELECTED_TOOLS["linker"])
+        self.assertEqual(riscv[riscv.index("--readobj") + 1], "/tools/llvm-readobj")
+
+    def test_imported_success_convention_is_delegated_and_exit_status_still_required(self):
+        # This isolates collector control flow, not producer qualification.
+        # The preceding test uses the real validators to reject false reports.
+        for returncode, rejected in ((0, False), (1, False), (0, True)):
+            with self.subTest(returncode=returncode, validator_rejects=rejected), tempfile.TemporaryDirectory() as td:
+                output = Path(td) / "candidate"
+                evidence = output / "host.json"
+                payload = {"status": "passed"}  # Existing hosted convention has no ok field.
+
+                def completed(argv, timeout=1800):
+                    argv = list(map(str, argv))
+                    result = dict(argv=argv, returncode=0, stdout="", stderr="", seconds=0.01)
+                    if "rev-parse" in argv:
+                        result["stdout"] = "a" * 40 + "\n"
+                    elif argv[0] == "producer-control":
+                        evidence.write_text(json.dumps(payload))
+                        result["returncode"] = returncode
+                    return result
+
+                with patch("tools.qualify_hia_unified.qualification_plan", return_value=[
+                        ("native_host_gcc", ["producer-control"], evidence)]), \
+                        patch("tools.qualify_hia_unified.snapshot", return_value={"sha256": "source"}), \
+                        patch("tools.qualify_hia_unified.compiler_hash", return_value="compiler"), \
+                        patch("tools.qualify_hia_unified._command", side_effect=completed), \
+                        patch("tools.qualify_hia_unified.require_collected_qualification",
+                              side_effect=ValueError("rejected") if rejected else None) as validator, \
+                        redirect_stdout(io.StringIO()):
+                    report = qualify(output, **SELECTED_TOOLS)
+                validator.assert_called_once_with("native_host_abi", payload)
+                self.assertIs(report["gates"][0]["passed"], returncode == 0 and not rejected)
+                self.assertFalse(report["full_seven_deliverables_complete"])
 
 
 class UnifiedQualificationWorkflowTests(unittest.TestCase):
@@ -151,7 +238,7 @@ class UnifiedQualificationWorkflowTests(unittest.TestCase):
             with self.assertRaises(ParsedWithoutExecution):
                 main()
         qualify.assert_called_once_with(
-            "artifacts/hia-unified", clang="/usr/lib/llvm-20/bin/clang",
+            "artifacts/hia-unified", clang="/usr/lib/llvm-20/bin/clang", cc="/usr/bin/gcc",
             rustc=tools + "rust-1.90.0/bin/rustc",
             cargo=tools + "rust-1.90.0/bin/cargo",
             qemu_aarch64=tools + "qemu-8.2.2/qemu-aarch64-static",
