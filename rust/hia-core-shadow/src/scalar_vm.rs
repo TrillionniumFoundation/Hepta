@@ -168,14 +168,16 @@ struct Machine<'a> {
     steps: u64,
     limit: u64,
 }
-impl Machine<'_> {
+impl<'a> Machine<'a> {
     fn tick(&mut self) -> Exec<()> {
         self.steps += 1;
         if self.steps > self.limit { Err(Halt::Budget("steps")) } else { Ok(()) }
     }
     fn invoke(&mut self, name: &str, args: Vec<Value>, depth: u32) -> Exec<Vec<Value>> {
         if depth >= MAX_CALL_DEPTH { return Err(Halt::Budget("calls")); }
-        let function = Value::clone(*self.functions.get(name).ok_or(Halt::Internal)?);
+        // Copy the lifetime-qualified reference, never clone an 8 MiB function
+        // at each recursive call. The source document lives for this Machine.
+        let function: &'a Value = *self.functions.get(name).ok_or(Halt::Internal)?;
         self.tick()?; // one call-entry tick, same convention as Python VM.
         let blocks = function["blocks"].as_array().ok_or(Halt::Internal)?;
         let by_name: BTreeMap<&str, &Value> = blocks.iter()
