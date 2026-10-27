@@ -154,14 +154,27 @@ def _bounded_shift(op, lhs, count, typ):
     return _bounded(low, high)
 
 def _bounded_divrem(op, lhs, rhs, typ):
-    """Fold exactly known checked integer div/rem, with VM rounding.
+    """Conservative checked div/rem transfer consistent with HIA's VM.
 
-    Fractional or interval division is deliberately not guessed. Python's
-    // rounds negative values toward minus infinity, while HIA signed div
-    truncates toward zero and signed remainder follows the dividend.
+    Exact pairs retain the VM's truncation-toward-zero signed behavior.
+    For *unsigned remainder only*, any independently proven positive divisor
+    interval [lo,hi] implies a result in [0,hi-1], even when the dividend
+    is an arbitrary full-width u64/usize argument. Never infer a finite
+    bound for signed/unknown divisors, possible zero or unknown quotient.
     """
     a, b = _span(lhs), _span(rhs)
-    if a is None or b is None or a.lo != a.hi or b.lo != b.hi:
+    if b is None:
+        return None
+    if b.lo == b.hi == 0:
+        _reject("checked constant division or remainder traps")
+    if (op == "int.rem.checked" and not typ.startswith("i")
+            and b.lo > 0
+            and (a is None or a.lo != a.hi or b.lo != b.hi)):
+        # No caller assumption: HIA's unsigned division produces a remainder
+        # strictly below the positive divisor on every nontrapping execution.
+        # In particular, no arithmetic on an unknown usize is performed here.
+        return _bounded(0, b.hi - 1)
+    if a is None or a.lo != a.hi or b.lo != b.hi:
         return None
     dividend, divisor = a.lo, b.lo
     minimum, _ = integer_range(typ)
