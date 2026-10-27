@@ -1,0 +1,128 @@
+{
+  "aggregate_status": "failed",
+  "artifact_retention": {
+    "omitted_prior_evidence_bytes": 67659075,
+    "omitted_prior_evidence_members": 1511,
+    "retained_artifacts_members": 177
+  },
+  "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+  "completed_gate_count": 46,
+  "failed_gates": [
+    "unit_and_integration",
+    "strict_namespace_execution",
+    "parser_example",
+    "ownership_example",
+    "tasks_example",
+    "results_example",
+    "owned_library_example",
+    "independent_resource_ir",
+    "source_bound_resource_ir",
+    "partial_owned_places",
+    "stored_borrows",
+    "local_stored_resource_views",
+    "owned_c_backend",
+    "c_project_migration",
+    "upstream_c_modules",
+    "stateful_c_module",
+    "cpp_library_interop",
+    "cpp_constructor_interop",
+    "cpp_scoped_raii",
+    "cpp_class_migration",
+    "cpp_owned_migration",
+    "cpp_owned_to_llvm",
+    "cpp_upstream_upgrade",
+    "locked_package_example",
+    "bounded_concurrency",
+    "shared_runtime",
+    "independent_concurrent_ir",
+    "structured_task_trees",
+    "bounded_async_io",
+    "abi_matrix",
+    "native_host_abi",
+    "native_debugger",
+    "native_and_performance",
+    "representative_performance",
+    "application_performance",
+    "llvm_owned_rust_allocator",
+    "llvm_native_performance",
+    "llvm_owned_performance",
+    "aarch64_execution",
+    "system_board",
+    "agent_evaluator_fixtures",
+    "crossfile_agent_fixtures",
+    "production_workspace_namespace",
+    "production_workspace_crashes"
+  ],
+  "inferences": [
+    "The selected rustc path reached rustup manager identity in this original run.",
+    "The namespace startup failure prevented the remaining isolation checks; its exact cause is not proved by the error line alone."
+  ],
+  "old_native_performance": {
+    "llvm_native": {
+      "diagnostic_code": "E_NATIVE_QUALIFY_RUST",
+      "original_path": "artifacts/candidate/llvm_native.json",
+      "phase": "build",
+      "raw_sample_count": 0,
+      "reference_diagnostic_codes": [
+        "E_TOOLCHAIN_IDENTITY"
+      ],
+      "status": "blocked"
+    },
+    "llvm_owned": {
+      "diagnostic_code": "E_OWNED_QUALIFY_REFERENCE",
+      "original_path": "artifacts/candidate/llvm_owned.json",
+      "phase": "build",
+      "raw_sample_count": 0,
+      "reference_diagnostic_codes": [
+        "E_TOOLCHAIN_IDENTITY"
+      ],
+      "status": "blocked"
+    }
+  },
+  "original_artifact_id": 12618342700,
+  "passed_gates": [
+    "formal_core",
+    "provenance_and_type_core"
+  ],
+  "planned_gate_count": 46,
+  "sandbox_check_states": {
+    "capabilities_dropped": "not_run",
+    "credentials_not_inherited": "not_run",
+    "empty_proc": "not_run",
+    "hepta_rust_native": "not_run",
+    "host_network_unreachable": "not_run",
+    "namespace_identity": "not_run",
+    "parent_paths_unreadable": "not_run",
+    "startup": "failed",
+    "system_files_read_only": "not_run",
+    "workspace_native_profile": "not_run"
+  },
+  "sandbox_startup": {
+    "available": false,
+    "kind": "bubblewrap_namespaces",
+    "probe_returncode": 1,
+    "proc_policy": "empty_directory",
+    "reason": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"
+  },
+  "sandbox_status": "environment_blocked",
+  "schema": "hepta.ci-prerequisite-diagnosis.v1",
+  "scope": {
+    "current_candidate_qualified_by_old_run": false,
+    "full_project_blockers_closed": false,
+    "native_execution_repeated": false
+  },
+  "selected_manager_versions_observed": [
+    "rustup 1.29.1"
+  ],
+  "snapshot_unchanged": true,
+  "source_commit": "a04ae789b2348504089e2c3484178998a6f332ba",
+  "source_snapshot_sha256": "4d228091e1cd920938528f50a8dcb946c3ed7f20a581188edf4bdc2ef68fc67d",
+  "toolchain_identity_error_occurrences_in_unit_log": 232,
+  "unit": {
+    "errors": 112,
+    "failures": 192,
+    "seconds": 139.115,
+    "skipped": 0,
+    "tests_run": 1292
+  }
+}

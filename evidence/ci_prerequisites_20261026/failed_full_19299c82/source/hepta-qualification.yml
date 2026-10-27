@@ -1,0 +1,151 @@
+name: Hepta qualified full gates
+
+on:
+  push:
+    branches:
+      - feat/hepta-p0-p1-verified-ir-20261024
+      - feat/hepta-agent-safe-cfg-cpp-20261024
+      - feat/hepta-safe-migration-agent-20261024
+      - dot/hepta-p0-p1-semantic-bridge-20261025
+      - dot/hepta-p0-p7-integration-20261025
+      - codex/hepta-p4-p6-guardrails-20261025
+      - assistant/hepta-p0-p7-semantic-budget-20261025
+      - implement/hia-unified-native-20261026
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Qualify the PR head, not GitHub's synthetic merge commit. Different source
+# versions retain independent runs even when they share a branch or PR.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release-qualification:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      HEPTA_QUALIFICATION_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout frozen source snapshot
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_QUALIFICATION_HEAD_SHA }}
+      - name: Record and verify the tested source head
+        shell: bash
+        run: |
+          actual_head=$(git rev-parse HEAD)
+          mkdir -p artifacts
+          printf '{"schema":"hepta.workflow-source.v1","expected_head_sha":"%s","checkout_head_sha":"%s","event_sha":"%s"}\n' \
+            "$HEPTA_QUALIFICATION_HEAD_SHA" "$actual_head" "$GITHUB_SHA" > artifacts/workflow-source.json
+          test "$actual_head" = "$HEPTA_QUALIFICATION_HEAD_SHA"
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verification archive dependency
+        run: python -m pip install zstandard
+      - name: Native compilers and required namespace runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes bubblewrap apparmor-profiles gcc g++ curl gnupg gdb libboost-dev qemu-system-arm
+      - name: Load the distribution Bubblewrap namespace profile
+        shell: bash
+        run: |
+          # Keep the host-wide userns restriction and all Hepta isolation
+          # checks. Ubuntu ships this profile separately from bubblewrap.
+          hepta_profile=/usr/share/apparmor/extra-profiles/bwrap-userns-restrict
+          test -f "$hepta_profile"
+          hepta_userns_policy=/proc/sys/kernel/apparmor_restrict_unprivileged_userns
+          hepta_policy_before=not_present
+          if test -f "$hepta_userns_policy"; then
+            hepta_policy_before=$(cat "$hepta_userns_policy")
+          fi
+          sudo apparmor_parser -r "$hepta_profile"
+          sha256sum "$hepta_profile" > artifacts/bwrap-profile.sha256
+          hepta_policy_after=not_present
+          if test -f "$hepta_userns_policy"; then
+            hepta_policy_after=$(cat "$hepta_userns_policy")
+          fi
+          test "$hepta_policy_before" = "$hepta_policy_after"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from experiments.agent_eval.sandbox import probe_sandbox
+          report = probe_sandbox()
+          Path("artifacts/sandbox-startup.json").write_text(json.dumps(report, indent=2) + "\n")
+          assert report["available"], report
+          PY
+      - name: Install the explicit LLVM 20 resource backend toolchain
+        shell: bash
+        run: |
+          # Ubuntu 24.04 runner images ship Clang 18 by default. The owned
+          # LLVM profile requires 20+, and every native receipt hashes the
+          # actual selected compiler. Use LLVM's signed versioned repository.
+          curl --fail --location --retry 3 \
+            --output "$RUNNER_TEMP/hepta-llvm.asc" \
+            https://apt.llvm.org/llvm-snapshot.gpg.key
+          hepta_llvm_fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hepta-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$hepta_llvm_fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hepta-llvm.asc" /usr/share/keyrings/hepta-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' \
+            | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list
+          sudo apt-get update
+          sudo apt-get install --yes clang-20 libclang-rt-20-dev
+          test -x /usr/lib/llvm-20/bin/clang
+          test -x /usr/lib/llvm-20/bin/clang++
+          printf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"
+          /usr/lib/llvm-20/bin/clang --version
+      - name: Install SHA-256-locked Rust 1.90.0 toolchain and cross stdlibs
+        shell: bash
+        run: |
+          python tools/bootstrap_toolchain.py
+          hepta_rustc=$(realpath "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/bin/rustc")
+          test -x "$hepta_rustc"
+          printf 'RUSTC=%s\n' "$hepta_rustc" >> "$GITHUB_ENV"
+          printf '%s\n' "$(dirname "$hepta_rustc")" >> "$GITHUB_PATH"
+      - name: Verify the actual selected compiler identity
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from hepta.backend import find_rustc, toolchain_info
+          selected = find_rustc()
+          assert selected == str(Path(os.environ["RUSTC"]).resolve())
+          report = toolchain_info(selected)
+          Path("artifacts/selected-rustc.json").write_text(json.dumps(report, indent=2) + "\n")
+          PY
+      - name: Install SHA-256-locked Lean and QEMU tools
+        run: python tools/bootstrap_verification.py
+      - name: Run all current native and experiment qualification gates
+        run: >-
+          python tools/release_check.py
+          --output-directory artifacts/candidate
+          --continue-on-failure
+      - name: Qualify the standalone HIA interpreter and direct native paths
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          export LEAN="$GITHUB_WORKSPACE/../toolchains/lean-4.19.0/bin/lean"
+          python tools/qualify_hia_unified.py \
+            --output-directory artifacts/hia-unified \
+            --clang /usr/lib/llvm-20/bin/clang \
+            --rustc "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/bin/rustc" \
+            --linker "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld" \
+            --qemu-aarch64 "$GITHUB_WORKSPACE/../toolchains/qemu-8.2.2/qemu-aarch64-static" \
+            --qemu-system-arm /usr/bin/qemu-system-arm
+      - name: Preserve failures and all raw evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hepta-release-evidence-${{ env.HEPTA_QUALIFICATION_HEAD_SHA }}
+          path: |
+            artifacts/
+            evidence/
+          if-no-files-found: warn

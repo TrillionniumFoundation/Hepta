@@ -1,0 +1,233 @@
+{
+  "findings": {
+    "bwrap_startup": "passed; full isolation gates did not run",
+    "full_release_qualification": "workflow step skipped; no artifacts/candidate/ members",
+    "hia_qualification": "if !cancelled() step ran; argument parsing exited 2 because required --lean was not supplied; no artifacts/hia-unified/ members",
+    "llvm_installation": "step success; job log identifies Ubuntu clang 20.1.8",
+    "rust_bootstrap_and_selected_identity": "both steps success; selected actual rustc 1.90.0 receipt retained",
+    "verification_bootstrap": "failed with exit 1 at install_qemu urlopen, HTTP 503"
+  },
+  "inferences": [
+    "The URL is taken from the exact source lock used by the failing metadata[source] urlopen; the traceback itself does not print that URL.",
+    "The run demonstrates successful namespace startup and actual selected Rust identity, but not the skipped complete native/sandbox suite.",
+    "The workflow exports LEAN but the invoked HIA CLI requires the --lean argument explicitly."
+  ],
+  "job_conclusion": "failure",
+  "job_id": 121952281854,
+  "job_status": "completed",
+  "log": {
+    "anchors": {
+      "artifact_upload_digest": [
+        {
+          "line": 1282,
+          "text": "2026-10-27T01:35:13.6718873Z SHA256 digest of uploaded artifact zip is a0d7ff48aaed5a152d6b9e8c6bcca1a78e22dfeb7136d9c776556eda0f782280"
+        }
+      ],
+      "bootstrap_exit": [
+        {
+          "line": 1221,
+          "text": "2026-10-27T01:35:09.1779822Z ##[error]Process completed with exit code 1."
+        }
+      ],
+      "clang_version": [
+        {
+          "line": 1038,
+          "text": "2026-10-27T01:34:43.1673749Z Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+        }
+      ],
+      "hia_exit": [
+        {
+          "line": 1247,
+          "text": "2026-10-27T01:35:09.4307484Z ##[error]Process completed with exit code 2."
+        }
+      ],
+      "hia_missing_lean": [
+        {
+          "line": 1246,
+          "text": "2026-10-27T01:35:09.4205477Z qualify_hia_unified.py: error: the following arguments are required: --lean"
+        }
+      ],
+      "http_503": [
+        {
+          "line": 1220,
+          "text": "2026-10-27T01:35:09.1665266Z urllib.error.HTTPError: HTTP Error 503: Service Unavailable"
+        }
+      ],
+      "qemu_call": [
+        {
+          "line": 1198,
+          "text": "2026-10-27T01:35:08.7760350Z     installed[\"qemu\"] = install_qemu(args.directory.resolve())"
+        }
+      ],
+      "qemu_urlopen": [
+        {
+          "line": 1201,
+          "text": "2026-10-27T01:35:08.7762705Z     with urllib.request.urlopen(metadata[\"source\"], timeout=60) as response, package.open(\"wb\") as out:"
+        }
+      ]
+    },
+    "bytes": 118452,
+    "line_count": 1302,
+    "path": "job-121952281854.log",
+    "representation": "Complete provider-decoded job-log text encoded as UTF-8 without newline translation; original HTTP response bytes are not separately claimed.",
+    "sha256": "cbb7887811c44c8fb868a99b7fe51dec7e82af63f8709816371e4b71f5333d90"
+  },
+  "new_artifacts": [
+    "artifacts/bwrap-profile.sha256",
+    "artifacts/sandbox-startup.json",
+    "artifacts/selected-rustc.json",
+    "artifacts/workflow-source.json"
+  ],
+  "qemu_requested_source_from_exact_lock": "https://snapshot.ubuntu.com/ubuntu/20260828T000000Z/pool/universe/q/qemu/qemu-user-static_8.2.2+ds-0ubuntu1.18_amd64.deb",
+  "retention": {
+    "omitted_historical_evidence_bytes": 93567930,
+    "omitted_historical_evidence_members": 1698,
+    "omitted_unchanged_tracked_artifact_bytes": 4277480,
+    "omitted_unchanged_tracked_artifacts": 89,
+    "retained_new_artifact_bytes": 1012,
+    "retained_new_artifacts": 4,
+    "selection_method": "Compare each artifacts/ ZIP member Git blob SHA-1 with git ls-tree -r at exact source commit; retain members absent from or different from source.",
+    "zip_file_members": 1791
+  },
+  "schema": "hepta.ci-failure-appendix-diagnosis.v1",
+  "scope": {
+    "current_candidate_run_result_inferred": false,
+    "full_project_blockers_closed": false,
+    "native_execution_repeated": false
+  },
+  "selected_rustc_receipt": {
+    "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+    "host": "x86_64-unknown-linux-gnu",
+    "path": "/home/runner/work/Hepta/toolchains/rust-1.90.0/bin/rustc",
+    "sysroot": "/home/runner/work/Hepta/toolchains/rust-1.90.0",
+    "sysroot_discovery": "verified_compiler_prefix",
+    "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+  },
+  "source_commit": "19299c82aa2e326ee323030715c54468da3c73eb",
+  "startup_receipt": {
+    "available": true,
+    "kind": "bubblewrap_namespaces",
+    "probe_returncode": 0,
+    "proc_policy": "empty_directory",
+    "reason": ""
+  },
+  "steps": [
+    {
+      "conclusion": "success",
+      "name": "Set up job",
+      "number": 1,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Checkout frozen source snapshot",
+      "number": 2,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Record and verify the tested source head",
+      "number": 3,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Python 3.11",
+      "number": 4,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Verification archive dependency",
+      "number": 5,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Native compilers and required namespace runtime",
+      "number": 6,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Load the distribution Bubblewrap namespace profile",
+      "number": 7,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Install the explicit LLVM 20 resource backend toolchain",
+      "number": 8,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Install SHA-256-locked Rust 1.90.0 toolchain and cross stdlibs",
+      "number": 9,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Verify the actual selected compiler identity",
+      "number": 10,
+      "status": "completed"
+    },
+    {
+      "conclusion": "failure",
+      "name": "Install SHA-256-locked Lean and QEMU tools",
+      "number": 11,
+      "status": "completed"
+    },
+    {
+      "conclusion": "skipped",
+      "name": "Run all current native and experiment qualification gates",
+      "number": 12,
+      "status": "completed"
+    },
+    {
+      "conclusion": "failure",
+      "name": "Qualify the standalone HIA interpreter and direct native paths",
+      "number": 13,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Preserve failures and all raw evidence",
+      "number": 14,
+      "status": "completed"
+    },
+    {
+      "conclusion": "skipped",
+      "name": "Post Python 3.11",
+      "number": 27,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Post Checkout frozen source snapshot",
+      "number": 28,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Complete job",
+      "number": 29,
+      "status": "completed"
+    }
+  ],
+  "workflow_run_id": 40432186614,
+  "workflow_source_receipt": {
+    "checkout_head_sha": "19299c82aa2e326ee323030715c54468da3c73eb",
+    "event_sha": "ca5f71f3da1606629171a7dd53fe18b18887a006",
+    "expected_head_sha": "19299c82aa2e326ee323030715c54468da3c73eb",
+    "schema": "hepta.workflow-source.v1"
+  },
+  "zip": {
+    "artifact_id": 12702707920,
+    "bytes": 25322286,
+    "digest_verified": true,
+    "provider_digest": "sha256:a0d7ff48aaed5a152d6b9e8c6bcca1a78e22dfeb7136d9c776556eda0f782280",
+    "public_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/40432186614/artifacts/12702707920",
+    "sha256": "a0d7ff48aaed5a152d6b9e8c6bcca1a78e22dfeb7136d9c776556eda0f782280"
+  }
+}
