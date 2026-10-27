@@ -172,6 +172,26 @@ def _bounded_shift(op, lhs, count, typ):
             return None
     return _bounded(low, high)
 
+def _bounded_nonnegative_and_mask(lhs, rhs, typ):
+    """Any proven nonnegative mask interval bounds the AND result.
+
+    For fixed-width two's-complement integers, every set bit in x & mask
+    is also set in mask. If 0 <= mask <= M within its source integer type,
+    then 0 <= x & mask <= M for *any* x, including negative signed x.
+    A mask that might be negative cannot certify this property. These are
+    typed abstract values from the canonical HIA verifier; a malformed
+    direct interval must not mint an allocation-size certificate.
+    """
+    _, type_max = integer_range(typ)
+    bounds = []
+    for value in (lhs, rhs):
+        candidate = _span(value)
+        if (candidate is not None and 0 <= candidate.lo <= candidate.hi
+                and candidate.hi <= type_max):
+            bounds.append(candidate.hi)
+    return _bounded(0, min(bounds)) if bounds else None
+
+
 def _bounded_divrem(op, lhs, rhs, typ):
     """Conservative checked div/rem transfer consistent with HIA's VM.
 
@@ -371,16 +391,10 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) 
                 folded = _exact_scalar(op, [known.get(arg) for arg in args],
                                        outputs[0]["type"])
                 if folded is None and op == "bit.and":
-                    # Proven positive exact mask bounds all unknown typed inputs,
-                    # even signed negative two's-complement operands.
-                    masks = []
-                    for arg in args:
-                        mask = _span(known.get(arg))
-                        if (mask is not None and mask.lo == mask.hi
-                                and mask.lo >= 0):
-                            masks.append(mask.lo)
-                    if masks:
-                        folded = _bounded(0, min(masks))
+                    # A verified *interval* of nonnegative bit masks is enough
+                    # to bound arbitrary typed inputs, not just exact masks.
+                    folded = _bounded_nonnegative_and_mask(
+                        known.get(args[0]), known.get(args[1]), outputs[0]["type"])
                 if folded is not None:
                     known[out_names[0]] = folded
             elif op == "int.neg.checked":
