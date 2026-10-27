@@ -12,6 +12,7 @@ from .backend import compile_rust, emit_rust, emit_header, sha256
 from .parser import parse
 from .checker import check
 from .borrowed_storage import has_borrowed_storage
+from .native_tool_identity import update_stable_regular_hash
 
 
 def interface(program: Program) -> dict:
@@ -40,9 +41,13 @@ def interface_hash(program: Program) -> str:
 
 
 def compiler_hash() -> str:
+    """Bind exact, original name/NUL/source-bytes/NUL with stable file handles."""
     h = hashlib.sha256()
     for p in sorted(Path(__file__).parent.glob("*.py")):
-        h.update(p.name.encode() + b"\0" + p.read_bytes() + b"\0")
+        h.update(p.name.encode() + b"\0")
+        update_stable_regular_hash(h, p, max_bytes=64 * 1024 * 1024,
+                                   allow_empty=True)
+        h.update(b"\0")
     return h.hexdigest()
 
 
