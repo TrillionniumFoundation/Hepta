@@ -64,6 +64,7 @@ void* operator new[](std::size_t size) {
 void operator delete[](void* pointer) noexcept { record_release(pointer); std::free(pointer); }
 void operator delete[](void* pointer, std::size_t) noexcept { ::operator delete[](pointer); }
 #else
+extern uint64_t composed_case(size_t, size_t, uint8_t, size_t, uint32_t, uint32_t);
 void* __real_calloc(size_t, size_t);
 void* __real_malloc(size_t);
 void __real_free(void*);

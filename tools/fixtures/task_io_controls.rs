@@ -85,6 +85,17 @@ fn finish(root:HeptaTaskGroup,observer:HeptaTaskGroup)->H_GroupTreeReport {
     __hepta_group_tree_join(observer,false);
     let usage=pool.state.lock().unwrap();assert_eq!(usage.h_reserved_queue_slots,0);assert_eq!(usage.h_attached_groups,0);done
 }
+fn user_ports_closed(fds:&[i32]) {
+    for &fd in fds {assert_eq!(unsafe{hepta_task_io_fd_open(fd)},0,"shutdown left a user endpoint open");}
+}
+fn wake_closed_after_canceller(shared:&HeptaGroupShared,fd:i32) {
+    // Called only after dropping the local reactor. Production notification
+    // upgrades and drops its wake Arc inside the group-state critical section.
+    // Crossing that section therefore also crosses final binding destruction.
+    // The fixture starts no new FD-producing work before this check or join.
+    drop(shared.state.lock().expect("fixture cancellation completion fence"));
+    assert_eq!(unsafe{hepta_task_io_fd_open(fd)},0,"wake reader survived completed cancellation");
+}
 fn waiting(_:Vec<u8>,_:&HeptaCancellation,sender:&HeptaSender)->u64 {
     let mode=MODE.load(Ordering::SeqCst);let mut io=__hepta_io_reactor(2,2,64);
     let attached=__hepta_io_attach(&mut io,sender);
@@ -93,8 +104,8 @@ fn waiting(_:Vec<u8>,_:&HeptaCancellation,sender:&HeptaSender)->u64 {
     let pair=__hepta_io_local_pair(&mut io);
     if pair.h_status==IO_CANCELLED {__hepta_io_shutdown(io);return 1}
     assert_eq!(pair.h_status,IO_OK);
-    let fds:Vec<i32>=io.ports.iter().flatten().map(|p|p.socket.as_raw_fd())
-        .chain(std::iter::once(io.task.as_ref().unwrap().wake_fd())).collect();
+    let fds:Vec<i32>=io.ports.iter().flatten().map(|p|p.socket.as_raw_fd()).collect();
+    let wake_fd=io.task.as_ref().unwrap().wake_fd();
     if mode==1 {let mut peer=&io.ports.iter().flatten().find(|p|p.token==pair.h_right).unwrap().socket;peer.write_all(&[5,6,7]).unwrap();}
     let requested=if mode==5 {1}else{19};
     let request=__hepta_io_read(&mut io,pair.h_left,tracked(19),requested,if mode==2 {10}else{30000});
@@ -102,7 +113,7 @@ fn waiting(_:Vec<u8>,_:&HeptaCancellation,sender:&HeptaSender)->u64 {
     if mode==3 {unsafe{hepta_task_io_fail_poll()};}
     if mode==4 {
         drop(request);drop(io);
-        for fd in fds {assert_eq!(unsafe{hepta_task_io_fd_open(fd)},0);}
+        user_ports_closed(&fds);wake_closed_after_canceller(&sender.shared,wake_fd);
         return 4
     }
     if mode==5 {
@@ -124,7 +135,7 @@ fn waiting(_:Vec<u8>,_:&HeptaCancellation,sender:&HeptaSender)->u64 {
         let data=__hepta_io_wait(&mut io,retry,&mut count,&mut code);assert_eq!(code,IO_OK);drop(data);
     }
     let report=__hepta_io_shutdown(io);assert_eq!(report.h_reserved_bytes,0);
-    for fd in fds {assert_eq!(unsafe{hepta_task_io_fd_open(fd)},0);}
+    user_ports_closed(&fds);wake_closed_after_canceller(&sender.shared,wake_fd);
     code as u64
 }
 fn run_wait(mode:usize,cancel:bool,hold:bool) {
@@ -206,11 +217,17 @@ fn registration_limit() {
 }
 fn final_arc_worker(_:Vec<u8>,_:&HeptaCancellation,sender:&HeptaSender)->u64 {
     let mut io=__hepta_io_reactor(2,1,19);assert_eq!(__hepta_io_attach(&mut io,sender),0);
-    DROP_WAKE_FD.store(io.task.as_ref().unwrap().wake_fd() as usize,Ordering::SeqCst);
+    let wake_fd=io.task.as_ref().unwrap().wake_fd();
+    DROP_WAKE_FD.store(wake_fd as usize,Ordering::SeqCst);
     let pair=__hepta_io_local_pair(&mut io);assert_eq!(pair.h_status,0);
+    let fds:Vec<i32>=io.ports.iter().flatten().map(|p|p.socket.as_raw_fd()).collect();
     let q=__hepta_io_read(&mut io,pair.h_left,tracked(19),19,30000);
     READY.store(true,Ordering::SeqCst);wait_for(||DROP_GO.load(Ordering::SeqCst));
-    drop(q);drop(io);DROP_DONE.store(true,Ordering::SeqCst);0
+    drop(q);drop(io);user_ports_closed(&fds);
+    DROP_DONE.store(true,Ordering::SeqCst);
+    // The controller still owns state and a strong wake Arc here. Exercise
+    // the same completion fence used by the ordinary cancellation cases.
+    wake_closed_after_canceller(&sender.shared,wake_fd);0
 }
 fn final_canceller_arc_cleanup() {
     READY.store(false,Ordering::SeqCst);DROP_GO.store(false,Ordering::SeqCst);DROP_DONE.store(false,Ordering::SeqCst);
@@ -220,8 +237,9 @@ fn final_canceller_arc_cleanup() {
     let mut state=root.shared.state.lock().unwrap();
     let retained=state.io_waiters[0].upgrade().unwrap();
     DROP_GO.store(true,Ordering::SeqCst);
-    // The worker drops its local owner while the canceller still holds state
-    // and a temporary wake Arc, exactly the ownership hazard under review.
+    // The worker closes its user ports and resident buffers while the
+    // canceller still holds state and a temporary wake Arc. It then crosses
+    // the completion fence, which cannot finish until this guard is released.
     wait_for(||DROP_DONE.load(Ordering::SeqCst));
     let usage=__hepta_group_io_snapshot(&observer);
     assert_eq!((usage.h_attached_reactors,usage.h_reserved_bytes),(1,0));

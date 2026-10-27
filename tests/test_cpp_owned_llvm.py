@@ -26,6 +26,7 @@ class CppOwnedLLVMTests(unittest.TestCase):
                 'skip_source_replay': lambda r: r['build']['claims'].update(actual_source_replayed=False),
                 'hidden_cpp_link': lambda r: r['foreign_cpp_link_inputs'].append('original.cpp'),
                 'changed_command': lambda r: r['link_process'].update(argv=['/bin/true']),
+                'untyped_caller_flags': lambda r: r['link_process']['argv'].remove('-Werror=implicit-function-declaration'),
                 'changed_executable': lambda r: r['execution_process'].update(argv=['/bin/true']),
                 'stale_input': lambda r: r.update(compiler_sha256='0' * 64),
                 'changed_ir': lambda r: r['build']['source_binding'].update(llvm_ir_sha256='0' * 64),

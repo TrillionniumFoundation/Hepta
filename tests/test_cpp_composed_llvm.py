@@ -83,6 +83,7 @@ class ComposedLLVMNativeTests(unittest.TestCase):
             "legal_resource_count_tamper": lambda r: r["variants"]["pair"]["build"]["resource_verification"].update(ok=False),
             "foreign_implementation": lambda r: r["variants"]["pair"]["foreign_cpp_link_inputs"].append("original.o"),
             "link_command": lambda r: r["variants"]["pair"]["link"]["command"].insert(-2, "original.o"),
+            "untyped_caller_flags": lambda r: r["variants"]["pair"]["link"]["command"].remove("-Werror=implicit-function-declaration"),
             "wrong_executable": lambda r: r["variants"]["pair"]["execution"].update(command=["/bin/true"]),
             "bool_exit_code": lambda r: r["variants"]["pair"]["execution"].update(returncode=False),
             "bool_observation": lambda r: r["variants"]["pair"]["observed"].update(live=False),

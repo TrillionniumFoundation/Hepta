@@ -53,7 +53,7 @@ Examples are actual source programs:
 
 | Reservation | Admission | Release |
 | --- | --- | --- |
-| One attached reactor | Successful `io_attach` | Reactor shutdown/native drop after local operations/endpoints are cleared |
+| One attached reactor | Successful `io_attach` | Final binding destruction after reactor shutdown/native drop and any active canceller's temporary wake reference |
 | Configured endpoint slots **plus two** wake endpoints | Successful attachment; full capacity is reserved, not only currently open user endpoints | Binding destruction closes both wake endpoints before returning its slot reservation |
 | Configured request slots | Successful attachment | Binding destruction |
 | Admitted buffer capacity | Immediately before request slot insertion; checked addition under the shared I/O budget mutex | Collection or shutdown/native drop removes that resident buffer |
@@ -162,6 +162,27 @@ return its resident bytes without waiting for that state lock. The canceller
 then releases the last strong reference under the lock, and the remaining
 reactor/endpoint/request reservations must reach zero before joining. This
 checks the documented final-`Arc` destruction boundary directly.
+
+User descriptors are checked immediately after local shutdown. The wake reader
+is checked separately after the fixture acquires and releases group state:
+production notification drops its temporary strong reference inside that
+critical section, before the guard is released. The local reactor is already
+gone when this observation fence is taken. The deterministic handoff also
+holds state and a wake reference across worker shutdown, observes the wake
+reader still open with fixed attachment charges, then releases that reference
+and verifies the wake reader and every I/O reservation are gone. The worker
+must subsequently cross the same fence and complete its descriptor check.
+No later fixture opens a socket until this worker and the cancellation
+controllers have joined, so a new fixture cannot reuse an observed descriptor
+number between its close and the check. This is an observation rule for this
+isolated test process, not a cross-process descriptor identity guarantee.
+
+The original full CI run for `44cb3257` exposed the earlier unsynchronized
+wake-reader assertion: one of three positive executions aborted while a
+canceller could still own its temporary reference. Its failure evidence is
+retained. Synchronizing that observation preserves the existing runtime
+lifetime contract, user-port closure assertion, all planned cases and repeats,
+and all five deliberately wrong-runtime controls.
 
 Five separately compiled wrong runtimes must fail: losing the wake endpoint
 hits an actual two-second timeout; ignoring the shared byte limit, omitting

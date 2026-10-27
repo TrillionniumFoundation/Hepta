@@ -31,6 +31,12 @@ CLAIMS = {'actual_cpp_implementation_migrated': True, 'actual_migrated_source_co
           'c_codegen_used_for_machine_code': False, 'fallback_used': False,
           'general_cpp_raii_migration': False, 'source_equivalence_proved': False,
           'whole_language_soundness_proved': False, 'performance_qualified_by_this_gate': False}
+LINK_FLAGS = ['-std=c11', '-O2', '-fno-lto', '-Werror=implicit-function-declaration',
+              '-Werror=implicit-int', '-Werror=strict-prototypes', *WRAP_FLAGS]
+
+
+def _link_command(cc, work, obj, executable):
+    return [cc, *LINK_FLAGS, '-I' + str(work), str(EXAMPLE / 'harness.c'), str(obj), '-o', str(executable)]
 
 
 def digest(path):
@@ -95,8 +101,7 @@ def qualify_cpp_owned_llvm(workdir, *, clang='clang', clangxx='clang++', rustc=N
         require(compiler is not None, 'Native C observation driver compiler missing')
         report['cc'] = {'driver': compiler, **identity(compiler)}
         executable = work / 'owned-llvm'
-        argv = [compiler, '-std=c11', '-O2', '-fno-lto', *WRAP_FLAGS, '-I' + str(work),
-                str(EXAMPLE / 'harness.c'), str(obj), '-o', str(executable)]
+        argv = _link_command(compiler, work, obj, executable)
         command(argv, report, 'link_process')
         report['executable'] = identity(executable)
         execution = command([executable], report, 'execution_process')
@@ -170,8 +175,7 @@ def validate_report(report):
     header, _ = _case_sources(vectors)
     require(report['case_header']['sha256'] == hashlib.sha256(header.encode()).hexdigest()
             and strict_equal(report['case_families'], dict(Counter(r['family'] for r in vectors))), 'Shared native cases differ')
-    expected_argv = [report['cc']['driver'], '-std=c11', '-O2', '-fno-lto', *WRAP_FLAGS, '-I' + str(work),
-                     str(EXAMPLE / 'harness.c'), str(work / 'owned.o'), '-o', str(work / 'owned-llvm')]
+    expected_argv = _link_command(report['cc']['driver'], work, work / 'owned.o', work / 'owned-llvm')
     require({k: report['cc'][k] for k in ('path', 'sha256', 'bytes')} == identity(report['cc']['driver']), 'Native C driver identity changed')
     for label, argv in (('link_process', expected_argv), ('execution_process', [str(work / 'owned-llvm')])):
         process = report[label]

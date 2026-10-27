@@ -219,6 +219,23 @@ symbol table must export exactly `composed_case`; unresolved dependencies are
 restricted to the finite allocator, memory-initialization and abort runtime.
 No original C++ object or Hepta Rust/C implementation is a link input.
 
+The separately compiled C caller declares the exact six-argument prototype
+and `uint64_t` result. The linker-driver invocation rejects implicit function
+declarations, implicit integer types and non-prototype declarations. A
+subsequent raw-log audit found that older LLVM observations compiled the C
+branch without this declaration: GCC warned and assumed an `int` result.
+The original resource vectors have small scalar outputs and did not reveal
+that caller defect. Those historical records remain intact; they do not
+qualify the corrected caller or an unrestricted 64-bit return boundary.
+
+`tests/test_cpp_composed_harness.py` compiles a separate C callee and executes
+the actual observation harness with two independent high-bit return/argument
+vectors. It also removes the C declaration from a temporary harness and
+requires the actual qualification flags to reject compilation. This is a
+caller ABI regression, not a new migrated resource program or a performance
+sample. The 437/613/833 resource cases and every performance protocol remain
+unchanged; corrected native qualification must run on its own frozen source.
+
 The LLVM gate executes the same 437/613/833 cases as the three-route gate:
 **1,883 calls, 2,606 allocations and releases, and 926 actual refusals**. The
 per-variant result and resource-event digests match the table above. This is

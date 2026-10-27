@@ -156,6 +156,34 @@ class TaskIoNativeQualificationTests(unittest.TestCase):
         self.assertIn("E0499", self.report["cases"][-1]["build"]["stderr"]["text"])
         self.assertEqual(self.report["cases"][-1]["runs"], [])
 
+    def test_unfenced_wake_close_assertion_rejects_held_notification(self):
+        # Reproduce the old observation at a deterministic boundary: the
+        # controller still owns group state and the final notification Arc,
+        # while the worker has already dropped its reactor and user ports.
+        # The normal positive matrix checks the later, fenced close instead.
+        source = q.controls_source("positive")
+        main = 'fn main(){__hepta_task_io_controls("positive")}'
+        self.assertEqual(source.count(main), 1)
+        source = source.replace(main, 'fn main(){__hepta_task_io_controls("drop_lock_inversion")}')
+        retained = 'assert_eq!(unsafe{hepta_task_io_fd_open(wake_fd)},1);'
+        self.assertEqual(source.count(retained), 1)
+        source = source.replace(retained,
+            'assert_eq!(unsafe{hepta_task_io_fd_open(wake_fd)},0,"unfenced wake reader checked before canceller completion");')
+        root = Path(self.directory.name)
+        path, binary = root / "unfenced-observer.rs", root / "unfenced-observer.bin"
+        path.write_text(source)
+        obj = self.report["c_build"]["object"]["path"]
+        links = ["-C", "link-arg=" + obj, "-C", "link-arg=-Wl,--wrap=poll",
+                 "-C", "link-arg=-Wl,--wrap=socketpair", "-C", "link-arg=-Wl,--wrap=ioctl"]
+        built = subprocess.run([RUSTC, *q.RUST_FLAGS, str(path), "-o", str(binary), *links],
+                               cwd=q.ROOT, capture_output=True, text=True, timeout=30)
+        self.assertEqual(built.returncode, 0, built.stderr)
+        observed = subprocess.run([str(binary)], cwd=q.ROOT, capture_output=True, text=True, timeout=10)
+        self.assertNotEqual(observed.returncode, 0)
+        self.assertIn("unfenced wake reader checked before canceller completion", observed.stderr)
+        self.assertIn("left: 1", observed.stderr)
+        self.assertIn("right: 0", observed.stderr)
+
     def test_receipt_rejects_contradictory_scope_commands_and_missing_runs(self):
         mutations = [
             lambda r: r.update(ok=1),

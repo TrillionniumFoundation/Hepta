@@ -69,7 +69,8 @@ NATIVE_CLAIMS = {
     "whole_language_memory_safety_proved": False, "cross_target_execution_qualified": False,
 }
 IR_FLAGS = ["--target=" + TARGET, "-x", "ir", "-O3", "-fPIC", "-c"]
-LINK_FLAGS = ["-std=c11", "-O2", "-fno-lto", *WRAP_FLAGS]
+LINK_FLAGS = ["-std=c11", "-O2", "-fno-lto", "-Werror=implicit-function-declaration",
+              "-Werror=implicit-int", "-Werror=strict-prototypes", *WRAP_FLAGS]
 NEGATIVES = ("leak", "destruction_order")
 
 

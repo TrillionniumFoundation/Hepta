@@ -33,6 +33,7 @@ void operator delete[](void* pointer) noexcept {
 }
 void operator delete[](void* pointer, std::size_t) noexcept { ::operator delete[](pointer); }
 #else
+extern uint64_t owned_case(size_t, uint8_t, size_t, uint32_t, uint32_t);
 void* __real_calloc(size_t, size_t);
 void* __real_malloc(size_t);
 void __real_free(void*);
