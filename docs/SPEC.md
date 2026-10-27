@@ -487,10 +487,13 @@ The owned C profile additionally supports Buffer-bearing structs/enums, Result,
 finite generic monomorphization, explicit returned borrows and partial named
 field moves/restoration. That profile must pass the independent resource IR
 before C emission; native error/cleanup behavior is qualified separately in
-`C_OWNED_BACKEND.md`. Stored lifetime records and hosted task/group/I/O runtimes,
-unsupported zero-sized layouts, pointers to arrays, `repr(C)` array fields and
-float/integer casts remain rejected. No silent substitution or Rust fallback is
-permitted.
+`C_OWNED_BACKEND.md`. The v4 local single-field byte-slice view profile in
+[LLVM_LOCAL_VIEWS.md](LLVM_LOCAL_VIEWS.md) is also admitted after independent
+resource verification. General stored lifetime records outside that profile,
+labelled v5 views, nested or escaping view records, hosted task/group/I/O
+runtimes, unsupported zero-sized layouts, pointers to arrays, `repr(C)` array
+fields and float/integer casts remain rejected. No silent substitution or Rust
+fallback is permitted.
 
 The C compiler API supports bin, object, static-library, and shared-library
 artifacts. Default C `check` analysis uses an object validation artifact rather
@@ -617,6 +620,19 @@ uses Result, borrows and explicit drop; it does not link the original class.
 This strict pattern migration does not claim arbitrary RAII translation,
 moved-from-object compatibility outside its domain or C++ layout preservation.
 See [CPP_OWNED_MIGRATION.md](CPP_OWNED_MIGRATION.md).
+
+`hepta migrate-cpp-composed` accepts one selected byte-owner leaf class, one
+composition with two through four leaf fields, and one complete lifecycle
+function. The complete Clang AST must satisfy the versioned leaf protocol and
+bounded composite grammar. Accepted composite constructors, scalar methods,
+member moves and lifecycle bodies become checked Hepta code. Allocation and
+selected integer errors become explicit Result paths; construction failure
+releases completed fields in reverse order. The generated destructor also
+releases fields in reverse order, and translated implementations link no
+original C++ object. Custom destructors and allocators, inheritance, virtual
+dispatch, retained pointers and arbitrary exception behavior reject. This
+route does not preserve the original C++ class layout.
+See [CPP_COMPOSED_MIGRATION.md](CPP_COMPOSED_MIGRATION.md).
 
 The two-version native library qualification in
 [CPP_UPSTREAM_UPGRADE.md](CPP_UPSTREAM_UPGRADE.md) separately measures an

@@ -22,7 +22,7 @@ Rust 代理选择和 Ubuntu Bubblewrap profile 前置条件，不能用前置条
 
 ## 已实现的增量及验收条件
 
-这些项目在本版本有实际代码、正反例和可重放入口。是否通过最终统一快照，以指定输出目录中的 `release-validation.json` 引用的报告为准。`evidence/unified_candidate_20261025/` 保留代码提交 `776f005d` 的完整 40 门禁资格；首轮资源整合 `9ce4bc1` 的 46 项完整结果保留在 `evidence/resource_candidate_20261025/`：44 项通过，状态接入缺陷与资源性能测量波动分别导致两项失败。修复状态接入后，新的完整候选资格写入 `evidence/resource_candidate_fixed_20261025/`，以其实际报告为准。先前 `runtime_storage_board_final/`、`production_progress_final/`、`next_blockers_final/` 等目录描述各自绑定的旧源码快照，不自动成为新提交的执行证据。
+这些项目在本版本有实际代码、正反例和可重放入口。是否通过最终统一快照，以指定输出目录中的 `release-validation.json` 引用的报告为准。`evidence/unified_candidate_20261025/` 保留代码提交 `776f005d` 的完整 40 门禁资格；首轮资源整合 `9ce4bc1` 的 46 项完整结果保留在 `evidence/resource_candidate_20261025/`：44 项通过，状态接入缺陷与资源性能测量波动分别导致两项失败。修复状态接入后的历史候选 `2f8cd75d` 的完整执行报告保留在 `evidence/resource_candidate_fixed_20261025/`；这些历史报告只适用于其记录的源码提交。当前候选必须在自己的新输出目录完成全套验收。先前 `runtime_storage_board_final/`、`production_progress_final/`、`next_blockers_final/` 等目录描述各自绑定的旧源码快照，不自动成为新提交的执行证据。
 
 | ID | 已实现范围 | 验收入口 / 证据 |
 | --- | --- | --- |

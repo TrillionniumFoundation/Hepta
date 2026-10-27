@@ -143,11 +143,13 @@ The earlier exact 776f005d candidate passed all 40 gates and is preserved under
 `evidence/resource_candidate_20261025/` retains its collector status-contract
 mismatch and the resource performance measurement's quality rejection. Its
 1369 tests passed with zero skips; the aggregate remains failed.
-The collector now accepts the producer's exact scoped success status and still
-performs its strict current-source validation. The next integrated candidate
-is qualified separately under `evidence/resource_candidate_fixed_20261025/`;
-that aggregate's exact commit and status decide acceptance. All earlier failed
-or inconclusive attempts remain part of the evidence. The later HIA baseline
+The corrected collector preserves the producer's exact scoped success status
+and strict current-source validation. The subsequent historical candidate
+`2f8cd75d` has its own report under `evidence/resource_candidate_fixed_20261025/`.
+That report applies only to its recorded commit. Current acceptance requires a
+fresh complete report for the current unchanged source snapshot in a new
+output directory. All earlier failed or inconclusive attempts remain part of
+the evidence. The later HIA baseline
 at `6f5fc9fc` passed 2,023 tests and 14/15 gates; its performance quality gate
 remains inconclusive. Two separately frozen local-model studies retained 104
 actual generations without establishing either prespecified agent benefit.

@@ -135,6 +135,7 @@ jobs:
           export LEAN="$GITHUB_WORKSPACE/../toolchains/lean-4.19.0/bin/lean"
           python tools/qualify_hia_unified.py \
             --output-directory artifacts/hia-unified \
+            --lean "$LEAN" \
             --clang /usr/lib/llvm-20/bin/clang \
             --rustc "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/bin/rustc" \
             --linker "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld" \
