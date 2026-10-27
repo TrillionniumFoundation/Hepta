@@ -23,6 +23,15 @@ _SCHEMA_VALUE = re.compile(r"hepta\.hia\.program\.v[1-9][0-9]*\Z")
 
 _DIGEST = re.compile(r"[0-9a-f]{64}\Z")
 
+# Imported or stored reflection helpers can mutate literal SCHEMA/PROFILE
+# declarations after the syntactic inventory was read. Reject these names
+# even if they are never called under their original spelling.
+_REFLECTION_NAMES = frozenset({
+    "globals", "locals", "vars", "exec", "eval", "setattr", "delattr",
+    "getattr", "__import__",
+})
+
+
 
 class HIAWireAuditRejected(ValueError):
     pass
@@ -57,9 +66,15 @@ def _reject_hidden_rebindings(tree: ast.AST, declared_nodes: set[int]) -> None:
     This is a static conflict detector, NOT a proof of runtime module semantics.
     """
     for node in ast.walk(tree):
-        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
-                and node.func.id in {"globals", "locals", "vars", "exec", "eval", "setattr", "delattr"}):
-            _fail("dynamic namespace mutation/reflection cannot be audited")
+        # Reject the reflection reference itself, not only direct calls.
+        # Aliased builtins and stored/qualified helpers cannot be trusted
+        # as a static schema inventory.
+        if isinstance(node, ast.Name) and node.id in _REFLECTION_NAMES:
+            _fail("dynamic namespace/reflection name cannot be audited")
+        if isinstance(node, ast.Attribute) and node.attr in _REFLECTION_NAMES:
+            _fail("qualified namespace/reflection attribute cannot be audited")
+        if isinstance(node, ast.alias) and node.name in _REFLECTION_NAMES:
+            _fail("imported namespace/reflection helper cannot be audited")
         if (isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del))
                 and id(node) not in declared_nodes and _sensitive(node.id)):
             _fail("hidden schema/profile rebinding: " + node.id)
