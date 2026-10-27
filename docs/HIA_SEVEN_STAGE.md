@@ -30,7 +30,8 @@ an absolute safety claim about all native programs.
 
 ## One frozen integration run
 
-Commit the complete source before invoking the v2 collector (19 scoped gates). The collector writes
+Commit the complete source before invoking the v3 collector (35 scoped gates;
+see [the current qualification plan](HIA_UNIFIED_QUALIFICATION_V3.md)). The collector writes
 a command plan, executes all gates against that exact source, retains stdout,
 stderr and per-gate reports, rejects skipped test runs as complete passes and
 compares source snapshots before and after. Native and formal reports bind
@@ -40,7 +41,9 @@ their own selected tools/artifacts. Performance is the last functional gate.
 python tools/qualify_hia_unified.py \
   --output-directory /tmp/hepta-seven-stage-new \
   --clang /absolute/path/to/clang \
+  --cc /absolute/path/to/gcc \
   --rustc /absolute/path/to/rustc \
+  --cargo /absolute/path/to/cargo \
   --qemu-aarch64 /absolute/path/to/qemu-aarch64-static \
   --qemu-riscv64 /absolute/path/to/qemu-riscv64-static \
   --qemu-system-arm /absolute/path/to/qemu-system-arm \
@@ -48,13 +51,21 @@ python tools/qualify_hia_unified.py \
   --lean /absolute/path/to/lean --cxx /absolute/path/to/g++
 ```
 
-Cargo 1.90.0 and its locked dependencies must be available for the new Rust
-shadow tests. Put its binary on PATH with the pinned rustc, and set
-`CARGO_TARGET_DIR` to a build directory outside the source checkout so generated
-artifacts cannot change the source snapshot. The Rust shadow accepts independently checked resource-free scalar programs
-under v1..v7. Recursive chains, Owner/Loan and unverified memory/resource
-semantics under v7 remain refused, and Rust cannot grant native admission.
-The static budget analyzer also rejects v7 instead of counting a dynamic
+Cargo 1.90.0 and its locked dependencies must be available for the Rust
+shadow tests. Fetch the locked dependencies before the frozen run. The
+collector uses the selected `--cargo` and `--rustc` and places
+`CARGO_TARGET_DIR` under the new evidence directory, outside the checkout
+in the example above.
+
+Within primitive v1–v7, the default Rust checker and `--scalar-run` accept
+only resource-free scalar programs. `--owned-shadow` statically checks the
+typed owner/loan CFG subset, including v7 chain transitions. `--owned-run`
+executes one function/one block with scalar entry/results and ten byte-owner/loan
+operations; it rejects calls, CFG edges, bulk operations, chains and direct
+nominal input. Python Core remains the standalone/native admission authority.
+See the [consumer support table](HIA_PROGRAM.md) and
+[finite Rust execution profile](HIA_RUST_BYTE_OWNER_VM_20261027.md).
+The static budget analyzer rejects v7 instead of counting a dynamic
 chain destructor as one constant-time/free event.
 
 Run the full Linux native-isolation suite with a native Linux Python exposing

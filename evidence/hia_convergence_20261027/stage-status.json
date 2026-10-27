@@ -1,0 +1,570 @@
+{
+  "schema": "hepta.hia.stage-status.v1",
+  "frozen_source_sha": "b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf",
+  "draft": false,
+  "all_stages_closed": false,
+  "run2": {
+    "source_sha": "b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf",
+    "status": "scoped_gates_not_all_qualified",
+    "ok": false,
+    "source_unchanged": true,
+    "completed_gates": 35,
+    "passed_gates": 34,
+    "failed_gates": [
+      "standalone_performance"
+    ],
+    "report_path": "run2/qualification.json",
+    "report_sha256": "56273938c8bf182cf46a902b32266c68dcab6d5598d998282c56075654117f06"
+  },
+  "run1": {
+    "source_sha": "a4ba75b92fd22d41ef39d29307fb92cea4bad131",
+    "source_unchanged": true,
+    "completed_gates": 35,
+    "passed_gates": 33,
+    "ok": false,
+    "failed_gates": [
+      "llvm_local_stored_views",
+      "standalone_performance"
+    ],
+    "report_url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/hia_convergence_20261027/run1/qualification.json"
+  },
+  "scope_rule": "所有阶段 closed=false。有限 gate success 不等于阶段闭合；发布或修复后的 b917 不覆盖 a4/5818 执行来源。归档核验不产生新执行或证明；已删除临时二进制不重造。",
+  "input_audits": [
+    "hepta-stage-audit-p0-p2.json",
+    "hepta-stage-audit-p3-p4.json",
+    "hepta-stage-audit-p5-p7.json"
+  ],
+  "stages": {
+    "P0": {
+      "closed": false,
+      "implemented": [
+        "Python verify_core/verify_program 是独立 executable Core 的生产接纳权威；解释器、LLVM 消费者重新验证，构建时重新生成并核对 IR。",
+        "primitive v1–v7、composite.v1→v6、composite.v2→v7、显式 legacy conversion/upgrade 已实现且转换后重验。"
+      ],
+      "validated_scope": {
+        "source_sha": "b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf",
+        "run": "run2",
+        "gates": [
+          {
+            "name": "unit_regression",
+            "passed": true
+          },
+          {
+            "name": "standalone_native",
+            "passed": true
+          },
+          {
+            "name": "legacy_executable_core",
+            "passed": true
+          }
+        ],
+        "summary": "b917: 2,498 Python tests, zero failures/errors/skips; listed finite executable paths passed.",
+        "report_path": "run2/qualification.json",
+        "report_sha256": "56273938c8bf182cf46a902b32266c68dcab6d5598d998282c56075654117f06"
+      },
+      "remaining": [
+        "所有历史 Rust/C/Owned-LLVM 命令尚未收敛为单一通路；HSIR/ResourceIR 等是适配或抽象资源表示，不是可互换的完整 executable Core。",
+        "源前端仍有明确拒绝集；版本、摘要与 receipt 不证明 source→Core→native 精化或 whole-language soundness。"
+      ],
+      "links": [
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/core.py",
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_schema.py",
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_program.py",
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_program_source.py"
+      ],
+      "historical_validated_scope": {
+        "source_sha": "a4ba75b92fd22d41ef39d29307fb92cea4bad131",
+        "run": "run1",
+        "gates": [
+          "unit_regression",
+          "standalone_native",
+          "legacy_executable_core"
+        ],
+        "summary": "a4 完成 2,495 项 Python 回归且零失败/错误/跳过；所列有限 Core/native 通路通过。",
+        "report_url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/hia_convergence_20261027/run1/qualification.json"
+      }
+    },
+    "P1": {
+      "closed": false,
+      "implemented": [
+        "有限整数/bool/unit、buffer/chain/readbuf/mutbuf、线性 owner、root/parent loan、冲突借用、重借用暂停、边界检查、显式释放及 structural elaboration 已实现。",
+        "v7 Nil | Node(buffer,chain) 有失败返还、消耗式 pop、迭代 drop；cooperative task 与 Python step/live-byte/call-depth 限额已实现。"
+      ],
+      "validated_scope": {
+        "source_sha": "b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf",
+        "run": "run2",
+        "gates": [
+          {
+            "name": "standalone_resources",
+            "passed": true
+          },
+          {
+            "name": "composite_resources",
+            "passed": true
+          },
+          {
+            "name": "composite_bulk_targets",
+            "passed": true
+          },
+          {
+            "name": "recursive_resource_chains",
+            "passed": true
+          }
+        ],
+        "summary": "b917: declared owner/loan, composite, bulk and recursive-buffer-chain profiles passed; general resource-language closure remains false.",
+        "report_path": "run2/qualification.json",
+        "report_sha256": "56273938c8bf182cf46a902b32266c68dcab6d5598d998282c56075654117f06"
+      },
+      "remaining": [
+        "通用返回/逃逸 loan、自引用 lifetime、任意递归 ADT/树/图及 standalone 任意部分初始化/MaybeUninit/placement-new 未闭合。",
+        "cooperative task 不是背景调度/通道/抢占式取消；trap/budget stop 不宣称完成 unwind 清理。",
+        "有限 byte provenance 与 VM 预算不证明 raw/foreign pointer、native 栈/CPU/RSS 上界或绝对安全；LLVM、allocator 与平台前提仍在。"
+      ],
+      "links": [
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_program.py",
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_program_composite.py",
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_program_runtime.py",
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/resource_ir.py"
+      ],
+      "historical_validated_scope": {
+        "source_sha": "a4ba75b92fd22d41ef39d29307fb92cea4bad131",
+        "run": "run1",
+        "gates": [
+          "standalone_resources",
+          "composite_resources",
+          "composite_bulk_targets",
+          "recursive_resource_chains"
+        ],
+        "summary": "a4 的资源、组合、bulk/target 与递归链 gate 实际通过；仅限各自声明的 profiles。",
+        "report_url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/hia_convergence_20261027/run1/qualification.json",
+        "archive_inventory_url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/hia_convergence_20261027/run1/inventory.json",
+        "archive_inventory_paths": [
+          "run/resources.json",
+          "run/composite/qualification.json",
+          "run/recursive-chain/qualification.json"
+        ]
+      }
+    },
+    "P2": {
+      "closed": false,
+      "implemented": [
+        "Rust opt-in shadow 已有 scalar CFG/call VM、有限 owner/loan/CFG/callee-effect/v7 chain 静态验证；Python 保持生产 authority。",
+        "--owned-run 先做全程序验证和支持集筛选，再执行单函数单块的 buffer/loan/owner 操作，返回值、失败、清理及完整资源账本。"
+      ],
+      "validated_scope": {
+        "source_sha": "b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf",
+        "run": "run2",
+        "gates": [
+          {
+            "name": "rust_shadow_cargo",
+            "passed": true
+          },
+          {
+            "name": "rust_shadow_parity",
+            "passed": true
+          },
+          {
+            "name": "llvm_local_stored_views",
+            "passed": true
+          }
+        ],
+        "summary": "b917: 52 Rust tests and 45 Python/Rust parity tests passed, including 124 byte-owner full-ledger observations; repaired direct LLVM local-view producer passed.",
+        "report_path": "run2/qualification.json",
+        "report_sha256": "56273938c8bf182cf46a902b32266c68dcab6d5598d998282c56075654117f06"
+      },
+      "remaining": [
+        "owned execution 拒绝资源调用、CFG edges、多函数/块、bulk、chain 和 direct nominal/composite；chain 静态验证不等于 chain 运行时完成。",
+        "Rust 尚未替代 Python 编译器，也未取得完整独立 native emitter 资格；Python→LLVM 的更大支持集不能转记为 Rust 全覆盖或 backend refinement。"
+      ],
+      "links": [
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/rust/hia-core-shadow/src/ownership.rs",
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/rust/hia-core-shadow/src/scalar_vm.rs",
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/rust/hia-core-shadow/src/scalar_vm/byte_memory.rs",
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_rust_crosscheck.py"
+      ],
+      "historical_validated_scope": {
+        "source_sha": "a4ba75b92fd22d41ef39d29307fb92cea4bad131",
+        "run": "run1",
+        "gates": [
+          "rust_shadow_cargo",
+          "rust_shadow_parity"
+        ],
+        "summary": "a4 实际 Cargo 52 tests、Python/Rust parity 45 tests，均无失败/跳过；包括有限 byte-owner VM。",
+        "report_url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/hia_convergence_20261027/run1/qualification.json"
+      }
+    },
+    "P3": {
+      "closed": false,
+      "implemented": [
+        "native-host.v2 有实际 C11 ABI 矩阵和编译器家族宏核验；覆盖普通 record、标量、嵌套指针、数组/布局与寄存器溢出参数。",
+        "C header 本机探测与 C++ 明示 contract/handle/call_only span/scoped RAII 桥接，执行有限布局、空指针、对齐、长度、线程和重入检查。"
+      ],
+      "validated_scope": {
+        "source_sha": "b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf",
+        "run": "run2",
+        "gates": [
+          {
+            "name": "native_host_gcc",
+            "passed": true
+          },
+          {
+            "name": "native_host_clang",
+            "passed": true
+          }
+        ],
+        "summary": "b917: GCC and Clang each passed 181 actual foreign calls at O0 and 181 at O2, with type and wrong-echo negative controls. Other physical hosts remain unqualified.",
+        "report_path": "run2/qualification.json",
+        "report_sha256": "56273938c8bf182cf46a902b32266c68dcab6d5598d998282c56075654117f06"
+      },
+      "remaining": [
+        "本审计证据仅有 Linux x86_64 GCC/Clang 实际宿主通过；workflow 声明、交叉编译或 pending CI 不替代 Windows/MSVC/其他 host 的成功报告。",
+        "packed/bitfield/varargs、通用 callback、外部生命周期/alias/worker/global 状态、跨线程 ownership 与死锁未闭合。",
+        "call_only retention 等仍属外部义务；异常状态不回滚外部副作用，foreign termination/longjmp/UB 无通用恢复保证。"
+      ],
+      "links": [
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/tools/validate_native_host.py",
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/c_import.py",
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/cpp_contracts.py",
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/.github/workflows/hepta-native-hosts.yml"
+      ],
+      "historical_validated_scope": {
+        "source_sha": "a4ba75b92fd22d41ef39d29307fb92cea4bad131",
+        "run": "run1",
+        "gates": [
+          "native_host_gcc",
+          "native_host_clang"
+        ],
+        "summary": "a4 GCC 与 Clang 均实际通过：每编译器 O0/O2 各 181 次调用，含错误声明/错误 echo 负对照。",
+        "report_url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/hia_convergence_20261027/run1/qualification.json",
+        "archive_inventory_url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/hia_convergence_20261027/run1/inventory.json",
+        "archive_inventory_paths": [
+          "run/native-host-gcc.json",
+          "run/native-host-clang.json"
+        ]
+      }
+    },
+    "P4": {
+      "closed": false,
+      "implemented": [
+        "真实 Clang 捕获、声明台账及 configuration matrix；有限 C scalar/slice/record-view、C++ scalar/direct-call/具体模板与 trivial value-class 迁移已实现。",
+        "封闭 exclusive byte-owner 叶类和 2–4 叶 composed profile 有实际 AST 迁移及独立 target；仍执行外部 C++ 的 contract/scoped/pipeline bridge 单独计数。"
+      ],
+      "validated_scope": {
+        "source_sha": "b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf",
+        "run": "run2",
+        "gates": [
+          {
+            "name": "source_migration",
+            "passed": true
+          },
+          {
+            "name": "cpp_template_migration",
+            "passed": true
+          },
+          {
+            "name": "c_configuration_matrix",
+            "passed": true
+          },
+          {
+            "name": "cpp_configuration_matrix",
+            "passed": true
+          },
+          {
+            "name": "upstream_c_resource_matrix",
+            "passed": true
+          },
+          {
+            "name": "upstream_cpp_composed_lifetimes",
+            "passed": true
+          },
+          {
+            "name": "cpp_composed_implementation_llvm",
+            "passed": true
+          }
+        ],
+        "summary": "b917: all listed finite migration/configuration gates passed. Original C++ bridge still reports foreign termination and incomplete allocation-failure recovery; separate composed LLVM migration rewrites the finite implementation profile.",
+        "report_path": "run2/qualification.json",
+        "report_sha256": "56273938c8bf182cf46a902b32266c68dcab6d5598d998282c56075654117f06"
+      },
+      "remaining": [
+        "分母是已捕获 TU/配置/具体实例，不是所有平台、宏、版本、模板；通用继承/virtual、任意 RAII/allocator/异常/STL/escaping pointer/cross-thread 迁移未闭合。",
+        "显式 C wrapper 不保留全部 C++ class/mangled/exception ABI；有限差分与 L1 receipt 不是全输入精化或通用 L2/L3。",
+        "人工合约/审阅/修改量、长期维护、再资格与 Agent 总成本未测；manual_review_hours、agent_tokens 为 null，不能宣布低成本重写全部 C/C++。"
+      ],
+      "links": [
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/c_migration_project.py",
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/cpp_project_migrate.py",
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/cpp_composed_migrate.py",
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/tools/qualify_cpp_composed.py"
+      ],
+      "historical_validated_scope": {
+        "source_sha": "a4ba75b92fd22d41ef39d29307fb92cea4bad131",
+        "run": "run1",
+        "gates": [
+          "source_migration",
+          "cpp_template_migration",
+          "c_configuration_matrix",
+          "cpp_configuration_matrix",
+          "upstream_c_resource_matrix",
+          "upstream_cpp_composed_lifetimes",
+          "cpp_composed_implementation_llvm"
+        ],
+        "summary": "a4 所列有限 gate 通过；旧 composed bridge 为 complete_observation_with_foreign_termination：foreign_cpp_implementation_rewritten=false、native_implementation_migrations=0、bridge_upgrade_variants=2、all_allocation_failure_paths_recovered=false。该观察不等于源码重写或完整分配失败恢复。",
+        "report_url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/hia_convergence_20261027/run1/qualification.json",
+        "archive_inventory_url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/hia_convergence_20261027/run1/inventory.json",
+        "archive_inventory_paths": [
+          "run/migration/qualification.json",
+          "run/cpp-composed/qualification.json",
+          "run/cpp-composed-llvm.json"
+        ]
+      }
+    },
+    "P5": {
+      "closed": false,
+      "implemented": [
+        "v2 局部查询绑定不可变快照，闭合显示输入、SSA 消费链及受影响分支可达区域（含无结果副作用）；batch 支持 1–16 个不重叠站点及一次最终整模块复验。",
+        "每 query 限 256 operations/64 blocks，batch 总 wire 限 1 MiB；response 分别限 16/64 KiB。重复身份、陈旧快照、失配 context、越权修改拒绝。"
+      ],
+      "validated_scope": {
+        "source_sha": "b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf",
+        "run": "run2",
+        "gates": [
+          {
+            "name": "agent_query_semantics",
+            "passed": true
+          }
+        ],
+        "summary": "b917: 53 query/edit mechanism tests passed without skips. No current-source real-model trial was performed; the distinct historical real trial failed its predeclared criteria.",
+        "report_path": "run2/qualification.json",
+        "report_sha256": "56273938c8bf182cf46a902b32266c68dcab6d5598d998282c56075654117f06",
+        "historical_real_model_trial": {
+          "source_sha": "5818c5814fb42dbd97a027e9b328f4ae3099c0fc",
+          "actual_requests": 36,
+          "actual_responses": 36,
+          "models": [
+            "Qwen2.5-Coder 7B",
+            "Granite 3.3 2B"
+          ],
+          "design": "4 disclosed two-site tasks × 4 HIA/Rust full/query arms × 2 models；32 tasks + 4 preflights；冻结规则、单次、512 output tokens。",
+          "hia_query_successes": [
+            2,
+            1
+          ],
+          "tasks_per_model": 4,
+          "primary_criteria_per_model": [
+            false,
+            false
+          ],
+          "secondary_criteria_per_model": [
+            false,
+            false
+          ],
+          "b917_trial_qualified": false
+        }
+      },
+      "remaining": [
+        "回到 selected block 的 backedge 要求 full-module view；无结果操作不能直接由 output selector 选择，callee 仅显示签名/effects。",
+        "保守切片不证明精确 control dependence、alias、行为等价、外部 caller 安全或多文件事务。",
+        "真实历史模型试验存在但不达标，不能称作 fixtures，也不能继承给 b917；独立任务/模型公平实验与总开发成本仍待验证。现有 representation/context 同变，人工/集成/长期维护未测。"
+      ],
+      "links": [
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_edit_query.py",
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_edit_batch.py",
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_program_tools.py",
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/seven_stage_round2_20261027/study-report.json",
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/seven_stage_round2_20261027/study-plan.json"
+      ],
+      "historical_validated_scope": {
+        "source_sha": "a4ba75b92fd22d41ef39d29307fb92cea4bad131",
+        "run": "run1",
+        "gates": [
+          "agent_query_semantics"
+        ],
+        "summary": "a4 的 53 项 Agent 查询/编辑机制测试零失败/错误/跳过；是机械 API 资格，不是模型生产率试验。",
+        "report_url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/hia_convergence_20261027/run1/qualification.json",
+        "historical_real_model_trial": {
+          "source_sha": "5818c5814fb42dbd97a027e9b328f4ae3099c0fc",
+          "actual_requests": 36,
+          "actual_responses": 36,
+          "models": [
+            "Qwen2.5-Coder 7B",
+            "Granite 3.3 2B"
+          ],
+          "design": "4 disclosed two-site tasks × 4 HIA/Rust full/query arms × 2 models；32 tasks + 4 preflights；冻结规则、单次、512 output tokens。",
+          "hia_query_successes": [
+            2,
+            1
+          ],
+          "tasks_per_model": 4,
+          "primary_criteria_per_model": [
+            false,
+            false
+          ],
+          "secondary_criteria_per_model": [
+            false,
+            false
+          ],
+          "b917_trial_qualified": false
+        }
+      }
+    },
+    "P6": {
+      "closed": false,
+      "implemented": [
+        "固定 standalone native 协议比较 direct LLVM、同输入 checked Rust、独立手写 safe Rust，保留全部配对样本、失败/资源观察与产物。",
+        "应用 benchmark 记录顺序 ABI 请求时延、分配/清理、RSS 和负对照；AArch64/RV64/Cortex-M4 有实际 QEMU 有限执行。"
+      ],
+      "validated_scope": {
+        "source_sha": "b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf",
+        "run": "run2",
+        "gates": [
+          {
+            "name": "standalone_performance",
+            "passed": false
+          },
+          {
+            "name": "application_performance",
+            "passed": true
+          },
+          {
+            "name": "standalone_aarch64_qemu",
+            "passed": true
+          },
+          {
+            "name": "standalone_riscv64_qemu",
+            "passed": true
+          },
+          {
+            "name": "legacy_cortex_m4_qemu",
+            "passed": true
+          }
+        ],
+        "summary": "b917: all 63 standalone samples retained, no ratio-threshold failures, four relative-MAD failures; measurement_inconclusive. Application protocol passed with 49 observed slower metric comparisons. QEMU remains emulation.",
+        "report_path": "run2/qualification.json",
+        "report_sha256": "56273938c8bf182cf46a902b32266c68dcab6d5598d998282c56075654117f06",
+        "performance": {
+          "status": "measurement_inconclusive",
+          "samples": 63,
+          "samples_excluded": 0,
+          "thresholds_adjusted": false,
+          "maximum_relative_mad": 0.05,
+          "quality_failures": [
+            {
+              "kernel": "constructor_error",
+              "implementation": "handwritten_rust",
+              "relative_mad": 0.09533520254633067
+            },
+            {
+              "kernel": "full_lifecycle",
+              "implementation": "llvm",
+              "relative_mad": 0.0636379799607267
+            },
+            {
+              "kernel": "two_stage",
+              "implementation": "handwritten_rust",
+              "relative_mad": 0.08449895492361273
+            },
+            {
+              "kernel": "two_stage",
+              "implementation": "rust",
+              "relative_mad": 0.08545446958156222
+            }
+          ],
+          "performance_threshold_failures": [],
+          "descriptive_only_geometric_mean_paired_time_ratios": {
+            "handwritten_rust": 0.9260795783100729,
+            "rust": 0.9324829865173611
+          },
+          "host_performance_qualified": false
+        }
+      },
+      "remaining": [
+        "两轮固定质量门均失败；run2 为四组相对 MAD > 5%，host-performance 未获资格，不能宣布全面保留/超越 Rust 性能。",
+        "带 instrumentation 的顺序 ABI 时间不是外部网络服务吞吐/SLO、异步队尾时延、多机或未插桩生产结果。",
+        "tracked live-byte/VM/input 限额不界定 allocator overhead、RSS、native 栈及所有外部资源；QEMU 不证明物理协议/时序、DMA/GPU、interrupt-resource soundness。"
+      ],
+      "links": [
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/tools/qualify_hia_program_perf.py",
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/tools/benchmark_applications.py",
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/tools/validate_board.py",
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/hia_convergence_20261027/run1/performance.json"
+      ],
+      "historical_validated_scope": {
+        "source_sha": "a4ba75b92fd22d41ef39d29307fb92cea4bad131",
+        "run": "run1",
+        "gates": [
+          "standalone_performance (failed)",
+          "application_performance",
+          "standalone_aarch64_qemu",
+          "standalone_riscv64_qemu",
+          "legacy_cortex_m4_qemu"
+        ],
+        "summary": "a4 保留全部 63 performance 样本；ratio 阈值无失败，但 constructor_error/llvm MAD=0.08300516377483902、two_stage/llvm=0.07620544908304734 超过固定 0.05，故 measurement_inconclusive、host_performance_gate_passed=false。应用协议通过（3 trials×96 requests、16 warmups），40 个慢指标比较原样保留。",
+        "report_url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/hia_convergence_20261027/run1/qualification.json",
+        "archive_inventory_url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/hia_convergence_20261027/run1/inventory.json",
+        "archive_inventory_paths": [
+          "run/performance.json",
+          "run/applications.json",
+          "run/board.json"
+        ]
+      }
+    },
+    "P7": {
+      "closed": false,
+      "implemented": [
+        "实际已验证 Core 逐操作导出到独立 Lean register 语义；固定外部规格 x+y modulo 2^32，绑定 Core/指令 map/exporter/checker/kernel/support 身份与负对照。",
+        "另有抽象 resource/loan/channel/wrapping-expression core 和 provenance/closed-expression 类型模型的 Lean 检查。"
+      ],
+      "validated_scope": {
+        "source_sha": "b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf",
+        "run": "run2",
+        "gates": [
+          {
+            "name": "selected_core_formal",
+            "passed": true
+          },
+          {
+            "name": "formal_core",
+            "passed": true
+          },
+          {
+            "name": "provenance_and_type_core",
+            "passed": true
+          }
+        ],
+        "summary": "b917: selected actual Core export passed Lean for all 2^64 u32 input pairs against fixed modular-addition specification, with two rejected mutations and 272 native cases. Separate abstract theorem checks passed; whole-compiler refinement remains unproved.",
+        "report_path": "run2/qualification.json",
+        "report_sha256": "56273938c8bf182cf46a902b32266c68dcab6d5598d998282c56075654117f06"
+      },
+      "remaining": [
+        "选定 theorem 只含单函数单块、无 effect、1–128 个 u32 const/wrapping add/sub、单返回；排除资源/借用/取消/loop/FFI/并发。",
+        "Python exporter、生产 verifier/resource checker、IR 和 LLVM/native 之间无完整机器证明 correspondence/refinement；hash 与有限差分不是该证明。",
+        "抽象 provenance 依赖所给 allocation identity/generation/范围前提；allocator freshness/unforgeability、所有 loan liveness、生产类型系统及全 compiler/foreign/hardware 正确性未证。Lean kernel/runtime/library/host 仍是可信基础。"
+      ],
+      "links": [
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/tools/qualify_hia_selected_formal.py",
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/formal/HiaSelectedCore.lean",
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/tools/verify_formal.py",
+        "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/tools/verify_memory.py"
+      ],
+      "historical_validated_scope": {
+        "source_sha": "a4ba75b92fd22d41ef39d29307fb92cea4bad131",
+        "run": "run1",
+        "gates": [
+          "selected_core_formal",
+          "formal_core",
+          "provenance_and_type_core"
+        ],
+        "summary": "a4 实际 Lean 通过选定导出程序全部 2^64 输入对；2 个变异负对照拒绝、272 native 有限差分通过。另有 11 项抽象 core 定理/2 个负变异、19 项 provenance/type 定理/5 个负变异。",
+        "report_url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/hia_convergence_20261027/run1/qualification.json",
+        "archive_inventory_url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/hia_convergence_20261027/run1/inventory.json",
+        "archive_inventory_paths": [
+          "run/selected-formal/qualification.json",
+          "run/formal-core.json",
+          "run/memory-proofs.json"
+        ]
+      }
+    }
+  },
+  "input_audit_scope": "The raw read-only audits were written before run2 finished and retain their original run2-pending statements. This status document adds the completed current observations; no historical evidence is relabeled."
+}

@@ -1,0 +1,623 @@
+{
+  "schema": "hepta.stage-readonly-audit.v1",
+  "source_commit": "b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf",
+  "created_utc": "2026-10-27T14:29:14.957275+00:00",
+  "method": "Frozen-source static reading only; no tests, compilation, native execution, performance work, or repository modification.",
+  "current_full_qualification": "unknown_from_this_audit; root owns the second 35-gate run",
+  "whole_project_blockers_closed": false,
+  "stage_labels": {
+    "P0": "执行 authority/IR 收敛",
+    "P1": "内存、provenance、借用与资源组合",
+    "P2": "Rust 实现与 native 覆盖差距"
+  },
+  "P0": {
+    "strict_goal_closed": false,
+    "findings": [
+      {
+        "topic": "执行 authority",
+        "implemented": "verify_core 是 Python verify_program 别名；完整 primitive SSA/resource/CFG 检查后，Interpreter 再验输入，LLVM _verified 再验 bytes，compile 再生成并比对 IR。CLI run/build 实际进入这些消费者。",
+        "unclosed": "尚非所有历史 Rust/C/Owned-LLVM 命令的唯一通路；source hash、Rust shadow、producer receipt 不能替代 Core admission，也没有 whole-language soundness/refinement 闭合。",
+        "refs": [
+          "authority",
+          "verifier",
+          "python_vm",
+          "llvm",
+          "cli"
+        ]
+      },
+      {
+        "topic": "版本与转换",
+        "implemented": "primitive v1–v7；composite.v1→v6、composite.v2→v7 后重验。历史 executable envelope 认证后解码操作并 lower；scalar envelope qualified_for 后转换真实 SSA/PHI/边值。版本升级两侧重验。",
+        "unclosed": "raw ResourceIR/HSIR 不是通用可执行导入格式；canonical v6 与 latest v7 保留区别，不能用版本号推断语义。",
+        "refs": [
+          "schemas",
+          "authority",
+          "upgrade",
+          "verifier"
+        ]
+      },
+      {
+        "topic": "旧 IR 职责",
+        "implemented": "semantic_ir 为 checked-source snapshot，hsir 为 scalar adapter，ResourceIR 为抽象 owner/loan/place CFG。source backend 部分消费 layout/type 与有限 Drop plan。source frontend 当前生成 v1。",
+        "unclosed": "ResourceIR 缺具体 scalar 值语义，不是完整 executable Core；source frontend 拒绝外部代码、tasks、stored reference、float 等。部分 metadata/Drop 消费不证明 source→Core→native refinement。",
+        "refs": [
+          "semantic",
+          "hsir",
+          "resource_ir",
+          "resource_lowering",
+          "drop_plan",
+          "frontend"
+        ]
+      }
+    ]
+  },
+  "P1": {
+    "strict_goal_closed": false,
+    "findings": [
+      {
+        "topic": "内存与 provenance",
+        "implemented": "封闭类型为有限机器整数/bool/unit 与 buffer/chain/readbuf/mutbuf。检查 owner linearity、root/parent loan identity、冲突借用、子借用暂停；byte access 有 bounds；分配/释放显式。公开 VM/native entry 为 scalar-only。",
+        "unclosed": "受限 byte-owner provenance 不是任意 typed heap/raw pointer/unsafe/FFI 的通用模型；native 依赖 LLVM、allocator freshness/disjointness、libc/platform。不能称绝对 Rust-equivalent 安全。",
+        "refs": [
+          "verifier",
+          "python_vm",
+          "llvm",
+          "normative_doc"
+        ]
+      },
+      {
+        "topic": "借用返回",
+        "implemented": "局部重借用、stored loans、record-field borrowing 经 structural elaboration 保留 primitive loan 身份；internal calls 可接收非逃逸 view。",
+        "unclosed": "primitive 返回 readbuf/mutbuf 显式拒绝；composite 返回任意 has_loans 类型也拒绝。通用逃逸借用返回、自引用 lifetime 系统未实现。",
+        "refs": [
+          "verifier",
+          "composite"
+        ]
+      },
+      {
+        "topic": "递归 ADT",
+        "implemented": "v7 实现 Nil | Node(buffer,chain)，native node 24 bytes；push 失败返还原 tail/payload，pop 转移所有权，drop 迭代释放；composite.v2 可组合该 primitive。",
+        "unclosed": "不是任意 recursive heap ADT/树/图；by-value nominal 递归被拒绝，通用 boxed nominal recursion 未提供。",
+        "refs": [
+          "llvm",
+          "composite",
+          "schemas"
+        ]
+      },
+      {
+        "topic": "部分初始化",
+        "implemented": "旧 ResourceIR 有 initialized-place 集合和 take_field/init_field，检查 moved parent、live loan、double owner。新 Core buffer 为已初始化字节；record.make 要求全部字段；linear record.get 拒绝，unpack 消耗整个 record。",
+        "unclosed": "旧抽象 place verifier 不等于 standalone 通用部分初始化内存模型；未见 Core MaybeUninit、任意部分构造对象、placement-new/自定义析构支持。",
+        "refs": [
+          "resource_ir",
+          "composite",
+          "python_vm",
+          "resource_lowering"
+        ]
+      },
+      {
+        "topic": "取消与清理",
+        "implemented": "composite task 为显式同步 cooperative state machine；主动 poll，pending/running cancel 消耗 state 一次，completed/cancelled 保持终态。",
+        "unclosed": "不提供 background scheduler/channels/preemptive async cancellation；trap/budget stop 不保证 unwind 析构。旧 hosted task/I/O 不能自动计入 standalone Core。",
+        "refs": [
+          "composite",
+          "python_vm",
+          "verifier"
+        ]
+      },
+      {
+        "topic": "资源上界",
+        "implemented": "Python VM 有 step/live-byte/call-depth 限制；0-size→object-size→heap-budget→allocator-attempt/failure 顺序明确。",
+        "unclosed": "evaluator 限制不是 native stack-byte、CPU-time、RSS 的通用上界；termination/全程序资源上界证明未闭合。",
+        "refs": [
+          "python_vm",
+          "llvm",
+          "normative_doc"
+        ]
+      }
+    ]
+  },
+  "P2": {
+    "strict_goal_closed": false,
+    "findings": [
+      {
+        "topic": "Rust checker/scalar VM",
+        "implemented": "--owned-shadow 独立检查有限 owner/loan CFG、resource calls 与 v7 chain transitions；scalar VM 已有 CFG/calls。生产 crosscheck 先用 Python authority。",
+        "unclosed": "Rust 未替换生产 admission 或整个 Python compiler；static chain/owner 检查不能算资源运行时完成。",
+        "refs": [
+          "rust_verify",
+          "rust_vm",
+          "rust_entry",
+          "crosscheck",
+          "cli"
+        ]
+      },
+      {
+        "topic": "Rust owned VM",
+        "implemented": "--owned-run：单函数/单块、scalar entry/results、ret/trap；10资源操作 buffer.new/try_new/len、borrow.read/mut、loan.end、owner.move/drop、buffer.load/store。whole-document verify_owned+whitelist 先于 Machine；完整 owner/loan/heap ledger。",
+        "unclosed": "owned execution 拒绝 resource calls、CFG edges、多函数/块、bulk、chain、direct nominal/composite；不是 general resource runtime，也无 Rust native emitter 资格。",
+        "refs": [
+          "rust_vm",
+          "rust_memory",
+          "rust_entry"
+        ]
+      },
+      {
+        "topic": "与 native backend 差距",
+        "implemented": "Python HIA emitter→LLVM→Clang 支持更大的 v1–v7 CFG/internal calls/bulk/chain 集；composite 先 elaborate。目标 x86-64 Linux shared/object 与 AArch64/RV64GC-LP64D object；构建报告明确 compiled_not_executed。",
+        "unclosed": "不能把 LLVM 原生结果归为 Rust 内核全量覆盖；cross-object 不是实际 target execution、全 ABI 或 backend refinement 证明。",
+        "refs": [
+          "llvm",
+          "verifier",
+          "composite",
+          "rust_vm"
+        ]
+      }
+    ]
+  },
+  "documentation_discrepancies": [
+    {
+      "status": "confirmed_stale_text_not_modified",
+      "detail": "HIA_SEVEN_STAGE.md:33 仍写 v2 collector/19 gates；55–56 笼统称 Rust Owner/Loan/v7 resource refused，与实际 v3/35 与新增 owned checker/VM 不符。以代码及 HIA_PROGRAM 的细分支持集为准。",
+      "refs": [
+        "stale_doc",
+        "collector",
+        "rust_verify",
+        "rust_vm",
+        "normative_doc"
+      ]
+    }
+  ],
+  "unknowns": [
+    "第二轮冻结 SHA 全量资格最终结果：未读取或推断。",
+    "超出 finite profile 的实际 soundness/性能、全 Rust 语义等价与完整 frontend/backend refinement：无证据，不闭合。"
+  ],
+  "references": {
+    "authority": {
+      "path": "hepta/core.py",
+      "lines": [
+        [
+          15,
+          27
+        ],
+        [
+          169,
+          197
+        ]
+      ],
+      "sha256": "89e8acdd5f3b34f767c974fe50f8a39d4b60518b41acce972a9b89f91e93a45e",
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/core.py"
+    },
+    "schemas": {
+      "path": "hepta/hia_schema.py",
+      "lines": [
+        [
+          13,
+          55
+        ],
+        [
+          65,
+          70
+        ]
+      ],
+      "sha256": "3f61932bbdc0e66a4b2b75f8a407ce9bf665540fd4760e9b065129f0da029c84",
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_schema.py"
+    },
+    "verifier": {
+      "path": "hepta/hia_program.py",
+      "lines": [
+        [
+          28,
+          39
+        ],
+        [
+          286,
+          315
+        ],
+        [
+          378,
+          389
+        ],
+        [
+          475,
+          510
+        ],
+        [
+          622,
+          651
+        ],
+        [
+          829,
+          851
+        ],
+        [
+          914,
+          922
+        ]
+      ],
+      "sha256": "acd0a8d68ace92fd388eda53f184023e6915de9600276662c30eecc853acfed1",
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_program.py"
+    },
+    "frontend": {
+      "path": "hepta/hia_program_source.py",
+      "lines": [
+        [
+          1,
+          13
+        ],
+        [
+          864,
+          921
+        ],
+        [
+          944,
+          965
+        ]
+      ],
+      "sha256": "9faf24112fc2bc602fa04d7f64220f407944260c8a4e380c5ee8c912475f8363",
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_program_source.py"
+    },
+    "upgrade": {
+      "path": "hepta/hia_core_upgrade.py",
+      "lines": [
+        [
+          1,
+          10
+        ],
+        [
+          28,
+          80
+        ],
+        [
+          132,
+          158
+        ]
+      ],
+      "sha256": "550608c7b654c0af45cda8f122230188c1989069fda2dac4e05c285f7ce77570",
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_core_upgrade.py"
+    },
+    "semantic": {
+      "path": "hepta/semantic_ir.py",
+      "lines": [
+        [
+          1,
+          6
+        ]
+      ],
+      "sha256": "040ecbe4715a4fa20edb719c987960bbff48b1ae59e82a23c08e78954bc389ef",
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/semantic_ir.py"
+    },
+    "hsir": {
+      "path": "hepta/hsir.py",
+      "lines": [
+        [
+          1,
+          7
+        ],
+        [
+          16,
+          28
+        ]
+      ],
+      "sha256": "5b99d1f6dbb3e8658073457a0ace99898270be4aacccfa0cce4fbe09d14562dd",
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hsir.py"
+    },
+    "resource_ir": {
+      "path": "hepta/resource_ir.py",
+      "lines": [
+        [
+          1,
+          6
+        ],
+        [
+          18,
+          28
+        ],
+        [
+          77,
+          86
+        ],
+        [
+          413,
+          420
+        ],
+        [
+          562,
+          585
+        ]
+      ],
+      "sha256": "7ee06325c766682542334c2c76e876a4d1d50a86c993f91378f36edfaf7ab146",
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/resource_ir.py"
+    },
+    "resource_lowering": {
+      "path": "hepta/resource_lowering.py",
+      "lines": [
+        [
+          1,
+          9
+        ]
+      ],
+      "sha256": "62d63f966b2f2e61540ae6719e8aeecefec9ee9dee65a920f6ba74dd370f3eb9",
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/resource_lowering.py"
+    },
+    "drop_plan": {
+      "path": "hepta/owned_drop_plan.py",
+      "lines": [
+        [
+          1,
+          7
+        ]
+      ],
+      "sha256": "9519ec27c5e47baca77a68503bcd23e38c915f589257a8da7c733a5c6f6f7a25",
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/owned_drop_plan.py"
+    },
+    "composite": {
+      "path": "hepta/hia_program_composite.py",
+      "lines": [
+        [
+          1,
+          14
+        ],
+        [
+          150,
+          160
+        ],
+        [
+          303,
+          324
+        ],
+        [
+          397,
+          408
+        ],
+        [
+          493,
+          516
+        ],
+        [
+          613,
+          650
+        ]
+      ],
+      "sha256": "f65d51b97673133923a1408a082143d18f96ad6f891d106db66eb53a3ef0cb05",
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_program_composite.py"
+    },
+    "python_vm": {
+      "path": "hepta/hia_program_runtime.py",
+      "lines": [
+        [
+          62,
+          85
+        ],
+        [
+          153,
+          210
+        ],
+        [
+          311,
+          346
+        ],
+        [
+          443,
+          470
+        ],
+        [
+          489,
+          530
+        ]
+      ],
+      "sha256": "bf951217e040d6588877314c3fe08eb5a92f2137b02bc06704fb798b68c3145a",
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_program_runtime.py"
+    },
+    "llvm": {
+      "path": "hepta/hia_program_llvm.py",
+      "lines": [
+        [
+          1,
+          10
+        ],
+        [
+          110,
+          120
+        ],
+        [
+          633,
+          695
+        ],
+        [
+          775,
+          807
+        ],
+        [
+          835,
+          850
+        ],
+        [
+          875,
+          913
+        ]
+      ],
+      "sha256": "e77a727159f2a0882e00917c819b936d7aafe2b018c3ca288b03fef1145f242f",
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_program_llvm.py"
+    },
+    "cli": {
+      "path": "hepta/cli.py",
+      "lines": [
+        [
+          295,
+          321
+        ],
+        [
+          366,
+          408
+        ],
+        [
+          625,
+          699
+        ]
+      ],
+      "sha256": "89979ef2badb152d44a01a17378fc254aa683b6c46d03c147e10e0b7df70d451",
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/cli.py"
+    },
+    "rust_verify": {
+      "path": "rust/hia-core-shadow/src/ownership.rs",
+      "lines": [
+        [
+          1,
+          6
+        ],
+        [
+          77,
+          128
+        ],
+        [
+          665,
+          684
+        ]
+      ],
+      "sha256": "940cf5e4ec7548396d5ff98d21f31caec7cf991635961062fabb21356500f8c0",
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/rust/hia-core-shadow/src/ownership.rs"
+    },
+    "rust_vm": {
+      "path": "rust/hia-core-shadow/src/scalar_vm.rs",
+      "lines": [
+        [
+          9,
+          14
+        ],
+        [
+          201,
+          281
+        ],
+        [
+          295,
+          338
+        ],
+        [
+          341,
+          348
+        ],
+        [
+          397,
+          434
+        ]
+      ],
+      "sha256": "30cc2e0bea9a86647c9d1e8a0d3918c3da153fe70368844a4a900a245bcb7437",
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/rust/hia-core-shadow/src/scalar_vm.rs"
+    },
+    "rust_memory": {
+      "path": "rust/hia-core-shadow/src/scalar_vm/byte_memory.rs",
+      "lines": [
+        [
+          37,
+          41
+        ],
+        [
+          78,
+          101
+        ],
+        [
+          119,
+          178
+        ],
+        [
+          182,
+          203
+        ]
+      ],
+      "sha256": "09a0a698c8f3270d5a5f1e3f3465058dca072c085590e51b0f37ee2e1d510c7a",
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/rust/hia-core-shadow/src/scalar_vm/byte_memory.rs"
+    },
+    "rust_entry": {
+      "path": "rust/hia-core-shadow/src/main.rs",
+      "lines": [
+        [
+          14,
+          39
+        ],
+        [
+          40,
+          64
+        ]
+      ],
+      "sha256": "77f61476f77f8b1ce729be698a015562a35a08b1d5f1448399fd0295f78c2ddc",
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/rust/hia-core-shadow/src/main.rs"
+    },
+    "crosscheck": {
+      "path": "hepta/hia_rust_crosscheck.py",
+      "lines": [
+        [
+          1,
+          6
+        ],
+        [
+          244,
+          279
+        ]
+      ],
+      "sha256": "32ed8d1302cb30c3fbb1d6ee5fd178b44cf713c97434c4c9278d00872e38a6d4",
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_rust_crosscheck.py"
+    },
+    "normative_doc": {
+      "path": "docs/HIA_PROGRAM.md",
+      "lines": [
+        [
+          3,
+          21
+        ],
+        [
+          45,
+          80
+        ],
+        [
+          225,
+          264
+        ],
+        [
+          295,
+          320
+        ],
+        [
+          523,
+          535
+        ],
+        [
+          595,
+          607
+        ]
+      ],
+      "sha256": "70265a4a29ea466b1e75dcca0a1d96faf4309f72f91e7cf3f73f7425e76a9f1c",
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/docs/HIA_PROGRAM.md"
+    },
+    "stale_doc": {
+      "path": "docs/HIA_SEVEN_STAGE.md",
+      "lines": [
+        [
+          33,
+          37
+        ],
+        [
+          52,
+          57
+        ]
+      ],
+      "sha256": "81b24794f53bcec95156984ef5f54e4792bdd862f14c31ae7d885a2b817d1548",
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/docs/HIA_SEVEN_STAGE.md"
+    },
+    "collector": {
+      "path": "tools/qualify_hia_unified.py",
+      "lines": [
+        [
+          132,
+          240
+        ],
+        [
+          252,
+          257
+        ]
+      ],
+      "sha256": "63b4a12c5ee6f53372bcde18a1c560362311054f8c71ebfe961b1b18b2d33bed",
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/tools/qualify_hia_unified.py"
+    }
+  }
+}

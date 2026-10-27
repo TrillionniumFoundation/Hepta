@@ -1,0 +1,316 @@
+{
+  "schema": "hepta.stage-audit.p5-p7.v1",
+  "candidate_source": "b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf",
+  "method": "Read-only current-source and retained-report inspection; no tests, inference, compilation, performance run, or source/packaging-script mutation.",
+  "current_candidate_full_qualification": "pending_root_run2; no completed b917 qualification claimed",
+  "P5": {
+    "strict_closure": false,
+    "supported": [
+      {
+        "claim": "Snapshot-bound v2 local query selects one value-producing SSA instruction, allows only op/args/attrs changes, closes displayed operands and transitive SSA consumers, and includes complete reachable successor regions for value-affected branches, including no-result stores/drops. Downstream cycles use a bounded monotone fixed point.",
+        "refs": [
+          {
+            "path": "hepta/hia_edit_query.py",
+            "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_edit_query.py",
+            "lines": "20-27,64-156,159-250"
+          }
+        ]
+      },
+      {
+        "claim": "Atomic batch accepts 1..16 nonoverlapping instruction sites on one immutable input; all changes are applied together and the entire resulting module is checked by the existing Core authority. Stale/altered queries, duplicate site identities, inconsistent shared render context and response overreach reject.",
+        "refs": [
+          {
+            "path": "hepta/hia_edit_batch.py",
+            "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_edit_batch.py",
+            "lines": "20-22,44-125,139-230"
+          },
+          {
+            "path": "hepta/hia_program_tools.py",
+            "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_program_tools.py",
+            "lines": "244-365"
+          }
+        ]
+      },
+      {
+        "claim": "First integrated run executed 53 Agent-query mechanism tests with zero failures/errors/skips. This is mechanical API evidence, not a model trial.",
+        "refs": [
+          {
+            "path": "evidence/hia_convergence_20261027/run1/qualification.json",
+            "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/hia_convergence_20261027/run1/qualification.json"
+          }
+        ],
+        "report_pointer": "/gates/name=agent_query_semantics"
+      }
+    ],
+    "limits": {
+      "per_query_operations": 256,
+      "per_query_blocks": 64,
+      "query_bytes": 1048576,
+      "single_response_bytes": 16384,
+      "batch_sites": 16,
+      "batch_response_bytes": 65536,
+      "batch_budget_note": "The 256-operation/64-block budgets apply to each constituent query; batch-wide wire budget is 1 MiB, not an aggregate 256-operation guarantee.",
+      "unclosed": [
+        "A backedge reaching the selected block rejects and requires a full-module view.",
+        "The slice is conservative reachability, not a precise control-dependence or memory-alias proof.",
+        "The local selector requires an SSA output; no-result operations are visible context but cannot directly be selected through this API.",
+        "Callees are represented by signatures/effects, not a proved whole-program interprocedural behavioral slice.",
+        "Whole-module type/resource verification does not establish intended functional equivalence, external caller migration safety, or general Agent productivity.",
+        "Atomic admission is a verifier transaction; verified result is returned unpublished. Separate publication supports a new destination, not arbitrary multi-file filesystem rollback."
+      ],
+      "refs": [
+        {
+          "path": "hepta/hia_edit_query.py",
+          "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_edit_query.py",
+          "lines": "64-98,159-181,239-248"
+        },
+        {
+          "path": "hepta/hia_edit_batch.py",
+          "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_edit_batch.py",
+          "lines": "68-125"
+        },
+        {
+          "path": "hepta/hia_program_tools.py",
+          "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_program_tools.py",
+          "lines": "343-395"
+        }
+      ]
+    },
+    "real_model_evidence": {
+      "historical_source": "5818c5814fb42dbd97a027e9b328f4ae3099c0fc",
+      "current_b917_qualified_trial": false,
+      "historical_actual_requests": 36,
+      "historical_actual_responses": 36,
+      "native_controls_passed": 32,
+      "models": [
+        "Qwen2.5-Coder 7B Q4_K_M",
+        "Granite 3.3 2B Q8_0"
+      ],
+      "design": "Four disclosed two-site arithmetic maintenance tasks x four HIA/Rust full/query arms x two model families; 32 task requests plus four preflights. Frozen plan, identified model/runtime bytes, greedy seed 0, 512 output tokens, one attempt, no correction/retry/rescoring; all actual completion usage retained.",
+      "hia_query_successes": [
+        2,
+        1
+      ],
+      "tasks_per_model": 4,
+      "primary_criteria_per_model": [
+        false,
+        false
+      ],
+      "secondary_criteria_per_model": [
+        false,
+        false
+      ],
+      "unclosed": "Historical real trials exist and must not be called fixtures; neither model met the predeclared success/token criterion. They do not qualify the changed b917 query/context implementation. Tasks are reused arithmetic compositions; representation and context vary together; human labor, integration/upstream maintenance, model setup/training, independent task populations and total economic cost are unmeasured.",
+      "refs": [
+        {
+          "path": "tools/qualify_hia_batch_study.py",
+          "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/tools/qualify_hia_batch_study.py",
+          "lines": "275-300"
+        },
+        {
+          "path": "evidence/seven_stage_round2_20261027/study-plan.json",
+          "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/seven_stage_round2_20261027/study-plan.json"
+        },
+        {
+          "path": "evidence/seven_stage_round2_20261027/study-report.json",
+          "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/seven_stage_round2_20261027/study-report.json"
+        },
+        {
+          "path": "evidence/seven_stage_round2_20261027/MANIFEST.json",
+          "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/seven_stage_round2_20261027/MANIFEST.json"
+        }
+      ]
+    }
+  },
+  "P6": {
+    "strict_closure": false,
+    "supported": [
+      {
+        "claim": "Real standalone Linux x86-64 samples compare direct LLVM with same-input checked Rust and independent handwritten safe Rust. Fixed protocol: seven paired groups, all 63 samples retained, no clipping/retries/calibration, kernel ratio <=1.20, geometric mean <=1.10, relative MAD <=0.05.",
+        "refs": [
+          {
+            "path": "tools/qualify_hia_program_perf.py",
+            "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/tools/qualify_hia_program_perf.py",
+            "lines": "1-10,31-66"
+          },
+          {
+            "path": "evidence/hia_convergence_20261027/run1/performance.json",
+            "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/hia_convergence_20261027/run1/performance.json"
+          }
+        ]
+      },
+      {
+        "claim": "First run: ratio thresholds had no failures, but constructor_error/llvm relative MAD=0.08300516377483902 and two_stage/llvm=0.07620544908304734 exceeded 0.05. Status measurement_inconclusive; host_performance_gate_passed=false.",
+        "refs": [
+          {
+            "path": "evidence/hia_convergence_20261027/run1/performance.json",
+            "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/hia_convergence_20261027/run1/performance.json"
+          }
+        ],
+        "report_pointer": "/evaluation"
+      },
+      {
+        "claim": "Application gate passed its evidence/correctness protocol with three trials, 96 requests per trial and 16 warmups; raw report retains 40 slower metric comparisons. Sequential instrumented in-process C ABI calls include allocation, processing, cleanup and instrumentation, with percentile/RSS/allocation observations.",
+        "refs": [
+          {
+            "path": "tools/benchmark_applications.py",
+            "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/tools/benchmark_applications.py",
+            "lines": "38-60,351-360,423-452"
+          }
+        ],
+        "report": "/workspace/scratch/d930f2b45e07/hepta-integrated-20261027-run1/applications.json"
+      },
+      {
+        "claim": "Core input ceilings and interpreter budgets are explicit, and resource/failure-cleanup paths and selected QEMU targets executed in run1.",
+        "refs": [
+          {
+            "path": "hepta/hia_program.py",
+            "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_program.py",
+            "lines": "41-45,149-218"
+          },
+          {
+            "path": "hepta/hia_program_runtime.py",
+            "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_program_runtime.py",
+            "lines": "1-6,490-526"
+          },
+          {
+            "path": "hepta/hia_bounded_memory.py",
+            "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/hepta/hia_bounded_memory.py",
+            "lines": "1-10"
+          },
+          {
+            "path": "tools/validate_board.py",
+            "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/tools/validate_board.py",
+            "lines": "30-43"
+          }
+        ]
+      }
+    ],
+    "unclosed": [
+      "No universal Rust performance superiority, whole-language performance qualification or broad architecture-independent non-regression conclusion.",
+      "Application RPS is request_count/summed timed ABI intervals, not wall-clock network service throughput. No external service SLO, asynchronous queue-tail latency, multi-machine result or uninstrumented production latency.",
+      "Tracked payload/live-byte budgets do not bound allocator overhead, VM/interpreter memory, whole-process RSS or arbitrary native/foreign resources. Core JSON ceilings are 8 MiB, 262144 nodes and depth 64; they are admission limits, not a process-memory proof.",
+      "Cortex-M4 result is pinned QEMU system-model execution with trusted Rust BSP/startup/MMIO obligations; no physical board/device timing, DMA, GPU or interrupt-resource soundness qualification. AArch64/RV64 emulation does not close those physical requirements."
+    ],
+    "refs": [
+      {
+        "path": "tools/benchmark_applications.py",
+        "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/tools/benchmark_applications.py",
+        "lines": "47-60"
+      },
+      {
+        "path": "tools/validate_board.py",
+        "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/tools/validate_board.py",
+        "lines": "1-43"
+      },
+      {
+        "path": "tools/qualify_hia_unified.py",
+        "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/tools/qualify_hia_unified.py",
+        "lines": "258-272"
+      }
+    ]
+  },
+  "P7": {
+    "strict_closure": false,
+    "supported": [
+      {
+        "claim": "Selected actual verified HIA is exported instruction-by-instruction into independent Lean register semantics. Accepted profile: one straight-line function, two u32 inputs, one u32 return, no effects, 1..128 const/wrapping-add/wrapping-sub operations. Fixed external specification is x+y modulo 2^32, not copied from the exported instruction stream.",
+        "refs": [
+          {
+            "path": "tools/qualify_hia_selected_formal.py",
+            "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/tools/qualify_hia_selected_formal.py",
+            "lines": "30-59,88-134"
+          },
+          {
+            "path": "formal/HiaSelectedCore.lean",
+            "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/formal/HiaSelectedCore.lean",
+            "lines": "1-53"
+          }
+        ]
+      },
+      {
+        "claim": "Run1 Lean kernel passed run_append and selected_program_correct for all 2^64 input pairs; positive source, instruction map, model/exporter/checker source hashes, pinned executable and support files are bound. Two changed-program controls reject against the unchanged specification; optional native differential actually passed 272 cases.",
+        "report": "/workspace/scratch/d930f2b45e07/hepta-integrated-20261027-run1/selected-formal/qualification.json",
+        "refs": [
+          {
+            "path": "tools/qualify_hia_selected_formal.py",
+            "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/tools/qualify_hia_selected_formal.py",
+            "lines": "215-264,280-343"
+          }
+        ]
+      },
+      {
+        "claim": "Separate run1 abstract formal-core and memory/type models passed actual Lean checks: 11 core theorems with two negative mutations; 19 provenance/type theorems with five negative mutations.",
+        "reports": [
+          "/workspace/scratch/d930f2b45e07/hepta-integrated-20261027-run1/formal-core.json",
+          "/workspace/scratch/d930f2b45e07/hepta-integrated-20261027-run1/memory-proofs.json"
+        ],
+        "refs": [
+          {
+            "path": "tools/verify_formal.py",
+            "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/tools/verify_formal.py",
+            "lines": "44-55,140-185"
+          },
+          {
+            "path": "tools/verify_memory.py",
+            "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/tools/verify_memory.py",
+            "lines": "48-65,114-152"
+          }
+        ]
+      }
+    ],
+    "unclosed": [
+      "No machine-checked correspondence/refinement proof from Python exporter/verifier, ownership checker or resource IR to Lean semantics. Hash binding is identity evidence, not such a proof.",
+      "Selected all-input theorem excludes resources, borrowing, cancellation, CFG loops, FFI and concurrency; 272 native cases do not prove LLVM/native backend refinement.",
+      "Abstract provenance assumes supplied allocation facts, identity/generation and pairwise compatibility; it does not prove allocation creation/global freshness/unforgeability, machine address reuse, all-loan liveness or the production type system.",
+      "Lean kernel, runtime/imported libraries and host remain trusted. Whole-compiler soundness, all unsafe/foreign boundaries and hardware correctness remain unproved."
+    ],
+    "refs": [
+      {
+        "path": "tools/qualify_hia_selected_formal.py",
+        "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/tools/qualify_hia_selected_formal.py",
+        "lines": "36-53"
+      },
+      {
+        "path": "tools/verify_memory.py",
+        "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/tools/verify_memory.py",
+        "lines": "48-65"
+      },
+      {
+        "path": "tools/verify_formal.py",
+        "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/tools/verify_formal.py",
+        "lines": "44-55"
+      }
+    ]
+  },
+  "publication_and_source_identity": {
+    "published_candidate": "b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf",
+    "run1_source": "a4ba75b92fd22d41ef39d29307fb92cea4bad131",
+    "run1_source_unchanged": true,
+    "run1_passed_gates": 33,
+    "run1_completed_gates": 35,
+    "run1_ok": false,
+    "run1_failures": [
+      "llvm_local_stored_views: direct script import ModuleNotFoundError",
+      "standalone_performance: fixed MAD quality limit exceeded"
+    ],
+    "run1_source_inventory_sha256": "896553e31174d11dbe570dfb6f8674da9878261066215404f451c0e026073c3f",
+    "source_rule": "An evidence-publishing/entry-fixing descendant does not inherit a completed qualification. b917 run2 is still active; retained a4 and 5818 reports keep their original source identities. Entry-point targeted checks do not replace an integrated run.",
+    "artifact_rule": "Archive preserves producer-retained files and records missing temporaries; native_binaries_retained=false remains false. Byte inventories and packaging verification establish retained bytes, not new native execution or proof.",
+    "refs": [
+      {
+        "path": "evidence/hia_convergence_20261027/README.md",
+        "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/hia_convergence_20261027/README.md"
+      },
+      {
+        "path": "evidence/hia_convergence_20261027/run1/qualification.json",
+        "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/hia_convergence_20261027/run1/qualification.json"
+      },
+      {
+        "path": "evidence/hia_convergence_20261027/run1/performance.json",
+        "url": "https://github.com/TrillionniumFoundation/Hepta/blob/b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf/evidence/hia_convergence_20261027/run1/performance.json"
+      }
+    ]
+  },
+  "conclusion": "P5 mechanism substantially implemented and mechanically checked; P6 finite execution/measurement and P7 selected/abstract proofs exist. Strict P5/P6/P7 closure and the overall seven-stage claims remain false."
+}

@@ -1,0 +1,10 @@
+Verify the part digests in archive-manifest.json before joining.
+From this directory, join every part in the exact listed order:
+
+cat hepta-evidence.tar.xz.part0000 hepta-evidence.tar.xz.part0001 hepta-evidence.tar.xz.part0002 hepta-evidence.tar.xz.part0003 hepta-evidence.tar.xz.part0004 > hepta-evidence.reassembled.tar.xz
+
+printf '%s  %s\n' 'e587209bffca1b5e697585747b495605ab8bd096e864efc5cfcc8ea0b92314e0' 'hepta-evidence.reassembled.tar.xz' | sha256sum -c -
+tar -xJf hepta-evidence.reassembled.tar.xz
+
+Each part is 4 MiB (4194304 bytes), except the final remainder.
+The full tar.xz and the ordered parts encode the same bytes.
