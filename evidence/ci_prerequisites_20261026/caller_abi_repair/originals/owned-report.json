@@ -1,0 +1,332 @@
+{
+  "baseline_commit": "44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314",
+  "compiler": {
+    "bytes": 1023032,
+    "path": "/usr/bin/x86_64-linux-gnu-gcc-13",
+    "selected": "/usr/bin/gcc",
+    "sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26"
+  },
+  "fixed_observed": {
+    "allocations": 0,
+    "cases": 2,
+    "frees": 0,
+    "live": 0,
+    "observations_fnv64": "bcd7b49e5dbe4aca",
+    "ok": true,
+    "refusals": 0
+  },
+  "legacy_observed": {
+    "actual": 18446744072296984325,
+    "case": 0,
+    "expected": 2762528027141074693,
+    "failure": "value",
+    "ok": false
+  },
+  "ok": true,
+  "processes": {
+    "compile-callee": {
+      "argv": [
+        "/usr/bin/gcc",
+        "-std=c11",
+        "-O2",
+        "-fno-lto",
+        "-c",
+        "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/callee.c",
+        "-o",
+        "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/callee.o"
+      ],
+      "returncode": 0,
+      "stderr": {
+        "bytes": 0,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/records/compile-callee.stderr.bin",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "text": ""
+      },
+      "stdout": {
+        "bytes": 0,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/records/compile-callee.stdout.bin",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "text": ""
+      }
+    },
+    "compiler-version": {
+      "argv": [
+        "/usr/bin/gcc",
+        "--version"
+      ],
+      "returncode": 0,
+      "stderr": {
+        "bytes": 0,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/records/compiler-version.stderr.bin",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "text": ""
+      },
+      "stdout": {
+        "bytes": 246,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/records/compiler-version.stdout.bin",
+        "sha256": "8497f84b2b8334c413d9c6166bd39d009ba55d2ff60a8f23e66dfa5819c2b048",
+        "text": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
+      }
+    },
+    "fixed-link": {
+      "argv": [
+        "/usr/bin/gcc",
+        "-std=c11",
+        "-O2",
+        "-fno-lto",
+        "-Werror=implicit-function-declaration",
+        "-Werror=implicit-int",
+        "-Werror=strict-prototypes",
+        "-fno-builtin-calloc",
+        "-fno-builtin-malloc",
+        "-fno-builtin-free",
+        "-Wl,--wrap=calloc",
+        "-Wl,--wrap=malloc",
+        "-Wl,--wrap=free",
+        "-I/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1",
+        "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/fixed/harness.c",
+        "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/callee.o",
+        "-o",
+        "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/fixed/native"
+      ],
+      "returncode": 0,
+      "stderr": {
+        "bytes": 0,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/records/fixed-link.stderr.bin",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "text": ""
+      },
+      "stdout": {
+        "bytes": 0,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/records/fixed-link.stdout.bin",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "text": ""
+      }
+    },
+    "fixed-run": {
+      "argv": [
+        "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/fixed/native"
+      ],
+      "returncode": 0,
+      "stderr": {
+        "bytes": 0,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/records/fixed-run.stderr.bin",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "text": ""
+      },
+      "stdout": {
+        "bytes": 110,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/records/fixed-run.stdout.bin",
+        "sha256": "4539855bfc22dee31ff933e0e00b200d07047f312ce141af4072464bc62e16b7",
+        "text": "{\"ok\":true,\"cases\":2,\"observations_fnv64\":\"bcd7b49e5dbe4aca\",\"allocations\":0,\"frees\":0,\"refusals\":0,\"live\":0}\n"
+      }
+    },
+    "legacy-link": {
+      "argv": [
+        "/usr/bin/gcc",
+        "-std=c11",
+        "-O2",
+        "-fno-lto",
+        "-fno-builtin-calloc",
+        "-fno-builtin-malloc",
+        "-fno-builtin-free",
+        "-Wl,--wrap=calloc",
+        "-Wl,--wrap=malloc",
+        "-Wl,--wrap=free",
+        "-I/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1",
+        "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/legacy/harness.c",
+        "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/callee.o",
+        "-o",
+        "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/legacy/native"
+      ],
+      "returncode": 0,
+      "stderr": {
+        "bytes": 536,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/records/legacy-link.stderr.bin",
+        "sha256": "f6cc0b2dddbc689f722fa79014a455382ed61505f55e763ddc4d9f6e3ff62c4e",
+        "text": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/legacy/harness.c: In function \u2018main\u2019:\n/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/legacy/harness.c:83:27: warning: implicit declaration of function \u2018owned_case\u2019 [-Wimplicit-function-declaration]\n   83 |         uint64_t actual = owned_case(current->size, current->value, current->index, current->reject, current->early);\n      |                           ^~~~~~~~~~\n"
+      },
+      "stdout": {
+        "bytes": 0,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/records/legacy-link.stdout.bin",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "text": ""
+      }
+    },
+    "legacy-run": {
+      "argv": [
+        "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/legacy/native"
+      ],
+      "returncode": 2,
+      "stderr": {
+        "bytes": 0,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/records/legacy-run.stderr.bin",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "text": ""
+      },
+      "stdout": {
+        "bytes": 101,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/records/legacy-run.stdout.bin",
+        "sha256": "1dabd36988756bb75223871e05cfe2432f62595b29e23517ab97be87730ae660",
+        "text": "{\"ok\":false,\"failure\":\"value\",\"case\":0,\"expected\":2762528027141074693,\"actual\":18446744072296984325}\n"
+      }
+    },
+    "strict-untyped-link": {
+      "argv": [
+        "/usr/bin/gcc",
+        "-std=c11",
+        "-O2",
+        "-fno-lto",
+        "-Werror=implicit-function-declaration",
+        "-Werror=implicit-int",
+        "-Werror=strict-prototypes",
+        "-fno-builtin-calloc",
+        "-fno-builtin-malloc",
+        "-fno-builtin-free",
+        "-Wl,--wrap=calloc",
+        "-Wl,--wrap=malloc",
+        "-Wl,--wrap=free",
+        "-I/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1",
+        "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/legacy/harness.c",
+        "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/callee.o",
+        "-o",
+        "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/legacy/rejected"
+      ],
+      "returncode": 1,
+      "stderr": {
+        "bytes": 583,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/records/strict-untyped-link.stderr.bin",
+        "sha256": "faa5c54776ceb12ba59cbbdc01b2c53b4c199e46d9a9d15f1c053311612ee0a6",
+        "text": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/legacy/harness.c: In function \u2018main\u2019:\n/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/legacy/harness.c:83:27: error: implicit declaration of function \u2018owned_case\u2019 [-Werror=implicit-function-declaration]\n   83 |         uint64_t actual = owned_case(current->size, current->value, current->index, current->reject, current->early);\n      |                           ^~~~~~~~~~\ncc1: some warnings being treated as errors\n"
+      },
+      "stdout": {
+        "bytes": 0,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/records/strict-untyped-link.stdout.bin",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "text": ""
+      }
+    }
+  },
+  "retained_native": [
+    {
+      "bytes": 1240,
+      "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/callee.o",
+      "sha256": "e14e4f4c257bde3ee62f2dcea8e84447f7a4608321d5e248098bad29f2b9ecd7"
+    },
+    {
+      "bytes": 16600,
+      "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/legacy/native",
+      "sha256": "78d71134c5ac14b80b89a9e9920b43f12ad2d49d7977b21d925b4e40cca591c9"
+    },
+    {
+      "bytes": 16600,
+      "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/artifacts/owned-caller-abi-repair-20261027-run1/fixed/native",
+      "sha256": "bbfea9240de7be2b9bde4a4a63cac1fab23b8087f685c471a740e1e65f07d545"
+    }
+  ],
+  "schema": "hepta.owned-caller-abi-controls.v1",
+  "scope": {
+    "caller_abi_controls_only": true,
+    "full_candidate_qualified": false,
+    "performance_samples_collected": 0,
+    "resource_workload_changed": false
+  },
+  "source_after": {
+    "commit": "a1ade3cc2bf4a3b3eabd87f82ba6c8c515215e49",
+    "files": {
+      "docs/CPP_OWNED_MIGRATION.md": {
+        "bytes": 12886,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/docs/CPP_OWNED_MIGRATION.md",
+        "sha256": "31c444fe6fae52a7d960940ebb66441ddcaf24fb61c095248dc25f9a1b306e72"
+      },
+      "examples/cpp/owned_migration/harness.c": {
+        "bytes": 4946,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/examples/cpp/owned_migration/harness.c",
+        "sha256": "b80e02e7cf137290d7ec80c5f89be8d0f86367f06bcb88885c974f113bf6ebd3"
+      },
+      "tests/test_cpp_composed_harness.py": {
+        "bytes": 5445,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/tests/test_cpp_composed_harness.py",
+        "sha256": "d859e53f777a2814cc954580867e300efad3a8c0026b95fd746cecfba3cbfe47"
+      },
+      "tools/qualify_cpp_owned_llvm.py": {
+        "bytes": 13181,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/tools/qualify_cpp_owned_llvm.py",
+        "sha256": "13ca182d865bda4427b05ae10e22efd01ab25f87a9748ad53e85ac925e417eb0"
+      },
+      "tools/validate_cpp_composed.py": {
+        "bytes": 30121,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/tools/validate_cpp_composed.py",
+        "sha256": "fb5050bff0328a822326a1ce43ee732345f7814452f9641369ff0a75e77f4675"
+      },
+      "tools/validate_cpp_owned.py": {
+        "bytes": 34114,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/tools/validate_cpp_owned.py",
+        "sha256": "0f19c994faa2274bee375ae029a300f3d02c3a2a46cb17344452b9ae2dbcc4f6"
+      }
+    },
+    "tracked_status": "",
+    "tree": "a66ecada21e9cf0dea2f9eded90b7f3ca722062a"
+  },
+  "source_before": {
+    "commit": "a1ade3cc2bf4a3b3eabd87f82ba6c8c515215e49",
+    "files": {
+      "docs/CPP_OWNED_MIGRATION.md": {
+        "bytes": 12886,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/docs/CPP_OWNED_MIGRATION.md",
+        "sha256": "31c444fe6fae52a7d960940ebb66441ddcaf24fb61c095248dc25f9a1b306e72"
+      },
+      "examples/cpp/owned_migration/harness.c": {
+        "bytes": 4946,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/examples/cpp/owned_migration/harness.c",
+        "sha256": "b80e02e7cf137290d7ec80c5f89be8d0f86367f06bcb88885c974f113bf6ebd3"
+      },
+      "tests/test_cpp_composed_harness.py": {
+        "bytes": 5445,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/tests/test_cpp_composed_harness.py",
+        "sha256": "d859e53f777a2814cc954580867e300efad3a8c0026b95fd746cecfba3cbfe47"
+      },
+      "tools/qualify_cpp_owned_llvm.py": {
+        "bytes": 13181,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/tools/qualify_cpp_owned_llvm.py",
+        "sha256": "13ca182d865bda4427b05ae10e22efd01ab25f87a9748ad53e85ac925e417eb0"
+      },
+      "tools/validate_cpp_composed.py": {
+        "bytes": 30121,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/tools/validate_cpp_composed.py",
+        "sha256": "fb5050bff0328a822326a1ce43ee732345f7814452f9641369ff0a75e77f4675"
+      },
+      "tools/validate_cpp_owned.py": {
+        "bytes": 34114,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-composed-abi-fix/tools/validate_cpp_owned.py",
+        "sha256": "0f19c994faa2274bee375ae029a300f3d02c3a2a46cb17344452b9ae2dbcc4f6"
+      }
+    },
+    "tracked_status": "",
+    "tree": "a66ecada21e9cf0dea2f9eded90b7f3ca722062a"
+  },
+  "vectors": [
+    {
+      "allocated": 0,
+      "early": 2882400001,
+      "expected": 2762528027141074693,
+      "index": 7,
+      "refusals": 0,
+      "refuse": 0,
+      "reject": 878082202,
+      "size": 3,
+      "value": 18
+    },
+    {
+      "allocated": 0,
+      "early": 3735928559,
+      "expected": 3382071962316422891,
+      "index": 35184372088839,
+      "refusals": 0,
+      "refuse": 0,
+      "reject": 3455035783,
+      "size": 1099511627779,
+      "value": 227
+    }
+  ]
+}

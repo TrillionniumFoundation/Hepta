@@ -1,0 +1,227 @@
+{
+  "c_build": {
+    "command": [
+      "/usr/bin/gcc",
+      "-std=c11",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-c",
+      "/tmp/hepta-task-io-observation-fix-20261027/baseline/faults.c",
+      "-o",
+      "/tmp/hepta-task-io-observation-fix-20261027/baseline/faults.o"
+    ],
+    "elapsed_ns": 39428493,
+    "returncode": 0,
+    "stderr": {
+      "bytes": 0,
+      "path": "/tmp/hepta-task-io-observation-fix-20261027/baseline/compile-c.stderr.bin",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    "stdout": {
+      "bytes": 0,
+      "path": "/tmp/hepta-task-io-observation-fix-20261027/baseline/compile-c.stdout.bin",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    }
+  },
+  "cc": {
+    "bytes": 1023032,
+    "path": "/usr/bin/gcc",
+    "sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26"
+  },
+  "compiler_sha256": "baa9c71bf65c590b23598635012989ac2f07242803b1a876b13a28eec2848bd7",
+  "observed_boundary": {
+    "after_last_arc_release_fd_and_all_io_reservations_zero": true,
+    "held_canceller_arc_wake_fd_open": true,
+    "scope": "controlled fixture ordering with original runtime; no resource leak inferred from the early observation",
+    "unfenced_closed_assertion_aborted": true
+  },
+  "runs": {
+    "held_arc_boundary": {
+      "binary": {
+        "bytes": 3966000,
+        "path": "/tmp/hepta-task-io-observation-fix-20261027/baseline/held_arc_boundary.bin",
+        "sha256": "3c08cf00656ee9e454abe50eba12243c7bb19b61452c6e4e9ad02e10689addfa"
+      },
+      "build": {
+        "command": [
+          "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+          "--edition=2021",
+          "--crate-name=hepta_task_io",
+          "--crate-type=bin",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "-C",
+          "codegen-units=1",
+          "/tmp/hepta-task-io-observation-fix-20261027/baseline/held_arc_boundary.rs",
+          "-o",
+          "/tmp/hepta-task-io-observation-fix-20261027/baseline/held_arc_boundary.bin",
+          "-C",
+          "link-arg=/tmp/hepta-task-io-observation-fix-20261027/baseline/faults.o",
+          "-C",
+          "link-arg=-Wl,--wrap=poll",
+          "-C",
+          "link-arg=-Wl,--wrap=socketpair",
+          "-C",
+          "link-arg=-Wl,--wrap=ioctl"
+        ],
+        "elapsed_ns": 1062590513,
+        "returncode": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "/tmp/hepta-task-io-observation-fix-20261027/baseline/held_arc_boundary-build.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": ""
+        },
+        "stdout": {
+          "bytes": 0,
+          "path": "/tmp/hepta-task-io-observation-fix-20261027/baseline/held_arc_boundary-build.stdout.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": ""
+        }
+      },
+      "execution": {
+        "command": [
+          "/tmp/hepta-task-io-observation-fix-20261027/baseline/held_arc_boundary.bin"
+        ],
+        "elapsed_ns": 1404927,
+        "returncode": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "/tmp/hepta-task-io-observation-fix-20261027/baseline/held_arc_boundary-run.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": ""
+        },
+        "stdout": {
+          "bytes": 33,
+          "path": "/tmp/hepta-task-io-observation-fix-20261027/baseline/held_arc_boundary-run.stdout.bin",
+          "sha256": "fb50e7fe0c0af1b1d0a2e73442ca0a9a13609a4d4d3519d0f4c835409bbfd806",
+          "text": "waiting-for-canceller-owned-drop\n"
+        }
+      },
+      "source": {
+        "bytes": 80845,
+        "path": "/tmp/hepta-task-io-observation-fix-20261027/baseline/held_arc_boundary.rs",
+        "sha256": "1acfc4576d2a04d1a47cff35acd16bf06ca6471e6c9fc8d63b30fc28fb8dd2c2"
+      }
+    },
+    "unfenced_closed_assertion": {
+      "binary": {
+        "bytes": 3966096,
+        "path": "/tmp/hepta-task-io-observation-fix-20261027/baseline/unfenced_closed_assertion.bin",
+        "sha256": "a590c3ea6ea5c069d106fed70a177b60378577f4ed6568cb3ea11a3e7ce2def2"
+      },
+      "build": {
+        "command": [
+          "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+          "--edition=2021",
+          "--crate-name=hepta_task_io",
+          "--crate-type=bin",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "-C",
+          "codegen-units=1",
+          "/tmp/hepta-task-io-observation-fix-20261027/baseline/unfenced_closed_assertion.rs",
+          "-o",
+          "/tmp/hepta-task-io-observation-fix-20261027/baseline/unfenced_closed_assertion.bin",
+          "-C",
+          "link-arg=/tmp/hepta-task-io-observation-fix-20261027/baseline/faults.o",
+          "-C",
+          "link-arg=-Wl,--wrap=poll",
+          "-C",
+          "link-arg=-Wl,--wrap=socketpair",
+          "-C",
+          "link-arg=-Wl,--wrap=ioctl"
+        ],
+        "elapsed_ns": 979984127,
+        "returncode": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "/tmp/hepta-task-io-observation-fix-20261027/baseline/unfenced_closed_assertion-build.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": ""
+        },
+        "stdout": {
+          "bytes": 0,
+          "path": "/tmp/hepta-task-io-observation-fix-20261027/baseline/unfenced_closed_assertion-build.stdout.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": ""
+        }
+      },
+      "execution": {
+        "command": [
+          "/tmp/hepta-task-io-observation-fix-20261027/baseline/unfenced_closed_assertion.bin"
+        ],
+        "elapsed_ns": 1733568,
+        "returncode": -6,
+        "stderr": {
+          "bytes": 306,
+          "path": "/tmp/hepta-task-io-observation-fix-20261027/baseline/unfenced_closed_assertion-run.stderr.bin",
+          "sha256": "700e0ed55e2319c8c449bd263730d3edd3fe72a3133d1802547019bf8bb42224",
+          "text": "\nthread 'main' panicked at /tmp/hepta-task-io-observation-fix-20261027/baseline/unfenced_closed_assertion.rs:1439:5:\nassertion `left == right` failed: unfenced wake reader checked before canceller completion\n  left: 1\n right: 0\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"
+        },
+        "stdout": {
+          "bytes": 33,
+          "path": "/tmp/hepta-task-io-observation-fix-20261027/baseline/unfenced_closed_assertion-run.stdout.bin",
+          "sha256": "fb50e7fe0c0af1b1d0a2e73442ca0a9a13609a4d4d3519d0f4c835409bbfd806",
+          "text": "waiting-for-canceller-owned-drop\n"
+        }
+      },
+      "source": {
+        "bytes": 80904,
+        "path": "/tmp/hepta-task-io-observation-fix-20261027/baseline/unfenced_closed_assertion.rs",
+        "sha256": "7bc488f301e13e267820e7aef6356887a3622114d78b7b580f74a8a1f22ebb72"
+      }
+    }
+  },
+  "rustc": {
+    "bytes": 656496,
+    "path": "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+    "sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa"
+  },
+  "rustc_version": {
+    "command": [
+      "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+      "--version"
+    ],
+    "elapsed_ns": 10896371,
+    "returncode": 0,
+    "stderr": {
+      "bytes": 0,
+      "path": "/tmp/hepta-task-io-observation-fix-20261027/baseline/rustc-version.stderr.bin",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    "stdout": {
+      "bytes": 36,
+      "path": "/tmp/hepta-task-io-observation-fix-20261027/baseline/rustc-version.stdout.bin",
+      "sha256": "3397f54a03033c1b027496d83acc64e8f3ceeb4017e0575150f78726edce8a1a",
+      "text": "rustc 1.90.0 (1159e78c4 2025-09-14)\n"
+    }
+  },
+  "schema": "hepta.task-io-observation-counterexample.v1",
+  "source_commit": "a1ade3cc2bf4a3b3eabd87f82ba6c8c515215e49",
+  "source_files": {
+    "examples/task_io/cancellation.hepta": "1bc5adfb6102a6de650d3fd9824fe5a92e12ce9b59e8db9fd8de8c2d482348ea",
+    "examples/task_io/pipeline.hepta": "6bf15cb097285113e1126577c02edf37c58063062f2e33e15c2dee2d3f541ff5",
+    "examples/task_io/recovery.hepta": "5449a1b95b4b310a035b012b3cc40443fa960d8730b75f27eb21423f80a6da41",
+    "hepta/runtime_concurrency.py": "e264aab58d9c0d970e5e9bcb107883d7174957b19a2c87e685c79bbc54dc0287",
+    "hepta/runtime_io.py": "ec87bedf99e209f6f7a5ae356457bd8f74a89bf92a9e6f2ce357c1619f33e8a4",
+    "hepta/runtime_task_io.py": "cf82d44afb4926b080a4b39c5660d3ef49544936f22981ce0478e8f05cbe79ca",
+    "hepta/runtime_task_tree.py": "5659b2484961124df1d38a528294f31f4540436d8f9a0c9b26e97d8b0cecbc27",
+    "tools/fixtures/task_io_controls.rs": "d3d1b79ccc23ae4c1a0336ae1afa98afa41c427801d092101afd94d676e0fc9e",
+    "tools/fixtures/task_io_faults.c": "020b9b9b3c16b8dc1033804d0e71e9c210630e368cb2af7e35c999764e938046",
+    "tools/qualify_task_io.py": "4826b9c8c7a0c48c45a37d3aeeb5dc343be5287f65a77a3d5bf6b79dc3de8d2b"
+  }
+}

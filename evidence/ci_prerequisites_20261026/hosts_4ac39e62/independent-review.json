@@ -1,0 +1,59 @@
+{
+  "schema": "hepta.host-evidence-independent-review.v1",
+  "source_commit": "4ac39e626acd7f78e2f66708be741e78308b4e6a",
+  "source_tree": "99a2273d45a333a1a9cc87110742399e7413d512",
+  "provider_run_id": 40445065374,
+  "reviewer": "/root/review_task_io/ci_hia_forensics",
+  "record_origin": "Independent reviewer's two internal review messages, transcribed by the archive author",
+  "decision": "no_blocking_findings",
+  "observations": {
+    "exact_head_bound_jobs": 4,
+    "exact_head_bound_artifacts": 4,
+    "successful_steps_per_job": 9,
+    "original_zip_bytes": 25597,
+    "original_report_bytes": 310596,
+    "windows_original_report_crlf_pairs": 2815,
+    "recorded_host_commands": 32,
+    "positive_executions": 8,
+    "foreign_calls_per_positive_execution": 181,
+    "foreign_calls_across_positive_executions": 1448,
+    "compiled_wrong_controls_rejected": 4,
+    "unix_negative_returncode": -6,
+    "windows_negative_returncode": 3221226505,
+    "archived_binary_or_object_members": 0,
+    "recorded_positive_negative_and_object_binary_identities": 16,
+    "source_commit_objects_verified": 3,
+    "source_tree_objects_verified": 10,
+    "selected_source_paths_verified": 184,
+    "source_python_files": 183,
+    "source_workflow_files": 1,
+    "immutable_git_blob_reads_compared": 368,
+    "lf_crlf_python_export_byte_comparisons": 366,
+    "compiler_hash_input_files": 100,
+    "source_replay_results_checked": 4,
+    "source_replay_error_records": 0,
+    "source_replay_blocked_audit_events": 0
+  },
+  "changed_selected_sources_since_44cb3257": [
+    "tools/qualify_cpp_composed_llvm.py",
+    "tools/qualify_cpp_owned_llvm.py"
+  ],
+  "compiler_sha256_recomputed_independently": {
+    "lf": "baa9c71bf65c590b23598635012989ac2f07242803b1a876b13a28eec2848bd7",
+    "crlf": "e7a8bc04baaf6b4ae590f5303cdb6af29d09b20547c44b4e7a1873a25131db6f"
+  },
+  "findings": [
+    "Every provider run/job/artifact record identifies the exact new source commit. All four complete job logs contain the actual checkout SHA, expected host arguments, and matching artifact ID, size and digest.",
+    "All four original ZIPs contain only native-host.json; every archived report equals the ZIP member byte for byte. Native binary hashes are retained identities, not retained executable bytes.",
+    "All positive execution observations and the four expected native negative assertions are consistent with their 32 recorded command traces.",
+    "The three commit and ten tree raw objects bind the complete selected source set. The published source and local reviewed commit share the same tree; only the two named LLVM qualifier Python files differ from the prior candidate in the selected subset.",
+    "Both compiler hashes were independently recomputed from the 100 frozen hepta/*.py files and match the original reports and new exact-source replay records.",
+    "The portable verifier's exact source constants, host/job/artifact/profile mappings, 188 archive members and source/report/provider/replay bindings agree with these original records. No stale assertion that all 183 Python files equal the prior candidate remains."
+  ],
+  "limitations": [
+    "The portable verifier checks recorded exact-source replay receipts; it does not execute the archived validator again.",
+    "The independent reviewer did not execute the verifier, replay helper, qualifier, compiler, native program, network lookup, or performance task and did not edit files.",
+    "This finite four-host ABI evidence does not establish the complete source/HIA candidate qualification or closure of all project blockers."
+  ],
+  "whole_project_blockers_closed": false
+}

@@ -1,0 +1,1407 @@
+﻿2026-10-27T02:39:21.3081307Z Current runner version: '2.338.0'
+2026-10-27T02:39:21.3102604Z ##[group]Runner Image Provisioner
+2026-10-27T02:39:21.3103406Z Hosted Compute Agent
+2026-10-27T02:39:21.3103932Z Version: 20261021.618
+2026-10-27T02:39:21.3104457Z Commit: 21505ad2541d5be6135ed84fc33697146cf75b8e
+2026-10-27T02:39:21.3105137Z Build Date: 2026-10-21T00:45:21Z
+2026-10-27T02:39:21.3105719Z Worker ID: {af0cf4e1-f23e-49ed-9934-154b8762023b}
+2026-10-27T02:39:21.3106641Z Region: westus3
+2026-10-27T02:39:21.3107110Z Cloud: Azure
+2026-10-27T02:39:21.3107566Z ##[endgroup]
+2026-10-27T02:39:21.3108673Z ##[group]Operating System
+2026-10-27T02:39:21.3109182Z Ubuntu
+2026-10-27T02:39:21.3109635Z 24.04.5
+2026-10-27T02:39:21.3110147Z LTS
+2026-10-27T02:39:21.3110579Z ##[endgroup]
+2026-10-27T02:39:21.3111117Z ##[group]Runner Image
+2026-10-27T02:39:21.3111629Z Image: ubuntu-24.04
+2026-10-27T02:39:21.3112084Z Version: 20261012.334.1
+2026-10-27T02:39:21.3113186Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-27T02:39:21.3114489Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+2026-10-27T02:39:21.3115306Z ##[endgroup]
+2026-10-27T02:39:21.3116360Z ##[group]GITHUB_TOKEN Permissions
+2026-10-27T02:39:21.3117981Z Contents: read
+2026-10-27T02:39:21.3118452Z Metadata: read
+2026-10-27T02:39:21.3118998Z ##[endgroup]
+2026-10-27T02:39:21.3120721Z Secret source: Actions
+2026-10-27T02:39:21.3121559Z Cache mode: write
+2026-10-27T02:39:21.3122132Z Prepare workflow directory
+2026-10-27T02:39:21.3572715Z Prepare all required actions
+2026-10-27T02:39:21.3611740Z Getting action download info
+2026-10-27T02:39:21.6492635Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-10-27T02:39:21.7647702Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-10-27T02:39:21.9067138Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-10-27T02:39:22.1683520Z Complete job name: release-qualification
+2026-10-27T02:39:22.2395214Z ##[group]Run actions/checkout@v4
+2026-10-27T02:39:22.2396069Z with:
+2026-10-27T02:39:22.2396458Z   ref: 44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314
+2026-10-27T02:39:22.2396961Z   repository: TrillionniumFoundation/Hepta
+2026-10-27T02:39:22.2400295Z   token: ***
+2026-10-27T02:39:22.2400648Z   ssh-strict: true
+2026-10-27T02:39:22.2401002Z   ssh-user: git
+2026-10-27T02:39:22.2401350Z   persist-credentials: true
+2026-10-27T02:39:22.2401735Z   clean: true
+2026-10-27T02:39:22.2402081Z   sparse-checkout-cone-mode: true
+2026-10-27T02:39:22.2402489Z   fetch-depth: 1
+2026-10-27T02:39:22.2402829Z   fetch-tags: false
+2026-10-27T02:39:22.2403179Z   show-progress: true
+2026-10-27T02:39:22.2403527Z   lfs: false
+2026-10-27T02:39:22.2403850Z   submodules: false
+2026-10-27T02:39:22.2404203Z   set-safe-directory: true
+2026-10-27T02:39:22.2404602Z   allow-unsafe-pr-checkout: false
+2026-10-27T02:39:22.2405150Z env:
+2026-10-27T02:39:22.2405667Z   HEPTA_QUALIFICATION_HEAD_SHA: 44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314
+2026-10-27T02:39:22.2406334Z ##[endgroup]
+2026-10-27T02:39:22.3209199Z Syncing repository: TrillionniumFoundation/Hepta
+2026-10-27T02:39:22.3211240Z ##[group]Getting Git version info
+2026-10-27T02:39:22.3211829Z Working directory is '/home/runner/work/Hepta/Hepta'
+2026-10-27T02:39:22.3212713Z [command]/usr/bin/git version
+2026-10-27T02:39:22.3262935Z git version 2.55.0
+2026-10-27T02:39:22.3288601Z ##[endgroup]
+2026-10-27T02:39:22.3302300Z Temporarily overriding HOME='/home/runner/work/_temp/89610122-6e07-4048-9d97-b11297d6f6fd' before making global git config changes
+2026-10-27T02:39:22.3304070Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-27T02:39:22.3306453Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-10-27T02:39:22.3355929Z Deleting the contents of '/home/runner/work/Hepta/Hepta'
+2026-10-27T02:39:22.3360047Z ##[group]Initializing the repository
+2026-10-27T02:39:22.3363888Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta
+2026-10-27T02:39:22.3441755Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-27T02:39:22.3445537Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-27T02:39:22.3446941Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-27T02:39:22.3447908Z hint: call:
+2026-10-27T02:39:22.3448413Z hint:
+2026-10-27T02:39:22.3449049Z hint: 	git config --global init.defaultBranch <name>
+2026-10-27T02:39:22.3449837Z hint:
+2026-10-27T02:39:22.3450590Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-27T02:39:22.3451779Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-27T02:39:22.3452698Z hint:
+2026-10-27T02:39:22.3453224Z hint: 	git branch -m <name>
+2026-10-27T02:39:22.3453879Z hint:
+2026-10-27T02:39:22.3454669Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-27T02:39:22.3455707Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/.git/
+2026-10-27T02:39:22.3457659Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-10-27T02:39:22.3499980Z ##[endgroup]
+2026-10-27T02:39:22.3501009Z ##[group]Disabling automatic garbage collection
+2026-10-27T02:39:22.3503152Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-27T02:39:22.3531909Z ##[endgroup]
+2026-10-27T02:39:22.3532864Z ##[group]Setting up auth
+2026-10-27T02:39:22.3538909Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-27T02:39:22.3670236Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-27T02:39:22.3959081Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-27T02:39:22.3995987Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-27T02:39:22.4210247Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-27T02:39:22.4241957Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-27T02:39:22.4434865Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-27T02:39:22.4473070Z ##[endgroup]
+2026-10-27T02:39:22.4473708Z ##[group]Fetching the repository
+2026-10-27T02:39:22.4479899Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314
+2026-10-27T02:39:24.4923808Z From https://github.com/TrillionniumFoundation/Hepta
+2026-10-27T02:39:24.4925057Z  * branch            44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314 -> FETCH_HEAD
+2026-10-27T02:39:24.4927660Z ##[endgroup]
+2026-10-27T02:39:24.4928395Z ##[group]Determining the checkout info
+2026-10-27T02:39:24.4929748Z ##[endgroup]
+2026-10-27T02:39:24.4940467Z [command]/usr/bin/git sparse-checkout disable
+2026-10-27T02:39:24.4984054Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-27T02:39:24.5010243Z ##[group]Checking out the ref
+2026-10-27T02:39:24.5012711Z [command]/usr/bin/git checkout --progress --force 44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314
+2026-10-27T02:39:24.7602912Z Note: switching to '44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314'.
+2026-10-27T02:39:24.7603919Z 
+2026-10-27T02:39:24.7604533Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-27T02:39:24.7606252Z changes and commit them, and you can discard any commits you make in this
+2026-10-27T02:39:24.7607817Z state without impacting any branches by switching back to a branch.
+2026-10-27T02:39:24.7609060Z 
+2026-10-27T02:39:24.7609729Z If you want to create a new branch to retain commits you create, you may
+2026-10-27T02:39:24.7611279Z do so (now or later) by using -c with the switch command. Example:
+2026-10-27T02:39:24.7612163Z 
+2026-10-27T02:39:24.7612573Z   git switch -c <new-branch-name>
+2026-10-27T02:39:24.7613215Z 
+2026-10-27T02:39:24.7613603Z Or undo this operation with:
+2026-10-27T02:39:24.7614186Z 
+2026-10-27T02:39:24.7614529Z   git switch -
+2026-10-27T02:39:24.7615015Z 
+2026-10-27T02:39:24.7615906Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-27T02:39:24.7617068Z 
+2026-10-27T02:39:24.7618053Z HEAD is now at 44cb325 Retain denied host procfs observations without discarding sandbox results
+2026-10-27T02:39:24.7637776Z ##[endgroup]
+2026-10-27T02:39:24.7677894Z [command]/usr/bin/git log -1 --format=%H
+2026-10-27T02:39:24.7702403Z 44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314
+2026-10-27T02:39:24.7920572Z ##[group]Run actual_head=$(git rev-parse HEAD)
+2026-10-27T02:39:24.7921870Z [36;1mactual_head=$(git rev-parse HEAD)[0m
+2026-10-27T02:39:24.7923040Z [36;1mmkdir -p artifacts[0m
+2026-10-27T02:39:24.7924843Z [36;1mprintf '{"schema":"hepta.workflow-source.v1","expected_head_sha":"%s","checkout_head_sha":"%s","event_sha":"%s"}\n' \[0m
+2026-10-27T02:39:24.7927549Z [36;1m  "$HEPTA_QUALIFICATION_HEAD_SHA" "$actual_head" "$GITHUB_SHA" > artifacts/workflow-source.json[0m
+2026-10-27T02:39:24.7929493Z [36;1mtest "$actual_head" = "$HEPTA_QUALIFICATION_HEAD_SHA"[0m
+2026-10-27T02:39:24.8134839Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-27T02:39:24.8136305Z env:
+2026-10-27T02:39:24.8137422Z   HEPTA_QUALIFICATION_HEAD_SHA: 44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314
+2026-10-27T02:39:24.8138811Z ##[endgroup]
+2026-10-27T02:39:24.8429964Z ##[group]Run actions/setup-python@v5
+2026-10-27T02:39:24.8430890Z with:
+2026-10-27T02:39:24.8431568Z   python-version: 3.11
+2026-10-27T02:39:24.8432340Z   check-latest: false
+2026-10-27T02:39:24.8440169Z   token: ***
+2026-10-27T02:39:24.8440906Z   update-environment: true
+2026-10-27T02:39:24.8441755Z   allow-prereleases: false
+2026-10-27T02:39:24.8442570Z   freethreaded: false
+2026-10-27T02:39:24.8443304Z env:
+2026-10-27T02:39:24.8444286Z   HEPTA_QUALIFICATION_HEAD_SHA: 44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314
+2026-10-27T02:39:24.8445514Z ##[endgroup]
+2026-10-27T02:39:24.9482658Z ##[group]Installed versions
+2026-10-27T02:39:25.0050007Z (node:2120) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-27T02:39:25.0053255Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-27T02:39:25.0055212Z Successfully set up CPython (3.11.17)
+2026-10-27T02:39:25.0057672Z ##[endgroup]
+2026-10-27T02:39:25.0250668Z ##[group]Run python -m pip install zstandard
+2026-10-27T02:39:25.0252233Z [36;1mpython -m pip install zstandard[0m
+2026-10-27T02:39:25.0368549Z shell: /usr/bin/bash -e {0}
+2026-10-27T02:39:25.0369517Z env:
+2026-10-27T02:39:25.0370581Z   HEPTA_QUALIFICATION_HEAD_SHA: 44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314
+2026-10-27T02:39:25.0372027Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:39:25.0373465Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.17/x64/lib/pkgconfig
+2026-10-27T02:39:25.0374873Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:39:25.0376360Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:39:25.0377635Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:39:25.0378919Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.17/x64/lib
+2026-10-27T02:39:25.0380013Z ##[endgroup]
+2026-10-27T02:39:27.7971633Z Collecting zstandard
+2026-10-27T02:39:27.8642317Z   Downloading zstandard-0.25.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (3.3 kB)
+2026-10-27T02:39:27.8773229Z Downloading zstandard-0.25.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (5.6 MB)
+2026-10-27T02:39:28.2038534Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.6/5.6 MB 18.6 MB/s  0:00:00
+2026-10-27T02:39:28.3372475Z Installing collected packages: zstandard
+2026-10-27T02:39:28.4153153Z Successfully installed zstandard-0.25.0
+2026-10-27T02:39:28.4159357Z 
+2026-10-27T02:39:28.4160060Z [notice] A new release of pip is available: 26.2.1 -> 26.2.2
+2026-10-27T02:39:28.4160617Z [notice] To update, run: pip install --upgrade pip
+2026-10-27T02:39:28.4592185Z ##[group]Run sudo apt-get update
+2026-10-27T02:39:28.4592480Z [36;1msudo apt-get update[0m
+2026-10-27T02:39:28.4592905Z [36;1msudo apt-get install --yes bubblewrap apparmor-profiles gcc g++ curl gnupg gdb libboost-dev qemu-system-arm[0m
+2026-10-27T02:39:28.4651695Z shell: /usr/bin/bash -e {0}
+2026-10-27T02:39:28.4651915Z env:
+2026-10-27T02:39:28.4652195Z   HEPTA_QUALIFICATION_HEAD_SHA: 44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314
+2026-10-27T02:39:28.4652602Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:39:28.4652949Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.17/x64/lib/pkgconfig
+2026-10-27T02:39:28.4653301Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:39:28.4653655Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:39:28.4653977Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:39:28.4654289Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.17/x64/lib
+2026-10-27T02:39:28.4654582Z ##[endgroup]
+2026-10-27T02:39:28.5797436Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-10-27T02:39:28.5971677Z Get:6 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+2026-10-27T02:39:28.6163400Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+2026-10-27T02:39:28.6174818Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+2026-10-27T02:39:28.6266871Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+2026-10-27T02:39:28.6319118Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+2026-10-27T02:39:28.6980886Z Get:7 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [661 kB]
+2026-10-27T02:39:28.7217160Z Get:8 https://packages.microsoft.com/ubuntu/24.04/prod noble/main armhf Packages [12.4 kB]
+2026-10-27T02:39:28.7239686Z Get:9 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [598 kB]
+2026-10-27T02:39:28.8118346Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1401 kB]
+2026-10-27T02:39:28.8187706Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [310 kB]
+2026-10-27T02:39:28.8207849Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1706 kB]
+2026-10-27T02:39:28.8279279Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [343 kB]
+2026-10-27T02:39:28.8327187Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1805 kB]
+2026-10-27T02:39:28.8394526Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [411 kB]
+2026-10-27T02:39:28.9012905Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Packages [1146 kB]
+2026-10-27T02:39:28.9061492Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-security/main Translation-en [231 kB]
+2026-10-27T02:39:28.9077404Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1223 kB]
+2026-10-27T02:39:28.9126341Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble-security/universe Translation-en [246 kB]
+2026-10-27T02:39:28.9571976Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1713 kB]
+2026-10-27T02:39:28.9648997Z Get:21 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted Translation-en [392 kB]
+2026-10-27T02:39:41.5393571Z Fetched 12.6 MB in 1s (11.3 MB/s)
+2026-10-27T02:39:42.3173979Z Reading package lists...
+2026-10-27T02:39:42.3444069Z Reading package lists...
+2026-10-27T02:39:42.5482465Z Building dependency tree...
+2026-10-27T02:39:42.5488840Z Reading state information...
+2026-10-27T02:39:42.6956853Z gcc is already the newest version (4:13.2.0-7ubuntu1).
+2026-10-27T02:39:42.6957310Z g++ is already the newest version (4:13.2.0-7ubuntu1).
+2026-10-27T02:39:42.6957722Z gnupg is already the newest version (2.4.4-2ubuntu17.6).
+2026-10-27T02:39:42.6958736Z The following additional packages will be installed:
+2026-10-27T02:39:42.6959245Z   apparmor glib-networking glib-networking-common glib-networking-services
+2026-10-27T02:39:42.6959746Z   gsettings-desktop-schemas gstreamer1.0-plugins-base
+2026-10-27T02:39:42.6960177Z   gstreamer1.0-plugins-good gstreamer1.0-x ipxe-qemu
+2026-10-27T02:39:42.6960927Z   ipxe-qemu-256k-compat-efi-roms libaa1 libapparmor1 libasyncns0 libavc1394-0
+2026-10-27T02:39:42.6961704Z   libbabeltrace1 libboost-iostreams1.83.0 libboost-thread1.83.0
+2026-10-27T02:39:42.6962264Z   libboost1.83-dev libbrlapi0.8 libc6-dbg libcaca0 libcacard0 libcdparanoia0
+2026-10-27T02:39:42.6962662Z   libcurl3t64-gnutls libcurl4t64 libdaxctl1 libdebuginfod-common
+2026-10-27T02:39:42.6963036Z   libdebuginfod1t64 libdecor-0-0 libdecor-0-plugin-1-gtk libdv4t64 libfdt1
+2026-10-27T02:39:42.6963449Z   libflac12t64 libgstreamer-plugins-base1.0-0 libgstreamer-plugins-good1.0-0
+2026-10-27T02:39:42.6963869Z   libiec61883-0 libipt2 libiscsi7 libjack-jackd2-0 libmp3lame0 libmpg123-0t64
+2026-10-27T02:39:42.6964226Z   libndctl6 libnfs14 libopus0 liborc-0.4-0t64 libpcsclite1
+2026-10-27T02:39:42.6964581Z   libpipewire-0.3-0t64 libpipewire-0.3-common libpmem1 libpmemobj1 libproxy1v5
+2026-10-27T02:39:42.6964970Z   libpulse0 librados2 libraw1394-11 librbd1 librdmacm1t64 libsamplerate0
+2026-10-27T02:39:42.6965329Z   libsdl2-2.0-0 libshout3 libsndfile1 libsoup-3.0-0 libsoup-3.0-common
+2026-10-27T02:39:42.6965696Z   libsource-highlight-common libsource-highlight4t64 libspa-0.2-modules
+2026-10-27T02:39:42.6966343Z   libspeex1 libspice-server1 libtag1v5 libtag1v5-vanilla libtheora0
+2026-10-27T02:39:42.6966974Z   libtwolame0 liburing2 libusbredirparser1t64 libv4l-0t64 libv4lconvert0t64
+2026-10-27T02:39:42.6967523Z   libvirglrenderer1 libvisual-0.4-0 libvorbisenc2 libvpx9 libvte-2.91-0
+2026-10-27T02:39:42.6967913Z   libvte-2.91-common libwavpack1 libwebrtc-audio-processing1 libxv1
+2026-10-27T02:39:42.6968390Z   qemu-block-extra qemu-efi-aarch64 qemu-efi-arm qemu-system-common
+2026-10-27T02:39:42.6968859Z   qemu-system-data qemu-system-gui qemu-system-modules-opengl
+2026-10-27T02:39:42.6969182Z   qemu-system-modules-spice qemu-utils session-migration
+2026-10-27T02:39:42.6969449Z Suggested packages:
+2026-10-27T02:39:42.6969731Z   apparmor-profiles-extra apparmor-utils gdb-doc gdbserver gvfs libboost-doc
+2026-10-27T02:39:42.6970118Z   libboost1.83-doc libboost-atomic1.83-dev libboost-chrono1.83-dev
+2026-10-27T02:39:42.6970600Z   libboost-container1.83-dev libboost-context1.83-dev
+2026-10-27T02:39:42.6971068Z   libboost-contract1.83-dev libboost-coroutine1.83-dev
+2026-10-27T02:39:42.6971637Z   libboost-date-time1.83-dev libboost-exception1.83-dev libboost-fiber1.83-dev
+2026-10-27T02:39:42.6972272Z   libboost-filesystem1.83-dev libboost-graph-parallel1.83-dev
+2026-10-27T02:39:42.6972855Z   libboost-graph1.83-dev libboost-iostreams1.83-dev libboost-json1.83-dev
+2026-10-27T02:39:42.6973499Z   libboost-locale1.83-dev libboost-log1.83-dev libboost-math1.83-dev
+2026-10-27T02:39:42.6974060Z   libboost-mpi-python1.83-dev libboost-mpi1.83-dev libboost-nowide1.83-dev
+2026-10-27T02:39:42.6974430Z   libboost-numpy1.83-dev libboost-program-options1.83-dev
+2026-10-27T02:39:42.6974774Z   libboost-python1.83-dev libboost-random1.83-dev libboost-regex1.83-dev
+2026-10-27T02:39:42.6975126Z   libboost-serialization1.83-dev libboost-stacktrace1.83-dev
+2026-10-27T02:39:42.6975473Z   libboost-system1.83-dev libboost-test1.83-dev libboost-thread1.83-dev
+2026-10-27T02:39:42.6976020Z   libboost-timer1.83-dev libboost-type-erasure1.83-dev libboost-url1.83-dev
+2026-10-27T02:39:42.6976403Z   libboost-wave1.83-dev libboost1.83-tools-dev libmpfrc++-dev libntl-dev
+2026-10-27T02:39:42.6976985Z   libdv-bin oss-compat libvisual-0.4-plugins jackd2 opus-tools pcscd pipewire
+2026-10-27T02:39:42.6977406Z   pulseaudio libraw1394-doc speex gstreamer1.0-libav gstreamer1.0-plugins-ugly
+2026-10-27T02:39:42.6977710Z   samba vde2
+2026-10-27T02:39:43.1396588Z The following NEW packages will be installed:
+2026-10-27T02:39:43.1397748Z   apparmor-profiles bubblewrap gdb glib-networking glib-networking-common
+2026-10-27T02:39:43.1398568Z   glib-networking-services gsettings-desktop-schemas gstreamer1.0-plugins-base
+2026-10-27T02:39:43.1399239Z   gstreamer1.0-plugins-good gstreamer1.0-x ipxe-qemu
+2026-10-27T02:39:43.1399810Z   ipxe-qemu-256k-compat-efi-roms libaa1 libasyncns0 libavc1394-0
+2026-10-27T02:39:43.1400511Z   libbabeltrace1 libboost-dev libboost-iostreams1.83.0 libboost-thread1.83.0
+2026-10-27T02:39:43.1401288Z   libboost1.83-dev libbrlapi0.8 libc6-dbg libcaca0 libcacard0 libcdparanoia0
+2026-10-27T02:39:43.1401988Z   libdaxctl1 libdebuginfod-common libdebuginfod1t64 libdecor-0-0
+2026-10-27T02:39:43.1402596Z   libdecor-0-plugin-1-gtk libdv4t64 libfdt1 libflac12t64
+2026-10-27T02:39:43.1403244Z   libgstreamer-plugins-base1.0-0 libgstreamer-plugins-good1.0-0 libiec61883-0
+2026-10-27T02:39:43.1404172Z   libipt2 libiscsi7 libjack-jackd2-0 libmp3lame0 libmpg123-0t64 libndctl6
+2026-10-27T02:39:43.1404940Z   libnfs14 libopus0 liborc-0.4-0t64 libpcsclite1 libpipewire-0.3-0t64
+2026-10-27T02:39:43.1405730Z   libpipewire-0.3-common libpmem1 libpmemobj1 libproxy1v5 libpulse0 librados2
+2026-10-27T02:39:43.1406643Z   libraw1394-11 librbd1 librdmacm1t64 libsamplerate0 libsdl2-2.0-0 libshout3
+2026-10-27T02:39:43.1407390Z   libsndfile1 libsoup-3.0-0 libsoup-3.0-common libsource-highlight-common
+2026-10-27T02:39:43.1408069Z   libsource-highlight4t64 libspa-0.2-modules libspeex1 libspice-server1
+2026-10-27T02:39:43.1408715Z   libtag1v5 libtag1v5-vanilla libtheora0 libtwolame0 liburing2
+2026-10-27T02:39:43.1409407Z   libusbredirparser1t64 libv4l-0t64 libv4lconvert0t64 libvirglrenderer1
+2026-10-27T02:39:43.1410141Z   libvisual-0.4-0 libvorbisenc2 libvpx9 libvte-2.91-0 libvte-2.91-common
+2026-10-27T02:39:43.1410844Z   libwavpack1 libwebrtc-audio-processing1 libxv1 qemu-block-extra
+2026-10-27T02:39:43.1411500Z   qemu-efi-aarch64 qemu-efi-arm qemu-system-arm qemu-system-common
+2026-10-27T02:39:43.1412174Z   qemu-system-data qemu-system-gui qemu-system-modules-opengl
+2026-10-27T02:39:43.1412805Z   qemu-system-modules-spice qemu-utils session-migration
+2026-10-27T02:39:43.1413351Z The following packages will be upgraded:
+2026-10-27T02:39:43.1419110Z   apparmor curl libapparmor1 libcurl3t64-gnutls libcurl4t64
+2026-10-27T02:39:43.1589803Z 5 upgraded, 95 newly installed, 0 to remove and 99 not upgraded.
+2026-10-27T02:39:43.1590168Z Need to get 70.1 MB of archives.
+2026-10-27T02:39:43.1590458Z After this operation, 832 MB of additional disk space will be used.
+2026-10-27T02:39:43.1590912Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-10-27T02:39:43.4208090Z Get:2 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libdebuginfod-common all 0.190-1.1ubuntu0.1 [14.6 kB]
+2026-10-27T02:39:43.8296696Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libapparmor1 amd64 4.0.1really4.0.1-0ubuntu0.24.04.9 [51.5 kB]
+2026-10-27T02:39:44.6343073Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 apparmor amd64 4.0.1really4.0.1-0ubuntu0.24.04.9 [640 kB]
+2026-10-27T02:39:52.2077940Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 bubblewrap amd64 0.9.0-1ubuntu0.3 [50.4 kB]
+2026-10-27T02:39:53.0483136Z Get:6 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 curl amd64 8.5.0-2ubuntu10.16 [226 kB]
+2026-10-27T02:39:55.8722578Z Get:7 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libcurl4t64 amd64 8.5.0-2ubuntu10.16 [344 kB]
+2026-10-27T02:40:00.1041211Z Get:8 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libbabeltrace1 amd64 1.5.11-3build3 [164 kB]
+2026-10-27T02:40:02.4052976Z Get:9 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libcurl3t64-gnutls amd64 8.5.0-2ubuntu10.16 [337 kB]
+2026-10-27T02:40:06.7711567Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libdebuginfod1t64 amd64 0.190-1.1ubuntu0.1 [17.1 kB]
+2026-10-27T02:40:07.2375199Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libipt2 amd64 2.0.6-1build1 [45.7 kB]
+2026-10-27T02:40:08.2316424Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libsource-highlight-common all 3.1.9-4.3build1 [64.2 kB]
+2026-10-27T02:40:09.3351025Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libsource-highlight4t64 amd64 3.1.9-4.3build1 [258 kB]
+2026-10-27T02:40:12.8120243Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 gdb amd64 15.1-1ubuntu1~24.04.1 [4083 kB]
+2026-10-27T02:40:59.6416162Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libproxy1v5 amd64 0.5.4-4build1 [26.5 kB]
+2026-10-27T02:41:00.2565971Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 glib-networking-common all 2.80.0-1build1 [6702 B]
+2026-10-27T02:41:00.6112913Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 glib-networking-services amd64 2.80.0-1build1 [12.8 kB]
+2026-10-27T02:41:01.2373754Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 session-migration amd64 0.3.9build1 [9034 B]
+2026-10-27T02:41:01.6528678Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 gsettings-desktop-schemas all 46.1-0ubuntu1 [35.6 kB]
+2026-10-27T02:41:02.3522638Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 glib-networking amd64 2.80.0-1build1 [64.1 kB]
+2026-10-27T02:41:03.4213114Z Get:21 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libcdparanoia0 amd64 3.10.2+debian-14build3 [48.5 kB]
+2026-10-27T02:41:04.4434875Z Get:22 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 liborc-0.4-0t64 amd64 1:0.4.38-1ubuntu0.1 [207 kB]
+2026-10-27T02:41:07.2620188Z Get:23 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libgstreamer-plugins-base1.0-0 amd64 1.24.2-1ubuntu0.5 [862 kB]
+2026-10-27T02:41:17.5848126Z Get:24 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libopus0 amd64 1.4-1build1 [208 kB]
+2026-10-27T02:41:20.4059464Z Get:25 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libtheora0 amd64 1.1.1+dfsg.1-16.1build3 [211 kB]
+2026-10-27T02:41:23.3392122Z Get:26 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libvisual-0.4-0 amd64 0.4.2-2build1 [115 kB]
+2026-10-27T02:41:25.3894059Z Get:27 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libvorbisenc2 amd64 1.3.7-1build3 [80.8 kB]
+2026-10-27T02:41:26.6066927Z Get:28 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 gstreamer1.0-plugins-base amd64 1.24.2-1ubuntu0.5 [721 kB]
+2026-10-27T02:41:35.7445993Z Get:29 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libaa1 amd64 1.4p5-51.1 [49.9 kB]
+2026-10-27T02:41:36.5867421Z Get:30 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libraw1394-11 amd64 2.1.2-2build3 [26.2 kB]
+2026-10-27T02:41:37.3653447Z Get:31 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libavc1394-0 amd64 0.5.4-5build3 [15.4 kB]
+2026-10-27T02:41:38.0014401Z Get:32 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libcaca0 amd64 0.99.beta20-4ubuntu0.2 [209 kB]
+2026-10-27T02:41:40.6756698Z Get:33 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libdv4t64 amd64 1.0.0-17.1build1 [63.2 kB]
+2026-10-27T02:41:41.8925897Z Get:34 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libflac12t64 amd64 1.4.3+ds-2.1ubuntu2 [197 kB]
+2026-10-27T02:41:44.3621759Z Get:35 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libgstreamer-plugins-good1.0-0 amd64 1.24.2-1ubuntu1.8 [34.3 kB]
+2026-10-27T02:41:45.0336432Z Get:36 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libiec61883-0 amd64 1.2.0-6build1 [24.5 kB]
+2026-10-27T02:41:45.6882527Z Get:37 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libmp3lame0 amd64 3.100-6build1 [142 kB]
+2026-10-27T02:41:47.5051458Z Get:38 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libmpg123-0t64 amd64 1.32.5-1ubuntu1.1 [169 kB]
+2026-10-27T02:41:49.7866181Z Get:39 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libasyncns0 amd64 0.8-6build4 [11.3 kB]
+2026-10-27T02:41:50.3730617Z Get:40 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libsndfile1 amd64 1.2.2-1ubuntu5.24.04.1 [209 kB]
+2026-10-27T02:41:53.1562336Z Get:41 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libpulse0 amd64 1:16.1+dfsg1-2ubuntu10.1 [292 kB]
+2026-10-27T02:41:56.7950038Z Get:42 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libspeex1 amd64 1.2.1-2ubuntu2.24.04.1 [59.6 kB]
+2026-10-27T02:41:57.6877923Z Get:43 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libshout3 amd64 2.4.6-1build2 [50.3 kB]
+2026-10-27T02:41:58.4829576Z Get:44 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libtag1v5-vanilla amd64 1.13.1-1build1 [326 kB]
+2026-10-27T02:42:02.3132320Z Get:45 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libtag1v5 amd64 1.13.1-1build1 [11.7 kB]
+2026-10-27T02:42:02.8393649Z Get:46 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libtwolame0 amd64 0.4.0-2build3 [52.3 kB]
+2026-10-27T02:42:03.7076273Z Get:47 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libv4lconvert0t64 amd64 1.26.1-4build3 [87.6 kB]
+2026-10-27T02:42:05.0800158Z Get:48 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libv4l-0t64 amd64 1.26.1-4build3 [46.9 kB]
+2026-10-27T02:42:05.9837347Z Get:49 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libvpx9 amd64 1.14.0-1ubuntu2.3 [1143 kB]
+2026-10-27T02:42:18.7941830Z Get:50 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libwavpack1 amd64 5.6.0-1build1 [84.6 kB]
+2026-10-27T02:42:20.1346679Z Get:51 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libsoup-3.0-common all 3.4.4-5ubuntu0.9 [12.3 kB]
+2026-10-27T02:42:20.6821567Z Get:52 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libsoup-3.0-0 amd64 3.4.4-5ubuntu0.9 [291 kB]
+2026-10-27T02:42:24.6041772Z Get:53 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 gstreamer1.0-plugins-good amd64 1.24.2-1ubuntu1.8 [2236 kB]
+2026-10-27T02:42:49.9257544Z Get:54 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libxv1 amd64 2:1.0.11-1.1build1 [10.7 kB]
+2026-10-27T02:42:50.4817783Z Get:55 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 gstreamer1.0-x amd64 1.24.2-1ubuntu0.5 [85.1 kB]
+2026-10-27T02:42:51.8258200Z Get:56 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 ipxe-qemu all 1.21.1+git-20220113.fbbdc3926-0ubuntu2 [1565 kB]
+2026-10-27T02:43:09.3786531Z Get:57 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 ipxe-qemu-256k-compat-efi-roms all 1.0.0+git-20150424.a25a16d-0ubuntu5 [548 kB]
+2026-10-27T02:43:16.1536535Z Get:58 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libboost1.83-dev amd64 1.83.0-2.1ubuntu3.2 [10.7 MB]
+2026-10-27T02:45:20.7049308Z Get:59 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libboost-dev amd64 1.83.0.1ubuntu2 [4308 B]
+2026-10-27T02:45:21.2335390Z Get:60 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libboost-iostreams1.83.0 amd64 1.83.0-2.1ubuntu3.2 [260 kB]
+2026-10-27T02:45:24.4448192Z Get:61 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libboost-thread1.83.0 amd64 1.83.0-2.1ubuntu3.2 [276 kB]
+2026-10-27T02:45:27.6954198Z Get:62 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libbrlapi0.8 amd64 6.6-4ubuntu5 [31.4 kB]
+2026-10-27T02:45:28.3053617Z Get:63 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libpcsclite1 amd64 2.0.3-1build1 [21.4 kB]
+2026-10-27T02:45:28.8190462Z Get:64 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libcacard0 amd64 1:2.8.0-3build4 [36.5 kB]
+2026-10-27T02:45:29.5556200Z Get:65 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libdaxctl1 amd64 77-2ubuntu2 [21.4 kB]
+2026-10-27T02:45:30.2048366Z Get:66 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libdecor-0-0 amd64 0.2.2-1build2 [16.5 kB]
+2026-10-27T02:45:30.8178164Z Get:67 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libdecor-0-plugin-1-gtk amd64 0.2.2-1build2 [22.2 kB]
+2026-10-27T02:45:31.4113471Z Get:68 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 librdmacm1t64 amd64 50.0-2ubuntu0.2 [70.7 kB]
+2026-10-27T02:45:32.4980335Z Get:69 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libiscsi7 amd64 1.19.0-3build4 [68.7 kB]
+2026-10-27T02:45:33.6516953Z Get:70 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libsamplerate0 amd64 0.2.2-4build1 [1344 kB]
+2026-10-27T02:45:49.0219589Z Get:71 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libjack-jackd2-0 amd64 1.9.21~dfsg-3ubuntu3 [289 kB]
+2026-10-27T02:45:52.4521782Z Get:72 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libndctl6 amd64 77-2ubuntu2 [62.8 kB]
+2026-10-27T02:45:53.5977838Z Get:73 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libnfs14 amd64 5.0.2-1ubuntu0.24.04.1 [109 kB]
+2026-10-27T02:45:55.2218096Z Get:74 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libwebrtc-audio-processing1 amd64 0.3.1-0ubuntu6 [290 kB]
+2026-10-27T02:45:58.5777681Z Get:75 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libspa-0.2-modules amd64 1.0.5-1ubuntu3.3 [628 kB]
+2026-10-27T02:46:06.4087633Z Get:76 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libpipewire-0.3-0t64 amd64 1.0.5-1ubuntu3.3 [252 kB]
+2026-10-27T02:46:09.3707285Z Get:77 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libpipewire-0.3-common all 1.0.5-1ubuntu3.3 [19.5 kB]
+2026-10-27T02:46:09.8164424Z Get:78 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libpmem1 amd64 1.13.1-1.1ubuntu2 [84.8 kB]
+2026-10-27T02:46:11.1180542Z Get:79 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libpmemobj1 amd64 1.13.1-1.1ubuntu2 [116 kB]
+2026-10-27T02:46:12.6638403Z Get:80 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 librados2 amd64 19.2.3-0ubuntu0.24.04.3 [4041 kB]
+2026-10-27T02:46:58.9219722Z Get:81 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 librbd1 amd64 19.2.3-0ubuntu0.24.04.3 [3413 kB]
+2026-10-27T02:47:38.6644359Z Get:82 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libsdl2-2.0-0 amd64 2.30.0+dfsg-1ubuntu3.1 [686 kB]
+2026-10-27T02:47:47.0181565Z Get:83 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libspice-server1 amd64 0.15.1-1build2 [349 kB]
+2026-10-27T02:47:51.6699777Z Get:84 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 liburing2 amd64 2.5-1build1 [21.1 kB]
+2026-10-27T02:47:52.2067764Z Get:85 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libusbredirparser1t64 amd64 0.13.0-2.1build1 [16.5 kB]
+2026-10-27T02:47:52.6730769Z Get:86 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libvirglrenderer1 amd64 1.0.0-1ubuntu2 [226 kB]
+2026-10-27T02:47:55.8270026Z Get:87 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libvte-2.91-common amd64 0.76.0-1ubuntu0.1 [13.5 kB]
+2026-10-27T02:47:56.2366893Z Get:88 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libvte-2.91-0 amd64 0.76.0-1ubuntu0.1 [230 kB]
+2026-10-27T02:47:59.3622981Z Get:89 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libfdt1 amd64 1.7.0-2build1 [20.1 kB]
+2026-10-27T02:47:59.8056092Z Get:90 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-system-common amd64 1:8.2.2+ds-0ubuntu1.18 [1255 kB]
+2026-10-27T02:48:14.8086627Z Get:91 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-system-data all 1:8.2.2+ds-0ubuntu1.18 [1796 kB]
+2026-10-27T02:48:36.4165687Z Get:92 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-system-arm amd64 1:8.2.2+ds-0ubuntu1.18 [11.0 MB]
+2026-10-27T02:50:49.6752024Z Get:93 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-utils amd64 1:8.2.2+ds-0ubuntu1.18 [2221 kB]
+2026-10-27T02:51:16.8884793Z Get:94 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-block-extra amd64 1:8.2.2+ds-0ubuntu1.18 [114 kB]
+2026-10-27T02:51:18.6191717Z Get:95 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-system-modules-opengl amd64 1:8.2.2+ds-0ubuntu1.18 [186 kB]
+2026-10-27T02:51:20.9996098Z Get:96 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-system-gui amd64 1:8.2.2+ds-0ubuntu1.18 [312 kB]
+2026-10-27T02:51:24.9210819Z Get:97 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-system-modules-spice amd64 1:8.2.2+ds-0ubuntu1.18 [70.2 kB]
+2026-10-27T02:51:26.0403498Z Get:98 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 apparmor-profiles all 4.0.1really4.0.1-0ubuntu0.24.04.9 [39.6 kB]
+2026-10-27T02:51:26.7180745Z Get:99 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libc6-dbg amd64 2.39-0ubuntu8.9 [7474 kB]
+2026-10-27T02:52:57.7419878Z Get:100 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-efi-aarch64 all 2024.02-2ubuntu0.10 [4115 kB]
+2026-10-27T02:53:51.4273127Z Get:101 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-efi-arm all 2024.02-2ubuntu0.10 [777 kB]
+2026-10-27T02:54:00.8784600Z Preconfiguring packages ...
+2026-10-27T02:54:01.2907706Z Fetched 70.1 MB in 14min 17s (81.7 kB/s)
+2026-10-27T02:54:01.6908236Z Selecting previously unselected package libdebuginfod-common.
+2026-10-27T02:54:01.7459041Z (Reading database ... 
+2026-10-27T02:54:01.7459397Z (Reading database ... 5%
+2026-10-27T02:54:01.7459724Z (Reading database ... 10%
+2026-10-27T02:54:01.7460019Z (Reading database ... 15%
+2026-10-27T02:54:01.7460226Z (Reading database ... 20%
+2026-10-27T02:54:01.7460407Z (Reading database ... 25%
+2026-10-27T02:54:01.7460585Z (Reading database ... 30%
+2026-10-27T02:54:01.7460762Z (Reading database ... 35%
+2026-10-27T02:54:01.7460934Z (Reading database ... 40%
+2026-10-27T02:54:01.7461110Z (Reading database ... 45%
+2026-10-27T02:54:01.7461287Z (Reading database ... 50%
+2026-10-27T02:54:01.7876340Z (Reading database ... 55%
+2026-10-27T02:54:02.1928129Z (Reading database ... 60%
+2026-10-27T02:54:02.4613343Z (Reading database ... 65%
+2026-10-27T02:54:02.7214390Z (Reading database ... 70%
+2026-10-27T02:54:03.0265567Z (Reading database ... 75%
+2026-10-27T02:54:03.8402164Z (Reading database ... 80%
+2026-10-27T02:54:04.4035282Z (Reading database ... 85%
+2026-10-27T02:54:05.0677147Z (Reading database ... 90%
+2026-10-27T02:54:05.5939709Z (Reading database ... 95%
+2026-10-27T02:54:05.5940103Z (Reading database ... 100%
+2026-10-27T02:54:05.5940398Z (Reading database ... 203540 files and directories currently installed.)
+2026-10-27T02:54:05.5980130Z Preparing to unpack .../00-libdebuginfod-common_0.190-1.1ubuntu0.1_all.deb ...
+2026-10-27T02:54:05.6082952Z Unpacking libdebuginfod-common (0.190-1.1ubuntu0.1) ...
+2026-10-27T02:54:05.6373437Z Preparing to unpack .../01-libapparmor1_4.0.1really4.0.1-0ubuntu0.24.04.9_amd64.deb ...
+2026-10-27T02:54:05.6401855Z Unpacking libapparmor1:amd64 (4.0.1really4.0.1-0ubuntu0.24.04.9) over (4.0.1really4.0.1-0ubuntu0.24.04.8) ...
+2026-10-27T02:54:05.6698639Z Preparing to unpack .../02-apparmor_4.0.1really4.0.1-0ubuntu0.24.04.9_amd64.deb ...
+2026-10-27T02:54:06.1100111Z Unpacking apparmor (4.0.1really4.0.1-0ubuntu0.24.04.9) over (4.0.1really4.0.1-0ubuntu0.24.04.8) ...
+2026-10-27T02:54:06.4199771Z Selecting previously unselected package bubblewrap.
+2026-10-27T02:54:06.4314980Z Preparing to unpack .../03-bubblewrap_0.9.0-1ubuntu0.3_amd64.deb ...
+2026-10-27T02:54:06.4321390Z Unpacking bubblewrap (0.9.0-1ubuntu0.3) ...
+2026-10-27T02:54:06.4669807Z Preparing to unpack .../04-curl_8.5.0-2ubuntu10.16_amd64.deb ...
+2026-10-27T02:54:06.4693586Z Unpacking curl (8.5.0-2ubuntu10.16) over (8.5.0-2ubuntu10.15) ...
+2026-10-27T02:54:06.5002008Z Preparing to unpack .../05-libcurl4t64_8.5.0-2ubuntu10.16_amd64.deb ...
+2026-10-27T02:54:06.5020036Z Unpacking libcurl4t64:amd64 (8.5.0-2ubuntu10.16) over (8.5.0-2ubuntu10.15) ...
+2026-10-27T02:54:06.5258653Z Selecting previously unselected package libbabeltrace1:amd64.
+2026-10-27T02:54:06.5364864Z Preparing to unpack .../06-libbabeltrace1_1.5.11-3build3_amd64.deb ...
+2026-10-27T02:54:06.5371016Z Unpacking libbabeltrace1:amd64 (1.5.11-3build3) ...
+2026-10-27T02:54:06.5670406Z Preparing to unpack .../07-libcurl3t64-gnutls_8.5.0-2ubuntu10.16_amd64.deb ...
+2026-10-27T02:54:06.5731837Z Unpacking libcurl3t64-gnutls:amd64 (8.5.0-2ubuntu10.16) over (8.5.0-2ubuntu10.15) ...
+2026-10-27T02:54:06.5986593Z Selecting previously unselected package libdebuginfod1t64:amd64.
+2026-10-27T02:54:06.6094238Z Preparing to unpack .../08-libdebuginfod1t64_0.190-1.1ubuntu0.1_amd64.deb ...
+2026-10-27T02:54:06.6099777Z Unpacking libdebuginfod1t64:amd64 (0.190-1.1ubuntu0.1) ...
+2026-10-27T02:54:06.6256611Z Selecting previously unselected package libipt2.
+2026-10-27T02:54:06.6358767Z Preparing to unpack .../09-libipt2_2.0.6-1build1_amd64.deb ...
+2026-10-27T02:54:06.6364655Z Unpacking libipt2 (2.0.6-1build1) ...
+2026-10-27T02:54:06.6521908Z Selecting previously unselected package libsource-highlight-common.
+2026-10-27T02:54:06.6622480Z Preparing to unpack .../10-libsource-highlight-common_3.1.9-4.3build1_all.deb ...
+2026-10-27T02:54:06.6627916Z Unpacking libsource-highlight-common (3.1.9-4.3build1) ...
+2026-10-27T02:54:06.7002741Z Selecting previously unselected package libsource-highlight4t64:amd64.
+2026-10-27T02:54:06.7106486Z Preparing to unpack .../11-libsource-highlight4t64_3.1.9-4.3build1_amd64.deb ...
+2026-10-27T02:54:06.7112287Z Unpacking libsource-highlight4t64:amd64 (3.1.9-4.3build1) ...
+2026-10-27T02:54:06.7294433Z Selecting previously unselected package gdb.
+2026-10-27T02:54:06.7396900Z Preparing to unpack .../12-gdb_15.1-1ubuntu1~24.04.1_amd64.deb ...
+2026-10-27T02:54:06.7403033Z Unpacking gdb (15.1-1ubuntu1~24.04.1) ...
+2026-10-27T02:54:06.8429922Z Selecting previously unselected package libproxy1v5:amd64.
+2026-10-27T02:54:06.8539125Z Preparing to unpack .../13-libproxy1v5_0.5.4-4build1_amd64.deb ...
+2026-10-27T02:54:06.8544411Z Unpacking libproxy1v5:amd64 (0.5.4-4build1) ...
+2026-10-27T02:54:06.8701015Z Selecting previously unselected package glib-networking-common.
+2026-10-27T02:54:06.8803706Z Preparing to unpack .../14-glib-networking-common_2.80.0-1build1_all.deb ...
+2026-10-27T02:54:06.8809433Z Unpacking glib-networking-common (2.80.0-1build1) ...
+2026-10-27T02:54:06.8955873Z Selecting previously unselected package glib-networking-services.
+2026-10-27T02:54:06.9059538Z Preparing to unpack .../15-glib-networking-services_2.80.0-1build1_amd64.deb ...
+2026-10-27T02:54:06.9065272Z Unpacking glib-networking-services (2.80.0-1build1) ...
+2026-10-27T02:54:06.9224387Z Selecting previously unselected package session-migration.
+2026-10-27T02:54:06.9325271Z Preparing to unpack .../16-session-migration_0.3.9build1_amd64.deb ...
+2026-10-27T02:54:06.9332104Z Unpacking session-migration (0.3.9build1) ...
+2026-10-27T02:54:06.9495953Z Selecting previously unselected package gsettings-desktop-schemas.
+2026-10-27T02:54:06.9595031Z Preparing to unpack .../17-gsettings-desktop-schemas_46.1-0ubuntu1_all.deb ...
+2026-10-27T02:54:06.9601311Z Unpacking gsettings-desktop-schemas (46.1-0ubuntu1) ...
+2026-10-27T02:54:06.9847638Z Selecting previously unselected package glib-networking:amd64.
+2026-10-27T02:54:06.9949146Z Preparing to unpack .../18-glib-networking_2.80.0-1build1_amd64.deb ...
+2026-10-27T02:54:06.9954739Z Unpacking glib-networking:amd64 (2.80.0-1build1) ...
+2026-10-27T02:54:07.0121805Z Selecting previously unselected package libcdparanoia0:amd64.
+2026-10-27T02:54:07.0223177Z Preparing to unpack .../19-libcdparanoia0_3.10.2+debian-14build3_amd64.deb ...
+2026-10-27T02:54:07.0228866Z Unpacking libcdparanoia0:amd64 (3.10.2+debian-14build3) ...
+2026-10-27T02:54:07.0396285Z Selecting previously unselected package liborc-0.4-0t64:amd64.
+2026-10-27T02:54:07.0497165Z Preparing to unpack .../20-liborc-0.4-0t64_1%3a0.4.38-1ubuntu0.1_amd64.deb ...
+2026-10-27T02:54:07.0502829Z Unpacking liborc-0.4-0t64:amd64 (1:0.4.38-1ubuntu0.1) ...
+2026-10-27T02:54:07.0736609Z Selecting previously unselected package libgstreamer-plugins-base1.0-0:amd64.
+2026-10-27T02:54:07.0838336Z Preparing to unpack .../21-libgstreamer-plugins-base1.0-0_1.24.2-1ubuntu0.5_amd64.deb ...
+2026-10-27T02:54:07.0844537Z Unpacking libgstreamer-plugins-base1.0-0:amd64 (1.24.2-1ubuntu0.5) ...
+2026-10-27T02:54:07.1143898Z Selecting previously unselected package libopus0:amd64.
+2026-10-27T02:54:07.1250087Z Preparing to unpack .../22-libopus0_1.4-1build1_amd64.deb ...
+2026-10-27T02:54:07.1256241Z Unpacking libopus0:amd64 (1.4-1build1) ...
+2026-10-27T02:54:07.1441713Z Selecting previously unselected package libtheora0:amd64.
+2026-10-27T02:54:07.1546021Z Preparing to unpack .../23-libtheora0_1.1.1+dfsg.1-16.1build3_amd64.deb ...
+2026-10-27T02:54:07.1551594Z Unpacking libtheora0:amd64 (1.1.1+dfsg.1-16.1build3) ...
+2026-10-27T02:54:07.1740224Z Selecting previously unselected package libvisual-0.4-0:amd64.
+2026-10-27T02:54:07.1842471Z Preparing to unpack .../24-libvisual-0.4-0_0.4.2-2build1_amd64.deb ...
+2026-10-27T02:54:07.1848508Z Unpacking libvisual-0.4-0:amd64 (0.4.2-2build1) ...
+2026-10-27T02:54:07.2024000Z Selecting previously unselected package libvorbisenc2:amd64.
+2026-10-27T02:54:07.2126097Z Preparing to unpack .../25-libvorbisenc2_1.3.7-1build3_amd64.deb ...
+2026-10-27T02:54:07.2132491Z Unpacking libvorbisenc2:amd64 (1.3.7-1build3) ...
+2026-10-27T02:54:07.2310556Z Selecting previously unselected package gstreamer1.0-plugins-base:amd64.
+2026-10-27T02:54:07.2413888Z Preparing to unpack .../26-gstreamer1.0-plugins-base_1.24.2-1ubuntu0.5_amd64.deb ...
+2026-10-27T02:54:07.2419973Z Unpacking gstreamer1.0-plugins-base:amd64 (1.24.2-1ubuntu0.5) ...
+2026-10-27T02:54:07.2723148Z Selecting previously unselected package libaa1:amd64.
+2026-10-27T02:54:07.2829083Z Preparing to unpack .../27-libaa1_1.4p5-51.1_amd64.deb ...
+2026-10-27T02:54:07.2835633Z Unpacking libaa1:amd64 (1.4p5-51.1) ...
+2026-10-27T02:54:07.3448141Z Selecting previously unselected package libraw1394-11:amd64.
+2026-10-27T02:54:07.3553572Z Preparing to unpack .../28-libraw1394-11_2.1.2-2build3_amd64.deb ...
+2026-10-27T02:54:07.3559376Z Unpacking libraw1394-11:amd64 (2.1.2-2build3) ...
+2026-10-27T02:54:07.3717058Z Selecting previously unselected package libavc1394-0:amd64.
+2026-10-27T02:54:07.3817495Z Preparing to unpack .../29-libavc1394-0_0.5.4-5build3_amd64.deb ...
+2026-10-27T02:54:07.3822875Z Unpacking libavc1394-0:amd64 (0.5.4-5build3) ...
+2026-10-27T02:54:07.3980431Z Selecting previously unselected package libcaca0:amd64.
+2026-10-27T02:54:07.4081569Z Preparing to unpack .../30-libcaca0_0.99.beta20-4ubuntu0.2_amd64.deb ...
+2026-10-27T02:54:07.4096770Z Unpacking libcaca0:amd64 (0.99.beta20-4ubuntu0.2) ...
+2026-10-27T02:54:07.4297845Z Selecting previously unselected package libdv4t64:amd64.
+2026-10-27T02:54:07.4399589Z Preparing to unpack .../31-libdv4t64_1.0.0-17.1build1_amd64.deb ...
+2026-10-27T02:54:07.4405274Z Unpacking libdv4t64:amd64 (1.0.0-17.1build1) ...
+2026-10-27T02:54:07.4581707Z Selecting previously unselected package libflac12t64:amd64.
+2026-10-27T02:54:07.4682217Z Preparing to unpack .../32-libflac12t64_1.4.3+ds-2.1ubuntu2_amd64.deb ...
+2026-10-27T02:54:07.4687443Z Unpacking libflac12t64:amd64 (1.4.3+ds-2.1ubuntu2) ...
+2026-10-27T02:54:07.4861041Z Selecting previously unselected package libgstreamer-plugins-good1.0-0:amd64.
+2026-10-27T02:54:07.4962656Z Preparing to unpack .../33-libgstreamer-plugins-good1.0-0_1.24.2-1ubuntu1.8_amd64.deb ...
+2026-10-27T02:54:07.4968282Z Unpacking libgstreamer-plugins-good1.0-0:amd64 (1.24.2-1ubuntu1.8) ...
+2026-10-27T02:54:07.5130973Z Selecting previously unselected package libiec61883-0:amd64.
+2026-10-27T02:54:07.5232146Z Preparing to unpack .../34-libiec61883-0_1.2.0-6build1_amd64.deb ...
+2026-10-27T02:54:07.5237509Z Unpacking libiec61883-0:amd64 (1.2.0-6build1) ...
+2026-10-27T02:54:07.5397417Z Selecting previously unselected package libmp3lame0:amd64.
+2026-10-27T02:54:07.5498844Z Preparing to unpack .../35-libmp3lame0_3.100-6build1_amd64.deb ...
+2026-10-27T02:54:07.5504830Z Unpacking libmp3lame0:amd64 (3.100-6build1) ...
+2026-10-27T02:54:07.5681344Z Selecting previously unselected package libmpg123-0t64:amd64.
+2026-10-27T02:54:07.5783883Z Preparing to unpack .../36-libmpg123-0t64_1.32.5-1ubuntu1.1_amd64.deb ...
+2026-10-27T02:54:07.5789256Z Unpacking libmpg123-0t64:amd64 (1.32.5-1ubuntu1.1) ...
+2026-10-27T02:54:07.5962127Z Selecting previously unselected package libasyncns0:amd64.
+2026-10-27T02:54:07.6065115Z Preparing to unpack .../37-libasyncns0_0.8-6build4_amd64.deb ...
+2026-10-27T02:54:07.6070807Z Unpacking libasyncns0:amd64 (0.8-6build4) ...
+2026-10-27T02:54:07.6229180Z Selecting previously unselected package libsndfile1:amd64.
+2026-10-27T02:54:07.6329101Z Preparing to unpack .../38-libsndfile1_1.2.2-1ubuntu5.24.04.1_amd64.deb ...
+2026-10-27T02:54:07.6335053Z Unpacking libsndfile1:amd64 (1.2.2-1ubuntu5.24.04.1) ...
+2026-10-27T02:54:07.6591833Z Selecting previously unselected package libpulse0:amd64.
+2026-10-27T02:54:07.6695518Z Preparing to unpack .../39-libpulse0_1%3a16.1+dfsg1-2ubuntu10.1_amd64.deb ...
+2026-10-27T02:54:07.6746901Z Unpacking libpulse0:amd64 (1:16.1+dfsg1-2ubuntu10.1) ...
+2026-10-27T02:54:07.6942055Z Selecting previously unselected package libspeex1:amd64.
+2026-10-27T02:54:07.7046300Z Preparing to unpack .../40-libspeex1_1.2.1-2ubuntu2.24.04.1_amd64.deb ...
+2026-10-27T02:54:07.7051561Z Unpacking libspeex1:amd64 (1.2.1-2ubuntu2.24.04.1) ...
+2026-10-27T02:54:07.7212423Z Selecting previously unselected package libshout3:amd64.
+2026-10-27T02:54:07.7315389Z Preparing to unpack .../41-libshout3_2.4.6-1build2_amd64.deb ...
+2026-10-27T02:54:07.7321036Z Unpacking libshout3:amd64 (2.4.6-1build2) ...
+2026-10-27T02:54:07.7491205Z Selecting previously unselected package libtag1v5-vanilla:amd64.
+2026-10-27T02:54:07.7594299Z Preparing to unpack .../42-libtag1v5-vanilla_1.13.1-1build1_amd64.deb ...
+2026-10-27T02:54:07.7600155Z Unpacking libtag1v5-vanilla:amd64 (1.13.1-1build1) ...
+2026-10-27T02:54:07.7812814Z Selecting previously unselected package libtag1v5:amd64.
+2026-10-27T02:54:07.7914884Z Preparing to unpack .../43-libtag1v5_1.13.1-1build1_amd64.deb ...
+2026-10-27T02:54:07.7920675Z Unpacking libtag1v5:amd64 (1.13.1-1build1) ...
+2026-10-27T02:54:07.8078532Z Selecting previously unselected package libtwolame0:amd64.
+2026-10-27T02:54:07.8180723Z Preparing to unpack .../44-libtwolame0_0.4.0-2build3_amd64.deb ...
+2026-10-27T02:54:07.8186297Z Unpacking libtwolame0:amd64 (0.4.0-2build3) ...
+2026-10-27T02:54:07.8353381Z Selecting previously unselected package libv4lconvert0t64:amd64.
+2026-10-27T02:54:07.8455336Z Preparing to unpack .../45-libv4lconvert0t64_1.26.1-4build3_amd64.deb ...
+2026-10-27T02:54:07.8461334Z Unpacking libv4lconvert0t64:amd64 (1.26.1-4build3) ...
+2026-10-27T02:54:07.8641640Z Selecting previously unselected package libv4l-0t64:amd64.
+2026-10-27T02:54:07.8741672Z Preparing to unpack .../46-libv4l-0t64_1.26.1-4build3_amd64.deb ...
+2026-10-27T02:54:07.8747570Z Unpacking libv4l-0t64:amd64 (1.26.1-4build3) ...
+2026-10-27T02:54:07.8922616Z Selecting previously unselected package libvpx9:amd64.
+2026-10-27T02:54:07.9023623Z Preparing to unpack .../47-libvpx9_1.14.0-1ubuntu2.3_amd64.deb ...
+2026-10-27T02:54:07.9029569Z Unpacking libvpx9:amd64 (1.14.0-1ubuntu2.3) ...
+2026-10-27T02:54:07.9402116Z Selecting previously unselected package libwavpack1:amd64.
+2026-10-27T02:54:07.9507700Z Preparing to unpack .../48-libwavpack1_5.6.0-1build1_amd64.deb ...
+2026-10-27T02:54:07.9514010Z Unpacking libwavpack1:amd64 (5.6.0-1build1) ...
+2026-10-27T02:54:07.9672587Z Selecting previously unselected package libsoup-3.0-common.
+2026-10-27T02:54:07.9777991Z Preparing to unpack .../49-libsoup-3.0-common_3.4.4-5ubuntu0.9_all.deb ...
+2026-10-27T02:54:07.9783583Z Unpacking libsoup-3.0-common (3.4.4-5ubuntu0.9) ...
+2026-10-27T02:54:07.9940057Z Selecting previously unselected package libsoup-3.0-0:amd64.
+2026-10-27T02:54:08.0041145Z Preparing to unpack .../50-libsoup-3.0-0_3.4.4-5ubuntu0.9_amd64.deb ...
+2026-10-27T02:54:08.0047080Z Unpacking libsoup-3.0-0:amd64 (3.4.4-5ubuntu0.9) ...
+2026-10-27T02:54:08.0249688Z Selecting previously unselected package gstreamer1.0-plugins-good:amd64.
+2026-10-27T02:54:08.0351936Z Preparing to unpack .../51-gstreamer1.0-plugins-good_1.24.2-1ubuntu1.8_amd64.deb ...
+2026-10-27T02:54:08.0712300Z Unpacking gstreamer1.0-plugins-good:amd64 (1.24.2-1ubuntu1.8) ...
+2026-10-27T02:54:08.1987518Z Selecting previously unselected package libxv1:amd64.
+2026-10-27T02:54:08.2098353Z Preparing to unpack .../52-libxv1_2%3a1.0.11-1.1build1_amd64.deb ...
+2026-10-27T02:54:08.2104831Z Unpacking libxv1:amd64 (2:1.0.11-1.1build1) ...
+2026-10-27T02:54:08.2270812Z Selecting previously unselected package gstreamer1.0-x:amd64.
+2026-10-27T02:54:08.2377944Z Preparing to unpack .../53-gstreamer1.0-x_1.24.2-1ubuntu0.5_amd64.deb ...
+2026-10-27T02:54:08.2383995Z Unpacking gstreamer1.0-x:amd64 (1.24.2-1ubuntu0.5) ...
+2026-10-27T02:54:08.2549273Z Selecting previously unselected package ipxe-qemu.
+2026-10-27T02:54:08.2653526Z Preparing to unpack .../54-ipxe-qemu_1.21.1+git-20220113.fbbdc3926-0ubuntu2_all.deb ...
+2026-10-27T02:54:08.2659197Z Unpacking ipxe-qemu (1.21.1+git-20220113.fbbdc3926-0ubuntu2) ...
+2026-10-27T02:54:08.3333379Z Selecting previously unselected package ipxe-qemu-256k-compat-efi-roms.
+2026-10-27T02:54:08.3441718Z Preparing to unpack .../55-ipxe-qemu-256k-compat-efi-roms_1.0.0+git-20150424.a25a16d-0ubuntu5_all.deb ...
+2026-10-27T02:54:08.3447457Z Unpacking ipxe-qemu-256k-compat-efi-roms (1.0.0+git-20150424.a25a16d-0ubuntu5) ...
+2026-10-27T02:54:08.3721705Z Selecting previously unselected package libboost1.83-dev:amd64.
+2026-10-27T02:54:08.3827538Z Preparing to unpack .../56-libboost1.83-dev_1.83.0-2.1ubuntu3.2_amd64.deb ...
+2026-10-27T02:54:08.3833960Z Unpacking libboost1.83-dev:amd64 (1.83.0-2.1ubuntu3.2) ...
+2026-10-27T02:54:11.2883126Z Selecting previously unselected package libboost-dev:amd64.
+2026-10-27T02:54:11.3056279Z Preparing to unpack .../57-libboost-dev_1.83.0.1ubuntu2_amd64.deb ...
+2026-10-27T02:54:11.3061963Z Unpacking libboost-dev:amd64 (1.83.0.1ubuntu2) ...
+2026-10-27T02:54:11.3229259Z Selecting previously unselected package libboost-iostreams1.83.0:amd64.
+2026-10-27T02:54:11.3344036Z Preparing to unpack .../58-libboost-iostreams1.83.0_1.83.0-2.1ubuntu3.2_amd64.deb ...
+2026-10-27T02:54:11.3353719Z Unpacking libboost-iostreams1.83.0:amd64 (1.83.0-2.1ubuntu3.2) ...
+2026-10-27T02:54:11.3646685Z Selecting previously unselected package libboost-thread1.83.0:amd64.
+2026-10-27T02:54:11.3761492Z Preparing to unpack .../59-libboost-thread1.83.0_1.83.0-2.1ubuntu3.2_amd64.deb ...
+2026-10-27T02:54:11.3767378Z Unpacking libboost-thread1.83.0:amd64 (1.83.0-2.1ubuntu3.2) ...
+2026-10-27T02:54:11.4116286Z Selecting previously unselected package libbrlapi0.8:amd64.
+2026-10-27T02:54:11.4229763Z Preparing to unpack .../60-libbrlapi0.8_6.6-4ubuntu5_amd64.deb ...
+2026-10-27T02:54:11.4236599Z Unpacking libbrlapi0.8:amd64 (6.6-4ubuntu5) ...
+2026-10-27T02:54:11.4526859Z Selecting previously unselected package libpcsclite1:amd64.
+2026-10-27T02:54:11.4640490Z Preparing to unpack .../61-libpcsclite1_2.0.3-1build1_amd64.deb ...
+2026-10-27T02:54:11.4645982Z Unpacking libpcsclite1:amd64 (2.0.3-1build1) ...
+2026-10-27T02:54:11.4811894Z Selecting previously unselected package libcacard0:amd64.
+2026-10-27T02:54:11.4922326Z Preparing to unpack .../62-libcacard0_1%3a2.8.0-3build4_amd64.deb ...
+2026-10-27T02:54:11.4927879Z Unpacking libcacard0:amd64 (1:2.8.0-3build4) ...
+2026-10-27T02:54:11.5094892Z Selecting previously unselected package libdaxctl1:amd64.
+2026-10-27T02:54:11.5206658Z Preparing to unpack .../63-libdaxctl1_77-2ubuntu2_amd64.deb ...
+2026-10-27T02:54:11.5219288Z Unpacking libdaxctl1:amd64 (77-2ubuntu2) ...
+2026-10-27T02:54:11.5384624Z Selecting previously unselected package libdecor-0-0:amd64.
+2026-10-27T02:54:11.5499344Z Preparing to unpack .../64-libdecor-0-0_0.2.2-1build2_amd64.deb ...
+2026-10-27T02:54:11.5505271Z Unpacking libdecor-0-0:amd64 (0.2.2-1build2) ...
+2026-10-27T02:54:11.5666399Z Selecting previously unselected package libdecor-0-plugin-1-gtk:amd64.
+2026-10-27T02:54:11.5779872Z Preparing to unpack .../65-libdecor-0-plugin-1-gtk_0.2.2-1build2_amd64.deb ...
+2026-10-27T02:54:11.5785110Z Unpacking libdecor-0-plugin-1-gtk:amd64 (0.2.2-1build2) ...
+2026-10-27T02:54:11.5951236Z Selecting previously unselected package librdmacm1t64:amd64.
+2026-10-27T02:54:11.6064223Z Preparing to unpack .../66-librdmacm1t64_50.0-2ubuntu0.2_amd64.deb ...
+2026-10-27T02:54:11.6072000Z Unpacking librdmacm1t64:amd64 (50.0-2ubuntu0.2) ...
+2026-10-27T02:54:11.6248312Z Selecting previously unselected package libiscsi7:amd64.
+2026-10-27T02:54:11.6360136Z Preparing to unpack .../67-libiscsi7_1.19.0-3build4_amd64.deb ...
+2026-10-27T02:54:11.6365380Z Unpacking libiscsi7:amd64 (1.19.0-3build4) ...
+2026-10-27T02:54:11.6537257Z Selecting previously unselected package libsamplerate0:amd64.
+2026-10-27T02:54:11.6647731Z Preparing to unpack .../68-libsamplerate0_0.2.2-4build1_amd64.deb ...
+2026-10-27T02:54:11.6654510Z Unpacking libsamplerate0:amd64 (0.2.2-4build1) ...
+2026-10-27T02:54:11.7047992Z Selecting previously unselected package libjack-jackd2-0:amd64.
+2026-10-27T02:54:11.7163658Z Preparing to unpack .../69-libjack-jackd2-0_1.9.21~dfsg-3ubuntu3_amd64.deb ...
+2026-10-27T02:54:11.7169313Z Unpacking libjack-jackd2-0:amd64 (1.9.21~dfsg-3ubuntu3) ...
+2026-10-27T02:54:11.7487458Z Selecting previously unselected package libndctl6:amd64.
+2026-10-27T02:54:11.7599970Z Preparing to unpack .../70-libndctl6_77-2ubuntu2_amd64.deb ...
+2026-10-27T02:54:11.7606376Z Unpacking libndctl6:amd64 (77-2ubuntu2) ...
+2026-10-27T02:54:11.7790692Z Selecting previously unselected package libnfs14:amd64.
+2026-10-27T02:54:11.7903648Z Preparing to unpack .../71-libnfs14_5.0.2-1ubuntu0.24.04.1_amd64.deb ...
+2026-10-27T02:54:11.7911327Z Unpacking libnfs14:amd64 (5.0.2-1ubuntu0.24.04.1) ...
+2026-10-27T02:54:11.8089054Z Selecting previously unselected package libwebrtc-audio-processing1:amd64.
+2026-10-27T02:54:11.8201793Z Preparing to unpack .../72-libwebrtc-audio-processing1_0.3.1-0ubuntu6_amd64.deb ...
+2026-10-27T02:54:11.8209613Z Unpacking libwebrtc-audio-processing1:amd64 (0.3.1-0ubuntu6) ...
+2026-10-27T02:54:11.8398106Z Selecting previously unselected package libspa-0.2-modules:amd64.
+2026-10-27T02:54:11.8512676Z Preparing to unpack .../73-libspa-0.2-modules_1.0.5-1ubuntu3.3_amd64.deb ...
+2026-10-27T02:54:11.9399615Z Unpacking libspa-0.2-modules:amd64 (1.0.5-1ubuntu3.3) ...
+2026-10-27T02:54:11.9713399Z Selecting previously unselected package libpipewire-0.3-0t64:amd64.
+2026-10-27T02:54:11.9833373Z Preparing to unpack .../74-libpipewire-0.3-0t64_1.0.5-1ubuntu3.3_amd64.deb ...
+2026-10-27T02:54:11.9841764Z Unpacking libpipewire-0.3-0t64:amd64 (1.0.5-1ubuntu3.3) ...
+2026-10-27T02:54:12.0060317Z Selecting previously unselected package libpipewire-0.3-common.
+2026-10-27T02:54:12.0177912Z Preparing to unpack .../75-libpipewire-0.3-common_1.0.5-1ubuntu3.3_all.deb ...
+2026-10-27T02:54:12.0183859Z Unpacking libpipewire-0.3-common (1.0.5-1ubuntu3.3) ...
+2026-10-27T02:54:12.0344166Z Selecting previously unselected package libpmem1:amd64.
+2026-10-27T02:54:12.0458638Z Preparing to unpack .../76-libpmem1_1.13.1-1.1ubuntu2_amd64.deb ...
+2026-10-27T02:54:12.0465022Z Unpacking libpmem1:amd64 (1.13.1-1.1ubuntu2) ...
+2026-10-27T02:54:12.1052112Z Selecting previously unselected package libpmemobj1:amd64.
+2026-10-27T02:54:12.1172425Z Preparing to unpack .../77-libpmemobj1_1.13.1-1.1ubuntu2_amd64.deb ...
+2026-10-27T02:54:12.1178357Z Unpacking libpmemobj1:amd64 (1.13.1-1.1ubuntu2) ...
+2026-10-27T02:54:12.1449423Z Selecting previously unselected package librados2.
+2026-10-27T02:54:12.1567720Z Preparing to unpack .../78-librados2_19.2.3-0ubuntu0.24.04.3_amd64.deb ...
+2026-10-27T02:54:12.1576088Z Unpacking librados2 (19.2.3-0ubuntu0.24.04.3) ...
+2026-10-27T02:54:12.2987420Z Selecting previously unselected package librbd1.
+2026-10-27T02:54:12.3108422Z Preparing to unpack .../79-librbd1_19.2.3-0ubuntu0.24.04.3_amd64.deb ...
+2026-10-27T02:54:12.3114662Z Unpacking librbd1 (19.2.3-0ubuntu0.24.04.3) ...
+2026-10-27T02:54:12.4100460Z Selecting previously unselected package libsdl2-2.0-0:amd64.
+2026-10-27T02:54:12.4221024Z Preparing to unpack .../80-libsdl2-2.0-0_2.30.0+dfsg-1ubuntu3.1_amd64.deb ...
+2026-10-27T02:54:12.4228721Z Unpacking libsdl2-2.0-0:amd64 (2.30.0+dfsg-1ubuntu3.1) ...
+2026-10-27T02:54:12.4568757Z Selecting previously unselected package libspice-server1:amd64.
+2026-10-27T02:54:12.4687727Z Preparing to unpack .../81-libspice-server1_0.15.1-1build2_amd64.deb ...
+2026-10-27T02:54:12.4693516Z Unpacking libspice-server1:amd64 (0.15.1-1build2) ...
+2026-10-27T02:54:12.4946242Z Selecting previously unselected package liburing2:amd64.
+2026-10-27T02:54:12.5063903Z Preparing to unpack .../82-liburing2_2.5-1build1_amd64.deb ...
+2026-10-27T02:54:12.5072260Z Unpacking liburing2:amd64 (2.5-1build1) ...
+2026-10-27T02:54:12.5877900Z Selecting previously unselected package libusbredirparser1t64:amd64.
+2026-10-27T02:54:12.5996913Z Preparing to unpack .../83-libusbredirparser1t64_0.13.0-2.1build1_amd64.deb ...
+2026-10-27T02:54:12.6005084Z Unpacking libusbredirparser1t64:amd64 (0.13.0-2.1build1) ...
+2026-10-27T02:54:12.6176203Z Selecting previously unselected package libvirglrenderer1:amd64.
+2026-10-27T02:54:12.6293834Z Preparing to unpack .../84-libvirglrenderer1_1.0.0-1ubuntu2_amd64.deb ...
+2026-10-27T02:54:12.6300217Z Unpacking libvirglrenderer1:amd64 (1.0.0-1ubuntu2) ...
+2026-10-27T02:54:12.6484971Z Selecting previously unselected package libvte-2.91-common.
+2026-10-27T02:54:12.6600375Z Preparing to unpack .../85-libvte-2.91-common_0.76.0-1ubuntu0.1_amd64.deb ...
+2026-10-27T02:54:12.6605873Z Unpacking libvte-2.91-common (0.76.0-1ubuntu0.1) ...
+2026-10-27T02:54:12.6785278Z Selecting previously unselected package libvte-2.91-0:amd64.
+2026-10-27T02:54:12.6894360Z Preparing to unpack .../86-libvte-2.91-0_0.76.0-1ubuntu0.1_amd64.deb ...
+2026-10-27T02:54:12.6904564Z Unpacking libvte-2.91-0:amd64 (0.76.0-1ubuntu0.1) ...
+2026-10-27T02:54:12.7244072Z Selecting previously unselected package libfdt1:amd64.
+2026-10-27T02:54:12.7357730Z Preparing to unpack .../87-libfdt1_1.7.0-2build1_amd64.deb ...
+2026-10-27T02:54:12.7365491Z Unpacking libfdt1:amd64 (1.7.0-2build1) ...
+2026-10-27T02:54:12.8795902Z Selecting previously unselected package qemu-system-common.
+2026-10-27T02:54:12.8916425Z Preparing to unpack .../88-qemu-system-common_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb ...
+2026-10-27T02:54:12.8922390Z Unpacking qemu-system-common (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-27T02:54:12.9769457Z Selecting previously unselected package qemu-system-data.
+2026-10-27T02:54:12.9890797Z Preparing to unpack .../89-qemu-system-data_1%3a8.2.2+ds-0ubuntu1.18_all.deb ...
+2026-10-27T02:54:13.1195584Z Unpacking qemu-system-data (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-27T02:54:13.1919196Z Selecting previously unselected package qemu-system-arm.
+2026-10-27T02:54:13.2040548Z Preparing to unpack .../90-qemu-system-arm_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb ...
+2026-10-27T02:54:13.2094113Z Unpacking qemu-system-arm (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-27T02:54:13.6483707Z Selecting previously unselected package qemu-utils.
+2026-10-27T02:54:13.6605496Z Preparing to unpack .../91-qemu-utils_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb ...
+2026-10-27T02:54:13.6611684Z Unpacking qemu-utils (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-27T02:54:13.7385011Z Selecting previously unselected package qemu-block-extra.
+2026-10-27T02:54:13.7507242Z Preparing to unpack .../92-qemu-block-extra_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb ...
+2026-10-27T02:54:13.7511941Z Unpacking qemu-block-extra (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-27T02:54:13.8941334Z Selecting previously unselected package qemu-system-modules-opengl.
+2026-10-27T02:54:13.9061169Z Preparing to unpack .../93-qemu-system-modules-opengl_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb ...
+2026-10-27T02:54:13.9067565Z Unpacking qemu-system-modules-opengl (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-27T02:54:13.9262613Z Selecting previously unselected package qemu-system-gui.
+2026-10-27T02:54:13.9379148Z Preparing to unpack .../94-qemu-system-gui_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb ...
+2026-10-27T02:54:13.9384795Z Unpacking qemu-system-gui (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-27T02:54:13.9619514Z Selecting previously unselected package qemu-system-modules-spice.
+2026-10-27T02:54:13.9733090Z Preparing to unpack .../95-qemu-system-modules-spice_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb ...
+2026-10-27T02:54:13.9739420Z Unpacking qemu-system-modules-spice (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-27T02:54:13.9926274Z Selecting previously unselected package apparmor-profiles.
+2026-10-27T02:54:14.0039960Z Preparing to unpack .../96-apparmor-profiles_4.0.1really4.0.1-0ubuntu0.24.04.9_all.deb ...
+2026-10-27T02:54:14.0517027Z Unpacking apparmor-profiles (4.0.1really4.0.1-0ubuntu0.24.04.9) ...
+2026-10-27T02:54:14.1251226Z Selecting previously unselected package libc6-dbg:amd64.
+2026-10-27T02:54:14.1371612Z Preparing to unpack .../97-libc6-dbg_2.39-0ubuntu8.9_amd64.deb ...
+2026-10-27T02:54:14.1376996Z Unpacking libc6-dbg:amd64 (2.39-0ubuntu8.9) ...
+2026-10-27T02:54:14.2620595Z Selecting previously unselected package qemu-efi-aarch64.
+2026-10-27T02:54:14.2742827Z Preparing to unpack .../98-qemu-efi-aarch64_2024.02-2ubuntu0.10_all.deb ...
+2026-10-27T02:54:14.2747728Z Unpacking qemu-efi-aarch64 (2024.02-2ubuntu0.10) ...
+2026-10-27T02:54:16.1868189Z Selecting previously unselected package qemu-efi-arm.
+2026-10-27T02:54:16.1990788Z Preparing to unpack .../99-qemu-efi-arm_2024.02-2ubuntu0.10_all.deb ...
+2026-10-27T02:54:16.1998587Z Unpacking qemu-efi-arm (2024.02-2ubuntu0.10) ...
+2026-10-27T02:54:17.0575258Z Setting up libpipewire-0.3-common (1.0.5-1ubuntu3.3) ...
+2026-10-27T02:54:17.0590654Z Setting up bubblewrap (0.9.0-1ubuntu0.3) ...
+2026-10-27T02:54:17.0628921Z Setting up libcdparanoia0:amd64 (3.10.2+debian-14build3) ...
+2026-10-27T02:54:17.0645423Z Setting up session-migration (0.3.9build1) ...
+2026-10-27T02:54:17.1716856Z Created symlink /etc/systemd/user/graphical-session-pre.target.wants/session-migration.service → /usr/lib/systemd/user/session-migration.service.
+2026-10-27T02:54:17.1717351Z 
+2026-10-27T02:54:17.1777888Z Setting up libraw1394-11:amd64 (2.1.2-2build3) ...
+2026-10-27T02:54:17.1800107Z Setting up libboost1.83-dev:amd64 (1.83.0-2.1ubuntu3.2) ...
+2026-10-27T02:54:17.1834838Z Setting up libapparmor1:amd64 (4.0.1really4.0.1-0ubuntu0.24.04.9) ...
+2026-10-27T02:54:17.1861681Z Setting up libtag1v5-vanilla:amd64 (1.13.1-1build1) ...
+2026-10-27T02:54:17.1896251Z Setting up libspeex1:amd64 (1.2.1-2ubuntu2.24.04.1) ...
+2026-10-27T02:54:17.1933858Z Setting up libcaca0:amd64 (0.99.beta20-4ubuntu0.2) ...
+2026-10-27T02:54:17.1961871Z Setting up libv4lconvert0t64:amd64 (1.26.1-4build3) ...
+2026-10-27T02:54:17.1996514Z Setting up libtwolame0:amd64 (0.4.0-2build3) ...
+2026-10-27T02:54:17.2022017Z Setting up libvte-2.91-common (0.76.0-1ubuntu0.1) ...
+2026-10-27T02:54:17.2077756Z Setting up libdebuginfod-common (0.190-1.1ubuntu0.1) ...
+2026-10-27T02:54:17.3316468Z Setting up libcurl4t64:amd64 (8.5.0-2ubuntu10.16) ...
+2026-10-27T02:54:17.3338109Z Setting up libvisual-0.4-0:amd64 (0.4.2-2build1) ...
+2026-10-27T02:54:17.3373998Z Setting up libcurl3t64-gnutls:amd64 (8.5.0-2ubuntu10.16) ...
+2026-10-27T02:54:17.3398248Z Setting up libwebrtc-audio-processing1:amd64 (0.3.1-0ubuntu6) ...
+2026-10-27T02:54:17.3433634Z Setting up libboost-thread1.83.0:amd64 (1.83.0-2.1ubuntu3.2) ...
+2026-10-27T02:54:17.3526347Z Setting up libsoup-3.0-common (3.4.4-5ubuntu0.9) ...
+2026-10-27T02:54:17.3551125Z Setting up libmpg123-0t64:amd64 (1.32.5-1ubuntu1.1) ...
+2026-10-27T02:54:17.3578626Z Setting up libfdt1:amd64 (1.7.0-2build1) ...
+2026-10-27T02:54:17.3600224Z Setting up qemu-efi-aarch64 (2024.02-2ubuntu0.10) ...
+2026-10-27T02:54:17.3636225Z Setting up libvte-2.91-0:amd64 (0.76.0-1ubuntu0.1) ...
+2026-10-27T02:54:17.3660226Z Setting up libsource-highlight-common (3.1.9-4.3build1) ...
+2026-10-27T02:54:17.3696047Z Setting up libnfs14:amd64 (5.0.2-1ubuntu0.24.04.1) ...
+2026-10-27T02:54:17.3722967Z Setting up libc6-dbg:amd64 (2.39-0ubuntu8.9) ...
+2026-10-27T02:54:17.3760690Z Setting up liborc-0.4-0t64:amd64 (1:0.4.38-1ubuntu0.1) ...
+2026-10-27T02:54:17.3798209Z Setting up apparmor (4.0.1really4.0.1-0ubuntu0.24.04.9) ...
+2026-10-27T02:54:18.3499228Z Installing new version of config file /etc/apparmor.d/transmission ...
+2026-10-27T02:54:19.0842053Z Reloading AppArmor profiles 
+2026-10-27T02:54:19.1723677Z Skipping profile in /etc/apparmor.d/disable: usr.bin.firefox
+2026-10-27T02:54:19.4123733Z Setting up libvirglrenderer1:amd64 (1.0.0-1ubuntu2) ...
+2026-10-27T02:54:19.4138917Z Setting up libspa-0.2-modules:amd64 (1.0.5-1ubuntu3.3) ...
+2026-10-27T02:54:19.4154271Z Setting up libboost-iostreams1.83.0:amd64 (1.83.0-2.1ubuntu3.2) ...
+2026-10-27T02:54:19.4167930Z Setting up libopus0:amd64 (1.4-1build1) ...
+2026-10-27T02:54:19.4182683Z Setting up libxv1:amd64 (2:1.0.11-1.1build1) ...
+2026-10-27T02:54:19.4198451Z Setting up libipt2 (2.0.6-1build1) ...
+2026-10-27T02:54:19.4212244Z Setting up libdv4t64:amd64 (1.0.0-17.1build1) ...
+2026-10-27T02:54:19.4227186Z Setting up libpcsclite1:amd64 (2.0.3-1build1) ...
+2026-10-27T02:54:19.4241337Z Setting up libdaxctl1:amd64 (77-2ubuntu2) ...
+2026-10-27T02:54:19.4256850Z Setting up libbabeltrace1:amd64 (1.5.11-3build3) ...
+2026-10-27T02:54:19.4283091Z Setting up qemu-system-data (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-27T02:54:19.4296169Z Setting up libv4l-0t64:amd64 (1.26.1-4build3) ...
+2026-10-27T02:54:19.4315476Z Setting up libvpx9:amd64 (1.14.0-1ubuntu2.3) ...
+2026-10-27T02:54:19.4328736Z Setting up libtag1v5:amd64 (1.13.1-1build1) ...
+2026-10-27T02:54:19.4343454Z Setting up libasyncns0:amd64 (0.8-6build4) ...
+2026-10-27T02:54:19.4360140Z Setting up libwavpack1:amd64 (5.6.0-1build1) ...
+2026-10-27T02:54:19.4375026Z Setting up libusbredirparser1t64:amd64 (0.13.0-2.1build1) ...
+2026-10-27T02:54:19.4389722Z Setting up ipxe-qemu (1.21.1+git-20220113.fbbdc3926-0ubuntu2) ...
+2026-10-27T02:54:19.4403697Z Setting up libtheora0:amd64 (1.1.1+dfsg.1-16.1build3) ...
+2026-10-27T02:54:19.4420303Z Setting up libdecor-0-0:amd64 (0.2.2-1build2) ...
+2026-10-27T02:54:19.4435572Z Setting up qemu-efi-arm (2024.02-2ubuntu0.10) ...
+2026-10-27T02:54:19.4449841Z Setting up libndctl6:amd64 (77-2ubuntu2) ...
+2026-10-27T02:54:19.4463438Z Setting up librdmacm1t64:amd64 (50.0-2ubuntu0.2) ...
+2026-10-27T02:54:19.4477453Z Setting up ipxe-qemu-256k-compat-efi-roms (1.0.0+git-20150424.a25a16d-0ubuntu5) ...
+2026-10-27T02:54:19.4494593Z Setting up libboost-dev:amd64 (1.83.0.1ubuntu2) ...
+2026-10-27T02:54:19.4511926Z Setting up libflac12t64:amd64 (1.4.3+ds-2.1ubuntu2) ...
+2026-10-27T02:54:19.4525384Z Setting up curl (8.5.0-2ubuntu10.16) ...
+2026-10-27T02:54:19.4539456Z Setting up libbrlapi0.8:amd64 (6.6-4ubuntu5) ...
+2026-10-27T02:54:19.4554294Z Setting up glib-networking-common (2.80.0-1build1) ...
+2026-10-27T02:54:19.4569760Z Setting up liburing2:amd64 (2.5-1build1) ...
+2026-10-27T02:54:19.4585947Z Setting up libiscsi7:amd64 (1.19.0-3build4) ...
+2026-10-27T02:54:19.4601826Z Setting up libsamplerate0:amd64 (0.2.2-4build1) ...
+2026-10-27T02:54:19.4615469Z Setting up libpmem1:amd64 (1.13.1-1.1ubuntu2) ...
+2026-10-27T02:54:19.4630677Z Setting up libpipewire-0.3-0t64:amd64 (1.0.5-1ubuntu3.3) ...
+2026-10-27T02:54:19.4646071Z Setting up libdecor-0-plugin-1-gtk:amd64 (0.2.2-1build2) ...
+2026-10-27T02:54:19.4658797Z Setting up libmp3lame0:amd64 (3.100-6build1) ...
+2026-10-27T02:54:19.4676030Z Setting up libvorbisenc2:amd64 (1.3.7-1build3) ...
+2026-10-27T02:54:19.4688961Z Setting up libaa1:amd64 (1.4p5-51.1) ...
+2026-10-27T02:54:19.4703029Z Setting up libiec61883-0:amd64 (1.2.0-6build1) ...
+2026-10-27T02:54:19.4720373Z Setting up libavc1394-0:amd64 (0.5.4-5build3) ...
+2026-10-27T02:54:19.4733880Z Setting up gsettings-desktop-schemas (46.1-0ubuntu1) ...
+2026-10-27T02:54:19.4756105Z Setting up libdebuginfod1t64:amd64 (0.190-1.1ubuntu0.1) ...
+2026-10-27T02:54:19.4769023Z Setting up librados2 (19.2.3-0ubuntu0.24.04.3) ...
+2026-10-27T02:54:19.4784540Z Setting up libproxy1v5:amd64 (0.5.4-4build1) ...
+2026-10-27T02:54:19.4801417Z Setting up apparmor-profiles (4.0.1really4.0.1-0ubuntu0.24.04.9) ...
+2026-10-27T02:54:20.0895146Z Setting up libgstreamer-plugins-base1.0-0:amd64 (1.24.2-1ubuntu0.5) ...
+2026-10-27T02:54:20.0911867Z Setting up libsource-highlight4t64:amd64 (3.1.9-4.3build1) ...
+2026-10-27T02:54:20.0926256Z Setting up libcacard0:amd64 (1:2.8.0-3build4) ...
+2026-10-27T02:54:20.1353596Z Setting up libgstreamer-plugins-good1.0-0:amd64 (1.24.2-1ubuntu1.8) ...
+2026-10-27T02:54:20.1368421Z Setting up gdb (15.1-1ubuntu1~24.04.1) ...
+2026-10-27T02:54:20.1400434Z Setting up gstreamer1.0-plugins-base:amd64 (1.24.2-1ubuntu0.5) ...
+2026-10-27T02:54:20.1415051Z Setting up libshout3:amd64 (2.4.6-1build2) ...
+2026-10-27T02:54:20.1428114Z Setting up libpmemobj1:amd64 (1.13.1-1.1ubuntu2) ...
+2026-10-27T02:54:20.1445467Z Setting up librbd1 (19.2.3-0ubuntu0.24.04.3) ...
+2026-10-27T02:54:20.1464828Z Setting up libjack-jackd2-0:amd64 (1.9.21~dfsg-3ubuntu3) ...
+2026-10-27T02:54:20.1475968Z Setting up libsndfile1:amd64 (1.2.2-1ubuntu5.24.04.1) ...
+2026-10-27T02:54:20.1491877Z Setting up qemu-utils (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-27T02:54:20.1504729Z Setting up qemu-block-extra (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-27T02:54:20.2300717Z Created symlink /etc/systemd/system/multi-user.target.wants/run-qemu.mount → /usr/lib/systemd/system/run-qemu.mount.
+2026-10-27T02:54:20.2301351Z 
+2026-10-27T02:54:20.9413006Z Setting up glib-networking-services (2.80.0-1build1) ...
+2026-10-27T02:54:20.9427291Z Setting up gstreamer1.0-x:amd64 (1.24.2-1ubuntu0.5) ...
+2026-10-27T02:54:20.9444263Z Setting up qemu-system-common (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-27T02:54:21.0254161Z Created symlink /etc/systemd/system/multi-user.target.wants/qemu-kvm.service → /usr/lib/systemd/system/qemu-kvm.service.
+2026-10-27T02:54:21.0254577Z 
+2026-10-27T02:54:21.2730692Z Setting up libpulse0:amd64 (1:16.1+dfsg1-2ubuntu10.1) ...
+2026-10-27T02:54:21.2787050Z Setting up libspice-server1:amd64 (0.15.1-1build2) ...
+2026-10-27T02:54:21.2804055Z Setting up qemu-system-arm (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-27T02:54:21.2853254Z Setting up libsdl2-2.0-0:amd64 (2.30.0+dfsg-1ubuntu3.1) ...
+2026-10-27T02:54:21.2869830Z Setting up qemu-system-modules-opengl (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-27T02:54:21.2885554Z Setting up qemu-system-gui (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-27T02:54:21.2904222Z Setting up qemu-system-modules-spice (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-27T02:54:21.3023582Z Processing triggers for hicolor-icon-theme (0.17-2) ...
+2026-10-27T02:54:21.6441466Z Processing triggers for libc-bin (2.39-0ubuntu8.9) ...
+2026-10-27T02:54:23.3553647Z Processing triggers for man-db (2.12.0-4build2) ...
+2026-10-27T02:54:23.3571233Z Not building database; man-db/auto-update is not 'true'.
+2026-10-27T02:54:23.3586788Z Processing triggers for libglib2.0-0t64:amd64 (2.80.0-6ubuntu3.9) ...
+2026-10-27T02:54:23.3999462Z Setting up glib-networking:amd64 (2.80.0-1build1) ...
+2026-10-27T02:54:23.4025973Z Setting up libsoup-3.0-0:amd64 (3.4.4-5ubuntu0.9) ...
+2026-10-27T02:54:23.4054383Z Setting up gstreamer1.0-plugins-good:amd64 (1.24.2-1ubuntu1.8) ...
+2026-10-27T02:54:23.4072691Z Processing triggers for libc-bin (2.39-0ubuntu8.9) ...
+2026-10-27T02:54:24.6423665Z 
+2026-10-27T02:54:24.6424155Z Running kernel seems to be up-to-date.
+2026-10-27T02:54:24.6424464Z 
+2026-10-27T02:54:24.6424587Z Restarting services...
+2026-10-27T02:54:24.6604353Z  /etc/needrestart/restart.d/systemd-manager
+2026-10-27T02:54:24.8784286Z  systemctl restart php8.3-fpm.service
+2026-10-27T02:55:54.9901866Z Job for php8.3-fpm.service failed because a timeout was exceeded.
+2026-10-27T02:55:54.9902590Z See "systemctl status php8.3-fpm.service" and "journalctl -xeu php8.3-fpm.service" for details.
+2026-10-27T02:55:54.9905463Z 
+2026-10-27T02:55:54.9906569Z Service restarts being deferred:
+2026-10-27T02:55:54.9907049Z  /etc/needrestart/restart.d/dbus.service
+2026-10-27T02:55:54.9907390Z 
+2026-10-27T02:55:54.9909199Z No containers need to be restarted.
+2026-10-27T02:55:54.9909429Z 
+2026-10-27T02:55:54.9909554Z User sessions running outdated binaries:
+2026-10-27T02:55:54.9909912Z  runner @ user manager service: systemd[1122]
+2026-10-27T02:55:54.9971259Z 
+2026-10-27T02:55:54.9971742Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+2026-10-27T02:55:55.7951144Z ##[group]Run # Keep the host-wide userns restriction and all Hepta isolation
+2026-10-27T02:55:55.7951619Z [36;1m# Keep the host-wide userns restriction and all Hepta isolation[0m
+2026-10-27T02:55:55.7952162Z [36;1m# checks. Ubuntu ships this profile separately from bubblewrap.[0m
+2026-10-27T02:55:55.7952549Z [36;1mhepta_profile=/usr/share/apparmor/extra-profiles/bwrap-userns-restrict[0m
+2026-10-27T02:55:55.7952876Z [36;1mtest -f "$hepta_profile"[0m
+2026-10-27T02:55:55.7953190Z [36;1mhepta_userns_policy=/proc/sys/kernel/apparmor_restrict_unprivileged_userns[0m
+2026-10-27T02:55:55.7953550Z [36;1mhepta_policy_before=not_present[0m
+2026-10-27T02:55:55.7953790Z [36;1mif test -f "$hepta_userns_policy"; then[0m
+2026-10-27T02:55:55.7954069Z [36;1m  hepta_policy_before=$(cat "$hepta_userns_policy")[0m
+2026-10-27T02:55:55.7954317Z [36;1mfi[0m
+2026-10-27T02:55:55.7954505Z [36;1msudo apparmor_parser -r "$hepta_profile"[0m
+2026-10-27T02:55:55.7954841Z [36;1msha256sum "$hepta_profile" > artifacts/bwrap-profile.sha256[0m
+2026-10-27T02:55:55.7955145Z [36;1mhepta_policy_after=not_present[0m
+2026-10-27T02:55:55.7955383Z [36;1mif test -f "$hepta_userns_policy"; then[0m
+2026-10-27T02:55:55.7955671Z [36;1m  hepta_policy_after=$(cat "$hepta_userns_policy")[0m
+2026-10-27T02:55:55.7956188Z [36;1mfi[0m
+2026-10-27T02:55:55.7956393Z [36;1mtest "$hepta_policy_before" = "$hepta_policy_after"[0m
+2026-10-27T02:55:55.7956647Z [36;1mpython - <<'PY'[0m
+2026-10-27T02:55:55.7956833Z [36;1mimport json[0m
+2026-10-27T02:55:55.7957021Z [36;1mfrom pathlib import Path[0m
+2026-10-27T02:55:55.7957292Z [36;1mfrom experiments.agent_eval.sandbox import probe_sandbox[0m
+2026-10-27T02:55:55.7957573Z [36;1mreport = probe_sandbox()[0m
+2026-10-27T02:55:55.7957918Z [36;1mPath("artifacts/sandbox-startup.json").write_text(json.dumps(report, indent=2) + "\n")[0m
+2026-10-27T02:55:55.7958278Z [36;1massert report["available"], report[0m
+2026-10-27T02:55:55.7958491Z [36;1mPY[0m
+2026-10-27T02:55:55.8014725Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-27T02:55:55.8014994Z env:
+2026-10-27T02:55:55.8015251Z   HEPTA_QUALIFICATION_HEAD_SHA: 44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314
+2026-10-27T02:55:55.8015622Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:55:55.8016126Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.17/x64/lib/pkgconfig
+2026-10-27T02:55:55.8016452Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:55:55.8016745Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:55:55.8017038Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:55:55.8017337Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.17/x64/lib
+2026-10-27T02:55:55.8017591Z ##[endgroup]
+2026-10-27T02:55:55.8726471Z ##[group]Run # Ubuntu 24.04 runner images ship Clang 18 by default. The owned
+2026-10-27T02:55:55.8726911Z [36;1m# Ubuntu 24.04 runner images ship Clang 18 by default. The owned[0m
+2026-10-27T02:55:55.8727266Z [36;1m# LLVM profile requires 20+, and every native receipt hashes the[0m
+2026-10-27T02:55:55.8727631Z [36;1m# actual selected compiler. Use LLVM's signed versioned repository.[0m
+2026-10-27T02:55:55.8727955Z [36;1mcurl --fail --location --retry 3 \[0m
+2026-10-27T02:55:55.8728243Z [36;1m  --output "$RUNNER_TEMP/hepta-llvm.asc" \[0m
+2026-10-27T02:55:55.8728540Z [36;1m  https://apt.llvm.org/llvm-snapshot.gpg.key[0m
+2026-10-27T02:55:55.8729039Z [36;1mhepta_llvm_fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hepta-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')[0m
+2026-10-27T02:55:55.8729580Z [36;1mtest "$hepta_llvm_fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421[0m
+2026-10-27T02:55:55.8730044Z [36;1msudo install -m 0644 "$RUNNER_TEMP/hepta-llvm.asc" /usr/share/keyrings/hepta-llvm.asc[0m
+2026-10-27T02:55:55.8730699Z [36;1mprintf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' \[0m
+2026-10-27T02:55:55.8731232Z [36;1m  | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list[0m
+2026-10-27T02:55:55.8731500Z [36;1msudo apt-get update[0m
+2026-10-27T02:55:55.8731753Z [36;1msudo apt-get install --yes clang-20 libclang-rt-20-dev[0m
+2026-10-27T02:55:55.8732202Z [36;1mtest -x /usr/lib/llvm-20/bin/clang[0m
+2026-10-27T02:55:55.8732449Z [36;1mtest -x /usr/lib/llvm-20/bin/clang++[0m
+2026-10-27T02:55:55.8732723Z [36;1mprintf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"[0m
+2026-10-27T02:55:55.8733005Z [36;1m/usr/lib/llvm-20/bin/clang --version[0m
+2026-10-27T02:55:55.8787349Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-27T02:55:55.8787619Z env:
+2026-10-27T02:55:55.8787877Z   HEPTA_QUALIFICATION_HEAD_SHA: 44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314
+2026-10-27T02:55:55.8788232Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:55:55.8788559Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.17/x64/lib/pkgconfig
+2026-10-27T02:55:55.8788876Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:55:55.8789168Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:55:55.8789461Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:55:55.8789765Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.17/x64/lib
+2026-10-27T02:55:55.8790022Z ##[endgroup]
+2026-10-27T02:55:55.8908291Z   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+2026-10-27T02:55:55.8908915Z                                  Dload  Upload   Total   Spent    Left  Speed
+2026-10-27T02:55:55.8909237Z 
+2026-10-27T02:55:55.9447785Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+2026-10-27T02:55:55.9448272Z 100  3167  100  3167    0     0  58520      0 --:--:-- --:--:-- --:--:-- 58648
+2026-10-27T02:55:55.9917768Z gpg: directory '/home/runner/.gnupg' created
+2026-10-27T02:55:55.9919207Z gpg: keybox '/home/runner/.gnupg/pubring.kbx' created
+2026-10-27T02:55:56.0104737Z gpg: /home/runner/.gnupg/trustdb.gpg: trustdb created
+2026-10-27T02:55:56.0236661Z deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main
+2026-10-27T02:55:56.0772583Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-10-27T02:55:56.1110543Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+2026-10-27T02:55:56.1114920Z Hit:6 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease
+2026-10-27T02:55:56.1128181Z Hit:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease
+2026-10-27T02:55:56.1129094Z Hit:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease
+2026-10-27T02:55:56.1136501Z Hit:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease
+2026-10-27T02:55:56.4151394Z Get:7 https://apt.llvm.org/noble llvm-toolchain-noble-20 InRelease [5554 B]
+2026-10-27T02:55:56.4680933Z Get:8 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 Packages [13.2 kB]
+2026-10-27T02:55:56.5751619Z Fetched 18.7 kB in 0s (44.8 kB/s)
+2026-10-27T02:55:57.3251710Z Reading package lists...
+2026-10-27T02:55:57.3514640Z Reading package lists...
+2026-10-27T02:55:57.5472933Z Building dependency tree...
+2026-10-27T02:55:57.5479702Z Reading state information...
+2026-10-27T02:55:57.6749702Z The following additional packages will be installed:
+2026-10-27T02:55:57.6752916Z   clang-tools-20 libclang-common-20-dev libclang-cpp20 libclang1-20 libllvm20
+2026-10-27T02:55:57.6754401Z   llvm-20 llvm-20-dev llvm-20-linker-tools llvm-20-runtime llvm-20-tools
+2026-10-27T02:55:57.6758402Z Suggested packages:
+2026-10-27T02:55:57.6758728Z   clang-20-doc wasi-libc llvm-20-doc
+2026-10-27T02:55:57.6892863Z The following NEW packages will be installed:
+2026-10-27T02:55:57.6893520Z   clang-20 clang-tools-20 libclang-common-20-dev libclang-cpp20
+2026-10-27T02:55:57.6896392Z   libclang-rt-20-dev libclang1-20 llvm-20 llvm-20-dev llvm-20-linker-tools
+2026-10-27T02:55:57.6897559Z   llvm-20-runtime llvm-20-tools
+2026-10-27T02:55:57.6901169Z The following packages will be upgraded:
+2026-10-27T02:55:57.6904485Z   libllvm20
+2026-10-27T02:55:57.8054924Z 1 upgraded, 11 newly installed, 0 to remove and 99 not upgraded.
+2026-10-27T02:55:57.8055453Z Need to get 142 MB of archives.
+2026-10-27T02:55:57.8056349Z After this operation, 703 MB of additional disk space will be used.
+2026-10-27T02:55:57.8056950Z Get:1 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libllvm20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [30.6 MB]
+2026-10-27T02:55:58.1633769Z Get:2 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libclang-cpp20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [14.3 MB]
+2026-10-27T02:55:58.2558210Z Get:3 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libclang-common-20-dev amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [780 kB]
+2026-10-27T02:55:58.2746966Z Get:4 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 llvm-20-linker-tools amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [1381 kB]
+2026-10-27T02:55:58.3592731Z Get:5 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libclang1-20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [8379 kB]
+2026-10-27T02:55:58.4183684Z Get:6 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 clang-20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [121 kB]
+2026-10-27T02:55:58.4754700Z Get:7 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 clang-tools-20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [9631 kB]
+2026-10-27T02:55:58.5940643Z Get:8 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libclang-rt-20-dev amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [4740 kB]
+2026-10-27T02:55:58.6377986Z Get:9 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 llvm-20-runtime amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [601 kB]
+2026-10-27T02:55:58.7081593Z Get:10 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 llvm-20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [19.8 MB]
+2026-10-27T02:55:58.8284130Z Get:11 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 llvm-20-tools amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [558 kB]
+2026-10-27T02:55:58.8442690Z Get:12 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 llvm-20-dev amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [51.0 MB]
+2026-10-27T02:55:59.5733628Z Fetched 142 MB in 2s (85.2 MB/s)
+2026-10-27T02:55:59.5953239Z (Reading database ... 
+2026-10-27T02:55:59.5953745Z (Reading database ... 5%
+2026-10-27T02:55:59.5954608Z (Reading database ... 10%
+2026-10-27T02:55:59.5955010Z (Reading database ... 15%
+2026-10-27T02:55:59.5955401Z (Reading database ... 20%
+2026-10-27T02:55:59.5956267Z (Reading database ... 25%
+2026-10-27T02:55:59.5956660Z (Reading database ... 30%
+2026-10-27T02:55:59.5957042Z (Reading database ... 35%
+2026-10-27T02:55:59.5957421Z (Reading database ... 40%
+2026-10-27T02:55:59.5957811Z (Reading database ... 45%
+2026-10-27T02:55:59.5958196Z (Reading database ... 50%
+2026-10-27T02:55:59.5973952Z (Reading database ... 55%
+2026-10-27T02:55:59.6067142Z (Reading database ... 60%
+2026-10-27T02:55:59.6094296Z (Reading database ... 65%
+2026-10-27T02:55:59.6114356Z (Reading database ... 70%
+2026-10-27T02:55:59.6149187Z (Reading database ... 75%
+2026-10-27T02:55:59.6177848Z (Reading database ... 80%
+2026-10-27T02:55:59.6304849Z (Reading database ... 85%
+2026-10-27T02:55:59.6475126Z (Reading database ... 90%
+2026-10-27T02:55:59.6590756Z (Reading database ... 95%
+2026-10-27T02:55:59.6591084Z (Reading database ... 100%
+2026-10-27T02:55:59.6591563Z (Reading database ... 222570 files and directories currently installed.)
+2026-10-27T02:55:59.6629576Z Preparing to unpack .../00-libllvm20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-27T02:55:59.6654267Z Unpacking libllvm20:amd64 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) over (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-10-27T02:56:00.7164719Z Selecting previously unselected package libclang-cpp20.
+2026-10-27T02:56:00.7286986Z Preparing to unpack .../01-libclang-cpp20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-27T02:56:00.7291790Z Unpacking libclang-cpp20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-27T02:56:01.2231249Z Selecting previously unselected package libclang-common-20-dev:amd64.
+2026-10-27T02:56:01.2352053Z Preparing to unpack .../02-libclang-common-20-dev_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-27T02:56:01.2358072Z Unpacking libclang-common-20-dev:amd64 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-27T02:56:01.3370880Z Selecting previously unselected package llvm-20-linker-tools.
+2026-10-27T02:56:01.3492275Z Preparing to unpack .../03-llvm-20-linker-tools_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-27T02:56:01.3498039Z Unpacking llvm-20-linker-tools (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-27T02:56:01.3955480Z Selecting previously unselected package libclang1-20.
+2026-10-27T02:56:01.4076298Z Preparing to unpack .../04-libclang1-20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-27T02:56:01.4082793Z Unpacking libclang1-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-27T02:56:01.6798998Z Selecting previously unselected package clang-20.
+2026-10-27T02:56:01.6908914Z Preparing to unpack .../05-clang-20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-27T02:56:01.6914793Z Unpacking clang-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-27T02:56:01.7115457Z Selecting previously unselected package clang-tools-20.
+2026-10-27T02:56:01.7232507Z Preparing to unpack .../06-clang-tools-20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-27T02:56:01.7237529Z Unpacking clang-tools-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-27T02:56:02.0639460Z Selecting previously unselected package libclang-rt-20-dev.
+2026-10-27T02:56:02.0761187Z Preparing to unpack .../07-libclang-rt-20-dev_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-27T02:56:02.0766325Z Unpacking libclang-rt-20-dev (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-27T02:56:02.3553393Z Selecting previously unselected package llvm-20-runtime.
+2026-10-27T02:56:02.3675541Z Preparing to unpack .../08-llvm-20-runtime_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-27T02:56:02.3680004Z Unpacking llvm-20-runtime (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-27T02:56:02.3963178Z Selecting previously unselected package llvm-20.
+2026-10-27T02:56:02.4081923Z Preparing to unpack .../09-llvm-20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-27T02:56:02.4087715Z Unpacking llvm-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-27T02:56:03.0562198Z Selecting previously unselected package llvm-20-tools.
+2026-10-27T02:56:03.0683610Z Preparing to unpack .../10-llvm-20-tools_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-27T02:56:03.0688926Z Unpacking llvm-20-tools (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-27T02:56:03.1628623Z Selecting previously unselected package llvm-20-dev.
+2026-10-27T02:56:03.1751596Z Preparing to unpack .../11-llvm-20-dev_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-27T02:56:03.1756565Z Unpacking llvm-20-dev (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-27T02:56:05.4417960Z Setting up libclang-common-20-dev:amd64 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-27T02:56:05.4454012Z Setting up libclang-rt-20-dev (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-27T02:56:05.4469259Z Setting up libllvm20:amd64 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-27T02:56:05.4484364Z Setting up libclang1-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-27T02:56:05.4497814Z Setting up llvm-20-runtime (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-27T02:56:05.4523972Z Setting up llvm-20-linker-tools (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-27T02:56:05.4539492Z Setting up llvm-20-tools (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-27T02:56:05.4553788Z Setting up libclang-cpp20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-27T02:56:05.4567634Z Setting up llvm-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-27T02:56:05.4581635Z Setting up llvm-20-dev (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-27T02:56:05.4621144Z Setting up clang-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-27T02:56:05.4634383Z Setting up clang-tools-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-27T02:56:05.4650567Z Processing triggers for systemd (255.4-1ubuntu8.17) ...
+2026-10-27T02:56:05.4913651Z Processing triggers for man-db (2.12.0-4build2) ...
+2026-10-27T02:56:05.4926819Z Not building database; man-db/auto-update is not 'true'.
+2026-10-27T02:56:05.4934579Z Processing triggers for libc-bin (2.39-0ubuntu8.9) ...
+2026-10-27T02:56:05.9247197Z 
+2026-10-27T02:56:05.9247560Z Running kernel seems to be up-to-date.
+2026-10-27T02:56:05.9247754Z 
+2026-10-27T02:56:05.9247846Z Restarting services...
+2026-10-27T02:56:05.9317758Z 
+2026-10-27T02:56:05.9318219Z Service restarts being deferred:
+2026-10-27T02:56:05.9318551Z  /etc/needrestart/restart.d/dbus.service
+2026-10-27T02:56:05.9318777Z 
+2026-10-27T02:56:05.9318958Z No containers need to be restarted.
+2026-10-27T02:56:05.9319184Z 
+2026-10-27T02:56:05.9319387Z User sessions running outdated binaries:
+2026-10-27T02:56:05.9325435Z  runner @ user manager service: systemd[1122]
+2026-10-27T02:56:05.9369782Z 
+2026-10-27T02:56:05.9370154Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+2026-10-27T02:56:06.7612454Z Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)
+2026-10-27T02:56:06.7612858Z Target: x86_64-pc-linux-gnu
+2026-10-27T02:56:06.7613334Z Thread model: posix
+2026-10-27T02:56:06.7613546Z InstalledDir: /usr/lib/llvm-20/bin
+2026-10-27T02:56:06.7658436Z ##[group]Run python tools/bootstrap_toolchain.py
+2026-10-27T02:56:06.7658766Z [36;1mpython tools/bootstrap_toolchain.py[0m
+2026-10-27T02:56:06.7659118Z [36;1mhepta_rustc=$(realpath "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/bin/rustc")[0m
+2026-10-27T02:56:06.7659467Z [36;1mtest -x "$hepta_rustc"[0m
+2026-10-27T02:56:06.7659761Z [36;1mprintf 'RUSTC=%s\n' "$hepta_rustc" >> "$GITHUB_ENV"[0m
+2026-10-27T02:56:06.7660087Z [36;1mprintf '%s\n' "$(dirname "$hepta_rustc")" >> "$GITHUB_PATH"[0m
+2026-10-27T02:56:06.7724629Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-27T02:56:06.7724906Z env:
+2026-10-27T02:56:06.7725157Z   HEPTA_QUALIFICATION_HEAD_SHA: 44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314
+2026-10-27T02:56:06.7725513Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:56:06.7726031Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.17/x64/lib/pkgconfig
+2026-10-27T02:56:06.7726403Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:56:06.7726701Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:56:06.7727003Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:56:06.7727306Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.17/x64/lib
+2026-10-27T02:56:06.7727566Z ##[endgroup]
+2026-10-27T02:56:06.8234248Z Downloading rustc-1.90.0-x86_64-unknown-linux-gnu
+2026-10-27T02:56:11.5375152Z install: creating uninstall script at /home/runner/work/Hepta/toolchains/rust-1.90.0/lib/rustlib/uninstall.sh
+2026-10-27T02:56:11.5390900Z install: installing component 'rustc'
+2026-10-27T02:56:12.2476548Z 
+2026-10-27T02:56:12.2476874Z     rustc installed.
+2026-10-27T02:56:12.2477082Z 
+2026-10-27T02:56:12.7573847Z Downloading rust-std-1.90.0-x86_64-unknown-linux-gnu
+2026-10-27T02:56:14.5474446Z install: creating uninstall script at /home/runner/work/Hepta/toolchains/rust-1.90.0/lib/rustlib/uninstall.sh
+2026-10-27T02:56:14.5485612Z install: installing component 'rust-std-x86_64-unknown-linux-gnu'
+2026-10-27T02:56:15.1298598Z 
+2026-10-27T02:56:15.1299108Z     rust std installed.
+2026-10-27T02:56:15.1299349Z 
+2026-10-27T02:56:15.3519407Z Downloading rust-std-1.90.0-aarch64-unknown-linux-gnu
+2026-10-27T02:56:17.2076942Z install: creating uninstall script at /home/runner/work/Hepta/toolchains/rust-1.90.0/lib/rustlib/uninstall.sh
+2026-10-27T02:56:17.2089178Z install: installing component 'rust-std-aarch64-unknown-linux-gnu'
+2026-10-27T02:56:17.7769682Z 
+2026-10-27T02:56:17.7770153Z     rust std installed.
+2026-10-27T02:56:17.7770336Z 
+2026-10-27T02:56:17.9918113Z Downloading rust-std-1.90.0-thumbv7em-none-eabi
+2026-10-27T02:56:19.3174707Z install: creating uninstall script at /home/runner/work/Hepta/toolchains/rust-1.90.0/lib/rustlib/uninstall.sh
+2026-10-27T02:56:19.3187022Z install: installing component 'rust-std-thumbv7em-none-eabi'
+2026-10-27T02:56:19.3809550Z 
+2026-10-27T02:56:19.3809936Z     rust std installed.
+2026-10-27T02:56:19.3810112Z 
+2026-10-27T02:56:19.4621116Z Downloading rust-std-1.90.0-x86_64-pc-windows-msvc
+2026-10-27T02:56:21.6682030Z install: creating uninstall script at /home/runner/work/Hepta/toolchains/rust-1.90.0/lib/rustlib/uninstall.sh
+2026-10-27T02:56:21.6694527Z install: installing component 'rust-std-x86_64-pc-windows-msvc'
+2026-10-27T02:56:22.0884125Z 
+2026-10-27T02:56:22.0884673Z     rust std installed.
+2026-10-27T02:56:22.0884956Z 
+2026-10-27T02:56:22.2537412Z {
+2026-10-27T02:56:22.2537856Z   "rustc": "/home/runner/work/Hepta/toolchains/rust-1.90.0/bin/rustc",
+2026-10-27T02:56:22.2538287Z   "components": [
+2026-10-27T02:56:22.2538507Z     {
+2026-10-27T02:56:22.2538811Z       "package": "rustc-1.90.0-x86_64-unknown-linux-gnu",
+2026-10-27T02:56:22.2539335Z       "sha256": "48c2a42de9e92fcae8c24568f5fe40d5734696a6f80e83cc6d46eef1a78f13c9",
+2026-10-27T02:56:22.2540025Z       "url": "https://static.rust-lang.org/dist/rustc-1.90.0-x86_64-unknown-linux-gnu.tar.xz"
+2026-10-27T02:56:22.2540519Z     },
+2026-10-27T02:56:22.2540714Z     {
+2026-10-27T02:56:22.2541319Z       "package": "rust-std-1.90.0-x86_64-unknown-linux-gnu",
+2026-10-27T02:56:22.2541849Z       "sha256": "663f4ab7945b392d5e5294dec1b050a66820a20e86f084ec37eeb0f2f7ff5569",
+2026-10-27T02:56:22.2542518Z       "url": "https://static.rust-lang.org/dist/rust-std-1.90.0-x86_64-unknown-linux-gnu.tar.xz"
+2026-10-27T02:56:22.2543002Z     },
+2026-10-27T02:56:22.2543189Z     {
+2026-10-27T02:56:22.2543481Z       "package": "rust-std-1.90.0-aarch64-unknown-linux-gnu",
+2026-10-27T02:56:22.2544013Z       "sha256": "4952abb7d9d3ed7cea4f7ea44dcb23dc67631fae4ac44a5f059b90a4b5e9223f",
+2026-10-27T02:56:22.2544680Z       "url": "https://static.rust-lang.org/dist/rust-std-1.90.0-aarch64-unknown-linux-gnu.tar.xz"
+2026-10-27T02:56:22.2545152Z     },
+2026-10-27T02:56:22.2545336Z     {
+2026-10-27T02:56:22.2545584Z       "package": "rust-std-1.90.0-thumbv7em-none-eabi",
+2026-10-27T02:56:22.2546250Z       "sha256": "dde6d6e27729cddaaffc6b4b70ce947cd9ed19c2ec443c99d3157a3be24dee13",
+2026-10-27T02:56:22.2546888Z       "url": "https://static.rust-lang.org/dist/rust-std-1.90.0-thumbv7em-none-eabi.tar.xz"
+2026-10-27T02:56:22.2547344Z     },
+2026-10-27T02:56:22.2547534Z     {
+2026-10-27T02:56:22.2547806Z       "package": "rust-std-1.90.0-x86_64-pc-windows-msvc",
+2026-10-27T02:56:22.2548284Z       "sha256": "3b8c22f81c93c7e914369433430792bd6c06403806ae25b0b95f3cfc540a8b48",
+2026-10-27T02:56:22.2548887Z       "url": "https://static.rust-lang.org/dist/rust-std-1.90.0-x86_64-pc-windows-msvc.tar.xz"
+2026-10-27T02:56:22.2549546Z     }
+2026-10-27T02:56:22.2549736Z   ],
+2026-10-27T02:56:22.2549945Z   "installation_verification": [
+2026-10-27T02:56:22.2550196Z     {
+2026-10-27T02:56:22.2550445Z       "package": "rustc-1.90.0-x86_64-unknown-linux-gnu",
+2026-10-27T02:56:22.2550772Z       "components": [
+2026-10-27T02:56:22.2550996Z         "rustc"
+2026-10-27T02:56:22.2551192Z       ],
+2026-10-27T02:56:22.2551395Z       "verified_payloads": 40,
+2026-10-27T02:56:22.2551928Z       "installed_payload_inventory_sha256": "382ba499c4ff662409f1e6055e0acdd93bab66cf4d325d1593c8d7ac34517d4a"
+2026-10-27T02:56:22.2552491Z     },
+2026-10-27T02:56:22.2552671Z     {
+2026-10-27T02:56:22.2552924Z       "package": "rust-std-1.90.0-x86_64-unknown-linux-gnu",
+2026-10-27T02:56:22.2553267Z       "components": [
+2026-10-27T02:56:22.2553515Z         "rust-std-x86_64-unknown-linux-gnu"
+2026-10-27T02:56:22.2553804Z       ],
+2026-10-27T02:56:22.2554010Z       "verified_payloads": 35,
+2026-10-27T02:56:22.2554531Z       "installed_payload_inventory_sha256": "b7ad3c31045ffb6fb2998622ce1848bdea8615639d27f6b93f6471c9f1163a08"
+2026-10-27T02:56:22.2555070Z     },
+2026-10-27T02:56:22.2555250Z     {
+2026-10-27T02:56:22.2555529Z       "package": "rust-std-1.90.0-aarch64-unknown-linux-gnu",
+2026-10-27T02:56:22.2556005Z       "components": [
+2026-10-27T02:56:22.2556266Z         "rust-std-aarch64-unknown-linux-gnu"
+2026-10-27T02:56:22.2556561Z       ],
+2026-10-27T02:56:22.2556764Z       "verified_payloads": 34,
+2026-10-27T02:56:22.2557320Z       "installed_payload_inventory_sha256": "0f46530c661104997b82b08a88d0b95db0207c75ab233502832b9d50b7017a96"
+2026-10-27T02:56:22.2557868Z     },
+2026-10-27T02:56:22.2558058Z     {
+2026-10-27T02:56:22.2558313Z       "package": "rust-std-1.90.0-thumbv7em-none-eabi",
+2026-10-27T02:56:22.2558651Z       "components": [
+2026-10-27T02:56:22.2558909Z         "rust-std-thumbv7em-none-eabi"
+2026-10-27T02:56:22.2559185Z       ],
+2026-10-27T02:56:22.2559403Z       "verified_payloads": 3,
+2026-10-27T02:56:22.2559937Z       "installed_payload_inventory_sha256": "f7e8078c75b8b24bf86f20dde421d3d525795676c921ce5919ff5cff5f52976f"
+2026-10-27T02:56:22.2560470Z     },
+2026-10-27T02:56:22.2560662Z     {
+2026-10-27T02:56:22.2560922Z       "package": "rust-std-1.90.0-x86_64-pc-windows-msvc",
+2026-10-27T02:56:22.2561261Z       "components": [
+2026-10-27T02:56:22.2561519Z         "rust-std-x86_64-pc-windows-msvc"
+2026-10-27T02:56:22.2561793Z       ],
+2026-10-27T02:56:22.2562002Z       "verified_payloads": 25,
+2026-10-27T02:56:22.2562723Z       "installed_payload_inventory_sha256": "d25d67f1aac367e5ba41674860bc33de023483ce66d92fe483d92cc768d61bdc"
+2026-10-27T02:56:22.2563274Z     }
+2026-10-27T02:56:22.2563460Z   ]
+2026-10-27T02:56:22.2563642Z }
+2026-10-27T02:56:22.2713520Z ##[group]Run python - <<'PY'
+2026-10-27T02:56:22.2713825Z [36;1mpython - <<'PY'[0m
+2026-10-27T02:56:22.2714038Z [36;1mimport json, os[0m
+2026-10-27T02:56:22.2714236Z [36;1mfrom pathlib import Path[0m
+2026-10-27T02:56:22.2714532Z [36;1mfrom hepta.backend import find_rustc, toolchain_info[0m
+2026-10-27T02:56:22.2714812Z [36;1mselected = find_rustc()[0m
+2026-10-27T02:56:22.2715087Z [36;1massert selected == str(Path(os.environ["RUSTC"]).resolve())[0m
+2026-10-27T02:56:22.2715392Z [36;1mreport = toolchain_info(selected)[0m
+2026-10-27T02:56:22.2716043Z [36;1mPath("artifacts/selected-rustc.json").write_text(json.dumps(report, indent=2) + "\n")[0m
+2026-10-27T02:56:22.2716399Z [36;1mPY[0m
+2026-10-27T02:56:22.2778312Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-27T02:56:22.2778599Z env:
+2026-10-27T02:56:22.2778924Z   HEPTA_QUALIFICATION_HEAD_SHA: 44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314
+2026-10-27T02:56:22.2779310Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:56:22.2779645Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.17/x64/lib/pkgconfig
+2026-10-27T02:56:22.2779972Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:56:22.2780434Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:56:22.2780728Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:56:22.2781022Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.17/x64/lib
+2026-10-27T02:56:22.2781339Z   RUSTC: /home/runner/work/Hepta/toolchains/rust-1.90.0/bin/rustc
+2026-10-27T02:56:22.2781610Z ##[endgroup]
+2026-10-27T02:56:22.3757897Z ##[group]Run python tools/bootstrap_verification.py
+2026-10-27T02:56:22.3758240Z [36;1mpython tools/bootstrap_verification.py[0m
+2026-10-27T02:56:22.3819952Z shell: /usr/bin/bash -e {0}
+2026-10-27T02:56:22.3820156Z env:
+2026-10-27T02:56:22.3820403Z   HEPTA_QUALIFICATION_HEAD_SHA: 44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314
+2026-10-27T02:56:22.3820757Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:56:22.3821092Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.17/x64/lib/pkgconfig
+2026-10-27T02:56:22.3821408Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:56:22.3821716Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:56:22.3822009Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:56:22.3822302Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.17/x64/lib
+2026-10-27T02:56:22.3822619Z   RUSTC: /home/runner/work/Hepta/toolchains/rust-1.90.0/bin/rustc
+2026-10-27T02:56:22.3822912Z ##[endgroup]
+2026-10-27T02:56:22.4361213Z {"component": "lean", "event": "download_attempt", "attempt": 1, "maximum_attempts": 4}
+2026-10-27T02:56:26.7709372Z {"component": "qemu", "event": "download_attempt", "attempt": 1, "maximum_attempts": 4}
+2026-10-27T02:56:29.4145015Z {
+2026-10-27T02:56:29.4145398Z   "lean": "/home/runner/work/Hepta/toolchains/lean-4.19.0/bin/lean",
+2026-10-27T02:56:29.4145976Z   "qemu": "/home/runner/work/Hepta/toolchains/qemu-8.2.2/qemu-aarch64-static"
+2026-10-27T02:56:29.4146280Z }
+2026-10-27T02:56:29.4270174Z ##[group]Run hepta_lean="$GITHUB_WORKSPACE/../toolchains/lean-4.19.0/bin/lean"
+2026-10-27T02:56:29.4270628Z [36;1mhepta_lean="$GITHUB_WORKSPACE/../toolchains/lean-4.19.0/bin/lean"[0m
+2026-10-27T02:56:29.4271026Z [36;1mhepta_qemu="$GITHUB_WORKSPACE/../toolchains/qemu-8.2.2/qemu-aarch64-static"[0m
+2026-10-27T02:56:29.4271526Z [36;1mhepta_linker="$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld"[0m
+2026-10-27T02:56:29.4271945Z [36;1mtest -x "$hepta_lean"[0m
+2026-10-27T02:56:29.4272148Z [36;1mtest -x "$hepta_qemu"[0m
+2026-10-27T02:56:29.4272343Z [36;1mtest -x "$hepta_linker"[0m
+2026-10-27T02:56:29.4272640Z [36;1mhepta_gate_tools="$RUNNER_TEMP/hepta-qualification-bin"[0m
+2026-10-27T02:56:29.4272931Z [36;1mmkdir -p "$hepta_gate_tools"[0m
+2026-10-27T02:56:29.4273202Z [36;1mln -s "$hepta_qemu" "$hepta_gate_tools/qemu-aarch64"[0m
+2026-10-27T02:56:29.4273506Z [36;1mln -s "$hepta_linker" "$hepta_gate_tools/ld.lld"[0m
+2026-10-27T02:56:29.4273901Z [36;1mprintf 'LEAN=%s\nCLANG=%s\n' "$hepta_lean" /usr/lib/llvm-20/bin/clang >> "$GITHUB_ENV"[0m
+2026-10-27T02:56:29.4274369Z [36;1mprintf '%s\n' "$hepta_gate_tools" "$(dirname "$hepta_lean")" >> "$GITHUB_PATH"[0m
+2026-10-27T02:56:29.4336409Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-27T02:56:29.4336674Z env:
+2026-10-27T02:56:29.4336924Z   HEPTA_QUALIFICATION_HEAD_SHA: 44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314
+2026-10-27T02:56:29.4337275Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:56:29.4337605Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.17/x64/lib/pkgconfig
+2026-10-27T02:56:29.4337924Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:56:29.4338213Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:56:29.4338506Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:56:29.4338798Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.17/x64/lib
+2026-10-27T02:56:29.4339122Z   RUSTC: /home/runner/work/Hepta/toolchains/rust-1.90.0/bin/rustc
+2026-10-27T02:56:29.4339389Z ##[endgroup]
+2026-10-27T02:56:29.4479911Z ##[group]Run python tools/release_check.py --output-directory artifacts/candidate --continue-on-failure
+2026-10-27T02:56:29.4480464Z [36;1mpython tools/release_check.py --output-directory artifacts/candidate --continue-on-failure[0m
+2026-10-27T02:56:29.4534449Z shell: /usr/bin/bash -e {0}
+2026-10-27T02:56:29.4534655Z env:
+2026-10-27T02:56:29.4534901Z   HEPTA_QUALIFICATION_HEAD_SHA: 44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314
+2026-10-27T02:56:29.4535262Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:56:29.4535591Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.17/x64/lib/pkgconfig
+2026-10-27T02:56:29.4536080Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:56:29.4536381Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:56:29.4536676Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T02:56:29.4536976Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.17/x64/lib
+2026-10-27T02:56:29.4537361Z   RUSTC: /home/runner/work/Hepta/toolchains/rust-1.90.0/bin/rustc
+2026-10-27T02:56:29.4537706Z   LEAN: /home/runner/work/Hepta/Hepta/../toolchains/lean-4.19.0/bin/lean
+2026-10-27T02:56:29.4537999Z   CLANG: /usr/lib/llvm-20/bin/clang
+2026-10-27T02:56:29.4538209Z ##[endgroup]
+2026-10-27T03:04:50.1189979Z {"name": "unit_and_integration", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "unittest", "discover", "-s", "tests", "-v"], "exit_code": 0, "status": "passed", "seconds": 500.484, "log": "artifacts/candidate/unit_and_integration.log", "log_sha256": "2d80429cafea29bc01d15600e9a1ec5d2f5adcf52934c51c605b35c034c75fb2", "test_count": 2111, "skipped": 0}
+2026-10-27T03:04:50.9224804Z {"name": "strict_namespace_execution", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "tools/validate_sandbox.py", "--output", "artifacts/candidate/sandbox.json"], "exit_code": 0, "status": "passed", "seconds": 0.803, "log": "artifacts/candidate/strict_namespace_execution.log", "log_sha256": "329f5eb07a10aa9e825aa7c39b11fbe86e2afc9c5004c0f6ff85a329b7d19a1a", "evidence": "artifacts/candidate/sandbox.json"}
+2026-10-27T03:04:51.0998964Z {"name": "parser_example", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "hepta", "run", "examples/parser.hepta", "--json"], "exit_code": 0, "status": "passed", "seconds": 0.177, "log": "artifacts/candidate/parser_example.log", "log_sha256": "08d370700a2037eb8ae3cd53bd4b764b3eca38e6ed5af00ec118794c051ed6a7"}
+2026-10-27T03:04:51.2776425Z {"name": "ownership_example", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "hepta", "run", "examples/ownership.hepta", "--json"], "exit_code": 0, "status": "passed", "seconds": 0.178, "log": "artifacts/candidate/ownership_example.log", "log_sha256": "06ac6c5b9a1fc4f47842fa0026746ee77b83e367ffd9c21f0a669b39a1eae255"}
+2026-10-27T03:04:51.5344911Z {"name": "tasks_example", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "hepta", "run", "examples/tasks.hepta", "--json"], "exit_code": 0, "status": "passed", "seconds": 0.257, "log": "artifacts/candidate/tasks_example.log", "log_sha256": "b126a565e0ca3441a0903675601bdb5af110ddac4f5849f7422fdc75fbad4810"}
+2026-10-27T03:04:51.7151751Z {"name": "results_example", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "hepta", "run", "examples/results.hepta", "--json"], "exit_code": 0, "status": "passed", "seconds": 0.181, "log": "artifacts/candidate/results_example.log", "log_sha256": "a4605b3fb0106429d04be482dc23f32640534d8a571f692639083cc0e293aea4"}
+2026-10-27T03:04:51.9302580Z {"name": "owned_library_example", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "hepta", "run", "examples/owned/main.hepta", "--json"], "exit_code": 0, "status": "passed", "seconds": 0.215, "log": "artifacts/candidate/owned_library_example.log", "log_sha256": "d4e05587c0a4f236dbf182ca0c5f650d94292d96176cd82ffc0b6002e101c305"}
+2026-10-27T03:04:52.5048013Z {"name": "independent_resource_ir", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "tools.validate_resources", "--output", "artifacts/candidate/resources.json"], "exit_code": 0, "status": "passed", "seconds": 0.567, "log": "artifacts/candidate/independent_resource_ir.log", "log_sha256": "b34fcbff36c108204f3a0934f18dc2e6683b0344b0a9a432dc73b63585527071", "evidence": "artifacts/candidate/resources.json"}
+2026-10-27T03:04:52.8727020Z {"name": "source_bound_resource_ir", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "tools.qualify_resource_source", "artifacts/candidate/resources.json", "--output", "artifacts/candidate/resource_source.json"], "exit_code": 0, "status": "passed", "seconds": 0.323, "log": "artifacts/candidate/source_bound_resource_ir.log", "log_sha256": "b3d8d16cacce36a6532b44dd8b3586e5b498d332658bbb242f03fa133d06d134", "evidence": "artifacts/candidate/resource_source.json"}
+2026-10-27T03:04:53.6991287Z {"name": "partial_owned_places", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "tools.qualify_places", "--output", "artifacts/candidate/places.json"], "exit_code": 0, "status": "passed", "seconds": 0.784, "log": "artifacts/candidate/partial_owned_places.log", "log_sha256": "574f428e08af9b612144c7d9d60fe84385ee9fe98fd5bdfbcb4259c35014baa2", "evidence": "artifacts/candidate/places.json"}
+2026-10-27T03:04:55.0941923Z {"name": "stored_borrows", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "tools/qualify_borrowed_storage.py", "--output", "artifacts/candidate/stored_borrows.json"], "exit_code": 0, "status": "passed", "seconds": 1.184, "log": "artifacts/candidate/stored_borrows.log", "log_sha256": "136f015921a814f08e2924b04ed16e618985965cdeda39b10b30ab9b7b43440b", "evidence": "artifacts/candidate/stored_borrows.json"}
+2026-10-27T03:04:55.6575943Z {"name": "local_stored_resource_views", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "tools.qualify_resource_views", "--output", "artifacts/candidate/resource_views.json"], "exit_code": 0, "status": "passed", "seconds": 0.5, "log": "artifacts/candidate/local_stored_resource_views.log", "log_sha256": "37be2ca548e99147858dc514eefa693e93ed592272b702dfc66e9f441615217a", "evidence": "artifacts/candidate/resource_views.json"}
+2026-10-27T03:04:58.7923940Z {"name": "llvm_local_stored_views", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "tools.qualify_llvm_local_views", "--output", "artifacts/candidate/llvm_local_views.json"], "exit_code": 0, "status": "passed", "seconds": 2.757, "log": "artifacts/candidate/llvm_local_stored_views.log", "log_sha256": "96a8231073ae205583edb24aa6ccd34f6ebabaadb9617f3c4ecb4e6c497044c3", "evidence": "artifacts/candidate/llvm_local_views.json"}
+2026-10-27T03:04:59.8120945Z {"name": "owned_c_backend", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "tools/validate_c_owned.py", "--output", "artifacts/candidate/c_owned.json"], "exit_code": 0, "status": "passed", "seconds": 1.007, "log": "artifacts/candidate/owned_c_backend.log", "log_sha256": "3c9706804d5020e8638e82bcc4866cd81803d690e0429103355a73c8a7b78820", "evidence": "artifacts/candidate/c_owned.json"}
+2026-10-27T03:05:01.4962698Z {"name": "c_project_migration", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "tools/qualify_c_migration.py", "--output", "artifacts/candidate/c_project.json"], "exit_code": 0, "status": "passed", "seconds": 1.683, "log": "artifacts/candidate/c_project_migration.log", "log_sha256": "94cf7da0950c5182d6e9c814b790f43e02b68c9156e8dd72347cb7f18c4169ad", "evidence": "artifacts/candidate/c_project.json"}
+2026-10-27T03:05:02.8725362Z {"name": "upstream_c_modules", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "tools/qualify_c_algorithms.py", "--output", "artifacts/candidate/upstream_c.json"], "exit_code": 0, "status": "passed", "seconds": 1.375, "log": "artifacts/candidate/upstream_c_modules.log", "log_sha256": "f96d188f59fd99646bf481c04fc79e1dffb0f04cd599547404f128d11e88bb8a", "evidence": "artifacts/candidate/upstream_c.json"}
+2026-10-27T03:05:06.1119592Z {"name": "stateful_c_module", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "tools/qualify_c_ring_buffer.py", "--output", "artifacts/candidate/stateful_c.json"], "exit_code": 0, "status": "passed", "seconds": 3.154, "log": "artifacts/candidate/stateful_c_module.log", "log_sha256": "ff9d37a400e8a201d438d205cefcdd35c95625c0f093790f9fa1c127a2eca66d", "evidence": "artifacts/candidate/stateful_c.json"}
+2026-10-27T03:05:09.1506766Z {"name": "cpp_library_interop", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "tools/validate_cpp.py", "--iterations", "1000000", "--output", "artifacts/candidate/cpp.json"], "exit_code": 0, "status": "passed", "seconds": 3.038, "log": "artifacts/candidate/cpp_library_interop.log", "log_sha256": "971d2d0d3a76c98224a78685c95453e6b03c8d7a898352e91b76a11acd90a0fa", "evidence": "artifacts/candidate/cpp.json"}
+2026-10-27T03:05:21.5416047Z {"name": "cpp_constructor_interop", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "tools/validate_cpp_constructors.py", "--iterations", "100000", "--output", "artifacts/candidate/cpp_constructors.json"], "exit_code": 0, "status": "passed", "seconds": 12.383, "log": "artifacts/candidate/cpp_constructor_interop.log", "log_sha256": "46607cbbe75aa5be4c89af5aa5aadea2a372b1ce118db0728b241904481e6895", "evidence": "artifacts/candidate/cpp_constructors.json"}
+2026-10-27T03:05:24.9495546Z {"name": "cpp_scoped_raii", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "hepta.cpp_scoped", "--iterations", "100000", "--output", "artifacts/candidate/cpp_scoped.json"], "exit_code": 0, "status": "passed", "seconds": 3.399, "log": "artifacts/candidate/cpp_scoped_raii.log", "log_sha256": "f6ff2b79eac59273bbf4ebde77cf50a21283cf559440af39cf269c708ca66791", "evidence": "artifacts/candidate/cpp_scoped.json"}
+2026-10-27T03:05:25.8625184Z {"name": "cpp_class_migration", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "tools.validate_cpp_class", "--workdir", "artifacts/cpp-class-20261027T025629625479Z", "--out", "artifacts/candidate/cpp_class.json"], "exit_code": 0, "status": "passed", "seconds": 0.902, "log": "artifacts/candidate/cpp_class_migration.log", "log_sha256": "7be2ca89849f78fa7a54f827475a2b213eecb20768988bdb67efecddb132e111", "evidence": "artifacts/candidate/cpp_class.json"}
+2026-10-27T03:05:27.2135653Z {"name": "cpp_owned_migration", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "tools.validate_cpp_owned", "--workdir", "artifacts/cpp-owned-20261027T025629625479Z", "--out", "artifacts/candidate/cpp_owned.json"], "exit_code": 0, "status": "passed", "seconds": 1.234, "log": "artifacts/candidate/cpp_owned_migration.log", "log_sha256": "d90db92736d707779cdbbd94fc0efd58eb1d614614f6e7d774669b4c3d7e7798", "evidence": "artifacts/candidate/cpp_owned.json"}
+2026-10-27T03:05:27.8439353Z {"name": "cpp_owned_to_llvm", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "tools.qualify_cpp_owned_llvm", "--workdir", "artifacts/cpp-owned-llvm-20261027T025629625479Z", "--output", "artifacts/candidate/cpp_owned_llvm.json"], "exit_code": 0, "status": "passed", "seconds": 0.583, "log": "artifacts/candidate/cpp_owned_to_llvm.log", "log_sha256": "e52b20672ebf413fea1e48a31805a77aeb566f63983febc749107e231fceddf6", "evidence": "artifacts/candidate/cpp_owned_llvm.json"}
+2026-10-27T03:05:38.3514702Z {"name": "cpp_composed_migration", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "tools.validate_cpp_composed", "--workdir", "artifacts/cpp-composed-20261027T025629625479Z", "--out", "artifacts/candidate/cpp_composed.json"], "exit_code": 0, "status": "passed", "seconds": 8.323, "log": "artifacts/candidate/cpp_composed_migration.log", "log_sha256": "0a2e9d17be778a06c43e07a8206a8098d56c2c56399c6e24ff5bb6287429d164", "evidence": "artifacts/candidate/cpp_composed.json"}
+2026-10-27T03:05:43.2355516Z {"name": "cpp_composed_to_llvm", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "tools.qualify_cpp_composed_llvm", "--workdir", "artifacts/cpp-composed-llvm-20261027T025629625479Z", "--output", "artifacts/candidate/cpp_composed_llvm.json"], "exit_code": 0, "status": "passed", "seconds": 3.733, "log": "artifacts/candidate/cpp_composed_to_llvm.log", "log_sha256": "cfb526895ab6ba7cbb00e8690acb38f19a9fbed6d3983cea9350898315dd7062", "evidence": "artifacts/candidate/cpp_composed_llvm.json"}
+2026-10-27T03:06:04.7363234Z {"name": "cpp_upstream_upgrade", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "tools.qualify_cpp_upgrade", "--workdir", "artifacts/cpp-upgrade-20261027T025629625479Z", "--output", "artifacts/candidate/cpp_upgrade.json"], "exit_code": 0, "status": "passed", "seconds": 21.188, "log": "artifacts/candidate/cpp_upstream_upgrade.log", "log_sha256": "2768ef8bfdf15551bb2fca900c406ded221327cfb5905361e1a2ee74e6f0b2f8", "evidence": "artifacts/candidate/cpp_upgrade.json"}
+2026-10-27T03:06:04.9231431Z {"name": "locked_package_example", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "hepta", "run", "examples/packages/app", "--locked", "--json"], "exit_code": 0, "status": "passed", "seconds": 0.187, "log": "artifacts/candidate/locked_package_example.log", "log_sha256": "86001ae1a95151d078c948e445a93ed3de3cb95efffd9ad0876d934a54321a7d"}
+2026-10-27T03:06:07.7813497Z {"name": "bounded_concurrency", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "tools/validate_groups.py", "--repeats", "3", "--output", "artifacts/candidate/native_validation.json"], "exit_code": 0, "status": "passed", "seconds": 2.857, "log": "artifacts/candidate/bounded_concurrency.log", "log_sha256": "6f515cbb366b5203e3720b1a3109d7bda5eeeebcca5e97a66877debc16697fb2", "evidence": "artifacts/candidate/native_validation.json"}
+2026-10-27T03:06:09.6288149Z {"name": "shared_runtime", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "tools/validate_shared_runtime.py", "--repeats", "3", "--output", "artifacts/candidate/shared_runtime.json"], "exit_code": 0, "status": "passed", "seconds": 1.844, "log": "artifacts/candidate/shared_runtime.log", "log_sha256": "8753622ec52eb9a3cab4d0d0e5f4b68c3ff85d0fa413d0eed4fd3ff31092a424", "evidence": "artifacts/candidate/shared_runtime.json"}
+2026-10-27T03:06:17.4633875Z {"name": "independent_concurrent_ir", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "tools/validate_concurrent_ir.py", "--output", "artifacts/candidate/concurrent_ir.json"], "exit_code": 0, "status": "passed", "seconds": 7.796, "log": "artifacts/candidate/independent_concurrent_ir.log", "log_sha256": "1a3e254a2c99024c9feff70ab117eeb50be9b35a5552b0223403a2c04d2c748c", "evidence": "artifacts/candidate/concurrent_ir.json"}
+2026-10-27T03:06:23.8268350Z {"name": "structured_task_trees", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "tools/validate_task_tree.py", "--repeats", "3", "--output", "artifacts/candidate/task_trees.json"], "exit_code": 0, "status": "passed", "seconds": 6.31, "log": "artifacts/candidate/structured_task_trees.log", "log_sha256": "26f61f02833e4d6b093faee513c46486127bee2dbe3cfabaa745bdbd82765d76", "evidence": "artifacts/candidate/task_trees.json"}
+2026-10-27T03:06:27.9340551Z {"name": "bounded_async_io", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "tools/validate_io.py", "--repeats", "3", "--output", "artifacts/candidate/async_io.json"], "exit_code": 0, "status": "passed", "seconds": 4.031, "log": "artifacts/candidate/bounded_async_io.log", "log_sha256": "cdaa5a439770ec05a1823256d2d2302b0396c375fb9dd9294fc110543fb1dc21", "evidence": "artifacts/candidate/async_io.json"}
+2026-10-27T03:06:50.2238199Z {"name": "task_io_composition", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "tools.qualify_task_io", "--repeats", "3", "--output", "artifacts/candidate/task_io_composition.json"], "exit_code": 1, "status": "failed", "seconds": 22.288, "log": "artifacts/candidate/task_io_composition.log", "log_sha256": "6b575a72cc7855fb17ab4f3ab68e244088d0f1715e76799845f34ed367292180", "evidence": "artifacts/candidate/task_io_composition.json", "validation_error": "Gate command did not succeed; retained failure evidence is not qualification", "reason": "Gate command did not succeed; retained failure evidence is not qualification"}
+2026-10-27T03:06:55.0754287Z {"name": "abi_matrix", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "tools/abi_fuzz.py", "--output", "artifacts/candidate/abi-matrix.json"], "exit_code": 0, "status": "passed", "seconds": 4.851, "log": "artifacts/candidate/abi_matrix.log", "log_sha256": "b6f21ad61aa7712822c000c0fd37df3b2361c4656f42b25c068aa44395174b98", "evidence": "artifacts/candidate/abi-matrix.json"}
+2026-10-27T03:06:58.0603773Z {"name": "native_host_abi", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "tools/validate_native_host.py", "--expected-system", "Linux", "--expected-machine", "x86_64", "--output", "artifacts/candidate/native_host.json"], "exit_code": 0, "status": "passed", "seconds": 2.905, "log": "artifacts/candidate/native_host_abi.log", "log_sha256": "ff4dc446c4e68b61156a15374545b9292dc5685ec3ff7d1f8b592d39b8d3eea3", "evidence": "artifacts/candidate/native_host.json"}
+2026-10-27T03:06:59.0941047Z {"name": "native_debugger", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "tools/validate_debugger.py", "--output", "artifacts/candidate/debugger.json"], "exit_code": 0, "status": "passed", "seconds": 1.017, "log": "artifacts/candidate/native_debugger.log", "log_sha256": "1cd96ae07f11f49f5a982e1e67bad7c54ed17c541cd7169c4e44a4958ad3e5e9", "evidence": "artifacts/candidate/debugger.json"}
+2026-10-27T03:07:03.5237378Z {"name": "native_and_performance", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "tools/validate.py", "--bench", "--output", "artifacts/candidate/native-validation.json"], "exit_code": 0, "status": "passed", "seconds": 4.429, "log": "artifacts/candidate/native_and_performance.log", "log_sha256": "0d9d2daeb1ab13ceb2d9c34a38c75b33f999abee91d8fe811e9ba6d683f80cce", "evidence": "artifacts/candidate/native-validation.json"}
+2026-10-27T03:07:13.1387852Z {"name": "representative_performance", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "tools/benchmark_suite.py", "--output", "artifacts/candidate/representative-benchmarks.json"], "exit_code": 0, "status": "passed", "seconds": 9.612, "log": "artifacts/candidate/representative_performance.log", "log_sha256": "3b770571f85a79aa74946ad0662eebbca23deb5abf711a6010d25d187bd1c416", "evidence": "artifacts/candidate/representative-benchmarks.json"}
+2026-10-27T03:07:17.2360058Z {"name": "application_performance", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "tools/benchmark_applications.py", "--output", "artifacts/candidate/applications.json"], "exit_code": 0, "status": "passed", "seconds": 3.845, "log": "artifacts/candidate/application_performance.log", "log_sha256": "8218a2c60514a38b6681db280a540f52ebbf44add482d7c1f069c69b4415db89", "evidence": "artifacts/candidate/applications.json"}
+2026-10-27T03:07:18.0364830Z {"name": "llvm_owned_rust_allocator", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "tools.qualify_llvm_owned_rust_allocator", "--output", "artifacts/candidate/llvm_owned_rust_allocator.json"], "exit_code": 0, "status": "passed", "seconds": 0.757, "log": "artifacts/candidate/llvm_owned_rust_allocator.log", "log_sha256": "fadd8f8fbc180532d079cf767a1215093f6b3926a9c49d5ab83ec1de08fde9b0", "evidence": "artifacts/candidate/llvm_owned_rust_allocator.json"}
+2026-10-27T03:07:47.2365342Z {"name": "llvm_native_performance", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "tools/qualify_llvm_native.py", "--output", "artifacts/candidate/llvm_native.json"], "exit_code": 0, "status": "passed", "seconds": 29.164, "log": "artifacts/candidate/llvm_native_performance.log", "log_sha256": "4b646bf80680f7133957c236e33216673f7cb918676a329a6ae1b9b6f68dcdc2", "evidence": "artifacts/candidate/llvm_native.json"}
+2026-10-27T03:09:06.4950781Z {"name": "llvm_owned_performance", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "tools.qualify_llvm_owned", "--output", "artifacts/candidate/llvm_owned.json"], "exit_code": 0, "status": "passed", "seconds": 78.077, "log": "artifacts/candidate/llvm_owned_performance.log", "log_sha256": "cd14b7e35554d81b8f11f3da4684ee985078e3db4ef5b7d828d0c0464cf6da71", "evidence": "artifacts/candidate/llvm_owned.json"}
+2026-10-27T03:09:09.2665030Z {"name": "formal_core", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "tools/verify_formal.py", "--output", "artifacts/candidate/formal-validation.json"], "exit_code": 0, "status": "passed", "seconds": 2.767, "log": "artifacts/candidate/formal_core.log", "log_sha256": "9f6da0516aa499a67e2de122ba0e8dcce734f40287250410a1f2949222d9357a", "evidence": "artifacts/candidate/formal-validation.json"}
+2026-10-27T03:09:13.5579258Z {"name": "provenance_and_type_core", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "tools/verify_memory.py", "--output", "artifacts/candidate/memory_proofs.json"], "exit_code": 0, "status": "passed", "seconds": 4.29, "log": "artifacts/candidate/provenance_and_type_core.log", "log_sha256": "ac40dc520ea5a34460395f41ec2d94453cc85d0f2c7140affc957ee8b9155492", "evidence": "artifacts/candidate/memory_proofs.json"}
+2026-10-27T03:09:13.8501629Z {"name": "aarch64_execution", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "tools/validate_cross.py", "--output", "artifacts/candidate/cross-execution.json"], "exit_code": 0, "status": "passed", "seconds": 0.292, "log": "artifacts/candidate/aarch64_execution.log", "log_sha256": "a308256353f25bbcca0ee00e5a0e97b27743ec3fc5b7350b02462a8a77428ffc", "evidence": "artifacts/candidate/cross-execution.json"}
+2026-10-27T03:09:14.8683350Z {"name": "system_board", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "tools/validate_board.py", "--output", "artifacts/candidate/system_board.json"], "exit_code": 0, "status": "passed", "seconds": 0.955, "log": "artifacts/candidate/system_board.log", "log_sha256": "c3c67a1a866bb007e2df55219a920fa8ee3014ef7fdc8d3fe84e73dcacebeff3", "evidence": "artifacts/candidate/system_board.json"}
+2026-10-27T03:09:18.9018942Z {"name": "agent_evaluator_fixtures", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "experiments.agent_eval", "qualify-fixtures", "--output", "artifacts/candidate/agent-fixtures-20261027T025629625479Z.json"], "exit_code": 0, "status": "passed", "seconds": 4.032, "log": "artifacts/candidate/agent_evaluator_fixtures.log", "log_sha256": "d1deb5de47274bbfdd227a77b803c2a0183eb25d72cabed22aca51991235abde", "evidence": "artifacts/candidate/agent-fixtures-20261027T025629625479Z.json"}
+2026-10-27T03:10:06.9714940Z {"name": "crossfile_agent_fixtures", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "experiments.crossfile_eval", "qualify-fixtures", "--output", "artifacts/candidate/crossfile_agent.json"], "exit_code": 0, "status": "passed", "seconds": 48.065, "log": "artifacts/candidate/crossfile_agent_fixtures.log", "log_sha256": "dcc0ce040ef6eb72487a246b9f501b8bb623342deebc9cf26556c37a5b4b1c03", "evidence": "artifacts/candidate/crossfile_agent.json"}
+2026-10-27T03:10:17.2643149Z {"name": "production_workspace_namespace", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "experiments.crossfile_eval", "qualify-workspace", "--execution-context", "release_check.py in caller-selected host execution context; namespace requirements enforced", "--output", "artifacts/candidate/workspace_namespace.json"], "exit_code": 0, "status": "passed", "seconds": 10.291, "log": "artifacts/candidate/production_workspace_namespace.log", "log_sha256": "da028fe66d05bb134295895fe1fec0453738684019c01209d638e1800d86282f", "evidence": "artifacts/candidate/workspace_namespace.json"}
+2026-10-27T03:10:42.4155699Z {"name": "production_workspace_crashes", "command": ["/opt/hostedtoolcache/Python/3.11.17/x64/bin/python", "-m", "experiments.crossfile_eval", "qualify-workspace-crashes", "--execution-context", "release_check.py in caller-selected host execution context; namespace requirements enforced", "--output", "artifacts/candidate/workspace_crashes.json"], "exit_code": 0, "status": "passed", "seconds": 25.097, "log": "artifacts/candidate/production_workspace_crashes.log", "log_sha256": "5d86a4824986338caff19f25a5d1c8a732ab7a99c7da2884d43471d3d056a745", "evidence": "artifacts/candidate/workspace_crashes.json"}
+2026-10-27T03:10:42.5028432Z {"status": "failed", "source_snapshot_sha256": "333ccb45aa881e2574961014cf57a1a84e1f751cd9def3fa30e3df163ba09e1c", "whole_project_blockers_closed": false}
+2026-10-27T03:10:42.5225534Z ##[error]Process completed with exit code 1.
+2026-10-27T03:10:42.5271603Z ##[group]Run export LEAN="$GITHUB_WORKSPACE/../toolchains/lean-4.19.0/bin/lean"
+2026-10-27T03:10:42.5272062Z [36;1mexport LEAN="$GITHUB_WORKSPACE/../toolchains/lean-4.19.0/bin/lean"[0m
+2026-10-27T03:10:42.5272381Z [36;1mpython tools/qualify_hia_unified.py \[0m
+2026-10-27T03:10:42.5272656Z [36;1m  --output-directory artifacts/hia-unified \[0m
+2026-10-27T03:10:42.5272926Z [36;1m  --lean "$LEAN" \[0m
+2026-10-27T03:10:42.5273145Z [36;1m  --clang /usr/lib/llvm-20/bin/clang \[0m
+2026-10-27T03:10:42.5273455Z [36;1m  --rustc "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/bin/rustc" \[0m
+2026-10-27T03:10:42.5273945Z [36;1m  --linker "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld" \[0m
+2026-10-27T03:10:42.5274465Z [36;1m  --qemu-aarch64 "$GITHUB_WORKSPACE/../toolchains/qemu-8.2.2/qemu-aarch64-static" \[0m
+2026-10-27T03:10:42.5274840Z [36;1m  --qemu-system-arm /usr/bin/qemu-system-arm[0m
+2026-10-27T03:10:42.5337716Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-27T03:10:42.5337994Z env:
+2026-10-27T03:10:42.5338242Z   HEPTA_QUALIFICATION_HEAD_SHA: 44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314
+2026-10-27T03:10:42.5338592Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T03:10:42.5338919Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.17/x64/lib/pkgconfig
+2026-10-27T03:10:42.5339270Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T03:10:42.5339566Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T03:10:42.5339862Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T03:10:42.5340152Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.17/x64/lib
+2026-10-27T03:10:42.5340465Z   RUSTC: /home/runner/work/Hepta/toolchains/rust-1.90.0/bin/rustc
+2026-10-27T03:10:42.5340793Z   LEAN: /home/runner/work/Hepta/Hepta/../toolchains/lean-4.19.0/bin/lean
+2026-10-27T03:10:42.5341074Z   CLANG: /usr/lib/llvm-20/bin/clang
+2026-10-27T03:10:42.5341278Z ##[endgroup]
+2026-10-27T03:10:42.7104618Z {"gate": "unit_regression", "status": "running"}
+2026-10-27T03:18:43.2339479Z {"gate": "unit_regression", "passed": true, "seconds": 480.5230317549999, "returncode": 0}
+2026-10-27T03:18:43.2339905Z {"gate": "standalone_native", "status": "running"}
+2026-10-27T03:18:46.7595962Z {"gate": "standalone_native", "passed": true, "seconds": 3.5230181530000664, "returncode": 0}
+2026-10-27T03:18:46.7596441Z {"gate": "standalone_resources", "status": "running"}
+2026-10-27T03:18:50.5386794Z {"gate": "standalone_resources", "passed": true, "seconds": 3.777837869999985, "returncode": 0}
+2026-10-27T03:18:50.5387460Z {"gate": "composite_resources", "status": "running"}
+2026-10-27T03:18:52.5484778Z {"gate": "composite_resources", "passed": true, "seconds": 2.009065834000012, "returncode": 0}
+2026-10-27T03:18:52.5485242Z {"gate": "composite_bulk_targets", "status": "running"}
+2026-10-27T03:18:55.6578475Z {"gate": "composite_bulk_targets", "passed": true, "seconds": 3.1084181700002773, "returncode": 0}
+2026-10-27T03:18:55.6578920Z {"gate": "source_migration", "status": "running"}
+2026-10-27T03:18:58.4434284Z {"gate": "source_migration", "passed": true, "seconds": 2.7839296789998116, "returncode": 0}
+2026-10-27T03:18:58.4434738Z {"gate": "cpp_template_migration", "status": "running"}
+2026-10-27T03:19:00.8656701Z {"gate": "cpp_template_migration", "passed": true, "seconds": 2.420261011999628, "returncode": 0}
+2026-10-27T03:19:00.8657431Z {"gate": "c_configuration_matrix", "status": "running"}
+2026-10-27T03:19:04.6072615Z {"gate": "c_configuration_matrix", "passed": true, "seconds": 3.740463048000038, "returncode": 0}
+2026-10-27T03:19:04.6073130Z {"gate": "cpp_configuration_matrix", "status": "running"}
+2026-10-27T03:19:09.4066668Z {"gate": "cpp_configuration_matrix", "passed": true, "seconds": 4.798360474000219, "returncode": 0}
+2026-10-27T03:19:09.4067173Z {"gate": "selected_core_formal", "status": "running"}
+2026-10-27T03:19:11.9521684Z {"gate": "selected_core_formal", "passed": true, "seconds": 2.544749412999863, "returncode": 0}
+2026-10-27T03:19:11.9522137Z {"gate": "standalone_aarch64_qemu", "status": "running"}
+2026-10-27T03:19:13.1532438Z {"gate": "standalone_aarch64_qemu", "passed": true, "seconds": 1.199963728000057, "returncode": 0}
+2026-10-27T03:19:13.1532977Z {"gate": "legacy_executable_core", "status": "running"}
+2026-10-27T03:19:17.2112650Z {"gate": "legacy_executable_core", "passed": true, "seconds": 4.0572554749996925, "returncode": 0}
+2026-10-27T03:19:17.2113385Z {"gate": "legacy_hosted_composition", "status": "running"}
+2026-10-27T03:19:18.2117709Z {"gate": "legacy_hosted_composition", "passed": true, "seconds": 0.9995468219999566, "returncode": 0}
+2026-10-27T03:19:18.2118715Z {"gate": "legacy_cortex_m4_qemu", "status": "running"}
+2026-10-27T03:19:19.1577006Z {"gate": "legacy_cortex_m4_qemu", "passed": true, "seconds": 0.9401658770002541, "returncode": 0}
+2026-10-27T03:19:19.1577483Z {"gate": "standalone_performance", "status": "running"}
+2026-10-27T03:20:53.1514209Z {"gate": "standalone_performance", "passed": true, "seconds": 93.99092348199974, "returncode": 0}
+2026-10-27T03:20:53.2464874Z {"ok": true, "status": "all_scoped_gates_passed", "passed_gates": 15, "completed_gates": 15, "unchanged_source": true, "full_seven_deliverables_complete": false}
+2026-10-27T03:20:53.2632636Z ##[group]Run actions/upload-artifact@v4
+2026-10-27T03:20:53.2632869Z with:
+2026-10-27T03:20:53.2633146Z   name: hepta-release-evidence-44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314
+2026-10-27T03:20:53.2633468Z   path: artifacts/
+evidence/
+
+2026-10-27T03:20:53.2633669Z   if-no-files-found: warn
+2026-10-27T03:20:53.2633858Z   compression-level: 6
+2026-10-27T03:20:53.2634033Z   overwrite: false
+2026-10-27T03:20:53.2634204Z   include-hidden-files: false
+2026-10-27T03:20:53.2634383Z env:
+2026-10-27T03:20:53.2634609Z   HEPTA_QUALIFICATION_HEAD_SHA: 44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314
+2026-10-27T03:20:53.2634941Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T03:20:53.2635264Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.17/x64/lib/pkgconfig
+2026-10-27T03:20:53.2635584Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T03:20:53.2636088Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T03:20:53.2636409Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.17/x64
+2026-10-27T03:20:53.2636706Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.17/x64/lib
+2026-10-27T03:20:53.2637023Z   RUSTC: /home/runner/work/Hepta/toolchains/rust-1.90.0/bin/rustc
+2026-10-27T03:20:53.2637349Z   LEAN: /home/runner/work/Hepta/Hepta/../toolchains/lean-4.19.0/bin/lean
+2026-10-27T03:20:53.2637630Z   CLANG: /usr/lib/llvm-20/bin/clang
+2026-10-27T03:20:53.2637827Z ##[endgroup]
+2026-10-27T03:20:53.3891026Z (node:86002) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-27T03:20:53.3891704Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-27T03:20:53.7481598Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-10-27T03:20:53.7483683Z The least common ancestor is /home/runner/work/Hepta/Hepta. This will be the root directory of the artifact
+2026-10-27T03:20:53.7484421Z With the provided path, there will be 3394 files uploaded
+2026-10-27T03:20:53.7488845Z Artifact name is valid!
+2026-10-27T03:20:53.7489417Z Root directory input is valid!
+2026-10-27T03:20:54.1135416Z Beginning upload of artifact content to blob storage
+2026-10-27T03:20:54.8437434Z (node:86002) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-27T03:20:55.5136455Z Uploaded bytes 8388608
+2026-10-27T03:20:56.1956905Z Uploaded bytes 16777216
+2026-10-27T03:20:56.4187414Z Uploaded bytes 25165824
+2026-10-27T03:20:57.0593851Z Uploaded bytes 33554432
+2026-10-27T03:20:57.6866913Z Uploaded bytes 41943040
+2026-10-27T03:20:58.6674469Z Uploaded bytes 50331648
+2026-10-27T03:20:59.0621690Z Uploaded bytes 58720256
+2026-10-27T03:21:00.0918936Z Uploaded bytes 67108864
+2026-10-27T03:21:00.5357179Z Uploaded bytes 75497472
+2026-10-27T03:21:00.6337798Z Uploaded bytes 76483441
+2026-10-27T03:21:00.6899294Z Finished uploading artifact content to blob storage!
+2026-10-27T03:21:00.6902706Z SHA256 digest of uploaded artifact zip is a7dbce62bc05e4405a389ff74e499958a713bd8f560d28c1b1dc5f76d31a1a53
+2026-10-27T03:21:00.6904186Z Finalizing artifact upload
+2026-10-27T03:21:01.3081376Z Artifact hepta-release-evidence-44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314.zip successfully finalized. Artifact ID 12706738924
+2026-10-27T03:21:01.3082543Z Artifact hepta-release-evidence-44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314 has been successfully uploaded! Final size is 76483441 bytes. Artifact ID is 12706738924
+2026-10-27T03:21:01.3088795Z Artifact download URL: https://github.com/TrillionniumFoundation/Hepta/actions/runs/40439677114/artifacts/12706738924
+2026-10-27T03:21:01.3395922Z Post job cleanup.
+2026-10-27T03:21:01.4095945Z [command]/usr/bin/git version
+2026-10-27T03:21:01.4138075Z git version 2.55.0
+2026-10-27T03:21:01.4168829Z Temporarily overriding HOME='/home/runner/work/_temp/6cb93236-aef2-41e2-807c-64604c7f1583' before making global git config changes
+2026-10-27T03:21:01.4170042Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-27T03:21:01.4172930Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-10-27T03:21:01.4207536Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-27T03:21:01.4238205Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-27T03:21:01.4456974Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-27T03:21:01.4480125Z http.https://github.com/.extraheader
+2026-10-27T03:21:01.4489828Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-27T03:21:01.4522202Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-27T03:21:01.4752374Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-27T03:21:01.4785697Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-27T03:21:01.5108803Z Cleaning up orphan processes
+2026-10-27T03:21:01.5447585Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

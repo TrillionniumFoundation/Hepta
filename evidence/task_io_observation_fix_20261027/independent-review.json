@@ -1,0 +1,41 @@
+{
+  "schema": "hepta.task-io-observation-independent-review.v1",
+  "source_commit": "8c88308eb9b6a8acf612ae9e8f7d9a7d89f5a776",
+  "source_tree": "99a2273d45a333a1a9cc87110742399e7413d512",
+  "base_commit": "a1ade3cc2bf4a3b3eabd87f82ba6c8c515215e49",
+  "reviewer": "/root/review_cpp_llvm",
+  "second_read_only_reviewer": "/root/review_task_io/ci_hia_forensics",
+  "decision": "no_blocking_findings",
+  "files_changed": ["docs/TASK_TREE_IO_COMPOSITION.md", "tests/test_task_io.py", "tools/fixtures/task_io_controls.rs"],
+  "reviewed_file_sha256": {
+    "tools/fixtures/task_io_controls.rs": "619013145f0ff4860280d4d030def84a95b4515126273a1440a577a76af57fb6",
+    "tests/test_task_io.py": "f73d56fe75e783055a377559022d4b3f974a6e3238153cfed8d4816785b8dd08",
+    "docs/TASK_TREE_IO_COMPOSITION.md": "f23d1ec96053cfa75efa831d0adffc20fc14120233f02f647ce36db5795e1a22"
+  },
+  "reasoning": [
+    "The notification closure drops its upgraded wake Arc before returning; the entire notification executes under group state. A worker fence after consuming its local reactor either waits for an active final notification reference to be destroyed or precedes a future notification whose Weak can no longer upgrade.",
+    "io_cleanup removes operations, clears user ports, then releases the reactor binding. IoWorkerBinding::drop takes the I/O budget mutex, not group state; the new observation fence introduces no reverse lock order.",
+    "User endpoint FD checks remain immediate after local shutdown/drop. Only the internal wake reader check moves after the state fence. waiting/final_arc_worker start no new socket-producing work in that observation window; later fixtures follow controller/worker joins. This is an isolated test-process FD observation, not a cross-process descriptor identity guarantee.",
+    "The deterministic handoff observes user endpoints closed and resident bytes zero while attachment and wake reader remain live under the controller's state guard and strong Arc. Releasing that final Arc under state must close the wake reader and release all four I/O charges before the worker passes its fence.",
+    "The new unfenced negative uses controls_source('positive') with the production runtime unchanged. It selects the handoff and deliberately asserts wake-closed while the controller owns the final reference; the test requires its exact message and left=1/right=0, not merely any nonzero exit.",
+    "The original drop-lock-inversion mutant still reacquires group state while dropping the last Arc under that state guard and must time out. All 10 planned cases, five wrong-runtime controls, repeat requirements, 64/64/64 cancellation/readiness loops and 32 shared-byte races remain unchanged."
+  ],
+  "fixed_report_read": {
+    "path": "/tmp/hepta-task-io-observation-fix-20261027/fixed-three-rounds.json",
+    "sha256": "d0b50285e9e929a74795d979f397f6513903fef2f2d8079d9f5ec55a201dd93c",
+    "status": "passed",
+    "planned_cases": 10,
+    "repeats": 3,
+    "actual_run_records": 27,
+    "positive_run_records_exit_zero": 12,
+    "assertion_mutant_run_records_nonzero": 9,
+    "timeout_mutant_run_records": 6,
+    "native_alias_build_returncode": 1,
+    "native_alias_run_records": 0
+  },
+  "review_executed_compiler_native_or_tests": false,
+  "review_modified_production_files": false,
+  "historical_44_failure_preserved": true,
+  "new_complete_candidate_qualification_established_by_this_review": false,
+  "whole_project_blockers_closed": false
+}

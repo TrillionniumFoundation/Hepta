@@ -1,16 +1,47 @@
 # Resource composition candidate: execution evidence
 
 The implementation and prerequisite repairs are published through
-[44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314](https://github.com/TrillionniumFoundation/Hepta/commit/44cb32576f0ee8b0d9f01aa5a4fa44ea0848c314).
+[4ac39e626acd7f78e2f66708be741e78308b4e6a](https://github.com/TrillionniumFoundation/Hepta/commit/4ac39e626acd7f78e2f66708be741e78308b4e6a).
 The complete local qualifications below executed the earlier frozen
 `3a424e427b378400802c9e3c2fef558c0a352756`. Later commits repair prerequisites,
-workflow/test tool selection and host-observation handling. Hepta compiler
+workflow/test tool selection, host-observation handling, the two C migration
+callers and task/I/O observation ordering. Hepta compiler/runtime
 bytes and frozen native performance protocols remain identical. Full source
 snapshots and workflow results are still bound to their individual commits.
 
 This evidence branch does not move the code candidate. **Archive verification
 is not another native execution**, and a successful data verifier does not
 turn a retained failed qualification into a pass.
+Check out the linked code commit to execute the candidate; this branch carries
+the evidence appendices on top of a historical code revision.
+
+## Current frozen repair candidate
+
+The published `4ac39e62` tree is
+`99a2273d45a333a1a9cc87110742399e7413d512`, identical to locally tested
+`8c88308eb9b6a8acf612ae9e8f7d9a7d89f5a776`. Its
+[four-host ABI workflow](https://github.com/TrillionniumFoundation/Hepta/actions/runs/40445065374)
+has passed, with [new exact-source reports](../ci_prerequisites_20261026/hosts_4ac39e62/README.md)
+retained for all four hosts. Its
+[complete source and HIA workflow](https://github.com/TrillionniumFoundation/Hepta/actions/runs/40445065395)
+has passed all twelve prerequisite steps and is executing the complete source
+qualification. Pending full qualification is not labelled passed.
+
+The [caller ABI repair](../ci_prerequisites_20261026/caller_abi_repair/README.md)
+retains actual legacy high-bit return truncation in both C callers, corrected
+execution, and strict rejection when the declarations are removed. Its two
+frozen local attempts bind `5b1eb709` and `a1ade3cc`, with all six native
+files retained. The two, 25, four and 21 test logs describe separate targeted
+runs; their counts are not added into a unique-test denominator.
+
+The [task/I/O observation repair](../task_io_observation_fix_20261027/README.md)
+preserves the existing runtime and qualifies all ten
+planned cases at three repetitions on `8c88308e`: 27 actual executions,
+including every expected assertion failure and timeout. Its 12-test suite
+also passes without skips. A deterministic held-reference control reproduces
+the original premature close assertion; user FDs remain checked immediately,
+and wake FDs are checked after notification's last-reference boundary.
+Neither repair changes a performance workload, baseline or threshold.
 
 ## Complete frozen local qualifications
 
@@ -101,11 +132,46 @@ The repairs have their own original observations and limits:
   exposing a synthetic canary fails the real boundary and release collector.
   Unknown optional host metadata is never labelled absent.
 
-At this checkpoint, [d8e full CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/40438827706)
-and [44cb full CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/40439677114)
-are still running independently. The separate 44cb four-host run passed.
-Pending work is not counted as qualification, and no run was cancelled to
-remove an unfavourable result.
+The completed [d8e full CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/40438827706)
+reached source **50/50, 49 passed**, and HIA **15/15 passed**. Both regression
+logs record **2,108 tests with zero skips, failures or errors**. All three
+complete performance profiles passed (42 scalar, 63 owned and 63 HIA samples).
+The only failed source gate was the optional host procfs metadata
+`PermissionError` described above. This closes the observed installed-tool
+selection failure for that exact candidate; it does not substitute for the
+later candidate's complete qualification.
+The [complete d8e appendix](../ci_prerequisites_20261026/failed_full_d8e1b676/README.md)
+retains the original reports/logs, all 1,306 newly uploaded files, independent
+three-profile arithmetic and the later C-caller finding alongside the original
+producer status.
+
+The completed [44cb full CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/40439677114)
+reached source **50/50, 49 passed**, and HIA **15/15 passed**. Both regression
+logs record **2,111 tests with zero skips, failures or errors**. All ten strict
+namespace checks passed. The three complete performance protocols passed
+with all 42/63/63 samples retained. The only failed source gate is
+`task_io_composition`: the positive native control's third repetition checks
+the wake FD immediately after worker shutdown, before the cancelling thread
+is required to release its final temporary binding reference. Its first two
+repetitions passed; the failing repetition is retained with its actual abort.
+Runtime source and the existing final-canceller control explicitly allow the
+binding to survive until that last reference is released. The observation
+must synchronize with that documented destruction boundary.
+
+The [complete 44cb appendix](../ci_prerequisites_20261026/full_44cb3257/README.md)
+retains all 1,306 newly uploaded files, the exact three-round task report,
+all original source/HIA reports and independently checked performance data.
+Its 923-file source snapshot is bound to the actual failed candidate. The
+archive verifier preserves its 49/50 aggregate and the later caller findings.
+
+A separate raw-log audit also found missing C prototypes in the standalone
+single-owner and composed C++-migration LLVM callers. The original resource
+vectors have small results; their recorded success does not qualify a correct
+64-bit caller boundary. Actual high-bit probes reproduce the old callers'
+truncation and distinguish it from the repaired callers and strict compilation
+rejection. Repairs and their deterministic controls require a new frozen
+candidate qualification; none of these historical runs was cancelled or
+rewritten to remove an unfavourable result.
 
 ## Acceptance boundary
 
