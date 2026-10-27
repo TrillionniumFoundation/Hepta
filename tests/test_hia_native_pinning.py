@@ -6,17 +6,75 @@ the pinned Hepta LLVM or Rust source compiler.
 from __future__ import annotations
 
 import os
+import errno
 from pathlib import Path
+import platform
 import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from hepta.hia_native_differential import (
     HIADifferentialRejected, _pin_native_artifact,
     _check_artifact_unchanged, _observe_native,
     compare_oracle_with_native,
 )
+
+
+@unittest.skipUnless(platform.system() == "Linux" and hasattr(os, "memfd_create"),
+                     "requires actual Linux memfd sealing")
+class SealingCompatibilityTests(unittest.TestCase):
+    def test_missing_python_constant_names_still_require_actual_kernel_seals(self):
+        import fcntl
+        payload = b"finite native snapshot bytes\x00\xff"
+        with tempfile.TemporaryDirectory(prefix="hia-seal-compat-") as temporary:
+            source = Path(temporary) / "snapshot.bin"
+            source.write_bytes(payload)
+            with patch.dict(fcntl.__dict__):
+                for name in ("F_ADD_SEALS", "F_GET_SEALS", "F_SEAL_WRITE", "F_SEAL_GROW",
+                             "F_SEAL_SHRINK", "F_SEAL_SEAL"):
+                    fcntl.__dict__.pop(name, None)
+                original, identity, descriptor = _pin_native_artifact(source)
+                try:
+                    self.assertEqual(original, payload)
+                    self.assertEqual(fcntl.fcntl(descriptor, 1034), 0x000F)
+                    self.assertEqual(os.pread(descriptor, len(payload) + 1, 0), payload)
+                    for operation in (lambda: os.pwrite(descriptor, b"x", 0),
+                                      lambda: os.ftruncate(descriptor, len(payload) - 1),
+                                      lambda: os.ftruncate(descriptor, len(payload) + 1),
+                                      lambda: fcntl.fcntl(descriptor, 1033, 0x0010)):
+                        with self.subTest(operation=operation), self.assertRaises(OSError) as error:
+                            operation()
+                        self.assertEqual(error.exception.errno, errno.EPERM)
+                    self.assertEqual(os.pread(descriptor, len(payload) + 1, 0), payload)
+                    _check_artifact_unchanged(source, original, identity)
+                finally:
+                    os.close(descriptor)
+
+    def test_real_kernel_seal_rejection_closes_fd_and_never_returns_unsealed_snapshot(self):
+        import fcntl
+        memfd_create = os.memfd_create
+        descriptors = []
+        def kernel_disallows_sealing(name, flags):
+            # This actual kernel memfd starts with F_SEAL_SEAL; adding the
+            # required write/grow/shrink seals must receive EPERM from Linux.
+            descriptor = memfd_create(name, flags & ~os.MFD_ALLOW_SEALING)
+            descriptors.append(descriptor)
+            self.assertEqual(fcntl.fcntl(descriptor, 1034), 0x0001)
+            return descriptor
+        with tempfile.TemporaryDirectory(prefix="hia-seal-rejection-") as temporary:
+            source = Path(temporary) / "snapshot.bin"
+            source.write_bytes(b"kernel must reject unsealable snapshot")
+            with patch("hepta.hia_native_differential.os.memfd_create", side_effect=kernel_disallows_sealing):
+                with self.assertRaisesRegex(HIADifferentialRejected, "sealed executable snapshot unavailable") as error:
+                    _pin_native_artifact(source)
+            self.assertIsInstance(error.exception.__cause__, OSError)
+            self.assertEqual(error.exception.__cause__.errno, errno.EPERM)
+            self.assertEqual(len(descriptors), 1)
+            with self.assertRaises(OSError) as closed:
+                os.fstat(descriptors[0])
+            self.assertEqual(closed.exception.errno, errno.EBADF)
 
 
 @unittest.skipUnless(os.name == "posix" and shutil.which("clang") and

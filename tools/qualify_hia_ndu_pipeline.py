@@ -28,6 +28,7 @@ from tools.release_check import _read_regular_evidence
 SOURCE_PATHS = ("hepta", "tests", "tools", "rust", "pyproject.toml", "toolchain-lock.json", ".github/workflows")
 TEST_MODULES = (
     "tests.test_hia_program", "tests.test_hia_program_tools", "tests.test_hia_program_llvm",
+    "tests.test_hia_native_pinning",
     "tests.test_hia_rust_owned_vm", "tests.test_hia_rust_owned_cfg", "tests.test_hia_rust_migration",
     "tests.test_hia_translation_validation", "tests.test_hia_finite_actions",
     "tests.test_hia_ndu_bridge", "tests.test_hia_ndu_optimizer", "tests.test_hia_optimization_cli",
@@ -78,17 +79,17 @@ def plan(directory, *, clang, bridge, build_receipt, cargo, full_regression):
          directory / "x86-search.json", "hepta.hia.x86-finite-search-qualification.v1", "ok"),
     ]
     if full_regression:
-        rows.append(("full_regression", [py, "-m", "unittest", "discover", "-s", "tests", "-q"], None, "unittest", None))
+        rows.append(("full_regression", [py, "-m", "unittest", "discover", "-s", "tests", "-v"], None, "unittest", None))
     return rows
 
 
 def qualify(directory, *, clang, bridge, build_receipt, upstream, cargo="cargo", full_regression=False):
     directory = Path(directory).resolve()
     directory.mkdir(parents=True, exist_ok=False)
-    clang = shutil.which(str(clang)) or str(Path(clang).resolve())
+    clang = str(Path(shutil.which(str(clang)) or str(clang)).resolve())
     bridge, build_receipt = Path(bridge).resolve(), Path(build_receipt).resolve()
     # These are task-scoped test-tool paths, not changes to admission semantics.
-    os.environ.update(HEPTA_CLANG=clang, CLANG=clang, HEPTA_NDU_BRIDGE=str(bridge),
+    os.environ.update(HEPTA_CLANG=clang, CLANG=clang, CLANGXX=str(Path(clang).with_name("clang++")), HEPTA_NDU_BRIDGE=str(bridge),
                       HEPTA_NDU_BUILD=str(build_receipt.parent), HEPTA_NDU_UPSTREAM=str(Path(upstream).resolve()))
     before = inventory()
     revision = _git("rev-parse", "HEAD").decode().strip()
