@@ -137,9 +137,12 @@ def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True):
     """Stream a bounded in-process JSON snapshot rather than materialize first.
 
     This is only an input-size gate. It never authenticates or verifies HIA.
+    Before building encoder fragments, keep in-memory Agent node admission
+    consistent with the textual decoder's smaller structural ceiling.
     """
     if type(maximum) is not int or not 0 <= maximum <= MAX_INPUT_BYTES:
         _reject("invalid JSON output byte budget")
+    node_budget = min(maximum, MAX_AGENT_JSON_NODES)
     try:
         # A preflight rejects a giant string *before* JSONEncoder builds
         # one huge escaped fragment. Iterative DFS also rejects cycles.
@@ -155,7 +158,7 @@ def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True):
                 continue
             queued -= 1
             nodes += 1
-            if nodes > maximum:
+            if nodes > node_budget:
                 _reject("JSON input exceeds node/byte budget")
             if type(node) in (dict, list, tuple):
                 # Check fanout *before* queuing child nodes: a single huge
@@ -163,7 +166,7 @@ def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True):
                 # Include siblings already queued by ancestor containers.
                 # Shared nested lists can otherwise enqueue far more than
                 # the total node budget before those nodes are visited.
-                if len(node) > maximum - nodes - queued:
+                if len(node) > node_budget - nodes - queued:
                     _reject("JSON container exceeds queued-node/byte budget")
                 queued += len(node)
                 if id(node) in active:
