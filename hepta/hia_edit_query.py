@@ -158,10 +158,25 @@ def apply_edit(document, query, response):
 
 
 def render_edit_context(query):
-    """Deterministic compact editing view; it does not define executable syntax."""
-    if type(query) is not dict or query.get("schema") != QUERY_SCHEMA:
-        _reject("expected a prepared edit query")
+    """Fail closed on malformed, untrusted in-memory Agent presentation data."""
+    try:
+        return _render_edit_context_checked(query)
+    except HIAEditRejected:
+        raise
+    except (KeyError, IndexError, TypeError, AttributeError, ValueError,
+            UnicodeError, RecursionError) as exc:
+        raise HIAEditRejected("E_HIA_QUERY: malformed edit presentation") from exc
+
+
+def _render_edit_context_checked(query):
+    """Deterministic display only; never a substitute for apply-time replay."""
+    expected = {"schema", "base_sha256", "input_sha256", "selector", "fields",
+                "operation_sha256", "context", "scope"}
+    if type(query) is not dict or set(query) != expected or query.get("schema") != QUERY_SCHEMA:
+        _reject("expected exact prepared edit query fields")
     _wire(query)  # Refuse unbounded forged display data before rendering.
+    if type(query["context"]) is not dict or type(query["selector"]) is not dict:
+        _reject("malformed edit context/selector")
     context = query["context"]
     fn = context["function"]
     params = ", ".join(v["name"] + ":" + v["type"] for v in fn["params"])
