@@ -77,25 +77,31 @@ def install_lean(parent):
     return str(target / "bin/lean")
 
 
-def download_qemu_package(url, package, expected_sha256):
-    """Retry transient HTTP failures without changing or trusting package identity."""
-    for attempt in range(3):
-        try:
-            with urllib.request.urlopen(url, timeout=60) as response, package.open("wb") as out:
-                shutil.copyfileobj(response, out)
-        except urllib.error.HTTPError as exc:
-            package.unlink(missing_ok=True)
-            if exc.code not in {429, 500, 502, 503, 504} or attempt == 2:
+def download_qemu_package(url, package, expected_sha256, fallback_url=None):
+    """Use an alternate pinned package location only after transient HTTP exhaustion."""
+    sources = (url,) if fallback_url is None else (url, fallback_url)
+    for source_index, source in enumerate(sources):
+        for attempt in range(3):
+            try:
+                with urllib.request.urlopen(source, timeout=60) as response, package.open("wb") as out:
+                    shutil.copyfileobj(response, out)
+            except urllib.error.HTTPError as exc:
+                package.unlink(missing_ok=True)
+                if exc.code not in {429, 500, 502, 503, 504}:
+                    raise
+                if attempt == 2:
+                    if source_index + 1 == len(sources):
+                        raise
+                    break
+                time.sleep(1 << attempt)
+                continue
+            except Exception:
+                package.unlink(missing_ok=True)
                 raise
-            time.sleep(1 << attempt)
-            continue
-        except Exception:
-            package.unlink(missing_ok=True)
-            raise
-        if sha(package) != expected_sha256:
-            package.unlink(missing_ok=True)
-            raise RuntimeError("Ubuntu QEMU package checksum mismatch")
-        return
+            if sha(package) != expected_sha256:
+                package.unlink(missing_ok=True)
+                raise RuntimeError("Ubuntu QEMU package checksum mismatch")
+            return
 
 
 def install_qemu(parent):
@@ -111,7 +117,7 @@ def install_qemu(parent):
     with tempfile.TemporaryDirectory(prefix=".qemu-install-", dir=parent) as temp:
         temp = Path(temp)
         package = temp / "qemu.deb"
-        download_qemu_package(metadata["source"], package, metadata["package_sha256"])
+        download_qemu_package(metadata["source"], package, metadata["package_sha256"], metadata.get("fallback_source"))
         staged = temp / "toolchain"
         staged.mkdir()
         proc = subprocess.Popen(["dpkg-deb", "--fsys-tarfile", str(package)], stdout=subprocess.PIPE)
