@@ -122,10 +122,12 @@ def _bounded_json_string_size(value: str, maximum: int, ensure_ascii: bool) -> i
             # Without this exception a small raw string can allocate a
             # fragment six times the admitted byte budget before refusal.
             width = 6 if point == 127 and ensure_ascii else 1
+        elif 0xd800 <= point <= 0xdfff:
+            # ASCII escaping a lone surrogate still yields text rejected by
+            # HIA JSON predecode; never serialize that invalid wire form.
+            _reject("unpaired Unicode surrogate in UTF-8 JSON")
         elif ensure_ascii:
             width = 6 if point <= 0xffff else 12
-        elif 0xd800 <= point <= 0xdfff:
-            _reject("unpaired Unicode surrogate in UTF-8 JSON")
         elif point < 0x800:
             width = 2
         elif point < 0x10000:
@@ -179,18 +181,30 @@ def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True):
                 active.add(id(node))
                 pending.append((node, True, depth))
                 if type(node) is dict:
+                    # Python dict keys can differ while their JSON field names
+                    # collide (1 vs "1", True vs "true", None vs "null").
+                    # Decode rejects duplicate JSON keys; fail before encoder
+                    # materialization instead of producing an unusable wire.
+                    wire_keys = set()
                     for key, child in node.items():
                         if type(key) not in (str, int, float, bool, type(None)):
                             _reject("unsupported JSON object key")
                         if type(key) is str:
                             _bounded_json_string_size(key, maximum, ensure_ascii)
+                            wire_key = key
                         else:
                             # Avoid unbounded decimal materialization for
                             # pathological in-memory integer object keys.
                             if type(key) is int and key.bit_length() > maximum * 4:
                                 _reject("JSON key exceeds numeric byte budget")
-                            if len(str(key)) + 2 > maximum:
+                            # Match JSONEncoder's spelling for int, float,
+                            # bool and None, including nonfinite rejection.
+                            wire_key = json.dumps(key, allow_nan=False)
+                            if len(wire_key) + 2 > maximum:
                                 _reject("JSON key exceeds byte budget")
+                        if wire_key in wire_keys:
+                            _reject("JSON object key collision after JSON conversion")
+                        wire_keys.add(wire_key)
                         pending.append((child, False, depth + 1))
                 else:
                     pending.extend((child, False, depth + 1) for child in node)
