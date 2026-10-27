@@ -87,6 +87,12 @@ _FORBIDDEN_SYSCALLS = (
     # Block fd rebinding and all fcntl commands. F_DUPFD and F_GETFD share
     # syscall 72, so admitting fcntl by syscall number would permit FD dup.
     32, 33, 72, 292,
+    # POSIX message queues are a *separate* IPC API from SysV, including
+    # mq_open/mq_unlink and timed send/receive and queue notification.
+    240, 241, 242, 243, 244, 245,
+    # Legacy Linux AIO can create kernel asynchronous I/O contexts without
+    # using io_uring. The finite scalar evaluator needs neither family.
+    206, 207, 208, 209, 210,
 )
 if len(_FORBIDDEN_SYSCALLS) != len(set(_FORBIDDEN_SYSCALLS)):
     raise RuntimeError("duplicated native evaluator syscall policy")
