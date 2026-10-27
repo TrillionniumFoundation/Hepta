@@ -240,7 +240,7 @@ def qualify_cpp_matrix(workdir, *, clang="clang", clangxx="clang++"):
                 obj = work / f"original-{config['index']}.o"
                 objects.append(obj)
                 _process([report["tools"]["clangxx"]["path"], *config["frontend_arguments"],
-                          "-O2", "-fPIC", "-c", config["source"], "-o", obj], row, work)
+                          "-c", config["source"], "-o", obj], row, work)
             _process([report["tools"]["clangxx"]["path"], "-shared", *objects, "-o", work / "original.so"], row, work)
             row["expected"] = [expected(name, case) for case in cases()]
             row["interpreter_results"] = [execute_program(program, case["function"], case["arguments"])["result"] for case in cases()]

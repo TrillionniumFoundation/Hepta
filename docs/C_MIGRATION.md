@@ -55,12 +55,25 @@ An example database entry is:
 The database's compiler command is parsed as data; it is never executed through
 a shell. The explicitly selected Clang performs preprocessing and AST capture.
 Compiler wrappers, response files, plugin flags and unknown options are
-rejected. Accepted compile standards are explicit C99, C11 and C17. Includes
-and macro definitions are preserved; output, optimization and diagnostic flags
-that do not belong to this semantic frontend invocation are recorded with the
-reason for omission. Semantic options such as `-fwrapv` are not silently
-discarded. Multiple configurations for one source must be qualified in separate
-complete database runs.
+rejected. Accepted compile standards are explicit C99, C11 and C17. Includes,
+macro definitions, plain-char signedness, accepted optimization levels
+(`-O0`, `-O1`, `-O2`, `-O3`, `-Os`, `-Oz`) and PIC modes (`-fPIC`, `-fpic`) are
+preserved in their original order. Optimization and PIC modes can select source
+branches through compiler-defined macros such as `__OPTIMIZE__`,
+`__OPTIMIZE_SIZE__`, `__NO_INLINE__`, `__PIC__` and `__PIE__`. Dependency discovery,
+preprocessing, AST generation and macro replay must observe the same options;
+the original native comparison build must not append a conflicting mode.
+Output and diagnostic-only flags are recorded with the reason for omission.
+Unmodeled semantic options such as `-fwrapv` still reject. Multiple configurations
+for one source must be qualified in separate complete database runs or an
+explicit build matrix.
+
+Captures made by older compilers which omitted optimization/PIC options do not
+become valid by recomputing the receipt hash. They must be recaptured from the
+unchanged compilation database so the actual selected declarations and
+dependencies can be checked again. The generated HIA backend may optimize its
+already-selected program independently; this does not authorize changing which
+source branch was imported.
 
 To reproduce the native differential qualification:
 

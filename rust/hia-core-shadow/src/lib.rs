@@ -1,7 +1,8 @@
 //! Conservative Rust shadow checker for the existing standalone HIA Program ISA.
 //! This crate is NOT the language admission authority: the canonical Python
 //! verify_program remains mandatory until semantic refinement is demonstrated.
-//! Only the source-independent, resource-free scalar SSA subprofile is accepted.
+//! Scalar and Owner/Loan checking remain explicit shadow profiles. Finite
+//! execution supports the scalar ISA and the closed v1 byte-resource ISA.
 //! Every unsupported feature rejects instead of being interpreted as safe.
 #![forbid(unsafe_code)]
 
@@ -494,7 +495,9 @@ fn check_function(fn_value: &Value, sig: &Signature, functions: &BTreeMap<String
     Ok(blocks.len())
 }
 mod ownership;
+mod owned_vm;
 mod scalar_vm;
+pub use owned_vm::{execute_owned, OwnedOptions};
 pub use scalar_vm::execute_scalar;
 
 fn decode_hia(input: &[u8]) -> R<(Value, Vec<u8>)> {

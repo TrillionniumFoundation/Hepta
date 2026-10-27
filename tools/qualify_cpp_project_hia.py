@@ -241,7 +241,7 @@ def qualify_cpp_templates_to_hia(workdir, *, clang="clang", clangxx="clang++"):
         originals = []
         for config in migration["capture"]["configurations"]:
             obj = directory / f"original-{config['index']}.o"; originals.append(obj)
-            _process([tools["clangxx"]["path"], *config["frontend_arguments"], "-O2", "-fPIC", "-c", config["source"], "-o", obj], report, directory)
+            _process([tools["clangxx"]["path"], *config["frontend_arguments"], "-c", config["source"], "-o", obj], report, directory)
         _process([tools["clangxx"]["path"], "-shared", *originals, "-o", directory / "original.so"], report, directory)
         actual_cases = cases()
         reference = [expected(row) for row in actual_cases]

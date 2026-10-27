@@ -81,6 +81,11 @@ def decode_json(payload):
             raise HIAEditRejected(
                 "E_HIA_EDIT: JSON node/depth budget exceeded before decoding"
             ) from exc
+        except ValueError as exc:
+            # The preflight emits fixed grammar reasons, without echoing
+            # payload values. Preserve them so duplicate-key diagnostics do
+            # not disappear merely because refusal now precedes json.loads.
+            raise HIAEditRejected("E_HIA_EDIT: invalid JSON syntax: " + str(exc)) from exc
         return json.loads(source, object_pairs_hook=_pairs,
                           parse_constant=lambda value: _reject("nonfinite JSON number"))
     except HIAEditRejected:

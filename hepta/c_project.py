@@ -36,6 +36,14 @@ _SELECTION_SCHEMAS = {"hepta.c-build-selection.v1": "c",
                       "hepta.cpp-build-selection.v1": "c++"}
 _FULL_SCOPE = "all_listed_commands_only_not_unlisted_platforms_or_configurations"
 _SELECTION_SCOPE = "explicit_command_selection_not_complete_database_or_unlisted_builds"
+# These driver options also select preprocessing branches. In particular -O*
+# controls __OPTIMIZE__/__OPTIMIZE_SIZE__/__NO_INLINE__, and -fPIC/-fpic control
+# the PIC/PIE macro inventory. Preserve their order, including repeated options,
+# in every frontend invocation and the independent compiler-macro probe.
+_SEMANTIC_DRIVER_FLAGS = frozenset({
+    "-funsigned-char", "-fsigned-char",
+    "-O0", "-O1", "-O2", "-O3", "-Os", "-Oz", "-fPIC", "-fpic",
+})
 
 
 def selected_command_indices(entries: list, indices: list[int] | None) -> list[int]:
@@ -226,11 +234,11 @@ def _flags(argv: list[str], source: Path, directory: Path, *, language: str = "c
             forwarded.append(value)
         elif value in ({"-std=c99", "-std=c11", "-std=c17"} if language == "c" else {"-std=c++20"}):
             forwarded.append(value)
-        elif value in {"-funsigned-char", "-fsigned-char"}:
-            # Plain-char signedness is semantic and enters the probed model;
-            # never discard this flag as a code-generation preference.
+        elif value in _SEMANTIC_DRIVER_FLAGS:
+            # Code-generation options may change the source selected by the
+            # preprocessor. They are not diagnostic/output-only preferences.
             forwarded.append(value)
-        elif value in {"-c", "-g", "-g0", "-g1", "-g2", "-g3", "-O0", "-O1", "-O2", "-O3", "-Os", "-Oz", "-Wall", "-Wextra", "-Werror", "-pedantic", "-pedantic-errors", "-fPIC", "-fpic"}:
+        elif value in {"-c", "-g", "-g0", "-g1", "-g2", "-g3", "-Wall", "-Wextra", "-Werror", "-pedantic", "-pedantic-errors"}:
             omitted.append({"argument": value, "reason": "driver_output_or_diagnostic_flag"})
         elif value == "-o":
             if i >= len(argv):
@@ -265,7 +273,7 @@ def _abi_model_arguments(flags: list[str]) -> list[str]:
             pos += 2
         elif option.startswith(("-I", "-D", "-U")) and len(option) > 2:
             pos += 1
-        elif option.startswith("-std=") or option in {"-funsigned-char", "-fsigned-char"}:
+        elif option.startswith("-std=") or option in _SEMANTIC_DRIVER_FLAGS:
             result.append(option)
             pos += 1
         else:

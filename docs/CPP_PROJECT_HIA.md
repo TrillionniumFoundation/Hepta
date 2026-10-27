@@ -19,6 +19,14 @@ and unmodeled flags reject. Duplicate configurations reject when imported into
 one standalone artifact; the explicit matrix entry point below keeps them in
 separate artifacts.
 
+Accepted optimization (`-O0`/`-O1`/`-O2`/`-O3`/`-Os`/`-Oz`) and PIC
+(`-fPIC`/`-fpic`) options remain in the captured frontend argument order because
+they change compiler-provided preprocessing macros. This applies equally to
+dependency discovery, AST selection, replay and original native comparison
+builds. A later comparison command must not override the captured mode with a
+new `-O2` or `-fPIC`. Old captures that omitted these semantic options must be
+recaptured; a resealed receipt cannot authorize a different active source tree.
+
 This capture describes the listed build only. It does not establish that every
 possible platform, macro configuration or dependency version has been listed.
 

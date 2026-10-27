@@ -171,7 +171,7 @@ def qualify_c_matrix(workdir, *, clang="clang"):
             for config in variant["capture"]["configurations"]:
                 obj = work / f"original-{config['index']}.o"
                 originals.append(obj)
-                _process([compiler, *config["frontend_arguments"], "-O2", "-fPIC", "-c", config["source"], "-o", obj], row, work)
+                _process([compiler, *config["frontend_arguments"], "-c", config["source"], "-o", obj], row, work)
                 symbols = inspect_object_symbols(obj.read_bytes(), "ELF64", 62)
                 original_defined.update(symbols["defined"])
                 row["original_object_symbols"].append({

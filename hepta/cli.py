@@ -47,6 +47,7 @@ def main(argv=None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
     hia = sub.add_parser("hia", help="Independent typed HIA program verification, execution and native compilation")
     hia_actions = hia.add_subparsers(dest="hia_action", required=True)
+    hia_actions.add_parser("schema", help="List exact Core grammars and explicit compatibility adapters")
     for action in ("verify", "inspect", "run", "emit", "build", "lower", "patch", "normalize",
                    "impact", "import-executable", "import-scalar", "import-cpp-project",
                    "import-cpp-matrix", "import-composite-v2", "upgrade-v7",
@@ -248,6 +249,10 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     try:
         if args.command == "hia":
+            if args.hia_action == "schema":
+                from .hia_schema import schema_registry
+                output_json(schema_registry())
+                return 0
             from .hia_program import verify_program
             from .hia_program_tools import (read_bounded, decode_json, inspect_program,
                                             apply_program_patch, publish_program)
