@@ -119,6 +119,103 @@ def _bounded_cast(value, typ, mode):
     return None
 
 
+
+def _bounded_shift(op, lhs, count, typ):
+    """Conservatively propagate the VM's checked-count shift semantics.
+
+    HIA's "checked" shifts trap on an invalid *count*, not when bits are
+    discarded. The left operand's integer type still wraps after a valid
+    left shift. Only admit interval endpoints when every mathematical
+    left-shift result fits; exact wrapped pairs may be folded separately.
+    Right shifts use signed arithmetic/unsigned logical Python semantics.
+    """
+    value, amount = _span(lhs), _span(count)
+    if value is None or amount is None:
+        return None
+    bits = WIDTHS[typ]
+    if amount.lo < 0 or amount.hi >= bits:
+        if value.lo == value.hi and amount.lo == amount.hi:
+            _reject("checked constant shift count traps")
+        return None
+    left = op == "int.shl.checked"
+    corners = tuple((x << n if left else x >> n)
+                    for x in (value.lo, value.hi)
+                    for n in (amount.lo, amount.hi))
+    low, high = min(corners), max(corners)
+    if left:
+        minimum, maximum = integer_range(typ)
+        if not minimum <= low <= high <= maximum:
+            if value.lo == value.hi and amount.lo == amount.hi:
+                return _wrap(low, typ)
+            # Modulo wrapping can make an interval nonmonotone.
+            # Treat any partially wrapped interval as UNKNOWN, not its
+            # unwrapped mathematical endpoints.
+            return None
+    return _bounded(low, high)
+
+def _bounded_divrem(op, lhs, rhs, typ):
+    """Fold exactly known checked integer div/rem, with VM rounding.
+
+    Fractional or interval division is deliberately not guessed. Python's
+    // rounds negative values toward minus infinity, while HIA signed div
+    truncates toward zero and signed remainder follows the dividend.
+    """
+    a, b = _span(lhs), _span(rhs)
+    if a is None or b is None or a.lo != a.hi or b.lo != b.hi:
+        return None
+    dividend, divisor = a.lo, b.lo
+    minimum, _ = integer_range(typ)
+    if divisor == 0 or (typ.startswith("i") and dividend == minimum and divisor == -1):
+        _reject("checked constant division or remainder traps")
+    quotient = abs(dividend) // abs(divisor)
+    if (dividend < 0) != (divisor < 0):
+        quotient = -quotient
+    return (quotient if op == "int.div.checked"
+            else dividend - quotient * divisor)
+
+
+def _exact_scalar(op, inputs, typ):
+    """Only fold values that are exact in already verified typed HIA SSA.
+
+    Never infer a finite allocation extent from a partial interval, unknown
+    argument, throwing arithmetic result, or Python's unbounded integer rules.
+    Integer output uses the same fixed-width operations as the canonical VM.
+    """
+    if op.startswith("compare."):
+        a, b = inputs
+        if type(a) is bool or type(b) is bool:
+            if type(a) is not bool or type(b) is not bool or op not in {
+                    "compare.eq", "compare.ne"}:
+                return None
+            return a == b if op == "compare.eq" else a != b
+    spans = [_span(value) for value in inputs]
+    if any(span is None or span.lo != span.hi for span in spans):
+        return None
+    vals = [span.lo for span in spans]
+
+    if op.startswith("compare."):
+        a, b = vals
+        return {
+            "compare.eq": a == b, "compare.ne": a != b,
+            "compare.lt": a < b, "compare.le": a <= b,
+            "compare.gt": a > b, "compare.ge": a >= b,
+        }[op]
+    if op == "bit.not":
+        return _wrap(~vals[0], typ)
+    if op in {"bit.and", "bit.or", "bit.xor"}:
+        a, b = vals
+        result = (a & b if op == "bit.and" else
+                  a | b if op == "bit.or" else a ^ b)
+        return _wrap(result, typ)
+    # Reuse the stronger interval-aware P1 transfer implementations imported
+    # verbatim from the parallel reviewed HIA shift/divrem branch.
+    if op in {"int.div.checked", "int.rem.checked"}:
+        return _bounded_divrem(op, vals[0], vals[1], typ)
+    if op in {"int.shl.checked", "int.shr.checked"}:
+        return _bounded_shift(op, vals[0], vals[1], typ)
+    return None
+
+
 def _paths(term: dict) -> list[dict]:
     if term["op"] == "jump":
         return [{"target": term["target"], "args": term["args"]}]
@@ -153,6 +250,18 @@ def _merge(previous, proposed, label):
     return owners, known, dict(old_loans)
 
 
+def _typed_entry_bounds(parameters):
+    """Upper bounds intrinsic to small unsigned HIA machine parameter types.
+
+    C/Agent callers may supply *any* representable value; no caller contract
+    or input probe is trusted. u64/usize remain unknown because their full
+    representable range exceeds the bounded allocator object-size model.
+    """
+    return {
+        param["name"]: _Span(0, (1 << WIDTHS[param["type"]]) - 1)
+        for param in parameters if param["type"] in {"u8", "u16", "u32"}
+    }
+
 def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) -> int:
     from .hia_program import WIDTHS
 
@@ -166,7 +275,7 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) 
     order = _dag(list(blocks), edges, f"{fn['name']} heap control flow")
     # owners: SSA owner -> max requested bytes; known: scalar intervals;
     # loans: live readbuf/mutbuf -> root owner SSA name.
-    states = {fn["entry"]: ({}, {}, {})}
+    states = {fn["entry"]: ({}, _typed_entry_bounds(fn["params"]), {})}
     peak = 0
     for name in order:
         if name not in states:
@@ -191,6 +300,35 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) 
             elif op == "int.cast":
                 folded = _bounded_cast(known.get(args[0]), outputs[0]["type"],
                                        attrs["mode"])
+                if folded is not None:
+                    known[out_names[0]] = folded
+            elif op in {"int.shl.checked", "int.shr.checked"}:
+                folded = _bounded_shift(op, known.get(args[0]), known.get(args[1]),
+                                        outputs[0]["type"])
+                if folded is not None:
+                    known[out_names[0]] = folded
+            elif op in {"int.div.checked", "int.rem.checked"}:
+                folded = _bounded_divrem(op, known.get(args[0]),
+                                         known.get(args[1]), outputs[0]["type"])
+                if folded is not None:
+                    known[out_names[0]] = folded
+            elif op in {
+                    "bit.not", "bit.and", "bit.or", "bit.xor",
+                    "compare.eq", "compare.ne", "compare.lt", "compare.le",
+                    "compare.gt", "compare.ge"}:
+                folded = _exact_scalar(op, [known.get(arg) for arg in args],
+                                       outputs[0]["type"])
+                if folded is None and op == "bit.and":
+                    # Proven positive exact mask bounds all unknown typed inputs,
+                    # even signed negative two's-complement operands.
+                    masks = []
+                    for arg in args:
+                        mask = _span(known.get(arg))
+                        if (mask is not None and mask.lo == mask.hi
+                                and mask.lo >= 0):
+                            masks.append(mask.lo)
+                    if masks:
+                        folded = _bounded(0, min(masks))
                 if folded is not None:
                     known[out_names[0]] = folded
             elif op == "int.neg.checked":
