@@ -8,32 +8,37 @@ checker, LLVM backend, native ABI, compiler admission, or resource contracts.
 ## Reproducible mismatch and correction
 
 The canonical Python VM enters the root invocation at `depth=0` and
-rejects only when `depth > max_call_depth`. The Rust scalar shadow also
-starts the root at `depth=0`, but formerly used
-`depth >= MAX_CALL_DEPTH`. Both are configured with numeric limit 32
-by the existing Python↔Rust differential test.
+rejects when `depth >= max_call_depth` **before entering the next frame**.
+This root-inclusive contract was already explicitly fixed in
+`docs/HIA_VM_CALL_DEPTH_BUDGET_20261026.md` and covered by
+`tests/test_hia_vm_call_depth.py`.
+A later Rust shadow change incorrectly changed its limit to
+`depth > MAX_CALL_DEPTH`. Both implementations use limit 32 in the
+Python↔Rust scalar VM differential suite.
 
 For a function that calls itself once per frame and never returns:
 
 | Interpreter | First rejected depth | Entered frames | VM ticks |
 | --- | ---: | ---: | ---: |
-| Canonical Python (`> 32`) | 33 | 33 | 66 |
-| Previous Rust (`>= 32`) | 32 | 32 | 64 |
-| Patched Rust (`> 32`) | 33 | 33 | 66 |
+| Canonical Python (`>= 32`) | 32 | 32 | 64 |
+| Divergent Rust (`> 32`) | 33 | 33 | 66 |
+| Corrected Rust (`>= 32`) | 32 | 32 | 64 |
 
 There are two ticks per entered frame before the next recursion: call
 entry and the recursive-call operation. No extra tick is charged for a
-rejected invocation. The configured number 32 means *maximum nested
-depth beyond the root*, not 32 simultaneous frames. The corrected Rust
-oracle permits 33 total active frames for this configuration, as Python
-already does.
+rejected invocation. The configured number 32 means **32 total active
+frames including the root**, not 32 descendants beyond it. A 33rd frame
+would contradict the canonical Python runtime and the independent static
+`max_call_depth` convention.
 
 ## Committed checks
 
-- Real Rust scalar VM recursive budget regression now requires **66** ticks.
-- Python↔Rust actual-model differential includes a finite recursion that
-  succeeds at depth 32 and refuses at depth 33, plus a separately asserted
-  infinite-recursion boundary (status, budget code and exact steps).
+- Rust scalar VM recursion regression now requires **64** ticks.
+- Python↔Rust differential verifies finite recursion succeeds through
+  depth 31 and refuses at depth 32, plus an exact infinite-recursion
+  status, budget-code and 64-tick check.
+- The original canonical Python-only root-inclusive regression remains in
+  `tests/test_hia_vm_call_depth.py`.
 - Existing signed division/remainder overflow, CFG/PHI, arithmetic, limited
   scalar grammar and ownership rejection behavior remain unchanged.
 
@@ -43,8 +48,9 @@ cargo test --manifest-path rust/hia-core-shadow/Cargo.toml
 python -m unittest tests.test_hia_rust_scalar_vm -v
 ```
 
-The arithmetic of 32/33 frame boundaries was reproduced in an independent
-CPython count-only control, **not an exact-head actual Rust/Cargo execution**.
+The 32-frame/64-tick boundary was reproduced by an independent CPython
+count-only control and matched the existing canonical Python source contract,
+**not an exact-head actual Rust/Cargo execution**.
 The local environment does not expose Cargo/rustc or a GitHub checkout.
 No green CI, native parity or end-to-end safety is inferred from the new
 tests being committed.
