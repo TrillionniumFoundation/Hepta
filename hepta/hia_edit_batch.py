@@ -142,7 +142,15 @@ def _render_batch_context_checked(query):
     expected = {"schema", "base_sha256", "input_sha256", "sites", "application", "scope"}
     if type(query) is not dict or set(query) != expected or query.get("schema") != QUERY_SCHEMA:
         _reject("expected exact prepared batch query fields")
-    functions, blocks = {}, {}
+    functions, blocks, positions, signatures = {}, {}, set(), {}
+
+    def merge_signature(signature):
+        name = signature["name"]
+        previous = signatures.get(name)
+        if previous is not None and _wire(previous) != _wire(signature):
+            _reject("conflicting displayed function/callee signature")
+        signatures[name] = signature
+
     sites = query["sites"]
     if type(sites) is not list or not 1 <= len(sites) <= MAX_SITES:
         _reject("invalid query sites")
@@ -162,10 +170,22 @@ def _render_batch_context_checked(query):
         # opcodes, selected fields and SSA indexes reused below.
         render_edit_context(nested)
         context, selector = nested["context"], nested["selector"]
+        if any(type(query[field]) is not str or nested[field] != query[field]
+               for field in ("base_sha256", "input_sha256")):
+            _reject("nested edit query snapshot differs from batch")
+        position = (selector["function"], selector["block"],
+                    context["operation_index"])
+        if position in positions:
+            _reject("batch display selections overlap one instruction")
+        positions.add(position)
+        merge_signature(context["function"])
         functions[selector["function"]] = context["function"]
         key = (selector["function"], selector["block"])
         block = blocks.setdefault(key, {"params": context["block_params"], "ops": {}, "edits": {},
                                         "term": context["terminator"], "callees": {}})
+        if (_wire(block["params"]) != _wire(context["block_params"])
+                or _wire(block["term"]) != _wire(context["terminator"])):
+            _reject("conflicting current-block CFG presentation")
         operations = [*context["dependencies"], *context["consumers"],
                       {"index": context["operation_index"], "operation": context["operation"]}]
         for entry in operations:
@@ -174,7 +194,9 @@ def _render_batch_context_checked(query):
                 _reject("conflicting displayed operations")
             block["ops"][entry["index"]] = entry["operation"]
         block["edits"][context["operation_index"]] = (item["site"], nested["fields"])
-        block["callees"].update({fn["name"]: fn for fn in context["callees"]})
+        for signature in context["callees"]:
+            merge_signature(signature)
+            block["callees"][signature["name"]] = signature
         # Downstream explicit SSA uses may be displayed by several edit
         # selections. Deduplicate by immutable function/block/op identities,
         # just as same-block producers/consumers are deduplicated above.

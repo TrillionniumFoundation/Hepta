@@ -53,7 +53,8 @@ jobs:
       - name: Native compilers and required namespace runtime
         run: |
           sudo apt-get update
-          sudo apt-get install --yes bubblewrap gcc g++ curl gnupg gdb libboost-dev qemu-system-arm
+          sudo apt-get install --yes bubblewrap gcc g++ curl gnupg gdb libboost-dev qemu-system-arm qemu-user-static
+          test -x /usr/bin/qemu-riscv64-static
       - name: Install the explicit LLVM 20 resource backend toolchain
         shell: bash
         run: |
@@ -69,9 +70,11 @@ jobs:
           printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' \
             | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list
           sudo apt-get update
-          sudo apt-get install --yes clang-20 libclang-rt-20-dev
+          sudo apt-get install --yes clang-20 libclang-rt-20-dev lld-20 llvm-20
           test -x /usr/lib/llvm-20/bin/clang
           test -x /usr/lib/llvm-20/bin/clang++
+          test -x /usr/lib/llvm-20/bin/ld.lld
+          test -x /usr/lib/llvm-20/bin/llvm-readobj
           printf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"
           /usr/lib/llvm-20/bin/clang --version
       - name: Install SHA-256-locked Rust 1.90.0 toolchain and cross stdlibs
@@ -90,10 +93,13 @@ jobs:
           export LEAN="$GITHUB_WORKSPACE/../toolchains/lean-4.19.0/bin/lean"
           python tools/qualify_hia_unified.py \
             --output-directory artifacts/hia-unified \
+            --unit-timeout-seconds 3600 \
             --clang /usr/lib/llvm-20/bin/clang \
             --rustc "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/bin/rustc" \
-            --linker "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld" \
+            --linker /usr/lib/llvm-20/bin/ld.lld \
+            --lean "$GITHUB_WORKSPACE/../toolchains/lean-4.19.0/bin/lean" \
             --qemu-aarch64 "$GITHUB_WORKSPACE/../toolchains/qemu-8.2.2/qemu-aarch64-static" \
+            --qemu-riscv64 /usr/bin/qemu-riscv64-static \
             --qemu-system-arm /usr/bin/qemu-system-arm
       - name: Preserve failures and all raw evidence
         if: always()

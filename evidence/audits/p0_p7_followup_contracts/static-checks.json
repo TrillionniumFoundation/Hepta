@@ -1,0 +1,128 @@
+{
+  "schema": "hepta.followup-static-audit.v1",
+  "base_commit": "3e2c4f73816f200409db74962420986804ef0ba6",
+  "implementation_origin": "108762baaefedde931f4160dbeadb6442fbb824b",
+  "validation_kind": "JavaScript extraction of Python parser declarations and workflow text; no Python or shell execution",
+  "required_cli": [
+    "--output-directory",
+    "--qemu-aarch64",
+    "--qemu-riscv64",
+    "--linker",
+    "--lean"
+  ],
+  "missing_before": [
+    "--qemu-riscv64",
+    "--lean"
+  ],
+  "missing_after": [],
+  "new_command": "python tools/qualify_hia_unified.py              --output-directory artifacts/hia-unified              --unit-timeout-seconds 3600              --clang /usr/lib/llvm-20/bin/clang              --rustc \"$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/bin/rustc\"              --linker /usr/lib/llvm-20/bin/ld.lld              --lean \"$GITHUB_WORKSPACE/../toolchains/lean-4.19.0/bin/lean\"              --qemu-aarch64 \"$GITHUB_WORKSPACE/../toolchains/qemu-8.2.2/qemu-aarch64-static\"              --qemu-riscv64 /usr/bin/qemu-riscv64-static              --qemu-system-arm /usr/bin/qemu-system-arm",
+  "added_executable_guards": [
+    {
+      "path": "/usr/bin/qemu-riscv64-static",
+      "present": true
+    },
+    {
+      "path": "/usr/lib/llvm-20/bin/ld.lld",
+      "present": true
+    },
+    {
+      "path": "/usr/lib/llvm-20/bin/llvm-readobj",
+      "present": true
+    }
+  ],
+  "unit_timeout_seconds": 3600,
+  "job_timeout_minutes": 60,
+  "python_tests_executed": 0,
+  "native_tests_executed": 0,
+  "ci_run_verified": false,
+  "execution_environment_available": false,
+  "full_p0_p7_complete": false,
+  "source_text_checks": [
+    {
+      "path": "hepta/hia_edit_batch.py",
+      "old_blob": "9c940ec27397d5d56c67d9522cf2fad8cf42e987",
+      "newline_terminated": true,
+      "unique_test_method_names": true
+    },
+    {
+      "path": "hepta/c_migrate.py",
+      "old_blob": "ffcf6817db47b953d0c7a42f16a998915236fbfe",
+      "newline_terminated": true,
+      "unique_test_method_names": true
+    },
+    {
+      "path": "hepta/c_translation.py",
+      "old_blob": "d52b6d56932f75e328a94d0c273971e91fcb21c3",
+      "newline_terminated": true,
+      "unique_test_method_names": true
+    },
+    {
+      "path": ".github/workflows/hepta-qualification.yml",
+      "old_blob": "b933cb856842a77163e91dd5e270e8b1a16bc80d",
+      "newline_terminated": true,
+      "unique_test_method_names": true
+    },
+    {
+      "path": "tests/test_hia_edit_batch.py",
+      "old_blob": "d35d13e91b9973dcc14e7c6c41083ab5000edf28",
+      "newline_terminated": true,
+      "unique_test_method_names": true
+    },
+    {
+      "path": "tests/test_c_project.py",
+      "old_blob": "ef8aa668335a11141e1f2d1f3208e88e45fa9af6",
+      "newline_terminated": true,
+      "unique_test_method_names": true
+    },
+    {
+      "path": "tests/test_hia_unified_workflow_cli.py",
+      "old_blob": null,
+      "newline_terminated": true,
+      "unique_test_method_names": true
+    }
+  ],
+  "prepare_and_apply_batch_prefix_unchanged": true,
+  "bounded_static_audits": [
+    {
+      "area": "primitive_v1_owner_loan_and_core_llvm",
+      "status": "no_new_counterexample_identified_in_bounded_source_review",
+      "executed": false,
+      "proof": false
+    },
+    {
+      "area": "gnu_function_type_attributes",
+      "status": "reject_guard_added_to_both_signature_admission_paths",
+      "executed": false,
+      "all_platform_abi_claim": false
+    },
+    {
+      "area": "vla_parameter_original_type",
+      "status": "open",
+      "executed": false
+    },
+    {
+      "area": "batch_presentation_merge",
+      "status": "consistency_guards_added; regression execution pending",
+      "executed": false
+    }
+  ],
+  "new_python_test_methods": [
+    "test_function_type_abi_attributes_reject_without_publication",
+    "test_render_rejects_two_sites_for_one_instruction",
+    "test_render_rejects_mixed_snapshot_bindings",
+    "test_render_rejects_conflicting_shared_context",
+    "test_render_accepts_distinct_composite_input_and_core_hashes",
+    "test_workflow_reaches_main_with_required_tools_and_explicit_budget"
+  ],
+  "validation_status": "UNEXECUTED_PYTHON_NATIVE_AND_CI",
+  "recorded_utc": "2026-10-27 18:41:59 UTC",
+  "open_risks": [
+    "No Python, Clang, Rust, LLVM, native, model or CI execution was possible for these changes.",
+    "VLA parameter original-type evaluation is not captured and its admission gap remains open.",
+    "The ABI guard rejects GNU-style function type attributes, not every target-specific ABI suffix.",
+    "The whole CI job still has a 60-minute timeout, shared with setup and release_check; complete duration is unmeasured.",
+    "The follow-up branch is outside this workflow's automatic push filters and the stacked PR base is not main.",
+    "Original 108762ba terminal 19-gate report and final local source snapshot remain unrecovered.",
+    "The full raw evidence ZIP has not been created or made available."
+  ]
+}
