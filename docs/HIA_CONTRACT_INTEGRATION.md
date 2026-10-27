@@ -100,6 +100,18 @@ directory before full discovery. The source snapshot refusal remains unchanged;
 new release reports also retain both exact inventories and explicit added,
 removed and modified paths. The historical failed run remains a failed run.
 
+The first frozen integrated source, `a4ab87889616925306b84f9699316d1a850c183d`,
+completed 2,716 Python tests with ten failure entries in three JSON-key preflight
+test methods, zero errors and zero skips. Its source and registered external
+identities were unchanged. The preflight incorrectly called `json.dumps` for
+primitive keys before refusing converted-name collisions or nonfinite keys.
+The correction uses exact built-in key spellings without an encoder invocation,
+retains the original refusal assertions, and checks actual wire-byte parity for
+valid keys. The selected CI gate now includes both in-memory wire-boundary test
+modules and the cross-profile proof tests; its earlier 207-test pass did not
+cover those separate wire modules. The failed full run remains retained and is
+not converted into a pass by the focused repair checks.
+
 The collector does not rerun the standalone performance/Agent campaigns or
 reassign their observations to this source tree. Reduced native timing controls
 inside existing regression tests still execute and are identified as such.
