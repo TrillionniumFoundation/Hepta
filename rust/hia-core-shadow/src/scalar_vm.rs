@@ -181,11 +181,11 @@ impl<'a> Machine<'a> {
         if self.steps > self.limit { Err(Halt::Budget("steps")) } else { Ok(()) }
     }
     fn invoke(&mut self, name: &str, args: Vec<Value>, depth: u32) -> Exec<Vec<Value>> {
-        // The canonical Python interpreter starts at depth=0 and admits
-        // depth==max_call_depth. Refuse BEFORE the next call-entry tick at
-        // depth 33, not at depth 32; otherwise recursive budget step counts
-        // diverge (64 vs 66 for the one-call recursion fixture).
-        if depth > MAX_CALL_DEPTH { return Err(Halt::Budget("calls")); }
+        // Canonical Python uses a zero-based depth and a root-inclusive
+        // frame limit: depth >= max_call_depth rejects BEFORE its entry tick.
+        // With MAX_CALL_DEPTH=32 there are exactly 32 admitted frames
+        // (depth 0..31), not 33. A one-call recursion stops after 64 ticks.
+        if depth >= MAX_CALL_DEPTH { return Err(Halt::Budget("calls")); }
         // Copy the lifetime-qualified reference, never clone an 8 MiB function
         // at each recursive call. The source document lives for this Machine.
         let function: &'a Value = *self.functions.get(name).ok_or(Halt::Internal)?;
