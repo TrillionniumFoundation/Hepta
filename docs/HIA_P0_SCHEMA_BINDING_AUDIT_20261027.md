@@ -106,3 +106,30 @@ not full in-checkout execution of those tests; Cargo/native/GPU/hardware and
 whole P0–P7 qualification remain OPEN. A pinned regular file is not a proof
 of the compiler/runtime or a defense against all malicious same-user writes.
 `whole_project_blockers_closed=false`.
+
+## 2026-10-27 follow-up: prevent blocked named-pipe descriptor admission
+
+The audited P0 source-reader originally used `lstat → os.open(O_NOFOLLOW) →
+fstat`. `O_NOFOLLOW` prevents following a final symlink but does not stop
+`os.open` from blocking on a FIFO substituted after `lstat`. A deliberately
+constructed Linux child process stayed blocked when `open` lacked
+`O_NONBLOCK`, whereas the same FIFO opened immediately with the flag.
+
+The existing `_read` now requires POSIX `O_NONBLOCK` alongside `O_NOFOLLOW`;
+only a descriptor verified as the original bounded ordinary inode is ever read.
+The new adversarial test swaps the regular source for a FIFO in the
+`os.open` hook, checks the flags **before** opening (regressions fail rather
+than hang), and requires an inode mismatch rejection. The original audit
+reflection/inventory checks and no-reopen controls are unchanged.
+
+This is a fail-closed **source audit availability and TOCTOU** correction,
+not a general sandbox, source-to-Core proof, or compiler security
+certification. Local Linux FIFO open controls exercised the blocking/nonblocking
+difference; complete exact-HEAD repository tests, Rust native and hardware
+qualification have **not** been executed in this tool environment.
+
+```sh
+python -m unittest tests.test_hia_schema_binding_audit tests.test_hia_schema_collision -v
+```
+
+`whole_project_blockers_closed=false`.
