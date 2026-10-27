@@ -47,3 +47,25 @@ Memory/Provenance SSA, arbitrary C/C++ migration, LLVM backend refinement,
 independent formal proofs, real Agent A/B, GPU and physical hardware.
 
 `whole_project_blockers_closed=false`.
+
+
+## 2026-10-27 P2 signed remainder overflow consistency
+
+The existing Python HIA interpreter and LLVM backend explicitly trap
+`MIN_signed / -1` and `MIN_signed % -1` before evaluating either
+operation. The independent Rust shadow interpreter previously performed
+division in widened i128 and checked only the final result type: remainder
+zero passed, violating the HIA ISA's observable overflow-trap contract.
+
+The Rust scalar VM now checks the signed minimum for its exact operand
+width **before** both quotient and remainder. This is an execution-semantic
+repair, not a new verifier, IR, optimization rule or ABI assumption.
+Added direct Rust tests across i8/i16/i32/i64 and unsigned negative
+controls, plus Python↔Rust finite VM differential cases (traps, returned
+values and step counts). The original Python Core verifier remains the
+sole production admission authority. The exact commit has not yet been
+compiled with Cargo or executed through the full Hepta test runner in
+this environment; code review and mathematical spot checks cannot be
+reported as an end-to-end native pass.
+
+`whole_project_blockers_closed=false`.

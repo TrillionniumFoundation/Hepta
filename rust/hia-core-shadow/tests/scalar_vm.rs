@@ -46,6 +46,32 @@ fn signed_division_and_remainder_truncate_toward_zero() {
     assert_eq!(zero["error"]["code"],"division_by_zero");
 }
 #[test]
+fn signed_minimum_division_and_remainder_trap_for_each_width() {
+    for (ty, low) in [
+        ("i8", -128_i64), ("i16", -32_768_i64),
+        ("i32", -2_147_483_648_i64), ("i64", i64::MIN),
+    ] {
+        for op in ["int.div.checked", "int.rem.checked"] {
+            let doc = machine(op, ty, vec!["trap"]);
+            let result = run(&doc, "calculate", vec![json!(low), json!(-1)], 100);
+            assert_eq!(result["status"], "trapped", "{op} {ty}");
+            assert_eq!(result["error"]["code"], "overflow", "{op} {ty}");
+            // A nearby negative input is representable and may be divided
+            // normally. The fix must not turn every /-1 into a false trap.
+            let safe = run(&doc, "calculate", vec![json!(low + 1), json!(-1)], 100);
+            assert_eq!(safe["status"], "returned", "{op} {ty}");
+            let expected = if op == "int.rem.checked" { 0 } else { -(low + 1) };
+            assert_eq!(safe["values"], json!([expected]), "{op} {ty}");
+        }
+    }
+    // A signed-only guard must not change unsigned remainder semantics.
+    let unsigned = machine("int.rem.checked", "u64", vec!["trap"]);
+    assert_eq!(
+        run(&unsigned, "calculate", vec![json!(u64::MAX), json!(1)], 100)["values"],
+        json!([0])
+    );
+}
+#[test]
 fn signed_shift_arithmetic_and_count_traps() {
     let shr = machine("int.shr.checked","i64",vec!["trap"]);
     assert_eq!(run(&shr,"calculate",vec![json!(-9),json!(2)],100)["values"],json!([-3]));

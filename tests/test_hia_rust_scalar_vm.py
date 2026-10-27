@@ -116,6 +116,15 @@ class RustScalarVmParity(unittest.TestCase):
             ("int.rem.checked", "i64", (-7, 3)),
             ("int.div.checked", "i64", (1, 0)),
             ("int.div.checked", "i64", (-2**63, -1)),
+            # Signed MIN / -1 and MIN % -1 BOTH trap in the HIA ISA;
+            # the i128 Rust implementation must not accept a remainder 0.
+            ("int.rem.checked", "i64", (-2**63, -1)),
+            ("int.rem.checked", "i32", (-2**31, -1)),
+            ("int.rem.checked", "i16", (-2**15, -1)),
+            ("int.rem.checked", "i8", (-2**7, -1)),
+            ("int.div.checked", "i8", (-2**7, -1)),
+            ("int.rem.checked", "i64", (-2**63, -2)),
+            ("int.rem.checked", "u64", (2**64 - 1, 1)),
             ("int.shl.checked", "i64", (2**62, 2)),
             ("int.shr.checked", "i64", (-9, 2)),
             ("int.add.checked", "u64", (2**64 - 1, 1)),
