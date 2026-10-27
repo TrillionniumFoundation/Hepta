@@ -26,6 +26,21 @@ The original stdlib `JSONEncoder.iterencode` remains the output authority.
 Its canonical bytes, cumulative byte check, duplicate/unsupported field
 validation and existing Core/Agent replay/patch verification are unchanged.
 
+## Additional pending-queue fanout bound
+
+The same Agent preflight already checked `len(node) <= maximum - visited`
+before extending the DFS work list. Repeated references to nested wide lists
+could nevertheless accumulate more than `maximum` unvisited nodes across
+different ancestors. A new `queued` counter accounts for *all* pending
+unvisited children, and refuses a container before adding its descendants
+when `len(node) > maximum - visited - queued`. This leaves valid input
+bytes and the stdlib serializer unchanged.
+
+A deterministic regression uses a small shared object graph whose unfolded
+JSON fanout exceeds a 1024-node policy while each individual list fits.
+The test asserts the earlier `queued-node` refusal and that JSONEncoder
+never executes. A separate 1023-element valid list remains byte-identical.
+
 ## Tests and truthful qualification
 
 ```sh
