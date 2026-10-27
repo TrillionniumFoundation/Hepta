@@ -119,6 +119,40 @@ def _bounded_cast(value, typ, mode):
     return None
 
 
+
+def _bounded_shift(op, lhs, count, typ):
+    """Conservatively propagate the VM's checked-count shift semantics.
+
+    HIA's "checked" shifts trap on an invalid *count*, not when bits are
+    discarded. The left operand's integer type still wraps after a valid
+    left shift. Only admit interval endpoints when every mathematical
+    left-shift result fits; exact wrapped pairs may be folded separately.
+    Right shifts use signed arithmetic/unsigned logical Python semantics.
+    """
+    value, amount = _span(lhs), _span(count)
+    if value is None or amount is None:
+        return None
+    bits = WIDTHS[typ]
+    if amount.lo < 0 or amount.hi >= bits:
+        if value.lo == value.hi and amount.lo == amount.hi:
+            _reject("checked constant shift count traps")
+        return None
+    left = op == "int.shl.checked"
+    corners = tuple((x << n if left else x >> n)
+                    for x in (value.lo, value.hi)
+                    for n in (amount.lo, amount.hi))
+    low, high = min(corners), max(corners)
+    if left:
+        minimum, maximum = integer_range(typ)
+        if not minimum <= low <= high <= maximum:
+            if value.lo == value.hi and amount.lo == amount.hi:
+                return _wrap(low, typ)
+            # Modulo wrapping can make an interval nonmonotone.
+            # Treat any partially wrapped interval as UNKNOWN, not its
+            # unwrapped mathematical endpoints.
+            return None
+    return _bounded(low, high)
+
 def _paths(term: dict) -> list[dict]:
     if term["op"] == "jump":
         return [{"target": term["target"], "args": term["args"]}]
@@ -191,6 +225,11 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) 
             elif op == "int.cast":
                 folded = _bounded_cast(known.get(args[0]), outputs[0]["type"],
                                        attrs["mode"])
+                if folded is not None:
+                    known[out_names[0]] = folded
+            elif op in {"int.shl.checked", "int.shr.checked"}:
+                folded = _bounded_shift(op, known.get(args[0]), known.get(args[1]),
+                                        outputs[0]["type"])
                 if folded is not None:
                     known[out_names[0]] = folded
             elif op == "int.neg.checked":
