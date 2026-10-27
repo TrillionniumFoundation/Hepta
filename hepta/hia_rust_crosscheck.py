@@ -198,10 +198,37 @@ def _run_bounded_shadow(cmd: list[str], payload: bytes, timeout: float):
                             if len(buf) + len(chunk) >= MAX_OUTPUT_BYTES:
                                 _reject("shadow exceeded bounded output budget")
                             buf.extend(chunk)
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                _reject("shadow exceeded execution deadline")
-            proc.wait(timeout=remaining)
+            # Closing the pipes only proves that they were closed, not that
+            # the child process group is empty: descendants can close their
+            # copies and remain alive after their leader exits successfully.
+            # Linux waitid(WNOWAIT) observes leader termination *without*
+            # reaping it. Its PID/PGID therefore cannot be reused before we
+            # kill any surviving members of the dedicated session group.
+            if sys.platform != "linux" or not hasattr(os, "WNOWAIT"):
+                _reject("post-success process group containment requires Linux waitid")
+            while True:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    _reject("shadow exceeded execution deadline")
+                try:
+                    exit_status = os.waitid(
+                        os.P_PID, proc.pid, os.WEXITED | os.WNOWAIT | os.WNOHANG)
+                except InterruptedError:
+                    continue
+                except ChildProcessError as exc:
+                    raise HIARustCrosscheckRejected(
+                        "E_HIA_RUST_CROSSCHECK: shadow leader was reaped unexpectedly"
+                    ) from exc
+                if exit_status is not None:
+                    break
+                time.sleep(min(0.01, remaining))
+            # Always clean up the *entire* group, including on a valid exit.
+            # This is still not a sandbox against setsid()/detached children.
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            proc.wait(timeout=max(0.01, deadline - time.monotonic()))
             completed = True
             return bytes(collected["stdout"]), bytes(collected["stderr"]), proc.returncode
     except (subprocess.TimeoutExpired, OSError) as exc:
