@@ -90,6 +90,94 @@ class WireAuditTests(unittest.TestCase):
             with self.assertRaisesRegex(module.HSIRWireRejected, "DUPLICATE_KEY"):
                 module.load(str(path))
 
+    def test_hsir_file_intake_requires_regular_nonempty_bounded_inode(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = pathlib.Path(d)
+            valid = base / "real.json"
+            valid.write_text(json.dumps(frozen()))
+            self.assertEqual(module.load(valid), frozen())
+            (base / "symlink.json").symlink_to(valid)
+            with self.assertRaisesRegex(module.HSIRWireRejected, "E_HSIR_SOURCE_TYPE"):
+                module.load(base / "symlink.json")
+            empty = base / "empty.json"
+            empty.touch()
+            with self.assertRaisesRegex(module.HSIRWireRejected, "E_HSIR_JSON"):
+                module.load(empty)
+            huge = base / "huge.json"
+            with huge.open("wb") as stream:
+                stream.truncate(module.MAX_HSIR_INPUT_BYTES + 1)
+            with patch.object(module.os, "open", side_effect=AssertionError("should not open")):
+                with self.assertRaisesRegex(module.HSIRWireRejected, "E_HSIR_TOO_LARGE"):
+                    module.load(huge)
+            if hasattr(module.os, "mkfifo"):
+                pipe = base / "pipe.json"
+                module.os.mkfifo(pipe)
+                with self.assertRaisesRegex(module.HSIRWireRejected, "E_HSIR_SOURCE_TYPE"):
+                    module.load(pipe)
+
+    @unittest.skipUnless(hasattr(__import__("os"), "O_NOFOLLOW") and
+                         hasattr(__import__("os"), "O_NONBLOCK"),
+                         "requires no-follow nonblocking file-descriptor support")
+    def test_path_swap_to_fifo_rejects_without_blocking(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / "hsir.json"
+            path.write_text(json.dumps(frozen()))
+            real_open = module.os.open
+            def swap_to_fifo(name, flags, *args, **kwargs):
+                # Inspect the guard BEFORE opening the FIFO. A regression
+                # fails as a test assertion rather than hanging indefinitely.
+                self.assertTrue(flags & module.os.O_NOFOLLOW)
+                self.assertTrue(flags & module.os.O_NONBLOCK)
+                path.unlink()
+                module.os.mkfifo(path)
+                return real_open(name, flags, *args, **kwargs)
+            with patch.object(module.os, "open", side_effect=swap_to_fifo):
+                with self.assertRaisesRegex(module.HSIRWireRejected, "E_HSIR_SOURCE_ID"):
+                    module.load(path)
+
+    @unittest.skipUnless(hasattr(__import__("os"), "O_NOFOLLOW") and
+                         hasattr(__import__("os"), "O_NONBLOCK"),
+                         "requires no-follow nonblocking file-descriptor support")
+    def test_path_swap_to_symlink_cannot_retarget_source(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = pathlib.Path(d)
+            path, victim = base / "hsir.json", base / "private.json"
+            path.write_text(json.dumps(frozen()))
+            victim.write_text('{"secret":true}')
+            real_open = module.os.open
+            def swap_to_symlink(name, flags, *args, **kwargs):
+                self.assertTrue(flags & module.os.O_NOFOLLOW)
+                self.assertTrue(flags & module.os.O_NONBLOCK)
+                path.unlink()
+                path.symlink_to(victim)
+                return real_open(name, flags, *args, **kwargs)
+            with patch.object(module.os, "open", side_effect=swap_to_symlink):
+                with self.assertRaises(OSError):
+                    module.load(path)
+            self.assertEqual(victim.read_text(), '{"secret":true}')
+
+    @unittest.skipUnless(hasattr(__import__("os"), "O_NOFOLLOW") and
+                         hasattr(__import__("os"), "O_NONBLOCK"),
+                         "requires no-follow nonblocking file-descriptor support")
+    def test_path_replacement_after_open_cannot_authorize_new_inode(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = pathlib.Path(d)
+            path, saved = base / "hsir.json", base / "saved.json"
+            path.write_text(json.dumps(frozen()))
+            real_fstat = module.os.fstat
+            calls = 0
+            def exchange_on_second_fstat(fd):
+                nonlocal calls
+                calls += 1
+                if calls == 2:
+                    path.rename(saved)
+                    path.write_text(json.dumps(source_bound()))
+                return real_fstat(fd)
+            with patch.object(module.os, "fstat", side_effect=exchange_on_second_fstat):
+                with self.assertRaisesRegex(module.HSIRWireRejected, "E_HSIR_SOURCE_ID"):
+                    module.load(path)
+            self.assertTrue(saved.exists())
+
     def test_adversarial_depth_rejected_without_unhandled_exception(self):
         with tempfile.TemporaryDirectory() as d:
             path = pathlib.Path(d) / "deep.json"

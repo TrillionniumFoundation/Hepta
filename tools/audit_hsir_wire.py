@@ -10,12 +10,15 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
+import stat
 import sys
 from pathlib import Path
 
 SCHEMA = "hepta.hsir.v0"
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
+MAX_HSIR_INPUT_BYTES = 8_000_000
 PROFILES = {
     "source_bound_dict_v0": {
         "discriminator": ("profile", "checked_typed_ast_not_verified_mir"),
@@ -131,12 +134,48 @@ def pairs_unique(pairs):
     return result
 
 
-def load(path: str) -> dict:
-    # Bounded reading avoids filling memory from malformed compiler output.
-    with open(path, "rb") as stream:
-        raw = stream.read(8_000_001)
-    if len(raw) > 8_000_000:
+def _read_pinned_hsir(path: str | Path) -> bytes:
+    """Read exactly one ordinary input inode, never a post-lstat replacement.
+
+    This is a fail-closed source-audit reader, NOT a proof of producer origin.
+    Both NOFOLLOW and NONBLOCK are required: a swapped FIFO would otherwise
+    hang open() before its file type can be checked. The content digest is
+    validated independently by fingerprint(), not trusted from file metadata.
+    """
+    if not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_NONBLOCK"):
+        raise HSIRWireRejected("E_HSIR_SOURCE_IO: secure file open is unavailable")
+    path = Path(path)
+    before = path.lstat()
+    if not stat.S_ISREG(before.st_mode):
+        raise HSIRWireRejected("E_HSIR_SOURCE_TYPE: ordinary input file required")
+    if before.st_size > MAX_HSIR_INPUT_BYTES:
         raise HSIRWireRejected("E_HSIR_TOO_LARGE")
+    if before.st_size <= 0:
+        raise HSIRWireRejected("E_HSIR_JSON: empty HSIR input")
+    identity = lambda st: (st.st_dev, st.st_ino, st.st_mode, st.st_size,
+                           st.st_mtime_ns, st.st_ctime_ns)
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+                 | getattr(os, "O_CLOEXEC", 0))
+    try:
+        opened = os.fstat(fd)
+        if not stat.S_ISREG(opened.st_mode) or identity(opened) != identity(before):
+            raise HSIRWireRejected("E_HSIR_SOURCE_ID: replaced before descriptor admission")
+        with os.fdopen(fd, "rb", closefd=False) as stream:
+            raw = stream.read(MAX_HSIR_INPUT_BYTES + 1)
+        after_fd, after_path = os.fstat(fd), path.lstat()
+        if (len(raw) > MAX_HSIR_INPUT_BYTES
+                or identity(after_fd) != identity(before)
+                or not stat.S_ISREG(after_path.st_mode)
+                or identity(after_path) != identity(before)
+                or len(raw) != before.st_size):
+            raise HSIRWireRejected("E_HSIR_SOURCE_ID: input changed while auditing")
+        return raw
+    finally:
+        os.close(fd)
+
+
+def load(path: str) -> dict:
+    raw = _read_pinned_hsir(path)
     try:
         result = json.loads(raw.decode("utf-8"), object_pairs_hook=pairs_unique,
                             parse_constant=lambda x: (_ for _ in ()).throw(
