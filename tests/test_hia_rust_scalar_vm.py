@@ -220,6 +220,39 @@ class RustScalarVmParity(unittest.TestCase):
         ], input=canon.canonical_bytes, cwd=ROOT, capture_output=True, timeout=60)
         self.assertNotEqual(denied.returncode, 0)
 
+    def test_v7_scalar_differential_matrix_and_v6_equivalence(self):
+        cases = (
+            (arithmetic("int.mul.wrap", "u64", effects=()),
+             "calc", [2**64 - 1, 2**64 - 1], 100_000),
+            (arithmetic("int.rem.checked", "i64"),
+             "calc", [-2**63, -1], 100_000),
+            (phi_loop(), "counter", [5], 100_000),
+            (nested_calls(), "outer", [7], 100_000),
+            (depth_boundary(), "bounded", [31], 100_000),
+            (depth_boundary(), "bounded", [32], 100_000),
+        )
+        for source, entry, args, limit in cases:
+            outcomes = []
+            for version in (6, 7):
+                source["schema"] = f"hepta.hia.program.v{version}"
+                canonical = verify_program(source)
+                rust = self.rust(canonical, entry, args, max_steps=limit)
+                try:
+                    python = execute_program(canonical, entry, args,
+                                             max_steps=limit, max_call_depth=32)
+                except (HIAProgramTrap, HIAProgramBudgetExceeded) as exc:
+                    python = exc.report
+                self.assertEqual(rust["status"], python["status"])
+                self.assertEqual(rust["steps"], python["steps"])
+                if python["status"] == "returned":
+                    self.assertEqual(rust["values"], python["values"])
+                    outcomes.append(("returned", tuple(rust["values"]), rust["steps"]))
+                else:
+                    self.assertEqual(rust["error"]["code"], python["error"]["code"])
+                    outcomes.append((rust["status"], rust["error"]["code"], rust["steps"]))
+            self.assertEqual(outcomes[0], outcomes[1],
+                             f"v6-v7 scalar semantic drift in {entry!r} {args!r}")
+
     def test_explicit_public_exports_and_internal_calls_match_canonical_core(self):
         source = nested_calls()
         source["exports"] = ["outer"]
