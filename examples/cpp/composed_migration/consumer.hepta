@@ -1,0 +1,7 @@
+module cpp_composed_consumer;
+import migrated;
+
+export "C" fn composed_case(left: usize, right: usize, value: u8, index: usize, reject: u32, early: u32) -> u64
+effects {alloc, block, panic, write} {
+    return migrated::translated_run(left, right, value, index, reject, early);
+}

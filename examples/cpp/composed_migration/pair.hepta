@@ -1,0 +1,133 @@
+module cpp_composed_migrated;
+
+pub struct HeptaLeaf { data: Buffer<u8> }
+
+pub fn HeptaLeaf_new(size: usize, reject: bool) -> Result<HeptaLeaf, u8> effects {alloc, block} {
+    match try_buffer(size) {
+        Result::Err(code) => { return Result::Err(code); },
+        Result::Ok(bytes) => {
+            if reject {
+                drop(move bytes);
+                return Result::Err(2);
+            }
+            return Result::Ok(HeptaLeaf {data: move bytes});
+        },
+    }
+}
+
+pub fn HeptaLeaf_move(owner: take HeptaLeaf) -> HeptaLeaf effects {} {
+    return move owner;
+}
+
+pub fn HeptaLeaf_drop(owner: take HeptaLeaf) -> Unit effects {alloc, block} {
+    drop(move owner);
+}
+
+pub fn HeptaLeaf_size(owner: read HeptaLeaf) -> usize effects {} {
+    return len(owner.data);
+}
+
+pub fn HeptaLeaf_data(owner: read HeptaLeaf) -> read [u8] from owner effects {} {
+    return read owner.data;
+}
+
+pub fn HeptaLeaf_fill(owner: mut HeptaLeaf, value: u8) -> Unit effects {panic, write} {
+    for index in 0..len(owner.data) { owner.data[index] = value; }
+}
+
+pub fn HeptaLeaf_get(owner: read HeptaLeaf, index: usize) -> u8 effects {panic} {
+    return owner.data[index];
+}
+
+pub fn HeptaLeaf_set(owner: mut HeptaLeaf, index: usize, value: u8) -> Unit effects {panic, write} {
+    owner.data[index] = value;
+}
+
+pub struct HeptaComposite { resource0: HeptaLeaf, resource1: HeptaLeaf }
+
+pub fn HeptaComposite_move(owner: take HeptaComposite) -> HeptaComposite effects {} { return move owner; }
+
+pub fn HeptaComposite_drop(owner: take HeptaComposite) -> Unit effects {alloc, block} {
+    HeptaLeaf_drop(move owner.resource1);
+    HeptaLeaf_drop(move owner.resource0);
+}
+
+pub fn HeptaComposite_new(arg0: usize, arg1: usize, arg2: u32) -> Result<HeptaComposite, u8> effects {alloc, block, panic, write} {
+    match HeptaLeaf_new(arg0, (arg2 == ((1 as i32) as u32))) {
+        Result::Err(code) => {
+            return Result::Err(code);
+        },
+        Result::Ok(created0) => {
+            match HeptaLeaf_new(arg1, (arg2 == ((2 as i32) as u32))) {
+                Result::Err(code) => {
+                    HeptaLeaf_drop(move created0);
+                    return Result::Err(code);
+                },
+                Result::Ok(created1) => {
+                    if (arg2 == ((3 as i32) as u32)) {
+                        HeptaLeaf_drop(move created1);
+                        HeptaLeaf_drop(move created0);
+                        return Result::Err(3);
+                    }
+                    return Result::Ok(HeptaComposite {resource0: move created0, resource1: move created1});
+                },
+            }
+        },
+    }
+}
+
+pub fn HeptaComposite_method0(receiver: mut HeptaComposite, arg0: u8) -> Unit effects {alloc, block, panic, write} {
+    HeptaLeaf_fill(mut receiver.resource0, arg0);
+    HeptaLeaf_fill(mut receiver.resource1, (((arg0 as u32) ^ (37 as u32)) as u8));
+    if (HeptaLeaf_size(read receiver.resource0) != ((0 as i32) as usize)) {
+        HeptaLeaf_set(mut receiver.resource0, ((0 as i32) as usize), (((arg0 as u32) ^ (91 as u32)) as u8));
+    }
+}
+
+pub fn HeptaComposite_method1(receiver: read HeptaComposite) -> usize effects {alloc, block, panic, write} {
+    if (HeptaLeaf_size(read receiver.resource0) < HeptaLeaf_size(read receiver.resource1)) {
+        let result1: usize = HeptaLeaf_size(read receiver.resource0);
+        return result1;
+    }
+    let result2: usize = HeptaLeaf_size(read receiver.resource1);
+    return result2;
+}
+
+pub fn HeptaComposite_method2(receiver: read HeptaComposite, arg0: usize) -> u64 effects {alloc, block, panic, write} {
+    let local3: u64 = wrapping_mul((HeptaLeaf_data(read receiver.resource0)[arg0] as u64), (3 as u64));
+    let result4: u64 = wrapping_add(wrapping_add(wrapping_add(local3, (HeptaLeaf_get(read receiver.resource1, arg0) as u64)), (HeptaLeaf_size(read receiver.resource0) as u64)), (HeptaLeaf_size(read receiver.resource1) as u64));
+    return result4;
+}
+
+pub fn translated_run(arg0: usize, arg1: usize, arg2: u8, arg3: usize, arg4: u32, arg5: u32) -> u64 effects {alloc, block, panic, write} {
+    match HeptaComposite_new(arg0, arg1, arg4) {
+        Result::Err(error6) => {
+            if error6 == 1 { return ((1001 as i32) as u64); }
+            let caughtcode: i32 = error6 as i32;
+            return wrapping_add(((1000 as i32) as u64), (caughtcode as u64));
+        },
+        Result::Ok(local5value) => {
+            let mut local5 = move local5value;
+            HeptaComposite_method0(mut local5, arg2);
+            if (arg5 == ((1 as i32) as u32)) {
+                let result7: u64 = ((2001 as i32) as u64);
+                HeptaComposite_drop(move local5);
+                return result7;
+            }
+            let mut local8 = HeptaComposite_move(move local5);
+            if (arg5 == ((2 as i32) as u32)) {
+                let result9: u64 = ((2002 as i32) as u64);
+                HeptaComposite_drop(move local8);
+                return result9;
+            }
+            if (arg3 >= HeptaComposite_method1(read local8)) {
+                let result10: u64 = ((2003 as i32) as u64);
+                HeptaComposite_drop(move local8);
+                return result10;
+            }
+            let result11: u64 = HeptaComposite_method2(read local8, arg3);
+            HeptaComposite_drop(move local8);
+            return result11;
+        },
+    }
+}

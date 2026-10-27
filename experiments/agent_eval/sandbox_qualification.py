@@ -106,6 +106,25 @@ sys.exit(0 if result.get('execution',{}).get('returncode')==0 and result.get('wo
 """
 
 
+def _host_path_observation(path: str):
+    """Record optional host metadata without inventing absence on denial.
+
+    The required canaries are checked separately before the probe. Access to
+    another host process's procfs root is not a prerequisite for checking that
+    the sandbox itself exposes no procfs or parent paths.
+    """
+    try:
+        Path(path).stat()
+    except (FileNotFoundError, NotADirectoryError) as exc:
+        return {"path": path, "host_exists": False,
+                "host_stat_status": "absent", "host_stat_errno": exc.errno}
+    except OSError as exc:
+        return {"path": path, "host_exists": None,
+                "host_stat_status": "unobservable", "host_stat_errno": exc.errno}
+    return {"path": path, "host_exists": True,
+            "host_stat_status": "present", "host_stat_errno": None}
+
+
 def _boundary_observation(parent: Path, capsule: Path, selected: Path):
     oracle = parent / "parent_oracle_canary"
     credentials = parent / "parent_credentials_canary"
@@ -166,8 +185,7 @@ def _boundary_observation(parent: Path, capsule: Path, selected: Path):
         return {"returncode": process.returncode, "stderr": stderr, "remaining_stdout": stdout,
                 "namespaces": namespaces, "required_namespaces": list(REQUIRED_NAMESPACES),
                 "inside": inside, "parent_listener_received_connection": accepted,
-                "paths": {name: {"path": path, "host_exists": Path(path).exists()}
-                          for name, path in paths.items()}}
+                "paths": {name: _host_path_observation(path) for name, path in paths.items()}}
     finally:
         if process is not None:
             kill_process(process)

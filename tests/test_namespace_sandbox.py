@@ -1,4 +1,5 @@
 """Configuration regressions; the separate qualifier runs the real boundaries."""
+import errno
 import os
 from pathlib import Path
 import shlex
@@ -7,11 +8,51 @@ import unittest
 from unittest.mock import patch
 
 from experiments.agent_eval import sandbox
+from experiments.agent_eval import sandbox_qualification
 from experiments.agent_eval.sandbox_qualification import qualify_sandbox
 from hepta.backend import compile_rust, find_rustc
 
 
 class NamespaceConfigurationTests(unittest.TestCase):
+    def test_host_metadata_distinguishes_observed_presence_and_absence(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            present = Path(temporary) / "present"
+            present.write_text("qualification-only marker")
+            observation = sandbox_qualification._host_path_observation(str(present))
+            self.assertIs(observation["host_exists"], True)
+            self.assertEqual(observation["host_stat_status"], "present")
+            self.assertIsNone(observation["host_stat_errno"])
+            for path, expected_errno in ((present.parent / "absent", errno.ENOENT),
+                                         (present / "not-a-directory", errno.ENOTDIR)):
+                with self.subTest(path=path):
+                    observation = sandbox_qualification._host_path_observation(str(path))
+                    self.assertIs(observation["host_exists"], False)
+                    self.assertEqual(observation["host_stat_status"], "absent")
+                    self.assertEqual(observation["host_stat_errno"], expected_errno)
+
+    def test_denied_or_failed_host_stat_is_unknown_not_an_absent_path(self):
+        path = "/proc/1/root/qualification-only-canary"
+        for code in (errno.EACCES, errno.EPERM, errno.EIO):
+            with self.subTest(errno=code), patch.object(Path, "stat", side_effect=OSError(code, "probe denied")):
+                observation = sandbox_qualification._host_path_observation(path)
+            self.assertEqual(observation["path"], path)
+            self.assertIsNone(observation["host_exists"])
+            self.assertEqual(observation["host_stat_status"], "unobservable")
+            self.assertEqual(observation["host_stat_errno"], code)
+
+    def test_required_host_canaries_remain_mandatory_before_execution(self):
+        original = Path.is_file
+        for missing in ("parent_oracle_canary", "parent_credentials_canary", "oracles.py"):
+            with self.subTest(missing=missing), tempfile.TemporaryDirectory() as temporary:
+                parent = Path(temporary)
+                capsule = parent / "capsule"
+                capsule.mkdir()
+                with patch.object(Path, "is_file", lambda path: False if path.name == missing else original(path)), \
+                        patch.object(sandbox_qualification, "wrap_command") as execution:
+                    with self.assertRaisesRegex(ValueError, "qualification host input missing"):
+                        sandbox_qualification._boundary_observation(parent, capsule, Path("/unused/rustc"))
+                    execution.assert_not_called()
+
     def test_empty_proc_preserves_namespace_and_network_arguments(self):
         with tempfile.TemporaryDirectory() as temporary:
             with patch.object(sandbox, "probe_sandbox", return_value={"available": True}):

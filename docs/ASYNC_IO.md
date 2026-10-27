@@ -2,7 +2,7 @@
 
 Hepta now has a real, caller-driven readiness reactor for **`x86_64-unknown-linux-gnu`, hosted Rust**. Source programs can own a reactor, create private Unix socketpairs, submit multiple owned buffers, wait on native readiness, cancel requests, collect partial results, and close all resources. `examples/io/pipeline.hepta` transfers data through two native socketpairs with four simultaneously admitted requests and cross-file helpers.
 
-This is an asynchronous I/O **profile**, with an explicit pump. It is not an `async`/`await` language implementation, a background executor, arbitrary network or filesystem I/O, or qualified composition with task groups and task trees. Other target architectures, libc environments and operating systems fail at the runtime's target guard. `no_std`, the independent C backend, resource IR, concurrent IR and HMIR reject the I/O profile, including unused I/O declarations. Their existing acceptance of other Hepta programs does not imply I/O coverage.
+This is an asynchronous I/O **profile**, with an explicit pump. It is not an `async`/`await` language implementation, a background executor or arbitrary network/filesystem I/O. The separately qualified [worker-owned task-tree composition](TASK_TREE_IO_COMPOSITION.md) adds shared I/O reservations and cancellation wakeups through `io_attach`; this document and `validate_io.py` retain the standalone-reactor scope. Other target architectures, libc environments and operating systems fail at the runtime's target guard. `no_std`, the independent C backend, resource IR, concurrent IR and HMIR reject the I/O profile, including unused I/O declarations. Their existing acceptance of other Hepta programs does not imply I/O coverage.
 
 The source ownership checker and the final Rust compiler both remain required. The sole production `unsafe` operation added here is the `poll(2)` call described below. This qualification does not prove language soundness, backend refinement, pointer provenance in arbitrary FFI, or a whole-process resource bound.
 
@@ -83,7 +83,7 @@ All reactor mutation requires an exclusive borrow. The native reactor is additio
 3. `io_take` on a pending request performs cancellation and collection together. `io_cancel` alone keeps the slot and buffer reserved until collection.
 4. `io_close_port` preserves already completed results and marks only pending operations closed.
 
-A different thread cannot interrupt a blocked `io_wait` through this API. To regain control periodically, the owner uses a bounded `io_poll` call. There is no wakeup FD, external cancellation token, implicit task-group cancellation, or hard deadline for OS scheduling. The native race controls run a peer writer concurrently with cancellation; they do not claim that two threads mutate the same reactor.
+An unattached reactor has no external cancellation token or wakeup FD. Its owner regains control through a bounded `io_poll` call. The explicit task-worker attachment adds an owned wakeup FD for propagated group cancellation; it still never allows two threads to mutate the reactor and provides no hard scheduling deadline. The standalone native race controls run a peer writer concurrently with cancellation. Task-tree cancellation is qualified separately in `qualify_task_io.py`.
 
 The deadline is computed once at admission, in the inclusive range 0 through 86,400,000 milliseconds. A nonempty request with a zero deadline times out without I/O. A zero-length request completes successfully without I/O after normal admission checks. `requested > len(buffer)` and larger durations are refused. Time spent queued behind other work counts against the original deadline.
 
@@ -168,7 +168,7 @@ Reports are checkpointed before inspecting execution success. A failed process, 
 
 ## Work still outside this profile
 
-Async language syntax, general futures, background executors, wakeable external cancellation, task-tree composition, arbitrary files/network protocols, epoll scalability, portability, broad allocator policies and global thread/memory budgets remain future work. Generative reactor lifetimes, resource-carrying I/O ADTs and independent I/O IR/refinement proofs are also absent. These limitations must remain visible even when all tests of this bounded local-stream profile pass.
+Async language syntax, general futures, background executors, arbitrary external cancellation tokens, arbitrary files/network protocols, epoll scalability, portability, broad allocator policies and whole-process budgets remain future work. The finite explicit task-worker attachment now supplies task-tree wakeup and shared reservation composition; it does not complete those broader obligations. Generative reactor lifetimes, resource-carrying I/O ADTs and independent I/O IR/refinement proofs are also absent.
 
 ## Primary references
 

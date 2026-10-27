@@ -188,6 +188,8 @@ class OwnedEvidenceNativeTests(unittest.TestCase):
         self.assertEqual(report["phase"], "measurement")
         self.assertEqual(len(attempted), 3)
         self.assertEqual(len(report["raw_samples"]), 2)
+        self.assertEqual(len(report["process_observations"]), 3)
+        self.assertEqual(report["process_observations"][-1]["sample"]["sample_index"], 2)
         for index, row in enumerate(report["raw_samples"]):
             self.assertEqual(row["sample_index"], index)
             self.assertEqual(json.loads(row["execution"]["stdout"])["checksum"], q.timed_checksum(row["kernel"]))
@@ -223,6 +225,7 @@ class OwnedEvidenceNativeTests(unittest.TestCase):
             report = q.qualify()
         self.assertTrue(report["ok"], report.get("diagnostic", report.get("evaluation")))
         self.assertEqual(len(intercepted), 63)
+        self.assertEqual(len(report["process_observations"]), 63)
         q.validate_report(report, expected_git_commit=report["git_commit"])
         candidates = []
         for field in ("source_sha256", "compiler_tree_sha256", "driver_source_sha256"):
@@ -251,6 +254,16 @@ class OwnedEvidenceNativeTests(unittest.TestCase):
         candidate = deepcopy(report)
         candidate["raw_samples"][0]["library_sha256"] = "0" * 64
         candidates.append(candidate)
+        for mutate in (
+            lambda r: r["process_observations"].pop(),
+            lambda r: r["process_observations"].reverse(),
+            lambda r: r["process_observations"][0]["scope"].update(native_elapsed_replaced=True),
+            lambda r: r["process_observations"][0]["children"]["delta"].update(system_cpu_ns=-1),
+            lambda r: r["inputs"].update({"tools/performance_observation.py": "0" * 64}),
+        ):
+            candidate = deepcopy(report)
+            mutate(candidate)
+            candidates.append(candidate)
         for index, candidate in enumerate(candidates):
             with self.subTest(mutation=index), self.assertRaises(ValueError):
                 q.validate_report(candidate)

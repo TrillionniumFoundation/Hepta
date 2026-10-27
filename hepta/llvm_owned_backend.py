@@ -18,7 +18,7 @@ import shutil
 import tempfile
 
 from .ast import Enum, EnumVariant, Type
-from .borrowed_storage import has_borrowed_storage
+from .native_local_views import local_slice_view_layouts
 from .checker import is_owned_type, substitute_type
 from .llvm_ssa_backend import _clang_run
 from .pipeline import compiler_hash
@@ -394,6 +394,12 @@ class _Function:
             return self.result(f"{operation} {self.e.typ(source)} {value} to {native}")
         if kind == "struct":
             fields = self.e.fields(typ)
+            if typ in self.e.views:
+                descriptor = self.e.views[typ]
+                if expression.value["fields"] != [descriptor["field"]] or len(children) != 1:
+                    reject("Stored view differs from its verified single-field layout")
+                value = self.borrow(children[0], Type("slice", (Type("u8"),)))
+                return self.insert(typ, "zeroinitializer", Type("slice", (Type("u8"),)), value, (0,))
             values = [(name, child, self.value(child)) for name, child in zip(expression.value["fields"], children)]
             aggregate = "zeroinitializer"
             for name, child, value in values:
@@ -603,8 +609,12 @@ class _Emitter:
         self.instances, self.pending = {}, []
         self.drops, self.drop_definitions = {}, []
         self.intrinsics = set()
-        if not checked.ok or has_borrowed_storage(program):
-            reject("A checked program without stored lifetime records is required")
+        if not checked.ok:
+            reject("A checked program is required")
+        try:
+            self.views = local_slice_view_layouts(program, resource_types or {})
+        except ValueError as error:
+            reject(str(error), "E_LLVM_OWNED_VIEW_PROFILE")
         for fn in program.functions:
             if (fn.extern_c or fn.body is None or fn.lifetime_params
                     or not _resources_allowed(fn, checked)
@@ -619,7 +629,7 @@ class _Emitter:
                         or fn.name in {"calloc", "malloc", "free", "abort"}):
                     reject("Only ordinary scalar exported C signatures are admitted")
         for declaration in program.structs:
-            if declaration.repr_c or declaration.lifetime_params:
+            if declaration.repr_c:
                 reject("Resource structs have internal layout only")
 
     @staticmethod
@@ -647,7 +657,7 @@ class _Emitter:
 
     def typ(self, typ):
         _type_budget(typ)
-        if typ.lifetimes:
+        if typ.lifetimes and typ not in self.views:
             reject("Stored lifetime values are outside the LLVM profile", "E_LLVM_OWNED_TYPE")
         if typ.name in INTS and not typ.args:
             return "i" + str(INTS[typ.name])
@@ -664,7 +674,9 @@ class _Emitter:
         name = "%hepta.type" + str(len(self.types))
         self.types[typ] = name
         self.active_types.add(typ)
-        if typ.name in self.structs:
+        if typ in self.views:
+            parts = ["%hepta.bytes"]
+        elif typ.name in self.structs:
             parts = [self.typ(field.type) for field in self.fields(typ)] or ["i8"]
         elif typ.name in self.enums:
             parts = ["i32"] + ["{ " + ", ".join(self.typ(field) for field in fields or [Type("u8")]) + " }"
@@ -749,6 +761,15 @@ class _Emitter:
     def drop(self, typ):
         if typ in self.drops:
             return self.drops[typ]
+        if typ in self.views:
+            # A v4 exclusive view owns a loan, never the allocation. Its end
+            # is checked in Resource IR and cannot invoke owner Drop plans.
+            if self.views[typ]["mode"] != "mut":
+                reject("Only exclusive views admit explicit end", "E_LLVM_OWNED_VIEW_PROFILE")
+            name = "__hepta_owned_drop" + str(len(self.drops))
+            self.drops[typ] = name
+            self.drop_definitions.append(f"define internal void @{name}({self.typ(typ)} %view) {{\nentry:\n  ret void\n}}\n")
+            return name
         # A verified Resource IR type table drives the known concrete owner
         # layout and child-Drop choices. Uninstantiated generic templates are
         # still handled by the previously checked concrete AST specialization.
@@ -873,7 +894,7 @@ failure:
 
     def render(self):
         for declaration in self.program.structs:
-            if not declaration.type_params:
+            if not declaration.type_params and not declaration.lifetime_params:
                 self.typ(Type(declaration.name))
         for declaration in self.program.enums:
             if not declaration.type_params:

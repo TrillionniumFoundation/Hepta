@@ -46,8 +46,8 @@ source snapshots, not this branch automatically.
 | Machine-code route | Rust → rustc | C11 → C compiler | Verified SSA → LLVM → Clang | Checked AST + resource gate → LLVM → Clang |
 | Scalar arithmetic | Implemented profile | Explicit checks | Checked i32/u32 | Checked integers through 64 bits |
 | Owned ADT/Result/Buffer | Supported profile | Finite profile | Rejected | Finite Buffer<u8>/struct/enum/Result profile |
-| Returned/stored borrows | Explicit origins; bounded stored records | Explicit returns; stored records rejected | Rejected | Immediate receiver-tied returns; stored records rejected |
-| Tasks/shared budgets/I/O | Hosted qualified profiles | Rejected | Rejected | Rejected |
+| Returned/stored borrows | Explicit origins; bounded stored records | Explicit returns; v4 local single-field byte views | Rejected | Immediate receiver-tied returns; v4 local single-field byte views |
+| Tasks/shared budgets/I/O | Hosted profiles with task-tree/local-I/O cancellation and shared admission | Rejected | Rejected | Rejected |
 | Hardware | no_std/BSP profile | Hosted profile | Target objects; execution qualified separately | Linux x86-64 objects/shared libraries only |
 | Silent backend fallback | None | None | None | None |
 
@@ -64,6 +64,7 @@ model, compiler and exported layout; a general C++ ABI is not promised.
 | C/C++ strict scalar implementation migration | Hepta functions generated from actual Clang AST | Source's defined arithmetic domain; no arbitrary C++ class/STL conversion |
 | Selected C++ scalar value class | Hepta struct and real constructor/method bodies; no original C++ link input | Native-checked standard layout and trivial lifecycle; nontrivial resource owners reject |
 | Selected C++ exclusive byte owner | Hepta Buffer/Result, move, borrow and cleanup; original implementation absent | Complete closed native AST protocol; arbitrary destructors and moved-from inspection reject |
+| Selected C++ composed byte owners | Actual constructor/method/lifecycle bodies with two to four owner fields | Closed leaf allocator protocol; bounded AST statements, integer exception policy and no moved-from observation |
 | C++ direct/span/handle/constructor bridge | Original C++ implementation through checked interfaces | Foreign implementation, retention, thread and allocator contracts |
 | C++ scoped RAII operation | Original C++ automatic object; copied result after destruction | Same foreign obligations; no escaped local object or hidden handle lifecycle |
 
@@ -86,9 +87,16 @@ driver and executes the same 475 lifecycle/allocation vectors used by the
 original C++ and other Hepta backends. The ordinary LLVM examples are not
 substituted for the output of that migration.
 
+`hepta migrate-cpp-composed` translates the bounded two-to-four-resource profile
+in [CPP_COMPOSED_MIGRATION.md](CPP_COMPOSED_MIGRATION.md). Its separate native
+and direct-LLVM gates consume fresh translator output and check real allocation
+failure, reverse cleanup, member move and destruction order. The original C++
+is a differential reference, not a link input to the translated implementations.
+
 Local stored byte-slice views have their own independent v4 resource verifier
-profile and source replay. General stored-region features are not silently
-enabled in the C or LLVM backends by that graph support. The separate
+profile and source replay. That precise local single-field byte profile now
+executes through independent C and LLVM. General stored regions, v5 labelled
+views and nested/escaping view records remain rejected by those routes. The separate
 two-version JSON library upgrade measures actual generation/build/compatibility
 and preserves both catchable allocation failures and foreign process termination.
 
@@ -104,6 +112,12 @@ allocator trace of the uninstrumented performance binaries.
 Install the exact checked components with `tools/bootstrap_toolchain.py` and
 `tools/bootstrap_verification.py`, or supply matching local executables.
 Set `RUSTC` and `LEAN`; put the selected Clang/C++ drivers on `PATH`.
+Before running the unit suite, also expose the installed `rust-lld` as
+`ld.lld` and the locked `qemu-aarch64-static` as `qemu-aarch64` on `PATH`.
+The full workflow creates job-local aliases and exports the verification
+environment before either complete qualification. Installing Lean/QEMU alone
+does not make their executables discoverable by subsequent steps; see
+[the environment setup and its checks](CI_NATIVE_PREREQUISITES.md).
 The owned LLVM profile requires a native Clang 20+ Linux x86-64 driver.
 The full-gate CI workflow explicitly installs LLVM 20 from LLVM's signed
 Noble repository, verifies its published signing-key fingerprint and selects
@@ -135,11 +149,19 @@ The earlier exact 776f005d candidate passed all 40 gates and is preserved under
 `evidence/resource_candidate_20261025/` retains its collector status-contract
 mismatch and the resource performance measurement's quality rejection. Its
 1369 tests passed with zero skips; the aggregate remains failed.
-The collector now accepts the producer's exact scoped success status and still
-performs its strict current-source validation. The next integrated candidate
-is qualified separately under `evidence/resource_candidate_fixed_20261025/`;
-that aggregate's exact commit and status decide acceptance. All earlier failed
-or inconclusive attempts remain part of the evidence. Genuine model trials, physical boards,
+The corrected collector preserves the producer's exact scoped success status
+and strict current-source validation. The subsequent historical candidate
+`2f8cd75d` has its own report under `evidence/resource_candidate_fixed_20261025/`.
+That report applies only to its recorded commit. Current acceptance requires a
+fresh complete report for the current unchanged source snapshot in a new
+output directory. All earlier failed or inconclusive attempts remain part of
+the evidence. The later HIA baseline
+at `6f5fc9fc` passed 2,023 tests and 14/15 gates; its performance quality gate
+remains inconclusive. Two separately frozen local-model studies retained 104
+actual generations without establishing either prespecified agent benefit.
+See [the original archive](../evidence/seven_stage_20261026/README.md). Those
+experiments have their own source and protocol identities; this release
+collector runs fixtures, not new model trials. Representative model benefit, physical boards,
 GPU execution, production service loads, full-language soundness and universal
 performance superiority need their own evidence. Scripted evaluator fixtures,
 QEMU and small abstract Lean cores cannot establish those claims.

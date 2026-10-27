@@ -6,6 +6,7 @@ worker/FFI allocations, actual OS stack mappings, or CPU time.
 """
 from .ast import Param, Struct, Type
 from .runtime_task_tree import TREE_RUNTIME, TREE_REPORT, tree_report_struct
+from .runtime_task_io import TASK_IO_GROUP_RUNTIME
 
 GROUP_BUILTINS = {
     "task_group", "group_spawn", "group_send", "group_receive", "group_seal",
@@ -16,7 +17,7 @@ GROUP_BUILTINS = {
     "group_budget_configure", "group_budget_share", "group_budget_snapshot",
     "group_adopt", "group_tree_snapshot", "group_tree_join", "group_tree_cancel_and_join",
 }
-GROUP_TYPE_NAMES = {"TaskGroup", "Sender", "GroupReport", "GroupBudgetReport", "GroupTreeReport"}
+GROUP_TYPE_NAMES = {"TaskGroup", "Sender", "GroupReport", "GroupBudgetReport", "GroupTreeReport", "GroupIoReport"}
 GROUP = Type("TaskGroup")
 SENDER = Type("Sender", (Type("u64"),))
 REPORT = Type("GroupReport")
@@ -84,7 +85,10 @@ pub struct H_GroupBudgetReport {
     pub h_rejected_admissions: usize, pub h_spawn_failures: usize,
     pub h_attachment_refusals: usize,
 }
-struct HeptaGroupBudget { state: std::sync::Mutex<H_GroupBudgetReport> }
+struct HeptaGroupBudget {
+    state: std::sync::Mutex<H_GroupBudgetReport>,
+    io: std::sync::Mutex<H_GroupIoReport>,
+}
 struct HeptaGroupState {
     report: H_GroupReport,
     // Fixed-size storage: send never grows the ring.
@@ -92,6 +96,8 @@ struct HeptaGroupState {
     head: usize, len: usize, sealed: bool, closed: bool,
     selectors: std::vec::Vec<std::sync::Weak<HeptaSelectSignal>>,
     tree_signal: std::sync::Arc<HeptaSelectSignal>,
+    budget: Option<std::sync::Arc<HeptaGroupBudget>>,
+    io_waiters: std::vec::Vec<std::sync::Weak<dyn HeptaGroupIoWake>>,
 }
 // A signal belongs to one select call or one consuming tree. Notification
 // takes group state -> signal; waiters release the signal before polling.
@@ -147,6 +153,7 @@ fn __hepta_group_new(tasks: usize, bytes: usize, slots: usize) -> HeptaTaskGroup
                 tree_signal: std::sync::Arc::new(HeptaSelectSignal {
                     pending: std::sync::Mutex::new(false), changed: std::sync::Condvar::new(),
                 }),
+                budget: None, io_waiters: std::vec::Vec::new(),
             }),
             readable: std::sync::Condvar::new(),
             writable: std::sync::Condvar::new(),
@@ -162,13 +169,14 @@ fn __hepta_group_budget_configure(
 ) -> bool {
     let tree = group.shared.tree.lock().expect("Hepta group tree poisoned");
     if !tree.accepting || tree.cancelling || tree.joining || !tree.children.is_empty() { return false; }
-    let state = group.shared.state.lock().expect("Hepta group state poisoned");
+    let mut state = group.shared.state.lock().expect("Hepta group state poisoned");
     if group.budget.is_some() || state.sealed || state.closed || state.report.h_accepted_tasks != 0
         || slots < state.ring.len() || worker_stack_request < 64 * 1024
         || worker_stack_request > 1024 * 1024 * 1024 {
         return false;
     }
     group.budget = Some(std::sync::Arc::new(HeptaGroupBudget {
+        io: std::sync::Mutex::new(H_GroupIoReport::default()),
         state: std::sync::Mutex::new(H_GroupBudgetReport {
             h_attached: true, h_attached_groups: 1,
             h_thread_limit: threads, h_input_byte_limit: bytes,
@@ -178,13 +186,14 @@ fn __hepta_group_budget_configure(
             ..H_GroupBudgetReport::default()
         }),
     }));
+    state.budget = group.budget.clone();
     true
 }
 fn __hepta_group_budget_share(target: &mut HeptaTaskGroup, sponsor: &HeptaTaskGroup) -> bool {
     let budget = match &sponsor.budget { Some(value) => value, None => return false };
     let tree = target.shared.tree.lock().expect("Hepta group tree poisoned");
     if !tree.accepting || tree.cancelling || tree.joining || !tree.children.is_empty() { return false; }
-    let state = target.shared.state.lock().expect("Hepta group state poisoned");
+    let mut state = target.shared.state.lock().expect("Hepta group state poisoned");
     if target.budget.is_some() || state.sealed || state.closed || state.report.h_accepted_tasks != 0 { return false; }
     let mut usage = budget.state.lock().expect("Hepta group budget poisoned");
     let slots = usage.h_reserved_queue_slots.checked_add(state.ring.len());
@@ -197,6 +206,7 @@ fn __hepta_group_budget_share(target: &mut HeptaTaskGroup, sponsor: &HeptaTaskGr
     usage.h_reserved_queue_slots = slots.unwrap();
     usage.h_peak_queue_slots = core::cmp::max(usage.h_peak_queue_slots, slots.unwrap());
     target.budget = Some(std::sync::Arc::clone(budget));
+    state.budget = target.budget.clone();
     true
 }
 fn __hepta_group_budget_snapshot(group: &HeptaTaskGroup) -> H_GroupBudgetReport {
@@ -493,4 +503,4 @@ fn __hepta_group_join(mut group: HeptaTaskGroup, mode: u8) -> H_GroupReport {
     __hepta_group_join_inner(&mut group, mode);
     __hepta_group_snapshot(&group)
 }
-''' + TREE_RUNTIME
+''' + TASK_IO_GROUP_RUNTIME + TREE_RUNTIME

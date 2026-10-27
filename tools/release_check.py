@@ -377,6 +377,12 @@ def _require_qualification(name, evidence):
     elif name == "local_stored_resource_views":
         from tools.qualify_resource_views import validate_report
         validate_report(evidence)
+    elif name == "llvm_local_stored_views":
+        from tools.qualify_llvm_local_views import validate_report
+        validate_report(evidence)
+    elif name == "task_io_composition":
+        from tools.qualify_task_io import validate_report
+        validate_report(evidence, minimum_repeats=3)
     elif name == "cpp_class_migration":
         from tools.validate_cpp_class import validate_report
         validate_report(evidence)
@@ -385,6 +391,12 @@ def _require_qualification(name, evidence):
         validate_report(evidence)
     elif name == "cpp_owned_to_llvm":
         from tools.qualify_cpp_owned_llvm import validate_report
+        validate_report(evidence)
+    elif name == "cpp_composed_migration":
+        from tools.validate_cpp_composed import validate_report
+        validate_report(evidence)
+    elif name == "cpp_composed_to_llvm":
+        from tools.qualify_cpp_composed_llvm import validate_report
         validate_report(evidence)
     elif name == "cpp_upstream_upgrade":
         from tools.qualify_cpp_upgrade import validate_report
@@ -837,6 +849,8 @@ def require_collected_qualification(name, evidence):
                     else "qualified_workspace_crash_fixtures_only" if name == "production_workspace_crashes"
                     else "qualified" if name == "strict_namespace_execution"
                     else "native_owned_implementation_and_cleanup_qualified" if name == "cpp_owned_migration"
+                    else "native_composed_implementation_and_cleanup_qualified" if name == "cpp_composed_migration"
+                    else "native_composed_llvm_qualified" if name == "cpp_composed_to_llvm"
                     else "passed")
         if evidence.get("status") != expected:
             raise ValueError(f"Expected evidence status {expected!r}, got {evidence.get('status')!r}")
@@ -868,6 +882,7 @@ def main(argv=None):
               "started_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
               "source_snapshot": before, "compiler_sha256": compiler_hash(), "status": "running",
               "gates": [], "evidence": {}, "whole_project_blockers_closed": False,
+              "claim_scope": "executions performed by this candidate qualification; historical model studies remain separately identified",
               "claims": {"whole_language_soundness_proved": False,
                          "global_memory_budget_proved": False,
                          "physical_hardware_executed": False,
@@ -876,7 +891,11 @@ def main(argv=None):
                          "general_agent_productivity_advantage_established": False},
               "open_production_blockers": [f"P{i:02d}" for i in range(1, 13)]}
     commands = [
-        ("unit_and_integration", [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"], 600),
+        # The 2,023-test HIA baseline already took 549 seconds locally. Leave
+        # room for the mandatory new native regressions; zero skips and the
+        # complete terminal unittest result remain required. This is a suite
+        # watchdog, not a change to any performance protocol or threshold.
+        ("unit_and_integration", [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"], 900),
         ("strict_namespace_execution", [sys.executable, "tools/validate_sandbox.py", "--output", next_stage + "/sandbox.json"], 120),
         ("parser_example", [sys.executable, "-m", "hepta", "run", "examples/parser.hepta", "--json"], 60),
         ("ownership_example", [sys.executable, "-m", "hepta", "run", "examples/ownership.hepta", "--json"], 60),
@@ -888,6 +907,7 @@ def main(argv=None):
         ("partial_owned_places", [sys.executable, "-m", "tools.qualify_places", "--output", next_stage + "/places.json"], 120),
         ("stored_borrows", [sys.executable, "tools/qualify_borrowed_storage.py", "--output", next_stage + "/stored_borrows.json"], 120),
         ("local_stored_resource_views", [sys.executable, "-m", "tools.qualify_resource_views", "--output", next_stage + "/resource_views.json"], 120),
+        ("llvm_local_stored_views", [sys.executable, "-m", "tools.qualify_llvm_local_views", "--output", next_stage + "/llvm_local_views.json"], 180),
         ("owned_c_backend", [sys.executable, "tools/validate_c_owned.py", "--output", next_stage + "/c_owned.json"], 180),
         ("c_project_migration", [sys.executable, "tools/qualify_c_migration.py", "--output", next_stage + "/c_project.json"], 120),
         ("upstream_c_modules", [sys.executable, "tools/qualify_c_algorithms.py", "--output", next_stage + "/upstream_c.json"], 120),
@@ -898,6 +918,8 @@ def main(argv=None):
         ("cpp_class_migration", [sys.executable, "-m", "tools.validate_cpp_class", "--workdir", "artifacts/cpp-class-" + run_id, "--out", next_stage + "/cpp_class.json"], 180),
         ("cpp_owned_migration", [sys.executable, "-m", "tools.validate_cpp_owned", "--workdir", "artifacts/cpp-owned-" + run_id, "--out", next_stage + "/cpp_owned.json"], 180),
         ("cpp_owned_to_llvm", [sys.executable, "-m", "tools.qualify_cpp_owned_llvm", "--workdir", "artifacts/cpp-owned-llvm-" + run_id, "--output", next_stage + "/cpp_owned_llvm.json"], 180),
+        ("cpp_composed_migration", [sys.executable, "-m", "tools.validate_cpp_composed", "--workdir", "artifacts/cpp-composed-" + run_id, "--out", next_stage + "/cpp_composed.json"], 240),
+        ("cpp_composed_to_llvm", [sys.executable, "-m", "tools.qualify_cpp_composed_llvm", "--workdir", "artifacts/cpp-composed-llvm-" + run_id, "--output", next_stage + "/cpp_composed_llvm.json"], 240),
         ("cpp_upstream_upgrade", [sys.executable, "-m", "tools.qualify_cpp_upgrade", "--workdir", "artifacts/cpp-upgrade-" + run_id, "--output", next_stage + "/cpp_upgrade.json"], 180),
         ("locked_package_example", [sys.executable, "-m", "hepta", "run", "examples/packages/app", "--locked", "--json"], 60),
         ("bounded_concurrency", [sys.executable, "tools/validate_groups.py", "--repeats", "3", "--output", "evidence/groups/native_validation.json"], 180),
@@ -905,6 +927,7 @@ def main(argv=None):
         ("independent_concurrent_ir", [sys.executable, "tools/validate_concurrent_ir.py", "--output", next_stage + "/concurrent_ir.json"], 180),
         ("structured_task_trees", [sys.executable, "tools/validate_task_tree.py", "--repeats", "3", "--output", next_stage + "/task_trees.json"], 180),
         ("bounded_async_io", [sys.executable, "tools/validate_io.py", "--repeats", "3", "--output", next_stage + "/async_io.json"], 180),
+        ("task_io_composition", [sys.executable, "-m", "tools.qualify_task_io", "--repeats", "3", "--output", next_stage + "/task_io_composition.json"], 180),
         ("abi_matrix", [sys.executable, "tools/abi_fuzz.py", "--output", "artifacts/abi-matrix.json"], 180),
         ("native_host_abi", [sys.executable, "tools/validate_native_host.py", "--expected-system", "Linux", "--expected-machine", "x86_64", "--output", next_stage + "/native_host.json"], 180),
         ("native_debugger", [sys.executable, "tools/validate_debugger.py", "--output", next_stage + "/debugger.json"], 120),
@@ -940,11 +963,13 @@ def main(argv=None):
         "partial_owned_places": next_stage + "/places.json",
         "stored_borrows": next_stage + "/stored_borrows.json",
         "local_stored_resource_views": next_stage + "/resource_views.json",
+        "llvm_local_stored_views": next_stage + "/llvm_local_views.json",
         "owned_c_backend": next_stage + "/c_owned.json",
         "shared_runtime": next_stage + "/shared_runtime.json",
         "independent_concurrent_ir": next_stage + "/concurrent_ir.json",
         "structured_task_trees": next_stage + "/task_trees.json",
         "bounded_async_io": next_stage + "/async_io.json",
+        "task_io_composition": next_stage + "/task_io_composition.json",
         "system_board": next_stage + "/system_board.json",
         "native_host_abi": next_stage + "/native_host.json",
         "native_debugger": next_stage + "/debugger.json",
@@ -958,6 +983,8 @@ def main(argv=None):
         "cpp_class_migration": next_stage + "/cpp_class.json",
         "cpp_owned_migration": next_stage + "/cpp_owned.json",
         "cpp_owned_to_llvm": next_stage + "/cpp_owned_llvm.json",
+        "cpp_composed_migration": next_stage + "/cpp_composed.json",
+        "cpp_composed_to_llvm": next_stage + "/cpp_composed_llvm.json",
         "cpp_upstream_upgrade": next_stage + "/cpp_upgrade.json",
         "crossfile_agent_fixtures": next_stage + "/crossfile_agent.json",
         "strict_namespace_execution": next_stage + "/sandbox.json",

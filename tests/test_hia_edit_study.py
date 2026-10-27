@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 import shutil
 import tempfile
@@ -10,6 +11,13 @@ from hepta.hia_program_runtime import execute_program, HIAProgramTrap
 from tools.qualify_hia_edit_study import (ARMS, MINIMUM_SUCCESSES, classify_execution, comparison_criteria,
     control_passed, expected, fixtures, native, parse_response, prompt, query_for, run_study, summarize)
 
+def configured_tool(variable, default):
+    selected = os.environ.get(variable, default)
+    return shutil.which(selected) or selected
+
+
+CLANG = configured_tool("CLANG", "clang")
+RUSTC = configured_tool("RUSTC", "rustc")
 
 class EditStudyTests(unittest.TestCase):
     def test_all_references_execute_and_bug_controls_are_detectable(self):
@@ -314,8 +322,8 @@ class StudyFailureRetentionTests(unittest.TestCase):
             self.assertEqual(report["status"],"incomplete_or_identity_failure")
 
 
-@unittest.skipUnless(shutil.which("/usr/lib/llvm-20/bin/clang") and
-                     shutil.which("/tmp/hepta-ai-rust-1.90.0/bin/rustc"),"actual pinned LLVM and Rust required")
+@unittest.skipUnless(shutil.which(CLANG) and shutil.which(RUSTC),
+                     "actual pinned LLVM and Rust required")
 class StudyActualNativeControlTests(unittest.TestCase):
     def test_actual_values_and_both_declared_overflow_boundaries(self):
         selected=[task for task in fixtures() if task["id"] in {"capacity","next_epoch"}]
@@ -328,7 +336,7 @@ class StudyActualNativeControlTests(unittest.TestCase):
                                        if correct else verify_program(task["hia"]))
                         else:candidate=task["rust_template"].replace("@SLOT@",task["rust_good"] if correct else task["rust_bad"])
                         name=task["id"]+language+str(correct)
-                        result=native(task,candidate,language,Path(root)/name,"/usr/lib/llvm-20/bin/clang","/tmp/hepta-ai-rust-1.90.0/bin/rustc")
+                        result=native(task,candidate,language,Path(root)/name,CLANG,RUSTC)
                         with self.subTest(task=task["id"],language=language,correct=correct):
                             self.assertTrue(control_passed(task,correct,result),json.dumps(result))
 

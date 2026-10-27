@@ -11,12 +11,12 @@ import copy
 import json
 from hashlib import sha256
 
-from .hia_edit_query import prepare_edit, render_edit_context
+from .hia_edit_query import prepare_edit, render_edit_context, QUERY_SCHEMA as EDIT_QUERY_SCHEMA
 from .hia_program import verify_program
 from .hia_program_tools import (HIAEditRejected, PATCH_SCHEMA, apply_program_patch,
                                   bounded_json_wire, decode_json)
 
-QUERY_SCHEMA = "hepta.hia.edit-batch-query.v1"
+QUERY_SCHEMA = "hepta.hia.edit-batch-query.v2"
 MAX_SITES = 16
 MAX_QUERY_BYTES = 1024 * 1024
 MAX_RESPONSE_BYTES = 64 * 1024
@@ -154,7 +154,7 @@ def _render_batch_context_checked(query):
             _reject("batch display sites must retain unique ordered integer identities")
         nested = item["query"]
         if (type(nested) is not dict or set(nested) != nested_fields
-                or nested.get("schema") != "hepta.hia.edit-query.v1"):
+                or nested.get("schema") != EDIT_QUERY_SCHEMA):
             _reject("invalid nested edit query presentation")
         if type(nested["context"]) is not dict or type(nested["selector"]) is not dict:
             _reject("invalid nested edit context/selector")
@@ -190,6 +190,8 @@ def _render_batch_context_checked(query):
                 _reject("conflicting downstream CFG presentation")
             successor_block.setdefault("affected_params", set()).update(
                 successor["affected_params"])
+            successor_block["control_reachable"] = (
+                successor_block.get("control_reachable", False) or successor["control_reachable"])
             for occurrence in [*successor["dependencies"], *successor["consumers"]]:
                 old = successor_block["ops"].get(occurrence["index"])
                 if old is not None and _wire(old) != _wire(occurrence["operation"]):
@@ -208,6 +210,8 @@ def _render_batch_context_checked(query):
             if block.get("affected_params"):
                 lines.append("affected CFG inputs{" +
                              ",".join(sorted(block["affected_params"])) + "}")
+            if block.get("control_reachable"):
+                lines.append("affected-branch reachable region (all operations shown)")
             for index, op in sorted(block["ops"].items()):
                 prefix = ""
                 if index in block["edits"]:

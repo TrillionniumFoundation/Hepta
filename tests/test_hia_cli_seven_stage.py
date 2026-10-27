@@ -66,7 +66,7 @@ class SevenStageCLIIntegrationTests(unittest.TestCase):
         code, out, err = self.run_cli("edit-query", source, "--function", "calculate", "--block", "entry",
                                       "--value", "y", "--fields", "op", "--output", query)
         self.assertEqual(code, 0, (out, err))
-        self.assertEqual(json.loads(query.read_text())["schema"], "hepta.hia.edit-query.v1")
+        self.assertEqual(json.loads(query.read_text())["schema"], "hepta.hia.edit-query.v2")
         code, out, err = self.run_cli("edit-apply", source, "--query", query, "--response", response, "--output", target)
         self.assertEqual(code, 0, (out, err))
         receipt = json.loads(out)

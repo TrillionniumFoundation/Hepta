@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -23,9 +24,16 @@ from tools.qualify_hia_composite_bulk import (byte_oracle, composite_bulk_progra
     expected_counts, qualify, validate_qualification, wrong_result_program)
 
 
-CLANG = "/usr/lib/llvm-20/bin/clang"
-LINKER = "/tmp/hepta-ai-rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld"
-QEMU = "/usr/bin/qemu-aarch64-static"
+def configured_tool(variable, default):
+    selected = os.environ.get(variable, default)
+    return shutil.which(selected) or selected
+
+
+# The qualifier binds an explicit filesystem path, so resolve PATH aliases
+# before calling it. An unavailable explicit selection stays unavailable.
+CLANG = configured_tool("CLANG", "clang")
+LINKER = configured_tool("HEPTA_LLD", "ld.lld")
+QEMU = configured_tool("HEPTA_QEMU_AARCH64", "qemu-aarch64")
 
 
 class CompositeBulkCoreTests(unittest.TestCase):

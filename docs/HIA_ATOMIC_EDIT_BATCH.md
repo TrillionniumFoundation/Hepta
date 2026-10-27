@@ -1,6 +1,6 @@
 # Atomic multi-site HIA edits
 
-`hepta.hia.edit-batch-query.v1` selects up to 16 nonoverlapping value-producing
+`hepta.hia.edit-batch-query.v2` selects up to 16 nonoverlapping value-producing
 instructions by function, block and SSA output. A selection grants only a
 nonempty subset of `op`, `args` and `attrs`; output identities and interfaces
 remain fixed. Multi-output aliases of one instruction cannot create two sites.

@@ -18,6 +18,7 @@ from dataclasses import replace
 
 from .ast import Diagnostic, Enum, EnumVariant, HeptaError, Type
 from .checker import is_owned_type, place_path, places_overlap, substitute_type
+from .native_local_views import local_slice_view_layouts
 
 SCALARS = {"u8": "uint8_t", "i8": "int8_t", "u16": "uint16_t", "i16": "int16_t",
            "u32": "uint32_t", "i32": "int32_t", "u64": "uint64_t", "i64": "int64_t",
@@ -38,8 +39,7 @@ class CEmitter:
         if not checked.ok:
             fail("E_C_BACKEND_UNCHECKED", "C lowering requires a successful frontend check")
         from .borrowed_storage import has_borrowed_storage
-        if has_borrowed_storage(program):
-            fail("E_C_BORROW_STORAGE", "Stored-borrow records and explicit lifetimes require the Rust lifetime checker; this C profile is not implemented")
+        stored = has_borrowed_storage(program)
         self.program, self.checked, self.crate_type = program, checked, crate_type
         self.structs = {s.name: s for s in program.structs}
         self.enums = {s.name: s for s in program.enums}
@@ -56,10 +56,11 @@ class CEmitter:
         self.drops = {}
         self.runtime = False
         self.resource_graph = None
+        self.views = {}
         # The owned and returned-view profiles do not borrow Rust's checker.
         # Their abstract bodies, including unused generic bodies, must pass
         # the separate, data-only resource verifier before C emission begins.
-        self.resource_checked = (any(is_owned_type(program, t) for t in checked.expr_types.values())
+        self.resource_checked = (stored or any(is_owned_type(program, t) for t in checked.expr_types.values())
                                  or any(f.type_params or f.return_mode != "value" for f in program.functions))
         if self.resource_checked:
             from .resource_ir import ResourceIRError, verify_resource_ir
@@ -70,7 +71,13 @@ class CEmitter:
                 if not verdict["ok"]:
                     fail("E_C_RESOURCE_IR", "Independent C ownership gate rejected: " + str(verdict["diagnostics"]))
             except ResourceIRError as error:
+                if stored and error.code == "E_RIR_LOWER_UNSUPPORTED":
+                    fail("E_C_BORROW_STORAGE", "Unsupported native local view shape: " + str(error))
                 fail("E_C_RESOURCE_IR", f"Independent C ownership gate rejected {error.code}: {error}")
+            try:
+                self.views = local_slice_view_layouts(program, self.resource_graph["types"])
+            except ValueError as error:
+                fail("E_C_BORROW_STORAGE", str(error))
 
     def resolve(self, typ):
         return substitute_type(typ, self.mapping)
@@ -139,7 +146,10 @@ class CEmitter:
         name = "__hepta_cb_aggregate_" + str(len(self.types))
         self.types[t] = name
         self.active.add(t)
-        if t.name == "array":
+        if t in self.views:
+            view = self.views[t]
+            fields = self.slice_type(Type("slice", (Type("u8"),)), view["mode"]) + " h_" + view["field"] + ";"
+        elif t.name == "array":
             fields = self.typ(t.args[0]) + f" data[{t.length}];"
         elif t.name in self.enums:
             variants = self.variants(t)
@@ -331,7 +341,11 @@ class CEmitter:
         native = self.typ(typ)
         self.drops[typ] = (name, None)
         lines = []
-        if typ.name == "Buffer":
+        if typ in self.views:
+            if self.views[typ]["mode"] != "mut":
+                fail("E_C_BORROW_STORAGE", "Only exclusive views admit explicit end")
+            lines.append("(void)value;")
+        elif typ.name == "Buffer":
             lines.append("free(value.data);")
         elif typ.name in self.structs:
             for field in self.fields(typ):
@@ -374,7 +388,13 @@ class CEmitter:
             values = [self.value(x, lines) for x in e.children]
             expression = f"({self.typ(t)}){{ .data = {{" + ", ".join(values) + "} }"
         elif k == "struct":
-            values = [self.value(x, lines) for x in e.children]
+            if t in self.views:
+                view = self.views[t]
+                if e.value["fields"] != [view["field"]] or len(e.children) != 1:
+                    fail("E_C_BORROW_STORAGE", "Stored view differs from its verified layout", e.span)
+                values = [self.borrowed(e.children[0], Type("slice", (Type("u8"),)), view["mode"], lines)]
+            else:
+                values = [self.value(x, lines) for x in e.children]
             expression = f"({self.typ(t)}){{ " + ", ".join(".h_" + n + " = " + v for n, v in zip(e.value["fields"], values)) + " }"
         elif k == "variant":
             values = [self.value(x, lines) for x in e.children]
@@ -616,7 +636,7 @@ static {result_name} __hepta_cb_try_buffer(size_t size) {{
 
     def emit(self):
         for st in self.program.structs:
-            if not st.type_params:
+            if not st.type_params and not st.lifetime_params:
                 self.typ(Type(st.name))
         for enum in self.program.enums:
             if not enum.type_params:

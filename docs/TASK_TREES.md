@@ -1,5 +1,11 @@
 # Bounded consuming task trees
 
+The separately qualified [task-tree I/O composition](TASK_TREE_IO_COMPOSITION.md)
+binds a worker-owned local reactor to the existing explicit pool. Parent/child
+cancellation then wakes its actual readiness wait; no reactor or buffer is
+shared across threads. The qualification below retains its original tree-only
+scope; `qualify_task_io.py` supplies the composition evidence.
+
 The hosted Rust runtime supports an explicit parent/child lifecycle for bounded
 task groups. `group_adopt(mut parent, move child)` transfers the **actual child
 owner**, its worker join handles, and its existing descendants into the parent.

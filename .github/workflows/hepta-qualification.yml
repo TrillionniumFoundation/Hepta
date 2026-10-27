@@ -53,7 +53,34 @@ jobs:
       - name: Native compilers and required namespace runtime
         run: |
           sudo apt-get update
-          sudo apt-get install --yes bubblewrap gcc g++ curl gnupg gdb libboost-dev qemu-system-arm
+          sudo apt-get install --yes bubblewrap apparmor-profiles gcc g++ curl gnupg gdb libboost-dev qemu-system-arm qemu-user
+      - name: Load the distribution Bubblewrap namespace profile
+        shell: bash
+        run: |
+          # Keep the host-wide userns restriction and all Hepta isolation
+          # checks. Ubuntu ships this profile separately from bubblewrap.
+          hepta_profile=/usr/share/apparmor/extra-profiles/bwrap-userns-restrict
+          test -f "$hepta_profile"
+          hepta_userns_policy=/proc/sys/kernel/apparmor_restrict_unprivileged_userns
+          hepta_policy_before=not_present
+          if test -f "$hepta_userns_policy"; then
+            hepta_policy_before=$(cat "$hepta_userns_policy")
+          fi
+          sudo apparmor_parser -r "$hepta_profile"
+          sha256sum "$hepta_profile" > artifacts/bwrap-profile.sha256
+          hepta_policy_after=not_present
+          if test -f "$hepta_userns_policy"; then
+            hepta_policy_after=$(cat "$hepta_userns_policy")
+          fi
+          test "$hepta_policy_before" = "$hepta_policy_after"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from experiments.agent_eval.sandbox import probe_sandbox
+          report = probe_sandbox()
+          Path("artifacts/sandbox-startup.json").write_text(json.dumps(report, indent=2) + "\n")
+          assert report["available"], report
+          PY
       - name: Install the explicit LLVM 20 resource backend toolchain
         shell: bash
         run: |
@@ -75,9 +102,49 @@ jobs:
           printf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"
           /usr/lib/llvm-20/bin/clang --version
       - name: Install SHA-256-locked Rust 1.90.0 toolchain and cross stdlibs
-        run: python tools/bootstrap_toolchain.py
+        shell: bash
+        run: |
+          python tools/bootstrap_toolchain.py
+          hepta_rustc=$(realpath "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/bin/rustc")
+          test -x "$hepta_rustc"
+          printf 'RUSTC=%s\n' "$hepta_rustc" >> "$GITHUB_ENV"
+          printf '%s\n' "$(dirname "$hepta_rustc")" >> "$GITHUB_PATH"
+      - name: Verify the actual selected compiler identity
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from hepta.backend import find_rustc, toolchain_info
+          selected = find_rustc()
+          assert selected == str(Path(os.environ["RUSTC"]).resolve())
+          report = toolchain_info(selected)
+          Path("artifacts/selected-rustc.json").write_text(json.dumps(report, indent=2) + "\n")
+          PY
+      - name: Fetch the locked Rust shadow dependencies before offline qualification
+        shell: bash
+        run: |
+          hepta_cargo="$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/bin/cargo"
+          test -x "$hepta_cargo"
+          "$hepta_cargo" --version
+          "$hepta_cargo" fetch --locked --manifest-path rust/hia-core-shadow/Cargo.toml
       - name: Install SHA-256-locked Lean and QEMU tools
         run: python tools/bootstrap_verification.py
+      - name: Export verification tools for every qualification step
+        shell: bash
+        run: |
+          hepta_lean="$GITHUB_WORKSPACE/../toolchains/lean-4.19.0/bin/lean"
+          hepta_qemu="$GITHUB_WORKSPACE/../toolchains/qemu-8.2.2/qemu-aarch64-static"
+          hepta_linker="$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld"
+          test -x "$hepta_lean"
+          test -x "$hepta_qemu"
+          test -x "$hepta_linker"
+          hepta_gate_tools="$RUNNER_TEMP/hepta-qualification-bin"
+          mkdir -p "$hepta_gate_tools"
+          ln -s "$hepta_qemu" "$hepta_gate_tools/qemu-aarch64"
+          ln -s "$hepta_linker" "$hepta_gate_tools/ld.lld"
+          printf 'LEAN=%s\nCLANG=%s\n' "$hepta_lean" /usr/lib/llvm-20/bin/clang >> "$GITHUB_ENV"
+          printf '%s\n' "$hepta_gate_tools" "$(dirname "$hepta_lean")" >> "$GITHUB_PATH"
       - name: Run all current native and experiment qualification gates
         run: >-
           python tools/release_check.py
@@ -90,11 +157,15 @@ jobs:
           export LEAN="$GITHUB_WORKSPACE/../toolchains/lean-4.19.0/bin/lean"
           python tools/qualify_hia_unified.py \
             --output-directory artifacts/hia-unified \
+            --lean "$LEAN" \
             --clang /usr/lib/llvm-20/bin/clang \
             --rustc "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/bin/rustc" \
+            --cargo "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/bin/cargo" \
             --linker "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld" \
             --qemu-aarch64 "$GITHUB_WORKSPACE/../toolchains/qemu-8.2.2/qemu-aarch64-static" \
-            --qemu-system-arm /usr/bin/qemu-system-arm
+            --qemu-riscv64 /usr/bin/qemu-riscv64 \
+            --qemu-system-arm /usr/bin/qemu-system-arm \
+            --cxx /usr/bin/g++
       - name: Preserve failures and all raw evidence
         if: always()
         uses: actions/upload-artifact@v4

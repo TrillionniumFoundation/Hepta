@@ -148,6 +148,21 @@ state volatile because the linker applies wrapping after optimization.
 This same source fixture and harness can be shared with an independent
 native backend using the same existing owner semantics.
 
+The standalone LLVM qualifier links the C harness as a separate translation
+unit. Its C branch now declares the exact five-argument `owned_case` prototype
+and `uint64_t` return, and the production/replay link commands share strict
+flags rejecting implicit function declarations, implicit integer types and
+non-prototype declarations. A raw-log audit found that the earlier C branch
+lacked that declaration: GCC warned and assumed an `int` return. The original
+small-result resource vectors did not expose the lost high bits. Historical
+receipts remain preserved and do not qualify the repaired caller.
+
+The actual high-bit return/argument and missing-prototype controls in
+`tests/test_cpp_composed_harness.py` cover both single-owner and composed
+callers. They are separate ABI probes; the original 475 single-owner cases,
+resource oracles and performance protocols are unchanged. Fresh qualification
+must execute the repaired code and retain its own source-bound report.
+
 The qualifier also removes the actual generated C buffer-release call,
 compiles the faulty implementation and executes it. Its first case returns
 the expected scalar but records allocation `1`, release `0`, live `1` and

@@ -20,6 +20,7 @@ from .borrowed_storage import REFERENCE_TYPES
 from .runtime_concurrency import GROUP_RUNTIME, GROUP_TYPE_NAMES
 from .runtime_io import IO_BUILTINS, IO_RUNTIME, IO_TYPE_NAMES
 from .native_tool_identity import digest_executable, ToolIdentityRejected
+from .runtime_task_io import TASK_IO_RUNTIME
 
 
 RUST_VERSION = "1.90.0"
@@ -299,11 +300,11 @@ class Emitter:
                 raise HeptaError(Diagnostic("E_NO_STD_ENTRY", "Bare-metal entrypoints are not implemented; build a no_std object or library", phase="lower"))
             lines.append("#![no_std]")
         uses_io = any(t.name in IO_TYPE_NAMES for t in all_types)
+        uses_groups = any(t.name in GROUP_TYPE_NAMES for t in all_types)
         if uses_io:
             if self.no_std:
                 raise HeptaError(Diagnostic("E_NO_STD", "The bounded I/O reactor requires its Linux hosted runtime", phase="lower"))
-            lines.append(IO_RUNTIME)
-        uses_groups = any(t.name in GROUP_TYPE_NAMES for t in all_types)
+            lines.append(IO_RUNTIME.replace("// HEPTA_IO_GROUP_INSERTION", TASK_IO_RUNTIME if uses_groups else ""))
         if uses_groups or any(t.name in {"Task", "Cancellation"} for t in all_types):
             if self.no_std:
                 raise HeptaError(Diagnostic("E_NO_STD", "Hosted tasks require the optional thread runtime", phase="lower"))

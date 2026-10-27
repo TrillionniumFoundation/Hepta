@@ -17,13 +17,14 @@ from .hia_program import _ident, verify_program
 from .hia_program_tools import (HIAEditRejected, PATCH_SCHEMA, apply_program_patch,
                                   bounded_json_wire, decode_json)
 
-QUERY_SCHEMA = "hepta.hia.edit-query.v1"
+QUERY_SCHEMA = "hepta.hia.edit-query.v2"
 FIELDS = frozenset({"op", "args", "attrs"})
 MAX_RESPONSE_BYTES = 16 * 1024
 MAX_QUERY_BYTES = 1024 * 1024
 # Bound context shown to an Agent. Never silently truncate SSA descendants:
 # an incomplete downstream slice is not safe to present as complete.
 MAX_VISIBLE_OPERATIONS = 256
+MAX_VISIBLE_BLOCKS = 64
 
 
 def _reject(message):
@@ -51,33 +52,52 @@ def _cfg_edges(term):
     return ()
 
 
-def _cfg_downstream_slice(fn, source_block, affected, shown_count):
-    """Bounded transitive *explicit SSA value* uses across CFG block arguments.
+def _terminator_inputs(term):
+    """Every value named by a displayed terminator must have a definition."""
+    if term["op"] == "ret":
+        return list(term["values"])
+    values = [term["cond"]] if term["op"] == "branch" else []
+    return values + [arg for edge in _cfg_edges(term) for arg in edge["args"]]
 
-    Canonical verify_program already admitted the complete function. This is
-    presentation-only: the graph contains no inferred alias/hidden-effect or
-    control-dependence proof. An affected backedge returning to the selected
-    block refuses the compact view rather than implying loop closure.
+
+def _cfg_downstream_slice(fn, source_block, affected, shown_count):
+    """Bounded SSA uses and successors of value-affected branch conditions.
+
+    A changed condition can select a different constant return or side effect
+    without forwarding the condition as a block argument. Include every
+    operation in both successor regions, even after reconvergence. This is a
+    conservative reachability view, not a postdominator/control-dependence or
+    memory-alias proof. Backedges to the selected block still require the
+    full-module view. Downstream cycles reach a bounded monotone fixed point.
     """
     blocks = {block["id"]: block for block in fn["blocks"]}
     incoming = {}
+    control_reachable = set()
     pending = deque()
     queued = set()
 
     def propagate(origin, flowing):
+        controls = (origin["id"] in control_reachable or
+                    origin["term"]["op"] == "branch" and
+                    origin["term"]["cond"] in flowing)
         for edge in _cfg_edges(origin["term"]):
             destination = blocks[edge["target"]]
             forwarded = {formal["name"] for formal, actual
                          in zip(destination["params"], edge["args"])
                          if actual in flowing}
-            if not forwarded:
+            if not forwarded and not controls:
                 continue
             if destination["id"] == source_block["id"]:
                 _reject("cross-block SSA cycle reaches selected block; use full-module view")
             observed = incoming.setdefault(destination["id"], set())
+            if 1 + len(incoming) > MAX_VISIBLE_BLOCKS:
+                _reject("transitive CFG view exceeds bounded block budget")
             fresh = forwarded - observed
-            if fresh:
+            new_control = controls and destination["id"] not in control_reachable
+            if fresh or new_control:
                 observed.update(fresh)
+                if controls:
+                    control_reachable.add(destination["id"])
                 if destination["id"] not in queued:
                     pending.append(destination["id"])
                     queued.add(destination["id"])
@@ -109,8 +129,13 @@ def _cfg_downstream_slice(fn, source_block, affected, shown_count):
 
         producers = {out["name"]: index
                      for index, ins in enumerate(block["ops"]) for out in ins["out"]}
-        needed = set()
-        pending_inputs = [arg for i in consumer_indices for arg in block["ops"][i]["args"]]
+        # A control-reachable block can change behavior through operations
+        # unrelated to the selected value, including no-result stores/drops.
+        needed = (set(range(len(block["ops"]))) - consumer_indices
+                  if ident in control_reachable else set())
+        pending_inputs = (_terminator_inputs(block["term"]) +
+                          [arg for i in consumer_indices | needed
+                           for arg in block["ops"][i]["args"]])
         while pending_inputs:
             value = pending_inputs.pop()
             producer = producers.get(value)
@@ -124,6 +149,7 @@ def _cfg_downstream_slice(fn, source_block, affected, shown_count):
             "id": ident,
             "params": block["params"],
             "affected_params": sorted(incoming[ident]),
+            "control_reachable": ident in control_reachable,
             "dependencies": [{"index": i, "operation": block["ops"][i]}
                              for i in sorted(needed)],
             "consumers": [{"index": i, "operation": block["ops"][i]}
@@ -176,7 +202,8 @@ def prepare_edit(document, *, function, block, output, fields):
     # Close every displayed instruction's inputs, including the consumer's
     # other operands. Their definitions may follow the selected instruction.
     needed = set()
-    pending = [arg for i in shown for arg in node["ops"][i]["args"]]
+    pending = (_terminator_inputs(node["term"]) +
+               [arg for i in shown for arg in node["ops"][i]["args"]])
     while pending:
         value = pending.pop()
         producer = producers.get(value)
@@ -214,8 +241,9 @@ def prepare_edit(document, *, function, block, output, fields):
             "callees": [{key: other[key] for key in ("name", "params", "returns", "effects")}
                         for other in data["functions"] if other["name"] in calls],
         },
-        "scope": ("single-instruction explicit SSA value slice (including CFG edges); "
-                  "control-dependence, aliases and omitted code are NOT proved; "
+        "scope": ("explicit SSA slice with complete displayed terminator inputs and "
+                  "full reachable regions of value-affected branches; precise "
+                  "control-dependence, aliases and behavioral equivalence are NOT proved; "
                   "whole module is reverified"),
     }
     _wire(query)  # Prepared query must fit the same limit as render/apply.
@@ -339,11 +367,14 @@ def _render_edit_context_checked(query):
     downstream = context.get("downstream")
     if type(downstream) is not list:
         _reject("missing verified CFG downstream presentation")
+    if 1 + len(downstream) > MAX_VISIBLE_BLOCKS:
+        _reject("rendered CFG context exceeds block budget")
     seen_blocks = set()
     visible_count = len(instructions)
     for successor in downstream:
         expected_fields = {"id", "params", "affected_params", "dependencies",
-                           "consumers", "terminator", "branch_condition_affected"}
+                           "consumers", "terminator", "branch_condition_affected",
+                           "control_reachable"}
         if type(successor) is not dict or set(successor) != expected_fields:
             _reject("malformed downstream CFG block presentation")
         ident = _display_atom(successor["id"])
@@ -361,7 +392,10 @@ def _render_edit_context_checked(query):
         param_text = ", ".join(_display_atom(p["name"]) + ":" + _display_atom(p["type"])
                                for p in params)
         affected = [_display_atom(p) for p in successor["affected_params"]]
-        if (not affected or len(set(affected)) != len(affected)
+        if type(successor["control_reachable"]) is not bool:
+            _reject("invalid control-reachable CFG flag")
+        if ((not affected and not successor["control_reachable"])
+                or len(set(affected)) != len(affected)
                 or any(name not in param_names for name in affected)):
             _reject("unbound downstream affected SSA parameter")
         deps, consumers = successor["dependencies"], successor["consumers"]
@@ -384,6 +418,8 @@ def _render_edit_context_checked(query):
             _reject("invalid downstream terminator")
         lines.append("downstream block " + ident + "(" + param_text + ") affected{" +
                      ",".join(affected) + "}")
+        if successor["control_reachable"]:
+            lines.append("affected-branch reachable region (all operations shown)")
         if successor["branch_condition_affected"]:
             if successor["terminator"].get("op") != "branch":
                 _reject("non-branch CFG flagged as affected condition")

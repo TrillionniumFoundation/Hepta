@@ -1,0 +1,2841 @@
+{
+  "artifact_directory": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files",
+  "c_build": {
+    "object": {
+      "bytes": 4000,
+      "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/faults.o",
+      "sha256": "f7b5e7b8f7b1662fe7b65d60748fe075636ef09e66f338707ae35cd4b976ab41"
+    },
+    "process": {
+      "argv": [
+        "/usr/bin/gcc",
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-c",
+        "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/faults.c",
+        "-o",
+        "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/faults.o"
+      ],
+      "elapsed_ns": 39133135,
+      "returncode": 0,
+      "spawn_error": null,
+      "status": "completed",
+      "stderr": {
+        "base64": "",
+        "bytes": 0,
+        "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/compile-c.stderr.bin",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "text": ""
+      },
+      "stdout": {
+        "base64": "",
+        "bytes": 0,
+        "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/compile-c.stdout.bin",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "text": ""
+      },
+      "timed_out": false,
+      "timeout_seconds": 30
+    },
+    "source": {
+      "bytes": 2816,
+      "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/faults.c",
+      "sha256": "020b9b9b3c16b8dc1033804d0e71e9c210630e368cb2af7e35c999764e938046"
+    }
+  },
+  "cases": [
+    {
+      "analysis": {
+        "assumptions": [],
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "3569f20ec180960f66e02e0ef8402eb3023e0a7769093c02dfb39fcbd8752de2",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "exchange": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "write"
+          ],
+          "main": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "spawn",
+            "write"
+          ]
+        },
+        "interface_sha256": "cf1a189ad25fe64e64f1453a48dbce6a6f77396e563e8be76e25b43ce1365fbb",
+        "ok": true,
+        "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/pipeline.hepta",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "project": {
+          "c_imports": [],
+          "entry": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/pipeline.hepta",
+          "locked": false,
+          "modules": [
+            {
+              "imports": {},
+              "module": "main",
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/pipeline.hepta",
+              "symbols": {
+                "exchange": "exchange",
+                "main": "main"
+              }
+            }
+          ],
+          "package": null,
+          "path_bindings": {
+            "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/pipeline.hepta": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/pipeline.hepta"
+          },
+          "schema": "hepta.module-graph.v1",
+          "sha256": "f7a171965553ac9e2211bf3ac706356daf143daa40db9df00eb1736b9b1ed343",
+          "sources": {
+            "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/pipeline.hepta": "6bf15cb097285113e1126577c02edf37c58063062f2e33e15c2dee2d3f541ff5"
+          }
+        },
+        "resource_contracts": [
+          {
+            "cancellation": "serialized_at_explicit_pump_boundaries",
+            "configuration_can_be_refused": true,
+            "enforcement": "preallocated_metadata_and_checked_admission",
+            "excludes": [
+              "preadmission_buffers",
+              "refused_submission_buffers",
+              "allocator_metadata",
+              "kernel_socket_buffers",
+              "other_reactors",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "executor": "caller_driven_nonblocking_readiness_pump",
+            "function": "exchange",
+            "includes_completed_uncollected_requests": true,
+            "kind": "bounded_io_reactor",
+            "limits": {
+              "admitted_buffer_capacity_bytes": 128,
+              "occupied_requests": 2,
+              "owned_ports": 2
+            },
+            "line": 3,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/pipeline.hepta",
+            "platform": "x86_64_unknown_linux_gnu_hosted",
+            "scope": "one_reactor_instance"
+          },
+          {
+            "attachment_can_be_refused": true,
+            "authority": "nonconstructible_read_Sender_u64",
+            "cancellation": "tree_flag_and_owned_wake_socket_observed_by_exclusive_pump",
+            "excludes": [
+              "forced_foreign_call_interruption",
+              "hard_realtime_latency",
+              "async_await",
+              "TCP_TLS",
+              "independent_IR_refinement"
+            ],
+            "function": "exchange",
+            "join": "worker_must_consume_all_local_io_owners_before_return",
+            "kind": "task_worker_io_attachment",
+            "line": 3,
+            "maximum_attachments_per_group": 64,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/pipeline.hepta",
+            "scope": "one_worker_owned_reactor"
+          },
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 0,
+              "admitted_tasks": 0,
+              "queued_u64_values": 1
+            },
+            "line": 20,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/pipeline.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "configuration_can_be_refused": true,
+            "enforcement": "checked_reservations_before_spawn_released_after_join",
+            "excludes": [
+              "unattached_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "FFI_allocations",
+              "OS_stack_rounding_and_guard_pages",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "shared_task_budget",
+            "limits": {
+              "reserved_input_bytes": 2,
+              "reserved_queue_slots": 5,
+              "reserved_requested_stack_bytes": 131072,
+              "reserved_threads": 2,
+              "worker_stack_request": 65536
+            },
+            "line": 21,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/pipeline.hepta",
+            "scope": "explicitly_attached_group_instances"
+          },
+          {
+            "configuration_can_be_refused": true,
+            "enforcement": "atomic_per_pool_admission_and_release_after_local_cleanup",
+            "excludes": [
+              "preadmission_and_refused_buffers",
+              "worker_and_FFI_allocations",
+              "runtime_metadata",
+              "kernel_socket_buffers",
+              "actual_OS_stack_bytes",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "includes_completed_uncollected_requests": true,
+            "kind": "task_tree_io_pool",
+            "limits": {
+              "admitted_buffer_capacity_bytes": 256,
+              "attached_reactors": 2,
+              "reserved_endpoint_slots_including_wake_pair": 8,
+              "reserved_request_slots": 4
+            },
+            "line": 22,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/pipeline.hepta",
+            "platform": "x86_64_unknown_linux_gnu_hosted",
+            "scope": "existing_explicit_shared_task_pool"
+          },
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 0,
+              "admitted_tasks": 0,
+              "queued_u64_values": 1
+            },
+            "line": 23,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/pipeline.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 0,
+              "admitted_tasks": 0,
+              "queued_u64_values": 1
+            },
+            "line": 23,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/pipeline.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 1,
+              "admitted_tasks": 1,
+              "queued_u64_values": 1
+            },
+            "line": 24,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/pipeline.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 1,
+              "admitted_tasks": 1,
+              "queued_u64_values": 1
+            },
+            "line": 24,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/pipeline.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "budget_requirement": "same_explicit_pool_or_all_unattached",
+            "enforcement": "bounded_ownership_transfer_and_recursive_close_join",
+            "excludes": [
+              "process_RSS",
+              "worker_internal_allocations",
+              "FFI_allocations",
+              "arbitrary_worker_termination"
+            ],
+            "function": "main",
+            "kind": "structured_task_tree",
+            "limits": {
+              "depth": 16,
+              "groups": 256
+            },
+            "line": 28,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/pipeline.hepta",
+            "refusal": "consumes_cancels_and_joins_child_subtree",
+            "scope": "consumed_child_subtree",
+            "termination": "cooperative_workers_only"
+          },
+          {
+            "budget_requirement": "same_explicit_pool_or_all_unattached",
+            "enforcement": "bounded_ownership_transfer_and_recursive_close_join",
+            "excludes": [
+              "process_RSS",
+              "worker_internal_allocations",
+              "FFI_allocations",
+              "arbitrary_worker_termination"
+            ],
+            "function": "main",
+            "kind": "structured_task_tree",
+            "limits": {
+              "depth": 16,
+              "groups": 256
+            },
+            "line": 28,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/pipeline.hepta",
+            "refusal": "consumes_cancels_and_joins_child_subtree",
+            "scope": "consumed_child_subtree",
+            "termination": "cooperative_workers_only"
+          },
+          {
+            "budget_requirement": "same_explicit_pool_or_all_unattached",
+            "enforcement": "bounded_ownership_transfer_and_recursive_close_join",
+            "excludes": [
+              "process_RSS",
+              "worker_internal_allocations",
+              "FFI_allocations",
+              "arbitrary_worker_termination"
+            ],
+            "function": "main",
+            "kind": "structured_task_tree",
+            "limits": {
+              "depth": 16,
+              "groups": 256
+            },
+            "line": 29,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/pipeline.hepta",
+            "refusal": "consumes_cancels_and_joins_child_subtree",
+            "scope": "consumed_child_subtree",
+            "termination": "cooperative_workers_only"
+          }
+        ],
+        "rust_sha256": "9b088f481c59a6b30ca921d52b006fb3ab69e6df5928ff20bc607e6d7bf901b7",
+        "schema": "hepta.check.v1",
+        "source_sha256": "6bf15cb097285113e1126577c02edf37c58063062f2e33e15c2dee2d3f541ff5",
+        "status": "frontend_only"
+      },
+      "binary": {
+        "bytes": 3963296,
+        "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/pipeline.bin",
+        "sha256": "feae349018c7fdc97de23418ffcc8ecb47c72f84b66dcadc0da2feb5eae4cfcc"
+      },
+      "build": {
+        "argv": [
+          "/workspace/scratch/d930f2b45e07/toolchains/rust-1.90.0/bin/rustc",
+          "--edition=2021",
+          "--crate-name=hepta_task_io",
+          "--crate-type=bin",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "-C",
+          "codegen-units=1",
+          "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/pipeline.rs",
+          "-o",
+          "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/pipeline.bin"
+        ],
+        "elapsed_ns": 709966847,
+        "returncode": 0,
+        "spawn_error": null,
+        "status": "completed",
+        "stderr": {
+          "base64": "",
+          "bytes": 0,
+          "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/pipeline-build.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": ""
+        },
+        "stdout": {
+          "base64": "",
+          "bytes": 0,
+          "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/pipeline-build.stdout.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": ""
+        },
+        "timed_out": false,
+        "timeout_seconds": 30
+      },
+      "failure": null,
+      "kind": "source",
+      "name": "pipeline",
+      "runs": [
+        {
+          "binary_after": {
+            "bytes": 3963296,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/pipeline.bin",
+            "sha256": "feae349018c7fdc97de23418ffcc8ecb47c72f84b66dcadc0da2feb5eae4cfcc"
+          },
+          "binary_before": {
+            "bytes": 3963296,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/pipeline.bin",
+            "sha256": "feae349018c7fdc97de23418ffcc8ecb47c72f84b66dcadc0da2feb5eae4cfcc"
+          },
+          "metrics": null,
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/pipeline.bin"
+            ],
+            "elapsed_ns": 1611195,
+            "returncode": 0,
+            "spawn_error": null,
+            "status": "completed",
+            "stderr": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/pipeline-run-0.stderr.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "stdout": {
+              "base64": "NAoyNTYKMAo=",
+              "bytes": 8,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/pipeline-run-0.stdout.bin",
+              "sha256": "3cce64b4f361509d4480ded61e29711a625edfc867543a2af4a625b6f97a8344",
+              "text": "4\n256\n0\n"
+            },
+            "timed_out": false,
+            "timeout_seconds": 30
+          },
+          "trial": 0
+        },
+        {
+          "binary_after": {
+            "bytes": 3963296,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/pipeline.bin",
+            "sha256": "feae349018c7fdc97de23418ffcc8ecb47c72f84b66dcadc0da2feb5eae4cfcc"
+          },
+          "binary_before": {
+            "bytes": 3963296,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/pipeline.bin",
+            "sha256": "feae349018c7fdc97de23418ffcc8ecb47c72f84b66dcadc0da2feb5eae4cfcc"
+          },
+          "metrics": null,
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/pipeline.bin"
+            ],
+            "elapsed_ns": 1952608,
+            "returncode": 0,
+            "spawn_error": null,
+            "status": "completed",
+            "stderr": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/pipeline-run-1.stderr.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "stdout": {
+              "base64": "NAoyNTYKMAo=",
+              "bytes": 8,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/pipeline-run-1.stdout.bin",
+              "sha256": "3cce64b4f361509d4480ded61e29711a625edfc867543a2af4a625b6f97a8344",
+              "text": "4\n256\n0\n"
+            },
+            "timed_out": false,
+            "timeout_seconds": 30
+          },
+          "trial": 1
+        },
+        {
+          "binary_after": {
+            "bytes": 3963296,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/pipeline.bin",
+            "sha256": "feae349018c7fdc97de23418ffcc8ecb47c72f84b66dcadc0da2feb5eae4cfcc"
+          },
+          "binary_before": {
+            "bytes": 3963296,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/pipeline.bin",
+            "sha256": "feae349018c7fdc97de23418ffcc8ecb47c72f84b66dcadc0da2feb5eae4cfcc"
+          },
+          "metrics": null,
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/pipeline.bin"
+            ],
+            "elapsed_ns": 1646287,
+            "returncode": 0,
+            "spawn_error": null,
+            "status": "completed",
+            "stderr": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/pipeline-run-2.stderr.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "stdout": {
+              "base64": "NAoyNTYKMAo=",
+              "bytes": 8,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/pipeline-run-2.stdout.bin",
+              "sha256": "3cce64b4f361509d4480ded61e29711a625edfc867543a2af4a625b6f97a8344",
+              "text": "4\n256\n0\n"
+            },
+            "timed_out": false,
+            "timeout_seconds": 30
+          },
+          "trial": 2
+        }
+      ],
+      "source": {
+        "bytes": 78057,
+        "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/pipeline.rs",
+        "sha256": "9b088f481c59a6b30ca921d52b006fb3ab69e6df5928ff20bc607e6d7bf901b7"
+      },
+      "status": "passed"
+    },
+    {
+      "analysis": {
+        "assumptions": [],
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "3569f20ec180960f66e02e0ef8402eb3023e0a7769093c02dfb39fcbd8752de2",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "main": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "spawn",
+            "write"
+          ],
+          "waiting": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "write"
+          ]
+        },
+        "interface_sha256": "f9ded6b108706a8083365905dcec7942f9e8609f21e3392a4a2109eefeba5e1e",
+        "ok": true,
+        "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/cancellation.hepta",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "project": {
+          "c_imports": [],
+          "entry": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/cancellation.hepta",
+          "locked": false,
+          "modules": [
+            {
+              "imports": {},
+              "module": "main",
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/cancellation.hepta",
+              "symbols": {
+                "main": "main",
+                "waiting": "waiting"
+              }
+            }
+          ],
+          "package": null,
+          "path_bindings": {
+            "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/cancellation.hepta": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/cancellation.hepta"
+          },
+          "schema": "hepta.module-graph.v1",
+          "sha256": "dcdc54a7b4f974ac4847e6d2a6b865eb879452f31f369f926cd0c42466f5bc90",
+          "sources": {
+            "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/cancellation.hepta": "1bc5adfb6102a6de650d3fd9824fe5a92e12ce9b59e8db9fd8de8c2d482348ea"
+          }
+        },
+        "resource_contracts": [
+          {
+            "cancellation": "serialized_at_explicit_pump_boundaries",
+            "configuration_can_be_refused": true,
+            "enforcement": "preallocated_metadata_and_checked_admission",
+            "excludes": [
+              "preadmission_buffers",
+              "refused_submission_buffers",
+              "allocator_metadata",
+              "kernel_socket_buffers",
+              "other_reactors",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "executor": "caller_driven_nonblocking_readiness_pump",
+            "function": "waiting",
+            "includes_completed_uncollected_requests": true,
+            "kind": "bounded_io_reactor",
+            "limits": {
+              "admitted_buffer_capacity_bytes": 16,
+              "occupied_requests": 1,
+              "owned_ports": 2
+            },
+            "line": 2,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/cancellation.hepta",
+            "platform": "x86_64_unknown_linux_gnu_hosted",
+            "scope": "one_reactor_instance"
+          },
+          {
+            "attachment_can_be_refused": true,
+            "authority": "nonconstructible_read_Sender_u64",
+            "cancellation": "tree_flag_and_owned_wake_socket_observed_by_exclusive_pump",
+            "excludes": [
+              "forced_foreign_call_interruption",
+              "hard_realtime_latency",
+              "async_await",
+              "TCP_TLS",
+              "independent_IR_refinement"
+            ],
+            "function": "waiting",
+            "join": "worker_must_consume_all_local_io_owners_before_return",
+            "kind": "task_worker_io_attachment",
+            "line": 3,
+            "maximum_attachments_per_group": 64,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/cancellation.hepta",
+            "scope": "one_worker_owned_reactor"
+          },
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 0,
+              "admitted_tasks": 0,
+              "queued_u64_values": 1
+            },
+            "line": 11,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/cancellation.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "configuration_can_be_refused": true,
+            "enforcement": "checked_reservations_before_spawn_released_after_join",
+            "excludes": [
+              "unattached_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "FFI_allocations",
+              "OS_stack_rounding_and_guard_pages",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "shared_task_budget",
+            "limits": {
+              "reserved_input_bytes": 1,
+              "reserved_queue_slots": 3,
+              "reserved_requested_stack_bytes": 65536,
+              "reserved_threads": 1,
+              "worker_stack_request": 65536
+            },
+            "line": 11,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/cancellation.hepta",
+            "scope": "explicitly_attached_group_instances"
+          },
+          {
+            "configuration_can_be_refused": true,
+            "enforcement": "atomic_per_pool_admission_and_release_after_local_cleanup",
+            "excludes": [
+              "preadmission_and_refused_buffers",
+              "worker_and_FFI_allocations",
+              "runtime_metadata",
+              "kernel_socket_buffers",
+              "actual_OS_stack_bytes",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "includes_completed_uncollected_requests": true,
+            "kind": "task_tree_io_pool",
+            "limits": {
+              "admitted_buffer_capacity_bytes": 16,
+              "attached_reactors": 1,
+              "reserved_endpoint_slots_including_wake_pair": 4,
+              "reserved_request_slots": 1
+            },
+            "line": 12,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/cancellation.hepta",
+            "platform": "x86_64_unknown_linux_gnu_hosted",
+            "scope": "existing_explicit_shared_task_pool"
+          },
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 0,
+              "admitted_tasks": 0,
+              "queued_u64_values": 1
+            },
+            "line": 12,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/cancellation.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 1,
+              "admitted_tasks": 1,
+              "queued_u64_values": 1
+            },
+            "line": 12,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/cancellation.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "budget_requirement": "same_explicit_pool_or_all_unattached",
+            "enforcement": "bounded_ownership_transfer_and_recursive_close_join",
+            "excludes": [
+              "process_RSS",
+              "worker_internal_allocations",
+              "FFI_allocations",
+              "arbitrary_worker_termination"
+            ],
+            "function": "main",
+            "kind": "structured_task_tree",
+            "limits": {
+              "depth": 16,
+              "groups": 256
+            },
+            "line": 16,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/cancellation.hepta",
+            "refusal": "consumes_cancels_and_joins_child_subtree",
+            "scope": "consumed_child_subtree",
+            "termination": "cooperative_workers_only"
+          }
+        ],
+        "rust_sha256": "110ddaf3cebc19e1408ada8cb228489a1b8d24924478d7ae7817cf52fd4930b3",
+        "schema": "hepta.check.v1",
+        "source_sha256": "1bc5adfb6102a6de650d3fd9824fe5a92e12ce9b59e8db9fd8de8c2d482348ea",
+        "status": "frontend_only"
+      },
+      "binary": {
+        "bytes": 3962096,
+        "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/cancellation.bin",
+        "sha256": "48a75f849584898a5ce347ecac744592a13b3defd59f02dd2dbf1f9ff8aaa497"
+      },
+      "build": {
+        "argv": [
+          "/workspace/scratch/d930f2b45e07/toolchains/rust-1.90.0/bin/rustc",
+          "--edition=2021",
+          "--crate-name=hepta_task_io",
+          "--crate-type=bin",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "-C",
+          "codegen-units=1",
+          "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/cancellation.rs",
+          "-o",
+          "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/cancellation.bin"
+        ],
+        "elapsed_ns": 696082957,
+        "returncode": 0,
+        "spawn_error": null,
+        "status": "completed",
+        "stderr": {
+          "base64": "",
+          "bytes": 0,
+          "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/cancellation-build.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": ""
+        },
+        "stdout": {
+          "base64": "",
+          "bytes": 0,
+          "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/cancellation-build.stdout.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": ""
+        },
+        "timed_out": false,
+        "timeout_seconds": 30
+      },
+      "failure": null,
+      "kind": "source",
+      "name": "cancellation",
+      "runs": [
+        {
+          "binary_after": {
+            "bytes": 3962096,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/cancellation.bin",
+            "sha256": "48a75f849584898a5ce347ecac744592a13b3defd59f02dd2dbf1f9ff8aaa497"
+          },
+          "binary_before": {
+            "bytes": 3962096,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/cancellation.bin",
+            "sha256": "48a75f849584898a5ce347ecac744592a13b3defd59f02dd2dbf1f9ff8aaa497"
+          },
+          "metrics": null,
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/cancellation.bin"
+            ],
+            "elapsed_ns": 1609248,
+            "returncode": 0,
+            "spawn_error": null,
+            "status": "completed",
+            "stderr": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/cancellation-run-0.stderr.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "stdout": {
+              "base64": "MgoxCjEK",
+              "bytes": 6,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/cancellation-run-0.stdout.bin",
+              "sha256": "ac3dc235f4f022e88829a9e72e8663e578d94b2b9ae56b1a01b16aea1ae9a78a",
+              "text": "2\n1\n1\n"
+            },
+            "timed_out": false,
+            "timeout_seconds": 30
+          },
+          "trial": 0
+        },
+        {
+          "binary_after": {
+            "bytes": 3962096,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/cancellation.bin",
+            "sha256": "48a75f849584898a5ce347ecac744592a13b3defd59f02dd2dbf1f9ff8aaa497"
+          },
+          "binary_before": {
+            "bytes": 3962096,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/cancellation.bin",
+            "sha256": "48a75f849584898a5ce347ecac744592a13b3defd59f02dd2dbf1f9ff8aaa497"
+          },
+          "metrics": null,
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/cancellation.bin"
+            ],
+            "elapsed_ns": 1398041,
+            "returncode": 0,
+            "spawn_error": null,
+            "status": "completed",
+            "stderr": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/cancellation-run-1.stderr.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "stdout": {
+              "base64": "MgoxCjEK",
+              "bytes": 6,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/cancellation-run-1.stdout.bin",
+              "sha256": "ac3dc235f4f022e88829a9e72e8663e578d94b2b9ae56b1a01b16aea1ae9a78a",
+              "text": "2\n1\n1\n"
+            },
+            "timed_out": false,
+            "timeout_seconds": 30
+          },
+          "trial": 1
+        },
+        {
+          "binary_after": {
+            "bytes": 3962096,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/cancellation.bin",
+            "sha256": "48a75f849584898a5ce347ecac744592a13b3defd59f02dd2dbf1f9ff8aaa497"
+          },
+          "binary_before": {
+            "bytes": 3962096,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/cancellation.bin",
+            "sha256": "48a75f849584898a5ce347ecac744592a13b3defd59f02dd2dbf1f9ff8aaa497"
+          },
+          "metrics": null,
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/cancellation.bin"
+            ],
+            "elapsed_ns": 1704882,
+            "returncode": 0,
+            "spawn_error": null,
+            "status": "completed",
+            "stderr": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/cancellation-run-2.stderr.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "stdout": {
+              "base64": "MgoxCjEK",
+              "bytes": 6,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/cancellation-run-2.stdout.bin",
+              "sha256": "ac3dc235f4f022e88829a9e72e8663e578d94b2b9ae56b1a01b16aea1ae9a78a",
+              "text": "2\n1\n1\n"
+            },
+            "timed_out": false,
+            "timeout_seconds": 30
+          },
+          "trial": 2
+        }
+      ],
+      "source": {
+        "bytes": 73868,
+        "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/cancellation.rs",
+        "sha256": "110ddaf3cebc19e1408ada8cb228489a1b8d24924478d7ae7817cf52fd4930b3"
+      },
+      "status": "passed"
+    },
+    {
+      "analysis": {
+        "assumptions": [],
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "3569f20ec180960f66e02e0ef8402eb3023e0a7769093c02dfb39fcbd8752de2",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "main": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "spawn",
+            "write"
+          ],
+          "recovery": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "write"
+          ]
+        },
+        "interface_sha256": "e513a286b0dea5cae1e4e3c835697fb96b3947a54d7bb4564035daaeebdbee0a",
+        "ok": true,
+        "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/recovery.hepta",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "project": {
+          "c_imports": [],
+          "entry": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/recovery.hepta",
+          "locked": false,
+          "modules": [
+            {
+              "imports": {},
+              "module": "main",
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/recovery.hepta",
+              "symbols": {
+                "main": "main",
+                "recovery": "recovery"
+              }
+            }
+          ],
+          "package": null,
+          "path_bindings": {
+            "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/recovery.hepta": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/recovery.hepta"
+          },
+          "schema": "hepta.module-graph.v1",
+          "sha256": "c3ac09daece048621269d6b99f4c2a9c07119d38fafc9eedc13b8d107be9d162",
+          "sources": {
+            "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/recovery.hepta": "5449a1b95b4b310a035b012b3cc40443fa960d8730b75f27eb21423f80a6da41"
+          }
+        },
+        "resource_contracts": [
+          {
+            "cancellation": "serialized_at_explicit_pump_boundaries",
+            "configuration_can_be_refused": true,
+            "enforcement": "preallocated_metadata_and_checked_admission",
+            "excludes": [
+              "preadmission_buffers",
+              "refused_submission_buffers",
+              "allocator_metadata",
+              "kernel_socket_buffers",
+              "other_reactors",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "executor": "caller_driven_nonblocking_readiness_pump",
+            "function": "recovery",
+            "includes_completed_uncollected_requests": true,
+            "kind": "bounded_io_reactor",
+            "limits": {
+              "admitted_buffer_capacity_bytes": 64,
+              "occupied_requests": 2,
+              "owned_ports": 2
+            },
+            "line": 2,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/recovery.hepta",
+            "platform": "x86_64_unknown_linux_gnu_hosted",
+            "scope": "one_reactor_instance"
+          },
+          {
+            "attachment_can_be_refused": true,
+            "authority": "nonconstructible_read_Sender_u64",
+            "cancellation": "tree_flag_and_owned_wake_socket_observed_by_exclusive_pump",
+            "excludes": [
+              "forced_foreign_call_interruption",
+              "hard_realtime_latency",
+              "async_await",
+              "TCP_TLS",
+              "independent_IR_refinement"
+            ],
+            "function": "recovery",
+            "join": "worker_must_consume_all_local_io_owners_before_return",
+            "kind": "task_worker_io_attachment",
+            "line": 2,
+            "maximum_attachments_per_group": 64,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/recovery.hepta",
+            "scope": "one_worker_owned_reactor"
+          },
+          {
+            "cancellation": "serialized_at_explicit_pump_boundaries",
+            "configuration_can_be_refused": true,
+            "enforcement": "preallocated_metadata_and_checked_admission",
+            "excludes": [
+              "preadmission_buffers",
+              "refused_submission_buffers",
+              "allocator_metadata",
+              "kernel_socket_buffers",
+              "other_reactors",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "executor": "caller_driven_nonblocking_readiness_pump",
+            "function": "recovery",
+            "includes_completed_uncollected_requests": true,
+            "kind": "bounded_io_reactor",
+            "limits": {
+              "admitted_buffer_capacity_bytes": 64,
+              "occupied_requests": 2,
+              "owned_ports": 2
+            },
+            "line": 3,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/recovery.hepta",
+            "platform": "x86_64_unknown_linux_gnu_hosted",
+            "scope": "one_reactor_instance"
+          },
+          {
+            "attachment_can_be_refused": true,
+            "authority": "nonconstructible_read_Sender_u64",
+            "cancellation": "tree_flag_and_owned_wake_socket_observed_by_exclusive_pump",
+            "excludes": [
+              "forced_foreign_call_interruption",
+              "hard_realtime_latency",
+              "async_await",
+              "TCP_TLS",
+              "independent_IR_refinement"
+            ],
+            "function": "recovery",
+            "join": "worker_must_consume_all_local_io_owners_before_return",
+            "kind": "task_worker_io_attachment",
+            "line": 3,
+            "maximum_attachments_per_group": 64,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/recovery.hepta",
+            "scope": "one_worker_owned_reactor"
+          },
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 1,
+              "admitted_tasks": 1,
+              "queued_u64_values": 1
+            },
+            "line": 21,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/recovery.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "configuration_can_be_refused": true,
+            "enforcement": "checked_reservations_before_spawn_released_after_join",
+            "excludes": [
+              "unattached_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "FFI_allocations",
+              "OS_stack_rounding_and_guard_pages",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "shared_task_budget",
+            "limits": {
+              "reserved_input_bytes": 1,
+              "reserved_queue_slots": 2,
+              "reserved_requested_stack_bytes": 65536,
+              "reserved_threads": 1,
+              "worker_stack_request": 65536
+            },
+            "line": 21,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/recovery.hepta",
+            "scope": "explicitly_attached_group_instances"
+          },
+          {
+            "configuration_can_be_refused": true,
+            "enforcement": "atomic_per_pool_admission_and_release_after_local_cleanup",
+            "excludes": [
+              "preadmission_and_refused_buffers",
+              "worker_and_FFI_allocations",
+              "runtime_metadata",
+              "kernel_socket_buffers",
+              "actual_OS_stack_bytes",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "includes_completed_uncollected_requests": true,
+            "kind": "task_tree_io_pool",
+            "limits": {
+              "admitted_buffer_capacity_bytes": 8,
+              "attached_reactors": 1,
+              "reserved_endpoint_slots_including_wake_pair": 4,
+              "reserved_request_slots": 2
+            },
+            "line": 22,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/recovery.hepta",
+            "platform": "x86_64_unknown_linux_gnu_hosted",
+            "scope": "existing_explicit_shared_task_pool"
+          },
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 0,
+              "admitted_tasks": 0,
+              "queued_u64_values": 1
+            },
+            "line": 22,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/examples/task_io/recovery.hepta",
+            "scope": "one_runtime_instance"
+          }
+        ],
+        "rust_sha256": "8cb15230fa19fbdd8a1ca26b95cd18eda282fa44986ce344d2be583e3835340f",
+        "schema": "hepta.check.v1",
+        "source_sha256": "5449a1b95b4b310a035b012b3cc40443fa960d8730b75f27eb21423f80a6da41",
+        "status": "frontend_only"
+      },
+      "binary": {
+        "bytes": 3958912,
+        "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/recovery.bin",
+        "sha256": "cd52335f4b716c979c5b5edc5530e60da3c3202024ab36de37e5f62f04196113"
+      },
+      "build": {
+        "argv": [
+          "/workspace/scratch/d930f2b45e07/toolchains/rust-1.90.0/bin/rustc",
+          "--edition=2021",
+          "--crate-name=hepta_task_io",
+          "--crate-type=bin",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "-C",
+          "codegen-units=1",
+          "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/recovery.rs",
+          "-o",
+          "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/recovery.bin"
+        ],
+        "elapsed_ns": 658205379,
+        "returncode": 0,
+        "spawn_error": null,
+        "status": "completed",
+        "stderr": {
+          "base64": "",
+          "bytes": 0,
+          "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/recovery-build.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": ""
+        },
+        "stdout": {
+          "base64": "",
+          "bytes": 0,
+          "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/recovery-build.stdout.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": ""
+        },
+        "timed_out": false,
+        "timeout_seconds": 30
+      },
+      "failure": null,
+      "kind": "source",
+      "name": "recovery",
+      "runs": [
+        {
+          "binary_after": {
+            "bytes": 3958912,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/recovery.bin",
+            "sha256": "cd52335f4b716c979c5b5edc5530e60da3c3202024ab36de37e5f62f04196113"
+          },
+          "binary_before": {
+            "bytes": 3958912,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/recovery.bin",
+            "sha256": "cd52335f4b716c979c5b5edc5530e60da3c3202024ab36de37e5f62f04196113"
+          },
+          "metrics": null,
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/recovery.bin"
+            ],
+            "elapsed_ns": 1408396,
+            "returncode": 0,
+            "spawn_error": null,
+            "status": "completed",
+            "stderr": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/recovery-run-0.stderr.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "stdout": {
+              "base64": "MQoxCjE2Cg==",
+              "bytes": 7,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/recovery-run-0.stdout.bin",
+              "sha256": "3c28fb57ee1fa44cf0a7c317554d421ec8ed70a606df657d52c413248040ba82",
+              "text": "1\n1\n16\n"
+            },
+            "timed_out": false,
+            "timeout_seconds": 30
+          },
+          "trial": 0
+        },
+        {
+          "binary_after": {
+            "bytes": 3958912,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/recovery.bin",
+            "sha256": "cd52335f4b716c979c5b5edc5530e60da3c3202024ab36de37e5f62f04196113"
+          },
+          "binary_before": {
+            "bytes": 3958912,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/recovery.bin",
+            "sha256": "cd52335f4b716c979c5b5edc5530e60da3c3202024ab36de37e5f62f04196113"
+          },
+          "metrics": null,
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/recovery.bin"
+            ],
+            "elapsed_ns": 1477690,
+            "returncode": 0,
+            "spawn_error": null,
+            "status": "completed",
+            "stderr": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/recovery-run-1.stderr.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "stdout": {
+              "base64": "MQoxCjE2Cg==",
+              "bytes": 7,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/recovery-run-1.stdout.bin",
+              "sha256": "3c28fb57ee1fa44cf0a7c317554d421ec8ed70a606df657d52c413248040ba82",
+              "text": "1\n1\n16\n"
+            },
+            "timed_out": false,
+            "timeout_seconds": 30
+          },
+          "trial": 1
+        },
+        {
+          "binary_after": {
+            "bytes": 3958912,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/recovery.bin",
+            "sha256": "cd52335f4b716c979c5b5edc5530e60da3c3202024ab36de37e5f62f04196113"
+          },
+          "binary_before": {
+            "bytes": 3958912,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/recovery.bin",
+            "sha256": "cd52335f4b716c979c5b5edc5530e60da3c3202024ab36de37e5f62f04196113"
+          },
+          "metrics": null,
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/recovery.bin"
+            ],
+            "elapsed_ns": 1331691,
+            "returncode": 0,
+            "spawn_error": null,
+            "status": "completed",
+            "stderr": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/recovery-run-2.stderr.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "stdout": {
+              "base64": "MQoxCjE2Cg==",
+              "bytes": 7,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/recovery-run-2.stdout.bin",
+              "sha256": "3c28fb57ee1fa44cf0a7c317554d421ec8ed70a606df657d52c413248040ba82",
+              "text": "1\n1\n16\n"
+            },
+            "timed_out": false,
+            "timeout_seconds": 30
+          },
+          "trial": 2
+        }
+      ],
+      "source": {
+        "bytes": 79465,
+        "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/recovery.rs",
+        "sha256": "8cb15230fa19fbdd8a1ca26b95cd18eda282fa44986ce344d2be583e3835340f"
+      },
+      "status": "passed"
+    },
+    {
+      "analysis": null,
+      "binary": {
+        "bytes": 4029080,
+        "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/positive.bin",
+        "sha256": "3091701c841b644371e7e8ce758f58670d532a4f85d2e6ae72b469389c5ac68f"
+      },
+      "build": {
+        "argv": [
+          "/workspace/scratch/d930f2b45e07/toolchains/rust-1.90.0/bin/rustc",
+          "--edition=2021",
+          "--crate-name=hepta_task_io",
+          "--crate-type=bin",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "-C",
+          "codegen-units=1",
+          "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/positive.rs",
+          "-o",
+          "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/positive.bin",
+          "-C",
+          "link-arg=/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/faults.o",
+          "-C",
+          "link-arg=-Wl,--wrap=poll",
+          "-C",
+          "link-arg=-Wl,--wrap=socketpair",
+          "-C",
+          "link-arg=-Wl,--wrap=ioctl"
+        ],
+        "elapsed_ns": 1242536226,
+        "returncode": 0,
+        "spawn_error": null,
+        "status": "completed",
+        "stderr": {
+          "base64": "",
+          "bytes": 0,
+          "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/positive-build.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": ""
+        },
+        "stdout": {
+          "base64": "",
+          "bytes": 0,
+          "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/positive-build.stdout.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": ""
+        },
+        "timed_out": false,
+        "timeout_seconds": 30
+      },
+      "failure": null,
+      "kind": "controls",
+      "name": "positive",
+      "runs": [
+        {
+          "binary_after": {
+            "bytes": 4029080,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/positive.bin",
+            "sha256": "3091701c841b644371e7e8ce758f58670d532a4f85d2e6ae72b469389c5ac68f"
+          },
+          "binary_before": {
+            "bytes": 4029080,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/positive.bin",
+            "sha256": "3091701c841b644371e7e8ce758f58670d532a4f85d2e6ae72b469389c5ac68f"
+          },
+          "metrics": {
+            "attachment_cancel_races": 64,
+            "blocking_cancel_cases": 2,
+            "budget_refusal_dimensions": 4,
+            "completed_before_cancel_cases": 1,
+            "final_canceller_arc_cleanup_cases": 1,
+            "live_buffers": 0,
+            "metadata_allocation_refusals": 2,
+            "native_drop_cases": 1,
+            "parent_child_cancel_failure_races": 64,
+            "partial_cancel_cases": 1,
+            "poll_error_recovery_cases": 1,
+            "readiness_cancel_races": 64,
+            "real_poll_entries": 137,
+            "refused_subtree_cleanup_recovery_cases": 1,
+            "registration_limit_recovery_cases": 1,
+            "shared_byte_admission_races": 32,
+            "timeout_recovery_cases": 1,
+            "tracked_allocations": 208,
+            "tracked_frees": 208,
+            "wake_nonblocking_refusals": 2,
+            "wake_socket_refusals": 1
+          },
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/positive.bin"
+            ],
+            "elapsed_ns": 122588598,
+            "returncode": 0,
+            "spawn_error": null,
+            "status": "completed",
+            "stderr": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/positive-run-0.stderr.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "stdout": {
+              "base64": "eyJibG9ja2luZ19jYW5jZWxfY2FzZXMiOjIsInBhcnRpYWxfY2FuY2VsX2Nhc2VzIjoxLCJ0aW1lb3V0X3JlY292ZXJ5X2Nhc2VzIjoxLCJwb2xsX2Vycm9yX3JlY292ZXJ5X2Nhc2VzIjoxLCJuYXRpdmVfZHJvcF9jYXNlcyI6MSwiY29tcGxldGVkX2JlZm9yZV9jYW5jZWxfY2FzZXMiOjEsImJ1ZGdldF9yZWZ1c2FsX2RpbWVuc2lvbnMiOjQsIm1ldGFkYXRhX2FsbG9jYXRpb25fcmVmdXNhbHMiOjIsIndha2Vfc29ja2V0X3JlZnVzYWxzIjoxLCJ3YWtlX25vbmJsb2NraW5nX3JlZnVzYWxzIjoyLCJmaW5hbF9jYW5jZWxsZXJfYXJjX2NsZWFudXBfY2FzZXMiOjEsInJlZ2lzdHJhdGlvbl9saW1pdF9yZWNvdmVyeV9jYXNlcyI6MSwicmVmdXNlZF9zdWJ0cmVlX2NsZWFudXBfcmVjb3ZlcnlfY2FzZXMiOjEsInBhcmVudF9jaGlsZF9jYW5jZWxfZmFpbHVyZV9yYWNlcyI6NjQsImF0dGFjaG1lbnRfY2FuY2VsX3JhY2VzIjo2NCwicmVhZGluZXNzX2NhbmNlbF9yYWNlcyI6NjQsInNoYXJlZF9ieXRlX2FkbWlzc2lvbl9yYWNlcyI6MzIsInRyYWNrZWRfYWxsb2NhdGlvbnMiOjIwOCwidHJhY2tlZF9mcmVlcyI6MjA4LCJsaXZlX2J1ZmZlcnMiOjAsInJlYWxfcG9sbF9lbnRyaWVzIjoxMzd9Cg==",
+              "bytes": 619,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/positive-run-0.stdout.bin",
+              "sha256": "9a74a397736453940a1828c80243fd9518a58e2ca98542962f47f95dfd9879f2",
+              "text": "{\"blocking_cancel_cases\":2,\"partial_cancel_cases\":1,\"timeout_recovery_cases\":1,\"poll_error_recovery_cases\":1,\"native_drop_cases\":1,\"completed_before_cancel_cases\":1,\"budget_refusal_dimensions\":4,\"metadata_allocation_refusals\":2,\"wake_socket_refusals\":1,\"wake_nonblocking_refusals\":2,\"final_canceller_arc_cleanup_cases\":1,\"registration_limit_recovery_cases\":1,\"refused_subtree_cleanup_recovery_cases\":1,\"parent_child_cancel_failure_races\":64,\"attachment_cancel_races\":64,\"readiness_cancel_races\":64,\"shared_byte_admission_races\":32,\"tracked_allocations\":208,\"tracked_frees\":208,\"live_buffers\":0,\"real_poll_entries\":137}\n"
+            },
+            "timed_out": false,
+            "timeout_seconds": 30
+          },
+          "trial": 0
+        },
+        {
+          "binary_after": {
+            "bytes": 4029080,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/positive.bin",
+            "sha256": "3091701c841b644371e7e8ce758f58670d532a4f85d2e6ae72b469389c5ac68f"
+          },
+          "binary_before": {
+            "bytes": 4029080,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/positive.bin",
+            "sha256": "3091701c841b644371e7e8ce758f58670d532a4f85d2e6ae72b469389c5ac68f"
+          },
+          "metrics": {
+            "attachment_cancel_races": 64,
+            "blocking_cancel_cases": 2,
+            "budget_refusal_dimensions": 4,
+            "completed_before_cancel_cases": 1,
+            "final_canceller_arc_cleanup_cases": 1,
+            "live_buffers": 0,
+            "metadata_allocation_refusals": 2,
+            "native_drop_cases": 1,
+            "parent_child_cancel_failure_races": 64,
+            "partial_cancel_cases": 1,
+            "poll_error_recovery_cases": 1,
+            "readiness_cancel_races": 64,
+            "real_poll_entries": 137,
+            "refused_subtree_cleanup_recovery_cases": 1,
+            "registration_limit_recovery_cases": 1,
+            "shared_byte_admission_races": 32,
+            "timeout_recovery_cases": 1,
+            "tracked_allocations": 208,
+            "tracked_frees": 208,
+            "wake_nonblocking_refusals": 2,
+            "wake_socket_refusals": 1
+          },
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/positive.bin"
+            ],
+            "elapsed_ns": 124079083,
+            "returncode": 0,
+            "spawn_error": null,
+            "status": "completed",
+            "stderr": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/positive-run-1.stderr.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "stdout": {
+              "base64": "eyJibG9ja2luZ19jYW5jZWxfY2FzZXMiOjIsInBhcnRpYWxfY2FuY2VsX2Nhc2VzIjoxLCJ0aW1lb3V0X3JlY292ZXJ5X2Nhc2VzIjoxLCJwb2xsX2Vycm9yX3JlY292ZXJ5X2Nhc2VzIjoxLCJuYXRpdmVfZHJvcF9jYXNlcyI6MSwiY29tcGxldGVkX2JlZm9yZV9jYW5jZWxfY2FzZXMiOjEsImJ1ZGdldF9yZWZ1c2FsX2RpbWVuc2lvbnMiOjQsIm1ldGFkYXRhX2FsbG9jYXRpb25fcmVmdXNhbHMiOjIsIndha2Vfc29ja2V0X3JlZnVzYWxzIjoxLCJ3YWtlX25vbmJsb2NraW5nX3JlZnVzYWxzIjoyLCJmaW5hbF9jYW5jZWxsZXJfYXJjX2NsZWFudXBfY2FzZXMiOjEsInJlZ2lzdHJhdGlvbl9saW1pdF9yZWNvdmVyeV9jYXNlcyI6MSwicmVmdXNlZF9zdWJ0cmVlX2NsZWFudXBfcmVjb3ZlcnlfY2FzZXMiOjEsInBhcmVudF9jaGlsZF9jYW5jZWxfZmFpbHVyZV9yYWNlcyI6NjQsImF0dGFjaG1lbnRfY2FuY2VsX3JhY2VzIjo2NCwicmVhZGluZXNzX2NhbmNlbF9yYWNlcyI6NjQsInNoYXJlZF9ieXRlX2FkbWlzc2lvbl9yYWNlcyI6MzIsInRyYWNrZWRfYWxsb2NhdGlvbnMiOjIwOCwidHJhY2tlZF9mcmVlcyI6MjA4LCJsaXZlX2J1ZmZlcnMiOjAsInJlYWxfcG9sbF9lbnRyaWVzIjoxMzd9Cg==",
+              "bytes": 619,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/positive-run-1.stdout.bin",
+              "sha256": "9a74a397736453940a1828c80243fd9518a58e2ca98542962f47f95dfd9879f2",
+              "text": "{\"blocking_cancel_cases\":2,\"partial_cancel_cases\":1,\"timeout_recovery_cases\":1,\"poll_error_recovery_cases\":1,\"native_drop_cases\":1,\"completed_before_cancel_cases\":1,\"budget_refusal_dimensions\":4,\"metadata_allocation_refusals\":2,\"wake_socket_refusals\":1,\"wake_nonblocking_refusals\":2,\"final_canceller_arc_cleanup_cases\":1,\"registration_limit_recovery_cases\":1,\"refused_subtree_cleanup_recovery_cases\":1,\"parent_child_cancel_failure_races\":64,\"attachment_cancel_races\":64,\"readiness_cancel_races\":64,\"shared_byte_admission_races\":32,\"tracked_allocations\":208,\"tracked_frees\":208,\"live_buffers\":0,\"real_poll_entries\":137}\n"
+            },
+            "timed_out": false,
+            "timeout_seconds": 30
+          },
+          "trial": 1
+        },
+        {
+          "binary_after": {
+            "bytes": 4029080,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/positive.bin",
+            "sha256": "3091701c841b644371e7e8ce758f58670d532a4f85d2e6ae72b469389c5ac68f"
+          },
+          "binary_before": {
+            "bytes": 4029080,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/positive.bin",
+            "sha256": "3091701c841b644371e7e8ce758f58670d532a4f85d2e6ae72b469389c5ac68f"
+          },
+          "metrics": {
+            "attachment_cancel_races": 64,
+            "blocking_cancel_cases": 2,
+            "budget_refusal_dimensions": 4,
+            "completed_before_cancel_cases": 1,
+            "final_canceller_arc_cleanup_cases": 1,
+            "live_buffers": 0,
+            "metadata_allocation_refusals": 2,
+            "native_drop_cases": 1,
+            "parent_child_cancel_failure_races": 64,
+            "partial_cancel_cases": 1,
+            "poll_error_recovery_cases": 1,
+            "readiness_cancel_races": 64,
+            "real_poll_entries": 137,
+            "refused_subtree_cleanup_recovery_cases": 1,
+            "registration_limit_recovery_cases": 1,
+            "shared_byte_admission_races": 32,
+            "timeout_recovery_cases": 1,
+            "tracked_allocations": 208,
+            "tracked_frees": 208,
+            "wake_nonblocking_refusals": 2,
+            "wake_socket_refusals": 1
+          },
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/positive.bin"
+            ],
+            "elapsed_ns": 123694414,
+            "returncode": 0,
+            "spawn_error": null,
+            "status": "completed",
+            "stderr": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/positive-run-2.stderr.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "stdout": {
+              "base64": "eyJibG9ja2luZ19jYW5jZWxfY2FzZXMiOjIsInBhcnRpYWxfY2FuY2VsX2Nhc2VzIjoxLCJ0aW1lb3V0X3JlY292ZXJ5X2Nhc2VzIjoxLCJwb2xsX2Vycm9yX3JlY292ZXJ5X2Nhc2VzIjoxLCJuYXRpdmVfZHJvcF9jYXNlcyI6MSwiY29tcGxldGVkX2JlZm9yZV9jYW5jZWxfY2FzZXMiOjEsImJ1ZGdldF9yZWZ1c2FsX2RpbWVuc2lvbnMiOjQsIm1ldGFkYXRhX2FsbG9jYXRpb25fcmVmdXNhbHMiOjIsIndha2Vfc29ja2V0X3JlZnVzYWxzIjoxLCJ3YWtlX25vbmJsb2NraW5nX3JlZnVzYWxzIjoyLCJmaW5hbF9jYW5jZWxsZXJfYXJjX2NsZWFudXBfY2FzZXMiOjEsInJlZ2lzdHJhdGlvbl9saW1pdF9yZWNvdmVyeV9jYXNlcyI6MSwicmVmdXNlZF9zdWJ0cmVlX2NsZWFudXBfcmVjb3ZlcnlfY2FzZXMiOjEsInBhcmVudF9jaGlsZF9jYW5jZWxfZmFpbHVyZV9yYWNlcyI6NjQsImF0dGFjaG1lbnRfY2FuY2VsX3JhY2VzIjo2NCwicmVhZGluZXNzX2NhbmNlbF9yYWNlcyI6NjQsInNoYXJlZF9ieXRlX2FkbWlzc2lvbl9yYWNlcyI6MzIsInRyYWNrZWRfYWxsb2NhdGlvbnMiOjIwOCwidHJhY2tlZF9mcmVlcyI6MjA4LCJsaXZlX2J1ZmZlcnMiOjAsInJlYWxfcG9sbF9lbnRyaWVzIjoxMzd9Cg==",
+              "bytes": 619,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/positive-run-2.stdout.bin",
+              "sha256": "9a74a397736453940a1828c80243fd9518a58e2ca98542962f47f95dfd9879f2",
+              "text": "{\"blocking_cancel_cases\":2,\"partial_cancel_cases\":1,\"timeout_recovery_cases\":1,\"poll_error_recovery_cases\":1,\"native_drop_cases\":1,\"completed_before_cancel_cases\":1,\"budget_refusal_dimensions\":4,\"metadata_allocation_refusals\":2,\"wake_socket_refusals\":1,\"wake_nonblocking_refusals\":2,\"final_canceller_arc_cleanup_cases\":1,\"registration_limit_recovery_cases\":1,\"refused_subtree_cleanup_recovery_cases\":1,\"parent_child_cancel_failure_races\":64,\"attachment_cancel_races\":64,\"readiness_cancel_races\":64,\"shared_byte_admission_races\":32,\"tracked_allocations\":208,\"tracked_frees\":208,\"live_buffers\":0,\"real_poll_entries\":137}\n"
+            },
+            "timed_out": false,
+            "timeout_seconds": 30
+          },
+          "trial": 2
+        }
+      ],
+      "source": {
+        "bytes": 81967,
+        "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/positive.rs",
+        "sha256": "fe03fc441ea53623495a43908fea56769cd8c9ab9f44bec981afc721276ccb41"
+      },
+      "status": "passed"
+    },
+    {
+      "analysis": null,
+      "binary": {
+        "bytes": 3975928,
+        "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/lost_wakeup.bin",
+        "sha256": "a5f549cc04f74c14e993fe2f40a06f23d573ab97347a9e1d8bea2f619e530442"
+      },
+      "build": {
+        "argv": [
+          "/workspace/scratch/d930f2b45e07/toolchains/rust-1.90.0/bin/rustc",
+          "--edition=2021",
+          "--crate-name=hepta_task_io",
+          "--crate-type=bin",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "-C",
+          "codegen-units=1",
+          "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/lost_wakeup.rs",
+          "-o",
+          "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/lost_wakeup.bin",
+          "-C",
+          "link-arg=/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/faults.o",
+          "-C",
+          "link-arg=-Wl,--wrap=poll",
+          "-C",
+          "link-arg=-Wl,--wrap=socketpair",
+          "-C",
+          "link-arg=-Wl,--wrap=ioctl"
+        ],
+        "elapsed_ns": 1074767889,
+        "returncode": 0,
+        "spawn_error": null,
+        "status": "completed",
+        "stderr": {
+          "base64": "",
+          "bytes": 0,
+          "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/lost_wakeup-build.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": ""
+        },
+        "stdout": {
+          "base64": "",
+          "bytes": 0,
+          "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/lost_wakeup-build.stdout.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": ""
+        },
+        "timed_out": false,
+        "timeout_seconds": 30
+      },
+      "failure": null,
+      "kind": "mutant",
+      "name": "lost_wakeup",
+      "runs": [
+        {
+          "binary_after": {
+            "bytes": 3975928,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/lost_wakeup.bin",
+            "sha256": "a5f549cc04f74c14e993fe2f40a06f23d573ab97347a9e1d8bea2f619e530442"
+          },
+          "binary_before": {
+            "bytes": 3975928,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/lost_wakeup.bin",
+            "sha256": "a5f549cc04f74c14e993fe2f40a06f23d573ab97347a9e1d8bea2f619e530442"
+          },
+          "metrics": null,
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/lost_wakeup.bin"
+            ],
+            "elapsed_ns": 2003981498,
+            "returncode": null,
+            "spawn_error": null,
+            "status": "timed_out",
+            "stderr": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/lost_wakeup-run-0.stderr.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "stdout": {
+              "base64": "d2FpdGluZy1mb3ItcmVhbC1jYW5jZWxsYXRpb24K",
+              "bytes": 30,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/lost_wakeup-run-0.stdout.bin",
+              "sha256": "b5bbae239287d1cb9ad1141e074a753cdf8cfbe1e64c1e32f71cd60514f78c75",
+              "text": "waiting-for-real-cancellation\n"
+            },
+            "timed_out": true,
+            "timeout_seconds": 2
+          },
+          "trial": 0
+        },
+        {
+          "binary_after": {
+            "bytes": 3975928,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/lost_wakeup.bin",
+            "sha256": "a5f549cc04f74c14e993fe2f40a06f23d573ab97347a9e1d8bea2f619e530442"
+          },
+          "binary_before": {
+            "bytes": 3975928,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/lost_wakeup.bin",
+            "sha256": "a5f549cc04f74c14e993fe2f40a06f23d573ab97347a9e1d8bea2f619e530442"
+          },
+          "metrics": null,
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/lost_wakeup.bin"
+            ],
+            "elapsed_ns": 2003525152,
+            "returncode": null,
+            "spawn_error": null,
+            "status": "timed_out",
+            "stderr": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/lost_wakeup-run-1.stderr.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "stdout": {
+              "base64": "d2FpdGluZy1mb3ItcmVhbC1jYW5jZWxsYXRpb24K",
+              "bytes": 30,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/lost_wakeup-run-1.stdout.bin",
+              "sha256": "b5bbae239287d1cb9ad1141e074a753cdf8cfbe1e64c1e32f71cd60514f78c75",
+              "text": "waiting-for-real-cancellation\n"
+            },
+            "timed_out": true,
+            "timeout_seconds": 2
+          },
+          "trial": 1
+        },
+        {
+          "binary_after": {
+            "bytes": 3975928,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/lost_wakeup.bin",
+            "sha256": "a5f549cc04f74c14e993fe2f40a06f23d573ab97347a9e1d8bea2f619e530442"
+          },
+          "binary_before": {
+            "bytes": 3975928,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/lost_wakeup.bin",
+            "sha256": "a5f549cc04f74c14e993fe2f40a06f23d573ab97347a9e1d8bea2f619e530442"
+          },
+          "metrics": null,
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/lost_wakeup.bin"
+            ],
+            "elapsed_ns": 2003572770,
+            "returncode": null,
+            "spawn_error": null,
+            "status": "timed_out",
+            "stderr": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/lost_wakeup-run-2.stderr.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "stdout": {
+              "base64": "d2FpdGluZy1mb3ItcmVhbC1jYW5jZWxsYXRpb24K",
+              "bytes": 30,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/lost_wakeup-run-2.stdout.bin",
+              "sha256": "b5bbae239287d1cb9ad1141e074a753cdf8cfbe1e64c1e32f71cd60514f78c75",
+              "text": "waiting-for-real-cancellation\n"
+            },
+            "timed_out": true,
+            "timeout_seconds": 2
+          },
+          "trial": 2
+        }
+      ],
+      "source": {
+        "bytes": 81983,
+        "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/lost_wakeup.rs",
+        "sha256": "4449f23fb123ea76c46625cee3a5707758fd0c9aa7e05ef4808549164a2aa688"
+      },
+      "status": "passed"
+    },
+    {
+      "analysis": null,
+      "binary": {
+        "bytes": 3958712,
+        "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/budget_bypass.bin",
+        "sha256": "36fcd63e8e2e71a37a40beadb36606dee50430e826456a3a10f96abf2e4947c9"
+      },
+      "build": {
+        "argv": [
+          "/workspace/scratch/d930f2b45e07/toolchains/rust-1.90.0/bin/rustc",
+          "--edition=2021",
+          "--crate-name=hepta_task_io",
+          "--crate-type=bin",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "-C",
+          "codegen-units=1",
+          "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/budget_bypass.rs",
+          "-o",
+          "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/budget_bypass.bin",
+          "-C",
+          "link-arg=/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/faults.o",
+          "-C",
+          "link-arg=-Wl,--wrap=poll",
+          "-C",
+          "link-arg=-Wl,--wrap=socketpair",
+          "-C",
+          "link-arg=-Wl,--wrap=ioctl"
+        ],
+        "elapsed_ns": 1039868087,
+        "returncode": 0,
+        "spawn_error": null,
+        "status": "completed",
+        "stderr": {
+          "base64": "",
+          "bytes": 0,
+          "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/budget_bypass-build.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": ""
+        },
+        "stdout": {
+          "base64": "",
+          "bytes": 0,
+          "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/budget_bypass-build.stdout.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": ""
+        },
+        "timed_out": false,
+        "timeout_seconds": 30
+      },
+      "failure": null,
+      "kind": "mutant",
+      "name": "budget_bypass",
+      "runs": [
+        {
+          "binary_after": {
+            "bytes": 3958712,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/budget_bypass.bin",
+            "sha256": "36fcd63e8e2e71a37a40beadb36606dee50430e826456a3a10f96abf2e4947c9"
+          },
+          "binary_before": {
+            "bytes": 3958712,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/budget_bypass.bin",
+            "sha256": "36fcd63e8e2e71a37a40beadb36606dee50430e826456a3a10f96abf2e4947c9"
+          },
+          "metrics": null,
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/budget_bypass.bin"
+            ],
+            "elapsed_ns": 1389679,
+            "returncode": -6,
+            "spawn_error": null,
+            "status": "completed",
+            "stderr": {
+              "base64": "CnRocmVhZCAnPHVubmFtZWQ+JyBwYW5pY2tlZCBhdCAvd29ya3NwYWNlL3NjcmF0Y2gvZDkzMGYyYjQ1ZTA3L2hlcHRhLWludGVncmF0aW9uL2FydGlmYWN0cy9pbnRlZ3JhdGlvbi10YXNrLWlvLW5hdGl2ZS0yMDI2MTAyNy9xdWFsaWZpY2F0aW9uLmZpbGVzL2J1ZGdldF9ieXBhc3MucnM6MTM3NTo5Ogphc3NlcnRpb24gYGxlZnQgPT0gcmlnaHRgIGZhaWxlZDogc2hhcmVkIGJ5dGUgYnVkZ2V0IGlnbm9yZWQKICBsZWZ0OiAyNTUKIHJpZ2h0OiAxNgpub3RlOiBydW4gd2l0aCBgUlVTVF9CQUNLVFJBQ0U9MWAgZW52aXJvbm1lbnQgdmFyaWFibGUgdG8gZGlzcGxheSBhIGJhY2t0cmFjZQo=",
+              "bytes": 335,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/budget_bypass-run-0.stderr.bin",
+              "sha256": "aa43df8f42172f27a69c03a661ec9e92d768a01a02cccf27d490e8c7df1ea8f9",
+              "text": "\nthread '<unnamed>' panicked at /workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/budget_bypass.rs:1375:9:\nassertion `left == right` failed: shared byte budget ignored\n  left: 255\n right: 16\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"
+            },
+            "stdout": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/budget_bypass-run-0.stdout.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "timed_out": false,
+            "timeout_seconds": 30
+          },
+          "trial": 0
+        },
+        {
+          "binary_after": {
+            "bytes": 3958712,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/budget_bypass.bin",
+            "sha256": "36fcd63e8e2e71a37a40beadb36606dee50430e826456a3a10f96abf2e4947c9"
+          },
+          "binary_before": {
+            "bytes": 3958712,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/budget_bypass.bin",
+            "sha256": "36fcd63e8e2e71a37a40beadb36606dee50430e826456a3a10f96abf2e4947c9"
+          },
+          "metrics": null,
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/budget_bypass.bin"
+            ],
+            "elapsed_ns": 1531812,
+            "returncode": -6,
+            "spawn_error": null,
+            "status": "completed",
+            "stderr": {
+              "base64": "CnRocmVhZCAnPHVubmFtZWQ+JyBwYW5pY2tlZCBhdCAvd29ya3NwYWNlL3NjcmF0Y2gvZDkzMGYyYjQ1ZTA3L2hlcHRhLWludGVncmF0aW9uL2FydGlmYWN0cy9pbnRlZ3JhdGlvbi10YXNrLWlvLW5hdGl2ZS0yMDI2MTAyNy9xdWFsaWZpY2F0aW9uLmZpbGVzL2J1ZGdldF9ieXBhc3MucnM6MTM3NTo5Ogphc3NlcnRpb24gYGxlZnQgPT0gcmlnaHRgIGZhaWxlZDogc2hhcmVkIGJ5dGUgYnVkZ2V0IGlnbm9yZWQKICBsZWZ0OiAyNTUKIHJpZ2h0OiAxNgpub3RlOiBydW4gd2l0aCBgUlVTVF9CQUNLVFJBQ0U9MWAgZW52aXJvbm1lbnQgdmFyaWFibGUgdG8gZGlzcGxheSBhIGJhY2t0cmFjZQo=",
+              "bytes": 335,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/budget_bypass-run-1.stderr.bin",
+              "sha256": "aa43df8f42172f27a69c03a661ec9e92d768a01a02cccf27d490e8c7df1ea8f9",
+              "text": "\nthread '<unnamed>' panicked at /workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/budget_bypass.rs:1375:9:\nassertion `left == right` failed: shared byte budget ignored\n  left: 255\n right: 16\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"
+            },
+            "stdout": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/budget_bypass-run-1.stdout.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "timed_out": false,
+            "timeout_seconds": 30
+          },
+          "trial": 1
+        },
+        {
+          "binary_after": {
+            "bytes": 3958712,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/budget_bypass.bin",
+            "sha256": "36fcd63e8e2e71a37a40beadb36606dee50430e826456a3a10f96abf2e4947c9"
+          },
+          "binary_before": {
+            "bytes": 3958712,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/budget_bypass.bin",
+            "sha256": "36fcd63e8e2e71a37a40beadb36606dee50430e826456a3a10f96abf2e4947c9"
+          },
+          "metrics": null,
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/budget_bypass.bin"
+            ],
+            "elapsed_ns": 1736580,
+            "returncode": -6,
+            "spawn_error": null,
+            "status": "completed",
+            "stderr": {
+              "base64": "CnRocmVhZCAnPHVubmFtZWQ+JyBwYW5pY2tlZCBhdCAvd29ya3NwYWNlL3NjcmF0Y2gvZDkzMGYyYjQ1ZTA3L2hlcHRhLWludGVncmF0aW9uL2FydGlmYWN0cy9pbnRlZ3JhdGlvbi10YXNrLWlvLW5hdGl2ZS0yMDI2MTAyNy9xdWFsaWZpY2F0aW9uLmZpbGVzL2J1ZGdldF9ieXBhc3MucnM6MTM3NTo5Ogphc3NlcnRpb24gYGxlZnQgPT0gcmlnaHRgIGZhaWxlZDogc2hhcmVkIGJ5dGUgYnVkZ2V0IGlnbm9yZWQKICBsZWZ0OiAyNTUKIHJpZ2h0OiAxNgpub3RlOiBydW4gd2l0aCBgUlVTVF9CQUNLVFJBQ0U9MWAgZW52aXJvbm1lbnQgdmFyaWFibGUgdG8gZGlzcGxheSBhIGJhY2t0cmFjZQo=",
+              "bytes": 335,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/budget_bypass-run-2.stderr.bin",
+              "sha256": "aa43df8f42172f27a69c03a661ec9e92d768a01a02cccf27d490e8c7df1ea8f9",
+              "text": "\nthread '<unnamed>' panicked at /workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/budget_bypass.rs:1375:9:\nassertion `left == right` failed: shared byte budget ignored\n  left: 255\n right: 16\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"
+            },
+            "stdout": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/budget_bypass-run-2.stdout.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "timed_out": false,
+            "timeout_seconds": 30
+          },
+          "trial": 2
+        }
+      ],
+      "source": {
+        "bytes": 81935,
+        "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/budget_bypass.rs",
+        "sha256": "438a315c3e914332ffb65feb36577111b3ae562b462b7e8a5e2a80ab6ea1df7b"
+      },
+      "status": "passed"
+    },
+    {
+      "analysis": null,
+      "binary": {
+        "bytes": 3973752,
+        "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/reservation_leak.bin",
+        "sha256": "7694f6ffd962ba517775b3f5298d92778bbda6b599077b6a7cc8b842fb37984f"
+      },
+      "build": {
+        "argv": [
+          "/workspace/scratch/d930f2b45e07/toolchains/rust-1.90.0/bin/rustc",
+          "--edition=2021",
+          "--crate-name=hepta_task_io",
+          "--crate-type=bin",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "-C",
+          "codegen-units=1",
+          "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/reservation_leak.rs",
+          "-o",
+          "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/reservation_leak.bin",
+          "-C",
+          "link-arg=/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/faults.o",
+          "-C",
+          "link-arg=-Wl,--wrap=poll",
+          "-C",
+          "link-arg=-Wl,--wrap=socketpair",
+          "-C",
+          "link-arg=-Wl,--wrap=ioctl"
+        ],
+        "elapsed_ns": 1109374710,
+        "returncode": 0,
+        "spawn_error": null,
+        "status": "completed",
+        "stderr": {
+          "base64": "",
+          "bytes": 0,
+          "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/reservation_leak-build.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": ""
+        },
+        "stdout": {
+          "base64": "",
+          "bytes": 0,
+          "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/reservation_leak-build.stdout.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": ""
+        },
+        "timed_out": false,
+        "timeout_seconds": 30
+      },
+      "failure": null,
+      "kind": "mutant",
+      "name": "reservation_leak",
+      "runs": [
+        {
+          "binary_after": {
+            "bytes": 3973752,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/reservation_leak.bin",
+            "sha256": "7694f6ffd962ba517775b3f5298d92778bbda6b599077b6a7cc8b842fb37984f"
+          },
+          "binary_before": {
+            "bytes": 3973752,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/reservation_leak.bin",
+            "sha256": "7694f6ffd962ba517775b3f5298d92778bbda6b599077b6a7cc8b842fb37984f"
+          },
+          "metrics": null,
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/reservation_leak.bin"
+            ],
+            "elapsed_ns": 1393374,
+            "returncode": -6,
+            "spawn_error": null,
+            "status": "completed",
+            "stderr": {
+              "base64": "CnRocmVhZCAnbWFpbicgcGFuaWNrZWQgYXQgL3dvcmtzcGFjZS9zY3JhdGNoL2Q5MzBmMmI0NWUwNy9oZXB0YS1pbnRlZ3JhdGlvbi9hcnRpZmFjdHMvaW50ZWdyYXRpb24tdGFzay1pby1uYXRpdmUtMjAyNjEwMjcvcXVhbGlmaWNhdGlvbi5maWxlcy9yZXNlcnZhdGlvbl9sZWFrLnJzOjEyODY6NToKYXNzZXJ0aW9uIGBsZWZ0ID09IHJpZ2h0YCBmYWlsZWQ6IEkvTyByZXNlcnZhdGlvbiBsZWFrCiAgbGVmdDogKDAsIDAsIDAsIDE5KQogcmlnaHQ6ICgwLCAwLCAwLCAwKQpub3RlOiBydW4gd2l0aCBgUlVTVF9CQUNLVFJBQ0U9MWAgZW52aXJvbm1lbnQgdmFyaWFibGUgdG8gZGlzcGxheSBhIGJhY2t0cmFjZQo=",
+              "bytes": 347,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/reservation_leak-run-0.stderr.bin",
+              "sha256": "b8b055ffdf1fef540dfbcb849827ad1a0c7362d51ec885f49e35e375d096eed3",
+              "text": "\nthread 'main' panicked at /workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/reservation_leak.rs:1286:5:\nassertion `left == right` failed: I/O reservation leak\n  left: (0, 0, 0, 19)\n right: (0, 0, 0, 0)\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"
+            },
+            "stdout": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/reservation_leak-run-0.stdout.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "timed_out": false,
+            "timeout_seconds": 30
+          },
+          "trial": 0
+        },
+        {
+          "binary_after": {
+            "bytes": 3973752,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/reservation_leak.bin",
+            "sha256": "7694f6ffd962ba517775b3f5298d92778bbda6b599077b6a7cc8b842fb37984f"
+          },
+          "binary_before": {
+            "bytes": 3973752,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/reservation_leak.bin",
+            "sha256": "7694f6ffd962ba517775b3f5298d92778bbda6b599077b6a7cc8b842fb37984f"
+          },
+          "metrics": null,
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/reservation_leak.bin"
+            ],
+            "elapsed_ns": 1407205,
+            "returncode": -6,
+            "spawn_error": null,
+            "status": "completed",
+            "stderr": {
+              "base64": "CnRocmVhZCAnbWFpbicgcGFuaWNrZWQgYXQgL3dvcmtzcGFjZS9zY3JhdGNoL2Q5MzBmMmI0NWUwNy9oZXB0YS1pbnRlZ3JhdGlvbi9hcnRpZmFjdHMvaW50ZWdyYXRpb24tdGFzay1pby1uYXRpdmUtMjAyNjEwMjcvcXVhbGlmaWNhdGlvbi5maWxlcy9yZXNlcnZhdGlvbl9sZWFrLnJzOjEyODY6NToKYXNzZXJ0aW9uIGBsZWZ0ID09IHJpZ2h0YCBmYWlsZWQ6IEkvTyByZXNlcnZhdGlvbiBsZWFrCiAgbGVmdDogKDAsIDAsIDAsIDE5KQogcmlnaHQ6ICgwLCAwLCAwLCAwKQpub3RlOiBydW4gd2l0aCBgUlVTVF9CQUNLVFJBQ0U9MWAgZW52aXJvbm1lbnQgdmFyaWFibGUgdG8gZGlzcGxheSBhIGJhY2t0cmFjZQo=",
+              "bytes": 347,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/reservation_leak-run-1.stderr.bin",
+              "sha256": "b8b055ffdf1fef540dfbcb849827ad1a0c7362d51ec885f49e35e375d096eed3",
+              "text": "\nthread 'main' panicked at /workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/reservation_leak.rs:1286:5:\nassertion `left == right` failed: I/O reservation leak\n  left: (0, 0, 0, 19)\n right: (0, 0, 0, 0)\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"
+            },
+            "stdout": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/reservation_leak-run-1.stdout.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "timed_out": false,
+            "timeout_seconds": 30
+          },
+          "trial": 1
+        },
+        {
+          "binary_after": {
+            "bytes": 3973752,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/reservation_leak.bin",
+            "sha256": "7694f6ffd962ba517775b3f5298d92778bbda6b599077b6a7cc8b842fb37984f"
+          },
+          "binary_before": {
+            "bytes": 3973752,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/reservation_leak.bin",
+            "sha256": "7694f6ffd962ba517775b3f5298d92778bbda6b599077b6a7cc8b842fb37984f"
+          },
+          "metrics": null,
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/reservation_leak.bin"
+            ],
+            "elapsed_ns": 2156030,
+            "returncode": -6,
+            "spawn_error": null,
+            "status": "completed",
+            "stderr": {
+              "base64": "CnRocmVhZCAnbWFpbicgcGFuaWNrZWQgYXQgL3dvcmtzcGFjZS9zY3JhdGNoL2Q5MzBmMmI0NWUwNy9oZXB0YS1pbnRlZ3JhdGlvbi9hcnRpZmFjdHMvaW50ZWdyYXRpb24tdGFzay1pby1uYXRpdmUtMjAyNjEwMjcvcXVhbGlmaWNhdGlvbi5maWxlcy9yZXNlcnZhdGlvbl9sZWFrLnJzOjEyODY6NToKYXNzZXJ0aW9uIGBsZWZ0ID09IHJpZ2h0YCBmYWlsZWQ6IEkvTyByZXNlcnZhdGlvbiBsZWFrCiAgbGVmdDogKDAsIDAsIDAsIDE5KQogcmlnaHQ6ICgwLCAwLCAwLCAwKQpub3RlOiBydW4gd2l0aCBgUlVTVF9CQUNLVFJBQ0U9MWAgZW52aXJvbm1lbnQgdmFyaWFibGUgdG8gZGlzcGxheSBhIGJhY2t0cmFjZQo=",
+              "bytes": 347,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/reservation_leak-run-2.stderr.bin",
+              "sha256": "b8b055ffdf1fef540dfbcb849827ad1a0c7362d51ec885f49e35e375d096eed3",
+              "text": "\nthread 'main' panicked at /workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/reservation_leak.rs:1286:5:\nassertion `left == right` failed: I/O reservation leak\n  left: (0, 0, 0, 19)\n right: (0, 0, 0, 0)\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"
+            },
+            "stdout": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/reservation_leak-run-2.stdout.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "timed_out": false,
+            "timeout_seconds": 30
+          },
+          "trial": 2
+        }
+      ],
+      "source": {
+        "bytes": 81951,
+        "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/reservation_leak.rs",
+        "sha256": "e366dbdcaac2656bd36428a9d28a21157f2a4e80e0a6efcf552bbc5fb443aea5"
+      },
+      "status": "passed"
+    },
+    {
+      "analysis": null,
+      "binary": {
+        "bytes": 3973856,
+        "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/buffer_leak.bin",
+        "sha256": "6820328f4324c01ffaf5d31a8462ba020dd73fbd066b2d1e288529354f28d0d9"
+      },
+      "build": {
+        "argv": [
+          "/workspace/scratch/d930f2b45e07/toolchains/rust-1.90.0/bin/rustc",
+          "--edition=2021",
+          "--crate-name=hepta_task_io",
+          "--crate-type=bin",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "-C",
+          "codegen-units=1",
+          "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/buffer_leak.rs",
+          "-o",
+          "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/buffer_leak.bin",
+          "-C",
+          "link-arg=/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/faults.o",
+          "-C",
+          "link-arg=-Wl,--wrap=poll",
+          "-C",
+          "link-arg=-Wl,--wrap=socketpair",
+          "-C",
+          "link-arg=-Wl,--wrap=ioctl"
+        ],
+        "elapsed_ns": 1255382045,
+        "returncode": 0,
+        "spawn_error": null,
+        "status": "completed",
+        "stderr": {
+          "base64": "",
+          "bytes": 0,
+          "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/buffer_leak-build.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": ""
+        },
+        "stdout": {
+          "base64": "",
+          "bytes": 0,
+          "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/buffer_leak-build.stdout.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": ""
+        },
+        "timed_out": false,
+        "timeout_seconds": 30
+      },
+      "failure": null,
+      "kind": "mutant",
+      "name": "buffer_leak",
+      "runs": [
+        {
+          "binary_after": {
+            "bytes": 3973856,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/buffer_leak.bin",
+            "sha256": "6820328f4324c01ffaf5d31a8462ba020dd73fbd066b2d1e288529354f28d0d9"
+          },
+          "binary_before": {
+            "bytes": 3973856,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/buffer_leak.bin",
+            "sha256": "6820328f4324c01ffaf5d31a8462ba020dd73fbd066b2d1e288529354f28d0d9"
+          },
+          "metrics": null,
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/buffer_leak.bin"
+            ],
+            "elapsed_ns": 1960463,
+            "returncode": -6,
+            "spawn_error": null,
+            "status": "completed",
+            "stderr": {
+              "base64": "CnRocmVhZCAnbWFpbicgcGFuaWNrZWQgYXQgL3dvcmtzcGFjZS9zY3JhdGNoL2Q5MzBmMmI0NWUwNy9oZXB0YS1pbnRlZ3JhdGlvbi9hcnRpZmFjdHMvaW50ZWdyYXRpb24tdGFzay1pby1uYXRpdmUtMjAyNjEwMjcvcXVhbGlmaWNhdGlvbi5maWxlcy9idWZmZXJfbGVhay5yczoxMjkwOjU6CmFzc2VydGlvbiBgbGVmdCA9PSByaWdodGAgZmFpbGVkOiBhY3R1YWwgYnVmZmVyIGxlYWsKICBsZWZ0OiAxCiByaWdodDogMApub3RlOiBydW4gd2l0aCBgUlVTVF9CQUNLVFJBQ0U9MWAgZW52aXJvbm1lbnQgdmFyaWFibGUgdG8gZGlzcGxheSBhIGJhY2t0cmFjZQo=",
+              "bytes": 317,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/buffer_leak-run-0.stderr.bin",
+              "sha256": "a2918dbf9a7eb839a0831b120358647977e3df0fe0c3a4b4e2196392ea2fb7fc",
+              "text": "\nthread 'main' panicked at /workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/buffer_leak.rs:1290:5:\nassertion `left == right` failed: actual buffer leak\n  left: 1\n right: 0\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"
+            },
+            "stdout": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/buffer_leak-run-0.stdout.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "timed_out": false,
+            "timeout_seconds": 30
+          },
+          "trial": 0
+        },
+        {
+          "binary_after": {
+            "bytes": 3973856,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/buffer_leak.bin",
+            "sha256": "6820328f4324c01ffaf5d31a8462ba020dd73fbd066b2d1e288529354f28d0d9"
+          },
+          "binary_before": {
+            "bytes": 3973856,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/buffer_leak.bin",
+            "sha256": "6820328f4324c01ffaf5d31a8462ba020dd73fbd066b2d1e288529354f28d0d9"
+          },
+          "metrics": null,
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/buffer_leak.bin"
+            ],
+            "elapsed_ns": 2125722,
+            "returncode": -6,
+            "spawn_error": null,
+            "status": "completed",
+            "stderr": {
+              "base64": "CnRocmVhZCAnbWFpbicgcGFuaWNrZWQgYXQgL3dvcmtzcGFjZS9zY3JhdGNoL2Q5MzBmMmI0NWUwNy9oZXB0YS1pbnRlZ3JhdGlvbi9hcnRpZmFjdHMvaW50ZWdyYXRpb24tdGFzay1pby1uYXRpdmUtMjAyNjEwMjcvcXVhbGlmaWNhdGlvbi5maWxlcy9idWZmZXJfbGVhay5yczoxMjkwOjU6CmFzc2VydGlvbiBgbGVmdCA9PSByaWdodGAgZmFpbGVkOiBhY3R1YWwgYnVmZmVyIGxlYWsKICBsZWZ0OiAxCiByaWdodDogMApub3RlOiBydW4gd2l0aCBgUlVTVF9CQUNLVFJBQ0U9MWAgZW52aXJvbm1lbnQgdmFyaWFibGUgdG8gZGlzcGxheSBhIGJhY2t0cmFjZQo=",
+              "bytes": 317,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/buffer_leak-run-1.stderr.bin",
+              "sha256": "a2918dbf9a7eb839a0831b120358647977e3df0fe0c3a4b4e2196392ea2fb7fc",
+              "text": "\nthread 'main' panicked at /workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/buffer_leak.rs:1290:5:\nassertion `left == right` failed: actual buffer leak\n  left: 1\n right: 0\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"
+            },
+            "stdout": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/buffer_leak-run-1.stdout.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "timed_out": false,
+            "timeout_seconds": 30
+          },
+          "trial": 1
+        },
+        {
+          "binary_after": {
+            "bytes": 3973856,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/buffer_leak.bin",
+            "sha256": "6820328f4324c01ffaf5d31a8462ba020dd73fbd066b2d1e288529354f28d0d9"
+          },
+          "binary_before": {
+            "bytes": 3973856,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/buffer_leak.bin",
+            "sha256": "6820328f4324c01ffaf5d31a8462ba020dd73fbd066b2d1e288529354f28d0d9"
+          },
+          "metrics": null,
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/buffer_leak.bin"
+            ],
+            "elapsed_ns": 1788559,
+            "returncode": -6,
+            "spawn_error": null,
+            "status": "completed",
+            "stderr": {
+              "base64": "CnRocmVhZCAnbWFpbicgcGFuaWNrZWQgYXQgL3dvcmtzcGFjZS9zY3JhdGNoL2Q5MzBmMmI0NWUwNy9oZXB0YS1pbnRlZ3JhdGlvbi9hcnRpZmFjdHMvaW50ZWdyYXRpb24tdGFzay1pby1uYXRpdmUtMjAyNjEwMjcvcXVhbGlmaWNhdGlvbi5maWxlcy9idWZmZXJfbGVhay5yczoxMjkwOjU6CmFzc2VydGlvbiBgbGVmdCA9PSByaWdodGAgZmFpbGVkOiBhY3R1YWwgYnVmZmVyIGxlYWsKICBsZWZ0OiAxCiByaWdodDogMApub3RlOiBydW4gd2l0aCBgUlVTVF9CQUNLVFJBQ0U9MWAgZW52aXJvbm1lbnQgdmFyaWFibGUgdG8gZGlzcGxheSBhIGJhY2t0cmFjZQo=",
+              "bytes": 317,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/buffer_leak-run-2.stderr.bin",
+              "sha256": "a2918dbf9a7eb839a0831b120358647977e3df0fe0c3a4b4e2196392ea2fb7fc",
+              "text": "\nthread 'main' panicked at /workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/buffer_leak.rs:1290:5:\nassertion `left == right` failed: actual buffer leak\n  left: 1\n right: 0\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"
+            },
+            "stdout": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/buffer_leak-run-2.stdout.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "timed_out": false,
+            "timeout_seconds": 30
+          },
+          "trial": 2
+        }
+      ],
+      "source": {
+        "bytes": 81983,
+        "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/buffer_leak.rs",
+        "sha256": "a4ac027d8d54754c9eb0d03b9eb41a30600427d8d417e1ac6be03d7fed72d9ec"
+      },
+      "status": "passed"
+    },
+    {
+      "analysis": null,
+      "binary": {
+        "bytes": 3967992,
+        "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/drop_lock_inversion.bin",
+        "sha256": "39ba042c167386645660011dc4b7511c0b7a876b73d930ae321c169265a9216e"
+      },
+      "build": {
+        "argv": [
+          "/workspace/scratch/d930f2b45e07/toolchains/rust-1.90.0/bin/rustc",
+          "--edition=2021",
+          "--crate-name=hepta_task_io",
+          "--crate-type=bin",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "-C",
+          "codegen-units=1",
+          "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/drop_lock_inversion.rs",
+          "-o",
+          "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/drop_lock_inversion.bin",
+          "-C",
+          "link-arg=/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/faults.o",
+          "-C",
+          "link-arg=-Wl,--wrap=poll",
+          "-C",
+          "link-arg=-Wl,--wrap=socketpair",
+          "-C",
+          "link-arg=-Wl,--wrap=ioctl"
+        ],
+        "elapsed_ns": 1251916263,
+        "returncode": 0,
+        "spawn_error": null,
+        "status": "completed",
+        "stderr": {
+          "base64": "",
+          "bytes": 0,
+          "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/drop_lock_inversion-build.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": ""
+        },
+        "stdout": {
+          "base64": "",
+          "bytes": 0,
+          "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/drop_lock_inversion-build.stdout.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": ""
+        },
+        "timed_out": false,
+        "timeout_seconds": 30
+      },
+      "failure": null,
+      "kind": "mutant",
+      "name": "drop_lock_inversion",
+      "runs": [
+        {
+          "binary_after": {
+            "bytes": 3967992,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/drop_lock_inversion.bin",
+            "sha256": "39ba042c167386645660011dc4b7511c0b7a876b73d930ae321c169265a9216e"
+          },
+          "binary_before": {
+            "bytes": 3967992,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/drop_lock_inversion.bin",
+            "sha256": "39ba042c167386645660011dc4b7511c0b7a876b73d930ae321c169265a9216e"
+          },
+          "metrics": null,
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/drop_lock_inversion.bin"
+            ],
+            "elapsed_ns": 2002597844,
+            "returncode": null,
+            "spawn_error": null,
+            "status": "timed_out",
+            "stderr": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/drop_lock_inversion-run-0.stderr.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "stdout": {
+              "base64": "d2FpdGluZy1mb3ItY2FuY2VsbGVyLW93bmVkLWRyb3AK",
+              "bytes": 33,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/drop_lock_inversion-run-0.stdout.bin",
+              "sha256": "fb50e7fe0c0af1b1d0a2e73442ca0a9a13609a4d4d3519d0f4c835409bbfd806",
+              "text": "waiting-for-canceller-owned-drop\n"
+            },
+            "timed_out": true,
+            "timeout_seconds": 2
+          },
+          "trial": 0
+        },
+        {
+          "binary_after": {
+            "bytes": 3967992,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/drop_lock_inversion.bin",
+            "sha256": "39ba042c167386645660011dc4b7511c0b7a876b73d930ae321c169265a9216e"
+          },
+          "binary_before": {
+            "bytes": 3967992,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/drop_lock_inversion.bin",
+            "sha256": "39ba042c167386645660011dc4b7511c0b7a876b73d930ae321c169265a9216e"
+          },
+          "metrics": null,
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/drop_lock_inversion.bin"
+            ],
+            "elapsed_ns": 2002688496,
+            "returncode": null,
+            "spawn_error": null,
+            "status": "timed_out",
+            "stderr": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/drop_lock_inversion-run-1.stderr.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "stdout": {
+              "base64": "d2FpdGluZy1mb3ItY2FuY2VsbGVyLW93bmVkLWRyb3AK",
+              "bytes": 33,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/drop_lock_inversion-run-1.stdout.bin",
+              "sha256": "fb50e7fe0c0af1b1d0a2e73442ca0a9a13609a4d4d3519d0f4c835409bbfd806",
+              "text": "waiting-for-canceller-owned-drop\n"
+            },
+            "timed_out": true,
+            "timeout_seconds": 2
+          },
+          "trial": 1
+        },
+        {
+          "binary_after": {
+            "bytes": 3967992,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/drop_lock_inversion.bin",
+            "sha256": "39ba042c167386645660011dc4b7511c0b7a876b73d930ae321c169265a9216e"
+          },
+          "binary_before": {
+            "bytes": 3967992,
+            "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/drop_lock_inversion.bin",
+            "sha256": "39ba042c167386645660011dc4b7511c0b7a876b73d930ae321c169265a9216e"
+          },
+          "metrics": null,
+          "process": {
+            "argv": [
+              "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/drop_lock_inversion.bin"
+            ],
+            "elapsed_ns": 2003196942,
+            "returncode": null,
+            "spawn_error": null,
+            "status": "timed_out",
+            "stderr": {
+              "base64": "",
+              "bytes": 0,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/drop_lock_inversion-run-2.stderr.bin",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "text": ""
+            },
+            "stdout": {
+              "base64": "d2FpdGluZy1mb3ItY2FuY2VsbGVyLW93bmVkLWRyb3AK",
+              "bytes": 33,
+              "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/drop_lock_inversion-run-2.stdout.bin",
+              "sha256": "fb50e7fe0c0af1b1d0a2e73442ca0a9a13609a4d4d3519d0f4c835409bbfd806",
+              "text": "waiting-for-canceller-owned-drop\n"
+            },
+            "timed_out": true,
+            "timeout_seconds": 2
+          },
+          "trial": 2
+        }
+      ],
+      "source": {
+        "bytes": 82069,
+        "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/drop_lock_inversion.rs",
+        "sha256": "130d3c8b8f2afd5e4f667a8722f2958301630e91f63e2b5de527fda7bc9061c9"
+      },
+      "status": "passed"
+    },
+    {
+      "analysis": {
+        "assumptions": [],
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "3569f20ec180960f66e02e0ef8402eb3023e0a7769093c02dfb39fcbd8752de2",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "both": [],
+          "main": [],
+          "w": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "write"
+          ]
+        },
+        "interface_sha256": "b40ae2dff1b89cd2aea7284bb165d0d5a6bb9b672060f7f28803a5a49d08d838",
+        "ok": true,
+        "path": "<task-io-native-alias>",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [
+          {
+            "cancellation": "serialized_at_explicit_pump_boundaries",
+            "configuration_can_be_refused": true,
+            "enforcement": "preallocated_metadata_and_checked_admission",
+            "excludes": [
+              "preadmission_buffers",
+              "refused_submission_buffers",
+              "allocator_metadata",
+              "kernel_socket_buffers",
+              "other_reactors",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "executor": "caller_driven_nonblocking_readiness_pump",
+            "function": "w",
+            "includes_completed_uncollected_requests": true,
+            "kind": "bounded_io_reactor",
+            "limits": {
+              "admitted_buffer_capacity_bytes": 8,
+              "occupied_requests": 1,
+              "owned_ports": 2
+            },
+            "line": 1,
+            "path": "<task-io-native-alias>",
+            "platform": "x86_64_unknown_linux_gnu_hosted",
+            "scope": "one_reactor_instance"
+          }
+        ],
+        "rust_sha256": "45c6dbdf7bae9669493511b42938afa57183c17af327f9212c11f56e5b7d77e1",
+        "schema": "hepta.check.v1",
+        "source_sha256": "d40b9d8a3ca526f5b0ce52defe40ba1fdaa9e4cfae4f0af1febeeeef7690da46",
+        "status": "frontend_only"
+      },
+      "binary": null,
+      "build": {
+        "argv": [
+          "/workspace/scratch/d930f2b45e07/toolchains/rust-1.90.0/bin/rustc",
+          "--edition=2021",
+          "--crate-name=hepta_task_io",
+          "--crate-type=bin",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "-C",
+          "codegen-units=1",
+          "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/native_alias.rs",
+          "-o",
+          "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/native_alias.bin"
+        ],
+        "elapsed_ns": null,
+        "returncode": null,
+        "spawn_error": null,
+        "status": "running",
+        "stderr": null,
+        "stdout": null,
+        "timed_out": false,
+        "timeout_seconds": 30
+      },
+      "failure": null,
+      "kind": "native_rejection",
+      "name": "native_alias",
+      "runs": [],
+      "source": {
+        "bytes": 62972,
+        "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/native_alias.rs",
+        "sha256": "45c6dbdf7bae9669493511b42938afa57183c17af327f9212c11f56e5b7d77e1"
+      },
+      "status": "running"
+    }
+  ],
+  "claims": {
+    "TCP_TLS_or_arbitrary_file_IO": false,
+    "actual_native_fault_and_race_controls_executed": true,
+    "arbitrary_third_party_execution_authenticated": false,
+    "async_await_or_background_executor": false,
+    "cross_thread_reactor_access_exposed": false,
+    "explicit_shared_pool_io_reservations_qualified": true,
+    "hard_realtime_or_arbitrary_worker_termination_proved": false,
+    "independent_IO_IR_or_source_runtime_refinement_proved": false,
+    "performance_measured": false,
+    "source_and_emitted_runtime_replayed": true,
+    "whole_process_allocation_or_actual_stack_budget": false,
+    "worker_owned_reactor_tree_cancellation_qualified": true
+  },
+  "compiler_sha256": "3569f20ec180960f66e02e0ef8402eb3023e0a7769093c02dfb39fcbd8752de2",
+  "created_utc": "2026-10-27T08:13:59.820469+00:00",
+  "failure": null,
+  "host": {
+    "machine": "x86_64",
+    "system": "Linux"
+  },
+  "ok": false,
+  "profile": {
+    "attachment_authority": "worker_read_Sender_u64",
+    "cancellation": "group_state_registration_and_owned_socket_peer_close",
+    "host": "x86_64-unknown-linux-gnu",
+    "maximum_group_registrations": 64,
+    "maximum_pool_reactors": 256,
+    "ordinary_Arc_OOM_or_abort_recoverable": false,
+    "pool_charges": [
+      "reactors",
+      "configured_endpoint_slots_plus_two_wakeup_endpoints",
+      "configured_request_slots",
+      "all_admitted_Vec_capacity_until_collection"
+    ],
+    "reactor_ownership": "exclusive_single_thread_not_Send_or_Sync",
+    "rust": "1.90.0"
+  },
+  "rejections": [],
+  "repeats": 3,
+  "schema": "hepta.task-io.evidence.v1",
+  "source_files": {
+    "examples/task_io/cancellation.hepta": "1bc5adfb6102a6de650d3fd9824fe5a92e12ce9b59e8db9fd8de8c2d482348ea",
+    "examples/task_io/pipeline.hepta": "6bf15cb097285113e1126577c02edf37c58063062f2e33e15c2dee2d3f541ff5",
+    "examples/task_io/recovery.hepta": "5449a1b95b4b310a035b012b3cc40443fa960d8730b75f27eb21423f80a6da41",
+    "hepta/runtime_concurrency.py": "e264aab58d9c0d970e5e9bcb107883d7174957b19a2c87e685c79bbc54dc0287",
+    "hepta/runtime_io.py": "ec87bedf99e209f6f7a5ae356457bd8f74a89bf92a9e6f2ce357c1619f33e8a4",
+    "hepta/runtime_task_io.py": "cf82d44afb4926b080a4b39c5660d3ef49544936f22981ce0478e8f05cbe79ca",
+    "hepta/runtime_task_tree.py": "5659b2484961124df1d38a528294f31f4540436d8f9a0c9b26e97d8b0cecbc27",
+    "tools/fixtures/task_io_controls.rs": "619013145f0ff4860280d4d030def84a95b4515126273a1440a577a76af57fb6",
+    "tools/fixtures/task_io_faults.c": "020b9b9b3c16b8dc1033804d0e71e9c210630e368cb2af7e35c999764e938046",
+    "tools/qualify_task_io.py": "4826b9c8c7a0c48c45a37d3aeeb5dc343be5287f65a77a3d5bf6b79dc3de8d2b"
+  },
+  "status": "running",
+  "tools": {
+    "c": {
+      "executable": {
+        "bytes": 1023032,
+        "path": "/usr/bin/x86_64-linux-gnu-gcc-13",
+        "sha256": "6117c52522997d2aaccb2b52b3c6bf42c0a6c5edb1d718431fed6b2fc5fec234"
+      },
+      "invocation_path": "/usr/bin/gcc",
+      "version": {
+        "argv": [
+          "/usr/bin/gcc",
+          "--version"
+        ],
+        "elapsed_ns": 1222580,
+        "returncode": 0,
+        "spawn_error": null,
+        "status": "completed",
+        "stderr": {
+          "base64": "",
+          "bytes": 0,
+          "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/c-version.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": ""
+        },
+        "stdout": {
+          "base64": "Z2NjIChVYnVudHUgMTMuMy4wLTZ1YnVudHUyfjI0LjA0KSAxMy4zLjAKQ29weXJpZ2h0IChDKSAyMDIzIEZyZWUgU29mdHdhcmUgRm91bmRhdGlvbiwgSW5jLgpUaGlzIGlzIGZyZWUgc29mdHdhcmU7IHNlZSB0aGUgc291cmNlIGZvciBjb3B5aW5nIGNvbmRpdGlvbnMuICBUaGVyZSBpcyBOTwp3YXJyYW50eTsgbm90IGV2ZW4gZm9yIE1FUkNIQU5UQUJJTElUWSBvciBGSVRORVNTIEZPUiBBIFBBUlRJQ1VMQVIgUFVSUE9TRS4KCg==",
+          "bytes": 244,
+          "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/c-version.stdout.bin",
+          "sha256": "cc08f972264fd3ba58abb3ebc6337013b225be267c91d2df9f29f066284fe2b6",
+          "text": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
+        },
+        "timed_out": false,
+        "timeout_seconds": 30
+      }
+    },
+    "rust": {
+      "executable": {
+        "bytes": 656496,
+        "path": "/workspace/scratch/d930f2b45e07/toolchains/rust-1.90.0/bin/rustc",
+        "sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa"
+      },
+      "invocation_path": "/workspace/scratch/d930f2b45e07/toolchains/rust-1.90.0/bin/rustc",
+      "version": {
+        "argv": [
+          "/workspace/scratch/d930f2b45e07/toolchains/rust-1.90.0/bin/rustc",
+          "-vV"
+        ],
+        "elapsed_ns": 8286068,
+        "returncode": 0,
+        "spawn_error": null,
+        "status": "completed",
+        "stderr": {
+          "base64": "",
+          "bytes": 0,
+          "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/rust-version.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": ""
+        },
+        "stdout": {
+          "base64": "cnVzdGMgMS45MC4wICgxMTU5ZTc4YzQgMjAyNS0wOS0xNCkKYmluYXJ5OiBydXN0Ywpjb21taXQtaGFzaDogMTE1OWU3OGM0NzQ3YjAyZWY5OTZlNTUwODJiNzA0YzA5Yjk3MDU4OApjb21taXQtZGF0ZTogMjAyNS0wOS0xNApob3N0OiB4ODZfNjQtdW5rbm93bi1saW51eC1nbnUKcmVsZWFzZTogMS45MC4wCkxMVk0gdmVyc2lvbjogMjAuMS44Cg==",
+          "bytes": 196,
+          "path": "/workspace/scratch/d930f2b45e07/hepta-integration/artifacts/integration-task-io-native-20261027/qualification.files/rust-version.stdout.bin",
+          "sha256": "938db28b83089ab88301ca425f99fa1d8b61ee66e0371babe1db6373ae9810a3",
+          "text": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8\n"
+        },
+        "timed_out": false,
+        "timeout_seconds": 30
+      }
+    }
+  }
+}

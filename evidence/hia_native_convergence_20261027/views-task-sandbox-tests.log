@@ -1,0 +1,44 @@
+test_all_illegal_aliases_and_owner_moves_are_independently_rejected (tests.test_llvm_local_views.LocalViewLoweringTests.test_all_illegal_aliases_and_owner_moves_are_independently_rejected) ... ok
+test_consistently_resealed_view_graph_cannot_replace_source (tests.test_llvm_local_views.LocalViewLoweringTests.test_consistently_resealed_view_graph_cannot_replace_source) ... ok
+test_exclusive_affinity_and_read_only_writes_still_reject (tests.test_llvm_local_views.LocalViewLoweringTests.test_exclusive_affinity_and_read_only_writes_still_reject) ... ok
+test_existing_generic_disjoint_and_local_view_programs_lower_independently (tests.test_llvm_local_views.LocalViewLoweringTests.test_existing_generic_disjoint_and_local_view_programs_lower_independently) ... ok
+test_layout_equal_source_rename_cannot_rebind_old_llvm_before_native (tests.test_llvm_local_views.LocalViewLoweringTests.test_layout_equal_source_rename_cannot_rebind_old_llvm_before_native) ... ok
+test_owner_drop_plan_guard_remains_active_in_a_program_with_local_views (tests.test_llvm_local_views.LocalViewLoweringTests.test_owner_drop_plan_guard_remains_active_in_a_program_with_local_views) ... ok
+test_unsupported_regions_and_unused_shapes_remain_rejected (tests.test_llvm_local_views.LocalViewLoweringTests.test_unsupported_regions_and_unused_shapes_remain_rejected) ... ok
+test_v5_labelled_views_pass_resource_verifier_but_do_not_enter_v4_native_scope (tests.test_llvm_local_views.LocalViewLoweringTests.test_v5_labelled_views_pass_resource_verifier_but_do_not_enter_v4_native_scope) ... ok
+test_real_native_complete_cases_faults_cleanup_and_bounds (tests.test_llvm_local_views.NativeLocalViewQualificationTests.test_real_native_complete_cases_faults_cleanup_and_bounds) ... ok
+test_real_wrong_native_cleanup_is_executed_and_observed (tests.test_llvm_local_views.NativeLocalViewQualificationTests.test_real_wrong_native_cleanup_is_executed_and_observed) ... ok
+test_strict_validator_rejects_report_tampering_without_rerunning_natives (tests.test_llvm_local_views.NativeLocalViewQualificationTests.test_strict_validator_rejects_report_tampering_without_rerunning_natives) ... ok
+test_middle_compile_timeout_retains_all_case_denominators_and_continues (tests.test_task_io.TaskIoFailureRetentionTests.test_middle_compile_timeout_retains_all_case_denominators_and_continues) ... ok
+test_timeout_keeps_non_utf8_partial_bytes_and_actual_plan (tests.test_task_io.TaskIoFailureRetentionTests.test_timeout_keeps_non_utf8_partial_bytes_and_actual_plan) ... ok
+setUpClass (tests.test_task_io.TaskIoNativeQualificationTests) ... ERROR
+test_new_protocol_is_not_silently_admitted_to_old_independent_ir (tests.test_task_io.TaskIoSourceTests.test_new_protocol_is_not_silently_admitted_to_old_independent_ir) ... ok
+test_source_examples_use_existing_checker_and_explicit_pool_contract (tests.test_task_io.TaskIoSourceTests.test_source_examples_use_existing_checker_and_explicit_pool_contract) ... ok
+test_task_binding_is_inserted_only_with_both_runtime_profiles (tests.test_task_io.TaskIoSourceTests.test_task_binding_is_inserted_only_with_both_runtime_profiles) ... ok
+test_unsafe_ownership_effect_and_authority_examples_are_rejected (tests.test_task_io.TaskIoSourceTests.test_unsafe_ownership_effect_and_authority_examples_are_rejected) ... ok
+
+======================================================================
+ERROR: setUpClass (tests.test_task_io.TaskIoNativeQualificationTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/d930f2b45e07/hepta-integration/tools/qualify_task_io.py", line 337, in run_qualification
+    require(all(row["status"] == "passed" for row in report["cases"]), "one or more planned cases failed")
+  File "/workspace/scratch/d930f2b45e07/hepta-integration/tools/evidence_checks.py", line 14, in require
+    raise ValueError(message)
+ValueError: one or more planned cases failed
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/scratch/d930f2b45e07/hepta-integration/tests/test_task_io.py", line 135, in setUpClass
+    cls.report = q.run_qualification(output=Path(cls.directory.name) / "qualification.json", rustc=RUSTC, repeats=1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/d930f2b45e07/hepta-integration/tools/qualify_task_io.py", line 342, in run_qualification
+    checkpoint(); raise QualificationFailed(report) from error
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tools.qualify_task_io.QualificationFailed: ValueError: one or more planned cases failed
+
+----------------------------------------------------------------------
+Ran 17 tests in 28.114s
+
+FAILED (errors=1)

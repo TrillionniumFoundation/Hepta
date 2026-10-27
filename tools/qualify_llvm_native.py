@@ -35,6 +35,7 @@ from hepta.llvm_ssa_target import compile_ssa_target_object
 from hepta.pipeline import analyze, compiler_hash
 from hepta.ssa import lower_cfg_scalar_ssa
 from tools.evidence_checks import is_sha, native_build, normalized_errors, require, strict_equal, text
+from tools.performance_observation import observe_call, source_sha256 as observation_sha256, validate_observations
 
 
 PROTOCOL = {
@@ -286,6 +287,7 @@ def validate_report(report, *, expected_git_commit=None):
             and report.get("source_sha256") == sha(SOURCE.encode())
             and report.get("driver_source_sha256") == sha(DRIVER.encode())
             and report.get("qualifier_sha256") == digest(__file__)
+            and report.get("process_observer_sha256") == observation_sha256()
             and report.get("compiler_tree_sha256") == compiler_hash(),
             "native performance protocol, source, driver or current implementation identity differs")
     commit = report.get("git_commit")
@@ -437,6 +439,11 @@ def validate_report(report, *, expected_git_commit=None):
                 "native sample timing, clock, memory or checksum malformed")
         require(row["checksum"] == checksums.setdefault(kernel, row["checksum"]),
                 "identical timed input sequence produced different native checksums")
+    validate_observations(report.get("process_observations"), [
+        {"sample": {key: row[key] for key in ("sample_index", "group", "kernel", "backend")},
+         "command": [str(directory / "driver"), str(directory / (row["backend"] + ".so")), row["kernel"],
+                     str(PROTOCOL["kernel_iterations"]), str(PROTOCOL["native_calls_per_sample"]),
+                     str(PROTOCOL["warmup_calls_per_process"])]} for row in rows])
     evaluation = evaluate_samples(rows)
     require(strict_equal(report.get("evaluation"), evaluation), "native sample evaluation was altered")
     require(evaluation["ok"] is True and evaluation["status"] == "passed",
@@ -480,6 +487,7 @@ def qualify(*, clang="clang", rustc=None):
               "protocol": dict(PROTOCOL), "protocol_sha256": sha(wire(PROTOCOL).encode()),
               "source_sha256": sha(SOURCE.encode()), "driver_source_sha256": sha(DRIVER.encode()),
               "qualifier_sha256": digest(__file__), "compiler_tree_sha256": compiler_hash(),
+              "process_observer_sha256": observation_sha256(), "process_observations": [],
               "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
               "raw_samples": [], "compile_wall_seconds": {},
               "claims": {"finite_correctness_checked": False, "host_scalar32_performance_gate_passed": False,
@@ -581,13 +589,17 @@ def qualify(*, clang="clang", rustc=None):
                     for backend in backends:
                         argv = [driver, libraries[backend], kernel, str(PROTOCOL["kernel_iterations"]),
                                 str(PROTOCOL["native_calls_per_sample"]), str(PROTOCOL["warmup_calls_per_process"])]
-                        measured = json.loads(run(argv, timeout=120))
+                        sample = {"group": group, "kernel": kernel, "backend": backend,
+                                  "sample_index": len(report["raw_samples"])}
+                        measured = json.loads(observe_call(report["process_observations"], argv, sample,
+                                                           lambda: run(argv, timeout=120)))
                         report["raw_samples"].append({"group": group, "kernel": kernel, "backend": backend,
                                                       "sample_index": len(report["raw_samples"]), **measured})
             report["evaluation"] = evaluate_samples(report["raw_samples"])
             if any(digest(path) != report["artifacts"][name]["sha256"] for name, path in artifacts.items()):
                 raise ValueError("E_NATIVE_QUALIFY_IDENTITY: compiled artifact changed during measurement")
-            if compiler_hash() != report["compiler_tree_sha256"]:
+            if (compiler_hash() != report["compiler_tree_sha256"]
+                    or observation_sha256() != report["process_observer_sha256"]):
                 raise ValueError("E_NATIVE_QUALIFY_IDENTITY: compiler source changed during qualification")
             report["status"] = report["evaluation"]["status"]
             report["ok"] = report["evaluation"]["ok"]

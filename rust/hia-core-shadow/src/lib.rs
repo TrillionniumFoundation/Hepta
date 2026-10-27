@@ -8,7 +8,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
-use serde::de::{self, MapAccess, SeqAccess, Visitor};
+use serde::de::{self, DeserializeSeed, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer};
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
@@ -36,36 +36,44 @@ fn failure<T>(code: &'static str, detail: impl Into<String>) -> R<T> {
     Err(VerifyError { code, detail: detail.into() })
 }
 
-// Reject deeply nested or dense input while deserializing it.  The old
-// post-parse structure() gate cannot prevent a hostile JSON payload from
-// allocating an oversized Value tree before it is checked.
+// Charge every value before deserializing it, using one global budget across
+// the entire tree. Per-subtree totals checked after next_element/next_value
+// could allocate another large sibling subtree after the global budget was
+// already exhausted. structure() remains a separate post-parse assertion.
 struct UniqueJson {
     value: Value,
-    nodes: usize,
-    depth: usize,
 }
 impl UniqueJson {
     fn leaf(value: Value) -> Self {
-        Self { value, nodes: 1, depth: 0 }
+        Self { value }
     }
 }
-fn bounded_child<E: de::Error>(nodes: &mut usize, depth: &mut usize,
-                               child: &UniqueJson) -> Result<(), E> {
-    *nodes = (*nodes).checked_add(child.nodes)
-        .ok_or_else(|| E::custom("HIA_DECODE_LIMIT: node count overflow"))?;
-    *depth = (*depth).max(child.depth.saturating_add(1));
-    if *nodes > MAX_NODES || *depth > MAX_DEPTH {
-        return Err(E::custom("HIA_DECODE_LIMIT: node/depth budget exceeded"));
-    }
-    Ok(())
+struct UniqueSeed<'a> {
+    visited: &'a mut usize,
+    depth: usize,
 }
-struct UniqueVisitor;
+impl<'de> DeserializeSeed<'de> for UniqueSeed<'_> {
+    type Value = UniqueJson;
+
+    fn deserialize<D: Deserializer<'de>>(self, d: D) -> Result<Self::Value, D::Error> {
+        if *self.visited >= MAX_NODES || self.depth > MAX_DEPTH {
+            return Err(de::Error::custom("HIA_DECODE_LIMIT: node/depth budget exceeded"));
+        }
+        *self.visited += 1;
+        d.deserialize_any(UniqueVisitor { visited: self.visited, depth: self.depth })
+    }
+}
+struct UniqueVisitor<'a> {
+    visited: &'a mut usize,
+    depth: usize,
+}
 impl<'de> Deserialize<'de> for UniqueJson {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        d.deserialize_any(UniqueVisitor)
+        let mut visited = 0;
+        UniqueSeed { visited: &mut visited, depth: 0 }.deserialize(d)
     }
 }
-impl<'de> Visitor<'de> for UniqueVisitor {
+impl<'de> Visitor<'de> for UniqueVisitor<'_> {
     type Value = UniqueJson;
     fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str("finite JSON without duplicate keys or floating values")
@@ -96,26 +104,26 @@ impl<'de> Visitor<'de> for UniqueVisitor {
     }
     fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
         let mut values = Vec::new();
-        let (mut nodes, mut depth) = (1_usize, 0_usize);
-        while let Some(next) = seq.next_element::<UniqueJson>()? {
-            bounded_child::<A::Error>(&mut nodes, &mut depth, &next)?;
+        while let Some(next) = seq.next_element_seed(UniqueSeed {
+            visited: &mut *self.visited, depth: self.depth + 1,
+        })? {
             values.push(next.value);
         }
-        Ok(UniqueJson { value: Value::Array(values), nodes, depth })
+        Ok(UniqueJson { value: Value::Array(values) })
     }
     fn visit_map<M: MapAccess<'de>>(self, mut map: M) -> Result<Self::Value, M::Error> {
         let mut values = Map::new();
-        let (mut nodes, mut depth) = (1_usize, 0_usize);
         // Refuse duplicate keys before even parsing the duplicate value.
         while let Some(key) = map.next_key::<String>()? {
             if values.contains_key(&key) {
                 return Err(de::Error::custom("duplicate JSON object key"));
             }
-            let next = map.next_value::<UniqueJson>()?;
-            bounded_child::<M::Error>(&mut nodes, &mut depth, &next)?;
+            let next = map.next_value_seed(UniqueSeed {
+                visited: &mut *self.visited, depth: self.depth + 1,
+            })?;
             values.insert(key, next.value);
         }
-        Ok(UniqueJson { value: Value::Object(values), nodes, depth })
+        Ok(UniqueJson { value: Value::Object(values) })
     }
 }
 

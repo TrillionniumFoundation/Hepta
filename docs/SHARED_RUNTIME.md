@@ -1,5 +1,11 @@
 # Selection and shared task reservations
 
+The [task-tree I/O extension](TASK_TREE_IO_COMPOSITION.md) adds fixed reactor,
+endpoint/wakeup and request-slot reservations plus admitted buffer capacity to
+the same explicit pool. Its report and native qualification are separate from
+the thread/input/queue/requested-stack report described below. Neither report
+measures total process allocation or RSS.
+
 This hosted Rust runtime profile adds two concrete facilities: receiving from
 two bounded task-group channels, and a reservation pool shared by explicitly
 attached groups. Each `TaskGroup` remains a local linear owner that must be

@@ -25,6 +25,7 @@ _SHA = re.compile(r"[0-9a-f]{64}\Z")
 
 _SCALAR_CLAIMS = {
     "scalar_ssa_and_cfg_checked": True,
+    "v7_chain_resources_supported": False,
     "resource_provenance_verified": False,
     "full_hia_verifier_replaced": False,
     "whole_language_soundness_proved": False,
@@ -37,6 +38,7 @@ _OWNED_CLAIMS = {
     "cross_block_owner_loan_state_checked": True,
     "v2_v6_bulk_byte_opcode_types_loans_and_effects_checked": True,
     "interprocedural_resource_calls_checked": True,
+    "v7_chain_native_semantics_proved": False,
     "recursion_or_stack_bounds_proved": False,
     "general_memory_provenance_proved": False,
     "full_source_to_core_refinement_proved": False,
@@ -130,7 +132,16 @@ def _validate_report(raw: bytes, profile: str, checked):
             type(report["blocks_checked"]) is not int or
             report["blocks_checked"] != sum(len(f["blocks"]) for f in body["functions"])):
         _reject("shadow report did not cover the entire canonical module")
-    expected_claims = _SCALAR_CLAIMS if profile == "scalar" else _OWNED_CLAIMS
+    # These fields describe the exact grammar checked by the pinned Rust
+    # producer.  They are conditional on the reverified Core version, not a
+    # permission the report may grant itself.  A v7 report cannot corroborate
+    # v1-v6 bytes (or vice versa), and unknown/omitted claims still reject.
+    version_claim = ("v7_scalar_only_checked" if profile == "scalar"
+                     else "v7_chain_owner_loan_cfg_checked")
+    expected_claims = {
+        **(_SCALAR_CLAIMS if profile == "scalar" else _OWNED_CLAIMS),
+        version_claim: body["schema"] == "hepta.hia.program.v7",
+    }
     _exact_keys(report["claims"], set(expected_claims), "shadow safety claims")
     for name, wanted in expected_claims.items():
         if report["claims"][name] is not wanted:
@@ -237,8 +248,8 @@ def crosscheck_rust_shadow(program, executable: str | Path, *, executable_sha256
     if type(timeout) not in (int, float) or not 0 < timeout <= 15:
         _reject("shadow subprocess timeout must be in (0, 15] seconds")
     checked = verify_program(program)
-    if checked.as_dict()["schema"] not in {f"hepta.hia.program.v{version}" for version in range(1, 7)}:
-        _reject("the pinned Rust shadow profiles support only primitive v1..v6")
+    if checked.as_dict()["schema"] not in {f"hepta.hia.program.v{version}" for version in range(1, 8)}:
+        _reject("the pinned Rust shadow profiles support only primitive v1..v7")
     raw_exe = _verified_executable_bytes(Path(executable), executable_sha256)
     with tempfile.TemporaryDirectory(prefix="hepta-hia-rust-shadow-") as root:
         destination = Path(root) / "shadow"
