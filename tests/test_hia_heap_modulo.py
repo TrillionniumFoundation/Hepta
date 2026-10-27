@@ -89,8 +89,8 @@ class HIADynamicModuloHeapTests(unittest.TestCase):
             for dividend in range(256):
                 self.assertLessEqual(dividend % divisor, maximum)
 
-    def test_unknown_zero_and_signed_profiles_remain_rejected(self):
-        for ty, divisor in [("u64", 0), ("i64", 7), ("usize", (1 << 64) - 1)]:
+    def test_unknown_zero_and_overbudget_profiles_remain_rejected(self):
+        for ty, divisor in [("u64", 0), ("usize", (1 << 64) - 1)]:
             with self.subTest(type=ty, divisor=divisor):
                 core = verify_program(modulo_source(ty, divisor))
                 with self.assertRaisesRegex(HIAHeapBoundRejected,
@@ -100,7 +100,8 @@ class HIADynamicModuloHeapTests(unittest.TestCase):
             _bounded_divrem("int.rem.checked", None, _Span(0, 7), "u8"))
         self.assertEqual(_bounded_divrem("int.div.checked", None, 7, "u64"),
                          _Span(0, ((1 << 64) - 1) // 7))
-        self.assertIsNone(_bounded_divrem("int.rem.checked", None, 7, "i64"))
+        self.assertEqual(_bounded_divrem("int.rem.checked", None, 7, "i64"),
+                         _Span(-6, 6))
 
     def test_zero_divisor_still_traps_in_actual_vm(self):
         core = verify_program(modulo_source("u64", 0))

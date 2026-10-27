@@ -32,8 +32,9 @@ _SCHEDULER = (141, 142, 144, 203, 251, 314)
 _FD_DUPLICATION = (32, 33, 72, 292)
 _POSIX_MQUEUE = (240, 241, 242, 243, 244, 245)
 _LEGACY_AIO = (206, 207, 208, 209, 210)
+_KERNEL_HANDLES = (16, 157, 300, 301, 303, 304, 310)
 _ALL = (_SYSV + _KEYS + _SCHEDULER + _FD_DUPLICATION
-        + _POSIX_MQUEUE + _LEGACY_AIO)
+        + _POSIX_MQUEUE + _LEGACY_AIO + _KERNEL_HANDLES)
 assert len(_ALL) == len(set(_ALL))
 
 
@@ -66,9 +67,15 @@ class HIANativeKernelEffectFilterTests(unittest.TestCase):
             "}",
         ]
         for nr in _ALL:
+            # Kernel-handle APIs with pointer arguments get NULL and an
+            # invalid descriptor; this avoids nonterminating or harmful
+            # probes even when the seccomp guard is missing.
+            probe_args = ("-1L, 0L, 0L, 0L, 0L, 0L"
+                          if nr in _KERNEL_HANDLES
+                          else "-1L, -1L, -1L, -1L, -1L, -1L")
             body.append(
                 f"int probe_{nr}(void) {{ "
-                f"(void)syscall({nr}L, -1L, -1L, -1L, -1L, -1L, -1L); "
+                f"(void)syscall({nr}L, {probe_args}); "
                 "return 7; }"
             )
         c_path.write_text("\n".join(body) + "\n", encoding="utf-8")
@@ -122,6 +129,9 @@ class HIANativeKernelEffectFilterTests(unittest.TestCase):
 
     def test_legacy_async_io_contexts_denied(self):
         self.assert_seccomp_denies(_LEGACY_AIO)
+
+    def test_ioctl_cross_process_reads_and_kernel_handles_denied(self):
+        self.assert_seccomp_denies(_KERNEL_HANDLES)
 
 
 if __name__ == "__main__":

@@ -93,6 +93,14 @@ _FORBIDDEN_SYSCALLS = (
     # Legacy Linux AIO can create kernel asynchronous I/O contexts without
     # using io_uring. The finite scalar evaluator needs neither family.
     206, 207, 208, 209, 210,
+    # Read-only file descriptors can still have side effects via ioctl.
+    # A foreign DSO must not mutate devices/terminal drivers or introspect
+    # another process with process_vm_readv (writev was already forbidden).
+    16, 310,
+    # Refuse kernel fanotify registration and handle-based open, which could
+    # sidestep path-based open flags. prctl can mutate ptrace/dumpability
+    # permissions; no finite scalar program requires any of these.
+    157, 300, 301, 303, 304,
 )
 if len(_FORBIDDEN_SYSCALLS) != len(set(_FORBIDDEN_SYSCALLS)):
     raise RuntimeError("duplicated native evaluator syscall policy")
