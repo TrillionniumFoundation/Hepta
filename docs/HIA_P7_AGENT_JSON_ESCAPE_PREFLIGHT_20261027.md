@@ -66,3 +66,30 @@ It does not prove full process RSS limits, arbitrary Python execution
 safety, FFI, source-to-Core correctness, native refinement, Agent
 productivity, or P0–P7 production readiness.
 `whole_project_blockers_closed=false`.
+
+## Follow-up: U+007F DEL encoding under ensure_ascii=True (2026-10-27)
+
+A further adversarial check exposed a missed ASCII-range exception:
+CPython `json.JSONEncoder(ensure_ascii=True)` encodes DEL (U+007F) as
+the six-byte sequence `\\u007f`. The prior preflight counted this one
+ASCII code point as just one byte, so 350 DEL characters passed an
+isolated 1 KiB string-fragment budget even though the encoder emitted
+2,102 bytes for the string including quotes. The cumulative output check
+eventually rejected the result, **after creating the oversized fragment**.
+
+The current patch counts U+007F as six bytes only when
+`ensure_ascii=True`; the `ensure_ascii=False` profile correctly retains
+one byte. This applies to both dictionary keys and string values; no
+schema, ISA, serializer or admission authority is added. The regression
+suite now checks early refusal with `JSONEncoder.iterencode` mocked to
+fail if entered, and includes exact-budget positive/negative DEL cases.
+
+**Actual isolated local execution (CPython 3.13.5):** 30,000 randomized
+Unicode strings, split between both encoding modes, matched the stdlib
+`json.dumps` UTF-8 byte size and rejected every exact-size-minus-one
+budget. The old/new DEL preflight control reproduced the false-negative
+and verified the correction. These tests were run on the isolated
+byte-counting recurrence, **not** on the combined exact-HEAD Hepta checkout.
+The in-repository full unit/native tests remain unexecuted here.
+
+`whole_project_blockers_closed=false`.
