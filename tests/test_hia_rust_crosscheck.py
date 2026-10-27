@@ -8,6 +8,8 @@ from __future__ import annotations
 from hashlib import sha256
 import json
 import os
+import signal
+import time
 from pathlib import Path
 import platform
 import sys
@@ -158,6 +160,61 @@ else:
             with self.assertRaisesRegex(HIARustCrosscheckRejected, "deadline"):
                 crosscheck_rust_shadow(owned_program(), exe, executable_sha256=digest,
                                        timeout=0.1)
+
+    @unittest.skipUnless(Path("/proc/self/stat").exists(), "Linux /proc required")
+    def test_postexit_child_inheriting_pipes_is_killed(self):
+        """Leader exit must not suppress cleanup of its live session children.
+
+        The child holds the inherited stdout/stderr pipes open after the
+        immediate launcher exits. An old proc.poll()-guarded finally block
+        missed this group because the leader had already been reaped.
+        """
+        from hepta.hia_rust_crosscheck import _run_bounded_shadow
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            marker = root / "child.pid"
+            launcher = root / "leader.py"
+            child_code = (
+                "import os,time;from pathlib import Path;"
+                f"Path({str(marker)!r}).write_text(str(os.getpid()));"
+                "time.sleep(30)"
+            )
+            launcher.write_text(
+                f"import subprocess,sys\n"
+                f"subprocess.Popen([sys.executable,'-c',{child_code!r}])\n",
+                encoding="utf-8",
+            )
+            pid = None
+
+            def still_running(child_pid):
+                try:
+                    # Reparented children may briefly remain as harmless zombies.
+                    state = Path(f"/proc/{child_pid}/stat").read_text().rsplit(")", 1)[1]
+                    return state.split()[0] != "Z"
+                except FileNotFoundError:
+                    return False
+
+            try:
+                with self.assertRaisesRegex(HIARustCrosscheckRejected, "deadline"):
+                    _run_bounded_shadow([sys.executable, str(launcher)], b"", timeout=5.0)
+                self.assertTrue(marker.is_file(), "test child never started")
+                pid = int(marker.read_text(encoding="utf-8"))
+                end = time.monotonic() + 2.0
+                while still_running(pid) and time.monotonic() < end:
+                    time.sleep(0.02)
+                self.assertFalse(still_running(pid),
+                                 "post-exit child survived shadow transport refusal")
+            finally:
+                # The negative-control implementation leaks the child; even
+                # when this regression fails, clean up before leaving the test.
+                if pid is None and marker.exists():
+                    pid = int(marker.read_text(encoding="utf-8"))
+                if pid is not None and still_running(pid):
+                    try:
+                        os.kill(pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
 
 if __name__ == "__main__":
     unittest.main()
