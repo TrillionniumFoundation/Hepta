@@ -17,6 +17,7 @@ from hashlib import sha256
 import json
 import re
 
+from .hia_json_preflight import preflight_hia_json
 from .hia_schema import (
     COMPOSITE_SCHEMA, COMPOSITE_SCHEMAS, PRIMITIVE_SCHEMAS, PROFILE, PROFILE_V2, PROFILE_V3,
     PROFILE_V4, PROFILE_V5, PROFILE_V6, PROFILE_V7, SCHEMA, SCHEMA_V2, SCHEMA_V3,
@@ -131,6 +132,15 @@ def _decode(value):
         if type(value) is str:
             if len(value.encode("utf-8")) > MAX_BYTES:
                 _reject("program exceeds byte budget", "E_HIA_LIMIT")
+            # Enforce structural limits before json.loads allocates a complete
+            # object graph. This is a syntax preflight, not a second parser or
+            # a shortcut around the canonical v7/composite Core verifier.
+            try:
+                preflight_hia_json(value, max_nodes=MAX_NODES, max_depth=MAX_DEPTH)
+            except OverflowError as exc:
+                raise HIAProgramRejected(
+                    "program exceeds structural budget before JSON allocation",
+                    "E_HIA_LIMIT") from exc
             value = json.loads(value, object_pairs_hook=_unique_pairs,
                                parse_constant=_bad_constant)
         _structure(value)
