@@ -74,6 +74,41 @@ def _keys(value, expected, label):
         _reject(label + " requires exactly its declared fields; unknown or missing fields")
 
 
+def _bounded_json_string_size(value: str, maximum: int, ensure_ascii: bool) -> int:
+    """Preflight one JSONEncoder string fragment without materializing it.
+
+    An in-memory string of N control characters can require 6*N encoded
+    bytes; non-BMP characters may require 12*N when ensure_ascii=True.
+    The existing streamed serializer remains the only encoder and will
+    still enforce the complete cumulative output byte budget.
+    """
+    if len(value) + 2 > maximum:
+        _reject("JSON string exceeds byte budget before encoding")
+    size = 2  # enclosing JSON quotes
+    for char in value:
+        point = ord(char)
+        if point < 32:
+            width = 2 if point in (8, 9, 10, 12, 13) else 6
+        elif point in (34, 92):  # quote or backslash
+            width = 2
+        elif point < 128:
+            width = 1
+        elif ensure_ascii:
+            width = 6 if point <= 0xffff else 12
+        elif 0xd800 <= point <= 0xdfff:
+            _reject("unpaired Unicode surrogate in UTF-8 JSON")
+        elif point < 0x800:
+            width = 2
+        elif point < 0x10000:
+            width = 3
+        else:
+            width = 4
+        size += width
+        if size > maximum:
+            _reject("JSON string exceeds byte budget before encoding")
+    return size
+
+
 def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True):
     """Stream a bounded in-process JSON snapshot rather than materialize first.
 
@@ -108,15 +143,26 @@ def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True):
                     for key, child in node.items():
                         if type(key) not in (str, int, float, bool, type(None)):
                             _reject("unsupported JSON object key")
-                        if len(str(key)) > maximum:
-                            _reject("JSON key exceeds byte budget")
+                        if type(key) is str:
+                            _bounded_json_string_size(key, maximum, ensure_ascii)
+                        else:
+                            # Avoid unbounded decimal materialization for
+                            # pathological in-memory integer object keys.
+                            if type(key) is int and key.bit_length() > maximum * 4:
+                                _reject("JSON key exceeds numeric byte budget")
+                            if len(str(key)) + 2 > maximum:
+                                _reject("JSON key exceeds byte budget")
                         pending.append((child, False))
                 else:
                     pending.extend((child, False) for child in node)
             elif type(node) is str:
-                if len(node) > maximum:
-                    _reject("JSON string exceeds byte budget")
-            elif type(node) not in (int, bool, float, type(None)):
+                _bounded_json_string_size(node, maximum, ensure_ascii)
+            elif type(node) is int:
+                # The encoder emits decimal digits as one fragment; reject
+                # obviously excessive integers before producing that string.
+                if node.bit_length() > maximum * 4:
+                    _reject("JSON integer exceeds byte budget")
+            elif type(node) not in (bool, float, type(None)):
                 _reject("non-JSON in-process value")
         chunks = []
         count = 0
