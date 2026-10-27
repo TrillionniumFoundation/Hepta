@@ -11,7 +11,7 @@ import copy
 import json
 from hashlib import sha256
 
-from .hia_edit_query import prepare_edit
+from .hia_edit_query import prepare_edit, render_edit_context
 from .hia_program import verify_program
 from .hia_program_tools import (HIAEditRejected, PATCH_SCHEMA, apply_program_patch,
                                   bounded_json_wire, decode_json)
@@ -158,6 +158,9 @@ def _render_batch_context_checked(query):
             _reject("invalid nested edit query presentation")
         if type(nested["context"]) is not dict or type(nested["selector"]) is not dict:
             _reject("invalid nested edit context/selector")
+        # The standalone presentation gate validates all raw identifiers,
+        # opcodes, selected fields and SSA indexes reused below.
+        render_edit_context(nested)
         context, selector = nested["context"], nested["selector"]
         functions[selector["function"]] = context["function"]
         key = (selector["function"], selector["block"])

@@ -12,7 +12,7 @@ import copy
 from hashlib import sha256
 import json
 
-from .hia_program import verify_program
+from .hia_program import _ident, verify_program
 from .hia_program_tools import (HIAEditRejected, PATCH_SCHEMA, apply_program_patch,
                                   bounded_json_wire, decode_json)
 
@@ -31,6 +31,14 @@ def _reject(message):
 
 def _wire(value):
     return bounded_json_wire(value, MAX_QUERY_BYTES)
+
+def _display_atom(value, *, dotted=False):
+    """Reuse canonical Core lexical identity for one Agent display atom."""
+    if type(value) is not str or not value or len(value) > 128:
+        _reject("invalid Agent display identity")
+    for part in value.split(".") if dotted else (value,):
+        _ident(part, "Agent display name")
+    return value
 
 
 def prepare_edit(document, *, function, block, output, fields):
@@ -178,22 +186,49 @@ def _render_edit_context_checked(query):
     if type(query["context"]) is not dict or type(query["selector"]) is not dict:
         _reject("malformed edit context/selector")
     context = query["context"]
+    selector = query["selector"]
+    if type(selector) is not dict or set(selector) != {"function", "block", "output"}:
+        _reject("invalid rendered selector fields")
+    if (type(query["fields"]) is not list or not query["fields"]
+            or len(query["fields"]) > len(FIELDS)
+            or any(type(x) is not str or x not in FIELDS for x in query["fields"])
+            or len(set(query["fields"])) != len(query["fields"])):
+        _reject("invalid rendered field selection")
     fn = context["function"]
-    params = ", ".join(v["name"] + ":" + v["type"] for v in fn["params"])
-    lines = ["function " + fn["name"] + "(" + params + ") -> " + ",".join(fn["returns"])
-             + " effects{" + ",".join(fn["effects"]) + "}",
-             "block " + query["selector"]["block"] + "(" +
-             ", ".join(v["name"] + ":" + v["type"] for v in context["block_params"]) + ")"]
+    if _display_atom(selector["function"]) != _display_atom(fn["name"]):
+        _reject("rendered function disagrees with selector")
+    selected_name = _display_atom(selector["output"])
+    if selected_name not in [_display_atom(v["name"]) for v in context["operation"]["out"]]:
+        _reject("rendered SSA output disagrees with selector")
+    params = ", ".join(_display_atom(v["name"]) + ":" + _display_atom(v["type"])
+                       for v in fn["params"])
+    lines = ["function " + _display_atom(fn["name"]) + "(" + params + ") -> "
+             + ",".join(_display_atom(t) for t in fn["returns"])
+             + " effects{" + ",".join(_display_atom(t) for t in fn["effects"]) + "}",
+             "block " + _display_atom(selector["block"]) + "(" +
+             ", ".join(_display_atom(v["name"]) + ":" + _display_atom(v["type"])
+                       for v in context["block_params"]) + ")"]
 
     def line(op):
-        out = ",".join("%" + value["name"] + ":" + value["type"] for value in op["out"])
-        args = ",".join("%" + name for name in op["args"])
+        out = ",".join("%" + _display_atom(value["name"]) + ":" +
+                       _display_atom(value["type"]) for value in op["out"])
+        args = ",".join("%" + _display_atom(name) for name in op["args"])
         attrs = " " + _wire(op["attrs"]).decode() if op["attrs"] else ""
-        return (out + " = " if out else "") + op["op"] + "(" + args + ")" + attrs
+        return (out + " = " if out else "") + _display_atom(op["op"], dotted=True) + "(" + args + ")" + attrs
 
     selected = context["operation_index"]
+    if type(selected) is not int or selected < 0:
+        _reject("rendered operation index must be a nonnegative integer")
+    if type(context["dependencies"]) is not list or type(context["consumers"]) is not list:
+        _reject("rendered SSA context lists are malformed")
     instructions = [*context["dependencies"], *context["consumers"],
                     {"index": selected, "operation": context["operation"]}]
+    if len(instructions) > MAX_VISIBLE_OPERATIONS:
+        _reject("rendered SSA operation budget exceeded")
+    indices = [item["index"] for item in instructions]
+    if (any(type(i) is not int or i < 0 for i in indices)
+            or len(set(indices)) != len(indices)):
+        _reject("duplicate or noninteger rendered SSA indexes")
     lines.extend(("EDIT " if item["index"] == selected else "") + line(item["operation"])
                  for item in sorted(instructions, key=lambda item: item["index"]))
     lines.append(_wire(context["terminator"]).decode())
