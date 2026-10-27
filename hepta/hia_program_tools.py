@@ -121,20 +121,25 @@ def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True):
         # one huge escaped fragment. Iterative DFS also rejects cycles.
         pending = [(value, False)]
         active = set()
-        nodes = 0
+        nodes, queued = 0, 1
         while pending:
             node, leaving = pending.pop()
             if leaving:
                 active.remove(id(node))
                 continue
+            queued -= 1
             nodes += 1
             if nodes > maximum:
                 _reject("JSON input exceeds node/byte budget")
             if type(node) in (dict, list, tuple):
                 # Check fanout *before* queuing child nodes: a single huge
                 # list must not allocate millions of pending DFS entries.
-                if len(node) > maximum - nodes:
-                    _reject("JSON container exceeds node/byte budget")
+                # Include siblings already queued by ancestor containers.
+                # Shared nested lists can otherwise enqueue far more than
+                # the total node budget before those nodes are visited.
+                if len(node) > maximum - nodes - queued:
+                    _reject("JSON container exceeds queued-node/byte budget")
+                queued += len(node)
                 if id(node) in active:
                     _reject("cyclic JSON container")
                 active.add(id(node))
