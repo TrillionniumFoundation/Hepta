@@ -153,6 +153,27 @@ def _bounded_shift(op, lhs, count, typ):
             return None
     return _bounded(low, high)
 
+def _bounded_divrem(op, lhs, rhs, typ):
+    """Fold exactly known checked integer div/rem, with VM rounding.
+
+    Fractional or interval division is deliberately not guessed. Python's
+    // rounds negative values toward minus infinity, while HIA signed div
+    truncates toward zero and signed remainder follows the dividend.
+    """
+    a, b = _span(lhs), _span(rhs)
+    if a is None or b is None or a.lo != a.hi or b.lo != b.hi:
+        return None
+    dividend, divisor = a.lo, b.lo
+    minimum, _ = integer_range(typ)
+    if divisor == 0 or (typ.startswith("i") and dividend == minimum and divisor == -1):
+        _reject("checked constant division or remainder traps")
+    quotient = abs(dividend) // abs(divisor)
+    if (dividend < 0) != (divisor < 0):
+        quotient = -quotient
+    return (quotient if op == "int.div.checked"
+            else dividend - quotient * divisor)
+
+
 def _paths(term: dict) -> list[dict]:
     if term["op"] == "jump":
         return [{"target": term["target"], "args": term["args"]}]
@@ -230,6 +251,11 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) 
             elif op in {"int.shl.checked", "int.shr.checked"}:
                 folded = _bounded_shift(op, known.get(args[0]), known.get(args[1]),
                                         outputs[0]["type"])
+                if folded is not None:
+                    known[out_names[0]] = folded
+            elif op in {"int.div.checked", "int.rem.checked"}:
+                folded = _bounded_divrem(op, known.get(args[0]),
+                                         known.get(args[1]), outputs[0]["type"])
                 if folded is not None:
                     known[out_names[0]] = folded
             elif op == "int.neg.checked":
