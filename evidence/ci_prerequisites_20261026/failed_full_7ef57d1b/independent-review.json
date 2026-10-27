@@ -1,0 +1,560 @@
+{
+  "aggregates": {
+    "hia_unified": {
+      "completed_gates": 15,
+      "composite_bulk_targets_passed": true,
+      "failed_gates": [
+        "unit_regression"
+      ],
+      "linked_file_hashes_verified": 44,
+      "log_byte_counts_verified": 30,
+      "ok": false,
+      "passed_gates": 14,
+      "path": "hia-unified/qualification.json",
+      "planned_gates": 15,
+      "standalone_aarch64_qemu_passed": true,
+      "status": "scoped_gates_not_all_qualified",
+      "unchanged_source": true,
+      "unit": {
+        "errors": 0,
+        "failures": 0,
+        "gate_seconds": 586.5203694939999,
+        "returncode": 0,
+        "skip_names_in_quiet_log": false,
+        "skip_names_inferred": false,
+        "skipped": 2,
+        "terminal_seconds": 586.083,
+        "tests_run": 2102
+      }
+    },
+    "source_full": {
+      "evidence_hashes_and_byte_counts_verified": 43,
+      "failed_gates": [
+        "unit_and_integration",
+        "strict_namespace_execution"
+      ],
+      "gate_log_hashes_verified": 50,
+      "passed_gates": 48,
+      "path": "candidate/release-validation.json",
+      "planned_gates": 50,
+      "recorded_gates": 50,
+      "snapshot_unchanged": true,
+      "status": "failed",
+      "strict_namespace": {
+        "error_message": "[Errno 13] Permission denied: '/proc/1/root/tmp/hepta-sandbox-qualification-90koxy9m/parent_oracle_canary'",
+        "error_type": "PermissionError",
+        "other_checks_not_run": 9,
+        "returncode": 1,
+        "scope": "Qualification interrupted; no demonstrated sandbox escape or compiler failure.",
+        "startup": "passed",
+        "status": "not_qualified"
+      },
+      "total_linked_file_identities_verified": 93,
+      "unit": {
+        "actual_terminal_seconds": 582.709,
+        "actual_terminal_status": "OK (skipped=15)",
+        "actual_terminal_tests_run": 2099,
+        "aggregate_test_count_field": 0,
+        "aggregate_test_count_scope": "Strict qualification collector output; not evidence that zero tests actually ran.",
+        "gate_seconds": 584.249,
+        "named_verbose_skip_entries": 15,
+        "returncode": 0,
+        "skipped": 15
+      }
+    }
+  },
+  "artifact_base": "/tmp/hepta-ci-7ef-new-artifacts-20261027/artifacts",
+  "checked_paths": [
+    {
+      "path": "/tmp/hepta-ci-7ef-new-artifacts-20261027/artifacts/candidate/release-validation.json",
+      "sha256": "ba6b77ac716ff8b6bccfdd6bffda9bfdf182afafb44f793906d8204fe9a280e7"
+    },
+    {
+      "path": "/tmp/hepta-ci-7ef-new-artifacts-20261027/artifacts/candidate/llvm_native.json",
+      "sha256": "af3c5a6d71f61309b6de47fb87123568b287f7e30cb16fb62ff7c18f65a17552"
+    },
+    {
+      "path": "/tmp/hepta-ci-7ef-new-artifacts-20261027/artifacts/candidate/llvm_owned.json",
+      "sha256": "b5d634576fb5afb626ef933ee2177c5ab28d126e3e43e9e221947db7fa3da223"
+    },
+    {
+      "path": "/tmp/hepta-ci-7ef-new-artifacts-20261027/artifacts/hia-unified/qualification.json",
+      "sha256": "a6949fb3c37bb321d693fa616c6ffdb566cce93b474d6b2e5d6fd847c3fb3b1c"
+    },
+    {
+      "path": "/tmp/hepta-ci-7ef-new-artifacts-20261027/artifacts/hia-unified/performance.json",
+      "sha256": "9adfa3c7bb37a24d8ad6b9da16cd3c2a0d77fffcdcb9d0ed193720d75b4e1337"
+    },
+    {
+      "path": "/tmp/hepta-ci-7ef-new-artifacts-20261027/artifacts/hia-unified/performance-artifacts/artifact-retention.json",
+      "sha256": "3e5ad9a5ef2311f10975cf805997a9b34d0698b9c7208dac249add229404306e"
+    },
+    {
+      "path": "/tmp/hepta-ci-7ef-new-artifacts-20261027/artifacts/candidate/unit_and_integration.log",
+      "sha256": "98921d9a449c1d7b2f1945088e121d9f3e4e7eb865f95f9461e15e65ef0457de"
+    },
+    {
+      "path": "/tmp/hepta-ci-7ef-new-artifacts-20261027/artifacts/candidate/strict_namespace_execution.log",
+      "sha256": "0ddc6c4b930b6baeb8eb5d6a994720c4f341782cb73634d7f16c94d134114fd6"
+    },
+    {
+      "path": "/tmp/hepta-ci-7ef-new-artifacts-20261027/artifacts/candidate/sandbox.json",
+      "sha256": "5cf730441ae221eea8f388acd3efc5e698022f7f4347abb249f19ea5f59c83cf"
+    },
+    {
+      "path": "/tmp/hepta-ci-7ef-new-artifacts-20261027/artifacts/hia-unified/unit_regression.stderr.log",
+      "sha256": "644cd7a8b70145d84ab1fcb78f52d31c7dd68af2252d4058133c3328e1e54b6a"
+    },
+    {
+      "path": "/tmp/hepta-ci-7ef-new-artifacts-20261027/artifacts/hia-unified/standalone_performance.stderr.log",
+      "sha256": "b2780265e28f998050b7df0ee87cc82ac4c2c204f62f25f6bbe013529880b912"
+    },
+    {
+      "path": "/tmp/hepta-ci-7ef-new-artifacts-20261027/artifacts/hia-unified/standalone_performance.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "checked_paths_scope": "Key originals listed explicitly; complete aggregate-linked file checks are counted below and their inventories remain in the original aggregate reports.",
+  "creation_method": "Transcribed from the completed independent review in this session; this creation step did not rerun the audit or measurements.",
+  "interpretation_limits": [
+    "All three performance qualifications passed their finite host gates; this does not prove general Rust superiority or compiler soundness.",
+    "Scalar and owned object emissions are distinct from measured shared-library link inputs; compilation-only receipt status is not the final qualification status.",
+    "Scalar and owned external telemetry can include unrelated children or visible host/cgroup activity; it does not prove the cause of timing differences or exclusive CPU ownership.",
+    "The three performance profiles use different code paths and scopes; a ratio from one report is not a controlled regression comparison for another.",
+    "Full unit prerequisite skips and strict namespace PermissionError remain qualification failures; HIA quiet-log skip identities are not inferred.",
+    "Candidate performance binary retention is incomplete as detailed above; only HIA has a complete retained file set and manifest."
+  ],
+  "performance": {
+    "candidate_llvm_native": {
+      "aggregate_gate_seconds": 33.514,
+      "binary_retention": {
+        "declared_artifacts": 6,
+        "missing": [
+          {
+            "bytes": 16608,
+            "name": "driver_binary",
+            "sha256": "dbe81d8e79f7e299891ac7167e47fed8bdf5cb64c62db83a9e5eead8d20bbc4d"
+          },
+          {
+            "bytes": 3256,
+            "name": "driver_object",
+            "sha256": "a86e97437fc5fdc802f3d07fa8d69b24947b0b6c3cb6a0cd19dc5703907fcaa2"
+          },
+          {
+            "bytes": 15392,
+            "name": "llvm_library",
+            "sha256": "7a7ac5db4479934a0f750337583c94a808e567602d73539e32e055b4c0ca3793"
+          },
+          {
+            "bytes": 1384,
+            "name": "llvm_object",
+            "sha256": "6d84d290732055cb3fb826108b4178bfdceba3ec6afd72753caad7cd6316e6f1"
+          },
+          {
+            "bytes": 3823864,
+            "name": "rust_library",
+            "sha256": "bf5ada629457777cd612f55d2ae17e46f2ed22a8e03b3db394485a12337f4fcc"
+          },
+          {
+            "bytes": 2384,
+            "name": "rust_object",
+            "sha256": "f123cd55532861024c1b402730b6541feda807d6dd16a3bb2199decd95669da2"
+          }
+        ],
+        "retention_manifest_present": false,
+        "same_hash_copies_found_in_recovered_directory": 0,
+        "scope": "Qualifier used a TemporaryDirectory. Missing is scoped to the recovered artifact directory; no native rebuild was attempted."
+      },
+      "correctness": {
+        "case_count": 186,
+        "formula_cases_independently_recomputed": 186,
+        "reported_native_calls": 372,
+        "retained_per_call_actual_observation_records": 0,
+        "scope": "Source checks actual calls before completing; archived report retains the case/formula summary, not per-call output streams."
+      },
+      "elapsed_ns_range": [
+        522857652,
+        1050763944
+      ],
+      "finished_utc": "2026-10-27T02:16:33Z",
+      "geometric_mean_paired_time_ratios": {
+        "rust": 0.9982020973399209
+      },
+      "kernel_median_paired_time_ratios": {
+        "branch_accumulate": {
+          "rust": 1.0040240738848092
+        },
+        "signed_walk": {
+          "rust": 1.0001268172680582
+        },
+        "unsigned_walk": {
+          "rust": 0.9905040037878078
+        }
+      },
+      "maximum_mad_cell": {
+        "backend": "rust",
+        "kernel": "branch_accumulate"
+      },
+      "maximum_observed_relative_mad": 0.004294010142668351,
+      "maximum_sample_seconds_scope": "No fixed maximum_sample_seconds field in this protocol.",
+      "measurement_quality_failures": [],
+      "ok": true,
+      "paired_groups": 7,
+      "path": "candidate/llvm_native.json",
+      "performance_threshold_failures": [],
+      "phase": "complete",
+      "process_evidence": {
+        "complete_process_stream_records": 0,
+        "scope": "Parsed timing rows and external telemetry retained; no per-sample command/returncode/stdout/stderr record with stream hashes.",
+        "stdout_stderr_hashes_verified": 0,
+        "telemetry_complete": 42,
+        "telemetry_raw_hashes_verified": 252,
+        "telemetry_records": 42
+      },
+      "protocol_id": "hepta.llvm-native-scalar32-perf.v2",
+      "raw_samples": 42,
+      "schedule_and_indices_verified": true,
+      "started_utc": "2026-10-27T02:16:00Z",
+      "status": "passed",
+      "thresholds": {
+        "maximum_geometric_mean_paired_time_ratio": 1.1,
+        "maximum_kernel_paired_time_ratio": 1.2,
+        "maximum_relative_mad": 0.05,
+        "maximum_sample_seconds": null,
+        "minimum_sample_seconds": 0.05
+      },
+      "timed_backends": [
+        "rust",
+        "llvm"
+      ],
+      "timed_kernels": 3
+    },
+    "candidate_llvm_owned": {
+      "aggregate_gate_seconds": 96.164,
+      "binary_retention": {
+        "available_identical_copy": {
+          "bytes": 3825584,
+          "name": "handwritten_rust_library",
+          "path": "hia-unified/performance-artifacts/handwritten_rust.so",
+          "sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77"
+        },
+        "main_declared_artifacts": 9,
+        "missing_main_artifacts": [
+          "c_library",
+          "driver_binary",
+          "driver_object",
+          "handwritten_rust_object",
+          "llvm_library",
+          "llvm_object",
+          "rust_library",
+          "rust_object"
+        ],
+        "missing_observer_artifacts": [
+          "leak.o",
+          "observe",
+          "observe_leak"
+        ],
+        "observer_declared_artifacts": 3,
+        "retention_manifest_present": false,
+        "same_hash_copies_found_in_recovered_directory": 1,
+        "scope": "Only the handwritten Rust library has identical bytes elsewhere in the recovered directory; this is not full owned-run binary retention.",
+        "total_declared_artifacts": 12
+      },
+      "correctness": {
+        "backends": [
+          "rust",
+          "llvm",
+          "handwritten_rust",
+          "c"
+        ],
+        "c_is_timed_baseline": false,
+        "case_count": 196,
+        "formula_cases_independently_recomputed": 196,
+        "formula_observation_hashes_verified": 4,
+        "reported_native_calls": 784,
+        "retained_per_call_actual_observation_records": 0,
+        "scope": "Actual calls are checked by the source; archived correctness evidence is the case domain and per-backend formula-derived observation hashes."
+      },
+      "elapsed_ns_range": [
+        214859568,
+        3102223312
+      ],
+      "finished_utc": "2026-10-27T02:18:09Z",
+      "geometric_mean_paired_time_ratios": {
+        "handwritten_rust": 0.7996616091737234,
+        "rust": 0.9530425287495398
+      },
+      "kernel_median_paired_time_ratios": {
+        "constructor_error": {
+          "handwritten_rust": 0.865652421504983,
+          "rust": 0.8671443533479688
+        },
+        "full_lifecycle": {
+          "handwritten_rust": 0.9998579106435793,
+          "rust": 0.9999050452738294
+        },
+        "two_stage": {
+          "handwritten_rust": 0.5907951268750888,
+          "rust": 0.9983588754666463
+        }
+      },
+      "maximum_mad_cell": {
+        "backend": "llvm",
+        "kernel": "constructor_error"
+      },
+      "maximum_observed_relative_mad": 0.0039647022293272,
+      "measurement_quality_failures": [],
+      "ok": true,
+      "paired_groups": 7,
+      "path": "candidate/llvm_owned.json",
+      "performance_threshold_failures": [],
+      "phase": "complete",
+      "process_evidence": {
+        "complete_process_stream_records": 70,
+        "record_breakdown": {
+          "driver_build": 2,
+          "observer_build": 3,
+          "observer_execution": 2,
+          "timing": 63
+        },
+        "returncodes": {
+          "0": 69,
+          "1": 1
+        },
+        "sole_nonzero_exit_is_expected_negative_control": true,
+        "stdout_stderr_hashes_verified": 140,
+        "telemetry_complete": 63,
+        "telemetry_raw_hashes_verified": 378,
+        "telemetry_records": 63
+      },
+      "protocol_id": "hepta.llvm-owned-bytes-perf.v1",
+      "raw_samples": 63,
+      "resource_controls": {
+        "negative": {
+          "allocations": 7,
+          "frees": 0,
+          "live": 7,
+          "refusals": 1,
+          "returncode": 1
+        },
+        "negative_is_intentional_missing_free_control": true,
+        "positive": {
+          "allocations": 7,
+          "frees": 7,
+          "live": 0,
+          "refusals": 1,
+          "returncode": 0
+        }
+      },
+      "schedule_and_indices_verified": true,
+      "started_utc": "2026-10-27T02:16:33Z",
+      "status": "passed",
+      "thresholds": {
+        "maximum_geometric_mean_paired_time_ratio": 1.1,
+        "maximum_kernel_paired_time_ratio": 1.2,
+        "maximum_relative_mad": 0.05,
+        "maximum_sample_seconds": 30.0,
+        "minimum_sample_seconds": 0.05
+      },
+      "timed_backends": [
+        "rust",
+        "llvm",
+        "handwritten_rust"
+      ],
+      "timed_kernels": 3
+    },
+    "hia_standalone": {
+      "aggregate_gate_seconds": 113.72723899300013,
+      "binary_retention": {
+        "directory": "hia-unified/performance-artifacts",
+        "file_sizes_hashes_path_mapping_and_measured_identities_verified": true,
+        "files_verified": 16,
+        "manifest_additional_files": 1,
+        "manifest_sha256": "3e5ad9a5ef2311f10975cf805997a9b34d0698b9c7208dac249add229404306e",
+        "missing_declared_retained_files": [],
+        "retained": true,
+        "status": "complete"
+      },
+      "correctness": {
+        "c_backend_executed": false,
+        "cases_per_backend": 196,
+        "full_actual_observation_inventory_equals_independent_formula": true,
+        "native_calls": 588,
+        "observations_sha256_verified": true,
+        "retained_actual_observations": 588,
+        "stdout_observation_lines": 588
+      },
+      "elapsed_ns_range": [
+        212384741,
+        3143786546
+      ],
+      "finished_utc": "2026-10-27T02:32:30Z",
+      "geometric_mean_paired_time_ratios": {
+        "handwritten_rust": 0.9478871761471579,
+        "rust": 0.949731169577518
+      },
+      "interference_observations": {
+        "acceptance_thresholds_adjusted": false,
+        "cpu_to_wall_ratio": {
+          "maximum": 0.9984402524192862,
+          "median": 0.9981550542468017,
+          "minimum": 0.9970424862272436
+        },
+        "involuntary_context_switches": 12045,
+        "major_page_faults": 0,
+        "minor_page_faults": 0,
+        "sample_count": 63,
+        "samples_excluded": 0,
+        "voluntary_context_switches": 0
+      },
+      "kernel_median_paired_time_ratios": {
+        "constructor_error": {
+          "handwritten_rust": 0.8526875409643877,
+          "rust": 0.8594504908405698
+        },
+        "full_lifecycle": {
+          "handwritten_rust": 1.0006524155103134,
+          "rust": 0.9984024989408483
+        },
+        "two_stage": {
+          "handwritten_rust": 0.9981522221470804,
+          "rust": 0.9983332855587942
+        }
+      },
+      "maximum_mad_cell": {
+        "backend": "rust",
+        "kernel": "constructor_error"
+      },
+      "maximum_observed_relative_mad": 0.0031673768740031337,
+      "measurement_quality_failures": [],
+      "ok": true,
+      "paired_groups": 7,
+      "path": "hia-unified/performance.json",
+      "performance_threshold_failures": [],
+      "phase": "complete",
+      "process_evidence": {
+        "complete_process_stream_records": 71,
+        "record_breakdown": {
+          "correctness_child": 1,
+          "driver_build": 2,
+          "observer_build": 3,
+          "observer_execution": 2,
+          "timing": 63
+        },
+        "returncodes": {
+          "0": 70,
+          "1": 1
+        },
+        "samples_with_embedded_cpu_and_scheduling_observations": 63,
+        "separate_external_telemetry_records": 0,
+        "sole_nonzero_exit_is_expected_negative_control": true,
+        "stdout_stderr_hashes_verified": 142
+      },
+      "protocol_id": "hepta.hia.program.perf.v3",
+      "raw_samples": 63,
+      "resource_controls": {
+        "negative": {
+          "allocations": 7,
+          "frees": 0,
+          "live": 7,
+          "refusals": 1,
+          "returncode": 1
+        },
+        "negative_is_intentional_missing_free_control": true,
+        "positive": {
+          "allocations": 7,
+          "frees": 7,
+          "live": 0,
+          "refusals": 1,
+          "returncode": 0
+        }
+      },
+      "schedule_and_indices_verified": true,
+      "started_utc": "2026-10-27T02:30:37Z",
+      "status": "passed",
+      "thresholds": {
+        "maximum_geometric_mean_paired_time_ratio": 1.1,
+        "maximum_kernel_paired_time_ratio": 1.2,
+        "maximum_relative_mad": 0.05,
+        "maximum_sample_seconds": 30.0,
+        "minimum_sample_seconds": 0.05
+      },
+      "timed_backends": [
+        "rust",
+        "llvm",
+        "handwritten_rust"
+      ],
+      "timed_kernels": 3
+    }
+  },
+  "review_actions": [
+    "Read recovered original JSON, logs and retained artifact bytes.",
+    "Verify aggregate-linked report/log SHA-256 identities and recorded byte counts.",
+    "Read exact-commit Git blobs and compare all 922 source-file SHA-256 identities.",
+    "Independently reconstruct the fixed sample schedules and recompute paired ratios, medians, relative MAD, geometric means and per-call/per-iteration denominators.",
+    "Reconstruct finite scalar and owned correctness formula domains as data; compare with recorded cases, observation hashes and HIA actual-output records.",
+    "Check available process stdout/stderr hashes and telemetry raw hashes.",
+    "Match declared native artifact identities against existing recovered files without loading or executing them."
+  ],
+  "schema": "hepta.ci-independent-data-review.v1",
+  "scope": {
+    "benchmarks_or_measurements_repeated": false,
+    "compiler_or_performance_regression_demonstrated": false,
+    "compression_performed": false,
+    "data_identity_or_statistical_inconsistency_found": false,
+    "native_execution_repeated": false,
+    "network_used": false,
+    "only_authorized_write": "/tmp/hepta-ci-7ef-independent-review.json",
+    "physical_device_qualification_proved": false,
+    "project_code_imported_or_executed": false,
+    "repository_files_modified": false,
+    "service_root_cause_proved": false,
+    "statistics_are_from_this_7ef_run": true,
+    "universal_rust_superiority_proved": false,
+    "whole_language_soundness_proved": false
+  },
+  "source_commit": "7ef57d1b380e73269f592fa26fe95f9636c88586",
+  "source_identity": {
+    "all_three_snapshots_equal": true,
+    "compiler_tree_sha256": "baa9c71bf65c590b23598635012989ac2f07242803b1a876b13a28eec2848bd7",
+    "equal_snapshot_paths": [
+      "candidate/release-validation.json:source_snapshot",
+      "hia-unified/qualification.json:source_snapshot_before",
+      "hia-unified/qualification.json:source_snapshot_after"
+    ],
+    "files_per_snapshot": 922,
+    "immutable_git_method": "git cat-file --batch at exact source commit; SHA-256 of each original blob; no project imports or execution",
+    "immutable_git_source_files_checked": 922,
+    "immutable_git_source_mismatches": [],
+    "input_bindings_verified": {
+      "candidate/llvm_native.json": [
+        "qualifier_sha256",
+        "process_observer_sha256"
+      ],
+      "candidate/llvm_owned.json": {
+        "all_match_exact_source_snapshot": true,
+        "inputs_count": 8
+      },
+      "hia-unified/performance.json": {
+        "all_match_exact_source_snapshot": true,
+        "inputs_count": 8
+      }
+    },
+    "snapshot_canonical_hash_verified": true,
+    "snapshot_sha256": "ee23443f46646bf4bcc10e3b43950a8ab6283fdb4bd758ee13b3ef37084f4658"
+  },
+  "statistical_check_scope": {
+    "all_available_sample_execution_stdout_fields_match_parsed_rows": true,
+    "all_fixed_sample_schedules_and_indices_match": true,
+    "external_telemetry_raw_hashes_verified": 630,
+    "finite_correctness_formula_domains_recomputed_as_data": true,
+    "paired_ratios_medians_geometric_means_and_relative_mad_recomputed": true,
+    "per_call_and_per_iteration_denominators_verified": true,
+    "process_stream_hashes_verified": 282,
+    "protocol_hashes_verified": 3,
+    "timing_checksum_full_native_workload_reexecuted": false,
+    "timing_checksum_oracle_loops_recomputed_in_this_7ef_review": false,
+    "timing_checksums_are_consistent_within_each_kernel": true
+  },
+  "total_timing_samples": 168
+}

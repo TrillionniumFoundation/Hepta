@@ -51,8 +51,8 @@ and interruption observation preserved. It is not a qualified attempt.
 
 ## Hosted candidates and actual prerequisites
 
-The four-host Rust/C ABI workflows passed for 19299, 3a, 8dcb, 7ef and d8e.
-[The d8e host appendix](../ci_prerequisites_20261026/hosts_d8e1b676/README.md)
+The four-host Rust/C ABI workflows passed for 19299, 3a, 8dcb, 7ef, d8e and 44cb.
+[The 44cb host appendix](../ci_prerequisites_20261026/hosts_44cb3257/README.md)
 binds four original provider ZIPs/reports to the exact head and validates them
 using LF or Windows CRLF exports. Each host executes 181 calls at `-O0`, 181
 at `-O2`, layout checks and a compiled wrong-control rejection. These profiles
@@ -78,9 +78,13 @@ regression had assertion failures/errors. The other source failure was optional
 host `/proc/1/root/...` metadata raising `PermissionError` and discarding the
 boundary return value. All three native performance gates completed and passed
 (42 scalar, 63 owned, 63 HIA samples). This does not erase local inconclusive
-runs or establish their cause. The original 7ef artifact remains
-[available from its provider](https://github.com/TrillionniumFoundation/Hepta/actions/runs/40435880235/artifacts/12704884741)
-while its durable appendix is being completed.
+runs or establish their cause. The
+[complete 7ef appendix](../ci_prerequisites_20261026/failed_full_7ef57d1b/README.md)
+retains all 1,306 newly supplied files (180,828,498 raw bytes, including 176 ELF
+files), the full original log, all 15 named source skips and independent
+three-profile performance review. It explicitly distinguishes missing scalar
+and owned temporary binaries from HIA's 16 retained performance files; none
+was rebuilt or substituted during archival.
 
 The repairs have their own original observations and limits:
 
@@ -99,7 +103,7 @@ The repairs have their own original observations and limits:
 
 At this checkpoint, [d8e full CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/40438827706)
 and [44cb full CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/40439677114)
-are still running independently. The 44cb four-host run is also separate.
+are still running independently. The separate 44cb four-host run passed.
 Pending work is not counted as qualification, and no run was cancelled to
 remove an unfavourable result.
 
