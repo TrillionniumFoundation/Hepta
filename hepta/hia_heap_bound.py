@@ -50,6 +50,100 @@ _NO_ALLOCATION_OPS = frozenset({
 })
 
 
+
+# P1 finite peak for a narrowly qualified cyclic owner scope.  Each block
+# starts/ends without an owner/loan; each allocation has a bounded usize
+# extent established within that SAME block from a constant or a checked
+# typed cast. Therefore no
+# outstanding heap bytes accumulate over any number of backedges.  This does
+# NOT bound cumulative allocator interactions, steps, termination or RSS.
+# Keep try_new, calls, memory operations and borrowed owners out of scope.
+_SCOPED_CYCLE_OPS = _ZERO_HEAP_CYCLIC_SCALARS | frozenset({
+    "buffer.new", "owner.move", "owner.drop",
+})
+
+
+def _scoped_allocating_cycle_peak(fn: dict) -> int | None:
+    """Finite live HIA payload bound with no owned value crossing any edge.
+
+    The *whole* program must already pass the canonical executable Core
+    verifier. Here we independently enforce the stronger single-block
+    allocation lifetime profile before admitting cycles. Each iteration can
+    allocate again, but every ordinary outgoing edge has zero live owners.
+    """
+    if any(p["type"] in {"buffer", "readbuf", "mutbuf"}
+           for block in fn["blocks"] for p in block["params"]):
+        return None
+    peak = 0
+    saw_allocation = False
+    for block in fn["blocks"]:
+        # Seed the preexisting abstract domain with intrinsic machine-type
+        # bounds, independent of caller values. Only constants and the
+        # reviewed cast transfer may refine sizes inside this block.
+        known = _typed_entry_bounds(block["params"])
+        live: dict[str, int] = {}
+        live_bytes = 0
+        for ins in block["ops"]:
+            op, args, outputs, attrs = ins["op"], ins["args"], ins["out"], ins["attrs"]
+            if op not in _SCOPED_CYCLE_OPS:
+                return None
+            if op == "const":
+                if (len(outputs) == 1 and type(attrs.get("value")) is int):
+                    known[outputs[0]["name"]] = attrs["value"]
+            elif op == "int.cast":
+                # Reuse the preexisting source-typed, trap-aware cast
+                # interval transfer. Unknown source values can still be
+                # bounded by the destination machine type after a successful
+                # checked cast; wrapped small destinations have a complete
+                # finite domain as well.
+                folded = _bounded_cast(known.get(args[0]),
+                                       outputs[0]["type"], attrs["mode"])
+                if folded is not None:
+                    known[outputs[0]["name"]] = folded
+            elif op == "buffer.new":
+                # Exclude proven-all-zero and fallible owners from this narrow
+                # cycle proof. A size derived from an unproved SSA operation
+                # or another block is not a repeated-allocation invariant.
+                if len(args) != 1 or len(outputs) != 1:
+                    return None
+                extent = _span(known.get(args[0]))
+                if (extent is None or extent.lo < 0
+                        or extent.hi <= 0 or extent.hi > MAX_REQUEST):
+                    return None
+                # Worst successful request within the independently typed
+                # interval; no owner survives the current block.
+                amount = extent.hi
+                key = outputs[0]["name"]
+                if key in live:
+                    return None
+                live[key] = amount
+                live_bytes += amount
+                peak = max(peak, live_bytes)
+                saw_allocation = True
+            elif op == "owner.move":
+                if len(args) != 1 or len(outputs) != 1 or args[0] not in live:
+                    return None
+                key = outputs[0]["name"]
+                if key in live:
+                    return None
+                live[key] = live.pop(args[0])
+            elif op == "owner.drop":
+                if len(args) != 1 or args[0] not in live:
+                    return None
+                live_bytes -= live.pop(args[0])
+            # Other admitted scalar instructions can alter future branch
+            # decisions but cannot create/destroy HIA ownership. We do not
+            # infer allocator extents from their results in this profile.
+        # A path can revisit this block only via an edge; enforce a fully
+        # balanced owner state at EVERY normal outgoing edge. A trap has no
+        # continuation, and promises no eventual destructor cleanup.
+        if live and block["term"]["op"] != "trap":
+            return None
+        if live_bytes < 0:
+            return None
+    return peak if saw_allocation else None
+
+
 class HIAHeapBoundRejected(ValueError):
     def __init__(self, code: str, detail: str):
         self.code = code
@@ -433,7 +527,19 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) 
     blocks = {b["id"]: b for b in fn["blocks"]}
     edges = {key: {e["target"] for e in _paths(block["term"])}
              for key, block in blocks.items()}
-    order = _dag(list(blocks), edges, f"{fn['name']} heap control flow")
+    try:
+        order = _dag(list(blocks), edges, f"{fn['name']} heap control flow")
+    except ValueError as exc:
+        # Preserve the canonical DAG rejection for malformed dependencies,
+        # unsupported cyclic allocators, calls or cross-block owner lifetimes.
+        # Only the recognized cycle diagnostic may request this strictly
+        # limited independent live-heap proof.
+        if getattr(exc, "code", None) != "E_HIA_BUDGET_UNBOUNDED":
+            raise
+        scoped_peak = _scoped_allocating_cycle_peak(fn)
+        if scoped_peak is None:
+            raise
+        return scoped_peak
     # owners: SSA owner -> max requested bytes; known: scalar intervals;
     # loans: live readbuf/mutbuf -> root owner SSA name.
     states = {fn["entry"]: ({}, _typed_entry_bounds(fn["params"]), {})}
