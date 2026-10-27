@@ -172,6 +172,26 @@ def _render_batch_context_checked(query):
             block["ops"][entry["index"]] = entry["operation"]
         block["edits"][context["operation_index"]] = (item["site"], nested["fields"])
         block["callees"].update({fn["name"]: fn for fn in context["callees"]})
+        # Downstream explicit SSA uses may be displayed by several edit
+        # selections. Deduplicate by immutable function/block/op identities,
+        # just as same-block producers/consumers are deduplicated above.
+        for successor in context["downstream"]:
+            successor_key = (selector["function"], successor["id"])
+            successor_block = blocks.setdefault(successor_key, {
+                "params": successor["params"], "ops": {}, "edits": {},
+                "term": successor["terminator"], "callees": {},
+                "affected_params": set(),
+            })
+            if (_wire(successor_block["params"]) != _wire(successor["params"])
+                    or _wire(successor_block["term"]) != _wire(successor["terminator"])):
+                _reject("conflicting downstream CFG presentation")
+            successor_block.setdefault("affected_params", set()).update(
+                successor["affected_params"])
+            for occurrence in [*successor["dependencies"], *successor["consumers"]]:
+                old = successor_block["ops"].get(occurrence["index"])
+                if old is not None and _wire(old) != _wire(occurrence["operation"]):
+                    _reject("conflicting downstream SSA operation")
+                successor_block["ops"][occurrence["index"]] = occurrence["operation"]
     lines = []
     for name, fn in functions.items():
         params = ",".join(v["name"] + ":" + v["type"] for v in fn["params"])
@@ -182,6 +202,9 @@ def _render_batch_context_checked(query):
                 continue
             lines.append("block " + label + "(" + ",".join(v["name"] + ":" + v["type"]
                                                            for v in block["params"]) + ")")
+            if block.get("affected_params"):
+                lines.append("affected CFG inputs{" +
+                             ",".join(sorted(block["affected_params"])) + "}")
             for index, op in sorted(block["ops"].items()):
                 prefix = ""
                 if index in block["edits"]:
