@@ -40,10 +40,23 @@ MAX_L1_HEPTA_BYTES = 1_000_000
 MAX_L1_NATIVE_BYTES = 64 * 1024 * 1024
 
 
-def _read_snapshot(path: Path, limit: int) -> bytes:
-    """Read only a bounded, inode-pinned, ordinary migration source/artifact."""
+def _read_snapshot(path: Path, limit: int, *,
+                   expected_identity: tuple | None = None,
+                   capture_identity: bool = False) -> bytes | tuple[bytes, tuple]:
+    """Read a bounded ordinary inode, optionally binding it across phases.
+
+    Capture its first stat identity alongside the checked bytes, then require
+    exactly that inode/metadata at each later read. Equal bytes in another
+    inode never silently inherit the original migration validation.
+    """
     if type(limit) is not int or not 1 <= limit <= MAX_L1_NATIVE_BYTES:
         _reject("invalid bounded migration read request")
+    if type(capture_identity) is not bool or (capture_identity and expected_identity is not None):
+        _reject("invalid migration identity capture policy")
+    if expected_identity is not None and (
+            type(expected_identity) is not tuple or len(expected_identity) != 6
+            or any(type(value) is not int for value in expected_identity)):
+        _reject("malformed pinned file identity")
     if not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_NONBLOCK"):
         _reject("no-follow nonblocking descriptors required")
     try:
@@ -53,6 +66,9 @@ def _read_snapshot(path: Path, limit: int) -> bytes:
         def identity(s):
             return (s.st_dev, s.st_ino, s.st_mode, s.st_size,
                     s.st_mtime_ns, s.st_ctime_ns)
+        pinned = identity(before)
+        if expected_identity is not None and pinned != expected_identity:
+            _reject("pinned migration file identity changed between phases")
         fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
                      | getattr(os, "O_CLOEXEC", 0))
         try:
@@ -65,7 +81,7 @@ def _read_snapshot(path: Path, limit: int) -> bytes:
                     or identity(os.fstat(fd)) != identity(before)
                     or identity(path.lstat()) != identity(before)):
                 _reject("source/stage extent or identity changed during read")
-            return data
+            return (data, pinned) if capture_identity else data
         finally:
             os.close(fd)
     except OSError as exc:
@@ -117,7 +133,8 @@ def migrate_scalar_to_hia(source: str | Path, output_directory: str | Path, *,
                 or out.exists() or out.is_symlink() or not out.parent.is_dir()
                 or src == out):
             _reject("source/output paths outside the strict new-directory profile")
-        before = _read_snapshot(src, MAX_L1_SOURCE_BYTES)
+        before, source_identity = _read_snapshot(
+            src, MAX_L1_SOURCE_BYTES, capture_identity=True)
         result["source_sha256"] = _sha(before)
         with tempfile.TemporaryDirectory(prefix=".hia-l1-", dir=out.parent) as directory:
             stage = Path(directory)
@@ -136,10 +153,12 @@ def migrate_scalar_to_hia(source: str | Path, output_directory: str | Path, *,
                 _reject("underlying migration did not qualify the exact source")
             if not hepta.is_file() or hepta.is_symlink():
                 _reject("migrator did not publish an ordinary Hepta candidate")
-            code = _read_snapshot(hepta, MAX_L1_HEPTA_BYTES)
+            code, hepta_identity = _read_snapshot(
+                hepta, MAX_L1_HEPTA_BYTES, capture_identity=True)
             if candidate_report.get("output_sha256") != _sha(code):
                 _reject("candidate bytes disagree with source migration receipt")
-            if _read_snapshot(src, MAX_L1_SOURCE_BYTES) != before:
+            if _read_snapshot(src, MAX_L1_SOURCE_BYTES,
+                                      expected_identity=source_identity) != before:
                 _reject("original source changed during migration")
             # Exact source bytes and closed L1 schema precede any native build.
             # No migration receipt may elevate ABI, equivalence or memory-safety claims.
@@ -205,7 +224,8 @@ def migrate_scalar_to_hia(source: str | Path, output_directory: str | Path, *,
                 _reject("source-bound executable HIA Core and LLVM qualification incomplete")
             if not native.is_file() or native.is_symlink():
                 _reject("native pipeline did not publish a real staged object")
-            binary = _read_snapshot(native, MAX_L1_NATIVE_BYTES)
+            binary, native_identity = _read_snapshot(
+                native, MAX_L1_NATIVE_BYTES, capture_identity=True)
             publication = build.get("publication")
             if (not binary or native_report.get("artifact_sha256") != _sha(binary)
                     or native_report.get("artifact_bytes") != len(binary)
@@ -214,9 +234,12 @@ def migrate_scalar_to_hia(source: str | Path, output_directory: str | Path, *,
                 _reject("native artifact or publication changed after HIA Core build")
             binary_name = "candidate.o" if target else "candidate.so"
             result["artifacts"][binary_name] = {"sha256": _sha(binary), "bytes": len(binary)}
-            if (_read_snapshot(src, MAX_L1_SOURCE_BYTES) != before
-                    or _read_snapshot(hepta, MAX_L1_HEPTA_BYTES) != code
-                    or _read_snapshot(native, MAX_L1_NATIVE_BYTES) != binary):
+            if (_read_snapshot(src, MAX_L1_SOURCE_BYTES,
+                                      expected_identity=source_identity) != before
+                    or _read_snapshot(hepta, MAX_L1_HEPTA_BYTES,
+                                      expected_identity=hepta_identity) != code
+                    or _read_snapshot(native, MAX_L1_NATIVE_BYTES,
+                                      expected_identity=native_identity) != binary):
                 _reject("source/candidate/native snapshot changed before publication")
             result["status"] = "native_emitted_L1_not_equivalence_proved"
             result["ok"] = True
@@ -229,7 +252,8 @@ def migrate_scalar_to_hia(source: str | Path, output_directory: str | Path, *,
                 stream.write(manifest_bytes)
                 stream.flush()
                 os.fsync(stream.fileno())
-            if out.exists() or out.is_symlink() or _read_snapshot(src, MAX_L1_SOURCE_BYTES) != before:
+            if out.exists() or out.is_symlink() or _read_snapshot(src, MAX_L1_SOURCE_BYTES,
+                                      expected_identity=source_identity) != before:
                 _reject("destination appeared or source changed before publication")
             # All three files are already verified. Only one kernel-level
             # rename makes the entire directory visible; never create an
@@ -238,7 +262,8 @@ def migrate_scalar_to_hia(source: str | Path, output_directory: str | Path, *,
                 stage, out,
                 {"candidate.hepta": code, binary_name: binary,
                  "migration-hia.json": manifest_bytes},
-                lambda: _read_snapshot(src, MAX_L1_SOURCE_BYTES) == before)
+                lambda: _read_snapshot(src, MAX_L1_SOURCE_BYTES,
+                                      expected_identity=source_identity) == before)
             if (receipt.get("method") != "linux_renameat2_noreplace_fsync_v1"
                     or receipt.get("atomic_directory_visible") is not True
                     or receipt.get("parent_directory_fsynced") is not True):
