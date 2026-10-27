@@ -104,9 +104,10 @@ class HIADynamicQuotientBudgetTests(unittest.TestCase):
             above = bound.hi if isinstance(bound, _Span) else bound
             self.assertTrue(below <= got <= above, (low, high, actual_x, actual_d, bound))
 
-    def test_unknown_zero_signed_and_overbudget_still_reject(self):
+    def test_unknown_zero_and_overbudget_still_reject(self):
         self.assertIsNone(_bounded_divrem("int.div.checked", None, _Span(0, 7), "u64"))
-        self.assertIsNone(_bounded_divrem("int.div.checked", None, 7, "i64"))
+        self.assertEqual(_bounded_divrem("int.div.checked", None, 7, "i64"),
+                         _Span(-((1 << 63) // 7), ((1 << 63) - 1) // 7))
         self.assertIsNone(_bounded_divrem("int.div.checked", _Span(-1, 3), 2, "u8"))
         with self.assertRaises(HIAHeapBoundRejected):
             _bounded_divrem("int.div.checked", None, 0, "u64")
