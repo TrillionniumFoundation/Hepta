@@ -47,6 +47,20 @@ class BoundedAgentJSONTests(unittest.TestCase):
         shared = []
         self.assertEqual(bounded_json_wire([shared, shared], 100), b"[[],[]]")
 
+    def test_nested_shared_fanout_refused_before_queuing_excess_nodes(self):
+        # A list's own len() fits the 1024-node budget, but nested shared
+        # fanout would queue >1024 pending children before visiting them.
+        leaf = [0] * 900
+        middle = [leaf] * 64
+        payload = [middle] * 64
+        with mock.patch("hepta.hia_program_tools.json.JSONEncoder.iterencode",
+                        side_effect=AssertionError("must refuse before encoding")) as encoder:
+            with self.assertRaisesRegex(HIAEditRejected, "queued-node"):
+                bounded_json_wire(payload, 1024)
+            encoder.assert_not_called()
+        self.assertEqual(bounded_json_wire([0] * 1023, 2048),
+                         json.dumps([0] * 1023, separators=(",", ":")).encode())
+
     def test_escaped_json_string_exceeding_budget_is_refused_before_encoder(self):
         # Raw string size may be below the budget even when a single encoded
         # JSONEncoder fragment would be several times larger.
