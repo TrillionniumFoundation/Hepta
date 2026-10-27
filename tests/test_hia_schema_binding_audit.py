@@ -2,7 +2,10 @@
 from __future__ import annotations
 
 import copy
+import tempfile
 import unittest
+from pathlib import Path
+from unittest import mock
 
 from tools.audit_hia_schema_collision import (
     HIAWireAuditRejected, compare, declarations,
@@ -20,6 +23,35 @@ OTHER = (
 
 
 class SchemaBindingAuditTests(unittest.TestCase):
+    def test_fd_reader_pins_regular_inode_without_path_read_bytes(self):
+        from tools.audit_hia_schema_collision import _read
+        with tempfile.TemporaryDirectory() as directory:
+            p = Path(directory) / "source.py"
+            p.write_bytes(BASE)
+            with mock.patch.object(Path, "read_bytes", side_effect=AssertionError("unsafe path reopen")):
+                self.assertEqual(_read(p), BASE)
+            alias = Path(directory) / "link.py"
+            alias.symlink_to(p)
+            with self.assertRaises(HIAWireAuditRejected):
+                _read(alias)
+
+    def test_fd_reader_detects_inode_replacement_at_open(self):
+        from tools.audit_hia_schema_collision import _read
+        import os
+        with tempfile.TemporaryDirectory() as directory:
+            p = Path(directory) / "source.py"
+            alternate = Path(directory) / "alternate.py"
+            p.write_bytes(BASE)
+            alternate.write_bytes(OTHER)
+            original = os.open
+            def switch_before_open(path, flags, *args, **kwargs):
+                p.write_bytes(OTHER)
+                os.replace(alternate, p)
+                return original(path, flags, *args, **kwargs)
+            with mock.patch("tools.audit_hia_schema_collision.os.open", side_effect=switch_before_open):
+                with self.assertRaisesRegex(HIAWireAuditRejected, "identity changed"):
+                    _read(p)
+
     def test_literal_sources_remain_compatible_with_collision_report(self):
         nominal = declarations(BASE)
         bulk = declarations(OTHER)
