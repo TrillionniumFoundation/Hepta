@@ -18,6 +18,9 @@ from .hia_program_tools import HIAEditRejected, PATCH_SCHEMA, apply_program_patc
 QUERY_SCHEMA = "hepta.hia.edit-query.v1"
 FIELDS = frozenset({"op", "args", "attrs"})
 MAX_RESPONSE_BYTES = 16 * 1024
+# Bound context shown to an Agent. Never silently truncate SSA descendants:
+# an incomplete downstream slice is not safe to present as complete.
+MAX_VISIBLE_OPERATIONS = 256
 
 
 def _reject(message):
@@ -52,9 +55,17 @@ def prepare_edit(document, *, function, block, output, fields):
         _reject("SSA output does not identify one instruction")
     index, operation = sites[0]
     outputs = {value["name"] for value in operation["out"]}
-    consumers = [{"index": i, "operation": op}
-                 for i, op in enumerate(node["ops"][index + 1:], index + 1)
-                 if outputs.intersection(op["args"])]
+    # Capture the transitive *same-block* SSA dataflow use chain. A direct
+    # consumer may feed a second, third, or later instruction that actually
+    # determines the return value. The previous one-hop view exposed the
+    # final terminator but omitted intermediate producers of its inputs.
+    # All named SSA values are already checked and closed by verify_program.
+    affected = set(outputs)
+    consumers = []
+    for i, op in enumerate(node["ops"][index + 1:], index + 1):
+        if affected.intersection(op["args"]):
+            consumers.append({"index": i, "operation": op})
+            affected.update(value["name"] for value in op["out"])
     shown = {index, *(item["index"] for item in consumers)}
     producers = {value["name"]: i for i, op in enumerate(node["ops"])
                  for value in op["out"]}
@@ -68,6 +79,10 @@ def prepare_edit(document, *, function, block, output, fields):
         if producer is not None and producer not in shown and producer not in needed:
             needed.add(producer)
             pending.extend(node["ops"][producer]["args"])
+    # Showing only the first N would misrepresent the real downstream graph.
+    # Prefer explicit refusal so an Agent can switch to a full-module view.
+    if len(shown) + len(needed) > MAX_VISIBLE_OPERATIONS:
+        _reject("transitive SSA view exceeds bounded operation budget")
     calls = {op["attrs"]["function"] for op in [operation, *(node["ops"][i] for i in needed),
                                                *(item["operation"] for item in consumers)]
              if op["op"] == "call"}
