@@ -66,7 +66,7 @@ class L1SnapshotTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             p = Path(root) / "input.c"
             previous = Path(root) / "previous.c"
-            payload = b"int f(int x) { return x; }\\n"
+            payload = b"int f(int x) { return x; }\n"
             p.write_bytes(payload)
             observed, identity = _read_snapshot(
                 p, MAX_L1_SOURCE_BYTES, capture_identity=True)
@@ -83,7 +83,7 @@ class L1SnapshotTests(unittest.TestCase):
             p = Path(root) / "input.c"
             previous = Path(root) / "previous.c"
             output = Path(root) / "converted"
-            p.write_bytes(b"int f(int x) { return x; }\\n")
+            p.write_bytes(b"int f(int x) { return x; }\n")
             def migrate_then_rebind(path, dst, **kwargs):
                 receipt = fake_migrate(path, dst, **kwargs)
                 p.rename(previous)
