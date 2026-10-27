@@ -120,6 +120,60 @@ def _bounded_cast(value, typ, mode):
 
 
 
+def _bounded_shift(op, lhs, count, typ):
+    """Conservatively propagate the VM's checked-count shift semantics.
+
+    HIA's "checked" shifts trap on an invalid *count*, not when bits are
+    discarded. The left operand's integer type still wraps after a valid
+    left shift. Only admit interval endpoints when every mathematical
+    left-shift result fits; exact wrapped pairs may be folded separately.
+    Right shifts use signed arithmetic/unsigned logical Python semantics.
+    """
+    value, amount = _span(lhs), _span(count)
+    if value is None or amount is None:
+        return None
+    bits = WIDTHS[typ]
+    if amount.lo < 0 or amount.hi >= bits:
+        if value.lo == value.hi and amount.lo == amount.hi:
+            _reject("checked constant shift count traps")
+        return None
+    left = op == "int.shl.checked"
+    corners = tuple((x << n if left else x >> n)
+                    for x in (value.lo, value.hi)
+                    for n in (amount.lo, amount.hi))
+    low, high = min(corners), max(corners)
+    if left:
+        minimum, maximum = integer_range(typ)
+        if not minimum <= low <= high <= maximum:
+            if value.lo == value.hi and amount.lo == amount.hi:
+                return _wrap(low, typ)
+            # Modulo wrapping can make an interval nonmonotone.
+            # Treat any partially wrapped interval as UNKNOWN, not its
+            # unwrapped mathematical endpoints.
+            return None
+    return _bounded(low, high)
+
+def _bounded_divrem(op, lhs, rhs, typ):
+    """Fold exactly known checked integer div/rem, with VM rounding.
+
+    Fractional or interval division is deliberately not guessed. Python's
+    // rounds negative values toward minus infinity, while HIA signed div
+    truncates toward zero and signed remainder follows the dividend.
+    """
+    a, b = _span(lhs), _span(rhs)
+    if a is None or b is None or a.lo != a.hi or b.lo != b.hi:
+        return None
+    dividend, divisor = a.lo, b.lo
+    minimum, _ = integer_range(typ)
+    if divisor == 0 or (typ.startswith("i") and dividend == minimum and divisor == -1):
+        _reject("checked constant division or remainder traps")
+    quotient = abs(dividend) // abs(divisor)
+    if (dividend < 0) != (divisor < 0):
+        quotient = -quotient
+    return (quotient if op == "int.div.checked"
+            else dividend - quotient * divisor)
+
+
 def _exact_scalar(op, inputs, typ):
     """Only fold values that are exact in already verified typed HIA SSA.
 
@@ -153,23 +207,14 @@ def _exact_scalar(op, inputs, typ):
         result = (a & b if op == "bit.and" else
                   a | b if op == "bit.or" else a ^ b)
         return _wrap(result, typ)
+    # Reuse the stronger interval-aware P1 transfer implementations imported
+    # verbatim from the parallel reviewed HIA shift/divrem branch.
     if op in {"int.div.checked", "int.rem.checked"}:
-        a, b = vals
-        if b == 0:
-            _reject("constant division/remainder by zero may trap")
-        lower, _ = integer_range(typ)
-        if typ.startswith("i") and a == lower and b == -1:
-            _reject("signed minimum divided by minus one may trap")
-        quotient = abs(a) // abs(b)
-        if (a < 0) != (b < 0):
-            quotient = -quotient
-        return quotient if op == "int.div.checked" else a - quotient * b
+        return _bounded_divrem(op, vals[0], vals[1], typ)
     if op in {"int.shl.checked", "int.shr.checked"}:
-        a, b = vals
-        if not 0 <= b < WIDTHS[typ]:
-            _reject("constant shift count outside machine width may trap")
-        return _wrap(a << b, typ) if op == "int.shl.checked" else a >> b
+        return _bounded_shift(op, vals[0], vals[1], typ)
     return None
+
 
 def _paths(term: dict) -> list[dict]:
     if term["op"] == "jump":
@@ -203,7 +248,6 @@ def _merge(previous, proposed, label):
         if bound is not None:
             known[key] = bound
     return owners, known, dict(old_loans)
-
 
 
 def _typed_entry_bounds(parameters):
@@ -258,20 +302,25 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) 
                                        attrs["mode"])
                 if folded is not None:
                     known[out_names[0]] = folded
+            elif op in {"int.shl.checked", "int.shr.checked"}:
+                folded = _bounded_shift(op, known.get(args[0]), known.get(args[1]),
+                                        outputs[0]["type"])
+                if folded is not None:
+                    known[out_names[0]] = folded
+            elif op in {"int.div.checked", "int.rem.checked"}:
+                folded = _bounded_divrem(op, known.get(args[0]),
+                                         known.get(args[1]), outputs[0]["type"])
+                if folded is not None:
+                    known[out_names[0]] = folded
             elif op in {
                     "bit.not", "bit.and", "bit.or", "bit.xor",
                     "compare.eq", "compare.ne", "compare.lt", "compare.le",
-                    "compare.gt", "compare.ge", "int.div.checked", "int.rem.checked",
-                    "int.shl.checked", "int.shr.checked"}:
+                    "compare.gt", "compare.ge"}:
                 folded = _exact_scalar(op, [known.get(arg) for arg in args],
                                        outputs[0]["type"])
                 if folded is None and op == "bit.and":
-                    # A nonnegative exact bit mask has no sign bit set, even
-                    # for a signed integer. Irrespective of the other operand
-                    # or its negative two's-complement representation:
-                    #       0 <= (any_machine_int & mask) <= mask.
-                    # This is a real verified upper bound, not a guessed
-                    # value for an unknown Agent/runtime parameter.
+                    # Proven positive exact mask bounds all unknown typed inputs,
+                    # even signed negative two's-complement operands.
                     masks = []
                     for arg in args:
                         mask = _span(known.get(arg))

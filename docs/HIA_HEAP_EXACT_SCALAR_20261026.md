@@ -67,3 +67,19 @@ No Rust/Cargo compilation, actual GPU/physical DMA/IRQ, real C++ L2/L3,
 true AI-provider A/B, or sustained service p99 is implied.
 
 `whole_project_blockers_closed=false`.
+
+## Integration with newer parallel shift/divrem intervals
+
+The P1 branch from PR #246 now owns the **stronger full-interval**
+`_bounded_shift` and its audited exact `_bounded_divrem` helper. They
+are imported **without modifying their logic**. The local exact-scalar
+helper delegates shift/div/rem operations to those canonical P1 analyzers
+rather than maintaining a second arithmetic semantics. The new candidate
+also preserves the more recent source-graph identity and typed C++20
+regressions from #247, plus the local proof-backed bitwise/comparison,
+positive dynamic masking and u8/u16/u32 entry bounds.
+
+The convergence has two Git parents and preserves the four new upstream
+shift/divrem test/document blobs unchanged. Neither donor's isolated
+mathematical controls qualify this merged exact source without running the
+full Hepta native/VM suites. `whole_project_blockers_closed=false`.
