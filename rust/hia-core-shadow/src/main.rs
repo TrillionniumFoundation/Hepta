@@ -14,9 +14,21 @@ fn main() -> ExitCode {
     let result = match args.as_slice() {
         [] => hia_core_shadow::verify(&input),
         [flag] if flag == "--owned-shadow" => hia_core_shadow::verify_owned(&input),
-        [mode, function, arguments] if mode == "--scalar-run" => {
+        [mode, function, arguments] | [mode, function, arguments, _]
+            if mode == "--scalar-run" => {
+            // One optional explicit step budget. Unknown/reordered flags reject.
+            let max_steps = if args.len() == 4 {
+                match args[3].parse::<u64>() {
+                    Ok(v) => v,
+                    Err(_) => {
+                        eprintln!("E_HIA_BUDGET_POLICY: invalid numeric step limit");
+                        return ExitCode::FAILURE;
+                    }
+                }
+            } else { 100_000 };
             match serde_json::from_str::<Vec<serde_json::Value>>(arguments) {
-                Ok(args) => hia_core_shadow::execute_scalar(&input, function, &args, 100_000),
+                Ok(values) => hia_core_shadow::execute_scalar(
+                    &input, function, &values, max_steps),
                 Err(_) => {
                     eprintln!("E_HIA_INPUT: expected a JSON array of typed scalar arguments");
                     return ExitCode::FAILURE;
@@ -24,7 +36,7 @@ fn main() -> ExitCode {
             }
         },
         _ => {
-            eprintln!("E_HIA_RUST_UNSUPPORTED: expected no args or --owned-shadow");
+            eprintln!("E_HIA_RUST_UNSUPPORTED: expected no args, --owned-shadow or --scalar-run FUNCTION JSON_ARGS [MAX_STEPS]");
             return ExitCode::FAILURE;
         }
     };
