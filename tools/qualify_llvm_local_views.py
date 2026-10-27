@@ -14,8 +14,13 @@ from pathlib import Path
 import re
 import shutil
 import signal
+import sys
 import tempfile
 from unittest.mock import patch
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from hepta.backend import compile_rust
 from hepta.c_backend import compile_c, emit_c
@@ -31,7 +36,6 @@ from tools.qualify_llvm_owned import execute, process, successful
 from tools.qualify_resource_views import _native_frontend
 from tools.resource_view_cases import FRONTEND_REJECTIONS, NATIVE_REJECTIONS
 
-ROOT = Path(__file__).resolve().parents[1]
 ENTRY = ROOT / "examples/llvm_local_views/main.hepta"
 FIXTURE = ENTRY.parent
 SCHEMA = "hepta.llvm-local-views-qualification.v1"
