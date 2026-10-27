@@ -118,6 +118,32 @@ class CFGEditContextTests(unittest.TestCase):
             prepare_edit(source, function="loop", block="head",
                          output="changed", fields=["op"])
 
+    def test_downstream_loop_reaches_monotone_fixpoint_once(self):
+        # The selected value enters a successor loop, but never returns to
+        # the selected entry block. A stable affected block-argument set
+        # must terminate the presentation analysis without duplicate rows.
+        source = m(f("calc", [("x", "u32")], ["u32"], [], [
+            b("entry", [("x", "u32")], [
+                c("one", "u32", 1),
+                i("int.add.wrap", ["x", "one"], [("changed", "u32")]),
+            ], jump("head", "changed")),
+            b("head", [("carry", "u32")], [
+                c("zero", "u32", 0),
+                i("compare.gt", ["carry", "zero"], [("nonzero", "bool")]),
+            ], branch("nonzero", ("done", "carry"), ("head", "carry"))),
+            b("done", [("result", "u32")], [], ret("result")),
+        ]))
+        query = prepare_edit(source, function="calc", block="entry",
+                             output="changed", fields=["op"])
+        self.assertEqual([x["id"] for x in query["context"]["downstream"]],
+                         ["head", "done"])
+        self.assertEqual(query["context"]["downstream"][0]["affected_params"], ["carry"])
+        self.assertEqual([x["index"] for x in query["context"]["downstream"][0]["consumers"]],
+                         [1])
+        self.assertEqual(execute_program(source, "calc", [9])["result"], 10)
+        patched, _ = apply_edit(source, query, {"op": "int.sub.wrap"})
+        self.assertEqual(execute_program(patched, "calc", [9])["result"], 8)
+
     def test_large_downstream_slice_refuses_without_truncation(self):
         operations = [c("one", "u32", 1)]
         for index in range(MAX_VISIBLE_OPERATIONS + 2):

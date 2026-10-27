@@ -19,8 +19,10 @@ on this incomplete view could not reason about the downstream expression.
 - Follow **only the verified SSA block-argument edges** of jump/branch.
   For each affected target block input, traverse all later instructions
   transitively by explicit SSA operands and propagate their outputs.
-  Joins use monotone unions. Affected SSA cycles returning to the *selected
-  block* refuse the compact view instead of falsely claiming it is complete.
+  Joins and downstream cycles use monotone unions: a downstream loop with
+  unchanged affected inputs reaches a finite fixpoint and is displayed once.
+  Affected SSA cycles returning to the *selected block* refuse the compact
+  view instead of falsely claiming it is complete.
 - Include displayed consumers, the producer closure for their other inputs,
   block parameter identities, and full successor terminators. Retain the
   already-existing 256 visible-op bound **across all blocks**, and enforce
