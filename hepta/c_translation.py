@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 import re
 
-from .c_migrate import MigrationRejected
+from .c_migrate import MigrationRejected, reject_function_type_attributes
 from .c_project import captured_source_argument, invoke
 
 
@@ -254,6 +254,7 @@ class CTranslator:
                 item.update(status="prototype_resolved", reason=None)
 
     def signature(self, node: dict, key: str, unit: int, model: dict) -> dict:
+        reject_function_type_attributes(node)
         name = ident(node["name"])
         if name == "main" or node.get("variadic") or "..." in node["type"]["qualType"] or node["type"]["qualType"].endswith(" ()"):
             raise MigrationRejected("E_C_FUNCTION", "main, varargs and unprototyped functions are unsupported")
