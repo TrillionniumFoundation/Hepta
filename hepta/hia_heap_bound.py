@@ -57,14 +57,16 @@ _NO_ALLOCATION_OPS = frozenset({
 # typed cast. Therefore no
 # outstanding heap bytes accumulate over any number of backedges.  This does
 # NOT bound cumulative allocator interactions, steps, termination or RSS.
-# Keep try_new, calls, memory operations and borrowed owners out of scope.
+# Keep calls, memory operations and borrowed owners out of scope.
+# The fallible allocator returns either a valid owner of at most the requested
+# size or a logical empty owner. Both must still be linearly consumed.
 # Reuse the already-audited typed interval transfer: no second arithmetic oracle.
 _SCOPED_CYCLE_INTERVAL_ARITH = frozenset({
     "int.add.checked", "int.sub.checked", "int.mul.checked",
     "int.add.wrap", "int.sub.wrap", "int.mul.wrap",
 })
 _SCOPED_CYCLE_OPS = _ZERO_HEAP_CYCLIC_SCALARS | frozenset({
-    "buffer.new", "owner.move", "owner.drop",
+    "buffer.new", "buffer.try_new", "owner.move", "owner.drop",
 })
 
 
@@ -116,11 +118,16 @@ def _scoped_allocating_cycle_peak(fn: dict) -> int | None:
                                          outputs[0]["type"])
                 if folded is not None:
                     known[outputs[0]["name"]] = folded
-            elif op == "buffer.new":
-                # Exclude proven-all-zero and fallible owners from this narrow
-                # cycle proof. A size derived from an unproved SSA operation
-                # or another block is not a repeated-allocation invariant.
-                if len(args) != 1 or len(outputs) != 1:
+            elif op in {"buffer.new", "buffer.try_new"}:
+                # In this strict local profile, both allocation paths
+                # produce exactly one linear owner. try_new additionally
+                # returns a scalar success flag, never an owner alias.
+                # On failure its owner is empty, so charging the full
+                # requested size still bounds every possible execution.
+                # Unknown/zero-only extents and all cross-block resources
+                # remain conservatively refused.
+                expected_outputs = 1 if op == "buffer.new" else 2
+                if len(args) != 1 or len(outputs) != expected_outputs:
                     return None
                 extent = _span(known.get(args[0]))
                 if (extent is None or extent.lo < 0
