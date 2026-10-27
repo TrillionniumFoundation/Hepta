@@ -6,6 +6,8 @@ Arbitrary executables and self-attested reports are NOT safety proofs.
 """
 from __future__ import annotations
 
+from contextlib import contextmanager
+import fcntl
 from hashlib import sha256
 import json
 import math
@@ -17,7 +19,6 @@ import signal
 import stat
 import subprocess
 import sys
-import tempfile
 import time
 
 MAX_EXECUTABLE_BYTES = 32 * 1024 * 1024
@@ -127,6 +128,59 @@ def _verified_executable_bytes(path: Path, expected: str):
             os.close(fd)
 
 
+@contextmanager
+def _sealed_shadow_executable(content: bytes):
+    """Bind the executed bytes to a kernel-sealed, private Linux memfd.
+
+    A pathname in a temporary directory is insufficient for an exact-byte
+    SHA-pinned execution claim: a concurrent same-user writer can exchange
+    or edit it after staging, before execve. F_SEAL_WRITE/GROW/SHRINK/SEAL
+    closes that content mutation window, including through /proc/<pid>/fd.
+
+    This is byte immutability, NOT sandboxing against hostile code or a
+    privileged attacker. Refuse systems without executable sealable memfds;
+    never fall back to a replaceable pathname.
+    """
+    if (sys.platform != "linux" or type(content) is not bytes or not content
+            or len(content) > MAX_EXECUTABLE_BYTES or not hasattr(os, "memfd_create")
+            or not hasattr(os, "MFD_ALLOW_SEALING")
+            or not all(hasattr(fcntl, name) for name in (
+                "F_ADD_SEALS", "F_GET_SEALS", "F_SEAL_WRITE", "F_SEAL_GROW",
+                "F_SEAL_SHRINK", "F_SEAL_SEAL"))):
+        _reject("Linux sealable executable memfd is unavailable")
+    fd = None
+    try:
+        # Intentionally omit MFD_CLOEXEC: after the resource-limit launcher
+        # execs a hash-pinned SCRIPT, its shebang interpreter needs to read
+        # this descriptor via /proc/self/fd. The fd is explicitly restricted
+        # to the launched worker with Popen(pass_fds=(fd,)).
+        fd = os.memfd_create("hepta-hia-rust-shadow", os.MFD_ALLOW_SEALING)
+        os.fchmod(fd, 0o500)
+        view = memoryview(content)
+        offset = 0
+        while offset < len(content):
+            written = os.write(fd, view[offset:offset + 1024 * 1024])
+            if written <= 0:
+                _reject("sealed shadow image write was incomplete")
+            offset += written
+        required = (fcntl.F_SEAL_WRITE | fcntl.F_SEAL_SHRINK |
+                    fcntl.F_SEAL_GROW | fcntl.F_SEAL_SEAL)
+        fcntl.fcntl(fd, fcntl.F_ADD_SEALS, required)
+        sealed = fcntl.fcntl(fd, fcntl.F_GET_SEALS)
+        if (sealed & required) != required or os.fstat(fd).st_size != len(content):
+            _reject("shadow image was not completely kernel-sealed")
+        if os.pread(fd, len(content), 0) != content:
+            _reject("sealed shadow bytes differ from the verified executable")
+        yield fd
+    except OSError as exc:
+        raise HIARustCrosscheckRejected(
+            "E_HIA_RUST_CROSSCHECK: cannot create or execute a sealed shadow image"
+        ) from exc
+    finally:
+        if fd is not None:
+            os.close(fd)
+
+
 def _validate_report(raw: bytes, profile: str, checked):
     if not 0 < len(raw) < MAX_OUTPUT_BYTES or not raw.endswith(b"\n") or raw.count(b"\n") != 1:
         _reject("shadow must emit exactly one bounded JSON line")
@@ -160,7 +214,7 @@ def _validate_report(raw: bytes, profile: str, checked):
     return report
 
 
-def _run_bounded_shadow(cmd: list[str], payload: bytes, timeout: float):
+def _run_bounded_shadow(cmd: list[str], payload: bytes, timeout: float, *, pass_fds=()):
     """Bound stdin/stdout/stderr in memory; do not spool child output to disk.
 
     Exact executable byte pinning is a separate precondition. This pump is not
@@ -172,7 +226,7 @@ def _run_bounded_shadow(cmd: list[str], payload: bytes, timeout: float):
     try:
         proc = subprocess.Popen(
             cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            start_new_session=True,
+            start_new_session=True, pass_fds=pass_fds,
             env={"LANG": "C", "LC_ALL": "C", "PYTHONIOENCODING": "utf-8"},
         )
         pipes = {"stdin": proc.stdin, "stdout": proc.stdout, "stderr": proc.stderr}
@@ -281,12 +335,12 @@ def _run_bounded_shadow(cmd: list[str], payload: bytes, timeout: float):
 
 
 def _limited_shadow_command(executable: Path, profile: str, timeout: float) -> list[str]:
-    """Launch an exact staged binary after independent per-process RLIMITs.
+    """Build a bounded launcher; the caller must pin the executed image.
 
-    A separate Python interpreter sets limits and uses os.execve so the actual
-    verifier is not replaced with a Python simulation. The pinned executable
-    file bytes remain the same staged bytes. Limits also apply to descendants
-    that inherit them, but this is not a cgroup or a complete sandbox.
+    crosscheck_rust_shadow passes a SEALED memfd path and its inherited fd.
+    Direct callers of this helper are test probes, not byte-pin authorities.
+    The separate interpreter sets independent per-process RLIMITs before
+    execve. These are not cgroup or hostile-code confinement guarantees.
     """
     if sys.platform != "linux":
         _reject("CPU/address-space resource limits require Linux")
@@ -312,19 +366,14 @@ def crosscheck_rust_shadow(program, executable: str | Path, *, executable_sha256
         _reject("shadow subprocess timeout must be in (0, 15] seconds")
     checked = verify_program(program)
     raw_exe = _verified_executable_bytes(Path(executable), executable_sha256)
-    with tempfile.TemporaryDirectory(prefix="hepta-hia-rust-shadow-") as root:
-        destination = Path(root) / "shadow"
-        fd = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC, 0o700)
-        try:
-            with os.fdopen(fd, "wb", closefd=False) as dest:
-                dest.write(raw_exe)
-                dest.flush()
-                os.fsync(dest.fileno())
-            os.fchmod(fd, 0o700)
-        finally:
-            os.close(fd)
-        cmd = _limited_shadow_command(destination, profile, timeout)
-        stdout, stderr, returncode = _run_bounded_shadow(cmd, checked.canonical_bytes, timeout)
+    with _sealed_shadow_executable(raw_exe) as image_fd:
+        # /proc/self/fd/N resolves the inherited, SEALED kernel object in
+        # the child, never a temp path that can be renamed after validation.
+        # The launcher itself is trusted Python from this installation.
+        image = Path(f"/proc/self/fd/{image_fd}")
+        cmd = _limited_shadow_command(image, profile, timeout)
+        stdout, stderr, returncode = _run_bounded_shadow(
+            cmd, checked.canonical_bytes, timeout, pass_fds=(image_fd,))
         if returncode != 0 or stderr:
             _reject("shadow rejected canonical HIA or emitted unexpected diagnostics")
         report = _validate_report(stdout, profile, checked)
