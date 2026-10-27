@@ -12,6 +12,7 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
+import stat
 import tempfile
 
 from .c_migrate import migrate_c
@@ -33,6 +34,43 @@ def _sha(data: bytes) -> str:
 def _reject(message: str) -> None:
     raise HIAMigrationRejected("E_HIA_MIGRATE: " + message)
 
+
+MAX_L1_SOURCE_BYTES = 256_000
+MAX_L1_HEPTA_BYTES = 1_000_000
+MAX_L1_NATIVE_BYTES = 64 * 1024 * 1024
+
+
+def _read_snapshot(path: Path, limit: int) -> bytes:
+    """Read only a bounded, inode-pinned, ordinary migration source/artifact."""
+    if type(limit) is not int or not 1 <= limit <= MAX_L1_NATIVE_BYTES:
+        _reject("invalid bounded migration read request")
+    if not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_NONBLOCK"):
+        _reject("no-follow nonblocking descriptors required")
+    try:
+        before = path.lstat()
+        if not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= limit:
+            _reject("source/stage is not a bounded ordinary file")
+        def identity(s):
+            return (s.st_dev, s.st_ino, s.st_mode, s.st_size,
+                    s.st_mtime_ns, s.st_ctime_ns)
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+                     | getattr(os, "O_CLOEXEC", 0))
+        try:
+            opened = os.fstat(fd)
+            if not stat.S_ISREG(opened.st_mode) or identity(opened) != identity(before):
+                _reject("source/stage inode changed before bounded read")
+            with os.fdopen(fd, "rb", closefd=False) as stream:
+                data = stream.read(limit + 1)
+            if (len(data) != before.st_size or len(data) > limit
+                    or identity(os.fstat(fd)) != identity(before)
+                    or identity(path.lstat()) != identity(before)):
+                _reject("source/stage extent or identity changed during read")
+            return data
+        finally:
+            os.close(fd)
+    except OSError as exc:
+        raise HIAMigrationRejected(
+            "E_HIA_MIGRATE: source/stage intake unavailable") from exc
 
 def migrate_scalar_to_hia(source: str | Path, output_directory: str | Path, *,
                           language: str, rustc: str | None = None,
@@ -78,9 +116,7 @@ def migrate_scalar_to_hia(source: str | Path, output_directory: str | Path, *,
                 or out.exists() or out.is_symlink() or not out.parent.is_dir()
                 or src == out):
             _reject("source/output paths outside the strict new-directory profile")
-        before = src.read_bytes()
-        if not before or len(before) > 256_000:
-            _reject("source byte budget exceeded")
+        before = _read_snapshot(src, MAX_L1_SOURCE_BYTES)
         result["source_sha256"] = _sha(before)
         with tempfile.TemporaryDirectory(prefix=".hia-l1-", dir=out.parent) as directory:
             stage = Path(directory)
@@ -99,10 +135,11 @@ def migrate_scalar_to_hia(source: str | Path, output_directory: str | Path, *,
                 _reject("underlying migration did not qualify the exact source")
             if not hepta.is_file() or hepta.is_symlink():
                 _reject("migrator did not publish an ordinary Hepta candidate")
-            code = hepta.read_bytes()
-            if (not code or len(code) > 1_000_000
-                    or candidate_report.get("output_sha256") != _sha(code)):
+            code = _read_snapshot(hepta, MAX_L1_HEPTA_BYTES)
+            if candidate_report.get("output_sha256") != _sha(code):
                 _reject("candidate bytes disagree with source migration receipt")
+            if _read_snapshot(src, MAX_L1_SOURCE_BYTES) != before:
+                _reject("original source changed during migration")
             # Exact source bytes and closed L1 schema precede any native build.
             # No migration receipt may elevate ABI, equivalence or memory-safety claims.
             validate_migration_receipt(
@@ -167,7 +204,7 @@ def migrate_scalar_to_hia(source: str | Path, output_directory: str | Path, *,
                 _reject("source-bound executable HIA Core and LLVM qualification incomplete")
             if not native.is_file() or native.is_symlink():
                 _reject("native pipeline did not publish a real staged object")
-            binary = native.read_bytes()
+            binary = _read_snapshot(native, MAX_L1_NATIVE_BYTES)
             publication = build.get("publication")
             if (not binary or native_report.get("artifact_sha256") != _sha(binary)
                     or native_report.get("artifact_bytes") != len(binary)
@@ -176,7 +213,9 @@ def migrate_scalar_to_hia(source: str | Path, output_directory: str | Path, *,
                 _reject("native artifact or publication changed after HIA Core build")
             binary_name = "candidate.o" if target else "candidate.so"
             result["artifacts"][binary_name] = {"sha256": _sha(binary), "bytes": len(binary)}
-            if src.read_bytes() != before or hepta.read_bytes() != code or native.read_bytes() != binary:
+            if (_read_snapshot(src, MAX_L1_SOURCE_BYTES) != before
+                    or _read_snapshot(hepta, MAX_L1_HEPTA_BYTES) != code
+                    or _read_snapshot(native, MAX_L1_NATIVE_BYTES) != binary):
                 _reject("source/candidate/native snapshot changed before publication")
             result["status"] = "native_emitted_L1_not_equivalence_proved"
             result["ok"] = True
@@ -189,7 +228,7 @@ def migrate_scalar_to_hia(source: str | Path, output_directory: str | Path, *,
                 stream.write(manifest_bytes)
                 stream.flush()
                 os.fsync(stream.fileno())
-            if out.exists() or out.is_symlink() or src.read_bytes() != before:
+            if out.exists() or out.is_symlink() or _read_snapshot(src, MAX_L1_SOURCE_BYTES) != before:
                 _reject("destination appeared or source changed before publication")
             # All three files are already verified. Only one kernel-level
             # rename makes the entire directory visible; never create an
@@ -198,7 +237,7 @@ def migrate_scalar_to_hia(source: str | Path, output_directory: str | Path, *,
                 stage, out,
                 {"candidate.hepta": code, binary_name: binary,
                  "migration-hia.json": manifest_bytes},
-                lambda: src.read_bytes() == before)
+                lambda: _read_snapshot(src, MAX_L1_SOURCE_BYTES) == before)
             if (receipt.get("method") != "linux_renameat2_noreplace_fsync_v1"
                     or receipt.get("atomic_directory_visible") is not True
                     or receipt.get("parent_directory_fsynced") is not True):
