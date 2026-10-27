@@ -54,6 +54,13 @@ An example database entry is:
 
 The database's compiler command is parsed as data; it is never executed through
 a shell. The explicitly selected Clang performs preprocessing and AST capture.
+Recognized database driver spellings such as `gcc` and `cc` are recorded
+metadata; the original driver executable is neither executed nor attested.
+The captured compiler identity, predefined macros, data model and AST belong
+to the explicitly selected Clang. This does not qualify the original GCC's
+default macros or establish equivalence to the database's original driver.
+Original-driver semantic equivalence needs separate evidence; preserving the
+listed options alone does not close that build-replay boundary.
 Compiler wrappers, response files, plugin flags and unknown options are
 rejected. Accepted compile standards are explicit C99, C11 and C17. Includes,
 macro definitions, plain-char signedness, accepted optimization levels
@@ -63,12 +70,17 @@ branches through compiler-defined macros such as `__OPTIMIZE__`,
 `__OPTIMIZE_SIZE__`, `__NO_INLINE__`, `__PIC__` and `__PIE__`. Dependency discovery,
 preprocessing, AST generation and macro replay must observe the same options;
 the original native comparison build must not append a conflicting mode.
+`-pedantic-errors` is also preserved: it changes Clang's `__has_extension`
+builtin preprocessing operator even when the ordinary `-dM` macro dump is
+unchanged. For example, C99 `__has_extension(c_static_assert)` selects a
+different branch under this option. Captured dependency discovery and function
+bodies must preserve that selection too.
 Output and diagnostic-only flags are recorded with the reason for omission.
 Unmodeled semantic options such as `-fwrapv` still reject. Multiple configurations
 for one source must be qualified in separate complete database runs or an
 explicit build matrix.
 
-Captures made by older compilers which omitted optimization/PIC options do not
+Captures made by older compilers which omitted these semantic options do not
 become valid by recomputing the receipt hash. They must be recaptured from the
 unchanged compilation database so the actual selected declarations and
 dependencies can be checked again. The generated HIA backend may optimize its

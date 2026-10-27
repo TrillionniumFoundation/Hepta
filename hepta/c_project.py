@@ -40,9 +40,12 @@ _SELECTION_SCOPE = "explicit_command_selection_not_complete_database_or_unlisted
 # controls __OPTIMIZE__/__OPTIMIZE_SIZE__/__NO_INLINE__, and -fPIC/-fpic control
 # the PIC/PIE macro inventory. Preserve their order, including repeated options,
 # in every frontend invocation and the independent compiler-macro probe.
+# -pedantic-errors also changes the __has_extension builtin operator's answer;
+# its selected source can differ even when the ordinary -dM macro dump is equal.
 _SEMANTIC_DRIVER_FLAGS = frozenset({
     "-funsigned-char", "-fsigned-char",
     "-O0", "-O1", "-O2", "-O3", "-Os", "-Oz", "-fPIC", "-fpic",
+    "-pedantic-errors",
 })
 
 
@@ -238,7 +241,7 @@ def _flags(argv: list[str], source: Path, directory: Path, *, language: str = "c
             # Code-generation options may change the source selected by the
             # preprocessor. They are not diagnostic/output-only preferences.
             forwarded.append(value)
-        elif value in {"-c", "-g", "-g0", "-g1", "-g2", "-g3", "-Wall", "-Wextra", "-Werror", "-pedantic", "-pedantic-errors"}:
+        elif value in {"-c", "-g", "-g0", "-g1", "-g2", "-g3", "-Wall", "-Wextra", "-Werror", "-pedantic"}:
             omitted.append({"argument": value, "reason": "driver_output_or_diagnostic_flag"})
         elif value == "-o":
             if i >= len(argv):

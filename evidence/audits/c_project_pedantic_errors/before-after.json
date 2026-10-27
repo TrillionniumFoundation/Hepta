@@ -1,0 +1,541 @@
+{
+  "base_commit": "7c948142ba36b884ba0e1b08914b97b8b8b4d47f",
+  "claim": "Same Clang and source/database bytes; -pedantic-errors changes builtin __has_extension even with an unchanged ordinary macro dump.",
+  "observations": [
+    {
+      "artifacts": {
+        "hia.o": {
+          "bytes": 656,
+          "path": "/tmp/hepta-pedantic-repro-20261027/before/hia.o",
+          "sha256": "e03cfb4b60450c6d7428d36a84fa3fd44bff465210105082c77b898ea428d8d0"
+        },
+        "hia.so": {
+          "bytes": 15120,
+          "path": "/tmp/hepta-pedantic-repro-20261027/before/hia.so",
+          "sha256": "866bd33417b003d5d2414d8432096a6f8d9dd413634a3e201927c44d8b4b86a0"
+        },
+        "original.o": {
+          "bytes": 1016,
+          "path": "/tmp/hepta-pedantic-repro-20261027/before/original.o",
+          "sha256": "4caba535c718a6c9e07c5e9ab900650371ea5877772a32c3b714553335fefb22"
+        },
+        "original.so": {
+          "bytes": 15280,
+          "path": "/tmp/hepta-pedantic-repro-20261027/before/original.so",
+          "sha256": "33248611117e723efa00047e23eea451ffb891b5598a57f9dfe1e2c8123725cc"
+        }
+      },
+      "capture": {
+        "compiler": {
+          "executable_sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+          "path": "/usr/lib/llvm-20/bin/clang",
+          "target": "x86_64-pc-linux-gnu",
+          "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+        },
+        "configurations": [
+          {
+            "abi_model_arguments": [
+              "-std=c99"
+            ],
+            "abi_predefined_macros_sha256": "d772b0558507e9e976f80b2957c249d172e021f28ac440f4955a99a1c6ebebe0",
+            "all_dependencies": [
+              "/tmp/hepta-pedantic-repro-20261027/input.c"
+            ],
+            "directory": "/tmp/hepta-pedantic-repro-20261027",
+            "frontend_arguments": [
+              "-std=c99"
+            ],
+            "index": 0,
+            "local_dependencies": [
+              "/tmp/hepta-pedantic-repro-20261027/input.c"
+            ],
+            "model": {
+              "char_unsigned": false,
+              "long_bits": 64,
+              "pointer_bits": 64
+            },
+            "omitted_arguments": [
+              {
+                "argument": "-pedantic-errors",
+                "reason": "driver_output_or_diagnostic_flag"
+              },
+              {
+                "argument": "-c",
+                "reason": "driver_output_or_diagnostic_flag"
+              },
+              {
+                "argument": "-o",
+                "operand": "original.o",
+                "reason": "object_output_not_executed"
+              }
+            ],
+            "original_arguments": [
+              "clang",
+              "-std=c99",
+              "-pedantic-errors",
+              "-c",
+              "input.c",
+              "-o",
+              "original.o"
+            ],
+            "predefined_macros_sha256": "d772b0558507e9e976f80b2957c249d172e021f28ac440f4955a99a1c6ebebe0",
+            "preprocessed_sha256": "864b3c4a2dd9c42e19b5ab7fbf3c6a3c585ce1132b239d82446cdd0421e1f80f",
+            "source": "/tmp/hepta-pedantic-repro-20261027/input.c"
+          }
+        ],
+        "database": {
+          "path": "/tmp/hepta-pedantic-repro-20261027/compile_commands.json",
+          "sha256": "14898207d9cbfc20db71d6714138c4e06d258fff039a65f240f05081afe22baa"
+        },
+        "dependencies": [
+          {
+            "bytes": 142,
+            "path": "/tmp/hepta-pedantic-repro-20261027/input.c",
+            "project_input": true,
+            "sha256": "dcb5f142b1f3c2eb59f11c82e529ec996a364b26b618d5e7b29d60b84d589688"
+          }
+        ],
+        "schema": "hepta.c-build.v1",
+        "scope": "all_listed_commands_only_not_unlisted_platforms_or_configurations",
+        "sha256": "d8cadc0211ca3eb64cf3f485a9acdb462c5a767336c67f2d70ccec46686ee415"
+      },
+      "commands": [
+        {
+          "argv": [
+            "/usr/lib/llvm-20/bin/clang",
+            "-std=c99",
+            "-pedantic-errors",
+            "-c",
+            "/tmp/hepta-pedantic-repro-20261027/input.c",
+            "-o",
+            "/tmp/hepta-pedantic-repro-20261027/before/original.o"
+          ],
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        {
+          "argv": [
+            "/usr/lib/llvm-20/bin/clang",
+            "-shared",
+            "/tmp/hepta-pedantic-repro-20261027/before/original.o",
+            "-o",
+            "/tmp/hepta-pedantic-repro-20261027/before/original.so"
+          ],
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        {
+          "argv": [
+            "/usr/lib/llvm-20/bin/clang",
+            "-shared",
+            "/tmp/hepta-pedantic-repro-20261027/before/hia.o",
+            "-o",
+            "/tmp/hepta-pedantic-repro-20261027/before/hia.so"
+          ],
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        {
+          "argv": [
+            "/usr/lib/llvm-20/bin/clang",
+            "-std=c99",
+            "-dM",
+            "-E",
+            "-x",
+            "c",
+            "/dev/null"
+          ],
+          "returncode": 0,
+          "stderr": "",
+          "stdout_bytes": 13419,
+          "stdout_sha256": "d772b0558507e9e976f80b2957c249d172e021f28ac440f4955a99a1c6ebebe0"
+        },
+        {
+          "argv": [
+            "/usr/lib/llvm-20/bin/clang",
+            "-std=c99",
+            "-pedantic-errors",
+            "-dM",
+            "-E",
+            "-x",
+            "c",
+            "/dev/null"
+          ],
+          "returncode": 0,
+          "stderr": "",
+          "stdout_bytes": 13419,
+          "stdout_sha256": "d772b0558507e9e976f80b2957c249d172e021f28ac440f4955a99a1c6ebebe0"
+        }
+      ],
+      "compilation_database": {
+        "path": "/tmp/hepta-pedantic-repro-20261027/compile_commands.json",
+        "sha256": "14898207d9cbfc20db71d6714138c4e06d258fff039a65f240f05081afe22baa",
+        "text": "[\n  {\n    \"directory\": \"/tmp/hepta-pedantic-repro-20261027\",\n    \"file\": \"input.c\",\n    \"arguments\": [\n      \"clang\",\n      \"-std=c99\",\n      \"-pedantic-errors\",\n      \"-c\",\n      \"input.c\",\n      \"-o\",\n      \"original.o\"\n    ]\n  }\n]\n"
+      },
+      "core_sha256": "e68d628790b83bb8743adf5933b5e4d551bbe2ccc3415a283339fbd24e486ff4",
+      "importer_sha256": "b2deedfebc314c355b945d5d020b5693037301ecb8e315848994d4b51a5927d3",
+      "input": 7,
+      "macro_dump_with_pedantic_sha256": "d772b0558507e9e976f80b2957c249d172e021f28ac440f4955a99a1c6ebebe0",
+      "macro_dump_without_pedantic_sha256": "d772b0558507e9e976f80b2957c249d172e021f28ac440f4955a99a1c6ebebe0",
+      "native_receipt": {
+        "artifact_bytes": 656,
+        "artifact_sha256": "e03cfb4b60450c6d7428d36a84fa3fd44bff465210105082c77b898ea428d8d0",
+        "binary_inventory": {
+          "defined": [
+            "c_bool_to_int",
+            "c_probe"
+          ],
+          "undefined": []
+        },
+        "claims": {
+          "backend_refinement_proved": false,
+          "c_codegen_used": false,
+          "cross_target_execution_qualified": false,
+          "fallback_used": false,
+          "foreign_buffer_entrypoints_exposed": false,
+          "native_execution_qualified": false,
+          "rust_codegen_used": false,
+          "rust_reference_required": false,
+          "source_ast_required": false,
+          "standalone_core_reverified": true,
+          "whole_language_soundness_proved": false
+        },
+        "core_sha256": "e68d628790b83bb8743adf5933b5e4d551bbe2ccc3415a283339fbd24e486ff4",
+        "exports": [
+          "c_bool_to_int",
+          "c_probe"
+        ],
+        "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+        "flags": [
+          "--target=x86_64-unknown-linux-gnu",
+          "-x",
+          "ir",
+          "-O3",
+          "-fPIC",
+          "-c"
+        ],
+        "implementation_sha256": "df034f2fba2f6356c7d56af6dbd10a87b8986b6d2c8e0360c7c1227b434ea99f",
+        "input_sha256": "e68d628790b83bb8743adf5933b5e4d551bbe2ccc3415a283339fbd24e486ff4",
+        "kind": "object",
+        "llvm_ir_sha256": "b5805bf040af0d65c084d8c16d20c79cef6f0255235e530ca15a72663c202436",
+        "ok": true,
+        "output": "/tmp/hepta-pedantic-repro-20261027/before/hia.o",
+        "profile": "hepta.hia.program.llvm-linux-x86_64.v1",
+        "runtime_assumptions": [
+          "Linux LP64 target with 64-bit pointers and size_t",
+          "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+          "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+          "C free accepts a live allocation from calloc or malloc, or null",
+          "abort terminates execution; no cleanup after traps is promised",
+          "native compiler, linker, loader, libc and host hardware are trusted"
+        ],
+        "schema": "hepta.hia.program.native.v1",
+        "status": "native_compiled_not_executed",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "default_target": "x86_64-pc-linux-gnu",
+          "path": "/usr/lib/llvm-20/bin/clang",
+          "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+          "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+        }
+      },
+      "observations": {
+        "hia_interpreter": 8,
+        "hia_native": 8,
+        "original_native": 9
+      },
+      "phase": "before",
+      "source": {
+        "path": "/tmp/hepta-pedantic-repro-20261027/input.c",
+        "sha256": "dcb5f142b1f3c2eb59f11c82e529ec996a364b26b618d5e7b29d60b84d589688",
+        "text": "#if __has_extension(c_static_assert)\nunsigned probe(unsigned x) { return x + 1u; }\n#else\nunsigned probe(unsigned x) { return x + 2u; }\n#endif\n"
+      },
+      "translated_source": "module c_project_migrated;\n\n// Safe Hepta core. C ABI bridges carry separate caller obligations.\n\nfn c_bool_to_int(value: bool) -> i32 effects {} { if value { return 1; } else { return 0; } }\n\npub fn c_probe(p_x: u32) -> u32 effects {panic, write} {\n    let mut v_x: u32 = p_x;\n    return wrapping_add(v_x, (1 as u32));\n}\n"
+    },
+    {
+      "artifacts": {
+        "hia.o": {
+          "bytes": 656,
+          "path": "/tmp/hepta-pedantic-repro-20261027/after/hia.o",
+          "sha256": "b690bf2ac8ac4a9b29d3d303d2c4b6dd40c104da3bf4d548a0eb88949e005fbd"
+        },
+        "hia.so": {
+          "bytes": 15120,
+          "path": "/tmp/hepta-pedantic-repro-20261027/after/hia.so",
+          "sha256": "d8256fc51fcd3ab81d0749010ff91607cbe249443a4f77472efe2e35e1b06646"
+        },
+        "original.o": {
+          "bytes": 1016,
+          "path": "/tmp/hepta-pedantic-repro-20261027/after/original.o",
+          "sha256": "4caba535c718a6c9e07c5e9ab900650371ea5877772a32c3b714553335fefb22"
+        },
+        "original.so": {
+          "bytes": 15280,
+          "path": "/tmp/hepta-pedantic-repro-20261027/after/original.so",
+          "sha256": "33248611117e723efa00047e23eea451ffb891b5598a57f9dfe1e2c8123725cc"
+        }
+      },
+      "capture": {
+        "compiler": {
+          "executable_sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+          "path": "/usr/lib/llvm-20/bin/clang",
+          "target": "x86_64-pc-linux-gnu",
+          "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+        },
+        "configurations": [
+          {
+            "abi_model_arguments": [
+              "-std=c99",
+              "-pedantic-errors"
+            ],
+            "abi_predefined_macros_sha256": "d772b0558507e9e976f80b2957c249d172e021f28ac440f4955a99a1c6ebebe0",
+            "all_dependencies": [
+              "/tmp/hepta-pedantic-repro-20261027/input.c"
+            ],
+            "directory": "/tmp/hepta-pedantic-repro-20261027",
+            "frontend_arguments": [
+              "-std=c99",
+              "-pedantic-errors"
+            ],
+            "index": 0,
+            "local_dependencies": [
+              "/tmp/hepta-pedantic-repro-20261027/input.c"
+            ],
+            "model": {
+              "char_unsigned": false,
+              "long_bits": 64,
+              "pointer_bits": 64
+            },
+            "omitted_arguments": [
+              {
+                "argument": "-c",
+                "reason": "driver_output_or_diagnostic_flag"
+              },
+              {
+                "argument": "-o",
+                "operand": "original.o",
+                "reason": "object_output_not_executed"
+              }
+            ],
+            "original_arguments": [
+              "clang",
+              "-std=c99",
+              "-pedantic-errors",
+              "-c",
+              "input.c",
+              "-o",
+              "original.o"
+            ],
+            "predefined_macros_sha256": "d772b0558507e9e976f80b2957c249d172e021f28ac440f4955a99a1c6ebebe0",
+            "preprocessed_sha256": "42fab3bb33f77cc37667162c8ae4298ed84b90694ca9e13ce2d9618ed6c6ad87",
+            "source": "/tmp/hepta-pedantic-repro-20261027/input.c"
+          }
+        ],
+        "database": {
+          "path": "/tmp/hepta-pedantic-repro-20261027/compile_commands.json",
+          "sha256": "14898207d9cbfc20db71d6714138c4e06d258fff039a65f240f05081afe22baa"
+        },
+        "dependencies": [
+          {
+            "bytes": 142,
+            "path": "/tmp/hepta-pedantic-repro-20261027/input.c",
+            "project_input": true,
+            "sha256": "dcb5f142b1f3c2eb59f11c82e529ec996a364b26b618d5e7b29d60b84d589688"
+          }
+        ],
+        "schema": "hepta.c-build.v1",
+        "scope": "all_listed_commands_only_not_unlisted_platforms_or_configurations",
+        "sha256": "3b48df705fadaf615fe33202fd0cc0eb62a3485913587c768e7bda71a7d4d769"
+      },
+      "commands": [
+        {
+          "argv": [
+            "/usr/lib/llvm-20/bin/clang",
+            "-std=c99",
+            "-pedantic-errors",
+            "-c",
+            "/tmp/hepta-pedantic-repro-20261027/input.c",
+            "-o",
+            "/tmp/hepta-pedantic-repro-20261027/after/original.o"
+          ],
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        {
+          "argv": [
+            "/usr/lib/llvm-20/bin/clang",
+            "-shared",
+            "/tmp/hepta-pedantic-repro-20261027/after/original.o",
+            "-o",
+            "/tmp/hepta-pedantic-repro-20261027/after/original.so"
+          ],
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        {
+          "argv": [
+            "/usr/lib/llvm-20/bin/clang",
+            "-shared",
+            "/tmp/hepta-pedantic-repro-20261027/after/hia.o",
+            "-o",
+            "/tmp/hepta-pedantic-repro-20261027/after/hia.so"
+          ],
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        {
+          "argv": [
+            "/usr/lib/llvm-20/bin/clang",
+            "-std=c99",
+            "-dM",
+            "-E",
+            "-x",
+            "c",
+            "/dev/null"
+          ],
+          "returncode": 0,
+          "stderr": "",
+          "stdout_bytes": 13419,
+          "stdout_sha256": "d772b0558507e9e976f80b2957c249d172e021f28ac440f4955a99a1c6ebebe0"
+        },
+        {
+          "argv": [
+            "/usr/lib/llvm-20/bin/clang",
+            "-std=c99",
+            "-pedantic-errors",
+            "-dM",
+            "-E",
+            "-x",
+            "c",
+            "/dev/null"
+          ],
+          "returncode": 0,
+          "stderr": "",
+          "stdout_bytes": 13419,
+          "stdout_sha256": "d772b0558507e9e976f80b2957c249d172e021f28ac440f4955a99a1c6ebebe0"
+        }
+      ],
+      "compilation_database": {
+        "path": "/tmp/hepta-pedantic-repro-20261027/compile_commands.json",
+        "sha256": "14898207d9cbfc20db71d6714138c4e06d258fff039a65f240f05081afe22baa",
+        "text": "[\n  {\n    \"directory\": \"/tmp/hepta-pedantic-repro-20261027\",\n    \"file\": \"input.c\",\n    \"arguments\": [\n      \"clang\",\n      \"-std=c99\",\n      \"-pedantic-errors\",\n      \"-c\",\n      \"input.c\",\n      \"-o\",\n      \"original.o\"\n    ]\n  }\n]\n"
+      },
+      "core_sha256": "89f64b6c743691182ea668b2f6c6568d7b7277f9298b0de08286a469c2332b4e",
+      "importer_sha256": "6957280e19851ffb91783ae764e7bb76d9af1c3da63cad9b159ad8f7c78c8f37",
+      "input": 7,
+      "macro_dump_with_pedantic_sha256": "d772b0558507e9e976f80b2957c249d172e021f28ac440f4955a99a1c6ebebe0",
+      "macro_dump_without_pedantic_sha256": "d772b0558507e9e976f80b2957c249d172e021f28ac440f4955a99a1c6ebebe0",
+      "native_receipt": {
+        "artifact_bytes": 656,
+        "artifact_sha256": "b690bf2ac8ac4a9b29d3d303d2c4b6dd40c104da3bf4d548a0eb88949e005fbd",
+        "binary_inventory": {
+          "defined": [
+            "c_bool_to_int",
+            "c_probe"
+          ],
+          "undefined": []
+        },
+        "claims": {
+          "backend_refinement_proved": false,
+          "c_codegen_used": false,
+          "cross_target_execution_qualified": false,
+          "fallback_used": false,
+          "foreign_buffer_entrypoints_exposed": false,
+          "native_execution_qualified": false,
+          "rust_codegen_used": false,
+          "rust_reference_required": false,
+          "source_ast_required": false,
+          "standalone_core_reverified": true,
+          "whole_language_soundness_proved": false
+        },
+        "core_sha256": "89f64b6c743691182ea668b2f6c6568d7b7277f9298b0de08286a469c2332b4e",
+        "exports": [
+          "c_bool_to_int",
+          "c_probe"
+        ],
+        "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+        "flags": [
+          "--target=x86_64-unknown-linux-gnu",
+          "-x",
+          "ir",
+          "-O3",
+          "-fPIC",
+          "-c"
+        ],
+        "implementation_sha256": "df034f2fba2f6356c7d56af6dbd10a87b8986b6d2c8e0360c7c1227b434ea99f",
+        "input_sha256": "89f64b6c743691182ea668b2f6c6568d7b7277f9298b0de08286a469c2332b4e",
+        "kind": "object",
+        "llvm_ir_sha256": "391923856dec9f3ae908ce9a8d808adfb6e1a0f995dfff8e7f7ae46988e31e54",
+        "ok": true,
+        "output": "/tmp/hepta-pedantic-repro-20261027/after/hia.o",
+        "profile": "hepta.hia.program.llvm-linux-x86_64.v1",
+        "runtime_assumptions": [
+          "Linux LP64 target with 64-bit pointers and size_t",
+          "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+          "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+          "C free accepts a live allocation from calloc or malloc, or null",
+          "abort terminates execution; no cleanup after traps is promised",
+          "native compiler, linker, loader, libc and host hardware are trusted"
+        ],
+        "schema": "hepta.hia.program.native.v1",
+        "status": "native_compiled_not_executed",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "default_target": "x86_64-pc-linux-gnu",
+          "path": "/usr/lib/llvm-20/bin/clang",
+          "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+          "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+        }
+      },
+      "observations": {
+        "hia_interpreter": 9,
+        "hia_native": 9,
+        "original_native": 9
+      },
+      "phase": "after",
+      "source": {
+        "path": "/tmp/hepta-pedantic-repro-20261027/input.c",
+        "sha256": "dcb5f142b1f3c2eb59f11c82e529ec996a364b26b618d5e7b29d60b84d589688",
+        "text": "#if __has_extension(c_static_assert)\nunsigned probe(unsigned x) { return x + 1u; }\n#else\nunsigned probe(unsigned x) { return x + 2u; }\n#endif\n"
+      },
+      "translated_source": "module c_project_migrated;\n\n// Safe Hepta core. C ABI bridges carry separate caller obligations.\n\nfn c_bool_to_int(value: bool) -> i32 effects {} { if value { return 1; } else { return 0; } }\n\npub fn c_probe(p_x: u32) -> u32 effects {panic, write} {\n    let mut v_x: u32 = p_x;\n    return wrapping_add(v_x, (2 as u32));\n}\n"
+    }
+  ],
+  "ordinary_macro_probe": {
+    "added_or_removed_macro_definitions": [],
+    "all_twenty_calls_returned_zero": true,
+    "command_template": [
+      "/usr/lib/llvm-20/bin/clang",
+      "FLAG",
+      "-dM",
+      "-E",
+      "-x",
+      "LANGUAGE",
+      "/dev/null"
+    ],
+    "flags": [
+      "-g",
+      "-g0",
+      "-g1",
+      "-g2",
+      "-g3",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-pedantic",
+      "-pedantic-errors"
+    ],
+    "observed_same_sha256_per_language": {
+      "c": "d8fdc24fad9f90c241fff743ea5deb3f359b1ae707640c459e650175c847a587",
+      "c++": "b71ffa27464bfda2e749c3349b7116871c47826c7aed3ba92e16562c19009019"
+    },
+    "scope": "This ordinary macro inventory alone does not observe builtin feature-query operators."
+  },
+  "schema": "hepta.c-project-pedantic-counterexample.v1"
+}

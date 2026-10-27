@@ -26,6 +26,9 @@ dependency discovery, AST selection, replay and original native comparison
 builds. A later comparison command must not override the captured mode with a
 new `-O2` or `-fPIC`. Old captures that omitted these semantic options must be
 recaptured; a resealed receipt cannot authorize a different active source tree.
+The shared C/C++ capture also preserves `-pedantic-errors`, which can change
+Clang's `__has_extension` builtin operator without changing its ordinary `-dM`
+macro dump. It is a source-selection option, not an omitted diagnostic-only flag.
 
 This capture describes the listed build only. It does not establish that every
 possible platform, macro configuration or dependency version has been listed.

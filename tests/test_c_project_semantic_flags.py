@@ -60,12 +60,12 @@ class CapturedSemanticFlagsTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
 
-    def project(self, language, flags, body, *, label="source"):
+    def project(self, language, flags, body, *, label="source", standard=None):
         directory = self.root / label
         directory.mkdir()
         source = directory / ("input.cpp" if language == "c++" else "input.c")
         source.write_text(body, encoding="utf-8")
-        standard = "-std=c++20" if language == "c++" else "-std=c11"
+        standard = standard or ("-std=c++20" if language == "c++" else "-std=c11")
         compiler = CLANGXX if language == "c++" else CLANG
         argv = ["clang++" if language == "c++" else "clang", standard, *flags,
                 "-c", source.name, "-o", "original.o"]
@@ -153,11 +153,52 @@ class CapturedSemanticFlagsTests(unittest.TestCase):
                     self.lower(language, database, compiler)
                 self.assertEqual(caught.exception.code, code)
 
+    def test_pedantic_errors_preserves_feature_selected_body_without_macro_dump_changes(self):
+        # __has_extension is a builtin preprocessing operator, not an ordinary
+        # macro definition. -dM alone cannot detect its changed answer.
+        body = ("#if __has_extension(c_static_assert)\n"
+                + self.function("c", "x + 1u") + "#else\n"
+                + self.function("c", "x + 2u") + "#endif\n")
+        observed, macros = [], []
+        for index, flags in enumerate(([], ["-pedantic-errors"])):
+            with self.subTest(flags=flags):
+                directory, database, source, compiler, options = self.project(
+                    "c", flags, body, label="pedantic" + str(index), standard="-std=c99")
+                macros.append(self.native_command(
+                    [compiler, *options, "-dM", "-E", "-x", "c", "/dev/null"], directory).stdout)
+                self.native_command([compiler, *options, "-c", source, "-o", "original.o"], directory)
+                self.native_command([compiler, "-shared", "original.o", "-o", "original.so"], directory)
+                original = self.observe(directory / "original.so", "probe")
+                observed.append(original)
+                program, symbol, capture = self.lower("c", database, compiler)
+                interpreted = execute_program(program, symbol, [7])
+                self.assertEqual(interpreted["status"], "returned")
+                self.assertEqual(interpreted["result"], original)
+                build_program_native(program, directory / "hia.o", clang=CLANG, kind="object")
+                self.native_command([CLANG, "-shared", "hia.o", "-o", "hia.so"], directory)
+                self.assertEqual(self.observe(directory / "hia.so", symbol), original)
+                verify_capture(capture)
+        self.assertEqual(observed, [8, 9])
+        self.assertEqual(macros[0], macros[1])
+
+    def test_feature_selected_dependencies_cannot_hide_rejected_declarations(self):
+        body = '#if !__has_extension(c_static_assert)\n#include "active.h"\n#endif\n'
+        body += self.function("c", "x")
+        directory, database, _, compiler, _ = self.project(
+            "c", ["-pedantic-errors"], body, standard="-std=c99")
+        header = directory / "active.h"
+        header.write_text("unsigned unsupported_global = 9u;\n", encoding="utf-8")
+        capture = capture_project(database, clang=compiler)
+        self.assertIn(str(header), capture["configurations"][0]["local_dependencies"])
+        with self.assertRaises(MigrationRejected) as caught:
+            self.lower("c", database, compiler)
+        self.assertEqual(caught.exception.code, "E_C_TOPLEVEL")
+
     def test_resealed_capture_cannot_reclassify_semantic_options_as_omitted(self):
         _, database, _, compiler, _ = self.project(
-            "c++", ["-O2", "-fpic"], self.function("c++", "x"))
+            "c++", ["-O2", "-fpic", "-pedantic-errors"], self.function("c++", "x"))
         capture = capture_project(database, clang=compiler, language="c++")
-        for option in ("-O2", "-fpic"):
+        for option in ("-O2", "-fpic", "-pedantic-errors"):
             with self.subTest(option=option):
                 forged = deepcopy(capture)
                 row = forged["configurations"][0]
