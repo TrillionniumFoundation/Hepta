@@ -17,6 +17,9 @@ from .artifact_publication import publish_verified
 
 MAX_INPUT_BYTES = 8 * 1024 * 1024
 MAX_EDITS = 64
+# Agent patch/query envelopes add layers outside the 64-level HIA Core.
+# Bound them independently before invoking the recursive stdlib JSON encoder.
+MAX_AGENT_JSON_DEPTH = 128
 PATCH_SCHEMA = "hepta.hia.patch.v1"
 PATCH_SCHEMA_V2 = "hepta.hia.patch.v2"
 
@@ -123,11 +126,13 @@ def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True):
     try:
         # A preflight rejects a giant string *before* JSONEncoder builds
         # one huge escaped fragment. Iterative DFS also rejects cycles.
-        pending = [(value, False)]
+        pending = [(value, False, 0)]
         active = set()
         nodes, queued = 0, 1
         while pending:
-            node, leaving = pending.pop()
+            node, leaving, depth = pending.pop()
+            if depth > MAX_AGENT_JSON_DEPTH:
+                _reject("JSON input exceeds nesting depth before encoding")
             if leaving:
                 active.remove(id(node))
                 continue
@@ -147,7 +152,7 @@ def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True):
                 if id(node) in active:
                     _reject("cyclic JSON container")
                 active.add(id(node))
-                pending.append((node, True))
+                pending.append((node, True, depth))
                 if type(node) is dict:
                     for key, child in node.items():
                         if type(key) not in (str, int, float, bool, type(None)):
@@ -161,9 +166,9 @@ def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True):
                                 _reject("JSON key exceeds numeric byte budget")
                             if len(str(key)) + 2 > maximum:
                                 _reject("JSON key exceeds byte budget")
-                        pending.append((child, False))
+                        pending.append((child, False, depth + 1))
                 else:
-                    pending.extend((child, False) for child in node)
+                    pending.extend((child, False, depth + 1) for child in node)
             elif type(node) is str:
                 _bounded_json_string_size(node, maximum, ensure_ascii)
             elif type(node) is int:

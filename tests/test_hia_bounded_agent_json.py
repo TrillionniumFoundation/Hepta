@@ -7,7 +7,7 @@ import unittest
 from unittest import mock
 
 from hepta.hia_program import verify_program
-from hepta.hia_program_tools import (HIAEditRejected, MAX_INPUT_BYTES, PATCH_SCHEMA,
+from hepta.hia_program_tools import (HIAEditRejected, MAX_AGENT_JSON_DEPTH, MAX_INPUT_BYTES, PATCH_SCHEMA,
                                      apply_program_patch, bounded_json_wire)
 from hepta.hia_edit_query import apply_edit, prepare_edit
 from hepta.hia_edit_batch import apply_batch, prepare_batch
@@ -60,6 +60,23 @@ class BoundedAgentJSONTests(unittest.TestCase):
             encoder.assert_not_called()
         self.assertEqual(bounded_json_wire([0] * 1023, 2048),
                          json.dumps([0] * 1023, separators=(",", ":")).encode())
+
+    def test_nesting_depth_refused_before_recursive_json_encoder(self):
+        # Node/byte limits are insufficient for a deeply nested but tiny
+        # in-memory request. Refuse at the DFS boundary, before iterencode.
+        legal = 0
+        for _ in range(MAX_AGENT_JSON_DEPTH):
+            legal = [legal]
+        expected = json.dumps(legal, separators=(",", ":")).encode("utf-8")
+        self.assertEqual(bounded_json_wire(legal, 4096), expected)
+        for wrapper in (lambda v: [v], lambda v: {"child": v}, lambda v: (v,)):
+            too_deep = wrapper(legal)
+            with self.subTest(wrapper=wrapper):
+                with mock.patch("hepta.hia_program_tools.json.JSONEncoder.iterencode",
+                                side_effect=AssertionError("must fail before JSON encoder")) as encode:
+                    with self.assertRaisesRegex(HIAEditRejected, "nesting depth"):
+                        bounded_json_wire(too_deep, 4096)
+                    encode.assert_not_called()
 
     def test_escaped_json_string_exceeding_budget_is_refused_before_encoder(self):
         # Raw string size may be below the budget even when a single encoded
