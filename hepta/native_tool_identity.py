@@ -24,33 +24,28 @@ def _identity(st: os.stat_result) -> tuple[int, int, int, int, int]:
     return (st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns)
 
 
-def digest_executable(path: str | Path) -> str:
-    """Hash a regular compiler file in bounded RAM, verifying its file identity.
+def update_stable_regular_hash(hasher, path: str | Path, *,
+                               max_bytes: int = MAX_EXECUTABLE_BYTES,
+                               allow_empty: bool = False) -> None:
+    """Stream stable raw file bytes into an existing digest without following links.
 
-    The same stable inode and metadata must be observed before and after
-    reading, both through the opened descriptor and the named path. A compiler
-    replacement, truncated executable, symlink redirection or special-file
-    path fails closed. Calling this before AND after native compilation helps
-    detect a changed compiler without reading the entire binary into memory.
+    Shared by real compiler binary identity and the source-byte compiler hash;
+    callers may preserve their original byte envelope around the streamed data.
     """
+    if type(max_bytes) is not int or max_bytes < 1 or type(allow_empty) is not bool:
+        raise ToolIdentityRejected("E_TOOL_IDENTITY: invalid source-size policy")
     path = Path(path)
     try:
-        # Callers already resolve the selected compiler executable before
-        # calling. Here lstat explicitly rejects a later path re-binding.
         before = path.lstat()
-        if (not stat.S_ISREG(before.st_mode) or
-                not 0 < before.st_size <= MAX_EXECUTABLE_BYTES):
-            raise ToolIdentityRejected("E_TOOL_IDENTITY: compiler must be a bounded regular file")
-        digest = sha256()
-        # Never do a blocking Path.open after a regular-file lstat: a path
-        # rebinding to a FIFO can hang before fstat gets to reject it.
-        # O_BINARY preserves raw image bytes on Windows; other flags are
-        # available on qualified POSIX/Linux native hosts.
+        if (not stat.S_ISREG(before.st_mode)
+                or not (0 if allow_empty else 1) <= before.st_size <= max_bytes):
+            raise ToolIdentityRejected("E_TOOL_IDENTITY: expected bounded ordinary file")
+        if os.name == "posix" and (not hasattr(os, "O_NOFOLLOW")
+                                  or not hasattr(os, "O_NONBLOCK")):
+            raise ToolIdentityRejected("E_TOOL_IDENTITY: no-follow nonblocking gate missing")
         flags = (os.O_RDONLY | getattr(os, "O_NONBLOCK", 0)
                  | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0)
                  | getattr(os, "O_BINARY", 0))
-        if os.name == "posix" and not hasattr(os, "O_NONBLOCK"):
-            raise ToolIdentityRejected("E_TOOL_IDENTITY: nonblocking regular-file gate unavailable")
         fd = os.open(path, flags)
         try:
             stream = os.fdopen(fd, "rb")
@@ -58,9 +53,9 @@ def digest_executable(path: str | Path) -> str:
             os.close(fd)
             raise
         with stream:
-            opened = os.fstat(stream.fileno())
-            if not stat.S_ISREG(opened.st_mode) or _identity(opened) != _identity(before):
-                raise ToolIdentityRejected("E_TOOL_IDENTITY: compiler file changed before hashing")
+            initial = os.fstat(stream.fileno())
+            if not stat.S_ISREG(initial.st_mode) or _identity(initial) != _identity(before):
+                raise ToolIdentityRejected("E_TOOL_IDENTITY: file replaced before read")
             total = 0
             limit = before.st_size + 1
             while total < limit:
@@ -68,15 +63,22 @@ def digest_executable(path: str | Path) -> str:
                 if not block:
                     break
                 total += len(block)
-                digest.update(block)
-            after_fd = os.fstat(stream.fileno())
-            if total != before.st_size or _identity(after_fd) != _identity(before):
-                raise ToolIdentityRejected("E_TOOL_IDENTITY: compiler file changed while hashing")
-        after_path = path.lstat()
-        if not stat.S_ISREG(after_path.st_mode) or _identity(after_path) != _identity(before):
-            raise ToolIdentityRejected("E_TOOL_IDENTITY: compiler path changed while hashing")
-        return digest.hexdigest()
+                hasher.update(block)
+            after = os.fstat(stream.fileno())
+            if total != before.st_size or _identity(after) != _identity(before):
+                raise ToolIdentityRejected("E_TOOL_IDENTITY: file mutated during read")
+        final = path.lstat()
+        if not stat.S_ISREG(final.st_mode) or _identity(final) != _identity(before):
+            raise ToolIdentityRejected("E_TOOL_IDENTITY: file path replaced")
     except ToolIdentityRejected:
         raise
     except (OSError, ValueError, OverflowError) as exc:
-        raise ToolIdentityRejected("E_TOOL_IDENTITY: unable to verify compiler regular-file identity") from exc
+        raise ToolIdentityRejected("E_TOOL_IDENTITY: unable to hash stable ordinary file") from exc
+
+
+def digest_executable(path: str | Path) -> str:
+    """Stable compiler executable SHA-256 using the shared bounded reader."""
+    h = sha256()
+    update_stable_regular_hash(h, path, max_bytes=MAX_EXECUTABLE_BYTES,
+                               allow_empty=False)
+    return h.hexdigest()

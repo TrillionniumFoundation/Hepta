@@ -67,6 +67,45 @@ class ReleaseEvidenceIdentityTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "E_UNSAFE_GATE_EVIDENCE"):
                 release_check._read_regular_evidence(path)
 
+    @unittest.skipUnless(hasattr(os, "mkfifo") and hasattr(os, "O_NONBLOCK"),
+                         "POSIX nonblocking FIFO required")
+    def test_regular_evidence_fifo_swap_is_rejected_without_blocking(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "report.json"
+            previous = Path(directory) / "original.json"
+            path.write_bytes(b'{"status":"passed"}')
+            original_open = os.open
+            opened = []
+            def swap(name, flags, *args, **kwargs):
+                self.assertTrue(flags & os.O_NOFOLLOW)
+                self.assertTrue(flags & os.O_NONBLOCK)
+                opened.append(flags)
+                path.rename(previous)
+                os.mkfifo(path)
+                return original_open(name, flags, *args, **kwargs)
+            with patch.object(release_check.os, "open", side_effect=swap):
+                with self.assertRaisesRegex(ValueError, "E_UNSAFE_GATE_EVIDENCE"):
+                    release_check._read_regular_evidence(path)
+            self.assertEqual(len(opened), 1)
+            self.assertEqual(previous.read_bytes(), b'{"status":"passed"}')
+
+    def test_oversize_sparse_json_refused_without_opening(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "huge.json"
+            with path.open("wb") as stream:
+                stream.truncate(release_check.MAX_RELEASE_EVIDENCE_BYTES + 1)
+            with patch.object(release_check.os, "open",
+                              side_effect=AssertionError("oversize input was opened")):
+                with self.assertRaisesRegex(ValueError, "E_OVERSIZED_GATE_EVIDENCE"):
+                    release_check._read_regular_evidence(path)
+
+    def test_empty_evidence_is_not_qualified(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "empty.json"
+            path.write_bytes(b"")
+            with self.assertRaisesRegex(ValueError, "E_OVERSIZED_GATE_EVIDENCE"):
+                release_check._read_regular_evidence(path)
+
     def test_path_substitution_between_check_and_open_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "current.json"

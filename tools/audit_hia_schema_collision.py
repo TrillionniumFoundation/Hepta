@@ -49,12 +49,16 @@ def _read(path: Path) -> bytes:
     swapped in between those operations. Keep O_NOFOLLOW and verify the same
     file-descriptor identity before and after consuming bounded bytes.
     """
-    if not hasattr(os, "O_NOFOLLOW"):
-        _fail("no-follow file descriptors are required for source auditing")
+    if not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_NONBLOCK"):
+        _fail("no-follow, nonblocking file descriptors are required for source auditing")
     before = path.lstat()
     if not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= MAX_SOURCE_BYTES:
         _fail("expected bounded ordinary source file")
-    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0))
+    # O_NOFOLLOW alone does not protect an lstat/open race: a substituted
+    # FIFO would block inside open(), before fstat can reject it. O_NONBLOCK
+    # makes descriptor admission fail closed for FIFOs and device-like inputs.
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+                 | getattr(os, "O_CLOEXEC", 0))
     try:
         opened = os.fstat(fd)
         identity = lambda s: (s.st_dev, s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns)

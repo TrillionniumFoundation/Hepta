@@ -21,6 +21,10 @@ sys.path.insert(0, str(ROOT))
 from hepta.pipeline import compiler_hash
 
 
+# JSON qualification reports are separate from large retained binary artifacts.
+MAX_RELEASE_EVIDENCE_BYTES = 64 * 1024 * 1024
+
+
 
 def _evidence_state(path: Path):
     """Capture the *path entry*, not the target of a symlink."""
@@ -44,7 +48,13 @@ def _read_regular_evidence(path: Path):
         raise ValueError("E_MISSING_GATE_EVIDENCE: producer did not create a report")
     if not stat.S_ISREG(before[2]):
         raise ValueError("E_UNSAFE_GATE_EVIDENCE: report is not a regular file")
-    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    if not 0 < before[3] <= MAX_RELEASE_EVIDENCE_BYTES:
+        raise ValueError("E_OVERSIZED_GATE_EVIDENCE: bounded JSON report required")
+    if not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_NONBLOCK"):
+        raise ValueError("E_UNSAFE_GATE_EVIDENCE: no-follow nonblocking descriptors required")
+    # Do not block when a checked regular pathname is replaced by a FIFO.
+    flags = (os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+             | getattr(os, "O_CLOEXEC", 0))
     with os.fdopen(os.open(path, flags), "rb") as stream:
         def identity():
             current = os.fstat(stream.fileno())
@@ -52,7 +62,9 @@ def _read_regular_evidence(path: Path):
                     current.st_size, current.st_mtime_ns, current.st_ctime_ns)
         if identity() != before:
             raise ValueError("E_UNSAFE_GATE_EVIDENCE: report changed before opening")
-        data = stream.read()
+        data = stream.read(MAX_RELEASE_EVIDENCE_BYTES + 1)
+        if len(data) != before[3] or len(data) > MAX_RELEASE_EVIDENCE_BYTES:
+            raise ValueError("E_UNSAFE_GATE_EVIDENCE: extent changed during bounded read")
         if identity() != before:
             raise ValueError("E_UNSAFE_GATE_EVIDENCE: report changed while reading")
     if _evidence_state(path) != before:
@@ -60,13 +72,77 @@ def _read_regular_evidence(path: Path):
     return data, before
 
 
+# Source files are hashed separately from qualification JSON. A streamed,
+# bounded snapshot must not follow symlinks, materialize entire large files,
+# or block after a regular-file -> FIFO swap during untrusted local editing.
+MAX_SOURCE_SNAPSHOT_FILE_BYTES = 64 * 1024 * 1024
+SOURCE_SNAPSHOT_CHUNK_BYTES = 1024 * 1024
+
+
+def _stable_source_digest(path: Path) -> str:
+    """Hash one exact ordinary source inode with bounded memory and no-follow I/O.
+
+    This is a point-in-time filesystem/source identity gate, not a guarantee
+    against later noncooperating writes or a remote toolchain attestation.
+    """
+    before = _evidence_state(path)
+    if (before is None or not stat.S_ISREG(before[2])
+            or not 0 <= before[3] <= MAX_SOURCE_SNAPSHOT_FILE_BYTES):
+        raise ValueError("E_SOURCE_SNAPSHOT_UNSAFE: not a bounded ordinary file")
+    if not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_NONBLOCK"):
+        raise ValueError("E_SOURCE_SNAPSHOT_UNSAFE: no-follow nonblocking I/O required")
+    flags = (os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+             | getattr(os, "O_CLOEXEC", 0))
+    try:
+        with os.fdopen(os.open(path, flags), "rb") as stream:
+            fd = stream.fileno()
+
+            def identity():
+                current = os.fstat(fd)
+                return (current.st_dev, current.st_ino, current.st_mode,
+                        current.st_size, current.st_mtime_ns, current.st_ctime_ns)
+
+            if identity() != before or _evidence_state(path) != before:
+                raise ValueError("E_SOURCE_SNAPSHOT_RACE: replaced before read")
+            digest = hashlib.sha256()
+            remaining = before[3]
+            while remaining:
+                block = stream.read(min(remaining, SOURCE_SNAPSHOT_CHUNK_BYTES))
+                if not block:
+                    raise ValueError("E_SOURCE_SNAPSHOT_RACE: truncated source")
+                digest.update(block)
+                remaining -= len(block)
+            if stream.read(1) or identity() != before:
+                raise ValueError("E_SOURCE_SNAPSHOT_RACE: changed during hash")
+        if _evidence_state(path) != before:
+            raise ValueError("E_SOURCE_SNAPSHOT_RACE: source pathname replaced")
+    except OSError as exc:
+        raise ValueError("E_SOURCE_SNAPSHOT_UNSAFE: source file unavailable") from exc
+    return digest.hexdigest()
+
+
 def snapshot():
-    # Generated evidence is bound separately, avoiding a self-referential hash.
+    """Immutable content inventory of the selected source tree at this instant.
+
+    All enumerated non-directory, non-excluded entries must be ordinary files.
+    An opaque symlink/special-file entry cannot silently disappear from the
+    inventory. Generated qualification evidence remains excluded.
+    """
     excluded = {".git", "__pycache__", "artifacts", "evidence", "build", ".venv"}
     files = {}
     for p in sorted(ROOT.rglob("*")):
-        if p.is_file() and not excluded.intersection(p.relative_to(ROOT).parts) and p.suffix not in {".pyc", ".bundle"} and not p.name.endswith(".hepta-lock"):
-            files[str(p.relative_to(ROOT))] = hashlib.sha256(p.read_bytes()).hexdigest()
+        relative = p.relative_to(ROOT)
+        if (excluded.intersection(relative.parts) or p.suffix in {".pyc", ".bundle"}
+                or p.name.endswith(".hepta-lock")):
+            continue
+        info = _evidence_state(p)
+        if info is None:
+            raise ValueError("E_SOURCE_SNAPSHOT_RACE: listed source disappeared")
+        if stat.S_ISDIR(info[2]):
+            continue
+        if not stat.S_ISREG(info[2]):
+            raise ValueError("E_SOURCE_SNAPSHOT_UNSAFE: symlink or special source entry")
+        files[str(relative)] = _stable_source_digest(p)
     identity = hashlib.sha256(json.dumps(files, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     return {"sha256": identity, "files": files}
 
