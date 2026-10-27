@@ -147,6 +147,22 @@ def snapshot():
     return {"sha256": identity, "files": files}
 
 
+
+def source_snapshot_delta(before, after):
+    """Stable path-level drift from two completed source inventories.
+
+    The delta is diagnostic only. A changed snapshot still fails release
+    qualification, even when all individual commands succeeded.
+    """
+    old = before["files"]
+    new = after["files"]
+    return [
+        {"path": path, "before_sha256": old.get(path), "after_sha256": new.get(path)}
+        for path in sorted(old.keys() | new.keys())
+        if old.get(path) != new.get(path)
+    ]
+
+
 def _unittest_passed_count(stderr: str) -> int:
     """Count only a completed, unskipped terminal unittest stderr report.
 
@@ -1096,6 +1112,8 @@ def main(argv=None):
         if gate["status"] != "passed" and not args.continue_on_failure:
             break
     after = snapshot()
+    report["source_snapshot_after_sha256"] = after["sha256"]
+    report["source_snapshot_changes"] = source_snapshot_delta(before, after)
     report["snapshot_unchanged"] = before == after
     report["status"] = "passed" if len(report["gates"]) == len(commands) and all(g["status"] == "passed" for g in report["gates"]) and before == after else "failed"
     report["completed_utc"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
