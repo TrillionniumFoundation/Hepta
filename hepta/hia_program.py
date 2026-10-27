@@ -17,6 +17,8 @@ from hashlib import sha256
 import json
 import re
 
+from .hia_json_preflight import preflight_hia_json
+
 
 SCHEMA = "hepta.hia.program.v1"
 SCHEMA_V2 = "hepta.hia.program.v2"
@@ -137,6 +139,15 @@ def _decode(value):
         if type(value) is str:
             if len(value.encode("utf-8")) > MAX_BYTES:
                 _reject("program exceeds byte budget", "E_HIA_LIMIT")
+            # Budget must be enforced *before* JSON value materialization.
+            # The preflight only counts syntax; the existing stdlib JSON
+            # decoder and the HIA semantic verifier remain authoritative.
+            try:
+                preflight_hia_json(value, max_nodes=MAX_NODES, max_depth=MAX_DEPTH)
+            except OverflowError as exc:
+                raise HIAProgramRejected(
+                    "program exceeds structural budget before JSON allocation",
+                    "E_HIA_LIMIT") from exc
             value = json.loads(value, object_pairs_hook=_unique_pairs,
                                parse_constant=_bad_constant)
         _structure(value)
