@@ -35,26 +35,12 @@ fn checked_and_wrapping_u64_arithmetic_are_distinct() {
     assert_eq!(run(&doc, "calculate", vec![json!(u64::MAX),json!(u64::MAX)], 100)["values"], json!([1]));
 }
 #[test]
-fn explicit_scalar_exports_are_verified_and_private_entries_refused() {
+fn old_scalar_v6_profile_rejects_an_unreviewed_exports_field() {
     let mut doc = machine("int.add.wrap", "u32", vec![]);
-    let args = vec![json!(2), json!(3)];
-
-    // No explicit export list retains v1's historical scalar entry behavior.
-    assert_eq!(run(&doc, "calculate", args.clone(), 100)["values"], json!([5]));
     doc["exports"] = json!(["calculate"]);
-    assert_eq!(run(&doc, "calculate", args.clone(), 100)["values"], json!([5]));
-
-    // This is a source-free public-call restriction, not a producer claim.
-    doc["exports"] = json!([]);
-    assert!(execute_scalar(&serde_json::to_vec(&doc).unwrap(),
-                           "calculate", &args, 100).is_err());
-    doc["exports"] = json!(["ghost"]);
-    assert!(execute_scalar(&serde_json::to_vec(&doc).unwrap(),
-                           "calculate", &args, 100).is_err());
-    doc["exports"] = json!(["calculate", "calculate"]);
-    assert!(execute_scalar(&serde_json::to_vec(&doc).unwrap(),
-                           "calculate", &args, 100).is_err());
-    doc["exports"] = json!([true]);
+    let args = vec![json!(2), json!(3)];
+    // The Python canonical v1-v6 program grammar does not admit exports.
+    // That feature belongs to the separately integrated v7 lineage.
     assert!(execute_scalar(&serde_json::to_vec(&doc).unwrap(),
                            "calculate", &args, 100).is_err());
 }

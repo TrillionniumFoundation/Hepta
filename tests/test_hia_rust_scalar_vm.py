@@ -185,37 +185,13 @@ class RustScalarVmParity(unittest.TestCase):
                 else:
                     self.assertEqual(rust["error"]["code"], python["error"]["code"])
 
-    def test_explicit_public_exports_and_internal_calls_match_canonical_core(self):
+    def test_old_v6_canonical_core_rejects_explicit_exports(self):
         source = nested_calls()
         source["exports"] = ["outer"]
-        canonical = verify_program(source)
-        # Exported outer may call an unexported internal twice() helper.
-        rust = self.rust(source, "outer", [7])
-        python = execute_program(source, "outer", [7], max_call_depth=32)
-        self.assertEqual(rust["status"], "returned")
-        self.assertEqual(rust["values"], python["values"])
-        self.assertEqual(rust["steps"], python["steps"])
-
-        # The helper is still a valid internal scalar function, but is not
-        # externally callable through either public VM interface.
-        with self.assertRaises(HIAProgramRejected):
-            execute_program(source, "twice", [7], max_call_depth=32)
-        unauthorized = subprocess.run([
-            "cargo", "run", "--quiet", "--offline", "--manifest-path", str(MANIFEST),
-            "--", "--scalar-run", "twice", "[7]"
-        ], input=canonical.canonical_bytes, cwd=ROOT, capture_output=True, timeout=60)
-        self.assertNotEqual(unauthorized.returncode, 0)
-
-        for selected in ([], ["outer", "outer"], ["missing"], [False]):
-            mutated = nested_calls()
-            mutated["exports"] = selected
-            if selected == []:
-                self.assertEqual(verify_program(mutated).scalar_entrypoints, frozenset())
-                with self.assertRaises(HIAProgramRejected):
-                    execute_program(mutated, "outer", [7], max_call_depth=32)
-            else:
-                with self.assertRaises(HIAProgramRejected):
-                    verify_program(mutated)
+        # An independent Rust shadow must not be credited with parity for
+        # a top-level field the canonical Python v6 Core does not recognize.
+        with self.assertRaisesRegex(HIAProgramRejected, "E_HIA_FORMAT"):
+            verify_program(source)
 
     def test_recursive_depth_boundary_and_budget_ticks_match_exactly(self):
         for n in (0, 1, 31, 32, 33):

@@ -54,27 +54,22 @@ refinement, cross-target ABI, arbitrary C/C++, held-out AI-agent benefit,
 physical devices and sustained performance.
 `whole_project_blockers_closed=false`.
 
-## Follow-up P2: explicit scalar export-list parity
+## Version-scoped correction: v6 exports are not supported
 
-The canonical standalone Core accepts optional `exports` and checks every
-listed function, including an empty list meaning no public entrypoints.
-The Rust scalar verifier originally rejected the entire optional field,
-preventing independent differential verification of valid exported HIA
-modules. This candidate extends the **existing** Rust scalar-only verifier,
-without introducing a new schema or capability type.
+The original P2 v1–v6 canonical Python `verify_program` rejects a
+top-level `exports` field. A previous follow-up attempted to enable that
+field in the experimental Rust scalar shadow and added Python↔Rust positive
+tests on this v6 branch; these tests were incompatible with the actual
+canonical v6 language grammar.
 
-- The optional top-level key is admitted only with exact strict structure.
-- Each export is a unique, existing valid identifier; no duplicate, unknown,
-  bool or malformed export is accepted. All signatures in this Rust shadow
-  remain scalar-only by its existing whole-module checker.
-- `execute_scalar` must refuse an unexported entry even when the same
-  internal helper is available via an admitted exported call.
-- Absence of `exports` retains the original scalar public-entry behavior.
+The standalone v6 Rust shadow is now returned to the same closed top-level
+field set, and negative Rust/Python tests preserve the refusal. The
+`exports`-aware Rust extension and corresponding positive differential
+tests are developed only on the separate **v7-capable** integration PR #282,
+where `hepta.hia_program.verify_program` actually supports this field.
 
-Direct Rust adversarial tests and the real Python↔Rust optional-export
-differential are now committed; neither has executed on this exact SHA
-because Cargo and complete GitHub checkout are unavailable locally. This
-only broadens finite Rust scalar shadow correspondence, **not** full
-program/Owner/Core/LLVM refinement or production external authorization.
-
+This correction does not change the recursion parity repair. Root depth=0,
+first refused depth=33 and exact 66 ticks for the infinite-recursive
+fixture remain in the current candidate. Cargo, full repository native and
+LLVM tests remain NOT RUN on this new exact HEAD.
 `whole_project_blockers_closed=false`.

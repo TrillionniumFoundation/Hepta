@@ -260,17 +260,6 @@ pub fn execute_scalar(input: &[u8], function: &str, arguments: &[Value],
     })?;
     let by_name: BTreeMap<&str, &Value> = functions.iter()
         .map(|f| (f["name"].as_str().unwrap_or(""), f)).collect();
-    // Full-module verify already checked exact export name/shape/uniqueness.
-    // A private scalar helper may be called internally but cannot be
-    // invoked directly from the external Rust-shadow entrypoint.
-    if let Some(exports) = document.get("exports") {
-        let Some(export_list) = exports.as_array() else {
-            return failure("E_HIA_INPUT", "malformed explicit scalar exports");
-        };
-        if !export_list.iter().any(|value| value.as_str() == Some(function)) {
-            return failure("E_HIA_INPUT", "function is not an exported scalar entry");
-        }
-    }
     let Some(entry) = by_name.get(function) else {
         return failure("E_HIA_INPUT", "unknown public scalar entry");
     };

@@ -536,15 +536,7 @@ pub fn verify_owned(input: &[u8]) -> R<Value> {
 /// or production final-use authorization.
 pub fn verify(input: &[u8]) -> R<Value> {
     let (doc, _canonical_bytes) = decode_hia(input)?;
-    // A verified standalone scalar program may explicitly restrict the
-    // public entrypoints. This field is part of executable Core identity,
-    // not an untrusted producer permission or a second schema authority.
-    let top_keys: &[&str] = if doc.get("exports").is_some() {
-        &["schema", "module", "functions", "exports"]
-    } else {
-        &["schema", "module", "functions"]
-    };
-    let top = object(&doc, top_keys, "program")?;
+    let top = object(&doc, &["schema", "module", "functions"], "program")?;
     let schema = string(&top["schema"], "schema")?;
     if !matches!(schema, "hepta.hia.program.v1" | "hepta.hia.program.v2"
         | "hepta.hia.program.v3" | "hepta.hia.program.v4"
@@ -573,22 +565,6 @@ pub fn verify(input: &[u8]) -> R<Value> {
         };
         if signatures.insert(name, sig).is_some() {
             return failure("E_HIA_NAME", "duplicate function name");
-        }
-    }
-    // Match canonical verify_program's explicit scalar-export contract.
-    // The whole Rust shadow module is scalar-only; exported names must still
-    // be unique, existing and valid. An empty list exports nothing.
-    if let Some(export_list) = top.get("exports") {
-        let exports = array(export_list, "explicit scalar exports")?;
-        let mut seen = BTreeSet::new();
-        for entry in exports {
-            let name = ident(entry)?;
-            if !signatures.contains_key(&name) {
-                return failure("E_HIA_CALL", "export references a missing function");
-            }
-            if !seen.insert(name) {
-                return failure("E_HIA_NAME", "duplicate explicit scalar export");
-            }
         }
     }
     let mut blocks_checked = 0;
