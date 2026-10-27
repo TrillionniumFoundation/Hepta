@@ -12,7 +12,10 @@ of process signals and kernel-worker creation. It did **not** block:
 - System V IPC (shared memory, semaphores, message queues): 29-31, 64-71, 220;
 - persistent kernel keyring operations: 248-250;
 - process scheduler/priority mutations: 141, 142, 144, 203, 251, 314;
-- fd duplication/rebinding via dup, dup2, dup3 and fcntl: 32, 33, 292, 72.
+- fd duplication/rebinding via dup, dup2, dup3 and fcntl: 32, 33, 292, 72;
+- POSIX message queues (separate from System V): 240-245;
+- legacy Linux asynchronous I/O contexts, including io_setup/io_submit:
+  206-210.
 
 These are not operations required by the explicitly supported finite i32/u32
 scalar oracle. Some can affect OS objects or same-user processes outside the
@@ -22,7 +25,7 @@ expected numeric value after attempting one of these calls.
 ## Exact implementation
 
 The **existing** `hepta.hia_native_differential._WORKER` filter now
-kills attempts to enter all 25 listed syscall numbers with SIGSYS before
+kills attempts to enter all 36 listed syscall numbers with SIGSYS before
 their argument parsing or side effects. The original x86-64 architecture
 and x32 checks, SIGABRT self-only tgkill policy, loader environment isolation,
 read-only file access, sealed native memfd, and post-exit group cleanup
@@ -38,13 +41,13 @@ the finite oracle prioritizes fail-closed correctness over broad FFI coverage.
 A **standalone** Linux x86-64 + Clang 17 kernel seccomp control was executed
 against a compiled DSO using a reduced filter. Before the new deny set,
 invalid-argument calls passed to the kernel and returned to the function.
-With the updated set, **all 25/25 tested syscall entrypoints terminated with
+With the updated set, **all 36/36 tested syscall entrypoints terminated with
 SIGSYS (-31)**. The healthy scalar function and read-only file open returned
 normally, while explicit abort produced SIGABRT (-6). This is a direct
 kernel-policy control, **not** a run of the full in-repository Hepta oracle.
 
 The committed `tests/test_hia_native_kernel_effect_guard.py` exercises the
-actual original sealed-memfd observer and pinned worker, with 25 distinct
+actual original sealed-memfd observer and pinned worker, with 36 distinct
 invalid-argument syscall probes, normal return, read-only and SIGABRT controls.
 Execute on a full exact branch checkout:
 
