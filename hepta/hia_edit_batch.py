@@ -13,7 +13,8 @@ from hashlib import sha256
 
 from .hia_edit_query import prepare_edit
 from .hia_program import verify_program
-from .hia_program_tools import HIAEditRejected, PATCH_SCHEMA, apply_program_patch, decode_json
+from .hia_program_tools import (HIAEditRejected, PATCH_SCHEMA, apply_program_patch,
+                                  bounded_json_wire, decode_json)
 
 QUERY_SCHEMA = "hepta.hia.edit-batch-query.v1"
 MAX_SITES = 16
@@ -26,12 +27,13 @@ def _reject(message):
 
 
 def _wire(value):
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+    return bounded_json_wire(value, MAX_QUERY_BYTES)
 
 
 def _bounded(value, maximum, label):
     try:
-        raw = value.encode() if type(value) is str else value if type(value) is bytes else _wire(value)
+        raw = (value.encode() if type(value) is str else value
+               if type(value) is bytes else bounded_json_wire(value, maximum))
     except (TypeError, ValueError, RecursionError) as exc:
         raise HIAEditRejected("E_HIA_EDIT_BATCH: invalid " + label) from exc
     if len(raw) > maximum:

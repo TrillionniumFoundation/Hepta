@@ -74,6 +74,67 @@ def _keys(value, expected, label):
         _reject(label + " requires exactly its declared fields; unknown or missing fields")
 
 
+def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True):
+    """Stream a bounded in-process JSON snapshot rather than materialize first.
+
+    This is only an input-size gate. It never authenticates or verifies HIA.
+    """
+    if type(maximum) is not int or not 0 <= maximum <= MAX_INPUT_BYTES:
+        _reject("invalid JSON output byte budget")
+    try:
+        # A preflight rejects a giant string *before* JSONEncoder builds
+        # one huge escaped fragment. Iterative DFS also rejects cycles.
+        pending = [(value, False)]
+        active = set()
+        nodes = 0
+        while pending:
+            node, leaving = pending.pop()
+            if leaving:
+                active.remove(id(node))
+                continue
+            nodes += 1
+            if nodes > maximum:
+                _reject("JSON input exceeds node/byte budget")
+            if type(node) in (dict, list, tuple):
+                # Check fanout *before* queuing child nodes: a single huge
+                # list must not allocate millions of pending DFS entries.
+                if len(node) > maximum - nodes:
+                    _reject("JSON container exceeds node/byte budget")
+                if id(node) in active:
+                    _reject("cyclic JSON container")
+                active.add(id(node))
+                pending.append((node, True))
+                if type(node) is dict:
+                    for key, child in node.items():
+                        if type(key) not in (str, int, float, bool, type(None)):
+                            _reject("unsupported JSON object key")
+                        if len(str(key)) > maximum:
+                            _reject("JSON key exceeds byte budget")
+                        pending.append((child, False))
+                else:
+                    pending.extend((child, False) for child in node)
+            elif type(node) is str:
+                if len(node) > maximum:
+                    _reject("JSON string exceeds byte budget")
+            elif type(node) not in (int, bool, float, type(None)):
+                _reject("non-JSON in-process value")
+        chunks = []
+        count = 0
+        encoder = json.JSONEncoder(ensure_ascii=ensure_ascii, sort_keys=sort_keys,
+                                   separators=(",", ":"), allow_nan=False)
+        for fragment in encoder.iterencode(value):
+            encoded = fragment.encode("utf-8")
+            count += len(encoded)
+            if count > maximum:
+                _reject("JSON encoding exceeds byte budget")
+            chunks.append(encoded)
+        return b"".join(chunks)
+    except HIAEditRejected:
+        raise
+    except (ValueError, TypeError, UnicodeError, RecursionError, OverflowError) as exc:
+        raise HIAEditRejected("E_HIA_EDIT: invalid bounded JSON") from exc
+
+
 def inspect_program(document):
     from .hia_program import verify_program
     verified = verify_program(document)
@@ -101,11 +162,9 @@ def apply_program_patch(document, request):
     if type(request) in (str, bytes):
         request = decode_json(request)
     else:
-        # Reject unbounded/non-JSON Python values before copying an edit tree.
-        try:
-            encoded = json.dumps(request, allow_nan=False, ensure_ascii=False)
-        except (TypeError, ValueError, RecursionError) as exc:
-            raise HIAEditRejected("E_HIA_EDIT: invalid patch data") from exc
+        # Enforce the same 8 MiB cap as text before JSON serialization.
+        encoded = bounded_json_wire(request, MAX_INPUT_BYTES,
+                                    ensure_ascii=False, sort_keys=False)
         request = decode_json(encoded)
     # v1 remains source-snapshot bound, but is now explicitly
     # interface-preserving. ABI/effect changes require a v2 request with
