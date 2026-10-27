@@ -10,7 +10,10 @@ from collections import deque
 from dataclasses import dataclass, field
 import hashlib
 import json
+import os
+from pathlib import Path
 import re
+import stat
 
 
 SCHEMA = "hepta.resource-ir.v3"
@@ -1003,14 +1006,55 @@ def verify_resource_ir(document: object) -> dict:
                                  "function": verifier.function, "block": verifier.block}], "claims": dict(_CLAIMS)}
 
 
-def read_resource_ir(path) -> object:
-    """Read one bounded, unambiguous resource graph for either verifier API.
+MAX_RESOURCE_JSON_BYTES = 16 * 1024 * 1024
 
-    Reading is separate from validation.  In particular, neither this loader
-    nor the data-only verifier authenticates a graph's source identity.
+
+def _read_pinned_resource_json(path: str | Path) -> bytes:
+    """Read a bounded ordinary inode; never trust a mutable path alone.
+
+    This guards *file intake* only: neither inode stability nor a JSON
+    digest authenticates the producer or proves resource-language soundness.
+    Refuse hosts without no-follow, nonblocking descriptors rather than
+    silently assuming a symlink/FIFO substitution cannot happen.
     """
-    from pathlib import Path
+    if not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_NONBLOCK"):
+        _fail("E_RIR_FILE_IO", "No-follow nonblocking file descriptors required")
+    location = Path(path)
+    before = location.lstat()
+    if not stat.S_ISREG(before.st_mode):
+        _fail("E_RIR_FILE_TYPE", "Resource graph must be an ordinary file")
+    if before.st_size > MAX_RESOURCE_JSON_BYTES:
+        _fail("E_RIR_LIMIT", "Serialized resource graph exceeds 16 MiB")
+    if before.st_size <= 0:
+        _fail("E_RIR_JSON", "Empty resource graph document")
+    identity = lambda s: (s.st_dev, s.st_ino, s.st_mode, s.st_size,
+                          s.st_mtime_ns, s.st_ctime_ns)
+    fd = os.open(location, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+                 | getattr(os, "O_CLOEXEC", 0))
+    try:
+        opened = os.fstat(fd)
+        if not stat.S_ISREG(opened.st_mode) or identity(opened) != identity(before):
+            _fail("E_RIR_FILE_IDENTITY", "Resource graph replaced before reading")
+        with os.fdopen(fd, "rb", closefd=False) as stream:
+            data = stream.read(MAX_RESOURCE_JSON_BYTES + 1)
+        after_fd, after_path = os.fstat(fd), location.lstat()
+        if (len(data) > MAX_RESOURCE_JSON_BYTES
+                or len(data) != before.st_size
+                or identity(after_fd) != identity(before)
+                or not stat.S_ISREG(after_path.st_mode)
+                or identity(after_path) != identity(before)):
+            _fail("E_RIR_FILE_IDENTITY", "Resource graph changed during reading")
+        return data
+    finally:
+        os.close(fd)
 
+
+def read_resource_ir(path) -> object:
+    """Read a pinned resource graph; verification still runs independently.
+
+    The file path, JSON and any embedded hashes are untrusted. This operation
+    never establishes source-to-Resource-IR correspondence or FinalUse.
+    """
     def unique_fields(pairs):
         result = {}
         for key, value in pairs:
@@ -1019,10 +1063,7 @@ def read_resource_ir(path) -> object:
             result[key] = value
         return result
 
-    with Path(path).open("rb") as stream:
-        data = stream.read(16 * 1024 * 1024 + 1)
-    if len(data) > 16 * 1024 * 1024:
-        _fail("E_RIR_LIMIT", "Serialized resource graph exceeds 16 MiB")
+    data = _read_pinned_resource_json(path)
     return json.loads(data.decode("utf-8"), object_pairs_hook=unique_fields,
                       parse_constant=lambda value: _fail("E_RIR_JSON", f"Invalid JSON constant: {value}"))
 
