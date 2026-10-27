@@ -1,0 +1,215 @@
+{
+  "ai_comparison_eligible": false,
+  "boundary": {
+    "inside": {
+      "capabilities": {
+        "effective": 0,
+        "inheritable": 0,
+        "no_new_privileges": 1,
+        "permitted": 0
+      },
+      "credential_in_environment": false,
+      "host_loopback": {
+        "blocked": true,
+        "errno": 111
+      },
+      "path_checks": {
+        "capsule_symlink_to_parent": {
+          "unreadable": false
+        },
+        "host_credentials_path": {
+          "errno": 2,
+          "unreadable": true
+        },
+        "parent_credentials_canary": {
+          "errno": 2,
+          "unreadable": true
+        },
+        "parent_oracle_canary": {
+          "unreadable": false
+        },
+        "parent_private_oracle_module": {
+          "errno": 2,
+          "unreadable": true
+        },
+        "proc_environment": {
+          "errno": 2,
+          "unreadable": true
+        },
+        "proc_init_root_escape": {
+          "errno": 2,
+          "unreadable": true
+        },
+        "proc_parent_root_escape": {
+          "errno": 2,
+          "unreadable": true
+        }
+      },
+      "pid": 2,
+      "ppid": 1,
+      "proc_entries": [],
+      "toolchain_read_only": true,
+      "toolchain_visible": true,
+      "usr_read_only": true
+    },
+    "namespaces": {
+      "cgroup": {
+        "child": "cgroup:[4026532291]",
+        "different": true,
+        "parent": "cgroup:[4026532204]"
+      },
+      "ipc": {
+        "child": "ipc:[4026532246]",
+        "different": true,
+        "parent": "ipc:[4026532191]"
+      },
+      "mnt": {
+        "child": "mnt:[4026532215]",
+        "different": true,
+        "parent": "mnt:[4026532201]"
+      },
+      "net": {
+        "child": "net:[4026532292]",
+        "different": true,
+        "parent": "net:[4026531833]"
+      },
+      "pid": {
+        "child": "pid:[4026532290]",
+        "different": true,
+        "parent": "pid:[4026532200]"
+      },
+      "user": {
+        "child": "user:[4026532214]",
+        "different": true,
+        "parent": "user:[4026531837]"
+      },
+      "uts": {
+        "child": "uts:[4026532218]",
+        "different": true,
+        "parent": "uts:[4026532192]"
+      }
+    },
+    "parent_listener_received_connection": false,
+    "paths": {
+      "capsule_symlink_to_parent": {
+        "host_exists": true,
+        "host_stat_errno": null,
+        "host_stat_status": "present",
+        "path": "/tmp/hepta-sandbox-qualification-jyf3xc89/capsule/parent_symlink"
+      },
+      "host_credentials_path": {
+        "host_exists": false,
+        "host_stat_errno": 2,
+        "host_stat_status": "absent",
+        "path": "/root/.aws/credentials"
+      },
+      "parent_credentials_canary": {
+        "host_exists": true,
+        "host_stat_errno": null,
+        "host_stat_status": "present",
+        "path": "/tmp/hepta-sandbox-qualification-jyf3xc89/parent_credentials_canary"
+      },
+      "parent_oracle_canary": {
+        "host_exists": true,
+        "host_stat_errno": null,
+        "host_stat_status": "present",
+        "path": "/tmp/hepta-sandbox-qualification-jyf3xc89/parent_oracle_canary"
+      },
+      "parent_private_oracle_module": {
+        "host_exists": true,
+        "host_stat_errno": null,
+        "host_stat_status": "present",
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-sandbox-observation-fix/experiments/agent_eval/_private/oracles.py"
+      },
+      "proc_environment": {
+        "host_exists": true,
+        "host_stat_errno": null,
+        "host_stat_status": "present",
+        "path": "/proc/self/environ"
+      },
+      "proc_init_root_escape": {
+        "host_exists": null,
+        "host_stat_errno": 13,
+        "host_stat_status": "unobservable",
+        "path": "/proc/1/root/tmp/hepta-sandbox-qualification-jyf3xc89/parent_oracle_canary"
+      },
+      "proc_parent_root_escape": {
+        "host_exists": true,
+        "host_stat_errno": null,
+        "host_stat_status": "present",
+        "path": "/proc/520220/root/tmp/hepta-sandbox-qualification-jyf3xc89/parent_oracle_canary"
+      }
+    },
+    "remaining_stdout": "",
+    "required_namespaces": [
+      "user",
+      "pid",
+      "ipc",
+      "mnt",
+      "net"
+    ],
+    "returncode": 0,
+    "stderr": ""
+  },
+  "checks": {
+    "capabilities_dropped": {
+      "status": "passed"
+    },
+    "credentials_not_inherited": {
+      "status": "passed"
+    },
+    "empty_proc": {
+      "status": "passed"
+    },
+    "hepta_rust_native": {
+      "status": "not_run"
+    },
+    "host_network_unreachable": {
+      "status": "passed"
+    },
+    "namespace_identity": {
+      "status": "passed"
+    },
+    "parent_paths_unreadable": {
+      "status": "failed"
+    },
+    "startup": {
+      "status": "passed"
+    },
+    "system_files_read_only": {
+      "status": "passed"
+    },
+    "workspace_native_profile": {
+      "status": "not_run"
+    }
+  },
+  "compiler_sha256": "baa9c71bf65c590b23598635012989ac2f07242803b1a876b13a28eec2848bd7",
+  "implementation_sha256": {
+    "sandbox.py": "f3e47e5a2b83b7322161934bbc600a3257d153bd60ebc9ea91ea847da5059ad9",
+    "sandbox_qualification.py": "a0566dcbe8dcc6ef9abf2ede390eee615c21c1be4b82c64ad82acb629ec03d55"
+  },
+  "qualified": false,
+  "sandbox_executable": {
+    "executable_sha256": "52231e1caf55bcbc667b269f49c63599a6f7db4767ae6a039580d0ff853db712",
+    "path": "/usr/bin/bwrap",
+    "version": "bubblewrap 0.9.0"
+  },
+  "schema": "hepta.sandbox_qualification.v1",
+  "scope": "trusted namespace, boundary, and native compiler qualification",
+  "startup": {
+    "available": true,
+    "kind": "bubblewrap_namespaces",
+    "probe_returncode": 0,
+    "proc_policy": "empty_directory",
+    "reason": ""
+  },
+  "status": "not_qualified",
+  "toolchain": {
+    "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+    "host": "x86_64-unknown-linux-gnu",
+    "path": "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+    "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+    "sysroot_discovery": "verified_compiler_prefix",
+    "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+  }
+}

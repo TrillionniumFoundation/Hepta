@@ -1,0 +1,258 @@
+{
+  "aarch64": {
+    "composite_bulk_error": {
+      "message": "E_TOOL_IDENTITY: unable to verify compiler regular-file identity",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/runner/work/Hepta/Hepta/hepta/native_tool_identity.py\", line 40, in digest_executable\n    before = path.lstat()\n             ^^^^^^^^^^^^\n  File \"/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/pathlib.py\", line 1163, in lstat\n    return self.stat(follow_symlinks=False)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/pathlib.py\", line 1013, in stat\n    return os.stat(self, follow_symlinks=follow_symlinks)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: '/home/runner/work/Hepta/toolchains/qemu-8.2.2/qemu-aarch64-static'\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/home/runner/work/Hepta/Hepta/tools/qualify_hia_composite_bulk.py\", line 442, in qualify\n    report[\"tools\"] = {name: {\"path\": path, \"sha256\": digest_executable(Path(path))}\n                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/tools/qualify_hia_composite_bulk.py\", line 442, in <dictcomp>\n    report[\"tools\"] = {name: {\"path\": path, \"sha256\": digest_executable(Path(path))}\n                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/hepta/native_tool_identity.py\", line 82, in digest_executable\n    raise ToolIdentityRejected(\"E_TOOL_IDENTITY: unable to verify compiler regular-file identity\") from exc\nhepta.native_tool_identity.ToolIdentityRejected: E_TOOL_IDENTITY: unable to verify compiler regular-file identity\n",
+      "type": "ToolIdentityRejected"
+    },
+    "composite_bulk_native_processes": 0,
+    "standalone_error": {
+      "message": "E_HIA_PROGRAM_AARCH64: QEMU AArch64 unavailable",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/runner/work/Hepta/Hepta/tools/qualify_hia_program_aarch64.py\", line 78, in qualify\n    positive = run_finite_program_aarch64(program, clang=clang, linker=linker,\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/hepta/hia_program_aarch64.py\", line 342, in run_finite_program_aarch64\n    runner, runner_sha = _tool(qemu_aarch64, \"QEMU AArch64\")\n                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/hepta/hia_program_aarch64.py\", line 325, in _tool\n    _reject(role + \" unavailable\")\n  File \"/home/runner/work/Hepta/Hepta/hepta/hia_program_aarch64.py\", line 196, in _reject\n    raise HIAProgramAArch64Rejected(\"E_HIA_PROGRAM_AARCH64: \" + message)\nhepta.hia_program_aarch64.HIAProgramAArch64Rejected: E_HIA_PROGRAM_AARCH64: QEMU AArch64 unavailable\n",
+      "type": "HIAProgramAArch64Rejected"
+    },
+    "standalone_reference_cases": 17
+  },
+  "bootstrap": {
+    "backoff_seconds": [
+      1,
+      2,
+      4
+    ],
+    "events": [
+      {
+        "line": 1194,
+        "record": {
+          "attempt": 1,
+          "component": "lean",
+          "event": "download_attempt",
+          "maximum_attempts": 4
+        },
+        "timestamp": "2026-10-27T01:54:31.8062422Z"
+      },
+      {
+        "line": 1195,
+        "record": {
+          "attempt": 1,
+          "component": "qemu",
+          "event": "download_attempt",
+          "maximum_attempts": 4
+        },
+        "timestamp": "2026-10-27T01:54:35.6580874Z"
+      },
+      {
+        "line": 1196,
+        "record": {
+          "attempt": 1,
+          "component": "qemu",
+          "error_type": "HTTPError",
+          "event": "download_transient_failure",
+          "exhausted": false,
+          "http_status": 500,
+          "maximum_attempts": 4,
+          "retry_after_seconds": 1
+        },
+        "timestamp": "2026-10-27T01:54:36.0149906Z"
+      },
+      {
+        "line": 1197,
+        "record": {
+          "attempt": 2,
+          "component": "qemu",
+          "event": "download_attempt",
+          "maximum_attempts": 4
+        },
+        "timestamp": "2026-10-27T01:54:37.0151777Z"
+      },
+      {
+        "line": 1198,
+        "record": {
+          "attempt": 2,
+          "component": "qemu",
+          "error_type": "HTTPError",
+          "event": "download_transient_failure",
+          "exhausted": false,
+          "http_status": 503,
+          "maximum_attempts": 4,
+          "retry_after_seconds": 2
+        },
+        "timestamp": "2026-10-27T01:54:42.3834743Z"
+      },
+      {
+        "line": 1199,
+        "record": {
+          "attempt": 3,
+          "component": "qemu",
+          "event": "download_attempt",
+          "maximum_attempts": 4
+        },
+        "timestamp": "2026-10-27T01:54:44.3836982Z"
+      },
+      {
+        "line": 1200,
+        "record": {
+          "attempt": 3,
+          "component": "qemu",
+          "error_type": "HTTPError",
+          "event": "download_transient_failure",
+          "exhausted": false,
+          "http_status": 503,
+          "maximum_attempts": 4,
+          "retry_after_seconds": 4
+        },
+        "timestamp": "2026-10-27T01:54:44.7359772Z"
+      },
+      {
+        "line": 1201,
+        "record": {
+          "attempt": 4,
+          "component": "qemu",
+          "event": "download_attempt",
+          "maximum_attempts": 4
+        },
+        "timestamp": "2026-10-27T01:54:48.7361101Z"
+      },
+      {
+        "line": 1202,
+        "record": {
+          "attempt": 4,
+          "component": "qemu",
+          "error_type": "HTTPError",
+          "event": "download_transient_failure",
+          "exhausted": true,
+          "http_status": 503,
+          "maximum_attempts": 4,
+          "retry_after_seconds": null
+        },
+        "timestamp": "2026-10-27T01:54:49.0900907Z"
+      }
+    ],
+    "exhausted": true,
+    "final_http_status": 503,
+    "locked_qemu_source": "https://snapshot.ubuntu.com/ubuntu/20260828T000000Z/pool/universe/q/qemu/qemu-user-static_8.2.2+ds-0ubuntu1.18_amd64.deb",
+    "qemu_attempt_count": 4,
+    "qemu_http_statuses": [
+      500,
+      503,
+      503,
+      503
+    ],
+    "qemu_retry_count": 3,
+    "returncode": 1
+  },
+  "compiler_sha256": "baa9c71bf65c590b23598635012989ac2f07242803b1a876b13a28eec2848bd7",
+  "full_source_qualification": {
+    "new_candidate_directory_present": false,
+    "provider_step_conclusion": "skipped"
+  },
+  "hia": {
+    "aggregate_linked_file_identities_verified": 44,
+    "all_source_files_match_git": true,
+    "completed_gates": 15,
+    "failed_gates": [
+      "unit_regression",
+      "composite_bulk_targets",
+      "standalone_aarch64_qemu"
+    ],
+    "finished_utc": "2026-10-27T02:06:41Z",
+    "log_byte_counts_verified": 30,
+    "passed_gates": 12,
+    "planned_gates": 15,
+    "source_snapshot_files": 922,
+    "started_utc": "2026-10-27T01:54:49Z",
+    "status": "scoped_gates_not_all_qualified",
+    "unchanged_source": true
+  },
+  "job_id": 121961684415,
+  "job_log": {
+    "bytes": 125154,
+    "lines": 1363,
+    "path": "job-121961684415.log",
+    "representation": "Complete provider-decoded text encoded as UTF-8 without newline translation; original HTTP transport bytes not separately claimed.",
+    "sha256": "7c801717fdc9901a6234bb8986d9126f2d81911b02e136d60ccfdc980b2e7fca"
+  },
+  "performance": {
+    "acceptance_thresholds_adjusted": false,
+    "correctness_observations": 588,
+    "finished_utc": "2026-10-27T02:06:41Z",
+    "geometric_mean_paired_time_ratios": {
+      "handwritten_rust": 0.9454821994398747,
+      "rust": 0.9512741292729662
+    },
+    "kernel_median_paired_time_ratios": {
+      "constructor_error": {
+        "handwritten_rust": 0.8470445603859528,
+        "rust": 0.8617370178412184
+      },
+      "full_lifecycle": {
+        "handwritten_rust": 1.001084433287505,
+        "rust": 1.0003335470312145
+      },
+      "two_stage": {
+        "handwritten_rust": 0.9967427935651708,
+        "rust": 0.998613596298739
+      }
+    },
+    "maximum_relative_mad": 0.00510593275525877,
+    "measurement_quality_failures": [],
+    "negative_resource_observation": {
+      "allocations": 7,
+      "frees": 0,
+      "live": 7,
+      "refusals": 1
+    },
+    "ok": true,
+    "performance_threshold_failures": [],
+    "phase": "complete",
+    "positive_resource_observation": {
+      "allocations": 7,
+      "frees": 7,
+      "live": 0,
+      "refusals": 1
+    },
+    "process_records": 71,
+    "process_returncodes": {
+      "0": 70,
+      "1": 1
+    },
+    "raw_samples": 63,
+    "retained_files": 16,
+    "retention_status": "complete",
+    "samples_excluded": 0,
+    "started_utc": "2026-10-27T02:04:50Z",
+    "status": "passed"
+  },
+  "provider_job_conclusion": "failure",
+  "retention": {
+    "native_elf_bytes": 8208592,
+    "native_elf_files": 58,
+    "new_artifact_bytes": 13976575,
+    "new_artifacts": 570,
+    "omitted_historical_evidence": 1988,
+    "omitted_historical_evidence_bytes": 103115692,
+    "omitted_tracked_artifact_bytes": 4277480,
+    "omitted_tracked_artifacts": 89
+  },
+  "run_id": 40435070810,
+  "schema": "hepta.ci-hia-failure-diagnosis.v1",
+  "scope": {
+    "compiler_or_performance_regression_demonstrated": false,
+    "current_7ef_result_inferred": false,
+    "native_execution_repeated": false,
+    "qemu_service_root_cause_proved": false,
+    "seven_stage_completion_proved": false
+  },
+  "source_commit": "8dcb0d0d8aabfa6bd260305c57344ce15ef72eca",
+  "unit": {
+    "errors": 0,
+    "failures": 0,
+    "gate_seconds": 561.1850213969999,
+    "passed": false,
+    "returncode": 0,
+    "skip_names_in_original_log": false,
+    "skip_names_inferred": false,
+    "skipped": 3,
+    "terminal_seconds": 559.735,
+    "tests_run": 2102
+  }
+}

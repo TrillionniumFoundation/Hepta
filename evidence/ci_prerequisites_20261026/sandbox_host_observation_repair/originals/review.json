@@ -1,0 +1,145 @@
+{
+  "schema": "hepta.sandbox-host-observation-controls.v1",
+  "source_commit": "e9ef62969201659b9c9415362b2200df17c5572d",
+  "probe_sha256": "6ed81b1ddff10438f7fddd18c737f89c975db6e3fdad03ac78f9848c487ceea3",
+  "scope": "Actual sandbox/native controls with explicit trusted fault injection; no model run.",
+  "planned_cases": 3,
+  "completed_cases": 3,
+  "ok": true,
+  "cases": [
+    {
+      "name": "ordinary_host_metadata",
+      "status": "completed",
+      "passed_control": true,
+      "report": "ordinary_host_metadata.json",
+      "bytes": 18223,
+      "sha256": "dca1f6a3451df116dbb17959ac68b1b4470874d0a613a91b85b5f222c00214e4",
+      "denied_host_stat_paths": [],
+      "qualified": true,
+      "checks": {
+        "startup": {
+          "status": "passed"
+        },
+        "namespace_identity": {
+          "status": "passed"
+        },
+        "capabilities_dropped": {
+          "status": "passed"
+        },
+        "empty_proc": {
+          "status": "passed"
+        },
+        "parent_paths_unreadable": {
+          "status": "passed"
+        },
+        "credentials_not_inherited": {
+          "status": "passed"
+        },
+        "host_network_unreachable": {
+          "status": "passed"
+        },
+        "system_files_read_only": {
+          "status": "passed"
+        },
+        "hepta_rust_native": {
+          "status": "passed"
+        },
+        "workspace_native_profile": {
+          "status": "passed"
+        }
+      },
+      "release_collector_accepted": true
+    },
+    {
+      "name": "denied_host_proc_stat",
+      "status": "completed",
+      "passed_control": true,
+      "report": "denied_host_proc_stat.json",
+      "bytes": 18226,
+      "sha256": "8163db709adaf6678f79536409bb7d2feda2726089a4b7adce7c355d85dd1fee",
+      "denied_host_stat_paths": [
+        "/proc/1/root/tmp/hepta-sandbox-qualification-_f0aznsr/parent_oracle_canary"
+      ],
+      "qualified": true,
+      "checks": {
+        "startup": {
+          "status": "passed"
+        },
+        "namespace_identity": {
+          "status": "passed"
+        },
+        "capabilities_dropped": {
+          "status": "passed"
+        },
+        "empty_proc": {
+          "status": "passed"
+        },
+        "parent_paths_unreadable": {
+          "status": "passed"
+        },
+        "credentials_not_inherited": {
+          "status": "passed"
+        },
+        "host_network_unreachable": {
+          "status": "passed"
+        },
+        "system_files_read_only": {
+          "status": "passed"
+        },
+        "hepta_rust_native": {
+          "status": "passed"
+        },
+        "workspace_native_profile": {
+          "status": "passed"
+        }
+      },
+      "release_collector_accepted": true
+    },
+    {
+      "name": "readable_canary_negative_control",
+      "status": "completed",
+      "passed_control": true,
+      "report": "readable_canary_negative_control.json",
+      "bytes": 6205,
+      "sha256": "b6fa7bd4737dd10288f1bcf05879979947bdb1c702d7271e496320f69e51e92c",
+      "denied_host_stat_paths": [
+        "/proc/1/root/tmp/hepta-sandbox-qualification-jyf3xc89/parent_oracle_canary"
+      ],
+      "qualified": false,
+      "checks": {
+        "startup": {
+          "status": "passed"
+        },
+        "namespace_identity": {
+          "status": "passed"
+        },
+        "capabilities_dropped": {
+          "status": "passed"
+        },
+        "empty_proc": {
+          "status": "passed"
+        },
+        "parent_paths_unreadable": {
+          "status": "failed"
+        },
+        "credentials_not_inherited": {
+          "status": "passed"
+        },
+        "host_network_unreachable": {
+          "status": "passed"
+        },
+        "system_files_read_only": {
+          "status": "passed"
+        },
+        "hepta_rust_native": {
+          "status": "not_run"
+        },
+        "workspace_native_profile": {
+          "status": "not_run"
+        }
+      },
+      "release_collector_rejected": true
+    }
+  ],
+  "unchanged_git_head_and_tracked_files": true
+}

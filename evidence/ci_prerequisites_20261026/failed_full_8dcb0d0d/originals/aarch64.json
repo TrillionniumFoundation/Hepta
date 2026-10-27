@@ -1,0 +1,1926 @@
+{
+  "claims": {
+    "automatic_cpp_migration_qualified": false,
+    "backend_refinement_proved": false,
+    "faster_than_rust_demonstrated": false,
+    "finite_corpus_qemu_execution_passed": false,
+    "general_allocator_qualified": false,
+    "physical_target_executed": false,
+    "whole_language_soundness_proved": false
+  },
+  "core_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+  "error": {
+    "message": "E_HIA_PROGRAM_AARCH64: QEMU AArch64 unavailable",
+    "traceback": "Traceback (most recent call last):\n  File \"/home/runner/work/Hepta/Hepta/tools/qualify_hia_program_aarch64.py\", line 78, in qualify\n    positive = run_finite_program_aarch64(program, clang=clang, linker=linker,\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/hepta/hia_program_aarch64.py\", line 342, in run_finite_program_aarch64\n    runner, runner_sha = _tool(qemu_aarch64, \"QEMU AArch64\")\n                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/hepta/hia_program_aarch64.py\", line 325, in _tool\n    _reject(role + \" unavailable\")\n  File \"/home/runner/work/Hepta/Hepta/hepta/hia_program_aarch64.py\", line 196, in _reject\n    raise HIAProgramAArch64Rejected(\"E_HIA_PROGRAM_AARCH64: \" + message)\nhepta.hia_program_aarch64.HIAProgramAArch64Rejected: E_HIA_PROGRAM_AARCH64: QEMU AArch64 unavailable\n",
+    "type": "HIAProgramAArch64Rejected"
+  },
+  "negative_controls": [],
+  "ok": false,
+  "program": {
+    "functions": [
+      {
+        "blocks": [
+          {
+            "id": "entry",
+            "ops": [
+              {
+                "args": [
+                  "size"
+                ],
+                "attrs": {},
+                "op": "buffer.new",
+                "out": [
+                  {
+                    "name": "owner",
+                    "type": "buffer"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "owner"
+                ],
+                "attrs": {},
+                "op": "borrow.read",
+                "out": [
+                  {
+                    "name": "view",
+                    "type": "readbuf"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "view",
+                  "size"
+                ],
+                "attrs": {},
+                "op": "buffer.load",
+                "out": [
+                  {
+                    "name": "invalid",
+                    "type": "u8"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "view"
+                ],
+                "attrs": {},
+                "op": "loan.end",
+                "out": []
+              },
+              {
+                "args": [
+                  "owner"
+                ],
+                "attrs": {},
+                "op": "owner.drop",
+                "out": []
+              }
+            ],
+            "params": [
+              {
+                "name": "size",
+                "type": "usize"
+              }
+            ],
+            "term": {
+              "op": "ret",
+              "values": [
+                "invalid"
+              ]
+            }
+          }
+        ],
+        "effects": [
+          "alloc",
+          "read",
+          "trap"
+        ],
+        "entry": "entry",
+        "name": "bounds_trap",
+        "params": [
+          {
+            "name": "size",
+            "type": "usize"
+          }
+        ],
+        "returns": [
+          "u8"
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "id": "entry",
+            "ops": [
+              {
+                "args": [
+                  "view",
+                  "index"
+                ],
+                "attrs": {},
+                "op": "buffer.load",
+                "out": [
+                  {
+                    "name": "byte",
+                    "type": "u8"
+                  }
+                ]
+              }
+            ],
+            "params": [
+              {
+                "name": "view",
+                "type": "readbuf"
+              },
+              {
+                "name": "index",
+                "type": "usize"
+              }
+            ],
+            "term": {
+              "op": "ret",
+              "values": [
+                "byte"
+              ]
+            }
+          }
+        ],
+        "effects": [
+          "read",
+          "trap"
+        ],
+        "entry": "entry",
+        "name": "read_one",
+        "params": [
+          {
+            "name": "view",
+            "type": "readbuf"
+          },
+          {
+            "name": "index",
+            "type": "usize"
+          }
+        ],
+        "returns": [
+          "u8"
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "id": "entry",
+            "ops": [
+              {
+                "args": [
+                  "length"
+                ],
+                "attrs": {},
+                "op": "buffer.new",
+                "out": [
+                  {
+                    "name": "allocated",
+                    "type": "buffer"
+                  }
+                ]
+              },
+              {
+                "args": [],
+                "attrs": {
+                  "value": 0
+                },
+                "op": "const",
+                "out": [
+                  {
+                    "name": "zero_index",
+                    "type": "usize"
+                  }
+                ]
+              },
+              {
+                "args": [],
+                "attrs": {
+                  "value": 0
+                },
+                "op": "const",
+                "out": [
+                  {
+                    "name": "zero_sum",
+                    "type": "u64"
+                  }
+                ]
+              }
+            ],
+            "params": [
+              {
+                "name": "length",
+                "type": "usize"
+              },
+              {
+                "name": "byte",
+                "type": "u8"
+              }
+            ],
+            "term": {
+              "args": [
+                "allocated",
+                "length",
+                "byte",
+                "zero_index",
+                "zero_sum"
+              ],
+              "op": "jump",
+              "target": "loop"
+            }
+          },
+          {
+            "id": "loop",
+            "ops": [
+              {
+                "args": [
+                  "i",
+                  "n"
+                ],
+                "attrs": {},
+                "op": "compare.lt",
+                "out": [
+                  {
+                    "name": "again",
+                    "type": "bool"
+                  }
+                ]
+              }
+            ],
+            "params": [
+              {
+                "name": "owner",
+                "type": "buffer"
+              },
+              {
+                "name": "n",
+                "type": "usize"
+              },
+              {
+                "name": "value",
+                "type": "u8"
+              },
+              {
+                "name": "i",
+                "type": "usize"
+              },
+              {
+                "name": "sum",
+                "type": "u64"
+              }
+            ],
+            "term": {
+              "cond": "again",
+              "else": {
+                "args": [
+                  "owner",
+                  "sum"
+                ],
+                "target": "done"
+              },
+              "op": "branch",
+              "then": {
+                "args": [
+                  "owner",
+                  "n",
+                  "value",
+                  "i",
+                  "sum"
+                ],
+                "target": "body"
+              }
+            }
+          },
+          {
+            "id": "body",
+            "ops": [
+              {
+                "args": [
+                  "bowner"
+                ],
+                "attrs": {},
+                "op": "borrow.mut",
+                "out": [
+                  {
+                    "name": "writer",
+                    "type": "mutbuf"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "writer",
+                  "bi",
+                  "bvalue"
+                ],
+                "attrs": {},
+                "op": "buffer.store",
+                "out": []
+              },
+              {
+                "args": [
+                  "writer"
+                ],
+                "attrs": {},
+                "op": "borrow.read",
+                "out": [
+                  {
+                    "name": "reader",
+                    "type": "readbuf"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "reader",
+                  "bi"
+                ],
+                "attrs": {
+                  "function": "read_one"
+                },
+                "op": "call",
+                "out": [
+                  {
+                    "name": "read",
+                    "type": "u8"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "reader"
+                ],
+                "attrs": {},
+                "op": "loan.end",
+                "out": []
+              },
+              {
+                "args": [
+                  "writer"
+                ],
+                "attrs": {},
+                "op": "loan.end",
+                "out": []
+              },
+              {
+                "args": [
+                  "read"
+                ],
+                "attrs": {
+                  "mode": "wrap"
+                },
+                "op": "int.cast",
+                "out": [
+                  {
+                    "name": "wide",
+                    "type": "u64"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "bsum",
+                  "wide"
+                ],
+                "attrs": {},
+                "op": "int.add.checked",
+                "out": [
+                  {
+                    "name": "next_sum",
+                    "type": "u64"
+                  }
+                ]
+              },
+              {
+                "args": [],
+                "attrs": {
+                  "value": 1
+                },
+                "op": "const",
+                "out": [
+                  {
+                    "name": "one",
+                    "type": "usize"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "bi",
+                  "one"
+                ],
+                "attrs": {},
+                "op": "int.add.checked",
+                "out": [
+                  {
+                    "name": "next_i",
+                    "type": "usize"
+                  }
+                ]
+              }
+            ],
+            "params": [
+              {
+                "name": "bowner",
+                "type": "buffer"
+              },
+              {
+                "name": "bn",
+                "type": "usize"
+              },
+              {
+                "name": "bvalue",
+                "type": "u8"
+              },
+              {
+                "name": "bi",
+                "type": "usize"
+              },
+              {
+                "name": "bsum",
+                "type": "u64"
+              }
+            ],
+            "term": {
+              "args": [
+                "bowner",
+                "bn",
+                "bvalue",
+                "next_i",
+                "next_sum"
+              ],
+              "op": "jump",
+              "target": "loop"
+            }
+          },
+          {
+            "id": "done",
+            "ops": [
+              {
+                "args": [
+                  "final_owner"
+                ],
+                "attrs": {},
+                "op": "owner.drop",
+                "out": []
+              }
+            ],
+            "params": [
+              {
+                "name": "final_owner",
+                "type": "buffer"
+              },
+              {
+                "name": "total",
+                "type": "u64"
+              }
+            ],
+            "term": {
+              "op": "ret",
+              "values": [
+                "total"
+              ]
+            }
+          }
+        ],
+        "effects": [
+          "alloc",
+          "read",
+          "write",
+          "trap"
+        ],
+        "entry": "entry",
+        "name": "fill_sum",
+        "params": [
+          {
+            "name": "length",
+            "type": "usize"
+          },
+          {
+            "name": "byte",
+            "type": "u8"
+          }
+        ],
+        "returns": [
+          "u64"
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "id": "entry",
+            "ops": [
+              {
+                "args": [
+                  "a"
+                ],
+                "attrs": {
+                  "mode": "checked"
+                },
+                "op": "int.cast",
+                "out": [
+                  {
+                    "name": "small",
+                    "type": "i32"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "small"
+                ],
+                "attrs": {
+                  "mode": "checked"
+                },
+                "op": "int.cast",
+                "out": [
+                  {
+                    "name": "large",
+                    "type": "i64"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "large",
+                  "b"
+                ],
+                "attrs": {},
+                "op": "int.sub.checked",
+                "out": [
+                  {
+                    "name": "difference",
+                    "type": "i64"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "difference",
+                  "b"
+                ],
+                "attrs": {},
+                "op": "int.mul.checked",
+                "out": [
+                  {
+                    "name": "product",
+                    "type": "i64"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "product"
+                ],
+                "attrs": {},
+                "op": "int.neg.checked",
+                "out": [
+                  {
+                    "name": "negative",
+                    "type": "i64"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "negative"
+                ],
+                "attrs": {},
+                "op": "bit.not",
+                "out": [
+                  {
+                    "name": "inverted",
+                    "type": "i64"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "choose",
+                  "inverted",
+                  "a"
+                ],
+                "attrs": {},
+                "op": "select",
+                "out": [
+                  {
+                    "name": "selected",
+                    "type": "i64"
+                  }
+                ]
+              }
+            ],
+            "params": [
+              {
+                "name": "a",
+                "type": "i64"
+              },
+              {
+                "name": "b",
+                "type": "i64"
+              },
+              {
+                "name": "choose",
+                "type": "bool"
+              }
+            ],
+            "term": {
+              "op": "ret",
+              "values": [
+                "selected"
+              ]
+            }
+          }
+        ],
+        "effects": [
+          "trap"
+        ],
+        "entry": "entry",
+        "name": "scalar_mix",
+        "params": [
+          {
+            "name": "a",
+            "type": "i64"
+          },
+          {
+            "name": "b",
+            "type": "i64"
+          },
+          {
+            "name": "choose",
+            "type": "bool"
+          }
+        ],
+        "returns": [
+          "i64"
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "id": "entry",
+            "ops": [
+              {
+                "args": [
+                  "a"
+                ],
+                "attrs": {},
+                "op": "bool.not",
+                "out": [
+                  {
+                    "name": "not_a",
+                    "type": "bool"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "not_a",
+                  "b"
+                ],
+                "attrs": {},
+                "op": "bool.and",
+                "out": [
+                  {
+                    "name": "both",
+                    "type": "bool"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "both",
+                  "a"
+                ],
+                "attrs": {},
+                "op": "bool.or",
+                "out": [
+                  {
+                    "name": "either",
+                    "type": "bool"
+                  }
+                ]
+              }
+            ],
+            "params": [
+              {
+                "name": "a",
+                "type": "bool"
+              },
+              {
+                "name": "b",
+                "type": "bool"
+              }
+            ],
+            "term": {
+              "op": "ret",
+              "values": [
+                "either"
+              ]
+            }
+          }
+        ],
+        "effects": [],
+        "entry": "entry",
+        "name": "bool_gate",
+        "params": [
+          {
+            "name": "a",
+            "type": "bool"
+          },
+          {
+            "name": "b",
+            "type": "bool"
+          }
+        ],
+        "returns": [
+          "bool"
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "id": "entry",
+            "ops": [],
+            "params": [
+              {
+                "name": "a",
+                "type": "u64"
+              },
+              {
+                "name": "b",
+                "type": "u64"
+              }
+            ],
+            "term": {
+              "op": "ret",
+              "values": [
+                "b",
+                "a"
+              ]
+            }
+          }
+        ],
+        "effects": [],
+        "entry": "entry",
+        "name": "pair",
+        "params": [
+          {
+            "name": "a",
+            "type": "u64"
+          },
+          {
+            "name": "b",
+            "type": "u64"
+          }
+        ],
+        "returns": [
+          "u64",
+          "u64"
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "id": "entry",
+            "ops": [],
+            "params": [],
+            "term": {
+              "op": "ret",
+              "values": []
+            }
+          }
+        ],
+        "effects": [],
+        "entry": "entry",
+        "name": "no_result",
+        "params": [],
+        "returns": []
+      },
+      {
+        "blocks": [
+          {
+            "id": "entry",
+            "ops": [
+              {
+                "args": [],
+                "attrs": {
+                  "function": "no_result"
+                },
+                "op": "call",
+                "out": []
+              },
+              {
+                "args": [
+                  "a",
+                  "b"
+                ],
+                "attrs": {
+                  "function": "pair"
+                },
+                "op": "call",
+                "out": [
+                  {
+                    "name": "left",
+                    "type": "u64"
+                  },
+                  {
+                    "name": "right",
+                    "type": "u64"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "left",
+                  "right"
+                ],
+                "attrs": {},
+                "op": "int.sub.wrap",
+                "out": [
+                  {
+                    "name": "answer",
+                    "type": "u64"
+                  }
+                ]
+              }
+            ],
+            "params": [
+              {
+                "name": "a",
+                "type": "u64"
+              },
+              {
+                "name": "b",
+                "type": "u64"
+              }
+            ],
+            "term": {
+              "op": "ret",
+              "values": [
+                "answer"
+              ]
+            }
+          }
+        ],
+        "effects": [],
+        "entry": "entry",
+        "name": "tuple_call",
+        "params": [
+          {
+            "name": "a",
+            "type": "u64"
+          },
+          {
+            "name": "b",
+            "type": "u64"
+          }
+        ],
+        "returns": [
+          "u64"
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "id": "entry",
+            "ops": [
+              {
+                "args": [
+                  "a",
+                  "b"
+                ],
+                "attrs": {},
+                "op": "int.add.wrap",
+                "out": [
+                  {
+                    "name": "v",
+                    "type": "u32"
+                  }
+                ]
+              }
+            ],
+            "params": [
+              {
+                "name": "a",
+                "type": "u32"
+              },
+              {
+                "name": "b",
+                "type": "u32"
+              }
+            ],
+            "term": {
+              "op": "ret",
+              "values": [
+                "v"
+              ]
+            }
+          }
+        ],
+        "effects": [],
+        "entry": "entry",
+        "name": "int_add_wrap_u32",
+        "params": [
+          {
+            "name": "a",
+            "type": "u32"
+          },
+          {
+            "name": "b",
+            "type": "u32"
+          }
+        ],
+        "returns": [
+          "u32"
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "id": "entry",
+            "ops": [
+              {
+                "args": [
+                  "a",
+                  "b"
+                ],
+                "attrs": {},
+                "op": "int.div.checked",
+                "out": [
+                  {
+                    "name": "v",
+                    "type": "i64"
+                  }
+                ]
+              }
+            ],
+            "params": [
+              {
+                "name": "a",
+                "type": "i64"
+              },
+              {
+                "name": "b",
+                "type": "i64"
+              }
+            ],
+            "term": {
+              "op": "ret",
+              "values": [
+                "v"
+              ]
+            }
+          }
+        ],
+        "effects": [
+          "trap"
+        ],
+        "entry": "entry",
+        "name": "int_div_checked_i64",
+        "params": [
+          {
+            "name": "a",
+            "type": "i64"
+          },
+          {
+            "name": "b",
+            "type": "i64"
+          }
+        ],
+        "returns": [
+          "i64"
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "id": "entry",
+            "ops": [
+              {
+                "args": [
+                  "a",
+                  "b"
+                ],
+                "attrs": {},
+                "op": "int.shr.checked",
+                "out": [
+                  {
+                    "name": "v",
+                    "type": "i64"
+                  }
+                ]
+              }
+            ],
+            "params": [
+              {
+                "name": "a",
+                "type": "i64"
+              },
+              {
+                "name": "b",
+                "type": "i64"
+              }
+            ],
+            "term": {
+              "op": "ret",
+              "values": [
+                "v"
+              ]
+            }
+          }
+        ],
+        "effects": [
+          "trap"
+        ],
+        "entry": "entry",
+        "name": "int_shr_checked_i64",
+        "params": [
+          {
+            "name": "a",
+            "type": "i64"
+          },
+          {
+            "name": "b",
+            "type": "i64"
+          }
+        ],
+        "returns": [
+          "i64"
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "id": "entry",
+            "ops": [
+              {
+                "args": [
+                  "a"
+                ],
+                "attrs": {
+                  "mode": "wrap"
+                },
+                "op": "int.cast",
+                "out": [
+                  {
+                    "name": "v",
+                    "type": "i8"
+                  }
+                ]
+              }
+            ],
+            "params": [
+              {
+                "name": "a",
+                "type": "u64"
+              }
+            ],
+            "term": {
+              "op": "ret",
+              "values": [
+                "v"
+              ]
+            }
+          }
+        ],
+        "effects": [],
+        "entry": "entry",
+        "name": "cast_i8_u64",
+        "params": [
+          {
+            "name": "a",
+            "type": "u64"
+          }
+        ],
+        "returns": [
+          "i8"
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "id": "entry",
+            "ops": [
+              {
+                "args": [
+                  "n"
+                ],
+                "attrs": {},
+                "op": "buffer.try_new",
+                "out": [
+                  {
+                    "name": "owner",
+                    "type": "buffer"
+                  },
+                  {
+                    "name": "ok",
+                    "type": "bool"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "owner"
+                ],
+                "attrs": {},
+                "op": "buffer.len",
+                "out": [
+                  {
+                    "name": "length",
+                    "type": "usize"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "owner"
+                ],
+                "attrs": {},
+                "op": "owner.drop",
+                "out": []
+              },
+              {
+                "args": [
+                  "length"
+                ],
+                "attrs": {
+                  "mode": "wrap"
+                },
+                "op": "int.cast",
+                "out": [
+                  {
+                    "name": "wide",
+                    "type": "u64"
+                  }
+                ]
+              },
+              {
+                "args": [],
+                "attrs": {
+                  "value": 99
+                },
+                "op": "const",
+                "out": [
+                  {
+                    "name": "error",
+                    "type": "u64"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "ok",
+                  "wide",
+                  "error"
+                ],
+                "attrs": {},
+                "op": "select",
+                "out": [
+                  {
+                    "name": "answer",
+                    "type": "u64"
+                  }
+                ]
+              }
+            ],
+            "params": [
+              {
+                "name": "n",
+                "type": "usize"
+              }
+            ],
+            "term": {
+              "op": "ret",
+              "values": [
+                "answer"
+              ]
+            }
+          }
+        ],
+        "effects": [
+          "alloc"
+        ],
+        "entry": "entry",
+        "name": "try_capacity",
+        "params": [
+          {
+            "name": "n",
+            "type": "usize"
+          }
+        ],
+        "returns": [
+          "u64"
+        ]
+      }
+    ],
+    "module": "standalone_aarch64_qualification",
+    "schema": "hepta.hia.program.v1"
+  },
+  "record_sha256": "29542f951f9aa1f4abf44953776d82ad2cfec05908ec0a68c6312896b68706a8",
+  "reference_cases": [
+    {
+      "allocation_fail_at": null,
+      "arguments": [
+        16,
+        7
+      ],
+      "expected": 112,
+      "function": "fill_sum",
+      "reference": {
+        "claims": {
+          "backend_refinement_proved": false,
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false
+        },
+        "function": "fill_sum",
+        "input_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "program_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "resources": {
+          "allocation_attempts": 1,
+          "allocations": 1,
+          "frees": 1,
+          "live_bytes": 0,
+          "live_local_loans": 0,
+          "live_owners": 0,
+          "loans_ended": 32,
+          "loans_started": 32,
+          "owners_created": 1,
+          "owners_dropped": 1,
+          "peak_bytes": 16
+        },
+        "result": 112,
+        "schema": "hepta.hia.program-execution.v1",
+        "source_used": false,
+        "status": "returned",
+        "steps": 265,
+        "values": [
+          112
+        ],
+        "word_bits": 64
+      }
+    },
+    {
+      "allocation_fail_at": null,
+      "arguments": [
+        0,
+        255
+      ],
+      "expected": 0,
+      "function": "fill_sum",
+      "reference": {
+        "claims": {
+          "backend_refinement_proved": false,
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false
+        },
+        "function": "fill_sum",
+        "input_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "program_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "resources": {
+          "allocation_attempts": 0,
+          "allocations": 0,
+          "frees": 0,
+          "live_bytes": 0,
+          "live_local_loans": 0,
+          "live_owners": 0,
+          "loans_ended": 0,
+          "loans_started": 0,
+          "owners_created": 1,
+          "owners_dropped": 1,
+          "peak_bytes": 0
+        },
+        "result": 0,
+        "schema": "hepta.hia.program-execution.v1",
+        "source_used": false,
+        "status": "returned",
+        "steps": 9,
+        "values": [
+          0
+        ],
+        "word_bits": 64
+      }
+    },
+    {
+      "allocation_fail_at": null,
+      "arguments": [
+        128,
+        3
+      ],
+      "expected": 384,
+      "function": "fill_sum",
+      "reference": {
+        "claims": {
+          "backend_refinement_proved": false,
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false
+        },
+        "function": "fill_sum",
+        "input_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "program_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "resources": {
+          "allocation_attempts": 1,
+          "allocations": 1,
+          "frees": 1,
+          "live_bytes": 0,
+          "live_local_loans": 0,
+          "live_owners": 0,
+          "loans_ended": 256,
+          "loans_started": 256,
+          "owners_created": 1,
+          "owners_dropped": 1,
+          "peak_bytes": 128
+        },
+        "result": 384,
+        "schema": "hepta.hia.program-execution.v1",
+        "source_used": false,
+        "status": "returned",
+        "steps": 2057,
+        "values": [
+          384
+        ],
+        "word_bits": 64
+      }
+    },
+    {
+      "allocation_fail_at": null,
+      "arguments": [
+        4096,
+        1
+      ],
+      "expected": 4096,
+      "function": "fill_sum",
+      "reference": {
+        "claims": {
+          "backend_refinement_proved": false,
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false
+        },
+        "function": "fill_sum",
+        "input_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "program_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "resources": {
+          "allocation_attempts": 1,
+          "allocations": 1,
+          "frees": 1,
+          "live_bytes": 0,
+          "live_local_loans": 0,
+          "live_owners": 0,
+          "loans_ended": 8192,
+          "loans_started": 8192,
+          "owners_created": 1,
+          "owners_dropped": 1,
+          "peak_bytes": 4096
+        },
+        "result": 4096,
+        "schema": "hepta.hia.program-execution.v1",
+        "source_used": false,
+        "status": "returned",
+        "steps": 65545,
+        "values": [
+          4096
+        ],
+        "word_bits": 64
+      }
+    },
+    {
+      "allocation_fail_at": null,
+      "arguments": [
+        16
+      ],
+      "expected": 16,
+      "function": "try_capacity",
+      "reference": {
+        "claims": {
+          "backend_refinement_proved": false,
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false
+        },
+        "function": "try_capacity",
+        "input_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "program_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "resources": {
+          "allocation_attempts": 1,
+          "allocations": 1,
+          "frees": 1,
+          "live_bytes": 0,
+          "live_local_loans": 0,
+          "live_owners": 0,
+          "loans_ended": 0,
+          "loans_started": 0,
+          "owners_created": 1,
+          "owners_dropped": 1,
+          "peak_bytes": 16
+        },
+        "result": 16,
+        "schema": "hepta.hia.program-execution.v1",
+        "source_used": false,
+        "status": "returned",
+        "steps": 8,
+        "values": [
+          16
+        ],
+        "word_bits": 64
+      }
+    },
+    {
+      "allocation_fail_at": 1,
+      "arguments": [
+        5000
+      ],
+      "expected": 99,
+      "function": "try_capacity",
+      "reference": {
+        "claims": {
+          "backend_refinement_proved": false,
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false
+        },
+        "function": "try_capacity",
+        "input_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "program_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "resources": {
+          "allocation_attempts": 1,
+          "allocations": 0,
+          "frees": 0,
+          "live_bytes": 0,
+          "live_local_loans": 0,
+          "live_owners": 0,
+          "loans_ended": 0,
+          "loans_started": 0,
+          "owners_created": 1,
+          "owners_dropped": 1,
+          "peak_bytes": 0
+        },
+        "result": 99,
+        "schema": "hepta.hia.program-execution.v1",
+        "source_used": false,
+        "status": "returned",
+        "steps": 8,
+        "values": [
+          99
+        ],
+        "word_bits": 64
+      }
+    },
+    {
+      "allocation_fail_at": null,
+      "arguments": [
+        0
+      ],
+      "expected": 0,
+      "function": "try_capacity",
+      "reference": {
+        "claims": {
+          "backend_refinement_proved": false,
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false
+        },
+        "function": "try_capacity",
+        "input_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "program_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "resources": {
+          "allocation_attempts": 0,
+          "allocations": 0,
+          "frees": 0,
+          "live_bytes": 0,
+          "live_local_loans": 0,
+          "live_owners": 0,
+          "loans_ended": 0,
+          "loans_started": 0,
+          "owners_created": 1,
+          "owners_dropped": 1,
+          "peak_bytes": 0
+        },
+        "result": 0,
+        "schema": "hepta.hia.program-execution.v1",
+        "source_used": false,
+        "status": "returned",
+        "steps": 8,
+        "values": [
+          0
+        ],
+        "word_bits": 64
+      }
+    },
+    {
+      "allocation_fail_at": null,
+      "arguments": [
+        18446744073709551615
+      ],
+      "expected": 99,
+      "function": "try_capacity",
+      "reference": {
+        "claims": {
+          "backend_refinement_proved": false,
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false
+        },
+        "function": "try_capacity",
+        "input_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "program_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "resources": {
+          "allocation_attempts": 0,
+          "allocations": 0,
+          "frees": 0,
+          "live_bytes": 0,
+          "live_local_loans": 0,
+          "live_owners": 0,
+          "loans_ended": 0,
+          "loans_started": 0,
+          "owners_created": 1,
+          "owners_dropped": 1,
+          "peak_bytes": 0
+        },
+        "result": 99,
+        "schema": "hepta.hia.program-execution.v1",
+        "source_used": false,
+        "status": "returned",
+        "steps": 8,
+        "values": [
+          99
+        ],
+        "word_bits": 64
+      }
+    },
+    {
+      "allocation_fail_at": null,
+      "arguments": [
+        12,
+        3,
+        true
+      ],
+      "expected": 26,
+      "function": "scalar_mix",
+      "reference": {
+        "claims": {
+          "backend_refinement_proved": false,
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false
+        },
+        "function": "scalar_mix",
+        "input_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "program_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "resources": {
+          "allocation_attempts": 0,
+          "allocations": 0,
+          "frees": 0,
+          "live_bytes": 0,
+          "live_local_loans": 0,
+          "live_owners": 0,
+          "loans_ended": 0,
+          "loans_started": 0,
+          "owners_created": 0,
+          "owners_dropped": 0,
+          "peak_bytes": 0
+        },
+        "result": 26,
+        "schema": "hepta.hia.program-execution.v1",
+        "source_used": false,
+        "status": "returned",
+        "steps": 9,
+        "values": [
+          26
+        ],
+        "word_bits": 64
+      }
+    },
+    {
+      "allocation_fail_at": null,
+      "arguments": [
+        -8,
+        7,
+        false
+      ],
+      "expected": -8,
+      "function": "scalar_mix",
+      "reference": {
+        "claims": {
+          "backend_refinement_proved": false,
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false
+        },
+        "function": "scalar_mix",
+        "input_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "program_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "resources": {
+          "allocation_attempts": 0,
+          "allocations": 0,
+          "frees": 0,
+          "live_bytes": 0,
+          "live_local_loans": 0,
+          "live_owners": 0,
+          "loans_ended": 0,
+          "loans_started": 0,
+          "owners_created": 0,
+          "owners_dropped": 0,
+          "peak_bytes": 0
+        },
+        "result": -8,
+        "schema": "hepta.hia.program-execution.v1",
+        "source_used": false,
+        "status": "returned",
+        "steps": 9,
+        "values": [
+          -8
+        ],
+        "word_bits": 64
+      }
+    },
+    {
+      "allocation_fail_at": null,
+      "arguments": [
+        8,
+        23
+      ],
+      "expected": 15,
+      "function": "tuple_call",
+      "reference": {
+        "claims": {
+          "backend_refinement_proved": false,
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false
+        },
+        "function": "tuple_call",
+        "input_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "program_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "resources": {
+          "allocation_attempts": 0,
+          "allocations": 0,
+          "frees": 0,
+          "live_bytes": 0,
+          "live_local_loans": 0,
+          "live_owners": 0,
+          "loans_ended": 0,
+          "loans_started": 0,
+          "owners_created": 0,
+          "owners_dropped": 0,
+          "peak_bytes": 0
+        },
+        "result": 15,
+        "schema": "hepta.hia.program-execution.v1",
+        "source_used": false,
+        "status": "returned",
+        "steps": 9,
+        "values": [
+          15
+        ],
+        "word_bits": 64
+      }
+    },
+    {
+      "allocation_fail_at": null,
+      "arguments": [
+        false,
+        true
+      ],
+      "expected": true,
+      "function": "bool_gate",
+      "reference": {
+        "claims": {
+          "backend_refinement_proved": false,
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false
+        },
+        "function": "bool_gate",
+        "input_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "program_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "resources": {
+          "allocation_attempts": 0,
+          "allocations": 0,
+          "frees": 0,
+          "live_bytes": 0,
+          "live_local_loans": 0,
+          "live_owners": 0,
+          "loans_ended": 0,
+          "loans_started": 0,
+          "owners_created": 0,
+          "owners_dropped": 0,
+          "peak_bytes": 0
+        },
+        "result": true,
+        "schema": "hepta.hia.program-execution.v1",
+        "source_used": false,
+        "status": "returned",
+        "steps": 5,
+        "values": [
+          true
+        ],
+        "word_bits": 64
+      }
+    },
+    {
+      "allocation_fail_at": null,
+      "arguments": [
+        false,
+        false
+      ],
+      "expected": false,
+      "function": "bool_gate",
+      "reference": {
+        "claims": {
+          "backend_refinement_proved": false,
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false
+        },
+        "function": "bool_gate",
+        "input_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "program_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "resources": {
+          "allocation_attempts": 0,
+          "allocations": 0,
+          "frees": 0,
+          "live_bytes": 0,
+          "live_local_loans": 0,
+          "live_owners": 0,
+          "loans_ended": 0,
+          "loans_started": 0,
+          "owners_created": 0,
+          "owners_dropped": 0,
+          "peak_bytes": 0
+        },
+        "result": false,
+        "schema": "hepta.hia.program-execution.v1",
+        "source_used": false,
+        "status": "returned",
+        "steps": 5,
+        "values": [
+          false
+        ],
+        "word_bits": 64
+      }
+    },
+    {
+      "allocation_fail_at": null,
+      "arguments": [
+        4294967295,
+        1
+      ],
+      "expected": 0,
+      "function": "int_add_wrap_u32",
+      "reference": {
+        "claims": {
+          "backend_refinement_proved": false,
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false
+        },
+        "function": "int_add_wrap_u32",
+        "input_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "program_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "resources": {
+          "allocation_attempts": 0,
+          "allocations": 0,
+          "frees": 0,
+          "live_bytes": 0,
+          "live_local_loans": 0,
+          "live_owners": 0,
+          "loans_ended": 0,
+          "loans_started": 0,
+          "owners_created": 0,
+          "owners_dropped": 0,
+          "peak_bytes": 0
+        },
+        "result": 0,
+        "schema": "hepta.hia.program-execution.v1",
+        "source_used": false,
+        "status": "returned",
+        "steps": 3,
+        "values": [
+          0
+        ],
+        "word_bits": 64
+      }
+    },
+    {
+      "allocation_fail_at": null,
+      "arguments": [
+        -1024,
+        7
+      ],
+      "expected": -146,
+      "function": "int_div_checked_i64",
+      "reference": {
+        "claims": {
+          "backend_refinement_proved": false,
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false
+        },
+        "function": "int_div_checked_i64",
+        "input_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "program_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "resources": {
+          "allocation_attempts": 0,
+          "allocations": 0,
+          "frees": 0,
+          "live_bytes": 0,
+          "live_local_loans": 0,
+          "live_owners": 0,
+          "loans_ended": 0,
+          "loans_started": 0,
+          "owners_created": 0,
+          "owners_dropped": 0,
+          "peak_bytes": 0
+        },
+        "result": -146,
+        "schema": "hepta.hia.program-execution.v1",
+        "source_used": false,
+        "status": "returned",
+        "steps": 3,
+        "values": [
+          -146
+        ],
+        "word_bits": 64
+      }
+    },
+    {
+      "allocation_fail_at": null,
+      "arguments": [
+        -1024,
+        3
+      ],
+      "expected": -128,
+      "function": "int_shr_checked_i64",
+      "reference": {
+        "claims": {
+          "backend_refinement_proved": false,
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false
+        },
+        "function": "int_shr_checked_i64",
+        "input_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "program_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "resources": {
+          "allocation_attempts": 0,
+          "allocations": 0,
+          "frees": 0,
+          "live_bytes": 0,
+          "live_local_loans": 0,
+          "live_owners": 0,
+          "loans_ended": 0,
+          "loans_started": 0,
+          "owners_created": 0,
+          "owners_dropped": 0,
+          "peak_bytes": 0
+        },
+        "result": -128,
+        "schema": "hepta.hia.program-execution.v1",
+        "source_used": false,
+        "status": "returned",
+        "steps": 3,
+        "values": [
+          -128
+        ],
+        "word_bits": 64
+      }
+    },
+    {
+      "allocation_fail_at": null,
+      "arguments": [
+        255
+      ],
+      "expected": -1,
+      "function": "cast_i8_u64",
+      "reference": {
+        "claims": {
+          "backend_refinement_proved": false,
+          "finite_core_execution": true,
+          "whole_language_soundness_proved": false
+        },
+        "function": "cast_i8_u64",
+        "input_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "program_sha256": "8b6f6e87f6ad6a0dc622974696c11353e042cdf037ca0fdf03eef5071573498c",
+        "resources": {
+          "allocation_attempts": 0,
+          "allocations": 0,
+          "frees": 0,
+          "live_bytes": 0,
+          "live_local_loans": 0,
+          "live_owners": 0,
+          "loans_ended": 0,
+          "loans_started": 0,
+          "owners_created": 0,
+          "owners_dropped": 0,
+          "peak_bytes": 0
+        },
+        "result": -1,
+        "schema": "hepta.hia.program-execution.v1",
+        "source_used": false,
+        "status": "returned",
+        "steps": 3,
+        "values": [
+          -1
+        ],
+        "word_bits": 64
+      }
+    }
+  ],
+  "schema": "hepta.hia.program.aarch64-qualification.v1",
+  "status": "rejected"
+}

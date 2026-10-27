@@ -1,0 +1,337 @@
+diff --git a/.github/workflows/hepta-qualification.yml b/.github/workflows/hepta-qualification.yml
+index d4b23a7..1f38dd0 100644
+--- a/.github/workflows/hepta-qualification.yml
++++ b/.github/workflows/hepta-qualification.yml
+@@ -123,6 +123,21 @@ jobs:
+           PY
+       - name: Install SHA-256-locked Lean and QEMU tools
+         run: python tools/bootstrap_verification.py
++      - name: Export verification tools for every qualification step
++        shell: bash
++        run: |
++          hepta_lean="$GITHUB_WORKSPACE/../toolchains/lean-4.19.0/bin/lean"
++          hepta_qemu="$GITHUB_WORKSPACE/../toolchains/qemu-8.2.2/qemu-aarch64-static"
++          hepta_linker="$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld"
++          test -x "$hepta_lean"
++          test -x "$hepta_qemu"
++          test -x "$hepta_linker"
++          hepta_gate_tools="$RUNNER_TEMP/hepta-qualification-bin"
++          mkdir -p "$hepta_gate_tools"
++          ln -s "$hepta_qemu" "$hepta_gate_tools/qemu-aarch64"
++          ln -s "$hepta_linker" "$hepta_gate_tools/ld.lld"
++          printf 'LEAN=%s\nCLANG=%s\n' "$hepta_lean" /usr/lib/llvm-20/bin/clang >> "$GITHUB_ENV"
++          printf '%s\n' "$hepta_gate_tools" "$(dirname "$hepta_lean")" >> "$GITHUB_PATH"
+       - name: Run all current native and experiment qualification gates
+         run: >-
+           python tools/release_check.py
+diff --git a/docs/CI_NATIVE_PREREQUISITES.md b/docs/CI_NATIVE_PREREQUISITES.md
+index 4820484..dea3125 100644
+--- a/docs/CI_NATIVE_PREREQUISITES.md
++++ b/docs/CI_NATIVE_PREREQUISITES.md
+@@ -51,6 +51,39 @@ has not changed. It does not disable AppArmor or remove namespace, network,
+ capability, filesystem or process-boundary checks. A failed startup still fails
+ the job; it is not replaced by privileged or unconfined execution.
+ 
++## Verification tools across workflow steps
++
++Installing a tool does not export it to subsequent GitHub Actions steps.
++The source qualification did not inherit `LEAN`, and the installed QEMU is
++named `qemu-aarch64-static` while an actual negative-control test searches for
++`qemu-aarch64`. Two other native test classes used development-machine paths
++for Rust/lld/QEMU. A successful installer therefore did not imply complete
++unit-test execution. The full collector continues to reject **every skip**.
++
++After the checksum-locked bootstrap, the workflow now checks the installed
++Lean, QEMU and lld executables, writes `LEAN` and `CLANG` to `GITHUB_ENV`, and
++adds the Lean directory and a job-local alias directory to `GITHUB_PATH`.
++The `qemu-aarch64` and `ld.lld` aliases point to the installed locked tools.
++Both complete qualification steps inherit this environment. No executable
++identity, QEMU digest, sandbox check or performance threshold is changed.
++
++The composite-bulk test reads `CLANG`, `HEPTA_LLD` and
++`HEPTA_QEMU_AARCH64`, with ordinary PATH names as defaults. It resolves PATH
++selection to an executable path before calling the existing strict qualifier;
++an unavailable explicit selection does not fall back. The edit-study native
++controls resolve `CLANG` and `RUSTC` in the same way. Their executable bodies and negative
++controls remain the same.
++
++`tests/test_qualification_environment.py` executes the actual workflow Bash
++with temporary paths containing spaces and checks the environment inherited
++by the next step. It also checks each missing installed executable, an
++unavailable explicit selection, the actual test-class skip decisions, and
++the Lean selection at the formal qualifier boundary. Its tiny executable
++fixtures are never run as compilers or counted as native evidence. Actual
++composite-bulk execution, edit-study overflow controls and the selected Lean
++kernel tests are verified separately with the installed tools; the next full
++workflow must still finish under its own source identity.
++
+ ## Scope of the repair
+ 
+ These fixes address toolchain selection and runner prerequisites. They do not
+diff --git a/docs/UNIFIED_CANDIDATE.md b/docs/UNIFIED_CANDIDATE.md
+index 1a2dc18..8ae7282 100644
+--- a/docs/UNIFIED_CANDIDATE.md
++++ b/docs/UNIFIED_CANDIDATE.md
+@@ -112,6 +112,12 @@ allocator trace of the uninstrumented performance binaries.
+ Install the exact checked components with `tools/bootstrap_toolchain.py` and
+ `tools/bootstrap_verification.py`, or supply matching local executables.
+ Set `RUSTC` and `LEAN`; put the selected Clang/C++ drivers on `PATH`.
++Before running the unit suite, also expose the installed `rust-lld` as
++`ld.lld` and the locked `qemu-aarch64-static` as `qemu-aarch64` on `PATH`.
++The full workflow creates job-local aliases and exports the verification
++environment before either complete qualification. Installing Lean/QEMU alone
++does not make their executables discoverable by subsequent steps; see
++[the environment setup and its checks](CI_NATIVE_PREREQUISITES.md).
+ The owned LLVM profile requires a native Clang 20+ Linux x86-64 driver.
+ The full-gate CI workflow explicitly installs LLVM 20 from LLVM's signed
+ Noble repository, verifies its published signing-key fingerprint and selects
+diff --git a/tests/test_hia_composite_bulk_native.py b/tests/test_hia_composite_bulk_native.py
+index fbeeced..5969327 100644
+--- a/tests/test_hia_composite_bulk_native.py
++++ b/tests/test_hia_composite_bulk_native.py
+@@ -7,6 +7,7 @@ from __future__ import annotations
+ 
+ from copy import deepcopy
+ import json
++import os
+ from pathlib import Path
+ import shutil
+ import subprocess
+@@ -23,9 +24,16 @@ from tools.qualify_hia_composite_bulk import (byte_oracle, composite_bulk_progra
+     expected_counts, qualify, validate_qualification, wrong_result_program)
+ 
+ 
+-CLANG = "/usr/lib/llvm-20/bin/clang"
+-LINKER = "/tmp/hepta-ai-rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld"
+-QEMU = "/usr/bin/qemu-aarch64-static"
++def configured_tool(variable, default):
++    selected = os.environ.get(variable, default)
++    return shutil.which(selected) or selected
++
++
++# The qualifier binds an explicit filesystem path, so resolve PATH aliases
++# before calling it. An unavailable explicit selection stays unavailable.
++CLANG = configured_tool("CLANG", "clang")
++LINKER = configured_tool("HEPTA_LLD", "ld.lld")
++QEMU = configured_tool("HEPTA_QEMU_AARCH64", "qemu-aarch64")
+ 
+ 
+ class CompositeBulkCoreTests(unittest.TestCase):
+diff --git a/tests/test_hia_edit_study.py b/tests/test_hia_edit_study.py
+index 8699837..5861d39 100644
+--- a/tests/test_hia_edit_study.py
++++ b/tests/test_hia_edit_study.py
+@@ -1,4 +1,5 @@
+ import json
++import os
+ from pathlib import Path
+ import shutil
+ import tempfile
+@@ -10,6 +11,13 @@ from hepta.hia_program_runtime import execute_program, HIAProgramTrap
+ from tools.qualify_hia_edit_study import (ARMS, MINIMUM_SUCCESSES, classify_execution, comparison_criteria,
+     control_passed, expected, fixtures, native, parse_response, prompt, query_for, run_study, summarize)
+ 
++def configured_tool(variable, default):
++    selected = os.environ.get(variable, default)
++    return shutil.which(selected) or selected
++
++
++CLANG = configured_tool("CLANG", "clang")
++RUSTC = configured_tool("RUSTC", "rustc")
+ 
+ class EditStudyTests(unittest.TestCase):
+     def test_all_references_execute_and_bug_controls_are_detectable(self):
+@@ -314,8 +322,8 @@ class StudyFailureRetentionTests(unittest.TestCase):
+             self.assertEqual(report["status"],"incomplete_or_identity_failure")
+ 
+ 
+-@unittest.skipUnless(shutil.which("/usr/lib/llvm-20/bin/clang") and
+-                     shutil.which("/tmp/hepta-ai-rust-1.90.0/bin/rustc"),"actual pinned LLVM and Rust required")
++@unittest.skipUnless(shutil.which(CLANG) and shutil.which(RUSTC),
++                     "actual pinned LLVM and Rust required")
+ class StudyActualNativeControlTests(unittest.TestCase):
+     def test_actual_values_and_both_declared_overflow_boundaries(self):
+         selected=[task for task in fixtures() if task["id"] in {"capacity","next_epoch"}]
+@@ -328,7 +336,7 @@ class StudyActualNativeControlTests(unittest.TestCase):
+                                        if correct else verify_program(task["hia"]))
+                         else:candidate=task["rust_template"].replace("@SLOT@",task["rust_good"] if correct else task["rust_bad"])
+                         name=task["id"]+language+str(correct)
+-                        result=native(task,candidate,language,Path(root)/name,"/usr/lib/llvm-20/bin/clang","/tmp/hepta-ai-rust-1.90.0/bin/rustc")
++                        result=native(task,candidate,language,Path(root)/name,CLANG,RUSTC)
+                         with self.subTest(task=task["id"],language=language,correct=correct):
+                             self.assertTrue(control_passed(task,correct,result),json.dumps(result))
+ 
+diff --git a/tests/test_qualification_environment.py b/tests/test_qualification_environment.py
+new file mode 100644
+index 0000000..1300c26
+--- /dev/null
++++ b/tests/test_qualification_environment.py
+@@ -0,0 +1,168 @@
++"""Exercise real workflow environment persistence without executing compilers."""
++import importlib.util
++import os
++from pathlib import Path
++import shutil
++import subprocess
++import tempfile
++import textwrap
++import unittest
++from unittest.mock import patch
++
++
++ROOT = Path(__file__).resolve().parents[1]
++
++
++def workflow_step():
++    workflow = (ROOT / ".github/workflows/hepta-qualification.yml").read_text()
++    name = "      - name: Export verification tools for every qualification step\n"
++    if workflow.count(name) != 1:
++        raise AssertionError("unique verification export step required")
++    if not (workflow.index("      - name: Install SHA-256-locked Lean and QEMU tools\n")
++            < workflow.index(name)
++            < workflow.index("      - name: Run all current native and experiment qualification gates\n")
++            < workflow.index("      - name: Qualify the standalone HIA interpreter and direct native paths\n")):
++        raise AssertionError("both qualifications require the installed environment")
++    return textwrap.dedent(workflow.split(name, 1)[1].split("\n      - name:", 1)[0]
++                          .split("        run: |\n", 1)[1])
++
++
++def load_test(name):
++    spec = importlib.util.spec_from_file_location("qualification_environment_probe_" + name,
++                                                ROOT / "tests" / (name + ".py"))
++    module = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(module)
++    return module
++
++
++class QualificationEnvironmentTests(unittest.TestCase):
++    def fixture(self, directory):
++        root = Path(directory)
++        workspace = root / "workspace with spaces" / "Hepta"
++        workspace.mkdir(parents=True)
++        runner = root / "runner temporary with spaces"
++        runner.mkdir()
++        prefix = workspace.parent / "toolchains"
++        tools = {"lean": prefix / "lean-4.19.0/bin/lean",
++                 "qemu-aarch64": prefix / "qemu-8.2.2/qemu-aarch64-static",
++                 "ld.lld": prefix / "rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld",
++                 "rustc": prefix / "rust-1.90.0/bin/rustc",
++                 "clang": runner / "test-only-clang"}
++        for path in tools.values():
++            path.parent.mkdir(parents=True, exist_ok=True)
++            path.write_text("#!/bin/sh\nexit 94\n")
++            path.chmod(0o755)
++        github_env, github_path = root / "github-env", root / "github-path"
++        github_env.touch()
++        github_path.touch()
++        environment = dict(os.environ, GITHUB_WORKSPACE=str(workspace), RUNNER_TEMP=str(runner),
++                           GITHUB_ENV=str(github_env), GITHUB_PATH=str(github_path),
++                           RUSTC=str(tools["rustc"]))
++        environment.pop("LEAN", None)
++        environment.pop("HEPTA_LLD", None)
++        environment.pop("HEPTA_QEMU_AARCH64", None)
++        return tools, environment, github_env, github_path
++
++    def export(self, environment):
++        return subprocess.run([shutil.which("bash"), "--noprofile", "--norc", "-e", "-c", workflow_step()],
++                              env=environment, capture_output=True, text=True, timeout=10)
++
++    def next_step(self, environment, github_env, github_path):
++        result = dict(environment)
++        result.update(line.split("=", 1) for line in github_env.read_text().splitlines())
++        result["PATH"] = os.pathsep.join(github_path.read_text().splitlines() + [result["PATH"]])
++        return result
++
++    def test_workflow_exports_actual_aliases_and_lean_to_both_following_steps(self):
++        with tempfile.TemporaryDirectory() as directory:
++            tools, env, exported, paths = self.fixture(directory)
++            result = self.export(env)
++            self.assertEqual(result.returncode, 0, result.stderr)
++            following = self.next_step(env, exported, paths)
++            self.assertEqual(Path(following["LEAN"]).resolve(), tools["lean"])
++            self.assertEqual(following["CLANG"], "/usr/lib/llvm-20/bin/clang")
++            for name in ("lean", "qemu-aarch64", "ld.lld"):
++                resolved = shutil.which(name, path=following["PATH"])
++                self.assertIsNotNone(resolved)
++                self.assertEqual(Path(resolved).resolve(), tools[name])
++            self.assertTrue(Path(shutil.which("qemu-aarch64", path=following["PATH"])).is_symlink())
++            self.assertTrue(Path(shutil.which("ld.lld", path=following["PATH"])).is_symlink())
++
++    def test_missing_installed_executable_fails_before_export(self):
++        for missing in ("lean", "qemu-aarch64", "ld.lld"):
++            with self.subTest(missing=missing), tempfile.TemporaryDirectory() as directory:
++                tools, env, exported, paths = self.fixture(directory)
++                tools[missing].unlink()
++                self.assertNotEqual(self.export(env).returncode, 0)
++                self.assertEqual(exported.read_bytes(), b"")
++                self.assertEqual(paths.read_bytes(), b"")
++
++    def test_native_controls_select_the_configured_tools_outside_developer_paths(self):
++        with tempfile.TemporaryDirectory() as directory:
++            tools, env, exported, paths = self.fixture(directory)
++            self.assertEqual(self.export(env).returncode, 0)
++            following = self.next_step(env, exported, paths)
++            following["CLANG"] = str(tools["clang"])
++            with patch.dict(os.environ, following, clear=True):
++                bulk = load_test("test_hia_composite_bulk_native")
++                study = load_test("test_hia_edit_study")
++            self.assertFalse(getattr(bulk.CompositeBulkNativeTests, "__unittest_skip__", False))
++            self.assertFalse(getattr(study.StudyActualNativeControlTests, "__unittest_skip__", False))
++            self.assertEqual(bulk.CLANG, str(tools["clang"]))
++            self.assertEqual(Path(bulk.LINKER).resolve(), tools["ld.lld"])
++            self.assertEqual(Path(bulk.QEMU).resolve(), tools["qemu-aarch64"])
++            self.assertEqual(study.CLANG, str(tools["clang"]))
++            self.assertEqual(study.RUSTC, str(tools["rustc"]))
++
++    def test_missing_explicit_tool_never_uses_an_available_path_alias(self):
++        with tempfile.TemporaryDirectory() as directory:
++            tools, env, exported, paths = self.fixture(directory)
++            self.assertEqual(self.export(env).returncode, 0)
++            following = self.next_step(env, exported, paths)
++            following["CLANG"] = str(tools["clang"])
++            missing = str(Path(directory) / "unavailable-explicit-lld")
++            following["HEPTA_LLD"] = missing
++            with patch.dict(os.environ, following, clear=True):
++                self.assertIsNotNone(shutil.which("ld.lld"))
++                bulk = load_test("test_hia_composite_bulk_native")
++            self.assertEqual(bulk.LINKER, missing)
++            self.assertTrue(bulk.CompositeBulkNativeTests.__unittest_skip__)
++
++    def test_edit_study_path_defaults_become_explicit_executable_paths(self):
++        with tempfile.TemporaryDirectory() as directory:
++            tools, env, exported, paths = self.fixture(directory)
++            aliases = Path(directory) / "native aliases with spaces"
++            aliases.mkdir()
++            for name in ("clang", "rustc"):
++                (aliases / name).symlink_to(tools[name])
++                env.pop(name.upper(), None)
++            env["PATH"] = str(aliases) + os.pathsep + env["PATH"]
++            with patch.dict(os.environ, env, clear=True):
++                study = load_test("test_hia_edit_study")
++            self.assertFalse(getattr(study.StudyActualNativeControlTests, "__unittest_skip__", False))
++            self.assertEqual(Path(study.CLANG).resolve(), tools["clang"])
++            self.assertEqual(Path(study.RUSTC).resolve(), tools["rustc"])
++
++    def test_lean_file_alone_is_insufficient_until_workflow_environment_is_inherited(self):
++        with tempfile.TemporaryDirectory() as directory:
++            tools, env, exported, paths = self.fixture(directory)
++            formal = load_test("test_hia_selected_formal")
++            with patch.dict(os.environ, env, clear=True):
++                with self.assertRaises(unittest.SkipTest):
++                    formal.SelectedFormalKernelTests.setUpClass()
++            self.assertEqual(self.export(env).returncode, 0)
++            following = self.next_step(env, exported, paths)
++            # Exercise real setUpClass through its tool-selection boundary,
++            # stopping at the qualifier rather than compiling any proof.
++            try:
++                with patch.dict(os.environ, following, clear=True), \
++                        patch.object(formal.formal, "qualify", return_value={}) as qualifier:
++                    formal.SelectedFormalKernelTests.setUpClass()
++                    self.assertEqual(Path(qualifier.call_args.args[0]).resolve(), tools["lean"])
++                    self.assertEqual(qualifier.call_args.kwargs["clang"], following["CLANG"])
++            finally:
++                formal.SelectedFormalKernelTests.doClassCleanups()
++
++
++if __name__ == "__main__":
++    unittest.main()

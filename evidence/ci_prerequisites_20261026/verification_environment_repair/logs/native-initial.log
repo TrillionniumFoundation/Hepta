@@ -1,0 +1,18 @@
+test_full_native_oracles_and_strict_retained_receipts (tests.test_hia_composite_bulk_native.CompositeBulkNativeTests.test_full_native_oracles_and_strict_retained_receipts) ... FAIL
+test_actual_values_and_both_declared_overflow_boundaries (tests.test_hia_edit_study.StudyActualNativeControlTests.test_actual_values_and_both_declared_overflow_boundaries) ... ok
+test_changed_generated_file_is_rejected_even_with_unmodified_receipt (tests.test_hia_selected_formal.SelectedFormalKernelTests.test_changed_generated_file_is_rejected_even_with_unmodified_receipt) ... ok
+test_real_kernel_proves_all_inputs_and_rejects_changed_actual_core (tests.test_hia_selected_formal.SelectedFormalKernelTests.test_real_kernel_proves_all_inputs_and_rejects_changed_actual_core) ... ok
+test_receipts_cannot_drop_mutations_or_promote_the_claim (tests.test_hia_selected_formal.SelectedFormalKernelTests.test_receipts_cannot_drop_mutations_or_promote_the_claim) ... ok
+
+======================================================================
+FAIL: test_full_native_oracles_and_strict_retained_receipts (tests.test_hia_composite_bulk_native.CompositeBulkNativeTests.test_full_native_oracles_and_strict_retained_receipts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/c7c6ee414a6c/hepta-ci-environment-fix/tests/test_hia_composite_bulk_native.py", line 117, in test_full_native_oracles_and_strict_retained_receipts
+    self.assertTrue(report["ok"], json.dumps(report.get("error")))
+AssertionError: False is not true : {"type": "ToolIdentityRejected", "message": "E_TOOL_IDENTITY: unable to verify compiler regular-file identity", "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/c7c6ee414a6c/hepta-ci-environment-fix/hepta/native_tool_identity.py\", line 40, in digest_executable\n    before = path.lstat()\n             ^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py\", line 847, in lstat\n    return self.stat(follow_symlinks=False)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py\", line 840, in stat\n    return os.stat(self, follow_symlinks=follow_symlinks)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: '/workspace/scratch/c7c6ee414a6c/hepta-ci-environment-fix/ld.lld'\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/workspace/scratch/c7c6ee414a6c/hepta-ci-environment-fix/tools/qualify_hia_composite_bulk.py\", line 442, in qualify\n    report[\"tools\"] = {name: {\"path\": path, \"sha256\": digest_executable(Path(path))}\n                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/c7c6ee414a6c/hepta-ci-environment-fix/hepta/native_tool_identity.py\", line 82, in digest_executable\n    raise ToolIdentityRejected(\"E_TOOL_IDENTITY: unable to verify compiler regular-file identity\") from exc\nhepta.native_tool_identity.ToolIdentityRejected: E_TOOL_IDENTITY: unable to verify compiler regular-file identity\n"}
+
+----------------------------------------------------------------------
+Ran 5 tests in 4.906s
+
+FAILED (failures=1)

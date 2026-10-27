@@ -1,0 +1,139 @@
+diff --git a/docs/CI_NATIVE_PREREQUISITES.md b/docs/CI_NATIVE_PREREQUISITES.md
+index dea3125..5a5198e 100644
+--- a/docs/CI_NATIVE_PREREQUISITES.md
++++ b/docs/CI_NATIVE_PREREQUISITES.md
+@@ -84,7 +84,31 @@ composite-bulk execution, edit-study overflow controls and the selected Lean
+ kernel tests are verified separately with the installed tools; the next full
+ workflow must still finish under its own source identity.
+ 
+-## Scope of the repair
++## Host procfs metadata during boundary qualification
++
++The complete 7ef57d1b CI run exposed another runner assumption after its actual
++namespace boundary probe had already executed. Collecting optional host-side
++`/proc/1/root/...` existence metadata raised `PermissionError`, preventing the
++completed boundary observation from being returned. The report consequently
++left nine checks unrecorded. This was not evidence that a parent path became
++readable inside the sandbox.
++
++Host-path metadata now uses an explicit `stat` observation: present and absent
++are separate from **unobservable**, which records `host_exists: null` and the
++actual errno. A denied host observation is never labelled absent. The required
++host canaries and private oracle module are still checked before execution.
++The sandbox still has to make every tested path unreadable, expose an empty
++`/proc`, use distinct required namespaces, drop capabilities, reject the host
++network, exclude credentials and mount system/toolchain files read-only. Both
++actual native execution checks remain mandatory; the ten-check denominator and
++the strict release collector are unchanged.
++
++The targeted probe includes a real namespace/native run with denied host-stat
++metadata and a separately configured negative control that exposes only the
++qualification canary. That readable canary must still fail the boundary gate.
++No host security policy or production sandbox mount is relaxed by this repair.
++
++## Scope of the repairs
+ 
+ These fixes address toolchain selection and runner prerequisites. They do not
+ establish compiler soundness, stable performance, a successful whole-candidate
+diff --git a/experiments/agent_eval/sandbox_qualification.py b/experiments/agent_eval/sandbox_qualification.py
+index 4cdf239..6a0f7af 100644
+--- a/experiments/agent_eval/sandbox_qualification.py
++++ b/experiments/agent_eval/sandbox_qualification.py
+@@ -106,6 +106,25 @@ sys.exit(0 if result.get('execution',{}).get('returncode')==0 and result.get('wo
+ """
+ 
+ 
++def _host_path_observation(path: str):
++    """Record optional host metadata without inventing absence on denial.
++
++    The required canaries are checked separately before the probe. Access to
++    another host process's procfs root is not a prerequisite for checking that
++    the sandbox itself exposes no procfs or parent paths.
++    """
++    try:
++        Path(path).stat()
++    except (FileNotFoundError, NotADirectoryError) as exc:
++        return {"path": path, "host_exists": False,
++                "host_stat_status": "absent", "host_stat_errno": exc.errno}
++    except OSError as exc:
++        return {"path": path, "host_exists": None,
++                "host_stat_status": "unobservable", "host_stat_errno": exc.errno}
++    return {"path": path, "host_exists": True,
++            "host_stat_status": "present", "host_stat_errno": None}
++
++
+ def _boundary_observation(parent: Path, capsule: Path, selected: Path):
+     oracle = parent / "parent_oracle_canary"
+     credentials = parent / "parent_credentials_canary"
+@@ -166,8 +185,7 @@ def _boundary_observation(parent: Path, capsule: Path, selected: Path):
+         return {"returncode": process.returncode, "stderr": stderr, "remaining_stdout": stdout,
+                 "namespaces": namespaces, "required_namespaces": list(REQUIRED_NAMESPACES),
+                 "inside": inside, "parent_listener_received_connection": accepted,
+-                "paths": {name: {"path": path, "host_exists": Path(path).exists()}
+-                          for name, path in paths.items()}}
++                "paths": {name: _host_path_observation(path) for name, path in paths.items()}}
+     finally:
+         if process is not None:
+             kill_process(process)
+diff --git a/tests/test_namespace_sandbox.py b/tests/test_namespace_sandbox.py
+index 10e9476..bee1d5e 100644
+--- a/tests/test_namespace_sandbox.py
++++ b/tests/test_namespace_sandbox.py
+@@ -1,4 +1,5 @@
+ """Configuration regressions; the separate qualifier runs the real boundaries."""
++import errno
+ import os
+ from pathlib import Path
+ import shlex
+@@ -7,11 +8,51 @@ import unittest
+ from unittest.mock import patch
+ 
+ from experiments.agent_eval import sandbox
++from experiments.agent_eval import sandbox_qualification
+ from experiments.agent_eval.sandbox_qualification import qualify_sandbox
+ from hepta.backend import compile_rust, find_rustc
+ 
+ 
+ class NamespaceConfigurationTests(unittest.TestCase):
++    def test_host_metadata_distinguishes_observed_presence_and_absence(self):
++        with tempfile.TemporaryDirectory() as temporary:
++            present = Path(temporary) / "present"
++            present.write_text("qualification-only marker")
++            observation = sandbox_qualification._host_path_observation(str(present))
++            self.assertIs(observation["host_exists"], True)
++            self.assertEqual(observation["host_stat_status"], "present")
++            self.assertIsNone(observation["host_stat_errno"])
++            for path, expected_errno in ((present.parent / "absent", errno.ENOENT),
++                                         (present / "not-a-directory", errno.ENOTDIR)):
++                with self.subTest(path=path):
++                    observation = sandbox_qualification._host_path_observation(str(path))
++                    self.assertIs(observation["host_exists"], False)
++                    self.assertEqual(observation["host_stat_status"], "absent")
++                    self.assertEqual(observation["host_stat_errno"], expected_errno)
++
++    def test_denied_or_failed_host_stat_is_unknown_not_an_absent_path(self):
++        path = "/proc/1/root/qualification-only-canary"
++        for code in (errno.EACCES, errno.EPERM, errno.EIO):
++            with self.subTest(errno=code), patch.object(Path, "stat", side_effect=OSError(code, "probe denied")):
++                observation = sandbox_qualification._host_path_observation(path)
++            self.assertEqual(observation["path"], path)
++            self.assertIsNone(observation["host_exists"])
++            self.assertEqual(observation["host_stat_status"], "unobservable")
++            self.assertEqual(observation["host_stat_errno"], code)
++
++    def test_required_host_canaries_remain_mandatory_before_execution(self):
++        original = Path.is_file
++        for missing in ("parent_oracle_canary", "parent_credentials_canary", "oracles.py"):
++            with self.subTest(missing=missing), tempfile.TemporaryDirectory() as temporary:
++                parent = Path(temporary)
++                capsule = parent / "capsule"
++                capsule.mkdir()
++                with patch.object(Path, "is_file", lambda path: False if path.name == missing else original(path)), \
++                        patch.object(sandbox_qualification, "wrap_command") as execution:
++                    with self.assertRaisesRegex(ValueError, "qualification host input missing"):
++                        sandbox_qualification._boundary_observation(parent, capsule, Path("/unused/rustc"))
++                    execution.assert_not_called()
++
+     def test_empty_proc_preserves_namespace_and_network_arguments(self):
+         with tempfile.TemporaryDirectory() as temporary:
+             with patch.object(sandbox, "probe_sandbox", return_value={"available": True}):

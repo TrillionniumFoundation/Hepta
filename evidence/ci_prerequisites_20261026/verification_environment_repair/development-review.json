@@ -1,0 +1,99 @@
+{
+  "schema": "hepta.qualification-environment-repair.v1",
+  "published_commit": "d8e1b676665093c416a3484c3d7d7e0ceffe3207",
+  "parent_commit": "7ef57d1b380e73269f592fa26fe95f9636c88586",
+  "scope": "Targeted development checks; not a complete qualification of the published source snapshot.",
+  "all_development_attempts_retained": true,
+  "logs": [
+    {
+      "path": "logs/workflow-initial.log",
+      "original_path": "/tmp/hepta-qualification-environment-tests-20261026.log",
+      "bytes": 2605,
+      "sha256": "04a17cc993b244b2537957a3bb7c45335f3e191ab5de1a1854219ba9a1d4dfa8",
+      "tests_run": 8,
+      "seconds_reported": 0.162,
+      "terminal": "FAILED (errors=1)",
+      "interpretation": "A new harness assertion accessed an absent unittest skip attribute; corrected with its standard false default."
+    },
+    {
+      "path": "logs/workflow-skip-attribute-fixed.log",
+      "original_path": "/tmp/hepta-qualification-environment-tests-20261026-run2.log",
+      "bytes": 1763,
+      "sha256": "1b3339a532d01450deee720a88691e8738b88a182a0b5f6bb99a5adfc24149b3",
+      "tests_run": 8,
+      "seconds_reported": 0.174,
+      "terminal": "OK",
+      "interpretation": "Corrected assertion; the next actual native run exposed a separate path-binding issue."
+    },
+    {
+      "path": "logs/workflow-absolute-path-fixed.log",
+      "original_path": "/tmp/hepta-qualification-environment-tests-20261026-run3.log",
+      "bytes": 1963,
+      "sha256": "3321e533793c3c6da91e645d4500272ef33c8568a0323f18a476d9cb2e26c473",
+      "tests_run": 9,
+      "seconds_reported": 0.183,
+      "terminal": "OK",
+      "interpretation": "Added explicit unavailable-tool selection coverage after resolving bulk PATH aliases."
+    },
+    {
+      "path": "logs/workflow-final.log",
+      "original_path": "/tmp/hepta-qualification-environment-tests-20261026-run4.log",
+      "bytes": 2166,
+      "sha256": "ba3d0e8aa02c08a35f8bbc7659505227a6da88373c4144b1a3e421cc9a642b4e",
+      "tests_run": 10,
+      "seconds_reported": 0.181,
+      "terminal": "OK",
+      "interpretation": "Final six environment checks plus four existing collector/CLI checks."
+    },
+    {
+      "path": "logs/native-initial.log",
+      "original_path": "/tmp/hepta-qualification-environment-native-20261026.log",
+      "bytes": 3381,
+      "sha256": "d525a11d7dd30f95ea7dfee01a9ae507636a4c16df12d116a812aae491259692",
+      "tests_run": 5,
+      "seconds_reported": 4.906,
+      "terminal": "FAILED (failures=1)",
+      "interpretation": "Bulk qualifier rejects a bare ld.lld name because it binds explicit filesystem paths. Four other native/formal tests pass."
+    },
+    {
+      "path": "logs/native-absolute-path-fixed.log",
+      "original_path": "/tmp/hepta-qualification-environment-native-20261026-run2.log",
+      "bytes": 1040,
+      "sha256": "c4c4772c52314c1b706212dce7193b9d869bddb24ac0a9bac3e279d7ac9e2291",
+      "tests_run": 5,
+      "seconds_reported": 8.743,
+      "terminal": "OK",
+      "interpretation": "Actual composite bulk, edit-study and three selected Lean tests pass with configured tools."
+    },
+    {
+      "path": "logs/native-edit-study-path-defaults.log",
+      "original_path": "/tmp/hepta-qualification-environment-native-defaults-20261026.log",
+      "bytes": 276,
+      "sha256": "64d8be6409bc03ea2d6e907fd65f4f3d76ac5e5ffe0beb819b893c926f8c1849",
+      "tests_run": 1,
+      "seconds_reported": 1.032,
+      "terminal": "OK",
+      "interpretation": "Actual edit-study control passes with CLANG/RUSTC unset and the pinned tools selected from PATH."
+    }
+  ],
+  "independent_review": {
+    "files_reviewed": 6,
+    "scope": "Read-only workflow/test/documentation review; no extra native execution.",
+    "finding": "Edit-study default CLANG/RUSTC names also need PATH resolution before explicit file identity.",
+    "resolution": "Use the same explicit-or-PATH selection semantics and exercise the actual native control with both variables unset."
+  },
+  "retention_limits": [
+    "The logs are original bytes from development working trees. Earlier intermediate working-tree snapshots are not claimed to be fully archived.",
+    "Successful explicit-tool native execution preceded the final default-PATH-only repair; the changed default selection was separately exercised afterward.",
+    "Temporary native artifacts created by these unittest classes were cleaned up by the tests; these logs do not retain their binaries.",
+    "A tiny executable fixture used by workflow-selection tests is not executed as a compiler, emulator, or proof checker."
+  ],
+  "acceptance": {
+    "skips_allowed": false,
+    "full_candidate_qualified_by_these_logs": false,
+    "performance_protocol_changed": false,
+    "compiler_sources_changed": false,
+    "next_full_run": 40438827706,
+    "next_host_run": 40438827770
+  }
+}
