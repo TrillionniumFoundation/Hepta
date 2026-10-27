@@ -1,0 +1,164 @@
+module applications;
+
+repr(C) struct AppResult {
+    status: u32,
+    reserved: u32,
+    bytes: u64,
+    records: u64,
+    checksum: u64,
+}
+struct Packet { wire: Buffer<u8>, histogram: Buffer<u8> }
+
+fn result(status: u32, bytes: u64, records: u64, checksum: u64) -> AppResult effects {} {
+    return AppResult {status: status, reserved: 0, bytes: bytes, records: records, checksum: checksum};
+}
+fn random_step(value: u64) -> u64 effects {} {
+    return wrapping_add(wrapping_mul(value, 6364136223846793005), 1442695040888963407);
+}
+fn hash_step(hash: u64, byte: u8) -> u64 effects {} {
+    return wrapping_mul(hash ^ (byte as u64), 1099511628211);
+}
+fn make_packet(units: usize, request: u64) -> Result<Packet, u32>
+effects {alloc, block, panic, write} {
+    match move try_buffer(units * 64) {
+        Result::Err(_) => { return Result::Err(10); },
+        Result::Ok(wire_value) => {
+            let mut wire = move wire_value;
+            match move try_buffer(256) {
+                Result::Err(_) => { release(move wire); return Result::Err(10); },
+                Result::Ok(histogram) => {
+                    let mut state = request ^ 11400714819323198485;
+                    for frame in 0..units {
+                        let base = frame * 64;
+                        state = random_step(state);
+                        wire[base] = 60;
+                        wire[base + 1] = 0;
+                        wire[base + 2] = (state & 7) as u8;
+                        let mut check: u8 = 0;
+                        for index in 0..60 {
+                            state = random_step(state);
+                            let byte = (state >> 32) as u8;
+                            wire[base + 4 + (index as usize)] = byte;
+                            check = wrapping_add(check, byte);
+                        }
+                        wire[base + 3] = check;
+                    }
+                    let broken = (units / 2) * 64;
+                    if request % 8 == 1 { wire[broken] = 61; }
+                    if request % 8 == 2 {
+                        let byte = wire[broken + 4];
+                        wire[broken + 4] = byte ^ 1;
+                    }
+                    if request % 8 == 3 { wire[broken + 2] = 8; }
+                    return Result::Ok(Packet {wire: move wire, histogram: move histogram});
+                },
+            }
+        },
+    }
+}
+fn packet_finish(packet: take Packet, status: u32, bytes: u64, records: u64, hash: u64)
+-> AppResult effects {alloc, block} {
+    drop(move packet);
+    return result(status, bytes, records, hash);
+}
+fn parse_packet(packet_value: take Packet) -> AppResult effects {alloc, block, panic, write} {
+    let mut packet = move packet_value;
+    let size = len(packet.wire);
+    let mut offset: usize = 0;
+    let mut records: u64 = 0;
+    let mut hash: u64 = 14695981039346656037;
+    while offset < size {
+        if size - offset < 4 { return packet_finish(move packet, 2, offset as u64, records, hash); }
+        let length = (packet.wire[offset] as usize) |
+                     ((packet.wire[offset + 1] as usize) << 8);
+        let kind = packet.wire[offset + 2] as usize;
+        if length != 60 || length > size - offset - 4 {
+            return packet_finish(move packet, 2, offset as u64, records, hash);
+        }
+        if kind >= 8 { return packet_finish(move packet, 4, offset as u64, records, hash); }
+        let expected = packet.wire[offset + 3];
+        let mut check: u8 = 0;
+        for index in 0..length {
+            let byte = packet.wire[offset + 4 + index];
+            check = wrapping_add(check, byte);
+            hash = hash_step(hash, byte);
+        }
+        if check != expected { return packet_finish(move packet, 3, offset as u64, records, hash); }
+        let count = packet.histogram[kind];
+        packet.histogram[kind] = wrapping_add(count, 1);
+        offset = offset + 4 + length;
+        records = records + 1;
+    }
+    for kind in 0..256 { hash = hash_step(hash, packet.histogram[kind as usize]); }
+    return packet_finish(move packet, 0, size as u64, records, hash);
+}
+export "C" fn packet_app(units: usize, request: u64) -> AppResult effects {alloc, block, panic, write} {
+    if units == 0 || units > 4096 { return result(1, 0, 0, 0); }
+    match move make_packet(units, request) {
+        Result::Err(error) => { return result(error, 0, 0, 0); },
+        Result::Ok(packet) => { return parse_packet(move packet); },
+    }
+}
+
+fn transform_owned(input_value: take Buffer<u8>, request: u64) -> AppResult
+effects {alloc, block, panic, write} {
+    let input = move input_value;
+    if input[0] != 72 || input[1] != 80 ||
+       input[2] != 84 || input[3] != 65 {
+        release(move input); return result(2, 0, 0, 0);
+    }
+    let size = len(input) - 4;
+    match move try_buffer(256) {
+        Result::Err(_) => { release(move input); return result(10, 0, 0, 0); },
+        Result::Ok(scratch_value) => {
+            let mut scratch = move scratch_value;
+            match move try_buffer(size) {
+                Result::Err(_) => {
+                    release(move scratch); release(move input); return result(10, 0, 0, 0);
+                },
+                Result::Ok(output_value) => {
+                    let mut output = move output_value;
+                    let mut previous = request as u8;
+                    let mut offset: usize = 0;
+                    while offset < size {
+                        let count = min(size - offset, 256);
+                        for index in 0..count {
+                            let byte = input[offset + index + 4];
+                            let rotated = (byte << 3) | (byte >> 5);
+                            let encoded = rotated ^ previous;
+                            scratch[index] = encoded;
+                            previous = encoded;
+                        }
+                        for index in 0..count {
+                            let byte = scratch[count - 1 - index];
+                            output[offset + index] = byte ^ ((offset + index) as u8);
+                        }
+                        offset = offset + count;
+                    }
+                    let mut hash: u64 = 14695981039346656037;
+                    for index in 0..size { hash = hash_step(hash, output[index]); }
+                    release(move output); release(move scratch); release(move input);
+                    return result(0, size as u64, (size / 256) as u64, hash);
+                },
+            }
+        },
+    }
+}
+export "C" fn transform_app(units: usize, request: u64) -> AppResult effects {alloc, block, panic, write} {
+    if units == 0 || units > 4096 { return result(1, 0, 0, 0); }
+    match move try_buffer(units * 256 + 4) {
+        Result::Err(_) => { return result(10, 0, 0, 0); },
+        Result::Ok(input_value) => {
+            let mut input = move input_value;
+            input[0] = 72; input[1] = 80;
+            input[2] = 84; input[3] = 65;
+            let mut state = request ^ 15111065706836454659;
+            for index in 4..len(input) {
+                state = random_step(state);
+                input[index] = (state >> 32) as u8;
+            }
+            if request % 8 == 1 { input[0] = 0; }
+            return transform_owned(move input, request);
+        },
+    }
+}

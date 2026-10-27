@@ -1,0 +1,9 @@
+module adapter;
+import foreign;
+pub fn run(a: i64, b: i64) -> i64 effects {ffi,unsafe,alloc,block,panic} {
+    unsafe {
+    let result = foreign::scaled(foreign::adjusted(a, b), b);
+    if result.status == 0 { return result.value; }
+    return -100 - result.status as i64;
+    }
+}

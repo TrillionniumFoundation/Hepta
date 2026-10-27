@@ -1,0 +1,8 @@
+module foreign;
+pub repr(C) struct ForeignResult { value: i64, status: i32 }
+extern "C" fn c_adjust(a: i64, b: i64) -> i64 effects {ffi,unsafe};
+extern "C" fn cpp_scale(value: i64, factor: i64) -> ForeignResult effects {ffi,unsafe,alloc,block};
+pub fn adjusted(a: i64, b: i64) -> i64 effects {ffi,unsafe,panic} { unsafe { return c_adjust(a, b); } }
+pub fn scaled(value: i64, factor: i64) -> ForeignResult effects {ffi,unsafe,alloc,block,panic} {
+    unsafe { return cpp_scale(value, factor); }
+}

@@ -1,0 +1,33 @@
+module io_failure_paths;
+import library as wire;
+
+fn main() -> Unit effects {alloc,block,panic,io,write} {
+    let mut invalid = io_reactor(1,1,8);
+    let failed = io_local_pair(mut invalid); assert(failed.status == 6);
+    let report = io_shutdown(move invalid); assert(report.status == 6);
+
+    let mut io = io_reactor(2,1,8);
+    let pair = io_local_pair(mut io); assert(pair.status == 0);
+    match io_poll(mut io,86400001) {
+        Result::Ok(count) => { assert(false); },
+        Result::Err(code) => { assert(code == 6); }
+    }
+    let pending = wire::queue_read(mut io,pair.left,8,1000);
+    let refused = wire::queue_write(mut io,pair.right,8,11);
+    assert(io_request_status(read io,read refused) == 7);
+    let mut count: usize = 0; let mut status: u8 = 0;
+    let original = io_wait(mut io,move refused,mut count,mut status);
+    assert(status == 7); assert(count == 0);
+    wire::check(read original,8,11); release(move original);
+    let cancelled = wire::finish(move io,move pending);
+    assert(cancelled == 1);
+
+    let mut zero = io_reactor(2,1,0);
+    let zero_pair = io_local_pair(mut zero); assert(zero_pair.status == 0);
+    let zero_refused = wire::queue_read(mut zero,zero_pair.left,8,1000);
+    let refusal = wire::finish(move zero,move zero_refused);
+    assert(refusal == 8);
+    print_i64(cancelled as i64);
+    print_i64(refusal as i64);
+    print_i64(report.open_ports as i64);
+}

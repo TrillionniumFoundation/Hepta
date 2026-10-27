@@ -1,0 +1,61 @@
+module resource_views;
+
+struct Box<T> { value: T }
+struct Bytes<'a> { data: read 'a [u8] }
+struct Edit<'a> { data: mut 'a [u8] }
+
+fn forward<T: Owned>(value: take T) -> T effects {} { return move value; }
+
+fn create(size: usize, reject: bool) -> Result<Box<Buffer<u8>>, u8>
+effects {alloc, block} {
+    if size == 0 { return Result::Err(1); }
+    if size > 65535 { return Result::Err(3); }
+    match try_buffer(size) {
+        Result::Ok(bytes) => {
+            let owner: Box<Buffer<u8>> = Box { value: move bytes };
+            if reject {
+                drop(move owner);
+                return Result::Err(2);
+            }
+            return Result::Ok(move forward::<Box<Buffer<u8>>>(move owner));
+        },
+        Result::Err(code) => { return Result::Err(code); },
+    }
+}
+
+export "C" fn exercise(size: usize, mode: u8) -> i32
+effects {alloc, block, panic, write} {
+    match create(size, mode == 1) {
+        Result::Ok(value) => {
+            let mut owner = move value;
+            if size > 0 {
+                let mut edit = Edit { data: mut owner.value };
+                edit.data[0] = 7;
+                if mode == 2 {
+                    drop(move edit);
+                    drop(move owner);
+                    return 11;
+                }
+                drop(move edit);
+                if size > 1 {
+                    let view = Bytes { data: read owner.value };
+                    let copied = view;
+                    assert(len(copied.data) == size);
+                    assert(copied.data[0] == 7);
+                    assert(view.data[0] == 7);
+                }
+            }
+            drop(move owner);
+            return 7;
+        },
+        Result::Err(code) => { return 0 - (code as i32); },
+    }
+}
+
+fn main() -> Unit effects {alloc, block, panic, write} {
+    assert(exercise(0, 0) == -1);
+    assert(exercise(4, 1) == -2);
+    assert(exercise(4, 2) == 11);
+    assert(exercise(4, 0) == 7);
+    assert(exercise(65536, 0) == -3);
+}

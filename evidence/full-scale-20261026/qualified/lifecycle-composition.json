@@ -1,0 +1,1459 @@
+{
+  "branch_results": [
+    136,
+    1013,
+    2253
+  ],
+  "claims": {
+    "address_registered_owner_allocation_balance_observed": true,
+    "all_runtime_allocations_balanced": false,
+    "already_blocked_worker_interrupted": false,
+    "arbitrary_schedule_termination_proved": false,
+    "cancellation_latency_bounded": false,
+    "composition_supported_by_c_backend": false,
+    "composition_supported_by_executable_core": false,
+    "composition_supported_by_independent_resource_ir": false,
+    "frontend_independently_proves_stored_lifetimes": false,
+    "general_lifetime_generic_composition_proved": false,
+    "induced_native_leak_detected": true,
+    "invalid_hepta_candidates_executed": false,
+    "original_generated_program_executed": true,
+    "performance_advantage_measured": false,
+    "whole_language_soundness_proved": false
+  },
+  "compiler_sha256": "dbeb5311dfb81d01d8704ef26800b5672bca89976efa6b74e10a9b255efb9f97",
+  "denominator": {
+    "branches_per_execution": 3,
+    "frontend_rejections": 4,
+    "induced_leak_control_executions": 1,
+    "invalid_hepta_candidate_executions": 0,
+    "native_lifetime_rejections": 2,
+    "original_executions": 1,
+    "owner_observer_executions": 1
+  },
+  "frontend": {
+    "assumptions": [],
+    "borrowed_storage": {
+      "c_backend_supported": false,
+      "general_lifetime_system_complete": false,
+      "independent_resource_ir_supported": false,
+      "native_lifetimes_checked": false,
+      "native_lifetimes_required": true,
+      "profile": "explicit-lifetime-records-v1"
+    },
+    "checks": {
+      "rust_borrows_types": "not_run",
+      "syntax": "passed",
+      "types_effects_resources": "passed_in_supported_subset"
+    },
+    "claims": {
+      "all_programs_faster_than_rust": false,
+      "bounded_cancellation_latency_proved": false,
+      "deadlock_freedom_proved": false,
+      "hardware_execution_verified": false,
+      "whole_language_soundness_proved": false
+    },
+    "compiler_sha256": "dbeb5311dfb81d01d8704ef26800b5672bca89976efa6b74e10a9b255efb9f97",
+    "compiler_version": "0.2.0",
+    "diagnostics": [],
+    "effects": {
+      "bytes": [],
+      "edit": [],
+      "finish": [
+        "alloc",
+        "block"
+      ],
+      "forward": [],
+      "main": [
+        "alloc",
+        "block",
+        "io",
+        "panic",
+        "spawn",
+        "write"
+      ],
+      "payload": [
+        "alloc",
+        "block",
+        "panic"
+      ],
+      "sum": [
+        "panic"
+      ],
+      "worker": [
+        "alloc",
+        "block",
+        "panic",
+        "write"
+      ]
+    },
+    "interface_sha256": "f6f228c0c6d0602e7796438f734241a5f94cf6ac6c3a2c15e2c93e57c6dda068",
+    "ok": true,
+    "path": "/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta",
+    "profile": {
+      "crate_type": "bin",
+      "no_std": false,
+      "overflow_checks": true,
+      "panic": "abort"
+    },
+    "resource_contracts": [],
+    "rust_sha256": "fe9e5935a7574319345d06ac94aa7e8257a8d8500c1ca3595df107bb795d5534",
+    "schema": "hepta.check.v1",
+    "source_sha256": "7bafab315295ca10db53fba8f0cbdcaab47e8ee4b220e6dbc6b0e52fee78f19d",
+    "status": "frontend_only"
+  },
+  "frontend_rejections": [
+    {
+      "codes": [
+        "E_LINEAR_UNCONSUMED"
+      ],
+      "frontend": {
+        "assumptions": [],
+        "borrowed_storage": {
+          "c_backend_supported": false,
+          "general_lifetime_system_complete": false,
+          "independent_resource_ir_supported": false,
+          "native_lifetimes_checked": false,
+          "native_lifetimes_required": true,
+          "profile": "explicit-lifetime-records-v1"
+        },
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "rejected"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "dbeb5311dfb81d01d8704ef26800b5672bca89976efa6b74e10a9b255efb9f97",
+        "compiler_version": "0.2.0",
+        "diagnostics": [
+          {
+            "code": "E_LINEAR_UNCONSUMED",
+            "message": "unconsumed linear owner(s) on return: value",
+            "notes": [
+              "consume resource values with release/drop/take/return or consuming match, and task handles with join/cancel_and_join, on every normal exit"
+            ],
+            "phase": "check",
+            "span": {
+              "column": 19,
+              "end": 424,
+              "line": 10,
+              "path": "/tmp/hepta-lifecycle-composition-9cq8636q/generic_error_branch_leaves_owner.hepta",
+              "start": 398
+            }
+          }
+        ],
+        "effects": {
+          "bytes": [],
+          "edit": [],
+          "finish": [],
+          "forward": [],
+          "main": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "spawn",
+            "write"
+          ],
+          "payload": [
+            "alloc",
+            "block",
+            "panic"
+          ],
+          "sum": [
+            "panic"
+          ],
+          "worker": [
+            "alloc",
+            "block",
+            "panic",
+            "write"
+          ]
+        },
+        "interface_sha256": "f6f228c0c6d0602e7796438f734241a5f94cf6ac6c3a2c15e2c93e57c6dda068",
+        "ok": false,
+        "path": "/tmp/hepta-lifecycle-composition-9cq8636q/generic_error_branch_leaves_owner.hepta",
+        "resource_contracts": [],
+        "schema": "hepta.check.v1",
+        "source_sha256": "28106b645bd470ad813c2ff0299afc2a2d3b722da253957bd2ff8d65ec1b6431",
+        "status": "rejected"
+      },
+      "name": "generic_error_branch_leaves_owner",
+      "native_compilation_attempted": false,
+      "native_execution_attempted": false,
+      "source": "module lifecycle_composition;\n\n// Stored views stay inside a worker. The owner alone crosses the task boundary.\nstruct Bytes<'a> { data: read 'a [u8] }\nstruct Edit<'a> { data: mut 'a [u8] }\n\nfn forward<T: Owned>(value: take T) -> T effects {} { return move value; }\nfn finish<T: Owned, E: Copy>(value: take T, success: bool, error: E)\n    -> Result<T, E> effects {alloc, block} {\n    if !success { return Result::Err(error); }\n    return Result::Ok(move forward::<T>(move value));\n}\nfn bytes<'a>(value: read 'a Buffer<u8>) -> Bytes<'a> effects {} {\n    return Bytes { data: read value };\n}\nfn edit<'a>(value: mut 'a Buffer<u8>) -> Edit<'a> effects {} {\n    return Edit { data: mut value };\n}\nfn sum<'a>(value: Bytes<'a>) -> u64 effects {panic} {\n    let mut total: u64 = 0;\n    for index in 1..len(value.data) {\n        total = wrapping_add(total, value.data[index] as u64);\n    }\n    return total;\n}\n\nfn worker(input: take Buffer<u8>, token: read Cancellation) -> u64\neffects {alloc, block, panic, write} {\n    let mut owner = forward::<Buffer<u8>>(move input);\n    let mode = owner[0];\n    let mut changing = edit(mut owner);\n    for index in 1..len(changing.data) { changing.data[index] = index as u8; }\n    drop(move changing);\n    let snapshot = bytes(read owner);\n    let copied = snapshot;\n    let total = sum(copied);\n    assert(len(snapshot.data) == len(owner));\n    match finish::<Buffer<u8>, u8>(move owner, mode != 1, 13) {\n        Result::Err(code) => { return 1000 + code as u64; },\n        Result::Ok(accepted) => {\n            let retained = forward::<Buffer<u8>>(move accepted);\n            if mode == 2 {\n                while !cancelled(read token) { }\n                drop(move retained);\n                return 2000 + total;\n            }\n            drop(move retained);\n            return total;\n        }\n    }\n}\n\nfn payload(mode: u8, size: usize) -> Buffer<u8> effects {alloc, block, panic, write} {\n    let mut data = buffer(size);\n    data[0] = mode;\n    return move data;\n}\n\nfn main() -> Unit effects {alloc, block, panic, write, spawn, io} {\n    let normal = spawn(worker, move payload(0, 17));\n    let normal_result = join(move normal);\n    assert(normal_result == 136);\n    let error = spawn(worker, move payload(1, 19));\n    let error_result = join(move error);\n    assert(error_result == 1013);\n    let pending = spawn(worker, move payload(2, 23));\n    let cancelled_result = cancel_and_join(move pending);\n    assert(cancelled_result == 2253);\n    print_i64(normal_result as i64);\n    print_i64(error_result as i64);\n    print_i64(cancelled_result as i64);\n}\n",
+      "source_path": "/tmp/hepta-lifecycle-composition-9cq8636q/generic_error_branch_leaves_owner.hepta",
+      "source_sha256": "28106b645bd470ad813c2ff0299afc2a2d3b722da253957bd2ff8d65ec1b6431",
+      "stage": "frontend"
+    },
+    {
+      "codes": [
+        "E_USE_AFTER_MOVE"
+      ],
+      "frontend": {
+        "assumptions": [],
+        "borrowed_storage": {
+          "c_backend_supported": false,
+          "general_lifetime_system_complete": false,
+          "independent_resource_ir_supported": false,
+          "native_lifetimes_checked": false,
+          "native_lifetimes_required": true,
+          "profile": "explicit-lifetime-records-v1"
+        },
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "rejected"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "dbeb5311dfb81d01d8704ef26800b5672bca89976efa6b74e10a9b255efb9f97",
+        "compiler_version": "0.2.0",
+        "diagnostics": [
+          {
+            "code": "E_USE_AFTER_MOVE",
+            "message": "place sent is moved or partially initialized",
+            "notes": [],
+            "phase": "check",
+            "span": {
+              "column": 82,
+              "end": 2174,
+              "line": 60,
+              "path": "/tmp/hepta-lifecycle-composition-9cq8636q/owner_reused_after_spawn.hepta",
+              "start": 2170
+            }
+          }
+        ],
+        "effects": {
+          "bytes": [],
+          "edit": [],
+          "finish": [
+            "alloc",
+            "block"
+          ],
+          "forward": [],
+          "main": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "spawn",
+            "write"
+          ],
+          "payload": [
+            "alloc",
+            "block",
+            "panic"
+          ],
+          "sum": [
+            "panic"
+          ],
+          "worker": [
+            "alloc",
+            "block",
+            "panic",
+            "write"
+          ]
+        },
+        "interface_sha256": "f6f228c0c6d0602e7796438f734241a5f94cf6ac6c3a2c15e2c93e57c6dda068",
+        "ok": false,
+        "path": "/tmp/hepta-lifecycle-composition-9cq8636q/owner_reused_after_spawn.hepta",
+        "resource_contracts": [],
+        "schema": "hepta.check.v1",
+        "source_sha256": "446efa54e43ce8abb6bcbce0bb9bc0ea1efc211a9570b3d1441796019a22a05e",
+        "status": "rejected"
+      },
+      "name": "owner_reused_after_spawn",
+      "native_compilation_attempted": false,
+      "native_execution_attempted": false,
+      "source": "module lifecycle_composition;\n\n// Stored views stay inside a worker. The owner alone crosses the task boundary.\nstruct Bytes<'a> { data: read 'a [u8] }\nstruct Edit<'a> { data: mut 'a [u8] }\n\nfn forward<T: Owned>(value: take T) -> T effects {} { return move value; }\nfn finish<T: Owned, E: Copy>(value: take T, success: bool, error: E)\n    -> Result<T, E> effects {alloc, block} {\n    if !success { drop(move value); return Result::Err(error); }\n    return Result::Ok(move forward::<T>(move value));\n}\nfn bytes<'a>(value: read 'a Buffer<u8>) -> Bytes<'a> effects {} {\n    return Bytes { data: read value };\n}\nfn edit<'a>(value: mut 'a Buffer<u8>) -> Edit<'a> effects {} {\n    return Edit { data: mut value };\n}\nfn sum<'a>(value: Bytes<'a>) -> u64 effects {panic} {\n    let mut total: u64 = 0;\n    for index in 1..len(value.data) {\n        total = wrapping_add(total, value.data[index] as u64);\n    }\n    return total;\n}\n\nfn worker(input: take Buffer<u8>, token: read Cancellation) -> u64\neffects {alloc, block, panic, write} {\n    let mut owner = forward::<Buffer<u8>>(move input);\n    let mode = owner[0];\n    let mut changing = edit(mut owner);\n    for index in 1..len(changing.data) { changing.data[index] = index as u8; }\n    drop(move changing);\n    let snapshot = bytes(read owner);\n    let copied = snapshot;\n    let total = sum(copied);\n    assert(len(snapshot.data) == len(owner));\n    match finish::<Buffer<u8>, u8>(move owner, mode != 1, 13) {\n        Result::Err(code) => { return 1000 + code as u64; },\n        Result::Ok(accepted) => {\n            let retained = forward::<Buffer<u8>>(move accepted);\n            if mode == 2 {\n                while !cancelled(read token) { }\n                drop(move retained);\n                return 2000 + total;\n            }\n            drop(move retained);\n            return total;\n        }\n    }\n}\n\nfn payload(mode: u8, size: usize) -> Buffer<u8> effects {alloc, block, panic, write} {\n    let mut data = buffer(size);\n    data[0] = mode;\n    return move data;\n}\n\nfn main() -> Unit effects {alloc, block, panic, write, spawn, io} {\n    let sent = payload(0, 17); let normal = spawn(worker, move sent); assert(len(sent) == 17);\n    let normal_result = join(move normal);\n    assert(normal_result == 136);\n    let error = spawn(worker, move payload(1, 19));\n    let error_result = join(move error);\n    assert(error_result == 1013);\n    let pending = spawn(worker, move payload(2, 23));\n    let cancelled_result = cancel_and_join(move pending);\n    assert(cancelled_result == 2253);\n    print_i64(normal_result as i64);\n    print_i64(error_result as i64);\n    print_i64(cancelled_result as i64);\n}\n",
+      "source_path": "/tmp/hepta-lifecycle-composition-9cq8636q/owner_reused_after_spawn.hepta",
+      "source_sha256": "446efa54e43ce8abb6bcbce0bb9bc0ea1efc211a9570b3d1441796019a22a05e",
+      "stage": "frontend"
+    },
+    {
+      "codes": [
+        "E_LINEAR_UNCONSUMED"
+      ],
+      "frontend": {
+        "assumptions": [],
+        "borrowed_storage": {
+          "c_backend_supported": false,
+          "general_lifetime_system_complete": false,
+          "independent_resource_ir_supported": false,
+          "native_lifetimes_checked": false,
+          "native_lifetimes_required": true,
+          "profile": "explicit-lifetime-records-v1"
+        },
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "rejected"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "dbeb5311dfb81d01d8704ef26800b5672bca89976efa6b74e10a9b255efb9f97",
+        "compiler_version": "0.2.0",
+        "diagnostics": [
+          {
+            "code": "E_LINEAR_UNCONSUMED",
+            "message": "unconsumed linear owner(s) on function exit: pending",
+            "notes": [
+              "consume resource values with release/drop/take/return or consuming match, and task handles with join/cancel_and_join, on every normal exit"
+            ],
+            "phase": "check",
+            "span": {
+              "column": 67,
+              "end": 2590,
+              "line": 59,
+              "path": "/tmp/hepta-lifecycle-composition-9cq8636q/cancel_path_omits_join.hepta",
+              "start": 2087
+            }
+          }
+        ],
+        "effects": {
+          "bytes": [],
+          "edit": [],
+          "finish": [
+            "alloc",
+            "block"
+          ],
+          "forward": [],
+          "main": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "spawn",
+            "write"
+          ],
+          "payload": [
+            "alloc",
+            "block",
+            "panic"
+          ],
+          "sum": [
+            "panic"
+          ],
+          "worker": [
+            "alloc",
+            "block",
+            "panic",
+            "write"
+          ]
+        },
+        "interface_sha256": "f6f228c0c6d0602e7796438f734241a5f94cf6ac6c3a2c15e2c93e57c6dda068",
+        "ok": false,
+        "path": "/tmp/hepta-lifecycle-composition-9cq8636q/cancel_path_omits_join.hepta",
+        "resource_contracts": [],
+        "schema": "hepta.check.v1",
+        "source_sha256": "5d940acb665f9474f7697ed5076cd42877b0535b0844a91127f8cdacda7425da",
+        "status": "rejected"
+      },
+      "name": "cancel_path_omits_join",
+      "native_compilation_attempted": false,
+      "native_execution_attempted": false,
+      "source": "module lifecycle_composition;\n\n// Stored views stay inside a worker. The owner alone crosses the task boundary.\nstruct Bytes<'a> { data: read 'a [u8] }\nstruct Edit<'a> { data: mut 'a [u8] }\n\nfn forward<T: Owned>(value: take T) -> T effects {} { return move value; }\nfn finish<T: Owned, E: Copy>(value: take T, success: bool, error: E)\n    -> Result<T, E> effects {alloc, block} {\n    if !success { drop(move value); return Result::Err(error); }\n    return Result::Ok(move forward::<T>(move value));\n}\nfn bytes<'a>(value: read 'a Buffer<u8>) -> Bytes<'a> effects {} {\n    return Bytes { data: read value };\n}\nfn edit<'a>(value: mut 'a Buffer<u8>) -> Edit<'a> effects {} {\n    return Edit { data: mut value };\n}\nfn sum<'a>(value: Bytes<'a>) -> u64 effects {panic} {\n    let mut total: u64 = 0;\n    for index in 1..len(value.data) {\n        total = wrapping_add(total, value.data[index] as u64);\n    }\n    return total;\n}\n\nfn worker(input: take Buffer<u8>, token: read Cancellation) -> u64\neffects {alloc, block, panic, write} {\n    let mut owner = forward::<Buffer<u8>>(move input);\n    let mode = owner[0];\n    let mut changing = edit(mut owner);\n    for index in 1..len(changing.data) { changing.data[index] = index as u8; }\n    drop(move changing);\n    let snapshot = bytes(read owner);\n    let copied = snapshot;\n    let total = sum(copied);\n    assert(len(snapshot.data) == len(owner));\n    match finish::<Buffer<u8>, u8>(move owner, mode != 1, 13) {\n        Result::Err(code) => { return 1000 + code as u64; },\n        Result::Ok(accepted) => {\n            let retained = forward::<Buffer<u8>>(move accepted);\n            if mode == 2 {\n                while !cancelled(read token) { }\n                drop(move retained);\n                return 2000 + total;\n            }\n            drop(move retained);\n            return total;\n        }\n    }\n}\n\nfn payload(mode: u8, size: usize) -> Buffer<u8> effects {alloc, block, panic, write} {\n    let mut data = buffer(size);\n    data[0] = mode;\n    return move data;\n}\n\nfn main() -> Unit effects {alloc, block, panic, write, spawn, io} {\n    let normal = spawn(worker, move payload(0, 17));\n    let normal_result = join(move normal);\n    assert(normal_result == 136);\n    let error = spawn(worker, move payload(1, 19));\n    let error_result = join(move error);\n    assert(error_result == 1013);\n    let pending = spawn(worker, move payload(2, 23));\n    let cancelled_result: u64 = 2253;\n    assert(cancelled_result == 2253);\n    print_i64(normal_result as i64);\n    print_i64(error_result as i64);\n    print_i64(cancelled_result as i64);\n}\n",
+      "source_path": "/tmp/hepta-lifecycle-composition-9cq8636q/cancel_path_omits_join.hepta",
+      "source_sha256": "5d940acb665f9474f7697ed5076cd42877b0535b0844a91127f8cdacda7425da",
+      "stage": "frontend"
+    },
+    {
+      "codes": [
+        "E_USE_AFTER_MOVE"
+      ],
+      "frontend": {
+        "assumptions": [],
+        "borrowed_storage": {
+          "c_backend_supported": false,
+          "general_lifetime_system_complete": false,
+          "independent_resource_ir_supported": false,
+          "native_lifetimes_checked": false,
+          "native_lifetimes_required": true,
+          "profile": "explicit-lifetime-records-v1"
+        },
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "rejected"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "dbeb5311dfb81d01d8704ef26800b5672bca89976efa6b74e10a9b255efb9f97",
+        "compiler_version": "0.2.0",
+        "diagnostics": [
+          {
+            "code": "E_USE_AFTER_MOVE",
+            "message": "place pending is moved or partially initialized",
+            "notes": [],
+            "phase": "check",
+            "span": {
+              "column": 69,
+              "end": 2475,
+              "line": 67,
+              "path": "/tmp/hepta-lifecycle-composition-9cq8636q/task_joined_twice.hepta",
+              "start": 2468
+            }
+          }
+        ],
+        "effects": {
+          "bytes": [],
+          "edit": [],
+          "finish": [
+            "alloc",
+            "block"
+          ],
+          "forward": [],
+          "main": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "spawn",
+            "write"
+          ],
+          "payload": [
+            "alloc",
+            "block",
+            "panic"
+          ],
+          "sum": [
+            "panic"
+          ],
+          "worker": [
+            "alloc",
+            "block",
+            "panic",
+            "write"
+          ]
+        },
+        "interface_sha256": "f6f228c0c6d0602e7796438f734241a5f94cf6ac6c3a2c15e2c93e57c6dda068",
+        "ok": false,
+        "path": "/tmp/hepta-lifecycle-composition-9cq8636q/task_joined_twice.hepta",
+        "resource_contracts": [],
+        "schema": "hepta.check.v1",
+        "source_sha256": "1b9e013132deecc53e6a6282e0a3a37260fe0bdc923ededbbb7039d36130ec3b",
+        "status": "rejected"
+      },
+      "name": "task_joined_twice",
+      "native_compilation_attempted": false,
+      "native_execution_attempted": false,
+      "source": "module lifecycle_composition;\n\n// Stored views stay inside a worker. The owner alone crosses the task boundary.\nstruct Bytes<'a> { data: read 'a [u8] }\nstruct Edit<'a> { data: mut 'a [u8] }\n\nfn forward<T: Owned>(value: take T) -> T effects {} { return move value; }\nfn finish<T: Owned, E: Copy>(value: take T, success: bool, error: E)\n    -> Result<T, E> effects {alloc, block} {\n    if !success { drop(move value); return Result::Err(error); }\n    return Result::Ok(move forward::<T>(move value));\n}\nfn bytes<'a>(value: read 'a Buffer<u8>) -> Bytes<'a> effects {} {\n    return Bytes { data: read value };\n}\nfn edit<'a>(value: mut 'a Buffer<u8>) -> Edit<'a> effects {} {\n    return Edit { data: mut value };\n}\nfn sum<'a>(value: Bytes<'a>) -> u64 effects {panic} {\n    let mut total: u64 = 0;\n    for index in 1..len(value.data) {\n        total = wrapping_add(total, value.data[index] as u64);\n    }\n    return total;\n}\n\nfn worker(input: take Buffer<u8>, token: read Cancellation) -> u64\neffects {alloc, block, panic, write} {\n    let mut owner = forward::<Buffer<u8>>(move input);\n    let mode = owner[0];\n    let mut changing = edit(mut owner);\n    for index in 1..len(changing.data) { changing.data[index] = index as u8; }\n    drop(move changing);\n    let snapshot = bytes(read owner);\n    let copied = snapshot;\n    let total = sum(copied);\n    assert(len(snapshot.data) == len(owner));\n    match finish::<Buffer<u8>, u8>(move owner, mode != 1, 13) {\n        Result::Err(code) => { return 1000 + code as u64; },\n        Result::Ok(accepted) => {\n            let retained = forward::<Buffer<u8>>(move accepted);\n            if mode == 2 {\n                while !cancelled(read token) { }\n                drop(move retained);\n                return 2000 + total;\n            }\n            drop(move retained);\n            return total;\n        }\n    }\n}\n\nfn payload(mode: u8, size: usize) -> Buffer<u8> effects {alloc, block, panic, write} {\n    let mut data = buffer(size);\n    data[0] = mode;\n    return move data;\n}\n\nfn main() -> Unit effects {alloc, block, panic, write, spawn, io} {\n    let normal = spawn(worker, move payload(0, 17));\n    let normal_result = join(move normal);\n    assert(normal_result == 136);\n    let error = spawn(worker, move payload(1, 19));\n    let error_result = join(move error);\n    assert(error_result == 1013);\n    let pending = spawn(worker, move payload(2, 23));\n    let cancelled_result = cancel_and_join(move pending); join(move pending);\n    assert(cancelled_result == 2253);\n    print_i64(normal_result as i64);\n    print_i64(error_result as i64);\n    print_i64(cancelled_result as i64);\n}\n",
+      "source_path": "/tmp/hepta-lifecycle-composition-9cq8636q/task_joined_twice.hepta",
+      "source_sha256": "1b9e013132deecc53e6a6282e0a3a37260fe0bdc923ededbbb7039d36130ec3b",
+      "stage": "frontend"
+    }
+  ],
+  "induced_leak_control": {
+    "artifact_bytes": 3908952,
+    "artifact_retained": false,
+    "artifact_sha256": "31f5f5e08614b4b941d20de463ff648563c71dce9c5eccc378550a3b5302b8a5",
+    "balance": {
+      "allocations": 3,
+      "frees": 1,
+      "live_allocations": 2,
+      "live_bytes": 40,
+      "owner_bytes": 59,
+      "registered_owners": 3
+    },
+    "build": {
+      "artifact": "/tmp/hepta-lifecycle-composition-9cq8636q/induced_leak_control",
+      "artifact_bytes": 3908952,
+      "artifact_sha256": "31f5f5e08614b4b941d20de463ff648563c71dce9c5eccc378550a3b5302b8a5",
+      "check_only": false,
+      "crate_type": "bin",
+      "diagnostics": [],
+      "flags": [
+        "edition=2021",
+        "opt-level=3",
+        "overflow-checks=yes",
+        "panic=abort",
+        "codegen-units=1",
+        "sysroot=/tmp/hepta-ai-rust-1.90.0"
+      ],
+      "link_args": [],
+      "linker": null,
+      "ok": true,
+      "rust_sha256": "470b8b6670e937565aec5b31ee4313278591612e799a0be8dd00fbe9291c90f3",
+      "rustc_crate_type": "bin",
+      "status": "rustc_checked",
+      "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+      "target": "x86_64-unknown-linux-gnu",
+      "toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+        "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "validation_artifact_sha256": "31f5f5e08614b4b941d20de463ff648563c71dce9c5eccc378550a3b5302b8a5"
+    },
+    "execution": {
+      "argv": [
+        "/tmp/hepta-lifecycle-composition-9cq8636q/induced_leak_control"
+      ],
+      "returncode": 91,
+      "stderr": "{\"error_code\":0,\"owner_reallocations\":0,\"owners\":[{\"mode\":0,\"generation\":1,\"address\":94767651851520,\"bytes\":17,\"allocations\":1,\"frees\":0,\"live\":1,\"allocation_api\":2},{\"mode\":1,\"generation\":2,\"address\":94767651852176,\"bytes\":19,\"allocations\":1,\"frees\":1,\"live\":0,\"allocation_api\":2},{\"mode\":2,\"generation\":3,\"address\":94767651852176,\"bytes\":23,\"allocations\":1,\"frees\":0,\"live\":1,\"allocation_api\":2}]}\n",
+      "stderr_sha256": "a2963c861d4bd06a188e770643119493ba87445250dbde944cd328bd4d898291",
+      "stdout": "136\n1013\n2253\n",
+      "stdout_sha256": "7c5a7ded3a3f19c3c7583edef53950febef43872f0f3d35094fa6ebff3a59ea7"
+    },
+    "generated_source": "// Generated by Hepta 0.2.0 from checked AST; do not edit.\n#![allow(non_camel_case_types, unused, unused_parens)]\n\npub struct HeptaCancellation {\n    flag: std::sync::Arc<std::sync::atomic::AtomicBool>,\n}\npub struct HeptaTask {\n    handle: std::thread::JoinHandle<u64>,\n    flag: std::sync::Arc<std::sync::atomic::AtomicBool>,\n}\nfn __hepta_rt_spawn(\n    worker: fn(std::vec::Vec<u8>, &HeptaCancellation) -> u64,\n    data: std::vec::Vec<u8>,\n) -> HeptaTask {\n    let flag = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));\n    let cancellation = HeptaCancellation { flag: std::sync::Arc::clone(&flag) };\n    let handle = std::thread::spawn(move || worker(data, &cancellation));\n    HeptaTask { handle, flag }\n}\nfn __hepta_rt_join(task: HeptaTask, cancel: bool) -> u64 {\n    let HeptaTask { handle, flag } = task;\n    if cancel { flag.store(true, std::sync::atomic::Ordering::Release); }\n    handle.join().expect(\"Hepta task panicked\")\n}\n\n\nfn __hepta_try_buffer(size: usize) -> core::result::Result<std::vec::Vec<u8>, u8> {\n    let mut bytes = std::vec::Vec::new();\n    if bytes.try_reserve_exact(size).is_err() {\n        return Err(1u8);\n    }\n    // Successful reservation proves capacity >= size. u8 initialization cannot\n    // call user code or allocate again; no uninitialized bytes are exposed.\n    bytes.resize(size, 0u8);\n    Ok(bytes)\n}\n\n#[derive(Clone, Copy)]\npub struct H_Bytes<'h_a> { pub h_data: &'h_a [u8] }\npub struct H_Edit<'h_a> { pub h_data: &'h_a mut [u8] }\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":191,\"end\":265,\"line\":7,\"column\":1,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\nfn h_forward<G_T>(h_value: G_T) -> G_T {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":245,\"end\":263,\"line\":7,\"column\":55,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    return h_value;\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":266,\"end\":500,\"line\":8,\"column\":1,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\nfn h_finish<G_T, G_E: core::marker::Copy>(h_value: G_T, h_success: bool, h_error: G_E) -> core::result::Result<G_T, G_E> {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":384,\"end\":444,\"line\":10,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    if (!h_success) {\n        // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":398,\"end\":415,\"line\":10,\"column\":19,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n        core::mem::drop(h_value);\n        // hepta-source: {\"event\":\"end\"}\n        // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":416,\"end\":442,\"line\":10,\"column\":37,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n        return core::result::Result::<G_T, G_E>::Err(h_error);\n        // hepta-source: {\"event\":\"end\"}\n    }\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":449,\"end\":498,\"line\":11,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    return core::result::Result::<G_T, G_E>::Ok(h_forward::<G_T>(h_value));\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":501,\"end\":607,\"line\":13,\"column\":1,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\nfn h_bytes<'h_a>(h_value: &'h_a std::vec::Vec<u8>) -> H_Bytes<'h_a> {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":571,\"end\":605,\"line\":14,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    return H_Bytes::<'h_a> { h_data: (&(*h_value)) };\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":608,\"end\":709,\"line\":16,\"column\":1,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\nfn h_edit<'h_a>(h_value: &'h_a mut std::vec::Vec<u8>) -> H_Edit<'h_a> {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":675,\"end\":707,\"line\":17,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    return H_Edit::<'h_a> { h_data: (&mut (*h_value)) };\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":710,\"end\":918,\"line\":19,\"column\":1,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\nfn h_sum<'h_a>(h_value: H_Bytes<'h_a>) -> u64 {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":768,\"end\":791,\"line\":20,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let mut h_total: u64 = 0u64;\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":796,\"end\":898,\"line\":21,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    for h_index in 1usize..((*(h_value).h_data)).len() {\n        // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":838,\"end\":892,\"line\":22,\"column\":9,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n        h_total = (h_total).wrapping_add((((*(h_value).h_data))[h_index] as u64));\n        // hepta-source: {\"event\":\"end\"}\n    }\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":903,\"end\":916,\"line\":24,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    return h_total;\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":920,\"end\":1854,\"line\":27,\"column\":1,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\nfn h_worker(h_input: std::vec::Vec<u8>, h_token: &HeptaCancellation) -> u64 {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1030,\"end\":1080,\"line\":29,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let mut h_owner: std::vec::Vec<u8> = h_forward::<std::vec::Vec<u8>>(h_input);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1085,\"end\":1105,\"line\":30,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_mode: u8 = (h_owner)[0usize];\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1110,\"end\":1145,\"line\":31,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let mut h_changing: H_Edit<'_> = h_edit((&mut h_owner));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1150,\"end\":1224,\"line\":32,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    for h_index in 1usize..((*(h_changing).h_data)).len() {\n        // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1187,\"end\":1222,\"line\":32,\"column\":42,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n        ((*(h_changing).h_data))[h_index] = (h_index as u8);\n        // hepta-source: {\"event\":\"end\"}\n    }\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1229,\"end\":1249,\"line\":33,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    core::mem::drop(h_changing);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1254,\"end\":1287,\"line\":34,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_snapshot: H_Bytes<'_> = h_bytes((&h_owner));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1292,\"end\":1314,\"line\":35,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_copied: H_Bytes<'_> = h_snapshot;\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1319,\"end\":1343,\"line\":36,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_total: u64 = h_sum(h_copied);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1348,\"end\":1389,\"line\":37,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    assert!((((*(h_snapshot).h_data)).len() == (h_owner).len()));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1394,\"end\":1852,\"line\":38,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    match h_finish::<std::vec::Vec<u8>, u8>(h_owner, (h_mode != 1u8), 13u8) {\n        core::result::Result::Err(h_code) => {\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1485,\"end\":1511,\"line\":39,\"column\":32,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n            return (1000u64 + (h_code as u64));\n            // hepta-source: {\"event\":\"end\"}\n        },\n        core::result::Result::Ok(h_accepted) => {\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1561,\"end\":1613,\"line\":41,\"column\":13,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n            let h_retained: std::vec::Vec<u8> = h_forward::<std::vec::Vec<u8>>(h_accepted);\n            // hepta-source: {\"event\":\"end\"}\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1626,\"end\":1777,\"line\":42,\"column\":13,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n            if (h_mode == 2u8) {\n                // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1657,\"end\":1689,\"line\":43,\"column\":17,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n                while (!((&(*h_token))).flag.load(std::sync::atomic::Ordering::Acquire)) {\n                }\n                // hepta-source: {\"event\":\"end\"}\n                // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1706,\"end\":1726,\"line\":44,\"column\":17,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n                core::mem::forget(h_retained);\n                // hepta-source: {\"event\":\"end\"}\n                // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1743,\"end\":1763,\"line\":45,\"column\":17,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n                return (2000u64 + h_total);\n                // hepta-source: {\"event\":\"end\"}\n            }\n            // hepta-source: {\"event\":\"end\"}\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1790,\"end\":1810,\"line\":47,\"column\":13,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n            core::mem::forget(h_retained);\n            // hepta-source: {\"event\":\"end\"}\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1823,\"end\":1836,\"line\":48,\"column\":13,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n            return h_total;\n            // hepta-source: {\"event\":\"end\"}\n        },\n    }\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":1856,\"end\":2019,\"line\":53,\"column\":1,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\nfn h_payload(h_mode: u8, h_size: usize) -> std::vec::Vec<u8> {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1947,\"end\":1975,\"line\":54,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let mut h_data: std::vec::Vec<u8> = std::vec![0u8; h_size];\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1980,\"end\":1995,\"line\":55,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    (h_data)[0usize] = h_mode;\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2000,\"end\":2017,\"line\":56,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    __hepta_owner_observer::register(h_mode as usize, &h_data);\n    return h_data;\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":2021,\"end\":2610,\"line\":59,\"column\":1,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\nfn h_main() -> () {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2093,\"end\":2141,\"line\":60,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_normal: HeptaTask = __hepta_rt_spawn(h_worker, h_payload(0u8, 17usize));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2146,\"end\":2184,\"line\":61,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_normal_result: u64 = __hepta_rt_join(h_normal, false);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2189,\"end\":2218,\"line\":62,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    assert!((h_normal_result == 136u64));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2223,\"end\":2270,\"line\":63,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_error: HeptaTask = __hepta_rt_spawn(h_worker, h_payload(1u8, 19usize));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2275,\"end\":2311,\"line\":64,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_error_result: u64 = __hepta_rt_join(h_error, false);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2316,\"end\":2345,\"line\":65,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    assert!((h_error_result == 1013u64));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2350,\"end\":2399,\"line\":66,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_pending: HeptaTask = __hepta_rt_spawn(h_worker, h_payload(2u8, 23usize));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2404,\"end\":2457,\"line\":67,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_cancelled_result: u64 = __hepta_rt_join(h_pending, true);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2462,\"end\":2495,\"line\":68,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    assert!((h_cancelled_result == 2253u64));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2500,\"end\":2532,\"line\":69,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    std::println!(\"{}\", (h_normal_result as i64));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2537,\"end\":2568,\"line\":70,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    std::println!(\"{}\", (h_error_result as i64));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2573,\"end\":2608,\"line\":71,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    std::println!(\"{}\", (h_cancelled_result as i64));\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\nfn main() { h_main(); __hepta_owner_observer::report(); }\n\n\nmod __hepta_owner_observer {\n    use std::alloc::{GlobalAlloc, Layout, System};\n    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering::SeqCst};\n    struct Slot { address: AtomicUsize, size: AtomicUsize, live: AtomicUsize,\n                  begin: AtomicUsize, end: AtomicUsize, owner: AtomicUsize }\n    impl Slot {\n        const fn new() -> Self { Self { address: AtomicUsize::new(0), size: AtomicUsize::new(0),\n            live: AtomicUsize::new(0), begin: AtomicUsize::new(0), end: AtomicUsize::new(0),\n            owner: AtomicUsize::new(0) } }\n    }\n    static LOCK: AtomicBool = AtomicBool::new(false);\n    static ERROR: AtomicUsize = AtomicUsize::new(0);\n    static USED: AtomicUsize = AtomicUsize::new(0);\n    static SLOTS: [Slot; 256] = [const { Slot::new() }; 256];\n    static OWNERS: [AtomicUsize; 3] = [const { AtomicUsize::new(0) }; 3];\n    static REALLOCS: AtomicUsize = AtomicUsize::new(0);\n    fn lock() { while LOCK.compare_exchange(false, true, SeqCst, SeqCst).is_err() { std::hint::spin_loop(); } }\n    fn unlock() { LOCK.store(false, SeqCst); }\n    fn error(code: usize) { let _ = ERROR.compare_exchange(0, code, SeqCst, SeqCst); }\n    fn selected(size: usize) -> bool { size == 17 || size == 19 || size == 23 }\n    fn begin(address: usize, size: usize, api: usize) {\n        if address == 0 || !selected(size) { return; }\n        let n = USED.load(SeqCst);\n        if n == SLOTS.len() { error(1); return; }\n        for slot in &SLOTS[..n] {\n            if slot.address.load(SeqCst) == address && slot.live.load(SeqCst) == 1 { error(2); }\n        }\n        let slot = &SLOTS[n];\n        slot.address.store(address, SeqCst); slot.size.store(size, SeqCst);\n        slot.begin.store(api, SeqCst); slot.live.store(1, SeqCst);\n        USED.store(n + 1, SeqCst);\n    }\n    fn end(address: usize, size: usize, api: usize) {\n        for slot in &SLOTS[..USED.load(SeqCst)] {\n            if slot.address.load(SeqCst) == address && slot.live.load(SeqCst) == 1 {\n                if slot.size.load(SeqCst) != size { error(3); }\n                if api == 2 && slot.owner.load(SeqCst) != 0 { REALLOCS.fetch_add(1, SeqCst); }\n                slot.live.store(0, SeqCst); slot.end.store(api, SeqCst); return;\n            }\n        }\n        if selected(size) { error(4); }\n    }\n    pub struct Observer;\n    unsafe impl GlobalAlloc for Observer {\n        unsafe fn alloc(&self, layout: Layout) -> *mut u8 {\n            let p = System.alloc(layout); lock(); begin(p as usize, layout.size(), 1); unlock(); p\n        }\n        unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {\n            let p = System.alloc_zeroed(layout); lock(); begin(p as usize, layout.size(), 2); unlock(); p\n        }\n        unsafe fn dealloc(&self, p: *mut u8, layout: Layout) {\n            lock(); end(p as usize, layout.size(), 1); unlock(); System.dealloc(p, layout);\n        }\n        unsafe fn realloc(&self, p: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {\n            lock();\n            let next = System.realloc(p, layout, new_size);\n            if !next.is_null() { end(p as usize, layout.size(), 2); begin(next as usize, new_size, 3); }\n            unlock(); next\n        }\n    }\n    pub fn register(mode: usize, value: &Vec<u8>) {\n        lock();\n        if mode >= 3 || value.len() != [17, 19, 23][mode] || value.capacity() != value.len() {\n            error(5); unlock(); return;\n        }\n        if OWNERS[mode].load(SeqCst) != 0 { error(6); unlock(); return; }\n        let address = value.as_ptr() as usize;\n        let mut found = false;\n        for (index, slot) in SLOTS[..USED.load(SeqCst)].iter().enumerate() {\n            if slot.address.load(SeqCst) == address && slot.live.load(SeqCst) == 1 {\n                if slot.owner.load(SeqCst) != 0 || slot.size.load(SeqCst) != value.capacity()\n                    || ![1, 2].contains(&slot.begin.load(SeqCst)) { error(7); }\n                slot.owner.store(mode + 1, SeqCst); OWNERS[mode].store(index + 1, SeqCst); found = true;\n            }\n        }\n        if !found { error(8); }\n        unlock();\n    }\n    pub fn report() {\n        let mut rows = [[0usize; 7]; 3];\n        lock();\n        for mode in 0..3 {\n            let generation = OWNERS[mode].load(SeqCst);\n            if generation == 0 { error(9); continue; }\n            let slot = &SLOTS[generation - 1];\n            rows[mode] = [generation, slot.address.load(SeqCst), slot.size.load(SeqCst),\n                          usize::from([1, 2].contains(&slot.begin.load(SeqCst))),\n                          usize::from(slot.end.load(SeqCst) == 1), slot.live.load(SeqCst),\n                          slot.begin.load(SeqCst)];\n        }\n        let code = ERROR.load(SeqCst); let reallocations = REALLOCS.load(SeqCst);\n        unlock();\n        let good = code == 0 && reallocations == 0 && rows.iter().all(|r| r[1] != 0 && r[3] == 1 && r[4] == 1 && r[5] == 0);\n        eprint!(\"{{\\\"error_code\\\":{},\\\"owner_reallocations\\\":{},\\\"owners\\\":[\", code, reallocations);\n        for mode in 0..3 {\n            let r = rows[mode];\n            if mode != 0 { eprint!(\",\"); }\n            eprint!(\"{{\\\"mode\\\":{},\\\"generation\\\":{},\\\"address\\\":{},\\\"bytes\\\":{},\\\"allocations\\\":{},\\\"frees\\\":{},\\\"live\\\":{},\\\"allocation_api\\\":{}}}\",\n                    mode, r[0], r[1], r[2], r[3], r[4], r[5], r[6]);\n        }\n        eprintln!(\"]}}\");\n        if !good { std::process::exit(91); }\n    }\n}\n#[global_allocator]\nstatic __HEPTA_OBSERVED_ALLOCATOR: __hepta_owner_observer::Observer = __hepta_owner_observer::Observer;\n",
+    "generated_source_sha256": "470b8b6670e937565aec5b31ee4313278591612e799a0be8dd00fbe9291c90f3",
+    "instrumentation": {
+      "all_process_allocations_measured": false,
+      "allocator": "std::alloc::System with fixed atomic event registry",
+      "alteration": "register payload addresses and observe post-join balances; replace both retained-owner drops with mem::forget",
+      "generated_program_altered": true,
+      "observer_sha256": "3a1401a4067f6729bd84fb0e794aee3935ddc186c9d69e01e542d4f0c5326490",
+      "registered_exact_owner_addresses": true
+    },
+    "name": "induced_leak_control",
+    "observation": {
+      "error_code": 0,
+      "owner_reallocations": 0,
+      "owners": [
+        {
+          "address": 94767651851520,
+          "allocation_api": 2,
+          "allocations": 1,
+          "bytes": 17,
+          "frees": 0,
+          "generation": 1,
+          "live": 1,
+          "mode": 0
+        },
+        {
+          "address": 94767651852176,
+          "allocation_api": 2,
+          "allocations": 1,
+          "bytes": 19,
+          "frees": 1,
+          "generation": 2,
+          "live": 0,
+          "mode": 1
+        },
+        {
+          "address": 94767651852176,
+          "allocation_api": 2,
+          "allocations": 1,
+          "bytes": 23,
+          "frees": 0,
+          "generation": 3,
+          "live": 1,
+          "mode": 2
+        }
+      ]
+    }
+  },
+  "native_rejections": [
+    {
+      "codes": [
+        "E0505"
+      ],
+      "diagnostics": [
+        {
+          "code": "E0505",
+          "generated_spans": [
+            {
+              "byte_end": 9789,
+              "byte_start": 9782,
+              "column_end": 52,
+              "column_start": 45,
+              "expansion": null,
+              "file_name": "/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.rs",
+              "is_primary": true,
+              "label": "move out of `h_owner` occurs here",
+              "line_end": 130,
+              "line_start": 130,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": [
+                {
+                  "highlight_end": 52,
+                  "highlight_start": 45,
+                  "text": "    match h_finish::<std::vec::Vec<u8>, u8>(h_owner, (h_mode != 1u8), 13u8) {"
+                }
+              ]
+            },
+            {
+              "byte_end": 8609,
+              "byte_start": 8599,
+              "column_end": 53,
+              "column_start": 43,
+              "expansion": null,
+              "file_name": "/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.rs",
+              "is_primary": false,
+              "label": "borrow of `h_owner` occurs here",
+              "line_end": 118,
+              "line_start": 118,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": [
+                {
+                  "highlight_end": 53,
+                  "highlight_start": 43,
+                  "text": "    let h_snapshot: H_Bytes<'_> = h_bytes((&h_owner));"
+                }
+              ]
+            },
+            {
+              "byte_end": 6760,
+              "byte_start": 6749,
+              "column_end": 20,
+              "column_start": 9,
+              "expansion": null,
+              "file_name": "/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.rs",
+              "is_primary": false,
+              "label": "binding `h_owner` declared here",
+              "line_end": 99,
+              "line_start": 99,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": [
+                {
+                  "highlight_end": 20,
+                  "highlight_start": 9,
+                  "text": "    let mut h_owner: std::vec::Vec<u8> = h_forward::<std::vec::Vec<u8>>(h_input);"
+                }
+              ]
+            },
+            {
+              "byte_end": 10124,
+              "byte_start": 10100,
+              "column_end": 46,
+              "column_start": 22,
+              "expansion": null,
+              "file_name": "/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.rs",
+              "is_primary": false,
+              "label": "borrow later used here",
+              "line_end": 133,
+              "line_start": 133,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": [
+                {
+                  "highlight_end": 46,
+                  "highlight_start": 22,
+                  "text": "            assert!((((*(h_snapshot).h_data)).len() > 0usize));"
+                }
+              ]
+            }
+          ],
+          "message": "cannot move out of `h_owner` because it is borrowed",
+          "phase": "backend",
+          "rendered": "error[E0505]: cannot move out of `h_owner` because it is borrowed\n   --> /tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.rs:130:45\n    |\n 99 |     let mut h_owner: std::vec::Vec<u8> = h_forward::<std::vec::Vec<u8>>(h_input);\n    |         ----------- binding `h_owner` declared here\n...\n118 |     let h_snapshot: H_Bytes<'_> = h_bytes((&h_owner));\n    |                                           ---------- borrow of `h_owner` occurs here\n...\n130 |     match h_finish::<std::vec::Vec<u8>, u8>(h_owner, (h_mode != 1u8), 13u8) {\n    |                                             ^^^^^^^ move out of `h_owner` occurs here\n...\n133 |             assert!((((*(h_snapshot).h_data)).len() > 0usize));\n    |                      ------------------------ borrow later used here\n    |\nhelp: consider cloning the value if the performance cost is acceptable\n    |\n118 |     let h_snapshot: H_Bytes<'_> = h_bytes((&h_owner.clone()));\n    |                                                    ++++++++\n\n",
+          "source_mappings": [
+            {
+              "generated_line": 130,
+              "is_primary": true,
+              "precision": "statement",
+              "span": {
+                "column": 5,
+                "end": 1884,
+                "line": 38,
+                "path": "/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta",
+                "start": 1394
+              }
+            },
+            {
+              "generated_line": 118,
+              "is_primary": false,
+              "precision": "statement",
+              "span": {
+                "column": 5,
+                "end": 1287,
+                "line": 34,
+                "path": "/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta",
+                "start": 1254
+              }
+            },
+            {
+              "generated_line": 99,
+              "is_primary": false,
+              "precision": "statement",
+              "span": {
+                "column": 5,
+                "end": 1080,
+                "line": 29,
+                "path": "/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta",
+                "start": 1030
+              }
+            },
+            {
+              "generated_line": 133,
+              "is_primary": false,
+              "precision": "statement",
+              "span": {
+                "column": 32,
+                "end": 1516,
+                "line": 39,
+                "path": "/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta",
+                "start": 1485
+              }
+            }
+          ],
+          "span": {
+            "column": 5,
+            "end": 1884,
+            "line": 38,
+            "path": "/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta",
+            "start": 1394
+          }
+        },
+        {
+          "code": "E_RUSTC",
+          "generated_spans": [],
+          "message": "aborting due to 1 previous error",
+          "phase": "backend",
+          "rendered": "error: aborting due to 1 previous error\n\n"
+        }
+      ],
+      "frontend": {
+        "assumptions": [],
+        "borrowed_storage": {
+          "c_backend_supported": false,
+          "general_lifetime_system_complete": false,
+          "independent_resource_ir_supported": false,
+          "native_lifetimes_checked": false,
+          "native_lifetimes_required": true,
+          "profile": "explicit-lifetime-records-v1"
+        },
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "dbeb5311dfb81d01d8704ef26800b5672bca89976efa6b74e10a9b255efb9f97",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "bytes": [],
+          "edit": [],
+          "finish": [
+            "alloc",
+            "block"
+          ],
+          "forward": [],
+          "main": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "spawn",
+            "write"
+          ],
+          "payload": [
+            "alloc",
+            "block",
+            "panic"
+          ],
+          "sum": [
+            "panic"
+          ],
+          "worker": [
+            "alloc",
+            "block",
+            "panic",
+            "write"
+          ]
+        },
+        "interface_sha256": "f6f228c0c6d0602e7796438f734241a5f94cf6ac6c3a2c15e2c93e57c6dda068",
+        "ok": true,
+        "path": "/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [],
+        "rust_sha256": "05ff6e72ac9d83fb5d22a07ef353ebc400940a7bd691c622f673a624b8ae91a1",
+        "schema": "hepta.check.v1",
+        "source_sha256": "f96759d4f5afb56218fee1ffed585c864c8395f063d86cc0566dabec7f0ba842",
+        "status": "frontend_only"
+      },
+      "generated_source": "// Generated by Hepta 0.2.0 from checked AST; do not edit.\n#![allow(non_camel_case_types, unused, unused_parens)]\n\npub struct HeptaCancellation {\n    flag: std::sync::Arc<std::sync::atomic::AtomicBool>,\n}\npub struct HeptaTask {\n    handle: std::thread::JoinHandle<u64>,\n    flag: std::sync::Arc<std::sync::atomic::AtomicBool>,\n}\nfn __hepta_rt_spawn(\n    worker: fn(std::vec::Vec<u8>, &HeptaCancellation) -> u64,\n    data: std::vec::Vec<u8>,\n) -> HeptaTask {\n    let flag = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));\n    let cancellation = HeptaCancellation { flag: std::sync::Arc::clone(&flag) };\n    let handle = std::thread::spawn(move || worker(data, &cancellation));\n    HeptaTask { handle, flag }\n}\nfn __hepta_rt_join(task: HeptaTask, cancel: bool) -> u64 {\n    let HeptaTask { handle, flag } = task;\n    if cancel { flag.store(true, std::sync::atomic::Ordering::Release); }\n    handle.join().expect(\"Hepta task panicked\")\n}\n\n\nfn __hepta_try_buffer(size: usize) -> core::result::Result<std::vec::Vec<u8>, u8> {\n    let mut bytes = std::vec::Vec::new();\n    if bytes.try_reserve_exact(size).is_err() {\n        return Err(1u8);\n    }\n    // Successful reservation proves capacity >= size. u8 initialization cannot\n    // call user code or allocate again; no uninitialized bytes are exposed.\n    bytes.resize(size, 0u8);\n    Ok(bytes)\n}\n\n#[derive(Clone, Copy)]\npub struct H_Bytes<'h_a> { pub h_data: &'h_a [u8] }\npub struct H_Edit<'h_a> { pub h_data: &'h_a mut [u8] }\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":191,\"end\":265,\"line\":7,\"column\":1,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\nfn h_forward<G_T>(h_value: G_T) -> G_T {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":245,\"end\":263,\"line\":7,\"column\":55,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    return h_value;\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":266,\"end\":500,\"line\":8,\"column\":1,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\nfn h_finish<G_T, G_E: core::marker::Copy>(h_value: G_T, h_success: bool, h_error: G_E) -> core::result::Result<G_T, G_E> {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":384,\"end\":444,\"line\":10,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    if (!h_success) {\n        // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":398,\"end\":415,\"line\":10,\"column\":19,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n        core::mem::drop(h_value);\n        // hepta-source: {\"event\":\"end\"}\n        // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":416,\"end\":442,\"line\":10,\"column\":37,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n        return core::result::Result::<G_T, G_E>::Err(h_error);\n        // hepta-source: {\"event\":\"end\"}\n    }\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":449,\"end\":498,\"line\":11,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    return core::result::Result::<G_T, G_E>::Ok(h_forward::<G_T>(h_value));\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":501,\"end\":607,\"line\":13,\"column\":1,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\nfn h_bytes<'h_a>(h_value: &'h_a std::vec::Vec<u8>) -> H_Bytes<'h_a> {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":571,\"end\":605,\"line\":14,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    return H_Bytes::<'h_a> { h_data: (&(*h_value)) };\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":608,\"end\":709,\"line\":16,\"column\":1,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\nfn h_edit<'h_a>(h_value: &'h_a mut std::vec::Vec<u8>) -> H_Edit<'h_a> {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":675,\"end\":707,\"line\":17,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    return H_Edit::<'h_a> { h_data: (&mut (*h_value)) };\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":710,\"end\":918,\"line\":19,\"column\":1,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\nfn h_sum<'h_a>(h_value: H_Bytes<'h_a>) -> u64 {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":768,\"end\":791,\"line\":20,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    let mut h_total: u64 = 0u64;\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":796,\"end\":898,\"line\":21,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    for h_index in 1usize..((*(h_value).h_data)).len() {\n        // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":838,\"end\":892,\"line\":22,\"column\":9,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n        h_total = (h_total).wrapping_add((((*(h_value).h_data))[h_index] as u64));\n        // hepta-source: {\"event\":\"end\"}\n    }\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":903,\"end\":916,\"line\":24,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    return h_total;\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":920,\"end\":1886,\"line\":27,\"column\":1,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\nfn h_worker(h_input: std::vec::Vec<u8>, h_token: &HeptaCancellation) -> u64 {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1030,\"end\":1080,\"line\":29,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    let mut h_owner: std::vec::Vec<u8> = h_forward::<std::vec::Vec<u8>>(h_input);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1085,\"end\":1105,\"line\":30,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    let h_mode: u8 = (h_owner)[0usize];\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1110,\"end\":1145,\"line\":31,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    let mut h_changing: H_Edit<'_> = h_edit((&mut h_owner));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1150,\"end\":1224,\"line\":32,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    for h_index in 1usize..((*(h_changing).h_data)).len() {\n        // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1187,\"end\":1222,\"line\":32,\"column\":42,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n        ((*(h_changing).h_data))[h_index] = (h_index as u8);\n        // hepta-source: {\"event\":\"end\"}\n    }\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1229,\"end\":1249,\"line\":33,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    core::mem::drop(h_changing);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1254,\"end\":1287,\"line\":34,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    let h_snapshot: H_Bytes<'_> = h_bytes((&h_owner));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1292,\"end\":1314,\"line\":35,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    let h_copied: H_Bytes<'_> = h_snapshot;\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1319,\"end\":1343,\"line\":36,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    let h_total: u64 = h_sum(h_copied);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1348,\"end\":1389,\"line\":37,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    assert!((((*(h_snapshot).h_data)).len() == (h_owner).len()));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1394,\"end\":1884,\"line\":38,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    match h_finish::<std::vec::Vec<u8>, u8>(h_owner, (h_mode != 1u8), 13u8) {\n        core::result::Result::Err(h_code) => {\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1485,\"end\":1516,\"line\":39,\"column\":32,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n            assert!((((*(h_snapshot).h_data)).len() > 0usize));\n            // hepta-source: {\"event\":\"end\"}\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1517,\"end\":1543,\"line\":39,\"column\":64,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n            return (1000u64 + (h_code as u64));\n            // hepta-source: {\"event\":\"end\"}\n        },\n        core::result::Result::Ok(h_accepted) => {\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1593,\"end\":1645,\"line\":41,\"column\":13,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n            let h_retained: std::vec::Vec<u8> = h_forward::<std::vec::Vec<u8>>(h_accepted);\n            // hepta-source: {\"event\":\"end\"}\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1658,\"end\":1809,\"line\":42,\"column\":13,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n            if (h_mode == 2u8) {\n                // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1689,\"end\":1721,\"line\":43,\"column\":17,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n                while (!((&(*h_token))).flag.load(std::sync::atomic::Ordering::Acquire)) {\n                }\n                // hepta-source: {\"event\":\"end\"}\n                // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1738,\"end\":1758,\"line\":44,\"column\":17,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n                core::mem::drop(h_retained);\n                // hepta-source: {\"event\":\"end\"}\n                // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1775,\"end\":1795,\"line\":45,\"column\":17,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n                return (2000u64 + h_total);\n                // hepta-source: {\"event\":\"end\"}\n            }\n            // hepta-source: {\"event\":\"end\"}\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1822,\"end\":1842,\"line\":47,\"column\":13,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n            core::mem::drop(h_retained);\n            // hepta-source: {\"event\":\"end\"}\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1855,\"end\":1868,\"line\":48,\"column\":13,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n            return h_total;\n            // hepta-source: {\"event\":\"end\"}\n        },\n    }\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":1888,\"end\":2051,\"line\":53,\"column\":1,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\nfn h_payload(h_mode: u8, h_size: usize) -> std::vec::Vec<u8> {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1979,\"end\":2007,\"line\":54,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    let mut h_data: std::vec::Vec<u8> = std::vec![0u8; h_size];\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2012,\"end\":2027,\"line\":55,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    (h_data)[0usize] = h_mode;\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2032,\"end\":2049,\"line\":56,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    return h_data;\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":2053,\"end\":2642,\"line\":59,\"column\":1,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\nfn h_main() -> () {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2125,\"end\":2173,\"line\":60,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    let h_normal: HeptaTask = __hepta_rt_spawn(h_worker, h_payload(0u8, 17usize));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2178,\"end\":2216,\"line\":61,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    let h_normal_result: u64 = __hepta_rt_join(h_normal, false);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2221,\"end\":2250,\"line\":62,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    assert!((h_normal_result == 136u64));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2255,\"end\":2302,\"line\":63,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    let h_error: HeptaTask = __hepta_rt_spawn(h_worker, h_payload(1u8, 19usize));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2307,\"end\":2343,\"line\":64,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    let h_error_result: u64 = __hepta_rt_join(h_error, false);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2348,\"end\":2377,\"line\":65,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    assert!((h_error_result == 1013u64));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2382,\"end\":2431,\"line\":66,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    let h_pending: HeptaTask = __hepta_rt_spawn(h_worker, h_payload(2u8, 23usize));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2436,\"end\":2489,\"line\":67,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    let h_cancelled_result: u64 = __hepta_rt_join(h_pending, true);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2494,\"end\":2527,\"line\":68,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    assert!((h_cancelled_result == 2253u64));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2532,\"end\":2564,\"line\":69,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    std::println!(\"{}\", (h_normal_result as i64));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2569,\"end\":2600,\"line\":70,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    std::println!(\"{}\", (h_error_result as i64));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2605,\"end\":2640,\"line\":71,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta\"}}\n    std::println!(\"{}\", (h_cancelled_result as i64));\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\nfn main() { h_main(); }\n",
+      "generated_source_sha256": "05ff6e72ac9d83fb5d22a07ef353ebc400940a7bd691c622f673a624b8ae91a1",
+      "metadata_emitted": false,
+      "name": "shared_view_live_after_owner_transfer",
+      "native_check": {
+        "argv": [
+          "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+          "/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.rs",
+          "--edition=2021",
+          "--crate-name=hepta_lifecycle_candidate",
+          "--crate-type=lib",
+          "--emit=metadata",
+          "-C",
+          "opt-level=0",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "--error-format=json",
+          "-o",
+          "/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.rmeta",
+          "--sysroot",
+          "/tmp/hepta-ai-rust-1.90.0"
+        ],
+        "returncode": 1,
+        "stderr": "{\"$message_type\":\"diagnostic\",\"message\":\"cannot move out of `h_owner` because it is borrowed\",\"code\":{\"code\":\"E0505\",\"explanation\":\"A value was moved out while it was still borrowed.\\n\\nErroneous code example:\\n\\n```compile_fail,E0505\\nstruct Value {}\\n\\nfn borrow(val: &Value) {}\\n\\nfn eat(val: Value) {}\\n\\nfn main() {\\n    let x = Value{};\\n    let _ref_to_val: &Value = &x;\\n    eat(x);\\n    borrow(_ref_to_val);\\n}\\n```\\n\\nHere, the function `eat` takes ownership of `x`. However,\\n`x` cannot be moved because the borrow to `_ref_to_val`\\nneeds to last till the function `borrow`.\\nTo fix that you can do a few different things:\\n\\n* Try to avoid moving the variable.\\n* Release borrow before move.\\n* Implement the `Copy` trait on the type.\\n\\nExamples:\\n\\n```\\nstruct Value {}\\n\\nfn borrow(val: &Value) {}\\n\\nfn eat(val: &Value) {}\\n\\nfn main() {\\n    let x = Value{};\\n\\n    let ref_to_val: &Value = &x;\\n    eat(&x); // pass by reference, if it's possible\\n    borrow(ref_to_val);\\n}\\n```\\n\\nOr:\\n\\n```\\nstruct Value {}\\n\\nfn borrow(val: &Value) {}\\n\\nfn eat(val: Value) {}\\n\\nfn main() {\\n    let x = Value{};\\n\\n    let ref_to_val: &Value = &x;\\n    borrow(ref_to_val);\\n    // ref_to_val is no longer used.\\n    eat(x);\\n}\\n```\\n\\nOr:\\n\\n```\\n#[derive(Clone, Copy)] // implement Copy trait\\nstruct Value {}\\n\\nfn borrow(val: &Value) {}\\n\\nfn eat(val: Value) {}\\n\\nfn main() {\\n    let x = Value{};\\n    let ref_to_val: &Value = &x;\\n    eat(x); // it will be copied here.\\n    borrow(ref_to_val);\\n}\\n```\\n\\nFor more information on Rust's ownership system, take a look at the\\n[References & Borrowing][references-and-borrowing] section of the Book.\\n\\n[references-and-borrowing]: https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html\\n\"},\"level\":\"error\",\"spans\":[{\"file_name\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.rs\",\"byte_start\":9782,\"byte_end\":9789,\"line_start\":130,\"line_end\":130,\"column_start\":45,\"column_end\":52,\"is_primary\":true,\"text\":[{\"text\":\"    match h_finish::<std::vec::Vec<u8>, u8>(h_owner, (h_mode != 1u8), 13u8) {\",\"highlight_start\":45,\"highlight_end\":52}],\"label\":\"move out of `h_owner` occurs here\",\"suggested_replacement\":null,\"suggestion_applicability\":null,\"expansion\":null},{\"file_name\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.rs\",\"byte_start\":8599,\"byte_end\":8609,\"line_start\":118,\"line_end\":118,\"column_start\":43,\"column_end\":53,\"is_primary\":false,\"text\":[{\"text\":\"    let h_snapshot: H_Bytes<'_> = h_bytes((&h_owner));\",\"highlight_start\":43,\"highlight_end\":53}],\"label\":\"borrow of `h_owner` occurs here\",\"suggested_replacement\":null,\"suggestion_applicability\":null,\"expansion\":null},{\"file_name\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.rs\",\"byte_start\":6749,\"byte_end\":6760,\"line_start\":99,\"line_end\":99,\"column_start\":9,\"column_end\":20,\"is_primary\":false,\"text\":[{\"text\":\"    let mut h_owner: std::vec::Vec<u8> = h_forward::<std::vec::Vec<u8>>(h_input);\",\"highlight_start\":9,\"highlight_end\":20}],\"label\":\"binding `h_owner` declared here\",\"suggested_replacement\":null,\"suggestion_applicability\":null,\"expansion\":null},{\"file_name\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.rs\",\"byte_start\":10100,\"byte_end\":10124,\"line_start\":133,\"line_end\":133,\"column_start\":22,\"column_end\":46,\"is_primary\":false,\"text\":[{\"text\":\"            assert!((((*(h_snapshot).h_data)).len() > 0usize));\",\"highlight_start\":22,\"highlight_end\":46}],\"label\":\"borrow later used here\",\"suggested_replacement\":null,\"suggestion_applicability\":null,\"expansion\":null}],\"children\":[{\"message\":\"consider cloning the value if the performance cost is acceptable\",\"code\":null,\"level\":\"help\",\"spans\":[{\"file_name\":\"/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.rs\",\"byte_start\":8608,\"byte_end\":8608,\"line_start\":118,\"line_end\":118,\"column_start\":52,\"column_end\":52,\"is_primary\":true,\"text\":[{\"text\":\"    let h_snapshot: H_Bytes<'_> = h_bytes((&h_owner));\",\"highlight_start\":52,\"highlight_end\":52}],\"label\":null,\"suggested_replacement\":\".clone()\",\"suggestion_applicability\":\"MachineApplicable\",\"expansion\":null}],\"children\":[],\"rendered\":null}],\"rendered\":\"error[E0505]: cannot move out of `h_owner` because it is borrowed\\n   --> /tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.rs:130:45\\n    |\\n 99 |     let mut h_owner: std::vec::Vec<u8> = h_forward::<std::vec::Vec<u8>>(h_input);\\n    |         ----------- binding `h_owner` declared here\\n...\\n118 |     let h_snapshot: H_Bytes<'_> = h_bytes((&h_owner));\\n    |                                           ---------- borrow of `h_owner` occurs here\\n...\\n130 |     match h_finish::<std::vec::Vec<u8>, u8>(h_owner, (h_mode != 1u8), 13u8) {\\n    |                                             ^^^^^^^ move out of `h_owner` occurs here\\n...\\n133 |             assert!((((*(h_snapshot).h_data)).len() > 0usize));\\n    |                      ------------------------ borrow later used here\\n    |\\nhelp: consider cloning the value if the performance cost is acceptable\\n    |\\n118 |     let h_snapshot: H_Bytes<'_> = h_bytes((&h_owner.clone()));\\n    |                                                    ++++++++\\n\\n\"}\n{\"$message_type\":\"diagnostic\",\"message\":\"aborting due to 1 previous error\",\"code\":null,\"level\":\"error\",\"spans\":[],\"children\":[],\"rendered\":\"error: aborting due to 1 previous error\\n\\n\"}\n{\"$message_type\":\"diagnostic\",\"message\":\"For more information about this error, try `rustc --explain E0505`.\",\"code\":null,\"level\":\"failure-note\",\"spans\":[],\"children\":[],\"rendered\":\"For more information about this error, try `rustc --explain E0505`.\\n\"}\n",
+        "stderr_sha256": "9412bc6141793dc8cd6fdcb2b52376d2dd0df1a2e98fda02654388fef4c8b730",
+        "stdout": "",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "native_compilation_attempted": true,
+      "native_execution_attempted": false,
+      "native_link_attempted": false,
+      "source": "module lifecycle_composition;\n\n// Stored views stay inside a worker. The owner alone crosses the task boundary.\nstruct Bytes<'a> { data: read 'a [u8] }\nstruct Edit<'a> { data: mut 'a [u8] }\n\nfn forward<T: Owned>(value: take T) -> T effects {} { return move value; }\nfn finish<T: Owned, E: Copy>(value: take T, success: bool, error: E)\n    -> Result<T, E> effects {alloc, block} {\n    if !success { drop(move value); return Result::Err(error); }\n    return Result::Ok(move forward::<T>(move value));\n}\nfn bytes<'a>(value: read 'a Buffer<u8>) -> Bytes<'a> effects {} {\n    return Bytes { data: read value };\n}\nfn edit<'a>(value: mut 'a Buffer<u8>) -> Edit<'a> effects {} {\n    return Edit { data: mut value };\n}\nfn sum<'a>(value: Bytes<'a>) -> u64 effects {panic} {\n    let mut total: u64 = 0;\n    for index in 1..len(value.data) {\n        total = wrapping_add(total, value.data[index] as u64);\n    }\n    return total;\n}\n\nfn worker(input: take Buffer<u8>, token: read Cancellation) -> u64\neffects {alloc, block, panic, write} {\n    let mut owner = forward::<Buffer<u8>>(move input);\n    let mode = owner[0];\n    let mut changing = edit(mut owner);\n    for index in 1..len(changing.data) { changing.data[index] = index as u8; }\n    drop(move changing);\n    let snapshot = bytes(read owner);\n    let copied = snapshot;\n    let total = sum(copied);\n    assert(len(snapshot.data) == len(owner));\n    match finish::<Buffer<u8>, u8>(move owner, mode != 1, 13) {\n        Result::Err(code) => { assert(len(snapshot.data) > 0); return 1000 + code as u64; },\n        Result::Ok(accepted) => {\n            let retained = forward::<Buffer<u8>>(move accepted);\n            if mode == 2 {\n                while !cancelled(read token) { }\n                drop(move retained);\n                return 2000 + total;\n            }\n            drop(move retained);\n            return total;\n        }\n    }\n}\n\nfn payload(mode: u8, size: usize) -> Buffer<u8> effects {alloc, block, panic, write} {\n    let mut data = buffer(size);\n    data[0] = mode;\n    return move data;\n}\n\nfn main() -> Unit effects {alloc, block, panic, write, spawn, io} {\n    let normal = spawn(worker, move payload(0, 17));\n    let normal_result = join(move normal);\n    assert(normal_result == 136);\n    let error = spawn(worker, move payload(1, 19));\n    let error_result = join(move error);\n    assert(error_result == 1013);\n    let pending = spawn(worker, move payload(2, 23));\n    let cancelled_result = cancel_and_join(move pending);\n    assert(cancelled_result == 2253);\n    print_i64(normal_result as i64);\n    print_i64(error_result as i64);\n    print_i64(cancelled_result as i64);\n}\n",
+      "source_path": "/tmp/hepta-lifecycle-composition-9cq8636q/shared_view_live_after_owner_transfer.hepta",
+      "source_sha256": "f96759d4f5afb56218fee1ffed585c864c8395f063d86cc0566dabec7f0ba842",
+      "stage": "rustc"
+    },
+    {
+      "codes": [
+        "E0502"
+      ],
+      "diagnostics": [
+        {
+          "code": "E0502",
+          "generated_spans": [
+            {
+              "byte_end": 8233,
+              "byte_start": 8224,
+              "column_end": 23,
+              "column_start": 14,
+              "expansion": null,
+              "file_name": "/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.rs",
+              "is_primary": true,
+              "label": "immutable borrow occurs here",
+              "line_end": 115,
+              "line_start": 115,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": [
+                {
+                  "highlight_end": 23,
+                  "highlight_start": 14,
+                  "text": "    assert!(((h_owner).len() > 0usize));"
+                }
+              ]
+            },
+            {
+              "byte_end": 7349,
+              "byte_start": 7335,
+              "column_end": 59,
+              "column_start": 45,
+              "expansion": null,
+              "file_name": "/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.rs",
+              "is_primary": false,
+              "label": "mutable borrow occurs here",
+              "line_end": 105,
+              "line_start": 105,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": [
+                {
+                  "highlight_end": 59,
+                  "highlight_start": 45,
+                  "text": "    let mut h_changing: H_Edit<'_> = h_edit((&mut h_owner));"
+                }
+              ]
+            },
+            {
+              "byte_end": 8523,
+              "byte_start": 8513,
+              "column_end": 31,
+              "column_start": 21,
+              "expansion": null,
+              "file_name": "/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.rs",
+              "is_primary": false,
+              "label": "mutable borrow later used here",
+              "line_end": 118,
+              "line_start": 118,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": [
+                {
+                  "highlight_end": 31,
+                  "highlight_start": 21,
+                  "text": "    core::mem::drop(h_changing);"
+                }
+              ]
+            }
+          ],
+          "message": "cannot borrow `h_owner` as immutable because it is also borrowed as mutable",
+          "phase": "backend",
+          "rendered": "error[E0502]: cannot borrow `h_owner` as immutable because it is also borrowed as mutable\n   --> /tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.rs:115:14\n    |\n105 |     let mut h_changing: H_Edit<'_> = h_edit((&mut h_owner));\n    |                                             -------------- mutable borrow occurs here\n...\n115 |     assert!(((h_owner).len() > 0usize));\n    |              ^^^^^^^^^ immutable borrow occurs here\n...\n118 |     core::mem::drop(h_changing);\n    |                     ---------- mutable borrow later used here\n\n",
+          "source_mappings": [
+            {
+              "generated_line": 115,
+              "is_primary": true,
+              "precision": "statement",
+              "span": {
+                "column": 5,
+                "end": 1252,
+                "line": 33,
+                "path": "/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta",
+                "start": 1229
+              }
+            },
+            {
+              "generated_line": 105,
+              "is_primary": false,
+              "precision": "statement",
+              "span": {
+                "column": 5,
+                "end": 1145,
+                "line": 31,
+                "path": "/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta",
+                "start": 1110
+              }
+            },
+            {
+              "generated_line": 118,
+              "is_primary": false,
+              "precision": "statement",
+              "span": {
+                "column": 5,
+                "end": 1277,
+                "line": 34,
+                "path": "/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta",
+                "start": 1257
+              }
+            }
+          ],
+          "span": {
+            "column": 5,
+            "end": 1252,
+            "line": 33,
+            "path": "/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta",
+            "start": 1229
+          }
+        },
+        {
+          "code": "E_RUSTC",
+          "generated_spans": [],
+          "message": "aborting due to 1 previous error",
+          "phase": "backend",
+          "rendered": "error: aborting due to 1 previous error\n\n"
+        }
+      ],
+      "frontend": {
+        "assumptions": [],
+        "borrowed_storage": {
+          "c_backend_supported": false,
+          "general_lifetime_system_complete": false,
+          "independent_resource_ir_supported": false,
+          "native_lifetimes_checked": false,
+          "native_lifetimes_required": true,
+          "profile": "explicit-lifetime-records-v1"
+        },
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "dbeb5311dfb81d01d8704ef26800b5672bca89976efa6b74e10a9b255efb9f97",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "bytes": [],
+          "edit": [],
+          "finish": [
+            "alloc",
+            "block"
+          ],
+          "forward": [],
+          "main": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "spawn",
+            "write"
+          ],
+          "payload": [
+            "alloc",
+            "block",
+            "panic"
+          ],
+          "sum": [
+            "panic"
+          ],
+          "worker": [
+            "alloc",
+            "block",
+            "panic",
+            "write"
+          ]
+        },
+        "interface_sha256": "f6f228c0c6d0602e7796438f734241a5f94cf6ac6c3a2c15e2c93e57c6dda068",
+        "ok": true,
+        "path": "/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [],
+        "rust_sha256": "197a660af0ccccdffe43c8f689e36a4c20f23dde8b433413269ae9cc2b4b6f0b",
+        "schema": "hepta.check.v1",
+        "source_sha256": "c9a253e03309f8882ae0288ac57b4922faef0e0806fff9c6b43f24ea7febf643",
+        "status": "frontend_only"
+      },
+      "generated_source": "// Generated by Hepta 0.2.0 from checked AST; do not edit.\n#![allow(non_camel_case_types, unused, unused_parens)]\n\npub struct HeptaCancellation {\n    flag: std::sync::Arc<std::sync::atomic::AtomicBool>,\n}\npub struct HeptaTask {\n    handle: std::thread::JoinHandle<u64>,\n    flag: std::sync::Arc<std::sync::atomic::AtomicBool>,\n}\nfn __hepta_rt_spawn(\n    worker: fn(std::vec::Vec<u8>, &HeptaCancellation) -> u64,\n    data: std::vec::Vec<u8>,\n) -> HeptaTask {\n    let flag = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));\n    let cancellation = HeptaCancellation { flag: std::sync::Arc::clone(&flag) };\n    let handle = std::thread::spawn(move || worker(data, &cancellation));\n    HeptaTask { handle, flag }\n}\nfn __hepta_rt_join(task: HeptaTask, cancel: bool) -> u64 {\n    let HeptaTask { handle, flag } = task;\n    if cancel { flag.store(true, std::sync::atomic::Ordering::Release); }\n    handle.join().expect(\"Hepta task panicked\")\n}\n\n\nfn __hepta_try_buffer(size: usize) -> core::result::Result<std::vec::Vec<u8>, u8> {\n    let mut bytes = std::vec::Vec::new();\n    if bytes.try_reserve_exact(size).is_err() {\n        return Err(1u8);\n    }\n    // Successful reservation proves capacity >= size. u8 initialization cannot\n    // call user code or allocate again; no uninitialized bytes are exposed.\n    bytes.resize(size, 0u8);\n    Ok(bytes)\n}\n\n#[derive(Clone, Copy)]\npub struct H_Bytes<'h_a> { pub h_data: &'h_a [u8] }\npub struct H_Edit<'h_a> { pub h_data: &'h_a mut [u8] }\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":191,\"end\":265,\"line\":7,\"column\":1,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\nfn h_forward<G_T>(h_value: G_T) -> G_T {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":245,\"end\":263,\"line\":7,\"column\":55,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    return h_value;\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":266,\"end\":500,\"line\":8,\"column\":1,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\nfn h_finish<G_T, G_E: core::marker::Copy>(h_value: G_T, h_success: bool, h_error: G_E) -> core::result::Result<G_T, G_E> {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":384,\"end\":444,\"line\":10,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    if (!h_success) {\n        // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":398,\"end\":415,\"line\":10,\"column\":19,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n        core::mem::drop(h_value);\n        // hepta-source: {\"event\":\"end\"}\n        // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":416,\"end\":442,\"line\":10,\"column\":37,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n        return core::result::Result::<G_T, G_E>::Err(h_error);\n        // hepta-source: {\"event\":\"end\"}\n    }\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":449,\"end\":498,\"line\":11,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    return core::result::Result::<G_T, G_E>::Ok(h_forward::<G_T>(h_value));\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":501,\"end\":607,\"line\":13,\"column\":1,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\nfn h_bytes<'h_a>(h_value: &'h_a std::vec::Vec<u8>) -> H_Bytes<'h_a> {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":571,\"end\":605,\"line\":14,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    return H_Bytes::<'h_a> { h_data: (&(*h_value)) };\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":608,\"end\":709,\"line\":16,\"column\":1,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\nfn h_edit<'h_a>(h_value: &'h_a mut std::vec::Vec<u8>) -> H_Edit<'h_a> {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":675,\"end\":707,\"line\":17,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    return H_Edit::<'h_a> { h_data: (&mut (*h_value)) };\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":710,\"end\":918,\"line\":19,\"column\":1,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\nfn h_sum<'h_a>(h_value: H_Bytes<'h_a>) -> u64 {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":768,\"end\":791,\"line\":20,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    let mut h_total: u64 = 0u64;\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":796,\"end\":898,\"line\":21,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    for h_index in 1usize..((*(h_value).h_data)).len() {\n        // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":838,\"end\":892,\"line\":22,\"column\":9,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n        h_total = (h_total).wrapping_add((((*(h_value).h_data))[h_index] as u64));\n        // hepta-source: {\"event\":\"end\"}\n    }\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":903,\"end\":916,\"line\":24,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    return h_total;\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":920,\"end\":1882,\"line\":27,\"column\":1,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\nfn h_worker(h_input: std::vec::Vec<u8>, h_token: &HeptaCancellation) -> u64 {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1030,\"end\":1080,\"line\":29,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    let mut h_owner: std::vec::Vec<u8> = h_forward::<std::vec::Vec<u8>>(h_input);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1085,\"end\":1105,\"line\":30,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    let h_mode: u8 = (h_owner)[0usize];\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1110,\"end\":1145,\"line\":31,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    let mut h_changing: H_Edit<'_> = h_edit((&mut h_owner));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1150,\"end\":1224,\"line\":32,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    for h_index in 1usize..((*(h_changing).h_data)).len() {\n        // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1187,\"end\":1222,\"line\":32,\"column\":42,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n        ((*(h_changing).h_data))[h_index] = (h_index as u8);\n        // hepta-source: {\"event\":\"end\"}\n    }\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1229,\"end\":1252,\"line\":33,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    assert!(((h_owner).len() > 0usize));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1257,\"end\":1277,\"line\":34,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    core::mem::drop(h_changing);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1282,\"end\":1315,\"line\":35,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    let h_snapshot: H_Bytes<'_> = h_bytes((&h_owner));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1320,\"end\":1342,\"line\":36,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    let h_copied: H_Bytes<'_> = h_snapshot;\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1347,\"end\":1371,\"line\":37,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    let h_total: u64 = h_sum(h_copied);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1376,\"end\":1417,\"line\":38,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    assert!((((*(h_snapshot).h_data)).len() == (h_owner).len()));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1422,\"end\":1880,\"line\":39,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    match h_finish::<std::vec::Vec<u8>, u8>(h_owner, (h_mode != 1u8), 13u8) {\n        core::result::Result::Err(h_code) => {\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1513,\"end\":1539,\"line\":40,\"column\":32,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n            return (1000u64 + (h_code as u64));\n            // hepta-source: {\"event\":\"end\"}\n        },\n        core::result::Result::Ok(h_accepted) => {\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1589,\"end\":1641,\"line\":42,\"column\":13,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n            let h_retained: std::vec::Vec<u8> = h_forward::<std::vec::Vec<u8>>(h_accepted);\n            // hepta-source: {\"event\":\"end\"}\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1654,\"end\":1805,\"line\":43,\"column\":13,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n            if (h_mode == 2u8) {\n                // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1685,\"end\":1717,\"line\":44,\"column\":17,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n                while (!((&(*h_token))).flag.load(std::sync::atomic::Ordering::Acquire)) {\n                }\n                // hepta-source: {\"event\":\"end\"}\n                // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1734,\"end\":1754,\"line\":45,\"column\":17,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n                core::mem::drop(h_retained);\n                // hepta-source: {\"event\":\"end\"}\n                // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1771,\"end\":1791,\"line\":46,\"column\":17,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n                return (2000u64 + h_total);\n                // hepta-source: {\"event\":\"end\"}\n            }\n            // hepta-source: {\"event\":\"end\"}\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1818,\"end\":1838,\"line\":48,\"column\":13,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n            core::mem::drop(h_retained);\n            // hepta-source: {\"event\":\"end\"}\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1851,\"end\":1864,\"line\":49,\"column\":13,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n            return h_total;\n            // hepta-source: {\"event\":\"end\"}\n        },\n    }\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":1884,\"end\":2047,\"line\":54,\"column\":1,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\nfn h_payload(h_mode: u8, h_size: usize) -> std::vec::Vec<u8> {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1975,\"end\":2003,\"line\":55,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    let mut h_data: std::vec::Vec<u8> = std::vec![0u8; h_size];\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2008,\"end\":2023,\"line\":56,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    (h_data)[0usize] = h_mode;\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2028,\"end\":2045,\"line\":57,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    return h_data;\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":2049,\"end\":2638,\"line\":60,\"column\":1,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\nfn h_main() -> () {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2121,\"end\":2169,\"line\":61,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    let h_normal: HeptaTask = __hepta_rt_spawn(h_worker, h_payload(0u8, 17usize));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2174,\"end\":2212,\"line\":62,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    let h_normal_result: u64 = __hepta_rt_join(h_normal, false);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2217,\"end\":2246,\"line\":63,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    assert!((h_normal_result == 136u64));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2251,\"end\":2298,\"line\":64,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    let h_error: HeptaTask = __hepta_rt_spawn(h_worker, h_payload(1u8, 19usize));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2303,\"end\":2339,\"line\":65,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    let h_error_result: u64 = __hepta_rt_join(h_error, false);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2344,\"end\":2373,\"line\":66,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    assert!((h_error_result == 1013u64));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2378,\"end\":2427,\"line\":67,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    let h_pending: HeptaTask = __hepta_rt_spawn(h_worker, h_payload(2u8, 23usize));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2432,\"end\":2485,\"line\":68,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    let h_cancelled_result: u64 = __hepta_rt_join(h_pending, true);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2490,\"end\":2523,\"line\":69,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    assert!((h_cancelled_result == 2253u64));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2528,\"end\":2560,\"line\":70,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    std::println!(\"{}\", (h_normal_result as i64));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2565,\"end\":2596,\"line\":71,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    std::println!(\"{}\", (h_error_result as i64));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2601,\"end\":2636,\"line\":72,\"column\":5,\"path\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta\"}}\n    std::println!(\"{}\", (h_cancelled_result as i64));\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\nfn main() { h_main(); }\n",
+      "generated_source_sha256": "197a660af0ccccdffe43c8f689e36a4c20f23dde8b433413269ae9cc2b4b6f0b",
+      "metadata_emitted": false,
+      "name": "owner_read_while_mutable_view_live",
+      "native_check": {
+        "argv": [
+          "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+          "/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.rs",
+          "--edition=2021",
+          "--crate-name=hepta_lifecycle_candidate",
+          "--crate-type=lib",
+          "--emit=metadata",
+          "-C",
+          "opt-level=0",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "--error-format=json",
+          "-o",
+          "/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.rmeta",
+          "--sysroot",
+          "/tmp/hepta-ai-rust-1.90.0"
+        ],
+        "returncode": 1,
+        "stderr": "{\"$message_type\":\"diagnostic\",\"message\":\"cannot borrow `h_owner` as immutable because it is also borrowed as mutable\",\"code\":{\"code\":\"E0502\",\"explanation\":\"A variable already borrowed with a certain mutability (either mutable or\\nimmutable) was borrowed again with a different mutability.\\n\\nErroneous code example:\\n\\n```compile_fail,E0502\\nfn bar(x: &mut i32) {}\\nfn foo(a: &mut i32) {\\n    let y = &a; // a is borrowed as immutable.\\n    bar(a); // error: cannot borrow `*a` as mutable because `a` is also borrowed\\n            //        as immutable\\n    println!(\\\"{}\\\", y);\\n}\\n```\\n\\nTo fix this error, ensure that you don't have any other references to the\\nvariable before trying to access it with a different mutability:\\n\\n```\\nfn bar(x: &mut i32) {}\\nfn foo(a: &mut i32) {\\n    bar(a);\\n    let y = &a; // ok!\\n    println!(\\\"{}\\\", y);\\n}\\n```\\n\\nFor more information on Rust's ownership system, take a look at the\\n[References & Borrowing][references-and-borrowing] section of the Book.\\n\\n[references-and-borrowing]: https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html\\n\"},\"level\":\"error\",\"spans\":[{\"file_name\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.rs\",\"byte_start\":8224,\"byte_end\":8233,\"line_start\":115,\"line_end\":115,\"column_start\":14,\"column_end\":23,\"is_primary\":true,\"text\":[{\"text\":\"    assert!(((h_owner).len() > 0usize));\",\"highlight_start\":14,\"highlight_end\":23}],\"label\":\"immutable borrow occurs here\",\"suggested_replacement\":null,\"suggestion_applicability\":null,\"expansion\":null},{\"file_name\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.rs\",\"byte_start\":7335,\"byte_end\":7349,\"line_start\":105,\"line_end\":105,\"column_start\":45,\"column_end\":59,\"is_primary\":false,\"text\":[{\"text\":\"    let mut h_changing: H_Edit<'_> = h_edit((&mut h_owner));\",\"highlight_start\":45,\"highlight_end\":59}],\"label\":\"mutable borrow occurs here\",\"suggested_replacement\":null,\"suggestion_applicability\":null,\"expansion\":null},{\"file_name\":\"/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.rs\",\"byte_start\":8513,\"byte_end\":8523,\"line_start\":118,\"line_end\":118,\"column_start\":21,\"column_end\":31,\"is_primary\":false,\"text\":[{\"text\":\"    core::mem::drop(h_changing);\",\"highlight_start\":21,\"highlight_end\":31}],\"label\":\"mutable borrow later used here\",\"suggested_replacement\":null,\"suggestion_applicability\":null,\"expansion\":null}],\"children\":[],\"rendered\":\"error[E0502]: cannot borrow `h_owner` as immutable because it is also borrowed as mutable\\n   --> /tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.rs:115:14\\n    |\\n105 |     let mut h_changing: H_Edit<'_> = h_edit((&mut h_owner));\\n    |                                             -------------- mutable borrow occurs here\\n...\\n115 |     assert!(((h_owner).len() > 0usize));\\n    |              ^^^^^^^^^ immutable borrow occurs here\\n...\\n118 |     core::mem::drop(h_changing);\\n    |                     ---------- mutable borrow later used here\\n\\n\"}\n{\"$message_type\":\"diagnostic\",\"message\":\"aborting due to 1 previous error\",\"code\":null,\"level\":\"error\",\"spans\":[],\"children\":[],\"rendered\":\"error: aborting due to 1 previous error\\n\\n\"}\n{\"$message_type\":\"diagnostic\",\"message\":\"For more information about this error, try `rustc --explain E0502`.\",\"code\":null,\"level\":\"failure-note\",\"spans\":[],\"children\":[],\"rendered\":\"For more information about this error, try `rustc --explain E0502`.\\n\"}\n",
+        "stderr_sha256": "cd40304abca641b57a4107284ed04af36a3afc9423aedd9bdf1c43127d01c8e1",
+        "stdout": "",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "native_compilation_attempted": true,
+      "native_execution_attempted": false,
+      "native_link_attempted": false,
+      "source": "module lifecycle_composition;\n\n// Stored views stay inside a worker. The owner alone crosses the task boundary.\nstruct Bytes<'a> { data: read 'a [u8] }\nstruct Edit<'a> { data: mut 'a [u8] }\n\nfn forward<T: Owned>(value: take T) -> T effects {} { return move value; }\nfn finish<T: Owned, E: Copy>(value: take T, success: bool, error: E)\n    -> Result<T, E> effects {alloc, block} {\n    if !success { drop(move value); return Result::Err(error); }\n    return Result::Ok(move forward::<T>(move value));\n}\nfn bytes<'a>(value: read 'a Buffer<u8>) -> Bytes<'a> effects {} {\n    return Bytes { data: read value };\n}\nfn edit<'a>(value: mut 'a Buffer<u8>) -> Edit<'a> effects {} {\n    return Edit { data: mut value };\n}\nfn sum<'a>(value: Bytes<'a>) -> u64 effects {panic} {\n    let mut total: u64 = 0;\n    for index in 1..len(value.data) {\n        total = wrapping_add(total, value.data[index] as u64);\n    }\n    return total;\n}\n\nfn worker(input: take Buffer<u8>, token: read Cancellation) -> u64\neffects {alloc, block, panic, write} {\n    let mut owner = forward::<Buffer<u8>>(move input);\n    let mode = owner[0];\n    let mut changing = edit(mut owner);\n    for index in 1..len(changing.data) { changing.data[index] = index as u8; }\n    assert(len(owner) > 0);\n    drop(move changing);\n    let snapshot = bytes(read owner);\n    let copied = snapshot;\n    let total = sum(copied);\n    assert(len(snapshot.data) == len(owner));\n    match finish::<Buffer<u8>, u8>(move owner, mode != 1, 13) {\n        Result::Err(code) => { return 1000 + code as u64; },\n        Result::Ok(accepted) => {\n            let retained = forward::<Buffer<u8>>(move accepted);\n            if mode == 2 {\n                while !cancelled(read token) { }\n                drop(move retained);\n                return 2000 + total;\n            }\n            drop(move retained);\n            return total;\n        }\n    }\n}\n\nfn payload(mode: u8, size: usize) -> Buffer<u8> effects {alloc, block, panic, write} {\n    let mut data = buffer(size);\n    data[0] = mode;\n    return move data;\n}\n\nfn main() -> Unit effects {alloc, block, panic, write, spawn, io} {\n    let normal = spawn(worker, move payload(0, 17));\n    let normal_result = join(move normal);\n    assert(normal_result == 136);\n    let error = spawn(worker, move payload(1, 19));\n    let error_result = join(move error);\n    assert(error_result == 1013);\n    let pending = spawn(worker, move payload(2, 23));\n    let cancelled_result = cancel_and_join(move pending);\n    assert(cancelled_result == 2253);\n    print_i64(normal_result as i64);\n    print_i64(error_result as i64);\n    print_i64(cancelled_result as i64);\n}\n",
+      "source_path": "/tmp/hepta-lifecycle-composition-9cq8636q/owner_read_while_mutable_view_live.hepta",
+      "source_sha256": "c9a253e03309f8882ae0288ac57b4922faef0e0806fff9c6b43f24ea7febf643",
+      "stage": "rustc"
+    }
+  ],
+  "ok": true,
+  "original": {
+    "artifact_bytes": 3898608,
+    "artifact_retained": false,
+    "artifact_sha256": "3fa262104c3f2959daa2aaadd5fb0ec84063ba38e4ec877b63df9fdb7ec298f3",
+    "build": {
+      "artifact": "/tmp/hepta-lifecycle-composition-9cq8636q/original",
+      "artifact_bytes": 3898608,
+      "artifact_sha256": "3fa262104c3f2959daa2aaadd5fb0ec84063ba38e4ec877b63df9fdb7ec298f3",
+      "check_only": false,
+      "crate_type": "bin",
+      "diagnostics": [],
+      "flags": [
+        "edition=2021",
+        "opt-level=3",
+        "overflow-checks=yes",
+        "panic=abort",
+        "codegen-units=1",
+        "sysroot=/tmp/hepta-ai-rust-1.90.0"
+      ],
+      "link_args": [],
+      "linker": null,
+      "ok": true,
+      "rust_sha256": "fe9e5935a7574319345d06ac94aa7e8257a8d8500c1ca3595df107bb795d5534",
+      "rustc_crate_type": "bin",
+      "status": "rustc_checked",
+      "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+      "target": "x86_64-unknown-linux-gnu",
+      "toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+        "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "validation_artifact_sha256": "3fa262104c3f2959daa2aaadd5fb0ec84063ba38e4ec877b63df9fdb7ec298f3"
+    },
+    "execution": {
+      "argv": [
+        "/tmp/hepta-lifecycle-composition-9cq8636q/original"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "136\n1013\n2253\n",
+      "stdout_sha256": "7c5a7ded3a3f19c3c7583edef53950febef43872f0f3d35094fa6ebff3a59ea7"
+    },
+    "generated_source": "// Generated by Hepta 0.2.0 from checked AST; do not edit.\n#![allow(non_camel_case_types, unused, unused_parens)]\n\npub struct HeptaCancellation {\n    flag: std::sync::Arc<std::sync::atomic::AtomicBool>,\n}\npub struct HeptaTask {\n    handle: std::thread::JoinHandle<u64>,\n    flag: std::sync::Arc<std::sync::atomic::AtomicBool>,\n}\nfn __hepta_rt_spawn(\n    worker: fn(std::vec::Vec<u8>, &HeptaCancellation) -> u64,\n    data: std::vec::Vec<u8>,\n) -> HeptaTask {\n    let flag = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));\n    let cancellation = HeptaCancellation { flag: std::sync::Arc::clone(&flag) };\n    let handle = std::thread::spawn(move || worker(data, &cancellation));\n    HeptaTask { handle, flag }\n}\nfn __hepta_rt_join(task: HeptaTask, cancel: bool) -> u64 {\n    let HeptaTask { handle, flag } = task;\n    if cancel { flag.store(true, std::sync::atomic::Ordering::Release); }\n    handle.join().expect(\"Hepta task panicked\")\n}\n\n\nfn __hepta_try_buffer(size: usize) -> core::result::Result<std::vec::Vec<u8>, u8> {\n    let mut bytes = std::vec::Vec::new();\n    if bytes.try_reserve_exact(size).is_err() {\n        return Err(1u8);\n    }\n    // Successful reservation proves capacity >= size. u8 initialization cannot\n    // call user code or allocate again; no uninitialized bytes are exposed.\n    bytes.resize(size, 0u8);\n    Ok(bytes)\n}\n\n#[derive(Clone, Copy)]\npub struct H_Bytes<'h_a> { pub h_data: &'h_a [u8] }\npub struct H_Edit<'h_a> { pub h_data: &'h_a mut [u8] }\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":191,\"end\":265,\"line\":7,\"column\":1,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\nfn h_forward<G_T>(h_value: G_T) -> G_T {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":245,\"end\":263,\"line\":7,\"column\":55,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    return h_value;\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":266,\"end\":500,\"line\":8,\"column\":1,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\nfn h_finish<G_T, G_E: core::marker::Copy>(h_value: G_T, h_success: bool, h_error: G_E) -> core::result::Result<G_T, G_E> {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":384,\"end\":444,\"line\":10,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    if (!h_success) {\n        // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":398,\"end\":415,\"line\":10,\"column\":19,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n        core::mem::drop(h_value);\n        // hepta-source: {\"event\":\"end\"}\n        // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":416,\"end\":442,\"line\":10,\"column\":37,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n        return core::result::Result::<G_T, G_E>::Err(h_error);\n        // hepta-source: {\"event\":\"end\"}\n    }\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":449,\"end\":498,\"line\":11,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    return core::result::Result::<G_T, G_E>::Ok(h_forward::<G_T>(h_value));\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":501,\"end\":607,\"line\":13,\"column\":1,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\nfn h_bytes<'h_a>(h_value: &'h_a std::vec::Vec<u8>) -> H_Bytes<'h_a> {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":571,\"end\":605,\"line\":14,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    return H_Bytes::<'h_a> { h_data: (&(*h_value)) };\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":608,\"end\":709,\"line\":16,\"column\":1,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\nfn h_edit<'h_a>(h_value: &'h_a mut std::vec::Vec<u8>) -> H_Edit<'h_a> {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":675,\"end\":707,\"line\":17,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    return H_Edit::<'h_a> { h_data: (&mut (*h_value)) };\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":710,\"end\":918,\"line\":19,\"column\":1,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\nfn h_sum<'h_a>(h_value: H_Bytes<'h_a>) -> u64 {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":768,\"end\":791,\"line\":20,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let mut h_total: u64 = 0u64;\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":796,\"end\":898,\"line\":21,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    for h_index in 1usize..((*(h_value).h_data)).len() {\n        // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":838,\"end\":892,\"line\":22,\"column\":9,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n        h_total = (h_total).wrapping_add((((*(h_value).h_data))[h_index] as u64));\n        // hepta-source: {\"event\":\"end\"}\n    }\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":903,\"end\":916,\"line\":24,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    return h_total;\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":920,\"end\":1854,\"line\":27,\"column\":1,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\nfn h_worker(h_input: std::vec::Vec<u8>, h_token: &HeptaCancellation) -> u64 {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1030,\"end\":1080,\"line\":29,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let mut h_owner: std::vec::Vec<u8> = h_forward::<std::vec::Vec<u8>>(h_input);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1085,\"end\":1105,\"line\":30,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_mode: u8 = (h_owner)[0usize];\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1110,\"end\":1145,\"line\":31,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let mut h_changing: H_Edit<'_> = h_edit((&mut h_owner));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1150,\"end\":1224,\"line\":32,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    for h_index in 1usize..((*(h_changing).h_data)).len() {\n        // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1187,\"end\":1222,\"line\":32,\"column\":42,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n        ((*(h_changing).h_data))[h_index] = (h_index as u8);\n        // hepta-source: {\"event\":\"end\"}\n    }\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1229,\"end\":1249,\"line\":33,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    core::mem::drop(h_changing);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1254,\"end\":1287,\"line\":34,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_snapshot: H_Bytes<'_> = h_bytes((&h_owner));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1292,\"end\":1314,\"line\":35,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_copied: H_Bytes<'_> = h_snapshot;\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1319,\"end\":1343,\"line\":36,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_total: u64 = h_sum(h_copied);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1348,\"end\":1389,\"line\":37,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    assert!((((*(h_snapshot).h_data)).len() == (h_owner).len()));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1394,\"end\":1852,\"line\":38,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    match h_finish::<std::vec::Vec<u8>, u8>(h_owner, (h_mode != 1u8), 13u8) {\n        core::result::Result::Err(h_code) => {\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1485,\"end\":1511,\"line\":39,\"column\":32,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n            return (1000u64 + (h_code as u64));\n            // hepta-source: {\"event\":\"end\"}\n        },\n        core::result::Result::Ok(h_accepted) => {\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1561,\"end\":1613,\"line\":41,\"column\":13,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n            let h_retained: std::vec::Vec<u8> = h_forward::<std::vec::Vec<u8>>(h_accepted);\n            // hepta-source: {\"event\":\"end\"}\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1626,\"end\":1777,\"line\":42,\"column\":13,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n            if (h_mode == 2u8) {\n                // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1657,\"end\":1689,\"line\":43,\"column\":17,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n                while (!((&(*h_token))).flag.load(std::sync::atomic::Ordering::Acquire)) {\n                }\n                // hepta-source: {\"event\":\"end\"}\n                // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1706,\"end\":1726,\"line\":44,\"column\":17,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n                core::mem::drop(h_retained);\n                // hepta-source: {\"event\":\"end\"}\n                // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1743,\"end\":1763,\"line\":45,\"column\":17,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n                return (2000u64 + h_total);\n                // hepta-source: {\"event\":\"end\"}\n            }\n            // hepta-source: {\"event\":\"end\"}\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1790,\"end\":1810,\"line\":47,\"column\":13,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n            core::mem::drop(h_retained);\n            // hepta-source: {\"event\":\"end\"}\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1823,\"end\":1836,\"line\":48,\"column\":13,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n            return h_total;\n            // hepta-source: {\"event\":\"end\"}\n        },\n    }\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":1856,\"end\":2019,\"line\":53,\"column\":1,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\nfn h_payload(h_mode: u8, h_size: usize) -> std::vec::Vec<u8> {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1947,\"end\":1975,\"line\":54,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let mut h_data: std::vec::Vec<u8> = std::vec![0u8; h_size];\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1980,\"end\":1995,\"line\":55,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    (h_data)[0usize] = h_mode;\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2000,\"end\":2017,\"line\":56,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    return h_data;\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":2021,\"end\":2610,\"line\":59,\"column\":1,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\nfn h_main() -> () {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2093,\"end\":2141,\"line\":60,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_normal: HeptaTask = __hepta_rt_spawn(h_worker, h_payload(0u8, 17usize));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2146,\"end\":2184,\"line\":61,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_normal_result: u64 = __hepta_rt_join(h_normal, false);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2189,\"end\":2218,\"line\":62,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    assert!((h_normal_result == 136u64));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2223,\"end\":2270,\"line\":63,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_error: HeptaTask = __hepta_rt_spawn(h_worker, h_payload(1u8, 19usize));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2275,\"end\":2311,\"line\":64,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_error_result: u64 = __hepta_rt_join(h_error, false);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2316,\"end\":2345,\"line\":65,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    assert!((h_error_result == 1013u64));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2350,\"end\":2399,\"line\":66,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_pending: HeptaTask = __hepta_rt_spawn(h_worker, h_payload(2u8, 23usize));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2404,\"end\":2457,\"line\":67,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_cancelled_result: u64 = __hepta_rt_join(h_pending, true);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2462,\"end\":2495,\"line\":68,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    assert!((h_cancelled_result == 2253u64));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2500,\"end\":2532,\"line\":69,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    std::println!(\"{}\", (h_normal_result as i64));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2537,\"end\":2568,\"line\":70,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    std::println!(\"{}\", (h_error_result as i64));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2573,\"end\":2608,\"line\":71,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    std::println!(\"{}\", (h_cancelled_result as i64));\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\nfn main() { h_main(); }\n",
+    "generated_source_sha256": "fe9e5935a7574319345d06ac94aa7e8257a8d8500c1ca3595df107bb795d5534",
+    "name": "original"
+  },
+  "owner_observation": {
+    "artifact_bytes": 3909304,
+    "artifact_retained": false,
+    "artifact_sha256": "ccc56307d9b81c41dc5310770b7e4234d238719458ccbc6f155d0c0497bb74b7",
+    "balance": {
+      "allocations": 3,
+      "frees": 3,
+      "live_allocations": 0,
+      "live_bytes": 0,
+      "owner_bytes": 59,
+      "registered_owners": 3
+    },
+    "build": {
+      "artifact": "/tmp/hepta-lifecycle-composition-9cq8636q/owner_observation",
+      "artifact_bytes": 3909304,
+      "artifact_sha256": "ccc56307d9b81c41dc5310770b7e4234d238719458ccbc6f155d0c0497bb74b7",
+      "check_only": false,
+      "crate_type": "bin",
+      "diagnostics": [],
+      "flags": [
+        "edition=2021",
+        "opt-level=3",
+        "overflow-checks=yes",
+        "panic=abort",
+        "codegen-units=1",
+        "sysroot=/tmp/hepta-ai-rust-1.90.0"
+      ],
+      "link_args": [],
+      "linker": null,
+      "ok": true,
+      "rust_sha256": "af45efa347b2e11815cace82b08520c6343ceb4409f953f5de952f011a7abef0",
+      "rustc_crate_type": "bin",
+      "status": "rustc_checked",
+      "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+      "target": "x86_64-unknown-linux-gnu",
+      "toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+        "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "validation_artifact_sha256": "ccc56307d9b81c41dc5310770b7e4234d238719458ccbc6f155d0c0497bb74b7"
+    },
+    "execution": {
+      "argv": [
+        "/tmp/hepta-lifecycle-composition-9cq8636q/owner_observation"
+      ],
+      "returncode": 0,
+      "stderr": "{\"error_code\":0,\"owner_reallocations\":0,\"owners\":[{\"mode\":0,\"generation\":1,\"address\":94458057616640,\"bytes\":17,\"allocations\":1,\"frees\":1,\"live\":0,\"allocation_api\":2},{\"mode\":1,\"generation\":2,\"address\":94458057616640,\"bytes\":19,\"allocations\":1,\"frees\":1,\"live\":0,\"allocation_api\":2},{\"mode\":2,\"generation\":3,\"address\":94458057616640,\"bytes\":23,\"allocations\":1,\"frees\":1,\"live\":0,\"allocation_api\":2}]}\n",
+      "stderr_sha256": "59179310d37f6c816a44be526f503a7455cbbe348438897d83ee0bad29dade33",
+      "stdout": "136\n1013\n2253\n",
+      "stdout_sha256": "7c5a7ded3a3f19c3c7583edef53950febef43872f0f3d35094fa6ebff3a59ea7"
+    },
+    "generated_source": "// Generated by Hepta 0.2.0 from checked AST; do not edit.\n#![allow(non_camel_case_types, unused, unused_parens)]\n\npub struct HeptaCancellation {\n    flag: std::sync::Arc<std::sync::atomic::AtomicBool>,\n}\npub struct HeptaTask {\n    handle: std::thread::JoinHandle<u64>,\n    flag: std::sync::Arc<std::sync::atomic::AtomicBool>,\n}\nfn __hepta_rt_spawn(\n    worker: fn(std::vec::Vec<u8>, &HeptaCancellation) -> u64,\n    data: std::vec::Vec<u8>,\n) -> HeptaTask {\n    let flag = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));\n    let cancellation = HeptaCancellation { flag: std::sync::Arc::clone(&flag) };\n    let handle = std::thread::spawn(move || worker(data, &cancellation));\n    HeptaTask { handle, flag }\n}\nfn __hepta_rt_join(task: HeptaTask, cancel: bool) -> u64 {\n    let HeptaTask { handle, flag } = task;\n    if cancel { flag.store(true, std::sync::atomic::Ordering::Release); }\n    handle.join().expect(\"Hepta task panicked\")\n}\n\n\nfn __hepta_try_buffer(size: usize) -> core::result::Result<std::vec::Vec<u8>, u8> {\n    let mut bytes = std::vec::Vec::new();\n    if bytes.try_reserve_exact(size).is_err() {\n        return Err(1u8);\n    }\n    // Successful reservation proves capacity >= size. u8 initialization cannot\n    // call user code or allocate again; no uninitialized bytes are exposed.\n    bytes.resize(size, 0u8);\n    Ok(bytes)\n}\n\n#[derive(Clone, Copy)]\npub struct H_Bytes<'h_a> { pub h_data: &'h_a [u8] }\npub struct H_Edit<'h_a> { pub h_data: &'h_a mut [u8] }\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":191,\"end\":265,\"line\":7,\"column\":1,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\nfn h_forward<G_T>(h_value: G_T) -> G_T {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":245,\"end\":263,\"line\":7,\"column\":55,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    return h_value;\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":266,\"end\":500,\"line\":8,\"column\":1,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\nfn h_finish<G_T, G_E: core::marker::Copy>(h_value: G_T, h_success: bool, h_error: G_E) -> core::result::Result<G_T, G_E> {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":384,\"end\":444,\"line\":10,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    if (!h_success) {\n        // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":398,\"end\":415,\"line\":10,\"column\":19,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n        core::mem::drop(h_value);\n        // hepta-source: {\"event\":\"end\"}\n        // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":416,\"end\":442,\"line\":10,\"column\":37,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n        return core::result::Result::<G_T, G_E>::Err(h_error);\n        // hepta-source: {\"event\":\"end\"}\n    }\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":449,\"end\":498,\"line\":11,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    return core::result::Result::<G_T, G_E>::Ok(h_forward::<G_T>(h_value));\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":501,\"end\":607,\"line\":13,\"column\":1,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\nfn h_bytes<'h_a>(h_value: &'h_a std::vec::Vec<u8>) -> H_Bytes<'h_a> {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":571,\"end\":605,\"line\":14,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    return H_Bytes::<'h_a> { h_data: (&(*h_value)) };\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":608,\"end\":709,\"line\":16,\"column\":1,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\nfn h_edit<'h_a>(h_value: &'h_a mut std::vec::Vec<u8>) -> H_Edit<'h_a> {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":675,\"end\":707,\"line\":17,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    return H_Edit::<'h_a> { h_data: (&mut (*h_value)) };\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":710,\"end\":918,\"line\":19,\"column\":1,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\nfn h_sum<'h_a>(h_value: H_Bytes<'h_a>) -> u64 {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":768,\"end\":791,\"line\":20,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let mut h_total: u64 = 0u64;\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":796,\"end\":898,\"line\":21,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    for h_index in 1usize..((*(h_value).h_data)).len() {\n        // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":838,\"end\":892,\"line\":22,\"column\":9,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n        h_total = (h_total).wrapping_add((((*(h_value).h_data))[h_index] as u64));\n        // hepta-source: {\"event\":\"end\"}\n    }\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":903,\"end\":916,\"line\":24,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    return h_total;\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":920,\"end\":1854,\"line\":27,\"column\":1,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\nfn h_worker(h_input: std::vec::Vec<u8>, h_token: &HeptaCancellation) -> u64 {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1030,\"end\":1080,\"line\":29,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let mut h_owner: std::vec::Vec<u8> = h_forward::<std::vec::Vec<u8>>(h_input);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1085,\"end\":1105,\"line\":30,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_mode: u8 = (h_owner)[0usize];\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1110,\"end\":1145,\"line\":31,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let mut h_changing: H_Edit<'_> = h_edit((&mut h_owner));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1150,\"end\":1224,\"line\":32,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    for h_index in 1usize..((*(h_changing).h_data)).len() {\n        // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1187,\"end\":1222,\"line\":32,\"column\":42,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n        ((*(h_changing).h_data))[h_index] = (h_index as u8);\n        // hepta-source: {\"event\":\"end\"}\n    }\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1229,\"end\":1249,\"line\":33,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    core::mem::drop(h_changing);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1254,\"end\":1287,\"line\":34,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_snapshot: H_Bytes<'_> = h_bytes((&h_owner));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1292,\"end\":1314,\"line\":35,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_copied: H_Bytes<'_> = h_snapshot;\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1319,\"end\":1343,\"line\":36,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_total: u64 = h_sum(h_copied);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1348,\"end\":1389,\"line\":37,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    assert!((((*(h_snapshot).h_data)).len() == (h_owner).len()));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1394,\"end\":1852,\"line\":38,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    match h_finish::<std::vec::Vec<u8>, u8>(h_owner, (h_mode != 1u8), 13u8) {\n        core::result::Result::Err(h_code) => {\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1485,\"end\":1511,\"line\":39,\"column\":32,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n            return (1000u64 + (h_code as u64));\n            // hepta-source: {\"event\":\"end\"}\n        },\n        core::result::Result::Ok(h_accepted) => {\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1561,\"end\":1613,\"line\":41,\"column\":13,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n            let h_retained: std::vec::Vec<u8> = h_forward::<std::vec::Vec<u8>>(h_accepted);\n            // hepta-source: {\"event\":\"end\"}\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1626,\"end\":1777,\"line\":42,\"column\":13,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n            if (h_mode == 2u8) {\n                // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1657,\"end\":1689,\"line\":43,\"column\":17,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n                while (!((&(*h_token))).flag.load(std::sync::atomic::Ordering::Acquire)) {\n                }\n                // hepta-source: {\"event\":\"end\"}\n                // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1706,\"end\":1726,\"line\":44,\"column\":17,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n                core::mem::drop(h_retained);\n                // hepta-source: {\"event\":\"end\"}\n                // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1743,\"end\":1763,\"line\":45,\"column\":17,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n                return (2000u64 + h_total);\n                // hepta-source: {\"event\":\"end\"}\n            }\n            // hepta-source: {\"event\":\"end\"}\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1790,\"end\":1810,\"line\":47,\"column\":13,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n            core::mem::drop(h_retained);\n            // hepta-source: {\"event\":\"end\"}\n            // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1823,\"end\":1836,\"line\":48,\"column\":13,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n            return h_total;\n            // hepta-source: {\"event\":\"end\"}\n        },\n    }\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":1856,\"end\":2019,\"line\":53,\"column\":1,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\nfn h_payload(h_mode: u8, h_size: usize) -> std::vec::Vec<u8> {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1947,\"end\":1975,\"line\":54,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let mut h_data: std::vec::Vec<u8> = std::vec![0u8; h_size];\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":1980,\"end\":1995,\"line\":55,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    (h_data)[0usize] = h_mode;\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2000,\"end\":2017,\"line\":56,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    __hepta_owner_observer::register(h_mode as usize, &h_data);\n    return h_data;\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":2021,\"end\":2610,\"line\":59,\"column\":1,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\nfn h_main() -> () {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2093,\"end\":2141,\"line\":60,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_normal: HeptaTask = __hepta_rt_spawn(h_worker, h_payload(0u8, 17usize));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2146,\"end\":2184,\"line\":61,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_normal_result: u64 = __hepta_rt_join(h_normal, false);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2189,\"end\":2218,\"line\":62,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    assert!((h_normal_result == 136u64));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2223,\"end\":2270,\"line\":63,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_error: HeptaTask = __hepta_rt_spawn(h_worker, h_payload(1u8, 19usize));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2275,\"end\":2311,\"line\":64,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_error_result: u64 = __hepta_rt_join(h_error, false);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2316,\"end\":2345,\"line\":65,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    assert!((h_error_result == 1013u64));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2350,\"end\":2399,\"line\":66,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_pending: HeptaTask = __hepta_rt_spawn(h_worker, h_payload(2u8, 23usize));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2404,\"end\":2457,\"line\":67,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    let h_cancelled_result: u64 = __hepta_rt_join(h_pending, true);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2462,\"end\":2495,\"line\":68,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    assert!((h_cancelled_result == 2253u64));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2500,\"end\":2532,\"line\":69,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    std::println!(\"{}\", (h_normal_result as i64));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2537,\"end\":2568,\"line\":70,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    std::println!(\"{}\", (h_error_result as i64));\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":2573,\"end\":2608,\"line\":71,\"column\":5,\"path\":\"/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta\"}}\n    std::println!(\"{}\", (h_cancelled_result as i64));\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\nfn main() { h_main(); __hepta_owner_observer::report(); }\n\n\nmod __hepta_owner_observer {\n    use std::alloc::{GlobalAlloc, Layout, System};\n    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering::SeqCst};\n    struct Slot { address: AtomicUsize, size: AtomicUsize, live: AtomicUsize,\n                  begin: AtomicUsize, end: AtomicUsize, owner: AtomicUsize }\n    impl Slot {\n        const fn new() -> Self { Self { address: AtomicUsize::new(0), size: AtomicUsize::new(0),\n            live: AtomicUsize::new(0), begin: AtomicUsize::new(0), end: AtomicUsize::new(0),\n            owner: AtomicUsize::new(0) } }\n    }\n    static LOCK: AtomicBool = AtomicBool::new(false);\n    static ERROR: AtomicUsize = AtomicUsize::new(0);\n    static USED: AtomicUsize = AtomicUsize::new(0);\n    static SLOTS: [Slot; 256] = [const { Slot::new() }; 256];\n    static OWNERS: [AtomicUsize; 3] = [const { AtomicUsize::new(0) }; 3];\n    static REALLOCS: AtomicUsize = AtomicUsize::new(0);\n    fn lock() { while LOCK.compare_exchange(false, true, SeqCst, SeqCst).is_err() { std::hint::spin_loop(); } }\n    fn unlock() { LOCK.store(false, SeqCst); }\n    fn error(code: usize) { let _ = ERROR.compare_exchange(0, code, SeqCst, SeqCst); }\n    fn selected(size: usize) -> bool { size == 17 || size == 19 || size == 23 }\n    fn begin(address: usize, size: usize, api: usize) {\n        if address == 0 || !selected(size) { return; }\n        let n = USED.load(SeqCst);\n        if n == SLOTS.len() { error(1); return; }\n        for slot in &SLOTS[..n] {\n            if slot.address.load(SeqCst) == address && slot.live.load(SeqCst) == 1 { error(2); }\n        }\n        let slot = &SLOTS[n];\n        slot.address.store(address, SeqCst); slot.size.store(size, SeqCst);\n        slot.begin.store(api, SeqCst); slot.live.store(1, SeqCst);\n        USED.store(n + 1, SeqCst);\n    }\n    fn end(address: usize, size: usize, api: usize) {\n        for slot in &SLOTS[..USED.load(SeqCst)] {\n            if slot.address.load(SeqCst) == address && slot.live.load(SeqCst) == 1 {\n                if slot.size.load(SeqCst) != size { error(3); }\n                if api == 2 && slot.owner.load(SeqCst) != 0 { REALLOCS.fetch_add(1, SeqCst); }\n                slot.live.store(0, SeqCst); slot.end.store(api, SeqCst); return;\n            }\n        }\n        if selected(size) { error(4); }\n    }\n    pub struct Observer;\n    unsafe impl GlobalAlloc for Observer {\n        unsafe fn alloc(&self, layout: Layout) -> *mut u8 {\n            let p = System.alloc(layout); lock(); begin(p as usize, layout.size(), 1); unlock(); p\n        }\n        unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {\n            let p = System.alloc_zeroed(layout); lock(); begin(p as usize, layout.size(), 2); unlock(); p\n        }\n        unsafe fn dealloc(&self, p: *mut u8, layout: Layout) {\n            lock(); end(p as usize, layout.size(), 1); unlock(); System.dealloc(p, layout);\n        }\n        unsafe fn realloc(&self, p: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {\n            lock();\n            let next = System.realloc(p, layout, new_size);\n            if !next.is_null() { end(p as usize, layout.size(), 2); begin(next as usize, new_size, 3); }\n            unlock(); next\n        }\n    }\n    pub fn register(mode: usize, value: &Vec<u8>) {\n        lock();\n        if mode >= 3 || value.len() != [17, 19, 23][mode] || value.capacity() != value.len() {\n            error(5); unlock(); return;\n        }\n        if OWNERS[mode].load(SeqCst) != 0 { error(6); unlock(); return; }\n        let address = value.as_ptr() as usize;\n        let mut found = false;\n        for (index, slot) in SLOTS[..USED.load(SeqCst)].iter().enumerate() {\n            if slot.address.load(SeqCst) == address && slot.live.load(SeqCst) == 1 {\n                if slot.owner.load(SeqCst) != 0 || slot.size.load(SeqCst) != value.capacity()\n                    || ![1, 2].contains(&slot.begin.load(SeqCst)) { error(7); }\n                slot.owner.store(mode + 1, SeqCst); OWNERS[mode].store(index + 1, SeqCst); found = true;\n            }\n        }\n        if !found { error(8); }\n        unlock();\n    }\n    pub fn report() {\n        let mut rows = [[0usize; 7]; 3];\n        lock();\n        for mode in 0..3 {\n            let generation = OWNERS[mode].load(SeqCst);\n            if generation == 0 { error(9); continue; }\n            let slot = &SLOTS[generation - 1];\n            rows[mode] = [generation, slot.address.load(SeqCst), slot.size.load(SeqCst),\n                          usize::from([1, 2].contains(&slot.begin.load(SeqCst))),\n                          usize::from(slot.end.load(SeqCst) == 1), slot.live.load(SeqCst),\n                          slot.begin.load(SeqCst)];\n        }\n        let code = ERROR.load(SeqCst); let reallocations = REALLOCS.load(SeqCst);\n        unlock();\n        let good = code == 0 && reallocations == 0 && rows.iter().all(|r| r[1] != 0 && r[3] == 1 && r[4] == 1 && r[5] == 0);\n        eprint!(\"{{\\\"error_code\\\":{},\\\"owner_reallocations\\\":{},\\\"owners\\\":[\", code, reallocations);\n        for mode in 0..3 {\n            let r = rows[mode];\n            if mode != 0 { eprint!(\",\"); }\n            eprint!(\"{{\\\"mode\\\":{},\\\"generation\\\":{},\\\"address\\\":{},\\\"bytes\\\":{},\\\"allocations\\\":{},\\\"frees\\\":{},\\\"live\\\":{},\\\"allocation_api\\\":{}}}\",\n                    mode, r[0], r[1], r[2], r[3], r[4], r[5], r[6]);\n        }\n        eprintln!(\"]}}\");\n        if !good { std::process::exit(91); }\n    }\n}\n#[global_allocator]\nstatic __HEPTA_OBSERVED_ALLOCATOR: __hepta_owner_observer::Observer = __hepta_owner_observer::Observer;\n",
+    "generated_source_sha256": "af45efa347b2e11815cace82b08520c6343ceb4409f953f5de952f011a7abef0",
+    "instrumentation": {
+      "all_process_allocations_measured": false,
+      "allocator": "std::alloc::System with fixed atomic event registry",
+      "alteration": "register payload addresses and observe post-join balances",
+      "generated_program_altered": true,
+      "observer_sha256": "3a1401a4067f6729bd84fb0e794aee3935ddc186c9d69e01e542d4f0c5326490",
+      "registered_exact_owner_addresses": true
+    },
+    "name": "owner_observation",
+    "observation": {
+      "error_code": 0,
+      "owner_reallocations": 0,
+      "owners": [
+        {
+          "address": 94458057616640,
+          "allocation_api": 2,
+          "allocations": 1,
+          "bytes": 17,
+          "frees": 1,
+          "generation": 1,
+          "live": 0,
+          "mode": 0
+        },
+        {
+          "address": 94458057616640,
+          "allocation_api": 2,
+          "allocations": 1,
+          "bytes": 19,
+          "frees": 1,
+          "generation": 2,
+          "live": 0,
+          "mode": 1
+        },
+        {
+          "address": 94458057616640,
+          "allocation_api": 2,
+          "allocations": 1,
+          "bytes": 23,
+          "frees": 1,
+          "generation": 3,
+          "live": 0,
+          "mode": 2
+        }
+      ]
+    }
+  },
+  "qualifier_sha256": "94877c01716f133e01e247dd6b2b8370ff4a53899806ed4c0f480a8d19de8956",
+  "rust_toolchain": {
+    "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+    "host": "x86_64-unknown-linux-gnu",
+    "path": "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+    "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+    "sysroot_discovery": "verified_compiler_prefix",
+    "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+  },
+  "schema": "hepta.lifecycle-composition-qualification.v1",
+  "scope_static_runtime_external": [
+    {
+      "area": "Owned generics and Result",
+      "external": "correct Rust compiler, standard library, allocator and target execution",
+      "runtime": "normal 136 and error 1013; corresponding registered buffers freed",
+      "scope": "forward<Buffer<u8>>, finish<Buffer<u8>,u8>",
+      "static": "Hepta explicit transfers/consumption; Rust checks generated bodies"
+    },
+    {
+      "area": "Stored views",
+      "external": "Rust lifetime checker/backend; runtime results alone do not prove alias safety",
+      "runtime": "mutable fill and copied shared-view sum produce expected results",
+      "scope": "Bytes/Edit remain within a worker and borrow its owner",
+      "static": "Hepta structural/affine checks; mandatory Rust regions and alias checks"
+    },
+    {
+      "area": "Task cancellation",
+      "external": "host scheduling/progress; flag may be set before the worker's first poll",
+      "runtime": "worker observes flag, frees owner and returns 2253 before join completes",
+      "scope": "three Buffer transfers and one join per task",
+      "static": "owner reuse, missing join and duplicate join rejected"
+    },
+    {
+      "area": "Allocator observation",
+      "external": "System obeys GlobalAlloc contract; other process allocations are not qualified",
+      "runtime": "GlobalAlloc callbacks show 3 allocations/3 frees; induced forget control exposes 2 leaks",
+      "scope": "three registered Buffer addresses and allocation generations",
+      "static": "separate instrumented Rust observer outside original Hepta semantics"
+    },
+    {
+      "area": "Other compiler profiles",
+      "external": "no cross-profile equivalence or universal core integration claim",
+      "runtime": "no execution through these profiles",
+      "scope": "entire unchanged composition module",
+      "static": "C, independent Resource IR and Executable Core reject stored-view composition"
+    }
+  ],
+  "sha256": "8849e1259f195d92bea478b327ae07610d8a2a70d74bf3c36a0f3e6c174aae6a",
+  "source": "module lifecycle_composition;\n\n// Stored views stay inside a worker. The owner alone crosses the task boundary.\nstruct Bytes<'a> { data: read 'a [u8] }\nstruct Edit<'a> { data: mut 'a [u8] }\n\nfn forward<T: Owned>(value: take T) -> T effects {} { return move value; }\nfn finish<T: Owned, E: Copy>(value: take T, success: bool, error: E)\n    -> Result<T, E> effects {alloc, block} {\n    if !success { drop(move value); return Result::Err(error); }\n    return Result::Ok(move forward::<T>(move value));\n}\nfn bytes<'a>(value: read 'a Buffer<u8>) -> Bytes<'a> effects {} {\n    return Bytes { data: read value };\n}\nfn edit<'a>(value: mut 'a Buffer<u8>) -> Edit<'a> effects {} {\n    return Edit { data: mut value };\n}\nfn sum<'a>(value: Bytes<'a>) -> u64 effects {panic} {\n    let mut total: u64 = 0;\n    for index in 1..len(value.data) {\n        total = wrapping_add(total, value.data[index] as u64);\n    }\n    return total;\n}\n\nfn worker(input: take Buffer<u8>, token: read Cancellation) -> u64\neffects {alloc, block, panic, write} {\n    let mut owner = forward::<Buffer<u8>>(move input);\n    let mode = owner[0];\n    let mut changing = edit(mut owner);\n    for index in 1..len(changing.data) { changing.data[index] = index as u8; }\n    drop(move changing);\n    let snapshot = bytes(read owner);\n    let copied = snapshot;\n    let total = sum(copied);\n    assert(len(snapshot.data) == len(owner));\n    match finish::<Buffer<u8>, u8>(move owner, mode != 1, 13) {\n        Result::Err(code) => { return 1000 + code as u64; },\n        Result::Ok(accepted) => {\n            let retained = forward::<Buffer<u8>>(move accepted);\n            if mode == 2 {\n                while !cancelled(read token) { }\n                drop(move retained);\n                return 2000 + total;\n            }\n            drop(move retained);\n            return total;\n        }\n    }\n}\n\nfn payload(mode: u8, size: usize) -> Buffer<u8> effects {alloc, block, panic, write} {\n    let mut data = buffer(size);\n    data[0] = mode;\n    return move data;\n}\n\nfn main() -> Unit effects {alloc, block, panic, write, spawn, io} {\n    let normal = spawn(worker, move payload(0, 17));\n    let normal_result = join(move normal);\n    assert(normal_result == 136);\n    let error = spawn(worker, move payload(1, 19));\n    let error_result = join(move error);\n    assert(error_result == 1013);\n    let pending = spawn(worker, move payload(2, 23));\n    let cancelled_result = cancel_and_join(move pending);\n    assert(cancelled_result == 2253);\n    print_i64(normal_result as i64);\n    print_i64(error_result as i64);\n    print_i64(cancelled_result as i64);\n}\n",
+  "source_path": "/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta",
+  "source_sha256": "7bafab315295ca10db53fba8f0cbdcaab47e8ee4b220e6dbc6b0e52fee78f19d",
+  "status": "finite_rust_composition_passed",
+  "unsupported_profiles": {
+    "c_backend": {
+      "assumptions": [],
+      "borrowed_storage": {
+        "c_backend_supported": false,
+        "general_lifetime_system_complete": false,
+        "independent_resource_ir_supported": false,
+        "native_lifetimes_checked": false,
+        "native_lifetimes_required": true,
+        "profile": "explicit-lifetime-records-v1"
+      },
+      "checks": {
+        "rust_borrows_types": "not_run",
+        "syntax": "passed",
+        "types_effects_resources": "passed_in_supported_subset"
+      },
+      "claims": {
+        "all_programs_faster_than_rust": false,
+        "bounded_cancellation_latency_proved": false,
+        "deadlock_freedom_proved": false,
+        "hardware_execution_verified": false,
+        "whole_language_soundness_proved": false
+      },
+      "compiler_sha256": "dbeb5311dfb81d01d8704ef26800b5672bca89976efa6b74e10a9b255efb9f97",
+      "compiler_version": "0.2.0",
+      "diagnostics": [
+        {
+          "code": "E_C_BORROW_STORAGE",
+          "message": "Stored-borrow records and explicit lifetimes require the Rust lifetime checker; this C profile is not implemented",
+          "notes": [],
+          "phase": "c_backend",
+          "span": {
+            "column": 1,
+            "end": 0,
+            "line": 1,
+            "path": "<input>",
+            "start": 0
+          }
+        }
+      ],
+      "effects": {
+        "bytes": [],
+        "edit": [],
+        "finish": [
+          "alloc",
+          "block"
+        ],
+        "forward": [],
+        "main": [
+          "alloc",
+          "block",
+          "io",
+          "panic",
+          "spawn",
+          "write"
+        ],
+        "payload": [
+          "alloc",
+          "block",
+          "panic"
+        ],
+        "sum": [
+          "panic"
+        ],
+        "worker": [
+          "alloc",
+          "block",
+          "panic",
+          "write"
+        ]
+      },
+      "interface_sha256": "f6f228c0c6d0602e7796438f734241a5f94cf6ac6c3a2c15e2c93e57c6dda068",
+      "ok": false,
+      "path": "/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta",
+      "resource_contracts": [],
+      "schema": "hepta.check.v1",
+      "source_sha256": "7bafab315295ca10db53fba8f0cbdcaab47e8ee4b220e6dbc6b0e52fee78f19d",
+      "status": "rejected"
+    },
+    "executable_core": {
+      "diagnostic": "E_CORE_PROFILE: Core v1 accepts one module with primitive/Buffer/Result types",
+      "executed": false,
+      "ok": false
+    },
+    "independent_resource_ir": {
+      "diagnostics": [
+        {
+          "code": "E_RIR_LOWER_UNSUPPORTED",
+          "message": "Stored view parameters/returns and named function regions require another resource profile",
+          "phase": "resource-ir"
+        }
+      ],
+      "ok": false,
+      "resource_ir": null,
+      "schema": "hepta.resource-ir.export.v1",
+      "status": "rejected",
+      "validation": {
+        "assumptions": [],
+        "borrowed_storage": {
+          "c_backend_supported": false,
+          "general_lifetime_system_complete": false,
+          "independent_resource_ir_supported": false,
+          "native_lifetimes_checked": false,
+          "native_lifetimes_required": true,
+          "profile": "explicit-lifetime-records-v1"
+        },
+        "checks": {
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "dbeb5311dfb81d01d8704ef26800b5672bca89976efa6b74e10a9b255efb9f97",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "bytes": [],
+          "edit": [],
+          "finish": [
+            "alloc",
+            "block"
+          ],
+          "forward": [],
+          "main": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "spawn",
+            "write"
+          ],
+          "payload": [
+            "alloc",
+            "block",
+            "panic"
+          ],
+          "sum": [
+            "panic"
+          ],
+          "worker": [
+            "alloc",
+            "block",
+            "panic",
+            "write"
+          ]
+        },
+        "interface_sha256": "f6f228c0c6d0602e7796438f734241a5f94cf6ac6c3a2c15e2c93e57c6dda068",
+        "ok": true,
+        "path": "/workspace/scratch/100b1728036f/Hepta-work/examples/composition/lifecycle.hepta",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [],
+        "rust_sha256": "fe9e5935a7574319345d06ac94aa7e8257a8d8500c1ca3595df107bb795d5534",
+        "schema": "hepta.check.v1",
+        "source_sha256": "7bafab315295ca10db53fba8f0cbdcaab47e8ee4b220e6dbc6b0e52fee78f19d",
+        "status": "frontend_only"
+      },
+      "verifier": null
+    }
+  }
+}

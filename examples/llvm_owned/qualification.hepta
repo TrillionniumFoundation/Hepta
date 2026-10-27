@@ -1,0 +1,74 @@
+// Appended to owned.hepta: all application bodies are Hepta source.
+fn forward_owned<T: Owned>(value: take T) -> T effects {} { return move value; }
+
+export "C" fn full_lifecycle(size: usize, seed: u32) -> u64 effects {alloc,block,panic,write} {
+    match OwnedBytes_new(size, false) {
+        Result::Err(code) => { return 1000 + code as u64; },
+        Result::Ok(initial) => {
+            let mut owner = move initial;
+            for index in 0..size {
+                owner.data[index] = wrapping_add(index as u32, seed) as u8;
+            }
+            let moved = forward_owned::<OwnedBytes>(move owner);
+            let mut checksum: u64 = 0;
+            for index in 0..size {
+                checksum = checksum + OwnedBytes_data(read moved)[index] as u64;
+            }
+            OwnedBytes_drop(move moved);
+            return checksum;
+        },
+    }
+}
+
+export "C" fn constructor_error(size: usize, seed: u32) -> u64 effects {alloc,block,panic} {
+    match OwnedBytes_new(size, true) {
+        Result::Err(code) => { return 1000 + code as u64 + seed as u64; },
+        Result::Ok(unexpected) => {
+            OwnedBytes_drop(move unexpected);
+            return 9000;
+        },
+    }
+}
+
+export "C" fn two_stage(size: usize, seed: u32) -> u64 effects {alloc,block,panic,write} {
+    match OwnedBytes_new(size, false) {
+        Result::Err(code) => { return 1000 + code as u64; },
+        Result::Ok(initial) => {
+            let mut first = move initial;
+            OwnedBytes_fill(mut first, seed as u8);
+            match try_buffer(size + 17) {
+                Result::Err(code) => { OwnedBytes_drop(move first); return 1000 + code as u64; },
+                Result::Ok(initial_second) => {
+                    let mut second = move initial_second;
+                    for index in 0..size { second[index] = OwnedBytes_get(read first, index) ^ 90; }
+                    let mut checksum: u64 = 0;
+                    for index in 0..len(second) { checksum = checksum + second[index] as u64; }
+                    drop(move second);
+                    OwnedBytes_drop(move first);
+                    return checksum;
+                },
+            }
+        },
+    }
+}
+
+// Untimed resource observation includes failure of the second allocation
+// while the first allocation is still live, plus recovery on later calls.
+export "C" fn two_alloc(second: usize, refuse: u32) -> u64 effects {alloc,block,panic,write} {
+    match try_buffer(7) {
+        Result::Err(code) => { return 100 + code as u64; },
+        Result::Ok(initial) => {
+            let mut first = move initial;
+            first[0] = 19;
+            match try_buffer(second) {
+                Result::Err(code) => { drop(move first); return code as u64; },
+                Result::Ok(bytes) => {
+                    let moved = forward_owned::<Buffer<u8>>(move bytes);
+                    if refuse != 0 { drop(move moved); drop(move first); return 2; }
+                    let result = len(moved) as u64 + first[0] as u64;
+                    drop(move moved); drop(move first); return result;
+                },
+            }
+        },
+    }
+}

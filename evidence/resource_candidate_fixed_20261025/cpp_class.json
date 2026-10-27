@@ -1,0 +1,1079 @@
+{
+  "all_programs_faster_than_rust": false,
+  "backends": {
+    "c": {
+      "foreign_cpp_link_inputs": [],
+      "frontend": {
+        "assumptions": [],
+        "backend": {
+          "backend": "c11-gcc",
+          "check_only": true,
+          "crate_type": "cdylib",
+          "diagnostics": [],
+          "flags": [
+            "-std=c11",
+            "-O3",
+            "-fexcess-precision=standard",
+            "-ffp-contract=off",
+            "-fno-strict-aliasing",
+            "-Wall",
+            "-Wextra",
+            "-Werror=implicit-function-declaration",
+            "-Werror=incompatible-pointer-types"
+          ],
+          "link_args": [],
+          "ok": true,
+          "optimization_profile": "default",
+          "rustc_used": false,
+          "source_sha256": "5abf428d87fd2fd33e2f35030d40a27ace64f2db954f55697268ec168e2b650f",
+          "status": "gcc_checked",
+          "target": "x86_64-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26",
+            "path": "/usr/bin/gcc",
+            "version": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+          },
+          "validation_artifact_sha256": "d27681aa9aa220aba4181f2436d04d7c65f71d26809d9d9490eff40ecb32a716"
+        },
+        "c_sha256": "5abf428d87fd2fd33e2f35030d40a27ace64f2db954f55697268ec168e2b650f",
+        "checks": {
+          "c_types_codegen": "gcc_checked",
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "M71e525fea2e87b14_ScalarState_add_word": [
+            "write"
+          ],
+          "M71e525fea2e87b14_ScalarState_balance_value": [],
+          "M71e525fea2e87b14_ScalarState_clamp_balance": [
+            "write"
+          ],
+          "M71e525fea2e87b14_ScalarState_mix": [
+            "write"
+          ],
+          "M71e525fea2e87b14_ScalarState_new": [],
+          "M71e525fea2e87b14_ScalarState_position_value": [],
+          "M71e525fea2e87b14_ScalarState_replace_position": [
+            "write"
+          ],
+          "M71e525fea2e87b14_ScalarState_set_word": [
+            "write"
+          ],
+          "M71e525fea2e87b14_ScalarState_wide_value": [],
+          "M71e525fea2e87b14_ScalarState_word_value": [],
+          "balance_trace": [
+            "panic",
+            "write"
+          ],
+          "position_trace": [
+            "panic",
+            "write"
+          ],
+          "state_guard": [
+            "panic",
+            "write"
+          ],
+          "wide_trace": [
+            "panic",
+            "write"
+          ],
+          "word_trace": [
+            "panic",
+            "write"
+          ]
+        },
+        "interface_sha256": "381ce4df24f2be0c1a965b5289837f56186fd88aa9ba50d082447b18afb9d7f5",
+        "ok": true,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/consumer.hepta",
+        "profile": {
+          "c_optimization": "default",
+          "crate_type": "cdylib",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "project": {
+          "c_imports": [],
+          "entry": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/consumer.hepta",
+          "locked": false,
+          "modules": [
+            {
+              "imports": {},
+              "module": "cpp_class_migrated",
+              "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/scalar_state.hepta",
+              "symbols": {
+                "ScalarState": "M71e525fea2e87b14_ScalarState",
+                "ScalarState_add_word": "M71e525fea2e87b14_ScalarState_add_word",
+                "ScalarState_balance_value": "M71e525fea2e87b14_ScalarState_balance_value",
+                "ScalarState_clamp_balance": "M71e525fea2e87b14_ScalarState_clamp_balance",
+                "ScalarState_mix": "M71e525fea2e87b14_ScalarState_mix",
+                "ScalarState_new": "M71e525fea2e87b14_ScalarState_new",
+                "ScalarState_position_value": "M71e525fea2e87b14_ScalarState_position_value",
+                "ScalarState_replace_position": "M71e525fea2e87b14_ScalarState_replace_position",
+                "ScalarState_set_word": "M71e525fea2e87b14_ScalarState_set_word",
+                "ScalarState_wide_value": "M71e525fea2e87b14_ScalarState_wide_value",
+                "ScalarState_word_value": "M71e525fea2e87b14_ScalarState_word_value"
+              }
+            },
+            {
+              "imports": {
+                "value": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/scalar_state.hepta"
+              },
+              "module": "scalar_class_consumer",
+              "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/consumer.hepta",
+              "symbols": {
+                "balance_trace": "balance_trace",
+                "position_trace": "position_trace",
+                "state_guard": "state_guard",
+                "wide_trace": "wide_trace",
+                "word_trace": "word_trace"
+              }
+            }
+          ],
+          "package": null,
+          "path_bindings": {
+            "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/consumer.hepta": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/consumer.hepta",
+            "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/scalar_state.hepta": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/scalar_state.hepta"
+          },
+          "schema": "hepta.module-graph.v1",
+          "sha256": "7f5abea0064eec23383298b95921837d94bb3e7d85522839ed2d64877d95859a",
+          "sources": {
+            "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/consumer.hepta": "adcb367012dcf0390dc19cfecea533b51010884a8a6440f3d1b4a64f8125f7af",
+            "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/scalar_state.hepta": "f8258dea2e1ec71e2f48d3b9f941460c78ab4a73d96d3ed66bb7f778bf7ce7e1"
+          }
+        },
+        "resource_contracts": [],
+        "schema": "hepta.check.v1",
+        "source_sha256": "adcb367012dcf0390dc19cfecea533b51010884a8a6440f3d1b4a64f8125f7af",
+        "status": "checked"
+      },
+      "generated_source": {
+        "bytes": 51103,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/c/generated.c",
+        "sha256": "5abf428d87fd2fd33e2f35030d40a27ace64f2db954f55697268ec168e2b650f"
+      },
+      "library": {
+        "bytes": 17312,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/c/migrated-c.so",
+        "sha256": "7f8f0d9799be6fc839b45d51ab982096a4551979c8111d3c2b51c8f1e34a8fe4"
+      },
+      "native": {
+        "artifact": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/c/migrated-c.so",
+        "artifact_bytes": 17312,
+        "artifact_sha256": "7f8f0d9799be6fc839b45d51ab982096a4551979c8111d3c2b51c8f1e34a8fe4",
+        "backend": "c11-gcc",
+        "check_only": false,
+        "crate_type": "cdylib",
+        "diagnostics": [],
+        "flags": [
+          "-std=c11",
+          "-O3",
+          "-fexcess-precision=standard",
+          "-ffp-contract=off",
+          "-fno-strict-aliasing",
+          "-Wall",
+          "-Wextra",
+          "-Werror=implicit-function-declaration",
+          "-Werror=incompatible-pointer-types",
+          "-fsanitize=undefined",
+          "-fno-sanitize-recover=all"
+        ],
+        "link_args": [],
+        "ok": true,
+        "optimization_profile": "default",
+        "rustc_used": false,
+        "source_sha256": "5abf428d87fd2fd33e2f35030d40a27ace64f2db954f55697268ec168e2b650f",
+        "status": "gcc_checked",
+        "target": "x86_64-linux-gnu",
+        "toolchain": {
+          "executable_sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26",
+          "path": "/usr/bin/gcc",
+          "version": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+        },
+        "validation_artifact_sha256": "7f8f0d9799be6fc839b45d51ab982096a4551979c8111d3c2b51c8f1e34a8fe4"
+      }
+    },
+    "rust": {
+      "foreign_cpp_link_inputs": [],
+      "frontend": {
+        "assumptions": [],
+        "backend": {
+          "check_only": true,
+          "crate_type": "cdylib",
+          "diagnostics": [],
+          "flags": [
+            "edition=2021",
+            "opt-level=3",
+            "overflow-checks=yes",
+            "panic=abort",
+            "codegen-units=1",
+            "sysroot=/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0"
+          ],
+          "link_args": [],
+          "linker": null,
+          "ok": true,
+          "rust_sha256": "97cff607f2159f1aa744c46719cf4eff9665f1b87e1d90c8003b4f4a37372a46",
+          "rustc_crate_type": "lib",
+          "status": "rustc_checked",
+          "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+            "host": "x86_64-unknown-linux-gnu",
+            "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+            "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+            "sysroot_discovery": "verified_compiler_prefix",
+            "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+          },
+          "validation_artifact_sha256": "405d6db7483316e73da58c0ed9ea23dc12f8444cd28a17bf36ac1655b07c46de"
+        },
+        "checks": {
+          "rust_borrows_types": "rustc_checked",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "M71e525fea2e87b14_ScalarState_add_word": [
+            "write"
+          ],
+          "M71e525fea2e87b14_ScalarState_balance_value": [],
+          "M71e525fea2e87b14_ScalarState_clamp_balance": [
+            "write"
+          ],
+          "M71e525fea2e87b14_ScalarState_mix": [
+            "write"
+          ],
+          "M71e525fea2e87b14_ScalarState_new": [],
+          "M71e525fea2e87b14_ScalarState_position_value": [],
+          "M71e525fea2e87b14_ScalarState_replace_position": [
+            "write"
+          ],
+          "M71e525fea2e87b14_ScalarState_set_word": [
+            "write"
+          ],
+          "M71e525fea2e87b14_ScalarState_wide_value": [],
+          "M71e525fea2e87b14_ScalarState_word_value": [],
+          "balance_trace": [
+            "panic",
+            "write"
+          ],
+          "position_trace": [
+            "panic",
+            "write"
+          ],
+          "state_guard": [
+            "panic",
+            "write"
+          ],
+          "wide_trace": [
+            "panic",
+            "write"
+          ],
+          "word_trace": [
+            "panic",
+            "write"
+          ]
+        },
+        "interface_sha256": "381ce4df24f2be0c1a965b5289837f56186fd88aa9ba50d082447b18afb9d7f5",
+        "ok": true,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/consumer.hepta",
+        "profile": {
+          "crate_type": "cdylib",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "project": {
+          "c_imports": [],
+          "entry": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/consumer.hepta",
+          "locked": false,
+          "modules": [
+            {
+              "imports": {},
+              "module": "cpp_class_migrated",
+              "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/scalar_state.hepta",
+              "symbols": {
+                "ScalarState": "M71e525fea2e87b14_ScalarState",
+                "ScalarState_add_word": "M71e525fea2e87b14_ScalarState_add_word",
+                "ScalarState_balance_value": "M71e525fea2e87b14_ScalarState_balance_value",
+                "ScalarState_clamp_balance": "M71e525fea2e87b14_ScalarState_clamp_balance",
+                "ScalarState_mix": "M71e525fea2e87b14_ScalarState_mix",
+                "ScalarState_new": "M71e525fea2e87b14_ScalarState_new",
+                "ScalarState_position_value": "M71e525fea2e87b14_ScalarState_position_value",
+                "ScalarState_replace_position": "M71e525fea2e87b14_ScalarState_replace_position",
+                "ScalarState_set_word": "M71e525fea2e87b14_ScalarState_set_word",
+                "ScalarState_wide_value": "M71e525fea2e87b14_ScalarState_wide_value",
+                "ScalarState_word_value": "M71e525fea2e87b14_ScalarState_word_value"
+              }
+            },
+            {
+              "imports": {
+                "value": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/scalar_state.hepta"
+              },
+              "module": "scalar_class_consumer",
+              "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/consumer.hepta",
+              "symbols": {
+                "balance_trace": "balance_trace",
+                "position_trace": "position_trace",
+                "state_guard": "state_guard",
+                "wide_trace": "wide_trace",
+                "word_trace": "word_trace"
+              }
+            }
+          ],
+          "package": null,
+          "path_bindings": {
+            "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/consumer.hepta": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/consumer.hepta",
+            "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/scalar_state.hepta": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/scalar_state.hepta"
+          },
+          "schema": "hepta.module-graph.v1",
+          "sha256": "7f5abea0064eec23383298b95921837d94bb3e7d85522839ed2d64877d95859a",
+          "sources": {
+            "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/consumer.hepta": "adcb367012dcf0390dc19cfecea533b51010884a8a6440f3d1b4a64f8125f7af",
+            "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/scalar_state.hepta": "f8258dea2e1ec71e2f48d3b9f941460c78ab4a73d96d3ed66bb7f778bf7ce7e1"
+          }
+        },
+        "resource_contracts": [],
+        "rust_sha256": "97cff607f2159f1aa744c46719cf4eff9665f1b87e1d90c8003b4f4a37372a46",
+        "schema": "hepta.check.v1",
+        "source_sha256": "adcb367012dcf0390dc19cfecea533b51010884a8a6440f3d1b4a64f8125f7af",
+        "status": "checked"
+      },
+      "generated_source": {
+        "bytes": 23648,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/rust/generated.rs",
+        "sha256": "97cff607f2159f1aa744c46719cf4eff9665f1b87e1d90c8003b4f4a37372a46"
+      },
+      "library": {
+        "bytes": 3822960,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/rust/migrated-rust.so",
+        "sha256": "e398cd407cc267c491affcb4894b1c70535e2ab1c9e69b4fe4f36d88b8c83b58"
+      },
+      "native": {
+        "artifact": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/rust/migrated-rust.so",
+        "artifact_bytes": 3822960,
+        "artifact_sha256": "e398cd407cc267c491affcb4894b1c70535e2ab1c9e69b4fe4f36d88b8c83b58",
+        "check_only": false,
+        "crate_type": "cdylib",
+        "diagnostics": [],
+        "flags": [
+          "edition=2021",
+          "opt-level=3",
+          "overflow-checks=yes",
+          "panic=abort",
+          "codegen-units=1",
+          "sysroot=/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0"
+        ],
+        "link_args": [],
+        "linker": null,
+        "ok": true,
+        "rust_sha256": "97cff607f2159f1aa744c46719cf4eff9665f1b87e1d90c8003b4f4a37372a46",
+        "rustc_crate_type": "cdylib",
+        "status": "rustc_checked",
+        "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+          "host": "x86_64-unknown-linux-gnu",
+          "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+          "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+          "sysroot_discovery": "verified_compiler_prefix",
+          "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+        },
+        "validation_artifact_sha256": "e398cd407cc267c491affcb4894b1c70535e2ab1c9e69b4fe4f36d88b8c83b58"
+      }
+    }
+  },
+  "cpp_class_abi_preserved": false,
+  "cpp_compiler": {
+    "bytes": 132448,
+    "path": "/usr/lib/llvm-20/bin/clang",
+    "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d"
+  },
+  "diagnostics": [],
+  "execution": {
+    "cases_by_family": {
+      "balance_trace": 599,
+      "position_trace": 305,
+      "state_guard": 263,
+      "wide_trace": 305,
+      "word_trace": 305
+    },
+    "cases_per_backend": 1777,
+    "input_vectors_sha256": "0b06acb6db893accf78f621ade9166f514f197593937950e78e1d19ee6c034b7",
+    "libraries": {
+      "c": {
+        "bytes": 17312,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/c/migrated-c.so",
+        "sha256": "7f8f0d9799be6fc839b45d51ab982096a4551979c8111d3c2b51c8f1e34a8fe4"
+      },
+      "cpp": {
+        "bytes": 15400,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/reference-cpp.so",
+        "sha256": "f4175f393576a556c588a303838f1116affba3f92d7130f4a50cb3d5d40b1f84"
+      },
+      "rust": {
+        "bytes": 3822960,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/rust/migrated-rust.so",
+        "sha256": "e398cd407cc267c491affcb4894b1c70535e2ab1c9e69b4fe4f36d88b8c83b58"
+      }
+    },
+    "observations_sha256": {
+      "c": "640c9c6c22b2052ba437f4fda9a47c6ec79da326c8b4e2631d7c13d4786408b7",
+      "cpp": "640c9c6c22b2052ba437f4fda9a47c6ec79da326c8b4e2631d7c13d4786408b7",
+      "rust": "640c9c6c22b2052ba437f4fda9a47c6ec79da326c8b4e2631d7c13d4786408b7"
+    },
+    "ok": true,
+    "python_integer_oracle_checked": true,
+    "seed": 793173,
+    "status": "differential_passed"
+  },
+  "execution_process": {
+    "command": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "-m",
+      "tools.validate_cpp_class",
+      "--probe",
+      "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/reference-cpp.so",
+      "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/rust/migrated-rust.so",
+      "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/c/migrated-c.so"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout": "{\"cases_by_family\": {\"balance_trace\": 599, \"position_trace\": 305, \"state_guard\": 263, \"wide_trace\": 305, \"word_trace\": 305}, \"cases_per_backend\": 1777, \"input_vectors_sha256\": \"0b06acb6db893accf78f621ade9166f514f197593937950e78e1d19ee6c034b7\", \"libraries\": {\"c\": {\"bytes\": 17312, \"path\": \"/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/c/migrated-c.so\", \"sha256\": \"7f8f0d9799be6fc839b45d51ab982096a4551979c8111d3c2b51c8f1e34a8fe4\"}, \"cpp\": {\"bytes\": 15400, \"path\": \"/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/reference-cpp.so\", \"sha256\": \"f4175f393576a556c588a303838f1116affba3f92d7130f4a50cb3d5d40b1f84\"}, \"rust\": {\"bytes\": 3822960, \"path\": \"/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/rust/migrated-rust.so\", \"sha256\": \"e398cd407cc267c491affcb4894b1c70535e2ab1c9e69b4fe4f36d88b8c83b58\"}}, \"observations_sha256\": {\"c\": \"640c9c6c22b2052ba437f4fda9a47c6ec79da326c8b4e2631d7c13d4786408b7\", \"cpp\": \"640c9c6c22b2052ba437f4fda9a47c6ec79da326c8b4e2631d7c13d4786408b7\", \"rust\": \"640c9c6c22b2052ba437f4fda9a47c6ec79da326c8b4e2631d7c13d4786408b7\"}, \"ok\": true, \"python_integer_oracle_checked\": true, \"seed\": 793173, \"status\": \"differential_passed\"}\n",
+    "stdout_sha256": "176c883c04de38a9fb2a2ef8a9e63fed285db065575d2d14ca2a58d7b2644cf5"
+  },
+  "foreign_cpp_implementation_retained": false,
+  "hepta_compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+  "inputs": {
+    "examples/cpp/class_migration/consumer.hepta": "adcb367012dcf0390dc19cfecea533b51010884a8a6440f3d1b4a64f8125f7af",
+    "examples/cpp/class_migration/reference.cpp": "87bd4547b82dcb43d67fe4eb8008553deda953b1f44b1b731da62d65f41ee85a",
+    "examples/cpp/class_migration/scalar_state.cpp": "b0699d2aba7923105a8110588963b600018756c2580d1e74fe31f94f3bc028d5",
+    "hepta/cpp_class_migrate.py": "494fab59c21336ea32fbf59620cbf5ee4474d59789badf6832491cc7f991a52d",
+    "tools/evidence_checks.py": "720a9f55e73e3af3467918efabf0db8b5ff85da8ab07c3efd115d8b1423bd3d7",
+    "tools/validate_cpp_class.py": "dbbb65b070ffd0ff90ebd4da36b57d80ab216a0dfab5d9d2ee6454c9c27b3e34"
+  },
+  "inputs_unchanged": true,
+  "migrated_source": {
+    "bytes": 2643,
+    "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/scalar_state.hepta",
+    "sha256": "f8258dea2e1ec71e2f48d3b9f941460c78ab4a73d96d3ed66bb7f778bf7ce7e1"
+  },
+  "migrated_source_text": "module cpp_class_migrated;\n\n// Actual implementation migration; no foreign calls or C++ class ABI.\npub struct ScalarState {\n    word: u32,\n    wide: u64,\n    balance: i32,\n    position: i64,\n}\n\npub fn ScalarState_new(arg0: u32, arg1: u64, arg2: i32, arg3: i64) -> ScalarState effects {panic} resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {\n    return ScalarState {word: arg0, wide: arg1, balance: arg2, position: arg3};\n}\n\npub fn ScalarState_add_word(receiver: mut ScalarState, arg0: u32) -> u32 effects {panic, write} resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {\n    receiver.word = wrapping_add(receiver.word, arg0);\n    return receiver.word;\n}\n\npub fn ScalarState_mix(receiver: mut ScalarState, arg0: u64) -> u64 effects {panic, write} resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {\n    receiver.wide = wrapping_add((receiver.wide ^ arg0), 1);\n    return receiver.wide;\n}\n\npub fn ScalarState_clamp_balance(receiver: mut ScalarState, arg0: i32, arg1: i32) -> i32 effects {panic, write} resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {\n    if (receiver.balance < arg0) {\n        receiver.balance = arg0;\n    }\n    else {\n        if (receiver.balance > arg1) {\n            receiver.balance = arg1;\n        }\n    }\n    return receiver.balance;\n}\n\npub fn ScalarState_replace_position(receiver: mut ScalarState, arg0: i64) -> i64 effects {panic, write} resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {\n    receiver.position = arg0;\n    return receiver.position;\n}\n\npub fn ScalarState_word_value(receiver: read ScalarState) -> u32 effects {panic} resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {\n    return receiver.word;\n}\n\npub fn ScalarState_wide_value(receiver: read ScalarState) -> u64 effects {panic} resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {\n    return receiver.wide;\n}\n\npub fn ScalarState_balance_value(receiver: read ScalarState) -> i32 effects {panic} resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {\n    return receiver.balance;\n}\n\npub fn ScalarState_position_value(receiver: read ScalarState) -> i64 effects {panic} resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {\n    return receiver.position;\n}\n\npub fn ScalarState_set_word(receiver: mut ScalarState, arg0: u32) -> Unit effects {panic, write} resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {\n    receiver.word = arg0;\n}\n",
+  "migration": {
+    "cpp_abi_preserved": false,
+    "differential_validation": "not_run",
+    "foreign_calls_introduced": 0,
+    "foreign_cpp_implementation_retained": false,
+    "hepta_frontend": {
+      "assumptions": [],
+      "checks": {
+        "rust_borrows_types": "not_run",
+        "syntax": "passed",
+        "types_effects_resources": "passed_in_supported_subset"
+      },
+      "claims": {
+        "all_programs_faster_than_rust": false,
+        "bounded_cancellation_latency_proved": false,
+        "deadlock_freedom_proved": false,
+        "hardware_execution_verified": false,
+        "whole_language_soundness_proved": false
+      },
+      "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+      "compiler_version": "0.2.0",
+      "diagnostics": [],
+      "effects": {
+        "ScalarState_add_word": [
+          "write"
+        ],
+        "ScalarState_balance_value": [],
+        "ScalarState_clamp_balance": [
+          "write"
+        ],
+        "ScalarState_mix": [
+          "write"
+        ],
+        "ScalarState_new": [],
+        "ScalarState_position_value": [],
+        "ScalarState_replace_position": [
+          "write"
+        ],
+        "ScalarState_set_word": [
+          "write"
+        ],
+        "ScalarState_wide_value": [],
+        "ScalarState_word_value": []
+      },
+      "interface_sha256": "4565537326adeaf4a9d6ad75ffdd34f374abafd86e91cfca2fb77038ad53c82e",
+      "ok": true,
+      "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/scalar_state.hepta",
+      "profile": {
+        "crate_type": "rlib",
+        "no_std": false,
+        "overflow_checks": true,
+        "panic": "abort"
+      },
+      "resource_contracts": [],
+      "rust_sha256": "5a5089e1e804374a1f358ae120d7c867315d661ce7bdc7ee863b30ba8529f43b",
+      "schema": "hepta.check.v1",
+      "source_sha256": "f8258dea2e1ec71e2f48d3b9f941460c78ab4a73d96d3ed66bb7f778bf7ce7e1",
+      "status": "frontend_only"
+    },
+    "limitations": [
+      "Only the fully inventoried public scalar class is translated.",
+      "Original C++ undefined arithmetic inputs are outside the equivalence domain.",
+      "Class layout, mangled ABI, whole-program equivalence and resource RAII migration are not claimed."
+    ],
+    "native_trivial_lifecycle_checked": true,
+    "native_validation": "not_run",
+    "ok": true,
+    "output": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/scalar_state.hepta",
+    "output_sha256": "f8258dea2e1ec71e2f48d3b9f941460c78ab4a73d96d3ed66bb7f778bf7ce7e1",
+    "profile": "cpp20-public-scalar-value-class-trivial-lifecycle-v1",
+    "rejected": [],
+    "resource_owning_raii_translated": false,
+    "schema": "hepta.cpp-class-migration.v1",
+    "source": "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/cpp/class_migration/scalar_state.cpp",
+    "source_equivalence_proved": false,
+    "source_sha256": "b0699d2aba7923105a8110588963b600018756c2580d1e74fe31f94f3bc028d5",
+    "status": "class_implementation_translated_frontend_checked",
+    "target_model": {
+      "clang_version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)",
+      "compiler_sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+      "sizeof_int": 4,
+      "sizeof_long": 8,
+      "sizeof_long_long": 8,
+      "sizeof_pointer": 8,
+      "target": "x86_64-pc-linux-gnu"
+    },
+    "tier": "L1",
+    "translated_class": {
+      "constructor": {
+        "hepta_function": "ScalarState_new",
+        "parameters": [
+          {
+            "cpp_type": "unsigned int",
+            "hepta_name": "arg0",
+            "name": "word",
+            "type": "u32"
+          },
+          {
+            "cpp_type": "unsigned long long",
+            "hepta_name": "arg1",
+            "name": "wide",
+            "type": "u64"
+          },
+          {
+            "cpp_type": "int",
+            "hepta_name": "arg2",
+            "name": "balance",
+            "type": "i32"
+          },
+          {
+            "cpp_type": "long long",
+            "hepta_name": "arg3",
+            "name": "position",
+            "type": "i64"
+          }
+        ]
+      },
+      "copy_semantics": "trivial_scalar_value_copy",
+      "declaration_inventory": [
+        {
+          "disposition": "implicit_injected_class_name",
+          "kind": "CXXRecordDecl",
+          "name": "ScalarState"
+        },
+        {
+          "disposition": "translated",
+          "kind": "FieldDecl",
+          "name": "word"
+        },
+        {
+          "disposition": "translated",
+          "kind": "FieldDecl",
+          "name": "wide"
+        },
+        {
+          "disposition": "translated",
+          "kind": "FieldDecl",
+          "name": "balance"
+        },
+        {
+          "disposition": "translated",
+          "kind": "FieldDecl",
+          "name": "position"
+        },
+        {
+          "disposition": "translated",
+          "kind": "CXXConstructorDecl",
+          "name": "ScalarState"
+        },
+        {
+          "disposition": "trivial_destruction_no_action",
+          "kind": "CXXDestructorDecl",
+          "name": "~ScalarState"
+        },
+        {
+          "disposition": "translated",
+          "kind": "CXXMethodDecl",
+          "name": "add_word"
+        },
+        {
+          "disposition": "translated",
+          "kind": "CXXMethodDecl",
+          "name": "mix"
+        },
+        {
+          "disposition": "translated",
+          "kind": "CXXMethodDecl",
+          "name": "clamp_balance"
+        },
+        {
+          "disposition": "translated",
+          "kind": "CXXMethodDecl",
+          "name": "replace_position"
+        },
+        {
+          "disposition": "translated",
+          "kind": "CXXMethodDecl",
+          "name": "word_value"
+        },
+        {
+          "disposition": "translated",
+          "kind": "CXXMethodDecl",
+          "name": "wide_value"
+        },
+        {
+          "disposition": "translated",
+          "kind": "CXXMethodDecl",
+          "name": "balance_value"
+        },
+        {
+          "disposition": "translated",
+          "kind": "CXXMethodDecl",
+          "name": "position_value"
+        },
+        {
+          "disposition": "translated",
+          "kind": "CXXMethodDecl",
+          "name": "set_word"
+        }
+      ],
+      "destructor": "explicit_defaulted_trivial",
+      "fields": [
+        {
+          "cpp_type": "unsigned int",
+          "name": "word",
+          "type": "u32"
+        },
+        {
+          "cpp_type": "unsigned long long",
+          "name": "wide",
+          "type": "u64"
+        },
+        {
+          "cpp_type": "int",
+          "name": "balance",
+          "type": "i32"
+        },
+        {
+          "cpp_type": "long long",
+          "name": "position",
+          "type": "i64"
+        }
+      ],
+      "methods": [
+        {
+          "cpp_method": "add_word",
+          "hepta_function": "ScalarState_add_word",
+          "parameters": [
+            {
+              "cpp_type": "unsigned int",
+              "hepta_name": "arg0",
+              "name": "receiver",
+              "type": "u32"
+            }
+          ],
+          "receiver": "mut",
+          "returns": "u32"
+        },
+        {
+          "cpp_method": "mix",
+          "hepta_function": "ScalarState_mix",
+          "parameters": [
+            {
+              "cpp_type": "unsigned long long",
+              "hepta_name": "arg0",
+              "name": "delta",
+              "type": "u64"
+            }
+          ],
+          "receiver": "mut",
+          "returns": "u64"
+        },
+        {
+          "cpp_method": "clamp_balance",
+          "hepta_function": "ScalarState_clamp_balance",
+          "parameters": [
+            {
+              "cpp_type": "int",
+              "hepta_name": "arg0",
+              "name": "lower",
+              "type": "i32"
+            },
+            {
+              "cpp_type": "int",
+              "hepta_name": "arg1",
+              "name": "upper",
+              "type": "i32"
+            }
+          ],
+          "receiver": "mut",
+          "returns": "i32"
+        },
+        {
+          "cpp_method": "replace_position",
+          "hepta_function": "ScalarState_replace_position",
+          "parameters": [
+            {
+              "cpp_type": "long long",
+              "hepta_name": "arg0",
+              "name": "next",
+              "type": "i64"
+            }
+          ],
+          "receiver": "mut",
+          "returns": "i64"
+        },
+        {
+          "cpp_method": "word_value",
+          "hepta_function": "ScalarState_word_value",
+          "parameters": [],
+          "receiver": "read",
+          "returns": "u32"
+        },
+        {
+          "cpp_method": "wide_value",
+          "hepta_function": "ScalarState_wide_value",
+          "parameters": [],
+          "receiver": "read",
+          "returns": "u64"
+        },
+        {
+          "cpp_method": "balance_value",
+          "hepta_function": "ScalarState_balance_value",
+          "parameters": [],
+          "receiver": "read",
+          "returns": "i32"
+        },
+        {
+          "cpp_method": "position_value",
+          "hepta_function": "ScalarState_position_value",
+          "parameters": [],
+          "receiver": "read",
+          "returns": "i64"
+        },
+        {
+          "cpp_method": "set_word",
+          "hepta_function": "ScalarState_set_word",
+          "parameters": [
+            {
+              "cpp_type": "unsigned int",
+              "hepta_name": "arg0",
+              "name": "next",
+              "type": "u32"
+            }
+          ],
+          "receiver": "mut",
+          "returns": "Unit"
+        }
+      ],
+      "name": "ScalarState",
+      "unconverted_members": []
+    },
+    "whole_language_memory_safety_proved": false
+  },
+  "negative_control": {
+    "build": {
+      "foreign_cpp_link_inputs": [],
+      "frontend": {
+        "assumptions": [],
+        "backend": {
+          "backend": "c11-gcc",
+          "check_only": true,
+          "crate_type": "cdylib",
+          "diagnostics": [],
+          "flags": [
+            "-std=c11",
+            "-O3",
+            "-fexcess-precision=standard",
+            "-ffp-contract=off",
+            "-fno-strict-aliasing",
+            "-Wall",
+            "-Wextra",
+            "-Werror=implicit-function-declaration",
+            "-Werror=incompatible-pointer-types"
+          ],
+          "link_args": [],
+          "ok": true,
+          "optimization_profile": "default",
+          "rustc_used": false,
+          "source_sha256": "001d07cae10cab47272d3b97eaf7d784bb261385bd750eed09f7dea8e3f621bc",
+          "status": "gcc_checked",
+          "target": "x86_64-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26",
+            "path": "/usr/bin/gcc",
+            "version": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+          },
+          "validation_artifact_sha256": "3b7ac56c1e2e4d9471cded1585548afe4dbcbf716c2eb5b09de62869a07354c6"
+        },
+        "c_sha256": "001d07cae10cab47272d3b97eaf7d784bb261385bd750eed09f7dea8e3f621bc",
+        "checks": {
+          "c_types_codegen": "gcc_checked",
+          "rust_borrows_types": "not_run",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "M71e525fea2e87b14_ScalarState_add_word": [
+            "write"
+          ],
+          "M71e525fea2e87b14_ScalarState_balance_value": [],
+          "M71e525fea2e87b14_ScalarState_clamp_balance": [
+            "write"
+          ],
+          "M71e525fea2e87b14_ScalarState_mix": [
+            "write"
+          ],
+          "M71e525fea2e87b14_ScalarState_new": [],
+          "M71e525fea2e87b14_ScalarState_position_value": [],
+          "M71e525fea2e87b14_ScalarState_replace_position": [
+            "write"
+          ],
+          "M71e525fea2e87b14_ScalarState_set_word": [
+            "write"
+          ],
+          "M71e525fea2e87b14_ScalarState_wide_value": [],
+          "M71e525fea2e87b14_ScalarState_word_value": [],
+          "balance_trace": [
+            "panic",
+            "write"
+          ],
+          "position_trace": [
+            "panic",
+            "write"
+          ],
+          "state_guard": [
+            "panic",
+            "write"
+          ],
+          "wide_trace": [
+            "panic",
+            "write"
+          ],
+          "word_trace": [
+            "panic",
+            "write"
+          ]
+        },
+        "interface_sha256": "381ce4df24f2be0c1a965b5289837f56186fd88aa9ba50d082447b18afb9d7f5",
+        "ok": true,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/mutated/consumer.hepta",
+        "profile": {
+          "c_optimization": "default",
+          "crate_type": "cdylib",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "project": {
+          "c_imports": [],
+          "entry": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/mutated/consumer.hepta",
+          "locked": false,
+          "modules": [
+            {
+              "imports": {},
+              "module": "cpp_class_migrated",
+              "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/mutated/scalar_state.hepta",
+              "symbols": {
+                "ScalarState": "M71e525fea2e87b14_ScalarState",
+                "ScalarState_add_word": "M71e525fea2e87b14_ScalarState_add_word",
+                "ScalarState_balance_value": "M71e525fea2e87b14_ScalarState_balance_value",
+                "ScalarState_clamp_balance": "M71e525fea2e87b14_ScalarState_clamp_balance",
+                "ScalarState_mix": "M71e525fea2e87b14_ScalarState_mix",
+                "ScalarState_new": "M71e525fea2e87b14_ScalarState_new",
+                "ScalarState_position_value": "M71e525fea2e87b14_ScalarState_position_value",
+                "ScalarState_replace_position": "M71e525fea2e87b14_ScalarState_replace_position",
+                "ScalarState_set_word": "M71e525fea2e87b14_ScalarState_set_word",
+                "ScalarState_wide_value": "M71e525fea2e87b14_ScalarState_wide_value",
+                "ScalarState_word_value": "M71e525fea2e87b14_ScalarState_word_value"
+              }
+            },
+            {
+              "imports": {
+                "value": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/mutated/scalar_state.hepta"
+              },
+              "module": "scalar_class_consumer",
+              "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/mutated/consumer.hepta",
+              "symbols": {
+                "balance_trace": "balance_trace",
+                "position_trace": "position_trace",
+                "state_guard": "state_guard",
+                "wide_trace": "wide_trace",
+                "word_trace": "word_trace"
+              }
+            }
+          ],
+          "package": null,
+          "path_bindings": {
+            "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/mutated/consumer.hepta": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/mutated/consumer.hepta",
+            "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/mutated/scalar_state.hepta": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/mutated/scalar_state.hepta"
+          },
+          "schema": "hepta.module-graph.v1",
+          "sha256": "61dc1c4a0378e60d35972b1fb330a5f9b02e3d280c7043ef3dd59ff2e8dc8a2e",
+          "sources": {
+            "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/mutated/consumer.hepta": "adcb367012dcf0390dc19cfecea533b51010884a8a6440f3d1b4a64f8125f7af",
+            "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/mutated/scalar_state.hepta": "81b9f1cfe50e08d6f4e838048107bd8e80e6776f4f42fabc9b60e0bff99005d2"
+          }
+        },
+        "resource_contracts": [],
+        "schema": "hepta.check.v1",
+        "source_sha256": "adcb367012dcf0390dc19cfecea533b51010884a8a6440f3d1b4a64f8125f7af",
+        "status": "checked"
+      },
+      "generated_source": {
+        "bytes": 53351,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/mutated/generated.c",
+        "sha256": "001d07cae10cab47272d3b97eaf7d784bb261385bd750eed09f7dea8e3f621bc"
+      },
+      "library": {
+        "bytes": 17312,
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/mutated/migrated-c.so",
+        "sha256": "33db548039d9c56155de07e75333434454e8e98245741c78fffad50b963a88b3"
+      },
+      "native": {
+        "artifact": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/mutated/migrated-c.so",
+        "artifact_bytes": 17312,
+        "artifact_sha256": "33db548039d9c56155de07e75333434454e8e98245741c78fffad50b963a88b3",
+        "backend": "c11-gcc",
+        "check_only": false,
+        "crate_type": "cdylib",
+        "diagnostics": [],
+        "flags": [
+          "-std=c11",
+          "-O3",
+          "-fexcess-precision=standard",
+          "-ffp-contract=off",
+          "-fno-strict-aliasing",
+          "-Wall",
+          "-Wextra",
+          "-Werror=implicit-function-declaration",
+          "-Werror=incompatible-pointer-types",
+          "-fsanitize=undefined",
+          "-fno-sanitize-recover=all"
+        ],
+        "link_args": [],
+        "ok": true,
+        "optimization_profile": "default",
+        "rustc_used": false,
+        "source_sha256": "001d07cae10cab47272d3b97eaf7d784bb261385bd750eed09f7dea8e3f621bc",
+        "status": "gcc_checked",
+        "target": "x86_64-linux-gnu",
+        "toolchain": {
+          "executable_sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26",
+          "path": "/usr/bin/gcc",
+          "version": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+        },
+        "validation_artifact_sha256": "33db548039d9c56155de07e75333434454e8e98245741c78fffad50b963a88b3"
+      }
+    },
+    "execution_process": {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "tools.validate_cpp_class",
+        "--probe",
+        "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/reference-cpp.so",
+        "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/rust/migrated-rust.so",
+        "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/mutated/migrated-c.so"
+      ],
+      "returncode": 2,
+      "stderr": "",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "{\"arguments\": [0, 0, 0, 2147483647], \"backend\": \"c\", \"expected\": 2147483647, \"family\": \"word_trace\", \"index\": 0, \"observed\": 2147483649, \"ok\": false, \"reference\": 2147483647, \"status\": \"differential_mismatch\"}\n",
+      "stdout_sha256": "9c071431f2fa1f6f9d27adf33f947b38b9bc4ab9b3657c4a60c78d9d341b45aa"
+    },
+    "kind": "compiled_migrated_method_arithmetic_changed",
+    "source_sha256": "81b9f1cfe50e08d6f4e838048107bd8e80e6776f4f42fabc9b60e0bff99005d2"
+  },
+  "ok": true,
+  "performance": {
+    "status": "not_run"
+  },
+  "profile": "cpp20-public-scalar-value-class-trivial-lifecycle-v1",
+  "reference_build": {
+    "command": [
+      "/usr/lib/llvm-20/bin/clang++",
+      "-std=c++20",
+      "-O3",
+      "-fPIC",
+      "-shared",
+      "-Werror",
+      "-fsanitize=undefined",
+      "-fno-sanitize-recover=all",
+      "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/cpp/class_migration/reference.cpp",
+      "-o",
+      "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/reference-cpp.so"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout": "",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "reference_library": {
+    "bytes": 15400,
+    "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-class-20261025T173653458011Z/cpp-class/reference-cpp.so",
+    "sha256": "f4175f393576a556c588a303838f1116affba3f92d7130f4a50cb3d5d40b1f84"
+  },
+  "resource_owning_raii_translated": false,
+  "schema": "hepta.cpp-class-qualification.v1",
+  "source_equivalence_proved": false,
+  "status": "native_class_implementation_differential_qualified",
+  "whole_language_memory_safety_proved": false
+}

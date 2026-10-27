@@ -1,0 +1,11 @@
+module service;
+import worker;
+pub fn run(n: usize, cancel: bool) -> i64 effects {alloc,block,spawn,panic,write} {
+    if n < 2 { return -1; }
+    let mut data = buffer(n);
+    if cancel { data[0] = 1; }
+    for i in 1..n { data[i] = (i % 251) as u8; }
+    let handle = spawn(worker::execute, move data);
+    if cancel { return cancel_and_join(move handle) as i64; }
+    return join(move handle) as i64;
+}

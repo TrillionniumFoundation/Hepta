@@ -1,0 +1,39 @@
+{
+  "ok": true,
+  "output": "evidence/resource_candidate_fixed_20261025/upstream_c.json",
+  "execution": {
+    "input_pairs": 4217,
+    "edge_pairs": 121,
+    "random_pairs": 4096,
+    "differential_cases": {
+      "int_compare": 8434,
+      "int_equal": 8434,
+      "int_hash": 8434
+    },
+    "total_differential_cases": 25302,
+    "same_address_read_alias_cases": 8434,
+    "checks": [
+      "C return values",
+      "independent arithmetic expectations",
+      "input bytes unchanged",
+      "read aliasing"
+    ],
+    "wrong_result_control_rejected": true,
+    "invalid_bridge_inputs": [
+      {
+        "input": "null",
+        "exit_code": -6,
+        "expected": "SIGABRT_before_slice_construction",
+        "original_c_executed": false,
+        "reason": "outside_defined_annotated_input_domain"
+      },
+      {
+        "input": "misaligned",
+        "exit_code": -6,
+        "expected": "SIGABRT_before_slice_construction",
+        "original_c_executed": false,
+        "reason": "outside_defined_annotated_input_domain"
+      }
+    ]
+  }
+}

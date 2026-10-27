@@ -161,7 +161,7 @@ class Matrix:
             alias = self.alias(shape)
             c += [f"{alias} abi_c_{label}({alias} value) {{ ++abi_calls; return value; }}",
                   f"typedef {alias} (*ExpectedSignature_{label})({alias});",
-                  f'_Static_assert(__builtin_types_compatible_p(__typeof__(&abi_h_{label}), ExpectedSignature_{label}), "signature {label}");']
+                  f'_Static_assert(_Generic(&abi_h_{label}, ExpectedSignature_{label}: 1, default: 0), "signature {label}");']
             for trial in range(self.values):
                 identifier = f"v_{label}_{trial}"
                 checks.append("{")
@@ -191,7 +191,11 @@ class Matrix:
                 layout += [f"extern size_t {symbol}(void);", f"/* expression: {c_expr} */"]
                 checks.append(f"#ifdef ABI_LAYOUT\nassert({symbol}() == {c_expr});\n#endif")
             for field, child in self.fields[shape.name]:
-                c.append(f'_Static_assert(__builtin_types_compatible_p(__typeof__((({typ}*)0)->{field}), {self.alias(child)}), "field type {shape.name}.{field}");')
+                # The address is only inspected, never evaluated. A pointer to
+                # the complete field type preserves array bounds and nested
+                # pointer qualifiers that a value expression would decay/drop.
+                # This is C11, including MSVC /std:c11, without GNU typeof.
+                c.append(f'_Static_assert(_Generic(&(({typ}*)0)->{field}, {self.alias(child)} *: 1, default: 0), "field type {shape.name}.{field}");')
         # Ten integer + ten FP arguments exhaust both register banks on the host,
         # followed by an aggregate passed and returned through both languages.
         spill_shape = self.structs[0]

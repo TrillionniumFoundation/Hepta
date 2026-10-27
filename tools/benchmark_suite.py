@@ -26,7 +26,7 @@ KERNELS = ("fnv1a", "histogram", "dot", "binary_search")
 
 def build_suite(runner, directory):
     source = ROOT / "benchmarks/representative.hepta"
-    objects = {name: directory / (name + ".o") for name in ("hepta_rust", "rust", "hepta_c")}
+    objects = {name: directory / (name + ".o") for name in ("hepta_rust", "rust", "hepta_c", "hepta_c_unroll")}
     hepta_build = json.loads(runner.hepta("build", source, "--crate-type", "obj", "--no-std",
                                          "--output", objects["hepta_rust"]).stdout)
     runner.run([runner.rustc, ROOT / "benchmarks/representative.rs", *RUST_FLAGS,
@@ -39,6 +39,10 @@ def build_suite(runner, directory):
     c_build = compile_c(c_source, crate_type="obj", output=objects["hepta_c"])
     if not c_build["ok"]:
         raise RuntimeError(str(c_build["diagnostics"]))
+    c_unroll_build = compile_c(c_source, crate_type="obj", output=objects["hepta_c_unroll"],
+                               optimization_profile="unroll")
+    if not c_unroll_build["ok"]:
+        raise RuntimeError(str(c_unroll_build["diagnostics"]))
     driver = directory / "driver.o"
     runner.run(["gcc", "-std=c11", "-O3", "-Wall", "-Wextra", "-Werror", "-c",
                 ROOT / "benchmarks/representative_driver.c", "-o", driver])
@@ -47,7 +51,7 @@ def build_suite(runner, directory):
         binary = directory / ("run-" + name)
         runner.run(["gcc", driver, obj, "-lm", "-o", binary])
         binaries[name] = binary
-    return binaries, {"hepta_rust": hepta_build, "hepta_c": c_build,
+    return binaries, {"hepta_rust": hepta_build, "hepta_c": c_build, "hepta_c_unroll": c_unroll_build,
                       "independent_rust_flags": RUST_FLAGS,
                       "undefined_symbols": {name: runner.run(["nm", "--undefined-only", obj]).stdout.splitlines()
                                             for name, obj in objects.items()}}
@@ -102,7 +106,7 @@ def measure(runner, binaries, trials):
                             "min_ns_per_operation": min(values), "max_ns_per_operation": max(values)}
                      for name, values in grouped.items()}
             ratios = {name: stats[name]["median_ns_per_operation"] / stats["rust"]["median_ns_per_operation"]
-                      for name in ("hepta_rust", "hepta_c")}
+                      for name in binaries if name != "rust"}
             row = {"kernel": kernel, "elements": count, "operation": "query" if kernel == "binary_search" else "element",
                    "implementations": stats, "time_relative_to_independent_rust": ratios}
             summary.append(row)

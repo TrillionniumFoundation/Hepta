@@ -1,0 +1,338 @@
+{
+  "claims": {
+    "cancellation_termination_proved": false,
+    "deadlock_freedom_proved": false,
+    "normal_exit_join_obligations_verified": true,
+    "runtime_budget_bounds_proved": false,
+    "runtime_data_race_freedom_proved": false,
+    "source_to_ir_refinement_proved": false,
+    "whole_language_soundness_proved": false,
+    "worker_input_transfer_verified": true
+  },
+  "functions": [
+    {
+      "blocks": [
+        {
+          "id": "bb0",
+          "operations": [
+            {
+              "op": "borrow",
+              "src": "v0"
+            }
+          ],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb1"
+            ]
+          }
+        },
+        {
+          "id": "bb1",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb2",
+              "bb3"
+            ]
+          }
+        },
+        {
+          "id": "bb2",
+          "operations": [
+            {
+              "mode": "group_send",
+              "op": "sender",
+              "src": "v2"
+            }
+          ],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb1"
+            ]
+          }
+        },
+        {
+          "id": "bb3",
+          "operations": [
+            {
+              "dest": "v3",
+              "op": "move",
+              "src": "v0"
+            },
+            {
+              "op": "drop_buffer",
+              "src": "v3"
+            }
+          ],
+          "terminator": {
+            "op": "return",
+            "owner": null
+          }
+        }
+      ],
+      "entry": "bb0",
+      "name": "produce",
+      "params": [
+        {
+          "id": "v0",
+          "mode": "take",
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v1",
+          "mode": "read",
+          "type": "Cancellation"
+        },
+        {
+          "id": "v2",
+          "mode": "read",
+          "type": "Sender<u64>"
+        }
+      ],
+      "returns": "u64",
+      "slots": {
+        "v0": "Buffer<u8>",
+        "v3": "Buffer<u8>"
+      }
+    },
+    {
+      "blocks": [
+        {
+          "id": "bb0",
+          "operations": [
+            {
+              "dest": "v0",
+              "op": "create",
+              "type": "TaskGroup"
+            },
+            {
+              "dest": "v1",
+              "op": "move",
+              "src": "v0"
+            },
+            {
+              "dest": "v2",
+              "op": "create",
+              "type": "TaskGroup"
+            },
+            {
+              "dest": "v3",
+              "op": "move",
+              "src": "v2"
+            },
+            {
+              "dest": "v4",
+              "op": "create",
+              "type": "Buffer<u8>"
+            },
+            {
+              "group": "v1",
+              "input": "v4",
+              "op": "spawn",
+              "task": null,
+              "worker": "produce"
+            },
+            {
+              "dest": "v5",
+              "op": "create",
+              "type": "Buffer<u8>"
+            },
+            {
+              "group": "v3",
+              "input": "v5",
+              "op": "spawn",
+              "task": null,
+              "worker": "produce"
+            },
+            {
+              "mode": "group_seal",
+              "op": "group",
+              "src": "v1"
+            },
+            {
+              "mode": "group_seal",
+              "op": "group",
+              "src": "v3"
+            }
+          ],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb1"
+            ]
+          }
+        },
+        {
+          "id": "bb1",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb2",
+              "bb3"
+            ]
+          }
+        },
+        {
+          "id": "bb2",
+          "operations": [
+            {
+              "left": "v1",
+              "mode": "group_select_receive",
+              "op": "group_pair",
+              "right": "v3"
+            }
+          ],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb4",
+              "bb5"
+            ]
+          }
+        },
+        {
+          "id": "bb3",
+          "operations": [
+            {
+              "dest": "v6",
+              "op": "move",
+              "src": "v1"
+            },
+            {
+              "mode": "group_join",
+              "op": "join",
+              "src": "v6"
+            },
+            {
+              "dest": "v7",
+              "op": "move",
+              "src": "v3"
+            },
+            {
+              "mode": "group_join",
+              "op": "join",
+              "src": "v7"
+            }
+          ],
+          "terminator": {
+            "op": "return",
+            "owner": null
+          }
+        },
+        {
+          "id": "bb4",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb6",
+              "bb7"
+            ]
+          }
+        },
+        {
+          "id": "bb5",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb12"
+            ]
+          }
+        },
+        {
+          "id": "bb6",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb11"
+            ]
+          }
+        },
+        {
+          "id": "bb7",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb8",
+              "bb9"
+            ]
+          }
+        },
+        {
+          "id": "bb8",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb10"
+            ]
+          }
+        },
+        {
+          "id": "bb9",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb10"
+            ]
+          }
+        },
+        {
+          "id": "bb10",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb11"
+            ]
+          }
+        },
+        {
+          "id": "bb11",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb12"
+            ]
+          }
+        },
+        {
+          "id": "bb12",
+          "operations": [],
+          "terminator": {
+            "op": "jump",
+            "targets": [
+              "bb1"
+            ]
+          }
+        }
+      ],
+      "entry": "bb0",
+      "name": "main",
+      "params": [],
+      "returns": "Unit",
+      "slots": {
+        "v0": "TaskGroup",
+        "v1": "TaskGroup",
+        "v2": "TaskGroup",
+        "v3": "TaskGroup",
+        "v4": "Buffer<u8>",
+        "v5": "Buffer<u8>",
+        "v6": "TaskGroup",
+        "v7": "TaskGroup"
+      }
+    }
+  ],
+  "project_sha256": null,
+  "schema": "hepta.concurrent-ir.v1",
+  "source_sha256": "7111b32b895597c335efc6d2f1fca3d5174c28b583febb822f517d76ae9419f0"
+}

@@ -1,0 +1,54 @@
+{
+  "classifier": {
+    "checked_cases": 39,
+    "command_form": "python - <<'PY'\n<exact script body>\nPY",
+    "exit_code": 0,
+    "recorded_output": "classifier.stdout.log",
+    "script": "classifier_audit.py",
+    "tool_chunk_id": "56ceac",
+    "tool_wall_time_seconds": 0.064489448,
+    "working_directory": "/workspace/scratch/06ad8295a712/hepta-unified"
+  },
+  "exact_execution_clock_not_retained": true,
+  "execution_date": "2026-10-26",
+  "git_base": "9fe295e87352295de4b4eb396bda239ceef2a474",
+  "implementation_sha256": "30c72316ea49f3fd5ac555e1b89e9d2520f47351d2a4ac333f85911cfe0c1c9b",
+  "limitations": [
+    "Finite classifier and native review only; no refinement or universal soundness proof.",
+    "No equivalence claim for physical malloc/calloc OOM probabilities or outcomes.",
+    "Future-op mutations inspect the private classifier only, not verifier acceptance."
+  ],
+  "native": {
+    "actual_random_temporary_directory_path": null,
+    "checked_input_cases": 7,
+    "command_form": "python - <<'PY'\n<exact script body>\nPY",
+    "compiler_path": "/usr/lib/llvm-20/bin/clang",
+    "core_sha256": "d28a5b9e14e08a41be77488c53bfa13fde52ea931971627510111adc75f04f37",
+    "exit_code": 0,
+    "object_compile_entry": "hepta.hia_program_llvm.compile_program_llvm(kind=object)",
+    "observer_link_arguments": [
+      "/usr/lib/llvm-20/bin/clang",
+      "-O2",
+      "<temporary_directory>/observer.c",
+      "<temporary_directory>/candidate.o",
+      "-Wl,--wrap=malloc",
+      "-Wl,--wrap=calloc",
+      "-Wl,--wrap=free",
+      "-o",
+      "<temporary_directory>/observer"
+    ],
+    "observer_output": "observer.stdout.log",
+    "original_temporary_artifacts_retained": false,
+    "reason": "TemporaryDirectory automatically removed directory on successful exit. Random suffix, object bytes, executable bytes and full compile receipt were not printed or retained.",
+    "recorded_output": "native.stdout.log",
+    "recovered_driver_source": "observer.c",
+    "script": "native_audit.py",
+    "temporary_directory_path_recorded": false,
+    "temporary_directory_prefix": "hia-zero-independent-",
+    "tool_chunk_id": "cf8237",
+    "tool_wall_time_seconds": 0.257876544,
+    "working_directory": "/workspace/scratch/06ad8295a712/hepta-unified"
+  },
+  "provenance": "Scripts and logs transcribed from already-returned tool invocation content; no rerun.",
+  "schema": "hepta.independent-zero-elision-execution-record.v1"
+}

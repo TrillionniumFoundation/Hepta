@@ -1,0 +1,35 @@
+module io_pipeline;
+import library as wire;
+
+fn main() -> Unit effects {alloc,block,panic,io,write} {
+    let mut io = io_reactor(4,4,256);
+    assert(io_report(read io).status == 0);
+    let first = io_local_pair(mut io);
+    let second = io_local_pair(mut io);
+    assert(first.status == 0); assert(second.status == 0);
+    let a = wire::queue_read(mut io,first.left,64,1000);
+    let b = wire::queue_read(mut io,second.left,64,1000);
+    let c = wire::queue_write(mut io,first.right,64,17);
+    let d = wire::queue_write(mut io,second.right,64,29);
+    let mut count: usize = 0;
+    let mut status: u8 = 0;
+    let result_a = io_wait(mut io,move a,mut count,mut status);
+    assert(status == 0); assert(count == 64);
+    wire::check(read result_a,64,17); release(move result_a);
+    let result_b = io_wait(mut io,move b,mut count,mut status);
+    assert(status == 0); assert(count == 64);
+    wire::check(read result_b,64,29); release(move result_b);
+    let result_c = io_wait(mut io,move c,mut count,mut status);
+    assert(status == 0); assert(count == 64); release(move result_c);
+    let result_d = io_wait(mut io,move d,mut count,mut status);
+    assert(status == 0); assert(count == 64); release(move result_d);
+    let report = io_shutdown(move io);
+    assert(report.reserved_bytes == 0); assert(report.occupied_requests == 0);
+    assert(report.open_ports == 0); assert(report.pending_requests == 0);
+    assert(report.shutdown);
+    print_i64(report.admitted as i64);
+    print_i64(report.read_bytes as i64);
+    print_i64(report.written_bytes as i64);
+    print_i64(report.peak_bytes as i64);
+    print_i64(report.abandoned as i64);
+}

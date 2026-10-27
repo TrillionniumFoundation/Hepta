@@ -1,0 +1,3128 @@
+{
+  "schema": "hepta.native-validation.v1",
+  "created_utc": "2026-10-25T00:25:34.571837+00:00",
+  "host": "Linux-6.18.55-x86_64-with-glibc2.39",
+  "machine": "x86_64",
+  "compiler_sources": {
+    "hepta/__init__.py": "8448813083e33f38f96474d5c3b3b690284fcf9c1ca939c33683618b419031b2",
+    "hepta/__main__.py": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d",
+    "hepta/ast.py": "c4605fe4d5feee256960212940580765428402a0b8d569345f6a3666dbe247d8",
+    "hepta/backend.py": "399e3dd334521dec76ee96bebd61215ba891d93193677d359f1db37ae06c33ad",
+    "hepta/c_aliases.py": "bc6c0533fff674f20d64619c50afb81a07375c37f158bf17ea7034026e25baf9",
+    "hepta/c_allocation.py": "e11ad48fa7e2af3fd9d0ec3932f002277bbdf44c0d164593432c5965bfd686d0",
+    "hepta/c_backend.py": "3f72146ef5215f6d24ed8feb7edb0f043ad9159394c7dc0c73d4caac4a923b2a",
+    "hepta/c_import.py": "57362c9f54bde1b0ad693fa0d62a428c3861b2f2dca2e9c0f41a5ee888749ac9",
+    "hepta/c_migrate.py": "70783d7da852acbd220c0ab3a7c1749d56fe8fab4b54807c49050ca291b1735b",
+    "hepta/c_migration_project.py": "cc3078780c69db953758c140a32d36e0ea9a17eb808c999772ff2860d0cb4bce",
+    "hepta/c_project.py": "196003dd3fb5090719f5b810d2a960e9b60edd508a1e20b468865963fc64c17f",
+    "hepta/c_record_views.py": "d36017bec07bd51d069fd0f6d76ceb0697d8e2579d4089c8df6ad408e71f1750",
+    "hepta/c_translation.py": "f0f04bd16e894d8692dbba58643ed9aee64d68ad282640001d7306ff05d461a0",
+    "hepta/checker.py": "de9a43c0c8fe53a7e7cea5e70ef77e8e14339b68cde68d0c79b7cae379772fe2",
+    "hepta/cli.py": "a3ac2aee688a709cd6f73ec2fb019adf85e32a138da2b9d740786a75acbc29b1",
+    "hepta/cpp_bridge.py": "d6e60271306a37b74a231e9130660c5d2843b8f7b3cbcba26487fbb09b016dda",
+    "hepta/cpp_contracts.py": "bcabcc477dc73c5cdfd929825dcf560810ca609c58f43066110c8724ad7e2b6e",
+    "hepta/flow_ir.py": "e80f17f8ebb831426d45171088131b0603ccf508bf575c9c26454ed2d9eced12",
+    "hepta/hmir.py": "68d7905b9215e5842010695a8386835ef618e43118a4037ef9aac48c5018a6a5",
+    "hepta/lexer.py": "06546e68725a3311c00b21d960ef6a63585d876fd6517e171669f13d0a143626",
+    "hepta/migration_ir.py": "af7011a20f17de92b108ce1e200dc8b50a9ba9aabde528afe4bff8fca6c30f5e",
+    "hepta/modules.py": "ecfcd55f095e3a7946cafda0ce7d4649920393cb87ad6718d875120e64c68137",
+    "hepta/packages.py": "f8a6f1beedcec4c11dbd544c2c60521f8aab40aac4a05a558d5c6a05dc14bb5f",
+    "hepta/parser.py": "ffbc7a1a7c5ed1fd98dec9e774bc5289139a632aa4c73b6d0c7de58d9393619a",
+    "hepta/pipeline.py": "70417674f8e7ddae248466824ba3a3b01ec161e9bd9fb236b28f2d165146a36b",
+    "hepta/protocol.py": "7c4e9c6b71391f34662bd161864cdac63b90574f65dd77e9489a3820299c6972",
+    "hepta/protocol_v3.py": "ffcae884ccb4a0d32b1736bc272a92678ad8b37b7bc7c677107b84c693cbd903",
+    "hepta/resource_ir.py": "3f52538bcf2f036d423cf79b7878731f18cc0cb5511aa23bda9d0ea096be38e5",
+    "hepta/resource_lowering.py": "cdcb9784930317cb886fd642d08b8aa6769a4096a60fe9b1e08553cf6ac83be3",
+    "hepta/runtime_concurrency.py": "78d6551cafefbdd7cb8492e2c38a37717cdb1732ca45063c93c166e5ce8590d2",
+    "hepta/semantic_ir.py": "6831fd4f6d7674b39fd32e351ec3fe592dfc0074f82b796e7949e32adde74d02",
+    "hepta/source_map.py": "7a602a7728da1729c0a625eac04acbb0cd47ccf17788c5a31f20f292e3b736f8",
+    "hepta/workspace.py": "eb04e1087b297e70e73fe1eb0b747f0b36a088ddd3728ac4efb2ab7a83ec5279"
+  },
+  "status": "passed",
+  "results": {
+    "c_abi": {
+      "status": "passed",
+      "native_staticlib": {
+        "status": "passed",
+        "bidirectional_c_calls": true,
+        "struct_by_value": true,
+        "layout_compared": false
+      },
+      "layout": {
+        "status": "passed",
+        "bidirectional_c_calls": true,
+        "struct_by_value": true,
+        "layout_compared": true
+      },
+      "structs": [
+        "AbiRecord",
+        "AbiPair",
+        "AbiFloatPair"
+      ],
+      "source_sha256": "b3ad3c0b50249a07a6d6da2df2de369194d7e834437a44c3e9daffafffc0b3fc",
+      "emitted_rust_sha256": "2091aa90fe801d652179ca6388d47e7969c3b12ff4a833ad0a3aaf2dc333c3a4",
+      "generated_header_sha256": "7a35f524721a9af7a4371b8c4a53b80fa44cd3fe4afc14ed2dae9ae5874bc248",
+      "scope": "Current host; ordinary aggregates, by-value calls and returns; not varargs, packed or bitfields"
+    },
+    "no_std": {
+      "status": "passed",
+      "targets": {
+        "host": {
+          "status": "passed",
+          "qualification": "object compilation only",
+          "sha256": "9cd6811cb5d568ce9f2c5384a17eeda6db7c9b14a1c6e58eb52a2dbdad0f091b",
+          "undefined_symbols": [],
+          "object_identity": "/tmp/hepta-native-3_8r8rcq/kernels-host.o: ELF 64-bit LSB relocatable, x86-64, version 1 (SYSV), not stripped",
+          "executed_on_target": false
+        },
+        "aarch64-unknown-linux-gnu": {
+          "status": "passed",
+          "qualification": "object compilation only",
+          "sha256": "182b8c0b427702a2f95525532935984e7b507c5e5550c0d264d0dfad0d6be50e",
+          "undefined_symbols": [],
+          "object_identity": "/tmp/hepta-native-3_8r8rcq/kernels-aarch64-unknown-linux-gnu.o: ELF 64-bit LSB relocatable, ARM aarch64, version 1 (SYSV), not stripped",
+          "executed_on_target": false
+        },
+        "thumbv7em-none-eabi": {
+          "status": "passed",
+          "qualification": "object compilation only",
+          "sha256": "9b314efb461d43deb93497f449cea3a3679fe8cd98f491af1957c29e20425bcf",
+          "undefined_symbols": [],
+          "object_identity": "/tmp/hepta-native-3_8r8rcq/kernels-thumbv7em-none-eabi.o: ELF 32-bit LSB relocatable, ARM, EABI5 version 1 (SYSV), not stripped",
+          "executed_on_target": false
+        },
+        "x86_64-pc-windows-msvc": {
+          "status": "passed",
+          "qualification": "object compilation only",
+          "sha256": "6c0167eba52984c8800f740f400852af71adbf06806676bddc5dfc614c5f9c6f",
+          "undefined_symbols": [],
+          "object_identity": "/tmp/hepta-native-3_8r8rcq/kernels-x86_64-pc-windows-msvc.o: Intel amd64 COFF object file, not stripped, 6 sections, symbol offset=0x245, 19 symbols, 1st section name \".text\"",
+          "executed_on_target": false
+        }
+      },
+      "scope": "No allocator/scheduler symbol dependencies in these two kernels; no board, IRQ or DMA validation"
+    },
+    "kernel_correctness": {
+      "status": "passed",
+      "counts": [
+        1,
+        3,
+        31,
+        32,
+        33,
+        127,
+        1025,
+        8193
+      ],
+      "zero_length_also_checked": true,
+      "compared": [
+        "hepta",
+        "rust",
+        "c"
+      ],
+      "semantics": "u64 sum modulo 2^64; non-overlapping copy"
+    },
+    "safe_borrowed": {
+      "status": "passed",
+      "native_execution": true,
+      "features": [
+        "immutable slice borrow",
+        "mutable slice borrow",
+        "array-to-slice coercion",
+        "bounds-checked indexing",
+        "wrapping sum",
+        "stack arrays",
+        "no allocation resource clauses"
+      ],
+      "scope": "Correctness and native borrow checking of this fixture; not a timed safe-slice benchmark"
+    },
+    "kernel_codegen": {
+      "status": "completed",
+      "functions": {
+        "hepta_sum": {
+          "implementations": {
+            "hepta": {
+              "bytes": 109,
+              "sha256": "8edb2dc29c963f3d5ee8baaa81d88c9c296668f4212cacb505bd4e780ec81f73"
+            },
+            "rust": {
+              "bytes": 109,
+              "sha256": "8edb2dc29c963f3d5ee8baaa81d88c9c296668f4212cacb505bd4e780ec81f73"
+            }
+          },
+          "identical_function_bytes": true
+        },
+        "hepta_copy": {
+          "implementations": {
+            "hepta": {
+              "bytes": 176,
+              "sha256": "ecc7cba3c77439348b2c98fcc4997e9fa787db396bd621060d659468e6b93e07"
+            },
+            "rust": {
+              "bytes": 176,
+              "sha256": "ecc7cba3c77439348b2c98fcc4997e9fa787db396bd621060d659468e6b93e07"
+            }
+          },
+          "identical_function_bytes": true
+        }
+      },
+      "scope": "These two host function text sections only, with the recorded compiler and flags; entire objects may differ."
+    },
+    "benchmarks": {
+      "status": "completed",
+      "trials": 7,
+      "randomization_seed": 20261024,
+      "cpu_affinity": 0,
+      "rust_flags": [
+        "--edition=2021",
+        "-C",
+        "opt-level=3",
+        "-C",
+        "overflow-checks=yes",
+        "-C",
+        "panic=abort",
+        "-C",
+        "codegen-units=1"
+      ],
+      "c_flags": [
+        "-O3"
+      ],
+      "lto": false,
+      "samples": [
+        {
+          "kernel": "sum",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 9898950,
+          "ns_per_element": 0.073752925,
+          "checksum": 0,
+          "implementation": "rust",
+          "trial": 0
+        },
+        {
+          "kernel": "sum",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 10114390,
+          "ns_per_element": 0.075358078,
+          "checksum": 0,
+          "implementation": "hepta",
+          "trial": 0
+        },
+        {
+          "kernel": "sum",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 20448946,
+          "ns_per_element": 0.15235652,
+          "checksum": 0,
+          "implementation": "c",
+          "trial": 0
+        },
+        {
+          "kernel": "sum",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 9623831,
+          "ns_per_element": 0.071703129,
+          "checksum": 0,
+          "implementation": "rust",
+          "trial": 1
+        },
+        {
+          "kernel": "sum",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 9969664,
+          "ns_per_element": 0.074279785,
+          "checksum": 0,
+          "implementation": "hepta",
+          "trial": 1
+        },
+        {
+          "kernel": "sum",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 19249285,
+          "ns_per_element": 0.143418349,
+          "checksum": 0,
+          "implementation": "c",
+          "trial": 1
+        },
+        {
+          "kernel": "sum",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 19766993,
+          "ns_per_element": 0.147275575,
+          "checksum": 0,
+          "implementation": "c",
+          "trial": 2
+        },
+        {
+          "kernel": "sum",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 10749473,
+          "ns_per_element": 0.080089815,
+          "checksum": 0,
+          "implementation": "hepta",
+          "trial": 2
+        },
+        {
+          "kernel": "sum",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 10266365,
+          "ns_per_element": 0.07649038,
+          "checksum": 0,
+          "implementation": "rust",
+          "trial": 2
+        },
+        {
+          "kernel": "sum",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 10249129,
+          "ns_per_element": 0.076361962,
+          "checksum": 0,
+          "implementation": "rust",
+          "trial": 3
+        },
+        {
+          "kernel": "sum",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 20042382,
+          "ns_per_element": 0.149327382,
+          "checksum": 0,
+          "implementation": "c",
+          "trial": 3
+        },
+        {
+          "kernel": "sum",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 10214098,
+          "ns_per_element": 0.07610096,
+          "checksum": 0,
+          "implementation": "hepta",
+          "trial": 3
+        },
+        {
+          "kernel": "sum",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 9773023,
+          "ns_per_element": 0.072814696,
+          "checksum": 0,
+          "implementation": "rust",
+          "trial": 4
+        },
+        {
+          "kernel": "sum",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 10240997,
+          "ns_per_element": 0.076301374,
+          "checksum": 0,
+          "implementation": "hepta",
+          "trial": 4
+        },
+        {
+          "kernel": "sum",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 20515424,
+          "ns_per_element": 0.15285182,
+          "checksum": 0,
+          "implementation": "c",
+          "trial": 4
+        },
+        {
+          "kernel": "sum",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 10310480,
+          "ns_per_element": 0.076819062,
+          "checksum": 0,
+          "implementation": "hepta",
+          "trial": 5
+        },
+        {
+          "kernel": "sum",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 20017214,
+          "ns_per_element": 0.149139866,
+          "checksum": 0,
+          "implementation": "c",
+          "trial": 5
+        },
+        {
+          "kernel": "sum",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 10056553,
+          "ns_per_element": 0.074927159,
+          "checksum": 0,
+          "implementation": "rust",
+          "trial": 5
+        },
+        {
+          "kernel": "sum",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 19094415,
+          "ns_per_element": 0.142264478,
+          "checksum": 0,
+          "implementation": "c",
+          "trial": 6
+        },
+        {
+          "kernel": "sum",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 10717374,
+          "ns_per_element": 0.079850659,
+          "checksum": 0,
+          "implementation": "hepta",
+          "trial": 6
+        },
+        {
+          "kernel": "sum",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 10642193,
+          "ns_per_element": 0.079290517,
+          "checksum": 0,
+          "implementation": "rust",
+          "trial": 6
+        },
+        {
+          "kernel": "copy",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 39576049,
+          "ns_per_element": 0.294864543,
+          "checksum": 17237298777891708928,
+          "implementation": "c",
+          "trial": 0
+        },
+        {
+          "kernel": "copy",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 19928522,
+          "ns_per_element": 0.148479059,
+          "checksum": 17237298777891708928,
+          "implementation": "rust",
+          "trial": 0
+        },
+        {
+          "kernel": "copy",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 22017215,
+          "ns_per_element": 0.164041035,
+          "checksum": 17237298777891708928,
+          "implementation": "hepta",
+          "trial": 0
+        },
+        {
+          "kernel": "copy",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 22438270,
+          "ns_per_element": 0.167178139,
+          "checksum": 17237298777891708928,
+          "implementation": "hepta",
+          "trial": 1
+        },
+        {
+          "kernel": "copy",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 40651796,
+          "ns_per_element": 0.302879483,
+          "checksum": 17237298777891708928,
+          "implementation": "c",
+          "trial": 1
+        },
+        {
+          "kernel": "copy",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 19400439,
+          "ns_per_element": 0.144544534,
+          "checksum": 17237298777891708928,
+          "implementation": "rust",
+          "trial": 1
+        },
+        {
+          "kernel": "copy",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 23307301,
+          "ns_per_element": 0.173652925,
+          "checksum": 17237298777891708928,
+          "implementation": "hepta",
+          "trial": 2
+        },
+        {
+          "kernel": "copy",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 20225974,
+          "ns_per_element": 0.150695249,
+          "checksum": 17237298777891708928,
+          "implementation": "rust",
+          "trial": 2
+        },
+        {
+          "kernel": "copy",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 38475124,
+          "ns_per_element": 0.286662012,
+          "checksum": 17237298777891708928,
+          "implementation": "c",
+          "trial": 2
+        },
+        {
+          "kernel": "copy",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 19374690,
+          "ns_per_element": 0.144352689,
+          "checksum": 17237298777891708928,
+          "implementation": "hepta",
+          "trial": 3
+        },
+        {
+          "kernel": "copy",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 38469226,
+          "ns_per_element": 0.286618069,
+          "checksum": 17237298777891708928,
+          "implementation": "c",
+          "trial": 3
+        },
+        {
+          "kernel": "copy",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 20148059,
+          "ns_per_element": 0.150114737,
+          "checksum": 17237298777891708928,
+          "implementation": "rust",
+          "trial": 3
+        },
+        {
+          "kernel": "copy",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 19478675,
+          "ns_per_element": 0.145127438,
+          "checksum": 17237298777891708928,
+          "implementation": "hepta",
+          "trial": 4
+        },
+        {
+          "kernel": "copy",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 39196495,
+          "ns_per_element": 0.292036645,
+          "checksum": 17237298777891708928,
+          "implementation": "c",
+          "trial": 4
+        },
+        {
+          "kernel": "copy",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 19726443,
+          "ns_per_element": 0.146973453,
+          "checksum": 17237298777891708928,
+          "implementation": "rust",
+          "trial": 4
+        },
+        {
+          "kernel": "copy",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 21796076,
+          "ns_per_element": 0.162393421,
+          "checksum": 17237298777891708928,
+          "implementation": "rust",
+          "trial": 5
+        },
+        {
+          "kernel": "copy",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 38548854,
+          "ns_per_element": 0.287211344,
+          "checksum": 17237298777891708928,
+          "implementation": "c",
+          "trial": 5
+        },
+        {
+          "kernel": "copy",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 19403664,
+          "ns_per_element": 0.144568563,
+          "checksum": 17237298777891708928,
+          "implementation": "hepta",
+          "trial": 5
+        },
+        {
+          "kernel": "copy",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 38231522,
+          "ns_per_element": 0.284847036,
+          "checksum": 17237298777891708928,
+          "implementation": "c",
+          "trial": 6
+        },
+        {
+          "kernel": "copy",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 26216451,
+          "ns_per_element": 0.195327781,
+          "checksum": 17237298777891708928,
+          "implementation": "hepta",
+          "trial": 6
+        },
+        {
+          "kernel": "copy",
+          "elements": 8192,
+          "iterations": 16384,
+          "elapsed_ns": 19760774,
+          "ns_per_element": 0.147229239,
+          "checksum": 17237298777891708928,
+          "implementation": "rust",
+          "trial": 6
+        },
+        {
+          "kernel": "sum",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 19373609,
+          "ns_per_element": 0.144344635,
+          "checksum": 0,
+          "implementation": "c",
+          "trial": 0
+        },
+        {
+          "kernel": "sum",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 11297216,
+          "ns_per_element": 0.084170818,
+          "checksum": 0,
+          "implementation": "rust",
+          "trial": 0
+        },
+        {
+          "kernel": "sum",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 10971332,
+          "ns_per_element": 0.081742793,
+          "checksum": 0,
+          "implementation": "hepta",
+          "trial": 0
+        },
+        {
+          "kernel": "sum",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 12898554,
+          "ns_per_element": 0.096101716,
+          "checksum": 0,
+          "implementation": "rust",
+          "trial": 1
+        },
+        {
+          "kernel": "sum",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 11581268,
+          "ns_per_element": 0.086287171,
+          "checksum": 0,
+          "implementation": "hepta",
+          "trial": 1
+        },
+        {
+          "kernel": "sum",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 19077979,
+          "ns_per_element": 0.14214202,
+          "checksum": 0,
+          "implementation": "c",
+          "trial": 1
+        },
+        {
+          "kernel": "sum",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 19211298,
+          "ns_per_element": 0.143135324,
+          "checksum": 0,
+          "implementation": "c",
+          "trial": 2
+        },
+        {
+          "kernel": "sum",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 10894268,
+          "ns_per_element": 0.081168622,
+          "checksum": 0,
+          "implementation": "rust",
+          "trial": 2
+        },
+        {
+          "kernel": "sum",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 11315634,
+          "ns_per_element": 0.084308043,
+          "checksum": 0,
+          "implementation": "hepta",
+          "trial": 2
+        },
+        {
+          "kernel": "sum",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 20024465,
+          "ns_per_element": 0.14919389,
+          "checksum": 0,
+          "implementation": "c",
+          "trial": 3
+        },
+        {
+          "kernel": "sum",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 11756017,
+          "ns_per_element": 0.087589152,
+          "checksum": 0,
+          "implementation": "rust",
+          "trial": 3
+        },
+        {
+          "kernel": "sum",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 11359159,
+          "ns_per_element": 0.08463233,
+          "checksum": 0,
+          "implementation": "hepta",
+          "trial": 3
+        },
+        {
+          "kernel": "sum",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 11038492,
+          "ns_per_element": 0.082243174,
+          "checksum": 0,
+          "implementation": "rust",
+          "trial": 4
+        },
+        {
+          "kernel": "sum",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 19844999,
+          "ns_per_element": 0.147856764,
+          "checksum": 0,
+          "implementation": "c",
+          "trial": 4
+        },
+        {
+          "kernel": "sum",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 10888859,
+          "ns_per_element": 0.081128322,
+          "checksum": 0,
+          "implementation": "hepta",
+          "trial": 4
+        },
+        {
+          "kernel": "sum",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 11244397,
+          "ns_per_element": 0.083777286,
+          "checksum": 0,
+          "implementation": "hepta",
+          "trial": 5
+        },
+        {
+          "kernel": "sum",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 11378356,
+          "ns_per_element": 0.084775358,
+          "checksum": 0,
+          "implementation": "rust",
+          "trial": 5
+        },
+        {
+          "kernel": "sum",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 20065506,
+          "ns_per_element": 0.14949967,
+          "checksum": 0,
+          "implementation": "c",
+          "trial": 5
+        },
+        {
+          "kernel": "sum",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 11201264,
+          "ns_per_element": 0.08345592,
+          "checksum": 0,
+          "implementation": "hepta",
+          "trial": 6
+        },
+        {
+          "kernel": "sum",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 19706914,
+          "ns_per_element": 0.146827951,
+          "checksum": 0,
+          "implementation": "c",
+          "trial": 6
+        },
+        {
+          "kernel": "sum",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 11297676,
+          "ns_per_element": 0.084174246,
+          "checksum": 0,
+          "implementation": "rust",
+          "trial": 6
+        },
+        {
+          "kernel": "copy",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 31559875,
+          "ns_per_element": 0.235139392,
+          "checksum": 11211698798702100480,
+          "implementation": "rust",
+          "trial": 0
+        },
+        {
+          "kernel": "copy",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 39262934,
+          "ns_per_element": 0.292531654,
+          "checksum": 11211698798702100480,
+          "implementation": "c",
+          "trial": 0
+        },
+        {
+          "kernel": "copy",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 31047073,
+          "ns_per_element": 0.23131872,
+          "checksum": 11211698798702100480,
+          "implementation": "hepta",
+          "trial": 0
+        },
+        {
+          "kernel": "copy",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 39189775,
+          "ns_per_element": 0.291986577,
+          "checksum": 11211698798702100480,
+          "implementation": "c",
+          "trial": 1
+        },
+        {
+          "kernel": "copy",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 30863551,
+          "ns_per_element": 0.229951374,
+          "checksum": 11211698798702100480,
+          "implementation": "hepta",
+          "trial": 1
+        },
+        {
+          "kernel": "copy",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 30619989,
+          "ns_per_element": 0.228136696,
+          "checksum": 11211698798702100480,
+          "implementation": "rust",
+          "trial": 1
+        },
+        {
+          "kernel": "copy",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 38433332,
+          "ns_per_element": 0.286350638,
+          "checksum": 11211698798702100480,
+          "implementation": "c",
+          "trial": 2
+        },
+        {
+          "kernel": "copy",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 31254942,
+          "ns_per_element": 0.232867464,
+          "checksum": 11211698798702100480,
+          "implementation": "rust",
+          "trial": 2
+        },
+        {
+          "kernel": "copy",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 30907417,
+          "ns_per_element": 0.230278201,
+          "checksum": 11211698798702100480,
+          "implementation": "hepta",
+          "trial": 2
+        },
+        {
+          "kernel": "copy",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 39513807,
+          "ns_per_element": 0.294400804,
+          "checksum": 11211698798702100480,
+          "implementation": "c",
+          "trial": 3
+        },
+        {
+          "kernel": "copy",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 30719427,
+          "ns_per_element": 0.228877567,
+          "checksum": 11211698798702100480,
+          "implementation": "hepta",
+          "trial": 3
+        },
+        {
+          "kernel": "copy",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 31927040,
+          "ns_per_element": 0.237874985,
+          "checksum": 11211698798702100480,
+          "implementation": "rust",
+          "trial": 3
+        },
+        {
+          "kernel": "copy",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 31523231,
+          "ns_per_element": 0.234866373,
+          "checksum": 11211698798702100480,
+          "implementation": "rust",
+          "trial": 4
+        },
+        {
+          "kernel": "copy",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 38171233,
+          "ns_per_element": 0.284397848,
+          "checksum": 11211698798702100480,
+          "implementation": "hepta",
+          "trial": 4
+        },
+        {
+          "kernel": "copy",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 41033693,
+          "ns_per_element": 0.305724837,
+          "checksum": 11211698798702100480,
+          "implementation": "c",
+          "trial": 4
+        },
+        {
+          "kernel": "copy",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 33271742,
+          "ns_per_element": 0.247893795,
+          "checksum": 11211698798702100480,
+          "implementation": "hepta",
+          "trial": 5
+        },
+        {
+          "kernel": "copy",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 31176569,
+          "ns_per_element": 0.23228354,
+          "checksum": 11211698798702100480,
+          "implementation": "rust",
+          "trial": 5
+        },
+        {
+          "kernel": "copy",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 41396645,
+          "ns_per_element": 0.30842904,
+          "checksum": 11211698798702100480,
+          "implementation": "c",
+          "trial": 5
+        },
+        {
+          "kernel": "copy",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 39194076,
+          "ns_per_element": 0.292018622,
+          "checksum": 11211698798702100480,
+          "implementation": "c",
+          "trial": 6
+        },
+        {
+          "kernel": "copy",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 32304573,
+          "ns_per_element": 0.240687825,
+          "checksum": 11211698798702100480,
+          "implementation": "rust",
+          "trial": 6
+        },
+        {
+          "kernel": "copy",
+          "elements": 1048576,
+          "iterations": 128,
+          "elapsed_ns": 31154256,
+          "ns_per_element": 0.232117295,
+          "checksum": 11211698798702100480,
+          "implementation": "hepta",
+          "trial": 6
+        }
+      ],
+      "summary": [
+        {
+          "kernel": "sum",
+          "elements": 8192,
+          "implementations": {
+            "hepta": {
+              "median_ns_per_element": 0.076301374,
+              "min_ns_per_element": 0.074279785,
+              "max_ns_per_element": 0.080089815
+            },
+            "rust": {
+              "median_ns_per_element": 0.074927159,
+              "min_ns_per_element": 0.071703129,
+              "max_ns_per_element": 0.079290517
+            },
+            "c": {
+              "median_ns_per_element": 0.149139866,
+              "min_ns_per_element": 0.142264478,
+              "max_ns_per_element": 0.15285182
+            }
+          },
+          "hepta_over_rust_median_time": 1.0183406793790222
+        },
+        {
+          "kernel": "copy",
+          "elements": 8192,
+          "implementations": {
+            "hepta": {
+              "median_ns_per_element": 0.164041035,
+              "min_ns_per_element": 0.144352689,
+              "max_ns_per_element": 0.195327781
+            },
+            "rust": {
+              "median_ns_per_element": 0.148479059,
+              "min_ns_per_element": 0.144544534,
+              "max_ns_per_element": 0.162393421
+            },
+            "c": {
+              "median_ns_per_element": 0.287211344,
+              "min_ns_per_element": 0.284847036,
+              "max_ns_per_element": 0.302879483
+            }
+          },
+          "hepta_over_rust_median_time": 1.1048092310444937
+        },
+        {
+          "kernel": "sum",
+          "elements": 1048576,
+          "implementations": {
+            "hepta": {
+              "median_ns_per_element": 0.083777286,
+              "min_ns_per_element": 0.081128322,
+              "max_ns_per_element": 0.086287171
+            },
+            "rust": {
+              "median_ns_per_element": 0.084174246,
+              "min_ns_per_element": 0.081168622,
+              "max_ns_per_element": 0.096101716
+            },
+            "c": {
+              "median_ns_per_element": 0.146827951,
+              "min_ns_per_element": 0.14214202,
+              "max_ns_per_element": 0.14949967
+            }
+          },
+          "hepta_over_rust_median_time": 0.9952840682410153
+        },
+        {
+          "kernel": "copy",
+          "elements": 1048576,
+          "implementations": {
+            "hepta": {
+              "median_ns_per_element": 0.23131872,
+              "min_ns_per_element": 0.228877567,
+              "max_ns_per_element": 0.284397848
+            },
+            "rust": {
+              "median_ns_per_element": 0.234866373,
+              "min_ns_per_element": 0.228136696,
+              "max_ns_per_element": 0.240687825
+            },
+            "c": {
+              "median_ns_per_element": 0.292531654,
+              "min_ns_per_element": 0.286350638,
+              "max_ns_per_element": 0.30842904
+            }
+          },
+          "hepta_over_rust_median_time": 0.9848950151752887
+        }
+      ],
+      "interpretation": "Host microbenchmarks only; ratios below 1 mean faster observed Hepta time. Shared-host noise is not controlled and no universal speed advantage is established."
+    }
+  },
+  "rustc": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8\n",
+  "c_compiler": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "sources": {
+    "benchmarks/README.md": "2e706e95740ae80abeb82d5f81b30e05191c7c5e41c397eb6c6e8f259ee5e523",
+    "benchmarks/baseline.c": "3fd6fc6d915fb9f6a370b0e24d5e677c0daea86badf30cf3ab1efda4d3c1964a",
+    "benchmarks/baseline.rs": "073e4027746aba1ec392ab3d4477a25b6343e475101537c169f7b8e5d5f42bd8",
+    "benchmarks/borrowed.hepta": "84697f404f0637b158f9ed47540c1b7a71f64ae18ac87b251ac1d4d2db5a87b7",
+    "benchmarks/borrowed.rs": "de0e419772aeb4bf9e45ebc420563416429d372f3e739adcce5a8d9ecbb41274",
+    "benchmarks/driver.c": "ab80500cb4e82463ee9ede9ce92da3acf7f2ef39e79748961612fa15dcd04007",
+    "benchmarks/kernels.hepta": "1f25a2ff79632fcaf2d489117d4fc9034ff03cf80e957ab3b056c917195f70b3",
+    "benchmarks/representative.hepta": "87fc435abdcaca6cf742dc1c79347ae15c4897ae8d5ef3e2cee3afb327954fb5",
+    "benchmarks/representative.rs": "f3a6c815bca6d68a57f9e0844df9e8cb32132fdac5bb1cda22463765c5ca9e66",
+    "benchmarks/representative_driver.c": "8d6ca43135cfbde9d558f40feb841b680c17893b56e9e65a210a898c4980a551",
+    "examples/ffi/abi.hepta": "b3ad3c0b50249a07a6d6da2df2de369194d7e834437a44c3e9daffafffc0b3fc",
+    "examples/ffi/harness.c": "589321ec560b4b44d811ea41b33eb00fc6ceeb5b55e4693e0bbd16e0c49622e0"
+  },
+  "commands": [
+    {
+      "argv": [
+        "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+        "--version",
+        "--verbose"
+      ],
+      "exit_code": 0,
+      "stdout": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/bin/gcc",
+        "--version"
+      ],
+      "exit_code": 0,
+      "stdout": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "hepta",
+        "header",
+        "/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta",
+        "--output",
+        "/tmp/hepta-native-3_8r8rcq/abi.h"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"ok\": true,\n  \"output\": \"/tmp/hepta-native-3_8r8rcq/abi.h\",\n  \"schema\": \"hepta.output.v1\",\n  \"validation\": {\n    \"assumptions\": [\n      {\n        \"abi\": \"C\",\n        \"declared_effects\": [\n          \"ffi\",\n          \"unsafe\"\n        ],\n        \"function\": \"c_add\",\n        \"kind\": \"extern_contract\",\n        \"obligations\": [\n          \"foreign implementation obeys the declared ABI and effect upper bound\",\n          \"caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations\"\n        ],\n        \"parameters\": [\n          {\n            \"name\": \"a\",\n            \"type\": \"i32\"\n          },\n          {\n            \"name\": \"b\",\n            \"type\": \"i32\"\n          }\n        ],\n        \"return_type\": \"i32\",\n        \"status\": \"assumed_not_verified\"\n      },\n      {\n        \"abi\": \"C\",\n        \"declared_effects\": [\n          \"ffi\",\n          \"unsafe\"\n        ],\n        \"function\": \"c_record\",\n        \"kind\": \"extern_contract\",\n        \"obligations\": [\n          \"foreign implementation obeys the declared ABI and effect upper bound\",\n          \"caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations\"\n        ],\n        \"parameters\": [\n          {\n            \"name\": \"value\",\n            \"type\": \"AbiRecord\"\n          }\n        ],\n        \"return_type\": \"AbiRecord\",\n        \"status\": \"assumed_not_verified\"\n      },\n      {\n        \"function\": \"hepta_call_c_add\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 40,\n        \"operation\": \"extern call c_add\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      },\n      {\n        \"function\": \"hepta_call_c_record\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 46,\n        \"operation\": \"extern call c_record\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      }\n    ],\n    \"backend\": {\n      \"check_only\": true,\n      \"crate_type\": \"rlib\",\n      \"diagnostics\": [],\n      \"flags\": [\n        \"edition=2021\",\n        \"opt-level=3\",\n        \"overflow-checks=yes\",\n        \"panic=abort\",\n        \"codegen-units=1\",\n        \"sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\"\n      ],\n      \"link_args\": [],\n      \"linker\": null,\n      \"ok\": true,\n      \"rust_sha256\": \"2091aa90fe801d652179ca6388d47e7969c3b12ff4a833ad0a3aaf2dc333c3a4\",\n      \"rustc_crate_type\": \"lib\",\n      \"status\": \"rustc_checked\",\n      \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n      \"target\": \"x86_64-unknown-linux-gnu\",\n      \"toolchain\": {\n        \"executable_sha256\": \"e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa\",\n        \"host\": \"x86_64-unknown-linux-gnu\",\n        \"path\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc\",\n        \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n        \"sysroot_discovery\": \"verified_compiler_prefix\",\n        \"version\": \"rustc 1.90.0 (1159e78c4 2025-09-14)\\nbinary: rustc\\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\\ncommit-date: 2025-09-14\\nhost: x86_64-unknown-linux-gnu\\nrelease: 1.90.0\\nLLVM version: 20.1.8\"\n      },\n      \"validation_artifact_sha256\": \"b3ee44e46027e67d40ffd0fbe46ff9dc3fc031c29431f0f32b24ecbd71543174\"\n    },\n    \"checks\": {\n      \"rust_borrows_types\": \"rustc_checked\",\n      \"syntax\": \"passed\",\n      \"types_effects_resources\": \"passed_in_supported_subset\"\n    },\n    \"claims\": {\n      \"all_programs_faster_than_rust\": false,\n      \"bounded_cancellation_latency_proved\": false,\n      \"deadlock_freedom_proved\": false,\n      \"hardware_execution_verified\": false,\n      \"whole_language_soundness_proved\": false\n    },\n    \"compiler_sha256\": \"bfda682563f70a99d6c7c3e2de11c614b70c277785cb50f5a5047f93f32c803d\",\n    \"compiler_version\": \"0.2.0\",\n    \"diagnostics\": [],\n    \"effects\": {\n      \"c_add\": [\n        \"ffi\",\n        \"unsafe\"\n      ],\n      \"c_record\": [\n        \"ffi\",\n        \"unsafe\"\n      ],\n      \"hepta_call_c_add\": [\n        \"ffi\",\n        \"unsafe\"\n      ],\n      \"hepta_call_c_record\": [\n        \"ffi\",\n        \"unsafe\"\n      ],\n      \"hepta_echo_float_pair\": [],\n      \"hepta_echo_pair\": [],\n      \"hepta_echo_record\": [],\n      \"hepta_make_record\": []\n    },\n    \"interface_sha256\": \"6d91f4d3fce81683721002b0e1c8df4f261c08e7f0478b7e691a24c5add8ffe3\",\n    \"ok\": true,\n    \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta\",\n    \"profile\": {\n      \"crate_type\": \"rlib\",\n      \"no_std\": false,\n      \"overflow_checks\": true,\n      \"panic\": \"abort\"\n    },\n    \"project\": {\n      \"c_imports\": [],\n      \"entry\": \"/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta\",\n      \"locked\": false,\n      \"modules\": [\n        {\n          \"imports\": {},\n          \"module\": \"abi_validation\",\n          \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta\",\n          \"symbols\": {\n            \"AbiFloatPair\": \"AbiFloatPair\",\n            \"AbiPair\": \"AbiPair\",\n            \"AbiRecord\": \"AbiRecord\",\n            \"c_add\": \"c_add\",\n            \"c_record\": \"c_record\",\n            \"hepta_call_c_add\": \"hepta_call_c_add\",\n            \"hepta_call_c_record\": \"hepta_call_c_record\",\n            \"hepta_echo_float_pair\": \"hepta_echo_float_pair\",\n            \"hepta_echo_pair\": \"hepta_echo_pair\",\n            \"hepta_echo_record\": \"hepta_echo_record\",\n            \"hepta_make_record\": \"hepta_make_record\"\n          }\n        }\n      ],\n      \"package\": null,\n      \"path_bindings\": {\n        \"/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta\": \"/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta\"\n      },\n      \"schema\": \"hepta.module-graph.v1\",\n      \"sha256\": \"66eb176db8a84eae07b9b3ecee88705b7e74747c50762e0d403f7b27fc2fb50d\",\n      \"sources\": {\n        \"/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta\": \"b3ad3c0b50249a07a6d6da2df2de369194d7e834437a44c3e9daffafffc0b3fc\"\n      }\n    },\n    \"resource_contracts\": [],\n    \"rust_sha256\": \"2091aa90fe801d652179ca6388d47e7969c3b12ff4a833ad0a3aaf2dc333c3a4\",\n    \"schema\": \"hepta.check.v1\",\n    \"source_sha256\": \"b3ad3c0b50249a07a6d6da2df2de369194d7e834437a44c3e9daffafffc0b3fc\",\n    \"status\": \"checked_with_external_assumptions\"\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "hepta",
+        "emit",
+        "/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta",
+        "--output",
+        "/tmp/hepta-native-3_8r8rcq/abi.rs"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"ok\": true,\n  \"output\": \"/tmp/hepta-native-3_8r8rcq/abi.rs\",\n  \"schema\": \"hepta.output.v1\",\n  \"validation\": {\n    \"assumptions\": [\n      {\n        \"abi\": \"C\",\n        \"declared_effects\": [\n          \"ffi\",\n          \"unsafe\"\n        ],\n        \"function\": \"c_add\",\n        \"kind\": \"extern_contract\",\n        \"obligations\": [\n          \"foreign implementation obeys the declared ABI and effect upper bound\",\n          \"caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations\"\n        ],\n        \"parameters\": [\n          {\n            \"name\": \"a\",\n            \"type\": \"i32\"\n          },\n          {\n            \"name\": \"b\",\n            \"type\": \"i32\"\n          }\n        ],\n        \"return_type\": \"i32\",\n        \"status\": \"assumed_not_verified\"\n      },\n      {\n        \"abi\": \"C\",\n        \"declared_effects\": [\n          \"ffi\",\n          \"unsafe\"\n        ],\n        \"function\": \"c_record\",\n        \"kind\": \"extern_contract\",\n        \"obligations\": [\n          \"foreign implementation obeys the declared ABI and effect upper bound\",\n          \"caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations\"\n        ],\n        \"parameters\": [\n          {\n            \"name\": \"value\",\n            \"type\": \"AbiRecord\"\n          }\n        ],\n        \"return_type\": \"AbiRecord\",\n        \"status\": \"assumed_not_verified\"\n      },\n      {\n        \"function\": \"hepta_call_c_add\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 40,\n        \"operation\": \"extern call c_add\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      },\n      {\n        \"function\": \"hepta_call_c_record\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 46,\n        \"operation\": \"extern call c_record\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      }\n    ],\n    \"backend\": {\n      \"check_only\": true,\n      \"crate_type\": \"rlib\",\n      \"diagnostics\": [],\n      \"flags\": [\n        \"edition=2021\",\n        \"opt-level=3\",\n        \"overflow-checks=yes\",\n        \"panic=abort\",\n        \"codegen-units=1\",\n        \"sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\"\n      ],\n      \"link_args\": [],\n      \"linker\": null,\n      \"ok\": true,\n      \"rust_sha256\": \"2091aa90fe801d652179ca6388d47e7969c3b12ff4a833ad0a3aaf2dc333c3a4\",\n      \"rustc_crate_type\": \"lib\",\n      \"status\": \"rustc_checked\",\n      \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n      \"target\": \"x86_64-unknown-linux-gnu\",\n      \"toolchain\": {\n        \"executable_sha256\": \"e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa\",\n        \"host\": \"x86_64-unknown-linux-gnu\",\n        \"path\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc\",\n        \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n        \"sysroot_discovery\": \"verified_compiler_prefix\",\n        \"version\": \"rustc 1.90.0 (1159e78c4 2025-09-14)\\nbinary: rustc\\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\\ncommit-date: 2025-09-14\\nhost: x86_64-unknown-linux-gnu\\nrelease: 1.90.0\\nLLVM version: 20.1.8\"\n      },\n      \"validation_artifact_sha256\": \"3e332d31b73b2505d7477908265d51d7eb5e8f3ffb98bbf1b7d14fc6a41ec968\"\n    },\n    \"checks\": {\n      \"rust_borrows_types\": \"rustc_checked\",\n      \"syntax\": \"passed\",\n      \"types_effects_resources\": \"passed_in_supported_subset\"\n    },\n    \"claims\": {\n      \"all_programs_faster_than_rust\": false,\n      \"bounded_cancellation_latency_proved\": false,\n      \"deadlock_freedom_proved\": false,\n      \"hardware_execution_verified\": false,\n      \"whole_language_soundness_proved\": false\n    },\n    \"compiler_sha256\": \"bfda682563f70a99d6c7c3e2de11c614b70c277785cb50f5a5047f93f32c803d\",\n    \"compiler_version\": \"0.2.0\",\n    \"diagnostics\": [],\n    \"effects\": {\n      \"c_add\": [\n        \"ffi\",\n        \"unsafe\"\n      ],\n      \"c_record\": [\n        \"ffi\",\n        \"unsafe\"\n      ],\n      \"hepta_call_c_add\": [\n        \"ffi\",\n        \"unsafe\"\n      ],\n      \"hepta_call_c_record\": [\n        \"ffi\",\n        \"unsafe\"\n      ],\n      \"hepta_echo_float_pair\": [],\n      \"hepta_echo_pair\": [],\n      \"hepta_echo_record\": [],\n      \"hepta_make_record\": []\n    },\n    \"interface_sha256\": \"6d91f4d3fce81683721002b0e1c8df4f261c08e7f0478b7e691a24c5add8ffe3\",\n    \"ok\": true,\n    \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta\",\n    \"profile\": {\n      \"crate_type\": \"rlib\",\n      \"no_std\": false,\n      \"overflow_checks\": true,\n      \"panic\": \"abort\"\n    },\n    \"project\": {\n      \"c_imports\": [],\n      \"entry\": \"/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta\",\n      \"locked\": false,\n      \"modules\": [\n        {\n          \"imports\": {},\n          \"module\": \"abi_validation\",\n          \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta\",\n          \"symbols\": {\n            \"AbiFloatPair\": \"AbiFloatPair\",\n            \"AbiPair\": \"AbiPair\",\n            \"AbiRecord\": \"AbiRecord\",\n            \"c_add\": \"c_add\",\n            \"c_record\": \"c_record\",\n            \"hepta_call_c_add\": \"hepta_call_c_add\",\n            \"hepta_call_c_record\": \"hepta_call_c_record\",\n            \"hepta_echo_float_pair\": \"hepta_echo_float_pair\",\n            \"hepta_echo_pair\": \"hepta_echo_pair\",\n            \"hepta_echo_record\": \"hepta_echo_record\",\n            \"hepta_make_record\": \"hepta_make_record\"\n          }\n        }\n      ],\n      \"package\": null,\n      \"path_bindings\": {\n        \"/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta\": \"/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta\"\n      },\n      \"schema\": \"hepta.module-graph.v1\",\n      \"sha256\": \"66eb176db8a84eae07b9b3ecee88705b7e74747c50762e0d403f7b27fc2fb50d\",\n      \"sources\": {\n        \"/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta\": \"b3ad3c0b50249a07a6d6da2df2de369194d7e834437a44c3e9daffafffc0b3fc\"\n      }\n    },\n    \"resource_contracts\": [],\n    \"rust_sha256\": \"2091aa90fe801d652179ca6388d47e7969c3b12ff4a833ad0a3aaf2dc333c3a4\",\n    \"schema\": \"hepta.check.v1\",\n    \"source_sha256\": \"b3ad3c0b50249a07a6d6da2df2de369194d7e834437a44c3e9daffafffc0b3fc\",\n    \"status\": \"checked_with_external_assumptions\"\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "hepta",
+        "build",
+        "/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta",
+        "--crate-type",
+        "staticlib",
+        "--output",
+        "/tmp/hepta-native-3_8r8rcq/libhepta_abi.a"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"build\": {\n    \"artifact\": \"/tmp/hepta-native-3_8r8rcq/libhepta_abi.a\",\n    \"artifact_bytes\": 20949738,\n    \"artifact_sha256\": \"4843f7f5b59474e2069eea720dd6de56f53a30d2ea99771f16be82e119f6cae9\",\n    \"check_only\": false,\n    \"crate_type\": \"staticlib\",\n    \"diagnostics\": [],\n    \"flags\": [\n      \"edition=2021\",\n      \"opt-level=3\",\n      \"overflow-checks=yes\",\n      \"panic=abort\",\n      \"codegen-units=1\",\n      \"sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\"\n    ],\n    \"link_args\": [],\n    \"linker\": null,\n    \"ok\": true,\n    \"rust_sha256\": \"2091aa90fe801d652179ca6388d47e7969c3b12ff4a833ad0a3aaf2dc333c3a4\",\n    \"rustc_crate_type\": \"staticlib\",\n    \"status\": \"rustc_checked\",\n    \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n    \"target\": \"x86_64-unknown-linux-gnu\",\n    \"toolchain\": {\n      \"executable_sha256\": \"e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa\",\n      \"host\": \"x86_64-unknown-linux-gnu\",\n      \"path\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc\",\n      \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n      \"sysroot_discovery\": \"verified_compiler_prefix\",\n      \"version\": \"rustc 1.90.0 (1159e78c4 2025-09-14)\\nbinary: rustc\\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\\ncommit-date: 2025-09-14\\nhost: x86_64-unknown-linux-gnu\\nrelease: 1.90.0\\nLLVM version: 20.1.8\"\n    },\n    \"validation_artifact_sha256\": \"4843f7f5b59474e2069eea720dd6de56f53a30d2ea99771f16be82e119f6cae9\"\n  },\n  \"ok\": true,\n  \"schema\": \"hepta.build.v1\",\n  \"validation\": {\n    \"assumptions\": [\n      {\n        \"abi\": \"C\",\n        \"declared_effects\": [\n          \"ffi\",\n          \"unsafe\"\n        ],\n        \"function\": \"c_add\",\n        \"kind\": \"extern_contract\",\n        \"obligations\": [\n          \"foreign implementation obeys the declared ABI and effect upper bound\",\n          \"caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations\"\n        ],\n        \"parameters\": [\n          {\n            \"name\": \"a\",\n            \"type\": \"i32\"\n          },\n          {\n            \"name\": \"b\",\n            \"type\": \"i32\"\n          }\n        ],\n        \"return_type\": \"i32\",\n        \"status\": \"assumed_not_verified\"\n      },\n      {\n        \"abi\": \"C\",\n        \"declared_effects\": [\n          \"ffi\",\n          \"unsafe\"\n        ],\n        \"function\": \"c_record\",\n        \"kind\": \"extern_contract\",\n        \"obligations\": [\n          \"foreign implementation obeys the declared ABI and effect upper bound\",\n          \"caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations\"\n        ],\n        \"parameters\": [\n          {\n            \"name\": \"value\",\n            \"type\": \"AbiRecord\"\n          }\n        ],\n        \"return_type\": \"AbiRecord\",\n        \"status\": \"assumed_not_verified\"\n      },\n      {\n        \"function\": \"hepta_call_c_add\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 40,\n        \"operation\": \"extern call c_add\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      },\n      {\n        \"function\": \"hepta_call_c_record\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 46,\n        \"operation\": \"extern call c_record\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      }\n    ],\n    \"backend\": {\n      \"check_only\": true,\n      \"crate_type\": \"staticlib\",\n      \"diagnostics\": [],\n      \"flags\": [\n        \"edition=2021\",\n        \"opt-level=3\",\n        \"overflow-checks=yes\",\n        \"panic=abort\",\n        \"codegen-units=1\",\n        \"sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\"\n      ],\n      \"link_args\": [],\n      \"linker\": null,\n      \"ok\": true,\n      \"rust_sha256\": \"2091aa90fe801d652179ca6388d47e7969c3b12ff4a833ad0a3aaf2dc333c3a4\",\n      \"rustc_crate_type\": \"lib\",\n      \"status\": \"rustc_checked\",\n      \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n      \"target\": \"x86_64-unknown-linux-gnu\",\n      \"toolchain\": {\n        \"executable_sha256\": \"e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa\",\n        \"host\": \"x86_64-unknown-linux-gnu\",\n        \"path\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc\",\n        \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n        \"sysroot_discovery\": \"verified_compiler_prefix\",\n        \"version\": \"rustc 1.90.0 (1159e78c4 2025-09-14)\\nbinary: rustc\\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\\ncommit-date: 2025-09-14\\nhost: x86_64-unknown-linux-gnu\\nrelease: 1.90.0\\nLLVM version: 20.1.8\"\n      },\n      \"validation_artifact_sha256\": \"c4a9480c60aa6804322f05efa140a8302e5a6eb46072855856fc8e232ab60549\"\n    },\n    \"checks\": {\n      \"rust_borrows_types\": \"rustc_checked\",\n      \"syntax\": \"passed\",\n      \"types_effects_resources\": \"passed_in_supported_subset\"\n    },\n    \"claims\": {\n      \"all_programs_faster_than_rust\": false,\n      \"bounded_cancellation_latency_proved\": false,\n      \"deadlock_freedom_proved\": false,\n      \"hardware_execution_verified\": false,\n      \"whole_language_soundness_proved\": false\n    },\n    \"compiler_sha256\": \"bfda682563f70a99d6c7c3e2de11c614b70c277785cb50f5a5047f93f32c803d\",\n    \"compiler_version\": \"0.2.0\",\n    \"diagnostics\": [],\n    \"effects\": {\n      \"c_add\": [\n        \"ffi\",\n        \"unsafe\"\n      ],\n      \"c_record\": [\n        \"ffi\",\n        \"unsafe\"\n      ],\n      \"hepta_call_c_add\": [\n        \"ffi\",\n        \"unsafe\"\n      ],\n      \"hepta_call_c_record\": [\n        \"ffi\",\n        \"unsafe\"\n      ],\n      \"hepta_echo_float_pair\": [],\n      \"hepta_echo_pair\": [],\n      \"hepta_echo_record\": [],\n      \"hepta_make_record\": []\n    },\n    \"interface_sha256\": \"6d91f4d3fce81683721002b0e1c8df4f261c08e7f0478b7e691a24c5add8ffe3\",\n    \"ok\": true,\n    \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta\",\n    \"profile\": {\n      \"crate_type\": \"staticlib\",\n      \"no_std\": false,\n      \"overflow_checks\": true,\n      \"panic\": \"abort\"\n    },\n    \"project\": {\n      \"c_imports\": [],\n      \"entry\": \"/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta\",\n      \"locked\": false,\n      \"modules\": [\n        {\n          \"imports\": {},\n          \"module\": \"abi_validation\",\n          \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta\",\n          \"symbols\": {\n            \"AbiFloatPair\": \"AbiFloatPair\",\n            \"AbiPair\": \"AbiPair\",\n            \"AbiRecord\": \"AbiRecord\",\n            \"c_add\": \"c_add\",\n            \"c_record\": \"c_record\",\n            \"hepta_call_c_add\": \"hepta_call_c_add\",\n            \"hepta_call_c_record\": \"hepta_call_c_record\",\n            \"hepta_echo_float_pair\": \"hepta_echo_float_pair\",\n            \"hepta_echo_pair\": \"hepta_echo_pair\",\n            \"hepta_echo_record\": \"hepta_echo_record\",\n            \"hepta_make_record\": \"hepta_make_record\"\n          }\n        }\n      ],\n      \"package\": null,\n      \"path_bindings\": {\n        \"/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta\": \"/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta\"\n      },\n      \"schema\": \"hepta.module-graph.v1\",\n      \"sha256\": \"66eb176db8a84eae07b9b3ecee88705b7e74747c50762e0d403f7b27fc2fb50d\",\n      \"sources\": {\n        \"/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/abi.hepta\": \"b3ad3c0b50249a07a6d6da2df2de369194d7e834437a44c3e9daffafffc0b3fc\"\n      }\n    },\n    \"resource_contracts\": [],\n    \"rust_sha256\": \"2091aa90fe801d652179ca6388d47e7969c3b12ff4a833ad0a3aaf2dc333c3a4\",\n    \"schema\": \"hepta.check.v1\",\n    \"source_sha256\": \"b3ad3c0b50249a07a6d6da2df2de369194d7e834437a44c3e9daffafffc0b3fc\",\n    \"status\": \"checked_with_external_assumptions\"\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/bin/gcc",
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I",
+        "/tmp/hepta-native-3_8r8rcq",
+        "/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/harness.c",
+        "/tmp/hepta-native-3_8r8rcq/libhepta_abi.a",
+        "-ldl",
+        "-lpthread",
+        "-lm",
+        "-lrt",
+        "-lutil",
+        "-o",
+        "/tmp/hepta-native-3_8r8rcq/abi-native"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/abi-native"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"status\":\"passed\",\"bidirectional_c_calls\":true,\"struct_by_value\":true,\"layout_compared\":false}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+        "/tmp/hepta-native-3_8r8rcq/abi_layout.rs",
+        "--edition=2021",
+        "-C",
+        "opt-level=3",
+        "-C",
+        "overflow-checks=yes",
+        "-C",
+        "panic=abort",
+        "-C",
+        "codegen-units=1",
+        "--crate-type",
+        "staticlib",
+        "-o",
+        "/tmp/hepta-native-3_8r8rcq/libhepta_layout.a"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/bin/gcc",
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I",
+        "/tmp/hepta-native-3_8r8rcq",
+        "-DHEPTA_LAYOUT_PROBE",
+        "/workspace/scratch/0817a147930b/Hepta-work/examples/ffi/harness.c",
+        "/tmp/hepta-native-3_8r8rcq/libhepta_layout.a",
+        "-ldl",
+        "-lpthread",
+        "-lm",
+        "-lrt",
+        "-lutil",
+        "-o",
+        "/tmp/hepta-native-3_8r8rcq/abi-layout"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/abi-layout"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"status\":\"passed\",\"bidirectional_c_calls\":true,\"struct_by_value\":true,\"layout_compared\":true}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "hepta",
+        "build",
+        "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta",
+        "--crate-type",
+        "obj",
+        "--no-std",
+        "--output",
+        "/tmp/hepta-native-3_8r8rcq/kernels-host.o"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"build\": {\n    \"artifact\": \"/tmp/hepta-native-3_8r8rcq/kernels-host.o\",\n    \"artifact_bytes\": 1280,\n    \"artifact_sha256\": \"9cd6811cb5d568ce9f2c5384a17eeda6db7c9b14a1c6e58eb52a2dbdad0f091b\",\n    \"check_only\": false,\n    \"crate_type\": \"obj\",\n    \"diagnostics\": [],\n    \"flags\": [\n      \"edition=2021\",\n      \"opt-level=3\",\n      \"overflow-checks=yes\",\n      \"panic=abort\",\n      \"codegen-units=1\",\n      \"sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\"\n    ],\n    \"link_args\": [],\n    \"linker\": null,\n    \"ok\": true,\n    \"rust_sha256\": \"f6d1f0b5ce8e54954066b0185cb063db789e8381b914642691b4f7e81eabc862\",\n    \"rustc_crate_type\": \"lib\",\n    \"status\": \"rustc_checked\",\n    \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n    \"target\": \"x86_64-unknown-linux-gnu\",\n    \"toolchain\": {\n      \"executable_sha256\": \"e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa\",\n      \"host\": \"x86_64-unknown-linux-gnu\",\n      \"path\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc\",\n      \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n      \"sysroot_discovery\": \"verified_compiler_prefix\",\n      \"version\": \"rustc 1.90.0 (1159e78c4 2025-09-14)\\nbinary: rustc\\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\\ncommit-date: 2025-09-14\\nhost: x86_64-unknown-linux-gnu\\nrelease: 1.90.0\\nLLVM version: 20.1.8\"\n    },\n    \"validation_artifact_sha256\": \"9cd6811cb5d568ce9f2c5384a17eeda6db7c9b14a1c6e58eb52a2dbdad0f091b\"\n  },\n  \"ok\": true,\n  \"schema\": \"hepta.build.v1\",\n  \"validation\": {\n    \"assumptions\": [\n      {\n        \"function\": \"hepta_sum\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 14,\n        \"operation\": \"load\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      },\n      {\n        \"function\": \"hepta_copy\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 28,\n        \"operation\": \"store\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      },\n      {\n        \"function\": \"hepta_copy\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 28,\n        \"operation\": \"load\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      }\n    ],\n    \"backend\": {\n      \"check_only\": true,\n      \"crate_type\": \"obj\",\n      \"diagnostics\": [],\n      \"flags\": [\n        \"edition=2021\",\n        \"opt-level=3\",\n        \"overflow-checks=yes\",\n        \"panic=abort\",\n        \"codegen-units=1\",\n        \"sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\"\n      ],\n      \"link_args\": [],\n      \"linker\": null,\n      \"ok\": true,\n      \"rust_sha256\": \"f6d1f0b5ce8e54954066b0185cb063db789e8381b914642691b4f7e81eabc862\",\n      \"rustc_crate_type\": \"lib\",\n      \"status\": \"rustc_checked\",\n      \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n      \"target\": \"x86_64-unknown-linux-gnu\",\n      \"toolchain\": {\n        \"executable_sha256\": \"e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa\",\n        \"host\": \"x86_64-unknown-linux-gnu\",\n        \"path\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc\",\n        \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n        \"sysroot_discovery\": \"verified_compiler_prefix\",\n        \"version\": \"rustc 1.90.0 (1159e78c4 2025-09-14)\\nbinary: rustc\\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\\ncommit-date: 2025-09-14\\nhost: x86_64-unknown-linux-gnu\\nrelease: 1.90.0\\nLLVM version: 20.1.8\"\n      },\n      \"validation_artifact_sha256\": \"8abdb145ba1989d22820dc9f1ab42211cd2e3b5b0594a8a6ddd1f03edf062604\"\n    },\n    \"checks\": {\n      \"rust_borrows_types\": \"rustc_checked\",\n      \"syntax\": \"passed\",\n      \"types_effects_resources\": \"passed_in_supported_subset\"\n    },\n    \"claims\": {\n      \"all_programs_faster_than_rust\": false,\n      \"bounded_cancellation_latency_proved\": false,\n      \"deadlock_freedom_proved\": false,\n      \"hardware_execution_verified\": false,\n      \"whole_language_soundness_proved\": false\n    },\n    \"compiler_sha256\": \"bfda682563f70a99d6c7c3e2de11c614b70c277785cb50f5a5047f93f32c803d\",\n    \"compiler_version\": \"0.2.0\",\n    \"diagnostics\": [],\n    \"effects\": {\n      \"hepta_copy\": [\n        \"unsafe\",\n        \"write\"\n      ],\n      \"hepta_sum\": [\n        \"unsafe\"\n      ]\n    },\n    \"interface_sha256\": \"5a06b2416d3cf28501521c39637064e14213a933b0401601a6c3f13f75ba981e\",\n    \"ok\": true,\n    \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n    \"profile\": {\n      \"crate_type\": \"obj\",\n      \"no_std\": true,\n      \"overflow_checks\": true,\n      \"panic\": \"abort\"\n    },\n    \"project\": {\n      \"c_imports\": [],\n      \"entry\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n      \"locked\": false,\n      \"modules\": [\n        {\n          \"imports\": {},\n          \"module\": \"kernels\",\n          \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n          \"symbols\": {\n            \"hepta_copy\": \"hepta_copy\",\n            \"hepta_sum\": \"hepta_sum\"\n          }\n        }\n      ],\n      \"package\": null,\n      \"path_bindings\": {\n        \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\"\n      },\n      \"schema\": \"hepta.module-graph.v1\",\n      \"sha256\": \"6482aab34c23f5e760d021053ecedf72568a3435f6edcd6c49cbad40ae2fff65\",\n      \"sources\": {\n        \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\": \"1f25a2ff79632fcaf2d489117d4fc9034ff03cf80e957ab3b056c917195f70b3\"\n      }\n    },\n    \"resource_contracts\": [],\n    \"rust_sha256\": \"f6d1f0b5ce8e54954066b0185cb063db789e8381b914642691b4f7e81eabc862\",\n    \"schema\": \"hepta.check.v1\",\n    \"source_sha256\": \"1f25a2ff79632fcaf2d489117d4fc9034ff03cf80e957ab3b056c917195f70b3\",\n    \"status\": \"checked_with_external_assumptions\"\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "nm",
+        "--undefined-only",
+        "/tmp/hepta-native-3_8r8rcq/kernels-host.o"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "file",
+        "/tmp/hepta-native-3_8r8rcq/kernels-host.o"
+      ],
+      "exit_code": 0,
+      "stdout": "/tmp/hepta-native-3_8r8rcq/kernels-host.o: ELF 64-bit LSB relocatable, x86-64, version 1 (SYSV), not stripped\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+        "--print",
+        "target-libdir",
+        "--target",
+        "aarch64-unknown-linux-gnu"
+      ],
+      "exit_code": 0,
+      "stdout": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/lib/rustlib/aarch64-unknown-linux-gnu/lib\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "hepta",
+        "build",
+        "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta",
+        "--crate-type",
+        "obj",
+        "--no-std",
+        "--output",
+        "/tmp/hepta-native-3_8r8rcq/kernels-aarch64-unknown-linux-gnu.o",
+        "--target",
+        "aarch64-unknown-linux-gnu"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"build\": {\n    \"artifact\": \"/tmp/hepta-native-3_8r8rcq/kernels-aarch64-unknown-linux-gnu.o\",\n    \"artifact_bytes\": 1592,\n    \"artifact_sha256\": \"182b8c0b427702a2f95525532935984e7b507c5e5550c0d264d0dfad0d6be50e\",\n    \"check_only\": false,\n    \"crate_type\": \"obj\",\n    \"diagnostics\": [],\n    \"flags\": [\n      \"edition=2021\",\n      \"opt-level=3\",\n      \"overflow-checks=yes\",\n      \"panic=abort\",\n      \"codegen-units=1\",\n      \"sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\"\n    ],\n    \"link_args\": [],\n    \"linker\": null,\n    \"ok\": true,\n    \"rust_sha256\": \"f6d1f0b5ce8e54954066b0185cb063db789e8381b914642691b4f7e81eabc862\",\n    \"rustc_crate_type\": \"lib\",\n    \"status\": \"rustc_checked\",\n    \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n    \"target\": \"aarch64-unknown-linux-gnu\",\n    \"toolchain\": {\n      \"executable_sha256\": \"e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa\",\n      \"host\": \"x86_64-unknown-linux-gnu\",\n      \"path\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc\",\n      \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n      \"sysroot_discovery\": \"verified_compiler_prefix\",\n      \"version\": \"rustc 1.90.0 (1159e78c4 2025-09-14)\\nbinary: rustc\\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\\ncommit-date: 2025-09-14\\nhost: x86_64-unknown-linux-gnu\\nrelease: 1.90.0\\nLLVM version: 20.1.8\"\n    },\n    \"validation_artifact_sha256\": \"182b8c0b427702a2f95525532935984e7b507c5e5550c0d264d0dfad0d6be50e\"\n  },\n  \"ok\": true,\n  \"schema\": \"hepta.build.v1\",\n  \"validation\": {\n    \"assumptions\": [\n      {\n        \"function\": \"hepta_sum\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 14,\n        \"operation\": \"load\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      },\n      {\n        \"function\": \"hepta_copy\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 28,\n        \"operation\": \"store\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      },\n      {\n        \"function\": \"hepta_copy\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 28,\n        \"operation\": \"load\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      }\n    ],\n    \"backend\": {\n      \"check_only\": true,\n      \"crate_type\": \"obj\",\n      \"diagnostics\": [],\n      \"flags\": [\n        \"edition=2021\",\n        \"opt-level=3\",\n        \"overflow-checks=yes\",\n        \"panic=abort\",\n        \"codegen-units=1\",\n        \"sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\"\n      ],\n      \"link_args\": [],\n      \"linker\": null,\n      \"ok\": true,\n      \"rust_sha256\": \"f6d1f0b5ce8e54954066b0185cb063db789e8381b914642691b4f7e81eabc862\",\n      \"rustc_crate_type\": \"lib\",\n      \"status\": \"rustc_checked\",\n      \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n      \"target\": \"aarch64-unknown-linux-gnu\",\n      \"toolchain\": {\n        \"executable_sha256\": \"e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa\",\n        \"host\": \"x86_64-unknown-linux-gnu\",\n        \"path\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc\",\n        \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n        \"sysroot_discovery\": \"verified_compiler_prefix\",\n        \"version\": \"rustc 1.90.0 (1159e78c4 2025-09-14)\\nbinary: rustc\\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\\ncommit-date: 2025-09-14\\nhost: x86_64-unknown-linux-gnu\\nrelease: 1.90.0\\nLLVM version: 20.1.8\"\n      },\n      \"validation_artifact_sha256\": \"668b3d360273d36cfa41d87901cdc8d11dbd2648f5e9b75707f950381dbcb0d7\"\n    },\n    \"checks\": {\n      \"rust_borrows_types\": \"rustc_checked\",\n      \"syntax\": \"passed\",\n      \"types_effects_resources\": \"passed_in_supported_subset\"\n    },\n    \"claims\": {\n      \"all_programs_faster_than_rust\": false,\n      \"bounded_cancellation_latency_proved\": false,\n      \"deadlock_freedom_proved\": false,\n      \"hardware_execution_verified\": false,\n      \"whole_language_soundness_proved\": false\n    },\n    \"compiler_sha256\": \"bfda682563f70a99d6c7c3e2de11c614b70c277785cb50f5a5047f93f32c803d\",\n    \"compiler_version\": \"0.2.0\",\n    \"diagnostics\": [],\n    \"effects\": {\n      \"hepta_copy\": [\n        \"unsafe\",\n        \"write\"\n      ],\n      \"hepta_sum\": [\n        \"unsafe\"\n      ]\n    },\n    \"interface_sha256\": \"5a06b2416d3cf28501521c39637064e14213a933b0401601a6c3f13f75ba981e\",\n    \"ok\": true,\n    \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n    \"profile\": {\n      \"crate_type\": \"obj\",\n      \"no_std\": true,\n      \"overflow_checks\": true,\n      \"panic\": \"abort\"\n    },\n    \"project\": {\n      \"c_imports\": [],\n      \"entry\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n      \"locked\": false,\n      \"modules\": [\n        {\n          \"imports\": {},\n          \"module\": \"kernels\",\n          \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n          \"symbols\": {\n            \"hepta_copy\": \"hepta_copy\",\n            \"hepta_sum\": \"hepta_sum\"\n          }\n        }\n      ],\n      \"package\": null,\n      \"path_bindings\": {\n        \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\"\n      },\n      \"schema\": \"hepta.module-graph.v1\",\n      \"sha256\": \"6482aab34c23f5e760d021053ecedf72568a3435f6edcd6c49cbad40ae2fff65\",\n      \"sources\": {\n        \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\": \"1f25a2ff79632fcaf2d489117d4fc9034ff03cf80e957ab3b056c917195f70b3\"\n      }\n    },\n    \"resource_contracts\": [],\n    \"rust_sha256\": \"f6d1f0b5ce8e54954066b0185cb063db789e8381b914642691b4f7e81eabc862\",\n    \"schema\": \"hepta.check.v1\",\n    \"source_sha256\": \"1f25a2ff79632fcaf2d489117d4fc9034ff03cf80e957ab3b056c917195f70b3\",\n    \"status\": \"checked_with_external_assumptions\"\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "nm",
+        "--undefined-only",
+        "/tmp/hepta-native-3_8r8rcq/kernels-aarch64-unknown-linux-gnu.o"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "file",
+        "/tmp/hepta-native-3_8r8rcq/kernels-aarch64-unknown-linux-gnu.o"
+      ],
+      "exit_code": 0,
+      "stdout": "/tmp/hepta-native-3_8r8rcq/kernels-aarch64-unknown-linux-gnu.o: ELF 64-bit LSB relocatable, ARM aarch64, version 1 (SYSV), not stripped\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+        "--print",
+        "target-libdir",
+        "--target",
+        "thumbv7em-none-eabi"
+      ],
+      "exit_code": 0,
+      "stdout": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/lib/rustlib/thumbv7em-none-eabi/lib\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "hepta",
+        "build",
+        "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta",
+        "--crate-type",
+        "obj",
+        "--no-std",
+        "--output",
+        "/tmp/hepta-native-3_8r8rcq/kernels-thumbv7em-none-eabi.o",
+        "--target",
+        "thumbv7em-none-eabi"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"build\": {\n    \"artifact\": \"/tmp/hepta-native-3_8r8rcq/kernels-thumbv7em-none-eabi.o\",\n    \"artifact_bytes\": 1584,\n    \"artifact_sha256\": \"9b314efb461d43deb93497f449cea3a3679fe8cd98f491af1957c29e20425bcf\",\n    \"check_only\": false,\n    \"crate_type\": \"obj\",\n    \"diagnostics\": [],\n    \"flags\": [\n      \"edition=2021\",\n      \"opt-level=3\",\n      \"overflow-checks=yes\",\n      \"panic=abort\",\n      \"codegen-units=1\",\n      \"sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\"\n    ],\n    \"link_args\": [],\n    \"linker\": null,\n    \"ok\": true,\n    \"rust_sha256\": \"f6d1f0b5ce8e54954066b0185cb063db789e8381b914642691b4f7e81eabc862\",\n    \"rustc_crate_type\": \"lib\",\n    \"status\": \"rustc_checked\",\n    \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n    \"target\": \"thumbv7em-none-eabi\",\n    \"toolchain\": {\n      \"executable_sha256\": \"e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa\",\n      \"host\": \"x86_64-unknown-linux-gnu\",\n      \"path\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc\",\n      \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n      \"sysroot_discovery\": \"verified_compiler_prefix\",\n      \"version\": \"rustc 1.90.0 (1159e78c4 2025-09-14)\\nbinary: rustc\\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\\ncommit-date: 2025-09-14\\nhost: x86_64-unknown-linux-gnu\\nrelease: 1.90.0\\nLLVM version: 20.1.8\"\n    },\n    \"validation_artifact_sha256\": \"9b314efb461d43deb93497f449cea3a3679fe8cd98f491af1957c29e20425bcf\"\n  },\n  \"ok\": true,\n  \"schema\": \"hepta.build.v1\",\n  \"validation\": {\n    \"assumptions\": [\n      {\n        \"function\": \"hepta_sum\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 14,\n        \"operation\": \"load\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      },\n      {\n        \"function\": \"hepta_copy\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 28,\n        \"operation\": \"store\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      },\n      {\n        \"function\": \"hepta_copy\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 28,\n        \"operation\": \"load\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      }\n    ],\n    \"backend\": {\n      \"check_only\": true,\n      \"crate_type\": \"obj\",\n      \"diagnostics\": [],\n      \"flags\": [\n        \"edition=2021\",\n        \"opt-level=3\",\n        \"overflow-checks=yes\",\n        \"panic=abort\",\n        \"codegen-units=1\",\n        \"sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\"\n      ],\n      \"link_args\": [],\n      \"linker\": null,\n      \"ok\": true,\n      \"rust_sha256\": \"f6d1f0b5ce8e54954066b0185cb063db789e8381b914642691b4f7e81eabc862\",\n      \"rustc_crate_type\": \"lib\",\n      \"status\": \"rustc_checked\",\n      \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n      \"target\": \"thumbv7em-none-eabi\",\n      \"toolchain\": {\n        \"executable_sha256\": \"e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa\",\n        \"host\": \"x86_64-unknown-linux-gnu\",\n        \"path\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc\",\n        \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n        \"sysroot_discovery\": \"verified_compiler_prefix\",\n        \"version\": \"rustc 1.90.0 (1159e78c4 2025-09-14)\\nbinary: rustc\\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\\ncommit-date: 2025-09-14\\nhost: x86_64-unknown-linux-gnu\\nrelease: 1.90.0\\nLLVM version: 20.1.8\"\n      },\n      \"validation_artifact_sha256\": \"4128754b2db24bf62b32d1f04ff63a8bdf85e08c4e52493088f9235fbca72af8\"\n    },\n    \"checks\": {\n      \"rust_borrows_types\": \"rustc_checked\",\n      \"syntax\": \"passed\",\n      \"types_effects_resources\": \"passed_in_supported_subset\"\n    },\n    \"claims\": {\n      \"all_programs_faster_than_rust\": false,\n      \"bounded_cancellation_latency_proved\": false,\n      \"deadlock_freedom_proved\": false,\n      \"hardware_execution_verified\": false,\n      \"whole_language_soundness_proved\": false\n    },\n    \"compiler_sha256\": \"bfda682563f70a99d6c7c3e2de11c614b70c277785cb50f5a5047f93f32c803d\",\n    \"compiler_version\": \"0.2.0\",\n    \"diagnostics\": [],\n    \"effects\": {\n      \"hepta_copy\": [\n        \"unsafe\",\n        \"write\"\n      ],\n      \"hepta_sum\": [\n        \"unsafe\"\n      ]\n    },\n    \"interface_sha256\": \"5a06b2416d3cf28501521c39637064e14213a933b0401601a6c3f13f75ba981e\",\n    \"ok\": true,\n    \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n    \"profile\": {\n      \"crate_type\": \"obj\",\n      \"no_std\": true,\n      \"overflow_checks\": true,\n      \"panic\": \"abort\"\n    },\n    \"project\": {\n      \"c_imports\": [],\n      \"entry\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n      \"locked\": false,\n      \"modules\": [\n        {\n          \"imports\": {},\n          \"module\": \"kernels\",\n          \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n          \"symbols\": {\n            \"hepta_copy\": \"hepta_copy\",\n            \"hepta_sum\": \"hepta_sum\"\n          }\n        }\n      ],\n      \"package\": null,\n      \"path_bindings\": {\n        \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\"\n      },\n      \"schema\": \"hepta.module-graph.v1\",\n      \"sha256\": \"6482aab34c23f5e760d021053ecedf72568a3435f6edcd6c49cbad40ae2fff65\",\n      \"sources\": {\n        \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\": \"1f25a2ff79632fcaf2d489117d4fc9034ff03cf80e957ab3b056c917195f70b3\"\n      }\n    },\n    \"resource_contracts\": [],\n    \"rust_sha256\": \"f6d1f0b5ce8e54954066b0185cb063db789e8381b914642691b4f7e81eabc862\",\n    \"schema\": \"hepta.check.v1\",\n    \"source_sha256\": \"1f25a2ff79632fcaf2d489117d4fc9034ff03cf80e957ab3b056c917195f70b3\",\n    \"status\": \"checked_with_external_assumptions\"\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "nm",
+        "--undefined-only",
+        "/tmp/hepta-native-3_8r8rcq/kernels-thumbv7em-none-eabi.o"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "file",
+        "/tmp/hepta-native-3_8r8rcq/kernels-thumbv7em-none-eabi.o"
+      ],
+      "exit_code": 0,
+      "stdout": "/tmp/hepta-native-3_8r8rcq/kernels-thumbv7em-none-eabi.o: ELF 32-bit LSB relocatable, ARM, EABI5 version 1 (SYSV), not stripped\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+        "--print",
+        "target-libdir",
+        "--target",
+        "x86_64-pc-windows-msvc"
+      ],
+      "exit_code": 0,
+      "stdout": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/lib/rustlib/x86_64-pc-windows-msvc/lib\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "hepta",
+        "build",
+        "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta",
+        "--crate-type",
+        "obj",
+        "--no-std",
+        "--output",
+        "/tmp/hepta-native-3_8r8rcq/kernels-x86_64-pc-windows-msvc.o",
+        "--target",
+        "x86_64-pc-windows-msvc"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"build\": {\n    \"artifact\": \"/tmp/hepta-native-3_8r8rcq/kernels-x86_64-pc-windows-msvc.o\",\n    \"artifact_bytes\": 995,\n    \"artifact_sha256\": \"6c0167eba52984c8800f740f400852af71adbf06806676bddc5dfc614c5f9c6f\",\n    \"check_only\": false,\n    \"crate_type\": \"obj\",\n    \"diagnostics\": [],\n    \"flags\": [\n      \"edition=2021\",\n      \"opt-level=3\",\n      \"overflow-checks=yes\",\n      \"panic=abort\",\n      \"codegen-units=1\",\n      \"sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\"\n    ],\n    \"link_args\": [],\n    \"linker\": null,\n    \"ok\": true,\n    \"rust_sha256\": \"f6d1f0b5ce8e54954066b0185cb063db789e8381b914642691b4f7e81eabc862\",\n    \"rustc_crate_type\": \"lib\",\n    \"status\": \"rustc_checked\",\n    \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n    \"target\": \"x86_64-pc-windows-msvc\",\n    \"toolchain\": {\n      \"executable_sha256\": \"e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa\",\n      \"host\": \"x86_64-unknown-linux-gnu\",\n      \"path\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc\",\n      \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n      \"sysroot_discovery\": \"verified_compiler_prefix\",\n      \"version\": \"rustc 1.90.0 (1159e78c4 2025-09-14)\\nbinary: rustc\\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\\ncommit-date: 2025-09-14\\nhost: x86_64-unknown-linux-gnu\\nrelease: 1.90.0\\nLLVM version: 20.1.8\"\n    },\n    \"validation_artifact_sha256\": \"6c0167eba52984c8800f740f400852af71adbf06806676bddc5dfc614c5f9c6f\"\n  },\n  \"ok\": true,\n  \"schema\": \"hepta.build.v1\",\n  \"validation\": {\n    \"assumptions\": [\n      {\n        \"function\": \"hepta_sum\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 14,\n        \"operation\": \"load\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      },\n      {\n        \"function\": \"hepta_copy\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 28,\n        \"operation\": \"store\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      },\n      {\n        \"function\": \"hepta_copy\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 28,\n        \"operation\": \"load\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      }\n    ],\n    \"backend\": {\n      \"check_only\": true,\n      \"crate_type\": \"obj\",\n      \"diagnostics\": [],\n      \"flags\": [\n        \"edition=2021\",\n        \"opt-level=3\",\n        \"overflow-checks=yes\",\n        \"panic=abort\",\n        \"codegen-units=1\",\n        \"sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\"\n      ],\n      \"link_args\": [],\n      \"linker\": null,\n      \"ok\": true,\n      \"rust_sha256\": \"f6d1f0b5ce8e54954066b0185cb063db789e8381b914642691b4f7e81eabc862\",\n      \"rustc_crate_type\": \"lib\",\n      \"status\": \"rustc_checked\",\n      \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n      \"target\": \"x86_64-pc-windows-msvc\",\n      \"toolchain\": {\n        \"executable_sha256\": \"e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa\",\n        \"host\": \"x86_64-unknown-linux-gnu\",\n        \"path\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc\",\n        \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n        \"sysroot_discovery\": \"verified_compiler_prefix\",\n        \"version\": \"rustc 1.90.0 (1159e78c4 2025-09-14)\\nbinary: rustc\\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\\ncommit-date: 2025-09-14\\nhost: x86_64-unknown-linux-gnu\\nrelease: 1.90.0\\nLLVM version: 20.1.8\"\n      },\n      \"validation_artifact_sha256\": \"7244bd0f433d5bbea235797f788ad0fe927ffd51294849f263719743bc8cdebb\"\n    },\n    \"checks\": {\n      \"rust_borrows_types\": \"rustc_checked\",\n      \"syntax\": \"passed\",\n      \"types_effects_resources\": \"passed_in_supported_subset\"\n    },\n    \"claims\": {\n      \"all_programs_faster_than_rust\": false,\n      \"bounded_cancellation_latency_proved\": false,\n      \"deadlock_freedom_proved\": false,\n      \"hardware_execution_verified\": false,\n      \"whole_language_soundness_proved\": false\n    },\n    \"compiler_sha256\": \"bfda682563f70a99d6c7c3e2de11c614b70c277785cb50f5a5047f93f32c803d\",\n    \"compiler_version\": \"0.2.0\",\n    \"diagnostics\": [],\n    \"effects\": {\n      \"hepta_copy\": [\n        \"unsafe\",\n        \"write\"\n      ],\n      \"hepta_sum\": [\n        \"unsafe\"\n      ]\n    },\n    \"interface_sha256\": \"5a06b2416d3cf28501521c39637064e14213a933b0401601a6c3f13f75ba981e\",\n    \"ok\": true,\n    \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n    \"profile\": {\n      \"crate_type\": \"obj\",\n      \"no_std\": true,\n      \"overflow_checks\": true,\n      \"panic\": \"abort\"\n    },\n    \"project\": {\n      \"c_imports\": [],\n      \"entry\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n      \"locked\": false,\n      \"modules\": [\n        {\n          \"imports\": {},\n          \"module\": \"kernels\",\n          \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n          \"symbols\": {\n            \"hepta_copy\": \"hepta_copy\",\n            \"hepta_sum\": \"hepta_sum\"\n          }\n        }\n      ],\n      \"package\": null,\n      \"path_bindings\": {\n        \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\"\n      },\n      \"schema\": \"hepta.module-graph.v1\",\n      \"sha256\": \"6482aab34c23f5e760d021053ecedf72568a3435f6edcd6c49cbad40ae2fff65\",\n      \"sources\": {\n        \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\": \"1f25a2ff79632fcaf2d489117d4fc9034ff03cf80e957ab3b056c917195f70b3\"\n      }\n    },\n    \"resource_contracts\": [],\n    \"rust_sha256\": \"f6d1f0b5ce8e54954066b0185cb063db789e8381b914642691b4f7e81eabc862\",\n    \"schema\": \"hepta.check.v1\",\n    \"source_sha256\": \"1f25a2ff79632fcaf2d489117d4fc9034ff03cf80e957ab3b056c917195f70b3\",\n    \"status\": \"checked_with_external_assumptions\"\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "nm",
+        "--undefined-only",
+        "/tmp/hepta-native-3_8r8rcq/kernels-x86_64-pc-windows-msvc.o"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "file",
+        "/tmp/hepta-native-3_8r8rcq/kernels-x86_64-pc-windows-msvc.o"
+      ],
+      "exit_code": 0,
+      "stdout": "/tmp/hepta-native-3_8r8rcq/kernels-x86_64-pc-windows-msvc.o: Intel amd64 COFF object file, not stripped, 6 sections, symbol offset=0x245, 19 symbols, 1st section name \".text\"\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "hepta",
+        "build",
+        "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta",
+        "--crate-type",
+        "obj",
+        "--no-std",
+        "--output",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta.o"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"build\": {\n    \"artifact\": \"/tmp/hepta-native-3_8r8rcq/bench-hepta.o\",\n    \"artifact_bytes\": 1280,\n    \"artifact_sha256\": \"9cd6811cb5d568ce9f2c5384a17eeda6db7c9b14a1c6e58eb52a2dbdad0f091b\",\n    \"check_only\": false,\n    \"crate_type\": \"obj\",\n    \"diagnostics\": [],\n    \"flags\": [\n      \"edition=2021\",\n      \"opt-level=3\",\n      \"overflow-checks=yes\",\n      \"panic=abort\",\n      \"codegen-units=1\",\n      \"sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\"\n    ],\n    \"link_args\": [],\n    \"linker\": null,\n    \"ok\": true,\n    \"rust_sha256\": \"f6d1f0b5ce8e54954066b0185cb063db789e8381b914642691b4f7e81eabc862\",\n    \"rustc_crate_type\": \"lib\",\n    \"status\": \"rustc_checked\",\n    \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n    \"target\": \"x86_64-unknown-linux-gnu\",\n    \"toolchain\": {\n      \"executable_sha256\": \"e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa\",\n      \"host\": \"x86_64-unknown-linux-gnu\",\n      \"path\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc\",\n      \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n      \"sysroot_discovery\": \"verified_compiler_prefix\",\n      \"version\": \"rustc 1.90.0 (1159e78c4 2025-09-14)\\nbinary: rustc\\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\\ncommit-date: 2025-09-14\\nhost: x86_64-unknown-linux-gnu\\nrelease: 1.90.0\\nLLVM version: 20.1.8\"\n    },\n    \"validation_artifact_sha256\": \"9cd6811cb5d568ce9f2c5384a17eeda6db7c9b14a1c6e58eb52a2dbdad0f091b\"\n  },\n  \"ok\": true,\n  \"schema\": \"hepta.build.v1\",\n  \"validation\": {\n    \"assumptions\": [\n      {\n        \"function\": \"hepta_sum\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 14,\n        \"operation\": \"load\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      },\n      {\n        \"function\": \"hepta_copy\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 28,\n        \"operation\": \"store\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      },\n      {\n        \"function\": \"hepta_copy\",\n        \"kind\": \"unsafe_obligation\",\n        \"line\": 28,\n        \"operation\": \"load\",\n        \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n        \"status\": \"not_proved_by_frontend\"\n      }\n    ],\n    \"backend\": {\n      \"check_only\": true,\n      \"crate_type\": \"obj\",\n      \"diagnostics\": [],\n      \"flags\": [\n        \"edition=2021\",\n        \"opt-level=3\",\n        \"overflow-checks=yes\",\n        \"panic=abort\",\n        \"codegen-units=1\",\n        \"sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\"\n      ],\n      \"link_args\": [],\n      \"linker\": null,\n      \"ok\": true,\n      \"rust_sha256\": \"f6d1f0b5ce8e54954066b0185cb063db789e8381b914642691b4f7e81eabc862\",\n      \"rustc_crate_type\": \"lib\",\n      \"status\": \"rustc_checked\",\n      \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n      \"target\": \"x86_64-unknown-linux-gnu\",\n      \"toolchain\": {\n        \"executable_sha256\": \"e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa\",\n        \"host\": \"x86_64-unknown-linux-gnu\",\n        \"path\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc\",\n        \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n        \"sysroot_discovery\": \"verified_compiler_prefix\",\n        \"version\": \"rustc 1.90.0 (1159e78c4 2025-09-14)\\nbinary: rustc\\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\\ncommit-date: 2025-09-14\\nhost: x86_64-unknown-linux-gnu\\nrelease: 1.90.0\\nLLVM version: 20.1.8\"\n      },\n      \"validation_artifact_sha256\": \"7b0226a55e69b80a7db14adaefa3db4a450e0b97b1f9ad95274d302d7878b7aa\"\n    },\n    \"checks\": {\n      \"rust_borrows_types\": \"rustc_checked\",\n      \"syntax\": \"passed\",\n      \"types_effects_resources\": \"passed_in_supported_subset\"\n    },\n    \"claims\": {\n      \"all_programs_faster_than_rust\": false,\n      \"bounded_cancellation_latency_proved\": false,\n      \"deadlock_freedom_proved\": false,\n      \"hardware_execution_verified\": false,\n      \"whole_language_soundness_proved\": false\n    },\n    \"compiler_sha256\": \"bfda682563f70a99d6c7c3e2de11c614b70c277785cb50f5a5047f93f32c803d\",\n    \"compiler_version\": \"0.2.0\",\n    \"diagnostics\": [],\n    \"effects\": {\n      \"hepta_copy\": [\n        \"unsafe\",\n        \"write\"\n      ],\n      \"hepta_sum\": [\n        \"unsafe\"\n      ]\n    },\n    \"interface_sha256\": \"5a06b2416d3cf28501521c39637064e14213a933b0401601a6c3f13f75ba981e\",\n    \"ok\": true,\n    \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n    \"profile\": {\n      \"crate_type\": \"obj\",\n      \"no_std\": true,\n      \"overflow_checks\": true,\n      \"panic\": \"abort\"\n    },\n    \"project\": {\n      \"c_imports\": [],\n      \"entry\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n      \"locked\": false,\n      \"modules\": [\n        {\n          \"imports\": {},\n          \"module\": \"kernels\",\n          \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\",\n          \"symbols\": {\n            \"hepta_copy\": \"hepta_copy\",\n            \"hepta_sum\": \"hepta_sum\"\n          }\n        }\n      ],\n      \"package\": null,\n      \"path_bindings\": {\n        \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\"\n      },\n      \"schema\": \"hepta.module-graph.v1\",\n      \"sha256\": \"6482aab34c23f5e760d021053ecedf72568a3435f6edcd6c49cbad40ae2fff65\",\n      \"sources\": {\n        \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/kernels.hepta\": \"1f25a2ff79632fcaf2d489117d4fc9034ff03cf80e957ab3b056c917195f70b3\"\n      }\n    },\n    \"resource_contracts\": [],\n    \"rust_sha256\": \"f6d1f0b5ce8e54954066b0185cb063db789e8381b914642691b4f7e81eabc862\",\n    \"schema\": \"hepta.check.v1\",\n    \"source_sha256\": \"1f25a2ff79632fcaf2d489117d4fc9034ff03cf80e957ab3b056c917195f70b3\",\n    \"status\": \"checked_with_external_assumptions\"\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+        "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/baseline.rs",
+        "--edition=2021",
+        "-C",
+        "opt-level=3",
+        "-C",
+        "overflow-checks=yes",
+        "-C",
+        "panic=abort",
+        "-C",
+        "codegen-units=1",
+        "--emit=obj",
+        "--crate-type",
+        "lib",
+        "-o",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust.o"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/bin/gcc",
+        "-std=c11",
+        "-O3",
+        "-c",
+        "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/baseline.c",
+        "-o",
+        "/tmp/hepta-native-3_8r8rcq/bench-c.o"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/bin/gcc",
+        "-std=c11",
+        "-O3",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-c",
+        "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/driver.c",
+        "-o",
+        "/tmp/hepta-native-3_8r8rcq/driver.o"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/bin/gcc",
+        "/tmp/hepta-native-3_8r8rcq/driver.o",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta.o",
+        "-o",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/bin/gcc",
+        "/tmp/hepta-native-3_8r8rcq/driver.o",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust.o",
+        "-o",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/bin/gcc",
+        "/tmp/hepta-native-3_8r8rcq/driver.o",
+        "/tmp/hepta-native-3_8r8rcq/bench-c.o",
+        "-o",
+        "/tmp/hepta-native-3_8r8rcq/bench-c"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "sum",
+        "1",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1,\"iterations\":1,\"elapsed_ns\":40,\"ns_per_element\":40.000000000,\"checksum\":11400714819323198485}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "sum",
+        "1",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1,\"iterations\":1,\"elapsed_ns\":60,\"ns_per_element\":60.000000000,\"checksum\":11400714819323198485}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "sum",
+        "1",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1,\"iterations\":1,\"elapsed_ns\":40,\"ns_per_element\":40.000000000,\"checksum\":11400714819323198485}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "sum",
+        "3",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":3,\"iterations\":1,\"elapsed_ns\":50,\"ns_per_element\":16.666666667,\"checksum\":13064056694810536062}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "sum",
+        "3",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":3,\"iterations\":1,\"elapsed_ns\":50,\"ns_per_element\":16.666666667,\"checksum\":13064056694810536062}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "sum",
+        "3",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":3,\"iterations\":1,\"elapsed_ns\":40,\"ns_per_element\":13.333333333,\"checksum\":13064056694810536062}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "sum",
+        "31",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":31,\"iterations\":1,\"elapsed_ns\":60,\"ns_per_element\":1.935483871,\"checksum\":10050863829183654064}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "sum",
+        "31",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":31,\"iterations\":1,\"elapsed_ns\":60,\"ns_per_element\":1.935483871,\"checksum\":10050863829183654064}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "sum",
+        "31",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":31,\"iterations\":1,\"elapsed_ns\":50,\"ns_per_element\":1.612903226,\"checksum\":10050863829183654064}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "sum",
+        "32",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":32,\"iterations\":1,\"elapsed_ns\":50,\"ns_per_element\":1.562500000,\"checksum\":5938856573334973264}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "sum",
+        "32",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":32,\"iterations\":1,\"elapsed_ns\":50,\"ns_per_element\":1.562500000,\"checksum\":5938856573334973264}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "sum",
+        "32",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":32,\"iterations\":1,\"elapsed_ns\":50,\"ns_per_element\":1.562500000,\"checksum\":5938856573334973264}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "sum",
+        "33",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":33,\"iterations\":1,\"elapsed_ns\":50,\"ns_per_element\":1.515151515,\"checksum\":13227564136809490949}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "sum",
+        "33",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":33,\"iterations\":1,\"elapsed_ns\":60,\"ns_per_element\":1.818181818,\"checksum\":13227564136809490949}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "sum",
+        "33",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":33,\"iterations\":1,\"elapsed_ns\":51,\"ns_per_element\":1.545454545,\"checksum\":13227564136809490949}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "sum",
+        "127",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":127,\"iterations\":1,\"elapsed_ns\":71,\"ns_per_element\":0.559055118,\"checksum\":7014569215879518912}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "sum",
+        "127",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":127,\"iterations\":1,\"elapsed_ns\":70,\"ns_per_element\":0.551181102,\"checksum\":7014569215879518912}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "sum",
+        "127",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":127,\"iterations\":1,\"elapsed_ns\":70,\"ns_per_element\":0.551181102,\"checksum\":7014569215879518912}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "sum",
+        "1025",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1025,\"iterations\":1,\"elapsed_ns\":121,\"ns_per_element\":0.118048780,\"checksum\":13321028711887862293}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "sum",
+        "1025",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1025,\"iterations\":1,\"elapsed_ns\":131,\"ns_per_element\":0.127804878,\"checksum\":13321028711887862293}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "sum",
+        "1025",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1025,\"iterations\":1,\"elapsed_ns\":201,\"ns_per_element\":0.196097561,\"checksum\":13321028711887862293}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "sum",
+        "8193",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":8193,\"iterations\":1,\"elapsed_ns\":651,\"ns_per_element\":0.079458074,\"checksum\":8649398996727393301}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "sum",
+        "8193",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":8193,\"iterations\":1,\"elapsed_ns\":671,\"ns_per_element\":0.081899182,\"checksum\":8649398996727393301}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "sum",
+        "8193",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":8193,\"iterations\":1,\"elapsed_ns\":1172,\"ns_per_element\":0.143048944,\"checksum\":8649398996727393301}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "hepta",
+        "build",
+        "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/borrowed.hepta",
+        "--output",
+        "/tmp/hepta-native-3_8r8rcq/borrowed-hepta"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"build\": {\n    \"artifact\": \"/tmp/hepta-native-3_8r8rcq/borrowed-hepta\",\n    \"artifact_bytes\": 3859728,\n    \"artifact_sha256\": \"f0595c57b87a4083a98a2873d5619043727328bd269316d5ef0c0ba7ac743d6b\",\n    \"check_only\": false,\n    \"crate_type\": \"bin\",\n    \"diagnostics\": [],\n    \"flags\": [\n      \"edition=2021\",\n      \"opt-level=3\",\n      \"overflow-checks=yes\",\n      \"panic=abort\",\n      \"codegen-units=1\",\n      \"sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\"\n    ],\n    \"link_args\": [],\n    \"linker\": null,\n    \"ok\": true,\n    \"rust_sha256\": \"07ec2765e15a51508e8bc0b693df63e950837a702da847d82ebf9afdf2a78d91\",\n    \"rustc_crate_type\": \"bin\",\n    \"status\": \"rustc_checked\",\n    \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n    \"target\": \"x86_64-unknown-linux-gnu\",\n    \"toolchain\": {\n      \"executable_sha256\": \"e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa\",\n      \"host\": \"x86_64-unknown-linux-gnu\",\n      \"path\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc\",\n      \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n      \"sysroot_discovery\": \"verified_compiler_prefix\",\n      \"version\": \"rustc 1.90.0 (1159e78c4 2025-09-14)\\nbinary: rustc\\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\\ncommit-date: 2025-09-14\\nhost: x86_64-unknown-linux-gnu\\nrelease: 1.90.0\\nLLVM version: 20.1.8\"\n    },\n    \"validation_artifact_sha256\": \"f0595c57b87a4083a98a2873d5619043727328bd269316d5ef0c0ba7ac743d6b\"\n  },\n  \"ok\": true,\n  \"schema\": \"hepta.build.v1\",\n  \"validation\": {\n    \"assumptions\": [],\n    \"backend\": {\n      \"check_only\": true,\n      \"crate_type\": \"bin\",\n      \"diagnostics\": [],\n      \"flags\": [\n        \"edition=2021\",\n        \"opt-level=3\",\n        \"overflow-checks=yes\",\n        \"panic=abort\",\n        \"codegen-units=1\",\n        \"sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\"\n      ],\n      \"link_args\": [],\n      \"linker\": null,\n      \"ok\": true,\n      \"rust_sha256\": \"07ec2765e15a51508e8bc0b693df63e950837a702da847d82ebf9afdf2a78d91\",\n      \"rustc_crate_type\": \"lib\",\n      \"status\": \"rustc_checked\",\n      \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n      \"target\": \"x86_64-unknown-linux-gnu\",\n      \"toolchain\": {\n        \"executable_sha256\": \"e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa\",\n        \"host\": \"x86_64-unknown-linux-gnu\",\n        \"path\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc\",\n        \"sysroot\": \"/workspace/scratch/0817a147930b/toolchains/rust-1.90.0\",\n        \"sysroot_discovery\": \"verified_compiler_prefix\",\n        \"version\": \"rustc 1.90.0 (1159e78c4 2025-09-14)\\nbinary: rustc\\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\\ncommit-date: 2025-09-14\\nhost: x86_64-unknown-linux-gnu\\nrelease: 1.90.0\\nLLVM version: 20.1.8\"\n      },\n      \"validation_artifact_sha256\": \"ba637af9a44e05a1c415f4689aba8c5a33352952bb028635eb3c75aa298a9163\"\n    },\n    \"checks\": {\n      \"rust_borrows_types\": \"rustc_checked\",\n      \"syntax\": \"passed\",\n      \"types_effects_resources\": \"passed_in_supported_subset\"\n    },\n    \"claims\": {\n      \"all_programs_faster_than_rust\": false,\n      \"bounded_cancellation_latency_proved\": false,\n      \"deadlock_freedom_proved\": false,\n      \"hardware_execution_verified\": false,\n      \"whole_language_soundness_proved\": false\n    },\n    \"compiler_sha256\": \"bfda682563f70a99d6c7c3e2de11c614b70c277785cb50f5a5047f93f32c803d\",\n    \"compiler_version\": \"0.2.0\",\n    \"diagnostics\": [],\n    \"effects\": {\n      \"main\": [\n        \"panic\",\n        \"write\"\n      ],\n      \"safe_copy\": [\n        \"panic\",\n        \"write\"\n      ],\n      \"safe_sum\": [\n        \"panic\"\n      ]\n    },\n    \"interface_sha256\": \"feb4979b1f2c57191e00a87473c34f4df9ee88b3b52521a0ed1e5f6ab7c24f64\",\n    \"ok\": true,\n    \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/borrowed.hepta\",\n    \"profile\": {\n      \"crate_type\": \"bin\",\n      \"no_std\": false,\n      \"overflow_checks\": true,\n      \"panic\": \"abort\"\n    },\n    \"project\": {\n      \"c_imports\": [],\n      \"entry\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/borrowed.hepta\",\n      \"locked\": false,\n      \"modules\": [\n        {\n          \"imports\": {},\n          \"module\": \"borrowed_kernels\",\n          \"path\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/borrowed.hepta\",\n          \"symbols\": {\n            \"main\": \"main\",\n            \"safe_copy\": \"safe_copy\",\n            \"safe_sum\": \"safe_sum\"\n          }\n        }\n      ],\n      \"package\": null,\n      \"path_bindings\": {\n        \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/borrowed.hepta\": \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/borrowed.hepta\"\n      },\n      \"schema\": \"hepta.module-graph.v1\",\n      \"sha256\": \"fb6c39dfcfc9a2b6dc9bf0af6cd63664308f107a0bcde2adb2010e4a6a60e003\",\n      \"sources\": {\n        \"/workspace/scratch/0817a147930b/Hepta-work/benchmarks/borrowed.hepta\": \"84697f404f0637b158f9ed47540c1b7a71f64ae18ac87b251ac1d4d2db5a87b7\"\n      }\n    },\n    \"resource_contracts\": [],\n    \"rust_sha256\": \"07ec2765e15a51508e8bc0b693df63e950837a702da847d82ebf9afdf2a78d91\",\n    \"schema\": \"hepta.check.v1\",\n    \"source_sha256\": \"84697f404f0637b158f9ed47540c1b7a71f64ae18ac87b251ac1d4d2db5a87b7\",\n    \"status\": \"checked\"\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+        "/workspace/scratch/0817a147930b/Hepta-work/benchmarks/borrowed.rs",
+        "--edition=2021",
+        "-C",
+        "opt-level=3",
+        "-C",
+        "overflow-checks=yes",
+        "-C",
+        "panic=abort",
+        "-C",
+        "codegen-units=1",
+        "-o",
+        "/tmp/hepta-native-3_8r8rcq/borrowed-rust"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/borrowed-hepta"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/hepta-native-3_8r8rcq/borrowed-rust"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "objcopy",
+        "--dump-section",
+        ".text.hepta_sum=/tmp/hepta-native-3_8r8rcq/hepta-hepta_sum.text",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta.o"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "objcopy",
+        "--dump-section",
+        ".text.hepta_sum=/tmp/hepta-native-3_8r8rcq/rust-hepta_sum.text",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust.o"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "objcopy",
+        "--dump-section",
+        ".text.hepta_copy=/tmp/hepta-native-3_8r8rcq/hepta-hepta_copy.text",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta.o"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "objcopy",
+        "--dump-section",
+        ".text.hepta_copy=/tmp/hepta-native-3_8r8rcq/rust-hepta_copy.text",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust.o"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "sum",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":9898950,\"ns_per_element\":0.073752925,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "sum",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":10114390,\"ns_per_element\":0.075358078,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "sum",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":20448946,\"ns_per_element\":0.152356520,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "sum",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":9623831,\"ns_per_element\":0.071703129,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "sum",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":9969664,\"ns_per_element\":0.074279785,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "sum",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":19249285,\"ns_per_element\":0.143418349,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "sum",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":19766993,\"ns_per_element\":0.147275575,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "sum",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":10749473,\"ns_per_element\":0.080089815,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "sum",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":10266365,\"ns_per_element\":0.076490380,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "sum",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":10249129,\"ns_per_element\":0.076361962,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "sum",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":20042382,\"ns_per_element\":0.149327382,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "sum",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":10214098,\"ns_per_element\":0.076100960,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "sum",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":9773023,\"ns_per_element\":0.072814696,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "sum",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":10240997,\"ns_per_element\":0.076301374,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "sum",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":20515424,\"ns_per_element\":0.152851820,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "sum",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":10310480,\"ns_per_element\":0.076819062,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "sum",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":20017214,\"ns_per_element\":0.149139866,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "sum",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":10056553,\"ns_per_element\":0.074927159,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "sum",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":19094415,\"ns_per_element\":0.142264478,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "sum",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":10717374,\"ns_per_element\":0.079850659,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "sum",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":10642193,\"ns_per_element\":0.079290517,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "copy",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":39576049,\"ns_per_element\":0.294864543,\"checksum\":17237298777891708928}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "copy",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":19928522,\"ns_per_element\":0.148479059,\"checksum\":17237298777891708928}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "copy",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":22017215,\"ns_per_element\":0.164041035,\"checksum\":17237298777891708928}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "copy",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":22438270,\"ns_per_element\":0.167178139,\"checksum\":17237298777891708928}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "copy",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":40651796,\"ns_per_element\":0.302879483,\"checksum\":17237298777891708928}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "copy",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":19400439,\"ns_per_element\":0.144544534,\"checksum\":17237298777891708928}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "copy",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":23307301,\"ns_per_element\":0.173652925,\"checksum\":17237298777891708928}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "copy",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":20225974,\"ns_per_element\":0.150695249,\"checksum\":17237298777891708928}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "copy",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":38475124,\"ns_per_element\":0.286662012,\"checksum\":17237298777891708928}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "copy",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":19374690,\"ns_per_element\":0.144352689,\"checksum\":17237298777891708928}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "copy",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":38469226,\"ns_per_element\":0.286618069,\"checksum\":17237298777891708928}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "copy",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":20148059,\"ns_per_element\":0.150114737,\"checksum\":17237298777891708928}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "copy",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":19478675,\"ns_per_element\":0.145127438,\"checksum\":17237298777891708928}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "copy",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":39196495,\"ns_per_element\":0.292036645,\"checksum\":17237298777891708928}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "copy",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":19726443,\"ns_per_element\":0.146973453,\"checksum\":17237298777891708928}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "copy",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":21796076,\"ns_per_element\":0.162393421,\"checksum\":17237298777891708928}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "copy",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":38548854,\"ns_per_element\":0.287211344,\"checksum\":17237298777891708928}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "copy",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":19403664,\"ns_per_element\":0.144568563,\"checksum\":17237298777891708928}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "copy",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":38231522,\"ns_per_element\":0.284847036,\"checksum\":17237298777891708928}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "copy",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":26216451,\"ns_per_element\":0.195327781,\"checksum\":17237298777891708928}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "copy",
+        "8192",
+        "16384"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":8192,\"iterations\":16384,\"elapsed_ns\":19760774,\"ns_per_element\":0.147229239,\"checksum\":17237298777891708928}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "sum",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":19373609,\"ns_per_element\":0.144344635,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "sum",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":11297216,\"ns_per_element\":0.084170818,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "sum",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":10971332,\"ns_per_element\":0.081742793,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "sum",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":12898554,\"ns_per_element\":0.096101716,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "sum",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":11581268,\"ns_per_element\":0.086287171,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "sum",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":19077979,\"ns_per_element\":0.142142020,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "sum",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":19211298,\"ns_per_element\":0.143135324,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "sum",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":10894268,\"ns_per_element\":0.081168622,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "sum",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":11315634,\"ns_per_element\":0.084308043,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "sum",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":20024465,\"ns_per_element\":0.149193890,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "sum",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":11756017,\"ns_per_element\":0.087589152,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "sum",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":11359159,\"ns_per_element\":0.084632330,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "sum",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":11038492,\"ns_per_element\":0.082243174,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "sum",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":19844999,\"ns_per_element\":0.147856764,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "sum",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":10888859,\"ns_per_element\":0.081128322,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "sum",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":11244397,\"ns_per_element\":0.083777286,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "sum",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":11378356,\"ns_per_element\":0.084775358,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "sum",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":20065506,\"ns_per_element\":0.149499670,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "sum",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":11201264,\"ns_per_element\":0.083455920,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "sum",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":19706914,\"ns_per_element\":0.146827951,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "sum",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"sum\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":11297676,\"ns_per_element\":0.084174246,\"checksum\":0}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "copy",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":31559875,\"ns_per_element\":0.235139392,\"checksum\":11211698798702100480}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "copy",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":39262934,\"ns_per_element\":0.292531654,\"checksum\":11211698798702100480}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "copy",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":31047073,\"ns_per_element\":0.231318720,\"checksum\":11211698798702100480}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "copy",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":39189775,\"ns_per_element\":0.291986577,\"checksum\":11211698798702100480}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "copy",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":30863551,\"ns_per_element\":0.229951374,\"checksum\":11211698798702100480}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "copy",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":30619989,\"ns_per_element\":0.228136696,\"checksum\":11211698798702100480}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "copy",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":38433332,\"ns_per_element\":0.286350638,\"checksum\":11211698798702100480}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "copy",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":31254942,\"ns_per_element\":0.232867464,\"checksum\":11211698798702100480}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "copy",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":30907417,\"ns_per_element\":0.230278201,\"checksum\":11211698798702100480}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "copy",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":39513807,\"ns_per_element\":0.294400804,\"checksum\":11211698798702100480}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "copy",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":30719427,\"ns_per_element\":0.228877567,\"checksum\":11211698798702100480}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "copy",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":31927040,\"ns_per_element\":0.237874985,\"checksum\":11211698798702100480}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "copy",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":31523231,\"ns_per_element\":0.234866373,\"checksum\":11211698798702100480}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "copy",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":38171233,\"ns_per_element\":0.284397848,\"checksum\":11211698798702100480}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "copy",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":41033693,\"ns_per_element\":0.305724837,\"checksum\":11211698798702100480}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "copy",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":33271742,\"ns_per_element\":0.247893795,\"checksum\":11211698798702100480}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "copy",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":31176569,\"ns_per_element\":0.232283540,\"checksum\":11211698798702100480}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "copy",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":41396645,\"ns_per_element\":0.308429040,\"checksum\":11211698798702100480}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-c",
+        "copy",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":39194076,\"ns_per_element\":0.292018622,\"checksum\":11211698798702100480}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-rust",
+        "copy",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":32304573,\"ns_per_element\":0.240687825,\"checksum\":11211698798702100480}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0",
+        "/tmp/hepta-native-3_8r8rcq/bench-hepta",
+        "copy",
+        "1048576",
+        "128"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"kernel\":\"copy\",\"elements\":1048576,\"iterations\":128,\"elapsed_ns\":31154256,\"ns_per_element\":0.232117295,\"checksum\":11211698798702100480}\n",
+      "stderr": ""
+    }
+  ],
+  "limitations": [
+    "Native execution covers the recorded host only.",
+    "AArch64/Cortex-M/Windows results are compilation evidence, not target execution.",
+    "No GPU, MMIO, DMA, interrupts, packed layouts, bitfields, varargs or long-lived callbacks were qualified.",
+    "FFI pointer preconditions remain caller obligations.",
+    "No general Rust performance superiority or AI-agent productivity claim follows from these fixtures."
+  ]
+}

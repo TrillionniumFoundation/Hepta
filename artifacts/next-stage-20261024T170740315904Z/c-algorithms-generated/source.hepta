@@ -1,0 +1,32 @@
+module c_project_migrated;
+
+// Safe Hepta core. C ABI bridges carry separate caller obligations.
+
+fn c_bool_to_int(value: bool) -> i32 effects {} { if value { return 1; } else { return 0; } }
+
+pub fn c_int_compare(p_vlocation1: read [i32], p_vlocation2: read [i32]) -> i32 effects {panic, write} {
+    assert((1 as usize) <= len(read p_vlocation1));
+    assert((1 as usize) <= len(read p_vlocation2));
+    if (p_vlocation1[(0 as usize)] < p_vlocation2[(0 as usize)]) {
+        return (-(1 as i32));
+    }
+    else {
+        if (p_vlocation1[(0 as usize)] > p_vlocation2[(0 as usize)]) {
+            return (1 as i32);
+        }
+        else {
+            return (0 as i32);
+        }
+    }
+}
+
+pub fn c_int_equal(p_vlocation1: read [i32], p_vlocation2: read [i32]) -> i32 effects {panic, write} {
+    assert((1 as usize) <= len(read p_vlocation1));
+    assert((1 as usize) <= len(read p_vlocation2));
+    return (c_bool_to_int((p_vlocation1[(0 as usize)] == p_vlocation2[(0 as usize)])) as i32);
+}
+
+pub fn c_int_hash(p_vlocation: read [i32]) -> u32 effects {panic, write} {
+    assert((1 as usize) <= len(read p_vlocation));
+    return (p_vlocation[(0 as usize)] as u32);
+}

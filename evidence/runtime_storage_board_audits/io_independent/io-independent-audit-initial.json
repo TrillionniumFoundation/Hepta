@@ -1,0 +1,139 @@
+{
+  "created_at": "2026-10-25T02:29:53.022107+00:00",
+  "findings": [
+    {
+      "category": "evidence_validator",
+      "id": "IO-AUDIT-001",
+      "observed": true,
+      "recommendation": "Validate the exact allowed flag profile, including controlled sysroot/linker fields; reject additional conflicting flags.",
+      "reproduction": "Append 'overflow-checks=no' or 'opt-level=0' to source_cases[0].build.flags in otherwise valid attempt004; validate_io_report(report, minimum_repeats=3) accepts both.",
+      "runtime_memory_safety_bug": false,
+      "severity": "medium",
+      "status": "confirmed_owner_fix_pending",
+      "summary": "Contradictory overflow/optimization build flags are accepted"
+    },
+    {
+      "category": "evidence_validator",
+      "id": "IO-AUDIT-002",
+      "observed": true,
+      "recommendation": "Bind absolute compiler argv0/hash to toolchain metadata and retain run argv plus before/after executable hashes cross-checked against build output.",
+      "reproduction": "Replace native_controls.c_build.command[0] with '/not-the-qualified-compiler', or source_cases[0].build.artifact with '/not-the-executed-program'; minimum_repeats=3 validator still accepts each independent mutation.",
+      "runtime_memory_safety_bug": false,
+      "severity": "medium",
+      "status": "confirmed_owner_fix_pending",
+      "summary": "Native C compiler argv and executed artifact identity are not fully linked"
+    },
+    {
+      "category": "failure_evidence_retention",
+      "id": "IO-AUDIT-003",
+      "limitations": "The proposed malformed-output producer experiment was aborted before dispatch; no executed reproduction is claimed.",
+      "observed": "source_review_only",
+      "recommendation": "Capture bytes, preserve base64 plus raw-byte digests before parsing; validate successful ASCII/UTF-8 outputs separately.",
+      "reproduction": "run() uses subprocess.run(text=True); normal non-UTF8 output can throw before appending a run record, and TimeoutExpired bytes are decoded with errors='replace'.",
+      "runtime_memory_safety_bug": false,
+      "severity": "medium",
+      "status": "source_review_confirmed_owner_fix_pending",
+      "summary": "Text decoding can erase non-UTF8 failure/timeout bytes"
+    },
+    {
+      "category": "dynamic_origin_protocol",
+      "id": "IO-AUDIT-004",
+      "native_probe": {
+        "native_returncode": 0,
+        "observations": {
+          "foreign_status": 10,
+          "freed_after_shutdown": 1,
+          "freed_before_shutdown": 0,
+          "pending_after_immediate_timeout": 0,
+          "retained_bytes": 4093,
+          "retained_slots": 1,
+          "subsequent_slot_refusal": 7
+        },
+        "path": "/workspace/scratch/0817a147930b/Hepta-tree-next/artifacts/io-audit-native/probe.json",
+        "runtime_sha256": "eb03f44d0e35c7f1b57f2340122b0f57df5178d83f7b6aa6333f8861babbfcd0",
+        "sha256": "041434df8a7851cbcee49c5c48c61efe54120cee7d9aa6208579a8a269f612c3",
+        "source_counterpart_native_checked": true
+      },
+      "observed": true,
+      "recommendation": "Keep the origin-loss/retention limitation explicit; generative origin lifetimes or a non-consuming recoverable mismatch API are future work, not part of current qualification.",
+      "runtime_memory_safety_bug": false,
+      "severity": "documented_limitation",
+      "status": "native_reproduction_matches_documented_scope",
+      "summary": "Consuming a ticket through a foreign reactor exhausts origin capacity until shutdown"
+    }
+  ],
+  "initial_qualification": {
+    "baseline_validator_passed_minimum_3": true,
+    "path": "/workspace/scratch/0817a147930b/io-next-evidence/attempt004-qualification.json",
+    "sha256": "5b5d7444258d894272075150f1624b3c633a004b7be5e618b66aa308cdff8e0c"
+  },
+  "initial_report_mutation_results": {
+    "contradictory_optimization_flag": {
+      "accepted": true
+    },
+    "contradictory_overflow_flag": {
+      "accepted": true
+    },
+    "false_c_compiler_argv": {
+      "accepted": true
+    },
+    "unbound_run_artifact_path": {
+      "accepted": true
+    }
+  },
+  "not_performed": [
+    "Did not rerun the entire native I/O qualification producer independently.",
+    "Did not independently execute partial-write, readiness/EINTR, RLIMIT_NOFILE or descriptor-reuse controls; reviewed their code and source-bound existing report.",
+    "Did not run a malformed-output producer reproduction; the attempted tool invocation was aborted before dispatch.",
+    "No formal verification, exhaustive interleaving exploration, sanitizer run, kernel/stdlib correctness proof or general process-resource bound.",
+    "No external browsing or remote CI.",
+    "No production or qualification source files modified by this reviewer."
+  ],
+  "owner_response": "Owner acknowledged all three evidence issues and is preparing a follow-up patch plus a new report; final repair verification remains pending.",
+  "reviewed_files": {
+    "docs/ASYNC_IO.md": "7627e93ed8f33b28597db58b2a53a2b9a6760e59027c21a6a4e8824c5a85d6c8",
+    "examples/io/cancellation.hepta": "718d86d8ac602af892955036add2233847ca3b7950cbb1967608373667bf833f",
+    "examples/io/failure_paths.hepta": "20eee9f3bfdc5cf909f48a7d23c1a3e9511f1f4a38c67ce42c5e03bc434f06af",
+    "examples/io/library.hepta": "ae51ab686906db9b2f9717651cc2f644618a74b35e1c4eb0fc99e54a6d337d00",
+    "examples/io/pipeline.hepta": "bdfd4307a3f0799acac1096bc1b16702c731076633dc7767f89802009a134486",
+    "hepta/backend.py": "d404db22b3ff69c64d8990c114c041dbb5a1793f01c7af3c27e6c9f8e0e12161",
+    "hepta/checker.py": "3c8891d1efd33ea373f01ce7ed1dd29d22ee96b07896e367db7c13b0ecc32cb3",
+    "hepta/pipeline.py": "0309dd7d4b90c85a51e3c1568e558f4f5f310228f5466c31eafd57d6464c99bf",
+    "hepta/runtime_io.py": "0503e7bfd3be9d69a88fe488ca449d05b3c1d5be0c97ef684da06f8424cd5abf",
+    "tests/test_io_runtime.py": "9e1ddef023a6dfeaccb4eb8585a8ab18f7f974aa6d8dce90b68e785aa4c81b5c",
+    "tools/evidence_checks.py": "720a9f55e73e3af3467918efabf0db8b5ff85da8ab07c3efd115d8b1423bd3d7",
+    "tools/fixtures/io_controls.rs": "52d93fdf2657c69484cbc41dfe264c6415078189bd01d59fd8d7ddc903994c0f",
+    "tools/fixtures/io_faults.c": "da2e17515dea0914f9fa196894583faf960a1047d0a7501f51cad81120f8a299",
+    "tools/validate_io.py": "4365cb371447ce39ade2bf1e7712c5c1cac0ca4d3764df9e8b95017dabb161a9"
+  },
+  "reviewed_head": "674d21d012c2341d2a29bf44ca90d41b2bdfc148",
+  "reviewed_worktree": "/workspace/scratch/0817a147930b/Hepta-io-next",
+  "reviewer": "/root/runtime_select",
+  "reviewer_commit": "0f53c89edd073f302f55309bf56c72643bb57200",
+  "runtime_review_conclusions": {
+    "descriptor_reuse": "Owned UnixStream entries plus globally nonwrapping opaque port IDs avoid old numeric-FD lookup; close marks pending operations before dropping the endpoint.",
+    "limits_are_explicit": "No async/await, background executor, task-tree composition qualification, general files/TCP, other platforms or independent I/O IR/refinement proof.",
+    "native_foreign_ticket_behavior_measured": true,
+    "new_memory_safety_defect_found": false,
+    "origin_capacity_restored_before_shutdown": false,
+    "origin_original_buffer_freed_exactly_once_at_shutdown_in_probe": true,
+    "partial_io_range_accounting": "The implementation retains transferred..requested and does not extend deadlines on EINTR; reviewed statically and compared with existing qualified native controls.",
+    "poll_wait_contract": "Caller-driven bounded scans plus one poll call, with the nearest original request deadline; no hard elapsed-call bound or cross-thread interruptibility is claimed."
+  },
+  "schema": "hepta.independent-io-audit.v1",
+  "scope": [
+    "runtime buffer and descriptor ownership",
+    "foreign and stale completion-ticket behavior",
+    "single-owner cancellation and terminal transitions",
+    "original operation deadline and partial I/O ranges",
+    "qualification source/raw/toolchain/build binding"
+  ],
+  "status": "awaiting_owner_evidence_repairs",
+  "verification_performed": [
+    "Read production runtime and compiler hooks, native control fixtures, qualifier, tests and scope documentation at the recorded hashes.",
+    "Validated attempt004 with minimum_repeats=3.",
+    "Executed four independent report mutations and observed that each was accepted.",
+    "Compiled a valid Hepta counterexample counterpart through its native Rust check.",
+    "Compiled and executed an independent native probe against the exact production IO_RUNTIME, observing capacity retention and one deallocation of the exact original buffer at shutdown."
+  ]
+}

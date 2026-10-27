@@ -1,0 +1,22 @@
+fn waiting(data:take Buffer<u8>,cancel:read Cancellation,sender:read Sender<u64>)->u64 effects {alloc,block,panic,io,write} {
+    release(move data);let mut io=io_reactor(2,1,16);
+    assert(io_attach(mut io,read sender)==0);let pair=io_local_pair(mut io);assert(pair.status==0);
+    let input=buffer(16);let request=io_read(mut io,pair.left,move input,16,30000);
+    assert(group_send(read sender,1));let mut count:usize=0;let mut status:u8=0;
+    let returned=io_wait(mut io,move request,mut count,mut status);
+    assert(status==1 && count==0);release(move returned);
+    let done=io_shutdown(move io);assert(done.cancelled==1 && done.reserved_bytes==0);return 1;
+}
+fn main()->Unit effects {alloc,block,panic,io,write,spawn} {
+    let mut root=task_group(0,0,1);assert(group_budget_configure(mut root,1,1,3,65536,65536));
+    assert(group_io_configure(mut root,1,4,1,16));let mut observer=task_group(0,0,1);let mut leaf=task_group(1,1,1);
+    assert(group_budget_share(mut observer,read root));assert(group_budget_share(mut leaf,read root));
+    assert(group_spawn(mut leaf,waiting,move buffer(1)));group_seal(mut leaf);
+    let mut ready:u64=0;assert(group_receive(read leaf,mut ready));assert(ready==1);
+    assert(group_adopt(mut root,move leaf));group_cancel(mut root);
+    let done=group_tree_join(move root);let usage=group_io_snapshot(read observer);
+    assert(done.joined_groups==2 && done.cancelled && done.sum==1);
+    assert(usage.attached_reactors==0 && usage.reserved_bytes==0 && usage.reserved_port_slots==0 && usage.reserved_request_slots==0);
+    assert(usage.wake_notifications==1);group_tree_join(move observer);
+    print_i64(done.joined_groups as i64);print_i64(done.sum as i64);print_i64(usage.wake_notifications as i64);
+}

@@ -1,0 +1,10 @@
+module search;
+pub fn locate(values: read [i64], count: usize, key: i64) -> usize effects {panic} {
+    let mut lo: usize = 0;
+    let mut hi = count;
+    while lo < hi {
+        let mid = lo + (hi - lo) / 2;
+        if values[mid] < key { lo = mid + 1; } else { hi = mid; }
+    }
+    return lo;
+}

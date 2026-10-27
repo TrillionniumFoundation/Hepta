@@ -1,0 +1,7 @@
+module worker;
+pub fn execute(data: take Buffer<u8>, token: read Cancellation) -> u64 effects {alloc,block,panic} {
+    if data[0] != 0 { while !cancelled(read token) {} }
+    let value = len(data) as u64;
+    release(move data);
+    return value;
+}

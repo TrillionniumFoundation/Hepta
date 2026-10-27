@@ -1,0 +1,10 @@
+struct Edit<'a>{ data:mut 'a [u8] }
+fn edit<'a>(data:mut 'a Buffer<u8>)->Edit<'a> effects {} {return Edit{data:mut data};}
+fn forward<'a>(value:take Edit<'a>)->Edit<'a> effects {} {return move value;}
+
+fn main()->Unit effects {alloc,block,panic,write} {
+    let mut owner=buffer(8);
+    for i in 0..8 {let mut view=forward(move edit(mut owner));view.data[i as usize]=i as u8;drop(move view);}
+    let mut total:u64=0;for i in 0..8 {total=wrapping_add(total,owner[i as usize] as u64);}
+    assert(total==28);release(move owner);
+}

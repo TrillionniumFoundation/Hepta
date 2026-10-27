@@ -1,0 +1,224 @@
+{
+  "schema": "hepta.cpp-contract.v4",
+  "module": "sized",
+  "pod_types": [],
+  "functions": [
+    {
+      "name": "add",
+      "cpp_name": "sized_example::add_size",
+      "template_args": [
+        {
+          "kind": "size",
+          "value": 4
+        }
+      ],
+      "params": [
+        {
+          "name": "value",
+          "type": "u32",
+          "mode": "value"
+        }
+      ],
+      "returns": "u32",
+      "exception": "noexcept",
+      "threading": "any_thread",
+      "reentrancy": "allowed",
+      "allocation": "none_declared"
+    }
+  ],
+  "handles": [
+    {
+      "name": "Array",
+      "cpp_type": "std::array",
+      "template_args": [
+        "u32",
+        {
+          "kind": "size",
+          "value": 4
+        }
+      ],
+      "threading": "serialized",
+      "reentrancy": "reject",
+      "allocator": "cpp_shared_owner",
+      "destruction": "nothrow_defer_inflight",
+      "constructors": [
+        {
+          "name": "new",
+          "params": [],
+          "exception": "noexcept"
+        }
+      ],
+      "methods": [
+        {
+          "name": "fill",
+          "cpp_method": "fill",
+          "const": false,
+          "params": [
+            {
+              "name": "value",
+              "type": "u32",
+              "mode": "const_ref",
+              "retention": "call_only"
+            }
+          ],
+          "returns": "Unit",
+          "return_mode": "value",
+          "exception": "catch_status"
+        },
+        {
+          "name": "at",
+          "cpp_method": "at",
+          "const": true,
+          "params": [
+            {
+              "name": "index",
+              "type": "usize",
+              "mode": "value"
+            }
+          ],
+          "returns": "u32",
+          "return_mode": "copy_from_reference",
+          "exception": "catch_status"
+        }
+      ]
+    },
+    {
+      "name": "Counted",
+      "cpp_type": "sized_example::CountedArray",
+      "template_args": [
+        "u32",
+        {
+          "kind": "size",
+          "value": 4
+        }
+      ],
+      "threading": "serialized",
+      "reentrancy": "reject",
+      "allocator": "cpp_shared_owner",
+      "destruction": "nothrow_defer_inflight",
+      "constructors": [
+        {
+          "name": "new",
+          "params": [
+            {
+              "name": "reject",
+              "type": "u32",
+              "mode": "value"
+            }
+          ],
+          "exception": "catch_status"
+        }
+      ],
+      "methods": [
+        {
+          "name": "fill",
+          "cpp_method": "fill",
+          "const": false,
+          "params": [
+            {
+              "name": "value",
+              "type": "u32",
+              "mode": "const_ref",
+              "retention": "call_only"
+            }
+          ],
+          "returns": "Unit",
+          "return_mode": "value",
+          "exception": "catch_status"
+        },
+        {
+          "name": "at",
+          "cpp_method": "at",
+          "const": true,
+          "params": [
+            {
+              "name": "index",
+              "type": "usize",
+              "mode": "value"
+            }
+          ],
+          "returns": "u32",
+          "return_mode": "copy_from_reference",
+          "exception": "catch_status"
+        }
+      ]
+    }
+  ],
+  "scopes": [
+    {
+      "name": "array_roundtrip",
+      "handle": "Array",
+      "constructor": "new",
+      "params": [
+        {
+          "name": "value",
+          "type": "u32",
+          "mode": "const_ref",
+          "retention": "call_only"
+        },
+        {
+          "name": "index",
+          "type": "usize",
+          "mode": "value"
+        }
+      ],
+      "constructor_args": [],
+      "calls": [
+        {
+          "method": "fill",
+          "args": [
+            "value"
+          ]
+        },
+        {
+          "method": "at",
+          "args": [
+            "index"
+          ]
+        }
+      ],
+      "lifetime": "call_scoped_cpp_raii"
+    },
+    {
+      "name": "counted_roundtrip",
+      "handle": "Counted",
+      "constructor": "new",
+      "params": [
+        {
+          "name": "reject",
+          "type": "u32",
+          "mode": "value"
+        },
+        {
+          "name": "value",
+          "type": "u32",
+          "mode": "const_ref",
+          "retention": "call_only"
+        },
+        {
+          "name": "index",
+          "type": "usize",
+          "mode": "value"
+        }
+      ],
+      "constructor_args": [
+        "reject"
+      ],
+      "calls": [
+        {
+          "method": "fill",
+          "args": [
+            "value"
+          ]
+        },
+        {
+          "method": "at",
+          "args": [
+            "index"
+          ]
+        }
+      ],
+      "lifetime": "call_scoped_cpp_raii"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+module json_upgrade;
+// All foreign calls remain explicitly unsafe; no C++ safety proof is claimed.
+extern "C" fn hepta_cpp_json_upgrade_Document_parse(text: raw const u8, text_len: usize, out: raw mut u64) -> i32 effects {alloc, block, ffi, unsafe, write};
+extern "C" fn hepta_cpp_json_upgrade_Document_destroy(handle: u64) -> i32 effects {alloc, block, ffi, unsafe, write};
+extern "C" fn hepta_cpp_json_upgrade_Document_replace(handle: u64, index: usize, value: i64) -> i32 effects {alloc, block, ffi, unsafe, write};
+extern "C" fn hepta_cpp_json_upgrade_Document_sum(handle: u64, out: raw mut i64) -> i32 effects {alloc, block, ffi, unsafe, write};
+extern "C" fn hepta_cpp_json_upgrade_replace_sum(text: raw const u8, text_len: usize, index: usize, value: i64, out: raw mut i64) -> i32 effects {alloc, block, ffi, unsafe, write};

@@ -1,0 +1,59 @@
+{
+  "purpose": "Development entrypoint regression, not final integrated native qualification",
+  "base_git_commit": "a4ba75b92fd22d41ef39d29307fb92cea4bad131",
+  "worktree": "/workspace/scratch/d930f2b45e07/hepta-entry-repair",
+  "runs": [
+    {
+      "label": "before",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "unittest",
+        "tests.test_hia_qualification_entrypoints",
+        "-v"
+      ],
+      "cwd": "/workspace/scratch/d930f2b45e07/hepta-entry-repair",
+      "git_state": "base plus uncommitted entrypoint regression and producer variant",
+      "source_files_sha256": {
+        "tools/qualify_llvm_local_views.py": "db98e14a092de76383d2836e8d9b013a237ddd29881a8d9848b74d99770ed71a",
+        "tests/test_hia_qualification_entrypoints.py": "e34c34e8f2313dd13b22043eb3e9da9866f569210ce28317cced72d75741866e"
+      },
+      "started_utc": "2026-10-27T14:16:31.356425+00:00",
+      "returncode": 1,
+      "finished_utc": "2026-10-27T14:16:37.141534+00:00",
+      "log": "before.log",
+      "log_sha256": "63ea3a93f74427a22d57bc9e1d7cf797e009dbf70ccf85f6c1185df3ab2e5855"
+    },
+    {
+      "label": "after",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "unittest",
+        "tests.test_hia_qualification_entrypoints",
+        "tests.test_hia_unified_qualification",
+        "tests.test_native_host_evidence",
+        "tests.test_release_unittest_summary",
+        "tests.test_release_collection.ReleaseCollectionTests",
+        "tests.test_release_collection.SourceQualificationTests",
+        "tests.test_qualification_environment",
+        "-v"
+      ],
+      "cwd": "/workspace/scratch/d930f2b45e07/hepta-entry-repair",
+      "git_state": "base plus uncommitted entrypoint regression and producer variant",
+      "source_files_sha256": {
+        "tools/qualify_llvm_local_views.py": "28f2e4cafa213bcaa7201b58ade93123c18b88448919c0c50d3546fc135b87ae",
+        "tests/test_hia_qualification_entrypoints.py": "e34c34e8f2313dd13b22043eb3e9da9866f569210ce28317cced72d75741866e"
+      },
+      "started_utc": "2026-10-27T14:16:37.142047+00:00",
+      "returncode": 0,
+      "finished_utc": "2026-10-27T14:16:49.616358+00:00",
+      "log": "after.log",
+      "log_sha256": "fb730b9ce574be0d8f7f821d5f14f28235c08d22bdaa858ea11c48fe6b3dbe5b"
+    }
+  ],
+  "submitted_commit": "5c21ca38a666aaedb9244b7427914b36625c211a",
+  "submitted_files_match_after_run_hashes": true,
+  "test_source_note": "Tests ran on base a4ba75b plus uncommitted files with recorded hashes; submission was created afterward and is not represented as the run-time HEAD.",
+  "tracked_and_untracked_worktree_clean_after_submission": true
+}

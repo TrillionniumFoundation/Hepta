@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/workspace/scratch/0817a147930b/Hepta-work/tools/validate_board.py", line 345, in <module>
+    main()
+  File "/workspace/scratch/0817a147930b/Hepta-work/tools/validate_board.py", line 337, in main
+    report = qualify(qemu=args.qemu, rustc=args.rustc)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/0817a147930b/Hepta-work/tools/validate_board.py", line 199, in qualify
+    lld_version = run([lld, "--version"])["stdout"].strip()
+                  ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/0817a147930b/Hepta-work/tools/validate_board.py", line 195, in run
+    require(result.returncode == expected, "Actual board command failed: " + json.dumps(record))
+  File "/workspace/scratch/0817a147930b/Hepta-work/tools/evidence_checks.py", line 14, in require
+    raise ValueError(message)
+ValueError: Actual board command failed: {"argv": ["/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld", "--version"], "returncode": 1, "stdout": "", "stderr": "lld is a generic driver.\nInvoke ld.lld (Unix), ld64.lld (macOS), lld-link (Windows), wasm-ld (WebAssembly) instead\n", "seconds": 0.0047606459993403405}

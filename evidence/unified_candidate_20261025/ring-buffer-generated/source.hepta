@@ -1,0 +1,104 @@
+module c_record_views_migrated;
+
+// Scalar state plus explicit slices; foreign record/storage contracts remain external.
+
+fn c_bool_to_int(value: bool) -> i32 effects {} { if value { return 1; } else { return 0; } }
+
+fn c_view_index(offset: usize, index: i128, length: usize) -> usize effects {panic} {
+    let absolute: i128 = (offset as i128) + index;
+    assert(absolute >= 0);
+    assert(absolute < (length as i128));
+    return absolute as usize;
+}
+
+pub struct C_ring_buffer_t { f_buffer_mask: usize, f_tail_index: usize, f_head_index: usize, }
+
+pub fn c_ring_buffer_dequeue(p_buffer: mut C_ring_buffer_t, p_buffer_f_buffer: mut [u8], p_data: mut [u8], p_data_offset: usize) -> u8 effects {panic, write} {
+    assert(((p_buffer.f_buffer_mask as usize) + (1 as usize)) <= len(read p_buffer_f_buffer));
+    assert(p_data_offset <= len(read p_data));
+    assert((1 as usize) <= (len(read p_data) - p_data_offset));
+    if (c_ring_buffer_is_empty(read p_buffer, read p_buffer_f_buffer) != (0 as u8)) {
+        return ((0 as i32) as u8);
+    }
+    p_data[p_data_offset] = p_buffer_f_buffer[c_view_index((0 as usize), (p_buffer.f_tail_index as i128), len(read p_buffer_f_buffer))];
+    p_buffer.f_tail_index = (wrapping_add(p_buffer.f_tail_index, ((1 as i32) as usize)) & p_buffer.f_buffer_mask);
+    return ((1 as i32) as u8);
+}
+
+pub fn c_ring_buffer_dequeue_arr(p_buffer: mut C_ring_buffer_t, p_buffer_f_buffer: mut [u8], p_data: mut [u8], p_data_offset: usize, p_len: usize) -> usize effects {panic, write} {
+    assert(((p_buffer.f_buffer_mask as usize) + (1 as usize)) <= len(read p_buffer_f_buffer));
+    assert(p_data_offset <= len(read p_data));
+    assert((p_len as usize) <= (len(read p_data) - p_data_offset));
+    let mut v_len: usize = p_len;
+    if (c_ring_buffer_is_empty(read p_buffer, read p_buffer_f_buffer) != (0 as u8)) {
+        return ((0 as i32) as usize);
+    }
+    let mut cursor_data_ptr_1_offset: usize = p_data_offset;
+    let mut v_cnt_2: usize = ((0 as i32) as usize);
+    while ((v_cnt_2 < v_len) && ((c_ring_buffer_dequeue(mut p_buffer, mut p_buffer_f_buffer, mut p_data, cursor_data_ptr_1_offset) as i32) != (0 as i32))) {
+        v_cnt_2 = wrapping_add(v_cnt_2, (1 as usize));
+        cursor_data_ptr_1_offset = cursor_data_ptr_1_offset + (1 as usize);
+        assert(cursor_data_ptr_1_offset <= len(read p_data));
+    }
+    return v_cnt_2;
+}
+
+pub fn c_ring_buffer_init(p_buffer: mut C_ring_buffer_t, p_buf: mut [u8], p_buf_offset: usize, p_buf_size: usize) -> Unit effects {panic, write} {
+    assert(p_buf_offset <= len(read p_buf));
+    assert((p_buf_size as usize) <= (len(read p_buf) - p_buf_offset));
+    let mut v_buf_size: usize = p_buf_size;
+    p_buffer.f_buffer_mask = wrapping_sub(v_buf_size, ((1 as i32) as usize));
+    p_buffer.f_tail_index = ((0 as i32) as usize);
+    p_buffer.f_head_index = ((0 as i32) as usize);
+    assert(((p_buffer.f_buffer_mask as usize) + (1 as usize)) <= (len(read p_buf) - p_buf_offset));
+}
+
+pub fn c_ring_buffer_is_empty(p_buffer: read C_ring_buffer_t, p_buffer_f_buffer: read [u8]) -> u8 effects {panic, write} {
+    assert(((p_buffer.f_buffer_mask as usize) + (1 as usize)) <= len(read p_buffer_f_buffer));
+    return (c_bool_to_int((p_buffer.f_head_index == p_buffer.f_tail_index)) as u8);
+}
+
+pub fn c_ring_buffer_is_full(p_buffer: read C_ring_buffer_t, p_buffer_f_buffer: read [u8]) -> u8 effects {panic, write} {
+    assert(((p_buffer.f_buffer_mask as usize) + (1 as usize)) <= len(read p_buffer_f_buffer));
+    return (c_bool_to_int(((wrapping_sub(p_buffer.f_head_index, p_buffer.f_tail_index) & p_buffer.f_buffer_mask) == p_buffer.f_buffer_mask)) as u8);
+}
+
+pub fn c_ring_buffer_num_items(p_buffer: read C_ring_buffer_t, p_buffer_f_buffer: read [u8]) -> usize effects {panic, write} {
+    assert(((p_buffer.f_buffer_mask as usize) + (1 as usize)) <= len(read p_buffer_f_buffer));
+    return (wrapping_sub(p_buffer.f_head_index, p_buffer.f_tail_index) & p_buffer.f_buffer_mask);
+}
+
+pub fn c_ring_buffer_peek(p_buffer: mut C_ring_buffer_t, p_buffer_f_buffer: mut [u8], p_data: mut [u8], p_data_offset: usize, p_index: usize) -> u8 effects {panic, write} {
+    assert(((p_buffer.f_buffer_mask as usize) + (1 as usize)) <= len(read p_buffer_f_buffer));
+    assert(p_data_offset <= len(read p_data));
+    assert((1 as usize) <= (len(read p_data) - p_data_offset));
+    let mut v_index: usize = p_index;
+    if (v_index >= c_ring_buffer_num_items(read p_buffer, read p_buffer_f_buffer)) {
+        return ((0 as i32) as u8);
+    }
+    let mut v_data_index_1: usize = (wrapping_add(p_buffer.f_tail_index, v_index) & p_buffer.f_buffer_mask);
+    p_data[p_data_offset] = p_buffer_f_buffer[c_view_index((0 as usize), (v_data_index_1 as i128), len(read p_buffer_f_buffer))];
+    return ((1 as i32) as u8);
+}
+
+pub fn c_ring_buffer_queue(p_buffer: mut C_ring_buffer_t, p_buffer_f_buffer: mut [u8], p_data: u8) -> Unit effects {panic, write} {
+    assert(((p_buffer.f_buffer_mask as usize) + (1 as usize)) <= len(read p_buffer_f_buffer));
+    let mut v_data: u8 = p_data;
+    if (c_ring_buffer_is_full(read p_buffer, read p_buffer_f_buffer) != (0 as u8)) {
+        p_buffer.f_tail_index = (wrapping_add(p_buffer.f_tail_index, ((1 as i32) as usize)) & p_buffer.f_buffer_mask);
+    }
+    p_buffer_f_buffer[c_view_index((0 as usize), (p_buffer.f_head_index as i128), len(read p_buffer_f_buffer))] = v_data;
+    p_buffer.f_head_index = (wrapping_add(p_buffer.f_head_index, ((1 as i32) as usize)) & p_buffer.f_buffer_mask);
+}
+
+pub fn c_ring_buffer_queue_arr(p_buffer: mut C_ring_buffer_t, p_buffer_f_buffer: mut [u8], p_data: read [u8], p_data_offset: usize, p_size: usize) -> Unit effects {panic, write} {
+    assert(((p_buffer.f_buffer_mask as usize) + (1 as usize)) <= len(read p_buffer_f_buffer));
+    assert(p_data_offset <= len(read p_data));
+    assert((p_size as usize) <= (len(read p_data) - p_data_offset));
+    let mut v_size: usize = p_size;
+    let mut v_i_1: usize = ((0 as i32) as usize);
+    while (v_i_1 < v_size) {
+        c_ring_buffer_queue(mut p_buffer, mut p_buffer_f_buffer, p_data[c_view_index(p_data_offset, (v_i_1 as i128), len(read p_data))]);
+        v_i_1 = wrapping_add(v_i_1, (1 as usize));
+    }
+}

@@ -1,0 +1,3 @@
+struct Value<'a>{item:read 'a u64}
+fn bad<'a,'b>(a:read 'a u64,b:read 'b u64)->Value<'a> effects {} {return Value{item:read b};}
+fn main()->Unit effects {} {}

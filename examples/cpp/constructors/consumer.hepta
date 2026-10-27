@@ -1,0 +1,56 @@
+module cpp_constructor_consumer;
+import bridge;
+
+export "C" fn hepta_ctor_vector_sized(count: usize, out: raw mut u64) -> i32
+effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_ctors_IntVector_sized(count, out); }
+}
+export "C" fn hepta_ctor_vector_filled(count: usize, value: i64, out: raw mut u64) -> i32
+effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_ctors_IntVector_filled(count, value, out); }
+}
+export "C" fn hepta_ctor_vector_size(handle: u64, out: raw mut usize) -> i32
+effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_ctors_IntVector_size(handle, out); }
+}
+export "C" fn hepta_ctor_vector_at(handle: u64, index: usize, out: raw mut i64) -> i32
+effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_ctors_IntVector_at(handle, index, out); }
+}
+export "C" fn hepta_ctor_vector_destroy(handle: u64) -> i32
+effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_ctors_IntVector_destroy(handle); }
+}
+export "C" fn hepta_ctor_student_new(degrees: f64, out: raw mut u64) -> i32
+effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_ctors_Student_new(degrees, out); }
+}
+export "C" fn hepta_ctor_student_degrees(handle: u64, out: raw mut f64) -> i32
+effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_ctors_Student_degrees(handle, out); }
+}
+export "C" fn hepta_ctor_student_destroy(handle: u64) -> i32
+effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_ctors_Student_destroy(handle); }
+}
+export "C" fn hepta_ctor_span_new(tag: u64, bias: i64, values: raw const i64, count: usize, out: raw mut u64) -> i32
+effects {ffi, unsafe, write, alloc, block} {
+    let config = bridge::Config {tag: tag, bias: bias};
+    unsafe { return bridge::hepta_cpp_ctors_SpanOwner_new(config, values, count, out); }
+}
+export "C" fn hepta_ctor_span_at(handle: u64, index: usize, out: raw mut i64) -> i32
+effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_ctors_SpanOwner_at(handle, index, out); }
+}
+export "C" fn hepta_ctor_span_destroy(handle: u64) -> i32
+effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_ctors_SpanOwner_destroy(handle); }
+}
+export "C" fn hepta_ctor_nothrow_new(value: u64, out: raw mut u64) -> i32
+effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_ctors_NoThrowValue_new(value, out); }
+}
+export "C" fn hepta_ctor_nothrow_destroy(handle: u64) -> i32
+effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_ctors_NoThrowValue_destroy(handle); }
+}

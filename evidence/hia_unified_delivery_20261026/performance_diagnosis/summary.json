@@ -1,0 +1,333 @@
+{
+  "candidate_aarch64_qualification": {
+    "counts": {
+      "actual_bounds_abort_exit": 1,
+      "actual_null_refusals": 1,
+      "actual_wrong_core_controls": 2,
+      "frees": 4,
+      "outstanding_allocations": 0,
+      "reference_and_native_return_cases": 17,
+      "successful_allocations": 4
+    },
+    "ok": true,
+    "record_sha256": "11d3412fd52a2904fd6e2aecabbe46c6d05207af926fdb8fb5613a1537be91b0"
+  },
+  "candidate_backend_file_sha256": "ff0a244556575a8845fb14fd95852380fdf359a76ffaf93958a2d4bb7befb650",
+  "candidate_core_sha256": "93266c1dae306013294ec973cf727aa2a5e9b5733a2d0b31727d9a5663b4fd22",
+  "candidate_implementation_sha256": "30c72316ea49f3fd5ac555e1b89e9d2520f47351d2a4ac333f85911cfe0c1c9b",
+  "candidate_llvm_sha256": "f22b38cbcc52baf4ba70ab9aa9b5f50e875fece3ec2d2fb8a3d37a8986fbf643",
+  "candidate_native_qualification": {
+    "cases": 289,
+    "ok": true,
+    "record_sha256": "325cb8ebb6a1e7821d865a45a383742d13cc11e0351e9c1cc505082028706c02"
+  },
+  "candidate_preflight": {
+    "allocator_negative": {
+      "allocations": 7,
+      "frees": 0,
+      "live": 7,
+      "refusals": 1
+    },
+    "allocator_positive": {
+      "allocations": 7,
+      "frees": 7,
+      "live": 0,
+      "refusals": 1
+    },
+    "native_correctness_calls": 588,
+    "optimized_constructor_calls_malloc_and_free": true,
+    "timing_samples_executed": 0
+  },
+  "candidate_state": "uncommitted reviewed backend change relative to original commit",
+  "candidate_targeted_tests": {
+    "includes": "actual poisoned malloc, calloc zero read in non-entry block, real NULL, live address accounting, and buffer.new SIGABRT",
+    "passed": 17,
+    "tests": 17
+  },
+  "claims": {
+    "backend_refinement_proved": false,
+    "new_timing_samples_collected": false,
+    "performance_qualified": false,
+    "rust_superiority_demonstrated": false
+  },
+  "next_required_action": "Freeze the reviewed compiler, retain the original failed report, and run the unchanged complete 63-sample qualification once; any remaining noise or performance threshold failure remains nonpassing.",
+  "original_backend_file_sha256": "72b23be06085a72d6e7871b71a9ae793817654360f50986fe2392fc714debb3e",
+  "original_core_sha256": "93266c1dae306013294ec973cf727aa2a5e9b5733a2d0b31727d9a5663b4fd22",
+  "original_git_commit": "9fe295e87352295de4b4eb396bda239ceef2a474",
+  "original_implementation_sha256": "a100497b4df427174f896fb851fa3a0247f6ab1294d19610211b1e56c155b715",
+  "original_llvm_sha256": "007d5f508f1b2364bcd20a5b890f00716dafcc6a3e409530623b4309d82b1b18",
+  "original_performance": {
+    "evaluation": {
+      "geometric_mean_paired_time_ratios": {
+        "handwritten_rust": 1.1709671176079133,
+        "rust": 1.4786851292703787
+      },
+      "measurement_quality_failures": [
+        "full_lifecycle/rust: relative MAD above fixed maximum",
+        "full_lifecycle/handwritten_rust: relative MAD above fixed maximum",
+        "constructor_error/rust: relative MAD above fixed maximum",
+        "constructor_error/llvm: relative MAD above fixed maximum",
+        "constructor_error/handwritten_rust: relative MAD above fixed maximum",
+        "two_stage/rust: relative MAD above fixed maximum",
+        "two_stage/llvm: relative MAD above fixed maximum",
+        "two_stage/handwritten_rust: relative MAD above fixed maximum"
+      ],
+      "ok": false,
+      "performance_threshold_failures": [
+        "full_lifecycle/rust: paired ratio exceeds fixed maximum",
+        "full_lifecycle/handwritten_rust: paired ratio exceeds fixed maximum",
+        "constructor_error/rust: paired ratio exceeds fixed maximum",
+        "constructor_error/handwritten_rust: paired ratio exceeds fixed maximum",
+        "rust: geometric mean exceeds fixed maximum",
+        "handwritten_rust: geometric mean exceeds fixed maximum"
+      ],
+      "status": "measurement_inconclusive",
+      "summary": {
+        "constructor_error": {
+          "comparisons": {
+            "handwritten_rust": {
+              "median_paired_time_ratio": 2.4999755734399187,
+              "paired_time_ratios": [
+                2.4999755734399187,
+                2.5637291471241443,
+                2.782715379366156,
+                2.272928163625845,
+                3.0069238469534247,
+                2.1095570279319538,
+                2.2961386950215976
+              ]
+            },
+            "rust": {
+              "median_paired_time_ratio": 2.6034997077970727,
+              "paired_time_ratios": [
+                3.259045614552631,
+                2.13285923957911,
+                2.7869477300220655,
+                2.6034997077970727,
+                2.3520463409000802,
+                2.605682965620706,
+                2.23392345226065
+              ]
+            }
+          },
+          "implementations": {
+            "handwritten_rust": {
+              "maximum_ns": 298339172,
+              "median_ns": 246089438,
+              "median_ns_per_native_call": 29.33614706993103,
+              "minimum_ns": 192617314,
+              "relative_mad": 0.15544221365567099,
+              "samples_ns": [
+                284342125,
+                246089438,
+                192617314,
+                236772571,
+                207013819,
+                298339172,
+                249949332
+              ]
+            },
+            "llvm": {
+              "maximum_ns": 710848367,
+              "median_ns": 622474789,
+              "median_ns_per_native_call": 74.20477735996246,
+              "minimum_ns": 535999162,
+              "relative_mad": 0.07800549814717074,
+              "samples_ns": [
+                710848367,
+                630906665,
+                535999162,
+                538167045,
+                622474789,
+                629363497,
+                573918333
+              ]
+            },
+            "rust": {
+              "maximum_ns": 295803236,
+              "median_ns": 241534947,
+              "median_ns_per_native_call": 28.793209433555603,
+              "minimum_ns": 192324799,
+              "relative_mad": 0.09696090065178022,
+              "samples_ns": [
+                218115501,
+                295803236,
+                192324799,
+                206709086,
+                264652434,
+                241534947,
+                256910474
+              ]
+            }
+          }
+        },
+        "full_lifecycle": {
+          "comparisons": {
+            "handwritten_rust": {
+              "median_paired_time_ratio": 1.235430664191097,
+              "paired_time_ratios": [
+                1.0846150559184988,
+                1.235430664191097,
+                1.1722193024618932,
+                1.420398414096347,
+                1.326902159751986,
+                1.150784826059783,
+                1.3039257940136608
+              ]
+            },
+            "rust": {
+              "median_paired_time_ratio": 1.2389943853805492,
+              "paired_time_ratios": [
+                1.3661999703302097,
+                1.2907372636029621,
+                1.0165107139393599,
+                1.5120195780605907,
+                1.2389943853805492,
+                1.1035745460171018,
+                1.1863884858219091
+              ]
+            }
+          },
+          "implementations": {
+            "handwritten_rust": {
+              "maximum_ns": 2572091487,
+              "median_ns": 2312140413,
+              "median_ns_per_native_call": 2205.0289278030396,
+              "minimum_ns": 1917383313,
+              "relative_mad": 0.11242875758687758,
+              "samples_ns": [
+                2572091487,
+                2018774681,
+                2458919482,
+                1917383313,
+                2016898342,
+                2312140413,
+                2480706060
+              ]
+            },
+            "llvm": {
+              "maximum_ns": 3234656619,
+              "median_ns": 2723448217,
+              "median_ns_per_native_call": 2597.2826166152954,
+              "minimum_ns": 2494056145,
+              "relative_mad": 0.024337137965858374,
+              "samples_ns": [
+                2789729152,
+                2494056145,
+                2882392880,
+                2723448217,
+                2676226766,
+                2660776103,
+                3234656619
+              ]
+            },
+            "rust": {
+              "maximum_ns": 2835575504,
+              "median_ns": 2159999107,
+              "median_ns_per_native_call": 2059.9356718063354,
+              "minimum_ns": 1801199043,
+              "relative_mad": 0.11622844342222222,
+              "samples_ns": [
+                2041962533,
+                1932272520,
+                2835575504,
+                1801199043,
+                2159999107,
+                2411052441,
+                2726473375
+              ]
+            }
+          }
+        },
+        "two_stage": {
+          "comparisons": {
+            "handwritten_rust": {
+              "median_paired_time_ratio": 0.5198522847242109,
+              "paired_time_ratios": [
+                0.4920759305642481,
+                0.6154141827457222,
+                0.7846623475374191,
+                0.486780086217248,
+                0.5683054410600542,
+                0.5198522847242109,
+                0.4460892662395749
+              ]
+            },
+            "rust": {
+              "median_paired_time_ratio": 1.002305802001359,
+              "paired_time_ratios": [
+                1.1670318395023507,
+                1.002305802001359,
+                1.218296634349837,
+                0.9367753717162527,
+                1.0152992128535465,
+                0.6702757421215697,
+                0.8326287395231486
+              ]
+            }
+          },
+          "implementations": {
+            "handwritten_rust": {
+              "maximum_ns": 4372110887,
+              "median_ns": 3534400875,
+              "median_ns_per_native_call": 3370.667338371277,
+              "minimum_ns": 2928647869,
+              "relative_mad": 0.13796855824963544,
+              "samples_ns": [
+                4022037068,
+                3292302345,
+                2928647869,
+                3473561345,
+                4372110887,
+                3534400875,
+                4171141159
+              ]
+            },
+            "llvm": {
+              "maximum_ns": 2484694406,
+              "median_ns": 1979147633,
+              "median_ns_per_native_call": 1887.4622659683228,
+              "minimum_ns": 1690860491,
+              "relative_mad": 0.07163753761263751,
+              "samples_ns": [
+                1979147633,
+                2026129557,
+                2297999712,
+                1690860491,
+                2484694406,
+                1837366370,
+                1860701299
+              ]
+            },
+            "rust": {
+              "maximum_ns": 2741209706,
+              "median_ns": 2021468451,
+              "median_ns_per_native_call": 1927.822543144226,
+              "minimum_ns": 1695881437,
+              "relative_mad": 0.10709481609416421,
+              "samples_ns": [
+                1695881437,
+                2021468451,
+                1886239892,
+                1804979659,
+                2447253356,
+                2741209706,
+                2234731052
+              ]
+            }
+          }
+        }
+      }
+    },
+    "phase": "complete",
+    "samples": 63,
+    "selected_cpu": 0,
+    "status": "measurement_inconclusive"
+  },
+  "original_performance_report": "evidence/hia_unified_fixed_20261026/performance.json",
+  "original_performance_report_sha256": "dfeac520b9ef8e1f2df629d68924a15d3f4245b08df6b7ef0e5f73a41af0dd5c",
+  "physical_oom_equivalence_claimed": false,
+  "rejected_experiment": "malloc plus explicit memset was coalesced back into calloc by LLVM 20, and the synthesized call lost nobuiltin; not adopted",
+  "schema": "hepta.hia.performance-lowering-diagnosis.v1",
+  "selected_change": "omit zero writes only for complete functions with scalar-only boundaries and a closed operation/terminator whitelist excluding all calls and byte loads/stores; preserve allocator attempt, NULL branch, live storage, and drops"
+}

@@ -1,0 +1,120 @@
+...............................................................................................................................................................................................................................................................................................................................................................................................F.........F......................................................................................................................................................E.E.....................................EEEEEE....................................................................................................................................................................................................................................................................................................................................................
+======================================================================
+ERROR: test_debugger_report_binds_raw_observations_to_actual_source_mapping (test_native_evidence_validators.NativeEvidenceValidatorTests.test_debugger_report_binds_raw_observations_to_actual_source_mapping)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/0817a147930b/Hepta-work/tests/test_native_evidence_validators.py", line 41, in test_debugger_report_binds_raw_observations_to_actual_source_mapping
+    report = validate_debugger.qualify()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/0817a147930b/Hepta-work/tools/validate_debugger.py", line 92, in qualify
+    raise RuntimeError("Real debugger qualification failed: " + execution.stdout + execution.stderr)
+RuntimeError: Real debugger qualification failed: Breakpoint 1 at 0x153ca: file /tmp/hepta-debug-qualification-f81gxm5x/debug-rust.hepta-debug/95076231d6d54690780518fffc4724715c0b644bba0ceea9571ebd0458ca6bc9/program.rs, line 12.
+warning: Could not trace the inferior process.
+warning: ptrace: Operation not permitted
+Python Exception <class 'gdb.error'>: During startup program exited with code 127.
+/tmp/hepta-debug-qualification-f81gxm5x/rust.gdb:28: Error in sourced command file:
+Error occurred in Python: During startup program exited with code 127.
+
+
+======================================================================
+ERROR: test_memory_proof_report_requires_kernel_dependencies_and_scoped_claims (test_native_evidence_validators.NativeEvidenceValidatorTests.test_memory_proof_report_requires_kernel_dependencies_and_scoped_claims)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/0817a147930b/Hepta-work/tests/test_native_evidence_validators.py", line 31, in test_memory_proof_report_requires_kernel_dependencies_and_scoped_claims
+    report = verify_memory.verify(LEAN, Path(directory) / "proof.json")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/0817a147930b/Hepta-work/tools/verify_memory.py", line 103, in verify
+    raise RuntimeError("The pinned Lean executable did not run: " + version.stdout + version.stderr)
+RuntimeError: The pinned Lean executable did not run: error: failed to locate application
+
+
+======================================================================
+ERROR: test_chunked_body_missing_terminal_zero_remains_unknown_cost (test_openai_provider_adapter.RealHTTPResponseTests.test_chunked_body_missing_terminal_zero_remains_unknown_cost)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/0817a147930b/Hepta-work/tests/test_openai_provider_adapter.py", line 550, in test_chunked_body_missing_terminal_zero_remains_unknown_cost
+    self.assert_truncated(self.run_response(['Transfer-Encoding: chunked'], wire_body, close=True, eof=True))
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/0817a147930b/Hepta-work/tests/test_openai_provider_adapter.py", line 495, in run_response
+    server.sendall(payload)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_chunked_connection_close_preserves_complete_usage (test_openai_provider_adapter.RealHTTPResponseTests.test_chunked_connection_close_preserves_complete_usage)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/0817a147930b/Hepta-work/tests/test_openai_provider_adapter.py", line 537, in test_chunked_connection_close_preserves_complete_usage
+    self.assert_success(self.run_response(['Transfer-Encoding: chunked'], wire_body, close=True))
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/0817a147930b/Hepta-work/tests/test_openai_provider_adapter.py", line 495, in run_response
+    server.sendall(payload)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_complete_json_with_truncated_content_length_remains_unknown_cost (test_openai_provider_adapter.RealHTTPResponseTests.test_complete_json_with_truncated_content_length_remains_unknown_cost)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/0817a147930b/Hepta-work/tests/test_openai_provider_adapter.py", line 545, in test_complete_json_with_truncated_content_length_remains_unknown_cost
+    self.assert_truncated(self.run_response(['Content-Length: ' + str(len(body) + 7)], body, close=True, eof=True))
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/0817a147930b/Hepta-work/tests/test_openai_provider_adapter.py", line 495, in run_response
+    server.sendall(payload)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_content_length_connection_close_preserves_complete_usage (test_openai_provider_adapter.RealHTTPResponseTests.test_content_length_connection_close_preserves_complete_usage)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/0817a147930b/Hepta-work/tests/test_openai_provider_adapter.py", line 527, in test_content_length_connection_close_preserves_complete_usage
+    self.assert_success(self.run_response(['Content-Length: ' + str(len(body))], body, close=True))
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/0817a147930b/Hepta-work/tests/test_openai_provider_adapter.py", line 495, in run_response
+    server.sendall(payload)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_content_length_keep_alive_control (test_openai_provider_adapter.RealHTTPResponseTests.test_content_length_keep_alive_control)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/0817a147930b/Hepta-work/tests/test_openai_provider_adapter.py", line 531, in test_content_length_keep_alive_control
+    self.assert_success(self.run_response(['Content-Length: ' + str(len(body))], body))
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/0817a147930b/Hepta-work/tests/test_openai_provider_adapter.py", line 495, in run_response
+    server.sendall(payload)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_http10_eof_delimited_complete_body (test_openai_provider_adapter.RealHTTPResponseTests.test_http10_eof_delimited_complete_body)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/0817a147930b/Hepta-work/tests/test_openai_provider_adapter.py", line 541, in test_http10_eof_delimited_complete_body
+    self.assert_success(self.run_response([], body, version='HTTP/1.0', eof=True))
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/0817a147930b/Hepta-work/tests/test_openai_provider_adapter.py", line 495, in run_response
+    server.sendall(payload)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+FAIL: test_all_ten_starters_compile_and_fail_real_target_validation (test_crossfile_eval.CrossfileNativeTests.test_all_ten_starters_compile_and_fail_real_target_validation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/0817a147930b/Hepta-work/tests/test_crossfile_eval.py", line 182, in test_all_ten_starters_compile_and_fail_real_target_validation
+    self.assertTrue(starter['starter_compiles_without_new_contract']['ok'], starter)
+AssertionError: False is not true : {'task_id': 'native_bridge', 'language': 'hepta', 'starter_compiles_without_new_contract': {'ok': False, 'stage': 'candidate_rustc', 'status': 'exited', 'diagnostics': "error[E0133]: call to unsafe function `h_task` is unsafe and requires unsafe function or block\n --> /candidate/submission.rs:2:42\n  |\n2 | pub fn evaluate(a: i64, b: i64) -> i64 { candidate::h_task(a, b) }\n  |                                          ^^^^^^^^^^^^^^^^^^^^^^^ call to unsafe function\n  |\n  = note: consult the function's documentation for information on how to avoid undefined behavior\n\nerror: aborting due to 1 previous error\n\nFor more information about this error, try `rustc --explain E0133`.\n"}, 'starter_fails_target_oracle': True, 'target_score': {'ok': False, 'compiled': False, 'passed': 0, 'total': 56, 'build': {'ok': False, 'stage': 'candidate_rustc', 'status': 'exited', 'diagnostics': "error[E0133]: call to unsafe function `h_task` is unsafe and requires unsafe function or block\n --> /candidate/submission.rs:2:42\n  |\n2 | pub fn evaluate(a: i64, b: i64) -> i64 { candidate::h_task(a, b) }\n  |                                          ^^^^^^^^^^^^^^^^^^^^^^^ call to unsafe function\n  |\n  = note: consult the function's documentation for information on how to avoid undefined behavior\n\nerror: aborting due to 1 previous error\n\nFor more information about this error, try `rustc --explain E0133`.\n"}}}
+
+======================================================================
+FAIL: test_twenty_four_arm_reference_scripts_all_execute_native_hidden_tests (test_crossfile_eval.CrossfileNativeTests.test_twenty_four_arm_reference_scripts_all_execute_native_hidden_tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/0817a147930b/Hepta-work/tests/test_crossfile_eval.py", line 161, in test_twenty_four_arm_reference_scripts_all_execute_native_hidden_tests
+    self.assertEqual(q['status'], 'qualified_fixtures_only')
+AssertionError: 'qualification_failed' != 'qualified_fixtures_only'
+- qualification_failed
++ qualified_fixtures_only
+
+
+----------------------------------------------------------------------
+Ran 930 tests in 216.418s
+
+FAILED (failures=2, errors=8)
+{"status": "rejected", "error": "E_OUTPUT_EXISTS: reports and plans are append-only; choose a new path"}

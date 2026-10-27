@@ -1,0 +1,2690 @@
+{
+  "c_compiler": {
+    "path": "/usr/bin/x86_64-linux-gnu-gcc-13",
+    "sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26",
+    "version": {
+      "argv": [
+        "/usr/bin/x86_64-linux-gnu-gcc-13",
+        "--version"
+      ],
+      "elapsed_ns": 1971886,
+      "error": null,
+      "executable_sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26",
+      "returncode": 0,
+      "status": "completed",
+      "stderr_base64": "",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_base64": "eDg2XzY0LWxpbnV4LWdudS1nY2MtMTMgKFVidW50dSAxMy4zLjAtNnVidW50dTJ+MjQuMDQuMSkgMTMuMy4wCkNvcHlyaWdodCAoQykgMjAyMyBGcmVlIFNvZnR3YXJlIEZvdW5kYXRpb24sIEluYy4KVGhpcyBpcyBmcmVlIHNvZnR3YXJlOyBzZWUgdGhlIHNvdXJjZSBmb3IgY29weWluZyBjb25kaXRpb25zLiAgVGhlcmUgaXMgTk8Kd2FycmFudHk7IG5vdCBldmVuIGZvciBNRVJDSEFOVEFCSUxJVFkgb3IgRklUTkVTUyBGT1IgQSBQQVJUSUNVTEFSIFBVUlBPU0UuCgo=",
+      "stdout_sha256": "ae487f55927d605284a32711e4ecf6bc3be2bcd5a9de414ace0936264b741f85",
+      "timeout_seconds": 30
+    }
+  },
+  "claims": {
+    "C_backend_tree_support": false,
+    "actual_OS_stack_bytes_measured": false,
+    "arbitrary_worker_termination_proved": false,
+    "async_scheduler_or_worker_created_escaping_children_supported": false,
+    "bounded_cancellation_latency_proved": false,
+    "deadlock_freedom_proved": false,
+    "runtime_race_freedom_proved": false,
+    "source_to_runtime_refinement_proved": false,
+    "whole_process_resources_bounded": false
+  },
+  "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+  "created_at": "2026-10-25T17:23:21.639007+00:00",
+  "denominators": {
+    "adoption_failure_races": 384,
+    "native_runs": 3,
+    "source_runs": 6,
+    "spawn_close_races": 192,
+    "wrong_runtime_programs": 4
+  },
+  "errors": [],
+  "host": {
+    "machine": "x86_64",
+    "system": "Linux"
+  },
+  "injector": {
+    "artifact": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/faults.o",
+    "artifact_bytes": 1632,
+    "artifact_sha256": "800de25ae2a05068b7172b502ce76e8b22fc38ac2734e461f5aee60984f276b7",
+    "execution": {
+      "argv": [
+        "/usr/bin/x86_64-linux-gnu-gcc-13",
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-c",
+        "/workspace/scratch/c7c6ee414a6c/hepta-research/tools/fixtures/shared_runtime_faults.c",
+        "-o",
+        "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/faults.o"
+      ],
+      "elapsed_ns": 19908401,
+      "error": null,
+      "executable_sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26",
+      "returncode": 0,
+      "status": "completed",
+      "stderr_base64": "",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_base64": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "timeout_seconds": 30
+    },
+    "source": "tools/fixtures/shared_runtime_faults.c",
+    "source_sha256": "afaa8712088beb500f441cd05f580cd9896bc8636ea39a7791dc643ba6d84cb5"
+  },
+  "linker": {
+    "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld",
+    "sha256": "5b224e53ad32986a5bf2e349addbe00c5ef37814a6a5584a9f2e3d03bb524306",
+    "wrapper_path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld/ld.lld",
+    "wrapper_sha256": "f61152eb9003a8a88a4c4d9c69feb7f82ecea13a4ac4f31eced2f5e8ec0f6fc8"
+  },
+  "native_controls": {
+    "build": {
+      "artifact": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/native_controls",
+      "artifact_bytes": 4001664,
+      "artifact_sha256": "a159fad3ced22450196f9e127282665976a89a0fe89fc6358e47b7bfffdeb0be",
+      "execution": {
+        "argv": [
+          "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/native_controls.rs",
+          "--edition=2021",
+          "--crate-name=hepta_tree_qualification",
+          "--crate-type=bin",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "-C",
+          "codegen-units=1",
+          "--sysroot",
+          "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+          "-C",
+          "linker=/usr/bin/x86_64-linux-gnu-gcc-13",
+          "-C",
+          "link-arg=-B/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld",
+          "-C",
+          "link-arg=-fuse-ld=lld",
+          "-C",
+          "link-arg=/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/faults.o",
+          "-C",
+          "link-arg=-Wl,--wrap=pthread_create",
+          "-o",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/native_controls"
+        ],
+        "elapsed_ns": 917666633,
+        "error": null,
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "returncode": 0,
+        "status": "completed",
+        "stderr_base64": "d2FybmluZzogdHlwZSBgSF9Hcm91cFJlcG9ydGAgc2hvdWxkIGhhdmUgYW4gdXBwZXIgY2FtZWwgY2FzZSBuYW1lCiAgLS0+IC9kZXYvc2htL2hlcHRhLWM3YzZlZTQxNGE2Yy90bXAvaGVwdGEtdGFzay10cmVlLV83MGlnNTJzL25hdGl2ZV9jb250cm9scy5yczoyNjoxMgogICB8CjI2IHwgcHViIHN0cnVjdCBIX0dyb3VwUmVwb3J0IHsKICAgfCAgICAgICAgICAgIF5eXl5eXl5eXl5eXl4gaGVscDogY29udmVydCB0aGUgaWRlbnRpZmllciB0byB1cHBlciBjYW1lbCBjYXNlOiBgSEdyb3VwUmVwb3J0YAogICB8CiAgID0gbm90ZTogYCNbd2Fybihub25fY2FtZWxfY2FzZV90eXBlcyldYCBvbiBieSBkZWZhdWx0Cgp3YXJuaW5nOiB0eXBlIGBIX0dyb3VwQnVkZ2V0UmVwb3J0YCBzaG91bGQgaGF2ZSBhbiB1cHBlciBjYW1lbCBjYXNlIG5hbWUKICAtLT4gL2Rldi9zaG0vaGVwdGEtYzdjNmVlNDE0YTZjL3RtcC9oZXB0YS10YXNrLXRyZWUtXzcwaWc1MnMvbmF0aXZlX2NvbnRyb2xzLnJzOjQwOjEyCiAgIHwKNDAgfCBwdWIgc3RydWN0IEhfR3JvdXBCdWRnZXRSZXBvcnQgewogICB8ICAgICAgICAgICAgXl5eXl5eXl5eXl5eXl5eXl5eXiBoZWxwOiBjb252ZXJ0IHRoZSBpZGVudGlmaWVyIHRvIHVwcGVyIGNhbWVsIGNhc2U6IGBIR3JvdXBCdWRnZXRSZXBvcnRgCgp3YXJuaW5nOiB0eXBlIGBIX0dyb3VwVHJlZVJlcG9ydGAgc2hvdWxkIGhhdmUgYW4gdXBwZXIgY2FtZWwgY2FzZSBuYW1lCiAgIC0tPiAvZGV2L3NobS9oZXB0YS1jN2M2ZWU0MTRhNmMvdG1wL2hlcHRhLXRhc2stdHJlZS1fNzBpZzUycy9uYXRpdmVfY29udHJvbHMucnM6NDY1OjEyCiAgICB8CjQ2NSB8IHB1YiBzdHJ1Y3QgSF9Hcm91cFRyZWVSZXBvcnQgewogICAgfCAgICAgICAgICAgIF5eXl5eXl5eXl5eXl5eXl5eIGhlbHA6IGNvbnZlcnQgdGhlIGlkZW50aWZpZXIgdG8gdXBwZXIgY2FtZWwgY2FzZTogYEhHcm91cFRyZWVSZXBvcnRgCgp3YXJuaW5nOiAzIHdhcm5pbmdzIGVtaXR0ZWQKCg==",
+        "stderr_sha256": "32677292d58b674e6147cbd9d32b4bd7dfd7fc19a791b6fb611cb3753924036d",
+        "stdout_base64": "",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 60
+      },
+      "flags": [
+        "--edition=2021",
+        "--crate-name=hepta_tree_qualification",
+        "--crate-type=bin",
+        "-C",
+        "opt-level=3",
+        "-C",
+        "overflow-checks=yes",
+        "-C",
+        "panic=abort",
+        "-C",
+        "codegen-units=1",
+        "--sysroot",
+        "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+        "-C",
+        "linker=/usr/bin/x86_64-linux-gnu-gcc-13",
+        "-C",
+        "link-arg=-B/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld",
+        "-C",
+        "link-arg=-fuse-ld=lld",
+        "-C",
+        "link-arg=/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/faults.o",
+        "-C",
+        "link-arg=-Wl,--wrap=pthread_create"
+      ],
+      "linked_object_sha256": "800de25ae2a05068b7172b502ce76e8b22fc38ac2734e461f5aee60984f276b7",
+      "source_path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/native_controls.rs",
+      "source_sha256": "f598df8aac5c6edf3db4d89b44049f60bab9bc38c7a19a2bd4f45fcba2d9cd74"
+    },
+    "runs": [
+      {
+        "execution": {
+          "argv": [
+            "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/native_controls"
+          ],
+          "elapsed_ns": 17120549,
+          "error": null,
+          "executable_sha256": "a159fad3ced22450196f9e127282665976a89a0fe89fc6358e47b7bfffdeb0be",
+          "returncode": 0,
+          "status": "completed",
+          "stderr_base64": "",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_base64": "MQozCjEKMgoyCjIKNwo0CjEyOAo2NAo2NAoxCjEKMAo=",
+          "stdout_sha256": "b6770859eb04bc03b3e65dffe2425553943315e924a55ebd02647e7671da6cf0",
+          "timeout_seconds": 30
+        },
+        "metrics": {
+          "actual_allocator_or_pthread_refusals": 2,
+          "adoption_failure_races": 128,
+          "deterministic_adoption_failure_orders": 4,
+          "failure_directions": 2,
+          "failure_while_child_owner_taken_for_join": 1,
+          "interdependent_queue_tree": 1,
+          "legacy_join_modes_wait_for_descendants": 3,
+          "minimum_requested_stack_deep_failure": 1,
+          "parent_cancel_wakes_descendants": 1,
+          "post_refusal_recoveries": 2,
+          "remaining_pool_reservations": 0,
+          "spawn_close_races": 64,
+          "spurious_tree_notifications": 64,
+          "topology_and_budget_boundaries": 7
+        },
+        "trial": 0
+      },
+      {
+        "execution": {
+          "argv": [
+            "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/native_controls"
+          ],
+          "elapsed_ns": 17300111,
+          "error": null,
+          "executable_sha256": "a159fad3ced22450196f9e127282665976a89a0fe89fc6358e47b7bfffdeb0be",
+          "returncode": 0,
+          "status": "completed",
+          "stderr_base64": "",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_base64": "MQozCjEKMgoyCjIKNwo0CjEyOAo2NAo2NAoxCjEKMAo=",
+          "stdout_sha256": "b6770859eb04bc03b3e65dffe2425553943315e924a55ebd02647e7671da6cf0",
+          "timeout_seconds": 30
+        },
+        "metrics": {
+          "actual_allocator_or_pthread_refusals": 2,
+          "adoption_failure_races": 128,
+          "deterministic_adoption_failure_orders": 4,
+          "failure_directions": 2,
+          "failure_while_child_owner_taken_for_join": 1,
+          "interdependent_queue_tree": 1,
+          "legacy_join_modes_wait_for_descendants": 3,
+          "minimum_requested_stack_deep_failure": 1,
+          "parent_cancel_wakes_descendants": 1,
+          "post_refusal_recoveries": 2,
+          "remaining_pool_reservations": 0,
+          "spawn_close_races": 64,
+          "spurious_tree_notifications": 64,
+          "topology_and_budget_boundaries": 7
+        },
+        "trial": 1
+      },
+      {
+        "execution": {
+          "argv": [
+            "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/native_controls"
+          ],
+          "elapsed_ns": 16163210,
+          "error": null,
+          "executable_sha256": "a159fad3ced22450196f9e127282665976a89a0fe89fc6358e47b7bfffdeb0be",
+          "returncode": 0,
+          "status": "completed",
+          "stderr_base64": "",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_base64": "MQozCjEKMgoyCjIKNwo0CjEyOAo2NAo2NAoxCjEKMAo=",
+          "stdout_sha256": "b6770859eb04bc03b3e65dffe2425553943315e924a55ebd02647e7671da6cf0",
+          "timeout_seconds": 30
+        },
+        "metrics": {
+          "actual_allocator_or_pthread_refusals": 2,
+          "adoption_failure_races": 128,
+          "deterministic_adoption_failure_orders": 4,
+          "failure_directions": 2,
+          "failure_while_child_owner_taken_for_join": 1,
+          "interdependent_queue_tree": 1,
+          "legacy_join_modes_wait_for_descendants": 3,
+          "minimum_requested_stack_deep_failure": 1,
+          "parent_cancel_wakes_descendants": 1,
+          "post_refusal_recoveries": 2,
+          "remaining_pool_reservations": 0,
+          "spawn_close_races": 64,
+          "spurious_tree_notifications": 64,
+          "topology_and_budget_boundaries": 7
+        },
+        "trial": 2
+      }
+    ]
+  },
+  "negative_controls": [
+    {
+      "build": {
+        "artifact": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/orphan_child_on_join",
+        "artifact_bytes": 3885672,
+        "artifact_sha256": "f4b643f78c67614154504918bdd24899d35fea420b59850bc3e760905aa38a5a",
+        "execution": {
+          "argv": [
+            "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+            "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/orphan_child_on_join.rs",
+            "--edition=2021",
+            "--crate-name=hepta_tree_qualification",
+            "--crate-type=bin",
+            "-C",
+            "opt-level=3",
+            "-C",
+            "overflow-checks=yes",
+            "-C",
+            "panic=abort",
+            "-C",
+            "codegen-units=1",
+            "--sysroot",
+            "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+            "-C",
+            "linker=/usr/bin/x86_64-linux-gnu-gcc-13",
+            "-C",
+            "link-arg=-B/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld",
+            "-C",
+            "link-arg=-fuse-ld=lld",
+            "-C",
+            "link-arg=/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/faults.o",
+            "-C",
+            "link-arg=-Wl,--wrap=pthread_create",
+            "-o",
+            "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/orphan_child_on_join"
+          ],
+          "elapsed_ns": 310318701,
+          "error": null,
+          "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+          "returncode": 0,
+          "status": "completed",
+          "stderr_base64": "d2FybmluZzogdHlwZSBgSF9Hcm91cFJlcG9ydGAgc2hvdWxkIGhhdmUgYW4gdXBwZXIgY2FtZWwgY2FzZSBuYW1lCiAgLS0+IC9kZXYvc2htL2hlcHRhLWM3YzZlZTQxNGE2Yy90bXAvaGVwdGEtdGFzay10cmVlLV83MGlnNTJzL29ycGhhbl9jaGlsZF9vbl9qb2luLnJzOjI2OjEyCiAgIHwKMjYgfCBwdWIgc3RydWN0IEhfR3JvdXBSZXBvcnQgewogICB8ICAgICAgICAgICAgXl5eXl5eXl5eXl5eXiBoZWxwOiBjb252ZXJ0IHRoZSBpZGVudGlmaWVyIHRvIHVwcGVyIGNhbWVsIGNhc2U6IGBIR3JvdXBSZXBvcnRgCiAgIHwKICAgPSBub3RlOiBgI1t3YXJuKG5vbl9jYW1lbF9jYXNlX3R5cGVzKV1gIG9uIGJ5IGRlZmF1bHQKCndhcm5pbmc6IHR5cGUgYEhfR3JvdXBCdWRnZXRSZXBvcnRgIHNob3VsZCBoYXZlIGFuIHVwcGVyIGNhbWVsIGNhc2UgbmFtZQogIC0tPiAvZGV2L3NobS9oZXB0YS1jN2M2ZWU0MTRhNmMvdG1wL2hlcHRhLXRhc2stdHJlZS1fNzBpZzUycy9vcnBoYW5fY2hpbGRfb25fam9pbi5yczo0MDoxMgogICB8CjQwIHwgcHViIHN0cnVjdCBIX0dyb3VwQnVkZ2V0UmVwb3J0IHsKICAgfCAgICAgICAgICAgIF5eXl5eXl5eXl5eXl5eXl5eXl4gaGVscDogY29udmVydCB0aGUgaWRlbnRpZmllciB0byB1cHBlciBjYW1lbCBjYXNlOiBgSEdyb3VwQnVkZ2V0UmVwb3J0YAoKd2FybmluZzogdHlwZSBgSF9Hcm91cFRyZWVSZXBvcnRgIHNob3VsZCBoYXZlIGFuIHVwcGVyIGNhbWVsIGNhc2UgbmFtZQogICAtLT4gL2Rldi9zaG0vaGVwdGEtYzdjNmVlNDE0YTZjL3RtcC9oZXB0YS10YXNrLXRyZWUtXzcwaWc1MnMvb3JwaGFuX2NoaWxkX29uX2pvaW4ucnM6NDY1OjEyCiAgICB8CjQ2NSB8IHB1YiBzdHJ1Y3QgSF9Hcm91cFRyZWVSZXBvcnQgewogICAgfCAgICAgICAgICAgIF5eXl5eXl5eXl5eXl5eXl5eIGhlbHA6IGNvbnZlcnQgdGhlIGlkZW50aWZpZXIgdG8gdXBwZXIgY2FtZWwgY2FzZTogYEhHcm91cFRyZWVSZXBvcnRgCgp3YXJuaW5nOiAzIHdhcm5pbmdzIGVtaXR0ZWQKCg==",
+          "stderr_sha256": "c11c6459f9a9b9ff1980f7332eb893beda025cab2dbbed542db1ae8225bb3fe2",
+          "stdout_base64": "",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "timeout_seconds": 60
+        },
+        "flags": [
+          "--edition=2021",
+          "--crate-name=hepta_tree_qualification",
+          "--crate-type=bin",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "-C",
+          "codegen-units=1",
+          "--sysroot",
+          "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+          "-C",
+          "linker=/usr/bin/x86_64-linux-gnu-gcc-13",
+          "-C",
+          "link-arg=-B/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld",
+          "-C",
+          "link-arg=-fuse-ld=lld",
+          "-C",
+          "link-arg=/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/faults.o",
+          "-C",
+          "link-arg=-Wl,--wrap=pthread_create"
+        ],
+        "linked_object_sha256": "800de25ae2a05068b7172b502ce76e8b22fc38ac2734e461f5aee60984f276b7",
+        "source_path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/orphan_child_on_join.rs",
+        "source_sha256": "0f01b4d571abd294cd7caf311529389aba84666535c0525fdb96ca4370c81750"
+      },
+      "execution": {
+        "argv": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/orphan_child_on_join"
+        ],
+        "elapsed_ns": 4344196,
+        "error": null,
+        "executable_sha256": "f4b643f78c67614154504918bdd24899d35fea420b59850bc3e760905aa38a5a",
+        "returncode": -6,
+        "status": "completed",
+        "stderr_base64": "CnRocmVhZCAnbWFpbicgcGFuaWNrZWQgYXQgL2Rldi9zaG0vaGVwdGEtYzdjNmVlNDE0YTZjL3RtcC9oZXB0YS10YXNrLXRyZWUtXzcwaWc1MnMvb3JwaGFuX2NoaWxkX29uX2pvaW4ucnM6NzE1Ojk4OgpvcnBoYW5lZCBkZXNjZW5kYW50IGRldGVjdGVkCm5vdGU6IHJ1biB3aXRoIGBSVVNUX0JBQ0tUUkFDRT0xYCBlbnZpcm9ubWVudCB2YXJpYWJsZSB0byBkaXNwbGF5IGEgYmFja3RyYWNlCg==",
+        "stderr_sha256": "16984c053df5b04e491b9085ed493afd13bd170992537be23f7f97d11009422d",
+        "stdout_base64": "",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 10
+      },
+      "expected": "nonzero",
+      "name": "orphan_child_on_join"
+    },
+    {
+      "build": {
+        "artifact": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/lost_descendant_cancellation",
+        "artifact_bytes": 3883464,
+        "artifact_sha256": "8b5d0f5dd1eebf2c26f0c5e7c02a4a9a29bdd673f19586eefcb45896dec3ea4b",
+        "execution": {
+          "argv": [
+            "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+            "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/lost_descendant_cancellation.rs",
+            "--edition=2021",
+            "--crate-name=hepta_tree_qualification",
+            "--crate-type=bin",
+            "-C",
+            "opt-level=3",
+            "-C",
+            "overflow-checks=yes",
+            "-C",
+            "panic=abort",
+            "-C",
+            "codegen-units=1",
+            "--sysroot",
+            "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+            "-C",
+            "linker=/usr/bin/x86_64-linux-gnu-gcc-13",
+            "-C",
+            "link-arg=-B/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld",
+            "-C",
+            "link-arg=-fuse-ld=lld",
+            "-C",
+            "link-arg=/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/faults.o",
+            "-C",
+            "link-arg=-Wl,--wrap=pthread_create",
+            "-o",
+            "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/lost_descendant_cancellation"
+          ],
+          "elapsed_ns": 300501493,
+          "error": null,
+          "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+          "returncode": 0,
+          "status": "completed",
+          "stderr_base64": "d2FybmluZzogdHlwZSBgSF9Hcm91cFJlcG9ydGAgc2hvdWxkIGhhdmUgYW4gdXBwZXIgY2FtZWwgY2FzZSBuYW1lCiAgLS0+IC9kZXYvc2htL2hlcHRhLWM3YzZlZTQxNGE2Yy90bXAvaGVwdGEtdGFzay10cmVlLV83MGlnNTJzL2xvc3RfZGVzY2VuZGFudF9jYW5jZWxsYXRpb24ucnM6MjY6MTIKICAgfAoyNiB8IHB1YiBzdHJ1Y3QgSF9Hcm91cFJlcG9ydCB7CiAgIHwgICAgICAgICAgICBeXl5eXl5eXl5eXl5eIGhlbHA6IGNvbnZlcnQgdGhlIGlkZW50aWZpZXIgdG8gdXBwZXIgY2FtZWwgY2FzZTogYEhHcm91cFJlcG9ydGAKICAgfAogICA9IG5vdGU6IGAjW3dhcm4obm9uX2NhbWVsX2Nhc2VfdHlwZXMpXWAgb24gYnkgZGVmYXVsdAoKd2FybmluZzogdHlwZSBgSF9Hcm91cEJ1ZGdldFJlcG9ydGAgc2hvdWxkIGhhdmUgYW4gdXBwZXIgY2FtZWwgY2FzZSBuYW1lCiAgLS0+IC9kZXYvc2htL2hlcHRhLWM3YzZlZTQxNGE2Yy90bXAvaGVwdGEtdGFzay10cmVlLV83MGlnNTJzL2xvc3RfZGVzY2VuZGFudF9jYW5jZWxsYXRpb24ucnM6NDA6MTIKICAgfAo0MCB8IHB1YiBzdHJ1Y3QgSF9Hcm91cEJ1ZGdldFJlcG9ydCB7CiAgIHwgICAgICAgICAgICBeXl5eXl5eXl5eXl5eXl5eXl5eIGhlbHA6IGNvbnZlcnQgdGhlIGlkZW50aWZpZXIgdG8gdXBwZXIgY2FtZWwgY2FzZTogYEhHcm91cEJ1ZGdldFJlcG9ydGAKCndhcm5pbmc6IHR5cGUgYEhfR3JvdXBUcmVlUmVwb3J0YCBzaG91bGQgaGF2ZSBhbiB1cHBlciBjYW1lbCBjYXNlIG5hbWUKICAgLS0+IC9kZXYvc2htL2hlcHRhLWM3YzZlZTQxNGE2Yy90bXAvaGVwdGEtdGFzay10cmVlLV83MGlnNTJzL2xvc3RfZGVzY2VuZGFudF9jYW5jZWxsYXRpb24ucnM6NDY1OjEyCiAgICB8CjQ2NSB8IHB1YiBzdHJ1Y3QgSF9Hcm91cFRyZWVSZXBvcnQgewogICAgfCAgICAgICAgICAgIF5eXl5eXl5eXl5eXl5eXl5eIGhlbHA6IGNvbnZlcnQgdGhlIGlkZW50aWZpZXIgdG8gdXBwZXIgY2FtZWwgY2FzZTogYEhHcm91cFRyZWVSZXBvcnRgCgp3YXJuaW5nOiAzIHdhcm5pbmdzIGVtaXR0ZWQKCg==",
+          "stderr_sha256": "fd7af7eca3772da1dc9f1affd5d442a0d3c917fa57ef5baa7088524fafe24849",
+          "stdout_base64": "",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "timeout_seconds": 60
+        },
+        "flags": [
+          "--edition=2021",
+          "--crate-name=hepta_tree_qualification",
+          "--crate-type=bin",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "-C",
+          "codegen-units=1",
+          "--sysroot",
+          "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+          "-C",
+          "linker=/usr/bin/x86_64-linux-gnu-gcc-13",
+          "-C",
+          "link-arg=-B/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld",
+          "-C",
+          "link-arg=-fuse-ld=lld",
+          "-C",
+          "link-arg=/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/faults.o",
+          "-C",
+          "link-arg=-Wl,--wrap=pthread_create"
+        ],
+        "linked_object_sha256": "800de25ae2a05068b7172b502ce76e8b22fc38ac2734e461f5aee60984f276b7",
+        "source_path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/lost_descendant_cancellation.rs",
+        "source_sha256": "71a54a6c5a0554462ead4c2f408738d5c10182e0a9d854345a13a793d6439b66"
+      },
+      "execution": {
+        "argv": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/lost_descendant_cancellation"
+        ],
+        "elapsed_ns": 5524197,
+        "error": null,
+        "executable_sha256": "8b5d0f5dd1eebf2c26f0c5e7c02a4a9a29bdd673f19586eefcb45896dec3ea4b",
+        "returncode": -6,
+        "status": "completed",
+        "stderr_base64": "CnRocmVhZCAnbWFpbicgcGFuaWNrZWQgYXQgL2Rldi9zaG0vaGVwdGEtYzdjNmVlNDE0YTZjL3RtcC9oZXB0YS10YXNrLXRyZWUtXzcwaWc1MnMvbG9zdF9kZXNjZW5kYW50X2NhbmNlbGxhdGlvbi5yczo3MTU6ODU6CnVuY2FuY2VsbGVkIGRlc2NlbmRhbnQgZGV0ZWN0ZWQKbm90ZTogcnVuIHdpdGggYFJVU1RfQkFDS1RSQUNFPTFgIGVudmlyb25tZW50IHZhcmlhYmxlIHRvIGRpc3BsYXkgYSBiYWNrdHJhY2UK",
+        "stderr_sha256": "9503c5da30f739984263fb1ccf5bd5b8cc33f838df647bb1dd2e7b73f29b9b28",
+        "stdout_base64": "",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 10
+      },
+      "expected": "nonzero",
+      "name": "lost_descendant_cancellation"
+    },
+    {
+      "build": {
+        "artifact": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/adoption_refusal_detaches_child",
+        "artifact_bytes": 3883936,
+        "artifact_sha256": "48aeb76789af1586f3a6b0b7b505daaf69f7f7e4fa4a4b6c439085bde3786c64",
+        "execution": {
+          "argv": [
+            "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+            "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/adoption_refusal_detaches_child.rs",
+            "--edition=2021",
+            "--crate-name=hepta_tree_qualification",
+            "--crate-type=bin",
+            "-C",
+            "opt-level=3",
+            "-C",
+            "overflow-checks=yes",
+            "-C",
+            "panic=abort",
+            "-C",
+            "codegen-units=1",
+            "--sysroot",
+            "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+            "-C",
+            "linker=/usr/bin/x86_64-linux-gnu-gcc-13",
+            "-C",
+            "link-arg=-B/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld",
+            "-C",
+            "link-arg=-fuse-ld=lld",
+            "-C",
+            "link-arg=/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/faults.o",
+            "-C",
+            "link-arg=-Wl,--wrap=pthread_create",
+            "-o",
+            "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/adoption_refusal_detaches_child"
+          ],
+          "elapsed_ns": 346572608,
+          "error": null,
+          "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+          "returncode": 0,
+          "status": "completed",
+          "stderr_base64": "d2FybmluZzogdHlwZSBgSF9Hcm91cFJlcG9ydGAgc2hvdWxkIGhhdmUgYW4gdXBwZXIgY2FtZWwgY2FzZSBuYW1lCiAgLS0+IC9kZXYvc2htL2hlcHRhLWM3YzZlZTQxNGE2Yy90bXAvaGVwdGEtdGFzay10cmVlLV83MGlnNTJzL2Fkb3B0aW9uX3JlZnVzYWxfZGV0YWNoZXNfY2hpbGQucnM6MjY6MTIKICAgfAoyNiB8IHB1YiBzdHJ1Y3QgSF9Hcm91cFJlcG9ydCB7CiAgIHwgICAgICAgICAgICBeXl5eXl5eXl5eXl5eIGhlbHA6IGNvbnZlcnQgdGhlIGlkZW50aWZpZXIgdG8gdXBwZXIgY2FtZWwgY2FzZTogYEhHcm91cFJlcG9ydGAKICAgfAogICA9IG5vdGU6IGAjW3dhcm4obm9uX2NhbWVsX2Nhc2VfdHlwZXMpXWAgb24gYnkgZGVmYXVsdAoKd2FybmluZzogdHlwZSBgSF9Hcm91cEJ1ZGdldFJlcG9ydGAgc2hvdWxkIGhhdmUgYW4gdXBwZXIgY2FtZWwgY2FzZSBuYW1lCiAgLS0+IC9kZXYvc2htL2hlcHRhLWM3YzZlZTQxNGE2Yy90bXAvaGVwdGEtdGFzay10cmVlLV83MGlnNTJzL2Fkb3B0aW9uX3JlZnVzYWxfZGV0YWNoZXNfY2hpbGQucnM6NDA6MTIKICAgfAo0MCB8IHB1YiBzdHJ1Y3QgSF9Hcm91cEJ1ZGdldFJlcG9ydCB7CiAgIHwgICAgICAgICAgICBeXl5eXl5eXl5eXl5eXl5eXl5eIGhlbHA6IGNvbnZlcnQgdGhlIGlkZW50aWZpZXIgdG8gdXBwZXIgY2FtZWwgY2FzZTogYEhHcm91cEJ1ZGdldFJlcG9ydGAKCndhcm5pbmc6IHR5cGUgYEhfR3JvdXBUcmVlUmVwb3J0YCBzaG91bGQgaGF2ZSBhbiB1cHBlciBjYW1lbCBjYXNlIG5hbWUKICAgLS0+IC9kZXYvc2htL2hlcHRhLWM3YzZlZTQxNGE2Yy90bXAvaGVwdGEtdGFzay10cmVlLV83MGlnNTJzL2Fkb3B0aW9uX3JlZnVzYWxfZGV0YWNoZXNfY2hpbGQucnM6NDY1OjEyCiAgICB8CjQ2NSB8IHB1YiBzdHJ1Y3QgSF9Hcm91cFRyZWVSZXBvcnQgewogICAgfCAgICAgICAgICAgIF5eXl5eXl5eXl5eXl5eXl5eIGhlbHA6IGNvbnZlcnQgdGhlIGlkZW50aWZpZXIgdG8gdXBwZXIgY2FtZWwgY2FzZTogYEhHcm91cFRyZWVSZXBvcnRgCgp3YXJuaW5nOiAzIHdhcm5pbmdzIGVtaXR0ZWQKCg==",
+          "stderr_sha256": "62d3d654718a91145f3aad634fe9f4f8391b43fdfc0ef9f43b2d8c3dd6ac405b",
+          "stdout_base64": "",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "timeout_seconds": 60
+        },
+        "flags": [
+          "--edition=2021",
+          "--crate-name=hepta_tree_qualification",
+          "--crate-type=bin",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "-C",
+          "codegen-units=1",
+          "--sysroot",
+          "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+          "-C",
+          "linker=/usr/bin/x86_64-linux-gnu-gcc-13",
+          "-C",
+          "link-arg=-B/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld",
+          "-C",
+          "link-arg=-fuse-ld=lld",
+          "-C",
+          "link-arg=/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/faults.o",
+          "-C",
+          "link-arg=-Wl,--wrap=pthread_create"
+        ],
+        "linked_object_sha256": "800de25ae2a05068b7172b502ce76e8b22fc38ac2734e461f5aee60984f276b7",
+        "source_path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/adoption_refusal_detaches_child.rs",
+        "source_sha256": "f422a3e04eca79c019362358e9edcf248336e90d929f25abaa92ac1343280f66"
+      },
+      "execution": {
+        "argv": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/adoption_refusal_detaches_child"
+        ],
+        "elapsed_ns": 4457994,
+        "error": null,
+        "executable_sha256": "48aeb76789af1586f3a6b0b7b505daaf69f7f7e4fa4a4b6c439085bde3786c64",
+        "returncode": -6,
+        "status": "completed",
+        "stderr_base64": "CnRocmVhZCAnbWFpbicgcGFuaWNrZWQgYXQgL2Rldi9zaG0vaGVwdGEtYzdjNmVlNDE0YTZjL3RtcC9oZXB0YS10YXNrLXRyZWUtXzcwaWc1MnMvYWRvcHRpb25fcmVmdXNhbF9kZXRhY2hlc19jaGlsZC5yczo3MTU6ODQ6CnVuam9pbmVkIHJlZnVzZWQgY2hpbGQgZGV0ZWN0ZWQKbm90ZTogcnVuIHdpdGggYFJVU1RfQkFDS1RSQUNFPTFgIGVudmlyb25tZW50IHZhcmlhYmxlIHRvIGRpc3BsYXkgYSBiYWNrdHJhY2UK",
+        "stderr_sha256": "d5be13bc34a3de043fa3de5d86dfc50c9dbcf32bc3d50839bb5331c43252ac13",
+        "stdout_base64": "",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 10
+      },
+      "expected": "nonzero",
+      "name": "adoption_refusal_detaches_child"
+    },
+    {
+      "build": {
+        "artifact": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/sequential_queue_drain_deadlocks",
+        "artifact_bytes": 4001680,
+        "artifact_sha256": "0403d1d75b64ccecdeb749683528936d4f8204bd4c4ec2c28db743e063663978",
+        "execution": {
+          "argv": [
+            "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+            "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/sequential_queue_drain_deadlocks.rs",
+            "--edition=2021",
+            "--crate-name=hepta_tree_qualification",
+            "--crate-type=bin",
+            "-C",
+            "opt-level=3",
+            "-C",
+            "overflow-checks=yes",
+            "-C",
+            "panic=abort",
+            "-C",
+            "codegen-units=1",
+            "--sysroot",
+            "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+            "-C",
+            "linker=/usr/bin/x86_64-linux-gnu-gcc-13",
+            "-C",
+            "link-arg=-B/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld",
+            "-C",
+            "link-arg=-fuse-ld=lld",
+            "-C",
+            "link-arg=/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/faults.o",
+            "-C",
+            "link-arg=-Wl,--wrap=pthread_create",
+            "-o",
+            "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/sequential_queue_drain_deadlocks"
+          ],
+          "elapsed_ns": 944425680,
+          "error": null,
+          "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+          "returncode": 0,
+          "status": "completed",
+          "stderr_base64": "d2FybmluZzogdHlwZSBgSF9Hcm91cFJlcG9ydGAgc2hvdWxkIGhhdmUgYW4gdXBwZXIgY2FtZWwgY2FzZSBuYW1lCiAgLS0+IC9kZXYvc2htL2hlcHRhLWM3YzZlZTQxNGE2Yy90bXAvaGVwdGEtdGFzay10cmVlLV83MGlnNTJzL3NlcXVlbnRpYWxfcXVldWVfZHJhaW5fZGVhZGxvY2tzLnJzOjI2OjEyCiAgIHwKMjYgfCBwdWIgc3RydWN0IEhfR3JvdXBSZXBvcnQgewogICB8ICAgICAgICAgICAgXl5eXl5eXl5eXl5eXiBoZWxwOiBjb252ZXJ0IHRoZSBpZGVudGlmaWVyIHRvIHVwcGVyIGNhbWVsIGNhc2U6IGBIR3JvdXBSZXBvcnRgCiAgIHwKICAgPSBub3RlOiBgI1t3YXJuKG5vbl9jYW1lbF9jYXNlX3R5cGVzKV1gIG9uIGJ5IGRlZmF1bHQKCndhcm5pbmc6IHR5cGUgYEhfR3JvdXBCdWRnZXRSZXBvcnRgIHNob3VsZCBoYXZlIGFuIHVwcGVyIGNhbWVsIGNhc2UgbmFtZQogIC0tPiAvZGV2L3NobS9oZXB0YS1jN2M2ZWU0MTRhNmMvdG1wL2hlcHRhLXRhc2stdHJlZS1fNzBpZzUycy9zZXF1ZW50aWFsX3F1ZXVlX2RyYWluX2RlYWRsb2Nrcy5yczo0MDoxMgogICB8CjQwIHwgcHViIHN0cnVjdCBIX0dyb3VwQnVkZ2V0UmVwb3J0IHsKICAgfCAgICAgICAgICAgIF5eXl5eXl5eXl5eXl5eXl5eXl4gaGVscDogY29udmVydCB0aGUgaWRlbnRpZmllciB0byB1cHBlciBjYW1lbCBjYXNlOiBgSEdyb3VwQnVkZ2V0UmVwb3J0YAoKd2FybmluZzogdHlwZSBgSF9Hcm91cFRyZWVSZXBvcnRgIHNob3VsZCBoYXZlIGFuIHVwcGVyIGNhbWVsIGNhc2UgbmFtZQogICAtLT4gL2Rldi9zaG0vaGVwdGEtYzdjNmVlNDE0YTZjL3RtcC9oZXB0YS10YXNrLXRyZWUtXzcwaWc1MnMvc2VxdWVudGlhbF9xdWV1ZV9kcmFpbl9kZWFkbG9ja3MucnM6NDY1OjEyCiAgICB8CjQ2NSB8IHB1YiBzdHJ1Y3QgSF9Hcm91cFRyZWVSZXBvcnQgewogICAgfCAgICAgICAgICAgIF5eXl5eXl5eXl5eXl5eXl5eIGhlbHA6IGNvbnZlcnQgdGhlIGlkZW50aWZpZXIgdG8gdXBwZXIgY2FtZWwgY2FzZTogYEhHcm91cFRyZWVSZXBvcnRgCgp3YXJuaW5nOiAzIHdhcm5pbmdzIGVtaXR0ZWQKCg==",
+          "stderr_sha256": "d812d848d57fb9485c54c2581859a00ccaabc65a8f76824a438a8a026106da1b",
+          "stdout_base64": "",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "timeout_seconds": 60
+        },
+        "flags": [
+          "--edition=2021",
+          "--crate-name=hepta_tree_qualification",
+          "--crate-type=bin",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "-C",
+          "codegen-units=1",
+          "--sysroot",
+          "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+          "-C",
+          "linker=/usr/bin/x86_64-linux-gnu-gcc-13",
+          "-C",
+          "link-arg=-B/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld",
+          "-C",
+          "link-arg=-fuse-ld=lld",
+          "-C",
+          "link-arg=/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/faults.o",
+          "-C",
+          "link-arg=-Wl,--wrap=pthread_create"
+        ],
+        "linked_object_sha256": "800de25ae2a05068b7172b502ce76e8b22fc38ac2734e461f5aee60984f276b7",
+        "source_path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/sequential_queue_drain_deadlocks.rs",
+        "source_sha256": "ff14f27a971ad124dfe39b41e018136224b68c2739202c02291ed5ed7ac6c7d2"
+      },
+      "execution": {
+        "argv": [
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/sequential_queue_drain_deadlocks"
+        ],
+        "elapsed_ns": 2008948586,
+        "error": null,
+        "executable_sha256": "0403d1d75b64ccecdeb749683528936d4f8204bd4c4ec2c28db743e063663978",
+        "returncode": null,
+        "status": "timeout",
+        "stderr_base64": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_base64": "",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 2
+      },
+      "expected": "timeout",
+      "name": "sequential_queue_drain_deadlocks"
+    }
+  ],
+  "profile": {
+    "adoption": "consumes_actual_child_owner_and_descendants",
+    "backend": "hosted_native_Rust",
+    "budget": "identical_explicit_pool_or_all_unattached",
+    "cancellation": "cooperative_no_forced_worker_termination",
+    "drain": "one_tree_condition_variable_all_queues_polled_on_each_wake",
+    "join": "all_legacy_and_tree_join_operations_wait_for_all_descendants",
+    "refusal": "consumes_cancels_and_joins_child_before_returning_false",
+    "report": "flat_GroupReport_or_aggregate_GroupTreeReport",
+    "tree_depth": 16,
+    "tree_groups": 256
+  },
+  "repeats": 3,
+  "schema": "hepta.task-tree.evidence.v1",
+  "source_cases": [
+    {
+      "analysis": {
+        "assumptions": [],
+        "backend": {
+          "check_only": true,
+          "crate_type": "bin",
+          "diagnostics": [],
+          "flags": [
+            "edition=2021",
+            "opt-level=3",
+            "overflow-checks=yes",
+            "panic=abort",
+            "codegen-units=1",
+            "sysroot=/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0"
+          ],
+          "link_args": [],
+          "linker": null,
+          "ok": true,
+          "rust_sha256": "ee79772b64bf67491d8bddd4d4743b96eb9acdfc0ca325f47fee177995545d3c",
+          "rustc_crate_type": "lib",
+          "status": "rustc_checked",
+          "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+            "host": "x86_64-unknown-linux-gnu",
+            "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+            "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+            "sysroot_discovery": "verified_compiler_prefix",
+            "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+          },
+          "validation_artifact_sha256": "4081450930a7241dfa7b76dbf2c0c7e6c6ae4a52c23823882973f65eeda53e88"
+        },
+        "checks": {
+          "rust_borrows_types": "rustc_checked",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "emit": [
+            "alloc",
+            "block",
+            "panic",
+            "write"
+          ],
+          "main": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "spawn",
+            "write"
+          ]
+        },
+        "interface_sha256": "2701b4bf3095527b5ca0abb53562b495a725933b8fb2ee27ab9c907d014180e2",
+        "ok": true,
+        "path": "examples/groups/tree_pipeline.hepta",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 4,
+              "admitted_tasks": 1,
+              "queued_u64_values": 1
+            },
+            "line": 14,
+            "path": "examples/groups/tree_pipeline.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 4,
+              "admitted_tasks": 1,
+              "queued_u64_values": 1
+            },
+            "line": 15,
+            "path": "examples/groups/tree_pipeline.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 4,
+              "admitted_tasks": 1,
+              "queued_u64_values": 1
+            },
+            "line": 16,
+            "path": "examples/groups/tree_pipeline.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 4,
+              "admitted_tasks": 1,
+              "queued_u64_values": 1
+            },
+            "line": 17,
+            "path": "examples/groups/tree_pipeline.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 0,
+              "admitted_tasks": 0,
+              "queued_u64_values": 1
+            },
+            "line": 18,
+            "path": "examples/groups/tree_pipeline.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "configuration_can_be_refused": true,
+            "enforcement": "checked_reservations_before_spawn_released_after_join",
+            "excludes": [
+              "unattached_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "FFI_allocations",
+              "OS_stack_rounding_and_guard_pages",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "shared_task_budget",
+            "limits": {
+              "reserved_input_bytes": 16,
+              "reserved_queue_slots": 5,
+              "reserved_requested_stack_bytes": 262144,
+              "reserved_threads": 4,
+              "worker_stack_request": 65536
+            },
+            "line": 19,
+            "path": "examples/groups/tree_pipeline.hepta",
+            "scope": "explicitly_attached_group_instances"
+          },
+          {
+            "budget_requirement": "same_explicit_pool_or_all_unattached",
+            "enforcement": "bounded_ownership_transfer_and_recursive_close_join",
+            "excludes": [
+              "process_RSS",
+              "worker_internal_allocations",
+              "FFI_allocations",
+              "arbitrary_worker_termination"
+            ],
+            "function": "main",
+            "kind": "structured_task_tree",
+            "limits": {
+              "depth": 16,
+              "groups": 256
+            },
+            "line": 28,
+            "path": "examples/groups/tree_pipeline.hepta",
+            "refusal": "consumes_cancels_and_joins_child_subtree",
+            "scope": "consumed_child_subtree",
+            "termination": "cooperative_workers_only"
+          },
+          {
+            "budget_requirement": "same_explicit_pool_or_all_unattached",
+            "enforcement": "bounded_ownership_transfer_and_recursive_close_join",
+            "excludes": [
+              "process_RSS",
+              "worker_internal_allocations",
+              "FFI_allocations",
+              "arbitrary_worker_termination"
+            ],
+            "function": "main",
+            "kind": "structured_task_tree",
+            "limits": {
+              "depth": 16,
+              "groups": 256
+            },
+            "line": 29,
+            "path": "examples/groups/tree_pipeline.hepta",
+            "refusal": "consumes_cancels_and_joins_child_subtree",
+            "scope": "consumed_child_subtree",
+            "termination": "cooperative_workers_only"
+          },
+          {
+            "budget_requirement": "same_explicit_pool_or_all_unattached",
+            "enforcement": "bounded_ownership_transfer_and_recursive_close_join",
+            "excludes": [
+              "process_RSS",
+              "worker_internal_allocations",
+              "FFI_allocations",
+              "arbitrary_worker_termination"
+            ],
+            "function": "main",
+            "kind": "structured_task_tree",
+            "limits": {
+              "depth": 16,
+              "groups": 256
+            },
+            "line": 30,
+            "path": "examples/groups/tree_pipeline.hepta",
+            "refusal": "consumes_cancels_and_joins_child_subtree",
+            "scope": "consumed_child_subtree",
+            "termination": "cooperative_workers_only"
+          }
+        ],
+        "rust_sha256": "ee79772b64bf67491d8bddd4d4743b96eb9acdfc0ca325f47fee177995545d3c",
+        "schema": "hepta.check.v1",
+        "source_sha256": "cbdddfe84bd321460082ea1143fd43ef84bd36b59ca503123c6b217d1dba30e5",
+        "status": "checked"
+      },
+      "build": {
+        "artifact": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/tree_pipeline",
+        "artifact_bytes": 3930840,
+        "artifact_sha256": "237a357d77a40327a5aa00b0f19afb4c8b31007b05192b3b1708c7fc70b75d2e",
+        "execution": {
+          "argv": [
+            "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+            "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/tree_pipeline.rs",
+            "--edition=2021",
+            "--crate-name=hepta_tree_qualification",
+            "--crate-type=bin",
+            "-C",
+            "opt-level=3",
+            "-C",
+            "overflow-checks=yes",
+            "-C",
+            "panic=abort",
+            "-C",
+            "codegen-units=1",
+            "--sysroot",
+            "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+            "-C",
+            "linker=/usr/bin/x86_64-linux-gnu-gcc-13",
+            "-C",
+            "link-arg=-B/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld",
+            "-C",
+            "link-arg=-fuse-ld=lld",
+            "-C",
+            "link-arg=/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/faults.o",
+            "-C",
+            "link-arg=-Wl,--wrap=pthread_create",
+            "-o",
+            "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/tree_pipeline"
+          ],
+          "elapsed_ns": 428580841,
+          "error": null,
+          "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+          "returncode": 0,
+          "status": "completed",
+          "stderr_base64": "",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_base64": "",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "timeout_seconds": 60
+        },
+        "flags": [
+          "--edition=2021",
+          "--crate-name=hepta_tree_qualification",
+          "--crate-type=bin",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "-C",
+          "codegen-units=1",
+          "--sysroot",
+          "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+          "-C",
+          "linker=/usr/bin/x86_64-linux-gnu-gcc-13",
+          "-C",
+          "link-arg=-B/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld",
+          "-C",
+          "link-arg=-fuse-ld=lld",
+          "-C",
+          "link-arg=/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/faults.o",
+          "-C",
+          "link-arg=-Wl,--wrap=pthread_create"
+        ],
+        "linked_object_sha256": "800de25ae2a05068b7172b502ce76e8b22fc38ac2734e461f5aee60984f276b7",
+        "source_path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/tree_pipeline.rs",
+        "source_sha256": "ee79772b64bf67491d8bddd4d4743b96eb9acdfc0ca325f47fee177995545d3c"
+      },
+      "concurrent_ir": {
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "functions": [
+          {
+            "blocks": [
+              {
+                "id": "bb0",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb1"
+                  ]
+                }
+              },
+              {
+                "id": "bb1",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb2",
+                    "bb3"
+                  ]
+                }
+              },
+              {
+                "id": "bb2",
+                "operations": [
+                  {
+                    "mode": "group_send",
+                    "op": "sender",
+                    "src": "v2"
+                  }
+                ],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb1"
+                  ]
+                }
+              },
+              {
+                "id": "bb3",
+                "operations": [
+                  {
+                    "op": "borrow",
+                    "src": "v0"
+                  },
+                  {
+                    "dest": "v3",
+                    "op": "move",
+                    "src": "v0"
+                  },
+                  {
+                    "op": "drop_buffer",
+                    "src": "v3"
+                  }
+                ],
+                "terminator": {
+                  "op": "return",
+                  "owner": null
+                }
+              }
+            ],
+            "entry": "bb0",
+            "name": "emit",
+            "params": [
+              {
+                "id": "v0",
+                "mode": "take",
+                "type": "Buffer<u8>"
+              },
+              {
+                "id": "v1",
+                "mode": "read",
+                "type": "Cancellation"
+              },
+              {
+                "id": "v2",
+                "mode": "read",
+                "type": "Sender<u64>"
+              }
+            ],
+            "returns": "u64",
+            "slots": {
+              "v0": "Buffer<u8>",
+              "v3": "Buffer<u8>"
+            }
+          },
+          {
+            "blocks": [
+              {
+                "id": "bb0",
+                "operations": [
+                  {
+                    "dest": "v0",
+                    "op": "create",
+                    "type": "TaskGroup"
+                  },
+                  {
+                    "dest": "v1",
+                    "op": "move",
+                    "src": "v0"
+                  },
+                  {
+                    "dest": "v2",
+                    "op": "create",
+                    "type": "TaskGroup"
+                  },
+                  {
+                    "dest": "v3",
+                    "op": "move",
+                    "src": "v2"
+                  },
+                  {
+                    "dest": "v4",
+                    "op": "create",
+                    "type": "TaskGroup"
+                  },
+                  {
+                    "dest": "v5",
+                    "op": "move",
+                    "src": "v4"
+                  },
+                  {
+                    "dest": "v6",
+                    "op": "create",
+                    "type": "TaskGroup"
+                  },
+                  {
+                    "dest": "v7",
+                    "op": "move",
+                    "src": "v6"
+                  },
+                  {
+                    "dest": "v8",
+                    "op": "create",
+                    "type": "TaskGroup"
+                  },
+                  {
+                    "dest": "v9",
+                    "op": "move",
+                    "src": "v8"
+                  },
+                  {
+                    "mode": "group_budget_configure",
+                    "op": "group",
+                    "src": "v1"
+                  },
+                  {
+                    "left": "v3",
+                    "mode": "group_budget_share",
+                    "op": "group_pair",
+                    "right": "v1"
+                  },
+                  {
+                    "left": "v5",
+                    "mode": "group_budget_share",
+                    "op": "group_pair",
+                    "right": "v1"
+                  },
+                  {
+                    "left": "v7",
+                    "mode": "group_budget_share",
+                    "op": "group_pair",
+                    "right": "v1"
+                  },
+                  {
+                    "left": "v9",
+                    "mode": "group_budget_share",
+                    "op": "group_pair",
+                    "right": "v1"
+                  },
+                  {
+                    "dest": "v10",
+                    "op": "create",
+                    "type": "Buffer<u8>"
+                  },
+                  {
+                    "group": "v1",
+                    "input": "v10",
+                    "op": "spawn",
+                    "task": null,
+                    "worker": "emit"
+                  },
+                  {
+                    "dest": "v11",
+                    "op": "create",
+                    "type": "Buffer<u8>"
+                  },
+                  {
+                    "group": "v3",
+                    "input": "v11",
+                    "op": "spawn",
+                    "task": null,
+                    "worker": "emit"
+                  },
+                  {
+                    "dest": "v12",
+                    "op": "create",
+                    "type": "Buffer<u8>"
+                  },
+                  {
+                    "group": "v5",
+                    "input": "v12",
+                    "op": "spawn",
+                    "task": null,
+                    "worker": "emit"
+                  },
+                  {
+                    "dest": "v13",
+                    "op": "create",
+                    "type": "Buffer<u8>"
+                  },
+                  {
+                    "group": "v7",
+                    "input": "v13",
+                    "op": "spawn",
+                    "task": null,
+                    "worker": "emit"
+                  },
+                  {
+                    "dest": "v14",
+                    "op": "move",
+                    "src": "v5"
+                  },
+                  {
+                    "child": "v14",
+                    "op": "adopt",
+                    "parent": "v3",
+                    "refusal": "cancel_and_join_child_subtree"
+                  },
+                  {
+                    "dest": "v15",
+                    "op": "move",
+                    "src": "v3"
+                  },
+                  {
+                    "child": "v15",
+                    "op": "adopt",
+                    "parent": "v1",
+                    "refusal": "cancel_and_join_child_subtree"
+                  },
+                  {
+                    "dest": "v16",
+                    "op": "move",
+                    "src": "v7"
+                  },
+                  {
+                    "child": "v16",
+                    "op": "adopt",
+                    "parent": "v1",
+                    "refusal": "cancel_and_join_child_subtree"
+                  },
+                  {
+                    "mode": "group_tree_snapshot",
+                    "op": "group",
+                    "src": "v1"
+                  }
+                ],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb1",
+                    "bb2"
+                  ]
+                }
+              },
+              {
+                "id": "bb1",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb3"
+                  ]
+                }
+              },
+              {
+                "id": "bb2",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb3"
+                  ]
+                }
+              },
+              {
+                "id": "bb3",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb4",
+                    "bb5"
+                  ]
+                }
+              },
+              {
+                "id": "bb4",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb6"
+                  ]
+                }
+              },
+              {
+                "id": "bb5",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb6"
+                  ]
+                }
+              },
+              {
+                "id": "bb6",
+                "operations": [
+                  {
+                    "dest": "v17",
+                    "op": "move",
+                    "src": "v1"
+                  },
+                  {
+                    "mode": "group_tree_join",
+                    "op": "join",
+                    "src": "v17"
+                  }
+                ],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb7",
+                    "bb8"
+                  ]
+                }
+              },
+              {
+                "id": "bb7",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb9"
+                  ]
+                }
+              },
+              {
+                "id": "bb8",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb9"
+                  ]
+                }
+              },
+              {
+                "id": "bb9",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb10",
+                    "bb11"
+                  ]
+                }
+              },
+              {
+                "id": "bb10",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb12"
+                  ]
+                }
+              },
+              {
+                "id": "bb11",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb12"
+                  ]
+                }
+              },
+              {
+                "id": "bb12",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb13",
+                    "bb14"
+                  ]
+                }
+              },
+              {
+                "id": "bb13",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb15"
+                  ]
+                }
+              },
+              {
+                "id": "bb14",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb15"
+                  ]
+                }
+              },
+              {
+                "id": "bb15",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb16",
+                    "bb17"
+                  ]
+                }
+              },
+              {
+                "id": "bb16",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb18"
+                  ]
+                }
+              },
+              {
+                "id": "bb17",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb18"
+                  ]
+                }
+              },
+              {
+                "id": "bb18",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb19",
+                    "bb20"
+                  ]
+                }
+              },
+              {
+                "id": "bb19",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb21"
+                  ]
+                }
+              },
+              {
+                "id": "bb20",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb21"
+                  ]
+                }
+              },
+              {
+                "id": "bb21",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb22",
+                    "bb23"
+                  ]
+                }
+              },
+              {
+                "id": "bb22",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb24"
+                  ]
+                }
+              },
+              {
+                "id": "bb23",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb24"
+                  ]
+                }
+              },
+              {
+                "id": "bb24",
+                "operations": [
+                  {
+                    "mode": "group_budget_snapshot",
+                    "op": "group",
+                    "src": "v9"
+                  }
+                ],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb25",
+                    "bb26"
+                  ]
+                }
+              },
+              {
+                "id": "bb25",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb27"
+                  ]
+                }
+              },
+              {
+                "id": "bb26",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb27"
+                  ]
+                }
+              },
+              {
+                "id": "bb27",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb28",
+                    "bb29"
+                  ]
+                }
+              },
+              {
+                "id": "bb28",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb30"
+                  ]
+                }
+              },
+              {
+                "id": "bb29",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb30"
+                  ]
+                }
+              },
+              {
+                "id": "bb30",
+                "operations": [
+                  {
+                    "dest": "v18",
+                    "op": "move",
+                    "src": "v9"
+                  },
+                  {
+                    "mode": "group_join",
+                    "op": "join",
+                    "src": "v18"
+                  }
+                ],
+                "terminator": {
+                  "op": "return",
+                  "owner": null
+                }
+              }
+            ],
+            "entry": "bb0",
+            "name": "main",
+            "params": [],
+            "returns": "Unit",
+            "slots": {
+              "v0": "TaskGroup",
+              "v1": "TaskGroup",
+              "v10": "Buffer<u8>",
+              "v11": "Buffer<u8>",
+              "v12": "Buffer<u8>",
+              "v13": "Buffer<u8>",
+              "v14": "TaskGroup",
+              "v15": "TaskGroup",
+              "v16": "TaskGroup",
+              "v17": "TaskGroup",
+              "v18": "TaskGroup",
+              "v2": "TaskGroup",
+              "v3": "TaskGroup",
+              "v4": "TaskGroup",
+              "v5": "TaskGroup",
+              "v6": "TaskGroup",
+              "v7": "TaskGroup",
+              "v8": "TaskGroup",
+              "v9": "TaskGroup"
+            }
+          }
+        ],
+        "project_sha256": null,
+        "schema": "hepta.concurrent-ir.v1",
+        "source_sha256": "cbdddfe84bd321460082ea1143fd43ef84bd36b59ca503123c6b217d1dba30e5"
+      },
+      "ir_replay": {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+          "-m",
+          "hepta.concurrent_ir",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/tree_pipeline.ir.json"
+        ],
+        "elapsed_ns": 59948445,
+        "error": null,
+        "executable_sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7",
+        "returncode": 0,
+        "status": "completed",
+        "stderr_base64": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_base64": "ewogICJibG9ja3MiOiAzNSwKICAiY2xhaW1zIjogewogICAgImNhbmNlbGxhdGlvbl90ZXJtaW5hdGlvbl9wcm92ZWQiOiBmYWxzZSwKICAgICJkZWFkbG9ja19mcmVlZG9tX3Byb3ZlZCI6IGZhbHNlLAogICAgIm5vcm1hbF9leGl0X2pvaW5fb2JsaWdhdGlvbnNfdmVyaWZpZWQiOiB0cnVlLAogICAgInJ1bnRpbWVfYnVkZ2V0X2JvdW5kc19wcm92ZWQiOiBmYWxzZSwKICAgICJydW50aW1lX2RhdGFfcmFjZV9mcmVlZG9tX3Byb3ZlZCI6IGZhbHNlLAogICAgInNvdXJjZV90b19pcl9yZWZpbmVtZW50X3Byb3ZlZCI6IGZhbHNlLAogICAgIndob2xlX2xhbmd1YWdlX3NvdW5kbmVzc19wcm92ZWQiOiBmYWxzZSwKICAgICJ3b3JrZXJfaW5wdXRfdHJhbnNmZXJfdmVyaWZpZWQiOiB0cnVlCiAgfSwKICAiZnVuY3Rpb25zIjogMiwKICAiZ3JvdXBfYWRvcHRpb25zIjogMywKICAiZ3JvdXBfc3Bhd25zIjogNCwKICAiaXJfc2hhMjU2IjogIjY2NmI2ZTFlNmUwZDg3ZDg5ZGUxZDA0YWUxNjQ4OTdmM2ExYjA0ZjQ5YjI4ZWJmNGU1YTU0NDcwMTdhNTdhYTYiLAogICJub3JtYWxfZXhpdHMiOiAyLAogICJvayI6IHRydWUsCiAgIm9wZXJhdGlvbnMiOiAzOSwKICAic2NoZW1hIjogImhlcHRhLmNvbmN1cnJlbnQtaXIudmVyaWZpY2F0aW9uLnYxIiwKICAic291cmNlX2JpbmRpbmdfdmVyaWZpZWQiOiBmYWxzZSwKICAidGFza19zcGF3bnMiOiAwLAogICJ0cmVlX2pvaW5zIjogMQp9Cg==",
+        "stdout_sha256": "cab688f90cad504b49902ace565bcc9dd1b6fb1c80a1feb4a86a80939863af75",
+        "timeout_seconds": 30
+      },
+      "name": "tree_pipeline",
+      "runs": [
+        {
+          "execution": {
+            "argv": [
+              "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/tree_pipeline"
+            ],
+            "elapsed_ns": 6203940,
+            "error": null,
+            "executable_sha256": "237a357d77a40327a5aa00b0f19afb4c8b31007b05192b3b1708c7fc70b75d2e",
+            "returncode": 0,
+            "status": "completed",
+            "stderr_base64": "",
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "NAozCjQKNAoyNTYKMTYKMAo=",
+            "stdout_sha256": "cd9b18ab5288ac6ee7213e903b669eb90bc6f89bc57102b0a0d235c26868e8c1",
+            "timeout_seconds": 30
+          },
+          "metrics": {
+            "completed_tasks": 4,
+            "depth": 3,
+            "discarded": 256,
+            "groups": 4,
+            "joined_groups": 4,
+            "pool_threads_after_tree_join": 0,
+            "sum": 16
+          },
+          "trial": 0
+        },
+        {
+          "execution": {
+            "argv": [
+              "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/tree_pipeline"
+            ],
+            "elapsed_ns": 6546240,
+            "error": null,
+            "executable_sha256": "237a357d77a40327a5aa00b0f19afb4c8b31007b05192b3b1708c7fc70b75d2e",
+            "returncode": 0,
+            "status": "completed",
+            "stderr_base64": "",
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "NAozCjQKNAoyNTYKMTYKMAo=",
+            "stdout_sha256": "cd9b18ab5288ac6ee7213e903b669eb90bc6f89bc57102b0a0d235c26868e8c1",
+            "timeout_seconds": 30
+          },
+          "metrics": {
+            "completed_tasks": 4,
+            "depth": 3,
+            "discarded": 256,
+            "groups": 4,
+            "joined_groups": 4,
+            "pool_threads_after_tree_join": 0,
+            "sum": 16
+          },
+          "trial": 1
+        },
+        {
+          "execution": {
+            "argv": [
+              "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/tree_pipeline"
+            ],
+            "elapsed_ns": 6535888,
+            "error": null,
+            "executable_sha256": "237a357d77a40327a5aa00b0f19afb4c8b31007b05192b3b1708c7fc70b75d2e",
+            "returncode": 0,
+            "status": "completed",
+            "stderr_base64": "",
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "NAozCjQKNAoyNTYKMTYKMAo=",
+            "stdout_sha256": "cd9b18ab5288ac6ee7213e903b669eb90bc6f89bc57102b0a0d235c26868e8c1",
+            "timeout_seconds": 30
+          },
+          "metrics": {
+            "completed_tasks": 4,
+            "depth": 3,
+            "discarded": 256,
+            "groups": 4,
+            "joined_groups": 4,
+            "pool_threads_after_tree_join": 0,
+            "sum": 16
+          },
+          "trial": 2
+        }
+      ],
+      "source": "examples/groups/tree_pipeline.hepta"
+    },
+    {
+      "analysis": {
+        "assumptions": [],
+        "backend": {
+          "check_only": true,
+          "crate_type": "bin",
+          "diagnostics": [],
+          "flags": [
+            "edition=2021",
+            "opt-level=3",
+            "overflow-checks=yes",
+            "panic=abort",
+            "codegen-units=1",
+            "sysroot=/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0"
+          ],
+          "link_args": [],
+          "linker": null,
+          "ok": true,
+          "rust_sha256": "3aaa6f604fc419add1f0c6c69019523397cce5d4bdaee879d8295f8bfcb8cbbf",
+          "rustc_crate_type": "lib",
+          "status": "rustc_checked",
+          "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+            "host": "x86_64-unknown-linux-gnu",
+            "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+            "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+            "sysroot_discovery": "verified_compiler_prefix",
+            "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+          },
+          "validation_artifact_sha256": "c021d8955a1ac04e698d845e06e64dbd34ee3e6c9d7cfd11da6f7ad65e061b49"
+        },
+        "checks": {
+          "rust_borrows_types": "rustc_checked",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "main": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "spawn",
+            "write"
+          ],
+          "produce": [
+            "alloc",
+            "block",
+            "panic",
+            "write"
+          ]
+        },
+        "interface_sha256": "0ce417b04f23cd817e6a16c13057c2ad442551d3678925cdc23ab2b7d3e311c1",
+        "ok": true,
+        "path": "examples/groups/tree_cancellation.hepta",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 1,
+              "admitted_tasks": 1,
+              "queued_u64_values": 1
+            },
+            "line": 18,
+            "path": "examples/groups/tree_cancellation.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 0,
+              "admitted_tasks": 0,
+              "queued_u64_values": 1
+            },
+            "line": 19,
+            "path": "examples/groups/tree_cancellation.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 8,
+              "admitted_tasks": 1,
+              "queued_u64_values": 1
+            },
+            "line": 20,
+            "path": "examples/groups/tree_cancellation.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "budget_requirement": "same_explicit_pool_or_all_unattached",
+            "enforcement": "bounded_ownership_transfer_and_recursive_close_join",
+            "excludes": [
+              "process_RSS",
+              "worker_internal_allocations",
+              "FFI_allocations",
+              "arbitrary_worker_termination"
+            ],
+            "function": "main",
+            "kind": "structured_task_tree",
+            "limits": {
+              "depth": 16,
+              "groups": 256
+            },
+            "line": 22,
+            "path": "examples/groups/tree_cancellation.hepta",
+            "refusal": "consumes_cancels_and_joins_child_subtree",
+            "scope": "consumed_child_subtree",
+            "termination": "cooperative_workers_only"
+          },
+          {
+            "budget_requirement": "same_explicit_pool_or_all_unattached",
+            "enforcement": "bounded_ownership_transfer_and_recursive_close_join",
+            "excludes": [
+              "process_RSS",
+              "worker_internal_allocations",
+              "FFI_allocations",
+              "arbitrary_worker_termination"
+            ],
+            "function": "main",
+            "kind": "structured_task_tree",
+            "limits": {
+              "depth": 16,
+              "groups": 256
+            },
+            "line": 23,
+            "path": "examples/groups/tree_cancellation.hepta",
+            "refusal": "consumes_cancels_and_joins_child_subtree",
+            "scope": "consumed_child_subtree",
+            "termination": "cooperative_workers_only"
+          },
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 0,
+              "admitted_tasks": 0,
+              "queued_u64_values": 1
+            },
+            "line": 26,
+            "path": "examples/groups/tree_cancellation.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "budget_requirement": "same_explicit_pool_or_all_unattached",
+            "enforcement": "bounded_ownership_transfer_and_recursive_close_join",
+            "excludes": [
+              "process_RSS",
+              "worker_internal_allocations",
+              "FFI_allocations",
+              "arbitrary_worker_termination"
+            ],
+            "function": "main",
+            "kind": "structured_task_tree",
+            "limits": {
+              "depth": 16,
+              "groups": 256
+            },
+            "line": 27,
+            "path": "examples/groups/tree_cancellation.hepta",
+            "refusal": "consumes_cancels_and_joins_child_subtree",
+            "scope": "consumed_child_subtree",
+            "termination": "cooperative_workers_only"
+          }
+        ],
+        "rust_sha256": "3aaa6f604fc419add1f0c6c69019523397cce5d4bdaee879d8295f8bfcb8cbbf",
+        "schema": "hepta.check.v1",
+        "source_sha256": "487a31ee2b0734a4a90ffe81152a50b0ab9de4a747c7635b1980181d6e3e633f",
+        "status": "checked"
+      },
+      "build": {
+        "artifact": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/tree_cancellation",
+        "artifact_bytes": 3924240,
+        "artifact_sha256": "e6cb689836d59ceeed787d279f6ddf5000714d0af2eec86e45168fb5a1006d02",
+        "execution": {
+          "argv": [
+            "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+            "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/tree_cancellation.rs",
+            "--edition=2021",
+            "--crate-name=hepta_tree_qualification",
+            "--crate-type=bin",
+            "-C",
+            "opt-level=3",
+            "-C",
+            "overflow-checks=yes",
+            "-C",
+            "panic=abort",
+            "-C",
+            "codegen-units=1",
+            "--sysroot",
+            "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+            "-C",
+            "linker=/usr/bin/x86_64-linux-gnu-gcc-13",
+            "-C",
+            "link-arg=-B/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld",
+            "-C",
+            "link-arg=-fuse-ld=lld",
+            "-C",
+            "link-arg=/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/faults.o",
+            "-C",
+            "link-arg=-Wl,--wrap=pthread_create",
+            "-o",
+            "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/tree_cancellation"
+          ],
+          "elapsed_ns": 382563037,
+          "error": null,
+          "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+          "returncode": 0,
+          "status": "completed",
+          "stderr_base64": "",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_base64": "",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "timeout_seconds": 60
+        },
+        "flags": [
+          "--edition=2021",
+          "--crate-name=hepta_tree_qualification",
+          "--crate-type=bin",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "-C",
+          "codegen-units=1",
+          "--sysroot",
+          "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+          "-C",
+          "linker=/usr/bin/x86_64-linux-gnu-gcc-13",
+          "-C",
+          "link-arg=-B/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld",
+          "-C",
+          "link-arg=-fuse-ld=lld",
+          "-C",
+          "link-arg=/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/faults.o",
+          "-C",
+          "link-arg=-Wl,--wrap=pthread_create"
+        ],
+        "linked_object_sha256": "800de25ae2a05068b7172b502ce76e8b22fc38ac2734e461f5aee60984f276b7",
+        "source_path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/tree_cancellation.rs",
+        "source_sha256": "3aaa6f604fc419add1f0c6c69019523397cce5d4bdaee879d8295f8bfcb8cbbf"
+      },
+      "concurrent_ir": {
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "functions": [
+          {
+            "blocks": [
+              {
+                "id": "bb0",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb1"
+                  ]
+                }
+              },
+              {
+                "id": "bb1",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb2",
+                    "bb3"
+                  ]
+                }
+              },
+              {
+                "id": "bb2",
+                "operations": [
+                  {
+                    "mode": "group_send",
+                    "op": "sender",
+                    "src": "v2"
+                  }
+                ],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb4",
+                    "bb5"
+                  ]
+                }
+              },
+              {
+                "id": "bb3",
+                "operations": [
+                  {
+                    "op": "borrow",
+                    "src": "v0"
+                  },
+                  {
+                    "dest": "v4",
+                    "op": "move",
+                    "src": "v0"
+                  },
+                  {
+                    "op": "drop_buffer",
+                    "src": "v4"
+                  }
+                ],
+                "terminator": {
+                  "op": "return",
+                  "owner": null
+                }
+              },
+              {
+                "id": "bb4",
+                "operations": [
+                  {
+                    "op": "borrow",
+                    "src": "v0"
+                  },
+                  {
+                    "dest": "v3",
+                    "op": "move",
+                    "src": "v0"
+                  },
+                  {
+                    "op": "drop_buffer",
+                    "src": "v3"
+                  }
+                ],
+                "terminator": {
+                  "op": "return",
+                  "owner": null
+                }
+              },
+              {
+                "id": "bb5",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb6"
+                  ]
+                }
+              },
+              {
+                "id": "bb6",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb1"
+                  ]
+                }
+              }
+            ],
+            "entry": "bb0",
+            "name": "produce",
+            "params": [
+              {
+                "id": "v0",
+                "mode": "take",
+                "type": "Buffer<u8>"
+              },
+              {
+                "id": "v1",
+                "mode": "read",
+                "type": "Cancellation"
+              },
+              {
+                "id": "v2",
+                "mode": "read",
+                "type": "Sender<u64>"
+              }
+            ],
+            "returns": "u64",
+            "slots": {
+              "v0": "Buffer<u8>",
+              "v3": "Buffer<u8>",
+              "v4": "Buffer<u8>"
+            }
+          },
+          {
+            "blocks": [
+              {
+                "id": "bb0",
+                "operations": [
+                  {
+                    "dest": "v0",
+                    "op": "create",
+                    "type": "TaskGroup"
+                  },
+                  {
+                    "dest": "v1",
+                    "op": "move",
+                    "src": "v0"
+                  },
+                  {
+                    "dest": "v2",
+                    "op": "create",
+                    "type": "TaskGroup"
+                  },
+                  {
+                    "dest": "v3",
+                    "op": "move",
+                    "src": "v2"
+                  },
+                  {
+                    "dest": "v4",
+                    "op": "create",
+                    "type": "TaskGroup"
+                  },
+                  {
+                    "dest": "v5",
+                    "op": "move",
+                    "src": "v4"
+                  },
+                  {
+                    "dest": "v6",
+                    "op": "create",
+                    "type": "Buffer<u8>"
+                  },
+                  {
+                    "group": "v5",
+                    "input": "v6",
+                    "op": "spawn",
+                    "task": null,
+                    "worker": "produce"
+                  },
+                  {
+                    "dest": "v7",
+                    "op": "move",
+                    "src": "v5"
+                  },
+                  {
+                    "child": "v7",
+                    "op": "adopt",
+                    "parent": "v3",
+                    "refusal": "cancel_and_join_child_subtree"
+                  },
+                  {
+                    "dest": "v8",
+                    "op": "move",
+                    "src": "v3"
+                  },
+                  {
+                    "child": "v8",
+                    "op": "adopt",
+                    "parent": "v1",
+                    "refusal": "cancel_and_join_child_subtree"
+                  },
+                  {
+                    "mode": "group_cancel",
+                    "op": "group",
+                    "src": "v1"
+                  },
+                  {
+                    "dest": "v9",
+                    "op": "create",
+                    "type": "Buffer<u8>"
+                  },
+                  {
+                    "group": "v1",
+                    "input": "v9",
+                    "op": "spawn",
+                    "task": null,
+                    "worker": "produce"
+                  },
+                  {
+                    "dest": "v10",
+                    "op": "create",
+                    "type": "TaskGroup"
+                  },
+                  {
+                    "dest": "v11",
+                    "op": "move",
+                    "src": "v10"
+                  },
+                  {
+                    "dest": "v12",
+                    "op": "move",
+                    "src": "v11"
+                  },
+                  {
+                    "child": "v12",
+                    "op": "adopt",
+                    "parent": "v1",
+                    "refusal": "cancel_and_join_child_subtree"
+                  },
+                  {
+                    "dest": "v13",
+                    "op": "move",
+                    "src": "v1"
+                  },
+                  {
+                    "mode": "group_tree_cancel_and_join",
+                    "op": "join",
+                    "src": "v13"
+                  }
+                ],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb1",
+                    "bb2"
+                  ]
+                }
+              },
+              {
+                "id": "bb1",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb3"
+                  ]
+                }
+              },
+              {
+                "id": "bb2",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb3"
+                  ]
+                }
+              },
+              {
+                "id": "bb3",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb4",
+                    "bb5"
+                  ]
+                }
+              },
+              {
+                "id": "bb4",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb6"
+                  ]
+                }
+              },
+              {
+                "id": "bb5",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb6"
+                  ]
+                }
+              },
+              {
+                "id": "bb6",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb7",
+                    "bb8"
+                  ]
+                }
+              },
+              {
+                "id": "bb7",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb9"
+                  ]
+                }
+              },
+              {
+                "id": "bb8",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb9"
+                  ]
+                }
+              },
+              {
+                "id": "bb9",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb10",
+                    "bb11"
+                  ]
+                }
+              },
+              {
+                "id": "bb10",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb12"
+                  ]
+                }
+              },
+              {
+                "id": "bb11",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb12"
+                  ]
+                }
+              },
+              {
+                "id": "bb12",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb13",
+                    "bb14"
+                  ]
+                }
+              },
+              {
+                "id": "bb13",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb15"
+                  ]
+                }
+              },
+              {
+                "id": "bb14",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb15"
+                  ]
+                }
+              },
+              {
+                "id": "bb15",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb16",
+                    "bb17"
+                  ]
+                }
+              },
+              {
+                "id": "bb16",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb18"
+                  ]
+                }
+              },
+              {
+                "id": "bb17",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb18"
+                  ]
+                }
+              },
+              {
+                "id": "bb18",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb19",
+                    "bb20"
+                  ]
+                }
+              },
+              {
+                "id": "bb19",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb21"
+                  ]
+                }
+              },
+              {
+                "id": "bb20",
+                "operations": [],
+                "terminator": {
+                  "op": "jump",
+                  "targets": [
+                    "bb21"
+                  ]
+                }
+              },
+              {
+                "id": "bb21",
+                "operations": [],
+                "terminator": {
+                  "op": "return",
+                  "owner": null
+                }
+              }
+            ],
+            "entry": "bb0",
+            "name": "main",
+            "params": [],
+            "returns": "Unit",
+            "slots": {
+              "v0": "TaskGroup",
+              "v1": "TaskGroup",
+              "v10": "TaskGroup",
+              "v11": "TaskGroup",
+              "v12": "TaskGroup",
+              "v13": "TaskGroup",
+              "v2": "TaskGroup",
+              "v3": "TaskGroup",
+              "v4": "TaskGroup",
+              "v5": "TaskGroup",
+              "v6": "Buffer<u8>",
+              "v7": "TaskGroup",
+              "v8": "TaskGroup",
+              "v9": "Buffer<u8>"
+            }
+          }
+        ],
+        "project_sha256": null,
+        "schema": "hepta.concurrent-ir.v1",
+        "source_sha256": "487a31ee2b0734a4a90ffe81152a50b0ab9de4a747c7635b1980181d6e3e633f"
+      },
+      "ir_replay": {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+          "-m",
+          "hepta.concurrent_ir",
+          "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/tree_cancellation.ir.json"
+        ],
+        "elapsed_ns": 65619345,
+        "error": null,
+        "executable_sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7",
+        "returncode": 0,
+        "status": "completed",
+        "stderr_base64": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_base64": "ewogICJibG9ja3MiOiAyOSwKICAiY2xhaW1zIjogewogICAgImNhbmNlbGxhdGlvbl90ZXJtaW5hdGlvbl9wcm92ZWQiOiBmYWxzZSwKICAgICJkZWFkbG9ja19mcmVlZG9tX3Byb3ZlZCI6IGZhbHNlLAogICAgIm5vcm1hbF9leGl0X2pvaW5fb2JsaWdhdGlvbnNfdmVyaWZpZWQiOiB0cnVlLAogICAgInJ1bnRpbWVfYnVkZ2V0X2JvdW5kc19wcm92ZWQiOiBmYWxzZSwKICAgICJydW50aW1lX2RhdGFfcmFjZV9mcmVlZG9tX3Byb3ZlZCI6IGZhbHNlLAogICAgInNvdXJjZV90b19pcl9yZWZpbmVtZW50X3Byb3ZlZCI6IGZhbHNlLAogICAgIndob2xlX2xhbmd1YWdlX3NvdW5kbmVzc19wcm92ZWQiOiBmYWxzZSwKICAgICJ3b3JrZXJfaW5wdXRfdHJhbnNmZXJfdmVyaWZpZWQiOiB0cnVlCiAgfSwKICAiZnVuY3Rpb25zIjogMiwKICAiZ3JvdXBfYWRvcHRpb25zIjogMywKICAiZ3JvdXBfc3Bhd25zIjogMiwKICAiaXJfc2hhMjU2IjogIjA4YTgyNzFhNGM0NzFjYjU4ZmVlNDMwODNiMmI2M2I4MDZlN2RkMjc0YTJhNDgwZmFlZGQ5OGEzMDNhNGNjNDAiLAogICJub3JtYWxfZXhpdHMiOiAzLAogICJvayI6IHRydWUsCiAgIm9wZXJhdGlvbnMiOiAyOCwKICAic2NoZW1hIjogImhlcHRhLmNvbmN1cnJlbnQtaXIudmVyaWZpY2F0aW9uLnYxIiwKICAic291cmNlX2JpbmRpbmdfdmVyaWZpZWQiOiBmYWxzZSwKICAidGFza19zcGF3bnMiOiAwLAogICJ0cmVlX2pvaW5zIjogMQp9Cg==",
+        "stdout_sha256": "c7d7c94595a88d9d862017177e9c80ea6424eb2c469044a8566d56c66df25fe3",
+        "timeout_seconds": 30
+      },
+      "name": "tree_cancellation",
+      "runs": [
+        {
+          "execution": {
+            "argv": [
+              "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/tree_cancellation"
+            ],
+            "elapsed_ns": 3900217,
+            "error": null,
+            "executable_sha256": "e6cb689836d59ceeed787d279f6ddf5000714d0af2eec86e45168fb5a1006d02",
+            "returncode": 0,
+            "status": "completed",
+            "stderr_base64": "",
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "MwozCjEKMQoxCjAK",
+            "stdout_sha256": "6f9943f0459f1f6e21c06162eeb281c789a7e6995a87a825ac0623d1993a1a62",
+            "timeout_seconds": 30
+          },
+          "metrics": {
+            "active_tasks": 0,
+            "adoption_refusals": 1,
+            "completed_tasks": 1,
+            "groups": 3,
+            "joined_groups": 3,
+            "rejected_tasks": 1
+          },
+          "trial": 0
+        },
+        {
+          "execution": {
+            "argv": [
+              "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/tree_cancellation"
+            ],
+            "elapsed_ns": 3946085,
+            "error": null,
+            "executable_sha256": "e6cb689836d59ceeed787d279f6ddf5000714d0af2eec86e45168fb5a1006d02",
+            "returncode": 0,
+            "status": "completed",
+            "stderr_base64": "",
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "MwozCjEKMQoxCjAK",
+            "stdout_sha256": "6f9943f0459f1f6e21c06162eeb281c789a7e6995a87a825ac0623d1993a1a62",
+            "timeout_seconds": 30
+          },
+          "metrics": {
+            "active_tasks": 0,
+            "adoption_refusals": 1,
+            "completed_tasks": 1,
+            "groups": 3,
+            "joined_groups": 3,
+            "rejected_tasks": 1
+          },
+          "trial": 1
+        },
+        {
+          "execution": {
+            "argv": [
+              "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-task-tree-_70ig52s/tree_cancellation"
+            ],
+            "elapsed_ns": 3927518,
+            "error": null,
+            "executable_sha256": "e6cb689836d59ceeed787d279f6ddf5000714d0af2eec86e45168fb5a1006d02",
+            "returncode": 0,
+            "status": "completed",
+            "stderr_base64": "",
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "MwozCjEKMQoxCjAK",
+            "stdout_sha256": "6f9943f0459f1f6e21c06162eeb281c789a7e6995a87a825ac0623d1993a1a62",
+            "timeout_seconds": 30
+          },
+          "metrics": {
+            "active_tasks": 0,
+            "adoption_refusals": 1,
+            "completed_tasks": 1,
+            "groups": 3,
+            "joined_groups": 3,
+            "rejected_tasks": 1
+          },
+          "trial": 2
+        }
+      ],
+      "source": "examples/groups/tree_cancellation.hepta"
+    }
+  ],
+  "source_files": {
+    "examples/groups/tree_cancellation.hepta": "487a31ee2b0734a4a90ffe81152a50b0ab9de4a747c7635b1980181d6e3e633f",
+    "examples/groups/tree_pipeline.hepta": "cbdddfe84bd321460082ea1143fd43ef84bd36b59ca503123c6b217d1dba30e5",
+    "hepta/runtime_concurrency.py": "c2f60ab8b7aa98052adecd0cde2737b43bf177ed963796899cffa2f0eb40a4c0",
+    "hepta/runtime_task_tree.py": "2ee863fe429123bc6ac9d82effd8602b260acf718d34d856e626101d34d2110b",
+    "tools/fixtures/shared_runtime_faults.c": "afaa8712088beb500f441cd05f580cd9896bc8636ea39a7791dc643ba6d84cb5",
+    "tools/fixtures/task_tree_controls.rs": "c5a7e67f0e8cbc1bef15332c70972bb0df752e69e9110c70d8745e8c9a411f79",
+    "tools/validate_task_tree.py": "80b82be6ef3e549cf9888dd5b4de85f19a8fe785375fa3027b978fb10f80d54b"
+  },
+  "status": "passed",
+  "toolchain": {
+    "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+    "host": "x86_64-unknown-linux-gnu",
+    "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+    "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+    "sysroot_discovery": "verified_compiler_prefix",
+    "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "schema": "hepta.independent-dual-c-host.v1",
+  "scope": "GCC/Clang C11 host-only, not Hepta ABI or hardware",
+  "host": "Linux-6.18.55-x86_64-with-glibc2.41",
+  "toolchains": {
+    "clang": {
+      "path": "/usr/local/swift/usr/bin/clang-17",
+      "sha256": "aa7389d9766be7e61df76cf094ac4f1861fd067e12908d1e9fd5cd7eb2a078f4",
+      "version": "clang version 17.0.0 (https://github.com/swiftlang/llvm-project.git 10999b6d034fe318f3d56c83bddb6572593a8bb0)"
+    },
+    "gcc": {
+      "path": "/usr/bin/x86_64-linux-gnu-gcc-14",
+      "sha256": "a23ecab8ff08f09ad8c80602c2c5df7f49e09c25905cb8975902e101bf72635f",
+      "version": "x86_64-linux-gnu-gcc-14 (Debian 14.2.0-19) 14.2.0"
+    }
+  },
+  "sources": {
+    "consumer": "c9f70459927588d184ee11b860466773fe985761f7ce1a2633cf5bb4b63e4811",
+    "header": "7e7632e848b89419ee672e23ce56924847996de9d5009088aab8c319b77dd683",
+    "producer": "72731fe5f167efa61bfd3bf16904f6063240a7e9764a2c29e2febd033543aa31"
+  },
+  "counts": {
+    "positive": 8,
+    "negative": 2
+  },
+  "pairs": [
+    {
+      "producer": "gcc",
+      "consumer": "gcc",
+      "opt": "-O0",
+      "object_sha256": "57dd9eef63200cc3de118871a2e7d7f268c7b5ea8e922e8b037abdce7b9e774d",
+      "program_sha256": "30c9d5983767dcc783c1ac3e4735ac08f30e3e177e999e3157e7cd32dc276c52",
+      "status": "passed"
+    },
+    {
+      "producer": "gcc",
+      "consumer": "gcc",
+      "opt": "-O2",
+      "object_sha256": "0a76b4dda3099825a0d3bd3f506709ad342d6f6785834f02de7dc7640389ea4b",
+      "program_sha256": "e9afcdee2d360a741e9f454f44cb6c14d9d643e0bdafc3b8c2ac4d7e735870d8",
+      "status": "passed"
+    },
+    {
+      "producer": "gcc",
+      "consumer": "clang",
+      "opt": "-O0",
+      "object_sha256": "57dd9eef63200cc3de118871a2e7d7f268c7b5ea8e922e8b037abdce7b9e774d",
+      "program_sha256": "0a95f27e641eca56a3ddba7a415267886cac87a5c6612268943bd4ea527e0b4e",
+      "status": "passed"
+    },
+    {
+      "producer": "gcc",
+      "consumer": "clang",
+      "opt": "-O2",
+      "object_sha256": "0a76b4dda3099825a0d3bd3f506709ad342d6f6785834f02de7dc7640389ea4b",
+      "program_sha256": "a6158ed93c0a0361c9c7bd0884889aa156b888165908728a66ff1e0f237a4dec",
+      "status": "passed"
+    },
+    {
+      "producer": "clang",
+      "consumer": "gcc",
+      "opt": "-O0",
+      "object_sha256": "6fa66ff8edea9eeb7c658fde95ac3ac2a045f6e6c3fc48ab7efeed83eb3e45c9",
+      "program_sha256": "3a0c9fc6de61c3df938f1dec46bdcccfb3f6b4a80ca72d290b231e9ad8a5e4ba",
+      "status": "passed"
+    },
+    {
+      "producer": "clang",
+      "consumer": "gcc",
+      "opt": "-O2",
+      "object_sha256": "896cd18321f5ecf2945ce558adc56e04a0a5609749a2e293be747f6da0695c85",
+      "program_sha256": "42c20a66912f8ab2c6145fa48dfda44e52b083ecd9c7518278b8040e75d552e3",
+      "status": "passed"
+    },
+    {
+      "producer": "clang",
+      "consumer": "clang",
+      "opt": "-O0",
+      "object_sha256": "6fa66ff8edea9eeb7c658fde95ac3ac2a045f6e6c3fc48ab7efeed83eb3e45c9",
+      "program_sha256": "2a1ff6eabef500e259c3009025e91ed1a2d28820d85331f54d04abe6c7331cc3",
+      "status": "passed"
+    },
+    {
+      "producer": "clang",
+      "consumer": "clang",
+      "opt": "-O2",
+      "object_sha256": "896cd18321f5ecf2945ce558adc56e04a0a5609749a2e293be747f6da0695c85",
+      "program_sha256": "bcf1ea531aa1a6759f11cbd152cbcd95badc3816c3f59eef5660335bdbd96434",
+      "status": "passed"
+    }
+  ],
+  "claims": {
+    "complete_c_abi_proved": false,
+    "foreign_cpp_abi_qualified": false,
+    "hepta_compiler_used": false,
+    "physical_host_baremetal": false,
+    "real_cross_compiler_c_abi_pairs_executed": true
+  },
+  "negative_controls": [
+    {
+      "producer": "gcc",
+      "consumer": "clang",
+      "status": "rejected_as_expected",
+      "exit": 42
+    },
+    {
+      "producer": "clang",
+      "consumer": "gcc",
+      "status": "rejected_as_expected",
+      "exit": 42
+    }
+  ]
+}

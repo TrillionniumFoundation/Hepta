@@ -29,6 +29,7 @@ SCENARIOS = {
     "admission_budgets": ["admitted_tasks", "task_budget_rejections", "admitted_input_bytes", "input_budget_rejections", "zero_budget_completed"],
     "cancellation": ["completed_tasks", "active_tasks", "waiting_senders", "discarded_values", "worker_result_sum"],
     "worker_failure": ["failure_code", "completed_tasks", "active_tasks", "waiting_senders", "received_before_close"],
+    "timeouts": ["send_timeouts", "receive_timeouts", "received", "completed_tasks", "active_tasks", "worker_result_sum"],
 }
 
 
@@ -91,6 +92,7 @@ def main(argv=None) -> int:
                    "Input-byte budgets count cumulative admitted Buffer lengths, not worker allocations or RSS.",
                    "Task limits count total admissions for the group's lifetime; completed slots are not recycled.",
                    "Cancellation and group_fail are cooperative; arbitrary worker termination is not proved.",
+                   "Channel timeouts use one monotonic deadline; mutex scheduling and subsequent joins are not wall-clock bounded.",
                    "panic=abort remains process-fatal; cooperative error reporting is not panic containment.",
                    "Observed elapsed times are not latency bounds or Rust performance superiority evidence."],
         "scenarios": [run_scenario(name, rustc=compiler, repeats=args.repeats) for name in SCENARIOS],

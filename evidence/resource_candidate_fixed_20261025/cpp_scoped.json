@@ -1,0 +1,1960 @@
+{
+  "arbitrary_hepta_raii_supported": false,
+  "bridge_generation": {
+    "abi": "selected_C++_compiler_host_C_ABI",
+    "assumptions": [
+      "Foreign code respects declared effects, reentrancy and synchronization requirements.",
+      "Borrowed pointers name live initialized aligned allocations of the stated extent with valid aliasing.",
+      "Foreign code does not retain call_only pointers, spans or const references, or create data races through aliases.",
+      "Output pointers are live writable appropriately aligned nonoverlapping storage.",
+      "C++ code obeys noexcept; termination, hardware faults and undefined behavior are not catchable exceptions.",
+      "All handle-owned allocation and release stay in the same C++ module; callers explicitly destroy handles.",
+      "Scoped operations keep their C++ automatic object inside the call; generated APIs expose no object handle or reference. Foreign nonretention is unproved.",
+      "Scoped RAII cleanup covers normal return and C++ exception unwinding, not process termination, longjmp, nontermination or foreign undefined behavior.",
+      "Handles belong to their generating bridge module and type; integers from other loaded modules are not authenticated capabilities.",
+      "Cancellation and exception status do not roll back foreign side effects or borrowed-buffer writes."
+    ],
+    "borrow_retention_proved": false,
+    "caller_pointer_validity_proved": false,
+    "compiler": {
+      "executable_sha256": "1353e9bdd29a7295c7226bf6c63abccce056d8cac31f112e5cdbecc3f28c2769",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-13",
+      "target": "x86_64-linux-gnu",
+      "version": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0"
+    },
+    "compiler_user_header_dependencies": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cpp-contract-gdgjgyhm/bridge.o: \\\n /dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cpp-contract-gdgjgyhm/bridge.cpp \\\n /dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cpp-contract-gdgjgyhm/bridge.h \\\n /workspace/scratch/c7c6ee414a6c/hepta-research/examples/cpp/scoped/foreign.hpp\n",
+    "constructor_checks": [
+      {
+        "argument_types": [
+          "std::size_t",
+          "std::int64_t"
+        ],
+        "borrow_retention_proved": false,
+        "construction_check": "native_constructibility_with_declared_argument_categories",
+        "cpp_type": "std::vector<std::int64_t>",
+        "declared_exception": "catch_status",
+        "exact_constructor_parameter_signature_proved": false,
+        "nothrow_object_construction_checked": false,
+        "symbol": "hepta_cpp_scoped_Vector_filled",
+        "wrapper_allocation_exception_boundary": "catch_status"
+      },
+      {
+        "argument_types": [
+          "std::size_t",
+          "std::int64_t",
+          "std::uint64_t"
+        ],
+        "borrow_retention_proved": false,
+        "construction_check": "native_constructibility_with_declared_argument_categories",
+        "cpp_type": "scoped_example::Probe",
+        "declared_exception": "catch_status",
+        "exact_constructor_parameter_signature_proved": false,
+        "nothrow_object_construction_checked": false,
+        "symbol": "hepta_cpp_scoped_Probe_new",
+        "wrapper_allocation_exception_boundary": "catch_status"
+      },
+      {
+        "argument_types": [
+          "scoped_example::Pair"
+        ],
+        "borrow_retention_proved": false,
+        "construction_check": "native_constructibility_with_declared_argument_categories",
+        "cpp_type": "scoped_example::PairOwner",
+        "declared_exception": "noexcept",
+        "exact_constructor_parameter_signature_proved": false,
+        "nothrow_object_construction_checked": true,
+        "symbol": "hepta_cpp_scoped_PairOwner_new",
+        "wrapper_allocation_exception_boundary": "catch_status"
+      }
+    ],
+    "contract_schema": "hepta.cpp-contract.v3",
+    "contract_sha256": "cf66efe02d9759b6a570b8065483f023e314e46cd9a0f79b5e2040f52f0eab53",
+    "cost_accounting": [
+      {
+        "allocation": "entry_and_object_shared_owners_plus_registry_node_and_possible_bucket_growth",
+        "borrow_retention_proved": false,
+        "constructor_exception": "catch_status",
+        "exception_boundary": "catch_status",
+        "foreign_constructor_allocations": "unverified",
+        "foreign_input_copy": "constructor_dependent_unverified",
+        "output_write": "only_after_successful_registry_insertion",
+        "registry_lifetime": "process",
+        "route": "handle_create",
+        "symbol": "hepta_cpp_scoped_Vector_filled",
+        "wrapper_input_buffer_copy_bytes": 0
+      },
+      {
+        "accounting_scope": "successful_call_after_registry_initialization",
+        "exception_boundary": "catch_status",
+        "foreign_allocation": "method_dependent_unverified",
+        "input_buffer_copy_bytes": 0,
+        "lazy_registry_allocation": "possible_on_first_call",
+        "reentrancy": "reject",
+        "route": "dynamic_handle",
+        "symbol": "hepta_cpp_scoped_Vector_append",
+        "thread_identity_allocation": "none",
+        "threading": "serialized",
+        "wrapper_heap_allocations": 0,
+        "wrapper_mutex_acquisitions": 2,
+        "wrapper_registry_lookups": 1,
+        "wrapper_shared_owner_copies": 2
+      },
+      {
+        "accounting_scope": "successful_call_after_registry_initialization",
+        "exception_boundary": "catch_status",
+        "foreign_allocation": "method_dependent_unverified",
+        "input_buffer_copy_bytes": 0,
+        "lazy_registry_allocation": "possible_on_first_call",
+        "reentrancy": "reject",
+        "route": "dynamic_handle",
+        "symbol": "hepta_cpp_scoped_Vector_at",
+        "thread_identity_allocation": "none",
+        "threading": "serialized",
+        "wrapper_heap_allocations": 0,
+        "wrapper_mutex_acquisitions": 2,
+        "wrapper_registry_lookups": 1,
+        "wrapper_shared_owner_copies": 2
+      },
+      {
+        "abandoned_handles": "not_automatically_reclaimed",
+        "deallocation": "same_C++_shared_owner_module",
+        "destruction": "nothrow_defer_inflight",
+        "route": "handle_destroy",
+        "symbol": "hepta_cpp_scoped_Vector_destroy"
+      },
+      {
+        "allocation": "entry_and_object_shared_owners_plus_registry_node_and_possible_bucket_growth",
+        "borrow_retention_proved": false,
+        "constructor_exception": "catch_status",
+        "exception_boundary": "catch_status",
+        "foreign_constructor_allocations": "unverified",
+        "foreign_input_copy": "constructor_dependent_unverified",
+        "output_write": "only_after_successful_registry_insertion",
+        "registry_lifetime": "process",
+        "route": "handle_create",
+        "symbol": "hepta_cpp_scoped_Probe_new",
+        "wrapper_input_buffer_copy_bytes": 0
+      },
+      {
+        "accounting_scope": "successful_call_after_registry_initialization",
+        "exception_boundary": "catch_status",
+        "foreign_allocation": "method_dependent_unverified",
+        "input_buffer_copy_bytes": 0,
+        "lazy_registry_allocation": "possible_on_first_call",
+        "reentrancy": "reject",
+        "route": "dynamic_handle",
+        "symbol": "hepta_cpp_scoped_Probe_append",
+        "thread_identity_allocation": "none",
+        "threading": "serialized",
+        "wrapper_heap_allocations": 0,
+        "wrapper_mutex_acquisitions": 2,
+        "wrapper_registry_lookups": 1,
+        "wrapper_shared_owner_copies": 2
+      },
+      {
+        "accounting_scope": "successful_call_after_registry_initialization",
+        "exception_boundary": "catch_status",
+        "foreign_allocation": "method_dependent_unverified",
+        "input_buffer_copy_bytes": 0,
+        "lazy_registry_allocation": "possible_on_first_call",
+        "reentrancy": "reject",
+        "route": "dynamic_handle",
+        "symbol": "hepta_cpp_scoped_Probe_at",
+        "thread_identity_allocation": "none",
+        "threading": "serialized",
+        "wrapper_heap_allocations": 0,
+        "wrapper_mutex_acquisitions": 2,
+        "wrapper_registry_lookups": 1,
+        "wrapper_shared_owner_copies": 2
+      },
+      {
+        "abandoned_handles": "not_automatically_reclaimed",
+        "deallocation": "same_C++_shared_owner_module",
+        "destruction": "nothrow_defer_inflight",
+        "route": "handle_destroy",
+        "symbol": "hepta_cpp_scoped_Probe_destroy"
+      },
+      {
+        "allocation": "entry_and_object_shared_owners_plus_registry_node_and_possible_bucket_growth",
+        "borrow_retention_proved": false,
+        "constructor_exception": "noexcept",
+        "exception_boundary": "catch_status",
+        "foreign_constructor_allocations": "unverified",
+        "foreign_input_copy": "constructor_dependent_unverified",
+        "output_write": "only_after_successful_registry_insertion",
+        "registry_lifetime": "process",
+        "route": "handle_create",
+        "symbol": "hepta_cpp_scoped_PairOwner_new",
+        "wrapper_input_buffer_copy_bytes": 0
+      },
+      {
+        "accounting_scope": "successful_call_after_registry_initialization",
+        "exception_boundary": "catch_status",
+        "foreign_allocation": "method_dependent_unverified",
+        "input_buffer_copy_bytes": 0,
+        "lazy_registry_allocation": "possible_on_first_call",
+        "reentrancy": "reject",
+        "route": "dynamic_handle",
+        "symbol": "hepta_cpp_scoped_PairOwner_get",
+        "thread_identity_allocation": "none",
+        "threading": "serialized",
+        "wrapper_heap_allocations": 0,
+        "wrapper_mutex_acquisitions": 2,
+        "wrapper_registry_lookups": 1,
+        "wrapper_shared_owner_copies": 2
+      },
+      {
+        "abandoned_handles": "not_automatically_reclaimed",
+        "deallocation": "same_C++_shared_owner_module",
+        "destruction": "nothrow_defer_inflight",
+        "route": "handle_destroy",
+        "symbol": "hepta_cpp_scoped_PairOwner_destroy"
+      },
+      {
+        "accounting_scope": "generated_wrapper_only",
+        "automatic_foreign_objects": 1,
+        "exception_boundary": "catch_status",
+        "foreign_allocation": "constructor_and_methods_dependent_unverified",
+        "foreign_stack_usage": "sizeof_selected_type_plus_compiler_generated_temporaries",
+        "input_buffer_copy_bytes": 0,
+        "method_invocations": 2,
+        "pod_field_conversion": false,
+        "route": "call_scoped_cpp_raii",
+        "symbol": "hepta_cpp_scoped_vector_roundtrip",
+        "wrapper_heap_allocations": 0,
+        "wrapper_mutex_acquisitions": 0,
+        "wrapper_registry_lookups": 0,
+        "wrapper_shared_owner_copies": 0
+      },
+      {
+        "accounting_scope": "generated_wrapper_only",
+        "automatic_foreign_objects": 1,
+        "exception_boundary": "catch_status",
+        "foreign_allocation": "constructor_and_methods_dependent_unverified",
+        "foreign_stack_usage": "sizeof_selected_type_plus_compiler_generated_temporaries",
+        "input_buffer_copy_bytes": 0,
+        "method_invocations": 2,
+        "pod_field_conversion": false,
+        "route": "call_scoped_cpp_raii",
+        "symbol": "hepta_cpp_scoped_probe_roundtrip",
+        "wrapper_heap_allocations": 0,
+        "wrapper_mutex_acquisitions": 0,
+        "wrapper_registry_lookups": 0,
+        "wrapper_shared_owner_copies": 0
+      },
+      {
+        "accounting_scope": "generated_wrapper_only",
+        "automatic_foreign_objects": 1,
+        "exception_boundary": "catch_status",
+        "foreign_allocation": "constructor_and_methods_dependent_unverified",
+        "foreign_stack_usage": "sizeof_selected_type_plus_compiler_generated_temporaries",
+        "input_buffer_copy_bytes": 0,
+        "method_invocations": 1,
+        "pod_field_conversion": false,
+        "route": "call_scoped_cpp_raii",
+        "symbol": "hepta_cpp_scoped_probe_unit",
+        "wrapper_heap_allocations": 0,
+        "wrapper_mutex_acquisitions": 0,
+        "wrapper_registry_lookups": 0,
+        "wrapper_shared_owner_copies": 0
+      },
+      {
+        "accounting_scope": "generated_wrapper_only",
+        "automatic_foreign_objects": 1,
+        "exception_boundary": "catch_status",
+        "foreign_allocation": "constructor_and_methods_dependent_unverified",
+        "foreign_stack_usage": "sizeof_selected_type_plus_compiler_generated_temporaries",
+        "input_buffer_copy_bytes": 0,
+        "method_invocations": 1,
+        "pod_field_conversion": true,
+        "route": "call_scoped_cpp_raii",
+        "symbol": "hepta_cpp_scoped_pair_copy",
+        "wrapper_heap_allocations": 0,
+        "wrapper_mutex_acquisitions": 0,
+        "wrapper_registry_lookups": 0,
+        "wrapper_shared_owner_copies": 0
+      }
+    ],
+    "cpp_flags": [
+      "-std=c++20",
+      "-O2",
+      "-fPIC",
+      "-pthread",
+      "-Werror"
+    ],
+    "diagnostics": [],
+    "execution": "not_run",
+    "foreign_library_soundness_proved": false,
+    "foreign_thread_safety_proved": false,
+    "header": "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/cpp/scoped/foreign.hpp",
+    "header_sha256": "5b2b9b62d7a5b0bd29edf1c0228c5bb0aa40b3d54368006e0cea3e9c3c819553",
+    "hepta_validation": {
+      "assumptions": [
+        {
+          "abi": "C",
+          "declared_effects": [
+            "alloc",
+            "block",
+            "ffi",
+            "unsafe",
+            "write"
+          ],
+          "function": "hepta_cpp_scoped_Vector_filled",
+          "kind": "extern_contract",
+          "obligations": [
+            "foreign implementation obeys the declared ABI and effect upper bound",
+            "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+          ],
+          "parameters": [
+            {
+              "name": "count",
+              "type": "usize"
+            },
+            {
+              "name": "initial",
+              "type": "i64"
+            },
+            {
+              "name": "out",
+              "type": "raw mut u64"
+            }
+          ],
+          "return_type": "i32",
+          "status": "assumed_not_verified"
+        },
+        {
+          "abi": "C",
+          "declared_effects": [
+            "alloc",
+            "block",
+            "ffi",
+            "unsafe",
+            "write"
+          ],
+          "function": "hepta_cpp_scoped_Vector_destroy",
+          "kind": "extern_contract",
+          "obligations": [
+            "foreign implementation obeys the declared ABI and effect upper bound",
+            "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+          ],
+          "parameters": [
+            {
+              "name": "handle",
+              "type": "u64"
+            }
+          ],
+          "return_type": "i32",
+          "status": "assumed_not_verified"
+        },
+        {
+          "abi": "C",
+          "declared_effects": [
+            "alloc",
+            "block",
+            "ffi",
+            "unsafe",
+            "write"
+          ],
+          "function": "hepta_cpp_scoped_Vector_append",
+          "kind": "extern_contract",
+          "obligations": [
+            "foreign implementation obeys the declared ABI and effect upper bound",
+            "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+          ],
+          "parameters": [
+            {
+              "name": "handle",
+              "type": "u64"
+            },
+            {
+              "name": "value",
+              "type": "i64"
+            }
+          ],
+          "return_type": "i32",
+          "status": "assumed_not_verified"
+        },
+        {
+          "abi": "C",
+          "declared_effects": [
+            "alloc",
+            "block",
+            "ffi",
+            "unsafe",
+            "write"
+          ],
+          "function": "hepta_cpp_scoped_Vector_at",
+          "kind": "extern_contract",
+          "obligations": [
+            "foreign implementation obeys the declared ABI and effect upper bound",
+            "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+          ],
+          "parameters": [
+            {
+              "name": "handle",
+              "type": "u64"
+            },
+            {
+              "name": "index",
+              "type": "usize"
+            },
+            {
+              "name": "out",
+              "type": "raw mut i64"
+            }
+          ],
+          "return_type": "i32",
+          "status": "assumed_not_verified"
+        },
+        {
+          "abi": "C",
+          "declared_effects": [
+            "alloc",
+            "block",
+            "ffi",
+            "unsafe",
+            "write"
+          ],
+          "function": "hepta_cpp_scoped_Probe_new",
+          "kind": "extern_contract",
+          "obligations": [
+            "foreign implementation obeys the declared ABI and effect upper bound",
+            "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+          ],
+          "parameters": [
+            {
+              "name": "count",
+              "type": "usize"
+            },
+            {
+              "name": "initial",
+              "type": "i64"
+            },
+            {
+              "name": "mode",
+              "type": "u64"
+            },
+            {
+              "name": "out",
+              "type": "raw mut u64"
+            }
+          ],
+          "return_type": "i32",
+          "status": "assumed_not_verified"
+        },
+        {
+          "abi": "C",
+          "declared_effects": [
+            "alloc",
+            "block",
+            "ffi",
+            "unsafe",
+            "write"
+          ],
+          "function": "hepta_cpp_scoped_Probe_destroy",
+          "kind": "extern_contract",
+          "obligations": [
+            "foreign implementation obeys the declared ABI and effect upper bound",
+            "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+          ],
+          "parameters": [
+            {
+              "name": "handle",
+              "type": "u64"
+            }
+          ],
+          "return_type": "i32",
+          "status": "assumed_not_verified"
+        },
+        {
+          "abi": "C",
+          "declared_effects": [
+            "alloc",
+            "block",
+            "ffi",
+            "unsafe",
+            "write"
+          ],
+          "function": "hepta_cpp_scoped_Probe_append",
+          "kind": "extern_contract",
+          "obligations": [
+            "foreign implementation obeys the declared ABI and effect upper bound",
+            "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+          ],
+          "parameters": [
+            {
+              "name": "handle",
+              "type": "u64"
+            },
+            {
+              "name": "value",
+              "type": "i64"
+            }
+          ],
+          "return_type": "i32",
+          "status": "assumed_not_verified"
+        },
+        {
+          "abi": "C",
+          "declared_effects": [
+            "alloc",
+            "block",
+            "ffi",
+            "unsafe",
+            "write"
+          ],
+          "function": "hepta_cpp_scoped_Probe_at",
+          "kind": "extern_contract",
+          "obligations": [
+            "foreign implementation obeys the declared ABI and effect upper bound",
+            "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+          ],
+          "parameters": [
+            {
+              "name": "handle",
+              "type": "u64"
+            },
+            {
+              "name": "index",
+              "type": "usize"
+            },
+            {
+              "name": "out",
+              "type": "raw mut i64"
+            }
+          ],
+          "return_type": "i32",
+          "status": "assumed_not_verified"
+        },
+        {
+          "abi": "C",
+          "declared_effects": [
+            "alloc",
+            "block",
+            "ffi",
+            "unsafe",
+            "write"
+          ],
+          "function": "hepta_cpp_scoped_PairOwner_new",
+          "kind": "extern_contract",
+          "obligations": [
+            "foreign implementation obeys the declared ABI and effect upper bound",
+            "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+          ],
+          "parameters": [
+            {
+              "name": "initial",
+              "type": "Pair"
+            },
+            {
+              "name": "out",
+              "type": "raw mut u64"
+            }
+          ],
+          "return_type": "i32",
+          "status": "assumed_not_verified"
+        },
+        {
+          "abi": "C",
+          "declared_effects": [
+            "alloc",
+            "block",
+            "ffi",
+            "unsafe",
+            "write"
+          ],
+          "function": "hepta_cpp_scoped_PairOwner_destroy",
+          "kind": "extern_contract",
+          "obligations": [
+            "foreign implementation obeys the declared ABI and effect upper bound",
+            "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+          ],
+          "parameters": [
+            {
+              "name": "handle",
+              "type": "u64"
+            }
+          ],
+          "return_type": "i32",
+          "status": "assumed_not_verified"
+        },
+        {
+          "abi": "C",
+          "declared_effects": [
+            "alloc",
+            "block",
+            "ffi",
+            "unsafe",
+            "write"
+          ],
+          "function": "hepta_cpp_scoped_PairOwner_get",
+          "kind": "extern_contract",
+          "obligations": [
+            "foreign implementation obeys the declared ABI and effect upper bound",
+            "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+          ],
+          "parameters": [
+            {
+              "name": "handle",
+              "type": "u64"
+            },
+            {
+              "name": "out",
+              "type": "raw mut Pair"
+            }
+          ],
+          "return_type": "i32",
+          "status": "assumed_not_verified"
+        },
+        {
+          "abi": "C",
+          "declared_effects": [
+            "alloc",
+            "block",
+            "ffi",
+            "unsafe",
+            "write"
+          ],
+          "function": "hepta_cpp_scoped_vector_roundtrip",
+          "kind": "extern_contract",
+          "obligations": [
+            "foreign implementation obeys the declared ABI and effect upper bound",
+            "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+          ],
+          "parameters": [
+            {
+              "name": "count",
+              "type": "usize"
+            },
+            {
+              "name": "initial",
+              "type": "i64"
+            },
+            {
+              "name": "appended",
+              "type": "i64"
+            },
+            {
+              "name": "index",
+              "type": "usize"
+            },
+            {
+              "name": "out",
+              "type": "raw mut i64"
+            }
+          ],
+          "return_type": "i32",
+          "status": "assumed_not_verified"
+        },
+        {
+          "abi": "C",
+          "declared_effects": [
+            "alloc",
+            "block",
+            "ffi",
+            "unsafe",
+            "write"
+          ],
+          "function": "hepta_cpp_scoped_probe_roundtrip",
+          "kind": "extern_contract",
+          "obligations": [
+            "foreign implementation obeys the declared ABI and effect upper bound",
+            "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+          ],
+          "parameters": [
+            {
+              "name": "count",
+              "type": "usize"
+            },
+            {
+              "name": "initial",
+              "type": "i64"
+            },
+            {
+              "name": "mode",
+              "type": "u64"
+            },
+            {
+              "name": "appended",
+              "type": "i64"
+            },
+            {
+              "name": "index",
+              "type": "usize"
+            },
+            {
+              "name": "out",
+              "type": "raw mut i64"
+            }
+          ],
+          "return_type": "i32",
+          "status": "assumed_not_verified"
+        },
+        {
+          "abi": "C",
+          "declared_effects": [
+            "alloc",
+            "block",
+            "ffi",
+            "unsafe",
+            "write"
+          ],
+          "function": "hepta_cpp_scoped_probe_unit",
+          "kind": "extern_contract",
+          "obligations": [
+            "foreign implementation obeys the declared ABI and effect upper bound",
+            "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+          ],
+          "parameters": [
+            {
+              "name": "count",
+              "type": "usize"
+            },
+            {
+              "name": "initial",
+              "type": "i64"
+            },
+            {
+              "name": "mode",
+              "type": "u64"
+            },
+            {
+              "name": "appended",
+              "type": "i64"
+            }
+          ],
+          "return_type": "i32",
+          "status": "assumed_not_verified"
+        },
+        {
+          "abi": "C",
+          "declared_effects": [
+            "alloc",
+            "block",
+            "ffi",
+            "unsafe",
+            "write"
+          ],
+          "function": "hepta_cpp_scoped_pair_copy",
+          "kind": "extern_contract",
+          "obligations": [
+            "foreign implementation obeys the declared ABI and effect upper bound",
+            "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+          ],
+          "parameters": [
+            {
+              "name": "initial",
+              "type": "Pair"
+            },
+            {
+              "name": "out",
+              "type": "raw mut Pair"
+            }
+          ],
+          "return_type": "i32",
+          "status": "assumed_not_verified"
+        }
+      ],
+      "backend": {
+        "check_only": true,
+        "crate_type": "rlib",
+        "diagnostics": [],
+        "flags": [
+          "edition=2021",
+          "opt-level=3",
+          "overflow-checks=yes",
+          "panic=abort",
+          "codegen-units=1",
+          "sysroot=/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0"
+        ],
+        "link_args": [],
+        "linker": null,
+        "ok": true,
+        "rust_sha256": "65a62f07ab3f55e90a52a4ea1ab9658ed93e0ddfb55023e00bf31c03f35e2bdd",
+        "rustc_crate_type": "lib",
+        "status": "rustc_checked",
+        "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+          "host": "x86_64-unknown-linux-gnu",
+          "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+          "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+          "sysroot_discovery": "verified_compiler_prefix",
+          "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+        },
+        "validation_artifact_sha256": "164ea1f4a316fbf47ab17ab3065a0115111e863391efdbdcd3cf3962a48da25e"
+      },
+      "checks": {
+        "rust_borrows_types": "rustc_checked",
+        "syntax": "passed",
+        "types_effects_resources": "passed_in_supported_subset"
+      },
+      "claims": {
+        "all_programs_faster_than_rust": false,
+        "bounded_cancellation_latency_proved": false,
+        "deadlock_freedom_proved": false,
+        "hardware_execution_verified": false,
+        "whole_language_soundness_proved": false
+      },
+      "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+      "compiler_version": "0.2.0",
+      "diagnostics": [],
+      "effects": {
+        "hepta_cpp_scoped_PairOwner_destroy": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "hepta_cpp_scoped_PairOwner_get": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "hepta_cpp_scoped_PairOwner_new": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "hepta_cpp_scoped_Probe_append": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "hepta_cpp_scoped_Probe_at": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "hepta_cpp_scoped_Probe_destroy": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "hepta_cpp_scoped_Probe_new": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "hepta_cpp_scoped_Vector_append": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "hepta_cpp_scoped_Vector_at": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "hepta_cpp_scoped_Vector_destroy": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "hepta_cpp_scoped_Vector_filled": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "hepta_cpp_scoped_pair_copy": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "hepta_cpp_scoped_probe_roundtrip": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "hepta_cpp_scoped_probe_unit": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "hepta_cpp_scoped_vector_roundtrip": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ]
+      },
+      "interface_sha256": "2cb2dc8e1bd77e513deee7951f7f5c9c50a7438f6dddeb072c80366173f0ab35",
+      "ok": true,
+      "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cpp-scoped-rof6nx_n/bridge/bridge.hepta",
+      "profile": {
+        "crate_type": "rlib",
+        "no_std": false,
+        "overflow_checks": true,
+        "panic": "abort"
+      },
+      "resource_contracts": [],
+      "rust_sha256": "65a62f07ab3f55e90a52a4ea1ab9658ed93e0ddfb55023e00bf31c03f35e2bdd",
+      "schema": "hepta.check.v1",
+      "source_sha256": "6c2d38030b003883d3ee2a8277923f0c9ff64ce3b4efaf89625bcd6eb0c91173",
+      "status": "checked_with_external_assumptions"
+    },
+    "native_link_qualified": false,
+    "object_bytes": 61296,
+    "object_sha256": "3a23c336dec4d7665b5babc4c21eb14a4ec77e8ea40a919126c9905ab5cc4c63",
+    "ok": true,
+    "outputs": {
+      "bridge.cpp": {
+        "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cpp-scoped-rof6nx_n/bridge/bridge.cpp",
+        "sha256": "39f59404642ecb025c31d6b04858bf8ed624369cd4177dca610aba28e1968f04"
+      },
+      "bridge.h": {
+        "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cpp-scoped-rof6nx_n/bridge/bridge.h",
+        "sha256": "6febd6dd83a51662a4114d6741927da2f5d86652ee9886238b2d35951fb6d99e"
+      },
+      "bridge.hepta": {
+        "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cpp-scoped-rof6nx_n/bridge/bridge.hepta",
+        "sha256": "6c2d38030b003883d3ee2a8277923f0c9ff64ce3b4efaf89625bcd6eb0c91173"
+      },
+      "contract.json": {
+        "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cpp-scoped-rof6nx_n/bridge/contract.json",
+        "sha256": "0c1400c7ae8c3e8942fd3c13c2a455047e7bf24b5308eefcb4197d387799e424"
+      }
+    },
+    "paired_toolchain_abi_qualified": false,
+    "schema": "hepta.cpp-bridge-contract-report.v1",
+    "scoped_lifetime_checks": [
+      {
+        "cleanup": "C++_RAII_on_normal_return_and_caught_C++_exceptions",
+        "constructor": "filled",
+        "cpp_type": "std::vector<std::int64_t>",
+        "destructor_nothrow_native_checked": true,
+        "foreign_implementation_rewritten": false,
+        "foreign_nonretention_proved": false,
+        "lifetime": "one_call_cpp_automatic_object",
+        "methods": [
+          "append",
+          "at"
+        ],
+        "object_handle_exported": false,
+        "output_published_after_destructor": true,
+        "reference_result_copied_before_destructor": true,
+        "result_type": "i64",
+        "symbol": "hepta_cpp_scoped_vector_roundtrip",
+        "whole_library_memory_safety_proved": false
+      },
+      {
+        "cleanup": "C++_RAII_on_normal_return_and_caught_C++_exceptions",
+        "constructor": "new",
+        "cpp_type": "scoped_example::Probe",
+        "destructor_nothrow_native_checked": true,
+        "foreign_implementation_rewritten": false,
+        "foreign_nonretention_proved": false,
+        "lifetime": "one_call_cpp_automatic_object",
+        "methods": [
+          "append",
+          "at"
+        ],
+        "object_handle_exported": false,
+        "output_published_after_destructor": true,
+        "reference_result_copied_before_destructor": true,
+        "result_type": "i64",
+        "symbol": "hepta_cpp_scoped_probe_roundtrip",
+        "whole_library_memory_safety_proved": false
+      },
+      {
+        "cleanup": "C++_RAII_on_normal_return_and_caught_C++_exceptions",
+        "constructor": "new",
+        "cpp_type": "scoped_example::Probe",
+        "destructor_nothrow_native_checked": true,
+        "foreign_implementation_rewritten": false,
+        "foreign_nonretention_proved": false,
+        "lifetime": "one_call_cpp_automatic_object",
+        "methods": [
+          "append"
+        ],
+        "object_handle_exported": false,
+        "output_published_after_destructor": false,
+        "reference_result_copied_before_destructor": false,
+        "result_type": "Unit",
+        "symbol": "hepta_cpp_scoped_probe_unit",
+        "whole_library_memory_safety_proved": false
+      },
+      {
+        "cleanup": "C++_RAII_on_normal_return_and_caught_C++_exceptions",
+        "constructor": "new",
+        "cpp_type": "scoped_example::PairOwner",
+        "destructor_nothrow_native_checked": true,
+        "foreign_implementation_rewritten": false,
+        "foreign_nonretention_proved": false,
+        "lifetime": "one_call_cpp_automatic_object",
+        "methods": [
+          "get"
+        ],
+        "object_handle_exported": false,
+        "output_published_after_destructor": true,
+        "reference_result_copied_before_destructor": true,
+        "result_type": "Pair",
+        "symbol": "hepta_cpp_scoped_pair_copy",
+        "whole_library_memory_safety_proved": false
+      }
+    ],
+    "status": "cpp_object_and_hepta_native_checked",
+    "status_codes": {
+      "cpp_exception": 3,
+      "handle_exhausted": 4,
+      "misaligned_pointer": 8,
+      "null_pointer": 1,
+      "reentrancy_rejected": 6,
+      "span_too_large": 7,
+      "stale_handle": 2,
+      "success": 0,
+      "wrong_thread": 5
+    },
+    "transitive_dependency_lock": "not_established_rebuild_from_current_headers_required"
+  },
+  "build_flags": [
+    "-std=c++20",
+    "-O2",
+    "-fPIC",
+    "-pthread",
+    "-Werror",
+    "-I/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cpp-scoped-rof6nx_n/bridge",
+    "-I/workspace/scratch/c7c6ee414a6c/hepta-research/examples/cpp/scoped"
+  ],
+  "executable_sha256": "462ec3f7d80357086de1ef88482b31208db16943ea295ac15e06a6411ba276f2",
+  "execution": {
+    "allocation_recoveries": 2,
+    "allocation_refusal_sites": 2,
+    "direct_cpp_new_calls": 2,
+    "foreign_cpp_library_rewritten": false,
+    "handle_cpp_new_calls": 5,
+    "live_cpp_allocation_delta": 0,
+    "output_after_destructor": true,
+    "output_guard_cases": 2,
+    "pod_reference_copy": true,
+    "probe_lifecycle_paths": 4,
+    "scoped_cpp_new_calls": 2,
+    "scoped_wrapper_allocation_delta": 0,
+    "unit_cleanup_paths": 2,
+    "vector_differential_cases": 16
+  },
+  "execution_process": {
+    "returncode": 0,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_sha256": "03032699879b8743a38baae4f255edc156a398aac212a88ae520ade133ce5e01"
+  },
+  "foreign_cpp_library_rewritten": false,
+  "generated_at_utc": "2026-10-25T17:43:59.196637+00:00",
+  "hepta_consumer": {
+    "assumptions": [
+      {
+        "abi": "C",
+        "declared_effects": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "function": "hepta_cpp_scoped_Vector_filled",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "count",
+            "type": "usize"
+          },
+          {
+            "name": "initial",
+            "type": "i64"
+          },
+          {
+            "name": "out",
+            "type": "raw mut u64"
+          }
+        ],
+        "return_type": "i32",
+        "status": "assumed_not_verified"
+      },
+      {
+        "abi": "C",
+        "declared_effects": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "function": "hepta_cpp_scoped_Vector_destroy",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "handle",
+            "type": "u64"
+          }
+        ],
+        "return_type": "i32",
+        "status": "assumed_not_verified"
+      },
+      {
+        "abi": "C",
+        "declared_effects": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "function": "hepta_cpp_scoped_Vector_append",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "handle",
+            "type": "u64"
+          },
+          {
+            "name": "value",
+            "type": "i64"
+          }
+        ],
+        "return_type": "i32",
+        "status": "assumed_not_verified"
+      },
+      {
+        "abi": "C",
+        "declared_effects": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "function": "hepta_cpp_scoped_Vector_at",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "handle",
+            "type": "u64"
+          },
+          {
+            "name": "index",
+            "type": "usize"
+          },
+          {
+            "name": "out",
+            "type": "raw mut i64"
+          }
+        ],
+        "return_type": "i32",
+        "status": "assumed_not_verified"
+      },
+      {
+        "abi": "C",
+        "declared_effects": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "function": "hepta_cpp_scoped_Probe_new",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "count",
+            "type": "usize"
+          },
+          {
+            "name": "initial",
+            "type": "i64"
+          },
+          {
+            "name": "mode",
+            "type": "u64"
+          },
+          {
+            "name": "out",
+            "type": "raw mut u64"
+          }
+        ],
+        "return_type": "i32",
+        "status": "assumed_not_verified"
+      },
+      {
+        "abi": "C",
+        "declared_effects": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "function": "hepta_cpp_scoped_Probe_destroy",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "handle",
+            "type": "u64"
+          }
+        ],
+        "return_type": "i32",
+        "status": "assumed_not_verified"
+      },
+      {
+        "abi": "C",
+        "declared_effects": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "function": "hepta_cpp_scoped_Probe_append",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "handle",
+            "type": "u64"
+          },
+          {
+            "name": "value",
+            "type": "i64"
+          }
+        ],
+        "return_type": "i32",
+        "status": "assumed_not_verified"
+      },
+      {
+        "abi": "C",
+        "declared_effects": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "function": "hepta_cpp_scoped_Probe_at",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "handle",
+            "type": "u64"
+          },
+          {
+            "name": "index",
+            "type": "usize"
+          },
+          {
+            "name": "out",
+            "type": "raw mut i64"
+          }
+        ],
+        "return_type": "i32",
+        "status": "assumed_not_verified"
+      },
+      {
+        "abi": "C",
+        "declared_effects": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "function": "hepta_cpp_scoped_PairOwner_new",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "initial",
+            "type": "Md564ea010b367af2_Pair"
+          },
+          {
+            "name": "out",
+            "type": "raw mut u64"
+          }
+        ],
+        "return_type": "i32",
+        "status": "assumed_not_verified"
+      },
+      {
+        "abi": "C",
+        "declared_effects": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "function": "hepta_cpp_scoped_PairOwner_destroy",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "handle",
+            "type": "u64"
+          }
+        ],
+        "return_type": "i32",
+        "status": "assumed_not_verified"
+      },
+      {
+        "abi": "C",
+        "declared_effects": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "function": "hepta_cpp_scoped_PairOwner_get",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "handle",
+            "type": "u64"
+          },
+          {
+            "name": "out",
+            "type": "raw mut Md564ea010b367af2_Pair"
+          }
+        ],
+        "return_type": "i32",
+        "status": "assumed_not_verified"
+      },
+      {
+        "abi": "C",
+        "declared_effects": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "function": "hepta_cpp_scoped_vector_roundtrip",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "count",
+            "type": "usize"
+          },
+          {
+            "name": "initial",
+            "type": "i64"
+          },
+          {
+            "name": "appended",
+            "type": "i64"
+          },
+          {
+            "name": "index",
+            "type": "usize"
+          },
+          {
+            "name": "out",
+            "type": "raw mut i64"
+          }
+        ],
+        "return_type": "i32",
+        "status": "assumed_not_verified"
+      },
+      {
+        "abi": "C",
+        "declared_effects": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "function": "hepta_cpp_scoped_probe_roundtrip",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "count",
+            "type": "usize"
+          },
+          {
+            "name": "initial",
+            "type": "i64"
+          },
+          {
+            "name": "mode",
+            "type": "u64"
+          },
+          {
+            "name": "appended",
+            "type": "i64"
+          },
+          {
+            "name": "index",
+            "type": "usize"
+          },
+          {
+            "name": "out",
+            "type": "raw mut i64"
+          }
+        ],
+        "return_type": "i32",
+        "status": "assumed_not_verified"
+      },
+      {
+        "abi": "C",
+        "declared_effects": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "function": "hepta_cpp_scoped_probe_unit",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "count",
+            "type": "usize"
+          },
+          {
+            "name": "initial",
+            "type": "i64"
+          },
+          {
+            "name": "mode",
+            "type": "u64"
+          },
+          {
+            "name": "appended",
+            "type": "i64"
+          }
+        ],
+        "return_type": "i32",
+        "status": "assumed_not_verified"
+      },
+      {
+        "abi": "C",
+        "declared_effects": [
+          "alloc",
+          "block",
+          "ffi",
+          "unsafe",
+          "write"
+        ],
+        "function": "hepta_cpp_scoped_pair_copy",
+        "kind": "extern_contract",
+        "obligations": [
+          "foreign implementation obeys the declared ABI and effect upper bound",
+          "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations"
+        ],
+        "parameters": [
+          {
+            "name": "initial",
+            "type": "Md564ea010b367af2_Pair"
+          },
+          {
+            "name": "out",
+            "type": "raw mut Md564ea010b367af2_Pair"
+          }
+        ],
+        "return_type": "i32",
+        "status": "assumed_not_verified"
+      },
+      {
+        "function": "hepta_scoped_vector",
+        "kind": "unsafe_obligation",
+        "line": 7,
+        "operation": "extern call hepta_cpp_scoped_vector_roundtrip",
+        "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cpp-scoped-rof6nx_n/bridge/consumer.hepta",
+        "status": "not_proved_by_frontend"
+      },
+      {
+        "function": "hepta_scoped_probe",
+        "kind": "unsafe_obligation",
+        "line": 13,
+        "operation": "extern call hepta_cpp_scoped_probe_roundtrip",
+        "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cpp-scoped-rof6nx_n/bridge/consumer.hepta",
+        "status": "not_proved_by_frontend"
+      },
+      {
+        "function": "hepta_scoped_unit",
+        "kind": "unsafe_obligation",
+        "line": 18,
+        "operation": "extern call hepta_cpp_scoped_probe_unit",
+        "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cpp-scoped-rof6nx_n/bridge/consumer.hepta",
+        "status": "not_proved_by_frontend"
+      },
+      {
+        "function": "hepta_scoped_pair",
+        "kind": "unsafe_obligation",
+        "line": 24,
+        "operation": "extern call hepta_cpp_scoped_pair_copy",
+        "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cpp-scoped-rof6nx_n/bridge/consumer.hepta",
+        "status": "not_proved_by_frontend"
+      }
+    ],
+    "backend": {
+      "check_only": true,
+      "crate_type": "staticlib",
+      "diagnostics": [],
+      "flags": [
+        "edition=2021",
+        "opt-level=3",
+        "overflow-checks=yes",
+        "panic=abort",
+        "codegen-units=1",
+        "sysroot=/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0"
+      ],
+      "link_args": [],
+      "linker": null,
+      "ok": true,
+      "rust_sha256": "d2697dd0157455e70823ce7aae22a70869b8b0733098b22b15fc450d7c381b84",
+      "rustc_crate_type": "lib",
+      "status": "rustc_checked",
+      "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+      "target": "x86_64-unknown-linux-gnu",
+      "toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+        "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "validation_artifact_sha256": "6e10fc8986209a8e93e708e2d3de0679562afb4251bd8d3d5443f3e95b60a5dc"
+    },
+    "checks": {
+      "rust_borrows_types": "rustc_checked",
+      "syntax": "passed",
+      "types_effects_resources": "passed_in_supported_subset"
+    },
+    "claims": {
+      "all_programs_faster_than_rust": false,
+      "bounded_cancellation_latency_proved": false,
+      "deadlock_freedom_proved": false,
+      "hardware_execution_verified": false,
+      "whole_language_soundness_proved": false
+    },
+    "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+    "compiler_version": "0.2.0",
+    "diagnostics": [],
+    "effects": {
+      "hepta_cpp_scoped_PairOwner_destroy": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_cpp_scoped_PairOwner_get": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_cpp_scoped_PairOwner_new": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_cpp_scoped_Probe_append": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_cpp_scoped_Probe_at": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_cpp_scoped_Probe_destroy": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_cpp_scoped_Probe_new": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_cpp_scoped_Vector_append": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_cpp_scoped_Vector_at": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_cpp_scoped_Vector_destroy": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_cpp_scoped_Vector_filled": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_cpp_scoped_pair_copy": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_cpp_scoped_probe_roundtrip": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_cpp_scoped_probe_unit": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_cpp_scoped_vector_roundtrip": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_scoped_pair": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_scoped_probe": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_scoped_unit": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ],
+      "hepta_scoped_vector": [
+        "alloc",
+        "block",
+        "ffi",
+        "unsafe",
+        "write"
+      ]
+    },
+    "interface_sha256": "aba7419fce7eb5627f4006a20a3e560aa47f2673e2a1d84a7fda28cae0f287d0",
+    "ok": true,
+    "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cpp-scoped-rof6nx_n/bridge/consumer.hepta",
+    "profile": {
+      "crate_type": "staticlib",
+      "no_std": false,
+      "overflow_checks": true,
+      "panic": "abort"
+    },
+    "project": {
+      "c_imports": [],
+      "entry": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cpp-scoped-rof6nx_n/bridge/consumer.hepta",
+      "locked": false,
+      "modules": [
+        {
+          "imports": {},
+          "module": "scoped",
+          "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cpp-scoped-rof6nx_n/bridge/bridge.hepta",
+          "symbols": {
+            "Pair": "Md564ea010b367af2_Pair",
+            "hepta_cpp_scoped_PairOwner_destroy": "hepta_cpp_scoped_PairOwner_destroy",
+            "hepta_cpp_scoped_PairOwner_get": "hepta_cpp_scoped_PairOwner_get",
+            "hepta_cpp_scoped_PairOwner_new": "hepta_cpp_scoped_PairOwner_new",
+            "hepta_cpp_scoped_Probe_append": "hepta_cpp_scoped_Probe_append",
+            "hepta_cpp_scoped_Probe_at": "hepta_cpp_scoped_Probe_at",
+            "hepta_cpp_scoped_Probe_destroy": "hepta_cpp_scoped_Probe_destroy",
+            "hepta_cpp_scoped_Probe_new": "hepta_cpp_scoped_Probe_new",
+            "hepta_cpp_scoped_Vector_append": "hepta_cpp_scoped_Vector_append",
+            "hepta_cpp_scoped_Vector_at": "hepta_cpp_scoped_Vector_at",
+            "hepta_cpp_scoped_Vector_destroy": "hepta_cpp_scoped_Vector_destroy",
+            "hepta_cpp_scoped_Vector_filled": "hepta_cpp_scoped_Vector_filled",
+            "hepta_cpp_scoped_pair_copy": "hepta_cpp_scoped_pair_copy",
+            "hepta_cpp_scoped_probe_roundtrip": "hepta_cpp_scoped_probe_roundtrip",
+            "hepta_cpp_scoped_probe_unit": "hepta_cpp_scoped_probe_unit",
+            "hepta_cpp_scoped_vector_roundtrip": "hepta_cpp_scoped_vector_roundtrip"
+          }
+        },
+        {
+          "imports": {
+            "bridge": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cpp-scoped-rof6nx_n/bridge/bridge.hepta"
+          },
+          "module": "cpp_scoped_consumer",
+          "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cpp-scoped-rof6nx_n/bridge/consumer.hepta",
+          "symbols": {
+            "hepta_scoped_pair": "hepta_scoped_pair",
+            "hepta_scoped_probe": "hepta_scoped_probe",
+            "hepta_scoped_unit": "hepta_scoped_unit",
+            "hepta_scoped_vector": "hepta_scoped_vector"
+          }
+        }
+      ],
+      "package": null,
+      "path_bindings": {
+        "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cpp-scoped-rof6nx_n/bridge/bridge.hepta": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cpp-scoped-rof6nx_n/bridge/bridge.hepta",
+        "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cpp-scoped-rof6nx_n/bridge/consumer.hepta": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cpp-scoped-rof6nx_n/bridge/consumer.hepta"
+      },
+      "schema": "hepta.module-graph.v1",
+      "sha256": "63a703adeb86c56866de2cccf86d49085c22ce3f74906871411555f876d0847a",
+      "sources": {
+        "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cpp-scoped-rof6nx_n/bridge/bridge.hepta": "6c2d38030b003883d3ee2a8277923f0c9ff64ce3b4efaf89625bcd6eb0c91173",
+        "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cpp-scoped-rof6nx_n/bridge/consumer.hepta": "0c00138147236eb4ee2c7e9984bc6c046530265fab650f245ed9ea0a47b7ba62"
+      }
+    },
+    "resource_contracts": [],
+    "rust_sha256": "d2697dd0157455e70823ce7aae22a70869b8b0733098b22b15fc450d7c381b84",
+    "schema": "hepta.check.v1",
+    "source_sha256": "0c00138147236eb4ee2c7e9984bc6c046530265fab650f245ed9ea0a47b7ba62",
+    "status": "checked_with_external_assumptions"
+  },
+  "hepta_library_sha256": "54d0fb7655ad1b85562d08ee54ac916afbe6cbf8cbfbe40b79fab8668cecac7c",
+  "hepta_native_library": {
+    "artifact": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-cpp-scoped-rof6nx_n/consumer.a",
+    "artifact_bytes": 20949734,
+    "artifact_sha256": "54d0fb7655ad1b85562d08ee54ac916afbe6cbf8cbfbe40b79fab8668cecac7c",
+    "check_only": false,
+    "crate_type": "staticlib",
+    "diagnostics": [],
+    "flags": [
+      "edition=2021",
+      "opt-level=3",
+      "overflow-checks=yes",
+      "panic=abort",
+      "codegen-units=1",
+      "sysroot=/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0"
+    ],
+    "link_args": [],
+    "linker": null,
+    "ok": true,
+    "rust_sha256": "d2697dd0157455e70823ce7aae22a70869b8b0733098b22b15fc450d7c381b84",
+    "rustc_crate_type": "staticlib",
+    "status": "rustc_checked",
+    "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+    "target": "x86_64-unknown-linux-gnu",
+    "toolchain": {
+      "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+      "host": "x86_64-unknown-linux-gnu",
+      "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+      "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+      "sysroot_discovery": "verified_compiler_prefix",
+      "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+    },
+    "validation_artifact_sha256": "54d0fb7655ad1b85562d08ee54ac916afbe6cbf8cbfbe40b79fab8668cecac7c"
+  },
+  "inputs": {
+    "examples/cpp/scoped/benchmark.cpp": "b032b3adf079b6cea5224c3175bd109c7bedeb8c313bfda0b96308e700db769b",
+    "examples/cpp/scoped/consumer.hepta": "0c00138147236eb4ee2c7e9984bc6c046530265fab650f245ed9ea0a47b7ba62",
+    "examples/cpp/scoped/contract.json": "f4f1b7dedb32fb85e5e4802442216627ad951736d826b74266e3f59be334eec5",
+    "examples/cpp/scoped/foreign.cpp": "45031edfc9781e97dfe1ebf739f15edaab3225c0313a841d11d6388506b95f3b",
+    "examples/cpp/scoped/foreign.hpp": "5b2b9b62d7a5b0bd29edf1c0228c5bb0aa40b3d54368006e0cea3e9c3c819553",
+    "examples/cpp/scoped/harness.cpp": "236b7d56a04a760c152bd307dc6cc74e4c3cc081781a269a1a4a74e125832ebe"
+  },
+  "native_link_qualified": true,
+  "object_sha256": {
+    "bridge.o": "3a23c336dec4d7665b5babc4c21eb14a4ec77e8ea40a919126c9905ab5cc4c63",
+    "foreign.o": "bfd6c6e74bb2118b1fb8e1982adeda06ba8a1081b877454bc7861707a917674d",
+    "harness.o": "c97e809c846f0f5b977f081146a83a6b6e1aeb8833cd45b89f46786924decfc2"
+  },
+  "ok": true,
+  "performance": {
+    "benchmark_sha256": "e04d3b669725d6ff16e242086ea5a51c8af5cf8fd7f3a6b618339008215891ee",
+    "limitations": [
+      "One host and selected C++/Rust compilers; seven sequential samples; no LTO.",
+      "Timings include foreign vector allocations; C++ new counts are measured separately.",
+      "No universal speedup, tail-latency, total-stack-bound or arbitrary library claim."
+    ],
+    "measurements": [
+      {
+        "case": "native_cpp_lifecycle",
+        "checksum": 1550000,
+        "iterations": 100000,
+        "median_ns_per_lifecycle": 30.50546,
+        "samples_ns": [
+          3470319,
+          2829128,
+          3300988,
+          2994964,
+          3242081,
+          2807656,
+          3050546
+        ]
+      },
+      {
+        "case": "scoped_cpp_lifecycle",
+        "checksum": 1550000,
+        "iterations": 100000,
+        "median_ns_per_lifecycle": 31.95001,
+        "samples_ns": [
+          3573252,
+          3167620,
+          3387276,
+          3031698,
+          3195001,
+          2992831,
+          3350392
+        ]
+      },
+      {
+        "case": "hepta_scoped_lifecycle",
+        "checksum": 1550000,
+        "iterations": 100000,
+        "median_ns_per_lifecycle": 30.51918,
+        "samples_ns": [
+          3856322,
+          3077737,
+          3000101,
+          3051918,
+          3020652,
+          3242291,
+          3029275
+        ]
+      },
+      {
+        "case": "handle_cpp_lifecycle",
+        "checksum": 1550000,
+        "iterations": 100000,
+        "median_ns_per_lifecycle": 147.90466,
+        "samples_ns": [
+          14790466,
+          14248933,
+          14307118,
+          14861110,
+          14775774,
+          15625956,
+          15127796
+        ]
+      }
+    ],
+    "observed_median_ratios_to_native": {
+      "handle_cpp_lifecycle": 4.848465160007422,
+      "hepta_scoped_lifecycle": 1.000449755551957,
+      "native_cpp_lifecycle": 1.0,
+      "scoped_cpp_lifecycle": 1.0473538179722581
+    },
+    "process": {
+      "returncode": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "ae817656644d4175a3e4b0cfddccb5ab8ae17948791d39a02dc7632440ec1801"
+    },
+    "scope": "construct_append_at_and_destroy_entire_lifecycle",
+    "status": "measured"
+  },
+  "schema": "hepta.cpp-scoped-qualification.v1",
+  "scope": "selected_cpp_automatic_objects_with_scalar_or_POD_results",
+  "source_snapshot_unchanged": true,
+  "standard_library_macros": [
+    "#define __GLIBCXX__ 20240904",
+    "#define _GLIBCXX_RELEASE 13"
+  ],
+  "whole_library_memory_safety_proved": false
+}

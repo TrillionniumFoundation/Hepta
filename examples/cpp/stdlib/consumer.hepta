@@ -1,0 +1,43 @@
+module cpp_consumer;
+import bridge;
+
+repr(C) struct ConsumerPair {
+    first: i64,
+    second: i64,
+}
+
+export "C" fn hepta_cpp_round_mix(value: u64) -> u64 effects {ffi, unsafe} {
+    unsafe { return bridge::hepta_cpp_stdlib_mix(value); }
+}
+
+export "C" fn hepta_cpp_round_pair(first: i64, second: i64) -> ConsumerPair effects {ffi, unsafe} {
+    let pair = bridge::Pair { first: first, second: second };
+    unsafe {
+        let result = bridge::hepta_cpp_stdlib_swap_pair(pair);
+        return ConsumerPair { first: result.first, second: result.second };
+    }
+}
+
+export "C" fn hepta_cpp_round_sum(values: raw const i64, count: usize, out: raw mut i64) -> i32 effects {ffi, unsafe, write} {
+    unsafe { return bridge::hepta_cpp_stdlib_sum(values, count, out); }
+}
+
+export "C" fn hepta_cpp_round_text(text: raw const u8, count: usize, out: raw mut usize) -> i32 effects {ffi, unsafe, write, alloc} {
+    unsafe { return bridge::hepta_cpp_stdlib_text_size(text, count, out); }
+}
+
+export "C" fn hepta_cpp_round_vector_new(out: raw mut u64) -> i32 effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_stdlib_IntVector_new(out); }
+}
+
+export "C" fn hepta_cpp_round_vector_push(handle: u64, value: i64) -> i32 effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_stdlib_IntVector_push(handle, value); }
+}
+
+export "C" fn hepta_cpp_round_vector_at(handle: u64, index: usize, out: raw mut i64) -> i32 effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_stdlib_IntVector_at(handle, index, out); }
+}
+
+export "C" fn hepta_cpp_round_vector_destroy(handle: u64) -> i32 effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_stdlib_IntVector_destroy(handle); }
+}

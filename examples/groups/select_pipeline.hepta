@@ -1,0 +1,54 @@
+module select_pipeline;
+
+fn produce(data: take Buffer<u8>, cancel: read Cancellation,
+           output: read Sender<u64>) -> u64
+effects {alloc, block, panic, write} {
+    let base = len(data) as u64;
+    for i in 0..128 {
+        assert(group_send(read output, wrapping_add(base, i as u64)));
+    }
+    release(move data);
+    return 128;
+}
+
+fn main() -> Unit effects {alloc, block, panic, write, spawn, io} {
+    let mut left = task_group(1, 8, 2);
+    let mut right = task_group(1, 16, 3);
+    assert(group_spawn(mut left, produce, move buffer(8)));
+    assert(group_spawn(mut right, produce, move buffer(16)));
+    group_seal(mut left);
+    group_seal(mut right);
+    let mut value: u64 = 0;
+    let mut from_left: usize = 0;
+    let mut from_right: usize = 0;
+    let mut total: u64 = 0;
+    let mut prefer_right: bool = false;
+    let mut finished: bool = false;
+    while !finished {
+        match group_select_receive(read left, read right, mut value, prefer_right, 60000) {
+            Result::Ok(which) => {
+                if which == 0 { finished = true; }
+                else {
+                    if which == 1 { from_left = from_left + 1; }
+                    else { assert(which == 2); from_right = from_right + 1; }
+                    total = wrapping_add(total, value);
+                    prefer_right = !prefer_right;
+                }
+            },
+            Result::Err(_) => { assert(false); },
+        }
+    }
+    let a = group_join(move left);
+    let b = group_join(move right);
+    assert(from_left == 128);
+    assert(from_right == 128);
+    assert(total == 19328);
+    assert(a.received == 128);
+    assert(b.received == 128);
+    assert(a.active_tasks == 0);
+    assert(b.active_tasks == 0);
+    print_i64(from_left as i64);
+    print_i64(from_right as i64);
+    print_i64(total as i64);
+    print_i64((a.active_tasks + b.active_tasks) as i64);
+}

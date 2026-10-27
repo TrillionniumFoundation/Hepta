@@ -1,0 +1,58 @@
+module board_mps2_an386;
+
+// The BSP supplies aligned u32 register pointers for the declared QEMU board.
+// These are external MMIO contracts, not memory-safety proofs or atomics.
+export "C" fn uart_init(uart: raw mut u32) -> Unit effects {unsafe, io, write}
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    unsafe {
+        volatile_store(uart, 2, 0);
+        volatile_store(uart, 4, 217);
+        volatile_store(uart, 2, 1);
+    }
+}
+
+export "C" fn uart_putc(uart: raw mut u32, byte: u8) -> u32 effects {unsafe, io, write}
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    let mut attempts: u32 = 0;
+    unsafe {
+        while (volatile_load(uart, 1) & 1) != 0 {
+            attempts = wrapping_add(attempts, 1);
+            if attempts == 1000000 { return 0; }
+        }
+        volatile_store(uart, 0, byte as u32);
+    }
+    return 1;
+}
+
+export "C" fn timer_start(timer: raw mut u32) -> Unit effects {unsafe, io, write}
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    unsafe {
+        volatile_store(timer, 0, 0);
+        volatile_store(timer, 3, 1);
+        volatile_store(timer, 2, 25000);
+        volatile_store(timer, 0, 9);
+    }
+}
+
+export "C" fn timer_irq(timer: raw mut u32, ordinal: u32) -> u32 effects {unsafe, io, write}
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    unsafe {
+        if (volatile_load(timer, 3) & 1) == 0 { return 0; }
+        volatile_store(timer, 3, 1);
+        if ordinal == 5 { volatile_store(timer, 0, 0); }
+    }
+    return wrapping_mul(ordinal, ordinal);
+}
+
+export "C" fn timer_stopped(timer: raw const u32) -> u32 effects {unsafe, io}
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    unsafe {
+        if volatile_load(timer, 0) == 0 && (volatile_load(timer, 3) & 1) == 0 { return 1; }
+        return 0;
+    }
+}

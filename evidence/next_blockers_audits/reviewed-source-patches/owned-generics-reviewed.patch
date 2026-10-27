@@ -1,0 +1,1471 @@
+diff --git a/docs/ADTS_GENERICS.md b/docs/ADTS_GENERICS.md
+index 474569f..fea446c 100644
+--- a/docs/ADTS_GENERICS.md
++++ b/docs/ADTS_GENERICS.md
+@@ -81,10 +81,15 @@ fn choose<T>(value: read Maybe<T>, fallback: T) -> T effects {} {
+ }
+ ```
+ 
+-Generic **function** type parameters have an implicit `Copy` and sized bound.
++Generic **function** type parameters default to a sized `Copy` constraint.
++Explicit `T: Copy` is equivalent; `T: Owned` instead checks a sized resource
++value with explicit movement, borrowing and drop obligations. See
++[OWNED_GENERICS.md](OWNED_GENERICS.md) for the finite constraint rules and the
++independent generic resource verifier.
+ Generic data declarations can also be instantiated with supported owned values;
+ their concrete ownership follows the payloads. There is no trait declaration
+-syntax. Generic function code can move or copy a parameter, borrow
++syntax. Generic function code can move an Owned parameter or copy a Copy
++parameter, borrow
+ it for a call, access known generic struct fields, construct or match known
+ generic enums, and pass it to another explicitly instantiated generic function.
+ Generic code cannot assume numeric, equality, ordering, or other operator
+diff --git a/docs/OWNED_GENERICS.md b/docs/OWNED_GENERICS.md
+new file mode 100644
+index 0000000..3cb9f03
+--- /dev/null
++++ b/docs/OWNED_GENERICS.md
+@@ -0,0 +1,128 @@
++# Finite ownership constraints for functions
++
++Generic functions accept two checked constraints: `Copy` and `Owned`.
++An omitted constraint remains `Copy`, preserving existing programs. These
++are built-in capabilities, not an extensible trait system.
++
++```hepta
++fn forward<T: Owned>(value: take T) -> T effects {} {
++    return move value;
++}
++
++fn dispose<T: Owned>(value: take T) -> Unit effects {alloc, block} {
++    drop(move value);
++}
++
++fn finish<T: Owned, E: Copy>(value: take T, ok: bool, error: E)
++    -> Result<T, E> effects {alloc, block} {
++    if !ok {
++        dispose::<T>(move value);
++        return Result::Err(error);
++    }
++    return Result::Ok(move value);
++}
++```
++
++`Owned` accepts supported sized resource values: Buffer, resource-bearing
++structs, enums and Result, including nested supported data instantiations.
++It excludes Copy values. `Task`, `TaskGroup`, `Cancellation` and `Sender`
++remain scoped capabilities and cannot be smuggled through either constraint.
++Resource arrays, raw pointers to resources and nested resource buffers remain
++unsupported even when an abstract Owned parameter is substituted into them.
++
++Every function body is checked under its declared constraints, including
++functions that are never called. A `T: Owned` value requires take/read/mut
++parameter modes; initialization, forwarding and return require explicit
++ownership transfer. Every normal exit must discharge its owners. Consuming
++matches on `Result<T, E>` expose the corresponding Copy or Owned payload
++obligation. Early returns, continuing branches, loops and short-circuit
++expressions retain the existing ownership rules. `drop` infers alloc/block;
++a generic destructor helper cannot hide those effects.
++
++Neither constraint implies methods, arithmetic, comparison, allocation,
++custom destructors or a particular representation. Abstract Owned values can
++be transferred, dropped, wrapped in supported ADTs, or borrowed. A generic
++returned view still needs the unique borrowed input and cannot escape from
++a local owner. Partial field moves, stored references, multi-origin lifetime
++parameters and user-defined traits remain open language work.
++
++## Instantiation and native execution
++
++Calls supply explicit type arguments. A generic function can call another
++generic function using its own parameters when their constraints satisfy the
++callee. An Owned parameter cannot silently satisfy Copy, and Copy cannot
++silently satisfy Owned. The interface hash and semantic IR include normalized
++constraints, so changing Copy to Owned is an interface change; spelling an
++existing implicit Copy constraint explicitly is not.
++
++Rust lowering uses `T: Copy` for Copy parameters and ordinary sized Rust
++parameters for Owned. The Hepta frontend enforces the resource capability;
++the Rust backend checks concrete ownership and borrowing and monomorphizes
++the function. The implementation introduces no boxing, vtable or additional
++allocation to implement a generic call. This is a lowering property, not a
++universal performance claim. Raw Rust callers are not a substitute for the
++Hepta instantiation gate, and generic functions have no stable C ABI.
++
++Native tests retain a case in which the Hepta frontend accepts aliased
++generic `mut`/`read` arguments and Rust rejects the borrow conflict. Frontend
++acceptance does not replace the native gate. Panic-abort or forced process
++termination still does not guarantee that destructors run.
++
++## Independent generic resource verification
++
++`hepta.resource-ir.v2` introduces function-scoped opaque type parameters,
++identified by the declaring function and parameter name. Each has exactly
++one Copy or Owned constraint. The standalone verifier imports no source
++parser, checker or AST, and checks every generic body once under these opaque
++types, including uninstantiated declarations. It does not sample a Buffer
++specialization and present that as a universal generic-body check.
++
++Every generic call carries explicit type arguments. The verifier checks:
++
++- Declared type arguments exist, are in the caller's scope and meet the
++  callee's sized Copy/Owned constraints.
++- Ownership and borrowed argument/result types agree after substitution.
++- Every substituted aggregate has the complete payload shape declared by
++  the generic type. A forged `Box<Buffer<u8>>` cannot silently replace the
++  `Box<T>` resource field with a copied scalar.
++- Type parameters cannot escape their declaring function, appear as
++  unbound declarations, or masquerade as foreign generic ABI contracts.
++- Generic ownership transitions, drop, loans and CFG joins obey the same
++  rules as concrete resource functions.
++
++Type depth, type tables and graph sizes stay bounded. Substitution memoizes
++shared type subgraphs. Legacy v1 concrete graphs remain accepted; v1 cannot
++contain the v2 generic type feature. Source hashes are still correlation
++metadata, `source_binding_verified=false`, and the IR is not a native codegen
++input. The resource model does not prove source-to-IR refinement, Rust codegen
++refinement, effects, arithmetic, termination or whole-language soundness.
++Concurrency IR is still unsupported even though native generic cleanup can
++run inside the existing non-generic task workers.
++
++## Executable evidence
++
++The two-file `examples/owned_generics` library implements forwarding, disposal,
++fallible finishing, recovery with a backup owner, owned success/error choice
++and returned views. Its executable exercises success, error and early-return
++paths with concrete Buffer and resource-bearing Packet instances.
++
++```sh
++RUSTC=/path/to/rustc python -m unittest tests.test_owned_generics -v
++RUSTC=/path/to/rustc python -m hepta run examples/owned_generics/main.hepta --json
++RUSTC=/path/to/rustc python -m tools.validate_resources --output /tmp/new-resources.json
++```
++
++The native tests additionally observe real allocator/free calls across both
++Result branches and early returns; two tracked resource allocations across
++cooperative cancellation and reported worker failure; and an allocator's
++actual refusal followed by recovery through a generic Result forwarding
++function. Negative graph mutations remove a generic destructor, duplicate an
++abstract move, omit or falsify call type arguments, escape a callee parameter
++and corrupt a substituted payload shape. None of these test results replaces
++the complete source-bound release qualification.
++
++The feature snapshot and its 397-test focused regression run are archived in
++`evidence/owned_generics/manifest.json`, with hashes for every changed compiler
++input, example, test module and report. That archive describes its recorded
++compiler snapshot; the complete integrated release must be rerun after other
++compiler changes.
+diff --git a/docs/OWNED_TYPES.md b/docs/OWNED_TYPES.md
+index 7c54daf..81ba046 100644
+--- a/docs/OWNED_TYPES.md
++++ b/docs/OWNED_TYPES.md
+@@ -3,7 +3,8 @@
+ This extension implements Buffer-bearing structs, enums, generic data types,
+ and `Result<Buffer<u8>, E>` in the Rust-backed hosted profile. It replaces the
+ earlier Copy-only restriction on **data type instantiations** described in
+-`ADTS_GENERICS.md`. Generic **functions** retain their implicit Copy constraint.
++`ADTS_GENERICS.md`. Generic **functions** default to Copy and can explicitly
++declare the finite `Owned` constraint described in `OWNED_GENERICS.md`.
+ Native checks and builds still run the pinned Rust 1.90.0 compiler. Frontend
+ acceptance alone is not a complete borrow proof or a native execution result.
+ 
+@@ -55,8 +56,9 @@ whole struct.
+ Generic data declarations need no unconditional Copy bound. A generic data
+ type with Copy payloads remains Copy; an instantiation with Buffer payloads is
+ owned. Concrete declarations that contain Buffer never derive Copy. Generic
+-functions such as `identity<T>(x: T)` still require Copy type arguments; this
+-release does not pretend to implement ownership-polymorphic function bodies.
++functions such as `identity<T>(x: T)` still require Copy type arguments.
++`identity<T: Owned>(x: take T)` instead checks its body with an owner obligation;
++it can transfer Buffer-bearing data without erasing its resource protocol.
+ 
+ ## Consuming matches
+ 
+diff --git a/docs/RESOURCE_IR.md b/docs/RESOURCE_IR.md
+index c60dcd0..119b782 100644
+--- a/docs/RESOURCE_IR.md
++++ b/docs/RESOURCE_IR.md
+@@ -1,9 +1,10 @@
+ # Independently checked resource and loan IR
+ 
+-`hepta.resource-ir.v1` is a typed JSON control-flow graph with explicit resource
++`hepta.resource-ir.v2` is a typed JSON control-flow graph with explicit resource
+ transitions. `hepta/resource_ir.py` verifies that graph without importing the
+ Hepta parser, source checker or source AST. This is additional checking of a
+ resource abstraction. It does not replace the existing native Rust gate.
++The standalone verifier also accepts concrete legacy v1 graphs.
+ 
+ `hepta/resource_lowering.py` translates a successfully checked AST into the
+ graph; the pipeline invokes the independent verifier. The translator is ordinary Python
+@@ -21,6 +22,11 @@ concrete structs, enums and `Result` containing owned data are owned. A JSON
+ function signatures are checked. Recursive value types and unsupported type
+ kinds are rejected.
+ 
++Generic function parameters are opaque, function-scoped Copy or Owned types.
++Every generic body is verified, including uninstantiated declarations. Calls
++carry type arguments whose scopes, constraints and substituted aggregate shapes
++are checked independently. `OWNED_GENERICS.md` details that finite profile.
++
+ Each function has parameter modes, a typed return signature, local storage,
+ an entry block, basic blocks and explicit terminators. The verifier propagates
+ three kinds of state through every reachable edge: live owners, active loans
+@@ -94,11 +100,13 @@ and index access, temporary `read`/`mut` borrows, calls, returned views,
+ `if`, short-circuit booleans, early return, `for` and `while`. Loop bodies
+ must return to the header with the same owner and loan state. All imported
+ functions in the resolved project are translated and checked.
++Finite Copy/Owned function constraints and whole fresh-owner transfers are
++also modelled; the IR does not rely on concrete specialization sampling.
+ 
+ Unsupported constructs fail with `E_RIR_LOWER_UNSUPPORTED`, or a more
+ specific resource-verifier diagnostic when a produced graph violates the
+ model. These include raw pointers, tasks/channels/concurrency, task resource
+-clauses, generic function bodies, unresolved generic types, partial moves
++clauses, unbound or unsupported generic constraints, partial moves
+ out of owned fields, first-class stored references, unmodeled builtins,
+ projection from temporary nonborrowed aggregates, and mode-changing borrowed
+ returns that need an explicit reborrow transition. Concrete generic
+@@ -179,18 +187,26 @@ graph, verifies the serialized graph in a fresh process without importing
+ `hepta.parser` or `hepta.checker`, then compiles and runs the source using the
+ existing Rust backend. The binary is not generated from the resource graph.
+ 
+-The committed host result is `evidence/resources/native_qualification.json`:
++The earlier concrete-only host qualification remains archived under
++`evidence/production_v4_final/qualifications/independent_resource_ir.json`.
++The current qualifier executes all three projects below; the latest complete
++release report must bind its results to the source snapshot being assessed.
+ 
+ | Project | Functions | Reachable blocks | Normal/early exits | Resource operations | Native result |
+ | --- | ---: | ---: | ---: | ---: | --- |
+ | `examples/owned/main.hepta` plus imported `buffers.hepta` | 6 | 30 | 9 | 60 | exit 0 |
+ | `examples/resource_ir/returned_views.hepta` | 8 | 11 | 8 | 46 | exit 0 |
++| `examples/owned_generics/main.hepta` plus imported `operations.hepta` | 7 | 18 | 10 | 71 | exit 0 |
+ 
+ The report records source hashes, Rust compiler identity, native validation,
+-artifact digests and seven rejected mutations of graphs lowered from these
++artifact digests and eleven rejected mutations of graphs lowered from these
+ actual projects. The unit suite additionally covers missing foreign
+ obligations, unequal branch states, duplicate owned payload transfers,
+ read/read reuse, known-disjoint fields, prefix overlap, conservative indices,
+ live loans at return, raw-pointer rejection and malicious type/claim changes.
++The generic library includes six checked abstract generic bodies and sixteen
++generic calls; added attacks include missing type arguments, false constraints,
++escaped parameters and removal of a generic destructor. Unit regressions also
++reject false substituted aggregate layouts and leaks in uncalled generic bodies.
+ These observations qualify the tested profile; they are not a proof of the
+ translator or a universal memory-safety theorem.
+diff --git a/docs/SPEC.md b/docs/SPEC.md
+index e519c77..c8d7d3d 100644
+--- a/docs/SPEC.md
++++ b/docs/SPEC.md
+@@ -127,7 +127,8 @@ The shared frontend supports:
+ 
+ - Signed and unsigned fixed-width integers through 128 bits; `isize`, `usize`,
+   `f32`, `f64`, `bool`, and `Unit`.
+-- By-value structs, Copy enums, and fixed arrays `[T; N]`.
++- By-value structs and enums, including supported resource payloads, and
++  fixed arrays `[T; N]` with Copy elements.
+ - Unsized slices `[T]`, only as `read`/`mut` parameters.
+ - Raw pointers `raw const T` and `raw mut T`.
+ - Linear `Buffer<T>` owners; the allocation builtin currently constructs only
+@@ -143,18 +144,19 @@ frontend acceptance does not imply C-backend support.
+ Functions require an explicit return type and `effects { ... }`. Extern
+ declarations have no body and end with `;`. Implemented functions may add a
+ `resources` clause. Parameter modes are value, `read`, `mut`, and `take`.
+-Owned Buffer parameters require `take`. Calls supply explicit `read`, `mut`,
++Owning Buffer and resource-bearing data parameters require `take`. Calls supply explicit `read`, `mut`,
+ or `move` syntax for the corresponding modes. Bare reads of a borrowed Copy
+ value read its contents; Rust lowering dereferences the parameter borrow.
+ 
+ Local bindings are immutable unless declared `let mut`. Local shadowing is
+-rejected. Local reference aliases, returned references, arbitrary lifetime
+-parameters, resource-containing aggregates, and owned control capabilities
+-are unsupported. Task and TaskGroup handles cannot be user-function
++rejected. Local reference aliases, arbitrary lifetime parameters, stored
++borrowed fields and owned control capabilities are unsupported. A returned
++read/mut view must derive from the unique borrowed input; see `OWNED_TYPES.md`.
++Task and TaskGroup handles cannot be user-function
+ parameters or returns. GroupReport cannot be constructed with a source struct
+ literal; runtime operations return it, after which it is a normal Copy value.
+ 
+-## 5. Copy generics, enums, and Result
++## 5. Finite generic constraints, enums, and Result
+ 
+ Generic functions, structs, and enums declare type parameters with `<T, E>`:
+ 
+@@ -163,12 +165,17 @@ pub struct Pair<T, E> { left: T, right: E }
+ pub enum Maybe<T> { None, Some(T) }
+ 
+ fn identity<T>(value: T) -> T effects {} { return value; }
++fn forward<T: Owned>(value: take T) -> T effects {} { return move value; }
+ ```
+ 
+-Every type parameter has an implicit sized `Copy` bound. The compiler checks
+-every generic body, even when it is never instantiated. Abstract parameters
+-can be copied, borrowed, placed in known generic constructors, matched through
+-known enum types, and passed to other generic functions. They do not imply
++Function parameters default to sized `Copy`; explicit `T: Copy` has the same
++meaning. `T: Owned` instead requires a supported sized resource value and
++checks an ownership obligation for every such parameter/local. Generic data
++declarations can be instantiated with either Copy or supported Owned values.
++The compiler checks every generic body, even when it is never instantiated.
++Copy parameters can be copied; Owned parameters require transfer, borrowing or
++drop. Both can be placed in known generic constructors, matched through known
++enum types, and passed to compatible generic functions. Neither implies
+ numeric, equality, ordering, or other operator capabilities. Trait declarations,
+ specialization, higher-kinded/const/lifetime generics, and higher-order functions
+ are not implemented.
+@@ -185,16 +192,22 @@ functions are rejected. Compiler monomorphization limits still apply.
+ 
+ Enums have named unit variants or positional payload variants. Unit variants
+ omit parentheses. Payload arity and types are checked. Payloads and generic
+-arguments cannot contain Buffer, Task, TaskGroup, Cancellation, Sender, or
+-nested forms of these capabilities. Linear ADTs are not part of this release.
++arguments may contain Buffer and supported resource-bearing data. Scoped Task,
++TaskGroup, Cancellation and Sender capabilities cannot be stored in data types
++or passed as function type arguments. Resource arrays, resources behind raw
++pointers and nested resource buffers remain unsupported, including through
++generic substitution. Whole owned values must be moved or explicitly dropped;
++partial field moves remain unsupported.
+ Recursive by-value layouts are rejected across structs and enums. The layout
+ check tracks generic arguments used by value, so supported raw-pointer
+ indirection can break a layout cycle; this does not prove pointer validity.
+ 
+-`Result<T, E>` is a reserved Copy enum with `Ok(T)` and `Err(E)` and lowers to
++`Result<T, E>` is a reserved enum with `Ok(T)` and `Err(E)` and lowers to
+ `core::result::Result`. It supports explicit constructors and expected-type
+-inference. There is no `?` operator or exception propagation. Resource-bearing
+-results such as `Result<Buffer<u8>, E>` fail the Copy restriction.
++inference. There is no `?` operator or exception propagation. A Result with an
++owned payload, such as `Result<Buffer<u8>, E>`, is itself an owner even when its
++current variant contains only copied data. `OWNED_GENERICS.md` specifies finite
++constraints and the independently verified generic resource graph profile.
+ 
+ ## 6. Exhaustive statement matching
+ 
+@@ -213,7 +226,9 @@ scoped to one arm; `_` ignores one payload. Missing/duplicate variants,
+ wrong enum names, and payload arity errors are rejected.
+ 
+ Matching a borrowed Copy enum copies its selected payload values; patterns do
+-not return references. Match expressions, guards, nested or alternative
++not return references. Matching an owned enum consumes it with `match move`;
++each owned payload must be bound and consumed, so `_` cannot discard it.
++Match expressions, guards, nested or alternative
+ patterns, integer patterns, and catch-all arms are unsupported. All arms
+ participate in effect and ownership checking. Returning arms must discharge
+ live owners; every continuing arm must leave the same owners live.
+diff --git a/examples/owned_generics/main.hepta b/examples/owned_generics/main.hepta
+new file mode 100644
+index 0000000..bccadb9
+--- /dev/null
++++ b/examples/owned_generics/main.hepta
+@@ -0,0 +1,24 @@
++module owned_generics;
++import operations as owned;
++
++struct Packet<T> { data: T, tag: u32 }
++
++fn main() -> Unit effects {alloc, block, panic} {
++  let success = owned::finish::<Buffer<u8>, u8>(move buffer(7), true, 11);
++  let chosen = owned::recover::<Buffer<u8>, u8>(move success, move buffer(5));
++  assert(len(owned::view::<Buffer<u8>>(read chosen)) == 7);
++  owned::dispose::<Buffer<u8>>(move chosen);
++
++  let failure = owned::finish::<Buffer<u8>, u8>(move buffer(13), false, 19);
++  let recovered = owned::recover::<Buffer<u8>, u8>(move failure, move buffer(17));
++  assert(len(owned::view::<Buffer<u8>>(read recovered)) == 17);
++  owned::dispose::<Buffer<u8>>(move recovered);
++
++  let packet: Packet<Buffer<u8>> = Packet { data: buffer(23), tag: 29 };
++  let outcome = owned::choose::<Packet<Buffer<u8>>, Buffer<u8>>(
++      move packet, move buffer(31), false);
++  match move outcome {
++    Result::Ok(unexpected) => { owned::dispose::<Packet<Buffer<u8>>>(move unexpected); assert(false); },
++    Result::Err(error) => { assert(len(error) == 31); owned::dispose::<Buffer<u8>>(move error); }
++  }
++}
+diff --git a/examples/owned_generics/operations.hepta b/examples/owned_generics/operations.hepta
+new file mode 100644
+index 0000000..751d6fb
+--- /dev/null
++++ b/examples/owned_generics/operations.hepta
+@@ -0,0 +1,43 @@
++module operations;
++
++pub fn forward<T: Owned>(value: take T) -> T effects {} {
++  return move value;
++}
++
++pub fn dispose<T: Owned>(value: take T) -> Unit effects {alloc, block} {
++  drop(move value);
++}
++
++pub fn finish<T: Owned, E: Copy>(value: take T, ok: bool, error: E)
++    -> Result<T, E> effects {alloc, block} {
++  if !ok {
++    dispose::<T>(move value);
++    return Result::Err(error);
++  }
++  return Result::Ok(move forward::<T>(move value));
++}
++
++pub fn recover<T: Owned, E: Copy>(outcome: take Result<T, E>, backup: take T)
++    -> T effects {alloc, block} {
++  match move outcome {
++    Result::Ok(value) => {
++      dispose::<T>(move backup);
++      return move value;
++    },
++    Result::Err(error) => { return move backup; }
++  }
++}
++
++pub fn choose<T: Owned, E: Owned>(value: take T, error: take E, ok: bool)
++    -> Result<T, E> effects {alloc, block} {
++  if ok {
++    dispose::<E>(move error);
++    return Result::Ok(move value);
++  }
++  dispose::<T>(move value);
++  return Result::Err(move error);
++}
++
++pub fn view<T: Owned>(value: read T) -> read T effects {} {
++  return read value;
++}
+diff --git a/hepta/ast.py b/hepta/ast.py
+index d2aafac..418a664 100644
+--- a/hepta/ast.py
++++ b/hepta/ast.py
+@@ -140,6 +140,9 @@ class Function:
+     # Borrowed returns are tied to the unique read/mut input. They are places
+     # for immediate use/reborrowing, not first-class local reference values.
+     return_mode: str = "value"
++    # Function-only finite capability constraints. Missing entries retain the
++    # historical Copy constraint; Owned means a checked, sized resource value.
++    type_bounds: dict[str, str] = field(default_factory=dict)
+ 
+ 
+ @dataclass
+diff --git a/hepta/backend.py b/hepta/backend.py
+index c79559b..2034897 100644
+--- a/hepta/backend.py
++++ b/hepta/backend.py
+@@ -87,8 +87,8 @@ class Emitter:
+     def constructor(self, typ: Type) -> str:
+         return self.typ(typ).replace("<", "::<", 1)
+ 
+-    def generics(self, params: tuple[str, ...], *, copy_bound: bool = True) -> str:
+-        return "<" + ", ".join("G_" + name + (": core::marker::Copy" if copy_bound else "") for name in params) + ">" if params else ""
++    def generics(self, params: tuple[str, ...], *, copy_bound: bool = True, bounds: dict[str, str] | None = None) -> str:
++        return "<" + ", ".join("G_" + name + (": core::marker::Copy" if copy_bound and (bounds or {}).get(name, "Copy") == "Copy" else "") for name in params) + ">" if params else ""
+ 
+     @staticmethod
+     def variant_name(enum_name: str, variant_name: str) -> str:
+@@ -282,7 +282,7 @@ class Emitter:
+             self.params = {p.name: p.mode for p in fn.params}
+             self.type_params = set(fn.type_params)
+             return_prefix = "&" if fn.return_mode == "read" else "&mut " if fn.return_mode == "mut" else ""
+-            signature = "fn h_" + fn.name + self.generics(fn.type_params) + "(" + ", ".join(self.param(p) for p in fn.params) + ") -> " + return_prefix + self.typ(fn.return_type)
++            signature = "fn h_" + fn.name + self.generics(fn.type_params, bounds=fn.type_bounds) + "(" + ", ".join(self.param(p) for p in fn.params) + ") -> " + return_prefix + self.typ(fn.return_type)
+             lines.append("// hepta-source: " + json.dumps({"event": "begin", "kind": "declaration", "span": asdict(fn.span)}, ensure_ascii=True, separators=(",", ":")))
+             if fn.extern_c:
+                 lines.append('extern "C" { #[link_name = ' + json.dumps(fn.name) + "] pub " + signature + "; }")
+diff --git a/hepta/checker.py b/hepta/checker.py
+index f440abe..a5b8b94 100644
+--- a/hepta/checker.py
++++ b/hepta/checker.py
+@@ -139,6 +139,7 @@ class _Checker:
+         self.structs: dict[str, Struct] = {"GroupReport": report_struct()}
+         self.enums: dict[str, Enum] = {"Result": Enum("Result", [EnumVariant("Ok", [Type("$ResultOk")]), EnumVariant("Err", [Type("$ResultErr")])], ("$ResultOk", "$ResultErr"), True)}
+         self.type_params: set[str] = set()
++        self.owned_type_params: set[str] = set()
+         self.functions: dict[str, Function] = {}
+         self.local_effects: dict[str, set[str]] = {}
+         self.calls: dict[str, set[str]] = {}
+@@ -170,7 +171,7 @@ class _Checker:
+         return True
+ 
+     def contains_linear(self, typ: Type, seen: frozenset[str] = frozenset()) -> bool:
+-        return self.contains_capability(typ, LINEAR, seen)
++        return self.contains_capability(typ, LINEAR | self.owned_type_params, seen)
+ 
+     def contains_cancellation(self, typ: Type, seen: frozenset[str] = frozenset()) -> bool:
+         return self.contains_capability(typ, {"Cancellation"}, seen)
+@@ -181,24 +182,34 @@ class _Checker:
+     def contains_sender(self, typ: Type, seen: frozenset[str] = frozenset()) -> bool:
+         return self.contains_capability(typ, {"Sender"}, seen)
+ 
+-    def generic_arguments(self, params: tuple[str, ...], args: tuple[Type, ...], span: Span, *, allow_owned: bool = False) -> dict[str, Type]:
++    def generic_arguments(self, params: tuple[str, ...], args: tuple[Type, ...], span: Span, *, allow_owned: bool = False,
++                          bounds: dict[str, str] | None = None) -> dict[str, Type]:
+         if len(params) != len(args):
+             self.error("E_GENERIC_ARITY", f"expected {len(params)} explicit type argument(s), found {len(args)}", span)
+-        for arg in args:
++        for index, arg in enumerate(args):
+             self.valid_type(arg, span)
+             scoped = self.contains_capability(arg, {"Task", "TaskGroup"})
+-            if (self.contains_linear(arg) and not allow_owned) or scoped or self.contains_cancellation(arg) or self.contains_sender(arg) or arg.name == "slice":
+-                detail = "sized values without scoped runtime capabilities" if allow_owned else "sized Copy values"
++            bound = (bounds or {}).get(params[index], "Copy") if index < len(params) else "Copy"
++            if (self.contains_linear(arg) and not allow_owned and bound != "Owned") or scoped or self.contains_cancellation(arg) or self.contains_sender(arg) or arg.name == "slice":
++                detail = ("sized values without scoped runtime capabilities" if allow_owned else
++                          "sized Owned values without scoped runtime capabilities" if bound == "Owned" else "sized Copy values")
+                 self.error("E_GENERIC_COPY", f"generic arguments must be {detail}; {arg} is not supported", span)
++            elif not allow_owned and bound == "Owned" and not self.contains_linear(arg):
++                self.error("E_GENERIC_OWNED", f"Owned parameter requires a sized owned resource value; {arg} is not owned", span)
+         return {name: args[index] if index < len(args) else ERROR for index, name in enumerate(params)}
+ 
+-    def declaration_parameters(self, params: tuple[str, ...], span: Span, fields: list[Type] | None = None) -> None:
++    def declaration_parameters(self, params: tuple[str, ...], span: Span, fields: list[Type] | None = None,
++                               bounds: dict[str, str] | None = None) -> None:
+         seen: set[str] = set()
+         for name in params:
+             if name in seen or name in RESERVED_TYPES or name in self.structs or name in self.enums:
+                 self.error("E_GENERIC_PARAMETER", f"duplicate or shadowing generic parameter {name}", span)
+             seen.add(name)
+         self.type_params = set(params)
++        self.owned_type_params = {name for name in params if (bounds or {}).get(name) == "Owned"}
++        for name, bound in (bounds or {}).items():
++            if name not in self.type_params or bound not in {"Copy", "Owned"}:
++                self.error("E_GENERIC_BOUND", f"unsupported constraint {name}: {bound}; expected Copy or Owned", span)
+         if fields is not None:
+             used: set[str] = set()
+             def collect(typ: Type) -> None:
+@@ -454,9 +465,10 @@ class _Checker:
+                     if self.contains_sender(typ):
+                         self.error("E_SENDER_TYPE", f"variant {enum.name}::{variant.name} contains a Sender capability", variant.span)
+         self.type_params = set()
++        self.owned_type_params = set()
+         self.check_struct_cycles()
+         for fn in self.functions.values():
+-            self.declaration_parameters(fn.type_params, fn.span)
++            self.declaration_parameters(fn.type_params, fn.span, bounds=fn.type_bounds)
+             if fn.type_params and (fn.extern_c or fn.export_c or fn.name == "main"):
+                 self.error("E_GENERIC_BOUNDARY", "generic functions cannot be C boundary symbols or main entrypoints", fn.span)
+             for effect in fn.effects - EFFECTS:
+@@ -507,6 +519,7 @@ class _Checker:
+                 self.error("E_MISSING_BODY", f"function {fn.name} requires a body", fn.span)
+             self.check_resource_syntax(fn)
+         self.type_params = set()
++        self.owned_type_params = set()
+ 
+     def check_resource_syntax(self, fn: Function) -> None:
+         for key, value in fn.resources.items():
+@@ -751,7 +764,7 @@ class _Checker:
+                 typ = self.builtin(expr, env, live, unsafe_depth, expected)
+             elif expr.value in self.functions:
+                 fn = self.functions[expr.value]
+-                mapping = self.generic_arguments(fn.type_params, expr.type_args, expr.span)
++                mapping = self.generic_arguments(fn.type_params, expr.type_args, expr.span, bounds=fn.type_bounds)
+                 if self.current is not None:
+                     self.calls[self.current.name].add(fn.name)
+                 if len(expr.children) != len(fn.params):
+@@ -1365,6 +1378,7 @@ class _Checker:
+                 continue
+             self.current = fn
+             self.type_params = set(fn.type_params)
++            self.owned_type_params = {name for name in fn.type_params if fn.type_bounds.get(name) == "Owned"}
+             env: dict[str, _Binding] = {}
+             live: set[int] = set()
+             for param in fn.params:
+@@ -1376,6 +1390,7 @@ class _Checker:
+                     self.error("E_MISSING_RETURN", f"function {fn.name} can reach its end without returning {fn.return_type}", fn.span)
+         self.current = None
+         self.type_params = set()
++        self.owned_type_params = set()
+         self.finish_effects()
+         return self.result
+ 
+diff --git a/hepta/parser.py b/hepta/parser.py
+index 3b443a8..730545c 100644
+--- a/hepta/parser.py
++++ b/hepta/parser.py
+@@ -132,6 +132,19 @@ class Parser:
+         self._type_close()
+         return tuple(params)
+ 
++    def _function_type_params(self) -> tuple[tuple[str, ...], dict[str, str]]:
++        if not self._take("<"):
++            return (), {}
++        params, bounds = [], {}
++        while True:
++            name = self._expect("IDENT", "Expected a generic parameter").value
++            params.append(name)
++            bounds[name] = self._expect("IDENT", "Expected Copy or Owned constraint").value if self._take(":") else "Copy"
++            if not self._take(","):
++                break
++        self._type_close()
++        return tuple(params), bounds
++
+     def _type_args(self) -> tuple[Type, ...]:
+         self._expect("<")
+         args = [self._type()]
+@@ -231,7 +244,7 @@ class Parser:
+                 self._abi()
+         self._expect("fn")
+         name = self._expect("IDENT", "Expected a function name").value
+-        type_params = self._type_params()
++        type_params, type_bounds = self._function_type_params()
+         self._expect("(")
+         params: list[Param] = []
+         while not self._at(")"):
+@@ -261,7 +274,7 @@ class Parser:
+             body, body_span = self._block()
+             end = body_span
+         return Function(name, params, return_type, effects, body, public, extern_c,
+-                        export_c, resources, _cover(start, end), body_span, type_params, return_mode)
++                        export_c, resources, _cover(start, end), body_span, type_params, return_mode, type_bounds)
+ 
+     def _effects(self) -> set[str]:
+         self._expect("effects", "Every function requires an explicit effects clause")
+diff --git a/hepta/pipeline.py b/hepta/pipeline.py
+index 4187448..7dc923f 100644
+--- a/hepta/pipeline.py
++++ b/hepta/pipeline.py
+@@ -25,6 +25,7 @@ def interface(program: Program) -> dict:
+                       for e in getattr(program, "enums", [])],
+             "functions": [{"name": f.name, "params": [{"name": p.name, "mode": p.mode, "type": str(p.type)} for p in f.params],
+                            "type_params": list(getattr(f, "type_params", ())),
++                           "type_bounds": {name: f.type_bounds.get(name, "Copy") for name in f.type_params},
+                            "returns": str(f.return_type), "return_mode": getattr(f, "return_mode", "value"),
+                            "effects": sorted(f.effects),
+                            "resources": f.resources, "public": f.public, "export_c": f.export_c,
+diff --git a/hepta/resource_ir.py b/hepta/resource_ir.py
+index 4758200..99c8d1d 100644
+--- a/hepta/resource_ir.py
++++ b/hepta/resource_ir.py
+@@ -13,7 +13,8 @@ import json
+ import re
+ 
+ 
+-SCHEMA = "hepta.resource-ir.v1"
++SCHEMA = "hepta.resource-ir.v2"
++LEGACY_SCHEMA = "hepta.resource-ir.v1"
+ _SCALARS = {"i8", "i16", "i32", "i64", "i128", "isize", "u8", "u16", "u32", "u64", "u128", "usize", "f32", "f64", "bool", "Unit"}
+ _EXTERNAL_REQUIREMENTS = ["abi", "aliasing", "effects", "lifetime", "ownership"]
+ _CLAIMS = {"source_to_ir_refinement_proved": False, "native_codegen_uses_this_ir": False,
+@@ -82,6 +83,7 @@ class _Verifier:
+         self.doc = doc
+         self.types: dict = {}
+         self.owned: dict[str, bool] = {}
++        self.type_parameters: dict[str, frozenset[str]] = {}
+         self.functions: dict = {}
+         self.assumptions: dict = {}
+         self.function = ""
+@@ -90,6 +92,7 @@ class _Verifier:
+         self.params: dict[str, dict] = {}
+         self.operation_count = 0
+         self.static_operation_count = 0
++        self.generic_calls_checked = 0
+ 
+     def type_(self, name: object) -> dict:
+         name = _id(name)
+@@ -112,6 +115,15 @@ class _Verifier:
+                 _fields(typ, {"kind", "name"}, "scalar type")
+                 if typ["name"] not in _SCALARS or tid != typ["name"]:
+                     _fail("E_RIR_TYPE", "Scalar identity must name a supported primitive")
++            elif kind == "parameter":
++                _fields(typ, {"kind", "function", "name", "bound"}, "type parameter")
++                if self.doc["schema"] != SCHEMA:
++                    _fail("E_RIR_SCHEMA", "Generic resource types require resource IR v2")
++                owner, name = _id(typ["function"]), _id(typ["name"])
++                if any(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", part) is None for part in (owner, name)):
++                    _fail("E_RIR_TYPE", "Generic owners and names must be plain identifiers")
++                if typ["bound"] not in {"Copy", "Owned"} or tid != "@" + owner + "::" + name:
++                    _fail("E_RIR_GENERIC", "Generic identity and finite Copy/Owned constraint must agree")
+             elif kind in {"buffer", "slice", "array"}:
+                 _fields(typ, {"kind", "element"} | ({"length"} if kind == "array" else set()), "sequence type")
+                 element = _id(typ["element"])
+@@ -177,7 +189,9 @@ class _Verifier:
+             kind = self.types[tid]["kind"]
+             if kind in {"slice", "array"} and any(children):
+                 _fail("E_RIR_TYPE", "Resource-bearing arrays/slices are unsupported")
+-            self.owned[tid] = kind == "buffer" or any(children)
++            self.owned[tid] = kind == "buffer" or kind == "parameter" and self.types[tid]["bound"] == "Owned" or any(children)
++            self.type_parameters[tid] = (frozenset({tid}) if kind == "parameter" else
++                                         frozenset().union(*(self.type_parameters[child] for child in dependencies[tid])))
+             active.remove(tid)
+             return self.owned[tid]
+ 
+@@ -194,16 +208,27 @@ class _Verifier:
+                 _fail("E_RIR_EXTERNAL", "External obligations must explicitly retain all unproved requirements")
+             _id(obligation["function"])
+         for fn in _list(self.doc["functions"], 512):
+-            _fields(fn, {"name", "params", "returns", "external", "obligation", "locals", "entry", "blocks"}, "function")
++            _fields(fn, {"name", "params", "returns", "external", "obligation", "locals", "entry", "blocks"} |
++                    ({"type_params"} if "type_params" in fn else set()), "function")
+             name = _id(fn["name"])
+             if name in self.functions:
+                 _fail("E_RIR_FUNCTION", "Duplicate function")
+             self.functions[name] = fn
++            declared = _list(fn.get("type_params", []), 64)
++            if declared and self.doc["schema"] != SCHEMA:
++                _fail("E_RIR_SCHEMA", "Generic functions require resource IR v2")
++            if len(set(_id(t) for t in declared)) != len(declared):
++                _fail("E_RIR_GENERIC", "Generic parameter identities must be unique")
++            for tid in declared:
++                descriptor = self.type_(tid)
++                if descriptor["kind"] != "parameter" or descriptor["function"] != name:
++                    _fail("E_RIR_GENERIC", "Function must bind its own declared type parameters")
+             params = {}
+             for p in _list(fn["params"], 128):
+                 _fields(p, {"id", "type", "mode"}, "parameter")
+                 pid = _id(p["id"])
+                 self.type_(p["type"])
++                self.check_type_scope(p["type"], fn)
+                 _mode(p["mode"], {"value", "take", "read", "mut"})
+                 if pid in params:
+                     _fail("E_RIR_FUNCTION", "Duplicate parameter")
+@@ -216,6 +241,7 @@ class _Verifier:
+                 params[pid] = p
+             ret = _fields(fn["returns"], {"type", "mode", "origin"}, "return signature")
+             self.type_(ret["type"])
++            self.check_type_scope(ret["type"], fn)
+             _mode(ret["mode"], {"value", "read", "mut"})
+             if ret["mode"] == "value":
+                 if ret["origin"] is not None or self.types[ret["type"]]["kind"] == "slice":
+@@ -227,6 +253,8 @@ class _Verifier:
+             if type(fn["external"]) is not bool:
+                 _fail("E_RIR_FUNCTION", "external must be boolean")
+             if fn["external"]:
++                if declared:
++                    _fail("E_RIR_GENERIC", "External generic functions have no modelled ABI")
+                 oid = fn["obligation"]
+                 if not isinstance(oid, str) or oid not in self.doc["obligations"] or self.doc["obligations"][oid]["function"] != name:
+                     _fail("E_RIR_EXTERNAL", "External declaration is missing its obligation")
+@@ -238,6 +266,58 @@ class _Verifier:
+         for oid, obligation in self.doc["obligations"].items():
+             if oid not in self.assumptions:
+                 _fail("E_RIR_EXTERNAL", "Unbound external obligation")
++        for tid, descriptor in self.types.items():
++            if descriptor["kind"] == "parameter":
++                owner = self.functions.get(descriptor["function"])
++                if owner is None or tid not in owner.get("type_params", []):
++                    _fail("E_RIR_GENERIC", "Unbound type parameter declaration")
++
++    def check_type_scope(self, tid: str, fn: dict) -> None:
++        self.type_(tid)
++        if not self.type_parameters[tid] <= set(fn.get("type_params", [])):
++            _fail("E_RIR_GENERIC", "A type parameter escaped its declaring function")
++
++    def instantiate(self, tid: str, mapping: dict[str, str], depth: int = 0,
++                    memo: dict[str, str] | None = None) -> str:
++        """Substitute a call signature and verify each instantiated type shape.
++
++        The existing table is not trusted to give a generic instantiation the
++        right fields. For example Box<Buffer> cannot silently substitute a
++        scalar payload for the declared Box<T>. This does not prove source
++        refinement; it checks the supplied graph's own polymorphic contract.
++        """
++        if depth > 128:
++            _fail("E_RIR_LIMIT", "Generic substitution exceeds type depth budget")
++        if not self.type_parameters[tid] & mapping.keys():
++            return tid
++        if tid in mapping:
++            return mapping[tid]
++        if memo is None:
++            memo = {}
++        if tid in memo:
++            return memo[tid]
++        desc = self.type_(tid)
++        kind = desc["kind"]
++        if kind in {"scalar", "parameter"}:
++            return tid
++        sub = lambda child: self.instantiate(child, mapping, depth + 1, memo)
++        expected = dict(desc)
++        if kind in {"buffer", "array", "slice"}:
++            element = sub(desc["element"])
++            expected["element"] = element
++            result = "Buffer<" + element + ">" if kind == "buffer" else "[" + element + "]" if kind == "slice" else f"[{element}; {desc['length']}]"
++        else:
++            args = [sub(child) for child in desc["args"]]
++            expected["args"] = args
++            result = desc["name"] + ("<" + ", ".join(args) + ">" if args else "")
++            if kind == "struct":
++                expected["fields"] = [{"name": field["name"], "type": sub(field["type"])} for field in desc["fields"]]
++            else:
++                expected["variants"] = [{"name": variant["name"], "fields": [sub(child) for child in variant["fields"]]} for variant in desc["variants"]]
++        if self.type_(result) != expected:
++            _fail("E_RIR_GENERIC", "Instantiated aggregate layout differs from the declared generic shape")
++        memo[tid] = result
++        return result
+ 
+     def slot(self, sid: object) -> dict:
+         sid = _id(sid)
+@@ -331,7 +411,7 @@ class _Verifier:
+                   "use": {"loan" if "loan" in op else "place", "mode"}}
+         if not isinstance(name, str) or name not in fields:
+             _fail("E_RIR_OP", f"Unknown operation {name}")
+-        _fields(op, fields[name] | {"op"}, "operation")
++        _fields(op, fields[name] | {"op"} | ({"type_args"} if name in {"call", "foreign"} and "type_args" in op else set()), "operation")
+         return name
+ 
+     def operation(self, op: dict, state: _State) -> None:
+@@ -425,12 +505,29 @@ class _Verifier:
+             _fail("E_RIR_CALL", "Call kind does not match a declared function")
+         if op["obligation"] != callee["obligation"]:
+             _fail("E_RIR_EXTERNAL", "Call omitted or changed its external obligation")
++        type_args = _list(op.get("type_args", []), 64)
++        type_params = callee.get("type_params", [])
++        if len(type_args) != len(type_params):
++            _fail("E_RIR_GENERIC", "Call must supply exactly the declared type arguments")
++        if type_params:
++            self.generic_calls_checked += 1
++        mapping = {}
++        for parameter, actual in zip(type_params, type_args):
++            actual = _id(actual)
++            descriptor = self.type_(actual)
++            self.check_type_scope(actual, self.functions[self.function])
++            bound = self.types[parameter]["bound"]
++            if descriptor["kind"] == "slice" or self.owned[actual] != (bound == "Owned"):
++                _fail("E_RIR_GENERIC", "Type argument violates its sized Copy/Owned constraint")
++            mapping[parameter] = actual
++        params = [{**param, "type": self.instantiate(param["type"], mapping)} for param in callee["params"]]
++        ret = {**callee["returns"], "type": self.instantiate(callee["returns"]["type"], mapping)}
+         args = _list(op["args"], 128)
+         if len(args) != len(callee["params"]):
+             _fail("E_RIR_CALL", "Call arity differs")
+         origin_loan = None
+         seen_loans = {}
+-        for arg, param in zip(args, callee["params"]):
++        for arg, param in zip(args, params):
+             _fields(arg, {"kind", "id"}, "call argument")
+             sid = _id(arg["id"])
+             mode = param["mode"]
+@@ -454,7 +551,6 @@ class _Verifier:
+                     state.variants.pop(sid, None)
+                 else:
+                     self.access(sid, (), "read", state)
+-        ret = callee["returns"]
+         if ret["mode"] == "value":
+             if op["result_loan"] is not None:
+                 _fail("E_RIR_CALL", "Value call cannot create a loan")
+@@ -577,6 +673,7 @@ class _Verifier:
+             _fields(local, {"id", "type", "mutable"}, "local slot")
+             sid = _id(local["id"])
+             self.type_(local["type"])
++            self.check_type_scope(local["type"], fn)
+             if sid in self.slots or type(local["mutable"]) is not bool or self.types[local["type"]]["kind"] == "slice":
+                 _fail("E_RIR_SLOT", "Duplicate/invalid local or owned unsized slice")
+             self.slots[sid] = local
+@@ -625,7 +722,7 @@ class _Verifier:
+ 
+     def run(self) -> dict:
+         _fields(self.doc, {"schema", "source_sha256", "project_sha256", "value_semantics", "types", "functions", "obligations", "claims"}, "resource IR")
+-        if self.doc["schema"] != SCHEMA or self.doc["value_semantics"] != "copied_values_abstract_not_executable":
++        if self.doc["schema"] not in {SCHEMA, LEGACY_SCHEMA} or self.doc["value_semantics"] != "copied_values_abstract_not_executable":
+             _fail("E_RIR_SCHEMA", "Unsupported resource IR profile")
+         if self.doc["claims"] != _CLAIMS or any(type(v) is not bool for v in self.doc["claims"].values()):
+             _fail("E_RIR_CLAIM", "Resource IR cannot claim source refinement, native use or foreign soundness")
+@@ -639,6 +736,8 @@ class _Verifier:
+         return {"schema": "hepta.resource-ir-validation.v1", "ok": True,
+                 "status": "resource_cfg_verified_with_external_assumptions" if self.assumptions else "resource_cfg_verified",
+                 "functions": reports, "operations_checked": self.operation_count,
++                "generic_functions_checked": sum(bool(fn.get("type_params")) for fn in self.functions.values()),
++                "generic_calls_checked": self.generic_calls_checked,
+                 "owned_types": sorted(k for k, v in self.owned.items() if v),
+                 "external_obligations": self.assumptions, "diagnostics": [], "claims": dict(_CLAIMS)}
+ 
+@@ -662,7 +761,7 @@ def main(argv=None) -> int:
+     from pathlib import Path
+ 
+     parser = argparse.ArgumentParser(description=__doc__)
+-    parser.add_argument("graph", type=Path, help="A hepta.resource-ir.v1 JSON graph")
++    parser.add_argument("graph", type=Path, help="A hepta.resource-ir.v2 JSON graph (legacy v1 accepted)")
+     args = parser.parse_args(argv)
+ 
+     def unique_fields(pairs):
+diff --git a/hepta/resource_lowering.py b/hepta/resource_lowering.py
+index 8c2b4bb..da0388c 100644
+--- a/hepta/resource_lowering.py
++++ b/hepta/resource_lowering.py
+@@ -10,7 +10,7 @@ from dataclasses import dataclass
+ import hashlib
+ 
+ from .ast import Type
+-from .checker import is_owned_type, substitute_type
++from .checker import _contains_capability, LINEAR, substitute_type
+ from .resource_ir import SCHEMA, ResourceIRError, _CLAIMS, _EXTERNAL_REQUIREMENTS, verify_resource_ir
+ 
+ 
+@@ -36,6 +36,17 @@ class _Types:
+         self.structs = {s.name: s for s in program.structs}
+         self.enums = {e.name: e for e in program.enums}
+         self.table = {}
++        self.parameters = {}
++        self.owned_parameters = set()
++        for fn in program.functions:
++            self.parameters[fn.name] = {}
++            for name in fn.type_params:
++                key = "@" + fn.name + "::" + name
++                bound = fn.type_bounds.get(name, "Copy")
++                self.table[key] = {"kind": "parameter", "function": fn.name, "name": name, "bound": bound}
++                self.parameters[fn.name][name] = Type(key)
++                if bound == "Owned":
++                    self.owned_parameters.add(key)
+ 
+     def add(self, typ: Type) -> str:
+         key = str(typ)
+@@ -73,7 +84,7 @@ class _Types:
+         return key
+ 
+     def owned(self, typ: Type) -> bool:
+-        return is_owned_type(self.program, typ)
++        return _contains_capability(typ, LINEAR | self.owned_parameters, self.structs, self.enums)
+ 
+     def fields(self, typ: Type, variant: str | None = None) -> list[Type]:
+         if typ.name == "Result":
+@@ -92,9 +103,10 @@ class _FunctionLowerer:
+         self.blocks = []
+         self.locals = []
+         self.env: dict[str, _Value] = {}
++        self.mapping = types.parameters[fn.name]
+         self.out = signatures[fn.name]
+         for param, signature in zip(fn.params, self.out["params"]):
+-            self.env[param.name] = _Value(signature["id"], param.type, "owner" if param.mode == "take" else "value", param.mode)
++            self.env[param.name] = _Value(signature["id"], self.resolve(param.type), "owner" if param.mode == "take" else "value", param.mode)
+         self.current = self.new_block()
+         self.out["entry"] = self.current["id"]
+ 
+@@ -102,8 +114,12 @@ class _FunctionLowerer:
+         typ = self.checked.expr_types.get(id(expr))
+         if typ is None:
+             _unsupported("Expression type is missing from this exact checked AST")
+-        self.types.add(typ)
+-        return typ
++        return self.resolve(typ)
++
++    def resolve(self, typ: Type) -> Type:
++        resolved = substitute_type(typ, self.mapping)
++        self.types.add(resolved)
++        return resolved
+ 
+     def new_block(self) -> dict:
+         block = {"id": "b" + str(len(self.blocks)), "ops": [], "term": None}
+@@ -193,6 +209,11 @@ class _FunctionLowerer:
+         if kind == "unary":
+             if expr.value == "move":
+                 child = expr.children[0]
++                if child.kind in {"call", "struct", "variant"} and self.types.owned(typ):
++                    value = self.expression(child)
++                    if value.kind != "owner":
++                        _unsupported("Fresh owner transfer cannot consume a borrowed function result")
++                    return value
+                 if child.kind != "name" or child.value not in self.env or not self.types.owned(typ):
+                     _unsupported("Only whole named owners can move in this profile")
+                 result = self.slot(typ)
+@@ -281,12 +302,16 @@ class _FunctionLowerer:
+         if name not in self.signatures:
+             _unsupported(f"Builtin {name} has no resource transition model (tasks, raw memory and concurrency are excluded)")
+         callee = self.signatures[name]
++        original = next(f for f in self.program.functions if f.name == name)
++        type_args = [self.resolve(t) for t in expr.type_args]
++        instantiated = dict(zip(original.type_params, type_args))
+         values, call_args = [], []
+         for arg, param in zip(args, callee["params"]):
++            param_index = len(values)
++            parameter_type = substitute_type(original.params[param_index].type, instantiated)
++            self.types.add(parameter_type)
+             if param["mode"] in {"read", "mut"}:
+-                original = next(f for f in self.program.functions if f.name == name)
+-                param_index = len(values)
+-                value = self.borrow(arg, param["mode"], original.params[param_index].type)
++                value = self.borrow(arg, param["mode"], parameter_type)
+             else:
+                 value = self.expression(arg)
+                 if param["mode"] == "value":
+@@ -304,7 +329,7 @@ class _FunctionLowerer:
+             result_loan = result.id
+         self.emit("foreign" if callee["external"] else "call", function=name, args=call_args,
+                   result=None if result_loan else result.id, result_loan=result_loan,
+-                  obligation=callee["obligation"])
++                  obligation=callee["obligation"], **({"type_args": [str(t) for t in type_args]} if original.type_params else {}))
+         for param, value in zip(callee["params"], values):
+             if value.kind == "borrow" and not (result_loan and ret["origin"] == param["id"]):
+                 self.end(value)
+@@ -322,7 +347,7 @@ class _FunctionLowerer:
+                 value = self.expression(data["expr"])
+                 if value.kind == "borrow":
+                     value = self.copy_value(value)
+-                typ = data.get("type") or value.type
++                typ = self.resolve(data["type"]) if data.get("type") is not None else value.type
+                 binding = self.slot(typ, mutable=bool(data["mutable"]))
+                 if value.kind == "owner":
+                     self.emit("move", src=value.id, dest=binding.id)
+@@ -356,7 +381,7 @@ class _FunctionLowerer:
+             elif statement.kind == "return":
+                 expr = data["expr"]
+                 if self.fn.return_mode in {"read", "mut"}:
+-                    value = self.borrow(expr, self.fn.return_mode, self.fn.return_type)
++                    value = self.borrow(expr, self.fn.return_mode, self.resolve(self.fn.return_type))
+                     if value.mode != self.fn.return_mode:
+                         _unsupported("Mode-changing returned call views need an explicit reborrow model")
+                     self.finish("return", value=None, loan=value.id)
+@@ -448,15 +473,18 @@ def lower_resource_ir(program, checked, *, project_sha256: str | None = None) ->
+         types.add(Type(primitive))
+     signatures, obligations = {}, {}
+     for fn in program.functions:
+-        if fn.type_params or fn.resources:
+-            _unsupported("Generic function bodies and task/resource runtime clauses require another lowering profile")
+-        params = [{"id": "p" + str(i), "type": types.add(p.type), "mode": p.mode} for i, p in enumerate(fn.params)]
++        if fn.resources:
++            _unsupported("Task/resource runtime clauses require another lowering profile")
++        mapping = types.parameters[fn.name]
++        params = [{"id": "p" + str(i), "type": types.add(substitute_type(p.type, mapping)), "mode": p.mode} for i, p in enumerate(fn.params)]
+         origins = [p["id"] for p in params if p["mode"] in {"read", "mut"}]
+         signature = {"name": fn.name, "params": params,
+-                     "returns": {"type": types.add(fn.return_type), "mode": fn.return_mode,
++                     "returns": {"type": types.add(substitute_type(fn.return_type, mapping)), "mode": fn.return_mode,
+                                  "origin": origins[0] if fn.return_mode != "value" and len(origins) == 1 else None},
+                      "external": fn.extern_c, "obligation": "foreign:" + fn.name if fn.extern_c else None,
+                      "locals": [], "entry": None, "blocks": []}
++        if fn.type_params:
++            signature["type_params"] = [str(mapping[name]) for name in fn.type_params]
+         signatures[fn.name] = signature
+         if fn.extern_c:
+             obligations[signature["obligation"]] = {"function": fn.name, "status": "assumed_not_verified", "requirements": list(_EXTERNAL_REQUIREMENTS)}
+diff --git a/hepta/semantic_ir.py b/hepta/semantic_ir.py
+index 4b1b82d..63cc522 100644
+--- a/hepta/semantic_ir.py
++++ b/hepta/semantic_ir.py
+@@ -117,6 +117,7 @@ def lower_checked_program(program: Program, checked: Any, *, project_sha256: str
+             "declaration_span": _span(fn.span), "body_span": _span(fn.body_span),
+             "public": fn.public, "extern_c": fn.extern_c, "export_c": fn.export_c,
+             "type_params": list(fn.type_params),
++            "type_bounds": {name: fn.type_bounds.get(name, "Copy") for name in fn.type_params},
+             "params": [{"name": p.name, "mode": p.mode, "type": str(p.type),
+                         "span": _span(p.span)} for p in fn.params],
+             "returns": str(fn.return_type),
+diff --git a/tests/test_owned_generics.py b/tests/test_owned_generics.py
+new file mode 100644
+index 0000000..9973ca0
+--- /dev/null
++++ b/tests/test_owned_generics.py
+@@ -0,0 +1,371 @@
++"""Finite ownership polymorphism, real cleanup and independent graph attacks."""
++from __future__ import annotations
++
++import copy
++import json
++import os
++from pathlib import Path
++import subprocess
++import sys
++import tempfile
++import unittest
++
++from hepta.ast import HeptaError
++from hepta.backend import compile_rust, find_rustc
++from hepta.checker import check
++from hepta.parser import parse
++from hepta.pipeline import analyze, analyze_project, interface_hash
++from hepta.resource_ir import verify_resource_ir
++from hepta.resource_lowering import lower_resource_ir
++from hepta.semantic_ir import lower_checked_program
++
++
++ROOT = Path(__file__).resolve().parents[1]
++OPERATIONS = (ROOT / "examples/owned_generics/operations.hepta").read_text().split(";", 1)[1]
++GENERIC = """
++struct Box<T>{value:T}
++fn identity<T:Owned>(value:take T)->T effects {} {return move value;}
++fn wrap<T:Owned>(value:take T)->Box<T> effects {} {return Box{value:move value};}
++fn dispose<T:Owned>(value:take T)->Unit effects {alloc,block} {drop(move value);}
++fn unused<T:Owned>(value:take T)->Unit effects {alloc,block} {drop(move value);}
++fn main()->Unit effects {alloc,block,panic} {
++  let boxed=wrap::<Buffer<u8>>(move buffer(7));
++  dispose::<Box<Buffer<u8>>>(move identity::<Box<Buffer<u8>>>(move boxed));
++}
++"""
++
++
++def compiler():
++    try:
++        return find_rustc(os.environ.get("RUSTC"))
++    except HeptaError:
++        return None
++
++
++RUSTC = compiler()
++
++
++def graph(source=GENERIC):
++    program = parse(source)
++    checked = check(program)
++    if not checked.ok:
++        raise AssertionError([d.to_dict() for d in checked.diagnostics])
++    return lower_resource_ir(program, checked)
++
++
++def fn(doc, name):
++    return next(f for f in doc["functions"] if f["name"] == name)
++
++
++def ops(function, operation):
++    return [op for block in function["blocks"] for op in block["ops"] if op["op"] == operation]
++
++
++class OwnedGenericChecks(unittest.TestCase):
++    def reject(self, source, code):
++        report = analyze(source, native=False).report
++        self.assertFalse(report["ok"], report)
++        self.assertIn(code, [d["code"] for d in report["diagnostics"]], report)
++        self.assertEqual(report["checks"]["rust_borrows_types"], "not_run")
++
++    def test_explicit_copy_and_implicit_copy_have_the_same_interface(self):
++        implicit = parse("fn id<T>(x:T)->T effects {} {return x;}")
++        explicit = parse("fn id<T:Copy>(x:T)->T effects {} {return x;}")
++        self.assertEqual(interface_hash(implicit), interface_hash(explicit))
++        self.assertEqual(explicit.functions[0].type_bounds, {"T": "Copy"})
++
++    def test_owned_constraint_is_part_of_interface_and_semantic_ir(self):
++        copy_source = "fn view<T:Copy>(x:read T)->read T effects {} {return read x;}"
++        owned_source = copy_source.replace("T:Copy", "T:Owned")
++        a, b = parse(copy_source), parse(owned_source)
++        self.assertNotEqual(interface_hash(a), interface_hash(b))
++        hsir = lower_checked_program(b, check(b))
++        self.assertEqual(hsir["functions"][0]["type_bounds"], {"T": "Owned"})
++
++    def test_unknown_constraint_is_rejected_even_without_instantiations(self):
++        self.reject("fn f<T:Send>(x:T)->T effects {} {return x;}", "E_GENERIC_BOUND")
++
++    def test_owned_parameter_requires_explicit_take_or_borrow(self):
++        self.reject("fn f<T:Owned>(x:T)->Unit effects {alloc,block} {drop(move x);}", "E_LINEAR_MODE")
++
++    def test_generic_body_cannot_implicitly_copy_its_owner(self):
++        self.reject("fn f<T:Owned>(x:take T)->T effects {} {return x;}", "E_MOVE_REQUIRED")
++        self.reject("fn f<T:Owned>(x:take T)->Unit effects {alloc,block} {let y=x;drop(move x);drop(move y);}", "E_MOVE_REQUIRED")
++
++    def test_unused_generic_bodies_still_have_linear_obligations(self):
++        self.reject("fn never_called<T:Owned>(x:take T)->Unit effects {} {}", "E_LINEAR_UNCONSUMED")
++
++    def test_generic_owner_cannot_be_moved_twice(self):
++        self.reject("fn f<T:Owned>(x:take T)->Unit effects {alloc,block} {drop(move x);drop(move x);}", "E_USE_AFTER_MOVE")
++
++    def test_early_return_branch_and_loop_keep_generic_obligations(self):
++        cases = [
++            ("if stop {return;}drop(move x);", "E_LINEAR_UNCONSUMED"),
++            ("if stop {drop(move x);}", "E_LINEAR_BRANCH"),
++            ("while stop {drop(move x);}drop(move x);", "E_LINEAR_LOOP"),
++        ]
++        for body, code in cases:
++            with self.subTest(body=body):
++                self.reject("fn f<T:Owned>(x:take T,stop:bool)->Unit effects {alloc,block} {" + body + "}", code)
++
++    def test_result_match_cannot_ignore_generic_owned_payload(self):
++        self.reject("fn f<T:Owned,E:Copy>(x:take Result<T,E>)->Unit effects {} {match move x {Result::Ok(_)=>{},Result::Err(e)=>{}}}", "E_LINEAR_DISCARD")
++
++    def test_owned_instantiation_requires_owned_not_just_sized(self):
++        self.reject("fn f<T:Owned>(x:take T)->T effects {} {return move x;}fn main()->Unit effects {} {let n=f::<u64>(move 7);}", "E_GENERIC_OWNED")
++        self.reject("struct Box<T>{value:T}fn f<T:Owned>(x:take T)->T effects {} {return move x;}fn main()->Unit effects {} {let n=f::<Box<u64>>(move Box{value:7});}", "E_GENERIC_OWNED")
++
++    def test_copy_callee_cannot_receive_abstract_owned_parameter(self):
++        self.reject("fn id<T:Copy>(x:T)->T effects {} {return x;}fn f<U:Owned>(x:take U)->U effects {} {return move id::<U>(move x);}", "E_GENERIC_COPY")
++
++    def test_owned_callee_cannot_receive_abstract_copy_parameter(self):
++        self.reject("fn id<T:Owned>(x:take T)->T effects {} {return move x;}fn f<U:Copy>(x:U)->U effects {} {return id::<U>(move x);}", "E_GENERIC_OWNED")
++
++    def test_generic_drop_keeps_destructor_effects(self):
++        self.reject("fn f<T:Owned>(x:take T)->Unit effects {} {drop(move x);}", "E_EFFECT")
++
++    def test_opaque_owned_does_not_imply_methods_or_operators(self):
++        self.reject("fn f<T:Owned>(x:take T)->usize effects {alloc,block} {let n=len(x);drop(move x);return n;}", "E_BUILTIN_TYPE")
++
++    def test_owned_parameters_cannot_hide_unsupported_containers(self):
++        for value in ("[T;2]", "raw const T", "Buffer<T>"):
++            with self.subTest(value=value):
++                self.reject("fn f<T:Owned>(x:take " + value + ")->Unit effects {alloc,block} {drop(move x);}", "E_NESTED_LINEAR")
++
++    def test_abstract_owned_borrow_cannot_be_consumed(self):
++        self.reject("fn f<T:Owned>(x:read T)->Unit effects {alloc,block} {drop(move x);}", "E_MOVE_BORROW")
++
++    def test_scoped_task_cannot_be_hidden_in_owned_instantiation(self):
++        source = """
++        fn discard<T:Owned>(x:take T)->Unit effects {alloc,block} {drop(move x);}
++        fn worker(data:take Buffer<u8>,token:read Cancellation)->u64 effects {alloc,block} {release(move data);return 0;}
++        fn main()->Unit effects {alloc,block,panic,spawn} {let task=spawn(worker,move buffer(1));discard::<Task<u64>>(move task);}
++        """
++        self.reject(source, "E_GENERIC_COPY")
++
++    def test_generic_owned_functions_keep_c_boundary_restrictions(self):
++        self.reject('export "C" fn f<T:Owned>(x:take T)->T effects {} {return move x;}', "E_GENERIC_BOUNDARY")
++        result = analyze(GENERIC, native=False, backend="c")
++        self.assertFalse(result.report["ok"])
++        self.assertIn("E_C_BACKEND_SUBSET", [d["code"] for d in result.report["diagnostics"]])
++
++
++class GenericResourceIR(unittest.TestCase):
++    def reject(self, document, code):
++        result = verify_resource_ir(document)
++        self.assertFalse(result["ok"], result)
++        self.assertEqual(result["diagnostics"][0]["code"], code, result)
++
++    def test_every_generic_body_is_verified_without_specialization(self):
++        document = graph()
++        result = verify_resource_ir(document)
++        self.assertTrue(result["ok"], result)
++        self.assertEqual(document["schema"], "hepta.resource-ir.v2")
++        self.assertIn("unused", {f["function"] for f in result["functions"]})
++        self.assertEqual(fn(document, "unused")["type_params"], ["@unused::T"])
++        self.assertFalse(result["claims"]["source_to_ir_refinement_proved"])
++
++    def test_serialized_verifier_never_imports_the_source_frontend(self):
++        document = graph()
++        code = "import json,sys;from hepta.resource_ir import verify_resource_ir;r=verify_resource_ir(json.load(sys.stdin));assert r['ok'],r;assert 'hepta.checker' not in sys.modules;assert 'hepta.parser' not in sys.modules"
++        result = subprocess.run([sys.executable, "-c", code], input=json.dumps(document), text=True, capture_output=True, cwd=ROOT, timeout=10)
++        self.assertEqual(result.returncode, 0, result.stderr)
++
++    def test_remove_drop_from_uncalled_generic_body_is_rejected(self):
++        document = graph()
++        body = fn(document, "unused")["blocks"][0]["ops"]
++        body[:] = [op for op in body if op["op"] != "drop"]
++        self.reject(document, "E_RIR_LEAK")
++
++    def test_duplicated_abstract_owner_move_is_rejected(self):
++        document = graph()
++        body = fn(document, "identity")["blocks"][0]["ops"]
++        body.insert(1, copy.deepcopy(body[0]))
++        self.reject(document, "E_RIR_USE_AFTER_MOVE")
++
++    def test_owned_type_argument_constraint_is_checked_independently(self):
++        document = graph()
++        ops(fn(document, "main"), "call")[0]["type_args"] = ["u8"]
++        self.reject(document, "E_RIR_GENERIC")
++
++    def test_missing_type_argument_is_not_inferred_from_unsafe_slots(self):
++        document = graph()
++        del ops(fn(document, "main"), "call")[0]["type_args"]
++        self.reject(document, "E_RIR_GENERIC")
++
++    def test_callee_type_parameter_cannot_escape_into_caller_scope(self):
++        document = graph()
++        ops(fn(document, "main"), "call")[0]["type_args"] = ["@wrap::T"]
++        self.reject(document, "E_RIR_GENERIC")
++
++    def test_unbound_and_rebound_type_parameters_are_rejected(self):
++        document = graph()
++        fn(document, "unused").pop("type_params")
++        self.reject(document, "E_RIR_GENERIC")
++        document = graph()
++        fn(document, "unused")["type_params"] = ["@dispose::T"]
++        self.reject(document, "E_RIR_GENERIC")
++
++    def test_concrete_aggregate_cannot_forge_generic_payload_shape(self):
++        document = graph()
++        document["types"]["Box<Buffer<u8>>"]["fields"][0]["type"] = "u8"
++        self.reject(document, "E_RIR_GENERIC")
++
++    def test_copy_and_owned_parameters_are_scoped_by_function(self):
++        source = "fn copy<T:Copy>(x:T)->T effects {} {return x;}" + GENERIC
++        document = graph(source)
++        self.assertFalse(verify_resource_ir(document)["owned_types"].count("@copy::T"))
++        self.assertIn("@identity::T", verify_resource_ir(document)["owned_types"])
++
++    def test_legacy_graphs_still_verify_but_cannot_smuggle_generic_types(self):
++        document = graph("fn main()->Unit effects {alloc,block,panic} {let x=buffer(3);drop(move x);}")
++        document["schema"] = "hepta.resource-ir.v1"
++        self.assertTrue(verify_resource_ir(document)["ok"])
++        document = graph()
++        document["schema"] = "hepta.resource-ir.v1"
++        self.reject(document, "E_RIR_SCHEMA")
++
++
++@unittest.skipUnless(RUSTC, "requires pinned native Rust compiler")
++class NativeOwnedGenerics(unittest.TestCase):
++    def execute(self, source, harness=""):
++        analysis = analyze(source, rustc=RUSTC, crate_type="rlib" if harness else "bin")
++        self.assertTrue(analysis.report["ok"], analysis.report)
++        with tempfile.TemporaryDirectory(prefix="hepta-generic-native-") as directory:
++            built = compile_rust(analysis.rust + harness, rustc=RUSTC, crate_type="bin", output=Path(directory) / "run")
++            self.assertTrue(built["ok"], built)
++            executed = subprocess.run([built["artifact"]], capture_output=True, text=True, timeout=15)
++            self.assertEqual(executed.returncode, 0, executed.stderr)
++        return analysis
++
++    def test_copy_and_owned_constraints_monomorphize_without_boxing(self):
++        analysis = self.execute("fn copy<T:Copy>(x:T)->T effects {} {return x;}" + GENERIC.replace("let boxed=", "assert(copy::<u64>(41)==41);let boxed="))
++        self.assertIn("fn h_identity<G_T>(", analysis.rust)
++        self.assertIn("fn h_copy<G_T: core::marker::Copy>(", analysis.rust)
++
++    def test_native_borrow_gate_still_rejects_aliased_generic_mut_and_read(self):
++        source = "fn pair<T:Owned>(x:mut T,y:read T)->Unit effects {} {}fn main()->Unit effects {alloc,block,panic} {let mut x=buffer(3);pair::<Buffer<u8>>(mut x,read x);drop(move x);}"
++        result = analyze(source, rustc=RUSTC)
++        self.assertFalse(result.report["ok"])
++        self.assertEqual(result.report["checks"]["types_effects_resources"], "passed_in_supported_subset")
++        self.assertEqual(result.report["checks"]["rust_borrows_types"], "rejected")
++
++    def test_normal_error_and_early_return_free_actual_allocations(self):
++        source = OPERATIONS + """
++        fn exercise()->Unit effects {alloc,block,panic} {
++          let a=choose::<Buffer<u8>,Buffer<u8>>(move buffer(4093),move buffer(8161),true);
++          dispose::<Result<Buffer<u8>,Buffer<u8>>>(move a);
++          let b=choose::<Buffer<u8>,Buffer<u8>>(move buffer(12281),move buffer(16381),false);
++          dispose::<Result<Buffer<u8>,Buffer<u8>>>(move b);
++          let c=finish::<Buffer<u8>,u8>(move buffer(24571),false,7);
++          dispose::<Result<Buffer<u8>,u8>>(move c);
++        }
++        """
++        harness = r'''
++struct Counting;
++static TRACK:std::sync::atomic::AtomicBool=std::sync::atomic::AtomicBool::new(false);
++static ALLOC:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
++static FREE:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
++static BYTES:std::sync::atomic::AtomicIsize=std::sync::atomic::AtomicIsize::new(0);
++unsafe impl std::alloc::GlobalAlloc for Counting {
++  unsafe fn alloc(&self,l:std::alloc::Layout)->*mut u8 {
++    let p=std::alloc::GlobalAlloc::alloc(&std::alloc::System,l);
++    if TRACK.load(std::sync::atomic::Ordering::SeqCst)&&!p.is_null(){
++      ALLOC.fetch_add(1,std::sync::atomic::Ordering::SeqCst);
++      BYTES.fetch_add(l.size() as isize,std::sync::atomic::Ordering::SeqCst);
++    } p
++  }
++  unsafe fn dealloc(&self,p:*mut u8,l:std::alloc::Layout){
++    if TRACK.load(std::sync::atomic::Ordering::SeqCst){
++      FREE.fetch_add(1,std::sync::atomic::Ordering::SeqCst);
++      BYTES.fetch_sub(l.size() as isize,std::sync::atomic::Ordering::SeqCst);
++    }std::alloc::GlobalAlloc::dealloc(&std::alloc::System,p,l);
++  }
++}
++#[global_allocator]static A:Counting=Counting;
++fn main(){TRACK.store(true,std::sync::atomic::Ordering::SeqCst);h_exercise();TRACK.store(false,std::sync::atomic::Ordering::SeqCst);
++assert_eq!(ALLOC.load(std::sync::atomic::Ordering::SeqCst),5);assert_eq!(FREE.load(std::sync::atomic::Ordering::SeqCst),5);assert_eq!(BYTES.load(std::sync::atomic::Ordering::SeqCst),0);}
++'''
++        self.execute(source, harness)
++
++    def test_cooperative_cancellation_and_worker_failure_use_generic_cleanup(self):
++        source = OPERATIONS + """
++        fn cancelled_worker(data:take Buffer<u8>,token:read Cancellation)->u64 effects {alloc,block} {
++          let pending=forward::<Buffer<u8>>(move data);
++          while !cancelled(read token) {}
++          let n=len(view::<Buffer<u8>>(read pending));dispose::<Buffer<u8>>(move pending);return n as u64;
++        }
++        fn failing_worker(data:take Buffer<u8>,token:read Cancellation,out:read Sender<u64>)->u64 effects {alloc,block,panic,write} {
++          let error:Result<u64,Buffer<u8>>=Result::Err(move data);
++          group_fail(read out,37);dispose::<Result<u64,Buffer<u8>>>(move error);return 0;
++        }
++        fn exercise()->Unit effects {alloc,block,panic,spawn,write} {
++          let task=spawn(cancelled_worker,move buffer(65519));assert(cancel_and_join(move task)==65519);
++          let mut group=task_group(1,65521,1);assert(group_spawn(mut group,failing_worker,move buffer(65521)));
++          let report=group_drain_and_join(move group);assert(report.failed);assert(report.failure_code==37);
++          assert(report.active_tasks==0);assert(report.completed_tasks==1);assert(report.joined);
++        }
++        """
++        harness = r'''
++struct Observed;
++static LIVE:std::sync::atomic::AtomicIsize=std::sync::atomic::AtomicIsize::new(0);
++static ALLOC:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
++static FREE:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
++fn tracked(l:std::alloc::Layout)->bool{matches!(l.size(),65519|65521)}
++unsafe impl std::alloc::GlobalAlloc for Observed {
++ unsafe fn alloc(&self,l:std::alloc::Layout)->*mut u8{
++  let p=std::alloc::GlobalAlloc::alloc(&std::alloc::System,l);
++  if !p.is_null()&&tracked(l){ALLOC.fetch_add(1,std::sync::atomic::Ordering::SeqCst);LIVE.fetch_add(1,std::sync::atomic::Ordering::SeqCst);}p
++ }
++ unsafe fn dealloc(&self,p:*mut u8,l:std::alloc::Layout){
++  if tracked(l){FREE.fetch_add(1,std::sync::atomic::Ordering::SeqCst);LIVE.fetch_sub(1,std::sync::atomic::Ordering::SeqCst);}
++  std::alloc::GlobalAlloc::dealloc(&std::alloc::System,p,l);
++ }
++}
++#[global_allocator]static A:Observed=Observed;
++fn main(){h_exercise();assert_eq!(ALLOC.load(std::sync::atomic::Ordering::SeqCst),2);assert_eq!(FREE.load(std::sync::atomic::Ordering::SeqCst),2);assert_eq!(LIVE.load(std::sync::atomic::Ordering::SeqCst),0);}
++'''
++        self.execute(source, harness)
++
++    def test_allocator_refusal_survives_generic_result_forwarding(self):
++        source = OPERATIONS + """
++        fn probe(size:usize)->u8 effects {alloc,block} {
++          let outcome=forward::<Result<Buffer<u8>,u8>>(move try_buffer(size));
++          match move outcome {
++            Result::Ok(bytes)=>{dispose::<Buffer<u8>>(move bytes);return 0;},
++            Result::Err(error)=>{return error;}
++          }
++        }
++        """
++        harness = r'''
++struct Refusing;
++static REFUSE:std::sync::atomic::AtomicBool=std::sync::atomic::AtomicBool::new(true);
++static REFUSALS:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
++unsafe impl std::alloc::GlobalAlloc for Refusing {
++ unsafe fn alloc(&self,l:std::alloc::Layout)->*mut u8{
++  if l.size()==65519&&REFUSE.load(std::sync::atomic::Ordering::SeqCst){REFUSALS.fetch_add(1,std::sync::atomic::Ordering::SeqCst);return core::ptr::null_mut();}
++  std::alloc::GlobalAlloc::alloc(&std::alloc::System,l)
++ }
++ unsafe fn dealloc(&self,p:*mut u8,l:std::alloc::Layout){std::alloc::GlobalAlloc::dealloc(&std::alloc::System,p,l);}
++}
++#[global_allocator]static A:Refusing=Refusing;
++fn main(){assert_eq!(h_probe(65519),1);assert_eq!(REFUSALS.load(std::sync::atomic::Ordering::SeqCst),1);REFUSE.store(false,std::sync::atomic::Ordering::SeqCst);assert_eq!(h_probe(65519),0);assert_eq!(REFUSALS.load(std::sync::atomic::Ordering::SeqCst),1);}
++'''
++        self.execute(source, harness)
++
++    def test_real_two_file_generic_library_runs_and_verifies_independently(self):
++        entry = ROOT / "examples/owned_generics/main.hepta"
++        analysis = analyze_project(entry, rustc=RUSTC, crate_type="bin")
++        self.assertTrue(analysis.report["ok"], analysis.report)
++        document = lower_resource_ir(analysis.program, analysis.checked, project_sha256=analysis.project.identity)
++        self.assertEqual(len(document["functions"]), 7)
++        self.assertTrue(verify_resource_ir(document)["ok"])
++        with tempfile.TemporaryDirectory(prefix="hepta-generic-library-") as directory:
++            built = compile_rust(analysis.rust, rustc=RUSTC, crate_type="bin", output=Path(directory) / "run")
++            self.assertTrue(built["ok"], built)
++            executed = subprocess.run([built["artifact"]], capture_output=True, text=True, timeout=15)
++            self.assertEqual(executed.returncode, 0, executed.stderr)
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/tools/validate_resources.py b/tools/validate_resources.py
+index 22149d8..8040f92 100644
+--- a/tools/validate_resources.py
++++ b/tools/validate_resources.py
+@@ -24,7 +24,8 @@ from hepta.resource_lowering import lower_resource_ir
+ 
+ ROOT = Path(__file__).resolve().parents[1]
+ EXAMPLES = {"owned_library": ROOT / "examples/owned/main.hepta",
+-            "returned_views": ROOT / "examples/resource_ir/returned_views.hepta"}
++            "returned_views": ROOT / "examples/resource_ir/returned_views.hepta",
++            "owned_generics": ROOT / "examples/owned_generics/main.hepta"}
+ 
+ 
+ def _first(document: dict, opname: str, function_suffix: str | None = None):
+@@ -77,6 +78,34 @@ def adversarial_checks(owned: dict, views: dict) -> list[dict]:
+     return checks
+ 
+ 
++def generic_adversarial_checks(generics: dict) -> list[dict]:
++    checks = []
++
++    def expect(name, document, expected):
++        result = verify_resource_ir(document)
++        actual = result["diagnostics"][0]["code"] if result["diagnostics"] else None
++        checks.append({"case": name, "expected": expected, "actual": actual,
++                       "ok": not result["ok"] and actual == expected})
++
++    doc = copy.deepcopy(generics)
++    call = _first(doc, "call", "main")[2]
++    call["type_args"][0] = "u8"
++    expect("owned_generic_replaced_with_copy_argument", doc, "E_RIR_GENERIC")
++    doc = copy.deepcopy(generics)
++    del _first(doc, "call", "main")[2]["type_args"]
++    expect("generic_call_arguments_omitted", doc, "E_RIR_GENERIC")
++    doc = copy.deepcopy(generics)
++    block, index, _ = _first(doc, "drop", "dispose")
++    del block["ops"][index]
++    expect("abstract_generic_destructor_omitted", doc, "E_RIR_LEAK")
++    doc = copy.deepcopy(generics)
++    call = _first(doc, "call", "main")[2]
++    callee = next(fn for fn in doc["functions"] if fn["name"] == call["function"])
++    call["type_args"][0] = callee["type_params"][0]
++    expect("callee_type_parameter_escapes_to_main", doc, "E_RIR_GENERIC")
++    return checks
++
++
+ def qualify_resources(directory: Path, *, rustc: str | None = None) -> dict:
+     directory.mkdir(parents=True, exist_ok=True)
+     result = {"schema": "hepta.resource-qualification.v1", "ok": False,
+@@ -119,6 +148,7 @@ def qualify_resources(directory: Path, *, rustc: str | None = None) -> dict:
+         if execution.returncode:
+             return result
+     result["adversarial_checks"] = adversarial_checks(documents["owned_library"], documents["returned_views"])
++    result["adversarial_checks"] += generic_adversarial_checks(documents["owned_generics"])
+     result["ok"] = all(check["ok"] for check in result["adversarial_checks"])
+     return result
+ 

@@ -1,0 +1,102 @@
+diff --git a/hepta/hia_program_llvm.py b/hepta/hia_program_llvm.py
+index 4a151e9..34d98ab 100644
+--- a/hepta/hia_program_llvm.py
++++ b/hepta/hia_program_llvm.py
+@@ -38,6 +38,36 @@ _BUFFERS = {"buffer", "readbuf", "mutbuf"}
+ _RUNTIME_NAMES = {"abort", "calloc", "free", "malloc", "memset", "memcpy", "memmove"}
+ _IMPORTS = {"abort", "calloc", "free", "malloc", "memset", "memcpy", "memmove"}
+ 
++# This is a closed optimization whitelist, not a blacklist of known readers.
++# New instructions must be audited before they can omit zero initialization.
++_UNREAD_ALLOCATION_OPS = frozenset({
++    "const", "int.cast", "int.neg.checked", "select",
++    "bool.not", "bool.and", "bool.or", "bit.and", "bit.or", "bit.xor", "bit.not",
++    "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge",
++    "int.add.checked", "int.sub.checked", "int.mul.checked", "int.div.checked",
++    "int.rem.checked", "int.shl.checked", "int.shr.checked",
++    "int.add.wrap", "int.sub.wrap", "int.mul.wrap",
++    "buffer.new", "buffer.try_new", "buffer.len", "borrow.read", "borrow.mut",
++    "loan.end", "owner.move", "owner.drop",
++})
++
++
++def _can_elide_zero_initialization(function):
++    """Prove bytes of all local allocations unobservable in this function.
++
++    Resource arguments/results, every call, every byte load/store, and unknown
++    instructions reject this optimization. Scan every block, including loops
++    and branches. Only zero writes disappear: allocation attempts, failure,
++    live storage and explicit drops still execute. This does not admit a new
++    uninitialized-buffer operation to Core or expose bytes to external code.
++    """
++    scalars = set(_WIDTHS) | {"bool", "unit"}
++    return (all(param["type"] in scalars for param in function["params"])
++            and all(typ in scalars for typ in function["returns"])
++            and all(block["term"]["op"] in {"ret", "jump", "branch", "trap"}
++                    and all(operation["op"] in _UNREAD_ALLOCATION_OPS for operation in block["ops"])
++                    for block in function["blocks"]))
++
+ 
+ class HIAProgramLLVMRejected(ValueError):
+     """The standalone program or requested native build is not admitted."""
+@@ -127,6 +157,7 @@ class _FunctionEmitter:
+     def __init__(self, parent, function, number):
+         self.parent = parent
+         self.function = function
++        self.zero_bytes = "false" if _can_elide_zero_initialization(function) else "true"
+         self.number = number
+         self.serial = 0
+         self.lines = []
+@@ -280,7 +311,7 @@ class _FunctionEmitter:
+                     results = [self.instruction("extractvalue " + _return_type(returns) + " " + value + ", " + str(index))
+                                for index in range(len(returns))]
+         elif op in {"buffer.new", "buffer.try_new"}:
+-            pair = self.instruction("call %hia.alloc @__hia_allocate(i64 " + arguments[0][0] + ")")
++            pair = self.instruction("call %hia.alloc @__hia_allocate(i64 " + arguments[0][0] + ", i1 " + self.zero_bytes + ")")
+             owner = self.instruction("extractvalue %hia.alloc " + pair + ", 0")
+             success = self.instruction("extractvalue %hia.alloc " + pair + ", 1")
+             if op == "buffer.new":
+@@ -384,7 +415,7 @@ class _FunctionEmitter:
+ _BUFFER_RUNTIME = r"""
+ ; A failed allocation is an empty, valid owner plus false. Zero length succeeds.
+ ; The independent verifier still requires every resulting owner to be consumed.
+-define internal %hia.alloc @__hia_allocate(i64 %length) {
++define internal %hia.alloc @__hia_allocate(i64 %length, i1 %zero_bytes) {
+ entry:
+   %zero = icmp eq i64 %length, 0
+   br i1 %zero, label %empty, label %nonempty
+@@ -395,7 +426,15 @@ nonempty:
+   %valid = icmp ule i64 %length, 9223372036854775807
+   br i1 %valid, label %allocate, label %failed
+ allocate:
+-  %pointer = call ptr @calloc(i64 1, i64 %length) nobuiltin
++  br i1 %zero_bytes, label %zeroed, label %unread
++zeroed:
++  %zero_pointer = call ptr @calloc(i64 1, i64 %length) nobuiltin
++  br label %allocated
++unread:
++  %unread_pointer = call ptr @malloc(i64 %length) nobuiltin
++  br label %allocated
++allocated:
++  %pointer = phi ptr [ %zero_pointer, %zeroed ], [ %unread_pointer, %unread ]
+   %success = icmp ne ptr %pointer, null
+   br i1 %success, label %ready, label %failed
+ ready:
+@@ -455,6 +494,7 @@ class _Emitter:
+         # refusal and cleanup, including calls later observed by link wrappers.
+         declarations = ["declare void @abort() noreturn",
+                         'declare ptr @calloc(i64, i64) "no-builtins"',
++                        'declare ptr @malloc(i64) "no-builtins"',
+                         'declare void @free(ptr) "no-builtins"']
+         declarations += ["declare { i" + str(bits) + ", i1 } @" + name + "(i" + str(bits) + ", i" + str(bits) + ")"
+                          for name, bits in sorted(self.intrinsics)]
+@@ -566,7 +606,8 @@ def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared"):
+             "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+             "runtime_assumptions": ["Linux LP64 target with 64-bit pointers and size_t",
+                                     "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+-                                    "C free accepts a live allocation from calloc or null",
++                                    "C malloc returns null or a fresh nonaliasing allocation of the requested size; used only when byte contents cannot be observed",
++                                    "C free accepts a live allocation from calloc or malloc, or null",
+                                     "abort terminates execution; no cleanup after traps is promised",
+                                     "native compiler, linker, loader, libc and host hardware are trusted"],
+             "toolchain": {"path": str(compiler), "sha256": compiler_digest,

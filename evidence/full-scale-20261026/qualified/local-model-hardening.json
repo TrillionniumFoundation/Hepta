@@ -1,0 +1,57 @@
+{
+  "changed_files": [
+    "tools/provider_adapter/local_model_common.py",
+    "tools/provider_adapter/local_model_service.py",
+    "tools/provider_adapter/local_model_export.py",
+    "tests/test_local_model_adapter.py",
+    "docs/LOCAL_MODEL_AGENT_EVAL.md"
+  ],
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-m",
+    "unittest",
+    "tests.test_local_model_adapter",
+    "tests.test_local_model_audit",
+    "tests.test_openai_provider_adapter"
+  ],
+  "created_utc": "2026-10-26T05:35:00.188870+00:00",
+  "elapsed_seconds": 0.5160918740002671,
+  "environment_names_set": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "exit_code": 0,
+  "guards": [
+    "uniform_intraop_threads_before_model_load",
+    "verified_greedy_configuration_explicitly_forwarded_without_model_default_merge",
+    "single_sequence_tensor_decoder_only_exact_prompt_prefix_accounting",
+    "same_safetensors_multiset_deduplication_independent_of_shard_filename_order"
+  ],
+  "log": "evidence/full-scale-20261026/qualified/local-model-hardening.log",
+  "log_sha256": "f7eb07266676f3a65a1be132425846ccc663fc6d5165f590eafbe1da9f7a3337",
+  "model_runs": 0,
+  "native_compiler_invocations": 0,
+  "original_experiment": {
+    "archive_sha256": "7f810575c1161afaaa0af9670f54f5d50911b1ed94676f5851a535f7be8a5840",
+    "compiler_sha256": "91ab73f35b5fede9582b2b1066a0f38d910426c51239fcfe557154fc3fd850cb",
+    "compiler_source_commit": "bf5b7fc05fd459292773d7bc67f36f60ca464f87",
+    "manifest_sha256": "a483977d1d9091a78f4f0b25ff34a01fd5600111617c728020fe226bc227bf5a",
+    "provider_v1_source_commit": "92a13e1e21b80f4979828b3f02c38bb3017780c5",
+    "records_mutated": false,
+    "relabelled_as_hardened_provider_runs": false
+  },
+  "python_executable_sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7",
+  "record_sha256": "157286f5d3afc18dfbea7d965101b6f5ae1380f87f8b14dd78d04da1a1351d56",
+  "schema": "hepta.local_provider_hardening.v1",
+  "scope": "post_study_synthetic_protocol_and_generation_policy_regression_not_model_or_native_compiler_acceptance",
+  "source_file_sha256": {
+    "docs/LOCAL_MODEL_AGENT_EVAL.md": "1f598dff02f5d6c54cd713e68c808e79165f8b8ce4d2349757441f709c4532f3",
+    "tests/test_local_model_adapter.py": "1ea54f0c19c4d4364086059a4eb9c22012971492cf57e62f73c34e95c17a91d4",
+    "tests/test_local_model_audit.py": "f362cda6d06d4c18739ea8f9e2dc030e366389a5771517c1364082a80fccb5ad",
+    "tools/provider_adapter/local_model_adapter.py": "620e42918b6de82704b18931e57de6e75bfefabd3bde084f5bd0ecfbdf1c2c27",
+    "tools/provider_adapter/local_model_audit.py": "6200c5d77188f59fc80b32f2f164469132e4bb3814912963001ad859e26bd3b8",
+    "tools/provider_adapter/local_model_common.py": "b84c771753bb7fd5aa569a4eb10afd263d71e3869cae078650dbb95bf501e3d4",
+    "tools/provider_adapter/local_model_export.py": "643e4375f1f8327b18eb3d2c94c05516c09b1832f29608893a88c5d002c504ef",
+    "tools/provider_adapter/local_model_service.py": "331814a25dea5a5d43de703b8dd3b4389f14c1828e8a71b07674056f8622f454"
+  },
+  "unittest_count": 89
+}

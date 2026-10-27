@@ -1,0 +1,59 @@
+module cpp_class_migrated;
+
+// Actual implementation migration; no foreign calls or C++ class ABI.
+pub struct Mixer {
+    state: u32,
+}
+
+pub fn Mixer_new(arg0: u32) -> Mixer effects {panic} resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {
+    return Mixer {state: arg0};
+}
+
+pub fn Mixer_advance(receiver: mut Mixer, arg0: u32) -> u32 effects {panic, write} resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {
+    let mut localbinding0: u32 = receiver.state;
+    let mut hepta_for_372_localbinding1: u32 = 0;
+    while (hepta_for_372_localbinding1 < arg0) {
+        localbinding0 = wrapping_add(wrapping_mul(localbinding0, 1664525), 1013904223);
+        hepta_for_372_localbinding1 = wrapping_add(hepta_for_372_localbinding1, 1);
+    }
+    receiver.state = localbinding0;
+    return receiver.state;
+}
+
+pub fn Mixer_checksum(receiver: read Mixer, arg0: u32) -> u32 effects {panic} resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {
+    let mut localbinding0: u32 = receiver.state;
+    let mut localbinding1: u32 = arg0;
+    while (localbinding1 > 0) {
+        localbinding0 = (localbinding0 ^ localbinding1);
+        localbinding1 = wrapping_sub(localbinding1, 1);
+    }
+    return localbinding0;
+}
+
+pub fn Mixer_drain(receiver: mut Mixer, arg0: u32) -> u32 effects {panic, write} resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {
+    let mut localbinding0: u32 = arg0;
+    if (localbinding0 > 0) {
+        receiver.state = wrapping_add(receiver.state, localbinding0);
+        localbinding0 = wrapping_sub(localbinding0, 1);
+        while (localbinding0 > 0) {
+            receiver.state = wrapping_add(receiver.state, localbinding0);
+            localbinding0 = wrapping_sub(localbinding0, 1);
+        }
+    }
+    return receiver.state;
+}
+
+pub fn Mixer_shadowed(receiver: read Mixer, arg0: u32) -> u32 effects {panic} resources {heap_allocations=0;may_block=false;may_suspend=false;may_spawn=false;} {
+    let mut localbinding0: u32 = receiver.state;
+    let mut hepta_for_1138_localbinding1: u32 = 0;
+    while (hepta_for_1138_localbinding1 < arg0) {
+        localbinding0 = (localbinding0 ^ hepta_for_1138_localbinding1);
+        hepta_for_1138_localbinding1 = wrapping_add(hepta_for_1138_localbinding1, 1);
+    }
+    let mut hepta_for_1242_localbinding2: u32 = 0;
+    while (hepta_for_1242_localbinding2 < arg0) {
+        localbinding0 = wrapping_add(localbinding0, hepta_for_1242_localbinding2);
+        hepta_for_1242_localbinding2 = wrapping_add(hepta_for_1242_localbinding2, 1);
+    }
+    return localbinding0;
+}

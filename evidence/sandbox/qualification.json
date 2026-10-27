@@ -1,0 +1,366 @@
+{
+  "ai_comparison_eligible": false,
+  "boundary": {
+    "inside": {
+      "capabilities": {
+        "effective": 0,
+        "inheritable": 0,
+        "no_new_privileges": 1,
+        "permitted": 0
+      },
+      "credential_in_environment": false,
+      "host_loopback": {
+        "blocked": true,
+        "errno": 111
+      },
+      "path_checks": {
+        "capsule_symlink_to_parent": {
+          "errno": 2,
+          "unreadable": true
+        },
+        "host_credentials_path": {
+          "errno": 2,
+          "unreadable": true
+        },
+        "parent_credentials_canary": {
+          "errno": 2,
+          "unreadable": true
+        },
+        "parent_oracle_canary": {
+          "errno": 2,
+          "unreadable": true
+        },
+        "parent_private_oracle_module": {
+          "errno": 2,
+          "unreadable": true
+        },
+        "proc_environment": {
+          "errno": 2,
+          "unreadable": true
+        },
+        "proc_init_root_escape": {
+          "errno": 2,
+          "unreadable": true
+        },
+        "proc_parent_root_escape": {
+          "errno": 2,
+          "unreadable": true
+        }
+      },
+      "pid": 2,
+      "ppid": 1,
+      "proc_entries": [],
+      "toolchain_read_only": true,
+      "toolchain_visible": true,
+      "usr_read_only": true
+    },
+    "namespaces": {
+      "cgroup": {
+        "child": "cgroup:[4026532277]",
+        "different": true,
+        "parent": "cgroup:[4026532204]"
+      },
+      "ipc": {
+        "child": "ipc:[4026532241]",
+        "different": true,
+        "parent": "ipc:[4026532191]"
+      },
+      "mnt": {
+        "child": "mnt:[4026532207]",
+        "different": true,
+        "parent": "mnt:[4026532201]"
+      },
+      "net": {
+        "child": "net:[4026532278]",
+        "different": true,
+        "parent": "net:[4026531833]"
+      },
+      "pid": {
+        "child": "pid:[4026532276]",
+        "different": true,
+        "parent": "pid:[4026532200]"
+      },
+      "user": {
+        "child": "user:[4026532206]",
+        "different": true,
+        "parent": "user:[4026531837]"
+      },
+      "uts": {
+        "child": "uts:[4026532210]",
+        "different": true,
+        "parent": "uts:[4026532192]"
+      }
+    },
+    "parent_listener_received_connection": false,
+    "paths": {
+      "capsule_symlink_to_parent": {
+        "host_exists": true,
+        "path": "/tmp/hepta-sandbox-qualification-ekpbnx6q/capsule/parent_symlink"
+      },
+      "host_credentials_path": {
+        "host_exists": false,
+        "path": "/root/.aws/credentials"
+      },
+      "parent_credentials_canary": {
+        "host_exists": true,
+        "path": "/tmp/hepta-sandbox-qualification-ekpbnx6q/parent_credentials_canary"
+      },
+      "parent_oracle_canary": {
+        "host_exists": true,
+        "path": "/tmp/hepta-sandbox-qualification-ekpbnx6q/parent_oracle_canary"
+      },
+      "parent_private_oracle_module": {
+        "host_exists": true,
+        "path": "/workspace/scratch/0817a147930b/Hepta-cmigration/experiments/agent_eval/_private/oracles.py"
+      },
+      "proc_environment": {
+        "host_exists": true,
+        "path": "/proc/self/environ"
+      },
+      "proc_init_root_escape": {
+        "host_exists": true,
+        "path": "/proc/1/root/tmp/hepta-sandbox-qualification-ekpbnx6q/parent_oracle_canary"
+      },
+      "proc_parent_root_escape": {
+        "host_exists": true,
+        "path": "/proc/656870/root/tmp/hepta-sandbox-qualification-ekpbnx6q/parent_oracle_canary"
+      }
+    },
+    "remaining_stdout": "",
+    "required_namespaces": [
+      "user",
+      "pid",
+      "ipc",
+      "mnt",
+      "net"
+    ],
+    "returncode": 0,
+    "stderr": ""
+  },
+  "checks": {
+    "capabilities_dropped": {
+      "status": "passed"
+    },
+    "credentials_not_inherited": {
+      "status": "passed"
+    },
+    "empty_proc": {
+      "status": "passed"
+    },
+    "hepta_rust_native": {
+      "status": "passed"
+    },
+    "host_network_unreachable": {
+      "status": "passed"
+    },
+    "namespace_identity": {
+      "status": "passed"
+    },
+    "parent_paths_unreadable": {
+      "status": "passed"
+    },
+    "startup": {
+      "status": "passed"
+    },
+    "system_files_read_only": {
+      "status": "passed"
+    },
+    "workspace_native_profile": {
+      "status": "passed"
+    }
+  },
+  "compiler_sha256": "278d7ac38fc54580ac3681f16dd8b4654cfd6fc2833f5712e912d2e69ec50e6b",
+  "hepta_source_sha256": "cf707ab2368fdf13dc42a03f8c7e375ea73a808233f1db2efac6c72e9969cede",
+  "implementation_sha256": {
+    "sandbox.py": "f3e47e5a2b83b7322161934bbc600a3257d153bd60ebc9ea91ea847da5059ad9",
+    "sandbox_qualification.py": "fc908e80c7731d9d7f597103cab339bf6080680444cd9a63f390d466a35f89ef"
+  },
+  "native": {
+    "analysis": {
+      "assumptions": [],
+      "backend": {
+        "check_only": true,
+        "crate_type": "bin",
+        "diagnostics": [],
+        "flags": [
+          "edition=2021",
+          "opt-level=3",
+          "overflow-checks=yes",
+          "panic=abort",
+          "codegen-units=1",
+          "sysroot=/workspace/scratch/69b06e838148/toolchains/rust-1.90.0"
+        ],
+        "link_args": [],
+        "linker": null,
+        "ok": true,
+        "rust_sha256": "816b58b942551db5d058c50249f57e33c02e8fc7f5ac34b61b47b6a5bb88beaf",
+        "rustc_crate_type": "lib",
+        "status": "rustc_checked",
+        "sysroot": "/workspace/scratch/69b06e838148/toolchains/rust-1.90.0",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+          "host": "x86_64-unknown-linux-gnu",
+          "path": "/workspace/scratch/69b06e838148/toolchains/rust-1.90.0/bin/rustc",
+          "sysroot": "/workspace/scratch/69b06e838148/toolchains/rust-1.90.0",
+          "sysroot_discovery": "verified_compiler_prefix",
+          "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+        },
+        "validation_artifact_sha256": "af6d65e0967ddf78ffbbfb9de4450f9588a266a8511450db9666c5a0f5075cf2"
+      },
+      "checks": {
+        "rust_borrows_types": "rustc_checked",
+        "syntax": "passed",
+        "types_effects_resources": "passed_in_supported_subset"
+      },
+      "claims": {
+        "all_programs_faster_than_rust": false,
+        "bounded_cancellation_latency_proved": false,
+        "deadlock_freedom_proved": false,
+        "hardware_execution_verified": false,
+        "whole_language_soundness_proved": false
+      },
+      "compiler_sha256": "278d7ac38fc54580ac3681f16dd8b4654cfd6fc2833f5712e912d2e69ec50e6b",
+      "compiler_version": "0.2.0",
+      "diagnostics": [],
+      "effects": {
+        "main": [
+          "panic"
+        ],
+        "plus_one": [
+          "panic"
+        ]
+      },
+      "interface_sha256": "f894316d1cb12f90742602416954dc723d79cd332a27996204d4f74132e130c2",
+      "ok": true,
+      "path": "/tmp/hepta-sandbox-qualification-ekpbnx6q/capsule/main.hepta",
+      "profile": {
+        "crate_type": "bin",
+        "no_std": false,
+        "overflow_checks": true,
+        "panic": "abort"
+      },
+      "resource_contracts": [],
+      "rust_sha256": "816b58b942551db5d058c50249f57e33c02e8fc7f5ac34b61b47b6a5bb88beaf",
+      "schema": "hepta.check.v1",
+      "source_sha256": "cf707ab2368fdf13dc42a03f8c7e375ea73a808233f1db2efac6c72e9969cede",
+      "status": "checked"
+    },
+    "analysis_ok": true,
+    "build": {
+      "artifact": "/tmp/hepta-sandbox-qualification-ekpbnx6q/capsule/candidate",
+      "artifact_bytes": 3831512,
+      "artifact_sha256": "448a7cea90b6a54c72f41aad6bf6178f41e3cd53225c9151cac80f29d1c80ec9",
+      "check_only": false,
+      "crate_type": "bin",
+      "diagnostics": [],
+      "flags": [
+        "edition=2021",
+        "opt-level=3",
+        "overflow-checks=yes",
+        "panic=abort",
+        "codegen-units=1",
+        "sysroot=/workspace/scratch/69b06e838148/toolchains/rust-1.90.0",
+        "linker=/usr/bin/x86_64-linux-gnu-gcc-13"
+      ],
+      "link_args": [],
+      "linker": "/usr/bin/x86_64-linux-gnu-gcc-13",
+      "ok": true,
+      "rust_sha256": "816b58b942551db5d058c50249f57e33c02e8fc7f5ac34b61b47b6a5bb88beaf",
+      "rustc_crate_type": "bin",
+      "status": "rustc_checked",
+      "sysroot": "/workspace/scratch/69b06e838148/toolchains/rust-1.90.0",
+      "target": "x86_64-unknown-linux-gnu",
+      "toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/workspace/scratch/69b06e838148/toolchains/rust-1.90.0/bin/rustc",
+        "sysroot": "/workspace/scratch/69b06e838148/toolchains/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "validation_artifact_sha256": "448a7cea90b6a54c72f41aad6bf6178f41e3cd53225c9151cac80f29d1c80ec9"
+    },
+    "execution": {
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "workspace_backend": {
+      "check_only": true,
+      "crate_type": "rlib",
+      "diagnostics": [],
+      "flags": [
+        "edition=2021",
+        "opt-level=3",
+        "overflow-checks=yes",
+        "panic=abort",
+        "codegen-units=1",
+        "sysroot=/workspace/scratch/69b06e838148/toolchains/rust-1.90.0"
+      ],
+      "link_args": [],
+      "linker": null,
+      "ok": true,
+      "rust_sha256": "8300cc24b29648eadb5c15716db232599d2cfe1b8a1b37481b10a01c11f0315f",
+      "rustc_crate_type": "lib",
+      "status": "rustc_checked",
+      "sysroot": "/workspace/scratch/69b06e838148/toolchains/rust-1.90.0",
+      "target": "x86_64-unknown-linux-gnu",
+      "toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/workspace/scratch/69b06e838148/toolchains/rust-1.90.0/bin/rustc",
+        "sysroot": "/workspace/scratch/69b06e838148/toolchains/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "validation_artifact_sha256": "33657b481ef3ba16d3c1d3cf2608e62aef734272953e8c0fc45151bcc6f9b316"
+    },
+    "workspace_ok": true,
+    "workspace_profile": {
+      "compiler_sha256": "278d7ac38fc54580ac3681f16dd8b4654cfd6fc2833f5712e912d2e69ec50e6b",
+      "native_flags": [
+        "edition=2021",
+        "opt-level=3",
+        "overflow-checks=yes",
+        "panic=abort",
+        "codegen-units=1",
+        "sysroot=/workspace/scratch/69b06e838148/toolchains/rust-1.90.0"
+      ],
+      "native_target": "x86_64-unknown-linux-gnu",
+      "rustc_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+      "target": null
+    },
+    "workspace_version": "d378621336b93418a88599b26762420028b3f229ac295c630d80641112e75f9f"
+  },
+  "native_process": {
+    "returncode": 0,
+    "status": "exited",
+    "stderr": "",
+    "stdout": "{\"analysis_ok\": true, \"analysis\": {\"schema\": \"hepta.check.v1\", \"compiler_version\": \"0.2.0\", \"compiler_sha256\": \"278d7ac38fc54580ac3681f16dd8b4654cfd6fc2833f5712e912d2e69ec50e6b\", \"source_sha256\": \"cf707ab2368fdf13dc42a03f8c7e375ea73a808233f1db2efac6c72e9969cede\", \"path\": \"/tmp/hepta-sandbox-qualification-ekpbnx6q/capsule/main.hepta\", \"ok\": true, \"status\": \"checked\", \"diagnostics\": [], \"checks\": {\"syntax\": \"passed\", \"types_effects_resources\": \"passed_in_supported_subset\", \"rust_borrows_types\": \"rustc_checked\"}, \"assumptions\": [], \"claims\": {\"whole_language_soundness_proved\": false, \"all_programs_faster_than_rust\": false, \"hardware_execution_verified\": false, \"bounded_cancellation_latency_proved\": false, \"deadlock_freedom_proved\": false}, \"interface_sha256\": \"f894316d1cb12f90742602416954dc723d79cd332a27996204d4f74132e130c2\", \"effects\": {\"plus_one\": [\"panic\"], \"main\": [\"panic\"]}, \"resource_contracts\": [], \"rust_sha256\": \"816b58b942551db5d058c50249f57e33c02e8fc7f5ac34b61b47b6a5bb88beaf\", \"profile\": {\"no_std\": false, \"crate_type\": \"bin\", \"overflow_checks\": true, \"panic\": \"abort\"}, \"backend\": {\"ok\": true, \"status\": \"rustc_checked\", \"diagnostics\": [], \"toolchain\": {\"path\": \"/workspace/scratch/69b06e838148/toolchains/rust-1.90.0/bin/rustc\", \"version\": \"rustc 1.90.0 (1159e78c4 2025-09-14)\\nbinary: rustc\\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\\ncommit-date: 2025-09-14\\nhost: x86_64-unknown-linux-gnu\\nrelease: 1.90.0\\nLLVM version: 20.1.8\", \"host\": \"x86_64-unknown-linux-gnu\", \"executable_sha256\": \"e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa\", \"sysroot\": \"/workspace/scratch/69b06e838148/toolchains/rust-1.90.0\", \"sysroot_discovery\": \"verified_compiler_prefix\"}, \"target\": \"x86_64-unknown-linux-gnu\", \"flags\": [\"edition=2021\", \"opt-level=3\", \"overflow-checks=yes\", \"panic=abort\", \"codegen-units=1\", \"sysroot=/workspace/scratch/69b06e838148/toolchains/rust-1.90.0\"], \"crate_type\": \"bin\", \"rust_sha256\": \"816b58b942551db5d058c50249f57e33c02e8fc7f5ac34b61b47b6a5bb88beaf\", \"check_only\": true, \"rustc_crate_type\": \"lib\", \"sysroot\": \"/workspace/scratch/69b06e838148/toolchains/rust-1.90.0\", \"linker\": null, \"link_args\": [], \"validation_artifact_sha256\": \"af6d65e0967ddf78ffbbfb9de4450f9588a266a8511450db9666c5a0f5075cf2\"}}, \"build\": {\"ok\": true, \"status\": \"rustc_checked\", \"diagnostics\": [], \"toolchain\": {\"path\": \"/workspace/scratch/69b06e838148/toolchains/rust-1.90.0/bin/rustc\", \"version\": \"rustc 1.90.0 (1159e78c4 2025-09-14)\\nbinary: rustc\\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\\ncommit-date: 2025-09-14\\nhost: x86_64-unknown-linux-gnu\\nrelease: 1.90.0\\nLLVM version: 20.1.8\", \"host\": \"x86_64-unknown-linux-gnu\", \"executable_sha256\": \"e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa\", \"sysroot\": \"/workspace/scratch/69b06e838148/toolchains/rust-1.90.0\", \"sysroot_discovery\": \"verified_compiler_prefix\"}, \"target\": \"x86_64-unknown-linux-gnu\", \"flags\": [\"edition=2021\", \"opt-level=3\", \"overflow-checks=yes\", \"panic=abort\", \"codegen-units=1\", \"sysroot=/workspace/scratch/69b06e838148/toolchains/rust-1.90.0\", \"linker=/usr/bin/x86_64-linux-gnu-gcc-13\"], \"crate_type\": \"bin\", \"rust_sha256\": \"816b58b942551db5d058c50249f57e33c02e8fc7f5ac34b61b47b6a5bb88beaf\", \"check_only\": false, \"rustc_crate_type\": \"bin\", \"sysroot\": \"/workspace/scratch/69b06e838148/toolchains/rust-1.90.0\", \"linker\": \"/usr/bin/x86_64-linux-gnu-gcc-13\", \"link_args\": [], \"validation_artifact_sha256\": \"448a7cea90b6a54c72f41aad6bf6178f41e3cd53225c9151cac80f29d1c80ec9\", \"artifact\": \"/tmp/hepta-sandbox-qualification-ekpbnx6q/capsule/candidate\", \"artifact_sha256\": \"448a7cea90b6a54c72f41aad6bf6178f41e3cd53225c9151cac80f29d1c80ec9\", \"artifact_bytes\": 3831512}, \"execution\": {\"returncode\": 0, \"stdout\": \"\", \"stderr\": \"\"}, \"workspace_ok\": true, \"workspace_version\": \"d378621336b93418a88599b26762420028b3f229ac295c630d80641112e75f9f\", \"workspace_profile\": {\"compiler_sha256\": \"278d7ac38fc54580ac3681f16dd8b4654cfd6fc2833f5712e912d2e69ec50e6b\", \"native_flags\": [\"edition=2021\", \"opt-level=3\", \"overflow-checks=yes\", \"panic=abort\", \"codegen-units=1\", \"sysroot=/workspace/scratch/69b06e838148/toolchains/rust-1.90.0\"], \"native_target\": \"x86_64-unknown-linux-gnu\", \"rustc_sha256\": \"e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa\", \"target\": null}, \"workspace_backend\": {\"check_only\": true, \"crate_type\": \"rlib\", \"diagnostics\": [], \"flags\": [\"edition=2021\", \"opt-level=3\", \"overflow-checks=yes\", \"panic=abort\", \"codegen-units=1\", \"sysroot=/workspace/scratch/69b06e838148/toolchains/rust-1.90.0\"], \"link_args\": [], \"linker\": null, \"ok\": true, \"rust_sha256\": \"8300cc24b29648eadb5c15716db232599d2cfe1b8a1b37481b10a01c11f0315f\", \"rustc_crate_type\": \"lib\", \"status\": \"rustc_checked\", \"sysroot\": \"/workspace/scratch/69b06e838148/toolchains/rust-1.90.0\", \"target\": \"x86_64-unknown-linux-gnu\", \"toolchain\": {\"executable_sha256\": \"e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa\", \"host\": \"x86_64-unknown-linux-gnu\", \"path\": \"/workspace/scratch/69b06e838148/toolchains/rust-1.90.0/bin/rustc\", \"sysroot\": \"/workspace/scratch/69b06e838148/toolchains/rust-1.90.0\", \"sysroot_discovery\": \"verified_compiler_prefix\", \"version\": \"rustc 1.90.0 (1159e78c4 2025-09-14)\\nbinary: rustc\\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\\ncommit-date: 2025-09-14\\nhost: x86_64-unknown-linux-gnu\\nrelease: 1.90.0\\nLLVM version: 20.1.8\"}, \"validation_artifact_sha256\": \"33657b481ef3ba16d3c1d3cf2608e62aef734272953e8c0fc45151bcc6f9b316\"}}\n"
+  },
+  "qualified": true,
+  "sandbox_executable": {
+    "executable_sha256": "52231e1caf55bcbc667b269f49c63599a6f7db4767ae6a039580d0ff853db712",
+    "path": "/usr/bin/bwrap",
+    "version": "bubblewrap 0.9.0"
+  },
+  "schema": "hepta.sandbox_qualification.v1",
+  "scope": "trusted namespace, boundary, and native compiler qualification",
+  "startup": {
+    "available": true,
+    "kind": "bubblewrap_namespaces",
+    "probe_returncode": 0,
+    "proc_policy": "empty_directory",
+    "reason": ""
+  },
+  "status": "qualified",
+  "toolchain": {
+    "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+    "host": "x86_64-unknown-linux-gnu",
+    "path": "/workspace/scratch/69b06e838148/toolchains/rust-1.90.0/bin/rustc",
+    "sysroot": "/workspace/scratch/69b06e838148/toolchains/rust-1.90.0",
+    "sysroot_discovery": "verified_compiler_prefix",
+    "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+  }
+}

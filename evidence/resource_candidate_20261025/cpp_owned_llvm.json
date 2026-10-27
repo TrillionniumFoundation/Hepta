@@ -1,0 +1,2316 @@
+{
+  "schema": "hepta.cpp-owned-to-llvm-qualification.v1",
+  "ok": true,
+  "status": "passed",
+  "workdir": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z",
+  "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+  "inputs": {
+    "hepta/cpp_owned_migrate.py": "0fce769d940aac6a47bbd1ed583898537cd142d52ece0be455ed650b5051e60a",
+    "tools/validate_cpp_owned.py": "0f19c994faa2274bee375ae029a300f3d02c3a2a46cb17344452b9ae2dbcc4f6",
+    "tools/evidence_checks.py": "720a9f55e73e3af3467918efabf0db8b5ff85da8ab07c3efd115d8b1423bd3d7",
+    "examples/cpp/owned_migration/owned_bytes.cpp": "7ee9b4f6b0a9948c6db7926c44821a58c8bafb9dfbfbe7b939cef1637dc1af19",
+    "examples/cpp/owned_migration/expected.hepta": "31f6f8e18fd222237cd9506d05b0c7b8a0ea2669cb9cdde77c9877948bce9e15",
+    "examples/cpp/owned_migration/consumer.hepta": "bc0673e646d5d8b5ef280c510d893d1d95d424620771db973c86e8e33dec8b44",
+    "examples/cpp/owned_migration/reference.cpp": "3991f607b9b7dbf9f2b154a2ea4a44f9133d9591d7d6b33ea4687736381e7c49",
+    "examples/cpp/owned_migration/harness.c": "71f70febd5472c0b0cb44fe9c46d89218220a2920b0b584478a047a24fa5e82c",
+    "examples/cpp/owned_migration/harness.rs": "e2c85db662b99693870e8659d4136438434520aec8c4d0922b08f4ef3d06aaf8",
+    "tools/qualify_cpp_owned_llvm.py": "0ba5ff6d7c3303048d55b7a7cecb865d45bcde10f0da85b38936236b15b71f90"
+  },
+  "claims": {
+    "actual_cpp_implementation_migrated": true,
+    "actual_migrated_source_compiled_by_llvm": true,
+    "original_cpp_linked": false,
+    "rust_codegen_used_for_machine_code": false,
+    "c_codegen_used_for_machine_code": false,
+    "fallback_used": false,
+    "general_cpp_raii_migration": false,
+    "source_equivalence_proved": false,
+    "whole_language_soundness_proved": false,
+    "performance_qualified_by_this_gate": false
+  },
+  "foreign_cpp_link_inputs": [],
+  "diagnostics": [],
+  "migration": {
+    "schema": "hepta.cpp-owned-migration.v1",
+    "profile": "cpp20-exclusive-zeroed-u8-array-move-and-lifecycle-v1",
+    "tier": "L1",
+    "ok": true,
+    "status": "owned_implementation_and_lifecycle_translated",
+    "source": "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/cpp/owned_migration/owned_bytes.cpp",
+    "output": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/migrated.hepta",
+    "diagnostics": [],
+    "whole_cpp_raii_supported": false,
+    "source_equivalence_proved": false,
+    "cpp_class_abi_preserved": false,
+    "whole_language_memory_safety_proved": false,
+    "foreign_cpp_implementation_retained": false,
+    "native_execution": "not_run",
+    "source_sha256": "7ee9b4f6b0a9948c6db7926c44821a58c8bafb9dfbfbe7b939cef1637dc1af19",
+    "output_sha256": "31f6f8e18fd222237cd9506d05b0c7b8a0ea2669cb9cdde77c9877948bce9e15",
+    "hepta_compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+    "target_model": {
+      "sizeof_int": 4,
+      "sizeof_long": 8,
+      "sizeof_long_long": 8,
+      "sizeof_pointer": 8,
+      "target": "x86_64-pc-linux-gnu",
+      "clang_version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)",
+      "compiler_sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d"
+    },
+    "class_name": "OwnedBytes",
+    "lifecycle_function": "run_owned",
+    "declaration_inventory": [
+      {
+        "kind": "CXXRecordDecl",
+        "name": "OwnedBytes",
+        "clang_id": "0x55cfd8fa6c70",
+        "role": "injected_class_name",
+        "disposition": "checked_protocol_constraint"
+      },
+      {
+        "kind": "FieldDecl",
+        "name": "data_",
+        "clang_id": "0x55cfd8fa6d70",
+        "role": "exclusive_byte_pointer",
+        "disposition": "translated"
+      },
+      {
+        "kind": "FieldDecl",
+        "name": "size_",
+        "clang_id": "0x55cfd8fa6de0",
+        "role": "buffer_extent",
+        "disposition": "translated"
+      },
+      {
+        "kind": "AccessSpecDecl",
+        "name": null,
+        "clang_id": "0x55cfd8fa6e38",
+        "role": "public_access",
+        "disposition": "checked_protocol_constraint"
+      },
+      {
+        "kind": "CXXConstructorDecl",
+        "name": "OwnedBytes",
+        "clang_id": "0x55cfd8fa7068",
+        "role": "fallible_zeroed_allocation_with_post_allocation_rejection",
+        "disposition": "translated"
+      },
+      {
+        "kind": "CXXConstructorDecl",
+        "name": "OwnedBytes",
+        "clang_id": "0x55cfd8fa7320",
+        "role": "exclusive_move_and_source_reset",
+        "disposition": "translated"
+      },
+      {
+        "kind": "CXXConstructorDecl",
+        "name": "OwnedBytes",
+        "clang_id": "0x55cfd8fa75a8",
+        "role": "deleted_copy_constructor",
+        "disposition": "checked_protocol_constraint"
+      },
+      {
+        "kind": "CXXMethodDecl",
+        "name": "operator=",
+        "clang_id": "0x55cfd8fa7840",
+        "role": "deleted_copy_assignment",
+        "disposition": "checked_protocol_constraint"
+      },
+      {
+        "kind": "CXXMethodDecl",
+        "name": "operator=",
+        "clang_id": "0x55cfd8fc93a0",
+        "role": "deleted_move_assignment",
+        "disposition": "checked_protocol_constraint"
+      },
+      {
+        "kind": "CXXDestructorDecl",
+        "name": "~OwnedBytes",
+        "clang_id": "0x55cfd8fc9500",
+        "role": "array_destructor",
+        "disposition": "translated"
+      },
+      {
+        "kind": "CXXMethodDecl",
+        "name": "size",
+        "clang_id": "0x55cfd8fc9668",
+        "role": "extent_read",
+        "disposition": "translated"
+      },
+      {
+        "kind": "CXXMethodDecl",
+        "name": "data",
+        "clang_id": "0x55cfd8fc97c8",
+        "role": "borrowed_read_view",
+        "disposition": "translated"
+      },
+      {
+        "kind": "CXXMethodDecl",
+        "name": "fill",
+        "clang_id": "0x55cfd8fc99a0",
+        "role": "byte_fill",
+        "disposition": "translated"
+      },
+      {
+        "kind": "CXXMethodDecl",
+        "name": "get",
+        "clang_id": "0x55cfd8fc9b88",
+        "role": "byte_get",
+        "disposition": "translated"
+      },
+      {
+        "kind": "CXXMethodDecl",
+        "name": "set",
+        "clang_id": "0x55cfd8fc9e10",
+        "role": "byte_set",
+        "disposition": "translated"
+      }
+    ],
+    "source_declarations": 2,
+    "converted_source_declarations": 2,
+    "unconverted_members": [],
+    "complete_ast_nodes": 321,
+    "complete_ast_sha256": "0345a339e8a858b089e79a26d52684267f6ad2c18684704c215455656c7e3044",
+    "protocol_ast_sha256": "0345a339e8a858b089e79a26d52684267f6ad2c18684704c215455656c7e3044",
+    "protocol_source_sha256": "7ee9b4f6b0a9948c6db7926c44821a58c8bafb9dfbfbe7b939cef1637dc1af19",
+    "protocol_verified": true,
+    "hepta_checks": {
+      "rust": {
+        "schema": "hepta.check.v1",
+        "compiler_version": "0.2.0",
+        "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+        "source_sha256": "31f6f8e18fd222237cd9506d05b0c7b8a0ea2669cb9cdde77c9877948bce9e15",
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/migrated.hepta",
+        "ok": true,
+        "status": "frontend_only",
+        "diagnostics": [],
+        "checks": {
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset",
+          "rust_borrows_types": "not_run"
+        },
+        "assumptions": [],
+        "claims": {
+          "whole_language_soundness_proved": false,
+          "all_programs_faster_than_rust": false,
+          "hardware_execution_verified": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false
+        },
+        "interface_sha256": "df48ddf2f810fd55c49d1d290c420d8340c262ac9dccbe6a61976a25fea2ad2f",
+        "effects": {
+          "OwnedBytes_new": [
+            "alloc",
+            "block"
+          ],
+          "OwnedBytes_move": [],
+          "OwnedBytes_drop": [
+            "alloc",
+            "block"
+          ],
+          "OwnedBytes_size": [],
+          "OwnedBytes_data": [],
+          "OwnedBytes_fill": [
+            "panic",
+            "write"
+          ],
+          "OwnedBytes_get": [
+            "panic"
+          ],
+          "OwnedBytes_set": [
+            "panic",
+            "write"
+          ],
+          "run_owned": [
+            "alloc",
+            "block",
+            "panic",
+            "write"
+          ]
+        },
+        "resource_contracts": [],
+        "rust_sha256": "7afd5690ea98de2fc2d532c428363e2206bbc2c687d0e3bf03e35baade445db7",
+        "profile": {
+          "no_std": false,
+          "crate_type": "obj",
+          "overflow_checks": true,
+          "panic": "abort"
+        }
+      },
+      "c": {
+        "schema": "hepta.check.v1",
+        "compiler_version": "0.2.0",
+        "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+        "source_sha256": "31f6f8e18fd222237cd9506d05b0c7b8a0ea2669cb9cdde77c9877948bce9e15",
+        "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/migrated.hepta",
+        "ok": true,
+        "status": "frontend_only",
+        "diagnostics": [],
+        "checks": {
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset",
+          "rust_borrows_types": "not_run"
+        },
+        "assumptions": [],
+        "claims": {
+          "whole_language_soundness_proved": false,
+          "all_programs_faster_than_rust": false,
+          "hardware_execution_verified": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false
+        },
+        "interface_sha256": "df48ddf2f810fd55c49d1d290c420d8340c262ac9dccbe6a61976a25fea2ad2f",
+        "effects": {
+          "OwnedBytes_new": [
+            "alloc",
+            "block"
+          ],
+          "OwnedBytes_move": [],
+          "OwnedBytes_drop": [
+            "alloc",
+            "block"
+          ],
+          "OwnedBytes_size": [],
+          "OwnedBytes_data": [],
+          "OwnedBytes_fill": [
+            "panic",
+            "write"
+          ],
+          "OwnedBytes_get": [
+            "panic"
+          ],
+          "OwnedBytes_set": [
+            "panic",
+            "write"
+          ],
+          "run_owned": [
+            "alloc",
+            "block",
+            "panic",
+            "write"
+          ]
+        },
+        "resource_contracts": [],
+        "c_sha256": "adee8a59c0f7cc968d6ec0d6e09b14ca3424b304ec47c834a6a3cd3a529bf0f5",
+        "profile": {
+          "no_std": false,
+          "crate_type": "obj",
+          "overflow_checks": true,
+          "panic": "abort",
+          "c_optimization": "default"
+        }
+      }
+    },
+    "resource_ir": {
+      "schema": "hepta.resource-ir.v3",
+      "source_sha256": "31f6f8e18fd222237cd9506d05b0c7b8a0ea2669cb9cdde77c9877948bce9e15",
+      "project_sha256": null,
+      "value_semantics": "copied_values_abstract_not_executable",
+      "types": {
+        "Unit": {
+          "kind": "scalar",
+          "name": "Unit"
+        },
+        "bool": {
+          "kind": "scalar",
+          "name": "bool"
+        },
+        "usize": {
+          "kind": "scalar",
+          "name": "usize"
+        },
+        "OwnedBytes": {
+          "kind": "struct",
+          "name": "OwnedBytes",
+          "args": [],
+          "fields": [
+            {
+              "name": "data",
+              "type": "Buffer<u8>"
+            }
+          ]
+        },
+        "u8": {
+          "kind": "scalar",
+          "name": "u8"
+        },
+        "Buffer<u8>": {
+          "kind": "buffer",
+          "element": "u8"
+        },
+        "Result<OwnedBytes, u8>": {
+          "kind": "enum",
+          "name": "Result",
+          "args": [
+            "OwnedBytes",
+            "u8"
+          ],
+          "variants": [
+            {
+              "name": "Ok",
+              "fields": [
+                "OwnedBytes"
+              ]
+            },
+            {
+              "name": "Err",
+              "fields": [
+                "u8"
+              ]
+            }
+          ]
+        },
+        "[u8]": {
+          "kind": "slice",
+          "element": "u8"
+        },
+        "u64": {
+          "kind": "scalar",
+          "name": "u64"
+        },
+        "Result<Buffer<u8>, u8>": {
+          "kind": "enum",
+          "name": "Result",
+          "args": [
+            "Buffer<u8>",
+            "u8"
+          ],
+          "variants": [
+            {
+              "name": "Ok",
+              "fields": [
+                "Buffer<u8>"
+              ]
+            },
+            {
+              "name": "Err",
+              "fields": [
+                "u8"
+              ]
+            }
+          ]
+        }
+      },
+      "functions": [
+        {
+          "name": "OwnedBytes_new",
+          "params": [
+            {
+              "id": "p0",
+              "type": "usize",
+              "mode": "value"
+            },
+            {
+              "id": "p1",
+              "type": "bool",
+              "mode": "value"
+            }
+          ],
+          "returns": {
+            "type": "Result<OwnedBytes, u8>",
+            "mode": "value",
+            "origin": null
+          },
+          "external": false,
+          "obligation": null,
+          "locals": [
+            {
+              "id": "v0",
+              "type": "Result<Buffer<u8>, u8>",
+              "mutable": false
+            },
+            {
+              "id": "v1",
+              "type": "u8",
+              "mutable": false
+            },
+            {
+              "id": "v2",
+              "type": "Result<OwnedBytes, u8>",
+              "mutable": false
+            },
+            {
+              "id": "v3",
+              "type": "Buffer<u8>",
+              "mutable": false
+            },
+            {
+              "id": "v4",
+              "type": "Buffer<u8>",
+              "mutable": false
+            },
+            {
+              "id": "v5",
+              "type": "u8",
+              "mutable": false
+            },
+            {
+              "id": "v6",
+              "type": "Result<OwnedBytes, u8>",
+              "mutable": false
+            },
+            {
+              "id": "v7",
+              "type": "Buffer<u8>",
+              "mutable": false
+            },
+            {
+              "id": "v8",
+              "type": "OwnedBytes",
+              "mutable": false
+            },
+            {
+              "id": "v9",
+              "type": "Result<OwnedBytes, u8>",
+              "mutable": false
+            }
+          ],
+          "entry": "b0",
+          "blocks": [
+            {
+              "id": "b0",
+              "ops": [
+                {
+                  "op": "use",
+                  "place": {
+                    "root": "p0",
+                    "path": []
+                  },
+                  "mode": "read"
+                },
+                {
+                  "op": "acquire",
+                  "dest": "v0",
+                  "kind": "try_buffer"
+                }
+              ],
+              "term": {
+                "op": "switch",
+                "src": "v0",
+                "cases": [
+                  {
+                    "variant": "Err",
+                    "target": "b1"
+                  },
+                  {
+                    "variant": "Ok",
+                    "target": "b2"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "b1",
+              "ops": [
+                {
+                  "op": "unpack",
+                  "src": "v0",
+                  "variant": "Err",
+                  "dests": [
+                    "v1"
+                  ]
+                },
+                {
+                  "op": "use",
+                  "place": {
+                    "root": "v1",
+                    "path": []
+                  },
+                  "mode": "read"
+                },
+                {
+                  "op": "pack",
+                  "dest": "v2",
+                  "variant": "Err",
+                  "fields": [
+                    "v1"
+                  ]
+                }
+              ],
+              "term": {
+                "op": "return",
+                "value": "v2",
+                "loan": null
+              }
+            },
+            {
+              "id": "b2",
+              "ops": [
+                {
+                  "op": "unpack",
+                  "src": "v0",
+                  "variant": "Ok",
+                  "dests": [
+                    "v3"
+                  ]
+                },
+                {
+                  "op": "use",
+                  "place": {
+                    "root": "p1",
+                    "path": []
+                  },
+                  "mode": "read"
+                }
+              ],
+              "term": {
+                "op": "branch",
+                "condition": "p1",
+                "then": "b3",
+                "else": "b4"
+              }
+            },
+            {
+              "id": "b3",
+              "ops": [
+                {
+                  "op": "move",
+                  "src": "v3",
+                  "dest": "v4"
+                },
+                {
+                  "op": "drop",
+                  "src": "v4"
+                },
+                {
+                  "op": "pack",
+                  "dest": "v6",
+                  "variant": "Err",
+                  "fields": [
+                    "v5"
+                  ]
+                }
+              ],
+              "term": {
+                "op": "return",
+                "value": "v6",
+                "loan": null
+              }
+            },
+            {
+              "id": "b4",
+              "ops": [],
+              "term": {
+                "op": "jump",
+                "target": "b5"
+              }
+            },
+            {
+              "id": "b5",
+              "ops": [
+                {
+                  "op": "move",
+                  "src": "v3",
+                  "dest": "v7"
+                },
+                {
+                  "op": "pack",
+                  "dest": "v8",
+                  "variant": null,
+                  "fields": [
+                    "v7"
+                  ]
+                },
+                {
+                  "op": "pack",
+                  "dest": "v9",
+                  "variant": "Ok",
+                  "fields": [
+                    "v8"
+                  ]
+                }
+              ],
+              "term": {
+                "op": "return",
+                "value": "v9",
+                "loan": null
+              }
+            }
+          ]
+        },
+        {
+          "name": "OwnedBytes_move",
+          "params": [
+            {
+              "id": "p0",
+              "type": "OwnedBytes",
+              "mode": "take"
+            }
+          ],
+          "returns": {
+            "type": "OwnedBytes",
+            "mode": "value",
+            "origin": null
+          },
+          "external": false,
+          "obligation": null,
+          "locals": [
+            {
+              "id": "v0",
+              "type": "OwnedBytes",
+              "mutable": false
+            }
+          ],
+          "entry": "b0",
+          "blocks": [
+            {
+              "id": "b0",
+              "ops": [
+                {
+                  "op": "move",
+                  "src": "p0",
+                  "dest": "v0"
+                }
+              ],
+              "term": {
+                "op": "return",
+                "value": "v0",
+                "loan": null
+              }
+            }
+          ]
+        },
+        {
+          "name": "OwnedBytes_drop",
+          "params": [
+            {
+              "id": "p0",
+              "type": "OwnedBytes",
+              "mode": "take"
+            }
+          ],
+          "returns": {
+            "type": "Unit",
+            "mode": "value",
+            "origin": null
+          },
+          "external": false,
+          "obligation": null,
+          "locals": [
+            {
+              "id": "v0",
+              "type": "OwnedBytes",
+              "mutable": false
+            }
+          ],
+          "entry": "b0",
+          "blocks": [
+            {
+              "id": "b0",
+              "ops": [
+                {
+                  "op": "move",
+                  "src": "p0",
+                  "dest": "v0"
+                },
+                {
+                  "op": "drop",
+                  "src": "v0"
+                }
+              ],
+              "term": {
+                "op": "return",
+                "value": null,
+                "loan": null
+              }
+            }
+          ]
+        },
+        {
+          "name": "OwnedBytes_size",
+          "params": [
+            {
+              "id": "p0",
+              "type": "OwnedBytes",
+              "mode": "read"
+            }
+          ],
+          "returns": {
+            "type": "usize",
+            "mode": "value",
+            "origin": null
+          },
+          "external": false,
+          "obligation": null,
+          "locals": [
+            {
+              "id": "v0",
+              "type": "usize",
+              "mutable": false
+            }
+          ],
+          "entry": "b0",
+          "blocks": [
+            {
+              "id": "b0",
+              "ops": [
+                {
+                  "op": "borrow",
+                  "id": "l0",
+                  "place": {
+                    "root": "p0",
+                    "path": [
+                      "data"
+                    ]
+                  },
+                  "mode": "read",
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "op": "use",
+                  "loan": "l0",
+                  "mode": "read"
+                },
+                {
+                  "op": "end_borrow",
+                  "id": "l0"
+                }
+              ],
+              "term": {
+                "op": "return",
+                "value": "v0",
+                "loan": null
+              }
+            }
+          ]
+        },
+        {
+          "name": "OwnedBytes_data",
+          "params": [
+            {
+              "id": "p0",
+              "type": "OwnedBytes",
+              "mode": "read"
+            }
+          ],
+          "returns": {
+            "type": "[u8]",
+            "mode": "read",
+            "origin": "p0"
+          },
+          "external": false,
+          "obligation": null,
+          "locals": [],
+          "entry": "b0",
+          "blocks": [
+            {
+              "id": "b0",
+              "ops": [
+                {
+                  "op": "borrow",
+                  "id": "l0",
+                  "place": {
+                    "root": "p0",
+                    "path": [
+                      "data"
+                    ]
+                  },
+                  "mode": "read",
+                  "type": "[u8]"
+                }
+              ],
+              "term": {
+                "op": "return",
+                "value": null,
+                "loan": "l0"
+              }
+            }
+          ]
+        },
+        {
+          "name": "OwnedBytes_fill",
+          "params": [
+            {
+              "id": "p0",
+              "type": "OwnedBytes",
+              "mode": "mut"
+            },
+            {
+              "id": "p1",
+              "type": "u8",
+              "mode": "value"
+            }
+          ],
+          "returns": {
+            "type": "Unit",
+            "mode": "value",
+            "origin": null
+          },
+          "external": false,
+          "obligation": null,
+          "locals": [
+            {
+              "id": "v0",
+              "type": "usize",
+              "mutable": false
+            },
+            {
+              "id": "v1",
+              "type": "usize",
+              "mutable": false
+            },
+            {
+              "id": "v2",
+              "type": "usize",
+              "mutable": false
+            },
+            {
+              "id": "v3",
+              "type": "bool",
+              "mutable": false
+            }
+          ],
+          "entry": "b0",
+          "blocks": [
+            {
+              "id": "b0",
+              "ops": [
+                {
+                  "op": "borrow",
+                  "id": "l0",
+                  "place": {
+                    "root": "p0",
+                    "path": [
+                      "data"
+                    ]
+                  },
+                  "mode": "read",
+                  "type": "Buffer<u8>"
+                },
+                {
+                  "op": "use",
+                  "loan": "l0",
+                  "mode": "read"
+                },
+                {
+                  "op": "end_borrow",
+                  "id": "l0"
+                }
+              ],
+              "term": {
+                "op": "jump",
+                "target": "b1"
+              }
+            },
+            {
+              "id": "b1",
+              "ops": [],
+              "term": {
+                "op": "branch",
+                "condition": "v3",
+                "then": "b2",
+                "else": "b3"
+              }
+            },
+            {
+              "id": "b2",
+              "ops": [
+                {
+                  "op": "use",
+                  "place": {
+                    "root": "p1",
+                    "path": []
+                  },
+                  "mode": "read"
+                },
+                {
+                  "op": "use",
+                  "place": {
+                    "root": "v2",
+                    "path": []
+                  },
+                  "mode": "read"
+                },
+                {
+                  "op": "use",
+                  "place": {
+                    "root": "p0",
+                    "path": [
+                      "data",
+                      "*"
+                    ]
+                  },
+                  "mode": "write"
+                }
+              ],
+              "term": {
+                "op": "jump",
+                "target": "b1"
+              }
+            },
+            {
+              "id": "b3",
+              "ops": [],
+              "term": {
+                "op": "return",
+                "value": null,
+                "loan": null
+              }
+            }
+          ]
+        },
+        {
+          "name": "OwnedBytes_get",
+          "params": [
+            {
+              "id": "p0",
+              "type": "OwnedBytes",
+              "mode": "read"
+            },
+            {
+              "id": "p1",
+              "type": "usize",
+              "mode": "value"
+            }
+          ],
+          "returns": {
+            "type": "u8",
+            "mode": "value",
+            "origin": null
+          },
+          "external": false,
+          "obligation": null,
+          "locals": [
+            {
+              "id": "v0",
+              "type": "u8",
+              "mutable": false
+            }
+          ],
+          "entry": "b0",
+          "blocks": [
+            {
+              "id": "b0",
+              "ops": [
+                {
+                  "op": "use",
+                  "place": {
+                    "root": "p1",
+                    "path": []
+                  },
+                  "mode": "read"
+                },
+                {
+                  "op": "use",
+                  "place": {
+                    "root": "p0",
+                    "path": [
+                      "data",
+                      "*"
+                    ]
+                  },
+                  "mode": "read"
+                }
+              ],
+              "term": {
+                "op": "return",
+                "value": "v0",
+                "loan": null
+              }
+            }
+          ]
+        },
+        {
+          "name": "OwnedBytes_set",
+          "params": [
+            {
+              "id": "p0",
+              "type": "OwnedBytes",
+              "mode": "mut"
+            },
+            {
+              "id": "p1",
+              "type": "usize",
+              "mode": "value"
+            },
+            {
+              "id": "p2",
+              "type": "u8",
+              "mode": "value"
+            }
+          ],
+          "returns": {
+            "type": "Unit",
+            "mode": "value",
+            "origin": null
+          },
+          "external": false,
+          "obligation": null,
+          "locals": [],
+          "entry": "b0",
+          "blocks": [
+            {
+              "id": "b0",
+              "ops": [
+                {
+                  "op": "use",
+                  "place": {
+                    "root": "p2",
+                    "path": []
+                  },
+                  "mode": "read"
+                },
+                {
+                  "op": "use",
+                  "place": {
+                    "root": "p1",
+                    "path": []
+                  },
+                  "mode": "read"
+                },
+                {
+                  "op": "use",
+                  "place": {
+                    "root": "p0",
+                    "path": [
+                      "data",
+                      "*"
+                    ]
+                  },
+                  "mode": "write"
+                }
+              ],
+              "term": {
+                "op": "return",
+                "value": null,
+                "loan": null
+              }
+            }
+          ]
+        },
+        {
+          "name": "run_owned",
+          "params": [
+            {
+              "id": "p0",
+              "type": "usize",
+              "mode": "value"
+            },
+            {
+              "id": "p1",
+              "type": "u8",
+              "mode": "value"
+            },
+            {
+              "id": "p2",
+              "type": "usize",
+              "mode": "value"
+            },
+            {
+              "id": "p3",
+              "type": "bool",
+              "mode": "value"
+            },
+            {
+              "id": "p4",
+              "type": "bool",
+              "mode": "value"
+            }
+          ],
+          "returns": {
+            "type": "u64",
+            "mode": "value",
+            "origin": null
+          },
+          "external": false,
+          "obligation": null,
+          "locals": [
+            {
+              "id": "v0",
+              "type": "Result<OwnedBytes, u8>",
+              "mutable": false
+            },
+            {
+              "id": "v1",
+              "type": "u8",
+              "mutable": false
+            },
+            {
+              "id": "v2",
+              "type": "u64",
+              "mutable": false
+            },
+            {
+              "id": "v3",
+              "type": "u64",
+              "mutable": false
+            },
+            {
+              "id": "v4",
+              "type": "u64",
+              "mutable": false
+            },
+            {
+              "id": "v5",
+              "type": "OwnedBytes",
+              "mutable": false
+            },
+            {
+              "id": "v6",
+              "type": "OwnedBytes",
+              "mutable": false
+            },
+            {
+              "id": "v7",
+              "type": "OwnedBytes",
+              "mutable": true
+            },
+            {
+              "id": "v8",
+              "type": "usize",
+              "mutable": false
+            },
+            {
+              "id": "v9",
+              "type": "bool",
+              "mutable": false
+            },
+            {
+              "id": "v10",
+              "type": "usize",
+              "mutable": false
+            },
+            {
+              "id": "v11",
+              "type": "u8",
+              "mutable": false
+            },
+            {
+              "id": "v12",
+              "type": "u8",
+              "mutable": false
+            },
+            {
+              "id": "v13",
+              "type": "OwnedBytes",
+              "mutable": false
+            },
+            {
+              "id": "v14",
+              "type": "OwnedBytes",
+              "mutable": false
+            },
+            {
+              "id": "v15",
+              "type": "OwnedBytes",
+              "mutable": false
+            },
+            {
+              "id": "v16",
+              "type": "OwnedBytes",
+              "mutable": false
+            },
+            {
+              "id": "v17",
+              "type": "u64",
+              "mutable": false
+            },
+            {
+              "id": "v18",
+              "type": "usize",
+              "mutable": false
+            },
+            {
+              "id": "v19",
+              "type": "bool",
+              "mutable": false
+            },
+            {
+              "id": "v20",
+              "type": "OwnedBytes",
+              "mutable": false
+            },
+            {
+              "id": "v21",
+              "type": "u64",
+              "mutable": false
+            },
+            {
+              "id": "v22",
+              "type": "u8",
+              "mutable": false
+            },
+            {
+              "id": "v23",
+              "type": "u64",
+              "mutable": false
+            },
+            {
+              "id": "v24",
+              "type": "u8",
+              "mutable": false
+            },
+            {
+              "id": "v25",
+              "type": "u64",
+              "mutable": false
+            },
+            {
+              "id": "v26",
+              "type": "u64",
+              "mutable": false
+            },
+            {
+              "id": "v27",
+              "type": "usize",
+              "mutable": false
+            },
+            {
+              "id": "v28",
+              "type": "u64",
+              "mutable": false
+            },
+            {
+              "id": "v29",
+              "type": "u64",
+              "mutable": false
+            },
+            {
+              "id": "v30",
+              "type": "u64",
+              "mutable": false
+            },
+            {
+              "id": "v31",
+              "type": "OwnedBytes",
+              "mutable": false
+            }
+          ],
+          "entry": "b0",
+          "blocks": [
+            {
+              "id": "b0",
+              "ops": [
+                {
+                  "op": "use",
+                  "place": {
+                    "root": "p0",
+                    "path": []
+                  },
+                  "mode": "read"
+                },
+                {
+                  "op": "use",
+                  "place": {
+                    "root": "p3",
+                    "path": []
+                  },
+                  "mode": "read"
+                },
+                {
+                  "op": "call",
+                  "function": "OwnedBytes_new",
+                  "args": [
+                    {
+                      "kind": "value",
+                      "id": "p0"
+                    },
+                    {
+                      "kind": "value",
+                      "id": "p3"
+                    }
+                  ],
+                  "result": "v0",
+                  "result_loan": null,
+                  "obligation": null
+                }
+              ],
+              "term": {
+                "op": "switch",
+                "src": "v0",
+                "cases": [
+                  {
+                    "variant": "Err",
+                    "target": "b1"
+                  },
+                  {
+                    "variant": "Ok",
+                    "target": "b2"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "b1",
+              "ops": [
+                {
+                  "op": "unpack",
+                  "src": "v0",
+                  "variant": "Err",
+                  "dests": [
+                    "v1"
+                  ]
+                },
+                {
+                  "op": "use",
+                  "place": {
+                    "root": "v1",
+                    "path": []
+                  },
+                  "mode": "read"
+                }
+              ],
+              "term": {
+                "op": "return",
+                "value": "v4",
+                "loan": null
+              }
+            },
+            {
+              "id": "b2",
+              "ops": [
+                {
+                  "op": "unpack",
+                  "src": "v0",
+                  "variant": "Ok",
+                  "dests": [
+                    "v5"
+                  ]
+                },
+                {
+                  "op": "move",
+                  "src": "v5",
+                  "dest": "v6"
+                },
+                {
+                  "op": "move",
+                  "src": "v6",
+                  "dest": "v7"
+                },
+                {
+                  "op": "borrow",
+                  "id": "l0",
+                  "place": {
+                    "root": "v7",
+                    "path": []
+                  },
+                  "mode": "mut",
+                  "type": "OwnedBytes"
+                },
+                {
+                  "op": "use",
+                  "place": {
+                    "root": "p1",
+                    "path": []
+                  },
+                  "mode": "read"
+                },
+                {
+                  "op": "call",
+                  "function": "OwnedBytes_fill",
+                  "args": [
+                    {
+                      "kind": "borrow",
+                      "id": "l0"
+                    },
+                    {
+                      "kind": "value",
+                      "id": "p1"
+                    }
+                  ],
+                  "result": null,
+                  "result_loan": null,
+                  "obligation": null
+                },
+                {
+                  "op": "end_borrow",
+                  "id": "l0"
+                },
+                {
+                  "op": "use",
+                  "place": {
+                    "root": "p0",
+                    "path": []
+                  },
+                  "mode": "read"
+                }
+              ],
+              "term": {
+                "op": "branch",
+                "condition": "v9",
+                "then": "b3",
+                "else": "b4"
+              }
+            },
+            {
+              "id": "b3",
+              "ops": [
+                {
+                  "op": "borrow",
+                  "id": "l1",
+                  "place": {
+                    "root": "v7",
+                    "path": []
+                  },
+                  "mode": "mut",
+                  "type": "OwnedBytes"
+                },
+                {
+                  "op": "use",
+                  "place": {
+                    "root": "p1",
+                    "path": []
+                  },
+                  "mode": "read"
+                },
+                {
+                  "op": "call",
+                  "function": "OwnedBytes_set",
+                  "args": [
+                    {
+                      "kind": "borrow",
+                      "id": "l1"
+                    },
+                    {
+                      "kind": "value",
+                      "id": "v10"
+                    },
+                    {
+                      "kind": "value",
+                      "id": "v12"
+                    }
+                  ],
+                  "result": null,
+                  "result_loan": null,
+                  "obligation": null
+                },
+                {
+                  "op": "end_borrow",
+                  "id": "l1"
+                }
+              ],
+              "term": {
+                "op": "jump",
+                "target": "b5"
+              }
+            },
+            {
+              "id": "b4",
+              "ops": [],
+              "term": {
+                "op": "jump",
+                "target": "b5"
+              }
+            },
+            {
+              "id": "b5",
+              "ops": [
+                {
+                  "op": "move",
+                  "src": "v7",
+                  "dest": "v13"
+                },
+                {
+                  "op": "call",
+                  "function": "OwnedBytes_move",
+                  "args": [
+                    {
+                      "kind": "owner",
+                      "id": "v13"
+                    }
+                  ],
+                  "result": "v14",
+                  "result_loan": null,
+                  "obligation": null
+                },
+                {
+                  "op": "move",
+                  "src": "v14",
+                  "dest": "v15"
+                },
+                {
+                  "op": "use",
+                  "place": {
+                    "root": "p4",
+                    "path": []
+                  },
+                  "mode": "read"
+                }
+              ],
+              "term": {
+                "op": "branch",
+                "condition": "p4",
+                "then": "b6",
+                "else": "b7"
+              }
+            },
+            {
+              "id": "b6",
+              "ops": [
+                {
+                  "op": "move",
+                  "src": "v15",
+                  "dest": "v16"
+                },
+                {
+                  "op": "call",
+                  "function": "OwnedBytes_drop",
+                  "args": [
+                    {
+                      "kind": "owner",
+                      "id": "v16"
+                    }
+                  ],
+                  "result": null,
+                  "result_loan": null,
+                  "obligation": null
+                }
+              ],
+              "term": {
+                "op": "return",
+                "value": "v17",
+                "loan": null
+              }
+            },
+            {
+              "id": "b7",
+              "ops": [],
+              "term": {
+                "op": "jump",
+                "target": "b8"
+              }
+            },
+            {
+              "id": "b8",
+              "ops": [
+                {
+                  "op": "use",
+                  "place": {
+                    "root": "p2",
+                    "path": []
+                  },
+                  "mode": "read"
+                },
+                {
+                  "op": "borrow",
+                  "id": "l2",
+                  "place": {
+                    "root": "v15",
+                    "path": []
+                  },
+                  "mode": "read",
+                  "type": "OwnedBytes"
+                },
+                {
+                  "op": "call",
+                  "function": "OwnedBytes_size",
+                  "args": [
+                    {
+                      "kind": "borrow",
+                      "id": "l2"
+                    }
+                  ],
+                  "result": "v18",
+                  "result_loan": null,
+                  "obligation": null
+                },
+                {
+                  "op": "end_borrow",
+                  "id": "l2"
+                }
+              ],
+              "term": {
+                "op": "branch",
+                "condition": "v19",
+                "then": "b9",
+                "else": "b10"
+              }
+            },
+            {
+              "id": "b9",
+              "ops": [
+                {
+                  "op": "move",
+                  "src": "v15",
+                  "dest": "v20"
+                },
+                {
+                  "op": "call",
+                  "function": "OwnedBytes_drop",
+                  "args": [
+                    {
+                      "kind": "owner",
+                      "id": "v20"
+                    }
+                  ],
+                  "result": null,
+                  "result_loan": null,
+                  "obligation": null
+                }
+              ],
+              "term": {
+                "op": "return",
+                "value": "v21",
+                "loan": null
+              }
+            },
+            {
+              "id": "b10",
+              "ops": [],
+              "term": {
+                "op": "jump",
+                "target": "b11"
+              }
+            },
+            {
+              "id": "b11",
+              "ops": [
+                {
+                  "op": "borrow",
+                  "id": "l3",
+                  "place": {
+                    "root": "v15",
+                    "path": []
+                  },
+                  "mode": "read",
+                  "type": "OwnedBytes"
+                },
+                {
+                  "op": "call",
+                  "function": "OwnedBytes_data",
+                  "args": [
+                    {
+                      "kind": "borrow",
+                      "id": "l3"
+                    }
+                  ],
+                  "result": null,
+                  "result_loan": "l4",
+                  "obligation": null
+                },
+                {
+                  "op": "use",
+                  "place": {
+                    "root": "p2",
+                    "path": []
+                  },
+                  "mode": "read"
+                },
+                {
+                  "op": "use",
+                  "loan": "l4",
+                  "mode": "read"
+                },
+                {
+                  "op": "end_borrow",
+                  "id": "l4"
+                },
+                {
+                  "op": "borrow",
+                  "id": "l5",
+                  "place": {
+                    "root": "v15",
+                    "path": []
+                  },
+                  "mode": "read",
+                  "type": "OwnedBytes"
+                },
+                {
+                  "op": "use",
+                  "place": {
+                    "root": "p2",
+                    "path": []
+                  },
+                  "mode": "read"
+                },
+                {
+                  "op": "call",
+                  "function": "OwnedBytes_get",
+                  "args": [
+                    {
+                      "kind": "borrow",
+                      "id": "l5"
+                    },
+                    {
+                      "kind": "value",
+                      "id": "p2"
+                    }
+                  ],
+                  "result": "v24",
+                  "result_loan": null,
+                  "obligation": null
+                },
+                {
+                  "op": "end_borrow",
+                  "id": "l5"
+                },
+                {
+                  "op": "borrow",
+                  "id": "l6",
+                  "place": {
+                    "root": "v15",
+                    "path": []
+                  },
+                  "mode": "read",
+                  "type": "OwnedBytes"
+                },
+                {
+                  "op": "call",
+                  "function": "OwnedBytes_size",
+                  "args": [
+                    {
+                      "kind": "borrow",
+                      "id": "l6"
+                    }
+                  ],
+                  "result": "v27",
+                  "result_loan": null,
+                  "obligation": null
+                },
+                {
+                  "op": "end_borrow",
+                  "id": "l6"
+                },
+                {
+                  "op": "move",
+                  "src": "v15",
+                  "dest": "v31"
+                },
+                {
+                  "op": "call",
+                  "function": "OwnedBytes_drop",
+                  "args": [
+                    {
+                      "kind": "owner",
+                      "id": "v31"
+                    }
+                  ],
+                  "result": null,
+                  "result_loan": null,
+                  "obligation": null
+                },
+                {
+                  "op": "use",
+                  "place": {
+                    "root": "v30",
+                    "path": []
+                  },
+                  "mode": "read"
+                }
+              ],
+              "term": {
+                "op": "return",
+                "value": "v30",
+                "loan": null
+              }
+            }
+          ]
+        }
+      ],
+      "obligations": {},
+      "claims": {
+        "source_to_ir_refinement_proved": false,
+        "native_codegen_uses_this_ir": false,
+        "whole_language_soundness_proved": false,
+        "external_contracts_proved": false,
+        "termination_proved": false,
+        "scalar_value_semantics_verified": false
+      }
+    },
+    "resource_verification": {
+      "schema": "hepta.resource-ir-validation.v1",
+      "ok": true,
+      "status": "resource_cfg_verified",
+      "functions": [
+        {
+          "function": "OwnedBytes_new",
+          "reachable_blocks": 6,
+          "total_blocks": 6,
+          "normal_exits": 3
+        },
+        {
+          "function": "OwnedBytes_move",
+          "reachable_blocks": 1,
+          "total_blocks": 1,
+          "normal_exits": 1
+        },
+        {
+          "function": "OwnedBytes_drop",
+          "reachable_blocks": 1,
+          "total_blocks": 1,
+          "normal_exits": 1
+        },
+        {
+          "function": "OwnedBytes_size",
+          "reachable_blocks": 1,
+          "total_blocks": 1,
+          "normal_exits": 1
+        },
+        {
+          "function": "OwnedBytes_data",
+          "reachable_blocks": 1,
+          "total_blocks": 1,
+          "normal_exits": 1
+        },
+        {
+          "function": "OwnedBytes_fill",
+          "reachable_blocks": 4,
+          "total_blocks": 4,
+          "normal_exits": 1
+        },
+        {
+          "function": "OwnedBytes_get",
+          "reachable_blocks": 1,
+          "total_blocks": 1,
+          "normal_exits": 1
+        },
+        {
+          "function": "OwnedBytes_set",
+          "reachable_blocks": 1,
+          "total_blocks": 1,
+          "normal_exits": 1
+        },
+        {
+          "function": "run_owned",
+          "reachable_blocks": 12,
+          "total_blocks": 12,
+          "normal_exits": 4
+        }
+      ],
+      "operations_checked": 75,
+      "generic_functions_checked": 0,
+      "generic_calls_checked": 0,
+      "owned_types": [
+        "Buffer<u8>",
+        "OwnedBytes",
+        "Result<Buffer<u8>, u8>",
+        "Result<OwnedBytes, u8>"
+      ],
+      "external_obligations": {},
+      "diagnostics": [],
+      "claims": {
+        "source_to_ir_refinement_proved": false,
+        "native_codegen_uses_this_ir": false,
+        "whole_language_soundness_proved": false,
+        "external_contracts_proved": false,
+        "termination_proved": false,
+        "scalar_value_semantics_verified": false
+      },
+      "ir_sha256": "7139d670b542ae905f88212b6609882d954197e9f1066123d5cb77ee59c92892"
+    },
+    "moved_from_policy": "source_reset_to_null_zero_is_not_observable_in_accepted_lifecycle;_Hepta_source_is_consumed",
+    "exception_mapping": {
+      "allocation_failure": 1,
+      "post_allocation_constructor_rejection": 2
+    },
+    "selected_resource_raii_translated": true,
+    "lifecycle_early_exits_translated": true,
+    "foreign_cpp_calls": 0,
+    "native_traits": {
+      "copy_constructible": false,
+      "nothrow_move_constructible": true,
+      "nothrow_destructible": true,
+      "trivially_destructible": false
+    },
+    "limitations": [
+      "Only the complete closed owner and lifecycle protocol is admitted.",
+      "Source moved-from inspection, pointer escape, custom allocators and arbitrary cleanup code are rejected.",
+      "C++ exceptions become explicit Result errors; C++ class ABI and general source equivalence are not claimed.",
+      "Output uses checked Buffer bounds; undefined source out-of-bounds access is outside the domain."
+    ]
+  },
+  "sources": {
+    "migrated": {
+      "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/migrated.hepta",
+      "sha256": "31f6f8e18fd222237cd9506d05b0c7b8a0ea2669cb9cdde77c9877948bce9e15",
+      "bytes": 2331
+    },
+    "consumer": {
+      "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/consumer.hepta",
+      "sha256": "bc0673e646d5d8b5ef280c510d893d1d95d424620771db973c86e8e33dec8b44",
+      "bytes": 258
+    }
+  },
+  "build": {
+    "schema": "hepta.build-llvm-owned.v1",
+    "profile": "hepta.llvm-owned-bytes-host.v1",
+    "ok": true,
+    "status": "native_compiled_not_executed",
+    "source": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/consumer.hepta",
+    "output": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/owned.o",
+    "kind": "object",
+    "claims": {
+      "actual_source_replayed": true,
+      "independent_resource_cfg_verified": true,
+      "native_rust_reference_required": true,
+      "native_artifact_compiled": true,
+      "rust_codegen_used": false,
+      "c_codegen_used": false,
+      "fallback_used": false,
+      "native_execution_qualified": false,
+      "owned_foreign_abi_qualified": false,
+      "backend_refinement_proved": false,
+      "whole_language_memory_safety_proved": false,
+      "cross_target_execution_qualified": false
+    },
+    "reference_validation": {
+      "schema": "hepta.check.v1",
+      "compiler_version": "0.2.0",
+      "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+      "source_sha256": "bc0673e646d5d8b5ef280c510d893d1d95d424620771db973c86e8e33dec8b44",
+      "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/consumer.hepta",
+      "ok": true,
+      "status": "checked",
+      "diagnostics": [],
+      "checks": {
+        "syntax": "passed",
+        "types_effects_resources": "passed_in_supported_subset",
+        "rust_borrows_types": "rustc_checked"
+      },
+      "assumptions": [],
+      "claims": {
+        "whole_language_soundness_proved": false,
+        "all_programs_faster_than_rust": false,
+        "hardware_execution_verified": false,
+        "bounded_cancellation_latency_proved": false,
+        "deadlock_freedom_proved": false
+      },
+      "project": {
+        "schema": "hepta.module-graph.v1",
+        "sha256": "fa417cfd5a1234fc558771e46c38f3935f4b1f16f214a4f7e4cecd1ddbd2c478",
+        "entry": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/consumer.hepta",
+        "sources": {
+          "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/consumer.hepta": "bc0673e646d5d8b5ef280c510d893d1d95d424620771db973c86e8e33dec8b44",
+          "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/migrated.hepta": "31f6f8e18fd222237cd9506d05b0c7b8a0ea2669cb9cdde77c9877948bce9e15"
+        },
+        "modules": [
+          {
+            "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/migrated.hepta",
+            "module": "cpp_owned_migrated",
+            "imports": {},
+            "symbols": {
+              "OwnedBytes": "Mcf03d00758734ee2_OwnedBytes",
+              "OwnedBytes_new": "Mcf03d00758734ee2_OwnedBytes_new",
+              "OwnedBytes_move": "Mcf03d00758734ee2_OwnedBytes_move",
+              "OwnedBytes_drop": "Mcf03d00758734ee2_OwnedBytes_drop",
+              "OwnedBytes_size": "Mcf03d00758734ee2_OwnedBytes_size",
+              "OwnedBytes_data": "Mcf03d00758734ee2_OwnedBytes_data",
+              "OwnedBytes_fill": "Mcf03d00758734ee2_OwnedBytes_fill",
+              "OwnedBytes_get": "Mcf03d00758734ee2_OwnedBytes_get",
+              "OwnedBytes_set": "Mcf03d00758734ee2_OwnedBytes_set",
+              "run_owned": "Mcf03d00758734ee2_run_owned"
+            }
+          },
+          {
+            "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/consumer.hepta",
+            "module": "cpp_owned_consumer",
+            "imports": {
+              "migrated": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/migrated.hepta"
+            },
+            "symbols": {
+              "owned_case": "owned_case"
+            }
+          }
+        ],
+        "locked": false,
+        "path_bindings": {
+          "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/consumer.hepta": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/consumer.hepta",
+          "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/migrated.hepta": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/migrated.hepta"
+        },
+        "c_imports": [],
+        "package": null
+      },
+      "interface_sha256": "8f114af1939ad21ab5e24f76a92d918ec95c4f96a946a5a61ae8918d8afad258",
+      "effects": {
+        "Mcf03d00758734ee2_OwnedBytes_new": [
+          "alloc",
+          "block"
+        ],
+        "Mcf03d00758734ee2_OwnedBytes_move": [],
+        "Mcf03d00758734ee2_OwnedBytes_drop": [
+          "alloc",
+          "block"
+        ],
+        "Mcf03d00758734ee2_OwnedBytes_size": [],
+        "Mcf03d00758734ee2_OwnedBytes_data": [],
+        "Mcf03d00758734ee2_OwnedBytes_fill": [
+          "panic",
+          "write"
+        ],
+        "Mcf03d00758734ee2_OwnedBytes_get": [
+          "panic"
+        ],
+        "Mcf03d00758734ee2_OwnedBytes_set": [
+          "panic",
+          "write"
+        ],
+        "Mcf03d00758734ee2_run_owned": [
+          "alloc",
+          "block",
+          "panic",
+          "write"
+        ],
+        "owned_case": [
+          "alloc",
+          "block",
+          "panic",
+          "write"
+        ]
+      },
+      "resource_contracts": [],
+      "rust_sha256": "0a839130b881f197ba50010f83e74e8d77c19d95935db937782172a2c87b3ec3",
+      "profile": {
+        "no_std": false,
+        "crate_type": "rlib",
+        "overflow_checks": true,
+        "panic": "abort"
+      },
+      "backend": {
+        "ok": true,
+        "status": "rustc_checked",
+        "diagnostics": [],
+        "toolchain": {
+          "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+          "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8",
+          "host": "x86_64-unknown-linux-gnu",
+          "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+          "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+          "sysroot_discovery": "verified_compiler_prefix"
+        },
+        "target": "x86_64-unknown-linux-gnu",
+        "flags": [
+          "edition=2021",
+          "opt-level=3",
+          "overflow-checks=yes",
+          "panic=abort",
+          "codegen-units=1",
+          "sysroot=/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0"
+        ],
+        "crate_type": "rlib",
+        "rust_sha256": "0a839130b881f197ba50010f83e74e8d77c19d95935db937782172a2c87b3ec3",
+        "check_only": true,
+        "rustc_crate_type": "lib",
+        "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+        "linker": null,
+        "link_args": [],
+        "validation_artifact_sha256": "c5b193054fd5640efa6f601f5fd0ea24e7a0440a0dd91ea0a5fc1dea9daa76a1"
+      }
+    },
+    "resource_verification": {
+      "schema": "hepta.resource-ir-validation.v1",
+      "ok": true,
+      "status": "resource_cfg_verified",
+      "functions": [
+        {
+          "function": "Mcf03d00758734ee2_OwnedBytes_new",
+          "reachable_blocks": 6,
+          "total_blocks": 6,
+          "normal_exits": 3
+        },
+        {
+          "function": "Mcf03d00758734ee2_OwnedBytes_move",
+          "reachable_blocks": 1,
+          "total_blocks": 1,
+          "normal_exits": 1
+        },
+        {
+          "function": "Mcf03d00758734ee2_OwnedBytes_drop",
+          "reachable_blocks": 1,
+          "total_blocks": 1,
+          "normal_exits": 1
+        },
+        {
+          "function": "Mcf03d00758734ee2_OwnedBytes_size",
+          "reachable_blocks": 1,
+          "total_blocks": 1,
+          "normal_exits": 1
+        },
+        {
+          "function": "Mcf03d00758734ee2_OwnedBytes_data",
+          "reachable_blocks": 1,
+          "total_blocks": 1,
+          "normal_exits": 1
+        },
+        {
+          "function": "Mcf03d00758734ee2_OwnedBytes_fill",
+          "reachable_blocks": 4,
+          "total_blocks": 4,
+          "normal_exits": 1
+        },
+        {
+          "function": "Mcf03d00758734ee2_OwnedBytes_get",
+          "reachable_blocks": 1,
+          "total_blocks": 1,
+          "normal_exits": 1
+        },
+        {
+          "function": "Mcf03d00758734ee2_OwnedBytes_set",
+          "reachable_blocks": 1,
+          "total_blocks": 1,
+          "normal_exits": 1
+        },
+        {
+          "function": "Mcf03d00758734ee2_run_owned",
+          "reachable_blocks": 12,
+          "total_blocks": 12,
+          "normal_exits": 4
+        },
+        {
+          "function": "owned_case",
+          "reachable_blocks": 1,
+          "total_blocks": 1,
+          "normal_exits": 1
+        }
+      ],
+      "operations_checked": 81,
+      "generic_functions_checked": 0,
+      "generic_calls_checked": 0,
+      "owned_types": [
+        "Buffer<u8>",
+        "Mcf03d00758734ee2_OwnedBytes",
+        "Result<Buffer<u8>, u8>",
+        "Result<Mcf03d00758734ee2_OwnedBytes, u8>"
+      ],
+      "external_obligations": {},
+      "diagnostics": [],
+      "claims": {
+        "source_to_ir_refinement_proved": false,
+        "native_codegen_uses_this_ir": false,
+        "whole_language_soundness_proved": false,
+        "external_contracts_proved": false,
+        "termination_proved": false,
+        "scalar_value_semantics_verified": false
+      },
+      "ir_sha256": "477b85e51b343665d8f7ca19574a0a45fc77726057bbfa3ef7d0e4b3f87a19fe"
+    },
+    "source_binding": {
+      "project_sha256": "fa417cfd5a1234fc558771e46c38f3935f4b1f16f214a4f7e4cecd1ddbd2c478",
+      "sources": {
+        "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/consumer.hepta": "bc0673e646d5d8b5ef280c510d893d1d95d424620771db973c86e8e33dec8b44",
+        "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/migrated.hepta": "31f6f8e18fd222237cd9506d05b0c7b8a0ea2669cb9cdde77c9877948bce9e15"
+      },
+      "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+      "semantic_sha256": "1acfa3bef6a10c6b0953b861e84c0a021cfd4681fac45facb68f6aa48537b074",
+      "resource_ir_sha256": "477b85e51b343665d8f7ca19574a0a45fc77726057bbfa3ef7d0e4b3f87a19fe",
+      "resource_verification_sha256": "3dc9dd4aceda29cc794e108d83c96856e0e620682d63b5d4459f28c54cfb83ad",
+      "llvm_ir_sha256": "36e3af5aba63fe415e32f7a93be70c35918b2d00ecf65b69c3255a01cffd37a5",
+      "exports": [
+        "owned_case"
+      ],
+      "specializations": [
+        "__hepta_owned_fn0",
+        "__hepta_owned_fn1",
+        "__hepta_owned_fn2",
+        "__hepta_owned_fn3",
+        "__hepta_owned_fn4",
+        "__hepta_owned_fn5",
+        "__hepta_owned_fn6",
+        "__hepta_owned_fn7",
+        "__hepta_owned_fn8",
+        "owned_case"
+      ]
+    },
+    "native_backend": {
+      "schema": "hepta.llvm-owned-native.v1",
+      "ok": true,
+      "status": "native_compiled_not_executed",
+      "profile": "hepta.llvm-owned-bytes-host.v1",
+      "kind": "object",
+      "target": "x86_64-unknown-linux-gnu",
+      "output": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/owned.o",
+      "artifact_sha256": "1a4f3a514c12381f825e0746863ba5708adc72d09b44d4c34e67aebc702e5c76",
+      "artifact_bytes": 1400,
+      "llvm_ir_sha256": "36e3af5aba63fe415e32f7a93be70c35918b2d00ecf65b69c3255a01cffd37a5",
+      "semantic_sha256": "1acfa3bef6a10c6b0953b861e84c0a021cfd4681fac45facb68f6aa48537b074",
+      "resource_ir_sha256": "477b85e51b343665d8f7ca19574a0a45fc77726057bbfa3ef7d0e4b3f87a19fe",
+      "resource_verification_sha256": "3dc9dd4aceda29cc794e108d83c96856e0e620682d63b5d4459f28c54cfb83ad",
+      "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+      "toolchain": {
+        "path": "/usr/lib/llvm-20/bin/clang",
+        "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+        "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)",
+        "default_target": "x86_64-pc-linux-gnu"
+      },
+      "flags": [
+        "--target=x86_64-unknown-linux-gnu",
+        "-x",
+        "ir",
+        "-O3",
+        "-fPIC",
+        "-c"
+      ],
+      "claims": {
+        "checked_ast_resource_origin_replayed": true,
+        "rust_codegen_used": false,
+        "c_codegen_used": false,
+        "fallback_used": false,
+        "native_execution_qualified": false,
+        "backend_refinement_proved": false,
+        "whole_language_memory_safety_proved": false,
+        "cross_target_execution_qualified": false
+      }
+    }
+  },
+  "llvm_object": {
+    "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/owned.o",
+    "sha256": "1a4f3a514c12381f825e0746863ba5708adc72d09b44d4c34e67aebc702e5c76",
+    "bytes": 1400
+  },
+  "case_header": {
+    "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/cases.h",
+    "sha256": "509adab358f55fc40dd05faaceb800765f9654df626664fc6164b90f25f1a6cf",
+    "bytes": 19392
+  },
+  "case_families": {
+    "borrowed_read_success": 172,
+    "allocation_refusal": 98,
+    "range_error_after_move": 18,
+    "constructor_rejection": 116,
+    "early_after_move": 71
+  },
+  "cc": {
+    "driver": "/usr/bin/gcc",
+    "path": "/usr/bin/x86_64-linux-gnu-gcc-13",
+    "sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26",
+    "bytes": 1023032
+  },
+  "link_process": {
+    "argv": [
+      "/usr/bin/gcc",
+      "-std=c11",
+      "-O2",
+      "-fno-lto",
+      "-fno-builtin-calloc",
+      "-fno-builtin-malloc",
+      "-fno-builtin-free",
+      "-Wl,--wrap=calloc",
+      "-Wl,--wrap=malloc",
+      "-Wl,--wrap=free",
+      "-I/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z",
+      "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/cpp/owned_migration/harness.c",
+      "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/owned.o",
+      "-o",
+      "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/owned-llvm"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr": "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/cpp/owned_migration/harness.c: In function \u2018main\u2019:\n/workspace/scratch/c7c6ee414a6c/hepta-research/examples/cpp/owned_migration/harness.c:83:27: warning: implicit declaration of function \u2018owned_case\u2019 [-Wimplicit-function-declaration]\n   83 |         uint64_t actual = owned_case(current->size, current->value, current->index, current->reject, current->early);\n      |                           ^~~~~~~~~~\n",
+    "stderr_sha256": "97dfad47bca06c97ff542e641d8c828d5023e6335e78f24d11d671e52d18c02e"
+  },
+  "executable": {
+    "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/owned-llvm",
+    "sha256": "fac2f93f8669907e36d26250cbf2899077755f6d07d6e15411da60fa35baf06b",
+    "bytes": 45288
+  },
+  "execution_process": {
+    "argv": [
+      "/workspace/scratch/c7c6ee414a6c/hepta-research/artifacts/cpp-owned-llvm-20261025T171524382241Z/owned-llvm"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"ok\":true,\"cases\":475,\"observations_fnv64\":\"76b9c7dcdcefd304\",\"allocations\":359,\"frees\":359,\"refusals\":98,\"live\":0}\n",
+    "stdout_sha256": "ba8dd52e2d3f0ff385cd95c487ead6284c3692da2386881378421638acbb99b0",
+    "stderr": "",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "observed": {
+    "ok": true,
+    "cases": 475,
+    "observations_fnv64": "76b9c7dcdcefd304",
+    "allocations": 359,
+    "frees": 359,
+    "refusals": 98,
+    "live": 0
+  },
+  "inputs_unchanged": true
+}

@@ -1,0 +1,7 @@
+struct View<'a>{ data:read 'a [u8] }
+fn view<'a>(data:read 'a Buffer<u8>)->View<'a> effects {} {return View{data:read data};}
+
+fn main()->Unit effects {alloc,block,panic} {
+    let owner=buffer(4);let first=view(read owner);let copied=first;
+    release(move owner);assert(copied.data[0]==0);
+}

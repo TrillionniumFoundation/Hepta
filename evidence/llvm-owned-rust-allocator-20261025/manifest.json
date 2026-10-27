@@ -1,0 +1,31 @@
+{
+  "correction": "Observer now links the same public C ABI symbol two_alloc in both unchanged application prefixes. No application/baseline or performance protocol edits.",
+  "entries": [
+    {
+      "bytes": 74531,
+      "observed_exit_code": 1,
+      "path": "evidence/llvm-owned-rust-allocator-20261025/01-observer-name-failure.json",
+      "sha256": "91539cec39e48de12a08bcde94d0bdb27fdf10c3e8f56ad7c1ee77b3ff395711"
+    },
+    {
+      "bytes": 28498,
+      "observed_exit_code": 0,
+      "path": "evidence/llvm-owned-rust-allocator-20261025/02-final-untimed-passed.json",
+      "sha256": "02baae3a2346e51b471760e7b64220f44b528fb811febbae5db2ed0f9a235eaf"
+    },
+    {
+      "bytes": 1071,
+      "observed_exit_code": 0,
+      "path": "evidence/llvm-owned-rust-allocator-20261025/tests.log",
+      "sha256": "dba8b1b945c3e14bb4b8b51cb98f125190696a3ba0a881e2a5502a0743acb218"
+    }
+  ],
+  "final_result": "Both normal runs observe 7/7/0/1 then recovery 9/9; real first allocation refusal returns 101 with zero successful allocation, then recovery 2/2. Both separately compiled System-deallocation-omission controls observe 7/0/7/1 and exit 86.",
+  "first_failure": "Observer incorrectly called the public symbol as a Rust identifier. Generated Rust uses private h_two_alloc plus export_name; both generated rows failed E0425. Both handwritten rows were still built and executed and their observations retained.",
+  "native_binary_retention": "Native binaries and source/stream files remain at the recorded task-owned RAM paths; no binary is committed here. JSON alone does not authenticate arbitrary third-party execution.",
+  "performance_samples_added": 0,
+  "schema": "hepta.llvm-owned-rust-allocator-development-evidence.v1",
+  "scope": "Additional untimed correctness only; never part of, or a replacement for, the first or second performance attempt. Application prefixes and performance protocol are unchanged.",
+  "source_base_commit": "f060ed4ffcc3b5769df8963006b2f8b2210de7a2",
+  "uniform_release_candidate_qualified": false
+}

@@ -1,0 +1,4488 @@
+{
+  "elapsed_seconds": 2.34158692699566,
+  "execution": {
+    "allocator_fault_shim_sha256": "283a611e3e9bea4aeb570c5e7b2414d668dc81695015699266025e8ad7fdf633",
+    "checks": [
+      "return values",
+      "struct values",
+      "mutated buffer contents",
+      "allocation refusal returns",
+      "allocation/free balance"
+    ],
+    "differential_cases": {
+      "mutate_bytes": 256,
+      "native_add": 256,
+      "native_transform": 256,
+      "owned_calloc_sum": 11,
+      "owned_malloc_sum": 11,
+      "sum_bytes": 256
+    },
+    "fault_injection": [
+      {
+        "c_live_allocations": 0,
+        "function": "owned_malloc_sum",
+        "hepta_live_allocations": 0,
+        "result": -1,
+        "size": 65519
+      },
+      {
+        "c_live_allocations": 0,
+        "function": "owned_malloc_sum",
+        "hepta_live_allocations": 0,
+        "result": 496,
+        "size": 32
+      },
+      {
+        "c_live_allocations": 0,
+        "function": "owned_malloc_sum",
+        "hepta_live_allocations": 0,
+        "result": -1,
+        "size": 65519
+      },
+      {
+        "c_live_allocations": 0,
+        "function": "owned_malloc_sum",
+        "hepta_live_allocations": 0,
+        "result": 0,
+        "size": 0
+      },
+      {
+        "c_live_allocations": 0,
+        "function": "owned_malloc_sum",
+        "hepta_live_allocations": 0,
+        "result": 31375,
+        "size": 251
+      },
+      {
+        "c_live_allocations": 0,
+        "function": "owned_calloc_sum",
+        "hepta_live_allocations": 0,
+        "result": -1,
+        "size": 65519
+      },
+      {
+        "c_live_allocations": 0,
+        "function": "owned_calloc_sum",
+        "hepta_live_allocations": 0,
+        "result": 0,
+        "size": 32
+      },
+      {
+        "c_live_allocations": 0,
+        "function": "owned_calloc_sum",
+        "hepta_live_allocations": 0,
+        "result": -1,
+        "size": 65519
+      },
+      {
+        "c_live_allocations": 0,
+        "function": "owned_calloc_sum",
+        "hepta_live_allocations": 0,
+        "result": 0,
+        "size": 0
+      },
+      {
+        "c_live_allocations": 0,
+        "function": "owned_calloc_sum",
+        "hepta_live_allocations": 0,
+        "result": 0,
+        "size": 251
+      }
+    ],
+    "rust_allocator_fault_shim_sha256": "6677b3bfc90d9d4ddc41338d3d8a2d9c448acdf5427bfd442a8ff0235c47185d",
+    "total_differential_cases": 1046,
+    "wrong_result_control_rejected": true
+  },
+  "fault_original_build": {
+    "argv": [
+      "/usr/bin/gcc",
+      "-std=c11",
+      "-O2",
+      "-fPIC",
+      "-shared",
+      "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/native.c",
+      "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/buffer_ops.c",
+      "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/owned_bytes.c",
+      "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/allocator.c",
+      "-Wl,--wrap=malloc",
+      "-Wl,--wrap=calloc",
+      "-Wl,--wrap=free",
+      "-o",
+      "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/fault-original.so"
+    ],
+    "exit_code": 0,
+    "seconds": 0.0965267340070568,
+    "stderr": "",
+    "stdout": ""
+  },
+  "fault_translated_build": {
+    "artifact": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/fault-translated.so",
+    "artifact_bytes": 3824968,
+    "artifact_sha256": "b1aa5634e53ddc07f94fab9bd32c0ad93619d8be8c8e4a0aa1ac8ac6bde19668",
+    "check_only": false,
+    "crate_type": "cdylib",
+    "diagnostics": [],
+    "flags": [
+      "edition=2021",
+      "opt-level=3",
+      "overflow-checks=yes",
+      "panic=abort",
+      "codegen-units=1",
+      "sysroot=/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0"
+    ],
+    "link_args": [],
+    "linker": null,
+    "ok": true,
+    "rust_sha256": "47490dad7dd2ebe2985c2e3e172b46426ae1196ce6f52806522400287f9387fb",
+    "rustc_crate_type": "cdylib",
+    "status": "rustc_checked",
+    "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+    "target": "x86_64-unknown-linux-gnu",
+    "toolchain": {
+      "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+      "host": "x86_64-unknown-linux-gnu",
+      "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+      "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+      "sysroot_discovery": "verified_compiler_prefix",
+      "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+    },
+    "validation_artifact_sha256": "b1aa5634e53ddc07f94fab9bd32c0ad93619d8be8c8e4a0aa1ac8ac6bde19668"
+  },
+  "fixture_kinds": {
+    "buffer_ops": "authored_conformance_fixture",
+    "native": "frozen_pre_existing_repository_example",
+    "owned_bytes": "authored_conformance_fixture"
+  },
+  "frozen_origin": {
+    "commit": "d29a246cabaec5ddd8c5f6043b6b234b56ae8b67",
+    "git_blobs": {
+      "native.c": "b0218e98bda265e51f72f2aa5f555aa0fba362f5",
+      "native.h": "16122ca85d740b2e9db78b0bfc134decc275f15b"
+    },
+    "repository": "TrillionniumFoundation/Hepta"
+  },
+  "implementation_commit": "9ce4bc1dc3f831401af5a2736b319d61bfd7c0f2",
+  "implementation_files": {
+    "hepta/c_aliases.py": "bc6c0533fff674f20d64619c50afb81a07375c37f158bf17ea7034026e25baf9",
+    "hepta/c_allocation.py": "e11ad48fa7e2af3fd9d0ec3932f002277bbdf44c0d164593432c5965bfd686d0",
+    "hepta/c_migrate.py": "4f080885d40d7b4a679bc594660ce933eacb6c5232449f7da798ac123a0415b7",
+    "hepta/c_migration_project.py": "cc3078780c69db953758c140a32d36e0ea9a17eb808c999772ff2860d0cb4bce",
+    "hepta/c_project.py": "582c1a9de715f6f706611efd80c6e33317bd176cb896812a7008321aa4ae89a3",
+    "hepta/c_translation.py": "f0f04bd16e894d8692dbba58643ed9aee64d68ad282640001d7306ff05d461a0",
+    "tools/qualify_c_migration.py": "97b35cf01db80ce2173711c636771be3abff22ba93df757f6489402ade78658e"
+  },
+  "inputs": [
+    {
+      "bytes": 339,
+      "path": "tests/fixtures/c_migration/native/native.c",
+      "sha256": "6d09a60ef96cf28287e860e49d024d5e090e0bd16a5e81e3070f7b634df9e3ab"
+    },
+    {
+      "bytes": 336,
+      "path": "tests/fixtures/c_migration/native/native.h",
+      "sha256": "3e57605954390904a3ce39380715c1a61cfd49b4d1951a96ec29842d19988bba"
+    },
+    {
+      "bytes": 740,
+      "path": "tests/fixtures/c_migration/buffer_ops.c",
+      "sha256": "8ce9fbce9d741a3a32f1b9f768fed63a1e0ca0c912862ccaee9195a1d15308ae"
+    },
+    {
+      "bytes": 885,
+      "path": "tests/fixtures/c_migration/owned_bytes.c",
+      "sha256": "b5fda5b38a11dca4574e816acf34bf258408c280f0190f935b2fe2a2c0f9981a"
+    }
+  ],
+  "migration": {
+    "artifacts": {
+      "bridge.rs": {
+        "bytes": 2434,
+        "sha256": "3fb18fd639dfd1fc2656d1102ab08a6bdb1f85cb3f39ae71a63a623dfd229fbd"
+      },
+      "generated.rs": {
+        "bytes": 26387,
+        "sha256": "a595cdfb1e9735462fa6b7bdddf336865a2da05b6808686035e13e15c628d7af"
+      },
+      "libtranslated.so": {
+        "bytes": 3825064,
+        "sha256": "aedc38aea616429cdda05667430e3c72131dd4b3dcc17d91f91be43436faa7f4"
+      },
+      "source.hepta": {
+        "bytes": 4370,
+        "sha256": "1b94c37ce5fb4cff0100ef05d29b4e691b9f14c607988a2874affb82dff0e44a"
+      }
+    },
+    "build": {
+      "compiler": {
+        "executable_sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+        "path": "/usr/lib/llvm-20/bin/clang",
+        "target": "x86_64-pc-linux-gnu",
+        "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+      },
+      "configurations": [
+        {
+          "abi_model_arguments": [
+            "-std=c11"
+          ],
+          "abi_predefined_macros_sha256": "d76e79dc55e37118aa6c6f0299aa9d1dac0b6ba22e097d66aca8a0b889b15fd7",
+          "all_dependencies": [
+            "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/native.c",
+            "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/native.h",
+            "/usr/include/features-time64.h",
+            "/usr/include/features.h",
+            "/usr/include/stdc-predef.h",
+            "/usr/include/stdint.h",
+            "/usr/include/x86_64-linux-gnu/bits/libc-header-start.h",
+            "/usr/include/x86_64-linux-gnu/bits/long-double.h",
+            "/usr/include/x86_64-linux-gnu/bits/stdint-intn.h",
+            "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+            "/usr/include/x86_64-linux-gnu/bits/stdint-uintn.h",
+            "/usr/include/x86_64-linux-gnu/bits/time64.h",
+            "/usr/include/x86_64-linux-gnu/bits/timesize.h",
+            "/usr/include/x86_64-linux-gnu/bits/types.h",
+            "/usr/include/x86_64-linux-gnu/bits/typesizes.h",
+            "/usr/include/x86_64-linux-gnu/bits/wchar.h",
+            "/usr/include/x86_64-linux-gnu/bits/wordsize.h",
+            "/usr/include/x86_64-linux-gnu/gnu/stubs-64.h",
+            "/usr/include/x86_64-linux-gnu/gnu/stubs.h",
+            "/usr/include/x86_64-linux-gnu/sys/cdefs.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/__stddef_header_macro.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/__stddef_max_align_t.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/__stddef_null.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/__stddef_offsetof.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/__stddef_ptrdiff_t.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/__stddef_size_t.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/__stddef_wchar_t.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/stddef.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/stdint.h"
+          ],
+          "directory": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn",
+          "frontend_arguments": [
+            "-std=c11"
+          ],
+          "index": 0,
+          "local_dependencies": [
+            "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/native.c",
+            "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/native.h"
+          ],
+          "model": {
+            "char_unsigned": false,
+            "long_bits": 64,
+            "pointer_bits": 64
+          },
+          "omitted_arguments": [
+            {
+              "argument": "-O2",
+              "reason": "driver_output_or_diagnostic_flag"
+            },
+            {
+              "argument": "-c",
+              "reason": "driver_output_or_diagnostic_flag"
+            },
+            {
+              "argument": "-o",
+              "operand": "native.c.o",
+              "reason": "object_output_not_executed"
+            }
+          ],
+          "original_arguments": [
+            "clang",
+            "-std=c11",
+            "-O2",
+            "-c",
+            "native.c",
+            "-o",
+            "native.c.o"
+          ],
+          "predefined_macros_sha256": "d76e79dc55e37118aa6c6f0299aa9d1dac0b6ba22e097d66aca8a0b889b15fd7",
+          "preprocessed_sha256": "c7c463c383aa01ebcdfc0bbb5dba06b9722882f14e653e22d911f202d087535a",
+          "source": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/native.c"
+        },
+        {
+          "abi_model_arguments": [
+            "-std=c11"
+          ],
+          "abi_predefined_macros_sha256": "d76e79dc55e37118aa6c6f0299aa9d1dac0b6ba22e097d66aca8a0b889b15fd7",
+          "all_dependencies": [
+            "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/buffer_ops.c",
+            "/usr/include/features-time64.h",
+            "/usr/include/features.h",
+            "/usr/include/stdc-predef.h",
+            "/usr/include/stdint.h",
+            "/usr/include/x86_64-linux-gnu/bits/libc-header-start.h",
+            "/usr/include/x86_64-linux-gnu/bits/long-double.h",
+            "/usr/include/x86_64-linux-gnu/bits/stdint-intn.h",
+            "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+            "/usr/include/x86_64-linux-gnu/bits/stdint-uintn.h",
+            "/usr/include/x86_64-linux-gnu/bits/time64.h",
+            "/usr/include/x86_64-linux-gnu/bits/timesize.h",
+            "/usr/include/x86_64-linux-gnu/bits/types.h",
+            "/usr/include/x86_64-linux-gnu/bits/typesizes.h",
+            "/usr/include/x86_64-linux-gnu/bits/wchar.h",
+            "/usr/include/x86_64-linux-gnu/bits/wordsize.h",
+            "/usr/include/x86_64-linux-gnu/gnu/stubs-64.h",
+            "/usr/include/x86_64-linux-gnu/gnu/stubs.h",
+            "/usr/include/x86_64-linux-gnu/sys/cdefs.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/__stddef_header_macro.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/__stddef_max_align_t.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/__stddef_null.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/__stddef_offsetof.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/__stddef_ptrdiff_t.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/__stddef_size_t.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/__stddef_wchar_t.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/stddef.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/stdint.h"
+          ],
+          "directory": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn",
+          "frontend_arguments": [
+            "-std=c11"
+          ],
+          "index": 1,
+          "local_dependencies": [
+            "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/buffer_ops.c"
+          ],
+          "model": {
+            "char_unsigned": false,
+            "long_bits": 64,
+            "pointer_bits": 64
+          },
+          "omitted_arguments": [
+            {
+              "argument": "-O2",
+              "reason": "driver_output_or_diagnostic_flag"
+            },
+            {
+              "argument": "-c",
+              "reason": "driver_output_or_diagnostic_flag"
+            },
+            {
+              "argument": "-o",
+              "operand": "buffer_ops.c.o",
+              "reason": "object_output_not_executed"
+            }
+          ],
+          "original_arguments": [
+            "clang",
+            "-std=c11",
+            "-O2",
+            "-c",
+            "buffer_ops.c",
+            "-o",
+            "buffer_ops.c.o"
+          ],
+          "predefined_macros_sha256": "d76e79dc55e37118aa6c6f0299aa9d1dac0b6ba22e097d66aca8a0b889b15fd7",
+          "preprocessed_sha256": "4fdb9b452401432c2469385c15c136a34759a80bd37e5e67c953c01b506c38a7",
+          "source": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/buffer_ops.c"
+        },
+        {
+          "abi_model_arguments": [
+            "-std=c11"
+          ],
+          "abi_predefined_macros_sha256": "d76e79dc55e37118aa6c6f0299aa9d1dac0b6ba22e097d66aca8a0b889b15fd7",
+          "all_dependencies": [
+            "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/owned_bytes.c",
+            "/usr/include/features-time64.h",
+            "/usr/include/features.h",
+            "/usr/include/stdc-predef.h",
+            "/usr/include/stdint.h",
+            "/usr/include/stdlib.h",
+            "/usr/include/x86_64-linux-gnu/bits/floatn-common.h",
+            "/usr/include/x86_64-linux-gnu/bits/floatn.h",
+            "/usr/include/x86_64-linux-gnu/bits/libc-header-start.h",
+            "/usr/include/x86_64-linux-gnu/bits/long-double.h",
+            "/usr/include/x86_64-linux-gnu/bits/stdint-intn.h",
+            "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+            "/usr/include/x86_64-linux-gnu/bits/stdint-uintn.h",
+            "/usr/include/x86_64-linux-gnu/bits/stdlib-float.h",
+            "/usr/include/x86_64-linux-gnu/bits/time64.h",
+            "/usr/include/x86_64-linux-gnu/bits/timesize.h",
+            "/usr/include/x86_64-linux-gnu/bits/types.h",
+            "/usr/include/x86_64-linux-gnu/bits/typesizes.h",
+            "/usr/include/x86_64-linux-gnu/bits/wchar.h",
+            "/usr/include/x86_64-linux-gnu/bits/wordsize.h",
+            "/usr/include/x86_64-linux-gnu/gnu/stubs-64.h",
+            "/usr/include/x86_64-linux-gnu/gnu/stubs.h",
+            "/usr/include/x86_64-linux-gnu/sys/cdefs.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/__stddef_null.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/__stddef_size_t.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/__stddef_wchar_t.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/stddef.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/stdint.h"
+          ],
+          "directory": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn",
+          "frontend_arguments": [
+            "-std=c11"
+          ],
+          "index": 2,
+          "local_dependencies": [
+            "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/owned_bytes.c"
+          ],
+          "model": {
+            "char_unsigned": false,
+            "long_bits": 64,
+            "pointer_bits": 64
+          },
+          "omitted_arguments": [
+            {
+              "argument": "-O2",
+              "reason": "driver_output_or_diagnostic_flag"
+            },
+            {
+              "argument": "-c",
+              "reason": "driver_output_or_diagnostic_flag"
+            },
+            {
+              "argument": "-o",
+              "operand": "owned_bytes.c.o",
+              "reason": "object_output_not_executed"
+            }
+          ],
+          "original_arguments": [
+            "clang",
+            "-std=c11",
+            "-O2",
+            "-c",
+            "owned_bytes.c",
+            "-o",
+            "owned_bytes.c.o"
+          ],
+          "predefined_macros_sha256": "d76e79dc55e37118aa6c6f0299aa9d1dac0b6ba22e097d66aca8a0b889b15fd7",
+          "preprocessed_sha256": "3975a68fce090186061980ef9108f168b711adb27f3d8924bbfb8060434ef528",
+          "source": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/owned_bytes.c"
+        }
+      ],
+      "database": {
+        "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/compile_commands.json",
+        "sha256": "aed2422c66e2d4b7f8083c7047bfe83bb23c77c21957926461a22c54c8ed6c6c"
+      },
+      "dependencies": [
+        {
+          "bytes": 740,
+          "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/buffer_ops.c",
+          "project_input": true,
+          "sha256": "8ce9fbce9d741a3a32f1b9f768fed63a1e0ca0c912862ccaee9195a1d15308ae"
+        },
+        {
+          "bytes": 339,
+          "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/native.c",
+          "project_input": true,
+          "sha256": "6d09a60ef96cf28287e860e49d024d5e090e0bd16a5e81e3070f7b634df9e3ab"
+        },
+        {
+          "bytes": 336,
+          "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/native.h",
+          "project_input": true,
+          "sha256": "3e57605954390904a3ce39380715c1a61cfd49b4d1951a96ec29842d19988bba"
+        },
+        {
+          "bytes": 885,
+          "path": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/owned_bytes.c",
+          "project_input": true,
+          "sha256": "b5fda5b38a11dca4574e816acf34bf258408c280f0190f935b2fe2a2c0f9981a"
+        },
+        {
+          "bytes": 1409,
+          "path": "/usr/include/features-time64.h",
+          "project_input": false,
+          "sha256": "345acb98767d04277e413c4951fbb199b0500be23d43cddf17c6cd9fb319a8da"
+        },
+        {
+          "bytes": 18527,
+          "path": "/usr/include/features.h",
+          "project_input": false,
+          "sha256": "940d486d050fc87420d8ffc008e17f31ffb04467534ad1b039ed25abc52382f9"
+        },
+        {
+          "bytes": 2462,
+          "path": "/usr/include/stdc-predef.h",
+          "project_input": false,
+          "sha256": "8db4f65e62cade8ae4d9b77960ee6aee093255acc1b637e3fb37d79179733b15"
+        },
+        {
+          "bytes": 8155,
+          "path": "/usr/include/stdint.h",
+          "project_input": false,
+          "sha256": "c26c51b07feadd45ca25e9c95e393b6783d580ab318a567c119828191a80bbed"
+        },
+        {
+          "bytes": 41032,
+          "path": "/usr/include/stdlib.h",
+          "project_input": false,
+          "sha256": "21500d5cb6062df47d6507baef6111cc951ceece4e2df26289a420fcf05ebec4"
+        },
+        {
+          "bytes": 10325,
+          "path": "/usr/include/x86_64-linux-gnu/bits/floatn-common.h",
+          "project_input": false,
+          "sha256": "b31050f2b142f1b5bedfa97158b1baa06575dd0d12dde4531b3815b57069e3da"
+        },
+        {
+          "bytes": 4457,
+          "path": "/usr/include/x86_64-linux-gnu/bits/floatn.h",
+          "project_input": false,
+          "sha256": "273e3eac154e0fd777b8e7c6edd9cd64af69a0d215370da12243d5b22378c2dc"
+        },
+        {
+          "bytes": 4286,
+          "path": "/usr/include/x86_64-linux-gnu/bits/libc-header-start.h",
+          "project_input": false,
+          "sha256": "e86638082f9ce98c82e3022018fa5be175473445c824fe17bd32bf9668582368"
+        },
+        {
+          "bytes": 970,
+          "path": "/usr/include/x86_64-linux-gnu/bits/long-double.h",
+          "project_input": false,
+          "sha256": "40367287cd437d78a05313f6ec52cb0f0a711e1b6711fdcc3699bf2bf28e810f"
+        },
+        {
+          "bytes": 1037,
+          "path": "/usr/include/x86_64-linux-gnu/bits/stdint-intn.h",
+          "project_input": false,
+          "sha256": "94286e42e4970304da5cbef69de6695c84132ff8fbd4b6d72d29aeb7406dc5ff"
+        },
+        {
+          "bytes": 1300,
+          "path": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+          "project_input": false,
+          "sha256": "5bf66871bfc18ae6d22c91d03e392c1a4cc5969ca74c5fa31b7510703a496844"
+        },
+        {
+          "bytes": 1049,
+          "path": "/usr/include/x86_64-linux-gnu/bits/stdint-uintn.h",
+          "project_input": false,
+          "sha256": "aeee224a19434556ef4a9a4afad553736789274656ca12463122300b557ce78c"
+        },
+        {
+          "bytes": 1115,
+          "path": "/usr/include/x86_64-linux-gnu/bits/stdlib-float.h",
+          "project_input": false,
+          "sha256": "ba3d25100d93a324122c4c8121759c689607656aedf0efa148f0bfe8826c9794"
+        },
+        {
+          "bytes": 1340,
+          "path": "/usr/include/x86_64-linux-gnu/bits/time64.h",
+          "project_input": false,
+          "sha256": "2be9170ce3621ea6062f10edef68bbc2db09bb454ec4397534263dd37b8f1f6a"
+        },
+        {
+          "bytes": 1109,
+          "path": "/usr/include/x86_64-linux-gnu/bits/timesize.h",
+          "project_input": false,
+          "sha256": "8b686ad5fec2c4d6f759a6594d7c216337774d059623677547b7e182cc5269ae"
+        },
+        {
+          "bytes": 8806,
+          "path": "/usr/include/x86_64-linux-gnu/bits/types.h",
+          "project_input": false,
+          "sha256": "371847ed3adab1c19db392034f6a22407d321b1dc5f2440563f4b0b8b6c5386b"
+        },
+        {
+          "bytes": 3737,
+          "path": "/usr/include/x86_64-linux-gnu/bits/typesizes.h",
+          "project_input": false,
+          "sha256": "047ee5ab17a95364c4b0f14c3eb0750e84e457c408f9a65a6c225ece585e0c14"
+        },
+        {
+          "bytes": 1906,
+          "path": "/usr/include/x86_64-linux-gnu/bits/wchar.h",
+          "project_input": false,
+          "sha256": "893fa450527ce645f17922788097d5fe331e2a53012bab4e724d8a1f63e21aa2"
+        },
+        {
+          "bytes": 442,
+          "path": "/usr/include/x86_64-linux-gnu/bits/wordsize.h",
+          "project_input": false,
+          "sha256": "716d8459074e2a082d65a28192b32eddbfd7587348372395b1c283a723ae4c18"
+        },
+        {
+          "bytes": 481,
+          "path": "/usr/include/x86_64-linux-gnu/gnu/stubs-64.h",
+          "project_input": false,
+          "sha256": "0b6ab3e2ed3ba79b30fe6ba81a68fc41f57965b8d56662763633431b703c9289"
+        },
+        {
+          "bytes": 384,
+          "path": "/usr/include/x86_64-linux-gnu/gnu/stubs.h",
+          "project_input": false,
+          "sha256": "ef444295a0a9e8f5c40918399a00cc91ba0bd79774110cdf6e652baa6cfadb2e"
+        },
+        {
+          "bytes": 27011,
+          "path": "/usr/include/x86_64-linux-gnu/sys/cdefs.h",
+          "project_input": false,
+          "sha256": "173afb522c6877dda3be1c93742c2061cd6e748ce395d2b3ae833fb49bfbfc4f"
+        },
+        {
+          "bytes": 417,
+          "path": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_header_macro.h",
+          "project_input": false,
+          "sha256": "4cf46e8fbb809df048eecbbd63686fa741da27afa8db4245bd1f61c1fb1611dc"
+        },
+        {
+          "bytes": 857,
+          "path": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_max_align_t.h",
+          "project_input": false,
+          "sha256": "3c1e4de47f4f06b35e2c5890d670052e84f716760505ff51b022fc8b21a9400f"
+        },
+        {
+          "bytes": 875,
+          "path": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_null.h",
+          "project_input": false,
+          "sha256": "b1d71b08563ab3d2c22a1e4f8ddf4d9a1111c89e9404b859a45c307e8ebc6c69"
+        },
+        {
+          "bytes": 708,
+          "path": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_offsetof.h",
+          "project_input": false,
+          "sha256": "e5f0f4ff8ff5fc6a1cc8b535f5065f1728eadd2bf1e1401f021f803ec7b4222f"
+        },
+        {
+          "bytes": 717,
+          "path": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_ptrdiff_t.h",
+          "project_input": false,
+          "sha256": "b4178a57f3711b7013cba747a72a2f178c29fa9364e77d75b2159754072ced43"
+        },
+        {
+          "bytes": 708,
+          "path": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_size_t.h",
+          "project_input": false,
+          "sha256": "d86ddc0238da09b385846ebef814ffc50a44e40cf85d4e3793f485952b7e73ad"
+        },
+        {
+          "bytes": 853,
+          "path": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_wchar_t.h",
+          "project_input": false,
+          "sha256": "1900d4998aef3698b06399ed686db0c21e26509b08638a25734fb97ae89b1001"
+        },
+        {
+          "bytes": 5053,
+          "path": "/usr/lib/llvm-20/lib/clang/20/include/stddef.h",
+          "project_input": false,
+          "sha256": "b3e62a046ddf28d09eedebe6eb9461cb7060e47cad2c69964b222c4eea10347e"
+        },
+        {
+          "bytes": 31054,
+          "path": "/usr/lib/llvm-20/lib/clang/20/include/stdint.h",
+          "project_input": false,
+          "sha256": "655616d8fcb2c92b38c039019685c658c2346b3dd0021aed4ea057b43f621247"
+        }
+      ],
+      "schema": "hepta.c-build.v1",
+      "scope": "all_listed_commands_only_not_unlisted_platforms_or_configurations",
+      "sha256": "741b56cf87c6a5d5eb1fa407516f78376e1bd76c15740f8287cb1f6867479347"
+    },
+    "claims": {
+      "all_c_or_cpp_supported": false,
+      "foreign_pointer_validity_checked": false,
+      "pointer_contracts_inferred": false,
+      "source_equivalence_proved": false,
+      "unlisted_build_configurations_qualified": false,
+      "whole_language_soundness_proved": false
+    },
+    "contract_scope": {
+      "may_narrow_original_c_input_domain": true,
+      "not_runtime_checked": [
+        "allocation provenance",
+        "actual allocation size",
+        "initialization",
+        "aliasing",
+        "concurrent foreign accesses"
+      ],
+      "origin": "caller_supplied_not_inferred_or_proved",
+      "pointer_requirements": [
+        "initialized elements",
+        "one live aligned allocation",
+        "stable lifetime throughout call",
+        "exclusive access for mutable slices",
+        "length at most isize::MAX / element_size"
+      ],
+      "runtime_checks": [
+        "non-null for nonempty buffers",
+        "alignment",
+        "representable slice length",
+        "safe-core bounds checks"
+      ]
+    },
+    "contracts": {
+      "functions": {
+        "mutate_bytes": {
+          "slices": {
+            "data": {
+              "access": "mut",
+              "length": "count"
+            }
+          }
+        },
+        "native_transform": {
+          "slices": {
+            "data": {
+              "access": "read",
+              "length": "count"
+            }
+          }
+        },
+        "sum_bytes": {
+          "slices": {
+            "data": {
+              "access": "read",
+              "length": "count"
+            }
+          }
+        }
+      },
+      "schema": "hepta.c-contracts.v1"
+    },
+    "cost": {
+      "agent_tokens": null,
+      "caller_record_view_contracts": 0,
+      "caller_slice_contracts": 3,
+      "compile_configurations": 3,
+      "generated_abi_bridge_lines": 49,
+      "generated_hepta_lines": 110,
+      "manual_review_hours": null,
+      "migration_seconds": 1.9537796110089403,
+      "project_input_bytes": 2300,
+      "project_input_files": 4
+    },
+    "coverage": {
+      "active_project_declarations": 11,
+      "denominator": "active_declarations_in_all_listed_preprocessed_translation_units",
+      "status_counts": {
+        "function_converted": 7,
+        "prototype_resolved": 2,
+        "record_converted": 1,
+        "type_alias_resolved": 1
+      },
+      "system_or_compiler_declarations_recorded": 372,
+      "unlisted_macro_configurations_included": false
+    },
+    "declaration_inventory_complete": true,
+    "declarations": [
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__int128_t",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__uint128_t",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__NSConstantString",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__builtin_ms_va_list",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__builtin_va_list",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__u_char",
+        "offset": 1102,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__u_short",
+        "offset": 1139,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__u_int",
+        "offset": 1171,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__u_long",
+        "offset": 1206,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int8_t",
+        "offset": 1313,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint8_t",
+        "offset": 1345,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int16_t",
+        "offset": 1381,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint16_t",
+        "offset": 1419,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int32_t",
+        "offset": 1450,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint32_t",
+        "offset": 1482,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int64_t",
+        "offset": 1539,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint64_t",
+        "offset": 1576,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int_least8_t",
+        "offset": 1781,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint_least8_t",
+        "offset": 1815,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int_least16_t",
+        "offset": 1850,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint_least16_t",
+        "offset": 1886,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int_least32_t",
+        "offset": 1922,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint_least32_t",
+        "offset": 1958,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int_least64_t",
+        "offset": 1994,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint_least64_t",
+        "offset": 2030,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__quad_t",
+        "offset": 2118,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__u_quad_t",
+        "offset": 2154,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__intmax_t",
+        "offset": 2352,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uintmax_t",
+        "offset": 2390,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__dev_t",
+        "offset": 5308,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uid_t",
+        "offset": 5372,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__gid_t",
+        "offset": 5442,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__ino_t",
+        "offset": 5513,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__ino64_t",
+        "offset": 5584,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__mode_t",
+        "offset": 5660,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__nlink_t",
+        "offset": 5736,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__off_t",
+        "offset": 5804,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__off64_t",
+        "offset": 5878,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__pid_t",
+        "offset": 5958,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "RecordDecl",
+        "name": "<anonymous>",
+        "offset": 6018,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__fsid_t",
+        "offset": 6032,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__clock_t",
+        "offset": 6100,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__rlim_t",
+        "offset": 6169,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__rlim64_t",
+        "offset": 6244,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__id_t",
+        "offset": 6323,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__time_t",
+        "offset": 6386,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__useconds_t",
+        "offset": 6457,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__suseconds_t",
+        "offset": 6531,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__suseconds64_t",
+        "offset": 6615,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__daddr_t",
+        "offset": 6659,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__key_t",
+        "offset": 6729,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__clockid_t",
+        "offset": 6845,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__timer_t",
+        "offset": 6929,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__blksize_t",
+        "offset": 7006,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__blkcnt_t",
+        "offset": 7144,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__blkcnt64_t",
+        "offset": 7185,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__fsblkcnt_t",
+        "offset": 7270,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__fsblkcnt64_t",
+        "offset": 7315,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__fsfilcnt_t",
+        "offset": 7401,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__fsfilcnt64_t",
+        "offset": 7446,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__fsword_t",
+        "offset": 7539,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__ssize_t",
+        "offset": 7578,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__syscall_slong_t",
+        "offset": 7707,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__syscall_ulong_t",
+        "offset": 7806,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__loff_t",
+        "offset": 7951,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__caddr_t",
+        "offset": 8020,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__intptr_t",
+        "offset": 8123,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__socklen_t",
+        "offset": 8199,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__sig_atomic_t",
+        "offset": 8413,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-intn.h",
+        "kind": "TypedefDecl",
+        "name": "int8_t",
+        "offset": 915,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-intn.h",
+        "kind": "TypedefDecl",
+        "name": "int16_t",
+        "offset": 941,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-intn.h",
+        "kind": "TypedefDecl",
+        "name": "int32_t",
+        "offset": 968,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-intn.h",
+        "kind": "TypedefDecl",
+        "name": "int64_t",
+        "offset": 995,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-uintn.h",
+        "kind": "TypedefDecl",
+        "name": "uint8_t",
+        "offset": 919,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-uintn.h",
+        "kind": "TypedefDecl",
+        "name": "uint16_t",
+        "offset": 947,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-uintn.h",
+        "kind": "TypedefDecl",
+        "name": "uint32_t",
+        "offset": 976,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-uintn.h",
+        "kind": "TypedefDecl",
+        "name": "uint64_t",
+        "offset": 1005,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "int_least8_t",
+        "offset": 955,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "int_least16_t",
+        "offset": 993,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "int_least32_t",
+        "offset": 1032,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "int_least64_t",
+        "offset": 1071,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "uint_least8_t",
+        "offset": 1128,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "uint_least16_t",
+        "offset": 1168,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "uint_least32_t",
+        "offset": 1209,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "uint_least64_t",
+        "offset": 1250,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "int_fast8_t",
+        "offset": 1282,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "int_fast16_t",
+        "offset": 1334,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "int_fast32_t",
+        "offset": 1366,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "int_fast64_t",
+        "offset": 1398,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "uint_fast8_t",
+        "offset": 1573,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "uint_fast16_t",
+        "offset": 1634,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "uint_fast32_t",
+        "offset": 1675,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "uint_fast64_t",
+        "offset": 1716,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "intptr_t",
+        "offset": 1983,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "uintptr_t",
+        "offset": 2056,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "intmax_t",
+        "offset": 2255,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "uintmax_t",
+        "offset": 2286,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_ptrdiff_t.h",
+        "kind": "TypedefDecl",
+        "name": "ptrdiff_t",
+        "offset": 698,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_size_t.h",
+        "kind": "TypedefDecl",
+        "name": "size_t",
+        "offset": 692,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_wchar_t.h",
+        "kind": "TypedefDecl",
+        "name": "wchar_t",
+        "offset": 828,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_max_align_t.h",
+        "kind": "RecordDecl",
+        "name": "<anonymous>",
+        "offset": 620,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_max_align_t.h",
+        "kind": "TypedefDecl",
+        "name": "max_align_t",
+        "offset": 829,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/native.h",
+        "kind": "RecordDecl",
+        "name": "NativePoint",
+        "offset": 144,
+        "reason": null,
+        "status": "record_converted",
+        "unit": 0
+      },
+      {
+        "file": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/native.h",
+        "kind": "TypedefDecl",
+        "name": "NativePoint",
+        "offset": 189,
+        "reason": null,
+        "status": "type_alias_resolved",
+        "unit": 0
+      },
+      {
+        "file": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/native.h",
+        "kind": "FunctionDecl",
+        "name": "native_add",
+        "offset": 211,
+        "reason": null,
+        "status": "prototype_resolved",
+        "unit": 0
+      },
+      {
+        "file": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/native.h",
+        "kind": "FunctionDecl",
+        "name": "native_transform",
+        "offset": 257,
+        "reason": null,
+        "status": "prototype_resolved",
+        "unit": 0
+      },
+      {
+        "file": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/native.c",
+        "kind": "FunctionDecl",
+        "name": "native_add",
+        "offset": 29,
+        "reason": null,
+        "status": "function_converted",
+        "unit": 0
+      },
+      {
+        "file": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/native.c",
+        "kind": "FunctionDecl",
+        "name": "native_transform",
+        "offset": 157,
+        "reason": null,
+        "status": "function_converted",
+        "unit": 0
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__int128_t",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__uint128_t",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__NSConstantString",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__builtin_ms_va_list",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__builtin_va_list",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__u_char",
+        "offset": 1102,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__u_short",
+        "offset": 1139,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__u_int",
+        "offset": 1171,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__u_long",
+        "offset": 1206,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int8_t",
+        "offset": 1313,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint8_t",
+        "offset": 1345,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int16_t",
+        "offset": 1381,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint16_t",
+        "offset": 1419,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int32_t",
+        "offset": 1450,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint32_t",
+        "offset": 1482,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int64_t",
+        "offset": 1539,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint64_t",
+        "offset": 1576,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int_least8_t",
+        "offset": 1781,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint_least8_t",
+        "offset": 1815,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int_least16_t",
+        "offset": 1850,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint_least16_t",
+        "offset": 1886,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int_least32_t",
+        "offset": 1922,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint_least32_t",
+        "offset": 1958,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int_least64_t",
+        "offset": 1994,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint_least64_t",
+        "offset": 2030,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__quad_t",
+        "offset": 2118,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__u_quad_t",
+        "offset": 2154,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__intmax_t",
+        "offset": 2352,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uintmax_t",
+        "offset": 2390,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__dev_t",
+        "offset": 5308,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uid_t",
+        "offset": 5372,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__gid_t",
+        "offset": 5442,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__ino_t",
+        "offset": 5513,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__ino64_t",
+        "offset": 5584,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__mode_t",
+        "offset": 5660,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__nlink_t",
+        "offset": 5736,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__off_t",
+        "offset": 5804,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__off64_t",
+        "offset": 5878,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__pid_t",
+        "offset": 5958,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "RecordDecl",
+        "name": "<anonymous>",
+        "offset": 6018,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__fsid_t",
+        "offset": 6032,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__clock_t",
+        "offset": 6100,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__rlim_t",
+        "offset": 6169,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__rlim64_t",
+        "offset": 6244,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__id_t",
+        "offset": 6323,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__time_t",
+        "offset": 6386,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__useconds_t",
+        "offset": 6457,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__suseconds_t",
+        "offset": 6531,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__suseconds64_t",
+        "offset": 6615,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__daddr_t",
+        "offset": 6659,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__key_t",
+        "offset": 6729,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__clockid_t",
+        "offset": 6845,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__timer_t",
+        "offset": 6929,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__blksize_t",
+        "offset": 7006,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__blkcnt_t",
+        "offset": 7144,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__blkcnt64_t",
+        "offset": 7185,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__fsblkcnt_t",
+        "offset": 7270,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__fsblkcnt64_t",
+        "offset": 7315,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__fsfilcnt_t",
+        "offset": 7401,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__fsfilcnt64_t",
+        "offset": 7446,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__fsword_t",
+        "offset": 7539,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__ssize_t",
+        "offset": 7578,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__syscall_slong_t",
+        "offset": 7707,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__syscall_ulong_t",
+        "offset": 7806,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__loff_t",
+        "offset": 7951,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__caddr_t",
+        "offset": 8020,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__intptr_t",
+        "offset": 8123,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__socklen_t",
+        "offset": 8199,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__sig_atomic_t",
+        "offset": 8413,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-intn.h",
+        "kind": "TypedefDecl",
+        "name": "int8_t",
+        "offset": 915,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-intn.h",
+        "kind": "TypedefDecl",
+        "name": "int16_t",
+        "offset": 941,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-intn.h",
+        "kind": "TypedefDecl",
+        "name": "int32_t",
+        "offset": 968,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-intn.h",
+        "kind": "TypedefDecl",
+        "name": "int64_t",
+        "offset": 995,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-uintn.h",
+        "kind": "TypedefDecl",
+        "name": "uint8_t",
+        "offset": 919,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-uintn.h",
+        "kind": "TypedefDecl",
+        "name": "uint16_t",
+        "offset": 947,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-uintn.h",
+        "kind": "TypedefDecl",
+        "name": "uint32_t",
+        "offset": 976,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-uintn.h",
+        "kind": "TypedefDecl",
+        "name": "uint64_t",
+        "offset": 1005,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "int_least8_t",
+        "offset": 955,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "int_least16_t",
+        "offset": 993,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "int_least32_t",
+        "offset": 1032,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "int_least64_t",
+        "offset": 1071,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "uint_least8_t",
+        "offset": 1128,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "uint_least16_t",
+        "offset": 1168,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "uint_least32_t",
+        "offset": 1209,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "uint_least64_t",
+        "offset": 1250,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "int_fast8_t",
+        "offset": 1282,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "int_fast16_t",
+        "offset": 1334,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "int_fast32_t",
+        "offset": 1366,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "int_fast64_t",
+        "offset": 1398,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "uint_fast8_t",
+        "offset": 1573,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "uint_fast16_t",
+        "offset": 1634,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "uint_fast32_t",
+        "offset": 1675,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "uint_fast64_t",
+        "offset": 1716,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "intptr_t",
+        "offset": 1983,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "uintptr_t",
+        "offset": 2056,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "intmax_t",
+        "offset": 2255,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "uintmax_t",
+        "offset": 2286,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_ptrdiff_t.h",
+        "kind": "TypedefDecl",
+        "name": "ptrdiff_t",
+        "offset": 698,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_size_t.h",
+        "kind": "TypedefDecl",
+        "name": "size_t",
+        "offset": 692,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_wchar_t.h",
+        "kind": "TypedefDecl",
+        "name": "wchar_t",
+        "offset": 828,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_max_align_t.h",
+        "kind": "RecordDecl",
+        "name": "<anonymous>",
+        "offset": 620,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_max_align_t.h",
+        "kind": "TypedefDecl",
+        "name": "max_align_t",
+        "offset": 829,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 1
+      },
+      {
+        "file": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/buffer_ops.c",
+        "kind": "FunctionDecl",
+        "name": "mix_byte",
+        "offset": 222,
+        "reason": null,
+        "status": "function_converted",
+        "unit": 1
+      },
+      {
+        "file": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/buffer_ops.c",
+        "kind": "FunctionDecl",
+        "name": "sum_bytes",
+        "offset": 304,
+        "reason": null,
+        "status": "function_converted",
+        "unit": 1
+      },
+      {
+        "file": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/buffer_ops.c",
+        "kind": "FunctionDecl",
+        "name": "mutate_bytes",
+        "offset": 493,
+        "reason": null,
+        "status": "function_converted",
+        "unit": 1
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__int128_t",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__uint128_t",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__NSConstantString",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__builtin_ms_va_list",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__builtin_va_list",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_size_t.h",
+        "kind": "TypedefDecl",
+        "name": "size_t",
+        "offset": 692,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_wchar_t.h",
+        "kind": "TypedefDecl",
+        "name": "wchar_t",
+        "offset": 828,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/floatn-common.h",
+        "kind": "TypedefDecl",
+        "name": "_Float32",
+        "offset": 7056,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/floatn-common.h",
+        "kind": "TypedefDecl",
+        "name": "_Float64",
+        "offset": 8220,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/floatn-common.h",
+        "kind": "TypedefDecl",
+        "name": "_Float32x",
+        "offset": 8632,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/floatn-common.h",
+        "kind": "TypedefDecl",
+        "name": "_Float64x",
+        "offset": 9073,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "RecordDecl",
+        "name": "<anonymous>",
+        "offset": 1991,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "TypedefDecl",
+        "name": "div_t",
+        "offset": 2072,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "RecordDecl",
+        "name": "<anonymous>",
+        "offset": 2140,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "TypedefDecl",
+        "name": "ldiv_t",
+        "offset": 2229,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "RecordDecl",
+        "name": "<anonymous>",
+        "offset": 2378,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "TypedefDecl",
+        "name": "lldiv_t",
+        "offset": 2477,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "__ctype_get_mb_cur_max",
+        "offset": 2973,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "atof",
+        "offset": 3086,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "atoi",
+        "offset": 3217,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "atol",
+        "offset": 3357,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "atoll",
+        "offset": 3542,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "strtod",
+        "offset": 3698,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "strtod",
+        "offset": 3698,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "strtof",
+        "offset": 3916,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "strtof",
+        "offset": 3916,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "strtold",
+        "offset": 4035,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "strtold",
+        "offset": 4035,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "strtol",
+        "offset": 5567,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "strtol",
+        "offset": 5567,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "strtoul",
+        "offset": 5757,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "strtoul",
+        "offset": 5757,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "strtoll",
+        "offset": 6440,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "strtoll",
+        "offset": 6440,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "strtoull",
+        "offset": 6660,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "strtoull",
+        "offset": 6660,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "rand",
+        "offset": 18879,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "srand",
+        "offset": 18975,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "malloc",
+        "offset": 22692,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "malloc",
+        "offset": 22692,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "calloc",
+        "offset": 22873,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "calloc",
+        "offset": 22873,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "realloc",
+        "offset": 23296,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "realloc",
+        "offset": 23296,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "free",
+        "offset": 23490,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "free",
+        "offset": 23490,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "aligned_alloc",
+        "offset": 24864,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "aligned_alloc",
+        "offset": 24864,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "abort",
+        "offset": 25092,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "abort",
+        "offset": 25092,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "atexit",
+        "offset": 25221,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "at_quick_exit",
+        "offset": 25545,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "exit",
+        "offset": 26067,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "exit",
+        "offset": 26067,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "quick_exit",
+        "offset": 26358,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "_Exit",
+        "offset": 26584,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "_Exit",
+        "offset": 26584,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "getenv",
+        "offset": 26740,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "system",
+        "offset": 31906,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "TypedefDecl",
+        "name": "__compar_fn_t",
+        "offset": 32791,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "bsearch",
+        "offset": 33156,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "qsort",
+        "offset": 33484,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "abs",
+        "offset": 33795,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "abs",
+        "offset": 33795,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "labs",
+        "offset": 33868,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "labs",
+        "offset": 33868,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "llabs",
+        "offset": 33987,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "llabs",
+        "offset": 33987,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "div",
+        "offset": 34232,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "ldiv",
+        "offset": 34325,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "lldiv",
+        "offset": 34465,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "mblen",
+        "offset": 37114,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "mbtowc",
+        "offset": 37278,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "wctomb",
+        "offset": 37465,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "mbstowcs",
+        "offset": 37583,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdlib.h",
+        "kind": "FunctionDecl",
+        "name": "wcstombs",
+        "offset": 37782,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__u_char",
+        "offset": 1102,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__u_short",
+        "offset": 1139,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__u_int",
+        "offset": 1171,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__u_long",
+        "offset": 1206,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int8_t",
+        "offset": 1313,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint8_t",
+        "offset": 1345,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int16_t",
+        "offset": 1381,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint16_t",
+        "offset": 1419,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int32_t",
+        "offset": 1450,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint32_t",
+        "offset": 1482,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int64_t",
+        "offset": 1539,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint64_t",
+        "offset": 1576,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int_least8_t",
+        "offset": 1781,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint_least8_t",
+        "offset": 1815,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int_least16_t",
+        "offset": 1850,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint_least16_t",
+        "offset": 1886,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int_least32_t",
+        "offset": 1922,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint_least32_t",
+        "offset": 1958,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int_least64_t",
+        "offset": 1994,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint_least64_t",
+        "offset": 2030,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__quad_t",
+        "offset": 2118,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__u_quad_t",
+        "offset": 2154,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__intmax_t",
+        "offset": 2352,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uintmax_t",
+        "offset": 2390,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__dev_t",
+        "offset": 5308,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uid_t",
+        "offset": 5372,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__gid_t",
+        "offset": 5442,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__ino_t",
+        "offset": 5513,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__ino64_t",
+        "offset": 5584,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__mode_t",
+        "offset": 5660,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__nlink_t",
+        "offset": 5736,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__off_t",
+        "offset": 5804,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__off64_t",
+        "offset": 5878,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__pid_t",
+        "offset": 5958,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "RecordDecl",
+        "name": "<anonymous>",
+        "offset": 6018,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__fsid_t",
+        "offset": 6032,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__clock_t",
+        "offset": 6100,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__rlim_t",
+        "offset": 6169,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__rlim64_t",
+        "offset": 6244,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__id_t",
+        "offset": 6323,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__time_t",
+        "offset": 6386,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__useconds_t",
+        "offset": 6457,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__suseconds_t",
+        "offset": 6531,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__suseconds64_t",
+        "offset": 6615,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__daddr_t",
+        "offset": 6659,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__key_t",
+        "offset": 6729,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__clockid_t",
+        "offset": 6845,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__timer_t",
+        "offset": 6929,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__blksize_t",
+        "offset": 7006,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__blkcnt_t",
+        "offset": 7144,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__blkcnt64_t",
+        "offset": 7185,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__fsblkcnt_t",
+        "offset": 7270,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__fsblkcnt64_t",
+        "offset": 7315,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__fsfilcnt_t",
+        "offset": 7401,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__fsfilcnt64_t",
+        "offset": 7446,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__fsword_t",
+        "offset": 7539,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__ssize_t",
+        "offset": 7578,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__syscall_slong_t",
+        "offset": 7707,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__syscall_ulong_t",
+        "offset": 7806,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__loff_t",
+        "offset": 7951,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__caddr_t",
+        "offset": 8020,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__intptr_t",
+        "offset": 8123,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__socklen_t",
+        "offset": 8199,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__sig_atomic_t",
+        "offset": 8413,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-intn.h",
+        "kind": "TypedefDecl",
+        "name": "int8_t",
+        "offset": 915,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-intn.h",
+        "kind": "TypedefDecl",
+        "name": "int16_t",
+        "offset": 941,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-intn.h",
+        "kind": "TypedefDecl",
+        "name": "int32_t",
+        "offset": 968,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-intn.h",
+        "kind": "TypedefDecl",
+        "name": "int64_t",
+        "offset": 995,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-uintn.h",
+        "kind": "TypedefDecl",
+        "name": "uint8_t",
+        "offset": 919,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-uintn.h",
+        "kind": "TypedefDecl",
+        "name": "uint16_t",
+        "offset": 947,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-uintn.h",
+        "kind": "TypedefDecl",
+        "name": "uint32_t",
+        "offset": 976,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-uintn.h",
+        "kind": "TypedefDecl",
+        "name": "uint64_t",
+        "offset": 1005,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "int_least8_t",
+        "offset": 955,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "int_least16_t",
+        "offset": 993,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "int_least32_t",
+        "offset": 1032,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "int_least64_t",
+        "offset": 1071,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "uint_least8_t",
+        "offset": 1128,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "uint_least16_t",
+        "offset": 1168,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "uint_least32_t",
+        "offset": 1209,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "uint_least64_t",
+        "offset": 1250,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "int_fast8_t",
+        "offset": 1282,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "int_fast16_t",
+        "offset": 1334,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "int_fast32_t",
+        "offset": 1366,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "int_fast64_t",
+        "offset": 1398,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "uint_fast8_t",
+        "offset": 1573,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "uint_fast16_t",
+        "offset": 1634,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "uint_fast32_t",
+        "offset": 1675,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "uint_fast64_t",
+        "offset": 1716,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "intptr_t",
+        "offset": 1983,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "uintptr_t",
+        "offset": 2056,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "intmax_t",
+        "offset": 2255,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "uintmax_t",
+        "offset": 2286,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 2
+      },
+      {
+        "file": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/owned_bytes.c",
+        "kind": "FunctionDecl",
+        "name": "owned_malloc_sum",
+        "offset": 292,
+        "reason": null,
+        "status": "function_converted",
+        "unit": 2
+      },
+      {
+        "file": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/owned_bytes.c",
+        "kind": "FunctionDecl",
+        "name": "owned_calloc_sum",
+        "offset": 626,
+        "reason": null,
+        "status": "function_converted",
+        "unit": 2
+      }
+    ],
+    "diagnostics": [],
+    "differential_execution": "not_run",
+    "frontend_validation": "passed",
+    "functions": [
+      {
+        "allocates": false,
+        "external_symbol": false,
+        "hepta_name": "c_local_1_mix_byte",
+        "key": "local_1_mix_byte",
+        "name": "mix_byte",
+        "nonsemantic_documentation_comments": 0,
+        "params": [
+          {
+            "mode": "value",
+            "name": "value",
+            "pointer": false,
+            "type": "u32"
+          }
+        ],
+        "return": "u32",
+        "unit": 1
+      },
+      {
+        "allocates": false,
+        "external_symbol": true,
+        "hepta_name": "c_mutate_bytes",
+        "key": "mutate_bytes",
+        "name": "mutate_bytes",
+        "nonsemantic_documentation_comments": 0,
+        "params": [
+          {
+            "c_const": false,
+            "c_void": false,
+            "contract_selector": "data",
+            "length": "count",
+            "mode": "mut",
+            "name": "data",
+            "pointer": true,
+            "type": "u8"
+          },
+          {
+            "mode": "value",
+            "name": "count",
+            "pointer": false,
+            "type": "usize"
+          },
+          {
+            "mode": "value",
+            "name": "seed",
+            "pointer": false,
+            "type": "u8"
+          }
+        ],
+        "return": "u32",
+        "unit": 1
+      },
+      {
+        "allocates": false,
+        "external_symbol": true,
+        "hepta_name": "c_native_add",
+        "key": "native_add",
+        "name": "native_add",
+        "nonsemantic_documentation_comments": 0,
+        "params": [
+          {
+            "mode": "value",
+            "name": "a",
+            "pointer": false,
+            "type": "i32"
+          },
+          {
+            "mode": "value",
+            "name": "b",
+            "pointer": false,
+            "type": "i32"
+          }
+        ],
+        "return": "i32",
+        "unit": 0
+      },
+      {
+        "allocates": false,
+        "external_symbol": true,
+        "hepta_name": "c_native_transform",
+        "key": "native_transform",
+        "name": "native_transform",
+        "nonsemantic_documentation_comments": 0,
+        "params": [
+          {
+            "mode": "value",
+            "name": "value",
+            "pointer": false,
+            "type": "C_NativePoint"
+          },
+          {
+            "c_const": true,
+            "c_void": false,
+            "contract_selector": "data",
+            "length": "count",
+            "mode": "read",
+            "name": "data",
+            "pointer": true,
+            "type": "u8"
+          },
+          {
+            "mode": "value",
+            "name": "count",
+            "pointer": false,
+            "type": "usize"
+          }
+        ],
+        "return": "C_NativePoint",
+        "unit": 0
+      },
+      {
+        "allocates": true,
+        "allocation_profile": {
+          "allocation_outcome_equivalence_proved": false,
+          "allocator_model": "standard_C_allocation_success_or_null_no_custom_side_effect_contract",
+          "element": "u8",
+          "escape": "rejected",
+          "failure": "source_return_preserved_via_Result_Err",
+          "free_count": 1,
+          "kind": "calloc",
+          "length_parameter": "count",
+          "malloc_initialized_before_read": false,
+          "zero_length": "source_early_return"
+        },
+        "external_symbol": true,
+        "hepta_name": "c_owned_calloc_sum",
+        "key": "owned_calloc_sum",
+        "name": "owned_calloc_sum",
+        "nonsemantic_documentation_comments": 0,
+        "params": [
+          {
+            "mode": "value",
+            "name": "count",
+            "pointer": false,
+            "type": "usize"
+          }
+        ],
+        "return": "i64",
+        "unit": 2
+      },
+      {
+        "allocates": true,
+        "allocation_profile": {
+          "allocation_outcome_equivalence_proved": false,
+          "allocator_model": "standard_C_allocation_success_or_null_no_custom_side_effect_contract",
+          "element": "u8",
+          "escape": "rejected",
+          "failure": "source_return_preserved_via_Result_Err",
+          "free_count": 1,
+          "kind": "malloc",
+          "length_parameter": "count",
+          "malloc_initialized_before_read": true,
+          "zero_length": "source_early_return"
+        },
+        "external_symbol": true,
+        "hepta_name": "c_owned_malloc_sum",
+        "key": "owned_malloc_sum",
+        "name": "owned_malloc_sum",
+        "nonsemantic_documentation_comments": 0,
+        "params": [
+          {
+            "mode": "value",
+            "name": "count",
+            "pointer": false,
+            "type": "usize"
+          }
+        ],
+        "return": "i64",
+        "unit": 2
+      },
+      {
+        "allocates": false,
+        "external_symbol": true,
+        "hepta_name": "c_sum_bytes",
+        "key": "sum_bytes",
+        "name": "sum_bytes",
+        "nonsemantic_documentation_comments": 0,
+        "params": [
+          {
+            "c_const": true,
+            "c_void": false,
+            "contract_selector": "data",
+            "length": "count",
+            "mode": "read",
+            "name": "data",
+            "pointer": true,
+            "type": "u8"
+          },
+          {
+            "mode": "value",
+            "name": "count",
+            "pointer": false,
+            "type": "usize"
+          }
+        ],
+        "return": "u32",
+        "unit": 1
+      }
+    ],
+    "native_build": {
+      "artifact": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/translated/libtranslated.so",
+      "artifact_bytes": 3825064,
+      "artifact_sha256": "aedc38aea616429cdda05667430e3c72131dd4b3dcc17d91f91be43436faa7f4",
+      "check_only": false,
+      "crate_type": "cdylib",
+      "diagnostics": [],
+      "flags": [
+        "edition=2021",
+        "opt-level=3",
+        "overflow-checks=yes",
+        "panic=abort",
+        "codegen-units=1",
+        "sysroot=/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0"
+      ],
+      "link_args": [],
+      "linker": null,
+      "ok": true,
+      "rust_sha256": "a595cdfb1e9735462fa6b7bdddf336865a2da05b6808686035e13e15c628d7af",
+      "rustc_crate_type": "cdylib",
+      "status": "rustc_checked",
+      "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+      "target": "x86_64-unknown-linux-gnu",
+      "toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+        "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "validation_artifact_sha256": "aedc38aea616429cdda05667430e3c72131dd4b3dcc17d91f91be43436faa7f4"
+    },
+    "native_validation": "passed",
+    "ok": true,
+    "output_directory": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/translated",
+    "profile": "captured_c_value_and_contracted_slice_subset",
+    "publication": "new_directory_manifest_last_not_crash_atomic",
+    "schema": "hepta.c-project-migration.v1",
+    "status": "native_built_not_equivalence_proved"
+  },
+  "ok": true,
+  "original_build": {
+    "argv": [
+      "/usr/bin/gcc",
+      "-std=c11",
+      "-O2",
+      "-fPIC",
+      "-shared",
+      "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/native.c",
+      "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/buffer_ops.c",
+      "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/owned_bytes.c",
+      "-o",
+      "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-c-qualification-qwvjw9wn/original.so"
+    ],
+    "exit_code": 0,
+    "seconds": 0.07771278300788254,
+    "stderr": "",
+    "stdout": ""
+  },
+  "original_compiler": {
+    "path": "/usr/bin/gcc",
+    "sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26",
+    "version": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0"
+  },
+  "performance_parity_claimed": false,
+  "reviewable_generated_source": {
+    "bridge.rs": "evidence/resource_candidate_20261025/c-migration-generated/bridge.rs",
+    "source.hepta": "evidence/resource_candidate_20261025/c-migration-generated/source.hepta"
+  },
+  "runtime_artifacts_retained": false,
+  "schema": "hepta.c-migration-qualification.v1",
+  "scope": "finite_native_differential_execution_on_defined_annotated_inputs",
+  "seed": 90261024,
+  "source_equivalence_proved": false,
+  "status": "finite_differential_and_fault_injection_passed"
+}

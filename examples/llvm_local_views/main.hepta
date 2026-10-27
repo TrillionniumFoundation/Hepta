@@ -1,0 +1,99 @@
+module llvm_local_views;
+
+struct Box<T> { value: T }
+struct Pair { left: Buffer<u8>, right: Buffer<u8> }
+struct Bytes<'a> { data: read 'a [u8] }
+struct Edit<'a> { data: mut 'a [u8] }
+
+fn forward<T: Owned>(value: take T) -> T effects {} { return move value; }
+
+fn create(size: usize, reject: bool) -> Result<Box<Buffer<u8>>, u8>
+effects {alloc, block} {
+    if size == 0 { return Result::Err(1); }
+    if size > 65535 { return Result::Err(3); }
+    match try_buffer(size) {
+        Result::Ok(bytes) => {
+            let owner: Box<Buffer<u8>> = Box { value: move bytes };
+            if reject { drop(move owner); return Result::Err(2); }
+            return Result::Ok(move forward::<Box<Buffer<u8>>>(move owner));
+        },
+        Result::Err(code) => { return Result::Err(code); },
+    }
+}
+
+export "C" fn local_case(size: usize, mode: u8) -> i32
+effects {alloc, block, panic, write} {
+    match create(size, mode == 1) {
+        Result::Err(code) => { return 0 - (code as i32); },
+        Result::Ok(value) => {
+            let mut owner = move value;
+            if size > 0 {
+                let initial = Edit { data: mut owner.value };
+                let mut edit = move initial;
+                edit.data[0] = 7;
+                if mode == 2 {
+                    drop(move edit); drop(move owner); return 11;
+                }
+                drop(move edit);
+                let first = Bytes { data: read owner.value };
+                let copied = first;
+                assert(len(copied.data) == size);
+                assert(copied.data[0] == 7);
+                assert(first.data[0] == 7);
+            }
+            match try_buffer(9) {
+                Result::Err(code) => {
+                    if size > 0 {
+                        let retained = Bytes { data: read owner.value };
+                        let copied = retained;
+                        assert(copied.data[0] == 7);
+                    }
+                    drop(move owner); return 0 - (100 + code as i32);
+                },
+                Result::Ok(next) => {
+                    let mut pair = Pair { left: move owner.value, right: move next };
+                    if size > 0 {
+                        let input = Bytes { data: read pair.left };
+                        let mut edit = Edit { data: mut pair.right };
+                        edit.data[0] = input.data[0]; drop(move edit);
+                    }
+                    for i in 0..9 {
+                        let edit = Edit { data: mut pair.right };
+                        let mut moved = move edit;
+                        moved.data[i as usize] = i as u8; drop(move moved);
+                    }
+                    let mut result = size as i32;
+                    if size > 0 {
+                        let first = Bytes { data: read pair.left };
+                        let copied = first;
+                        let second = Bytes { data: read pair.right };
+                        assert(first.data[0] == copied.data[0]);
+                        result = result + copied.data[0] as i32 + second.data[8] as i32;
+                    }
+                    drop(move pair); return result;
+                },
+            }
+        },
+    }
+}
+
+export "C" fn local_bounds(size: usize, index: usize) -> u8
+effects {alloc, block, panic} {
+    let owner = buffer(size);
+    let mut result: u8 = 0;
+    if true {
+        let first = Bytes { data: read owner };
+        let copied = first;
+        result = copied.data[index];
+    }
+    drop(move owner); return result;
+}
+
+fn main() -> Unit effects {alloc, block, panic, write} {
+    assert(local_case(0, 0) == -1);
+    assert(local_case(4, 1) == -2);
+    assert(local_case(4, 2) == 11);
+    assert(local_case(4, 0) == 19);
+    assert(local_case(65536, 0) == -3);
+    assert(local_bounds(4, 3) == 0);
+}

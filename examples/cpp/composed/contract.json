@@ -1,0 +1,372 @@
+{
+  "schema": "hepta.cpp-contract.v5",
+  "module": "composed",
+  "pod_types": [],
+  "functions": [],
+  "handles": [
+    {
+      "name": "Vector",
+      "cpp_type": "std::vector",
+      "template_args": [
+        "i64"
+      ],
+      "threading": "serialized",
+      "reentrancy": "reject",
+      "allocator": "cpp_shared_owner",
+      "destruction": "nothrow_defer_inflight",
+      "constructors": [
+        {
+          "name": "filled",
+          "params": [
+            {
+              "name": "count",
+              "type": "usize",
+              "mode": "value"
+            },
+            {
+              "name": "initial",
+              "type": "i64",
+              "mode": "value"
+            }
+          ],
+          "exception": "catch_status"
+        }
+      ],
+      "methods": [
+        {
+          "name": "at",
+          "cpp_method": "at",
+          "const": true,
+          "params": [
+            {
+              "name": "index",
+              "type": "usize",
+              "mode": "value"
+            }
+          ],
+          "returns": "i64",
+          "return_mode": "copy_from_reference",
+          "exception": "catch_status"
+        },
+        {
+          "name": "append",
+          "cpp_method": "push_back",
+          "const": false,
+          "params": [
+            {
+              "name": "value",
+              "type": "i64",
+              "mode": "const_ref",
+              "retention": "call_only"
+            }
+          ],
+          "returns": "Unit",
+          "return_mode": "value",
+          "exception": "catch_status"
+        }
+      ]
+    },
+    {
+      "name": "Deque",
+      "cpp_type": "std::deque",
+      "template_args": [
+        "i64"
+      ],
+      "threading": "serialized",
+      "reentrancy": "reject",
+      "allocator": "cpp_shared_owner",
+      "destruction": "nothrow_defer_inflight",
+      "constructors": [
+        {
+          "name": "filled",
+          "params": [
+            {
+              "name": "count",
+              "type": "usize",
+              "mode": "value"
+            },
+            {
+              "name": "initial",
+              "type": "i64",
+              "mode": "value"
+            }
+          ],
+          "exception": "catch_status"
+        }
+      ],
+      "methods": [
+        {
+          "name": "at",
+          "cpp_method": "at",
+          "const": true,
+          "params": [
+            {
+              "name": "index",
+              "type": "usize",
+              "mode": "value"
+            }
+          ],
+          "returns": "i64",
+          "return_mode": "copy_from_reference",
+          "exception": "catch_status"
+        }
+      ]
+    },
+    {
+      "name": "Document",
+      "cpp_type": "hepta_json_upgrade::Document",
+      "template_args": [],
+      "threading": "serialized",
+      "reentrancy": "reject",
+      "allocator": "cpp_shared_owner",
+      "destruction": "nothrow_defer_inflight",
+      "constructors": [
+        {
+          "name": "parse",
+          "params": [
+            {
+              "name": "text",
+              "type": "u8",
+              "mode": "borrow_const",
+              "retention": "call_only"
+            }
+          ],
+          "exception": "catch_status"
+        }
+      ],
+      "methods": [
+        {
+          "name": "replace",
+          "cpp_method": "replace",
+          "const": false,
+          "params": [
+            {
+              "name": "index",
+              "type": "usize",
+              "mode": "value"
+            },
+            {
+              "name": "value",
+              "type": "i64",
+              "mode": "value"
+            }
+          ],
+          "returns": "Unit",
+          "return_mode": "value",
+          "exception": "catch_status"
+        },
+        {
+          "name": "sum",
+          "cpp_method": "sum",
+          "const": true,
+          "params": [],
+          "returns": "i64",
+          "return_mode": "value",
+          "exception": "catch_status"
+        }
+      ]
+    }
+  ],
+  "scopes": [],
+  "pipelines": [
+    {
+      "name": "vector_deque",
+      "params": [
+        {
+          "name": "count",
+          "type": "usize",
+          "mode": "value"
+        },
+        {
+          "name": "initial",
+          "type": "i64",
+          "mode": "value"
+        },
+        {
+          "name": "appended",
+          "type": "i64",
+          "mode": "const_ref",
+          "retention": "call_only"
+        },
+        {
+          "name": "index",
+          "type": "usize",
+          "mode": "value"
+        },
+        {
+          "name": "other_count",
+          "type": "usize",
+          "mode": "value"
+        },
+        {
+          "name": "other_index",
+          "type": "usize",
+          "mode": "value"
+        }
+      ],
+      "steps": [
+        {
+          "op": "construct",
+          "name": "source",
+          "handle": "Vector",
+          "constructor": "filled",
+          "args": [
+            "count",
+            "initial"
+          ]
+        },
+        {
+          "op": "call",
+          "object": "source",
+          "method": "append",
+          "args": [
+            "appended"
+          ],
+          "result": null
+        },
+        {
+          "op": "call",
+          "object": "source",
+          "method": "at",
+          "args": [
+            "index"
+          ],
+          "result": "copied"
+        },
+        {
+          "op": "construct",
+          "name": "destination",
+          "handle": "Deque",
+          "constructor": "filled",
+          "args": [
+            "other_count",
+            "copied"
+          ]
+        },
+        {
+          "op": "call",
+          "object": "destination",
+          "method": "at",
+          "args": [
+            "other_index"
+          ],
+          "result": "answer"
+        }
+      ],
+      "return": "answer",
+      "lifetime": "call_scoped_cpp_raii"
+    },
+    {
+      "name": "json_chain",
+      "params": [
+        {
+          "name": "first",
+          "type": "u8",
+          "mode": "borrow_const",
+          "retention": "call_only"
+        },
+        {
+          "name": "second",
+          "type": "u8",
+          "mode": "borrow_const",
+          "retention": "call_only"
+        },
+        {
+          "name": "index",
+          "type": "usize",
+          "mode": "value"
+        },
+        {
+          "name": "replacement",
+          "type": "i64",
+          "mode": "value"
+        },
+        {
+          "name": "repeat_count",
+          "type": "usize",
+          "mode": "value"
+        },
+        {
+          "name": "final_index",
+          "type": "usize",
+          "mode": "value"
+        }
+      ],
+      "steps": [
+        {
+          "op": "construct",
+          "name": "left",
+          "handle": "Document",
+          "constructor": "parse",
+          "args": [
+            "first"
+          ]
+        },
+        {
+          "op": "call",
+          "object": "left",
+          "method": "replace",
+          "args": [
+            "index",
+            "replacement"
+          ],
+          "result": null
+        },
+        {
+          "op": "call",
+          "object": "left",
+          "method": "sum",
+          "args": [],
+          "result": "left_sum"
+        },
+        {
+          "op": "construct",
+          "name": "right",
+          "handle": "Document",
+          "constructor": "parse",
+          "args": [
+            "second"
+          ]
+        },
+        {
+          "op": "call",
+          "object": "right",
+          "method": "replace",
+          "args": [
+            "index",
+            "left_sum"
+          ],
+          "result": null
+        },
+        {
+          "op": "call",
+          "object": "right",
+          "method": "sum",
+          "args": [],
+          "result": "right_sum"
+        },
+        {
+          "op": "construct",
+          "name": "values",
+          "handle": "Vector",
+          "constructor": "filled",
+          "args": [
+            "repeat_count",
+            "right_sum"
+          ]
+        },
+        {
+          "op": "call",
+          "object": "values",
+          "method": "at",
+          "args": [
+            "final_index"
+          ],
+          "result": "answer"
+        }
+      ],
+      "return": "answer",
+      "lifetime": "call_scoped_cpp_raii"
+    }
+  ]
+}

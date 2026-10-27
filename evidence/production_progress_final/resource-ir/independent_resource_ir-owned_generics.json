@@ -1,0 +1,1590 @@
+{
+  "claims": {
+    "external_contracts_proved": false,
+    "native_codegen_uses_this_ir": false,
+    "scalar_value_semantics_verified": false,
+    "source_to_ir_refinement_proved": false,
+    "termination_proved": false,
+    "whole_language_soundness_proved": false
+  },
+  "functions": [
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "dest": "v0",
+              "op": "move",
+              "src": "p0"
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v0"
+          }
+        }
+      ],
+      "entry": "b0",
+      "external": false,
+      "locals": [
+        {
+          "id": "v0",
+          "mutable": false,
+          "type": "@Mdde1d090b2796b9a_forward::T"
+        }
+      ],
+      "name": "Mdde1d090b2796b9a_forward",
+      "obligation": null,
+      "params": [
+        {
+          "id": "p0",
+          "mode": "take",
+          "type": "@Mdde1d090b2796b9a_forward::T"
+        }
+      ],
+      "returns": {
+        "mode": "value",
+        "origin": null,
+        "type": "@Mdde1d090b2796b9a_forward::T"
+      },
+      "type_params": [
+        "@Mdde1d090b2796b9a_forward::T"
+      ]
+    },
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "dest": "v0",
+              "op": "move",
+              "src": "p0"
+            },
+            {
+              "op": "drop",
+              "src": "v0"
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": null
+          }
+        }
+      ],
+      "entry": "b0",
+      "external": false,
+      "locals": [
+        {
+          "id": "v0",
+          "mutable": false,
+          "type": "@Mdde1d090b2796b9a_dispose::T"
+        }
+      ],
+      "name": "Mdde1d090b2796b9a_dispose",
+      "obligation": null,
+      "params": [
+        {
+          "id": "p0",
+          "mode": "take",
+          "type": "@Mdde1d090b2796b9a_dispose::T"
+        }
+      ],
+      "returns": {
+        "mode": "value",
+        "origin": null,
+        "type": "Unit"
+      },
+      "type_params": [
+        "@Mdde1d090b2796b9a_dispose::T"
+      ]
+    },
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "p1"
+              }
+            }
+          ],
+          "term": {
+            "condition": "v0",
+            "else": "b2",
+            "op": "branch",
+            "then": "b1"
+          }
+        },
+        {
+          "id": "b1",
+          "ops": [
+            {
+              "dest": "v1",
+              "op": "move",
+              "src": "p0"
+            },
+            {
+              "args": [
+                {
+                  "id": "v1",
+                  "kind": "owner"
+                }
+              ],
+              "function": "Mdde1d090b2796b9a_dispose",
+              "obligation": null,
+              "op": "call",
+              "result": null,
+              "result_loan": null,
+              "type_args": [
+                "@Mdde1d090b2796b9a_finish::T"
+              ]
+            },
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "p2"
+              }
+            },
+            {
+              "dest": "v2",
+              "fields": [
+                "p2"
+              ],
+              "op": "pack",
+              "variant": "Err"
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v2"
+          }
+        },
+        {
+          "id": "b2",
+          "ops": [],
+          "term": {
+            "op": "jump",
+            "target": "b3"
+          }
+        },
+        {
+          "id": "b3",
+          "ops": [
+            {
+              "dest": "v3",
+              "op": "move",
+              "src": "p0"
+            },
+            {
+              "args": [
+                {
+                  "id": "v3",
+                  "kind": "owner"
+                }
+              ],
+              "function": "Mdde1d090b2796b9a_forward",
+              "obligation": null,
+              "op": "call",
+              "result": "v4",
+              "result_loan": null,
+              "type_args": [
+                "@Mdde1d090b2796b9a_finish::T"
+              ]
+            },
+            {
+              "dest": "v5",
+              "fields": [
+                "v4"
+              ],
+              "op": "pack",
+              "variant": "Ok"
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v5"
+          }
+        }
+      ],
+      "entry": "b0",
+      "external": false,
+      "locals": [
+        {
+          "id": "v0",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v1",
+          "mutable": false,
+          "type": "@Mdde1d090b2796b9a_finish::T"
+        },
+        {
+          "id": "v2",
+          "mutable": false,
+          "type": "Result<@Mdde1d090b2796b9a_finish::T, @Mdde1d090b2796b9a_finish::E>"
+        },
+        {
+          "id": "v3",
+          "mutable": false,
+          "type": "@Mdde1d090b2796b9a_finish::T"
+        },
+        {
+          "id": "v4",
+          "mutable": false,
+          "type": "@Mdde1d090b2796b9a_finish::T"
+        },
+        {
+          "id": "v5",
+          "mutable": false,
+          "type": "Result<@Mdde1d090b2796b9a_finish::T, @Mdde1d090b2796b9a_finish::E>"
+        }
+      ],
+      "name": "Mdde1d090b2796b9a_finish",
+      "obligation": null,
+      "params": [
+        {
+          "id": "p0",
+          "mode": "take",
+          "type": "@Mdde1d090b2796b9a_finish::T"
+        },
+        {
+          "id": "p1",
+          "mode": "value",
+          "type": "bool"
+        },
+        {
+          "id": "p2",
+          "mode": "value",
+          "type": "@Mdde1d090b2796b9a_finish::E"
+        }
+      ],
+      "returns": {
+        "mode": "value",
+        "origin": null,
+        "type": "Result<@Mdde1d090b2796b9a_finish::T, @Mdde1d090b2796b9a_finish::E>"
+      },
+      "type_params": [
+        "@Mdde1d090b2796b9a_finish::T",
+        "@Mdde1d090b2796b9a_finish::E"
+      ]
+    },
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "dest": "v0",
+              "op": "move",
+              "src": "p0"
+            }
+          ],
+          "term": {
+            "cases": [
+              {
+                "target": "b1",
+                "variant": "Ok"
+              },
+              {
+                "target": "b2",
+                "variant": "Err"
+              }
+            ],
+            "op": "switch",
+            "src": "v0"
+          }
+        },
+        {
+          "id": "b1",
+          "ops": [
+            {
+              "dests": [
+                "v1"
+              ],
+              "op": "unpack",
+              "src": "v0",
+              "variant": "Ok"
+            },
+            {
+              "dest": "v2",
+              "op": "move",
+              "src": "p1"
+            },
+            {
+              "args": [
+                {
+                  "id": "v2",
+                  "kind": "owner"
+                }
+              ],
+              "function": "Mdde1d090b2796b9a_dispose",
+              "obligation": null,
+              "op": "call",
+              "result": null,
+              "result_loan": null,
+              "type_args": [
+                "@Mdde1d090b2796b9a_recover::T"
+              ]
+            },
+            {
+              "dest": "v3",
+              "op": "move",
+              "src": "v1"
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v3"
+          }
+        },
+        {
+          "id": "b2",
+          "ops": [
+            {
+              "dests": [
+                "v4"
+              ],
+              "op": "unpack",
+              "src": "v0",
+              "variant": "Err"
+            },
+            {
+              "dest": "v5",
+              "op": "move",
+              "src": "p1"
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v5"
+          }
+        }
+      ],
+      "entry": "b0",
+      "external": false,
+      "locals": [
+        {
+          "id": "v0",
+          "mutable": false,
+          "type": "Result<@Mdde1d090b2796b9a_recover::T, @Mdde1d090b2796b9a_recover::E>"
+        },
+        {
+          "id": "v1",
+          "mutable": false,
+          "type": "@Mdde1d090b2796b9a_recover::T"
+        },
+        {
+          "id": "v2",
+          "mutable": false,
+          "type": "@Mdde1d090b2796b9a_recover::T"
+        },
+        {
+          "id": "v3",
+          "mutable": false,
+          "type": "@Mdde1d090b2796b9a_recover::T"
+        },
+        {
+          "id": "v4",
+          "mutable": false,
+          "type": "@Mdde1d090b2796b9a_recover::E"
+        },
+        {
+          "id": "v5",
+          "mutable": false,
+          "type": "@Mdde1d090b2796b9a_recover::T"
+        }
+      ],
+      "name": "Mdde1d090b2796b9a_recover",
+      "obligation": null,
+      "params": [
+        {
+          "id": "p0",
+          "mode": "take",
+          "type": "Result<@Mdde1d090b2796b9a_recover::T, @Mdde1d090b2796b9a_recover::E>"
+        },
+        {
+          "id": "p1",
+          "mode": "take",
+          "type": "@Mdde1d090b2796b9a_recover::T"
+        }
+      ],
+      "returns": {
+        "mode": "value",
+        "origin": null,
+        "type": "@Mdde1d090b2796b9a_recover::T"
+      },
+      "type_params": [
+        "@Mdde1d090b2796b9a_recover::T",
+        "@Mdde1d090b2796b9a_recover::E"
+      ]
+    },
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "p2"
+              }
+            }
+          ],
+          "term": {
+            "condition": "p2",
+            "else": "b2",
+            "op": "branch",
+            "then": "b1"
+          }
+        },
+        {
+          "id": "b1",
+          "ops": [
+            {
+              "dest": "v0",
+              "op": "move",
+              "src": "p1"
+            },
+            {
+              "args": [
+                {
+                  "id": "v0",
+                  "kind": "owner"
+                }
+              ],
+              "function": "Mdde1d090b2796b9a_dispose",
+              "obligation": null,
+              "op": "call",
+              "result": null,
+              "result_loan": null,
+              "type_args": [
+                "@Mdde1d090b2796b9a_choose::E"
+              ]
+            },
+            {
+              "dest": "v1",
+              "op": "move",
+              "src": "p0"
+            },
+            {
+              "dest": "v2",
+              "fields": [
+                "v1"
+              ],
+              "op": "pack",
+              "variant": "Ok"
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v2"
+          }
+        },
+        {
+          "id": "b2",
+          "ops": [],
+          "term": {
+            "op": "jump",
+            "target": "b3"
+          }
+        },
+        {
+          "id": "b3",
+          "ops": [
+            {
+              "dest": "v3",
+              "op": "move",
+              "src": "p0"
+            },
+            {
+              "args": [
+                {
+                  "id": "v3",
+                  "kind": "owner"
+                }
+              ],
+              "function": "Mdde1d090b2796b9a_dispose",
+              "obligation": null,
+              "op": "call",
+              "result": null,
+              "result_loan": null,
+              "type_args": [
+                "@Mdde1d090b2796b9a_choose::T"
+              ]
+            },
+            {
+              "dest": "v4",
+              "op": "move",
+              "src": "p1"
+            },
+            {
+              "dest": "v5",
+              "fields": [
+                "v4"
+              ],
+              "op": "pack",
+              "variant": "Err"
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v5"
+          }
+        }
+      ],
+      "entry": "b0",
+      "external": false,
+      "locals": [
+        {
+          "id": "v0",
+          "mutable": false,
+          "type": "@Mdde1d090b2796b9a_choose::E"
+        },
+        {
+          "id": "v1",
+          "mutable": false,
+          "type": "@Mdde1d090b2796b9a_choose::T"
+        },
+        {
+          "id": "v2",
+          "mutable": false,
+          "type": "Result<@Mdde1d090b2796b9a_choose::T, @Mdde1d090b2796b9a_choose::E>"
+        },
+        {
+          "id": "v3",
+          "mutable": false,
+          "type": "@Mdde1d090b2796b9a_choose::T"
+        },
+        {
+          "id": "v4",
+          "mutable": false,
+          "type": "@Mdde1d090b2796b9a_choose::E"
+        },
+        {
+          "id": "v5",
+          "mutable": false,
+          "type": "Result<@Mdde1d090b2796b9a_choose::T, @Mdde1d090b2796b9a_choose::E>"
+        }
+      ],
+      "name": "Mdde1d090b2796b9a_choose",
+      "obligation": null,
+      "params": [
+        {
+          "id": "p0",
+          "mode": "take",
+          "type": "@Mdde1d090b2796b9a_choose::T"
+        },
+        {
+          "id": "p1",
+          "mode": "take",
+          "type": "@Mdde1d090b2796b9a_choose::E"
+        },
+        {
+          "id": "p2",
+          "mode": "value",
+          "type": "bool"
+        }
+      ],
+      "returns": {
+        "mode": "value",
+        "origin": null,
+        "type": "Result<@Mdde1d090b2796b9a_choose::T, @Mdde1d090b2796b9a_choose::E>"
+      },
+      "type_params": [
+        "@Mdde1d090b2796b9a_choose::T",
+        "@Mdde1d090b2796b9a_choose::E"
+      ]
+    },
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "id": "l0",
+              "mode": "read",
+              "op": "borrow",
+              "place": {
+                "path": [],
+                "root": "p0"
+              },
+              "type": "@Mdde1d090b2796b9a_view::T"
+            }
+          ],
+          "term": {
+            "loan": "l0",
+            "op": "return",
+            "value": null
+          }
+        }
+      ],
+      "entry": "b0",
+      "external": false,
+      "locals": [],
+      "name": "Mdde1d090b2796b9a_view",
+      "obligation": null,
+      "params": [
+        {
+          "id": "p0",
+          "mode": "read",
+          "type": "@Mdde1d090b2796b9a_view::T"
+        }
+      ],
+      "returns": {
+        "mode": "read",
+        "origin": "p0",
+        "type": "@Mdde1d090b2796b9a_view::T"
+      },
+      "type_params": [
+        "@Mdde1d090b2796b9a_view::T"
+      ]
+    },
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "dest": "v1",
+              "kind": "buffer",
+              "op": "acquire"
+            },
+            {
+              "args": [
+                {
+                  "id": "v1",
+                  "kind": "owner"
+                },
+                {
+                  "id": "v2",
+                  "kind": "value"
+                },
+                {
+                  "id": "v3",
+                  "kind": "value"
+                }
+              ],
+              "function": "Mdde1d090b2796b9a_finish",
+              "obligation": null,
+              "op": "call",
+              "result": "v4",
+              "result_loan": null,
+              "type_args": [
+                "Buffer<u8>",
+                "u8"
+              ]
+            },
+            {
+              "dest": "v5",
+              "op": "move",
+              "src": "v4"
+            },
+            {
+              "dest": "v6",
+              "op": "move",
+              "src": "v5"
+            },
+            {
+              "dest": "v8",
+              "kind": "buffer",
+              "op": "acquire"
+            },
+            {
+              "args": [
+                {
+                  "id": "v6",
+                  "kind": "owner"
+                },
+                {
+                  "id": "v8",
+                  "kind": "owner"
+                }
+              ],
+              "function": "Mdde1d090b2796b9a_recover",
+              "obligation": null,
+              "op": "call",
+              "result": "v9",
+              "result_loan": null,
+              "type_args": [
+                "Buffer<u8>",
+                "u8"
+              ]
+            },
+            {
+              "dest": "v10",
+              "op": "move",
+              "src": "v9"
+            },
+            {
+              "id": "l0",
+              "mode": "read",
+              "op": "borrow",
+              "place": {
+                "path": [],
+                "root": "v10"
+              },
+              "type": "Buffer<u8>"
+            },
+            {
+              "args": [
+                {
+                  "id": "l0",
+                  "kind": "borrow"
+                }
+              ],
+              "function": "Mdde1d090b2796b9a_view",
+              "obligation": null,
+              "op": "call",
+              "result": null,
+              "result_loan": "l1",
+              "type_args": [
+                "Buffer<u8>"
+              ]
+            },
+            {
+              "loan": "l1",
+              "mode": "read",
+              "op": "use"
+            },
+            {
+              "id": "l1",
+              "op": "end_borrow"
+            },
+            {
+              "dest": "v14",
+              "op": "move",
+              "src": "v10"
+            },
+            {
+              "args": [
+                {
+                  "id": "v14",
+                  "kind": "owner"
+                }
+              ],
+              "function": "Mdde1d090b2796b9a_dispose",
+              "obligation": null,
+              "op": "call",
+              "result": null,
+              "result_loan": null,
+              "type_args": [
+                "Buffer<u8>"
+              ]
+            },
+            {
+              "dest": "v16",
+              "kind": "buffer",
+              "op": "acquire"
+            },
+            {
+              "args": [
+                {
+                  "id": "v16",
+                  "kind": "owner"
+                },
+                {
+                  "id": "v17",
+                  "kind": "value"
+                },
+                {
+                  "id": "v18",
+                  "kind": "value"
+                }
+              ],
+              "function": "Mdde1d090b2796b9a_finish",
+              "obligation": null,
+              "op": "call",
+              "result": "v19",
+              "result_loan": null,
+              "type_args": [
+                "Buffer<u8>",
+                "u8"
+              ]
+            },
+            {
+              "dest": "v20",
+              "op": "move",
+              "src": "v19"
+            },
+            {
+              "dest": "v21",
+              "op": "move",
+              "src": "v20"
+            },
+            {
+              "dest": "v23",
+              "kind": "buffer",
+              "op": "acquire"
+            },
+            {
+              "args": [
+                {
+                  "id": "v21",
+                  "kind": "owner"
+                },
+                {
+                  "id": "v23",
+                  "kind": "owner"
+                }
+              ],
+              "function": "Mdde1d090b2796b9a_recover",
+              "obligation": null,
+              "op": "call",
+              "result": "v24",
+              "result_loan": null,
+              "type_args": [
+                "Buffer<u8>",
+                "u8"
+              ]
+            },
+            {
+              "dest": "v25",
+              "op": "move",
+              "src": "v24"
+            },
+            {
+              "id": "l2",
+              "mode": "read",
+              "op": "borrow",
+              "place": {
+                "path": [],
+                "root": "v25"
+              },
+              "type": "Buffer<u8>"
+            },
+            {
+              "args": [
+                {
+                  "id": "l2",
+                  "kind": "borrow"
+                }
+              ],
+              "function": "Mdde1d090b2796b9a_view",
+              "obligation": null,
+              "op": "call",
+              "result": null,
+              "result_loan": "l3",
+              "type_args": [
+                "Buffer<u8>"
+              ]
+            },
+            {
+              "loan": "l3",
+              "mode": "read",
+              "op": "use"
+            },
+            {
+              "id": "l3",
+              "op": "end_borrow"
+            },
+            {
+              "dest": "v29",
+              "op": "move",
+              "src": "v25"
+            },
+            {
+              "args": [
+                {
+                  "id": "v29",
+                  "kind": "owner"
+                }
+              ],
+              "function": "Mdde1d090b2796b9a_dispose",
+              "obligation": null,
+              "op": "call",
+              "result": null,
+              "result_loan": null,
+              "type_args": [
+                "Buffer<u8>"
+              ]
+            },
+            {
+              "dest": "v31",
+              "kind": "buffer",
+              "op": "acquire"
+            },
+            {
+              "dest": "v33",
+              "fields": [
+                "v31",
+                "v32"
+              ],
+              "op": "pack",
+              "variant": null
+            },
+            {
+              "dest": "v34",
+              "op": "move",
+              "src": "v33"
+            },
+            {
+              "dest": "v35",
+              "op": "move",
+              "src": "v34"
+            },
+            {
+              "dest": "v37",
+              "kind": "buffer",
+              "op": "acquire"
+            },
+            {
+              "args": [
+                {
+                  "id": "v35",
+                  "kind": "owner"
+                },
+                {
+                  "id": "v37",
+                  "kind": "owner"
+                },
+                {
+                  "id": "v38",
+                  "kind": "value"
+                }
+              ],
+              "function": "Mdde1d090b2796b9a_choose",
+              "obligation": null,
+              "op": "call",
+              "result": "v39",
+              "result_loan": null,
+              "type_args": [
+                "Packet<Buffer<u8>>",
+                "Buffer<u8>"
+              ]
+            },
+            {
+              "dest": "v40",
+              "op": "move",
+              "src": "v39"
+            },
+            {
+              "dest": "v41",
+              "op": "move",
+              "src": "v40"
+            }
+          ],
+          "term": {
+            "cases": [
+              {
+                "target": "b1",
+                "variant": "Ok"
+              },
+              {
+                "target": "b2",
+                "variant": "Err"
+              }
+            ],
+            "op": "switch",
+            "src": "v41"
+          }
+        },
+        {
+          "id": "b1",
+          "ops": [
+            {
+              "dests": [
+                "v42"
+              ],
+              "op": "unpack",
+              "src": "v41",
+              "variant": "Ok"
+            },
+            {
+              "dest": "v43",
+              "op": "move",
+              "src": "v42"
+            },
+            {
+              "args": [
+                {
+                  "id": "v43",
+                  "kind": "owner"
+                }
+              ],
+              "function": "Mdde1d090b2796b9a_dispose",
+              "obligation": null,
+              "op": "call",
+              "result": null,
+              "result_loan": null,
+              "type_args": [
+                "Packet<Buffer<u8>>"
+              ]
+            },
+            {
+              "op": "forget",
+              "src": "v42"
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b3"
+          }
+        },
+        {
+          "id": "b2",
+          "ops": [
+            {
+              "dests": [
+                "v45"
+              ],
+              "op": "unpack",
+              "src": "v41",
+              "variant": "Err"
+            },
+            {
+              "id": "l4",
+              "mode": "read",
+              "op": "borrow",
+              "place": {
+                "path": [],
+                "root": "v45"
+              },
+              "type": "Buffer<u8>"
+            },
+            {
+              "loan": "l4",
+              "mode": "read",
+              "op": "use"
+            },
+            {
+              "id": "l4",
+              "op": "end_borrow"
+            },
+            {
+              "dest": "v49",
+              "op": "move",
+              "src": "v45"
+            },
+            {
+              "args": [
+                {
+                  "id": "v49",
+                  "kind": "owner"
+                }
+              ],
+              "function": "Mdde1d090b2796b9a_dispose",
+              "obligation": null,
+              "op": "call",
+              "result": null,
+              "result_loan": null,
+              "type_args": [
+                "Buffer<u8>"
+              ]
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b3"
+          }
+        },
+        {
+          "id": "b3",
+          "ops": [
+            {
+              "op": "forget",
+              "src": "v34"
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": null
+          }
+        }
+      ],
+      "entry": "b0",
+      "external": false,
+      "locals": [
+        {
+          "id": "v0",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v1",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v2",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v3",
+          "mutable": false,
+          "type": "u8"
+        },
+        {
+          "id": "v4",
+          "mutable": false,
+          "type": "Result<Buffer<u8>, u8>"
+        },
+        {
+          "id": "v5",
+          "mutable": false,
+          "type": "Result<Buffer<u8>, u8>"
+        },
+        {
+          "id": "v6",
+          "mutable": false,
+          "type": "Result<Buffer<u8>, u8>"
+        },
+        {
+          "id": "v7",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v8",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v9",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v10",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v11",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v12",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v13",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v14",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v15",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v16",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v17",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v18",
+          "mutable": false,
+          "type": "u8"
+        },
+        {
+          "id": "v19",
+          "mutable": false,
+          "type": "Result<Buffer<u8>, u8>"
+        },
+        {
+          "id": "v20",
+          "mutable": false,
+          "type": "Result<Buffer<u8>, u8>"
+        },
+        {
+          "id": "v21",
+          "mutable": false,
+          "type": "Result<Buffer<u8>, u8>"
+        },
+        {
+          "id": "v22",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v23",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v24",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v25",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v26",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v27",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v28",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v29",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v30",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v31",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v32",
+          "mutable": false,
+          "type": "u32"
+        },
+        {
+          "id": "v33",
+          "mutable": false,
+          "type": "Packet<Buffer<u8>>"
+        },
+        {
+          "id": "v34",
+          "mutable": false,
+          "type": "Packet<Buffer<u8>>"
+        },
+        {
+          "id": "v35",
+          "mutable": false,
+          "type": "Packet<Buffer<u8>>"
+        },
+        {
+          "id": "v36",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v37",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v38",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v39",
+          "mutable": false,
+          "type": "Result<Packet<Buffer<u8>>, Buffer<u8>>"
+        },
+        {
+          "id": "v40",
+          "mutable": false,
+          "type": "Result<Packet<Buffer<u8>>, Buffer<u8>>"
+        },
+        {
+          "id": "v41",
+          "mutable": false,
+          "type": "Result<Packet<Buffer<u8>>, Buffer<u8>>"
+        },
+        {
+          "id": "v42",
+          "mutable": false,
+          "type": "Packet<Buffer<u8>>"
+        },
+        {
+          "id": "v43",
+          "mutable": false,
+          "type": "Packet<Buffer<u8>>"
+        },
+        {
+          "id": "v44",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v45",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v46",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v47",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v48",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v49",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        }
+      ],
+      "name": "main",
+      "obligation": null,
+      "params": [],
+      "returns": {
+        "mode": "value",
+        "origin": null,
+        "type": "Unit"
+      }
+    }
+  ],
+  "obligations": {},
+  "project_sha256": "9dc36ee94566b5a48a76dd60bc8dabb0a31680ba9e3a7da29b47ff09e93553aa",
+  "schema": "hepta.resource-ir.v3",
+  "source_sha256": "923e26a2ccb01654bc292dbe55dcf02fcbd333079806f3f859982ec2d94949bc",
+  "types": {
+    "@Mdde1d090b2796b9a_choose::E": {
+      "bound": "Owned",
+      "function": "Mdde1d090b2796b9a_choose",
+      "kind": "parameter",
+      "name": "E"
+    },
+    "@Mdde1d090b2796b9a_choose::T": {
+      "bound": "Owned",
+      "function": "Mdde1d090b2796b9a_choose",
+      "kind": "parameter",
+      "name": "T"
+    },
+    "@Mdde1d090b2796b9a_dispose::T": {
+      "bound": "Owned",
+      "function": "Mdde1d090b2796b9a_dispose",
+      "kind": "parameter",
+      "name": "T"
+    },
+    "@Mdde1d090b2796b9a_finish::E": {
+      "bound": "Copy",
+      "function": "Mdde1d090b2796b9a_finish",
+      "kind": "parameter",
+      "name": "E"
+    },
+    "@Mdde1d090b2796b9a_finish::T": {
+      "bound": "Owned",
+      "function": "Mdde1d090b2796b9a_finish",
+      "kind": "parameter",
+      "name": "T"
+    },
+    "@Mdde1d090b2796b9a_forward::T": {
+      "bound": "Owned",
+      "function": "Mdde1d090b2796b9a_forward",
+      "kind": "parameter",
+      "name": "T"
+    },
+    "@Mdde1d090b2796b9a_recover::E": {
+      "bound": "Copy",
+      "function": "Mdde1d090b2796b9a_recover",
+      "kind": "parameter",
+      "name": "E"
+    },
+    "@Mdde1d090b2796b9a_recover::T": {
+      "bound": "Owned",
+      "function": "Mdde1d090b2796b9a_recover",
+      "kind": "parameter",
+      "name": "T"
+    },
+    "@Mdde1d090b2796b9a_view::T": {
+      "bound": "Owned",
+      "function": "Mdde1d090b2796b9a_view",
+      "kind": "parameter",
+      "name": "T"
+    },
+    "Buffer<u8>": {
+      "element": "u8",
+      "kind": "buffer"
+    },
+    "Packet<Buffer<u8>>": {
+      "args": [
+        "Buffer<u8>"
+      ],
+      "fields": [
+        {
+          "name": "data",
+          "type": "Buffer<u8>"
+        },
+        {
+          "name": "tag",
+          "type": "u32"
+        }
+      ],
+      "kind": "struct",
+      "name": "Packet"
+    },
+    "Result<@Mdde1d090b2796b9a_choose::T, @Mdde1d090b2796b9a_choose::E>": {
+      "args": [
+        "@Mdde1d090b2796b9a_choose::T",
+        "@Mdde1d090b2796b9a_choose::E"
+      ],
+      "kind": "enum",
+      "name": "Result",
+      "variants": [
+        {
+          "fields": [
+            "@Mdde1d090b2796b9a_choose::T"
+          ],
+          "name": "Ok"
+        },
+        {
+          "fields": [
+            "@Mdde1d090b2796b9a_choose::E"
+          ],
+          "name": "Err"
+        }
+      ]
+    },
+    "Result<@Mdde1d090b2796b9a_finish::T, @Mdde1d090b2796b9a_finish::E>": {
+      "args": [
+        "@Mdde1d090b2796b9a_finish::T",
+        "@Mdde1d090b2796b9a_finish::E"
+      ],
+      "kind": "enum",
+      "name": "Result",
+      "variants": [
+        {
+          "fields": [
+            "@Mdde1d090b2796b9a_finish::T"
+          ],
+          "name": "Ok"
+        },
+        {
+          "fields": [
+            "@Mdde1d090b2796b9a_finish::E"
+          ],
+          "name": "Err"
+        }
+      ]
+    },
+    "Result<@Mdde1d090b2796b9a_recover::T, @Mdde1d090b2796b9a_recover::E>": {
+      "args": [
+        "@Mdde1d090b2796b9a_recover::T",
+        "@Mdde1d090b2796b9a_recover::E"
+      ],
+      "kind": "enum",
+      "name": "Result",
+      "variants": [
+        {
+          "fields": [
+            "@Mdde1d090b2796b9a_recover::T"
+          ],
+          "name": "Ok"
+        },
+        {
+          "fields": [
+            "@Mdde1d090b2796b9a_recover::E"
+          ],
+          "name": "Err"
+        }
+      ]
+    },
+    "Result<Buffer<u8>, u8>": {
+      "args": [
+        "Buffer<u8>",
+        "u8"
+      ],
+      "kind": "enum",
+      "name": "Result",
+      "variants": [
+        {
+          "fields": [
+            "Buffer<u8>"
+          ],
+          "name": "Ok"
+        },
+        {
+          "fields": [
+            "u8"
+          ],
+          "name": "Err"
+        }
+      ]
+    },
+    "Result<Packet<Buffer<u8>>, Buffer<u8>>": {
+      "args": [
+        "Packet<Buffer<u8>>",
+        "Buffer<u8>"
+      ],
+      "kind": "enum",
+      "name": "Result",
+      "variants": [
+        {
+          "fields": [
+            "Packet<Buffer<u8>>"
+          ],
+          "name": "Ok"
+        },
+        {
+          "fields": [
+            "Buffer<u8>"
+          ],
+          "name": "Err"
+        }
+      ]
+    },
+    "Unit": {
+      "kind": "scalar",
+      "name": "Unit"
+    },
+    "bool": {
+      "kind": "scalar",
+      "name": "bool"
+    },
+    "u32": {
+      "kind": "scalar",
+      "name": "u32"
+    },
+    "u8": {
+      "kind": "scalar",
+      "name": "u8"
+    },
+    "usize": {
+      "kind": "scalar",
+      "name": "usize"
+    }
+  },
+  "value_semantics": "copied_values_abstract_not_executable"
+}

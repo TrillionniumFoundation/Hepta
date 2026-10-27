@@ -1,0 +1,19 @@
+{
+  "commit": "f96b9a8",
+  "corrected_maximum": 194,
+  "finding": "Worker failure sends two values for its one-byte input; other three workers each send64. Received-message maximum194 differs from worker-return sum193.",
+  "observed_utc": "2026-10-25T00:18:24.975819+00:00",
+  "old_maximum": 193,
+  "schema": "hepta.release-gate-range-review.v1",
+  "scope": "validator_boundary_correction_not_runtime_bug_or_new_native_observation",
+  "source": "examples/groups/worker_failure.hepta",
+  "tests": {
+    "command": "python -m unittest tests.test_release_evidence -v",
+    "errors": 0,
+    "failures": 0,
+    "negative_boundary": 195,
+    "positive_boundary": 194,
+    "skips": 0,
+    "test_methods": 13
+  }
+}

@@ -1,0 +1,83 @@
+test_every_direct_producer_starts_outside_checkout_without_pythonpath (tests.test_hia_qualification_entrypoints.QualificationEntrypointTests.test_every_direct_producer_starts_outside_checkout_without_pythonpath) ... 
+  test_every_direct_producer_starts_outside_checkout_without_pythonpath (tests.test_hia_qualification_entrypoints.QualificationEntrypointTests.test_every_direct_producer_starts_outside_checkout_without_pythonpath) (script='tools/qualify_llvm_local_views.py') ... FAIL
+test_local_views_reaches_argparse_from_both_working_directories (tests.test_hia_qualification_entrypoints.QualificationEntrypointTests.test_local_views_reaches_argparse_from_both_working_directories) ... 
+  test_local_views_reaches_argparse_from_both_working_directories (tests.test_hia_qualification_entrypoints.QualificationEntrypointTests.test_local_views_reaches_argparse_from_both_working_directories) (cwd='/workspace/scratch/d930f2b45e07/hepta-entry-repair', pythonpath=None) ... FAIL
+  test_local_views_reaches_argparse_from_both_working_directories (tests.test_hia_qualification_entrypoints.QualificationEntrypointTests.test_local_views_reaches_argparse_from_both_working_directories) (cwd='/workspace/scratch/d930f2b45e07/hepta-entry-repair', pythonpath='') ... FAIL
+  test_local_views_reaches_argparse_from_both_working_directories (tests.test_hia_qualification_entrypoints.QualificationEntrypointTests.test_local_views_reaches_argparse_from_both_working_directories) (cwd='/tmp/hepta local views CLI osy7iq1p', pythonpath=None) ... FAIL
+  test_local_views_reaches_argparse_from_both_working_directories (tests.test_hia_qualification_entrypoints.QualificationEntrypointTests.test_local_views_reaches_argparse_from_both_working_directories) (cwd='/tmp/hepta local views CLI osy7iq1p', pythonpath='') ... FAIL
+test_module_producers_start_from_checkout_without_pythonpath (tests.test_hia_qualification_entrypoints.QualificationEntrypointTests.test_module_producers_start_from_checkout_without_pythonpath) ... ok
+
+======================================================================
+FAIL: test_every_direct_producer_starts_outside_checkout_without_pythonpath (tests.test_hia_qualification_entrypoints.QualificationEntrypointTests.test_every_direct_producer_starts_outside_checkout_without_pythonpath) (script='tools/qualify_llvm_local_views.py')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/d930f2b45e07/hepta-entry-repair/tests/test_hia_qualification_entrypoints.py", line 55, in test_every_direct_producer_starts_outside_checkout_without_pythonpath
+    self.assert_help(self.run_cli([ROOT / script, "--help"], directory))
+  File "/workspace/scratch/d930f2b45e07/hepta-entry-repair/tests/test_hia_qualification_entrypoints.py", line 44, in assert_help
+    self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "/workspace/scratch/d930f2b45e07/hepta-entry-repair/tools/qualify_llvm_local_views.py", line 20, in <module>
+    from hepta.backend import compile_rust
+ModuleNotFoundError: No module named 'hepta'
+
+
+======================================================================
+FAIL: test_local_views_reaches_argparse_from_both_working_directories (tests.test_hia_qualification_entrypoints.QualificationEntrypointTests.test_local_views_reaches_argparse_from_both_working_directories) (cwd='/workspace/scratch/d930f2b45e07/hepta-entry-repair', pythonpath=None)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/d930f2b45e07/hepta-entry-repair/tests/test_hia_qualification_entrypoints.py", line 73, in test_local_views_reaches_argparse_from_both_working_directories
+    self.assert_help(self.run_cli([script, "--help"], cwd,
+  File "/workspace/scratch/d930f2b45e07/hepta-entry-repair/tests/test_hia_qualification_entrypoints.py", line 44, in assert_help
+    self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "/workspace/scratch/d930f2b45e07/hepta-entry-repair/tools/qualify_llvm_local_views.py", line 20, in <module>
+    from hepta.backend import compile_rust
+ModuleNotFoundError: No module named 'hepta'
+
+
+======================================================================
+FAIL: test_local_views_reaches_argparse_from_both_working_directories (tests.test_hia_qualification_entrypoints.QualificationEntrypointTests.test_local_views_reaches_argparse_from_both_working_directories) (cwd='/workspace/scratch/d930f2b45e07/hepta-entry-repair', pythonpath='')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/d930f2b45e07/hepta-entry-repair/tests/test_hia_qualification_entrypoints.py", line 73, in test_local_views_reaches_argparse_from_both_working_directories
+    self.assert_help(self.run_cli([script, "--help"], cwd,
+  File "/workspace/scratch/d930f2b45e07/hepta-entry-repair/tests/test_hia_qualification_entrypoints.py", line 44, in assert_help
+    self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "/workspace/scratch/d930f2b45e07/hepta-entry-repair/tools/qualify_llvm_local_views.py", line 20, in <module>
+    from hepta.backend import compile_rust
+ModuleNotFoundError: No module named 'hepta'
+
+
+======================================================================
+FAIL: test_local_views_reaches_argparse_from_both_working_directories (tests.test_hia_qualification_entrypoints.QualificationEntrypointTests.test_local_views_reaches_argparse_from_both_working_directories) (cwd='/tmp/hepta local views CLI osy7iq1p', pythonpath=None)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/d930f2b45e07/hepta-entry-repair/tests/test_hia_qualification_entrypoints.py", line 73, in test_local_views_reaches_argparse_from_both_working_directories
+    self.assert_help(self.run_cli([script, "--help"], cwd,
+  File "/workspace/scratch/d930f2b45e07/hepta-entry-repair/tests/test_hia_qualification_entrypoints.py", line 44, in assert_help
+    self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "/workspace/scratch/d930f2b45e07/hepta-entry-repair/tools/qualify_llvm_local_views.py", line 20, in <module>
+    from hepta.backend import compile_rust
+ModuleNotFoundError: No module named 'hepta'
+
+
+======================================================================
+FAIL: test_local_views_reaches_argparse_from_both_working_directories (tests.test_hia_qualification_entrypoints.QualificationEntrypointTests.test_local_views_reaches_argparse_from_both_working_directories) (cwd='/tmp/hepta local views CLI osy7iq1p', pythonpath='')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/d930f2b45e07/hepta-entry-repair/tests/test_hia_qualification_entrypoints.py", line 73, in test_local_views_reaches_argparse_from_both_working_directories
+    self.assert_help(self.run_cli([script, "--help"], cwd,
+  File "/workspace/scratch/d930f2b45e07/hepta-entry-repair/tests/test_hia_qualification_entrypoints.py", line 44, in assert_help
+    self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "/workspace/scratch/d930f2b45e07/hepta-entry-repair/tools/qualify_llvm_local_views.py", line 20, in <module>
+    from hepta.backend import compile_rust
+ModuleNotFoundError: No module named 'hepta'
+
+
+----------------------------------------------------------------------
+Ran 3 tests in 5.580s
+
+FAILED (failures=5)

@@ -1,0 +1,630 @@
+"""Direct LLVM for standalone verified HIA programs.
+
+This backend consumes the immutable canonical program accepted by
+``hia_program.verify_program``.  It has no source AST, source replay, Rust
+borrow-checking gate, or C/Rust implementation fallback.  Its finite profile is
+Linux x86-64, checked/wrapping integer block-argument SSA, internal calls, and
+owned zero-initialized byte buffers with checked byte access.  Verification and
+finite native comparisons are not a compiler-refinement or soundness proof.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from hashlib import sha256
+import os
+from pathlib import Path
+import platform
+import re
+import shutil
+import stat
+import tempfile
+
+from .artifact_publication import publish_verified, verify_published, withdraw_own_link
+from .clang_capture import run_bounded
+from .elf_shared_abi import inspect_owned_shared_elf
+from .native_tool_identity import digest_executable
+from .object_symbols import inspect_object_symbols
+
+
+PROFILE = "hepta.hia.program.llvm-linux-x86_64.v1"
+TARGET = "x86_64-unknown-linux-gnu"
+TARGET_AARCH64 = "aarch64-unknown-linux-gnu"
+PROFILE_AARCH64 = "hepta.hia.program.llvm-linux-aarch64-object.v1"
+MAX_LLVM_BYTES = 16 * 1024 * 1024
+MAX_ARTIFACT_BYTES = 64 * 1024 * 1024
+_WIDTHS = {**{f"{sign}{bits}": bits for sign in ("i", "u")
+             for bits in (8, 16, 32, 64)}, "usize": 64, "isize": 64}
+_BUFFERS = {"buffer", "readbuf", "mutbuf"}
+_RUNTIME_NAMES = {"abort", "calloc", "free", "malloc", "memset", "memcpy", "memmove"}
+_IMPORTS = {"abort", "calloc", "free", "malloc", "memset", "memcpy", "memmove"}
+
+# This is a closed optimization whitelist, not a blacklist of known readers.
+# New instructions must be audited before they can omit zero initialization.
+_UNREAD_ALLOCATION_OPS = frozenset({
+    "const", "int.cast", "int.neg.checked", "select",
+    "bool.not", "bool.and", "bool.or", "bit.and", "bit.or", "bit.xor", "bit.not",
+    "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge",
+    "int.add.checked", "int.sub.checked", "int.mul.checked", "int.div.checked",
+    "int.rem.checked", "int.shl.checked", "int.shr.checked",
+    "int.add.wrap", "int.sub.wrap", "int.mul.wrap",
+    "buffer.new", "buffer.try_new", "buffer.len", "borrow.read", "borrow.mut",
+    "loan.end", "owner.move", "owner.drop",
+})
+
+
+def _can_elide_zero_initialization(function):
+    """Prove bytes of all local allocations unobservable in this function.
+
+    Resource arguments/results, every call, every byte load/store, and unknown
+    instructions reject this optimization. Scan every block, including loops
+    and branches. Only zero writes disappear: allocation attempts, failure,
+    live storage and explicit drops still execute. This does not admit a new
+    uninitialized-buffer operation to Core or expose bytes to external code.
+    """
+    scalars = set(_WIDTHS) | {"bool", "unit"}
+    return (all(param["type"] in scalars for param in function["params"])
+            and all(typ in scalars for typ in function["returns"])
+            and all(block["term"]["op"] in {"ret", "jump", "branch", "trap"}
+                    and all(operation["op"] in _UNREAD_ALLOCATION_OPS for operation in block["ops"])
+                    for block in function["blocks"]))
+
+
+class HIAProgramLLVMRejected(ValueError):
+    """The standalone program or requested native build is not admitted."""
+
+
+def _reject(message, code="E_HIA_PROGRAM_LLVM"):
+    raise HIAProgramLLVMRejected(code + ": " + message)
+
+
+def _implementation_hash():
+    """Bind the actual verifier/emitter and the native boundary helpers."""
+    digest = sha256()
+    root = Path(__file__).parent
+    for name in ("hia_program.py", "hia_program_llvm.py", "artifact_publication.py",
+                 "clang_capture.py", "elf_shared_abi.py", "object_symbols.py",
+                 "object_structure.py", "native_tool_identity.py"):
+        content = (root / name).read_bytes()
+        digest.update(name.encode() + b"\0" + content + b"\0")
+    return digest.hexdigest()
+
+
+def _verified(program):
+    from .hia_program import VerifiedProgram, verify_program
+    if not isinstance(program, VerifiedProgram):
+        _reject("an immutable VerifiedProgram from verify_program is required")
+    # A public dataclass instance/digest is not itself authority. Re-run the
+    # independent verifier over its exact bytes before emitting machine code.
+    current = verify_program(program)
+    if current.canonical_bytes != program.canonical_bytes or current.sha256 != program.sha256:
+        _reject("verified program bytes changed")
+    return current
+
+
+def _llvm_type(typ):
+    if typ in _WIDTHS:
+        return "i" + str(_WIDTHS[typ])
+    if typ == "bool":
+        return "i1"
+    if typ == "unit":
+        return "i8"
+    if typ in _BUFFERS:
+        return "%hia.buffer"
+    _reject("unsupported type " + repr(typ))
+
+
+def _return_type(types):
+    if not types:
+        return "void"
+    if len(types) == 1:
+        return _llvm_type(types[0])
+    return "{ " + ", ".join(_llvm_type(t) for t in types) + " }"
+
+
+def _abi_attr(typ, target=TARGET):
+    # AAPCS64 narrows integer arguments/results at the ABI boundary without
+    # the SysV x86-64 signext/zeroext LLVM parameter attributes.
+    if target == TARGET_AARCH64:
+        return ""
+    if typ in {"i8", "i16"}:
+        return "signext "
+    if typ in {"u8", "u16", "bool"}:
+        return "zeroext "
+    return ""
+
+
+def _signed(typ):
+    return typ.startswith("i")
+
+
+def _bounds(typ):
+    bits = _WIDTHS[typ]
+    return (-(1 << (bits - 1)), (1 << (bits - 1)) - 1) if _signed(typ) else (0, (1 << bits) - 1)
+
+
+@dataclass(frozen=True)
+class HIAProgramLLVM:
+    text: str
+    sha256: str
+    core_sha256: str
+    implementation_sha256: str
+    exports: tuple[str, ...]
+    profile: str = PROFILE
+    target: str = TARGET
+
+
+class _FunctionEmitter:
+    def __init__(self, parent, function, number):
+        self.parent = parent
+        self.function = function
+        self.zero_bytes = "false" if _can_elide_zero_initialization(function) else "true"
+        self.number = number
+        self.serial = 0
+        self.lines = []
+        self.values = {}
+        self.block_ids = {block["id"]: "b" + str(i)
+                          for i, block in enumerate(function["blocks"])}
+        self.param_ids = {}
+        self.edges = []
+        self.blocks = []
+        for bindex, block in enumerate(function["blocks"]):
+            for pindex, param in enumerate(block["params"]):
+                self.param_ids[param["name"]] = ("%p_" + str(bindex) + "_" + str(pindex), param["type"])
+
+    def tmp(self):
+        self.serial += 1
+        return "%t" + str(self.serial)
+
+    def line(self, text):
+        self.lines.append("  " + text)
+
+    def instruction(self, text):
+        dest = self.tmp()
+        self.line(dest + " = " + text)
+        return dest
+
+    def argument(self, name):
+        if name not in self.values:
+            _reject("undefined local value in native lowering: " + name)
+        return self.values[name]
+
+    def scalar(self, name):
+        value, typ = self.argument(name)
+        return _llvm_type(typ) + " " + value
+
+    def guard(self, ok):
+        self.serial += 1
+        suffix = str(self.serial)
+        good, bad = "ok_" + suffix, "trap_" + suffix
+        self.line("br i1 " + ok + ", label %" + good + ", label %" + bad)
+        self.lines.append(bad + ":")
+        self.line("call void @abort()")
+        self.line("unreachable")
+        self.lines.append(good + ":")
+
+    def cast(self, value, source, destination):
+        old, new = _WIDTHS[source], _WIDTHS[destination]
+        if old == new:
+            return value
+        op = "trunc" if old > new else ("sext" if _signed(source) else "zext")
+        return self.instruction(op + " i" + str(old) + " " + value + " to i" + str(new))
+
+    def buffer_parts(self, value):
+        ptr = self.instruction("extractvalue %hia.buffer " + value + ", 0")
+        size = self.instruction("extractvalue %hia.buffer " + value + ", 1")
+        return ptr, size
+
+    def checked_binary(self, op, left, right, typ):
+        bits = _WIDTHS[typ]
+        intrinsic = "llvm." + ("s" if _signed(typ) else "u") + op + ".with.overflow.i" + str(bits)
+        self.parent.intrinsics.add((intrinsic, bits))
+        pair = self.instruction("call { i" + str(bits) + ", i1 } @" + intrinsic
+                                + "(i" + str(bits) + " " + left + ", i" + str(bits) + " " + right + ")")
+        result = self.instruction("extractvalue { i" + str(bits) + ", i1 } " + pair + ", 0")
+        overflow = self.instruction("extractvalue { i" + str(bits) + ", i1 } " + pair + ", 1")
+        ok = self.instruction("xor i1 " + overflow + ", true")
+        self.guard(ok)
+        return result
+
+    def operation(self, instruction):
+        op, args, outputs, attrs = (instruction["op"], instruction["args"], instruction["out"], instruction["attrs"])
+        arguments = [self.argument(name) for name in args]
+        out_types = [out["type"] for out in outputs]
+        results = []
+        if op == "const":
+            typ, value = out_types[0], attrs["value"]
+            results = ["true" if value is True else "false" if value is False else "0" if typ == "unit" else str(value)]
+        elif op.startswith("int.") and op.split(".")[1] in {"add", "sub", "mul"}:
+            action, mode = op.split(".")[1:]
+            left, typ = arguments[0]
+            right = arguments[1][0]
+            if mode == "checked":
+                results = [self.checked_binary(action, left, right, typ)]
+            elif mode == "wrap":
+                results = [self.instruction(action + " " + _llvm_type(typ) + " " + left + ", " + right)]
+            else:
+                _reject("unknown arithmetic mode")
+        elif op in {"int.div.checked", "int.rem.checked"}:
+            left, typ = arguments[0]
+            right = arguments[1][0]
+            lt = _llvm_type(typ)
+            self.guard(self.instruction("icmp ne " + lt + " " + right + ", 0"))
+            if _signed(typ):
+                minimum = str(_bounds(typ)[0])
+                bad_left = self.instruction("icmp eq " + lt + " " + left + ", " + minimum)
+                bad_right = self.instruction("icmp eq " + lt + " " + right + ", -1")
+                bad = self.instruction("and i1 " + bad_left + ", " + bad_right)
+                self.guard(self.instruction("xor i1 " + bad + ", true"))
+            action = ("s" if _signed(typ) else "u") + ("div" if op == "int.div.checked" else "rem")
+            results = [self.instruction(action + " " + lt + " " + left + ", " + right)]
+        elif op in {"int.shl.checked", "int.shr.checked"}:
+            left, typ = arguments[0]
+            count, count_type = arguments[1]
+            self.guard(self.instruction("icmp ult " + _llvm_type(count_type) + " " + count + ", " + str(_WIDTHS[typ])))
+            amount = self.cast(count, count_type, typ)
+            action = "shl" if op == "int.shl.checked" else "ashr" if _signed(typ) else "lshr"
+            results = [self.instruction(action + " " + _llvm_type(typ) + " " + left + ", " + amount)]
+        elif op == "int.neg.checked":
+            value, typ = arguments[0]
+            results = [self.checked_binary("sub", "0", value, typ)]
+        elif op in {"bit.and", "bit.or", "bit.xor", "bit.not"}:
+            value, typ = arguments[0]
+            other = "-1" if op == "bit.not" else arguments[1][0]
+            action = "xor" if op == "bit.not" else op.split(".")[1]
+            results = [self.instruction(action + " " + _llvm_type(typ) + " " + value + ", " + other)]
+        elif op.startswith("compare."):
+            left, typ = arguments[0]
+            predicate = op.split(".")[1]
+            if predicate not in {"eq", "ne"}:
+                predicate = ("s" if _signed(typ) else "u") + predicate
+            results = [self.instruction("icmp " + predicate + " " + _llvm_type(typ) + " " + left + ", " + arguments[1][0])]
+        elif op in {"bool.not", "bool.and", "bool.or"}:
+            action = "xor" if op == "bool.not" else op.split(".")[1]
+            other = "true" if op == "bool.not" else arguments[1][0]
+            results = [self.instruction(action + " i1 " + arguments[0][0] + ", " + other)]
+        elif op == "int.cast":
+            value, source = arguments[0]
+            destination = out_types[0]
+            if attrs["mode"] == "checked":
+                before_low, before_high = _bounds(source)
+                after_low, after_high = _bounds(destination)
+                prefix = "s" if _signed(source) else "u"
+                if after_low > before_low:
+                    self.guard(self.instruction("icmp " + prefix + "ge " + _llvm_type(source) + " " + value + ", " + str(after_low)))
+                if after_high < before_high:
+                    self.guard(self.instruction("icmp " + prefix + "le " + _llvm_type(source) + " " + value + ", " + str(after_high)))
+            results = [self.cast(value, source, destination)]
+        elif op == "select":
+            results = [self.instruction("select i1 " + arguments[0][0] + ", " + self.scalar(args[1]) + ", " + self.scalar(args[2]))]
+        elif op == "call":
+            callee = self.parent.functions[attrs["function"]]
+            returns = callee["returns"]
+            call = "call " + _return_type(returns) + " @__hia_fn_" + str(self.parent.indices[callee["name"]])
+            call += "(" + ", ".join(self.scalar(arg) for arg in args) + ")"
+            if not returns:
+                self.line(call)
+            else:
+                value = self.instruction(call)
+                if len(returns) == 1:
+                    results = [value]
+                else:
+                    results = [self.instruction("extractvalue " + _return_type(returns) + " " + value + ", " + str(index))
+                               for index in range(len(returns))]
+        elif op in {"buffer.new", "buffer.try_new"}:
+            pair = self.instruction("call %hia.alloc @__hia_allocate(i64 " + arguments[0][0] + ", i1 " + self.zero_bytes + ")")
+            owner = self.instruction("extractvalue %hia.alloc " + pair + ", 0")
+            success = self.instruction("extractvalue %hia.alloc " + pair + ", 1")
+            if op == "buffer.new":
+                self.guard(success)
+                results = [owner]
+            else:
+                results = [owner, success]
+        elif op == "buffer.len":
+            results = [self.instruction("extractvalue %hia.buffer " + arguments[0][0] + ", 1")]
+        elif op in {"owner.move", "borrow.read", "borrow.mut"}:
+            results = [arguments[0][0]]
+        elif op == "loan.end":
+            pass
+        elif op == "owner.drop":
+            ptr = self.instruction("extractvalue %hia.buffer " + arguments[0][0] + ", 0")
+            # Allocation refusal and deallocation events are observable in this
+            # explicit resource profile. libc-name recognition must not erase
+            # them simply because no surviving value refers to the bytes.
+            self.line("call void @free(ptr " + ptr + ") nobuiltin")
+        elif op in {"buffer.load", "buffer.store"}:
+            pointer, length = self.buffer_parts(arguments[0][0])
+            index = arguments[1][0]
+            self.guard(self.instruction("icmp ult i64 " + index + ", " + length))
+            address = self.instruction("getelementptr i8, ptr " + pointer + ", i64 " + index)
+            if op == "buffer.load":
+                results = [self.instruction("load i8, ptr " + address + ", align 1")]
+            else:
+                self.line("store i8 " + arguments[2][0] + ", ptr " + address + ", align 1")
+        else:
+            _reject("unimplemented verified operation " + op)
+        if len(results) != len(outputs):
+            _reject("native output arity disagrees with verified operation " + op)
+        for output, value in zip(outputs, results):
+            self.values[output["name"]] = (value, output["type"])
+
+    def edge(self, target, arguments):
+        name = "edge_" + str(len(self.edges))
+        values = [self.argument(arg) for arg in arguments]
+        self.edges.append((name, target, values))
+        return name
+
+    def terminal(self, term):
+        op = term["op"]
+        if op == "jump":
+            edge = self.edge(term["target"], term["args"])
+            self.line("br label %" + edge)
+        elif op == "branch":
+            yes = self.edge(term["then"]["target"], term["then"]["args"])
+            no = self.edge(term["else"]["target"], term["else"]["args"])
+            condition = self.argument(term["cond"])[0]
+            self.line("br i1 " + condition + ", label %" + yes + ", label %" + no)
+        elif op == "trap":
+            self.line("call void @abort()")
+            self.line("unreachable")
+        elif op == "ret":
+            returns = self.function["returns"]
+            values = term["values"]
+            if not returns:
+                self.line("ret void")
+            elif len(returns) == 1:
+                self.line("ret " + self.scalar(values[0]))
+            else:
+                combined = "zeroinitializer"
+                typ = _return_type(returns)
+                for index, value in enumerate(values):
+                    combined = self.instruction("insertvalue " + typ + " " + combined + ", " + self.scalar(value) + ", " + str(index))
+                self.line("ret " + typ + " " + combined)
+        else:
+            _reject("unknown terminator " + op)
+
+    def render(self):
+        fn = self.function
+        entry = next(block for block in fn["blocks"] if block["id"] == fn["entry"])
+        ordered = [entry] + [block for block in fn["blocks"] if block["id"] != fn["entry"]]
+        for block in ordered:
+            self.lines = []
+            self.values = {param["name"]: self.param_ids[param["name"]] for param in block["params"]}
+            for operation in block["ops"]:
+                self.operation(operation)
+            self.terminal(block["term"])
+            self.blocks.append((block, list(self.lines)))
+        params = ", ".join(_llvm_type(param["type"]) + " " + self.param_ids[param["name"]][0]
+                           for param in entry["params"])
+        result = ["define internal " + _return_type(fn["returns"]) + " @__hia_fn_" + str(self.number) + "(" + params + ") {"]
+        for block, body in self.blocks:
+            result.append(self.block_ids[block["id"]] + ":")
+            if block["id"] != fn["entry"]:
+                incoming = [(name, values) for name, target, values in self.edges if target == block["id"]]
+                for index, param in enumerate(block["params"]):
+                    parts = ["[ " + values[index][0] + ", %" + name + " ]" for name, values in incoming]
+                    if not parts:
+                        _reject("native lowering received unreachable parameterized block")
+                    result.append("  " + self.param_ids[param["name"]][0] + " = phi " + _llvm_type(param["type"]) + " " + ", ".join(parts))
+            result.extend(body)
+        for name, target, _values in self.edges:
+            result += [name + ":", "  br label %" + self.block_ids[target]]
+        result.append("}")
+        return "\n".join(result)
+
+
+_BUFFER_RUNTIME = r"""
+; A failed allocation is an empty, valid owner plus false. Zero length succeeds.
+; The independent verifier still requires every resulting owner to be consumed.
+define internal %hia.alloc @__hia_allocate(i64 %length, i1 %zero_bytes) {
+entry:
+  %zero = icmp eq i64 %length, 0
+  br i1 %zero, label %empty, label %nonempty
+empty:
+  %empty_result = insertvalue %hia.alloc zeroinitializer, i1 true, 1
+  ret %hia.alloc %empty_result
+nonempty:
+  %valid = icmp ule i64 %length, 9223372036854775807
+  br i1 %valid, label %allocate, label %failed
+allocate:
+  br i1 %zero_bytes, label %zeroed, label %unread
+zeroed:
+  %zero_pointer = call ptr @calloc(i64 1, i64 %length) nobuiltin
+  br label %allocated
+unread:
+  %unread_pointer = call ptr @malloc(i64 %length) nobuiltin
+  br label %allocated
+allocated:
+  %pointer = phi ptr [ %zero_pointer, %zeroed ], [ %unread_pointer, %unread ]
+  %success = icmp ne ptr %pointer, null
+  br i1 %success, label %ready, label %failed
+ready:
+  %b0 = insertvalue %hia.buffer zeroinitializer, ptr %pointer, 0
+  %b1 = insertvalue %hia.buffer %b0, i64 %length, 1
+  %r0 = insertvalue %hia.alloc zeroinitializer, %hia.buffer %b1, 0
+  %r1 = insertvalue %hia.alloc %r0, i1 true, 1
+  ret %hia.alloc %r1
+failed:
+  ret %hia.alloc zeroinitializer
+}
+"""
+
+
+class _Emitter:
+    def __init__(self, document, target):
+        self.document = document
+        self.target = target
+        self.functions = {fn["name"]: fn for fn in document["functions"]}
+        self.indices = {fn["name"]: index for index, fn in enumerate(document["functions"])}
+        self.intrinsics = set()
+        self.exports = []
+
+    def wrapper(self, fn, number):
+        # External entrypoints never accept forged owner/loan descriptors.
+        if (any(param["type"] not in set(_WIDTHS) | {"bool"} for param in fn["params"])
+                or len(fn["returns"]) > 1 or
+                any(typ not in set(_WIDTHS) | {"bool", "unit"} for typ in fn["returns"])):
+            return ""
+        name = fn["name"]
+        if name in _RUNTIME_NAMES or name.startswith("__hia_"):
+            _reject("function name conflicts with the closed runtime ABI")
+        if re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", name) is None:
+            _reject("function name cannot be represented by the native C ABI")
+        self.exports.append(name)
+        returns = fn["returns"]
+        is_void = not returns or returns == ["unit"]
+        native_return = "void" if is_void else _abi_attr(returns[0], self.target) + _llvm_type(returns[0])
+        parameters = ", ".join(_llvm_type(p["type"]) + " " + _abi_attr(p["type"], self.target) + "%a" + str(i)
+                               for i, p in enumerate(fn["params"]))
+        args = ", ".join(_llvm_type(p["type"]) + " %a" + str(i) for i, p in enumerate(fn["params"]))
+        call = "call " + _return_type(returns) + " @__hia_fn_" + str(number) + "(" + args + ")"
+        lines = ["define " + native_return + " @" + name + "(" + parameters + ") {", "entry:"]
+        lines += ["  " + (("%result = ") if returns else "") + call]
+        lines += ["  ret void" if is_void else "  ret " + _llvm_type(returns[0]) + " %result", "}"]
+        return "\n".join(lines)
+
+    def render(self):
+        bodies = [_FunctionEmitter(self, fn, index).render()
+                  for index, fn in enumerate(self.document["functions"])]
+        wrappers = [self.wrapper(fn, index) for index, fn in enumerate(self.document["functions"])]
+        if not 1 <= len(self.exports) <= 128:
+            _reject("native profile requires between 1 and 128 scalar entrypoints")
+        # Call-site nobuiltin alone does not stop LLVM 20's declaration-level
+        # InferFunctionAttrs from assigning libc alloc-family/memory effects.
+        # Keep both boundaries explicit: our language exposes allocation
+        # refusal and cleanup, including calls later observed by link wrappers.
+        declarations = ["declare void @abort() noreturn",
+                        'declare ptr @calloc(i64, i64) "no-builtins"',
+                        'declare ptr @malloc(i64) "no-builtins"',
+                        'declare void @free(ptr) "no-builtins"']
+        declarations += ["declare { i" + str(bits) + ", i1 } @" + name + "(i" + str(bits) + ", i" + str(bits) + ")"
+                         for name, bits in sorted(self.intrinsics)]
+        return ("; Standalone HIA: verified core -> LLVM. No source AST or Rust safety gate.\n"
+                'target triple = "' + self.target + '"\n'
+                "%hia.buffer = type { ptr, i64 }\n%hia.alloc = type { %hia.buffer, i1 }\n"
+                + "\n".join(declarations) + "\n" + _BUFFER_RUNTIME + "\n"
+                + "\n\n".join(bodies + [wrapper for wrapper in wrappers if wrapper]) + "\n")
+
+
+def emit_program_llvm(program, *, target=TARGET):
+    """Emit LLVM from an independently verified immutable standalone program."""
+    if target not in {TARGET, TARGET_AARCH64}:
+        _reject("unsupported 64-bit native target")
+    before = _implementation_hash()
+    verified = _verified(program)
+    emitter = _Emitter(verified.as_dict(), target)
+    text = emitter.render()
+    if not text.isascii() or len(text.encode()) > MAX_LLVM_BYTES:
+        _reject("generated LLVM exceeds the closed textual profile")
+    if _implementation_hash() != before:
+        _reject("verifier/emitter implementation changed during generation", "E_HIA_PROGRAM_STALE")
+    return HIAProgramLLVM(text, sha256(text.encode()).hexdigest(), verified.sha256,
+                          before, tuple(sorted(emitter.exports)),
+                          PROFILE if target == TARGET else PROFILE_AARCH64, target)
+
+
+def _read_artifact(path):
+    """Bound ordinary file bytes before allocating an in-memory copy."""
+    before = path.lstat()
+    if not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= MAX_ARTIFACT_BYTES:
+        _reject("native artifact must be a bounded ordinary nonempty file")
+    key = lambda st: (st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns)
+    with os.fdopen(os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)), "rb") as stream:
+        if key(os.fstat(stream.fileno())) != key(before):
+            _reject("artifact changed before reading")
+        data = stream.read(before.st_size + 1)
+        if len(data) != before.st_size or key(os.fstat(stream.fileno())) != key(before):
+            _reject("artifact changed during reading")
+    if key(path.lstat()) != key(before):
+        _reject("artifact pathname changed during reading")
+    return data
+
+
+def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared"):
+    """Compile only regenerated verified Core LLVM, then inspect and publish it.
+
+    The returned receipt is compilation evidence. Executing it, comparing it
+    against the interpreter, and observing allocator/guard behavior are separate
+    qualification steps; this entry does not claim to have done those steps.
+    """
+    if not isinstance(ir, HIAProgramLLVM) or ir != emit_program_llvm(program, target=ir.target):
+        _reject("LLVM differs from independently reverified standalone program", "E_HIA_PROGRAM_ORIGIN")
+    if kind not in {"shared", "object"}:
+        _reject("only shared libraries and relocatable objects are supported")
+    if ir.target == TARGET_AARCH64 and kind != "object":
+        _reject("AArch64 builds produce relocatable objects; execution requires a separate target runtime")
+    if platform.system() != "Linux" or platform.machine() not in {"x86_64", "amd64"}:
+        _reject("native profile requires a Linux x86-64 host")
+    found = shutil.which(clang)
+    if found is None:
+        _reject("actual Clang 20+ is required")
+    compiler = Path(found).resolve()
+    compiler_digest = digest_executable(compiler)
+    version = run_bounded([str(compiler), "--version"], timeout=10, stdout_limit=65536, stderr_limit=65536)
+    target = run_bounded([str(compiler), "-dumpmachine"], timeout=10, stdout_limit=65536, stderr_limit=65536)
+    if (version.returncode or target.returncode
+            or re.search(r"clang version (?:2[0-9]|[3-9][0-9])\.", version.stdout) is None
+            or target.stdout.strip() not in {TARGET, "x86_64-pc-linux-gnu"}):
+        _reject("expected an actual Clang 20+ Linux x86-64 driver")
+    destination = Path(os.path.abspath(output))
+    if destination.exists() or destination.is_symlink() or not destination.parent.is_dir():
+        _reject("a new output path in an existing directory is required")
+    with tempfile.TemporaryDirectory(prefix=".hia-native-", dir=destination.parent) as directory:
+        source = Path(directory) / "program.ll"
+        artifact = Path(directory) / ("program.so" if kind == "shared" else "program.o")
+        source.write_text(ir.text, encoding="ascii")
+        flags = ["--target=" + ir.target, "-x", "ir", "-O3", "-fPIC", "-shared" if kind == "shared" else "-c"]
+        command = [str(compiler), *flags, str(source), "-o", str(artifact)]
+        compiled = run_bounded(command, timeout=60, stdout_limit=65536, stderr_limit=1048576)
+        if compiled.returncode:
+            _reject("Clang rejected independently verified HIA LLVM: " + compiled.stderr[:3000], "E_HIA_PROGRAM_NATIVE")
+        data = _read_artifact(artifact)
+        if kind == "shared":
+            inventory = inspect_owned_shared_elf(data, ir.exports)
+        else:
+            symbols = inspect_object_symbols(data, "ELF64", 62 if ir.target == TARGET else 183)
+            exports = symbols.get("defined")
+            imports = symbols.get("undefined")
+            if exports != frozenset(ir.exports) or imports is None or not imports <= _IMPORTS:
+                _reject("object import/export inventory differs from the closed core ABI")
+            inventory = {key: sorted(value) for key, value in symbols.items()}
+        if digest_executable(compiler) != compiler_digest or _implementation_hash() != ir.implementation_sha256:
+            _reject("native compiler or HIA implementation changed during compilation", "E_HIA_PROGRAM_STALE")
+        published = publish_verified(artifact, destination, data)
+        try:
+            if digest_executable(compiler) != compiler_digest or _implementation_hash() != ir.implementation_sha256:
+                _reject("native compiler or HIA implementation changed during publication", "E_HIA_PROGRAM_STALE")
+            verify_published(artifact, destination, data)
+        except Exception:
+            withdraw_own_link(artifact, destination)
+            raise
+    return {"schema": "hepta.hia.program.native.v1", "ok": True,
+            "status": "native_compiled_not_executed", "profile": ir.profile, "target": ir.target,
+            "kind": kind, "output": str(destination), "core_sha256": ir.core_sha256,
+            "llvm_ir_sha256": ir.sha256, "implementation_sha256": ir.implementation_sha256,
+            "artifact_sha256": published["sha256"], "artifact_bytes": published["bytes"],
+            "exports": list(ir.exports), "binary_inventory": inventory,
+            "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+            "runtime_assumptions": ["Linux LP64 target with 64-bit pointers and size_t",
+                                    "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+                                    "C malloc returns null or a fresh nonaliasing allocation of the requested size; used only when byte contents cannot be observed",
+                                    "C free accepts a live allocation from calloc or malloc, or null",
+                                    "abort terminates execution; no cleanup after traps is promised",
+                                    "native compiler, linker, loader, libc and host hardware are trusted"],
+            "toolchain": {"path": str(compiler), "sha256": compiler_digest,
+                          "version": version.stdout.splitlines()[0], "default_target": target.stdout.strip()},
+            "flags": flags,
+            "claims": {"standalone_core_reverified": True, "source_ast_required": False,
+                       "rust_reference_required": False, "rust_codegen_used": False,
+                       "c_codegen_used": False, "fallback_used": False,
+                       "native_execution_qualified": False, "backend_refinement_proved": False,
+                       "cross_target_execution_qualified": False,
+                       "whole_language_soundness_proved": False,
+                       "foreign_buffer_entrypoints_exposed": False}}
+
+
+def build_program_native(document, output, *, clang="clang", kind="shared", target=TARGET):
+    """Convenience path: verify standalone document, emit LLVM, compile it."""
+    from .hia_program import verify_program
+    program = verify_program(document)
+    ir = emit_program_llvm(program, target=target)
+    return compile_program_llvm(ir, program=program, output=output, clang=clang, kind=kind)

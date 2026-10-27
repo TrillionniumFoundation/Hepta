@@ -1,0 +1,156 @@
+{
+  "schema": "hepta.stage-boundary-audit.v1",
+  "audited_git_sha": "b917f5fcdaa13a6a7b237010b46b0f411b7e9ecf",
+  "repo": "/workspace/scratch/d930f2b45e07/hepta",
+  "method": "只读源码/文档与已有run1 JSON；未执行测试、编译、基准、大目录哈希或CI查询；未改源码。",
+  "strict_stage_closure": {
+    "P3": false,
+    "P4": false
+  },
+  "evidence": {
+    "run1": "/workspace/scratch/d930f2b45e07/hepta-integrated-20261027-run1/qualification.json",
+    "run1_git_sha": "a4ba75b92fd22d41ef39d29307fb92cea4bad131",
+    "run1_unchanged_source": true,
+    "relevant_passed_gates": [
+      "native_host_gcc",
+      "native_host_clang",
+      "source_migration",
+      "cpp_template_migration",
+      "c_configuration_matrix",
+      "cpp_configuration_matrix",
+      "upstream_c_resource_matrix",
+      "upstream_cpp_composed_lifetimes",
+      "cpp_composed_implementation_llvm"
+    ],
+    "provenance_limit": "run1证明其自身冻结SHA。git diff显示a4→b917的源码变动仅tools/qualify_llvm_local_views.py及其entrypoint测试（另有归档证据），本审阅的P3/P4实现未变；仍不把run1重标成b917全门通过。run2进行中，未读取或升级其结论。"
+  },
+  "P3": {
+    "implemented": [
+      {
+        "profile": "hepta.native-host.v2 / actual-host C11 ABI",
+        "scope": "36普通record、12标量、12嵌套指针、数组/布局/寄存器溢出参数；每种编译器O0/O2各181次调用；三类错误声明编译负例及错误echo运行负例。",
+        "execution": "run1 Linux x86_64 GCC与Clang均passed；真实家族宏核验区分Clang的MSVC ABI与cl.exe。",
+        "refs": [
+          "tools/validate_native_host.py:34",
+          "tools/validate_native_host.py:149",
+          "tools/validate_native_host.py:223",
+          "tools/validate_native_host.py:308",
+          "tools/abi_fuzz.py:148",
+          "docs/NATIVE_HOSTS.md:8"
+        ]
+      },
+      {
+        "profile": "C header probe + declared C++ contract/handle/scoped bridge",
+        "scope": "C importer实际探测本机布局/常量；C++标量/POD、call_only span、opaque handle、调用内RAII有签名/布局/空指针/对齐/长度/线程与重入检查。",
+        "refs": [
+          "hepta/c_import.py:388",
+          "hepta/c_import.py:407",
+          "hepta/cpp_contracts.py:128",
+          "hepta/cpp_contracts.py:174",
+          "hepta/cpp_contracts.py:635",
+          "hepta/cpp_contracts.py:797"
+        ]
+      }
+    ],
+    "not_met": [
+      "MSVC、Windows Clang、非Linux/ARM实际宿主执行仍按任务状态pending；七行workflow声明和交叉编译不能替代各宿主成功报告。本轮未重复查CI。",
+      "普通ABI矩阵不覆盖packed/bitfield/varargs或外部生命周期；C importer明确拒绝function-pointer等未建模声明，不能由该矩阵声称通用callback ABI已闭合。",
+      "handle重入allow/reject、creator_thread/serialized只约束桥接入口；callback所有权、外部alias/worker/global状态、跨对象死锁和任意线程生命周期未证明。",
+      "call_only retention是调用者/外部库义务；nonnull+alignment+length检查不能证明真实分配大小、初始化、provenance、alias或外部不保存span。异常状态不回滚外部副作用；终止/longjmp/UB不受保证。"
+    ],
+    "refs": [
+      ".github/workflows/hepta-native-hosts.yml:23",
+      "hepta/checker.py:622",
+      "hepta/cpp_contracts.py:807",
+      "docs/CPP_INTEROP.md:130",
+      "docs/CPP_INTEROP.md:155",
+      "docs/CPP_INTEROP.md:210"
+    ]
+  },
+  "P4": {
+    "implementation_profiles": [
+      {
+        "profile": "captured_c_value_and_contracted_slice_subset / captured_C_record_views_and_checked_cursor_slices",
+        "scope": "真实Clang配置捕获、声明台账、C标量/显式slice与record-view合约；非逃逸已初始化字节分配/free只识别保守结构规则，非通用ownership推断。",
+        "refs": [
+          "hepta/c_migration_project.py:25",
+          "hepta/c_migration_project.py:43",
+          "hepta/c_migration_project.py:61",
+          "hepta/c_allocation.py:1"
+        ]
+      },
+      {
+        "profile": "C/C++ scalar project → standalone HIA",
+        "scope": "共享标量lowerer；C++明确noexcept、整数/Boolean、标量局部量/控制流、已捕获实现的直接调用；翻译实际Clang解析重载和有限具体函数模板实例，target不链接原C++实现。",
+        "refs": [
+          "hepta/cpp_project_migrate.py:115",
+          "hepta/cpp_project_migrate.py:238",
+          "hepta/cpp_project_migrate.py:319",
+          "hepta/cpp_project_migrate.py:340",
+          "docs/CPP_PROJECT_HIA.md:25"
+        ]
+      },
+      {
+        "profile": "cpp20-public-scalar-value-class-trivial-lifecycle-v1",
+        "scope": "真实标量值类方法体迁移；生命周期须经native trait检查为trivial，非通用资源类。",
+        "refs": [
+          "hepta/cpp_class_migrate.py:24",
+          "docs/CPP_CLASS_MIGRATION.md:16",
+          "docs/CPP_CLASS_MIGRATION.md:36"
+        ]
+      },
+      {
+        "profile": "cpp20-exclusive-zeroed-u8-array-move-and-lifecycle-v1 / cpp20-composed-exclusive-byte-owners-semantic-v1",
+        "scope": "叶owner完整AST对比compiler-owned封闭协议，输出真实Buffer<u8>所有权；2–4叶owner的composite从实际AST结构化翻译，target不保留原C++对象。不是固定composite样例替身，也不是任意RAII推断。",
+        "refs": [
+          "hepta/cpp_owned_migrate.py:1",
+          "hepta/cpp_owned_migrate.py:26",
+          "hepta/cpp_owned_migrate.py:131",
+          "hepta/cpp_composed_migrate.py:1",
+          "hepta/cpp_composed_migrate.py:27",
+          "docs/CPP_COMPOSED_MIGRATION.md:11"
+        ]
+      }
+    ],
+    "bridge_is_not_rewrite": {
+      "detail": "contract/scoped/pipeline bridge仍执行外部C++实现；生成器只native检查对象，生成成功不代表已链接执行。与上述implementation迁移分开计数。",
+      "run1_observation": "cpp-composed/qualification.json: status=complete_observation_with_foreign_termination; foreign_cpp_implementation_rewritten=false; native_implementation_migrations=0; all_allocation_failure_paths_recovered=false; bridge_upgrade_variants=2。",
+      "refs": [
+        "hepta/cpp_contracts.py:686",
+        "hepta/cpp_contracts.py:765",
+        "hepta/cpp_contracts.py:797",
+        "tools/qualify_cpp_composed.py:151",
+        "tools/qualify_cpp_composed.py:319"
+      ]
+    },
+    "inventory_boundary": {
+      "implemented": "所有已列出且接受的active project declarations有disposition；未解析条目拒绝。显式matrix分配每条编译命令恰好一次，各variant覆盖同一TU集合；最多32命令/8变体，C++最多8192声明/120具体函数。",
+      "gap": "完整性分母是已列出的预处理TU/配置，不是历史项目所有平台、宏组合、依赖版本或所有模板实例；不能将selected capture升级为whole-project。",
+      "refs": [
+        "hepta/c_project.py:92",
+        "hepta/c_project.py:306",
+        "hepta/c_project_matrix.py:24",
+        "hepta/c_project_matrix.py:82",
+        "hepta/c_migration_project.py:142",
+        "hepta/cpp_project_migrate.py:327",
+        "docs/CPP_PROJECT_HIA.md:98"
+      ]
+    },
+    "not_met": [
+      "通用类继承/virtual、任意析构/allocator/recursive owner、异常语义、STL对象、模板全实例、callback/逃逸pointer/跨线程ownership迁移仍未闭合；选定profile拒绝或保留外部实现，不应泛称支持全部C++。",
+      "C++ mangled/class/exception ABI未保留；移植通过显式C ABI wrappers。定义域只覆盖源语言defined executions；未证明全输入source-to-target refinement或全编译器内存安全。",
+      "现有L1 receipt及显式false的equivalence/whole-language声明，不能因有限native差分通过而提升为通用L2/L3。"
+    ],
+    "cost_replay_gap": {
+      "observed": "有生成/编译/执行墙时、源/产物大小、选定bridge操作成本和两版本升级观察。",
+      "missing": "C migration cost明确manual_review_hours=null、agent_tokens=null；人工合约编写/审阅、完整迁移修改量、长期维护/跨配置再资格、Agent总成本与现实项目端到端低成本重放未建立。局部wrapper计数或有限native通过不等于低成本重写C/C++。",
+      "refs": [
+        "hepta/c_migration_project.py:71",
+        "tools/qualify_cpp_composed.py:40",
+        "tools/qualify_cpp_composed.py:156",
+        "docs/CPP_PROJECT_HIA.md:88",
+        "docs/CPP_INTEROP.md:51"
+      ]
+    }
+  }
+}

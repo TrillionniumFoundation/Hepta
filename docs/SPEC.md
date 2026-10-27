@@ -5,6 +5,20 @@ compilation profiles. It does not make every feature in the research proposal
 part of the language. The specification, compiler snapshot, and executable
 evidence must agree; a discrepancy is a defect.
 
+This file is the normative entrypoint for implemented language semantics.
+The subsystem documents linked here specify their narrower wire formats and
+qualification protocols. Research proposals, execution ledgers and historical
+test reports do not silently extend the language or a backend's supported
+profile. See [UNIFIED_CANDIDATE.md](UNIFIED_CANDIDATE.md) for the current backend
+and migration acceptance matrix.
+
+The standalone `hepta.hia.program.v1` compilation profile is specified by
+[HIA_PROGRAM.md](HIA_PROGRAM.md). Its typed executable operations are admitted
+by `verify_core` without high-level source and consumed directly by the core
+interpreter and LLVM backend. This is a narrower, separately qualified profile;
+the source-language features below do not implicitly widen it. Source imports
+must lower into and pass that same independent checker.
+
 ## 1. Compilation profiles and trust
 
 UTF-8 source is parsed into a closed AST. The module loader resolves an explicit
@@ -127,8 +141,9 @@ The shared frontend supports:
 
 - Signed and unsigned fixed-width integers through 128 bits; `isize`, `usize`,
   `f32`, `f64`, `bool`, and `Unit`.
-- By-value structs, Copy enums, and fixed arrays `[T; N]`.
-- Unsized slices `[T]`, only as `read`/`mut` parameters.
+- By-value structs and enums, including supported resource payloads, and
+  fixed arrays `[T; N]` with Copy elements.
+- Unsized slices `[T]`, behind `read`/`mut` parameters, immediate borrowed returns or supported stored-reference fields.
 - Raw pointers `raw const T` and `raw mut T`.
 - Linear `Buffer<T>` owners; the allocation builtin currently constructs only
   `Buffer<u8>`.
@@ -136,6 +151,8 @@ The shared frontend supports:
 - Unconstructible `Cancellation` and `Sender<u64>` capabilities, accepted only
   as `read` parameters.
 - The runtime's ordinary Copy `GroupReport` snapshot type.
+- Lifetime-parameterized shared/mutable borrowed records in the bounded Rust profile.
+- Linear hosted `IoReactor` / `IoRequest` owners and Copy I/O reports.
 
 Backend and ABI profiles further restrict these types. In particular, shared
 frontend acceptance does not imply C-backend support.
@@ -143,18 +160,25 @@ frontend acceptance does not imply C-backend support.
 Functions require an explicit return type and `effects { ... }`. Extern
 declarations have no body and end with `;`. Implemented functions may add a
 `resources` clause. Parameter modes are value, `read`, `mut`, and `take`.
-Owned Buffer parameters require `take`. Calls supply explicit `read`, `mut`,
+Owning Buffer and resource-bearing data parameters require `take`. Calls supply explicit `read`, `mut`,
 or `move` syntax for the corresponding modes. Bare reads of a borrowed Copy
 value read its contents; Rust lowering dereferences the parameter borrow.
 
-Local bindings are immutable unless declared `let mut`. Local shadowing is
-rejected. Local reference aliases, returned references, arbitrary lifetime
-parameters, resource-containing aggregates, and owned control capabilities
-are unsupported. Task and TaskGroup handles cannot be user-function
+Local bindings are immutable unless declared `let mut`. Local shadowing and
+standalone reference local values are rejected. View records may store
+`read 'a T` / `mut 'a T` fields with up to eight named lifetime parameters;
+multiple regions, shared copies, affine mutable views and nested views retain
+native Rust lifetime checking. Outlives clauses, higher-ranked bounds, mixed
+type/lifetime parameters, self-referential ownership, stored capabilities and
+arbitrary storage inside ADTs/arrays remain excluded; see `BORROWED_STORAGE.md`.
+A returned
+read/mut view derives from the unique borrowed input or the input named by
+`-> read/mut Type from parameter`; see `PARTIAL_PLACES.md`.
+Task and TaskGroup handles cannot be user-function
 parameters or returns. GroupReport cannot be constructed with a source struct
 literal; runtime operations return it, after which it is a normal Copy value.
 
-## 5. Copy generics, enums, and Result
+## 5. Finite generic constraints, enums, and Result
 
 Generic functions, structs, and enums declare type parameters with `<T, E>`:
 
@@ -163,15 +187,22 @@ pub struct Pair<T, E> { left: T, right: E }
 pub enum Maybe<T> { None, Some(T) }
 
 fn identity<T>(value: T) -> T effects {} { return value; }
+fn forward<T: Owned>(value: take T) -> T effects {} { return move value; }
 ```
 
-Every type parameter has an implicit sized `Copy` bound. The compiler checks
-every generic body, even when it is never instantiated. Abstract parameters
-can be copied, borrowed, placed in known generic constructors, matched through
-known enum types, and passed to other generic functions. They do not imply
+Function parameters default to sized `Copy`; explicit `T: Copy` has the same
+meaning. `T: Owned` instead requires a supported sized resource value and
+checks an ownership obligation for every such parameter/local. Generic data
+declarations can be instantiated with either Copy or supported Owned values.
+The compiler checks every generic body, even when it is never instantiated.
+Copy parameters can be copied; Owned parameters require transfer, borrowing or
+drop. Both can be placed in known generic constructors, matched through known
+enum types, and passed to compatible generic functions. Neither implies
 numeric, equality, ordering, or other operator capabilities. Trait declarations,
-specialization, higher-kinded/const/lifetime generics, and higher-order functions
-are not implemented.
+specialization, higher-kinded/const generics, general lifetime constraints, and
+higher-order functions are not implemented. Explicit bounded record/function
+lifetime parameters are a separate profile and cannot be mixed with these
+type parameters.
 
 Function calls require explicit type arguments, such as
 `identity::<u64>(17)`. Constructors can also be explicit:
@@ -185,16 +216,24 @@ functions are rejected. Compiler monomorphization limits still apply.
 
 Enums have named unit variants or positional payload variants. Unit variants
 omit parentheses. Payload arity and types are checked. Payloads and generic
-arguments cannot contain Buffer, Task, TaskGroup, Cancellation, Sender, or
-nested forms of these capabilities. Linear ADTs are not part of this release.
+arguments may contain Buffer and supported resource-bearing data. Scoped Task,
+TaskGroup, Cancellation and Sender capabilities cannot be stored in data types
+or passed as function type arguments. Resource arrays, resources behind raw
+pointers and nested resource buffers remain unsupported, including through
+generic substitution. Whole owned values and nested named owned struct fields
+move explicitly. A completely moved-out field can be restored in a mutable
+local aggregate while its enclosing structs remain initialized. Every exit
+consumes each remaining owned leaf; see `PARTIAL_PLACES.md`.
 Recursive by-value layouts are rejected across structs and enums. The layout
 check tracks generic arguments used by value, so supported raw-pointer
 indirection can break a layout cycle; this does not prove pointer validity.
 
-`Result<T, E>` is a reserved Copy enum with `Ok(T)` and `Err(E)` and lowers to
+`Result<T, E>` is a reserved enum with `Ok(T)` and `Err(E)` and lowers to
 `core::result::Result`. It supports explicit constructors and expected-type
-inference. There is no `?` operator or exception propagation. Resource-bearing
-results such as `Result<Buffer<u8>, E>` fail the Copy restriction.
+inference. There is no `?` operator or exception propagation. A Result with an
+owned payload, such as `Result<Buffer<u8>, E>`, is itself an owner even when its
+current variant contains only copied data. `OWNED_GENERICS.md` specifies finite
+constraints and the independently verified generic resource graph profile.
 
 ## 6. Exhaustive statement matching
 
@@ -213,7 +252,9 @@ scoped to one arm; `_` ignores one payload. Missing/duplicate variants,
 wrong enum names, and payload arity errors are rejected.
 
 Matching a borrowed Copy enum copies its selected payload values; patterns do
-not return references. Match expressions, guards, nested or alternative
+not return references. Matching an owned enum consumes it with `match move`;
+each owned payload must be bound and consumed, so `_` cannot discard it.
+Match expressions, guards, nested or alternative
 patterns, integer patterns, and catch-all arms are unsupported. All arms
 participate in effect and ownership checking. Returning arms must discharge
 live owners; every continuing arm must leave the same owners live.
@@ -263,6 +304,8 @@ modeled channel operations does.
 | Wrapping arithmetic, `len`, `min`, `max` | None |
 | Raw load, pointer extraction | unsafe |
 | Raw store | unsafe, write |
+| Volatile integer load | unsafe, io |
+| Volatile integer store | unsafe, io, write |
 | `spawn` | alloc, block, spawn, panic, plus worker effects |
 | `join`, `cancel_and_join` | alloc, block, panic |
 | `cancelled` | No modeled allocation/blocking effect; an atomic read |
@@ -318,8 +361,11 @@ and obey the same transitive worker-effect restrictions as ordinary tasks.
 | Operation | Semantics |
 | --- | --- |
 | `group_send(read sender, value)` | Blocks while full; returns false after closure/cancellation/failure. |
+| `group_send_timeout(read sender, value, milliseconds)` | Timed send returning `Result<bool,u8>`; one monotonic deadline across wakeups. |
 | `group_seal(mut group)` | Ends admission. |
 | `group_receive(read group, mut value)` | Requires sealing; receives into a u64 destination or returns false when closed and drained. |
+| `group_receive_timeout(read group, mut value, milliseconds)` | Timed receive; unchanged destination on timeout or closed/drained channel. |
+| `group_cancel(mut group)` | Closes/discards the channel and requests cooperative cancellation; preserves the obligation to join. |
 | `group_join(move group)` | Requires a drained channel and joins all admitted workers. |
 | `group_drain_and_join(move group)` | Seals, discards remaining messages while draining, then joins. |
 | `group_cancel_and_join(move group)` | Requests cancellation, closes/discards queued messages, wakes channel waiters, and joins. |
@@ -333,6 +379,12 @@ aborts the process; `group_fail` does not contain panics or forcibly terminate
 workers. OS thread-creation errors are handled by rejecting the admission and
 releasing transferred input.
 
+Timed operations accept `u64` milliseconds and return `Ok(true)` on progress,
+`Ok(false)` on closure, `Err(1)` on observed timeout, or `Err(2)` for an
+unrepresentable host deadline. Zero duration polls readiness. Timeout itself
+does not cancel or consume the group. Mutex scheduling and joining are not
+hard real-time bounded; see [BOUNDED_CONCURRENCY.md](BOUNDED_CONCURRENCY.md).
+
 `resource_contracts` reports these budgets as
 `scope=one_runtime_instance` and
 `enforcement=runtime_admission_and_fixed_queue`. They exclude other groups,
@@ -340,6 +392,41 @@ pre-submission allocations, worker allocations, stacks, runtime metadata,
 allocator overhead, process RSS, CPU time, and cancellation latency. There is
 no general `select`, async executor, or channel type parameter beyond u64.
 See [BOUNDED_CONCURRENCY.md](BOUNDED_CONCURRENCY.md) for the complete API.
+
+### Shared reservations, trees and hosted I/O
+
+`group_select_receive` uses event registration across two groups. Explicitly
+attached groups can share thread/input/queue/requested-stack reservations; the
+same fixed counters do not cover arbitrary worker/FFI allocations or process
+RSS. See `SHARED_RUNTIME.md`.
+
+`group_adopt(mut parent, move child)` transfers the actual child's subtree and
+join ownership into its parent. Admission is bounded to 256 groups and 16
+levels. Refusal still consumes, cancels and joins the child; it can block until
+cooperative workers finish. Cancellation propagates down, failure reaches the
+root and siblings, and both old flat and new tree join interfaces wait for
+descendants. Snapshot reports are observations, not global atomic snapshots.
+`TASK_TREES.md` defines topology locks, effects, budget identity and the
+independent concurrent IR's normal-exit adoption protocol.
+
+The hosted I/O profile has owned `IoReactor` and `IoRequest` values, tokenized
+local socket endpoints, nonblocking operations, an explicit `io_poll` readiness
+pump, monotonic deadlines, cancellation and explicit completion consumption.
+Only `x86_64-unknown-linux-gnu` is admitted. It has fixed metadata/request limits
+and counts actual retained Buffer capacity. `ASYNC_IO.md` specifies refusal,
+partial progress, EOF, shutdown and remaining obligations.
+
+The explicit task pool can be configured once, before worker admission, with
+`group_io_configure` and observed with `group_io_snapshot`. `io_attach` binds
+an unused worker-owned reactor to the worker's existing `Sender` group. The
+pool accounts for reactor slots, endpoint slots including two wake descriptors,
+request slots and the actual capacity of admitted buffers. Task-tree
+cancellation closes an owned socket peer to wake native polling; it does not
+access the reactor from another thread. Completion, reactor drop and join
+retain their resource obligations. These rules, refusals and external limits
+are specified in [TASK_TREE_IO_COMPOSITION.md](TASK_TREE_IO_COMPOSITION.md).
+General async/await, TCP/TLS, arbitrary file I/O, an executor and whole-process
+allocation/stack budgets remain unsupported.
 
 ## 11. C ABI and native header import
 
@@ -362,6 +449,9 @@ External calls, calls with an unsafe effect, raw loads/stores, and pointer
 extraction require an explicit unsafe block. Reports retain foreign effect/ABI
 assumptions and raw-memory obligations. No ownership, lifetime, thread-safety,
 or hardware-ordering proof is inferred from a C signature.
+An exported or public function with `unsafe`/`ffi` effects is also emitted as
+an unsafe public Rust function. Consuming its generated Rust library must not
+erase these caller obligations. C calling conventions remain unchanged.
 
 `hepta import-c HEADER -o bindings.hepta` parses a restricted declaration
 subset, compiles and executes a native C probe, and emits public C-compatible
@@ -393,10 +483,17 @@ operands are conservatively rejected.
 Integer arithmetic, division/remainder, shifts, wrapping operations, casts,
 and indices use explicit checked/bit-level lowering. Failed checks abort.
 GCC diagnostics and Rust constant-evaluation diagnostics need not coincide.
-The implementation rejects all generic declarations and user ADTs, Result,
-hosted resource/channel runtimes, unsupported zero-sized layouts, pointers to
-arrays, `repr(C)` array fields, and float/integer casts. No silent semantic
-substitution or Rust fallback is permitted.
+The owned C profile additionally supports Buffer-bearing structs/enums, Result,
+finite generic monomorphization, explicit returned borrows and partial named
+field moves/restoration. That profile must pass the independent resource IR
+before C emission; native error/cleanup behavior is qualified separately in
+`C_OWNED_BACKEND.md`. The v4 local single-field byte-slice view profile in
+[LLVM_LOCAL_VIEWS.md](LLVM_LOCAL_VIEWS.md) is also admitted after independent
+resource verification. General stored lifetime records outside that profile,
+labelled v5 views, nested or escaping view records, hosted task/group/I/O
+runtimes, unsupported zero-sized layouts, pointers to arrays, `repr(C)` array
+fields and float/integer casts remain rejected. No silent substitution or Rust
+fallback is permitted.
 
 The C compiler API supports bin, object, static-library, and shared-library
 artifacts. Default C `check` analysis uses an object validation artifact rather
@@ -407,14 +504,141 @@ own `c_types_codegen` result and `rustc_used=false`.
 ## 13. Rust no_std and hardware scope
 
 The Rust profile can generate supported no_std objects/libraries and rejects
-hosted allocation, I/O, tasks, and groups. Standalone no_std object/static-library
+hosted allocation, printing, tasks, groups and the hosted I/O reactor. An I/O
+effect alone does not require std: integer volatile access or explicit BSP
+foreign calls may be used in a no_std library. Standalone no_std object/static-library
 profiles use an explicit spin-loop panic handler. This is a non-returning fault
-policy, not a reset policy. Bare-metal binary entrypoints are not implemented.
+policy, not a reset policy. A general bare-metal Hepta binary entrypoint is not
+implemented; a supplied Rust/assembly BSP can link the generated library.
 
 Target compilation, emulated ISA execution, and physical-device execution are
-distinct evidence. The checked-in cross-execution harness does not qualify
-drivers, startup code, DMA, MMIO, interrupts, GPUs, or arbitrary foreign-C
-implementations on every target.
+distinct evidence. `SYSTEM_BOARD.md` specifies the implemented volatile contract
+and the pinned Cortex-M4 QEMU system profile: actual reset, linker/data/BSS
+initialization, UART MMIO and external timer IRQs, with compiled negative
+controls. The AArch64 user-mode harness remains a separate ISA execution gate.
+Neither emulator qualifies physical boards, DMA, interrupt ownership soundness,
+GPUs, hardware timing or arbitrary foreign implementations on every target.
+
+## 13a. Independent scalar32 LLVM path
+
+`hepta build-llvm-ssa` is an explicit third compilation command. It loads the
+same project, runs the shared checker and pinned Rust native reference gate,
+and obtains the canonical typed semantic snapshot. The path then lowers the
+supported control-flow profile to verified scalar SSA and LLVM IR. Clang
+generates the selected native artifact directly from LLVM IR; no Rust or C
+machine-code fallback is allowed after selecting this command.
+
+The current profile admits checked i32/u32 scalar operations, scalar Boolean
+conditions, supported branches, mutable locals and loop PHIs. Declared and
+inferred effects and resource contracts remain attached to each function and
+must agree with its CFG. Only the profile's closed pure/panic effects and zero
+allocation/no blocking/no suspension/no spawning contracts are admitted.
+Every source-facing native build regenerates exact LLVM text from the supplied
+verified SSA/CFG and rejects any mismatch before invoking Clang. A hash alone
+does not establish source correspondence. Both signed and unsigned operations
+retain their checked overflow semantics.
+
+Owned ADTs, Buffer allocation, borrowed references, raw memory, general calls,
+task/I/O runtimes and arbitrary foreign declarations are outside this LLVM
+profile and reject. An optional target emits an object whose format and target
+identity are checked; this does not execute that object on the target machine.
+The host shared-library path is exercised by native differential tests. The
+fresh Rust reference check remains a dependency of this source-facing path,
+although its final machine code comes from LLVM. The standalone IR API's
+explicitly unqualified origin mode cannot be promoted by the source command.
+
+See [P5_SOURCE_BOUND_LLVM_SCALAR32_20261025.md](P5_SOURCE_BOUND_LLVM_SCALAR32_20261025.md).
+
+### Independent owned-byte LLVM profile
+
+`hepta build-llvm-owned` selects a second direct LLVM profile for Linux
+x86-64. It admits `Buffer<u8>`, finite owned structs/enums/Result and bounded
+generic instances, immediate read/mut borrows and receiver-tied slice returns,
+explicit moves/drops, checked integer access and normal/error cleanup. The
+existing shared frontend and native Rust reference gate remain mandatory.
+The independent resource projection is checked before direct typed AST to
+LLVM emission; the graph does not pretend to contain executable scalar code.
+The complete module is regenerated and compared before native compilation.
+
+Public C boundaries contain supported ordinary scalars; owner, enum and slice
+layouts stay internal. The `alloc`, `block`, `write` and `panic` effect profile
+is supported. The local v4 single-field byte-slice view profile described in
+[LLVM_LOCAL_VIEWS.md](LLVM_LOCAL_VIEWS.md) is admitted after independent resource
+verification. Shared views copy descriptors, exclusive views move, and ending
+a view does not release its owner's allocation. This profile also reaches the
+independent C backend. General stored lifetime records, labelled v5 views,
+task/I/O resources, raw/foreign access,
+resource clauses, floating point, arrays and foreign-target resource execution
+reject. There is no automatic fallback. Allocation failure is explicit;
+overflow/bounds/infallible-allocation failure aborts, without unwind-cleanup
+claims. See [LLVM_OWNED_BYTES.md](LLVM_OWNED_BYTES.md).
+
+## 13b. Resource projection and C++ scope boundaries
+
+`hepta resource-ir` exports an independent ownership/place/loan graph. Its
+data-only verifier proves the supported properties of the supplied graph and
+does not infer that graph's source provenance from producer-supplied hashes.
+`hepta verify-resource-source SOURCE GRAPH` freshly loads and checks the real
+source closure, runs the pinned native gate by default, replays the existing
+resource lowering and compares the complete graph, including foreign
+obligations. Explicit `--frontend-only` never receives a native qualification.
+Reusing a lowerer establishes executable correspondence, not a proof that the
+lowerer or the native backend preserves all source semantics.
+
+Resource IR v4 additionally checks local one-field shared/exclusive byte-slice
+records. Copies retain their own shared loan; moving an exclusive view
+transfers its loan; owner access and exit rules account for both transient
+and stored loans. It uses a conservative lexical lifetime model. General
+interprocedural stored regions and mixed type/lifetime generics remain
+unsupported. Exact capability receipts are described in
+[LOCAL_STORED_RESOURCE_VIEWS.md](LOCAL_STORED_RESOURCE_VIEWS.md).
+
+C++ contract v3 adds automatic objects confined to one generated C++ call.
+Construction, a bounded sequence of methods, result copying and destruction
+all finish before publishing a scalar/POD output. No local object reference,
+pointer or handle may escape this route. This is C++ interoperability: the
+foreign implementation and its retention/thread/global-state assumptions
+remain external. Generic Hepta custom destructors and arbitrary safe C++
+implementation translation are not supplied by this interface. Details are
+in [CPP_SCOPED_RAII.md](CPP_SCOPED_RAII.md).
+
+The separate `hepta migrate-cpp-class` route translates one complete public
+scalar value class to a Hepta struct and receiver-borrowing free functions.
+Clang must confirm standard layout, trivial copy and trivial destruction;
+every active declaration needs a disposition. Owned pointers, nontrivial
+destructors, private state, inheritance, virtual methods and foreign method
+calls reject. Supported method and constructor bodies become Hepta code and
+do not retain original C++ link inputs. This route does not preserve the
+original C++ class ABI or implement generic resource-owning RAII migration.
+See [CPP_CLASS_MIGRATION.md](CPP_CLASS_MIGRATION.md).
+
+`hepta migrate-cpp-owned` recognizes and translates the complete selected
+exclusive zeroed-byte-array owner and lifecycle protocol. The whole native
+AST, including allocation, move, destructor, method bodies and every exit,
+must match the versioned compiler rules. Its Hepta output owns a Buffer and
+uses Result, borrows and explicit drop; it does not link the original class.
+This strict pattern migration does not claim arbitrary RAII translation,
+moved-from-object compatibility outside its domain or C++ layout preservation.
+See [CPP_OWNED_MIGRATION.md](CPP_OWNED_MIGRATION.md).
+
+`hepta migrate-cpp-composed` accepts one selected byte-owner leaf class, one
+composition with two through four leaf fields, and one complete lifecycle
+function. The complete Clang AST must satisfy the versioned leaf protocol and
+bounded composite grammar. Accepted composite constructors, scalar methods,
+member moves and lifecycle bodies become checked Hepta code. Allocation and
+selected integer errors become explicit Result paths; construction failure
+releases completed fields in reverse order. The generated destructor also
+releases fields in reverse order, and translated implementations link no
+original C++ object. Custom destructors and allocators, inheritance, virtual
+dispatch, retained pointers and arbitrary exception behavior reject. This
+route does not preserve the original C++ class layout.
+See [CPP_COMPOSED_MIGRATION.md](CPP_COMPOSED_MIGRATION.md).
+
+The two-version native library qualification in
+[CPP_UPSTREAM_UPGRADE.md](CPP_UPSTREAM_UPGRADE.md) separately measures an
+actual unchanged-caller nlohmann/json upgrade. It retains foreign noexcept
+destructor termination as unqualified recovery. Successful library bridging
+does not make foreign failure paths or unsafe memory behavior safe.
 
 ## 14. Agent transactions, proof scope, and remaining work
 
@@ -430,8 +654,8 @@ translation. They are not proofs about the actual Hepta AST/checker,
 emit_rust/emit_c, raw pointers, FFI, scheduling, or hardware. Normal check/patch
 does not invoke a general functional prover. See [formal/README.md](../formal/README.md).
 
-Remaining work includes linear/resource-containing ADTs, richer trait and
-lifetime systems, closures, async/await, general channels/select, broad C/C++
+Remaining work includes general combinations of stored borrows and ADTs, richer
+trait and lifetime systems, closures, async/await, general channels/select, broad C/C++
 header support, stable generic/enum foreign layouts, verified refinement from
 the abstract proofs to the implementation, a self-hosted compiler, and wider
 production qualification. The executable agent pilot is an evaluation harness;

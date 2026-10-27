@@ -1,0 +1,735 @@
+{
+  "cases": [
+    {
+      "build": {
+        "artifact_kind": "relocatable_object",
+        "finite_runtime_probe": {
+          "compiler_sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+          "execution": {
+            "argv": [
+              "/tmp/hepta-ai-verification/qemu-8.2.2/qemu-aarch64-static",
+              "/tmp/.hepta-finite-arm64-z3fn0ign/finite.elf"
+            ],
+            "linked_sha256": "a1d70cbd8e51782296272280ad17fcd71dfd4938d2a537110a086c89977e0cb2",
+            "returncode": 0,
+            "runner_sha256": "e4f8d99e9ff69c3cefffab71cee358ce2af1ecba1282d04c3eeb44ef76f5a71e",
+            "stderr": "",
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout": "",
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "general_allocator_qualified": false,
+          "general_linux_abi_qualified": false,
+          "linked_bytes": 4216,
+          "linked_sha256": "a1d70cbd8e51782296272280ad17fcd71dfd4938d2a537110a086c89977e0cb2",
+          "object_sha256": "0d081b64047fd1eb6923eb8157b1a3e11a4a1b835ec9e721ed24f6d822105d84",
+          "qemu_user_mode_executed": true,
+          "real_finite_allocator_linked": true,
+          "real_target_device_executed": false,
+          "runner_sha256": "e4f8d99e9ff69c3cefffab71cee358ce2af1ecba1282d04c3eeb44ef76f5a71e",
+          "runtime_object_sha256": "503c6e2640edd17ce8abe825ce119331603caa58a5b0a069ee3b9dbebbd5f23d",
+          "runtime_source_sha256": "5caa9cbc33df5734626ff17045159add08b850abceb021b038ddb110db6f402c",
+          "schema": "hepta.owned-aarch64-finite-runtime.v1",
+          "scope": "one_selected_owned_case_C_ABI_and_4096_byte_single_live_allocation",
+          "status": "finite_qemu_userspace_execution_passed",
+          "symbols": {
+            "entrypoint": 2164472,
+            "external_functions": [
+              "_start",
+              "abort",
+              "free",
+              "malloc",
+              "memcpy",
+              "memmove",
+              "memset",
+              "owned_case"
+            ],
+            "format": "ELF64",
+            "machine": 183,
+            "no_unresolved_symbols": true
+          },
+          "target": "aarch64-unknown-linux-gnu",
+          "whole_language_soundness_proved": false
+        },
+        "finite_runtime_probe_attempted": true,
+        "linked_image_executed": true,
+        "native_backend": {
+          "artifact_bytes": 1584,
+          "artifact_sha256": "0d081b64047fd1eb6923eb8157b1a3e11a4a1b835ec9e721ed24f6d822105d84",
+          "claims": {
+            "aarch64_elf_object_compiled": true,
+            "aarch64_rust_borrow_equivalence_proved": false,
+            "foreign_abi_qualified": false,
+            "physical_hardware_tested": false,
+            "source_and_resource_origin_regenerated": true,
+            "target_c_layout_compiled": true,
+            "target_data_layout_refinement_proved": false,
+            "target_link_succeeded": false,
+            "target_object_executed": false,
+            "whole_language_memory_safety_proved": false
+          },
+          "compiler_sha256": "dbeb5311dfb81d01d8704ef26800b5672bca89976efa6b74e10a9b255efb9f97",
+          "llvm_source_sha256": "36e3af5aba63fe415e32f7a93be70c35918b2d00ecf65b69c3255a01cffd37a5",
+          "profile": "hepta.llvm-owned-bytes-host.v1",
+          "resource_ir_sha256": "a217b0c7c9687feedd4492cf00e5309d34bb642aa3befa18e63e812ecd54cb1d",
+          "resource_verification_sha256": "95731ae7d9d8698fe98a3dd4f8d461abc0cc7ac630af37453106c9df1b6f2618",
+          "schema": "hepta.llvm-owned-aarch64-object.v1",
+          "semantic_sha256": "1bddc5b0ef06930b75a71ea0c06f415b2528f4d55fe2526ba78bf8a1cb32ef58",
+          "status": "cross_object_only_not_executed",
+          "symbols": {
+            "exports": [
+              "owned_case"
+            ],
+            "external_libraries_verified": false,
+            "format": "ELF64",
+            "machine": 183,
+            "unresolved_imports": [
+              "free",
+              "malloc",
+              "memset"
+            ]
+          },
+          "target": "aarch64-unknown-linux-gnu",
+          "target_layout_probe": {
+            "bound_llvm_sha256": "1cc328f7df705001a07ccdc3a10898130e79d8880003424c1cb886164b17733b",
+            "c_source_sha256": "2c58207792b5e0a92faf22c9a3e2601e073e8c553e2c0e1c5f4da8187fc74a44",
+            "compiler_checked": true,
+            "llvm_layout_equivalence_proved": false,
+            "machine": 183,
+            "native_abi_execution_qualified": false,
+            "observed_requirements": {
+              "buffer_alignment": 8,
+              "buffer_bytes": 16,
+              "char_bits": 8,
+              "data_offset": 0,
+              "len_offset": 8,
+              "little_endian": true,
+              "long_bits": 64,
+              "pointer_bits": 64,
+              "usize_bits": 64
+            },
+            "physical_target_executed": false,
+            "probe_object_bytes": 792,
+            "probe_object_sha256": "660d4396a049a1b3a42e3fe19d9446dd0a4eb643b737f04fcd09fd018cbdcdfb",
+            "schema": "hepta.owned-target-layout.v1",
+            "status": "target_c_static_assertions_compiled_not_executed",
+            "target": "aarch64-unknown-linux-gnu"
+          },
+          "target_llvm_sha256": "1cc328f7df705001a07ccdc3a10898130e79d8880003424c1cb886164b17733b",
+          "toolchain": {
+            "path": "/usr/lib/llvm-20/bin/clang",
+            "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+            "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+          }
+        },
+        "ok": true,
+        "output": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/correct/owner.o",
+        "published_artifact_bytes": 1584,
+        "published_artifact_executed": false,
+        "published_artifact_sha256": "0d081b64047fd1eb6923eb8157b1a3e11a4a1b835ec9e721ed24f6d822105d84",
+        "reference_validation": {
+          "assumptions": [],
+          "backend": {
+            "check_only": true,
+            "crate_type": "rlib",
+            "diagnostics": [],
+            "flags": [
+              "edition=2021",
+              "opt-level=3",
+              "overflow-checks=yes",
+              "panic=abort",
+              "codegen-units=1",
+              "sysroot=/tmp/hepta-ai-rust-1.90.0"
+            ],
+            "link_args": [],
+            "linker": null,
+            "ok": true,
+            "rust_sha256": "cae7b43dfe890104f32e753ba118c7e1bb8ba45d6ec4f357d915f46a91a5362e",
+            "rustc_crate_type": "lib",
+            "status": "rustc_checked",
+            "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+            "target": "x86_64-unknown-linux-gnu",
+            "toolchain": {
+              "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+              "host": "x86_64-unknown-linux-gnu",
+              "path": "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+              "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+              "sysroot_discovery": "verified_compiler_prefix",
+              "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+            },
+            "validation_artifact_sha256": "5f3671e4916b2daad7adf7b5adf0ca7fb0c2e9d0ce9adf2daf6e92e25760b217"
+          },
+          "checks": {
+            "rust_borrows_types": "rustc_checked",
+            "syntax": "passed",
+            "types_effects_resources": "passed_in_supported_subset"
+          },
+          "claims": {
+            "all_programs_faster_than_rust": false,
+            "bounded_cancellation_latency_proved": false,
+            "deadlock_freedom_proved": false,
+            "hardware_execution_verified": false,
+            "whole_language_soundness_proved": false
+          },
+          "compiler_sha256": "dbeb5311dfb81d01d8704ef26800b5672bca89976efa6b74e10a9b255efb9f97",
+          "compiler_version": "0.2.0",
+          "diagnostics": [],
+          "effects": {
+            "M2812056b16998cdf_OwnedBytes_data": [],
+            "M2812056b16998cdf_OwnedBytes_drop": [
+              "alloc",
+              "block"
+            ],
+            "M2812056b16998cdf_OwnedBytes_fill": [
+              "panic",
+              "write"
+            ],
+            "M2812056b16998cdf_OwnedBytes_get": [
+              "panic"
+            ],
+            "M2812056b16998cdf_OwnedBytes_move": [],
+            "M2812056b16998cdf_OwnedBytes_new": [
+              "alloc",
+              "block"
+            ],
+            "M2812056b16998cdf_OwnedBytes_set": [
+              "panic",
+              "write"
+            ],
+            "M2812056b16998cdf_OwnedBytes_size": [],
+            "M2812056b16998cdf_run_owned": [
+              "alloc",
+              "block",
+              "panic",
+              "write"
+            ],
+            "owned_case": [
+              "alloc",
+              "block",
+              "panic",
+              "write"
+            ]
+          },
+          "interface_sha256": "ec99e866c0e114cfa6b68c563123b9c92311fea2fd31cf66bec83b0941d0e3bf",
+          "ok": true,
+          "path": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/correct/main.hepta",
+          "profile": {
+            "crate_type": "rlib",
+            "no_std": false,
+            "overflow_checks": true,
+            "panic": "abort"
+          },
+          "project": {
+            "c_imports": [],
+            "entry": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/correct/main.hepta",
+            "locked": false,
+            "modules": [
+              {
+                "imports": {},
+                "module": "cpp_owned_migrated",
+                "path": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/correct/owned.hepta",
+                "symbols": {
+                  "OwnedBytes": "M2812056b16998cdf_OwnedBytes",
+                  "OwnedBytes_data": "M2812056b16998cdf_OwnedBytes_data",
+                  "OwnedBytes_drop": "M2812056b16998cdf_OwnedBytes_drop",
+                  "OwnedBytes_fill": "M2812056b16998cdf_OwnedBytes_fill",
+                  "OwnedBytes_get": "M2812056b16998cdf_OwnedBytes_get",
+                  "OwnedBytes_move": "M2812056b16998cdf_OwnedBytes_move",
+                  "OwnedBytes_new": "M2812056b16998cdf_OwnedBytes_new",
+                  "OwnedBytes_set": "M2812056b16998cdf_OwnedBytes_set",
+                  "OwnedBytes_size": "M2812056b16998cdf_OwnedBytes_size",
+                  "run_owned": "M2812056b16998cdf_run_owned"
+                }
+              },
+              {
+                "imports": {
+                  "owned": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/correct/owned.hepta"
+                },
+                "module": "llvm_owned_example",
+                "path": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/correct/main.hepta",
+                "symbols": {
+                  "owned_case": "owned_case"
+                }
+              }
+            ],
+            "package": null,
+            "path_bindings": {
+              "/tmp/hepta-owned-arm64-qualification-le3cpoqz/correct/main.hepta": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/correct/main.hepta",
+              "/tmp/hepta-owned-arm64-qualification-le3cpoqz/correct/owned.hepta": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/correct/owned.hepta"
+            },
+            "schema": "hepta.module-graph.v1",
+            "sha256": "27e75ae3fad08e6ec4b056e5ec330e66b37e89c4d84820c87c9d5d7504681415",
+            "sources": {
+              "/tmp/hepta-owned-arm64-qualification-le3cpoqz/correct/main.hepta": "1cdb175e60ee2356cf462a2128e00cc6aefca51dc71f04716ed30b0e98a25909",
+              "/tmp/hepta-owned-arm64-qualification-le3cpoqz/correct/owned.hepta": "31f6f8e18fd222237cd9506d05b0c7b8a0ea2669cb9cdde77c9877948bce9e15"
+            }
+          },
+          "resource_contracts": [],
+          "rust_sha256": "cae7b43dfe890104f32e753ba118c7e1bb8ba45d6ec4f357d915f46a91a5362e",
+          "schema": "hepta.check.v1",
+          "source_sha256": "1cdb175e60ee2356cf462a2128e00cc6aefca51dc71f04716ed30b0e98a25909",
+          "status": "checked"
+        },
+        "schema": "hepta.build-llvm-owned-aarch64.v1",
+        "source": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/correct/main.hepta",
+        "source_binding": {
+          "compiler_sha256": "dbeb5311dfb81d01d8704ef26800b5672bca89976efa6b74e10a9b255efb9f97",
+          "project_sha256": "27e75ae3fad08e6ec4b056e5ec330e66b37e89c4d84820c87c9d5d7504681415",
+          "source_sha256": "1cdb175e60ee2356cf462a2128e00cc6aefca51dc71f04716ed30b0e98a25909"
+        },
+        "status": "finite_qemu_userspace_execution_passed",
+        "synthetic_link_probe": null,
+        "synthetic_link_probe_attempted": false,
+        "target": "aarch64-unknown-linux-gnu",
+        "whole_project_blockers_closed": false
+      },
+      "execution": {
+        "argv": [
+          "/tmp/hepta-ai-verification/qemu-8.2.2/qemu-aarch64-static",
+          "/tmp/.hepta-finite-arm64-z3fn0ign/finite.elf"
+        ],
+        "linked_sha256": "a1d70cbd8e51782296272280ad17fcd71dfd4938d2a537110a086c89977e0cb2",
+        "returncode": 0,
+        "runner_sha256": "e4f8d99e9ff69c3cefffab71cee358ce2af1ecba1282d04c3eeb44ef76f5a71e",
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "expected_exit": 0,
+      "implementation": "actual_hepta_module_through_direct_LLVM",
+      "name": "correct",
+      "object_published": true,
+      "source_sha256": {
+        "main.hepta": "1cdb175e60ee2356cf462a2128e00cc6aefca51dc71f04716ed30b0e98a25909",
+        "owned.hepta": "31f6f8e18fd222237cd9506d05b0c7b8a0ea2669cb9cdde77c9877948bce9e15"
+      },
+      "temporary_artifacts_retained": false
+    },
+    {
+      "build": {
+        "diagnostics": [
+          {
+            "code": "E_OWNED_AARCH64_RUNTIME",
+            "message": "E_OWNED_AARCH64_RUNTIME: real finite test exited unsuccessfully under QEMU: 11 "
+          }
+        ],
+        "failed_execution": {
+          "argv": [
+            "/tmp/hepta-ai-verification/qemu-8.2.2/qemu-aarch64-static",
+            "/tmp/.hepta-finite-arm64-acc4bqor/finite.elf"
+          ],
+          "linked_sha256": "96073ee9db8caa0c08fb6e9ce9220d23f26bb5e5e5844ba5aff4249f71a8d7a3",
+          "returncode": 11,
+          "runner_sha256": "e4f8d99e9ff69c3cefffab71cee358ce2af1ecba1282d04c3eeb44ef76f5a71e",
+          "stderr": "",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout": "",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "ok": false,
+        "output": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_result/owner.o",
+        "reference_validation": {
+          "assumptions": [],
+          "backend": {
+            "check_only": true,
+            "crate_type": "rlib",
+            "diagnostics": [],
+            "flags": [
+              "edition=2021",
+              "opt-level=3",
+              "overflow-checks=yes",
+              "panic=abort",
+              "codegen-units=1",
+              "sysroot=/tmp/hepta-ai-rust-1.90.0"
+            ],
+            "link_args": [],
+            "linker": null,
+            "ok": true,
+            "rust_sha256": "0465011647b4c4007614673f8f87b987f208cf097fa5e5d4ab9e2c3ae843da0a",
+            "rustc_crate_type": "lib",
+            "status": "rustc_checked",
+            "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+            "target": "x86_64-unknown-linux-gnu",
+            "toolchain": {
+              "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+              "host": "x86_64-unknown-linux-gnu",
+              "path": "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+              "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+              "sysroot_discovery": "verified_compiler_prefix",
+              "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+            },
+            "validation_artifact_sha256": "f406b5c467beb1d9eb5e7d93eb798a3bb10a167b0ad524bea66a2426626618d4"
+          },
+          "checks": {
+            "rust_borrows_types": "rustc_checked",
+            "syntax": "passed",
+            "types_effects_resources": "passed_in_supported_subset"
+          },
+          "claims": {
+            "all_programs_faster_than_rust": false,
+            "bounded_cancellation_latency_proved": false,
+            "deadlock_freedom_proved": false,
+            "hardware_execution_verified": false,
+            "whole_language_soundness_proved": false
+          },
+          "compiler_sha256": "dbeb5311dfb81d01d8704ef26800b5672bca89976efa6b74e10a9b255efb9f97",
+          "compiler_version": "0.2.0",
+          "diagnostics": [],
+          "effects": {
+            "M2812056b16998cdf_OwnedBytes_data": [],
+            "M2812056b16998cdf_OwnedBytes_drop": [
+              "alloc",
+              "block"
+            ],
+            "M2812056b16998cdf_OwnedBytes_fill": [
+              "panic",
+              "write"
+            ],
+            "M2812056b16998cdf_OwnedBytes_get": [
+              "panic"
+            ],
+            "M2812056b16998cdf_OwnedBytes_move": [],
+            "M2812056b16998cdf_OwnedBytes_new": [
+              "alloc",
+              "block"
+            ],
+            "M2812056b16998cdf_OwnedBytes_set": [
+              "panic",
+              "write"
+            ],
+            "M2812056b16998cdf_OwnedBytes_size": [],
+            "M2812056b16998cdf_run_owned": [
+              "alloc",
+              "block",
+              "panic",
+              "write"
+            ],
+            "owned_case": [
+              "alloc",
+              "block",
+              "panic",
+              "write"
+            ]
+          },
+          "interface_sha256": "ec99e866c0e114cfa6b68c563123b9c92311fea2fd31cf66bec83b0941d0e3bf",
+          "ok": true,
+          "path": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_result/main.hepta",
+          "profile": {
+            "crate_type": "rlib",
+            "no_std": false,
+            "overflow_checks": true,
+            "panic": "abort"
+          },
+          "project": {
+            "c_imports": [],
+            "entry": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_result/main.hepta",
+            "locked": false,
+            "modules": [
+              {
+                "imports": {},
+                "module": "cpp_owned_migrated",
+                "path": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_result/owned.hepta",
+                "symbols": {
+                  "OwnedBytes": "M2812056b16998cdf_OwnedBytes",
+                  "OwnedBytes_data": "M2812056b16998cdf_OwnedBytes_data",
+                  "OwnedBytes_drop": "M2812056b16998cdf_OwnedBytes_drop",
+                  "OwnedBytes_fill": "M2812056b16998cdf_OwnedBytes_fill",
+                  "OwnedBytes_get": "M2812056b16998cdf_OwnedBytes_get",
+                  "OwnedBytes_move": "M2812056b16998cdf_OwnedBytes_move",
+                  "OwnedBytes_new": "M2812056b16998cdf_OwnedBytes_new",
+                  "OwnedBytes_set": "M2812056b16998cdf_OwnedBytes_set",
+                  "OwnedBytes_size": "M2812056b16998cdf_OwnedBytes_size",
+                  "run_owned": "M2812056b16998cdf_run_owned"
+                }
+              },
+              {
+                "imports": {
+                  "owned": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_result/owned.hepta"
+                },
+                "module": "llvm_owned_example",
+                "path": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_result/main.hepta",
+                "symbols": {
+                  "owned_case": "owned_case"
+                }
+              }
+            ],
+            "package": null,
+            "path_bindings": {
+              "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_result/main.hepta": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_result/main.hepta",
+              "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_result/owned.hepta": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_result/owned.hepta"
+            },
+            "schema": "hepta.module-graph.v1",
+            "sha256": "1cd89d196fe17784fcf90a162945025bd62b13bf7e9bf864254331fb915113c5",
+            "sources": {
+              "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_result/main.hepta": "1cdb175e60ee2356cf462a2128e00cc6aefca51dc71f04716ed30b0e98a25909",
+              "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_result/owned.hepta": "c35f5cf88d775c66a28b110b2be1f99d34388bd466cf0a364eb50fb70aac69b4"
+            }
+          },
+          "resource_contracts": [],
+          "rust_sha256": "0465011647b4c4007614673f8f87b987f208cf097fa5e5d4ab9e2c3ae843da0a",
+          "schema": "hepta.check.v1",
+          "source_sha256": "1cdb175e60ee2356cf462a2128e00cc6aefca51dc71f04716ed30b0e98a25909",
+          "status": "checked"
+        },
+        "schema": "hepta.build-llvm-owned-aarch64.v1",
+        "source": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_result/main.hepta",
+        "status": "rejected",
+        "target": "aarch64-unknown-linux-gnu",
+        "whole_project_blockers_closed": false
+      },
+      "execution": {
+        "argv": [
+          "/tmp/hepta-ai-verification/qemu-8.2.2/qemu-aarch64-static",
+          "/tmp/.hepta-finite-arm64-acc4bqor/finite.elf"
+        ],
+        "linked_sha256": "96073ee9db8caa0c08fb6e9ce9220d23f26bb5e5e5844ba5aff4249f71a8d7a3",
+        "returncode": 11,
+        "runner_sha256": "e4f8d99e9ff69c3cefffab71cee358ce2af1ecba1282d04c3eeb44ef76f5a71e",
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "expected_exit": 11,
+      "implementation": "actual_hepta_module_through_direct_LLVM",
+      "name": "wrong_result",
+      "object_published": false,
+      "source_sha256": {
+        "main.hepta": "1cdb175e60ee2356cf462a2128e00cc6aefca51dc71f04716ed30b0e98a25909",
+        "owned.hepta": "c35f5cf88d775c66a28b110b2be1f99d34388bd466cf0a364eb50fb70aac69b4"
+      },
+      "temporary_artifacts_retained": false
+    },
+    {
+      "build": {
+        "diagnostics": [
+          {
+            "code": "E_OWNED_AARCH64_RUNTIME",
+            "message": "E_OWNED_AARCH64_RUNTIME: real finite test exited unsuccessfully under QEMU: 13 "
+          }
+        ],
+        "failed_execution": {
+          "argv": [
+            "/tmp/hepta-ai-verification/qemu-8.2.2/qemu-aarch64-static",
+            "/tmp/.hepta-finite-arm64-xs750a1j/finite.elf"
+          ],
+          "linked_sha256": "b1745d5464d78fe2a8215d91bde6e821776634bb189559c805025a9c74de4ad5",
+          "returncode": 13,
+          "runner_sha256": "e4f8d99e9ff69c3cefffab71cee358ce2af1ecba1282d04c3eeb44ef76f5a71e",
+          "stderr": "",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout": "",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "ok": false,
+        "output": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_early_exit/owner.o",
+        "reference_validation": {
+          "assumptions": [],
+          "backend": {
+            "check_only": true,
+            "crate_type": "rlib",
+            "diagnostics": [],
+            "flags": [
+              "edition=2021",
+              "opt-level=3",
+              "overflow-checks=yes",
+              "panic=abort",
+              "codegen-units=1",
+              "sysroot=/tmp/hepta-ai-rust-1.90.0"
+            ],
+            "link_args": [],
+            "linker": null,
+            "ok": true,
+            "rust_sha256": "b56f908f86fdac919580e775b0ad99cd15bda874a2efa91020ebf9479048b1cf",
+            "rustc_crate_type": "lib",
+            "status": "rustc_checked",
+            "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+            "target": "x86_64-unknown-linux-gnu",
+            "toolchain": {
+              "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+              "host": "x86_64-unknown-linux-gnu",
+              "path": "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+              "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+              "sysroot_discovery": "verified_compiler_prefix",
+              "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+            },
+            "validation_artifact_sha256": "400da666acf7dcc8846b0141c67e50f0774aafab326b153371a556f2cd684c9a"
+          },
+          "checks": {
+            "rust_borrows_types": "rustc_checked",
+            "syntax": "passed",
+            "types_effects_resources": "passed_in_supported_subset"
+          },
+          "claims": {
+            "all_programs_faster_than_rust": false,
+            "bounded_cancellation_latency_proved": false,
+            "deadlock_freedom_proved": false,
+            "hardware_execution_verified": false,
+            "whole_language_soundness_proved": false
+          },
+          "compiler_sha256": "dbeb5311dfb81d01d8704ef26800b5672bca89976efa6b74e10a9b255efb9f97",
+          "compiler_version": "0.2.0",
+          "diagnostics": [],
+          "effects": {
+            "M2812056b16998cdf_OwnedBytes_data": [],
+            "M2812056b16998cdf_OwnedBytes_drop": [
+              "alloc",
+              "block"
+            ],
+            "M2812056b16998cdf_OwnedBytes_fill": [
+              "panic",
+              "write"
+            ],
+            "M2812056b16998cdf_OwnedBytes_get": [
+              "panic"
+            ],
+            "M2812056b16998cdf_OwnedBytes_move": [],
+            "M2812056b16998cdf_OwnedBytes_new": [
+              "alloc",
+              "block"
+            ],
+            "M2812056b16998cdf_OwnedBytes_set": [
+              "panic",
+              "write"
+            ],
+            "M2812056b16998cdf_OwnedBytes_size": [],
+            "M2812056b16998cdf_run_owned": [
+              "alloc",
+              "block",
+              "panic",
+              "write"
+            ],
+            "owned_case": [
+              "alloc",
+              "block",
+              "panic",
+              "write"
+            ]
+          },
+          "interface_sha256": "ec99e866c0e114cfa6b68c563123b9c92311fea2fd31cf66bec83b0941d0e3bf",
+          "ok": true,
+          "path": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_early_exit/main.hepta",
+          "profile": {
+            "crate_type": "rlib",
+            "no_std": false,
+            "overflow_checks": true,
+            "panic": "abort"
+          },
+          "project": {
+            "c_imports": [],
+            "entry": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_early_exit/main.hepta",
+            "locked": false,
+            "modules": [
+              {
+                "imports": {},
+                "module": "cpp_owned_migrated",
+                "path": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_early_exit/owned.hepta",
+                "symbols": {
+                  "OwnedBytes": "M2812056b16998cdf_OwnedBytes",
+                  "OwnedBytes_data": "M2812056b16998cdf_OwnedBytes_data",
+                  "OwnedBytes_drop": "M2812056b16998cdf_OwnedBytes_drop",
+                  "OwnedBytes_fill": "M2812056b16998cdf_OwnedBytes_fill",
+                  "OwnedBytes_get": "M2812056b16998cdf_OwnedBytes_get",
+                  "OwnedBytes_move": "M2812056b16998cdf_OwnedBytes_move",
+                  "OwnedBytes_new": "M2812056b16998cdf_OwnedBytes_new",
+                  "OwnedBytes_set": "M2812056b16998cdf_OwnedBytes_set",
+                  "OwnedBytes_size": "M2812056b16998cdf_OwnedBytes_size",
+                  "run_owned": "M2812056b16998cdf_run_owned"
+                }
+              },
+              {
+                "imports": {
+                  "owned": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_early_exit/owned.hepta"
+                },
+                "module": "llvm_owned_example",
+                "path": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_early_exit/main.hepta",
+                "symbols": {
+                  "owned_case": "owned_case"
+                }
+              }
+            ],
+            "package": null,
+            "path_bindings": {
+              "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_early_exit/main.hepta": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_early_exit/main.hepta",
+              "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_early_exit/owned.hepta": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_early_exit/owned.hepta"
+            },
+            "schema": "hepta.module-graph.v1",
+            "sha256": "0afbb63ffad2c1f7e7958628b6c9fb424567c144bd89314a5d2dcfae0357ec56",
+            "sources": {
+              "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_early_exit/main.hepta": "1cdb175e60ee2356cf462a2128e00cc6aefca51dc71f04716ed30b0e98a25909",
+              "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_early_exit/owned.hepta": "2f2ff5be2bc6660b9b35c41b39e9bc92d5a631d6e570ab187dd59816123e10a5"
+            }
+          },
+          "resource_contracts": [],
+          "rust_sha256": "b56f908f86fdac919580e775b0ad99cd15bda874a2efa91020ebf9479048b1cf",
+          "schema": "hepta.check.v1",
+          "source_sha256": "1cdb175e60ee2356cf462a2128e00cc6aefca51dc71f04716ed30b0e98a25909",
+          "status": "checked"
+        },
+        "schema": "hepta.build-llvm-owned-aarch64.v1",
+        "source": "/tmp/hepta-owned-arm64-qualification-le3cpoqz/wrong_early_exit/main.hepta",
+        "status": "rejected",
+        "target": "aarch64-unknown-linux-gnu",
+        "whole_project_blockers_closed": false
+      },
+      "execution": {
+        "argv": [
+          "/tmp/hepta-ai-verification/qemu-8.2.2/qemu-aarch64-static",
+          "/tmp/.hepta-finite-arm64-xs750a1j/finite.elf"
+        ],
+        "linked_sha256": "b1745d5464d78fe2a8215d91bde6e821776634bb189559c805025a9c74de4ad5",
+        "returncode": 13,
+        "runner_sha256": "e4f8d99e9ff69c3cefffab71cee358ce2af1ecba1282d04c3eeb44ef76f5a71e",
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "expected_exit": 13,
+      "implementation": "actual_hepta_module_through_direct_LLVM",
+      "name": "wrong_early_exit",
+      "object_published": false,
+      "source_sha256": {
+        "main.hepta": "1cdb175e60ee2356cf462a2128e00cc6aefca51dc71f04716ed30b0e98a25909",
+        "owned.hepta": "2f2ff5be2bc6660b9b35c41b39e9bc92d5a631d6e570ab187dd59816123e10a5"
+      },
+      "temporary_artifacts_retained": false
+    }
+  ],
+  "claims": {
+    "aarch64_rust_reference_executed": false,
+    "actual_hepta_source_executed": true,
+    "finite_C_ABI_emulated": true,
+    "general_allocator_qualified": false,
+    "performance_measured": false,
+    "physical_hardware_qualified": false,
+    "source_or_backend_refinement_proved": false
+  },
+  "compiler_sha256": "dbeb5311dfb81d01d8704ef26800b5672bca89976efa6b74e10a9b255efb9f97",
+  "created_utc": "2026-10-26T05:01:35.997172+00:00",
+  "denominator": {
+    "actual_qemu_executions": 3,
+    "checks_in_successful_runtime": 7,
+    "compiled_hepta_programs": 3,
+    "compiled_negative_controls": 2,
+    "positive_executions": 1
+  },
+  "input_sources": {
+    "main.hepta": "1cdb175e60ee2356cf462a2128e00cc6aefca51dc71f04716ed30b0e98a25909",
+    "owned.hepta": "31f6f8e18fd222237cd9506d05b0c7b8a0ea2669cb9cdde77c9877948bce9e15"
+  },
+  "limitations": [
+    "Rust reference checking runs on the host; the LLVM object executes on QEMU AArch64.",
+    "Runtime supports one live allocation of at most 4096 bytes and one exact exported signature.",
+    "The seven successful call cases also check allocator accounting and memory primitives.",
+    "Negative controls change real Hepta return paths; no modified C stand-in is used."
+  ],
+  "runner": {
+    "path": "/tmp/hepta-ai-verification/qemu-8.2.2/qemu-aarch64-static",
+    "sha256": "e4f8d99e9ff69c3cefffab71cee358ce2af1ecba1282d04c3eeb44ef76f5a71e",
+    "version": "qemu-aarch64 version 8.2.2 (Debian 1:8.2.2+ds-0ubuntu1.18)\nCopyright (c) 2003-2023 Fabrice Bellard and the QEMU Project developers"
+  },
+  "schema": "hepta.owned-aarch64-qualification.v1",
+  "status": "passed"
+}

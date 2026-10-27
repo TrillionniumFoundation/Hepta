@@ -1,0 +1,132 @@
+{
+  "base_commit": "f593ef66d94d3466aff6fe619a505aac362f8053",
+  "environment": {
+    "clang": "/workspace/scratch/0817a147930b/toolchains/bin/clang",
+    "gcc_version": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0",
+    "rustc": "/workspace/scratch/69b06e838148/toolchains/rust-1.90.0/bin/rustc"
+  },
+  "full_release_gate_run_for_this_change": false,
+  "incorrectly_typed_native_functions_executed": false,
+  "observed_reproductions": [
+    {
+      "after": "i32(i32); native compatibility and actual scalar C link test pass",
+      "before": "imported_native_host_facts; struct Token(Token); GCC rejects original/generated prototype conflict",
+      "case": "tag_typedef_namespace"
+    },
+    {
+      "after": "raw const i32 and raw const raw mut i32; native compatibility checks pass",
+      "before": "const discarded at pointee layer; GCC rejects original/generated prototype conflict",
+      "case": "qualified_typedef_scalar_and_pointer"
+    },
+    {
+      "after": "E_C_IMPORT_PROBE before returning a binding",
+      "before": "binding exported despite hidden declaration or incompatible stdio prototype",
+      "case": "guard_absent_or_conflicting_function"
+    },
+    {
+      "after": "added typedef-presence/type gate rejects E_C_IMPORT_PROBE",
+      "before": "upstream prototype fix alone accepts parsed i32 for native va-list pointer",
+      "case": "inactive_typedef_masks_native_vprintf_abi"
+    },
+    {
+      "after": "raw_pointer_signature obligation retained; proof flags remain false",
+      "before": "external_obligations empty",
+      "case": "nested_raw_wrapper"
+    }
+  ],
+  "schema": "hepta.c-import-safety-integration.v1",
+  "scope": "focused_native_import_and_hsir_regression_closure",
+  "source_files": {
+    "hepta/c_import.py": "57362c9f54bde1b0ad693fa0d62a428c3861b2f2dca2e9c0f41a5ee888749ac9",
+    "hepta/semantic_ir.py": "3cc8160527a172b617a82d679c8d7fb5b3a288445408f6c2c3ccc4ae42fdf689",
+    "tests/test_c_import_prototypes.py": "c3f08a9702a5dcb37d4e9056684706e35d1b83dd7ddab1c6201ca86ff676dab8",
+    "tests/test_c_import_typedefs.py": "fc4c53f95bfb460ff8059402a2d7ad0fecf1e3ccc5d80e7dd6d7c229455dd9cb",
+    "tests/test_semantic_ir_raw_boundaries.py": "cfae849792a3e34e93cb3af1228ba5509d69b1d89313543f755172d2a740eb92"
+  },
+  "tests": [
+    {
+      "argv": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_c_import*.py",
+        "-v"
+      ],
+      "observed_exit_code": 0,
+      "observed_passed": 15,
+      "observed_skipped": 0,
+      "scope": "c_import"
+    },
+    {
+      "argv": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_semantic_ir*.py",
+        "-v"
+      ],
+      "observed_exit_code": 0,
+      "observed_passed": 12,
+      "observed_skipped": 0,
+      "scope": "hsir"
+    },
+    {
+      "argv": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_workspace.py",
+        "-k",
+        "test_c_header_identity_survives_snapshot_relocation",
+        "-v"
+      ],
+      "observed_exit_code": 0,
+      "observed_passed": 1,
+      "observed_skipped": 0,
+      "scope": "header_relocation"
+    },
+    {
+      "argv": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_cross_feature_audit.py",
+        "-k",
+        "test_imported_public_struct_crosses_module_and_real_c_abi_in_both_backends",
+        "-v"
+      ],
+      "observed_exit_code": 0,
+      "observed_passed": 1,
+      "observed_skipped": 0,
+      "scope": "real_c_abi_both_backends"
+    }
+  ],
+  "total_tests_passed": 29,
+  "unchanged_integration_files": {
+    "hepta/modules.py": "ecfcd55f095e3a7946cafda0ce7d4649920393cb87ad6718d875120e64c68137",
+    "hepta/pipeline.py": "6e881361b6f92009151ebcb44545b4c17db5b2b1b1a1562e98dfbe43ecb11268",
+    "hepta/workspace.py": "86d28a494163c5bc320e70bea16cbb7815e49af606d47edeab8bf9c4e9adad1b"
+  },
+  "upstream_commits": [
+    "ba3758025a9e267885ed482f86cca778dbce09d0",
+    "e0acefc51dcd884c182683f78435cef696309e12",
+    "d40f9b75ee6bbf4ce2d9634b3f28da6231f6cd80"
+  ],
+  "whole_language_soundness_proved": false
+}

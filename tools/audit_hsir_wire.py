@@ -10,12 +10,15 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
+import stat
 import sys
 from pathlib import Path
 
 SCHEMA = "hepta.hsir.v0"
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
+MAX_HSIR_INPUT_BYTES = 8_000_000
 PROFILES = {
     "source_bound_dict_v0": {
         "discriminator": ("profile", "checked_typed_ast_not_verified_mir"),
@@ -33,8 +36,93 @@ PROFILES = {
     },
 }
 
+PROFILE_LAYOUTS = {
+    # Two historical producers accidentally share a schema name; only their
+    # exact known envelopes are admissible for audit, not for execution.
+    "source_bound_dict_v0": frozenset({
+        "schema", "profile", "module", "path", "source_sha256",
+        "project_sha256", "imports", "structs", "enums", "functions",
+        "untyped_expressions", "all_expressions_typed", "external_obligations",
+        "volatile_accesses", "foreign_assumptions", "resource_contracts",
+        "owned_types", "claims", "sha256",
+    }),
+    "frozen_snapshot_v0": frozenset({
+        "schema", "status", "program", "source_sha256", "imports",
+        "structs", "enums", "functions", "external_assumptions",
+        "resource_contracts", "typed_expression_count", "claims", "sha256",
+    }),
+}
+
 class HSIRWireRejected(ValueError):
     pass
+
+
+OBLIGATION_REASONS = frozenset({
+    "foreign_function", "raw_pointer_signature", "unsafe_effect",
+    "ffi_effect", "volatile_access",
+})
+
+
+def require_unresolved_obligations(items: object) -> None:
+    """Accept only PR #14's explicitly unresolved FFI obligation wire shape."""
+    if not isinstance(items, list):
+        raise HSIRWireRejected("E_HSIR_OBLIGATIONS")
+    for entry in items:
+        if (not isinstance(entry, dict)
+                or set(entry) != {"function", "reasons", "status"}
+                or not isinstance(entry["function"], str)
+                or not entry["function"]
+                or entry["status"] != "caller_obligation_not_dischargeable_by_hsir"
+                or not isinstance(entry["reasons"], list)
+                or not entry["reasons"]
+                or any(type(reason) is not str or reason not in OBLIGATION_REASONS
+                       for reason in entry["reasons"])
+                or len(entry["reasons"]) != len(set(entry["reasons"]))):
+            raise HSIRWireRejected("E_HSIR_OBLIGATION_STATUS")
+
+
+UNPROVED_EXTERNAL_OBLIGATIONS = (
+    "foreign implementation obeys the declared ABI and effect upper bound",
+    "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations",
+)
+
+
+def require_unproved_external_assumptions(items: object) -> None:
+    """Validate pinned PR #36 checker assumption shapes without discharging them."""
+    if type(items) is not list:
+        raise HSIRWireRejected("E_HSIR_EXTERNAL_ASSUMPTIONS")
+    for entry in items:
+        if type(entry) is not dict or type(entry.get("kind")) is not str:
+            raise HSIRWireRejected("E_HSIR_EXTERNAL_ASSUMPTION")
+        kind = entry["kind"]
+        if (kind not in {"extern_contract", "unsafe_obligation"}
+                or type(entry.get("function")) is not str
+                or not entry["function"]):
+            raise HSIRWireRejected("E_HSIR_EXTERNAL_ASSUMPTION")
+        if kind == "extern_contract":
+            if (set(entry) != {"kind", "function", "abi", "declared_effects",
+                              "parameters", "return_type", "status", "obligations"}
+                    or entry["abi"] != "C"
+                    or entry["status"] != "assumed_not_verified"
+                    or type(entry["return_type"]) is not str
+                    or not entry["return_type"]
+                    or type(entry["declared_effects"]) is not list
+                    or any(type(effect) is not str or not effect
+                           for effect in entry["declared_effects"])
+                    or len(entry["declared_effects"]) != len(set(entry["declared_effects"]))
+                    or type(entry["parameters"]) is not list
+                    or any(type(param) is not dict or set(param) != {"name", "type"}
+                           or type(param["name"]) is not str or not param["name"]
+                           or type(param["type"]) is not str or not param["type"]
+                           for param in entry["parameters"])
+                    or entry["obligations"] != list(UNPROVED_EXTERNAL_OBLIGATIONS)):
+                raise HSIRWireRejected("E_HSIR_EXTERNAL_ASSUMPTION")
+        elif (set(entry) != {"kind", "function", "operation", "path", "line", "status"}
+              or entry["status"] != "not_proved_by_frontend"
+              or type(entry["operation"]) is not str or not entry["operation"]
+              or type(entry["path"]) is not str
+              or type(entry["line"]) is not int or entry["line"] < 1):
+            raise HSIRWireRejected("E_HSIR_EXTERNAL_ASSUMPTION")
 
 
 def pairs_unique(pairs):
@@ -46,12 +134,48 @@ def pairs_unique(pairs):
     return result
 
 
-def load(path: str) -> dict:
-    # Bounded reading avoids filling memory from malformed compiler output.
-    with open(path, "rb") as stream:
-        raw = stream.read(8_000_001)
-    if len(raw) > 8_000_000:
+def _read_pinned_hsir(path: str | Path) -> bytes:
+    """Read exactly one ordinary input inode, never a post-lstat replacement.
+
+    This is a fail-closed source-audit reader, NOT a proof of producer origin.
+    Both NOFOLLOW and NONBLOCK are required: a swapped FIFO would otherwise
+    hang open() before its file type can be checked. The content digest is
+    validated independently by fingerprint(), not trusted from file metadata.
+    """
+    if not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_NONBLOCK"):
+        raise HSIRWireRejected("E_HSIR_SOURCE_IO: secure file open is unavailable")
+    path = Path(path)
+    before = path.lstat()
+    if not stat.S_ISREG(before.st_mode):
+        raise HSIRWireRejected("E_HSIR_SOURCE_TYPE: ordinary input file required")
+    if before.st_size > MAX_HSIR_INPUT_BYTES:
         raise HSIRWireRejected("E_HSIR_TOO_LARGE")
+    if before.st_size <= 0:
+        raise HSIRWireRejected("E_HSIR_JSON: empty HSIR input")
+    identity = lambda st: (st.st_dev, st.st_ino, st.st_mode, st.st_size,
+                           st.st_mtime_ns, st.st_ctime_ns)
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+                 | getattr(os, "O_CLOEXEC", 0))
+    try:
+        opened = os.fstat(fd)
+        if not stat.S_ISREG(opened.st_mode) or identity(opened) != identity(before):
+            raise HSIRWireRejected("E_HSIR_SOURCE_ID: replaced before descriptor admission")
+        with os.fdopen(fd, "rb", closefd=False) as stream:
+            raw = stream.read(MAX_HSIR_INPUT_BYTES + 1)
+        after_fd, after_path = os.fstat(fd), path.lstat()
+        if (len(raw) > MAX_HSIR_INPUT_BYTES
+                or identity(after_fd) != identity(before)
+                or not stat.S_ISREG(after_path.st_mode)
+                or identity(after_path) != identity(before)
+                or len(raw) != before.st_size):
+            raise HSIRWireRejected("E_HSIR_SOURCE_ID: input changed while auditing")
+        return raw
+    finally:
+        os.close(fd)
+
+
+def load(path: str) -> dict:
+    raw = _read_pinned_hsir(path)
     try:
         result = json.loads(raw.decode("utf-8"), object_pairs_hook=pairs_unique,
                             parse_constant=lambda x: (_ for _ in ()).throw(
@@ -104,8 +228,13 @@ def fingerprint(record: dict) -> dict:
             name, profile = candidate, settings
     if profile is None or ("profile" in record and "status" in record):
         raise HSIRWireRejected("E_HSIR_UNKNOWN_PROFILE")
-    if any(key not in record for key in profile["required"]):
+    # A rehashed unknown field must not slip through as an accepted version.
+    # This audit never treats a recognized layout as semantic equivalence.
+    actual_fields = set(record)
+    if PROFILE_LAYOUTS[name] - actual_fields:
         raise HSIRWireRejected("E_HSIR_MISSING_FIELDS")
+    if actual_fields - PROFILE_LAYOUTS[name]:
+        raise HSIRWireRejected("E_HSIR_UNKNOWN_FIELDS")
     if not isinstance(record.get("functions"), list):
         raise HSIRWireRejected("E_HSIR_INVALID_FUNCTIONS")
     if not isinstance(record.get("source_sha256"), str) or not SHA256.fullmatch(record["source_sha256"]):
@@ -116,13 +245,14 @@ def fingerprint(record: dict) -> dict:
             raise HSIRWireRejected("E_HSIR_PROJECT_ID")
         if type(record["all_expressions_typed"]) is not bool:
             raise HSIRWireRejected("E_HSIR_TYPE_COMPLETENESS")
-        if not isinstance(record["external_obligations"], list):
-            raise HSIRWireRejected("E_HSIR_OBLIGATIONS")
+        require_unresolved_obligations(record["external_obligations"])
     else:
         if type(record["typed_expression_count"]) is not int or record["typed_expression_count"] < 0:
             raise HSIRWireRejected("E_HSIR_TYPE_COUNT")
+        require_unproved_external_assumptions(record["external_assumptions"])
     claims = record.get("claims")
-    if not isinstance(claims, dict) or not all(claims.get(k) is False for k in profile["denied_claims"]):
+    if (type(claims) is not dict or set(claims) != set(profile["denied_claims"])
+            or not all(claims.get(k) is False for k in profile["denied_claims"])):
         raise HSIRWireRejected("E_HSIR_UNSUPPORTED_PROOF_CLAIM")
     if any(value is not False for value in claims.values()):
         raise HSIRWireRejected("E_HSIR_UNRECOGNIZED_PROOF_CLAIM")

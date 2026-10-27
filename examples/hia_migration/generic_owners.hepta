@@ -1,0 +1,42 @@
+module hia_generic_owners;
+
+struct Packet<T> { data: T, tag: u64 }
+
+fn forward<T: Owned>(value: take T) -> T effects {} {
+    return move value;
+}
+
+fn dispose<T: Owned>(value: take T) -> Unit effects {alloc, block} {
+    drop(move value);
+}
+
+fn view<T: Owned>(value: read T) -> read T effects {} {
+    return read value;
+}
+
+fn finish<T: Owned, E: Copy>(value: take T, ok: bool, error: E) -> Result<T, E> effects {alloc, block} {
+    if !ok {
+        dispose::<T>(move value);
+        return Result::Err(error);
+    }
+    return Result::Ok(move forward::<T>(move value));
+}
+
+pub fn probe(size: usize, ok: bool) -> u64 effects {alloc, block, panic} {
+    let allocated = try_buffer(size);
+    match move allocated {
+        Result::Err(allocation_error) => { return 1000 + allocation_error as u64; },
+        Result::Ok(bytes) => {
+            let result = finish::<Packet<Buffer<u8>>, u8>(move Packet { data: move bytes, tag: 23 }, ok, 19);
+            match move result {
+                Result::Ok(packet) => {
+                    let observed_size = len(view::<Buffer<u8>>(read packet.data));
+                    let answer = observed_size as u64 + view::<Packet<Buffer<u8>>>(read packet).tag;
+                    dispose::<Packet<Buffer<u8>>>(move packet);
+                    return answer;
+                },
+                Result::Err(problem) => { return problem as u64; },
+            }
+        },
+    }
+}

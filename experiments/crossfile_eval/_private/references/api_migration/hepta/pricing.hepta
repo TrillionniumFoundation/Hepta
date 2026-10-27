@@ -1,0 +1,6 @@
+module pricing;
+pub struct Price { unit_cents: i64, discount_bps: i64 }
+pub fn quote(qty: i64, price: Price) -> Result<i64, i32> effects {panic} {
+    if qty < 0 || price.unit_cents < 0 || price.discount_bps < 0 || price.discount_bps > 10000 { return Result::Err(1); }
+    return Result::Ok(qty * price.unit_cents * (10000 - price.discount_bps) / 10000);
+}

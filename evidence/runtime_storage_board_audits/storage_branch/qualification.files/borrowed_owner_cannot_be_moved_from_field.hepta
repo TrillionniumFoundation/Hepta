@@ -1,0 +1,2 @@
+struct Ref<'a>{data:read 'a Buffer<u8>}
+fn main()->Unit effects {alloc,block,panic} {let owner=buffer(3);let v=Ref{data:read owner};release(move v.data);release(move owner);}

@@ -1,0 +1,93 @@
+{
+  "artifacts": "/tmp/hepta-c-native-abi-macros-xcvemf86",
+  "commit": "b25f132bdeabd6ab14e6b62c5fdf87aeb03216ce",
+  "implementation_sha256": {
+    "hepta/c_project.py": "c81080998f7fbf1c9b60d19b6bc15e8c5c84f89e2b358a37d9519d0183204498",
+    "hepta/c_record_views.py": "deb6718cd6e9e61b6ede5ecfb5f3e3e8fbb313593d9574ee260656fc13962a75",
+    "hepta/c_translation.py": "2433b5486340ac129abd4e9ed7b576dc348f81e6659c063884f49721d8e6b9a2"
+  },
+  "rows": [
+    {
+      "case": "spoof_unsigned_macro_on_signed_target",
+      "configuration": [
+        {
+          "abi_model_arguments": null,
+          "abi_predefined_macros_sha256": null,
+          "model": {
+            "char_unsigned": true,
+            "long_bits": 64,
+            "pointer_bits": 64
+          },
+          "predefined_macros_sha256": "603a12b83bba89b1c0b8bb42dfdb32c395459b8056bfb5ab3e271a5543a52f0d"
+        }
+      ],
+      "diagnostics": [],
+      "expected_native_result": -1,
+      "flags": [
+        "-D__CHAR_UNSIGNED__=1"
+      ],
+      "matches_original": false,
+      "migration_ok": true,
+      "values": {
+        "C": -1,
+        "Hepta": 255
+      }
+    },
+    {
+      "case": "hide_unsigned_macro_on_unsigned_target",
+      "configuration": [
+        {
+          "abi_model_arguments": null,
+          "abi_predefined_macros_sha256": null,
+          "model": {
+            "char_unsigned": false,
+            "long_bits": 64,
+            "pointer_bits": 64
+          },
+          "predefined_macros_sha256": "d76e79dc55e37118aa6c6f0299aa9d1dac0b6ba22e097d66aca8a0b889b15fd7"
+        }
+      ],
+      "diagnostics": [],
+      "expected_native_result": 255,
+      "flags": [
+        "-funsigned-char",
+        "-U__CHAR_UNSIGNED__"
+      ],
+      "matches_original": false,
+      "migration_ok": true,
+      "values": {
+        "C": 255,
+        "Hepta": -1
+      }
+    },
+    {
+      "case": "flag_like_include_path_is_not_a_compiler_option",
+      "configuration": [
+        {
+          "abi_model_arguments": null,
+          "abi_predefined_macros_sha256": null,
+          "model": {
+            "char_unsigned": false,
+            "long_bits": 64,
+            "pointer_bits": 64
+          },
+          "predefined_macros_sha256": "d76e79dc55e37118aa6c6f0299aa9d1dac0b6ba22e097d66aca8a0b889b15fd7"
+        }
+      ],
+      "diagnostics": [],
+      "expected_native_result": -1,
+      "flags": [
+        "-I",
+        "-funsigned-char"
+      ],
+      "matches_original": true,
+      "migration_ok": true,
+      "values": {
+        "C": -1,
+        "Hepta": -1
+      }
+    }
+  ],
+  "schema": "hepta.c-record-view-native-model-audit.v1",
+  "source": "int probe(const char *value) { return value[0]; }\n"
+}

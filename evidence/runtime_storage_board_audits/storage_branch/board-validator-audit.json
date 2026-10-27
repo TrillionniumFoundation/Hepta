@@ -1,0 +1,75 @@
+{
+  "actual_native_runs": 0,
+  "baseline_denominator": {
+    "cold_boot_executions": 6,
+    "compiled_board_images": 4,
+    "compiled_negative_controls": 3,
+    "external_timer_irqs_per_positive_boot": 5,
+    "positive_boots": 3
+  },
+  "baseline_validation": "passed",
+  "compiler_sha256": "3ca22846e7a06ab8e795b4d3400cbecc63cacace10787147d68e4d42c71bfe0f",
+  "created_utc": "2026-10-25T02:20:42.751953+00:00",
+  "evidence_checks_sha256": "720a9f55e73e3af3467918efabf0db8b5ff85da8ab07c3efd115d8b1423bd3d7",
+  "input_report": "/workspace/scratch/0817a147930b/Hepta-work/artifacts/board-next-dev/qualification-attempt4.json",
+  "input_report_bytes": 1574407,
+  "input_report_sha256": "7124dd564a074e4d441c1bac1dceadc3f5cb3b7d0baafc2abc8f43a7c8fb8f38",
+  "mutations": [
+    {
+      "mutation": "limitations_overclaim",
+      "reason": "Missing execution scope",
+      "result": "rejected"
+    },
+    {
+      "mutation": "missing_frontend_claims",
+      "reason": "Unexpected frontend qualification fields",
+      "result": "rejected"
+    },
+    {
+      "mutation": "inflated_frontend_claims",
+      "reason": "Frontend metadata/claims differ at claims",
+      "result": "rejected"
+    },
+    {
+      "mutation": "wrong_frontend_schema",
+      "reason": "Frontend metadata/claims differ at schema",
+      "result": "rejected"
+    },
+    {
+      "mutation": "wrong_frontend_version",
+      "reason": "Frontend metadata/claims differ at compiler_version",
+      "result": "rejected"
+    },
+    {
+      "mutation": "extra_top_claim",
+      "reason": "Unexpected system-board report fields",
+      "result": "rejected"
+    },
+    {
+      "mutation": "wrong_rust_version",
+      "reason": "Pinned actual Rust release is required",
+      "result": "rejected"
+    },
+    {
+      "mutation": "missing_native_artifact_hash",
+      "reason": "final native artifact identities differ",
+      "result": "rejected"
+    },
+    {
+      "mutation": "boolean_exit",
+      "reason": "command exit code must be an integer",
+      "result": "rejected"
+    },
+    {
+      "mutation": "duplicate_case",
+      "reason": "Missing or duplicate compiled board case",
+      "result": "rejected"
+    }
+  ],
+  "original_report_modified": false,
+  "schema": "hepta.independent-readonly-board-audit.v1",
+  "scope": "Current report replay and ten in-memory mutations only; no compiler, QEMU, ELF or native candidate execution. This audit does not authenticate arbitrary third-party reports.",
+  "source_files_modified": false,
+  "status": "passed",
+  "validator_sha256": "682cb9070f193e305ea114cfd276bdaf08672a1b22fe4d1dd5b05bcf68d4f070"
+}

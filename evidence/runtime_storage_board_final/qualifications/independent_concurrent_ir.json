@@ -1,0 +1,2386 @@
+{
+  "claims": {
+    "cancellation_termination_proved": false,
+    "deadlock_freedom_proved": false,
+    "normal_exit_join_obligations_verified": true,
+    "runtime_budget_bounds_proved": false,
+    "runtime_data_race_freedom_proved": false,
+    "source_to_ir_refinement_proved": false,
+    "whole_language_soundness_proved": false,
+    "worker_input_transfer_verified": true
+  },
+  "compiler_sha256": "d711649fed69aed280b9d401a104e87542988fcaf1afe0e2c293e43055cc33ac",
+  "negative_controls": [
+    {
+      "graph_sha256": "2495e0fc93f3e3d3d641784b4485f5bb4b06be7c489ed548dc6712aa440966ff",
+      "name": "cancel_does_not_join",
+      "verification": {
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "diagnostics": [
+          {
+            "code": "E_CIR_UNCONSUMED",
+            "message": "Normal exit retains resources or pending joins: v5"
+          }
+        ],
+        "ok": false,
+        "schema": "hepta.concurrent-ir.verification.v1"
+      }
+    },
+    {
+      "graph_sha256": "2c7e767b7706b7a2e42279a9fe45d518f59b57299ba37e61d2e9883f1d8cb8dd",
+      "name": "worker_buffer_leak",
+      "verification": {
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "diagnostics": [
+          {
+            "code": "E_CIR_UNCONSUMED",
+            "message": "Normal exit retains resources or pending joins: v3"
+          }
+        ],
+        "ok": false,
+        "schema": "hepta.concurrent-ir.verification.v1"
+      }
+    },
+    {
+      "graph_sha256": "34c1c873470d5f88854076a48afa7b2a9ffafd6b1447f87ebd0f67d2b2f48c9f",
+      "name": "wrong_worker_signature",
+      "verification": {
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "diagnostics": [
+          {
+            "code": "E_CIR_SPAWN",
+            "message": "Worker signature does not preserve owned input and borrowed capabilities"
+          }
+        ],
+        "ok": false,
+        "schema": "hepta.concurrent-ir.verification.v1"
+      }
+    },
+    {
+      "graph_sha256": "f2bdac9847868448e74eab4f4f30048a1e9c339979f2b43e5594ee7e679b9e51",
+      "name": "forged_sender",
+      "verification": {
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "diagnostics": [
+          {
+            "code": "E_CIR_CAPABILITY",
+            "message": "Sender/cancellation use requires its scoped borrowed capability"
+          }
+        ],
+        "ok": false,
+        "schema": "hepta.concurrent-ir.verification.v1"
+      }
+    },
+    {
+      "graph_sha256": "fa2576c5dd24a2f0941b5cc2aba5ad2ba8db5e0ac416d679c6893a6a6060cf7b",
+      "name": "double_join",
+      "verification": {
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "diagnostics": [
+          {
+            "code": "E_CIR_USE_AFTER_MOVE",
+            "message": "Resource is moved, uninitialized, or only borrowed: v5"
+          }
+        ],
+        "ok": false,
+        "schema": "hepta.concurrent-ir.verification.v1"
+      }
+    },
+    {
+      "graph_sha256": "e5412cb73f37bf2a2e7dbef1fa3dce2fe1d25dc3a1e0da39d70f14f16a9c8f26",
+      "name": "use_after_join",
+      "verification": {
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "diagnostics": [
+          {
+            "code": "E_CIR_USE_AFTER_MOVE",
+            "message": "Resource is moved, uninitialized, or only borrowed: v5"
+          }
+        ],
+        "ok": false,
+        "schema": "hepta.concurrent-ir.verification.v1"
+      }
+    },
+    {
+      "graph_sha256": "c5b47a78cf7a3965b989e34ec6925f4abe71e7dbff1f32c89e5d3e4a5fbf2c34",
+      "name": "unknown_operation",
+      "verification": {
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "diagnostics": [
+          {
+            "code": "E_CIR_OPERATION",
+            "message": "Unknown operation"
+          }
+        ],
+        "ok": false,
+        "schema": "hepta.concurrent-ir.verification.v1"
+      }
+    },
+    {
+      "graph_sha256": "084b65c5859be0613c7144bd419770503bd2815de7c75ed06d438e946b905725",
+      "name": "owned_cancellation",
+      "verification": {
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "diagnostics": [
+          {
+            "code": "E_CIR_CAPABILITY",
+            "message": "Runtime capabilities can only be read-borrowed parameters"
+          }
+        ],
+        "ok": false,
+        "schema": "hepta.concurrent-ir.verification.v1"
+      }
+    },
+    {
+      "graph_sha256": "705e6771ca30bafe48f67d97842a0618f5a124d1ccced2afb020d7dc2987e74e",
+      "name": "invented_task",
+      "verification": {
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "diagnostics": [
+          {
+            "code": "E_CIR_TYPE",
+            "message": "Task ownership is introduced only by spawn"
+          }
+        ],
+        "ok": false,
+        "schema": "hepta.concurrent-ir.verification.v1"
+      }
+    },
+    {
+      "graph_sha256": "ac14dcf3dfe7529319737b23d7687a1aa25f59902d937919f8b14e74487ef1e2",
+      "name": "false_refinement_claim",
+      "verification": {
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "diagnostics": [
+          {
+            "code": "E_CIR_SCHEMA",
+            "message": "Unknown concurrent IR schema or upgraded proof claims"
+          }
+        ],
+        "ok": false,
+        "schema": "hepta.concurrent-ir.verification.v1"
+      }
+    },
+    {
+      "graph_sha256": "e061ee9585a99102f64640ac29fc6c3bfec36aaf30af11d71f6b5278a4301418",
+      "name": "numeric_proof_claim",
+      "verification": {
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "diagnostics": [
+          {
+            "code": "E_CIR_SCHEMA",
+            "message": "Unknown concurrent IR schema or upgraded proof claims"
+          }
+        ],
+        "ok": false,
+        "schema": "hepta.concurrent-ir.verification.v1"
+      }
+    },
+    {
+      "graph_sha256": "670be54f6514bcd87d48bb94c7d305d7f6825fe819ced1213baa50cfb7020970",
+      "name": "capability_owner_slot",
+      "verification": {
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "diagnostics": [
+          {
+            "code": "E_CIR_TYPE",
+            "message": "Only known owned runtime values can occupy resource slots"
+          }
+        ],
+        "ok": false,
+        "schema": "hepta.concurrent-ir.verification.v1"
+      }
+    },
+    {
+      "graph_sha256": "79defe157c5858055b817b87955867eb4d8766661e78f46bcc356651e1e119d3",
+      "name": "duplicate_function",
+      "verification": {
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "diagnostics": [
+          {
+            "code": "E_CIR_FUNCTION",
+            "message": "Duplicate function"
+          }
+        ],
+        "ok": false,
+        "schema": "hepta.concurrent-ir.verification.v1"
+      }
+    },
+    {
+      "graph_sha256": "ec4c1baad3e899df3e6709fa1ecd60c09726856120373e33a7c42ff27ec06866",
+      "name": "unreachable_unknown_operation",
+      "verification": {
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "diagnostics": [
+          {
+            "code": "E_CIR_CFG",
+            "message": "Unreachable blocks cannot hide unchecked operations"
+          }
+        ],
+        "ok": false,
+        "schema": "hepta.concurrent-ir.verification.v1"
+      }
+    },
+    {
+      "graph_sha256": "4154a4f091437ce496b94f0224e9e0c032f2d8e81f8a892f4ed8537451fa69f4",
+      "name": "dangling_edge",
+      "verification": {
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "diagnostics": [
+          {
+            "code": "E_CIR_CFG",
+            "message": "Dangling CFG edge"
+          }
+        ],
+        "ok": false,
+        "schema": "hepta.concurrent-ir.verification.v1"
+      }
+    }
+  ],
+  "projects": [
+    {
+      "graph": {
+        "bytes": 6319,
+        "path": "/workspace/scratch/0817a147930b/Hepta-work/artifacts/next-stage-20261025T023859393246Z/concurrent_ir.graphs/bounded_pipeline.json",
+        "sha256": "135978f05f71ce7c8a24264348f8f659bcf9c9ae2f87618e7dfec977e17c5d8d"
+      },
+      "name": "bounded_pipeline",
+      "native": {
+        "artifact_sha256": "67938b6f51223ae014598cbe23a5d9cac73543f96388ac5fa89d8f37aa024b87",
+        "backend_validation": {
+          "rust_borrows_types": "rustc_checked",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "compiler_sha256": "d711649fed69aed280b9d401a104e87542988fcaf1afe0e2c293e43055cc33ac",
+        "resource_contracts": [
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 32768,
+              "admitted_tasks": 8,
+              "queued_u64_values": 4
+            },
+            "line": 17,
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/bounded_pipeline.hepta",
+            "scope": "one_runtime_instance"
+          }
+        ],
+        "runs": [
+          {
+            "elapsed_ms": 313.679,
+            "metrics": {
+              "active_tasks": 0,
+              "admitted_input_bytes": 32768,
+              "completed_tasks": 8,
+              "peak_queued": 4,
+              "received_sum": 32768,
+              "send_waits": 29931
+            },
+            "returncode": 0
+          },
+          {
+            "elapsed_ms": 236.458,
+            "metrics": {
+              "active_tasks": 0,
+              "admitted_input_bytes": 32768,
+              "completed_tasks": 8,
+              "peak_queued": 4,
+              "received_sum": 32768,
+              "send_waits": 24113
+            },
+            "returncode": 0
+          },
+          {
+            "elapsed_ms": 316.088,
+            "metrics": {
+              "active_tasks": 0,
+              "admitted_input_bytes": 32768,
+              "completed_tasks": 8,
+              "peak_queued": 4,
+              "received_sum": 32768,
+              "send_waits": 29153
+            },
+            "returncode": 0
+          }
+        ],
+        "rust_sha256": "c1a89d4fde097b44cf856ab0132d576ca9b031336661742eb401d5bb46d2450a",
+        "scenario": "bounded_pipeline",
+        "source": "examples/groups/bounded_pipeline.hepta",
+        "source_sha256": "83b3dd2e4f1d9cced6ca7ca51cd80bd0a919cfab9ec0b50be7c25968daef88b1",
+        "status": "passed"
+      },
+      "source": "examples/groups/bounded_pipeline.hepta",
+      "source_sha256": "83b3dd2e4f1d9cced6ca7ca51cd80bd0a919cfab9ec0b50be7c25968daef88b1",
+      "standalone_replay": {
+        "blocks": 17,
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "functions": 2,
+        "group_adoptions": 0,
+        "group_spawns": 1,
+        "ir_sha256": "2fd9091f52e32126f2e99b7c32a65a9a13901f2cd07f4320cf4babb8567b4cd4",
+        "normal_exits": 2,
+        "ok": true,
+        "operations": 13,
+        "schema": "hepta.concurrent-ir.verification.v1",
+        "source_binding_verified": false,
+        "task_spawns": 0,
+        "tree_joins": 0
+      },
+      "validation": {
+        "assumptions": [],
+        "backend": {
+          "check_only": true,
+          "crate_type": "bin",
+          "diagnostics": [],
+          "flags": [
+            "edition=2021",
+            "opt-level=3",
+            "overflow-checks=yes",
+            "panic=abort",
+            "codegen-units=1",
+            "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+          ],
+          "link_args": [],
+          "linker": null,
+          "ok": true,
+          "rust_sha256": "c1a89d4fde097b44cf856ab0132d576ca9b031336661742eb401d5bb46d2450a",
+          "rustc_crate_type": "lib",
+          "status": "rustc_checked",
+          "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+            "host": "x86_64-unknown-linux-gnu",
+            "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+            "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+            "sysroot_discovery": "verified_compiler_prefix",
+            "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+          },
+          "validation_artifact_sha256": "06d430b8acfe576ebb375c18c62a75b71e6d76e176ef33bb4191f1933aa667b5"
+        },
+        "checks": {
+          "rust_borrows_types": "rustc_checked",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "d711649fed69aed280b9d401a104e87542988fcaf1afe0e2c293e43055cc33ac",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "main": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "spawn",
+            "write"
+          ],
+          "producer": [
+            "alloc",
+            "block",
+            "panic",
+            "write"
+          ]
+        },
+        "interface_sha256": "30131982f48caba10783d2582dad95cf55cdff6eefbdafdddd1c3ce4531fb9d2",
+        "ok": true,
+        "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/bounded_pipeline.hepta",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 32768,
+              "admitted_tasks": 8,
+              "queued_u64_values": 4
+            },
+            "line": 17,
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/bounded_pipeline.hepta",
+            "scope": "one_runtime_instance"
+          }
+        ],
+        "rust_sha256": "c1a89d4fde097b44cf856ab0132d576ca9b031336661742eb401d5bb46d2450a",
+        "schema": "hepta.check.v1",
+        "source_sha256": "83b3dd2e4f1d9cced6ca7ca51cd80bd0a919cfab9ec0b50be7c25968daef88b1",
+        "status": "checked"
+      },
+      "verification": {
+        "blocks": 17,
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "functions": 2,
+        "group_adoptions": 0,
+        "group_spawns": 1,
+        "ir_sha256": "2fd9091f52e32126f2e99b7c32a65a9a13901f2cd07f4320cf4babb8567b4cd4",
+        "normal_exits": 2,
+        "ok": true,
+        "operations": 13,
+        "schema": "hepta.concurrent-ir.verification.v1",
+        "task_spawns": 0,
+        "tree_joins": 0
+      }
+    },
+    {
+      "graph": {
+        "bytes": 6587,
+        "path": "/workspace/scratch/0817a147930b/Hepta-work/artifacts/next-stage-20261025T023859393246Z/concurrent_ir.graphs/admission_budgets.json",
+        "sha256": "27248af18d4f3d014d7117c5d1e9e4ed8f1807e390cf0c6ad3ec9ccb9550250b"
+      },
+      "name": "admission_budgets",
+      "native": {
+        "artifact_sha256": "70e5ab604570bcb179beedea4fde959a046cdc4df6a53dc65c2f31b338689d36",
+        "backend_validation": {
+          "rust_borrows_types": "rustc_checked",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "compiler_sha256": "d711649fed69aed280b9d401a104e87542988fcaf1afe0e2c293e43055cc33ac",
+        "resource_contracts": [
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 128,
+              "admitted_tasks": 2,
+              "queued_u64_values": 1
+            },
+            "line": 12,
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/admission_budgets.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 8,
+              "admitted_tasks": 3,
+              "queued_u64_values": 1
+            },
+            "line": 22,
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/admission_budgets.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 0,
+              "admitted_tasks": 0,
+              "queued_u64_values": 1
+            },
+            "line": 32,
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/admission_budgets.hepta",
+            "scope": "one_runtime_instance"
+          }
+        ],
+        "runs": [
+          {
+            "elapsed_ms": 1.596,
+            "metrics": {
+              "admitted_input_bytes": 8,
+              "admitted_tasks": 2,
+              "input_budget_rejections": 1,
+              "task_budget_rejections": 1,
+              "zero_budget_completed": 0
+            },
+            "returncode": 0
+          },
+          {
+            "elapsed_ms": 1.411,
+            "metrics": {
+              "admitted_input_bytes": 8,
+              "admitted_tasks": 2,
+              "input_budget_rejections": 1,
+              "task_budget_rejections": 1,
+              "zero_budget_completed": 0
+            },
+            "returncode": 0
+          },
+          {
+            "elapsed_ms": 1.348,
+            "metrics": {
+              "admitted_input_bytes": 8,
+              "admitted_tasks": 2,
+              "input_budget_rejections": 1,
+              "task_budget_rejections": 1,
+              "zero_budget_completed": 0
+            },
+            "returncode": 0
+          }
+        ],
+        "rust_sha256": "3a377e6f5a36d82140f3b1aeeccbda1e47be139b78359f02f6bdabb95036b1da",
+        "scenario": "admission_budgets",
+        "source": "examples/groups/admission_budgets.hepta",
+        "source_sha256": "2d13649569812185dff136e54b456b6fb2edd72353ccdce295bfc4add5add53a",
+        "status": "passed"
+      },
+      "source": "examples/groups/admission_budgets.hepta",
+      "source_sha256": "2d13649569812185dff136e54b456b6fb2edd72353ccdce295bfc4add5add53a",
+      "standalone_replay": {
+        "blocks": 5,
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "functions": 2,
+        "group_adoptions": 0,
+        "group_spawns": 7,
+        "ir_sha256": "c2840e73973fc334946afbea2c68774c1d6f2bd99512bb13aa67a07ddde1cd1f",
+        "normal_exits": 2,
+        "ok": true,
+        "operations": 30,
+        "schema": "hepta.concurrent-ir.verification.v1",
+        "source_binding_verified": false,
+        "task_spawns": 0,
+        "tree_joins": 0
+      },
+      "validation": {
+        "assumptions": [],
+        "backend": {
+          "check_only": true,
+          "crate_type": "bin",
+          "diagnostics": [],
+          "flags": [
+            "edition=2021",
+            "opt-level=3",
+            "overflow-checks=yes",
+            "panic=abort",
+            "codegen-units=1",
+            "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+          ],
+          "link_args": [],
+          "linker": null,
+          "ok": true,
+          "rust_sha256": "3a377e6f5a36d82140f3b1aeeccbda1e47be139b78359f02f6bdabb95036b1da",
+          "rustc_crate_type": "lib",
+          "status": "rustc_checked",
+          "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+            "host": "x86_64-unknown-linux-gnu",
+            "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+            "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+            "sysroot_discovery": "verified_compiler_prefix",
+            "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+          },
+          "validation_artifact_sha256": "afaa156fac5f18c7cf43204ac8485c13470f452765eb8ce8e2a017a852adc3d4"
+        },
+        "checks": {
+          "rust_borrows_types": "rustc_checked",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "d711649fed69aed280b9d401a104e87542988fcaf1afe0e2c293e43055cc33ac",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "main": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "spawn",
+            "write"
+          ],
+          "producer": [
+            "alloc",
+            "block",
+            "panic",
+            "write"
+          ]
+        },
+        "interface_sha256": "6cb2ed0df9592016b24570fdbc0563badff48f3380f008eeff5792f2140e2619",
+        "ok": true,
+        "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/admission_budgets.hepta",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 128,
+              "admitted_tasks": 2,
+              "queued_u64_values": 1
+            },
+            "line": 12,
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/admission_budgets.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 8,
+              "admitted_tasks": 3,
+              "queued_u64_values": 1
+            },
+            "line": 22,
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/admission_budgets.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 0,
+              "admitted_tasks": 0,
+              "queued_u64_values": 1
+            },
+            "line": 32,
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/admission_budgets.hepta",
+            "scope": "one_runtime_instance"
+          }
+        ],
+        "rust_sha256": "3a377e6f5a36d82140f3b1aeeccbda1e47be139b78359f02f6bdabb95036b1da",
+        "schema": "hepta.check.v1",
+        "source_sha256": "2d13649569812185dff136e54b456b6fb2edd72353ccdce295bfc4add5add53a",
+        "status": "checked"
+      },
+      "verification": {
+        "blocks": 5,
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "functions": 2,
+        "group_adoptions": 0,
+        "group_spawns": 7,
+        "ir_sha256": "c2840e73973fc334946afbea2c68774c1d6f2bd99512bb13aa67a07ddde1cd1f",
+        "normal_exits": 2,
+        "ok": true,
+        "operations": 30,
+        "schema": "hepta.concurrent-ir.verification.v1",
+        "task_spawns": 0,
+        "tree_joins": 0
+      }
+    },
+    {
+      "graph": {
+        "bytes": 5561,
+        "path": "/workspace/scratch/0817a147930b/Hepta-work/artifacts/next-stage-20261025T023859393246Z/concurrent_ir.graphs/cancellation.json",
+        "sha256": "0fa96ffa52ed459083243bc9d144acb643c030feebe6a6b647ce3eaabf06c562"
+      },
+      "name": "cancellation",
+      "native": {
+        "artifact_sha256": "32a3157322f9f466987aff507c3fb1e60436f38414d2601b0d654af2aa340d20",
+        "backend_validation": {
+          "rust_borrows_types": "rustc_checked",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "compiler_sha256": "d711649fed69aed280b9d401a104e87542988fcaf1afe0e2c293e43055cc33ac",
+        "resource_contracts": [
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 256,
+              "admitted_tasks": 4,
+              "queued_u64_values": 1
+            },
+            "line": 15,
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/cancellation.hepta",
+            "scope": "one_runtime_instance"
+          }
+        ],
+        "runs": [
+          {
+            "elapsed_ms": 1.53,
+            "metrics": {
+              "active_tasks": 0,
+              "completed_tasks": 4,
+              "discarded_values": 1,
+              "waiting_senders": 0,
+              "worker_result_sum": 256
+            },
+            "returncode": 0
+          },
+          {
+            "elapsed_ms": 1.433,
+            "metrics": {
+              "active_tasks": 0,
+              "completed_tasks": 4,
+              "discarded_values": 1,
+              "waiting_senders": 0,
+              "worker_result_sum": 256
+            },
+            "returncode": 0
+          },
+          {
+            "elapsed_ms": 0.984,
+            "metrics": {
+              "active_tasks": 0,
+              "completed_tasks": 4,
+              "discarded_values": 1,
+              "waiting_senders": 0,
+              "worker_result_sum": 256
+            },
+            "returncode": 0
+          }
+        ],
+        "rust_sha256": "54d1bea7630317b8abf3c8f0344d25a0d5ccef5640a5b97b5e9ee5ba6eb7a166",
+        "scenario": "cancellation",
+        "source": "examples/groups/cancellation.hepta",
+        "source_sha256": "bdd4dbe166374332aa4f2a029ce0a988bc9dbe6058c80cc84dabf1282f690f2f",
+        "status": "passed"
+      },
+      "source": "examples/groups/cancellation.hepta",
+      "source_sha256": "bdd4dbe166374332aa4f2a029ce0a988bc9dbe6058c80cc84dabf1282f690f2f",
+      "standalone_replay": {
+        "blocks": 14,
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "functions": 2,
+        "group_adoptions": 0,
+        "group_spawns": 1,
+        "ir_sha256": "2d0b232c6688a2c5b897862a01f061a20cf26585e7c85ce3a8d48f258e4bd6b8",
+        "normal_exits": 2,
+        "ok": true,
+        "operations": 12,
+        "schema": "hepta.concurrent-ir.verification.v1",
+        "source_binding_verified": false,
+        "task_spawns": 0,
+        "tree_joins": 0
+      },
+      "validation": {
+        "assumptions": [],
+        "backend": {
+          "check_only": true,
+          "crate_type": "bin",
+          "diagnostics": [],
+          "flags": [
+            "edition=2021",
+            "opt-level=3",
+            "overflow-checks=yes",
+            "panic=abort",
+            "codegen-units=1",
+            "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+          ],
+          "link_args": [],
+          "linker": null,
+          "ok": true,
+          "rust_sha256": "54d1bea7630317b8abf3c8f0344d25a0d5ccef5640a5b97b5e9ee5ba6eb7a166",
+          "rustc_crate_type": "lib",
+          "status": "rustc_checked",
+          "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+            "host": "x86_64-unknown-linux-gnu",
+            "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+            "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+            "sysroot_discovery": "verified_compiler_prefix",
+            "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+          },
+          "validation_artifact_sha256": "21279a4004a322d9de3db14195b607abea7f50632212bd2bf9197c6205b44d4d"
+        },
+        "checks": {
+          "rust_borrows_types": "rustc_checked",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "d711649fed69aed280b9d401a104e87542988fcaf1afe0e2c293e43055cc33ac",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "main": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "spawn",
+            "write"
+          ],
+          "producer": [
+            "alloc",
+            "block",
+            "panic",
+            "write"
+          ]
+        },
+        "interface_sha256": "b98b5ad4c6d72a94b80975b09a31e65a4c7e179081abe1cdd3c581c1e7964902",
+        "ok": true,
+        "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/cancellation.hepta",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 256,
+              "admitted_tasks": 4,
+              "queued_u64_values": 1
+            },
+            "line": 15,
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/cancellation.hepta",
+            "scope": "one_runtime_instance"
+          }
+        ],
+        "rust_sha256": "54d1bea7630317b8abf3c8f0344d25a0d5ccef5640a5b97b5e9ee5ba6eb7a166",
+        "schema": "hepta.check.v1",
+        "source_sha256": "bdd4dbe166374332aa4f2a029ce0a988bc9dbe6058c80cc84dabf1282f690f2f",
+        "status": "checked"
+      },
+      "verification": {
+        "blocks": 14,
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "functions": 2,
+        "group_adoptions": 0,
+        "group_spawns": 1,
+        "ir_sha256": "2d0b232c6688a2c5b897862a01f061a20cf26585e7c85ce3a8d48f258e4bd6b8",
+        "normal_exits": 2,
+        "ok": true,
+        "operations": 12,
+        "schema": "hepta.concurrent-ir.verification.v1",
+        "task_spawns": 0,
+        "tree_joins": 0
+      }
+    },
+    {
+      "graph": {
+        "bytes": 6887,
+        "path": "/workspace/scratch/0817a147930b/Hepta-work/artifacts/next-stage-20261025T023859393246Z/concurrent_ir.graphs/worker_failure.json",
+        "sha256": "c6fbe68ffa6589befecc5a7d45c3c89eddfd7fd3423a8947da29439e163b3bfa"
+      },
+      "name": "worker_failure",
+      "native": {
+        "artifact_sha256": "1293de80b220842b6325ce87c53219a5bf5942871f70d6214a1dedebd9558b26",
+        "backend_validation": {
+          "rust_borrows_types": "rustc_checked",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "compiler_sha256": "d711649fed69aed280b9d401a104e87542988fcaf1afe0e2c293e43055cc33ac",
+        "resource_contracts": [
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 193,
+              "admitted_tasks": 4,
+              "queued_u64_values": 1
+            },
+            "line": 25,
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/worker_failure.hepta",
+            "scope": "one_runtime_instance"
+          }
+        ],
+        "runs": [
+          {
+            "elapsed_ms": 1.736,
+            "metrics": {
+              "active_tasks": 0,
+              "completed_tasks": 4,
+              "failure_code": 17,
+              "received_before_close": 2,
+              "waiting_senders": 0
+            },
+            "returncode": 0
+          },
+          {
+            "elapsed_ms": 1.24,
+            "metrics": {
+              "active_tasks": 0,
+              "completed_tasks": 4,
+              "failure_code": 17,
+              "received_before_close": 5,
+              "waiting_senders": 0
+            },
+            "returncode": 0
+          },
+          {
+            "elapsed_ms": 1.481,
+            "metrics": {
+              "active_tasks": 0,
+              "completed_tasks": 4,
+              "failure_code": 17,
+              "received_before_close": 19,
+              "waiting_senders": 0
+            },
+            "returncode": 0
+          }
+        ],
+        "rust_sha256": "6ef2e1720bea6cdbcf62440e3d32177dcfdad1ee22086313b3311e0336b0cd21",
+        "scenario": "worker_failure",
+        "source": "examples/groups/worker_failure.hepta",
+        "source_sha256": "1a6ca8b8e82c6edfbb469f6e692aa71cdbc549266dd43e37beb523ea90481bcf",
+        "status": "passed"
+      },
+      "source": "examples/groups/worker_failure.hepta",
+      "source_sha256": "1a6ca8b8e82c6edfbb469f6e692aa71cdbc549266dd43e37beb523ea90481bcf",
+      "standalone_replay": {
+        "blocks": 17,
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "functions": 2,
+        "group_adoptions": 0,
+        "group_spawns": 2,
+        "ir_sha256": "b9b40f7d1e6a3655a4bc75ac819ba80de789d4539ec6118edcb5ff47d3a75904",
+        "normal_exits": 2,
+        "ok": true,
+        "operations": 17,
+        "schema": "hepta.concurrent-ir.verification.v1",
+        "source_binding_verified": false,
+        "task_spawns": 0,
+        "tree_joins": 0
+      },
+      "validation": {
+        "assumptions": [],
+        "backend": {
+          "check_only": true,
+          "crate_type": "bin",
+          "diagnostics": [],
+          "flags": [
+            "edition=2021",
+            "opt-level=3",
+            "overflow-checks=yes",
+            "panic=abort",
+            "codegen-units=1",
+            "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+          ],
+          "link_args": [],
+          "linker": null,
+          "ok": true,
+          "rust_sha256": "6ef2e1720bea6cdbcf62440e3d32177dcfdad1ee22086313b3311e0336b0cd21",
+          "rustc_crate_type": "lib",
+          "status": "rustc_checked",
+          "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+            "host": "x86_64-unknown-linux-gnu",
+            "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+            "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+            "sysroot_discovery": "verified_compiler_prefix",
+            "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+          },
+          "validation_artifact_sha256": "51d3ec0cfeb7c8ef6e51d7a4b068b1e09be3386b2547a42c42e83a94bc752125"
+        },
+        "checks": {
+          "rust_borrows_types": "rustc_checked",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "d711649fed69aed280b9d401a104e87542988fcaf1afe0e2c293e43055cc33ac",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "main": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "spawn",
+            "write"
+          ],
+          "producer": [
+            "alloc",
+            "block",
+            "panic",
+            "write"
+          ]
+        },
+        "interface_sha256": "b00b908f94e4d61bb433a06c2446ee3b21c65e18e46a449cfc201e4ec4326d66",
+        "ok": true,
+        "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/worker_failure.hepta",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 193,
+              "admitted_tasks": 4,
+              "queued_u64_values": 1
+            },
+            "line": 25,
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/worker_failure.hepta",
+            "scope": "one_runtime_instance"
+          }
+        ],
+        "rust_sha256": "6ef2e1720bea6cdbcf62440e3d32177dcfdad1ee22086313b3311e0336b0cd21",
+        "schema": "hepta.check.v1",
+        "source_sha256": "1a6ca8b8e82c6edfbb469f6e692aa71cdbc549266dd43e37beb523ea90481bcf",
+        "status": "checked"
+      },
+      "verification": {
+        "blocks": 17,
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "functions": 2,
+        "group_adoptions": 0,
+        "group_spawns": 2,
+        "ir_sha256": "b9b40f7d1e6a3655a4bc75ac819ba80de789d4539ec6118edcb5ff47d3a75904",
+        "normal_exits": 2,
+        "ok": true,
+        "operations": 17,
+        "schema": "hepta.concurrent-ir.verification.v1",
+        "task_spawns": 0,
+        "tree_joins": 0
+      }
+    },
+    {
+      "graph": {
+        "bytes": 7205,
+        "path": "/workspace/scratch/0817a147930b/Hepta-work/artifacts/next-stage-20261025T023859393246Z/concurrent_ir.graphs/select_pipeline.json",
+        "sha256": "aa61768d3f1e44aedbc46c4c9e33c81328177b946b4d37abbd0a3925095e5d07"
+      },
+      "name": "select_pipeline",
+      "native": {
+        "runs": [
+          {
+            "build": {
+              "artifact": "/tmp/hepta-run-bhxgd6yp/program",
+              "artifact_bytes": 3930248,
+              "artifact_sha256": "8072679c8287fa6c17a222a5811f321d586af155e02d99cd133c0f4b46dd866b",
+              "check_only": false,
+              "crate_type": "bin",
+              "diagnostics": [],
+              "flags": [
+                "edition=2021",
+                "opt-level=3",
+                "overflow-checks=yes",
+                "panic=abort",
+                "codegen-units=1",
+                "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+              ],
+              "link_args": [],
+              "linker": null,
+              "ok": true,
+              "rust_sha256": "1663c5fbce3585f56e051fc53f0471fdad1217f4e2947688de7fb62801f8e844",
+              "rustc_crate_type": "bin",
+              "status": "rustc_checked",
+              "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+              "target": "x86_64-unknown-linux-gnu",
+              "toolchain": {
+                "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+                "host": "x86_64-unknown-linux-gnu",
+                "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+                "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+                "sysroot_discovery": "verified_compiler_prefix",
+                "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+              },
+              "validation_artifact_sha256": "8072679c8287fa6c17a222a5811f321d586af155e02d99cd133c0f4b46dd866b"
+            },
+            "ok": true,
+            "returncode": 0,
+            "schema": "hepta.run.v1",
+            "stderr": "",
+            "stdout": "128\n128\n19328\n0\n",
+            "trial": 0
+          },
+          {
+            "build": {
+              "artifact": "/tmp/hepta-run-cadx714r/program",
+              "artifact_bytes": 3930248,
+              "artifact_sha256": "9a67260f1292375b23c8ad6d4ad5a7aa4e2f00a0c906c0e85044ee43cd8672ee",
+              "check_only": false,
+              "crate_type": "bin",
+              "diagnostics": [],
+              "flags": [
+                "edition=2021",
+                "opt-level=3",
+                "overflow-checks=yes",
+                "panic=abort",
+                "codegen-units=1",
+                "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+              ],
+              "link_args": [],
+              "linker": null,
+              "ok": true,
+              "rust_sha256": "1663c5fbce3585f56e051fc53f0471fdad1217f4e2947688de7fb62801f8e844",
+              "rustc_crate_type": "bin",
+              "status": "rustc_checked",
+              "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+              "target": "x86_64-unknown-linux-gnu",
+              "toolchain": {
+                "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+                "host": "x86_64-unknown-linux-gnu",
+                "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+                "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+                "sysroot_discovery": "verified_compiler_prefix",
+                "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+              },
+              "validation_artifact_sha256": "9a67260f1292375b23c8ad6d4ad5a7aa4e2f00a0c906c0e85044ee43cd8672ee"
+            },
+            "ok": true,
+            "returncode": 0,
+            "schema": "hepta.run.v1",
+            "stderr": "",
+            "stdout": "128\n128\n19328\n0\n",
+            "trial": 1
+          },
+          {
+            "build": {
+              "artifact": "/tmp/hepta-run-bw4ed7bu/program",
+              "artifact_bytes": 3930248,
+              "artifact_sha256": "c693b4bdbe76bfe51e432b9bb0d395c2034eb90d10dc55bc3d8423fd26527fac",
+              "check_only": false,
+              "crate_type": "bin",
+              "diagnostics": [],
+              "flags": [
+                "edition=2021",
+                "opt-level=3",
+                "overflow-checks=yes",
+                "panic=abort",
+                "codegen-units=1",
+                "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+              ],
+              "link_args": [],
+              "linker": null,
+              "ok": true,
+              "rust_sha256": "1663c5fbce3585f56e051fc53f0471fdad1217f4e2947688de7fb62801f8e844",
+              "rustc_crate_type": "bin",
+              "status": "rustc_checked",
+              "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+              "target": "x86_64-unknown-linux-gnu",
+              "toolchain": {
+                "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+                "host": "x86_64-unknown-linux-gnu",
+                "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+                "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+                "sysroot_discovery": "verified_compiler_prefix",
+                "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+              },
+              "validation_artifact_sha256": "c693b4bdbe76bfe51e432b9bb0d395c2034eb90d10dc55bc3d8423fd26527fac"
+            },
+            "ok": true,
+            "returncode": 0,
+            "schema": "hepta.run.v1",
+            "stderr": "",
+            "stdout": "128\n128\n19328\n0\n",
+            "trial": 2
+          }
+        ]
+      },
+      "source": "examples/groups/select_pipeline.hepta",
+      "source_sha256": "7111b32b895597c335efc6d2f1fca3d5174c28b583febb822f517d76ae9419f0",
+      "standalone_replay": {
+        "blocks": 17,
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "functions": 2,
+        "group_adoptions": 0,
+        "group_spawns": 2,
+        "ir_sha256": "e8dfab4325f8374cfedda2c9beee76c887a8d7adf8d70febda2ab196c28015f9",
+        "normal_exits": 2,
+        "ok": true,
+        "operations": 19,
+        "schema": "hepta.concurrent-ir.verification.v1",
+        "source_binding_verified": false,
+        "task_spawns": 0,
+        "tree_joins": 0
+      },
+      "validation": {
+        "assumptions": [],
+        "backend": {
+          "check_only": true,
+          "crate_type": "bin",
+          "diagnostics": [],
+          "flags": [
+            "edition=2021",
+            "opt-level=3",
+            "overflow-checks=yes",
+            "panic=abort",
+            "codegen-units=1",
+            "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+          ],
+          "link_args": [],
+          "linker": null,
+          "ok": true,
+          "rust_sha256": "1663c5fbce3585f56e051fc53f0471fdad1217f4e2947688de7fb62801f8e844",
+          "rustc_crate_type": "lib",
+          "status": "rustc_checked",
+          "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+            "host": "x86_64-unknown-linux-gnu",
+            "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+            "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+            "sysroot_discovery": "verified_compiler_prefix",
+            "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+          },
+          "validation_artifact_sha256": "74a0d424be98d9fbd9d1cd1671c8c0236c13d1334df90917c34a51ad34527b93"
+        },
+        "checks": {
+          "rust_borrows_types": "rustc_checked",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "d711649fed69aed280b9d401a104e87542988fcaf1afe0e2c293e43055cc33ac",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "main": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "spawn",
+            "write"
+          ],
+          "produce": [
+            "alloc",
+            "block",
+            "panic",
+            "write"
+          ]
+        },
+        "interface_sha256": "a5ee500e674d944054563e00341bcfabdf869e9672c2a5849783c20ad91c200a",
+        "ok": true,
+        "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/select_pipeline.hepta",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 8,
+              "admitted_tasks": 1,
+              "queued_u64_values": 2
+            },
+            "line": 15,
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/select_pipeline.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 16,
+              "admitted_tasks": 1,
+              "queued_u64_values": 3
+            },
+            "line": 16,
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/select_pipeline.hepta",
+            "scope": "one_runtime_instance"
+          }
+        ],
+        "rust_sha256": "1663c5fbce3585f56e051fc53f0471fdad1217f4e2947688de7fb62801f8e844",
+        "schema": "hepta.check.v1",
+        "source_sha256": "7111b32b895597c335efc6d2f1fca3d5174c28b583febb822f517d76ae9419f0",
+        "status": "checked"
+      },
+      "verification": {
+        "blocks": 17,
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "functions": 2,
+        "group_adoptions": 0,
+        "group_spawns": 2,
+        "ir_sha256": "e8dfab4325f8374cfedda2c9beee76c887a8d7adf8d70febda2ab196c28015f9",
+        "normal_exits": 2,
+        "ok": true,
+        "operations": 19,
+        "schema": "hepta.concurrent-ir.verification.v1",
+        "task_spawns": 0,
+        "tree_joins": 0
+      }
+    },
+    {
+      "graph": {
+        "bytes": 6542,
+        "path": "/workspace/scratch/0817a147930b/Hepta-work/artifacts/next-stage-20261025T023859393246Z/concurrent_ir.graphs/shared_budget.json",
+        "sha256": "ea7b098da3ce56c834ab909344692bcc4b034dc9d74001b91c5f7b5c08317efe"
+      },
+      "name": "shared_budget",
+      "native": {
+        "runs": [
+          {
+            "build": {
+              "artifact": "/tmp/hepta-run-vd3f90th/program",
+              "artifact_bytes": 3921904,
+              "artifact_sha256": "f60ff5155d25747954c064f28b9a28990d56393b5bc8bff01813618da77055ca",
+              "check_only": false,
+              "crate_type": "bin",
+              "diagnostics": [],
+              "flags": [
+                "edition=2021",
+                "opt-level=3",
+                "overflow-checks=yes",
+                "panic=abort",
+                "codegen-units=1",
+                "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+              ],
+              "link_args": [],
+              "linker": null,
+              "ok": true,
+              "rust_sha256": "6aa4a6658d5c01f2f8f742984c4e8e47d7e3aef20813ba3c9766e0c2d0835438",
+              "rustc_crate_type": "bin",
+              "status": "rustc_checked",
+              "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+              "target": "x86_64-unknown-linux-gnu",
+              "toolchain": {
+                "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+                "host": "x86_64-unknown-linux-gnu",
+                "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+                "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+                "sysroot_discovery": "verified_compiler_prefix",
+                "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+              },
+              "validation_artifact_sha256": "f60ff5155d25747954c064f28b9a28990d56393b5bc8bff01813618da77055ca"
+            },
+            "ok": true,
+            "returncode": 0,
+            "schema": "hepta.run.v1",
+            "stderr": "",
+            "stdout": "2\n12\n5\n131072\n0\n1\n1\n",
+            "trial": 0
+          },
+          {
+            "build": {
+              "artifact": "/tmp/hepta-run-i9wsjme5/program",
+              "artifact_bytes": 3921904,
+              "artifact_sha256": "47946e64a39aea5e3abc7cfbd74a54b279e2b7a0bedc4e0a60ebce6b421dd13a",
+              "check_only": false,
+              "crate_type": "bin",
+              "diagnostics": [],
+              "flags": [
+                "edition=2021",
+                "opt-level=3",
+                "overflow-checks=yes",
+                "panic=abort",
+                "codegen-units=1",
+                "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+              ],
+              "link_args": [],
+              "linker": null,
+              "ok": true,
+              "rust_sha256": "6aa4a6658d5c01f2f8f742984c4e8e47d7e3aef20813ba3c9766e0c2d0835438",
+              "rustc_crate_type": "bin",
+              "status": "rustc_checked",
+              "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+              "target": "x86_64-unknown-linux-gnu",
+              "toolchain": {
+                "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+                "host": "x86_64-unknown-linux-gnu",
+                "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+                "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+                "sysroot_discovery": "verified_compiler_prefix",
+                "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+              },
+              "validation_artifact_sha256": "47946e64a39aea5e3abc7cfbd74a54b279e2b7a0bedc4e0a60ebce6b421dd13a"
+            },
+            "ok": true,
+            "returncode": 0,
+            "schema": "hepta.run.v1",
+            "stderr": "",
+            "stdout": "2\n12\n5\n131072\n0\n1\n1\n",
+            "trial": 1
+          },
+          {
+            "build": {
+              "artifact": "/tmp/hepta-run-cvdsq_o4/program",
+              "artifact_bytes": 3921904,
+              "artifact_sha256": "a779a2b89aa8f0e95e559de9afd5df8a7ef6fbaeffb0f153cbd0856d1e3fc1e4",
+              "check_only": false,
+              "crate_type": "bin",
+              "diagnostics": [],
+              "flags": [
+                "edition=2021",
+                "opt-level=3",
+                "overflow-checks=yes",
+                "panic=abort",
+                "codegen-units=1",
+                "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+              ],
+              "link_args": [],
+              "linker": null,
+              "ok": true,
+              "rust_sha256": "6aa4a6658d5c01f2f8f742984c4e8e47d7e3aef20813ba3c9766e0c2d0835438",
+              "rustc_crate_type": "bin",
+              "status": "rustc_checked",
+              "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+              "target": "x86_64-unknown-linux-gnu",
+              "toolchain": {
+                "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+                "host": "x86_64-unknown-linux-gnu",
+                "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+                "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+                "sysroot_discovery": "verified_compiler_prefix",
+                "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+              },
+              "validation_artifact_sha256": "a779a2b89aa8f0e95e559de9afd5df8a7ef6fbaeffb0f153cbd0856d1e3fc1e4"
+            },
+            "ok": true,
+            "returncode": 0,
+            "schema": "hepta.run.v1",
+            "stderr": "",
+            "stdout": "2\n12\n5\n131072\n0\n1\n1\n",
+            "trial": 2
+          }
+        ]
+      },
+      "source": "examples/groups/shared_budget.hepta",
+      "source_sha256": "5481f979bdb709b317ad69319b0140991b0dab8fb657760c10a9d7445e67dead",
+      "standalone_replay": {
+        "blocks": 2,
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "functions": 2,
+        "group_adoptions": 0,
+        "group_spawns": 4,
+        "ir_sha256": "f7c8d32892fe723a7401d2052671e007915ca7a903a0f4f6e67bc38c8fb26213",
+        "normal_exits": 2,
+        "ok": true,
+        "operations": 35,
+        "schema": "hepta.concurrent-ir.verification.v1",
+        "source_binding_verified": false,
+        "task_spawns": 0,
+        "tree_joins": 0
+      },
+      "validation": {
+        "assumptions": [],
+        "backend": {
+          "check_only": true,
+          "crate_type": "bin",
+          "diagnostics": [],
+          "flags": [
+            "edition=2021",
+            "opt-level=3",
+            "overflow-checks=yes",
+            "panic=abort",
+            "codegen-units=1",
+            "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+          ],
+          "link_args": [],
+          "linker": null,
+          "ok": true,
+          "rust_sha256": "6aa4a6658d5c01f2f8f742984c4e8e47d7e3aef20813ba3c9766e0c2d0835438",
+          "rustc_crate_type": "lib",
+          "status": "rustc_checked",
+          "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+            "host": "x86_64-unknown-linux-gnu",
+            "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+            "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+            "sysroot_discovery": "verified_compiler_prefix",
+            "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+          },
+          "validation_artifact_sha256": "9a32d93291fcd792697751d745736f96c9bdb7570a25773258e9c1969b8d53ca"
+        },
+        "checks": {
+          "rust_borrows_types": "rustc_checked",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "d711649fed69aed280b9d401a104e87542988fcaf1afe0e2c293e43055cc33ac",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "complete": [
+            "alloc",
+            "block"
+          ],
+          "main": [
+            "alloc",
+            "block",
+            "io",
+            "panic",
+            "spawn",
+            "write"
+          ]
+        },
+        "interface_sha256": "7d059107ad86909093537ac089a99ff210b250ee6de6f0f4384a35fad9a0d099",
+        "ok": true,
+        "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/shared_budget.hepta",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 0,
+              "admitted_tasks": 0,
+              "queued_u64_values": 1
+            },
+            "line": 12,
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/shared_budget.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 64,
+              "admitted_tasks": 4,
+              "queued_u64_values": 2
+            },
+            "line": 13,
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/shared_budget.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 64,
+              "admitted_tasks": 4,
+              "queued_u64_values": 2
+            },
+            "line": 14,
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/shared_budget.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 0,
+              "admitted_tasks": 0,
+              "queued_u64_values": 1
+            },
+            "line": 15,
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/shared_budget.hepta",
+            "scope": "one_runtime_instance"
+          },
+          {
+            "configuration_can_be_refused": true,
+            "enforcement": "checked_reservations_before_spawn_released_after_join",
+            "excludes": [
+              "unattached_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "FFI_allocations",
+              "OS_stack_rounding_and_guard_pages",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "shared_task_budget",
+            "limits": {
+              "reserved_input_bytes": 12,
+              "reserved_queue_slots": 5,
+              "reserved_requested_stack_bytes": 131072,
+              "reserved_threads": 2,
+              "worker_stack_request": 65536
+            },
+            "line": 16,
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/shared_budget.hepta",
+            "scope": "explicitly_attached_group_instances"
+          },
+          {
+            "configuration_can_be_refused": true,
+            "enforcement": "checked_reservations_before_spawn_released_after_join",
+            "excludes": [
+              "unattached_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "FFI_allocations",
+              "OS_stack_rounding_and_guard_pages",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "shared_task_budget",
+            "limits": {
+              "reserved_input_bytes": 100,
+              "reserved_queue_slots": 100,
+              "reserved_requested_stack_bytes": 6553600,
+              "reserved_threads": 100,
+              "worker_stack_request": 65536
+            },
+            "line": 17,
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/shared_budget.hepta",
+            "scope": "explicitly_attached_group_instances"
+          }
+        ],
+        "rust_sha256": "6aa4a6658d5c01f2f8f742984c4e8e47d7e3aef20813ba3c9766e0c2d0835438",
+        "schema": "hepta.check.v1",
+        "source_sha256": "5481f979bdb709b317ad69319b0140991b0dab8fb657760c10a9d7445e67dead",
+        "status": "checked"
+      },
+      "verification": {
+        "blocks": 2,
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "functions": 2,
+        "group_adoptions": 0,
+        "group_spawns": 4,
+        "ir_sha256": "f7c8d32892fe723a7401d2052671e007915ca7a903a0f4f6e67bc38c8fb26213",
+        "normal_exits": 2,
+        "ok": true,
+        "operations": 35,
+        "schema": "hepta.concurrent-ir.verification.v1",
+        "task_spawns": 0,
+        "tree_joins": 0
+      }
+    },
+    {
+      "graph": {
+        "bytes": 3159,
+        "path": "/workspace/scratch/0817a147930b/Hepta-work/artifacts/next-stage-20261025T023859393246Z/concurrent_ir.graphs/protocol.json",
+        "sha256": "0c0fd8fca74f5aac3f6395c9c1fdca7f67a0c583921a6ba4278708ef556ffd75"
+      },
+      "name": "protocol",
+      "native": {
+        "runs": [
+          {
+            "build": {
+              "artifact": "/tmp/hepta-run-knd5r0t5/program",
+              "artifact_bytes": 3907008,
+              "artifact_sha256": "31bac982c0d4027a9fb21cb90952ccceaffcc77c735db60c7b72c31fade76f79",
+              "check_only": false,
+              "crate_type": "bin",
+              "diagnostics": [],
+              "flags": [
+                "edition=2021",
+                "opt-level=3",
+                "overflow-checks=yes",
+                "panic=abort",
+                "codegen-units=1",
+                "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+              ],
+              "link_args": [],
+              "linker": null,
+              "ok": true,
+              "rust_sha256": "e52a64dfcab59aea938db260b7128e14981c93aa5442b43ce838a737c297742d",
+              "rustc_crate_type": "bin",
+              "status": "rustc_checked",
+              "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+              "target": "x86_64-unknown-linux-gnu",
+              "toolchain": {
+                "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+                "host": "x86_64-unknown-linux-gnu",
+                "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+                "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+                "sysroot_discovery": "verified_compiler_prefix",
+                "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+              },
+              "validation_artifact_sha256": "31bac982c0d4027a9fb21cb90952ccceaffcc77c735db60c7b72c31fade76f79"
+            },
+            "ok": true,
+            "returncode": 0,
+            "schema": "hepta.run.v1",
+            "stderr": "",
+            "stdout": "",
+            "trial": 0
+          },
+          {
+            "build": {
+              "artifact": "/tmp/hepta-run-q5rky_2x/program",
+              "artifact_bytes": 3907008,
+              "artifact_sha256": "096685b2bffde3adb12af059e084d8040c234b1556dca0d0351f4e415caa906f",
+              "check_only": false,
+              "crate_type": "bin",
+              "diagnostics": [],
+              "flags": [
+                "edition=2021",
+                "opt-level=3",
+                "overflow-checks=yes",
+                "panic=abort",
+                "codegen-units=1",
+                "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+              ],
+              "link_args": [],
+              "linker": null,
+              "ok": true,
+              "rust_sha256": "e52a64dfcab59aea938db260b7128e14981c93aa5442b43ce838a737c297742d",
+              "rustc_crate_type": "bin",
+              "status": "rustc_checked",
+              "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+              "target": "x86_64-unknown-linux-gnu",
+              "toolchain": {
+                "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+                "host": "x86_64-unknown-linux-gnu",
+                "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+                "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+                "sysroot_discovery": "verified_compiler_prefix",
+                "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+              },
+              "validation_artifact_sha256": "096685b2bffde3adb12af059e084d8040c234b1556dca0d0351f4e415caa906f"
+            },
+            "ok": true,
+            "returncode": 0,
+            "schema": "hepta.run.v1",
+            "stderr": "",
+            "stdout": "",
+            "trial": 1
+          },
+          {
+            "build": {
+              "artifact": "/tmp/hepta-run-e22m2qsu/program",
+              "artifact_bytes": 3907008,
+              "artifact_sha256": "c8e507a156ffe5508e6596d3e963d12ef274294c871efdcb26ded82e64cc486b",
+              "check_only": false,
+              "crate_type": "bin",
+              "diagnostics": [],
+              "flags": [
+                "edition=2021",
+                "opt-level=3",
+                "overflow-checks=yes",
+                "panic=abort",
+                "codegen-units=1",
+                "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+              ],
+              "link_args": [],
+              "linker": null,
+              "ok": true,
+              "rust_sha256": "e52a64dfcab59aea938db260b7128e14981c93aa5442b43ce838a737c297742d",
+              "rustc_crate_type": "bin",
+              "status": "rustc_checked",
+              "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+              "target": "x86_64-unknown-linux-gnu",
+              "toolchain": {
+                "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+                "host": "x86_64-unknown-linux-gnu",
+                "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+                "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+                "sysroot_discovery": "verified_compiler_prefix",
+                "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+              },
+              "validation_artifact_sha256": "c8e507a156ffe5508e6596d3e963d12ef274294c871efdcb26ded82e64cc486b"
+            },
+            "ok": true,
+            "returncode": 0,
+            "schema": "hepta.run.v1",
+            "stderr": "",
+            "stdout": "",
+            "trial": 2
+          }
+        ]
+      },
+      "source": "examples/groups/protocol.hepta",
+      "source_sha256": "157257c3214d961e4996a15bbad7eee509ec61b83fca66ed030b08e7d6e71cd5",
+      "standalone_replay": {
+        "blocks": 2,
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "functions": 2,
+        "group_adoptions": 0,
+        "group_spawns": 1,
+        "ir_sha256": "65147d704375683b7845bd525576f28c2e590aaf65900b02a6e285a3276855fa",
+        "normal_exits": 2,
+        "ok": true,
+        "operations": 12,
+        "schema": "hepta.concurrent-ir.verification.v1",
+        "source_binding_verified": false,
+        "task_spawns": 0,
+        "tree_joins": 0
+      },
+      "validation": {
+        "assumptions": [],
+        "backend": {
+          "check_only": true,
+          "crate_type": "bin",
+          "diagnostics": [],
+          "flags": [
+            "edition=2021",
+            "opt-level=3",
+            "overflow-checks=yes",
+            "panic=abort",
+            "codegen-units=1",
+            "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+          ],
+          "link_args": [],
+          "linker": null,
+          "ok": true,
+          "rust_sha256": "e52a64dfcab59aea938db260b7128e14981c93aa5442b43ce838a737c297742d",
+          "rustc_crate_type": "lib",
+          "status": "rustc_checked",
+          "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+            "host": "x86_64-unknown-linux-gnu",
+            "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+            "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+            "sysroot_discovery": "verified_compiler_prefix",
+            "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+          },
+          "validation_artifact_sha256": "7ab20f6c2e15a9fc9a8c938488e8fd14122a1fb4450697e0a30e8a597cfae6f0"
+        },
+        "checks": {
+          "rust_borrows_types": "rustc_checked",
+          "syntax": "passed",
+          "types_effects_resources": "passed_in_supported_subset"
+        },
+        "claims": {
+          "all_programs_faster_than_rust": false,
+          "bounded_cancellation_latency_proved": false,
+          "deadlock_freedom_proved": false,
+          "hardware_execution_verified": false,
+          "whole_language_soundness_proved": false
+        },
+        "compiler_sha256": "d711649fed69aed280b9d401a104e87542988fcaf1afe0e2c293e43055cc33ac",
+        "compiler_version": "0.2.0",
+        "diagnostics": [],
+        "effects": {
+          "main": [
+            "alloc",
+            "block",
+            "panic",
+            "spawn",
+            "write"
+          ],
+          "work": [
+            "alloc",
+            "block",
+            "panic",
+            "write"
+          ]
+        },
+        "interface_sha256": "9b14dd47a7cbc09673fbd0ff5aea14060ad1172db971e58b8fba54e83c657dc4",
+        "ok": true,
+        "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/protocol.hepta",
+        "profile": {
+          "crate_type": "bin",
+          "no_std": false,
+          "overflow_checks": true,
+          "panic": "abort"
+        },
+        "resource_contracts": [
+          {
+            "enforcement": "runtime_admission_and_fixed_queue",
+            "excludes": [
+              "other_group_instances",
+              "allocations_before_submission",
+              "worker_internal_allocations",
+              "thread_stacks",
+              "runtime_metadata",
+              "process_RSS",
+              "CPU_time"
+            ],
+            "function": "main",
+            "kind": "task_group",
+            "limits": {
+              "admitted_input_bytes": 8,
+              "admitted_tasks": 1,
+              "queued_u64_values": 1
+            },
+            "line": 11,
+            "path": "/workspace/scratch/0817a147930b/Hepta-work/examples/groups/protocol.hepta",
+            "scope": "one_runtime_instance"
+          }
+        ],
+        "rust_sha256": "e52a64dfcab59aea938db260b7128e14981c93aa5442b43ce838a737c297742d",
+        "schema": "hepta.check.v1",
+        "source_sha256": "157257c3214d961e4996a15bbad7eee509ec61b83fca66ed030b08e7d6e71cd5",
+        "status": "checked"
+      },
+      "verification": {
+        "blocks": 2,
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "functions": 2,
+        "group_adoptions": 0,
+        "group_spawns": 1,
+        "ir_sha256": "65147d704375683b7845bd525576f28c2e590aaf65900b02a6e285a3276855fa",
+        "normal_exits": 2,
+        "ok": true,
+        "operations": 12,
+        "schema": "hepta.concurrent-ir.verification.v1",
+        "task_spawns": 0,
+        "tree_joins": 0
+      }
+    }
+  ],
+  "schema": "hepta.concurrent-qualification.v1",
+  "status": "passed"
+}
