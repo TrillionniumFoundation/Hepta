@@ -1,0 +1,24 @@
+{
+  "additional_program_or_model_executions": 0,
+  "audit_archive": "hepta-round2-independent-audits.tar.xz",
+  "events": [
+    {
+      "correction": "Read the actual final report key; successful invocation is retained in assembly/summary-assembler-run2.log.",
+      "kind": "summary_assembler_failure",
+      "original_log": "assembly/summary-assembler-run1.log",
+      "reason": "Summary assembler referenced the retired development key native_safe_hepta_rust_modules; the final native report uses native_safe_hepta_rust_variants. The first invocation raised KeyError before producing a summary."
+    },
+    {
+      "corrected_checks_passed": 124,
+      "corrected_record": "independent-audit/delivery-summary-check-corrected.json",
+      "kind": "auxiliary_summary_audit_failure",
+      "original_record": "independent-audit/delivery-summary-check.json",
+      "original_sha256": "ae52c549377eb912c0b9c46126f08173c4b248ac7fa96abeb878b971216e8fb0",
+      "reason": "The successful assembler log emits structured directory/result fields, not the literal filename SUMMARY.json. The earlier auxiliary assertion wrongly required that filename substring. This correction checks the actual six JSON fields against original results.",
+      "substantive_checks_retained": 118
+    }
+  ],
+  "execution_evidence_modified": false,
+  "schema": "hepta.seven-stage.assembly-notes.v1",
+  "source_commit": "5818c5814fb42dbd97a027e9b328f4ae3099c0fc"
+}

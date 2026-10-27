@@ -220,7 +220,7 @@ class StandaloneHIANativeTests(unittest.TestCase):
                 compile_program_llvm(replace(self.ir, target=TARGET_AARCH64), program=self.program,
                                      output=self.path / "forged-arm.o", clang=CLANG, kind="object")
             with self.assertRaisesRegex(HIAProgramLLVMRejected, "unsupported"):
-                emit_program_llvm(self.program, target="riscv64-unknown-linux-gnu")
+                emit_program_llvm(self.program, target="riscv32-unknown-linux-gnu")
 
     def test_unread_allocation_keeps_zero_reads_null_guards_and_real_allocator_events(self):
         from tools.qualify_hia_program import block, constant, function, jump, operation, ret

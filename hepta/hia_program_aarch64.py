@@ -23,9 +23,12 @@ from .owned_aarch64_link import inspect_synthetic_aarch64_elf
 
 
 PROFILE = "hepta.hia.program.aarch64-finite-runtime.v1"
+PROFILE_COMPOSITE = "hepta.hia.program.aarch64-composite-bulk-runtime.v1"
 REVIEWED_RUNTIME_SHA256 = "5caa9cbc33df5734626ff17045159add08b850abceb021b038ddb110db6f402c"
+REVIEWED_MULTI_RUNTIME_SHA256 = "c0fa3bbee8f3d792908854bd3cde4428fb3876beff55f729278739b2341fc4a3"
 QEMU_SHA256 = "e4f8d99e9ff69c3cefffab71cee358ce2af1ecba1282d04c3eeb44ef76f5a71e"
 _FIXTURE = Path(__file__).resolve().parents[1] / "examples/llvm_owned/finite_aarch64_runtime.c"
+_MULTI_FIXTURE = Path(__file__).resolve().parents[1] / "examples/hia_program/finite_aarch64_multi_runtime.c"
 _MARKER = b"/* Exact selected Hepta export; unlike the synthetic stub, invoked for real. */"
 _RUNTIME_EXPORTS = frozenset({"malloc", "calloc", "free", "abort", "memcpy", "memmove", "memset", "_start"})
 _TYPES = {"usize": "hepta_size", "u8": "hepta_u8", "i8": "signed char", "u32": "hepta_u32",
@@ -43,6 +46,7 @@ _SIGNATURES = {
     "bounds_trap": (["usize"], ["u8"]),
     "move_bytes": (["usize", "usize", "usize", "usize", "usize"], ["u8"]),
     "fill_range": (["usize", "usize", "usize", "u8", "usize"], ["u8"]),
+    "aggregate_bulk": (["usize", "usize", "usize", "u8", "usize"], ["u8"]),
 }
 
 # The native harness checks these same fixed values after real ABI calls.
@@ -95,6 +99,36 @@ _RANGE_FILL_CASES = (
     ((5, 0, 5, 42, 4), 42),
 )
 
+# Independent fixed outputs for a two-owner nominal record. The input source
+# composes fill, partial fill, swap, overlap move and disjoint offset copy.
+# A separate Python byte-array oracle in the qualification command rechecks
+# these values; the native driver observes allocator events itself.
+COMPOSITE_BULK_CASES = (
+    ((5, 1, 3, 77, 0), None, 11),
+    ((5, 1, 3, 77, 1), None, 11),
+    ((5, 1, 3, 77, 2), None, 11),
+    ((5, 1, 3, 77, 3), None, 77),
+    ((5, 1, 3, 77, 4), None, 11),
+    ((8, 2, 4, 255, 0), None, 11),
+    ((8, 2, 4, 255, 1), None, 11),
+    ((8, 2, 4, 255, 2), None, 11),
+    ((8, 2, 4, 255, 3), None, 11),
+    ((8, 2, 4, 255, 4), None, 255),
+    ((8, 2, 4, 255, 5), None, 11),
+    ((8, 2, 4, 255, 6), None, 11),
+    ((8, 2, 4, 255, 7), None, 11),
+    ((1, 1, 0, 99, 0), None, 11),
+    ((0, 0, 0, 17, 0), None, 0),
+    ((4096, 4096, 0, 31, 4095), None, 11),
+    ((5, 1, 3, 77, 3), 1, 251),
+    ((5, 1, 3, 77, 3), 2, 252),
+)
+COMPOSITE_BULK_TRAPS = {
+    "composite_bulk_fill_trap": (5, 4, 2, 7, 0),
+    "composite_bulk_swap_trap": (5, 1, 3, 7, 5),
+    "composite_bulk_move_trap": (5, 0, 5, 7, 0),
+}
+
 
 _ADAPTER = r"""
 /* The standalone Core requests zero-filled bytes through this exact adapter. */
@@ -132,6 +166,27 @@ static void write_counters(void) {
 }
 """
 
+_MULTI_OBSERVER = r"""
+static void write_case(hepta_u32 index, hepta_u32 result) {
+    char text[96]; hepta_size used = 0;
+    const char prefix[] = "HIA_BULK case ";
+    for (hepta_size i = 0; i < sizeof(prefix) - 1; ++i) text[used++] = prefix[i];
+    hepta_u32 values[2] = {index, result};
+    for (hepta_size i = 0; i < 2; ++i) {
+        char digits[10]; hepta_size n = 0; hepta_u32 v = values[i];
+        do { digits[n++] = (char)('0' + v % 10); v /= 10; } while (v);
+        while (n) text[used++] = digits[--n];
+        text[used++] = i == 1 ? '\n' : ' ';
+    }
+    register long x0 __asm__("x0") = 1;
+    register const char *x1 __asm__("x1") = text;
+    register hepta_size x2 __asm__("x2") = used;
+    register long x8 __asm__("x8") = 64;
+    __asm__ volatile("svc 0" : "+r"(x0) : "r"(x1), "r"(x2), "r"(x8) : "memory");
+    if (x0 != (long)used) hepta_exit(40);
+}
+"""
+
 
 class HIAProgramAArch64Rejected(ValueError):
     pass
@@ -147,7 +202,8 @@ def _read(path, limit):
     if not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= limit:
         _reject("expected a bounded ordinary file: " + str(path))
     key = lambda st: (st.st_dev, st.st_ino, st.st_mode, st.st_size, st.st_mtime_ns, st.st_ctime_ns)
-    with os.fdopen(os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)), "rb") as stream:
+    with os.fdopen(os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_CLOEXEC |
+                           getattr(os, "O_NOFOLLOW", 0)), "rb") as stream:
         if key(os.fstat(stream.fileno())) != key(before):
             _reject("file changed before reading")
         raw = stream.read(limit + 1)
@@ -165,6 +221,13 @@ def _runtime_prefix():
     return raw.split(_MARKER)[0].decode("ascii")
 
 
+def _multi_runtime_prefix():
+    raw = _read(_MULTI_FIXTURE, 16384)
+    if sha256(raw).hexdigest() != REVIEWED_MULTI_RUNTIME_SHA256:
+        _reject("reviewed finite multi-owner runtime identity changed")
+    return raw.decode("ascii")
+
+
 def _implementation_hash():
     digest = sha256()
     for name in ("hia_program_aarch64.py", "owned_aarch64_link.py"):
@@ -179,10 +242,11 @@ def _literal(value, typ):
 
 
 def _runtime_source(document, mode):
-    if mode not in {"matrix", "bounds_trap", "overlap_move", "range_fill"}:
+    multi = mode == "composite_bulk" or mode in COMPOSITE_BULK_TRAPS
+    if not multi and mode not in {"matrix", "bounds_trap", "overlap_move", "range_fill"}:
         _reject("unsupported fixed target driver mode")
     functions = {fn["name"]: fn for fn in document["functions"]}
-    required = ({row[0] for row in CASES} if mode == "matrix"
+    required = ({"aggregate_bulk"} if multi else {row[0] for row in CASES} if mode == "matrix"
                 else {"move_bytes"} if mode == "overlap_move"
                 else {"fill_range"} if mode == "range_fill" else {"bounds_trap"})
     declarations = []
@@ -195,7 +259,25 @@ def _runtime_source(document, mode):
         declarations.append("extern " + _TYPES[returns[0]] + " " + name + "(" +
                             ", ".join(_TYPES[typ] for typ in params) + ");")
     lines = ["static int smoke(void) {", "    if (!memory_primitives_ok()) return 39;"]
-    if mode == "matrix":
+    if mode == "composite_bulk":
+        params, returns = _SIGNATURES["aggregate_bulk"]
+        for index, (arguments, failure, expected) in enumerate(COMPOSITE_BULK_CASES):
+            call = "aggregate_bulk(" + ", ".join(_literal(v, t) for v, t in zip(arguments, params)) + ")"
+            lines += ["    failure_countdown = " + str(failure or 0) + ";",
+                      "    hepta_u8 value_" + str(index) + " = " + call + ";",
+                      "    write_case(" + str(index) + ", value_" + str(index) + ");",
+                      "    if (value_" + str(index) + " != " + _literal(expected, returns[0]) + ") return 41;",
+                      "    if (outstanding) { write_counters(); return 91; }",
+                      "    if (failure_countdown) return 92;"]
+        lines += ["    write_counters();",
+                  "    if (successful_allocations != 31 || releases != 31 || outstanding != 0 || denied_allocations != 2 || peak_outstanding != 2) return 93;",
+                  "    return 0;"]
+    elif mode in COMPOSITE_BULK_TRAPS:
+        params, _ = _SIGNATURES["aggregate_bulk"]
+        call = "aggregate_bulk(" + ", ".join(_literal(v, t) for v, t in zip(COMPOSITE_BULK_TRAPS[mode], params)) + ")"
+        lines += ["    hepta_u8 unexpected = " + call + ";", "    write_case(0, unexpected);",
+                  "    write_counters();", "    return 41;"]
+    elif mode == "matrix":
         for index, (name, arguments, expected, _) in enumerate(CASES):
             params, returns = _SIGNATURES[name]
             call = name + "(" + ", ".join(_literal(v, t) for v, t in zip(arguments, params)) + ")"
@@ -232,7 +314,9 @@ def _runtime_source(document, mode):
         # Reaching this would demonstrate that the expected trap was absent.
         lines += ["    (void)bounds_trap(1);", "    write_counters();", "    return 41;"]
     lines += ["}", "__attribute__((noreturn)) void _start(void) { hepta_exit((hepta_u32)smoke()); }"]
-    return _runtime_prefix() + _ADAPTER + "\n".join(declarations + lines) + "\n", required
+    prefix = _multi_runtime_prefix() if multi else _runtime_prefix()
+    observer = _MULTI_OBSERVER if multi else ""
+    return prefix + _ADAPTER + observer + "\n".join(declarations + lines) + "\n", required
 
 
 def _tool(path, role):
@@ -251,6 +335,7 @@ def run_finite_program_aarch64(program, *, clang, linker, qemu_aarch64, mode="ma
     """
     verified = verify_program(program)
     ir = emit_program_llvm(verified, target=TARGET_AARCH64)
+    multi = mode == "composite_bulk" or mode in COMPOSITE_BULK_TRAPS
     own_before = _implementation_hash()
     compiler, compiler_sha = _tool(clang, "Clang")
     lld, linker_sha = _tool(linker, "LLVM lld")
@@ -298,10 +383,10 @@ def run_finite_program_aarch64(program, *, clang, linker, qemu_aarch64, mode="ma
                 any(digest_executable(path) != digest for path, digest in
                     [(compiler, compiler_sha), (lld, linker_sha), (runner, runner_sha)])):
             _reject("target tool, source, core or executable changed during execution")
-    return {"schema": PROFILE, "ok": True, "status": "finite_qemu_execution_observed", "mode": mode,
+    return {"schema": PROFILE_COMPOSITE if multi else PROFILE, "ok": True, "status": "finite_qemu_execution_observed", "mode": mode,
             "target": TARGET_AARCH64, "core_sha256": verified.sha256, "core_object": core_receipt,
             "llvm_ir": ir.text, "llvm_ir_sha256": ir.sha256, "harness_implementation_sha256": own_before,
-            "reviewed_runtime_sha256": REVIEWED_RUNTIME_SHA256,
+            "reviewed_runtime_sha256": REVIEWED_MULTI_RUNTIME_SHA256 if multi else REVIEWED_RUNTIME_SHA256,
             "runtime_source": runtime, "runtime_source_sha256": sha256(runtime.encode()).hexdigest(),
             "runtime_object_sha256": sha256(runtime_bytes).hexdigest(),
             "linked_sha256": sha256(payload).hexdigest(), "linked_bytes": len(payload), "elf_inventory": shape,
@@ -309,7 +394,8 @@ def run_finite_program_aarch64(program, *, clang, linker, qemu_aarch64, mode="ma
             "linker": {"path": str(lld), "sha256": linker_sha, "version": linker_version.stdout.splitlines()[0]},
             "execution": {"returncode": execution.returncode, "stdout": execution.stdout, "stderr": execution.stderr},
             "runtime_compile_flags": compile_command[1:-4], "link_flags": link_command[1:-4],
-            "scope": "fixed scalar ABI corpus; 4096-byte arena with at most one live allocation; Linux userspace QEMU",
+            "scope": ("fixed scalar ABI corpus; eight independent 4096-byte slots; Linux userspace QEMU"
+                      if multi else "fixed scalar ABI corpus; 4096-byte arena with at most one live allocation; Linux userspace QEMU"),
             "claims": {"standalone_core_reverified": True, "qemu_userspace_executed": True,
                        "physical_target_executed": False, "general_allocator_qualified": False,
                        "source_ast_used": False, "rust_frontend_used": False, "rust_codegen_used": False,

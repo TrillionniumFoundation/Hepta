@@ -1,0 +1,421 @@
+{
+  "agent": {
+    "actual_model_runs": 29,
+    "comparative_task_attempts": 27,
+    "effect_established": false,
+    "general_coding_advantage_established": false,
+    "independent_same_evidence_audit_checks": {
+      "all_candidate_artifacts_match": true,
+      "all_control_artifacts_match": true,
+      "all_control_conditions_recomputed_true": true,
+      "all_frozen_generation_settings_match": true,
+      "all_response_token_counts_match": true,
+      "all_summary_fields_recomputed_match": true,
+      "all_task_arm_cells_completed": true,
+      "compiler_tools_match_current_bytes": true,
+      "model_matches_current_bytes": true,
+      "plan_digest_matches": true,
+      "runtime_matches_current_bytes": true,
+      "source_bindings_all_equal": true
+    },
+    "maintenance_cost_measured": false,
+    "summary": {
+      "hia_full_json": {
+        "accepted_but_wrong": 4,
+        "attempts": 7,
+        "completed_tasks": 4,
+        "evaluation_nanoseconds": 816390356,
+        "first_attempt_successes": 1,
+        "inference_nanoseconds": 178057945137,
+        "input_tokens": 3784,
+        "output_tokens": 2786,
+        "planned_tasks": 4,
+        "rejected_candidates": 2,
+        "successes": 1,
+        "tasks": 4,
+        "token_cost_complete": true,
+        "unknown_usage_attempts": 0
+      },
+      "hia_semantic_patch": {
+        "accepted_but_wrong": 4,
+        "attempts": 6,
+        "completed_tasks": 4,
+        "evaluation_nanoseconds": 1031089431,
+        "first_attempt_successes": 2,
+        "inference_nanoseconds": 85332730056,
+        "input_tokens": 3314,
+        "output_tokens": 1092,
+        "planned_tasks": 4,
+        "rejected_candidates": 0,
+        "successes": 2,
+        "tasks": 4,
+        "token_cost_complete": true,
+        "unknown_usage_attempts": 0
+      },
+      "rust_full_function": {
+        "accepted_but_wrong": 2,
+        "attempts": 6,
+        "completed_tasks": 4,
+        "evaluation_nanoseconds": 323779501,
+        "first_attempt_successes": 2,
+        "inference_nanoseconds": 22107943992,
+        "input_tokens": 1001,
+        "output_tokens": 284,
+        "planned_tasks": 4,
+        "rejected_candidates": 2,
+        "successes": 2,
+        "tasks": 4,
+        "token_cost_complete": true,
+        "unknown_usage_attempts": 0
+      },
+      "rust_semantic_expression": {
+        "accepted_but_wrong": 0,
+        "attempts": 8,
+        "completed_tasks": 4,
+        "evaluation_nanoseconds": 332110,
+        "first_attempt_successes": 0,
+        "inference_nanoseconds": 36710261417,
+        "input_tokens": 2173,
+        "output_tokens": 342,
+        "planned_tasks": 4,
+        "rejected_candidates": 8,
+        "successes": 0,
+        "tasks": 4,
+        "token_cost_complete": true,
+        "unknown_usage_attempts": 0
+      }
+    },
+    "total_development_cost_measured": false
+  },
+  "all_requested_blockers_closed": false,
+  "performance": {
+    "evaluation": {
+      "geometric_mean_paired_time_ratios": {
+        "handwritten_rust": 0.7802787053735689,
+        "rust": 0.7696002208897215
+      },
+      "measurement_quality_failures": [
+        "constructor_error/llvm: relative MAD above fixed maximum",
+        "two_stage/handwritten_rust: relative MAD above fixed maximum"
+      ],
+      "ok": false,
+      "performance_threshold_failures": [],
+      "status": "measurement_inconclusive",
+      "summary": {
+        "constructor_error": {
+          "comparisons": {
+            "handwritten_rust": {
+              "median_paired_time_ratio": 0.8371726064464262,
+              "paired_time_ratios": [
+                0.8242283274611767,
+                0.8737446539549116,
+                0.8415859244781481,
+                0.8210943186273304,
+                0.9155470431606896,
+                0.8371726064464262,
+                0.7483940794125437
+              ]
+            },
+            "rust": {
+              "median_paired_time_ratio": 0.8301556346989398,
+              "paired_time_ratios": [
+                0.6986289905358933,
+                0.8301556346989398,
+                0.8391616417309077,
+                1.0643772696623166,
+                0.9268720429028742,
+                0.8182684253206519,
+                0.7860174235687888
+              ]
+            }
+          },
+          "implementations": {
+            "handwritten_rust": {
+              "maximum_ns": 258183433,
+              "median_ns": 210888010,
+              "median_ns_per_native_call": 25.13980984687805,
+              "minimum_ns": 201443842,
+              "relative_mad": 0.043914620845443036,
+              "samples_ns": [
+                201626943,
+                212168291,
+                201443842,
+                258183433,
+                208080364,
+                210888010,
+                223980409
+              ]
+            },
+            "llvm": {
+              "maximum_ns": 211992950,
+              "median_ns": 176549665,
+              "median_ns_per_native_call": 21.04636013507843,
+              "minimum_ns": 166186638,
+              "relative_mad": 0.050546983479124695,
+              "samples_ns": [
+                166186638,
+                185380910,
+                169532302,
+                211992950,
+                190507362,
+                176549665,
+                167625612
+              ]
+            },
+            "rust": {
+              "maximum_ns": 237875382,
+              "median_ns": 213259410,
+              "median_ns_per_native_call": 25.422502756118774,
+              "minimum_ns": 199170873,
+              "relative_mad": 0.04712200507353931,
+              "samples_ns": [
+                237875382,
+                223308621,
+                202025800,
+                199170873,
+                205537931,
+                215760085,
+                213259410
+              ]
+            }
+          }
+        },
+        "full_lifecycle": {
+          "comparisons": {
+            "handwritten_rust": {
+              "median_paired_time_ratio": 1.0103985745792048,
+              "paired_time_ratios": [
+                1.0576863295036278,
+                1.0246485950562407,
+                0.9525671724651301,
+                0.9647549719101953,
+                1.0103985745792048,
+                0.9337115685542383,
+                1.0120145348619327
+              ]
+            },
+            "rust": {
+              "median_paired_time_ratio": 1.0036332020036836,
+              "paired_time_ratios": [
+                1.0502823414666178,
+                1.0193771049343132,
+                0.9769713971947424,
+                1.0036332020036836,
+                0.9565340510849855,
+                0.9159976699417859,
+                1.0203807645090168
+              ]
+            }
+          },
+          "implementations": {
+            "handwritten_rust": {
+              "maximum_ns": 1782416063,
+              "median_ns": 1734493014,
+              "median_ns_per_native_call": 1654.1414394378662,
+              "minimum_ns": 1678179530,
+              "relative_mad": 0.027629427511778954,
+              "samples_ns": [
+                1684385934,
+                1678511246,
+                1764931617,
+                1734493014,
+                1678179530,
+                1782416063,
+                1756462505
+              ]
+            },
+            "llvm": {
+              "maximum_ns": 1781551976,
+              "median_ns": 1695630205,
+              "median_ns_per_native_call": 1617.0789766311646,
+              "minimum_ns": 1664262498,
+              "relative_mad": 0.014303817500113475,
+              "samples_ns": [
+                1781551976,
+                1719884190,
+                1681215920,
+                1673360759,
+                1695630205,
+                1664262498,
+                1777565585
+              ]
+            },
+            "rust": {
+              "maximum_ns": 1816885078,
+              "median_ns": 1720844566,
+              "median_ns_per_native_call": 1641.12526512146,
+              "minimum_ns": 1667303110,
+              "relative_mad": 0.019556245616200528,
+              "samples_ns": [
+                1696260049,
+                1687191307,
+                1720844566,
+                1667303110,
+                1772681488,
+                1816885078,
+                1742061049
+              ]
+            }
+          }
+        },
+        "two_stage": {
+          "comparisons": {
+            "handwritten_rust": {
+              "median_paired_time_ratio": 0.5616186615690223,
+              "paired_time_ratios": [
+                0.5006545677961333,
+                0.49261439829499293,
+                0.5641265548983219,
+                0.5616186615690223,
+                0.5566252994702846,
+                0.5646512578328842,
+                0.5669910146101
+              ]
+            },
+            "rust": {
+              "median_paired_time_ratio": 0.5470928145960496,
+              "paired_time_ratios": [
+                0.531788804970404,
+                0.5617299365608508,
+                0.5470928145960496,
+                0.5631728210056303,
+                0.5051719455261026,
+                0.5280001890070387,
+                0.569657312094828
+              ]
+            }
+          },
+          "implementations": {
+            "handwritten_rust": {
+              "maximum_ns": 3525726462,
+              "median_ns": 3016309804,
+              "median_ns_per_native_call": 2876.57719039917,
+              "minimum_ns": 2780787173,
+              "relative_mad": 0.05285384173355954,
+              "samples_ns": [
+                3525726462,
+                3206060108,
+                2856886243,
+                3016309804,
+                2916423331,
+                2780787173,
+                3100265688
+              ]
+            },
+            "llvm": {
+              "maximum_ns": 1765171058,
+              "median_ns": 1623355010,
+              "median_ns_per_native_call": 1548.1519794464111,
+              "minimum_ns": 1570174975,
+              "relative_mad": 0.03275933771258081,
+              "samples_ns": [
+                1765171058,
+                1579351371,
+                1611645394,
+                1694015875,
+                1623355010,
+                1570174975,
+                1757822788
+              ]
+            },
+            "rust": {
+              "maximum_ns": 3319308420,
+              "median_ns": 3007985847,
+              "median_ns_per_native_call": 2868.6388463974,
+              "minimum_ns": 2811584835,
+              "relative_mad": 0.025854163535231553,
+              "samples_ns": [
+                3319308420,
+                2811584835,
+                2945835425,
+                3007985847,
+                3213470234,
+                2973815176,
+                3085754805
+              ]
+            }
+          }
+        }
+      }
+    },
+    "interference_observations": {
+      "acceptance_thresholds_adjusted": false,
+      "cpu_to_wall_ratio": {
+        "maximum": 0.9975556599310134,
+        "median": 0.9958534806205733,
+        "minimum": 0.9908430775646077
+      },
+      "sample_count": 63,
+      "samples_excluded": 0,
+      "scope": "CPU interval brackets the wall interval; overhead and host interference are not isolated",
+      "totals": {
+        "involuntary_context_switches": 9576,
+        "major_page_faults": 0,
+        "minor_page_faults": 0,
+        "voluntary_context_switches": 0
+      }
+    },
+    "maximum_relative_mad": 0.05285384173355954,
+    "ok": false,
+    "per_kernel": [
+      {
+        "hia_over_generated_rust": 0.8301556346989398,
+        "hia_over_handwritten_rust": 0.8371726064464262,
+        "kernel": "constructor_error",
+        "relative_mad": {
+          "handwritten_rust": 0.043914620845443036,
+          "llvm": 0.050546983479124695,
+          "rust": 0.04712200507353931
+        }
+      },
+      {
+        "hia_over_generated_rust": 1.0036332020036836,
+        "hia_over_handwritten_rust": 1.0103985745792048,
+        "kernel": "full_lifecycle",
+        "relative_mad": {
+          "handwritten_rust": 0.027629427511778954,
+          "llvm": 0.014303817500113475,
+          "rust": 0.019556245616200528
+        }
+      },
+      {
+        "hia_over_generated_rust": 0.5470928145960496,
+        "hia_over_handwritten_rust": 0.5616186615690223,
+        "kernel": "two_stage",
+        "relative_mad": {
+          "handwritten_rust": 0.05285384173355954,
+          "llvm": 0.03275933771258081,
+          "rust": 0.025854163535231553
+        }
+      }
+    ],
+    "protocol": "hepta.hia.program.perf.v3",
+    "qualification_is_shared_host_and_finite_kernels_only": true,
+    "sample_count": 63,
+    "status": "measurement_inconclusive"
+  },
+  "physical_hardware_executions": 0,
+  "qualification": {
+    "completed_gates": 11,
+    "full_six_deliverables_complete": false,
+    "ok": false,
+    "passed_gates": 10,
+    "status": "scoped_gates_not_all_qualified",
+    "unchanged_source": true
+  },
+  "schema": "hepta.hia.next-delivery-summary.v1",
+  "source": {
+    "compiler_tree_sha256": "56d86bb0fef6fa2c8f0ced9e501f62450c96759fe5c9a98c2e5de78ad807b2c3",
+    "git_tree": "b83bcfbecaf380ba6369ce01128389175e59f7f8",
+    "local_commit": "ae0c0f8b467b401e22efdb18ffbb15ab32da0eb9",
+    "remote_commit": "ce8d2689e72ad4da19e835f21424e77d43154623",
+    "source_snapshot_sha256": "7cd189285e0df22d99989dce1404b7d9c73acfd6a86befe086e3aaa0c205ad75"
+  },
+  "unit_regression": {
+    "errors": 0,
+    "failures": 0,
+    "passed": true,
+    "skipped": 0,
+    "tests_run": 1787
+  }
+}

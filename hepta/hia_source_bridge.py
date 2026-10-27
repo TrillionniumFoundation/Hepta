@@ -15,6 +15,10 @@ from .cfg import lower_hsir_cfg
 from .core import from_scalar_core
 from .hia_core import seal_hia_scalar_core
 from .hia_program import VerifiedProgram, verify_program
+# Preserve the genuine analyzer entrypoint during this source module's import.
+# Runtime substitution of the builder's public analyzer must not silently
+# change the quantitative acceptance reference.
+from .hia_static_budget import analyze_static_budget as _replay_static_budget
 from .hsir import lower_checked_program
 from .native_resource_gate import qualify_native_resource_source
 from .ssa import lower_cfg_scalar_ssa
@@ -29,6 +33,180 @@ class HIAHeptaBridgeRejected(ValueError):
 
 def _reject(reason):
     raise HIAHeptaBridgeRejected("E_HIA_HEPTA_BRIDGE: " + reason)
+
+
+def _validate_static_budget_receipt(program, limits: dict, receipt: dict) -> None:
+    """Recheck existing analyzer's complete receipt before native LLVM.
+
+    This is NOT a second numeric resource analyzer: verified immutable Core
+    owns the function inventory; the existing static-budget analyzer owns
+    actual upper-bound computation. A hash alone does not authorize missing
+    functions, false proof types, or fabricated policy limits.
+    """
+    from .hia_program import verify_program
+
+    checked = verify_program(program)
+    if (not isinstance(program, VerifiedProgram)
+            or checked.canonical_bytes != program.canonical_bytes):
+        _reject("static budget source is not the current verified HIA Core")
+    if type(limits) is not dict or not limits or any(
+            type(value) is not int or value < 0 for value in limits.values()):
+        _reject("static budget receipt requires typed resource policy")
+    base_limits = ("max_allocator_interactions", "max_vm_ticks", "max_call_depth")
+    allowed = set(base_limits) | {"max_live_heap_bytes"}
+    if not set(limits) <= allowed:
+        _reject("static budget policy contains unknown fields")
+    expected_limits = {name: limits.get(name) for name in base_limits}
+    if "max_live_heap_bytes" in limits:
+        expected_limits["max_live_heap_bytes"] = limits["max_live_heap_bytes"]
+    claims = {
+        "finite_acyclic_cfg_and_call_graph_checked": True,
+        "allocator_interactions_upper_bounded": True,
+        "vm_tick_events_upper_bounded": True,
+        "native_cpu_time_or_rss_proved": False,
+        "full_source_to_core_refinement_proved": False,
+        "whole_language_soundness_proved": False,
+    }
+    if "max_live_heap_bytes" in limits:
+        claims["requested_live_payload_bytes_upper_bounded"] = True
+    required_fields = {"schema", "status", "core_sha256", "functions",
+                       "limits", "claims", "sha256"}
+    if (type(receipt) is not dict or set(receipt) != required_fields
+            or receipt.get("schema") != "hepta.hia.static-budget.v1"
+            or receipt.get("status") !=
+                "finite_structural_upper_bound_not_native_time_proof"
+            or receipt.get("core_sha256") != checked.sha256
+            or type(receipt.get("claims")) is not dict
+            or set(receipt["claims"]) != set(claims)
+            or any(receipt["claims"][key] is not val
+                   for key, val in claims.items())
+            or type(receipt.get("limits")) is not dict):
+        _reject("static budget schema, claims or source identity mismatch")
+    # JSON scalar types are part of the policy: false is not 0.
+    try:
+        wire = lambda value: json.dumps(value, sort_keys=True, separators=(",", ":"),
+                                        allow_nan=False)
+        if wire(receipt["limits"]) != wire(expected_limits):
+            _reject("static budget policy differs from the explicit request")
+        unsealed = {key: value for key, value in receipt.items() if key != "sha256"}
+        expected_digest = sha256(wire(unsealed).encode("utf-8")).hexdigest()
+        if (type(receipt["sha256"]) is not str
+                or receipt["sha256"] != expected_digest):
+            _reject("static budget receipt has altered bytes or self-identity")
+    except (TypeError, ValueError, OverflowError, RecursionError) as exc:
+        raise HIAHeptaBridgeRejected(
+            "E_HIA_HEPTA_BRIDGE: invalid static budget JSON") from exc
+    source_functions = checked.as_dict()["functions"]
+    names = [f["name"] for f in source_functions]
+    rows = receipt.get("functions")
+    if (type(rows) is not list or len(rows) != len(names)
+            or any(type(row) is not dict or
+                   row.get("function") != name
+                   for row, name in zip(rows, names))):
+        _reject("static budget does not cover every canonical HIA function")
+    required_row_keys = {"function", *base_limits}
+    if "max_live_heap_bytes" in limits:
+        required_row_keys.add("max_live_heap_bytes")
+    for row in rows:
+        if (set(row) != required_row_keys or
+                any(type(row.get(key)) is not int or row[key] < 0
+                    for key in required_row_keys - {"function"}) or
+                row["max_vm_ticks"] < 1 or row["max_call_depth"] < 1):
+            _reject("static budget row has missing/forged quantities")
+        for key, upper in limits.items():
+            if row[key] > upper:
+                _reject("static budget exceeds a requested bound")
+
+    # A well-formed, self-rehashed receipt is not evidence its resource
+    # numbers were calculated from the current Core. Recompute from the
+    # independently reverified immutable HIA bytes, not from receipt rows.
+    # This is a deterministic replay of the ONE established analyzer, not a
+    # second numeric authority or proof of the analyzer's soundness.
+    try:
+        canonical = _replay_static_budget(checked, **limits)
+    except (ValueError, TypeError, KeyError, OverflowError, RecursionError) as exc:
+        raise HIAHeptaBridgeRejected(
+            "E_HIA_HEPTA_BRIDGE: canonical resource replay rejected") from exc
+    if canonical != receipt:
+        _reject("static budget quantities differ from the canonical Core replay")
+
+
+def _reinspect_source_native_bytes(payload: bytes, ir, native: dict, *,
+                                   target: str, kind: str, stage) -> dict:
+    """Parse the *actual staged bytes* against source-derived Core exports.
+
+    The compiler's binary_inventory and hash are assertions, not an
+    independent source-facing ABI verification. Reuse the existing strict ELF
+    and relocatable-object readers, without implementing another parser.
+    This is a structural ABI check, not behavioral equivalence or proof
+    that the foreign libc implementation is safe.
+    """
+    from .elf_shared_abi import inspect_owned_shared_elf
+    from .hia_program_llvm import TARGET, TARGET_AARCH64, _IMPORTS
+    from .object_symbols import inspect_object_symbols
+
+    expected_claims = {
+        "standalone_core_reverified": True,
+        "source_ast_required": False,
+        "rust_reference_required": False,
+        "rust_codegen_used": False,
+        "c_codegen_used": False,
+        "fallback_used": False,
+        "native_execution_qualified": False,
+        "backend_refinement_proved": False,
+        "cross_target_execution_qualified": False,
+        "whole_language_soundness_proved": False,
+        "foreign_buffer_entrypoints_exposed": False,
+    }
+    expected_fields = {
+        "schema", "ok", "status", "profile", "target", "kind", "output",
+        "core_sha256", "input_sha256", "llvm_ir_sha256", "implementation_sha256",
+        "artifact_sha256", "artifact_bytes", "exports", "binary_inventory",
+        "external_abi", "runtime_assumptions", "toolchain", "flags", "claims",
+    }
+    if (type(payload) is not bytes or not payload or type(native) is not dict
+            or set(native) != expected_fields
+            or native.get("schema") != "hepta.hia.program.native.v1"
+            or native.get("ok") is not True
+            or native.get("status") != "native_compiled_not_executed"
+            or native.get("profile") != ir.profile
+            or native.get("target") != target or native.get("kind") != kind
+            or native.get("output") != str(stage)
+            or native.get("core_sha256") != ir.core_sha256
+            or native.get("input_sha256") != ir.input_sha256
+            or native.get("llvm_ir_sha256") != ir.sha256
+            or native.get("implementation_sha256") != ir.implementation_sha256
+            or native.get("exports") != list(ir.exports)
+            or type(native.get("artifact_bytes")) is not int
+            or native["artifact_bytes"] != len(payload)
+            or native.get("artifact_sha256") != sha256(payload).hexdigest()
+            or type(native.get("claims")) is not dict
+            or set(native["claims"]) != set(expected_claims)
+            or any(native["claims"][name] is not value
+                   for name, value in expected_claims.items())):
+        _reject("staged native receipt lacks exact Core profile or proof scope")
+    if kind == "shared" and target == TARGET:
+        scanned = inspect_owned_shared_elf(payload, ir.exports)
+    elif kind == "object" and target in {TARGET, TARGET_AARCH64}:
+        machine = 62 if target == TARGET else 183
+        symbols = inspect_object_symbols(payload, "ELF64", machine)
+        if (symbols.get("defined") != frozenset(ir.exports)
+                or type(symbols.get("undefined")) is not frozenset
+                or not symbols["undefined"] <= _IMPORTS):
+            _reject("actual relocatable imports or function exports differ from Core")
+        scanned = {key: sorted(value) for key, value in symbols.items()}
+    else:
+        _reject("native Core source only qualifies reviewed ELF target/kind combinations")
+    try:
+        canonical = lambda value: json.dumps(value, sort_keys=True,
+                                             separators=(",", ":"), allow_nan=False)
+        if (type(native.get("binary_inventory")) is not dict or
+                canonical(scanned) != canonical(native["binary_inventory"])):
+            _reject("native receipt ABI inventory differs from actual binary bytes")
+    except (ValueError, TypeError, OverflowError, RecursionError) as exc:
+        raise HIAHeptaBridgeRejected(
+            "E_HIA_HEPTA_BRIDGE: malformed source/native binary inventory") from exc
+    return scanned
 
 
 @dataclass(frozen=True)
@@ -197,7 +375,8 @@ def lower_checked_owned_hia(program, checked, *, project_sha256: str) -> Checked
 
 def build_checked_hepta_hia_native(source, output, *, rustc=None, clang="clang",
                                    target="x86_64-unknown-linux-gnu", kind="shared",
-                                   locked=False, profile="scalar") -> dict:
+                                   locked=False, profile="scalar",
+                                   static_resource_limits=None) -> dict:
     """Build actual verified Core using the existing native HIA LLVM emitter.
 
     Mandatory *real* pinned Rust validation precedes source-to-HIA conversion;
@@ -213,12 +392,14 @@ def build_checked_hepta_hia_native(source, output, *, rustc=None, clang="clang",
     from .hia_program_llvm import (TARGET, TARGET_AARCH64, _read_artifact,
                                    compile_program_llvm, emit_program_llvm)
     from .pipeline import analyze_project, compiler_hash
+    from .hia_static_budget import analyze_static_budget
 
     report = {"schema": "hepta.build-checked-hia-source.v1", "ok": False,
               "status": "rejected", "source": str(source), "output": str(output),
               "target": target,
               "claims": {"pinned_rust_reference_validated": False,
                          "source_bound_resource_ir_checked": False,
+                         "source_native_binary_abi_rechecked": False,
                          "native_codegen_consumed_verified_hia_core": False,
                          "native_executed": False,
                          "source_to_core_refinement_proved": False,
@@ -226,6 +407,16 @@ def build_checked_hepta_hia_native(source, output, *, rustc=None, clang="clang",
     try:
         if type(profile) is not str or profile not in {"scalar", "owned"}:
             _reject("unknown checked-source Core profile")
+        if static_resource_limits is not None:
+            if (type(static_resource_limits) is not dict
+                    or not static_resource_limits
+                    or not set(static_resource_limits) <= {
+                        "max_allocator_interactions", "max_vm_ticks", "max_call_depth",
+                        "max_live_heap_bytes"}):
+                _reject("static resource policy has unknown or missing fields")
+            if any(type(v) is not int or v < 0
+                   for v in static_resource_limits.values()):
+                _reject("static resource policy requires nonnegative integers")
         if profile == "owned":
             report["schema"] = "hepta.build-checked-hia-owned-source.v1"
             report["source_profile"] = "verified-byte-owner-core-v1"
@@ -264,6 +455,17 @@ def build_checked_hepta_hia_native(source, output, *, rustc=None, clang="clang",
             analyzed.program, analyzed.checked, project_sha256=project.identity))
         if compiler_hash() != compiler_identity:
             _reject("compiler changed during source-to-Core lowering")
+        # Strict optional resource admission belongs *before* LLVM emission.
+        # It verifies the existing immutable Core, rejects any recursive/loop
+        # CFG rather than inventing a finite bound, and counts every nested
+        # call and potential allocator interaction conservatively.
+        # Omitted policy leaves the original HIA program profile unchanged.
+        if static_resource_limits is not None:
+            budget = analyze_static_budget(
+                derived.program, **static_resource_limits)
+            _validate_static_budget_receipt(
+                derived.program, static_resource_limits, budget)
+            report["static_resource_budget"] = budget
         # No other compiler path may produce the native machine code. The
         # canonical HIA Program is reverified again inside emit/compile.
         ir = emit_program_llvm(derived.program, target=target)
@@ -304,6 +506,13 @@ def build_checked_hepta_hia_native(source, output, *, rustc=None, clang="clang",
                     or native["claims"].get("backend_refinement_proved") is not False
                     or native["claims"].get("native_execution_qualified") is not False):
                 _reject("staged native bytes/receipt disagree with HIA source")
+            # A self-consistent forged binary/receipt cannot authorize
+            # publication: independently reparse actual object/ELF bytes
+            # using the checked Core's exact expected native C exports.
+            rechecked_binary = _reinspect_source_native_bytes(
+                payload, ir, native, target=target, kind=kind, stage=stage)
+            report["source_native_binary_inventory"] = rechecked_binary
+            report["claims"]["source_native_binary_abi_rechecked"] = True
             if not project.unchanged():
                 _reject("source changed during native compilation")
             if compiler_hash() != compiler_identity:
@@ -332,8 +541,9 @@ def build_checked_hepta_hia_native(source, output, *, rustc=None, clang="clang",
 
 def build_checked_owned_hia_native(source, output, *, rustc=None, clang="clang",
                                    target="x86_64-unknown-linux-gnu", kind="shared",
-                                   locked=False) -> dict:
+                                   locked=False, static_resource_limits=None) -> dict:
     """Source→verified owned Core→LLVM: no Rust/C output-code fallback."""
     return build_checked_hepta_hia_native(
         source, output, rustc=rustc, clang=clang, target=target, kind=kind,
-        locked=locked, profile="owned")
+        locked=locked, profile="owned",
+        static_resource_limits=static_resource_limits)

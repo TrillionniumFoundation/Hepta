@@ -119,6 +119,14 @@ class CTranslator:
     def field_type(self, record: str, field: dict) -> str:
         return self.typ(field["type"])
 
+    def repeated_definition(self, previous: dict, node: dict, item: dict) -> bool:
+        """Only a separately qualified profile may coalesce header definitions."""
+        return False
+
+    def check_pointer_alias_profile(self, pointers: list[dict]) -> None:
+        if len(pointers) > 1 and any(p["mode"] == "mut" for p in pointers):
+            raise MigrationRejected("E_C_ALIAS_CONTRACT", "Multiple buffers with mutation need a separate alias-preserving model")
+
     def collect(self) -> None:
         deferred_errors = []
         for config in self.capture["configurations"]:
@@ -206,10 +214,13 @@ class CTranslator:
                 raise MigrationRejected("E_C_RECORD", "Conflicting struct layout in listed configurations")
             self.records[name] = fields
             item.update(status="record_converted", reason=None)
+        models_by_unit = {config["index"]: config["model"] for config in self.capture["configurations"]}
         for unit, node, item in self.declarations:
             if node["kind"] != "FunctionDecl":
                 continue
-            model = self.capture["configurations"][unit]["model"]
+            # Explicit matrix selections retain their original database
+            # indices; a unit identity is not a position in this subset.
+            model = models_by_unit[unit]
             name = ident(node["name"])
             key = f"local_{unit}_{name}" if node.get("storageClass") == "static" else name
             signature = self.signature(node, key, unit, model)
@@ -219,6 +230,9 @@ class CTranslator:
                 if previous["shape"] != signature["shape"]:
                     raise MigrationRejected("E_C_FUNCTION", "Incompatible project declarations: " + name)
                 if body is not None and previous.get("body") is not None:
+                    if self.repeated_definition(previous, node, item):
+                        item.update(status="repeated_inline_definition_resolved", reason=None)
+                        continue
                     raise MigrationRejected("E_C_FUNCTION", "Duplicate function definition: " + name)
                 if body is None:
                     item.update(status="prototype_resolved", reason=None)
@@ -284,8 +298,7 @@ class CTranslator:
         pointers = [p for p in params if p["pointer"]]
         if set(contract["slices"]) != used_contract_keys:
             raise MigrationRejected("E_C_CONTRACT", "Slice contract does not exactly match pointer parameters")
-        if len(pointers) > 1 and any(p["mode"] == "mut" for p in pointers):
-            raise MigrationRejected("E_C_ALIAS_CONTRACT", "Multiple buffers with mutation need a separate alias-preserving model")
+        self.check_pointer_alias_profile(pointers)
         values = {p["name"]: p for p in params if not p["pointer"]}
         for pointer in pointers:
             if type(pointer["length"]) is int:

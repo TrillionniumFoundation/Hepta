@@ -232,9 +232,26 @@ def sample_order():
     return result
 
 
-def evaluate_samples(rows):
-    require(isinstance(rows, list) and len(rows) == len(sample_order()), "complete 63 native samples required")
-    for index, (row, expected) in enumerate(zip(rows, sample_order())):
+def evaluate_samples(rows, *, expected_order=None):
+    """Evaluate against a caller's fixed schedule, never an order inferred from rows.
+
+    The historical schedule remains the default. A trusted caller may fix a
+    different backend order while preserving the complete grouped workload.
+    """
+    order = sample_order() if expected_order is None else expected_order
+    require(isinstance(order, (list, tuple)) and len(order) == len(sample_order()),
+            "expected schedule must contain all 63 native samples")
+    for index, entry in enumerate(order):
+        require(isinstance(entry, (list, tuple)) and len(entry) == 3,
+                "malformed expected sample identity")
+        group, kernel, backend = entry
+        require(type(group) is int and group == index // (len(KERNELS) * len(BACKENDS))
+                and kernel == KERNELS[(group + (index % (len(KERNELS) * len(BACKENDS))) // len(BACKENDS)) % len(KERNELS)]
+                and backend in BACKENDS, "expected schedule changes fixed groups or kernel inventory")
+    require(len({tuple(entry) for entry in order}) == len(order), "duplicate expected sample identity")
+    require(isinstance(rows, list) and len(rows) == len(order), "complete 63 native samples required")
+    for index, (row, expected) in enumerate(zip(rows, order)):
+        require(isinstance(row, dict), "malformed sample record")
         require(strict_equal([row.get("group"), row.get("kernel"), row.get("backend"), row.get("sample_index")],
                              [*expected, index]), "sample order/identity differs")
         require(type(row.get("elapsed_ns")) is int and row["elapsed_ns"] > 0

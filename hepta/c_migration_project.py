@@ -17,7 +17,8 @@ from .c_translation import CTranslator
 
 def migrate_project(database: str | Path, output_directory: str | Path, *,
                     contracts: dict | None = None, clang: str = "clang",
-                    rustc: str | None = None, verify_native: bool = False) -> dict:
+                    rustc: str | None = None, verify_native: bool = False,
+                    command_indices: list[int] | None = None) -> dict:
     started = time.perf_counter()
     destination = Path(output_directory).absolute()
     report = {"schema": "hepta.c-project-migration.v1", "ok": False, "status": "rejected",
@@ -34,7 +35,7 @@ def migrate_project(database: str | Path, output_directory: str | Path, *,
     try:
         if destination.exists() or destination.is_symlink():
             raise MigrationRejected("E_C_PROJECT_EXISTS", "Output bundle must be a new non-symlink directory")
-        capture = capture_project(database, clang=clang)
+        capture = capture_project(database, clang=clang, command_indices=command_indices)
         report["build"] = capture
         if isinstance(contracts, dict) and contracts.get("schema") == "hepta.c-record-views.v1":
             from .c_record_views import CRecordViewTranslator

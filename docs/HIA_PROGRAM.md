@@ -1,20 +1,16 @@
-# HIA standalone program v1: normative executable profile
+# HIA standalone programs: normative executable profiles
 
-> **Schema/version isolation (2026-10-26):** This document is the frozen
-> `hepta.hia.program.v1` profile. The independently checked
-> `hepta.hia.program.v2` adds capability-safe `buffer.fill` and
-> `buffer.copy` and has its own native backend profile. V1 rejects these
-> instructions. See [the v2 bulk-memory ISA contract](HIA_PROGRAM_BULK_V2_20261026.md).
-> Both profiles retain unproved whole-language and backend-refinement claims.
-
-
-This document defines the standalone `hepta.hia.program.v1` profile. Its
+This document defines the independently checked primitive
+`hepta.hia.program.v1` through `hepta.hia.program.v6` profiles and the distinct
+structural nominal input namespace `hepta.hia.composite.v1`. Their
 executable admission authority is `hepta.hia_program.verify_core` (also exposed
 as `hepta.core.verify_core` and `verify_program`). The direct interpreter and
 LLVM backend consume the same immutable, reverified program bytes. No original
 Hepta, C, C++, Rust or assembly source is required to admit or execute this
 program. A caller-provided hash, proof claim or producer receipt grants no
-additional permission.
+additional permission. Composite input is structurally elaborated into primitive v6
+core and that complete core is independently rechecked. It is not admitted by
+a source-language checker or a producer's assertion.
 
 This is a typed, resource-aware assembly/IR for agent editing. It deliberately
 retains explicit values, control-flow edges, calls and resource instructions;
@@ -56,17 +52,49 @@ in this core.
 
 ## Wire format and immutable identity
 
+`hepta/hia_schema.py` is the shared version registry. A schema selects an
+instruction grammar; it is never a safety receipt or permission to skip
+verification. Primitive schemas remain exact, cumulative capabilities:
+
+| Input schema | Additional capability | Executable identity |
+| --- | --- | --- |
+| `hepta.hia.program.v1` | Typed scalar SSA, owners, loans and byte access | Original v1 bytes |
+| `hepta.hia.program.v2` | Bulk byte copy and fill | Original v2 bytes |
+| `hepta.hia.program.v3` | Overlapping in-place byte movement | Original v3 bytes |
+| `hepta.hia.program.v4` | Byte swap | Original v4 bytes |
+| `hepta.hia.program.v5` | Copy with source and destination offsets | Original v5 bytes |
+| `hepta.hia.program.v6` | Fill a checked subrange | Original v6 bytes |
+| `hepta.hia.composite.v1` | Generic nominal products, enums, stored local loans and cooperative tasks over all v6 operations | Independently checked primitive v6 normalization |
+
+Historical development also used the spelling `hepta.hia.program.v2` for a
+nominal format. Ordinary loaders now interpret that spelling only as primitive
+v2. They never guess a grammar from a `types` field. The explicit
+`hia import-composite-v2` adapter checks the old nominal grammar and its old
+instruction capability, then normalizes it to v6. An old nominal document
+cannot smuggle a newer instruction through that adapter. Similarly, a Core
+upgrade with the ambiguous legacy v2 spelling requires its explicit primitive
+profile. Silent profile inference is forbidden.
+
 Programs use UTF-8 JSON. Whitespace and key order are accepted on input; the
 verified snapshot canonicalizes keys and separators. Duplicate object keys,
 nonfinite values, floating JSON numbers, invalid identifiers, unknown fields
 and unsupported schemas reject. Limits include 8 MiB encoded input, nesting
 depth 64, 262,144 structural nodes, 1,024 functions and 4,096 blocks per function.
 
-The complete top-level shape is:
+The primitive top-level shape is:
 
 ```json
 {"schema":"hepta.hia.program.v1","module":"example","functions":[]}
 ```
+
+An optional `exports` list declares the exact public scalar entrypoints. It
+must contain unique existing function names with primitive scalar parameters
+and results. When absent, the original v1 rule exposes scalar-signature
+functions; existing canonical v1 identities do not change. Composite normalization
+always emits `exports`. Both the interpreter and native backend obey the core's
+list after serialization and reload; source origin is not needed to preserve
+the public boundary. Exporting an owner/view descriptor is forbidden. Native
+C wrappers additionally require at most one scalar result.
 
 The example above illustrates fields only: a real program must have at least
 one function. A function has exactly `name`, `params`, `returns`, `effects`,
@@ -171,8 +199,9 @@ safe C aggregate API.
 Zero-size allocation succeeds without invoking the allocator. Sizes above
 `2^63-1` are rejected by the 64-bit object-size model before allocation.
 `try_new` maps that rejection to `(empty,false)`. Any other allocator refusal
-also yields `(empty,false)` for `try_new`; `new` aborts. Empty-owner drop may
-invoke `free(NULL)`, which performs no allocation/deallocation event.
+also yields `(empty,false)` for `try_new`; `new` aborts. Empty owners are consumed
+logically without invoking native `free`; no allocation or deallocation event
+is recorded. A non-null native allocation retains its actual release call.
 
 Allocation/refusal and release are observable core effects. The LLVM backend
 preserves calls through declaration-level `"no-builtins"` plus call-site
@@ -191,6 +220,15 @@ allocation. This is an implementation optimization, not an uninitialized-buffer
 operation in Core. The allocator must supply a fresh, nonaliasing region or
 NULL, and free must accept either allocation family or NULL. It does not promise
 that different allocator implementations fail on the same physical request.
+
+Native allocation lowering also exposes the helper's exact length invariant:
+the owner length is the requested size on success and zero on failure. For an
+infallible constructor, the requested length is used only after its success
+guard; for a fallible constructor an explicit success-dependent select is
+used. This is true for zero, oversized and NULL-refused requests too. Every
+byte access still emits a bounds guard. LLVM may eliminate a redundant guard
+when it derives the same length relation, without an unchecked operation,
+`llvm.assume`, or recognition of a particular benchmark loop.
 
 Loans carry a root owner or external borrowed parameter and a parent loan.
 Reborrowing suspends use of the parent until the child ends. A view can cross
@@ -236,12 +274,12 @@ as checked borrow/reborrow operations and ends local loans after their use;
 reading a Copy field produces an independent scalar value. It does not emit
 an escaping loan as a function result or enable stored source references.
 
-The exact source frontend scope is recorded by its rejection tests and the
-current qualification report. Arbitrary nominal enums/ADTs, custom destructors,
-stored/returned lifetimes, asynchronous tasks, cancellation, channels, FFI,
-inline assembly, atomics, MMIO, floats and 32-bit word models remain excluded.
-Their existence in a broader historical backend does not enable them in this
-standalone core.
+The exact high-level source frontend scope is recorded by its rejection tests
+and current qualification report. The source adapter does not yet emit the
+nominal/task input described below. Custom destructors, escaping lifetimes,
+background asynchronous tasks, channels, foreign calls, inline assembly,
+atomics, MMIO, floats and 32-bit word models remain excluded from standalone
+HIA. Historical backend support does not enable a standalone operation.
 
 `tools/qualify_hia_migration.py` exercises actual frontend output: a C
 compilation-database input with two byte owners, a migrated C++ scalar value
@@ -254,6 +292,107 @@ it does not link the original C++ implementation. Declaration/member inventory,
 source/IR/artifact hashes and allocator traces remain separate evidence. This
 qualifies the declared normalized owner protocol, not arbitrary C++ class
 bodies, STL templates, class-layout ABI compatibility or migration labor cost.
+
+The concrete C++ project frontend additionally accepts a real captured C++20
+compilation database, translates Clang's instantiated scalar template bodies,
+resolves overloads by declaration identity, and accounts for every active
+declaration. `tools/qualify_cpp_project_hia.py` separately checks original C++,
+the interpreter and direct HIA native output. See `CPP_PROJECT_HIA.md` for the
+finite profile, ODR checks and explicit ABI/equivalence limits.
+
+## Nominal products, enums and cooperative tasks
+
+The standalone `hepta.hia.composite.v1` input has exactly `schema`, `module`,
+`types`, and `functions`. It automatically exports original scalar-signature
+functions. An explicit narrower export list can be expressed in its normalized
+primitive Core; the nominal input itself does not accept `exports`.
+Function/block/instruction
+structure follows the primitive grammar; all v1 through v6 instructions are
+available under their checked resource rules. Parameter,
+result and instruction-output types may additionally name declared nominal
+types. A generic application is `{"name":"Pair","args":["buffer","usize"]}`.
+A declared type has `name`, a unique `params` list and `kind`:
+
+| Kind | Additional declaration fields | Executable meaning |
+| --- | --- | --- |
+| `record` | `fields`, each with `name` and `type` | Product of primitive values and capabilities |
+| `enum` | `variants`, each with `name` and `fields` | Checked discriminant plus variant payloads |
+| `task` | `state`, `result`, `poll`, `cancel` | Concrete, linear cooperative protocol |
+
+Named record/enum types are nominal even when layouts match. Type and layout
+resolution rejects unknown names, wrong generic arity, recursive by-value
+layouts and resource-budget expansion. Type definitions, instantiations,
+nesting and flattened fields have explicit finite limits. Unused declarations
+are checked for shape, type references and cycles; generic layouts are fully
+checked at concrete instantiation. Composite input provides generic nominal type parameters;
+bounded generic function specialization belongs to the existing source adapter.
+
+`record.make` consumes linear fields into a record. `record.unpack` consumes a
+linear record and returns all fields. `record.get` may copy a non-linear field;
+it cannot duplicate an owner, loan or nested task. Stored owner/parent/child
+loans retain their primitive provenance through packing, branches and
+unpacking. The parent remains suspended while its child exists and owner drop
+still requires all loans ended. These are local records; stored loans cannot
+escape a function or be kept in task state/results. Enum payloads containing
+loans are also rejected in this profile.
+
+`record.borrow` accesses a primitive owner or view field without unpacking the
+record. It takes one record argument, `attrs: {"field": "name", "mode": "read"}`
+or mode `mut`, and one `readbuf` or `mutbuf` output respectively. The record
+remains live. Elaboration borrows the original field capability, preserving
+its owner and parent identities; it does not copy an owner or manufacture an
+address. The ordinary primitive loan checker rejects competing mutable loans,
+use of a suspended parent and destruction while a child loan remains live.
+A record can therefore contain two owners while one is read and the other is
+mutated by checked bulk-memory instructions. Borrowing an aggregate field
+recursively is outside this operation's finite profile.
+
+`enum.make` selects a declared variant. Inactive owner slots are real
+zero-length owners with no allocator call, so every control-flow edge can
+account for them. `enum.tag` observes the tag without consuming the enum.
+The `match` terminator must list every variant exactly once; each case has
+`variant`, `target`, and `args`. Its target receives the selected payload fields
+followed by explicit case arguments. Inactive owners are consumed on that edge.
+An invalid erased tag takes a real trap edge, including the final case; it is
+never interpreted as an arbitrary valid variant.
+
+Task declarations are concrete. Their poll function consumes one state and
+returns an enum of exactly `pending(state)` or `ready(result)`; cancellation
+consumes one state and returns nothing. Each task also carries a zero-length
+owner token. The primitive verifier therefore retains linear transfer/drop
+obligations even when both state and result are scalar after normalization.
+
+| Operation | Required state and result |
+| --- | --- |
+| `task.create` | Consumes initial state; produces pending task (`0`) |
+| `task.start` | Pending → running (`1`); consumes/replaces the task value |
+| `task.poll` | Calls the checked poll function only while running; yields running or succeeded (`2`) |
+| `task.state` | Returns the state tag while preserving the task |
+| `task.cancel` | Pending/running executes cancellation once and yields cancelled (`3`); cancelled/succeeded is unchanged |
+| `task.join` | Consumes a succeeded task and yields its result |
+| `task.close` | Consumes a cancelled task and its empty token |
+
+Static checks establish nominal type agreement, exhaustive cases, linear
+consumption, call signatures, effects and loan provenance. State transitions
+use runtime guards: a type-correct second start or premature join traps.
+Cancellation after success retains the completed result for an explicit join.
+There are no detached threads, preemptive scheduling, I/O wakeups or cleanup
+guarantees after abort/budget exhaustion. The allocator, ABI and compiler
+assumptions remain the same as the primitive core.
+
+`verify_core` elaborates composite input, verifies every primitive operation/edge and stores
+the canonical v6 core. A `VerifiedProgram` may additionally retain canonical composite
+bytes for audit identity. Public consumers re-elaborate such retained bytes
+and require exact core equality; a forged origin/core pair rejects even if a
+caller recomputes a digest. `input_sha256` and `program_sha256` distinguish the
+input representation from the executable core. `hia normalize` publishes the
+core, including its export policy, as a self-contained v6 program. Later
+semantic patches operate on that core and report this edit domain explicitly.
+
+The checked examples are `generic_owned_enum.hia`, `stored_loan_record.hia`
+and `cooperative_task.hia` in `examples/hia_program/`. The task example composes
+generic records/enums, owner transfer, nested stored loans, byte reads/writes,
+ordinary allocation failure, polling, success, cancellation and final cleanup.
 
 ## Interpreter, native code and external conditions
 
@@ -282,6 +421,14 @@ host libc abort controls instead observe SIGABRT. Neither result is a physical
 board, DMA, interrupt, GPU or device-timing qualification. The separate
 Cortex-M4 reference/BSP gate continues to use the historical Rust path and is
 not evidence that standalone HIA supports a 32-bit word model or MMIO.
+
+The separate `composite_bulk` AArch64 profile uses eight fixed 4096-byte slots
+to exercise two simultaneous owners and their loans. It is an explicitly
+bounded test runtime, not a general heap implementation. Its qualifier executes
+both nominal and serialized/reloaded v6 inputs on the host and AArch64/QEMU,
+observes allocation/refusal/free counts, and runs wrong-result, missing-free
+and bounds-trap controls. These observations do not broaden the historical
+one-live-allocation profile or qualify physical devices.
 
 Native publication regenerates the expected LLVM from the exact reverified
 core and target and compares it with the proposed IR. Rehashing changed LLVM
@@ -327,8 +474,43 @@ python tools/qualify_hia_program_aarch64.py --clang clang \
   --linker /absolute/path/to/ld.lld --qemu-aarch64 /absolute/path/to/qemu-aarch64-static \
   --output /tmp/hia-aarch64.json
 python tools/qualify_hia_program_perf.py --clang clang \
-  --rustc /absolute/path/to/rustc --output /tmp/hia-perf.json
+  --rustc /absolute/path/to/rustc --output /tmp/hia-perf.json \
+  --artifact-directory /tmp/hia-perf-artifacts
+python -m hepta hia verify examples/hia_program/cooperative_task.hia
+python -m hepta hia run examples/hia_program/cooperative_task.hia \
+  --function task_case --arguments '[2]'
+python -m hepta hia normalize examples/hia_program/cooperative_task.hia \
+  --output /tmp/task-core.hia
+python -m hepta hia import-cpp-project /absolute/path/to/compile_commands.json \
+  --clangxx clang++ --output /tmp/cpp-project.hia --report /tmp/cpp-capture.json
+python tools/qualify_hia_program_composite.py --clang clang \
+  --workdir /tmp/hia-composite-qualified
 ```
+
+Performance protocol `hepta.hia.program.perf.v3` builds in a fixed-length
+`/tmp/hepta-hia-perf-*` directory, independently of `TMPDIR` and the requested
+artifact retention parent. After the attempt, it copies the exact measured
+files, verifies both hashes, and records the original-to-retained path mapping.
+It never rebuilds a binary to stand in for a measured one. This corrects a
+measurement dependency: embedded generated Rust source paths can affect linked
+code placement when retention directories have different lengths. The build
+layout regression compares real Rust kernel and allocation-helper bytes and
+addresses across widely different retention paths. Whole ELF or whole `.text`
+bit identity is not promised: equal-length random source names can still alter
+string references in unrelated standard-library helpers. No Rust safety flags,
+workload, sample count, outlier rule or performance threshold changes with this
+retention policy. Retained receipts keep their original build paths; extraction
+does not turn a historical receipt into a new native execution.
+
+V3 also rotates the backend order by the group and each kernel's original
+index, independently of the rotated kernel position. Together with reversal
+on odd groups, each kernel uses all six backend permutations; over seven groups
+each backend occupies each position two or three times. The historical v1/v2
+double rotation left handwritten Rust in the middle for every constructor
+group. Historical records keep that limitation. The shared evaluator preserves
+the legacy default order; standalone HIA evaluation explicitly requires its
+own fixed v3 schedule. Correcting this order confound does not establish a
+physical cause for earlier timing variation or guarantee a future pass.
 
 Legacy envelopes can be imported using `hia import-executable` or
 `hia import-scalar`, both with `--source`. Scalar import additionally requires
@@ -344,16 +526,74 @@ control flow and resource obligations. Changed interfaces are reported.
 Successful patch validation establishes static validity, not preservation of
 behavior; task-specific independent tests still decide whether an edit is right.
 
+### Bounded agent editing views
+
+`hia edit-query` selects a value-producing operation by function, block and SSA
+output name. Its query binds the input/core hashes, the selected operation,
+the editable subset of `op`, `args`, `attrs`, and a deterministic context view.
+That view contains the function interface/effects, block inputs, direct
+consumers, and the transitive local producers of every displayed operation's
+inputs, together with the terminator and referenced callee signatures.
+The compact view preserves original instruction order.
+Output definitions are never editable through this interface.
+
+`hia edit-apply` reconstructs the entire query from the submitted source and
+requires exact equality before accepting a response of at most 16 KiB. It
+then uses the existing semantic patcher and rechecks the complete module with
+the public interface preserved. Stale or altered queries, unknown fields,
+duplicate JSON keys and newly invalid resource/effect flows reject. The compact
+text rendering is a model context view, not a second executable language or a
+way to bypass canonical Core validation.
+
+```sh
+python -m hepta hia edit-query /tmp/kernels.hia \
+  --function kernel --block entry --value answer --fields op \
+  --output /tmp/edit-query.json
+python -m hepta hia edit-apply /tmp/kernels.hia \
+  --query /tmp/edit-query.json --response /tmp/edit-response.json \
+  --output /tmp/revised-kernels.hia
+python -m hepta hia import-composite-v2 /tmp/legacy-nominal.hia \
+  --output /tmp/normalized-v6.hia --report /tmp/import-receipt.json
+```
+
 No language productivity advantage follows from this protocol's existence.
 Actual model trials must compare task success, wrong-but-valid edits, tokens,
 latency, tool/native-validation cost and later maintenance, with missing and
 failed attempts retained. Historical scripted fixture qualification and failed
 small-model pilots must not be counted as successful agent outcomes.
 
+`tools/qualify_hia_agent_gguf.py` executes the same frozen four-task, four-arm
+pilot using a hash-bound local GGUF model and an owned offline llama.cpp
+process. A private Unix socket and Linux peer credentials bind every response
+to that process. Actual native controls must execute, including buggy controls;
+a compilation failure cannot masquerade as a successful negative test. The
+plan is frozen before inference, full context fits the same response budget,
+and every attempted inference is counted. A timeout retains unknown token
+usage rather than treating it as zero. Generated responses, raw token IDs,
+native candidates and all errors are retained. These four single-site repairs
+measure a limited language/interface comparison; they cannot establish human
+maintenance effort or total development cost.
+
+`tools/qualify_hia_edit_study.py` adds a separately frozen eight-task,
+four-interface, two-model study. The HIA fixtures have two functions in one
+module; Rust fixtures have two source modules. This experiment does not count
+as HIA cross-module maintenance evidence. Both languages answer strict JSON
+for a predeclared edit site, then undergo native execution against an
+independent arithmetic oracle. All attempts and controls are retained.
+Model eligibility, interface comparison and general productivity are separate
+conclusions; the latter remains unestablished even if the finite comparison
+criteria pass. The plan also records that the full-versus-query comparison
+changes context and representation together.
+
 The integrated frozen-source run is `tools/qualify_hia_unified.py`. It executes
-the regression suite, independent native/resource/migration/AArch64 gates,
+the regression suite, independent native/primitive-resource/composite-resource,
+C/C++ owner and actual template-migration, and AArch64 gates,
 historical Core/composition/board regression gates and the 63-sample performance
 protocol. It retains each command/log, refuses to count skipped tests as a
-complete pass, and compares source snapshots before/after. Its
-`full_six_deliverables_complete` stays false while the documented general
+complete pass, and compares source snapshots before/after. It also executes
+the composite/bulk-memory target qualifier, explicit C/C++ configuration
+matrices and selected-Core Lean proof gate. Performance executes after the
+functional gates; the model study is run separately to avoid concurrent load.
+Its `full_seven_deliverables_complete` and historical
+`full_six_deliverables_complete` stay false while the documented general
 resource, migration, physical-target and agent-benefit obligations remain open.

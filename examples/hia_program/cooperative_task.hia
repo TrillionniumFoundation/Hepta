@@ -1,0 +1,1355 @@
+{
+  "schema": "hepta.hia.composite.v1",
+  "module": "composite_test",
+  "types": [
+    {
+      "name": "Pair",
+      "params": [
+        "T",
+        "U"
+      ],
+      "kind": "record",
+      "fields": [
+        {
+          "name": "first",
+          "type": "T"
+        },
+        {
+          "name": "second",
+          "type": "U"
+        }
+      ]
+    },
+    {
+      "name": "Step",
+      "params": [
+        "S",
+        "R"
+      ],
+      "kind": "enum",
+      "variants": [
+        {
+          "name": "pending",
+          "fields": [
+            {
+              "name": "state",
+              "type": "S"
+            }
+          ]
+        },
+        {
+          "name": "ready",
+          "fields": [
+            {
+              "name": "result",
+              "type": "R"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Work",
+      "params": [],
+      "kind": "task",
+      "state": {
+        "name": "Pair",
+        "args": [
+          "buffer",
+          "usize"
+        ]
+      },
+      "result": "usize",
+      "poll": "poll_owned",
+      "cancel": "cancel_owned"
+    },
+    {
+      "name": "LoanFrame",
+      "params": [],
+      "kind": "record",
+      "fields": [
+        {
+          "name": "owner",
+          "type": "buffer"
+        },
+        {
+          "name": "writer",
+          "type": "mutbuf"
+        },
+        {
+          "name": "reader",
+          "type": "readbuf"
+        }
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "poll_owned",
+      "params": [
+        {
+          "name": "state",
+          "type": {
+            "name": "Pair",
+            "args": [
+              "buffer",
+              "usize"
+            ]
+          }
+        }
+      ],
+      "returns": [
+        {
+          "name": "Step",
+          "args": [
+            {
+              "name": "Pair",
+              "args": [
+                "buffer",
+                "usize"
+              ]
+            },
+            "usize"
+          ]
+        }
+      ],
+      "effects": [
+        "alloc",
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "state",
+              "type": {
+                "name": "Pair",
+                "args": [
+                  "buffer",
+                  "usize"
+                ]
+              }
+            }
+          ],
+          "ops": [
+            {
+              "op": "record.unpack",
+              "args": [
+                "state"
+              ],
+              "out": [
+                {
+                  "name": "owned",
+                  "type": "buffer"
+                },
+                {
+                  "name": "remaining",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "zero",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "remaining",
+                "zero"
+              ],
+              "out": [
+                {
+                  "name": "done",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "done",
+            "then": {
+              "target": "ready",
+              "args": [
+                "owned"
+              ]
+            },
+            "else": {
+              "target": "yield",
+              "args": [
+                "owned",
+                "remaining"
+              ]
+            }
+          }
+        },
+        {
+          "id": "ready",
+          "params": [
+            {
+              "name": "completed_owner",
+              "type": "buffer"
+            }
+          ],
+          "ops": [
+            {
+              "op": "buffer.len",
+              "args": [
+                "completed_owner"
+              ],
+              "out": [
+                {
+                  "name": "length",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "borrow.read",
+              "args": [
+                "completed_owner"
+              ],
+              "out": [
+                {
+                  "name": "final_reader",
+                  "type": "readbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "final_index",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "buffer.load",
+              "args": [
+                "final_reader",
+                "final_index"
+              ],
+              "out": [
+                {
+                  "name": "last_byte",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "final_reader"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "int.cast",
+              "args": [
+                "last_byte"
+              ],
+              "out": [
+                {
+                  "name": "last_usize",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "mode": "checked"
+              }
+            },
+            {
+              "op": "int.add.checked",
+              "args": [
+                "length",
+                "last_usize"
+              ],
+              "out": [
+                {
+                  "name": "observed_length",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "owner.drop",
+              "args": [
+                "completed_owner"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "enum.make",
+              "args": [
+                "observed_length"
+              ],
+              "out": [
+                {
+                  "name": "ready_step",
+                  "type": {
+                    "name": "Step",
+                    "args": [
+                      {
+                        "name": "Pair",
+                        "args": [
+                          "buffer",
+                          "usize"
+                        ]
+                      },
+                      "usize"
+                    ]
+                  }
+                }
+              ],
+              "attrs": {
+                "variant": "ready"
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "ready_step"
+            ]
+          }
+        },
+        {
+          "id": "yield",
+          "params": [
+            {
+              "name": "yielded_owner",
+              "type": "buffer"
+            },
+            {
+              "name": "count",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "borrow.mut",
+              "args": [
+                "yielded_owner"
+              ],
+              "out": [
+                {
+                  "name": "yield_writer",
+                  "type": "mutbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "borrow.read",
+              "args": [
+                "yield_writer"
+              ],
+              "out": [
+                {
+                  "name": "yield_reader",
+                  "type": "readbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "record.make",
+              "args": [
+                "yielded_owner",
+                "yield_writer",
+                "yield_reader"
+              ],
+              "out": [
+                {
+                  "name": "frame",
+                  "type": "LoanFrame"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "record.unpack",
+              "args": [
+                "frame"
+              ],
+              "out": [
+                {
+                  "name": "frame_owner",
+                  "type": "buffer"
+                },
+                {
+                  "name": "frame_writer",
+                  "type": "mutbuf"
+                },
+                {
+                  "name": "frame_reader",
+                  "type": "readbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "yield_index",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "buffer.load",
+              "args": [
+                "frame_reader",
+                "yield_index"
+              ],
+              "out": [
+                {
+                  "name": "previous_byte",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "frame_reader"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "int.cast",
+              "args": [
+                "count"
+              ],
+              "out": [
+                {
+                  "name": "current_byte",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "mode": "wrap"
+              }
+            },
+            {
+              "op": "buffer.store",
+              "args": [
+                "frame_writer",
+                "yield_index",
+                "current_byte"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "frame_writer"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "one",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "int.sub.checked",
+              "args": [
+                "count",
+                "one"
+              ],
+              "out": [
+                {
+                  "name": "remaining_count",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "record.make",
+              "args": [
+                "frame_owner",
+                "remaining_count"
+              ],
+              "out": [
+                {
+                  "name": "next_state",
+                  "type": {
+                    "name": "Pair",
+                    "args": [
+                      "buffer",
+                      "usize"
+                    ]
+                  }
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "enum.make",
+              "args": [
+                "next_state"
+              ],
+              "out": [
+                {
+                  "name": "pending_step",
+                  "type": {
+                    "name": "Step",
+                    "args": [
+                      {
+                        "name": "Pair",
+                        "args": [
+                          "buffer",
+                          "usize"
+                        ]
+                      },
+                      "usize"
+                    ]
+                  }
+                }
+              ],
+              "attrs": {
+                "variant": "pending"
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "pending_step"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "cancel_owned",
+      "params": [
+        {
+          "name": "state",
+          "type": {
+            "name": "Pair",
+            "args": [
+              "buffer",
+              "usize"
+            ]
+          }
+        }
+      ],
+      "returns": [],
+      "effects": [
+        "alloc"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "state",
+              "type": {
+                "name": "Pair",
+                "args": [
+                  "buffer",
+                  "usize"
+                ]
+              }
+            }
+          ],
+          "ops": [
+            {
+              "op": "record.unpack",
+              "args": [
+                "state"
+              ],
+              "out": [
+                {
+                  "name": "owned",
+                  "type": "buffer"
+                },
+                {
+                  "name": "count",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "owner.drop",
+              "args": [
+                "owned"
+              ],
+              "out": [],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "task_case",
+      "params": [
+        {
+          "name": "mode",
+          "type": "u8"
+        }
+      ],
+      "returns": [
+        "usize"
+      ],
+      "effects": [
+        "alloc",
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "mode",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "size",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 7
+              }
+            },
+            {
+              "op": "buffer.try_new",
+              "args": [
+                "size"
+              ],
+              "out": [
+                {
+                  "name": "owned",
+                  "type": "buffer"
+                },
+                {
+                  "name": "allocated",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "allocated",
+            "then": {
+              "target": "make",
+              "args": [
+                "owned",
+                "mode"
+              ]
+            },
+            "else": {
+              "target": "error",
+              "args": [
+                "owned"
+              ]
+            }
+          }
+        },
+        {
+          "id": "error",
+          "params": [
+            {
+              "name": "empty",
+              "type": "buffer"
+            }
+          ],
+          "ops": [
+            {
+              "op": "owner.drop",
+              "args": [
+                "empty"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "failure",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 250
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "failure"
+            ]
+          }
+        },
+        {
+          "id": "make",
+          "params": [
+            {
+              "name": "owner",
+              "type": "buffer"
+            },
+            {
+              "name": "mode_copy",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "count",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 2
+              }
+            },
+            {
+              "op": "record.make",
+              "args": [
+                "owner",
+                "count"
+              ],
+              "out": [
+                {
+                  "name": "state",
+                  "type": {
+                    "name": "Pair",
+                    "args": [
+                      "buffer",
+                      "usize"
+                    ]
+                  }
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "task.create",
+              "args": [
+                "state"
+              ],
+              "out": [
+                {
+                  "name": "pending",
+                  "type": "Work"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "mode_zero",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "mode_copy",
+                "mode_zero"
+              ],
+              "out": [
+                {
+                  "name": "cancel_pending",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "cancel_pending",
+            "then": {
+              "target": "pending_cancel",
+              "args": [
+                "pending"
+              ]
+            },
+            "else": {
+              "target": "begin",
+              "args": [
+                "pending",
+                "mode_copy"
+              ]
+            }
+          }
+        },
+        {
+          "id": "pending_cancel",
+          "params": [
+            {
+              "name": "pending_task",
+              "type": "Work"
+            }
+          ],
+          "ops": [
+            {
+              "op": "task.cancel",
+              "args": [
+                "pending_task"
+              ],
+              "out": [
+                {
+                  "name": "cancelled_once",
+                  "type": "Work"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "task.cancel",
+              "args": [
+                "cancelled_once"
+              ],
+              "out": [
+                {
+                  "name": "cancelled_twice",
+                  "type": "Work"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "task.state",
+              "args": [
+                "cancelled_twice"
+              ],
+              "out": [
+                {
+                  "name": "cancelled_status",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "task.close",
+              "args": [
+                "cancelled_twice"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "int.cast",
+              "args": [
+                "cancelled_status"
+              ],
+              "out": [
+                {
+                  "name": "cancelled_usize",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "mode": "checked"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "thirty",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 30
+              }
+            },
+            {
+              "op": "int.add.checked",
+              "args": [
+                "thirty",
+                "cancelled_usize"
+              ],
+              "out": [
+                {
+                  "name": "pending_answer",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "pending_answer"
+            ]
+          }
+        },
+        {
+          "id": "begin",
+          "params": [
+            {
+              "name": "created_task",
+              "type": "Work"
+            },
+            {
+              "name": "begin_mode",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "task.start",
+              "args": [
+                "created_task"
+              ],
+              "out": [
+                {
+                  "name": "running",
+                  "type": "Work"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "task.poll",
+              "args": [
+                "running"
+              ],
+              "out": [
+                {
+                  "name": "yielded",
+                  "type": "Work"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "mode_one",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "begin_mode",
+                "mode_one"
+              ],
+              "out": [
+                {
+                  "name": "cancel_running",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "cancel_running",
+            "then": {
+              "target": "running_cancel",
+              "args": [
+                "yielded"
+              ]
+            },
+            "else": {
+              "target": "loop",
+              "args": [
+                "yielded"
+              ]
+            }
+          }
+        },
+        {
+          "id": "running_cancel",
+          "params": [
+            {
+              "name": "live_task",
+              "type": "Work"
+            }
+          ],
+          "ops": [
+            {
+              "op": "task.cancel",
+              "args": [
+                "live_task"
+              ],
+              "out": [
+                {
+                  "name": "stopped",
+                  "type": "Work"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "task.state",
+              "args": [
+                "stopped"
+              ],
+              "out": [
+                {
+                  "name": "stopped_status",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "task.close",
+              "args": [
+                "stopped"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "int.cast",
+              "args": [
+                "stopped_status"
+              ],
+              "out": [
+                {
+                  "name": "stopped_usize",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "mode": "checked"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "ten",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 10
+              }
+            },
+            {
+              "op": "int.add.checked",
+              "args": [
+                "ten",
+                "stopped_usize"
+              ],
+              "out": [
+                {
+                  "name": "running_answer",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "running_answer"
+            ]
+          }
+        },
+        {
+          "id": "loop",
+          "params": [
+            {
+              "name": "loop_task",
+              "type": "Work"
+            }
+          ],
+          "ops": [
+            {
+              "op": "task.state",
+              "args": [
+                "loop_task"
+              ],
+              "out": [
+                {
+                  "name": "status",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "complete",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 2
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "status",
+                "complete"
+              ],
+              "out": [
+                {
+                  "name": "finished",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "finished",
+            "then": {
+              "target": "finish",
+              "args": [
+                "loop_task"
+              ]
+            },
+            "else": {
+              "target": "poll",
+              "args": [
+                "loop_task"
+              ]
+            }
+          }
+        },
+        {
+          "id": "poll",
+          "params": [
+            {
+              "name": "poll_task",
+              "type": "Work"
+            }
+          ],
+          "ops": [
+            {
+              "op": "task.poll",
+              "args": [
+                "poll_task"
+              ],
+              "out": [
+                {
+                  "name": "next_task",
+                  "type": "Work"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "loop",
+            "args": [
+              "next_task"
+            ]
+          }
+        },
+        {
+          "id": "finish",
+          "params": [
+            {
+              "name": "done_task",
+              "type": "Work"
+            }
+          ],
+          "ops": [
+            {
+              "op": "task.cancel",
+              "args": [
+                "done_task"
+              ],
+              "out": [
+                {
+                  "name": "too_late",
+                  "type": "Work"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "task.state",
+              "args": [
+                "too_late"
+              ],
+              "out": [
+                {
+                  "name": "success_status",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "task.join",
+              "args": [
+                "too_late"
+              ],
+              "out": [
+                {
+                  "name": "result",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.cast",
+              "args": [
+                "success_status"
+              ],
+              "out": [
+                {
+                  "name": "success_usize",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "mode": "checked"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "scale",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 10
+              }
+            },
+            {
+              "op": "int.mul.checked",
+              "args": [
+                "success_usize",
+                "scale"
+              ],
+              "out": [
+                {
+                  "name": "prefix",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.add.checked",
+              "args": [
+                "prefix",
+                "result"
+              ],
+              "out": [
+                {
+                  "name": "completed_answer",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "completed_answer"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,3447 @@
+{
+  "claims": {
+    "backend_refinement_proved": false,
+    "general_allocator_qualified": false,
+    "physical_target_executed": false,
+    "whole_language_soundness_proved": false
+  },
+  "counts": {
+    "actual_native_bounds_traps": 6,
+    "actual_removed_free_controls": 2,
+    "actual_scalar_abi_calls": 72,
+    "actual_wrong_result_controls": 2,
+    "allocations_per_positive_binary": 31,
+    "cases_per_native_binary": 18,
+    "frees_per_positive_binary": 31,
+    "live_after_each_positive_call": 0,
+    "peak_live_per_positive_binary": 2,
+    "positive_native_binaries": 4,
+    "refusals_per_positive_binary": 2
+  },
+  "limits": [
+    "fixed eighteen-case scalar C ABI corpus; nominal aggregates remain internal",
+    "ARM64 uses Linux userspace QEMU with eight independent 4096-byte test slots",
+    "only cleanup on normal/error returns; traps abort without cleanup",
+    "finite evidence does not prove compiler refinement or general allocator soundness"
+  ],
+  "native": {
+    "aarch64": {
+      "composite": {
+        "binary_inventory": {
+          "entrypoint": 2164908,
+          "external_functions": [
+            "_start",
+            "abort",
+            "aggregate_bulk",
+            "calloc",
+            "free",
+            "malloc",
+            "memcpy",
+            "memmove",
+            "memset"
+          ],
+          "format": "ELF64",
+          "machine": 183,
+          "no_unresolved_symbols": true
+        },
+        "build": {
+          "artifact_bytes": 1752,
+          "artifact_sha256": "141e8b11efb218420d25fc724fe829d9373dd38fe273387d82496bcaba29d1c2",
+          "binary_inventory": {
+            "defined": [
+              "aggregate_bulk"
+            ],
+            "undefined": [
+              "abort",
+              "calloc",
+              "free",
+              "memcpy",
+              "memmove",
+              "memset"
+            ]
+          },
+          "claims": {
+            "backend_refinement_proved": false,
+            "c_codegen_used": false,
+            "cross_target_execution_qualified": false,
+            "fallback_used": false,
+            "foreign_buffer_entrypoints_exposed": false,
+            "native_execution_qualified": false,
+            "rust_codegen_used": false,
+            "rust_reference_required": false,
+            "source_ast_required": false,
+            "standalone_core_reverified": true,
+            "whole_language_soundness_proved": false
+          },
+          "core_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "exports": [
+            "aggregate_bulk"
+          ],
+          "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+          "flags": [
+            "--target=aarch64-unknown-linux-gnu",
+            "-x",
+            "ir",
+            "-O3",
+            "-fPIC",
+            "-c"
+          ],
+          "implementation_sha256": "6a8c8ab65cd8fdc07ffd5b61a0338d4ed8a3531a7363c9b310faaaa5e5274b7d",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "kind": "object",
+          "llvm_ir_sha256": "d8951c16f3b106124df17c8dd0366b8d47d0f3aef93f29f89ea4e66e0d75547f",
+          "ok": true,
+          "output": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite/program.o",
+          "profile": "hepta.hia.program.llvm-linux-aarch64-range-fill-object.v6",
+          "runtime_assumptions": [
+            "Linux LP64 target with 64-bit pointers and size_t",
+            "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+            "C malloc returns null or a fresh nonaliasing allocation of the requested size; used only when byte contents cannot be observed",
+            "C free accepts a live allocation from calloc or malloc, or null",
+            "abort terminates execution; no cleanup after traps is promised",
+            "native compiler, linker, loader, libc and host hardware are trusted"
+          ],
+          "schema": "hepta.hia.program.native.v1",
+          "status": "native_compiled_not_executed",
+          "target": "aarch64-unknown-linux-gnu",
+          "toolchain": {
+            "default_target": "x86_64-pc-linux-gnu",
+            "path": "/usr/lib/llvm-20/bin/clang",
+            "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+            "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+          }
+        },
+        "core_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+        "driver_sha256": "3437e758a6de2df5db9fc0024b4e84b2c2a5276f8c2ce8df9f4723a801cbf62f",
+        "executable_sha256": "a06484514edefd18e0a7fb48cced670fcbf201501b43799fa3c17dcad5a88ea0",
+        "execution": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "HIA_BULK case 0 11\nHIA_BULK case 1 11\nHIA_BULK case 2 11\nHIA_BULK case 3 77\nHIA_BULK case 4 11\nHIA_BULK case 5 11\nHIA_BULK case 6 11\nHIA_BULK case 7 11\nHIA_BULK case 8 11\nHIA_BULK case 9 255\nHIA_BULK case 10 11\nHIA_BULK case 11 11\nHIA_BULK case 12 11\nHIA_BULK case 13 11\nHIA_BULK case 14 0\nHIA_BULK case 15 11\nHIA_BULK case 16 251\nHIA_BULK case 17 252\nHIA_AARCH64 resources 31 31 0 2\n"
+        },
+        "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+        "llvm_ir_sha256": "d8951c16f3b106124df17c8dd0366b8d47d0f3aef93f29f89ea4e66e0d75547f",
+        "mode": "composite_bulk",
+        "run_process": 17,
+        "target": "aarch64-unknown-linux-gnu"
+      },
+      "normalized": {
+        "binary_inventory": {
+          "entrypoint": 2164908,
+          "external_functions": [
+            "_start",
+            "abort",
+            "aggregate_bulk",
+            "calloc",
+            "free",
+            "malloc",
+            "memcpy",
+            "memmove",
+            "memset"
+          ],
+          "format": "ELF64",
+          "machine": 183,
+          "no_unresolved_symbols": true
+        },
+        "build": {
+          "artifact_bytes": 1752,
+          "artifact_sha256": "141e8b11efb218420d25fc724fe829d9373dd38fe273387d82496bcaba29d1c2",
+          "binary_inventory": {
+            "defined": [
+              "aggregate_bulk"
+            ],
+            "undefined": [
+              "abort",
+              "calloc",
+              "free",
+              "memcpy",
+              "memmove",
+              "memset"
+            ]
+          },
+          "claims": {
+            "backend_refinement_proved": false,
+            "c_codegen_used": false,
+            "cross_target_execution_qualified": false,
+            "fallback_used": false,
+            "foreign_buffer_entrypoints_exposed": false,
+            "native_execution_qualified": false,
+            "rust_codegen_used": false,
+            "rust_reference_required": false,
+            "source_ast_required": false,
+            "standalone_core_reverified": true,
+            "whole_language_soundness_proved": false
+          },
+          "core_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "exports": [
+            "aggregate_bulk"
+          ],
+          "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+          "flags": [
+            "--target=aarch64-unknown-linux-gnu",
+            "-x",
+            "ir",
+            "-O3",
+            "-fPIC",
+            "-c"
+          ],
+          "implementation_sha256": "6a8c8ab65cd8fdc07ffd5b61a0338d4ed8a3531a7363c9b310faaaa5e5274b7d",
+          "input_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "kind": "object",
+          "llvm_ir_sha256": "d8951c16f3b106124df17c8dd0366b8d47d0f3aef93f29f89ea4e66e0d75547f",
+          "ok": true,
+          "output": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-normalized/program.o",
+          "profile": "hepta.hia.program.llvm-linux-aarch64-range-fill-object.v6",
+          "runtime_assumptions": [
+            "Linux LP64 target with 64-bit pointers and size_t",
+            "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+            "C malloc returns null or a fresh nonaliasing allocation of the requested size; used only when byte contents cannot be observed",
+            "C free accepts a live allocation from calloc or malloc, or null",
+            "abort terminates execution; no cleanup after traps is promised",
+            "native compiler, linker, loader, libc and host hardware are trusted"
+          ],
+          "schema": "hepta.hia.program.native.v1",
+          "status": "native_compiled_not_executed",
+          "target": "aarch64-unknown-linux-gnu",
+          "toolchain": {
+            "default_target": "x86_64-pc-linux-gnu",
+            "path": "/usr/lib/llvm-20/bin/clang",
+            "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+            "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+          }
+        },
+        "core_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+        "driver_sha256": "3437e758a6de2df5db9fc0024b4e84b2c2a5276f8c2ce8df9f4723a801cbf62f",
+        "executable_sha256": "a06484514edefd18e0a7fb48cced670fcbf201501b43799fa3c17dcad5a88ea0",
+        "execution": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "HIA_BULK case 0 11\nHIA_BULK case 1 11\nHIA_BULK case 2 11\nHIA_BULK case 3 77\nHIA_BULK case 4 11\nHIA_BULK case 5 11\nHIA_BULK case 6 11\nHIA_BULK case 7 11\nHIA_BULK case 8 11\nHIA_BULK case 9 255\nHIA_BULK case 10 11\nHIA_BULK case 11 11\nHIA_BULK case 12 11\nHIA_BULK case 13 11\nHIA_BULK case 14 0\nHIA_BULK case 15 11\nHIA_BULK case 16 251\nHIA_BULK case 17 252\nHIA_AARCH64 resources 31 31 0 2\n"
+        },
+        "input_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+        "llvm_ir_sha256": "d8951c16f3b106124df17c8dd0366b8d47d0f3aef93f29f89ea4e66e0d75547f",
+        "mode": "composite_bulk",
+        "run_process": 20,
+        "target": "aarch64-unknown-linux-gnu"
+      }
+    },
+    "x86_64": {
+      "composite": {
+        "binary_inventory": null,
+        "build": {
+          "artifact_bytes": 1712,
+          "artifact_sha256": "9434d3347ac95f848916cc2fa244170729878e4075b4e05f25ad3a4d51acca10",
+          "binary_inventory": {
+            "defined": [
+              "aggregate_bulk"
+            ],
+            "undefined": [
+              "abort",
+              "calloc",
+              "free",
+              "memcpy",
+              "memmove",
+              "memset"
+            ]
+          },
+          "claims": {
+            "backend_refinement_proved": false,
+            "c_codegen_used": false,
+            "cross_target_execution_qualified": false,
+            "fallback_used": false,
+            "foreign_buffer_entrypoints_exposed": false,
+            "native_execution_qualified": false,
+            "rust_codegen_used": false,
+            "rust_reference_required": false,
+            "source_ast_required": false,
+            "standalone_core_reverified": true,
+            "whole_language_soundness_proved": false
+          },
+          "core_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "exports": [
+            "aggregate_bulk"
+          ],
+          "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+          "flags": [
+            "--target=x86_64-unknown-linux-gnu",
+            "-x",
+            "ir",
+            "-O3",
+            "-fPIC",
+            "-c"
+          ],
+          "implementation_sha256": "6a8c8ab65cd8fdc07ffd5b61a0338d4ed8a3531a7363c9b310faaaa5e5274b7d",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "kind": "object",
+          "llvm_ir_sha256": "58e0a3c148cd1b3500126a7cc00c1b961f80a18bd1c69ccffed18de97f015b4d",
+          "ok": true,
+          "output": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-composite/program.o",
+          "profile": "hepta.hia.program.llvm-linux-x86_64-range-fill.v6",
+          "runtime_assumptions": [
+            "Linux LP64 target with 64-bit pointers and size_t",
+            "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+            "C malloc returns null or a fresh nonaliasing allocation of the requested size; used only when byte contents cannot be observed",
+            "C free accepts a live allocation from calloc or malloc, or null",
+            "abort terminates execution; no cleanup after traps is promised",
+            "native compiler, linker, loader, libc and host hardware are trusted"
+          ],
+          "schema": "hepta.hia.program.native.v1",
+          "status": "native_compiled_not_executed",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "default_target": "x86_64-pc-linux-gnu",
+            "path": "/usr/lib/llvm-20/bin/clang",
+            "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+            "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+          }
+        },
+        "core_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+        "driver_sha256": "8cd290530b67c1aa5781556119b95316e33aba85bc6639df642b23695f763518",
+        "executable_sha256": "4c439a8cd52c2934d265344e77e37f5cec9ae7f1fe313a1e9daee47de70e6ce7",
+        "execution": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "HIA_BULK case 0 11\nHIA_BULK case 1 11\nHIA_BULK case 2 11\nHIA_BULK case 3 77\nHIA_BULK case 4 11\nHIA_BULK case 5 11\nHIA_BULK case 6 11\nHIA_BULK case 7 11\nHIA_BULK case 8 11\nHIA_BULK case 9 255\nHIA_BULK case 10 11\nHIA_BULK case 11 11\nHIA_BULK case 12 11\nHIA_BULK case 13 11\nHIA_BULK case 14 0\nHIA_BULK case 15 11\nHIA_BULK case 16 251\nHIA_BULK case 17 252\nHIA_AARCH64 resources 31 31 0 2\n"
+        },
+        "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+        "llvm_ir_sha256": "58e0a3c148cd1b3500126a7cc00c1b961f80a18bd1c69ccffed18de97f015b4d",
+        "mode": "composite_bulk",
+        "run_process": 1,
+        "target": "x86_64-unknown-linux-gnu"
+      },
+      "normalized": {
+        "binary_inventory": null,
+        "build": {
+          "artifact_bytes": 1712,
+          "artifact_sha256": "9434d3347ac95f848916cc2fa244170729878e4075b4e05f25ad3a4d51acca10",
+          "binary_inventory": {
+            "defined": [
+              "aggregate_bulk"
+            ],
+            "undefined": [
+              "abort",
+              "calloc",
+              "free",
+              "memcpy",
+              "memmove",
+              "memset"
+            ]
+          },
+          "claims": {
+            "backend_refinement_proved": false,
+            "c_codegen_used": false,
+            "cross_target_execution_qualified": false,
+            "fallback_used": false,
+            "foreign_buffer_entrypoints_exposed": false,
+            "native_execution_qualified": false,
+            "rust_codegen_used": false,
+            "rust_reference_required": false,
+            "source_ast_required": false,
+            "standalone_core_reverified": true,
+            "whole_language_soundness_proved": false
+          },
+          "core_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "exports": [
+            "aggregate_bulk"
+          ],
+          "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+          "flags": [
+            "--target=x86_64-unknown-linux-gnu",
+            "-x",
+            "ir",
+            "-O3",
+            "-fPIC",
+            "-c"
+          ],
+          "implementation_sha256": "6a8c8ab65cd8fdc07ffd5b61a0338d4ed8a3531a7363c9b310faaaa5e5274b7d",
+          "input_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "kind": "object",
+          "llvm_ir_sha256": "58e0a3c148cd1b3500126a7cc00c1b961f80a18bd1c69ccffed18de97f015b4d",
+          "ok": true,
+          "output": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-normalized/program.o",
+          "profile": "hepta.hia.program.llvm-linux-x86_64-range-fill.v6",
+          "runtime_assumptions": [
+            "Linux LP64 target with 64-bit pointers and size_t",
+            "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+            "C malloc returns null or a fresh nonaliasing allocation of the requested size; used only when byte contents cannot be observed",
+            "C free accepts a live allocation from calloc or malloc, or null",
+            "abort terminates execution; no cleanup after traps is promised",
+            "native compiler, linker, loader, libc and host hardware are trusted"
+          ],
+          "schema": "hepta.hia.program.native.v1",
+          "status": "native_compiled_not_executed",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "default_target": "x86_64-pc-linux-gnu",
+            "path": "/usr/lib/llvm-20/bin/clang",
+            "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+            "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+          }
+        },
+        "core_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+        "driver_sha256": "8cd290530b67c1aa5781556119b95316e33aba85bc6639df642b23695f763518",
+        "executable_sha256": "4c439a8cd52c2934d265344e77e37f5cec9ae7f1fe313a1e9daee47de70e6ce7",
+        "execution": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "HIA_BULK case 0 11\nHIA_BULK case 1 11\nHIA_BULK case 2 11\nHIA_BULK case 3 77\nHIA_BULK case 4 11\nHIA_BULK case 5 11\nHIA_BULK case 6 11\nHIA_BULK case 7 11\nHIA_BULK case 8 11\nHIA_BULK case 9 255\nHIA_BULK case 10 11\nHIA_BULK case 11 11\nHIA_BULK case 12 11\nHIA_BULK case 13 11\nHIA_BULK case 14 0\nHIA_BULK case 15 11\nHIA_BULK case 16 251\nHIA_BULK case 17 252\nHIA_AARCH64 resources 31 31 0 2\n"
+        },
+        "input_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+        "llvm_ir_sha256": "58e0a3c148cd1b3500126a7cc00c1b961f80a18bd1c69ccffed18de97f015b4d",
+        "mode": "composite_bulk",
+        "run_process": 3,
+        "target": "x86_64-unknown-linux-gnu"
+      }
+    }
+  },
+  "negative_controls": [
+    {
+      "kind": "wrong_result_core",
+      "observed": {
+        "binary_inventory": null,
+        "build": {
+          "artifact_bytes": 1744,
+          "artifact_sha256": "fdc1925308efb1293bc7d557f5f2cf9fd6bb5d5c722f3251a385895cf51506f7",
+          "binary_inventory": {
+            "defined": [
+              "aggregate_bulk"
+            ],
+            "undefined": [
+              "abort",
+              "calloc",
+              "free",
+              "memcpy",
+              "memmove",
+              "memset"
+            ]
+          },
+          "claims": {
+            "backend_refinement_proved": false,
+            "c_codegen_used": false,
+            "cross_target_execution_qualified": false,
+            "fallback_used": false,
+            "foreign_buffer_entrypoints_exposed": false,
+            "native_execution_qualified": false,
+            "rust_codegen_used": false,
+            "rust_reference_required": false,
+            "source_ast_required": false,
+            "standalone_core_reverified": true,
+            "whole_language_soundness_proved": false
+          },
+          "core_sha256": "dfba78627849b8bbb65d5526a3214938c38e61ac7941647545a733bd63a18e3e",
+          "exports": [
+            "aggregate_bulk"
+          ],
+          "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+          "flags": [
+            "--target=x86_64-unknown-linux-gnu",
+            "-x",
+            "ir",
+            "-O3",
+            "-fPIC",
+            "-c"
+          ],
+          "implementation_sha256": "6a8c8ab65cd8fdc07ffd5b61a0338d4ed8a3531a7363c9b310faaaa5e5274b7d",
+          "input_sha256": "ac9b04985ada02564efa8713802e7ccb45c7e0aaad7750dc78466a5b4c69ee98",
+          "kind": "object",
+          "llvm_ir_sha256": "e6d8f0f46b13b371c903ac14009e5c5cab287f1b342db13943f07b1bf7978144",
+          "ok": true,
+          "output": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-wrong-value/program.o",
+          "profile": "hepta.hia.program.llvm-linux-x86_64-range-fill.v6",
+          "runtime_assumptions": [
+            "Linux LP64 target with 64-bit pointers and size_t",
+            "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+            "C malloc returns null or a fresh nonaliasing allocation of the requested size; used only when byte contents cannot be observed",
+            "C free accepts a live allocation from calloc or malloc, or null",
+            "abort terminates execution; no cleanup after traps is promised",
+            "native compiler, linker, loader, libc and host hardware are trusted"
+          ],
+          "schema": "hepta.hia.program.native.v1",
+          "status": "native_compiled_not_executed",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "default_target": "x86_64-pc-linux-gnu",
+            "path": "/usr/lib/llvm-20/bin/clang",
+            "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+            "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+          }
+        },
+        "core_sha256": "dfba78627849b8bbb65d5526a3214938c38e61ac7941647545a733bd63a18e3e",
+        "driver_sha256": "8cd290530b67c1aa5781556119b95316e33aba85bc6639df642b23695f763518",
+        "executable_sha256": "980df53e2111dc83c42271adc6940caec58c7f6b56494d0c62981e1639eedac6",
+        "execution": {
+          "returncode": 41,
+          "stderr": "",
+          "stdout": "HIA_BULK case 0 10\n"
+        },
+        "input_sha256": "ac9b04985ada02564efa8713802e7ccb45c7e0aaad7750dc78466a5b4c69ee98",
+        "llvm_ir_sha256": "e6d8f0f46b13b371c903ac14009e5c5cab287f1b342db13943f07b1bf7978144",
+        "mode": "composite_bulk",
+        "run_process": 5,
+        "target": "x86_64-unknown-linux-gnu"
+      }
+    },
+    {
+      "kind": "unqualified_removed_free",
+      "observed": {
+        "binary_inventory": null,
+        "build": {
+          "artifact_sha256": "57f6a9a34d7bfddabd06035010ad818cfb919cf465293b0be36fa36bb14e637c",
+          "qualified_hia_artifact": false,
+          "reason": "deliberately removed actual free calls",
+          "unqualified_ir_sha256": "12f51e0b801f3a41184551ec2c33c9731d69935d16532682856b3985d104a2dd"
+        },
+        "core_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+        "driver_sha256": "8cd290530b67c1aa5781556119b95316e33aba85bc6639df642b23695f763518",
+        "executable_sha256": "da1d970673552a6cf927305e93a0afc3eeaf57dd72c177421438ee6dad5d4ed3",
+        "execution": {
+          "returncode": 91,
+          "stderr": "",
+          "stdout": "HIA_BULK case 0 11\nHIA_AARCH64 resources 2 0 2 0\n"
+        },
+        "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+        "llvm_ir_sha256": "58e0a3c148cd1b3500126a7cc00c1b961f80a18bd1c69ccffed18de97f015b4d",
+        "mode": "composite_bulk",
+        "run_process": 8,
+        "target": "x86_64-unknown-linux-gnu"
+      }
+    },
+    {
+      "kind": "composite_bulk_fill_trap",
+      "observed": {
+        "binary_inventory": null,
+        "build": {
+          "artifact_bytes": 1712,
+          "artifact_sha256": "9434d3347ac95f848916cc2fa244170729878e4075b4e05f25ad3a4d51acca10",
+          "binary_inventory": {
+            "defined": [
+              "aggregate_bulk"
+            ],
+            "undefined": [
+              "abort",
+              "calloc",
+              "free",
+              "memcpy",
+              "memmove",
+              "memset"
+            ]
+          },
+          "claims": {
+            "backend_refinement_proved": false,
+            "c_codegen_used": false,
+            "cross_target_execution_qualified": false,
+            "fallback_used": false,
+            "foreign_buffer_entrypoints_exposed": false,
+            "native_execution_qualified": false,
+            "rust_codegen_used": false,
+            "rust_reference_required": false,
+            "source_ast_required": false,
+            "standalone_core_reverified": true,
+            "whole_language_soundness_proved": false
+          },
+          "core_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "exports": [
+            "aggregate_bulk"
+          ],
+          "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+          "flags": [
+            "--target=x86_64-unknown-linux-gnu",
+            "-x",
+            "ir",
+            "-O3",
+            "-fPIC",
+            "-c"
+          ],
+          "implementation_sha256": "6a8c8ab65cd8fdc07ffd5b61a0338d4ed8a3531a7363c9b310faaaa5e5274b7d",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "kind": "object",
+          "llvm_ir_sha256": "58e0a3c148cd1b3500126a7cc00c1b961f80a18bd1c69ccffed18de97f015b4d",
+          "ok": true,
+          "output": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-composite_bulk_fill_trap/program.o",
+          "profile": "hepta.hia.program.llvm-linux-x86_64-range-fill.v6",
+          "runtime_assumptions": [
+            "Linux LP64 target with 64-bit pointers and size_t",
+            "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+            "C malloc returns null or a fresh nonaliasing allocation of the requested size; used only when byte contents cannot be observed",
+            "C free accepts a live allocation from calloc or malloc, or null",
+            "abort terminates execution; no cleanup after traps is promised",
+            "native compiler, linker, loader, libc and host hardware are trusted"
+          ],
+          "schema": "hepta.hia.program.native.v1",
+          "status": "native_compiled_not_executed",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "default_target": "x86_64-pc-linux-gnu",
+            "path": "/usr/lib/llvm-20/bin/clang",
+            "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+            "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+          }
+        },
+        "core_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+        "driver_sha256": "003609f434907dc36af5e178c044f77c2df7a21a89f4d4ba459d00044a65ed94",
+        "executable_sha256": "fac3ba8ccf7e4fdc404bd93c19701de2c0efdde0f21d6f4a6ba86d067a100b7c",
+        "execution": {
+          "returncode": -6,
+          "stderr": "",
+          "stdout": ""
+        },
+        "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+        "llvm_ir_sha256": "58e0a3c148cd1b3500126a7cc00c1b961f80a18bd1c69ccffed18de97f015b4d",
+        "mode": "composite_bulk_fill_trap",
+        "run_process": 10,
+        "target": "x86_64-unknown-linux-gnu"
+      }
+    },
+    {
+      "kind": "composite_bulk_swap_trap",
+      "observed": {
+        "binary_inventory": null,
+        "build": {
+          "artifact_bytes": 1712,
+          "artifact_sha256": "9434d3347ac95f848916cc2fa244170729878e4075b4e05f25ad3a4d51acca10",
+          "binary_inventory": {
+            "defined": [
+              "aggregate_bulk"
+            ],
+            "undefined": [
+              "abort",
+              "calloc",
+              "free",
+              "memcpy",
+              "memmove",
+              "memset"
+            ]
+          },
+          "claims": {
+            "backend_refinement_proved": false,
+            "c_codegen_used": false,
+            "cross_target_execution_qualified": false,
+            "fallback_used": false,
+            "foreign_buffer_entrypoints_exposed": false,
+            "native_execution_qualified": false,
+            "rust_codegen_used": false,
+            "rust_reference_required": false,
+            "source_ast_required": false,
+            "standalone_core_reverified": true,
+            "whole_language_soundness_proved": false
+          },
+          "core_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "exports": [
+            "aggregate_bulk"
+          ],
+          "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+          "flags": [
+            "--target=x86_64-unknown-linux-gnu",
+            "-x",
+            "ir",
+            "-O3",
+            "-fPIC",
+            "-c"
+          ],
+          "implementation_sha256": "6a8c8ab65cd8fdc07ffd5b61a0338d4ed8a3531a7363c9b310faaaa5e5274b7d",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "kind": "object",
+          "llvm_ir_sha256": "58e0a3c148cd1b3500126a7cc00c1b961f80a18bd1c69ccffed18de97f015b4d",
+          "ok": true,
+          "output": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-composite_bulk_swap_trap/program.o",
+          "profile": "hepta.hia.program.llvm-linux-x86_64-range-fill.v6",
+          "runtime_assumptions": [
+            "Linux LP64 target with 64-bit pointers and size_t",
+            "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+            "C malloc returns null or a fresh nonaliasing allocation of the requested size; used only when byte contents cannot be observed",
+            "C free accepts a live allocation from calloc or malloc, or null",
+            "abort terminates execution; no cleanup after traps is promised",
+            "native compiler, linker, loader, libc and host hardware are trusted"
+          ],
+          "schema": "hepta.hia.program.native.v1",
+          "status": "native_compiled_not_executed",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "default_target": "x86_64-pc-linux-gnu",
+            "path": "/usr/lib/llvm-20/bin/clang",
+            "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+            "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+          }
+        },
+        "core_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+        "driver_sha256": "620adc59db185640603fca24e0daefec784adcbcda2a48b0533d3b025ca7d1eb",
+        "executable_sha256": "a752ff3dd9ed9f37f6fe0399c863939f3e92c1dc8ab5ece8a5091c62a2c9dfd4",
+        "execution": {
+          "returncode": -6,
+          "stderr": "",
+          "stdout": ""
+        },
+        "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+        "llvm_ir_sha256": "58e0a3c148cd1b3500126a7cc00c1b961f80a18bd1c69ccffed18de97f015b4d",
+        "mode": "composite_bulk_swap_trap",
+        "run_process": 12,
+        "target": "x86_64-unknown-linux-gnu"
+      }
+    },
+    {
+      "kind": "composite_bulk_move_trap",
+      "observed": {
+        "binary_inventory": null,
+        "build": {
+          "artifact_bytes": 1712,
+          "artifact_sha256": "9434d3347ac95f848916cc2fa244170729878e4075b4e05f25ad3a4d51acca10",
+          "binary_inventory": {
+            "defined": [
+              "aggregate_bulk"
+            ],
+            "undefined": [
+              "abort",
+              "calloc",
+              "free",
+              "memcpy",
+              "memmove",
+              "memset"
+            ]
+          },
+          "claims": {
+            "backend_refinement_proved": false,
+            "c_codegen_used": false,
+            "cross_target_execution_qualified": false,
+            "fallback_used": false,
+            "foreign_buffer_entrypoints_exposed": false,
+            "native_execution_qualified": false,
+            "rust_codegen_used": false,
+            "rust_reference_required": false,
+            "source_ast_required": false,
+            "standalone_core_reverified": true,
+            "whole_language_soundness_proved": false
+          },
+          "core_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "exports": [
+            "aggregate_bulk"
+          ],
+          "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+          "flags": [
+            "--target=x86_64-unknown-linux-gnu",
+            "-x",
+            "ir",
+            "-O3",
+            "-fPIC",
+            "-c"
+          ],
+          "implementation_sha256": "6a8c8ab65cd8fdc07ffd5b61a0338d4ed8a3531a7363c9b310faaaa5e5274b7d",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "kind": "object",
+          "llvm_ir_sha256": "58e0a3c148cd1b3500126a7cc00c1b961f80a18bd1c69ccffed18de97f015b4d",
+          "ok": true,
+          "output": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-composite_bulk_move_trap/program.o",
+          "profile": "hepta.hia.program.llvm-linux-x86_64-range-fill.v6",
+          "runtime_assumptions": [
+            "Linux LP64 target with 64-bit pointers and size_t",
+            "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+            "C malloc returns null or a fresh nonaliasing allocation of the requested size; used only when byte contents cannot be observed",
+            "C free accepts a live allocation from calloc or malloc, or null",
+            "abort terminates execution; no cleanup after traps is promised",
+            "native compiler, linker, loader, libc and host hardware are trusted"
+          ],
+          "schema": "hepta.hia.program.native.v1",
+          "status": "native_compiled_not_executed",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "default_target": "x86_64-pc-linux-gnu",
+            "path": "/usr/lib/llvm-20/bin/clang",
+            "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+            "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+          }
+        },
+        "core_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+        "driver_sha256": "1383f79577ef3e5e025a8b0845660526aef95df5790a8944af60479c00a2ff30",
+        "executable_sha256": "f24b229e4e183884f45839d73b73e01e1eb4606787c8145f0eaeb5ada2e64fdd",
+        "execution": {
+          "returncode": -6,
+          "stderr": "",
+          "stdout": ""
+        },
+        "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+        "llvm_ir_sha256": "58e0a3c148cd1b3500126a7cc00c1b961f80a18bd1c69ccffed18de97f015b4d",
+        "mode": "composite_bulk_move_trap",
+        "run_process": 14,
+        "target": "x86_64-unknown-linux-gnu"
+      }
+    },
+    {
+      "kind": "wrong_result_core",
+      "observed": {
+        "binary_inventory": {
+          "entrypoint": 2164928,
+          "external_functions": [
+            "_start",
+            "abort",
+            "aggregate_bulk",
+            "calloc",
+            "free",
+            "malloc",
+            "memcpy",
+            "memmove",
+            "memset"
+          ],
+          "format": "ELF64",
+          "machine": 183,
+          "no_unresolved_symbols": true
+        },
+        "build": {
+          "artifact_bytes": 1792,
+          "artifact_sha256": "f001a4bc3f22a217c6791e37536f243cf6fbb59480b9394ae6f50722377a0e6d",
+          "binary_inventory": {
+            "defined": [
+              "aggregate_bulk"
+            ],
+            "undefined": [
+              "abort",
+              "calloc",
+              "free",
+              "memcpy",
+              "memmove",
+              "memset"
+            ]
+          },
+          "claims": {
+            "backend_refinement_proved": false,
+            "c_codegen_used": false,
+            "cross_target_execution_qualified": false,
+            "fallback_used": false,
+            "foreign_buffer_entrypoints_exposed": false,
+            "native_execution_qualified": false,
+            "rust_codegen_used": false,
+            "rust_reference_required": false,
+            "source_ast_required": false,
+            "standalone_core_reverified": true,
+            "whole_language_soundness_proved": false
+          },
+          "core_sha256": "dfba78627849b8bbb65d5526a3214938c38e61ac7941647545a733bd63a18e3e",
+          "exports": [
+            "aggregate_bulk"
+          ],
+          "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+          "flags": [
+            "--target=aarch64-unknown-linux-gnu",
+            "-x",
+            "ir",
+            "-O3",
+            "-fPIC",
+            "-c"
+          ],
+          "implementation_sha256": "6a8c8ab65cd8fdc07ffd5b61a0338d4ed8a3531a7363c9b310faaaa5e5274b7d",
+          "input_sha256": "ac9b04985ada02564efa8713802e7ccb45c7e0aaad7750dc78466a5b4c69ee98",
+          "kind": "object",
+          "llvm_ir_sha256": "1c5eac3e8300d65c00b38e66ad4d4a245387905b7ad0b382247c2b3a484020b6",
+          "ok": true,
+          "output": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-wrong-value/program.o",
+          "profile": "hepta.hia.program.llvm-linux-aarch64-range-fill-object.v6",
+          "runtime_assumptions": [
+            "Linux LP64 target with 64-bit pointers and size_t",
+            "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+            "C malloc returns null or a fresh nonaliasing allocation of the requested size; used only when byte contents cannot be observed",
+            "C free accepts a live allocation from calloc or malloc, or null",
+            "abort terminates execution; no cleanup after traps is promised",
+            "native compiler, linker, loader, libc and host hardware are trusted"
+          ],
+          "schema": "hepta.hia.program.native.v1",
+          "status": "native_compiled_not_executed",
+          "target": "aarch64-unknown-linux-gnu",
+          "toolchain": {
+            "default_target": "x86_64-pc-linux-gnu",
+            "path": "/usr/lib/llvm-20/bin/clang",
+            "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+            "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+          }
+        },
+        "core_sha256": "dfba78627849b8bbb65d5526a3214938c38e61ac7941647545a733bd63a18e3e",
+        "driver_sha256": "3437e758a6de2df5db9fc0024b4e84b2c2a5276f8c2ce8df9f4723a801cbf62f",
+        "executable_sha256": "003f26479d2e9b0265a8f24f0e44737eafb21b7f3a499fdc83da526d5297db7d",
+        "execution": {
+          "returncode": 41,
+          "stderr": "",
+          "stdout": "HIA_BULK case 0 10\n"
+        },
+        "input_sha256": "ac9b04985ada02564efa8713802e7ccb45c7e0aaad7750dc78466a5b4c69ee98",
+        "llvm_ir_sha256": "1c5eac3e8300d65c00b38e66ad4d4a245387905b7ad0b382247c2b3a484020b6",
+        "mode": "composite_bulk",
+        "run_process": 23,
+        "target": "aarch64-unknown-linux-gnu"
+      }
+    },
+    {
+      "kind": "unqualified_removed_free",
+      "observed": {
+        "binary_inventory": {
+          "entrypoint": 2164876,
+          "external_functions": [
+            "_start",
+            "abort",
+            "aggregate_bulk",
+            "calloc",
+            "free",
+            "malloc",
+            "memcpy",
+            "memmove",
+            "memset"
+          ],
+          "format": "ELF64",
+          "machine": 183,
+          "no_unresolved_symbols": true
+        },
+        "build": {
+          "artifact_sha256": "9db646b0ec70ab1f59e000d0efc15ec11424e8f71f124d74c80c5ff9e4bd07a1",
+          "qualified_hia_artifact": false,
+          "reason": "deliberately removed actual free calls",
+          "unqualified_ir_sha256": "a9a50a8851077ffc7b26330ffe45c64fb549626fb8abcd23321ed4f8cdf4f49b"
+        },
+        "core_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+        "driver_sha256": "3437e758a6de2df5db9fc0024b4e84b2c2a5276f8c2ce8df9f4723a801cbf62f",
+        "executable_sha256": "d92cb5cbe6bd051a53cc3955c3f64759528d7fc1e34c8c9c416ffa5bcd45089f",
+        "execution": {
+          "returncode": 91,
+          "stderr": "",
+          "stdout": "HIA_BULK case 0 11\nHIA_AARCH64 resources 2 0 2 0\n"
+        },
+        "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+        "llvm_ir_sha256": "d8951c16f3b106124df17c8dd0366b8d47d0f3aef93f29f89ea4e66e0d75547f",
+        "mode": "composite_bulk",
+        "run_process": 27,
+        "target": "aarch64-unknown-linux-gnu"
+      }
+    },
+    {
+      "kind": "composite_bulk_fill_trap",
+      "observed": {
+        "binary_inventory": {
+          "entrypoint": 2164908,
+          "external_functions": [
+            "_start",
+            "abort",
+            "aggregate_bulk",
+            "calloc",
+            "free",
+            "malloc",
+            "memcpy",
+            "memmove",
+            "memset"
+          ],
+          "format": "ELF64",
+          "machine": 183,
+          "no_unresolved_symbols": true
+        },
+        "build": {
+          "artifact_bytes": 1752,
+          "artifact_sha256": "141e8b11efb218420d25fc724fe829d9373dd38fe273387d82496bcaba29d1c2",
+          "binary_inventory": {
+            "defined": [
+              "aggregate_bulk"
+            ],
+            "undefined": [
+              "abort",
+              "calloc",
+              "free",
+              "memcpy",
+              "memmove",
+              "memset"
+            ]
+          },
+          "claims": {
+            "backend_refinement_proved": false,
+            "c_codegen_used": false,
+            "cross_target_execution_qualified": false,
+            "fallback_used": false,
+            "foreign_buffer_entrypoints_exposed": false,
+            "native_execution_qualified": false,
+            "rust_codegen_used": false,
+            "rust_reference_required": false,
+            "source_ast_required": false,
+            "standalone_core_reverified": true,
+            "whole_language_soundness_proved": false
+          },
+          "core_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "exports": [
+            "aggregate_bulk"
+          ],
+          "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+          "flags": [
+            "--target=aarch64-unknown-linux-gnu",
+            "-x",
+            "ir",
+            "-O3",
+            "-fPIC",
+            "-c"
+          ],
+          "implementation_sha256": "6a8c8ab65cd8fdc07ffd5b61a0338d4ed8a3531a7363c9b310faaaa5e5274b7d",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "kind": "object",
+          "llvm_ir_sha256": "d8951c16f3b106124df17c8dd0366b8d47d0f3aef93f29f89ea4e66e0d75547f",
+          "ok": true,
+          "output": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite_bulk_fill_trap/program.o",
+          "profile": "hepta.hia.program.llvm-linux-aarch64-range-fill-object.v6",
+          "runtime_assumptions": [
+            "Linux LP64 target with 64-bit pointers and size_t",
+            "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+            "C malloc returns null or a fresh nonaliasing allocation of the requested size; used only when byte contents cannot be observed",
+            "C free accepts a live allocation from calloc or malloc, or null",
+            "abort terminates execution; no cleanup after traps is promised",
+            "native compiler, linker, loader, libc and host hardware are trusted"
+          ],
+          "schema": "hepta.hia.program.native.v1",
+          "status": "native_compiled_not_executed",
+          "target": "aarch64-unknown-linux-gnu",
+          "toolchain": {
+            "default_target": "x86_64-pc-linux-gnu",
+            "path": "/usr/lib/llvm-20/bin/clang",
+            "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+            "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+          }
+        },
+        "core_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+        "driver_sha256": "647d3c454ceceb8c26e908f08068054e3a227b7002fa9fa39db2042ed9be9f39",
+        "executable_sha256": "726eaaa96eaf56d8e5ae2d7f997e328af95679ea0944d10a0299f3de967390b5",
+        "execution": {
+          "returncode": 134,
+          "stderr": "",
+          "stdout": ""
+        },
+        "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+        "llvm_ir_sha256": "d8951c16f3b106124df17c8dd0366b8d47d0f3aef93f29f89ea4e66e0d75547f",
+        "mode": "composite_bulk_fill_trap",
+        "run_process": 30,
+        "target": "aarch64-unknown-linux-gnu"
+      }
+    },
+    {
+      "kind": "composite_bulk_swap_trap",
+      "observed": {
+        "binary_inventory": {
+          "entrypoint": 2164908,
+          "external_functions": [
+            "_start",
+            "abort",
+            "aggregate_bulk",
+            "calloc",
+            "free",
+            "malloc",
+            "memcpy",
+            "memmove",
+            "memset"
+          ],
+          "format": "ELF64",
+          "machine": 183,
+          "no_unresolved_symbols": true
+        },
+        "build": {
+          "artifact_bytes": 1752,
+          "artifact_sha256": "141e8b11efb218420d25fc724fe829d9373dd38fe273387d82496bcaba29d1c2",
+          "binary_inventory": {
+            "defined": [
+              "aggregate_bulk"
+            ],
+            "undefined": [
+              "abort",
+              "calloc",
+              "free",
+              "memcpy",
+              "memmove",
+              "memset"
+            ]
+          },
+          "claims": {
+            "backend_refinement_proved": false,
+            "c_codegen_used": false,
+            "cross_target_execution_qualified": false,
+            "fallback_used": false,
+            "foreign_buffer_entrypoints_exposed": false,
+            "native_execution_qualified": false,
+            "rust_codegen_used": false,
+            "rust_reference_required": false,
+            "source_ast_required": false,
+            "standalone_core_reverified": true,
+            "whole_language_soundness_proved": false
+          },
+          "core_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "exports": [
+            "aggregate_bulk"
+          ],
+          "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+          "flags": [
+            "--target=aarch64-unknown-linux-gnu",
+            "-x",
+            "ir",
+            "-O3",
+            "-fPIC",
+            "-c"
+          ],
+          "implementation_sha256": "6a8c8ab65cd8fdc07ffd5b61a0338d4ed8a3531a7363c9b310faaaa5e5274b7d",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "kind": "object",
+          "llvm_ir_sha256": "d8951c16f3b106124df17c8dd0366b8d47d0f3aef93f29f89ea4e66e0d75547f",
+          "ok": true,
+          "output": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite_bulk_swap_trap/program.o",
+          "profile": "hepta.hia.program.llvm-linux-aarch64-range-fill-object.v6",
+          "runtime_assumptions": [
+            "Linux LP64 target with 64-bit pointers and size_t",
+            "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+            "C malloc returns null or a fresh nonaliasing allocation of the requested size; used only when byte contents cannot be observed",
+            "C free accepts a live allocation from calloc or malloc, or null",
+            "abort terminates execution; no cleanup after traps is promised",
+            "native compiler, linker, loader, libc and host hardware are trusted"
+          ],
+          "schema": "hepta.hia.program.native.v1",
+          "status": "native_compiled_not_executed",
+          "target": "aarch64-unknown-linux-gnu",
+          "toolchain": {
+            "default_target": "x86_64-pc-linux-gnu",
+            "path": "/usr/lib/llvm-20/bin/clang",
+            "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+            "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+          }
+        },
+        "core_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+        "driver_sha256": "656ecfc0e455d07ee5a59ce8f0ac1910ee5e1a3167e8e4fb2c9d064afbcc4af8",
+        "executable_sha256": "a1b25f59e42e05b16307093481f0d9f8de90473ba895365cfe82219ec570224d",
+        "execution": {
+          "returncode": 134,
+          "stderr": "",
+          "stdout": ""
+        },
+        "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+        "llvm_ir_sha256": "d8951c16f3b106124df17c8dd0366b8d47d0f3aef93f29f89ea4e66e0d75547f",
+        "mode": "composite_bulk_swap_trap",
+        "run_process": 33,
+        "target": "aarch64-unknown-linux-gnu"
+      }
+    },
+    {
+      "kind": "composite_bulk_move_trap",
+      "observed": {
+        "binary_inventory": {
+          "entrypoint": 2164908,
+          "external_functions": [
+            "_start",
+            "abort",
+            "aggregate_bulk",
+            "calloc",
+            "free",
+            "malloc",
+            "memcpy",
+            "memmove",
+            "memset"
+          ],
+          "format": "ELF64",
+          "machine": 183,
+          "no_unresolved_symbols": true
+        },
+        "build": {
+          "artifact_bytes": 1752,
+          "artifact_sha256": "141e8b11efb218420d25fc724fe829d9373dd38fe273387d82496bcaba29d1c2",
+          "binary_inventory": {
+            "defined": [
+              "aggregate_bulk"
+            ],
+            "undefined": [
+              "abort",
+              "calloc",
+              "free",
+              "memcpy",
+              "memmove",
+              "memset"
+            ]
+          },
+          "claims": {
+            "backend_refinement_proved": false,
+            "c_codegen_used": false,
+            "cross_target_execution_qualified": false,
+            "fallback_used": false,
+            "foreign_buffer_entrypoints_exposed": false,
+            "native_execution_qualified": false,
+            "rust_codegen_used": false,
+            "rust_reference_required": false,
+            "source_ast_required": false,
+            "standalone_core_reverified": true,
+            "whole_language_soundness_proved": false
+          },
+          "core_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "exports": [
+            "aggregate_bulk"
+          ],
+          "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+          "flags": [
+            "--target=aarch64-unknown-linux-gnu",
+            "-x",
+            "ir",
+            "-O3",
+            "-fPIC",
+            "-c"
+          ],
+          "implementation_sha256": "6a8c8ab65cd8fdc07ffd5b61a0338d4ed8a3531a7363c9b310faaaa5e5274b7d",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "kind": "object",
+          "llvm_ir_sha256": "d8951c16f3b106124df17c8dd0366b8d47d0f3aef93f29f89ea4e66e0d75547f",
+          "ok": true,
+          "output": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite_bulk_move_trap/program.o",
+          "profile": "hepta.hia.program.llvm-linux-aarch64-range-fill-object.v6",
+          "runtime_assumptions": [
+            "Linux LP64 target with 64-bit pointers and size_t",
+            "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+            "C malloc returns null or a fresh nonaliasing allocation of the requested size; used only when byte contents cannot be observed",
+            "C free accepts a live allocation from calloc or malloc, or null",
+            "abort terminates execution; no cleanup after traps is promised",
+            "native compiler, linker, loader, libc and host hardware are trusted"
+          ],
+          "schema": "hepta.hia.program.native.v1",
+          "status": "native_compiled_not_executed",
+          "target": "aarch64-unknown-linux-gnu",
+          "toolchain": {
+            "default_target": "x86_64-pc-linux-gnu",
+            "path": "/usr/lib/llvm-20/bin/clang",
+            "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+            "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+          }
+        },
+        "core_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+        "driver_sha256": "5ebf5ba5668bf1fc9774c3aded240e293453198dc22056855c80682bada5d747",
+        "executable_sha256": "41d5c24ce31ded464f46447609d6ba4f70ad95b22635164a44a29d88612a9488",
+        "execution": {
+          "returncode": 134,
+          "stderr": "",
+          "stdout": ""
+        },
+        "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+        "llvm_ir_sha256": "d8951c16f3b106124df17c8dd0366b8d47d0f3aef93f29f89ea4e66e0d75547f",
+        "mode": "composite_bulk_move_trap",
+        "run_process": 36,
+        "target": "aarch64-unknown-linux-gnu"
+      }
+    }
+  ],
+  "ok": true,
+  "processes": [
+    {
+      "argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-composite/driver.c",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-composite/program.o",
+        "-Wl,--wrap=malloc",
+        "-Wl,--wrap=calloc",
+        "-Wl,--wrap=free",
+        "-o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-composite/program"
+      ],
+      "returncode": 0,
+      "seconds": 0.11346051399959833,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-000.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-000.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-composite/program"
+      ],
+      "returncode": 0,
+      "seconds": 0.011703657000907697,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-001.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-001.stdout",
+      "stdout_sha256": "d4c44a933f8f6afca59f8410f497d183c6918c5f6a24e91cecf1754449280edb"
+    },
+    {
+      "argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-normalized/driver.c",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-normalized/program.o",
+        "-Wl,--wrap=malloc",
+        "-Wl,--wrap=calloc",
+        "-Wl,--wrap=free",
+        "-o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-normalized/program"
+      ],
+      "returncode": 0,
+      "seconds": 0.11347147000196856,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-002.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-002.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-normalized/program"
+      ],
+      "returncode": 0,
+      "seconds": 0.01172969600156648,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-003.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-003.stdout",
+      "stdout_sha256": "d4c44a933f8f6afca59f8410f497d183c6918c5f6a24e91cecf1754449280edb"
+    },
+    {
+      "argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-wrong-value/driver.c",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-wrong-value/program.o",
+        "-Wl,--wrap=malloc",
+        "-Wl,--wrap=calloc",
+        "-Wl,--wrap=free",
+        "-o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-wrong-value/program"
+      ],
+      "returncode": 0,
+      "seconds": 0.11302789800174651,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-004.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-004.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-wrong-value/program"
+      ],
+      "returncode": 41,
+      "seconds": 0.011739239998860285,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-005.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-005.stdout",
+      "stdout_sha256": "b55ac6a992c553778d6c3c4bcb0b22bb870612c75758e6323ca992bf3b8f64cb"
+    },
+    {
+      "argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "--target=x86_64-unknown-linux-gnu",
+        "-x",
+        "ir",
+        "-O3",
+        "-fPIC",
+        "-c",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-removed-free/removed-free.ll",
+        "-o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-removed-free/program.o"
+      ],
+      "returncode": 0,
+      "seconds": 0.04216778200134286,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-006.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-006.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-removed-free/driver.c",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-removed-free/program.o",
+        "-Wl,--wrap=malloc",
+        "-Wl,--wrap=calloc",
+        "-Wl,--wrap=free",
+        "-o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-removed-free/program"
+      ],
+      "returncode": 0,
+      "seconds": 0.11311494400069932,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-007.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-007.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-removed-free/program"
+      ],
+      "returncode": 91,
+      "seconds": 0.011278975998720853,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-008.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-008.stdout",
+      "stdout_sha256": "9d21dcb0eaa99dd55b3375b18a2c22abf2b7744cd17943bac399546843f72718"
+    },
+    {
+      "argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-composite_bulk_fill_trap/driver.c",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-composite_bulk_fill_trap/program.o",
+        "-Wl,--wrap=malloc",
+        "-Wl,--wrap=calloc",
+        "-Wl,--wrap=free",
+        "-o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-composite_bulk_fill_trap/program"
+      ],
+      "returncode": 0,
+      "seconds": 0.10257777500009979,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-009.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-009.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-composite_bulk_fill_trap/program"
+      ],
+      "returncode": -6,
+      "seconds": 0.011909396002010908,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-010.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-010.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-composite_bulk_swap_trap/driver.c",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-composite_bulk_swap_trap/program.o",
+        "-Wl,--wrap=malloc",
+        "-Wl,--wrap=calloc",
+        "-Wl,--wrap=free",
+        "-o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-composite_bulk_swap_trap/program"
+      ],
+      "returncode": 0,
+      "seconds": 0.09294062199842301,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-011.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-011.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-composite_bulk_swap_trap/program"
+      ],
+      "returncode": -6,
+      "seconds": 0.011960894000367261,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-012.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-012.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-composite_bulk_move_trap/driver.c",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-composite_bulk_move_trap/program.o",
+        "-Wl,--wrap=malloc",
+        "-Wl,--wrap=calloc",
+        "-Wl,--wrap=free",
+        "-o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-composite_bulk_move_trap/program"
+      ],
+      "returncode": 0,
+      "seconds": 0.10311795099914889,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-013.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-013.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/x86_64-composite_bulk_move_trap/program"
+      ],
+      "returncode": -6,
+      "seconds": 0.011562424999283394,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-014.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-014.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "--target=aarch64-unknown-linux-gnu",
+        "-x",
+        "c",
+        "-std=c11",
+        "-ffreestanding",
+        "-nostdinc",
+        "-fno-builtin",
+        "-fno-stack-protector",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-c",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite/driver.c",
+        "-o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite/driver.o"
+      ],
+      "returncode": 0,
+      "seconds": 0.12373380300050485,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-015.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-015.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/tmp/hepta-ai-rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld",
+        "-flavor",
+        "gnu",
+        "-m",
+        "aarch64linux",
+        "-static",
+        "-z",
+        "noexecstack",
+        "-e",
+        "_start",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite/program.o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite/driver.o",
+        "-o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite/program"
+      ],
+      "returncode": 0,
+      "seconds": 0.01141498099968885,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-016.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-016.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/usr/bin/qemu-aarch64-static",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite/program"
+      ],
+      "returncode": 0,
+      "seconds": 0.011442308001278434,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-017.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-017.stdout",
+      "stdout_sha256": "d4c44a933f8f6afca59f8410f497d183c6918c5f6a24e91cecf1754449280edb"
+    },
+    {
+      "argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "--target=aarch64-unknown-linux-gnu",
+        "-x",
+        "c",
+        "-std=c11",
+        "-ffreestanding",
+        "-nostdinc",
+        "-fno-builtin",
+        "-fno-stack-protector",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-c",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-normalized/driver.c",
+        "-o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-normalized/driver.o"
+      ],
+      "returncode": 0,
+      "seconds": 0.12348765700153308,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-018.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-018.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/tmp/hepta-ai-rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld",
+        "-flavor",
+        "gnu",
+        "-m",
+        "aarch64linux",
+        "-static",
+        "-z",
+        "noexecstack",
+        "-e",
+        "_start",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-normalized/program.o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-normalized/driver.o",
+        "-o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-normalized/program"
+      ],
+      "returncode": 0,
+      "seconds": 0.011718338999344269,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-019.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-019.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/usr/bin/qemu-aarch64-static",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-normalized/program"
+      ],
+      "returncode": 0,
+      "seconds": 0.011669540999719175,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-020.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-020.stdout",
+      "stdout_sha256": "d4c44a933f8f6afca59f8410f497d183c6918c5f6a24e91cecf1754449280edb"
+    },
+    {
+      "argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "--target=aarch64-unknown-linux-gnu",
+        "-x",
+        "c",
+        "-std=c11",
+        "-ffreestanding",
+        "-nostdinc",
+        "-fno-builtin",
+        "-fno-stack-protector",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-c",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-wrong-value/driver.c",
+        "-o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-wrong-value/driver.o"
+      ],
+      "returncode": 0,
+      "seconds": 0.12310827100009192,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-021.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-021.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/tmp/hepta-ai-rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld",
+        "-flavor",
+        "gnu",
+        "-m",
+        "aarch64linux",
+        "-static",
+        "-z",
+        "noexecstack",
+        "-e",
+        "_start",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-wrong-value/program.o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-wrong-value/driver.o",
+        "-o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-wrong-value/program"
+      ],
+      "returncode": 0,
+      "seconds": 0.011675323999952525,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-022.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-022.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/usr/bin/qemu-aarch64-static",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-wrong-value/program"
+      ],
+      "returncode": 41,
+      "seconds": 0.011569054000574397,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-023.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-023.stdout",
+      "stdout_sha256": "b55ac6a992c553778d6c3c4bcb0b22bb870612c75758e6323ca992bf3b8f64cb"
+    },
+    {
+      "argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "--target=aarch64-unknown-linux-gnu",
+        "-x",
+        "ir",
+        "-O3",
+        "-fPIC",
+        "-c",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-removed-free/removed-free.ll",
+        "-o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-removed-free/program.o"
+      ],
+      "returncode": 0,
+      "seconds": 0.05237098400175455,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-024.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-024.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "--target=aarch64-unknown-linux-gnu",
+        "-x",
+        "c",
+        "-std=c11",
+        "-ffreestanding",
+        "-nostdinc",
+        "-fno-builtin",
+        "-fno-stack-protector",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-c",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-removed-free/driver.c",
+        "-o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-removed-free/driver.o"
+      ],
+      "returncode": 0,
+      "seconds": 0.1236051949999819,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-025.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-025.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/tmp/hepta-ai-rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld",
+        "-flavor",
+        "gnu",
+        "-m",
+        "aarch64linux",
+        "-static",
+        "-z",
+        "noexecstack",
+        "-e",
+        "_start",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-removed-free/program.o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-removed-free/driver.o",
+        "-o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-removed-free/program"
+      ],
+      "returncode": 0,
+      "seconds": 0.011637127001449699,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-026.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-026.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/usr/bin/qemu-aarch64-static",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-removed-free/program"
+      ],
+      "returncode": 91,
+      "seconds": 0.011835975001304178,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-027.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-027.stdout",
+      "stdout_sha256": "9d21dcb0eaa99dd55b3375b18a2c22abf2b7744cd17943bac399546843f72718"
+    },
+    {
+      "argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "--target=aarch64-unknown-linux-gnu",
+        "-x",
+        "c",
+        "-std=c11",
+        "-ffreestanding",
+        "-nostdinc",
+        "-fno-builtin",
+        "-fno-stack-protector",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-c",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite_bulk_fill_trap/driver.c",
+        "-o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite_bulk_fill_trap/driver.o"
+      ],
+      "returncode": 0,
+      "seconds": 0.11320985999918776,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-028.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-028.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/tmp/hepta-ai-rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld",
+        "-flavor",
+        "gnu",
+        "-m",
+        "aarch64linux",
+        "-static",
+        "-z",
+        "noexecstack",
+        "-e",
+        "_start",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite_bulk_fill_trap/program.o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite_bulk_fill_trap/driver.o",
+        "-o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite_bulk_fill_trap/program"
+      ],
+      "returncode": 0,
+      "seconds": 0.011928460000490304,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-029.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-029.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/usr/bin/qemu-aarch64-static",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite_bulk_fill_trap/program"
+      ],
+      "returncode": 134,
+      "seconds": 0.012092692999431165,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-030.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-030.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "--target=aarch64-unknown-linux-gnu",
+        "-x",
+        "c",
+        "-std=c11",
+        "-ffreestanding",
+        "-nostdinc",
+        "-fno-builtin",
+        "-fno-stack-protector",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-c",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite_bulk_swap_trap/driver.c",
+        "-o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite_bulk_swap_trap/driver.o"
+      ],
+      "returncode": 0,
+      "seconds": 0.12370617099804804,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-031.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-031.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/tmp/hepta-ai-rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld",
+        "-flavor",
+        "gnu",
+        "-m",
+        "aarch64linux",
+        "-static",
+        "-z",
+        "noexecstack",
+        "-e",
+        "_start",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite_bulk_swap_trap/program.o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite_bulk_swap_trap/driver.o",
+        "-o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite_bulk_swap_trap/program"
+      ],
+      "returncode": 0,
+      "seconds": 0.0116982290019223,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-032.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-032.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/usr/bin/qemu-aarch64-static",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite_bulk_swap_trap/program"
+      ],
+      "returncode": 134,
+      "seconds": 0.011490579996461747,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-033.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-033.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "--target=aarch64-unknown-linux-gnu",
+        "-x",
+        "c",
+        "-std=c11",
+        "-ffreestanding",
+        "-nostdinc",
+        "-fno-builtin",
+        "-fno-stack-protector",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-c",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite_bulk_move_trap/driver.c",
+        "-o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite_bulk_move_trap/driver.o"
+      ],
+      "returncode": 0,
+      "seconds": 0.12317052399885142,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-034.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-034.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/tmp/hepta-ai-rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld",
+        "-flavor",
+        "gnu",
+        "-m",
+        "aarch64linux",
+        "-static",
+        "-z",
+        "noexecstack",
+        "-e",
+        "_start",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite_bulk_move_trap/program.o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite_bulk_move_trap/driver.o",
+        "-o",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite_bulk_move_trap/program"
+      ],
+      "returncode": 0,
+      "seconds": 0.011497556999529479,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-035.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-035.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/usr/bin/qemu-aarch64-static",
+        "/tmp/hepta-seven-stage-unified-run3/composite-bulk/aarch64-composite_bulk_move_trap/program"
+      ],
+      "returncode": 134,
+      "seconds": 0.011999842998193344,
+      "stderr": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-036.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout": "/tmp/hepta-seven-stage-unified-run3/composite-bulk/process-036.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "record_sha256": "ebfb01f6a9689cdc35c65672b967afdffb7474ffdc26285c9443d9357c50ee15",
+  "reference": [
+    {
+      "arguments": [
+        5,
+        1,
+        3,
+        77,
+        0
+      ],
+      "expected": 11,
+      "failure_at": null,
+      "receipts": [
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 10
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        },
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 10
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        }
+      ]
+    },
+    {
+      "arguments": [
+        5,
+        1,
+        3,
+        77,
+        1
+      ],
+      "expected": 11,
+      "failure_at": null,
+      "receipts": [
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 10
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        },
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 10
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        }
+      ]
+    },
+    {
+      "arguments": [
+        5,
+        1,
+        3,
+        77,
+        2
+      ],
+      "expected": 11,
+      "failure_at": null,
+      "receipts": [
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 10
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        },
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 10
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        }
+      ]
+    },
+    {
+      "arguments": [
+        5,
+        1,
+        3,
+        77,
+        3
+      ],
+      "expected": 77,
+      "failure_at": null,
+      "receipts": [
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 10
+          },
+          "result": 77,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            77
+          ],
+          "word_bits": 64
+        },
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 10
+          },
+          "result": 77,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            77
+          ],
+          "word_bits": 64
+        }
+      ]
+    },
+    {
+      "arguments": [
+        5,
+        1,
+        3,
+        77,
+        4
+      ],
+      "expected": 11,
+      "failure_at": null,
+      "receipts": [
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 10
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        },
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 10
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        }
+      ]
+    },
+    {
+      "arguments": [
+        8,
+        2,
+        4,
+        255,
+        0
+      ],
+      "expected": 11,
+      "failure_at": null,
+      "receipts": [
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 16
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        },
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 16
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        }
+      ]
+    },
+    {
+      "arguments": [
+        8,
+        2,
+        4,
+        255,
+        1
+      ],
+      "expected": 11,
+      "failure_at": null,
+      "receipts": [
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 16
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        },
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 16
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        }
+      ]
+    },
+    {
+      "arguments": [
+        8,
+        2,
+        4,
+        255,
+        2
+      ],
+      "expected": 11,
+      "failure_at": null,
+      "receipts": [
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 16
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        },
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 16
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        }
+      ]
+    },
+    {
+      "arguments": [
+        8,
+        2,
+        4,
+        255,
+        3
+      ],
+      "expected": 11,
+      "failure_at": null,
+      "receipts": [
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 16
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        },
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 16
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        }
+      ]
+    },
+    {
+      "arguments": [
+        8,
+        2,
+        4,
+        255,
+        4
+      ],
+      "expected": 255,
+      "failure_at": null,
+      "receipts": [
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 16
+          },
+          "result": 255,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            255
+          ],
+          "word_bits": 64
+        },
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 16
+          },
+          "result": 255,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            255
+          ],
+          "word_bits": 64
+        }
+      ]
+    },
+    {
+      "arguments": [
+        8,
+        2,
+        4,
+        255,
+        5
+      ],
+      "expected": 11,
+      "failure_at": null,
+      "receipts": [
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 16
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        },
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 16
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        }
+      ]
+    },
+    {
+      "arguments": [
+        8,
+        2,
+        4,
+        255,
+        6
+      ],
+      "expected": 11,
+      "failure_at": null,
+      "receipts": [
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 16
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        },
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 16
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        }
+      ]
+    },
+    {
+      "arguments": [
+        8,
+        2,
+        4,
+        255,
+        7
+      ],
+      "expected": 11,
+      "failure_at": null,
+      "receipts": [
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 16
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        },
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 16
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        }
+      ]
+    },
+    {
+      "arguments": [
+        1,
+        1,
+        0,
+        99,
+        0
+      ],
+      "expected": 11,
+      "failure_at": null,
+      "receipts": [
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 2
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        },
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 2
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        }
+      ]
+    },
+    {
+      "arguments": [
+        0,
+        0,
+        0,
+        17,
+        0
+      ],
+      "expected": 0,
+      "failure_at": null,
+      "receipts": [
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 0,
+            "allocations": 0,
+            "frees": 0,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 0,
+            "loans_started": 0,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 0
+          },
+          "result": 0,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 16,
+          "values": [
+            0
+          ],
+          "word_bits": 64
+        },
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 0,
+            "allocations": 0,
+            "frees": 0,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 0,
+            "loans_started": 0,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 0
+          },
+          "result": 0,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 16,
+          "values": [
+            0
+          ],
+          "word_bits": 64
+        }
+      ]
+    },
+    {
+      "arguments": [
+        4096,
+        4096,
+        0,
+        31,
+        4095
+      ],
+      "expected": 11,
+      "failure_at": null,
+      "receipts": [
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 8192
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        },
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 2,
+            "frees": 2,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 3,
+            "loans_started": 3,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 8192
+          },
+          "result": 11,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 31,
+          "values": [
+            11
+          ],
+          "word_bits": 64
+        }
+      ]
+    },
+    {
+      "arguments": [
+        5,
+        1,
+        3,
+        77,
+        3
+      ],
+      "expected": 251,
+      "failure_at": 1,
+      "receipts": [
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 1,
+            "allocations": 0,
+            "frees": 0,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 0,
+            "loans_started": 0,
+            "owners_created": 1,
+            "owners_dropped": 1,
+            "peak_bytes": 0
+          },
+          "result": 251,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 6,
+          "values": [
+            251
+          ],
+          "word_bits": 64
+        },
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 1,
+            "allocations": 0,
+            "frees": 0,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 0,
+            "loans_started": 0,
+            "owners_created": 1,
+            "owners_dropped": 1,
+            "peak_bytes": 0
+          },
+          "result": 251,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 6,
+          "values": [
+            251
+          ],
+          "word_bits": 64
+        }
+      ]
+    },
+    {
+      "arguments": [
+        5,
+        1,
+        3,
+        77,
+        3
+      ],
+      "expected": 252,
+      "failure_at": 2,
+      "receipts": [
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "ef1608cd922a8f12e68157e92b907194b81ee6608ce67e974bc2dd8654562cfd",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 1,
+            "frees": 1,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 0,
+            "loans_started": 0,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 5
+          },
+          "result": 252,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 9,
+          "values": [
+            252
+          ],
+          "word_bits": 64
+        },
+        {
+          "claims": {
+            "backend_refinement_proved": false,
+            "finite_core_execution": true,
+            "whole_language_soundness_proved": false
+          },
+          "function": "aggregate_bulk",
+          "input_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "program_sha256": "6d7c94202c08495cd7592f2f163fe0a0c2a6016aa32ab5508f47e6f79817b7d4",
+          "resources": {
+            "allocation_attempts": 2,
+            "allocations": 1,
+            "frees": 1,
+            "live_bytes": 0,
+            "live_local_loans": 0,
+            "live_owners": 0,
+            "loans_ended": 0,
+            "loans_started": 0,
+            "owners_created": 2,
+            "owners_dropped": 2,
+            "peak_bytes": 5
+          },
+          "result": 252,
+          "schema": "hepta.hia.program-execution.v1",
+          "source_used": false,
+          "status": "returned",
+          "steps": 9,
+          "values": [
+            252
+          ],
+          "word_bits": 64
+        }
+      ]
+    }
+  ],
+  "reviewed_runtime_sha256": "c0fa3bbee8f3d792908854bd3cde4428fb3876beff55f729278739b2341fc4a3",
+  "schema": "hepta.hia.composite-bulk-qualification.v1",
+  "source_bindings": {
+    "examples/hia_program/finite_aarch64_multi_runtime.c": "c0fa3bbee8f3d792908854bd3cde4428fb3876beff55f729278739b2341fc4a3",
+    "hepta/__init__.py": "8448813083e33f38f96474d5c3b3b690284fcf9c1ca939c33683618b419031b2",
+    "hepta/__main__.py": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d",
+    "hepta/agent_contract_diff.py": "4c418ca2649bdcb9a41c6825a22fa8b4ee3bf07caceaa479774215203882b9a1",
+    "hepta/agent_semantics.py": "8f28e59630f096e5591a2ab6028dbd08ff5625a0c64d9dd7d8f83987b0cfac3a",
+    "hepta/artifact_publication.py": "d3adf8659163c15b5a33b6eda97343eedad64fcbb61893b35b51ccaa0b4cb73e",
+    "hepta/ast.py": "e69d7d8782a84d3998c747a61420b98fc7a321ec2617284ee3c2c1c66b807af3",
+    "hepta/backend.py": "d04254f5d7c235f19544940bf73305c0e704bccf345a8dc8165136de372747a1",
+    "hepta/borrowed_storage.py": "6303b6734c0e35b6080fb696909babfb6866bdd6ce6706c636141cbe021d6b8c",
+    "hepta/c_aliases.py": "bc6c0533fff674f20d64619c50afb81a07375c37f158bf17ea7034026e25baf9",
+    "hepta/c_allocation.py": "e11ad48fa7e2af3fd9d0ec3932f002277bbdf44c0d164593432c5965bfd686d0",
+    "hepta/c_backend.py": "80bf509997f4f09014efc9b22c4d2356e6b47134a205a0ace8f1c98d4647acf8",
+    "hepta/c_import.py": "e5a311752896068f79df1932173b2c8f89ca8d35d3d2159d7c166e54044f0b33",
+    "hepta/c_migrate.py": "db1f4c9cc48302936268ffcd95090b4865ed595f3bde5f00bb4b3a00de50dba3",
+    "hepta/c_migration_project.py": "cc3078780c69db953758c140a32d36e0ea9a17eb808c999772ff2860d0cb4bce",
+    "hepta/c_project.py": "c22aa1e5fdf7c147951c9415171d7a80c3b1395ce57ce2ce1167dfd394158d5c",
+    "hepta/c_project_matrix.py": "15102f57605d0aa53545e54d2dd08a5dff5329eaab3a056ae58b18f243b5b99c",
+    "hepta/c_record_views.py": "d36017bec07bd51d069fd0f6d76ceb0697d8e2579d4089c8df6ad408e71f1750",
+    "hepta/c_scalar_matrix.py": "c7419502d04595b13c16d537ed0b13f60a99ba3733bbc311beabbfac95ad1252",
+    "hepta/c_translation.py": "a4890fca3b46ec5a6b63945eb6724a0cec9272fde8794614a641604ad1e39702",
+    "hepta/cfg.py": "e894c48e3244e1d6403e1adfe4e9872fb44cb469660eb52728c1247deecd05c1",
+    "hepta/cfg_analysis.py": "f8eebfb37dda89a3c7eaf332183ccdbfe10033a9009bf4e9b392f09cf7073599",
+    "hepta/checker.py": "94663b5260ec9c51c8a2c6f469a595335fb9426b81faa4bb3e972dbdd36fc015",
+    "hepta/clang_capture.py": "72b5f786ad949e0274e6c6543794d12280bf31c3269479ccc3d78427e9507d07",
+    "hepta/cli.py": "fa07c58f453843a3187543481584314ad965c12f434fd2c74f9414039be1050c",
+    "hepta/concurrent_ir.py": "938ecc5d879b36e4c7190cd32a5be3a9105b5d954ccd622e83cbec667f474d3c",
+    "hepta/concurrent_lowering.py": "946dab7ade7f71464a86defcf3424060a0c9499526c452e994ef1ac0b847b25b",
+    "hepta/core.py": "89e8acdd5f3b34f767c974fe50f8a39d4b60518b41acce972a9b89f91e93a45e",
+    "hepta/cpp2hepta.py": "2402418e3a5e33f2d9b5b16289ec3fcd9c706bf492d034adfc701c0b94864ba1",
+    "hepta/cpp_bridge.py": "d6e60271306a37b74a231e9130660c5d2843b8f7b3cbcba26487fbb09b016dda",
+    "hepta/cpp_class_migrate.py": "dc03c3994e2f65e7ffa5f862faaf0d86b4ba0d79fbd97ffb1355397d660b9bd2",
+    "hepta/cpp_contracts.py": "09bf14f6ee598bd36732b57b253d27ce9c6b7a6a88cd4f83ed1f6f7728b24b58",
+    "hepta/cpp_owned_migrate.py": "293ebbce2f8d59ee6aa2217dd388b39faaaea51180300bd6fea860240f818b83",
+    "hepta/cpp_project_migrate.py": "ed3a1d65eb8d9e1a28774e34e2aff0cd2ba79bfe0e702d6e5ae58c6a25693fef",
+    "hepta/cpp_scoped.py": "385452e0139403c15c316b0f1b76a3ad63d79c82d86619ba61abed3ba5d7d104",
+    "hepta/debug_info.py": "e30097582366ae3a5f4bae5e545b77046e0b4d8b4f2a2b34abc691de20c61d20",
+    "hepta/elf_shared_abi.py": "defce3a6c2706dfb2a71bd58191617a23ea2e0eba6339b88273137433f207191",
+    "hepta/executable_core.py": "bc26bc4a3f45664f07602ae4a78d30ef5cfaf710143d96a0a0de61f96b3df43e",
+    "hepta/executable_core_qualify.py": "1189a814592b41d075fb7bee403986c332342676a32ccaecc8ae85af5f195b8f",
+    "hepta/executable_core_runtime.py": "81b9cb0e50bfd66b034cdfff11ed3912e9d4d19e5a1da5c44d453871fe49aebb",
+    "hepta/flow_ir.py": "b0e57a7593d12e27e41c873f6d520c0a3cc929446b0d7df5b565223b93af074a",
+    "hepta/hia_bounded_memory.py": "28aac1977a9d733b68bcf3306bbe5fafd94e68fd2c7c6b2a607c46a808832282",
+    "hepta/hia_bundle_atomic.py": "38ba6928e122ae358b641275e1045c8916a05c2f242aab41ec5c5a91963b93c0",
+    "hepta/hia_core.py": "dc9fbacdc8cef16be85397a1beade3a353b93d19cb37a95700a4327777d3dc03",
+    "hepta/hia_core_upgrade.py": "14481a6177181bf0aa8657ab3c48e8002f0ecb89d4794f6980a61e357cf15047",
+    "hepta/hia_edit_query.py": "13f61746dc60d570f0234b081f7529703ee6d5ec55817aa4b98b310bff5a8439",
+    "hepta/hia_migrate.py": "c1b6e8cd7a51fa03a04f7700e12907983bde3123a0cd0bf12435b4fb1ce22fa0",
+    "hepta/hia_oracle.py": "3726e6a2bbfb0d54ff75cae1d162a36e49f4caa183f121927dc0b81c3c77622d",
+    "hepta/hia_patch_impact.py": "4d81dfdef67555fefae1aac044121608ec1ca7716f099bc58f32a4fbefed2bce",
+    "hepta/hia_program.py": "4953909a47a095afbb61520ef23ffa8fe560d41b6ba94e76831b42fde5312eff",
+    "hepta/hia_program_aarch64.py": "8bf11c81854eb74c4962ca4f0b046802021a9fd07deb33baddd61f85d43e9716",
+    "hepta/hia_program_composite.py": "28b760a01fcbae256501c1589b4ac2bcc8b9a802e4da6994e7490d9c7667ae78",
+    "hepta/hia_program_llvm.py": "d7b10469f4d9402360bb6a68f7c4b53d2f6be35dff71e810e0b3f7285476fcd8",
+    "hepta/hia_program_runtime.py": "96dddeb4443b9cfb1e93fd3818f8a3da17bc39ec4e383d8cd434cb4d4265c946",
+    "hepta/hia_program_source.py": "9faf24112fc2bc602fa04d7f64220f407944260c8a4e380c5ee8c912475f8363",
+    "hepta/hia_program_tools.py": "238b18a3910f029166f0373a734cccfd20e0c0f45d4d4b887c0ee4238ef7266e",
+    "hepta/hia_schema.py": "cc3426e646de600b400f01925aff7d635c43b66b1c1345709b4d9d06f6a6f2ac",
+    "hepta/hia_source_bridge.py": "3c9456418e6370ca62855bce84d7468d4773d64d29219e0e4e0037659cce49e1",
+    "hepta/hia_swap_opt.py": "136c3c5f79921c65256da5ae74e48177ca7579268cb7bbd02648b3bae806dce1",
+    "hepta/hmir.py": "3b3146355a08dcde3a6959626d98d5c8d7813445ca4621d2b03fdfb11dcbc896",
+    "hepta/hsir.py": "5b99d1f6dbb3e8658073457a0ace99898270be4aacccfa0cce4fbe09d14562dd",
+    "hepta/lexer.py": "8138278341afc789f744bf89a752723a96b530043a37596f943f3d4e464ff153",
+    "hepta/llvm_ir_profile.py": "732f8a337ab6f49724001f3ec218486f7146777350a6e778ed87e22a5a487bc5",
+    "hepta/llvm_owned_aarch64.py": "81c7d78c5a1a62b01abc5f7e6b6cf53425653f3ff967e08c4290c3f9bf88d008",
+    "hepta/llvm_owned_backend.py": "037b3e1120368c946a08157eccd705123245b033f7844216cc954697806cbd5d",
+    "hepta/llvm_owned_pipeline.py": "23f92e9eb3f320a066d452921a94452c63e424a74c1988091ced03e9baf64140",
+    "hepta/llvm_ssa_backend.py": "7b1d7b4b6d7d0b79744846875d15d000f533fe87419838f584a7f147b252ad89",
+    "hepta/llvm_ssa_pipeline.py": "b37ec82d74372227e649cb0dcd15b5ea39a5b732e9cb8cd34651d81a92f7bdad",
+    "hepta/llvm_ssa_target.py": "8172da1fd5cfcb4d5658de12f64acaf25cebebb8589e57a1579dffde4a773d1b",
+    "hepta/migration_ir.py": "af7011a20f17de92b108ce1e200dc8b50a9ba9aabde528afe4bff8fca6c30f5e",
+    "hepta/modules.py": "c933a5ab29a1a54b5b36e0e0b2554ce250db3303a559c742fddf2b65fcf0fcea",
+    "hepta/native_resource_gate.py": "d6abcb7e7b1009aea8a8474388e80e1d9740957dfc2e242c4520260f23b93800",
+    "hepta/native_tool_identity.py": "b1910efd7698237add2d5fad45eab37341a145ddd0dca8a2332f0b8e6026ce9d",
+    "hepta/object_structure.py": "4fb0b3d962e4b7f6ba508257bf605f4403d402e4f3d7e05cffa084b91651f5a8",
+    "hepta/object_symbols.py": "aff81d724d08ed4a8c3189e3370f75e234daa010ec9e9855aedc1019d55a693f",
+    "hepta/owned_aarch64_link.py": "c1a6cc39d91805bcbbab841955455dd9db253cae29ae48c6e53a6b648ce3e193",
+    "hepta/owned_aarch64_runtime.py": "15aaa76b5f11e9aba8d76b1154a7bb62bb9962942b708dc9698a72b640ac3322",
+    "hepta/owned_drop_plan.py": "9519ec27c5e47baca77a68503bcd23e38c915f589257a8da7c733a5c6f6f7a25",
+    "hepta/owned_target_layout.py": "8045dcdcae41afe7f7e661cfd9844d12bf7cb4343361e0d10a56050544e5bbe4",
+    "hepta/packages.py": "f8a6f1beedcec4c11dbd544c2c60521f8aab40aac4a05a558d5c6a05dc14bb5f",
+    "hepta/parser.py": "b3cc04259c953d112e1ffbf4482b380cbb15fdd994a5924507dd1d11d5c0c5cf",
+    "hepta/pipeline.py": "9f7d329d7e0fa1bb3784d3d9be2bb250724242455a648e78f1f76eef3072af5f",
+    "hepta/protocol.py": "7c4e9c6b71391f34662bd161864cdac63b90574f65dd77e9489a3820299c6972",
+    "hepta/protocol_v3.py": "ffcae884ccb4a0d32b1736bc272a92678ad8b37b7bc7c677107b84c693cbd903",
+    "hepta/resource_ir.py": "931bbc8e6ba2045e40c7e2c23f3c1ded8f687b315aa26a7bc1174556ef48254a",
+    "hepta/resource_lowering.py": "6385dbb7e63dc4ece21db7d0635c5dbf45e409b523d154c813fd8728828db517",
+    "hepta/resource_source.py": "f0a4abccfdee9be5f05d54932ba51e9cbd6f448c5c778b36a8e49f3dd61392ad",
+    "hepta/runtime_concurrency.py": "c2f60ab8b7aa98052adecd0cde2737b43bf177ed963796899cffa2f0eb40a4c0",
+    "hepta/runtime_io.py": "eb03f44d0e35c7f1b57f2340122b0f57df5178d83f7b6aa6333f8861babbfcd0",
+    "hepta/runtime_task_tree.py": "2ee863fe429123bc6ac9d82effd8602b260acf718d34d856e626101d34d2110b",
+    "hepta/scalar_host_abi.py": "63952a33c26d97e1d918086f9cdb342d32af19cc57b0cd37aab431cff5f512e0",
+    "hepta/semantic_ir.py": "040ecbe4715a4fa20edb719c987960bbff48b1ae59e82a23c08e78954bc389ef",
+    "hepta/source_map.py": "7a602a7728da1729c0a625eac04acbb0cd47ccf17788c5a31f20f292e3b736f8",
+    "hepta/ssa.py": "78f39afff1b89b359c6ce8d824a938712f4f4fa5ab10046d468d637000d75c67",
+    "hepta/ssa_reaching.py": "02a01024f3049c8d4cb40f191d2554f31ae1a971aef93cbdb786789431efbe34",
+    "hepta/ssa_verify.py": "fdf0272cacbe51819314af63defdd8b666e7aa93683cfd8df7ad7ec6b89ff510",
+    "hepta/static_resource_contracts.py": "fe16fb363b21cfc6f380f8e712ee6e087347fa36bbbeaba45d810c64b4c7ad01",
+    "hepta/workspace.py": "68eb4d6d3aeb04e917b9e8f604f928c53420ee8070cd6d45987949e67a88d1ef",
+    "tools/qualify_hia_composite_bulk.py": "13cc7fe125ffff37c418ad411b8e544fe3bed0082e7348f35b21fc6eaa8e5cd8"
+  },
+  "status": "finite_two_owner_composite_bulk_x86_64_and_qemu_passed",
+  "tools": {
+    "clang": {
+      "path": "/usr/lib/llvm-20/bin/clang",
+      "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d"
+    },
+    "linker": {
+      "path": "/tmp/hepta-ai-rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld",
+      "sha256": "5b224e53ad32986a5bf2e349addbe00c5ef37814a6a5584a9f2e3d03bb524306"
+    },
+    "qemu": {
+      "path": "/usr/bin/qemu-aarch64-static",
+      "sha256": "e4f8d99e9ff69c3cefffab71cee358ce2af1ecba1282d04c3eeb44ef76f5a71e"
+    }
+  },
+  "workdir": "/tmp/hepta-seven-stage-unified-run3/composite-bulk"
+}
