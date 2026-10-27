@@ -139,18 +139,50 @@ int safe_guard(int a,int b) {
                 with self.subTest(name=name, args=(x, y)):
                     self.assertEqual(a(x, y), b(x, y))
 
-    def test_divmod_nontrivial_promotions_and_truthiness_reject(self):
-        for source, code in (
-            ("int f(int a,unsigned int b){return a / b;}", "E_C_DIVMOD_PROMOTION"),
-            ("int f(int a,int b){if(a && b){return 1;}return 0;}", "E_C_PROMOTION"),
-            ("int f(int a){if(!a){return 1;}return 0;}", "E_C_PROMOTION"),
-        ):
-            with self.subTest(source=source):
-                self.c.write_text(source)
-                result = migrate_c(self.c, self.hepta)
-                self.assertFalse(result["ok"], result)
-                self.assertIn(code, [entry["code"] for entry in result["rejected"]])
-                self.assertFalse(self.hepta.exists())
+    def test_divmod_nontrivial_promotions_reject(self):
+        # Mixed signed/unsigned operands require an unmodeled integral cast.
+        # Reject at that earlier gate instead of relying on a later divmod code.
+        self.c.write_text("int f(int a,unsigned int b){return a / b;}")
+        report = migrate_c(self.c, self.hepta)
+        self.assertFalse(report["ok"], report)
+        self.assertIn("E_C_CAST", [entry["code"] for entry in report["rejected"]])
+        self.assertFalse(self.hepta.exists())
+
+    def test_integer_truthiness_c11_vs_hepta_c_native(self):
+        # A later checked predicate extension deliberately admits pure scalar
+        # truthiness. Test its real native semantics rather than requiring the
+        # old blanket E_C_PROMOTION refusal.
+        self.c.write_text("""
+int truthy_and(int a,int b){if(a && b){return 1;}return 0;}
+int truthy_not(int a){if(!a){return 1;}return 0;}
+""")
+        report = migrate_c(self.c, self.hepta)
+        self.assertTrue(report["ok"], report)
+        self.assertFalse(report["source_equivalence_proved"])
+        source = self.hepta.read_text()
+        self.assertIn("(a != 0)", source)
+        self.assertIn("(b != 0)", source)
+        self.assertIn("(!(a != 0))", source)
+        self.assertEqual(analyze(source, str(self.hepta), native=False).report["status"], "frontend_only")
+        original, converted = self.directory / "truthy-original.so", self.directory / "truthy-hepta.so"
+        compiled = subprocess.run(["gcc", "-std=c11", "-O2", "-shared", "-fPIC",
+                                   str(self.c), "-o", str(original)],
+                                  capture_output=True, text=True, timeout=30)
+        self.assertEqual(compiled.returncode, 0, compiled.stderr)
+        built = subprocess.run([sys.executable, "-m", "hepta", "build", str(self.hepta),
+                                "--backend", "c", "--crate-type", "cdylib", "-o", str(converted)],
+                               capture_output=True, text=True, timeout=90)
+        self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
+        old, new = ctypes.CDLL(str(original)), ctypes.CDLL(str(converted))
+        samples = (-(2**31), -99, -1, 0, 1, 7, 2**31-1)
+        for name, rows in (("truthy_and", ((a, b) for a in samples for b in samples)),
+                           ("truthy_not", ((a,) for a in samples))):
+            left, right = getattr(old, name), getattr(new, name)
+            for fn in (left, right):
+                fn.argtypes, fn.restype = [ctypes.c_int32] * (2 if name == "truthy_and" else 1), ctypes.c_int32
+            for args in rows:
+                with self.subTest(name=name, args=args):
+                    self.assertEqual(left(*args), right(*args))
 
     def test_unsigned_shift_c11_vs_hepta_c_native_defined_domain(self):
         self.c.write_text("""
