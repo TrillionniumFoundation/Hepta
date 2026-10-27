@@ -50,9 +50,27 @@ def main(argv=None) -> int:
     for action in ("verify", "inspect", "run", "emit", "build", "lower", "patch", "normalize",
                    "impact", "import-executable", "import-scalar", "import-cpp-project",
                    "import-cpp-matrix", "import-composite-v2", "upgrade-v7",
-                   "edit-query", "edit-apply", "edit-batch-query", "edit-batch-apply"):
+                   "edit-query", "edit-apply", "edit-batch-query", "edit-batch-apply",
+                   "verify-translation", "optimize"):
         h = hia_actions.add_parser(action)
         h.add_argument("input", help="Standalone HIA JSON program; lower accepts Hepta source")
+        if action in {"verify-translation", "optimize"}:
+            h.add_argument("--function", required=True, help="Exact public scalar function")
+            h.add_argument("--timeout-ms", type=int, default=2000,
+                           help="Independent translation proof timeout in milliseconds")
+            h.add_argument("--json", action="store_true",
+                           help="Return the versioned JSON report (also the default for HIA)")
+        if action == "verify-translation":
+            h.add_argument("after", help="Candidate standalone HIA JSON program")
+        if action == "optimize":
+            h.add_argument("--bridge", required=True, help="Actual pinned native NDU bridge executable")
+            h.add_argument("--bridge-build-receipt", required=True,
+                           help="Trusted local build receipt binding the bridge and upstream source")
+            h.add_argument("--observations", required=True,
+                           help="Exact program-bound host observations for abstain and generated proposals")
+            h.add_argument("--objective", required=True, help="Fixed objective JSON file")
+            h.add_argument("--max-candidates", type=int, default=8,
+                           help="Maximum finite proposals, from one through eight")
         if action in {"emit", "build", "lower", "patch", "normalize", "import-executable", "import-scalar",
                       "import-cpp-project", "import-cpp-matrix", "import-composite-v2", "upgrade-v7",
                       "edit-query", "edit-apply", "edit-batch-query", "edit-batch-apply"}:
@@ -319,6 +337,45 @@ def main(argv=None) -> int:
                 output_json(result)
                 return 0
             program = verify_program(read_bounded(args.input))
+            if args.hia_action == "verify-translation":
+                from .hia_translation_validation import validate_translation
+                report = validate_translation(program, read_bounded(args.after),
+                                              function=args.function, timeout_ms=args.timeout_ms)
+                output_json(report)
+                return 0 if report.get("status") == "proved" else 1
+            if args.hia_action == "optimize":
+                import time
+                started = time.perf_counter_ns()
+                from .hia_finite_actions import propose_candidates
+                from .hia_ndu_optimizer import rank_candidates
+                proposals = propose_candidates(program, function=args.function,
+                                               max_candidates=args.max_candidates)
+                objective = decode_json(read_bounded(args.objective, limit=65536))
+                observations = decode_json(read_bounded(args.observations, limit=1024 * 1024))
+                # The caller's observation file is immutable. Charge this
+                # invocation's actual regeneration/decoding once, explicitly,
+                # through the incumbent row's whole-search cost contribution.
+                if (type(observations) is not dict or type(observations.get("abstain")) is not dict
+                        or type(observations["abstain"].get("search_ns")) is not int
+                        or observations["abstain"]["search_ns"] < 0):
+                    raise ValueError("abstain observation requires a nonnegative exact search_ns")
+                supplied = observations["abstain"]["search_ns"]
+                preparation_ns = time.perf_counter_ns() - started
+                observations["abstain"]["search_ns"] = supplied + preparation_ns
+                report = rank_candidates(program, proposals, observations, function=args.function,
+                    bridge={"binary": args.bridge, "build_receipt": args.bridge_build_receipt},
+                    objective=objective, timeout_ms=args.timeout_ms)
+                report["cli_preparation_cost"] = {
+                    "measured_ns": preparation_ns, "charged_once_to": "abstain.search_ns",
+                    "supplied_abstain_search_ns": supplied,
+                    "charged_abstain_search_ns": observations["abstain"]["search_ns"],
+                    "includes": ["finite_proposal_regeneration", "bounded_input_decoding", "lazy_module_imports"],
+                }
+                output_json(report)
+                # Retaining the original program is a successful decision.
+                # Malformed inputs and identity failures still raise to the
+                # driver's normal nonzero structured-error path.
+                return 0
             if args.hia_action == "upgrade-v7":
                 from .hia_core_upgrade import upgrade_core_to_v7
                 revised, receipt = upgrade_core_to_v7(program, legacy_profile=args.legacy_profile)
