@@ -186,8 +186,53 @@ fn recursion_is_bounded_independently_of_step_budget() {
     let status=run(&doc,"recur",vec![json!(8)],1000);
     assert_eq!(status["status"],"budget_exceeded");
     assert_eq!(status["error"]["code"],"calls");
-    // Python _Machine.invoke admits root depth=0 through nested depth=32:
-    // 33 entered frames * (entry tick + call-op tick) = 66 actual ticks.
-    // The previous Rust >= comparison stopped at depth 32 with only 64.
-    assert_eq!(status["steps"], json!(66));
+    // Root-inclusive Python depth budget admits exactly 32 frames (0..31),
+    // each ticking once at entry and once at its recursive call operation.
+    assert_eq!(status["steps"], json!(64));
+}
+
+#[test]
+fn finite_recursion_respects_root_inclusive_call_frame_limit() {
+    let program = json!({
+        "schema": "hepta.hia.program.v1", "module": "finite_depth",
+        "functions": [{
+            "name": "count", "params": [{"name": "n", "type": "u32"}],
+            "returns": ["u32"], "effects": ["trap"], "entry": "entry",
+            "blocks": [
+                {"id": "entry", "params": [{"name": "n", "type": "u32"}],
+                 "ops": [
+                    {"op": "const", "args": [],
+                     "out": [{"name": "zero", "type": "u32"}], "attrs": {"value": 0}},
+                    {"op": "compare.eq", "args": ["n", "zero"],
+                     "out": [{"name": "done", "type": "bool"}], "attrs": {}}
+                 ],
+                 "term": {"op": "branch", "cond": "done",
+                          "then": {"target": "complete", "args": ["n"]},
+                          "else": {"target": "work", "args": ["n"]}}},
+                {"id": "complete", "params": [{"name": "answer", "type": "u32"}],
+                 "ops": [], "term": {"op": "ret", "values": ["answer"]}},
+                {"id": "work", "params": [{"name": "remain", "type": "u32"}],
+                 "ops": [
+                    {"op": "const", "args": [],
+                     "out": [{"name": "one", "type": "u32"}], "attrs": {"value": 1}},
+                    {"op": "int.sub.checked", "args": ["remain", "one"],
+                     "out": [{"name": "previous", "type": "u32"}], "attrs": {}},
+                    {"op": "call", "args": ["previous"],
+                     "out": [{"name": "result", "type": "u32"}],
+                     "attrs": {"function": "count"}}
+                 ],
+                 "term": {"op": "ret", "values": ["result"]}}
+            ]
+        }]
+    });
+    for n in [0_u32, 1, 30, 31] {
+        let outcome = run(&program, "count", vec![json!(n)], 10_000);
+        assert_eq!(outcome["status"], "returned", "n={n}");
+        assert_eq!(outcome["values"], json!([0]), "n={n}");
+    }
+    for n in [32_u32, 33] {
+        let outcome = run(&program, "count", vec![json!(n)], 10_000);
+        assert_eq!(outcome["status"], "budget_exceeded", "n={n}");
+        assert_eq!(outcome["error"]["code"], "calls", "n={n}");
+    }
 }
