@@ -252,6 +252,21 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) 
                     "int.shl.checked", "int.shr.checked"}:
                 folded = _exact_scalar(op, [known.get(arg) for arg in args],
                                        outputs[0]["type"])
+                if folded is None and op == "bit.and":
+                    # A nonnegative exact bit mask has no sign bit set, even
+                    # for a signed integer. Irrespective of the other operand
+                    # or its negative two's-complement representation:
+                    #       0 <= (any_machine_int & mask) <= mask.
+                    # This is a real verified upper bound, not a guessed
+                    # value for an unknown Agent/runtime parameter.
+                    masks = []
+                    for arg in args:
+                        mask = _span(known.get(arg))
+                        if (mask is not None and mask.lo == mask.hi
+                                and mask.lo >= 0):
+                            masks.append(mask.lo)
+                    if masks:
+                        folded = _bounded(0, min(masks))
                 if folded is not None:
                     known[out_names[0]] = folded
             elif op == "int.neg.checked":

@@ -84,9 +84,15 @@ def arithmetic_trap(op, left, right, typ):
 
 def unknown_operand():
     return allocation("unknown", [
-        c("mask", "u8", 15),
-        i("bit.and", ["value", "mask"], [("size", "u8")]),
+        i("bit.not", ["value"], [("size", "u8")]),
     ], "size", "u8", parameters=[("value", "u8")])
+
+
+def masked_unknown(mask=15, typ="u8"):
+    return allocation("masked_unknown", [
+        c("mask", typ, mask),
+        i("bit.and", ["value", "mask"], [("size", typ)]),
+    ], "size", typ, parameters=[("value", typ)])
 
 
 class HIAExactScalarBudgetTests(unittest.TestCase):
@@ -133,6 +139,38 @@ class HIAExactScalarBudgetTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "E_HIA_BUDGET_UNBOUNDED"):
             analyze_static_budget(core, max_live_heap_bytes=15)
         self.assertEqual(execute_program(core, "unknown", [23])["result"], 7)
+
+    def test_proved_nonnegative_bitmask_bounds_dynamic_byte_extents(self):
+        # Unlike arbitrary dynamic arithmetic, masking by a verified
+        # nonnegative constant yields a finite upper bound for EVERY input.
+        for typ, mask, inputs in [
+            ("u8", 15, range(256)),
+            ("u8", 0, range(256)),
+            ("i8", 7, range(-128, 128)),
+        ]:
+            with self.subTest(typ=typ, mask=mask):
+                core = verify_program(masked_unknown(mask, typ))
+                self.assertEqual(analyze_constant_live_heap(core),
+                                 {"masked_unknown": mask})
+                self.assertEqual(
+                    analyze_static_budget(core, max_live_heap_bytes=mask)
+                    ["functions"][0]["max_live_heap_bytes"], mask)
+                if mask:
+                    with self.assertRaisesRegex(ValueError, "E_HIA_BUDGET_EXCEEDED"):
+                        analyze_static_budget(core, max_live_heap_bytes=mask - 1)
+                for value in inputs:
+                    observed = execute_program(core, "masked_unknown", [value])
+                    self.assertEqual(observed["result"], value & mask)
+                    self.assertLessEqual(observed["resources"]["peak_bytes"], mask)
+
+    def test_signed_negative_mask_is_not_a_valid_static_payload_bound(self):
+        core = verify_program(masked_unknown(-1, "i8"))
+        with self.assertRaisesRegex(
+                HIAHeapBoundRejected, "E_HIA_BUDGET_UNBOUNDED"):
+            analyze_constant_live_heap(core)
+        with self.assertRaises(HIAProgramTrap) as trapped:
+            execute_program(core, "masked_unknown", [1])
+        self.assertEqual(trapped.exception.code, "overflow")
 
     def test_exact_signed_bitwise_machine_width(self):
         for value in range(-128, 128):
