@@ -36,12 +36,12 @@ the finite oracle prioritizes fail-closed correctness over broad FFI coverage.
 ## Evidence boundary and tests
 
 A **standalone** Linux x86-64 + Clang 17 kernel seccomp control was executed
-against a compiled DSO using a reduced filter: before the new deny set,
-harmless invalid-argument shmget/semget/msgsnd/keyctl/sched_setaffinity/dup
-attempts returned through to the function; with the new deny rules each
-process exited with signal SIGSYS (-31), while a healthy scalar function
-and a read-only file open remained successful. This is a direct kernel-policy
-control, **not** a run of the full in-repository Hepta oracle.
+against a compiled DSO using a reduced filter. Before the new deny set,
+invalid-argument calls passed to the kernel and returned to the function.
+With the updated set, **all 25/25 tested syscall entrypoints terminated with
+SIGSYS (-31)**. The healthy scalar function and read-only file open returned
+normally, while explicit abort produced SIGABRT (-6). This is a direct
+kernel-policy control, **not** a run of the full in-repository Hepta oracle.
 
 The committed `tests/test_hia_native_kernel_effect_guard.py` exercises the
 actual original sealed-memfd observer and pinned worker, with 25 distinct
