@@ -28,7 +28,12 @@ def _read_exact(path: Path, expected: bytes, *, identity=None):
                 _identity(original) != identity):
             raise PublicationRejected("E_PUBLISH_IDENTITY: ordinary file identity mismatch")
         before = _identity(original)
-        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+        # A concurrent regular-file -> FIFO swap could block open() before
+        # fstat rejects the nonregular inode; O_NOFOLLOW alone is insufficient.
+        if not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_NONBLOCK"):
+            raise PublicationRejected("E_PUBLISH_IO: no-follow nonblocking descriptors required")
+        flags = (os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+                 | getattr(os, "O_CLOEXEC", 0))
         with os.fdopen(os.open(path, flags), "rb") as stream:
             if _identity(os.fstat(stream.fileno())) != before:
                 raise PublicationRejected("E_PUBLISH_RACE: file changed before read")

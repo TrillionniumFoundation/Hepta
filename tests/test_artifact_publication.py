@@ -122,6 +122,27 @@ class ArtifactPublicationTests(unittest.TestCase):
         with self.assertRaisesRegex(PublicationRejected, "E_PUBLISH_IDENTITY"):
             publish_verified(path, self.dest, self.payload)
 
+    @unittest.skipUnless(hasattr(os, "mkfifo") and hasattr(os, "O_NONBLOCK"),
+                         "POSIX nonblocking FIFO required")
+    def test_regular_stage_fifo_swap_is_rejected_before_blocking(self):
+        original_open = os.open
+        previous = self.root / "previous-stage"
+        opened = []
+        def swap(path, flags, *args, **kwargs):
+            # Check flags FIRST: a regression must fail, not hang this test.
+            self.assertTrue(flags & os.O_NOFOLLOW)
+            self.assertTrue(flags & os.O_NONBLOCK)
+            opened.append(flags)
+            self.stage.rename(previous)
+            os.mkfifo(self.stage)
+            return original_open(path, flags, *args, **kwargs)
+        with patch("hepta.artifact_publication.os.open", side_effect=swap):
+            with self.assertRaisesRegex(PublicationRejected, "E_PUBLISH_RACE"):
+                publish_verified(self.stage, self.dest, self.payload)
+        self.assertEqual(len(opened), 1)
+        self.assertFalse(self.dest.exists())
+        self.assertEqual(previous.read_bytes(), self.payload)
+
     def test_empty_payload_rejected(self):
         with self.assertRaisesRegex(PublicationRejected, "E_PUBLISH_INPUT"):
             publish_verified(self.stage, self.dest, b"")
