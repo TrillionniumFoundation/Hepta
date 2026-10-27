@@ -74,6 +74,22 @@ def _combine_known(a, b):
     return _bounded(min(left.lo, right.lo), max(left.hi, right.hi))
 
 
+def _bounded_bitand_mask(lhs, rhs):
+    """A verified nonnegative mask interval bounds arbitrary typed bits.
+
+    For any machine integer x and 0 <= m <= limit, x & m is always
+    nonnegative and <= limit, including signed negative x. Neither
+    operand is assumed constant or caller-constrained. A potentially
+    negative mask alone cannot authorize a byte upper bound.
+    """
+    maxima = []
+    for value in (lhs, rhs):
+        interval = _span(value)
+        if interval is not None and interval.lo >= 0:
+            maxima.append(interval.hi)
+    return _bounded(0, min(maxima)) if maxima else None
+
+
 def _wrap(value, typ):
     bits = WIDTHS[typ]
     value &= (1 << bits) - 1
@@ -352,16 +368,10 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) 
                 folded = _exact_scalar(op, [known.get(arg) for arg in args],
                                        outputs[0]["type"])
                 if folded is None and op == "bit.and":
-                    # Proven positive exact mask bounds all unknown typed inputs,
-                    # even signed negative two's-complement operands.
-                    masks = []
-                    for arg in args:
-                        mask = _span(known.get(arg))
-                        if (mask is not None and mask.lo == mask.hi
-                                and mask.lo >= 0):
-                            masks.append(mask.lo)
-                    if masks:
-                        folded = _bounded(0, min(masks))
+                    # A verified nonnegative mask *interval* bounds even an
+                    # arbitrary 64-bit value. This is a bit-level bound, not
+                    # an assumed input restriction or extra owner permission.
+                    folded = _bounded_bitand_mask(known.get(args[0]), known.get(args[1]))
                 if folded is not None:
                     known[out_names[0]] = folded
             elif op == "int.neg.checked":
