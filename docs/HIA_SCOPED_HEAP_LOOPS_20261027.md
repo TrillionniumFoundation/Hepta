@@ -85,11 +85,23 @@ Negative tests cover fallible owner loops, unreviewed arithmetic sizes, escaped
 owner block arguments, unrecognized calls, and the independent static-budget
 cyclic refusal.
 
+## Optional independent P2 native differential
+
+`tests/test_hia_scoped_alloc_native.py` adds real checked-HIA
+Program -> existing LLVM emitter -> actual Linux x86-64 Clang20+ shared
+library -> C ABI call comparisons against the existing HIA Python VM for
+the finite scoped-buffer fixtures. It requires a **real native compiler** and
+is explicitly skipped without it; a skipped test is not evidence.
+Compiled-return parity alone cannot prove actual allocator/free events.
+No Rust/AST fallback, C/C++ migration, target cross-execution or whole-program
+backend refinement is claimed.
+
 Execute against the **exact repository snapshot**:
 
 ```sh
 python -m unittest tests.test_hia_scoped_alloc_loops tests.test_hia_zero_heap_loops tests.test_hia_heap_bound -v
 python -m unittest tests.test_hia_program tests.test_hia_static_budget -v
+python -m unittest tests.test_hia_scoped_alloc_native -v
 ```
 
 The current external editing environment cannot clone github.com or run a
