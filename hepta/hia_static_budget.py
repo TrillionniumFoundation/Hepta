@@ -97,6 +97,74 @@ def _bound_function(fn: dict, calculated: dict[str, dict]) -> dict:
             "max_call_depth": entry["depth"]}
 
 
+def qualify_vm_call_depth(program, *, max_call_depth: int) -> dict:
+    """Prove ONLY root-inclusive synchronous HIA VM frames in v1..v7.
+
+    The canonical executable Core is fully reverified. The direct call graph
+    is closed and statically named. A cyclic call graph is rejected; CFG loops
+    do not themselves add nested synchronous stack frames.
+
+    This intentionally does NOT count allocator interactions, VM ticks,
+    recursive-chain destruction, native stack bytes, task stacks, or CPU time.
+    Those quantities must never inherit this narrow v7 certificate.
+    """
+    from .hia_program import verify_program
+
+    if type(max_call_depth) is not int or not 1 <= max_call_depth <= 256:
+        _reject("E_HIA_BUDGET_POLICY",
+                "max_call_depth requires an integer 1..256 (root frame inclusive)")
+    checked = verify_program(program)
+    document = checked.as_dict()
+    # Keep exact admitted ISA identities; a future version must be audited.
+    if document["schema"] not in (set(_ALLOWED_CORE_SCHEMAS) | {"hepta.hia.program.v7"}):
+        _reject("E_HIA_BUDGET_PROFILE",
+                "synchronous VM frame budget requires an audited primitive v1..v7 Core")
+    functions = document["functions"]
+    named = {fn["name"]: fn for fn in functions}
+    edges = {
+        fn["name"]: {
+            op["attrs"]["function"]
+            for block in fn["blocks"] for op in block["ops"]
+            if op["op"] == "call"
+        }
+        for fn in functions
+    }
+    # No trusted producer receipt or bounded-loop assertion can eliminate a
+    # true recursive call edge. All definitions are checked, even if private.
+    order = _topological(list(named), edges, "synchronous HIA call graph")
+    depth = {}
+    for name in reversed(order):
+        depth[name] = 1 + max((depth[callee] for callee in edges[name]), default=0)
+    rows = [{"function": fn["name"], "max_call_depth": depth[fn["name"]]}
+            for fn in functions]
+    if any(row["max_call_depth"] > max_call_depth for row in rows):
+        _reject("E_HIA_BUDGET_EXCEEDED",
+                "at least one verified function exceeds the synchronous VM frame limit")
+    report = {
+        "schema": "hepta.hia.vm-call-depth-budget.v1",
+        "status": "qualified_root_inclusive_synchronous_vm_frames_only",
+        "core_sha256": checked.sha256,
+        "input_sha256": checked.input_sha256,
+        "core_schema": document["schema"],
+        "limit_frames": max_call_depth,
+        "functions": rows,
+        "claims": {
+            "synchronous_hia_vm_frames_bounded": True,
+            "whole_module_call_graph_acyclic": True,
+            "vm_ticks_bounded": False,
+            "allocator_interactions_bounded": False,
+            "process_rss_or_native_stack_bytes_bounded": False,
+            "async_task_stacks_bounded": False,
+            "source_to_core_or_backend_refinement_proved": False,
+            "whole_language_soundness_proved": False,
+        },
+    }
+    raw = json.dumps(report, sort_keys=True, separators=(",", ":"),
+                     ensure_ascii=False, allow_nan=False).encode("utf-8")
+    report["sha256"] = sha256(raw).hexdigest()
+    return report
+
+
 def analyze_static_budget(program, *, max_allocator_interactions=None,
                           max_vm_ticks=None, max_call_depth=None,
                           max_live_heap_bytes=None) -> dict:

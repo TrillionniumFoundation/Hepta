@@ -441,7 +441,10 @@ class _Machine:
             env[output["name"]] = value
 
     def invoke(self, fn, arguments, depth=0):
-        if depth > self.max_call_depth:
+        # Root invocation occupies frame 1 (depth=0), matching the static
+        # max_call_depth budget. A limit of N admits exactly N live frames.
+        # Refuse the (N+1)th BEFORE its call-entry tick or any side effect.
+        if depth >= self.max_call_depth:
             raise HIAProgramBudgetExceeded("calls", "finite call-depth limit reached")
         self.tick()
         blocks = {b["id"]: b for b in fn["blocks"]}

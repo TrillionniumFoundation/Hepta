@@ -67,7 +67,7 @@ def recursive_call():
 
 
 def depth_boundary():
-    # Root is depth 0; n=32 succeeds at nested depth 32, n=33 refuses
+    # Root is depth 0; n=31 succeeds at depth 31, n=32 refuses
     # before the next recursive call's entry tick. Block SSA names are
     # globally distinct even when reached through separate branch edges.
     return m(f("bounded", [("n", "u32")], ["u32"], ["trap"], [
@@ -231,7 +231,7 @@ class RustScalarVmParity(unittest.TestCase):
                     verify_program(mutated)
 
     def test_recursive_depth_boundary_and_budget_ticks_match_exactly(self):
-        for n in (0, 1, 31, 32, 33):
+        for n in (0, 1, 30, 31, 32, 33):
             with self.subTest(n=n):
                 source = depth_boundary()
                 rust = self.rust(source, "bounded", [n])
@@ -242,7 +242,7 @@ class RustScalarVmParity(unittest.TestCase):
                     python = exc.report
                 self.assertEqual(rust["status"], python["status"])
                 self.assertEqual(rust["steps"], python["steps"])
-                if n <= 32:
+                if n <= 31:
                     self.assertEqual(rust["status"], "returned")
                     self.assertEqual(rust["values"], python["values"])
                 else:
@@ -260,7 +260,7 @@ class RustScalarVmParity(unittest.TestCase):
         self.assertEqual(rust["status"], "budget_exceeded")
         self.assertEqual(rust["error"]["code"], "calls")
         self.assertEqual(rust["steps"], python["steps"])
-        self.assertEqual(rust["steps"], 66)
+        self.assertEqual(rust["steps"], 64)
 
     def test_select_casts_boolean_and_eager_traps(self):
         cases = [
