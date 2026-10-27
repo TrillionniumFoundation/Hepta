@@ -37,3 +37,18 @@ versus nonblocking FIFO behavior. The complete exact-head Hepta test and
 pinned native Rust/Clang/C++ differential suites were NOT RUN in this
 environment. This does not close whole-project P0-P7:
 `whole_project_blockers_closed=false`.
+
+## Additional P3/P4 cross-phase inode identity closure
+
+The first complete checked source/candidate/native read now captures the
+ordinary-file inode identity together with actual bytes. Subsequent migration,
+native build and atomic publication checks require **that same identity**,
+not merely an equal SHA-256 or equal source bytes. A pathname rebound to a
+separate inode containing byte-for-byte identical input is rejected, including
+before native build invocation. Existing bounded reads and no-follow/nonblocking
+inode checks remain mandatory. The new negative tests simulate a source
+rename and byte-identical replacement across the actual migrator boundary.
+
+This closes only a local TOCTOU identity gap, not arbitrary C/C++ equivalence
+or immutable storage against a malicious writer. Complete exact-head native
+compiler tests and hardware qualification are still NOT RUN.
