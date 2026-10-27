@@ -57,6 +57,22 @@ live owner on an ordinary edge, call or fallible allocation leaves that same
 **failure** in force. A scalar-only loop still uses its preexisting zero-byte
 proof; all acyclic programs retain the existing full interval-aware analyzer.
 
+## Explicit live-heap-only policy admission
+
+`qualify_live_heap_budget(program, max_live_heap_bytes=N)` adds a scoped,
+standalone, typed admission API (strict integer N in 0..2^63-1). It **reverifies**
+the complete canonical HIA Program, computes existing immutable-program live
+payload bounds, then refuses functions whose upper bound exceeds N. The
+returned receipt binds the canonical Core SHA and does **not** assert source
+origin, native backend refinement, process RSS, allocator interactions, VM
+ticks, termination or whole-language soundness.
+
+This is intentionally **not** wired into the existing full finite
+`analyze_static_budget` qualification or presented as a native execution
+authorization. A cyclic program can satisfy a maximum *simultaneously live*
+payload policy while requiring an unbounded total number of allocations.
+These remain distinct safety/resource contracts.
+
 ## Tests committed
 
 `tests/test_hia_scoped_alloc_loops.py` exercises the existing canonical
