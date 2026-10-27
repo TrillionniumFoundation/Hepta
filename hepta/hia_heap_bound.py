@@ -193,6 +193,20 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) 
                                        attrs["mode"])
                 if folded is not None:
                     known[out_names[0]] = folded
+            elif op == "int.neg.checked":
+                # Negation reverses interval endpoints. Propagate ONLY when
+                # the complete source interval fits the destination integer
+                # type: a partially overflowing interval remains unknown and
+                # cannot authorize a subsequent allocation-size budget.
+                # In particular -MIN_SIGNED is NOT a representable value.
+                operand = _span(known.get(args[0]))
+                if operand is not None:
+                    lo, hi = -operand.hi, -operand.lo
+                    minimum, maximum = integer_range(outputs[0]["type"])
+                    if minimum <= lo <= hi <= maximum:
+                        known[out_names[0]] = _bounded(lo, hi)
+                    elif operand.lo == operand.hi:
+                        _reject(f"{fn['name']}/{name}: checked constant negation may trap")
             elif op == "select":
                 condition = known.get(args[0])
                 folded = (known.get(args[1] if condition else args[2])
