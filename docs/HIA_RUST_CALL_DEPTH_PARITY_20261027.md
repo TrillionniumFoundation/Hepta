@@ -53,3 +53,28 @@ tests being committed.
 refinement, cross-target ABI, arbitrary C/C++, held-out AI-agent benefit,
 physical devices and sustained performance.
 `whole_project_blockers_closed=false`.
+
+## Follow-up P2: explicit scalar export-list parity
+
+The canonical standalone Core accepts optional `exports` and checks every
+listed function, including an empty list meaning no public entrypoints.
+The Rust scalar verifier originally rejected the entire optional field,
+preventing independent differential verification of valid exported HIA
+modules. This candidate extends the **existing** Rust scalar-only verifier,
+without introducing a new schema or capability type.
+
+- The optional top-level key is admitted only with exact strict structure.
+- Each export is a unique, existing valid identifier; no duplicate, unknown,
+  bool or malformed export is accepted. All signatures in this Rust shadow
+  remain scalar-only by its existing whole-module checker.
+- `execute_scalar` must refuse an unexported entry even when the same
+  internal helper is available via an admitted exported call.
+- Absence of `exports` retains the original scalar public-entry behavior.
+
+Direct Rust adversarial tests and the real Python↔Rust optional-export
+differential are now committed; neither has executed on this exact SHA
+because Cargo and complete GitHub checkout are unavailable locally. This
+only broadens finite Rust scalar shadow correspondence, **not** full
+program/Owner/Core/LLVM refinement or production external authorization.
+
+`whole_project_blockers_closed=false`.
