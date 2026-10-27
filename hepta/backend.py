@@ -19,6 +19,7 @@ from .checker import is_owned_type
 from .borrowed_storage import REFERENCE_TYPES
 from .runtime_concurrency import GROUP_RUNTIME, GROUP_TYPE_NAMES
 from .runtime_io import IO_BUILTINS, IO_RUNTIME, IO_TYPE_NAMES
+from .native_tool_identity import digest_executable, ToolIdentityRejected
 
 
 RUST_VERSION = "1.90.0"
@@ -444,23 +445,80 @@ def emit_header(program: Program) -> str:
     return "\n".join(lines)
 
 
+def _resolve_rustc_executable(candidate: str) -> str:
+    """Resolve a rustup proxy without losing its argv[0] dispatch identity.
+
+    Rustup's symlinks and hardlinks are dispatchers, not the compiler whose
+    bytes the native receipt must identify. Query the selected toolchain in
+    the caller's current directory, without installing a missing toolchain.
+    Explicit selection never silently falls back to a different compiler.
+    """
+    try:
+        invoked = Path(candidate).absolute()
+        resolved = invoked.resolve(strict=True)
+        manager = None
+        if invoked.name.lower() in {"rustc", "rustc.exe"}:
+            if resolved.name.lower() in {"rustup", "rustup.exe"}:
+                manager = resolved
+            else:
+                sibling = invoked.with_name("rustup.exe" if invoked.suffix.lower() == ".exe" else "rustup")
+                if sibling.is_file() and os.path.samefile(sibling, invoked):
+                    manager = sibling.resolve(strict=True)
+        if manager is None:
+            return str(resolved)
+        environment = dict(os.environ, RUSTUP_AUTO_INSTALL="0")
+        result = subprocess.run([str(manager), "which", "rustc"], text=True,
+                                capture_output=True, timeout=30, env=environment)
+        lines = result.stdout.splitlines()
+        if result.returncode or len(lines) != 1 or not lines[0] or "\x00" in lines[0]:
+            raise ValueError("rustup which rustc did not return exactly one compiler path")
+        actual = Path(lines[0])
+        if not actual.is_absolute() or not actual.is_file() or not os.access(actual, os.X_OK):
+            raise ValueError("rustup selected an unavailable or non-absolute compiler path")
+        actual = actual.resolve(strict=True)
+        if os.path.samefile(actual, manager):
+            raise ValueError("rustup resolved the compiler back to its own proxy")
+        return str(actual)
+    except (OSError, RuntimeError, UnicodeError, ValueError, subprocess.TimeoutExpired) as exc:
+        raise HeptaError(Diagnostic("E_TOOLCHAIN", "Cannot resolve the selected Rust compiler",
+                                    notes=[str(exc)], phase="backend")) from exc
+
+
 def find_rustc(explicit: str | None = None) -> str:
     selected = explicit if explicit is not None else os.environ.get("RUSTC")
     if selected is not None:
         resolved = shutil.which(selected) if not Path(selected).is_file() else selected
         if not resolved or not Path(resolved).is_file() or not os.access(resolved, os.X_OK):
             raise HeptaError(Diagnostic("E_TOOLCHAIN", "The explicitly selected Rust compiler is unavailable: " + selected, phase="backend"))
-        return str(Path(resolved).resolve())
-    candidates = [shutil.which("rustc"),
-                  str(Path(__file__).resolve().parents[2] / "toolchains" / ("rust-" + RUST_VERSION) / "bin/rustc")]
+        return _resolve_rustc_executable(resolved)
+    candidates = [str(Path(__file__).resolve().parents[2] / "toolchains" / ("rust-" + RUST_VERSION) / "bin/rustc"),
+                  shutil.which("rustc")]
     for candidate in candidates:
         if candidate and Path(candidate).is_file() and os.access(candidate, os.X_OK):
-            return str(Path(candidate).resolve())
+            return _resolve_rustc_executable(candidate)
     raise HeptaError(Diagnostic("E_TOOLCHAIN", "rustc is required for native and borrow validation; set RUSTC or --rustc", phase="backend"))
 
 
 def toolchain_info(rustc: str) -> dict:
+    # Stream the selected REAL compiler binary, never the rustup dispatcher.
+    # Its bytes must be unchanged across this first identity query.
+    try:
+        digest_before = digest_executable(rustc)
+    except ToolIdentityRejected as exc:
+        raise HeptaError(Diagnostic(
+            "E_TOOLCHAIN_IDENTITY", "Cannot identify a stable selected Rust compiler",
+            notes=[str(exc)], phase="backend")) from exc
     p = subprocess.run([rustc, "-vV"], text=True, capture_output=True, timeout=30)
+    try:
+        digest_after = digest_executable(rustc)
+    except ToolIdentityRejected as exc:
+        raise HeptaError(Diagnostic(
+            "E_TOOLCHAIN_IDENTITY", "Selected Rust compiler changed during identity query",
+            notes=[str(exc)], phase="backend")) from exc
+    if digest_before != digest_after:
+        raise HeptaError(Diagnostic(
+            "E_TOOLCHAIN_IDENTITY", "Selected Rust compiler bytes changed during identity query",
+            phase="backend"))
     if p.returncode:
         raise HeptaError(Diagnostic("E_TOOLCHAIN", "rustc version query failed", notes=[p.stderr], phase="backend"))
     fields = dict(line.split(": ", 1) for line in p.stdout.splitlines() if ": " in line)
@@ -471,7 +529,7 @@ def toolchain_info(rustc: str) -> dict:
     prefix = Path(rustc).resolve().parent.parent
     sysroot = prefix if (prefix / "lib" / "rustlib").is_dir() else None
     return {"path": rustc, "version": p.stdout.strip(), "host": fields.get("host"),
-            "executable_sha256": sha256(Path(rustc).read_bytes()),
+            "executable_sha256": digest_after,
             "sysroot": str(sysroot) if sysroot else None,
             "sysroot_discovery": "verified_compiler_prefix" if sysroot else "compiler_default"}
 
