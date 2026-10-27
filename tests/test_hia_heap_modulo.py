@@ -6,6 +6,11 @@ dividends must never create an allocation-size certificate.
 """
 from __future__ import annotations
 
+import ctypes
+import os
+from pathlib import Path
+import shutil
+import tempfile
 import unittest
 
 from hepta.hia_heap_bound import (
@@ -101,6 +106,31 @@ class HIADynamicModuloHeapTests(unittest.TestCase):
         with self.assertRaises(HIAProgramTrap) as trapped:
             execute_program(core, "modulus", [1234])
         self.assertEqual(trapped.exception.code, "division_by_zero")
+
+    @unittest.skipUnless(
+        shutil.which(os.environ.get("CLANG", "/usr/lib/llvm-20/bin/clang")),
+        "pinned native Clang20+ absent: HIA->LLVM test NOT qualified",
+    )
+    def test_real_hia_emitter_native_matches_vm_for_proof_bounded_bytes(self):
+        # This path uses actual HIA Core -> canonical LLVM emitter -> native
+        # object and not a manually authored LLVM/C replacement. A skipped
+        # run is explicitly not evidence of LLVM equivalence.
+        from hepta.hia_program_llvm import compile_program_llvm, emit_program_llvm
+        core = verify_program(modulo_source("u64", 16))
+        self.assertEqual(analyze_constant_live_heap(core), {"modulus": 15})
+        ir = emit_program_llvm(core)
+        with tempfile.TemporaryDirectory(prefix="hia-modulo-native-") as folder:
+            artifact = Path(folder) / "modulo.so"
+            native = compile_program_llvm(
+                ir, program=core, output=artifact,
+                clang=os.environ.get("CLANG", "/usr/lib/llvm-20/bin/clang"))
+            self.assertEqual(native["kind"], "shared")
+            target = ctypes.CDLL(str(artifact)).modulus
+            target.argtypes = [ctypes.c_uint64]
+            target.restype = ctypes.c_size_t
+            for value in (0, 1, 15, 16, 17, 257, 1000000, (1 << 64) - 1):
+                self.assertEqual(target(value),
+                                 execute_program(core, "modulus", [value])["result"])
 
     def test_exact_remainder_and_signed_division_preserve_prior_values(self):
         self.assertEqual(_bounded_divrem("int.rem.checked", 100, 9, "u8"), 1)
