@@ -123,6 +123,21 @@ jobs:
           PY
       - name: Install SHA-256-locked Lean and QEMU tools
         run: python tools/bootstrap_verification.py
+      - name: Export verification tools for every qualification step
+        shell: bash
+        run: |
+          hepta_lean="$GITHUB_WORKSPACE/../toolchains/lean-4.19.0/bin/lean"
+          hepta_qemu="$GITHUB_WORKSPACE/../toolchains/qemu-8.2.2/qemu-aarch64-static"
+          hepta_linker="$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld"
+          test -x "$hepta_lean"
+          test -x "$hepta_qemu"
+          test -x "$hepta_linker"
+          hepta_gate_tools="$RUNNER_TEMP/hepta-qualification-bin"
+          mkdir -p "$hepta_gate_tools"
+          ln -s "$hepta_qemu" "$hepta_gate_tools/qemu-aarch64"
+          ln -s "$hepta_linker" "$hepta_gate_tools/ld.lld"
+          printf 'LEAN=%s\nCLANG=%s\n' "$hepta_lean" /usr/lib/llvm-20/bin/clang >> "$GITHUB_ENV"
+          printf '%s\n' "$hepta_gate_tools" "$(dirname "$hepta_lean")" >> "$GITHUB_PATH"
       - name: Run all current native and experiment qualification gates
         run: >-
           python tools/release_check.py

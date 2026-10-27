@@ -51,6 +51,39 @@ has not changed. It does not disable AppArmor or remove namespace, network,
 capability, filesystem or process-boundary checks. A failed startup still fails
 the job; it is not replaced by privileged or unconfined execution.
 
+## Verification tools across workflow steps
+
+Installing a tool does not export it to subsequent GitHub Actions steps.
+The source qualification did not inherit `LEAN`, and the installed QEMU is
+named `qemu-aarch64-static` while an actual negative-control test searches for
+`qemu-aarch64`. Two other native test classes used development-machine paths
+for Rust/lld/QEMU. A successful installer therefore did not imply complete
+unit-test execution. The full collector continues to reject **every skip**.
+
+After the checksum-locked bootstrap, the workflow now checks the installed
+Lean, QEMU and lld executables, writes `LEAN` and `CLANG` to `GITHUB_ENV`, and
+adds the Lean directory and a job-local alias directory to `GITHUB_PATH`.
+The `qemu-aarch64` and `ld.lld` aliases point to the installed locked tools.
+Both complete qualification steps inherit this environment. No executable
+identity, QEMU digest, sandbox check or performance threshold is changed.
+
+The composite-bulk test reads `CLANG`, `HEPTA_LLD` and
+`HEPTA_QEMU_AARCH64`, with ordinary PATH names as defaults. It resolves PATH
+selection to an executable path before calling the existing strict qualifier;
+an unavailable explicit selection does not fall back. The edit-study native
+controls resolve `CLANG` and `RUSTC` in the same way. Their executable bodies and negative
+controls remain the same.
+
+`tests/test_qualification_environment.py` executes the actual workflow Bash
+with temporary paths containing spaces and checks the environment inherited
+by the next step. It also checks each missing installed executable, an
+unavailable explicit selection, the actual test-class skip decisions, and
+the Lean selection at the formal qualifier boundary. Its tiny executable
+fixtures are never run as compilers or counted as native evidence. Actual
+composite-bulk execution, edit-study overflow controls and the selected Lean
+kernel tests are verified separately with the installed tools; the next full
+workflow must still finish under its own source identity.
+
 ## Scope of the repair
 
 These fixes address toolchain selection and runner prerequisites. They do not

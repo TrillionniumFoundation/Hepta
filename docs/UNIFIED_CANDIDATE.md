@@ -112,6 +112,12 @@ allocator trace of the uninstrumented performance binaries.
 Install the exact checked components with `tools/bootstrap_toolchain.py` and
 `tools/bootstrap_verification.py`, or supply matching local executables.
 Set `RUSTC` and `LEAN`; put the selected Clang/C++ drivers on `PATH`.
+Before running the unit suite, also expose the installed `rust-lld` as
+`ld.lld` and the locked `qemu-aarch64-static` as `qemu-aarch64` on `PATH`.
+The full workflow creates job-local aliases and exports the verification
+environment before either complete qualification. Installing Lean/QEMU alone
+does not make their executables discoverable by subsequent steps; see
+[the environment setup and its checks](CI_NATIVE_PREREQUISITES.md).
 The owned LLVM profile requires a native Clang 20+ Linux x86-64 driver.
 The full-gate CI workflow explicitly installs LLVM 20 from LLVM's signed
 Noble repository, verifies its published signing-key fingerprint and selects
