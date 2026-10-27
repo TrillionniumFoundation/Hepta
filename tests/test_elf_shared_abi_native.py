@@ -103,7 +103,7 @@ class SharedELFTests(unittest.TestCase):
         # Reparse actual Clang-produced PT_LOAD/PT_GNU_STACK headers. Dynamic
         # exports and section inventory are deliberately left unchanged: an
         # ABI symbol match must not authorize RWX code/data or an exec stack.
-        data = self.compile('int foo(int x) {return x+7;}\\n', 'wx-policy.so')
+        data = self.compile('int foo(int x) {return x+7;}\n', 'wx-policy.so')
         good = inspect_owned_shared_elf(data, ('foo',))
         self.assertEqual(good['dynamic_exports'], ['foo'])
         phoff, nph = _u(data, 32, 8), _u(data, 56, 2)
@@ -141,7 +141,7 @@ class SharedELFTests(unittest.TestCase):
         # RPATH/RUNPATH/auditing/filtering or text-relocation authority.
         # Mutate only one actual PT_DYNAMIC tag; preserve all other
         # sections/exports from a real Clang shared library.
-        data = self.compile('int foo(int x) {return x+7;}\\n', 'loader-tags.so')
+        data = self.compile('int foo(int x) {return x+7;}\n', 'loader-tags.so')
         self.assertEqual(inspect_owned_shared_elf(data, ('foo',))['dynamic_exports'], ['foo'])
         phoff, nph = _u(data, 32, 8), _u(data, 56, 2)
         dynamic = None

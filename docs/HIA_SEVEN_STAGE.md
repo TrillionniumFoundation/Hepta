@@ -14,7 +14,7 @@ call absent from the interpreter's resource ledger.
 
 | Stage | Integrated implementation and executable evidence | Remaining obligation before the complete goal can pass |
 | --- | --- | --- |
-| 1. Semantics and format | Shared `hia_schema` registry; distinct nominal namespace; primitive v1–v6 grammar rules; explicit legacy adapter; normalization, loading, editing, interpretation and native code use reverified Core | New frontends/backends must use the same registry and cannot infer a grammar from conflicting legacy fields |
+| 1. Semantics and format | Shared `hia_schema` registry; distinct nominal namespace; primitive v1–v7 grammar rules; explicit legacy adapter; normalization, loading, editing, interpretation and native code use reverified Core | New frontends/backends must use the same registry and cannot infer a grammar from conflicting legacy fields |
 | 2. Resource composition | Generic products/enums, local stored/reborrowed loans, direct record-field borrowing, fallible allocation and cooperative cancellation compose with bulk/move/swap/offset/range memory operations; v7 adds dynamically allocated recursive buffer chains and composite v2 composition | General recursive heap ADTs/trees, escaping stored borrows, general asynchronous scheduling and channels remain unsupported |
 | 3. Source/Core/machine correspondence | Source adapters feed independent Core admission; native/interpreter controls cover scalar, control, ownership and failure paths; a selected actual Core program has a separate Lean operational model and checked universal arithmetic property | The selected theorem does not prove the Python exporter, every verifier rule, LLVM refinement or whole-compiler soundness |
 | 4. C migration | Complete compilation-database partitions; every active declaration has a disposition; finite standalone HIA modules plus unchanged upstream Ring-Buffer and an independent caller TU through contracted safe Hepta/Rust migration | Arbitrary C, unlisted macro configurations, inferred resource contracts and migration labor cost are unqualified; record-view migration is not standalone HIA lowering |
@@ -55,6 +55,18 @@ artifacts cannot change the source snapshot. The Rust shadow supports only
 primitive v1..v6 and does not grant native admission; v7 is explicitly rejected.
 The old static budget analyzer also rejects v7 instead of counting a dynamic
 chain destructor as one constant-time/free event.
+
+Run the full Linux native-isolation suite with a native Linux Python exposing
+`fcntl.F_ADD_SEALS`, `F_GET_SEALS`, `F_SEAL_WRITE`, `F_SEAL_GROW`,
+`F_SEAL_SHRINK` and `F_SEAL_SEAL`, and with actual kernel memfd sealing support.
+The Python version number alone does not establish those capabilities: a
+portable Python 3.12.14 build in the first round-2 run lacked all six constants,
+whereas the selected native `/usr/bin/python3` 3.12.3 exposes them. The pinned
+artifact loader continues to fail closed when sealing is unavailable. Do not
+remove its seal verification or skip the native-isolation tests to obtain a
+passing run. The qualification plan records the selected Python executable in
+every Python command; retained host probes record its bytes, version and actual
+write/grow/shrink rejection by the kernel.
 
 The earlier separately frozen experiments remain documented in
 `experiments/hia_edit_study_20261026/README.md`. The new atomic maintenance plan is
