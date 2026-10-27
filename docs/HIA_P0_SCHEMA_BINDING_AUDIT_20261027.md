@@ -80,3 +80,29 @@ An independent local AST model passed four selected controls. The exact
 full-Hepta parser, Cargo/native tests and complete source checkout have
 NOT been executed in this container. No P0–P7 production gate was
 implicitly promoted: `whole_project_blockers_closed=false`.
+
+
+## Follow-up P0: pinned-descriptor source reading on v7 convergence
+
+- Parent: PR #286 exact `c6c38cccf57e62c76cbad1ad64323b99c0dd56c2`. Donor: PR #287 exact `a8762b6f67dce9ae2ac5a7da1963cb307909c1cb`.
+- Review confirmed the existing v7 recipient retains alias-sensitive reflection
+  refusal and strict inventory comparison. The donor descriptor-backed `_read`
+  implementation is integrated without replacing these protections.
+- Source reading now requires `O_NOFOLLOW`, opens a single bounded ordinary
+  file descriptor, and checks `lstat`/descriptor `fstat` identity both before
+  and after consumption. A final path read never follows a substituted symlink.
+- Two unchanged donor regression methods exercise positive no-reopen/symlink
+  refusal and an inode swap between initial stat and descriptor open. All
+  existing alias rebinding / duplicate schema negative controls are preserved.
+- Exact new branch regression plan:
+
+```sh
+python -m unittest tests.test_hia_schema_collision tests.test_hia_schema_binding_audit -v
+python -m unittest tests.test_hia_schema_unification tests.test_hia_core_upgrade -v
+```
+
+**Evidence limit:** SHA/Blob review and committed regression construction are
+not full in-checkout execution of those tests; Cargo/native/GPU/hardware and
+whole P0–P7 qualification remain OPEN. A pinned regular file is not a proof
+of the compiler/runtime or a defense against all malicious same-user writes.
+`whole_project_blockers_closed=false`.
