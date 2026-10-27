@@ -1,0 +1,186 @@
+[
+  {
+    "name": "migration-c-matrix",
+    "qualification_sha256": "4ff77aa310587ff72199b5f80eecfdc409b59ea052c8fd04bbc575ed76cf4fa8",
+    "source_replay_checks": [
+      {
+        "index": 0,
+        "argv": [
+          "/usr/lib/llvm-20/bin/clang",
+          "-std=c17",
+          "-DPROJECT_VARIANT=1",
+          "-O2",
+          "-fPIC",
+          "-c",
+          "word.c",
+          "-o",
+          "/workspace/scratch/7e691a7ff65f/logs/migration-c-matrix/small/original-0.o"
+        ],
+        "cwd": "/workspace/scratch/7e691a7ff65f/logs/migration-c-matrix/source",
+        "exact_captured_options_source_cwd": true
+      },
+      {
+        "index": 1,
+        "argv": [
+          "/usr/lib/llvm-20/bin/clang",
+          "-std=c17",
+          "-DPROJECT_VARIANT=1",
+          "-O2",
+          "-fPIC",
+          "-c",
+          "wide.c",
+          "-o",
+          "/workspace/scratch/7e691a7ff65f/logs/migration-c-matrix/small/original-1.o"
+        ],
+        "cwd": "/workspace/scratch/7e691a7ff65f/logs/migration-c-matrix/source",
+        "exact_captured_options_source_cwd": true
+      },
+      {
+        "index": 2,
+        "argv": [
+          "/usr/lib/llvm-20/bin/clang",
+          "-std=c17",
+          "-DPROJECT_VARIANT=2",
+          "-O2",
+          "-fPIC",
+          "-c",
+          "word.c",
+          "-o",
+          "/workspace/scratch/7e691a7ff65f/logs/migration-c-matrix/large/original-2.o"
+        ],
+        "cwd": "/workspace/scratch/7e691a7ff65f/logs/migration-c-matrix/source",
+        "exact_captured_options_source_cwd": true
+      },
+      {
+        "index": 3,
+        "argv": [
+          "/usr/lib/llvm-20/bin/clang",
+          "-std=c17",
+          "-DPROJECT_VARIANT=2",
+          "-O2",
+          "-fPIC",
+          "-c",
+          "wide.c",
+          "-o",
+          "/workspace/scratch/7e691a7ff65f/logs/migration-c-matrix/large/original-3.o"
+        ],
+        "cwd": "/workspace/scratch/7e691a7ff65f/logs/migration-c-matrix/source",
+        "exact_captured_options_source_cwd": true
+      }
+    ],
+    "native_result_executions": 816,
+    "status": "finite_c_scalar_build_matrix_native_qualified"
+  },
+  {
+    "name": "migration-cpp-matrix",
+    "qualification_sha256": "3b38137d9ae18a3509fb279fb480c694cd48f61025f841194ce056797cc6eef3",
+    "source_replay_checks": [
+      {
+        "index": 0,
+        "argv": [
+          "/usr/lib/llvm-20/bin/clang",
+          "-std=c++20",
+          "-DPROJECT_VARIANT=1",
+          "-O2",
+          "-fPIC",
+          "-c",
+          "word.cpp",
+          "-o",
+          "/workspace/scratch/7e691a7ff65f/logs/migration-cpp-matrix/small/original-0.o"
+        ],
+        "cwd": "/workspace/scratch/7e691a7ff65f/logs/migration-cpp-matrix/source",
+        "exact_captured_options_source_cwd": true
+      },
+      {
+        "index": 1,
+        "argv": [
+          "/usr/lib/llvm-20/bin/clang",
+          "-std=c++20",
+          "-DPROJECT_VARIANT=1",
+          "-O2",
+          "-fPIC",
+          "-c",
+          "wide.cpp",
+          "-o",
+          "/workspace/scratch/7e691a7ff65f/logs/migration-cpp-matrix/small/original-1.o"
+        ],
+        "cwd": "/workspace/scratch/7e691a7ff65f/logs/migration-cpp-matrix/source",
+        "exact_captured_options_source_cwd": true
+      },
+      {
+        "index": 2,
+        "argv": [
+          "/usr/lib/llvm-20/bin/clang",
+          "-std=c++20",
+          "-DPROJECT_VARIANT=2",
+          "-O2",
+          "-fPIC",
+          "-c",
+          "word.cpp",
+          "-o",
+          "/workspace/scratch/7e691a7ff65f/logs/migration-cpp-matrix/large/original-2.o"
+        ],
+        "cwd": "/workspace/scratch/7e691a7ff65f/logs/migration-cpp-matrix/source",
+        "exact_captured_options_source_cwd": true
+      },
+      {
+        "index": 3,
+        "argv": [
+          "/usr/lib/llvm-20/bin/clang",
+          "-std=c++20",
+          "-DPROJECT_VARIANT=2",
+          "-O2",
+          "-fPIC",
+          "-c",
+          "wide.cpp",
+          "-o",
+          "/workspace/scratch/7e691a7ff65f/logs/migration-cpp-matrix/large/original-3.o"
+        ],
+        "cwd": "/workspace/scratch/7e691a7ff65f/logs/migration-cpp-matrix/source",
+        "exact_captured_options_source_cwd": true
+      }
+    ],
+    "native_result_executions": 816,
+    "status": "finite_cpp_build_matrix_native_qualified"
+  },
+  {
+    "name": "migration-cpp-project",
+    "qualification_sha256": "d19e71d6d70fcadb41fa0bd698924ae5b94c5f116fb81cc285d210397f764cdb",
+    "source_replay_checks": [
+      {
+        "index": 0,
+        "argv": [
+          "/usr/lib/llvm-20/bin/clang",
+          "-std=c++20",
+          "-DPROJECT_BIAS=19",
+          "-O2",
+          "-fPIC",
+          "-c",
+          "word.cpp",
+          "-o",
+          "/workspace/scratch/7e691a7ff65f/logs/migration-cpp-project/original-0.o"
+        ],
+        "cwd": "/workspace/scratch/7e691a7ff65f/logs/migration-cpp-project/source",
+        "exact_captured_options_source_cwd": true
+      },
+      {
+        "index": 1,
+        "argv": [
+          "/usr/lib/llvm-20/bin/clang",
+          "-std=c++20",
+          "-DPROJECT_BIAS=19",
+          "-O2",
+          "-fPIC",
+          "-c",
+          "wide.cpp",
+          "-o",
+          "/workspace/scratch/7e691a7ff65f/logs/migration-cpp-project/original-1.o"
+        ],
+        "cwd": "/workspace/scratch/7e691a7ff65f/logs/migration-cpp-project/source",
+        "exact_captured_options_source_cwd": true
+      }
+    ],
+    "native_result_executions": 454,
+    "status": "finite_cpp_template_native_qualification_passed"
+  }
+]

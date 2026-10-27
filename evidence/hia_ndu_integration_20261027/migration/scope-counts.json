@@ -1,0 +1,377 @@
+{
+  "aggregates": {
+    "active_declaration_rows_across_variants": 144,
+    "converted_concrete_function_rows_across_variants": 29,
+    "listed_compilation_commands": 10,
+    "native_result_executions": 2086,
+    "selected_input_cases_across_variants": 1043
+  },
+  "code_commit": "34c5526ff87ec1208a88f8c86c806fde39505737",
+  "five_capture_counterexamples": {
+    "after_report": {
+      "path": "/workspace/scratch/7e691a7ff65f/evidence-staging/p5/migration-capture-after.json",
+      "sha256": "94d44e71abb7d18fd74e1c0ebdb5e3901fde176d6b0f3171c16847c6de9dae2f"
+    },
+    "before_report": {
+      "path": "/workspace/scratch/7e691a7ff65f/evidence-staging/p5/migration-capture-before.json",
+      "sha256": "bd3d4ba687de8ae1985c0f5033a5f50c380fb411a35e9d45af4f99439ac0cab8"
+    },
+    "cases": [
+      {
+        "after_equal": true,
+        "after_interpreter": 8,
+        "after_native": 8,
+        "before_equal": false,
+        "before_interpreter": 9,
+        "before_native": 9,
+        "language": "c",
+        "name": "optimization",
+        "original_result": 8
+      },
+      {
+        "after_equal": true,
+        "after_interpreter": 9,
+        "after_native": 9,
+        "before_equal": false,
+        "before_interpreter": 8,
+        "before_native": 8,
+        "language": "c",
+        "name": "pedantic_builtin",
+        "original_result": 9
+      },
+      {
+        "after_equal": true,
+        "after_interpreter": 9,
+        "after_native": 9,
+        "before_equal": false,
+        "before_interpreter": 8,
+        "before_native": 8,
+        "language": "c",
+        "name": "file_include",
+        "original_result": 9
+      },
+      {
+        "after_equal": true,
+        "after_interpreter": 9,
+        "after_native": 9,
+        "before_equal": false,
+        "before_interpreter": 8,
+        "before_native": 8,
+        "language": "c",
+        "name": "source_symlink",
+        "original_result": 9
+      },
+      {
+        "after_equal": true,
+        "after_interpreter": 41,
+        "after_native": 41,
+        "before_equal": false,
+        "before_interpreter": 157,
+        "before_native": 157,
+        "language": "c++",
+        "name": "template_file_identity",
+        "original_result": 41
+      }
+    ]
+  },
+  "interpretation": [
+    "Command accounting is limited to the listed fixture builds; it does not cover unlisted preprocessor configurations, platforms or arbitrary projects.",
+    "Active declaration rows include repeated header declarations per translation unit, prototypes, namespaces, linkage containers and template metadata; 13/70 is not a C++ conversion rate.",
+    "Converted function rows include concrete template instances and separate macro configurations; aggregate rows are not a count of unique production functions.",
+    "All three targets execute translated HIA bodies without original C/C++ implementation objects. They do not exercise a native C++ library bridge or establish an industrial converted/bridged ratio.",
+    "2086 is 1043 selected result cases times two native implementations, not 2086 migration inputs or modules.",
+    "The 5 before/after counterexamples are a separate focused compiler-capture semantic regression corpus, not additional production-module migration measurements.",
+    "These are real captured builds and native executions of repository examples; no third-party real-world module migration is demonstrated by these three reports.",
+    "Human review, contract recovery, maintenance cost and representative project bridge/convert/reject distribution remain unmeasured by this evidence."
+  ],
+  "mode": "read_only_report_and_source_inspection_no_tests_rerun",
+  "p5_acceptance_complete": false,
+  "reports": [
+    {
+      "broad_conversion_or_bridge_ratio": null,
+      "build_variants": 2,
+      "corpus": "migration-c-matrix",
+      "corpus_kind": "repository_curated_small_source_fixture_with_actual_compilation_and_execution",
+      "cost_observations": null,
+      "declaration_inventory_by_variant": [
+        {
+          "active_project_declaration_rows": 9,
+          "converted_concrete_function_rows": 3,
+          "declaration_rows": 19,
+          "disposition_counts": {
+            "function_converted": 3,
+            "prototype_resolved": 6,
+            "system_or_compiler_declaration": 10
+          },
+          "original_language_implementation_linked_into_target": false,
+          "target_link_argv": [
+            "/usr/lib/llvm-20/bin/clang",
+            "-shared",
+            "-fPIC",
+            "/workspace/scratch/7e691a7ff65f/logs/migration-c-matrix/small/program.o",
+            "-o",
+            "/workspace/scratch/7e691a7ff65f/logs/migration-c-matrix/small/target.so"
+          ],
+          "target_undefined_symbols": [],
+          "unique_converted_hia_functions": 3,
+          "unresolved_or_rejected_rows": 0,
+          "variant": "small"
+        },
+        {
+          "active_project_declaration_rows": 9,
+          "converted_concrete_function_rows": 3,
+          "declaration_rows": 19,
+          "disposition_counts": {
+            "function_converted": 3,
+            "prototype_resolved": 6,
+            "system_or_compiler_declaration": 10
+          },
+          "original_language_implementation_linked_into_target": false,
+          "target_link_argv": [
+            "/usr/lib/llvm-20/bin/clang",
+            "-shared",
+            "-fPIC",
+            "/workspace/scratch/7e691a7ff65f/logs/migration-c-matrix/large/program.o",
+            "-o",
+            "/workspace/scratch/7e691a7ff65f/logs/migration-c-matrix/large/target.so"
+          ],
+          "target_undefined_symbols": [],
+          "unique_converted_hia_functions": 3,
+          "unresolved_or_rejected_rows": 0,
+          "variant": "large"
+        }
+      ],
+      "distinct_source_units": 2,
+      "fixture_files_match_capture": [
+        {
+          "fixture_file": "examples/c/project_variants/model.h",
+          "matches_captured_dependency": true
+        },
+        {
+          "fixture_file": "examples/c/project_variants/wide.c",
+          "matches_captured_dependency": true
+        },
+        {
+          "fixture_file": "examples/c/project_variants/word.c",
+          "matches_captured_dependency": true
+        }
+      ],
+      "fixture_root": "examples/c/project_variants",
+      "listed_commands_accounted_for": 4,
+      "listed_compilation_commands": 4,
+      "native_cpp_bridge_path_exercised": false,
+      "native_result_execution_meaning": "each selected test case observed once in the original-language reference and once in standalone HIA",
+      "native_result_executions": 816,
+      "negative_controls": 5,
+      "qualification_implementation": {
+        "path": "/workspace/scratch/7e691a7ff65f/hepta/tools/qualify_c_project_matrix.py",
+        "sha256": "30eb35574224bf18b0ab262fbda30ee747b9f7a247f8eca64fa31ab34621bf56"
+      },
+      "report": {
+        "path": "/workspace/scratch/7e691a7ff65f/evidence-staging/p5/migration-c-matrix/qualification.json",
+        "sha256": "4ff77aa310587ff72199b5f80eecfdc409b59ea052c8fd04bbc575ed76cf4fa8"
+      },
+      "scope_claims": {
+        "all_four_c_compilation_commands_accounted_for": true,
+        "arbitrary_c_supported": false,
+        "original_c_defined_symbols_match_hia": true,
+        "original_c_implementation_in_target": false,
+        "resource_contracts_qualified": false,
+        "scalar_c_export_names_preserved_and_executed": true,
+        "source_equivalence_proved": false,
+        "two_complete_c_macro_configurations_executed": true,
+        "unlisted_configurations_qualified": false
+      },
+      "selected_input_cases_across_variants": 408,
+      "third_party_production_module": false
+    },
+    {
+      "broad_conversion_or_bridge_ratio": null,
+      "build_variants": 2,
+      "corpus": "migration-cpp-matrix",
+      "corpus_kind": "repository_curated_small_source_fixture_with_actual_compilation_and_execution",
+      "cost_observations": null,
+      "declaration_inventory_by_variant": [
+        {
+          "active_project_declaration_rows": 28,
+          "converted_concrete_function_rows": 5,
+          "declaration_rows": 38,
+          "disposition_counts": {
+            "function_converted": 5,
+            "language_linkage_inventory_expanded": 9,
+            "prototype_resolved": 6,
+            "system_or_compiler_declaration": 10,
+            "template_parameter_bound_in_concrete_instances": 4,
+            "template_pattern_specialized": 4
+          },
+          "original_language_implementation_linked_into_target": false,
+          "target_link_argv": [
+            "/usr/lib/llvm-20/bin/clang",
+            "-shared",
+            "-fPIC",
+            "/workspace/scratch/7e691a7ff65f/logs/migration-cpp-matrix/small/program.o",
+            "-o",
+            "/workspace/scratch/7e691a7ff65f/logs/migration-cpp-matrix/small/target.so"
+          ],
+          "target_undefined_symbols": [],
+          "unique_converted_hia_functions": 5,
+          "unresolved_or_rejected_rows": 0,
+          "variant": "small"
+        },
+        {
+          "active_project_declaration_rows": 28,
+          "converted_concrete_function_rows": 5,
+          "declaration_rows": 38,
+          "disposition_counts": {
+            "function_converted": 5,
+            "language_linkage_inventory_expanded": 9,
+            "prototype_resolved": 6,
+            "system_or_compiler_declaration": 10,
+            "template_parameter_bound_in_concrete_instances": 4,
+            "template_pattern_specialized": 4
+          },
+          "original_language_implementation_linked_into_target": false,
+          "target_link_argv": [
+            "/usr/lib/llvm-20/bin/clang",
+            "-shared",
+            "-fPIC",
+            "/workspace/scratch/7e691a7ff65f/logs/migration-cpp-matrix/large/program.o",
+            "-o",
+            "/workspace/scratch/7e691a7ff65f/logs/migration-cpp-matrix/large/target.so"
+          ],
+          "target_undefined_symbols": [],
+          "unique_converted_hia_functions": 5,
+          "unresolved_or_rejected_rows": 0,
+          "variant": "large"
+        }
+      ],
+      "distinct_source_units": 2,
+      "fixture_files_match_capture": [
+        {
+          "fixture_file": "examples/cpp/project_variants/model.hpp",
+          "matches_captured_dependency": true
+        },
+        {
+          "fixture_file": "examples/cpp/project_variants/wide.cpp",
+          "matches_captured_dependency": true
+        },
+        {
+          "fixture_file": "examples/cpp/project_variants/word.cpp",
+          "matches_captured_dependency": true
+        }
+      ],
+      "fixture_root": "examples/cpp/project_variants",
+      "listed_commands_accounted_for": 4,
+      "listed_compilation_commands": 4,
+      "native_cpp_bridge_path_exercised": false,
+      "native_result_execution_meaning": "each selected test case observed once in the original-language reference and once in standalone HIA",
+      "native_result_executions": 816,
+      "negative_controls": 5,
+      "qualification_implementation": {
+        "path": "/workspace/scratch/7e691a7ff65f/hepta/tools/qualify_cpp_project_matrix.py",
+        "sha256": "8915cb839f1b91ebc91fefbc4a503dc99a1b0c754586b1268e1c30c7be95dcf5"
+      },
+      "report": {
+        "path": "/workspace/scratch/7e691a7ff65f/evidence-staging/p5/migration-cpp-matrix/qualification.json",
+        "sha256": "3b38137d9ae18a3509fb279fb480c694cd48f61025f841194ce056797cc6eef3"
+      },
+      "scope_claims": {
+        "all_four_compilation_commands_accounted_for": true,
+        "arbitrary_cpp_or_lifecycle_qualified": false,
+        "original_cpp_implementation_in_target": false,
+        "separate_variant_semantics_observed": true,
+        "source_equivalence_proved": false,
+        "two_complete_macro_configurations_executed": true,
+        "unlisted_configurations_qualified": false
+      },
+      "selected_input_cases_across_variants": 408,
+      "third_party_production_module": false
+    },
+    {
+      "broad_conversion_or_bridge_ratio": null,
+      "build_variants": 1,
+      "corpus": "migration-cpp-project",
+      "corpus_kind": "repository_curated_small_source_fixture_with_actual_compilation_and_execution",
+      "cost_observations": {
+        "generated_hepta_bytes": 3695,
+        "generated_hia_bytes": 14852,
+        "human_review_or_maintenance_cost_measured": false,
+        "original_project_bytes": 2538,
+        "translation_wall_seconds": 6.434685280997655
+      },
+      "declaration_inventory_by_variant": [
+        {
+          "active_project_declaration_rows": 70,
+          "converted_concrete_function_rows": 13,
+          "declaration_rows": 80,
+          "disposition_counts": {
+            "function_converted": 13,
+            "language_linkage_inventory_expanded": 21,
+            "namespace_inventory_expanded": 4,
+            "prototype_resolved": 18,
+            "system_or_compiler_declaration": 10,
+            "template_parameter_bound_in_concrete_instances": 6,
+            "template_pattern_specialized": 8
+          },
+          "original_language_implementation_linked_into_target": false,
+          "target_link_argv": [
+            "/usr/lib/llvm-20/bin/clang",
+            "-shared",
+            "-fPIC",
+            "/workspace/scratch/7e691a7ff65f/logs/migration-cpp-project/program.o",
+            "-o",
+            "/workspace/scratch/7e691a7ff65f/logs/migration-cpp-project/target.so"
+          ],
+          "target_undefined_symbols": [
+            "abort"
+          ],
+          "unique_converted_hia_functions": 13,
+          "unresolved_or_rejected_rows": 0,
+          "variant": "single"
+        }
+      ],
+      "distinct_source_units": 2,
+      "fixture_files_match_capture": [
+        {
+          "fixture_file": "examples/cpp/project_templates/generic.hpp",
+          "matches_captured_dependency": true
+        },
+        {
+          "fixture_file": "examples/cpp/project_templates/wide.cpp",
+          "matches_captured_dependency": true
+        },
+        {
+          "fixture_file": "examples/cpp/project_templates/word.cpp",
+          "matches_captured_dependency": true
+        }
+      ],
+      "fixture_root": "examples/cpp/project_templates",
+      "listed_commands_accounted_for": 2,
+      "listed_compilation_commands": 2,
+      "native_cpp_bridge_path_exercised": false,
+      "native_result_execution_meaning": "each selected test case observed once in the original-language reference and once in standalone HIA",
+      "native_result_executions": 454,
+      "negative_controls": 1,
+      "qualification_implementation": {
+        "path": "/workspace/scratch/7e691a7ff65f/hepta/tools/qualify_cpp_project_hia.py",
+        "sha256": "873211bcd18c6a32dbac29e0f80afdbcc4642786ecdca5e4dc9c44e9bbfd01e1"
+      },
+      "report": {
+        "path": "/workspace/scratch/7e691a7ff65f/evidence-staging/p5/migration-cpp-project/qualification.json",
+        "sha256": "d19e71d6d70fcadb41fa0bd698924ae5b94c5f116fb81cc285d210397f764cdb"
+      },
+      "scope_claims": {
+        "arbitrary_templates_stl_raii_qualified": false,
+        "cpp_class_or_mangled_abi_preserved": false,
+        "finite_template_body_migration_qualified": true,
+        "independent_total_development_cost_improvement_proved": false,
+        "original_cpp_implementation_in_target": false,
+        "scalar_c_abi_executed": true,
+        "source_equivalence_proved": false
+      },
+      "selected_input_cases_across_variants": 227,
+      "third_party_production_module": false
+    }
+  ],
+  "schema": "hepta.p5-finite-denominator-audit.v1"
+}

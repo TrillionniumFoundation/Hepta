@@ -109,7 +109,9 @@ The policy requires all of the following before the candidate is marked
 feasible for NDU:
 
 1. Exact candidate reproduction, Core verification and finite semantic checks.
-2. Actual native results matching both interpreters on every timing input.
+2. Actual native results matching the Python VM run for each corresponding
+   Core on every timing input. Both runs use the same Python implementation;
+   this path does not dynamically execute the swap candidate in the Rust VM.
 3. Baseline and candidate median absolute deviation (MAD) at most 5% of each
    median, or a tighter declared threshold.
 4. A positive paired median saving exceeding three paired-saving MADs and
@@ -131,6 +133,12 @@ calling them sunk. If the actual remaining decision work exceeds the reserve,
 the host keeps no-change even if NDU advised the candidate. Both projected and
 actually paid costs remain in the report, including unsuccessful searches.
 
+`costs.total_paid_wall_ns` measures the work inside `qualify()`. The CLI's
+initial reads and prevalidation, Python startup, and final report serialization
+are outside that interval. An enclosing runner must also record the complete
+CLI process wall time when reporting the observed command cost. Neither
+interval represents the entire project's development and maintenance cost.
+
 `maximum_search_ns` is a cost **admission ceiling**, not a preemptive deadline
 for the whole Python call. Already-exhausted searches stop before native
 measurement; running native subprocesses have individual timeouts. A slow
@@ -151,9 +159,13 @@ The plan binds the baseline Core, registered pass, export, objective and
 generation. Each contribution binds candidate Core SHA-256, native artifact
 SHA-256 and an evidence digest covering validation, raw measurement and policy
 assessment. The bridge hashes those three identities into its support digest.
-The host independently checks the echoed identities and support digest,
-objective, generation, evaluator/policy/profile identities, candidate coverage
-and `DENY_ALL`. The executable is hashed before and after invocation.
+The host independently checks the echoed candidate identities, recomputes the
+support digest, and checks objective, generation, candidate coverage and
+`DENY_ALL`. For `evaluation_sha256`, `evaluation_policy_sha256` and
+`utility_profile_sha256`, the host checks nonzero lowercase SHA-256 syntax;
+it does not independently recompute those three digests or rerun the evaluator.
+Their authenticity relies on the pinned Rust evaluator and the host trusted
+computing base. The executable is hashed before and after invocation.
 
 The NDU request is an immutable serialization snapshot; subsequent edits to
 the caller's original Python object cannot relabel the saved receipt. These

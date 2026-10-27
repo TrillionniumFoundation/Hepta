@@ -1,0 +1,190 @@
+{
+  "allowed_cpus_before": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "bridge_sha256": "ada753864ff3bcf03f56fbbc6cc0884259fdf513565bbf6499e19f1c6e93d3e8",
+  "created_utc": "2026-10-27T17:42:28.630549+00:00",
+  "exclusive_cpu_ownership": false,
+  "initial_monolithic_report_retained": true,
+  "initial_monolithic_suite_ok": false,
+  "jobs": [
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/qualify_hia_ndu.py",
+        "--program",
+        "examples/hia_ndu/byte_swap.json",
+        "--cases",
+        "examples/hia_ndu/byte_swap_cases.json",
+        "--negative-cases",
+        "/workspace/scratch/7e691a7ff65f/validation-final-performance/negative-cases.json",
+        "--entry",
+        "swap_candidate",
+        "--bridge",
+        "/workspace/scratch/7e691a7ff65f/hepta/rust/hia-ndu-bridge/target/release/hia-ndu-bridge",
+        "--bridge-sha256",
+        "ada753864ff3bcf03f56fbbc6cc0884259fdf513565bbf6499e19f1c6e93d3e8",
+        "--clang",
+        "/usr/bin/clang-20",
+        "--samples",
+        "31",
+        "--iterations",
+        "10000",
+        "--horizon-calls",
+        "100000000",
+        "--output",
+        "/workspace/scratch/7e691a7ff65f/validation-final-performance/ndu-pair-1.json"
+      ],
+      "name": "ndu-pair-1",
+      "timeout": 180
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/qualify_hia_ndu.py",
+        "--program",
+        "examples/hia_ndu/byte_swap.json",
+        "--cases",
+        "examples/hia_ndu/byte_swap_cases.json",
+        "--negative-cases",
+        "/workspace/scratch/7e691a7ff65f/validation-final-performance/negative-cases.json",
+        "--entry",
+        "swap_candidate",
+        "--bridge",
+        "/workspace/scratch/7e691a7ff65f/hepta/rust/hia-ndu-bridge/target/release/hia-ndu-bridge",
+        "--bridge-sha256",
+        "ada753864ff3bcf03f56fbbc6cc0884259fdf513565bbf6499e19f1c6e93d3e8",
+        "--clang",
+        "/usr/bin/clang-20",
+        "--samples",
+        "31",
+        "--iterations",
+        "10000",
+        "--horizon-calls",
+        "100000000",
+        "--output",
+        "/workspace/scratch/7e691a7ff65f/validation-final-performance/ndu-pair-2.json"
+      ],
+      "name": "ndu-pair-2",
+      "timeout": 180
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/qualify_hia_program_perf.py",
+        "--clang",
+        "/usr/bin/clang-20",
+        "--rustc",
+        "/workspace/scratch/7e691a7ff65f/toolchains/rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/rustc",
+        "--output",
+        "/workspace/scratch/7e691a7ff65f/validation-final-performance/rust-comparison.json",
+        "--artifact-directory",
+        "/workspace/scratch/7e691a7ff65f/validation-final-performance/rust-comparison-artifacts"
+      ],
+      "name": "rust-comparison",
+      "timeout": 1800
+    }
+  ],
+  "ndu_build_provenance_sha256": "544c8f7df87322a5e395d5d5c0b45699c9e275e2bf1159aa54016425badb2588",
+  "ndu_observation_count": 2,
+  "prior_suite_complete": true,
+  "prior_suite_ok": false,
+  "prior_suite_path": "/workspace/scratch/7e691a7ff65f/validation-partitioned-suite/summary.json",
+  "prior_suite_sha256": "1267e033128b87d0a01ff8f8001563e63517b3fca3a217a0f488c97b5e522528",
+  "retries_or_selection_of_best_run": false,
+  "runner_sha256": "8f75ca6045dbb00b0ae721ea9b2a96e9119698cabf2e911b43f7327d4271f501",
+  "schema": "hepta.local-fixed-performance-plan.v1",
+  "selected_cpu": 0,
+  "serial_rechecks_ok": true,
+  "serial_rechecks_path": "/workspace/scratch/7e691a7ff65f/validation-final-rechecks/summary.json",
+  "serial_rechecks_process_completion_sha256": "8ba1f79e1d0a462022b69e99186544a99069ee7dcbee0e1415600e6424bf528c",
+  "serial_rechecks_replace_prior_failures": false,
+  "serial_rechecks_sha256": "afe637b39fd12bd25a363ced9a0097646b50acff263f69d54b88fb3ec165ecbd",
+  "serial_rechecks_target_installation": {
+    "added_components": [
+      "rust-std-thumbv7em-none-eabi"
+    ],
+    "archive_members": 22,
+    "compiler_after": {
+      "available": true,
+      "bytes": 656496,
+      "resolved_path": "/workspace/scratch/7e691a7ff65f/toolchains/rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/rustc",
+      "selected_path": "/workspace/scratch/7e691a7ff65f/toolchains/rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/rustc",
+      "sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa"
+    },
+    "compiler_before": {
+      "available": true,
+      "bytes": 656496,
+      "resolved_path": "/workspace/scratch/7e691a7ff65f/toolchains/rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/rustc",
+      "selected_path": "/workspace/scratch/7e691a7ff65f/toolchains/rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/rustc",
+      "sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa"
+    },
+    "compiler_unchanged": true,
+    "components_after": [
+      "cargo-x86_64-unknown-linux-gnu",
+      "rust-std-x86_64-unknown-linux-gnu",
+      "rustc-x86_64-unknown-linux-gnu",
+      "rust-std-thumbv7em-none-eabi"
+    ],
+    "components_before": [
+      "cargo-x86_64-unknown-linux-gnu",
+      "rust-std-x86_64-unknown-linux-gnu",
+      "rustc-x86_64-unknown-linux-gnu"
+    ],
+    "disk_after": {
+      "free": 346673152,
+      "total": 33770192896,
+      "used": 31688757248
+    },
+    "disk_before": {
+      "free": 406183936,
+      "total": 33770192896,
+      "used": 31629246464
+    },
+    "download_bytes": 12193580,
+    "download_matches_lock": true,
+    "download_seconds": 0.46718780199444154,
+    "download_sha256": "dde6d6e27729cddaaffc6b4b70ce947cd9ed19c2ec443c99d3157a3be24dee13",
+    "host_native_std_after_sha256": "0be5ae7adc53578fe540a3d384d219fafb3a2c71cdf9d94780810aae2b3949b6",
+    "host_native_std_before_sha256": "0be5ae7adc53578fe540a3d384d219fafb3a2c71cdf9d94780810aae2b3949b6",
+    "host_native_std_unchanged": true,
+    "install_argv": [
+      "sh",
+      "/workspace/scratch/7e691a7ff65f/locked-thumb-install-7qi0sxsv/rust-std-1.90.0-thumbv7em-none-eabi/install.sh",
+      "--prefix=/workspace/scratch/7e691a7ff65f/toolchains/rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu",
+      "--disable-ldconfig"
+    ],
+    "install_returncode": 0,
+    "install_seconds": 0.7790444920028676,
+    "lock": {
+      "package": "rust-std-1.90.0-thumbv7em-none-eabi",
+      "sha256": "dde6d6e27729cddaaffc6b4b70ce947cd9ed19c2ec443c99d3157a3be24dee13",
+      "url": "https://static.rust-lang.org/dist/rust-std-1.90.0-thumbv7em-none-eabi.tar.xz"
+    },
+    "lock_file": {
+      "available": true,
+      "bytes": 1449,
+      "resolved_path": "/workspace/scratch/7e691a7ff65f/hepta/toolchain-lock.json",
+      "selected_path": "/workspace/scratch/7e691a7ff65f/hepta/toolchain-lock.json",
+      "sha256": "54898c22a15c4f66ef5e4f8829e18d33ff637dc14635edca1a46eafd78bb485b"
+    },
+    "removed_components": [],
+    "sysroot": "/workspace/scratch/7e691a7ff65f/toolchains/rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu",
+    "target_std_file_count": 3,
+    "target_std_sha256": "7d7751829acbe9a641f7096400114406619f8714f5cb3bfaadc1a63e880854b6",
+    "temporary_download_removed": true,
+    "unpacked_regular_bytes": 59341751
+  },
+  "source_commit": "34c5526ff87ec1208a88f8c86c806fde39505737",
+  "source_tree": "dea92ece77c21509ec1690007a237902cbb7a682",
+  "strict_rust_comparison_count": 1,
+  "thresholds_modified": false
+}
