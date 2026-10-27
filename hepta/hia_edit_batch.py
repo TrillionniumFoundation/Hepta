@@ -126,16 +126,38 @@ def apply_batch(document, query, response):
 
 
 def render_batch_context(query):
-    """Deduplicate dependency views while retaining their original SSA order."""
+    """Fail closed on malformed, untrusted batch presentation data."""
+    try:
+        return _render_batch_context_checked(query)
+    except HIAEditRejected:
+        raise
+    except (KeyError, IndexError, TypeError, AttributeError, ValueError,
+            UnicodeError, RecursionError) as exc:
+        raise HIAEditRejected("E_HIA_EDIT_BATCH: malformed batch presentation") from exc
+
+
+def _render_batch_context_checked(query):
+    """Deduplicate dependency views while retaining original SSA order."""
     query, _ = _bounded(query, MAX_QUERY_BYTES, "query")
-    if type(query) is not dict or query.get("schema") != QUERY_SCHEMA:
-        _reject("expected a prepared batch query")
+    expected = {"schema", "base_sha256", "input_sha256", "sites", "application", "scope"}
+    if type(query) is not dict or set(query) != expected or query.get("schema") != QUERY_SCHEMA:
+        _reject("expected exact prepared batch query fields")
     functions, blocks = {}, {}
-    sites = query.get("sites")
+    sites = query["sites"]
     if type(sites) is not list or not 1 <= len(sites) <= MAX_SITES:
         _reject("invalid query sites")
-    for item in sites:
+    nested_fields = {"schema", "base_sha256", "input_sha256", "selector", "fields",
+                     "operation_sha256", "context", "scope"}
+    for index, item in enumerate(sites):
+        if (type(item) is not dict or set(item) != {"site", "query"}
+                or type(item["site"]) is not int or item["site"] != index):
+            _reject("batch display sites must retain unique ordered integer identities")
         nested = item["query"]
+        if (type(nested) is not dict or set(nested) != nested_fields
+                or nested.get("schema") != "hepta.hia.edit-query.v1"):
+            _reject("invalid nested edit query presentation")
+        if type(nested["context"]) is not dict or type(nested["selector"]) is not dict:
+            _reject("invalid nested edit context/selector")
         context, selector = nested["context"], nested["selector"]
         functions[selector["function"]] = context["function"]
         key = (selector["function"], selector["block"])
