@@ -223,6 +223,17 @@ impl<'a> Machine<'a> {
                 let operands = resolve(&env, &op["args"])?;
                 let outputs = if op_name == "call" {
                     let callee = op["attrs"]["function"].as_str().ok_or(Halt::Internal)?;
+                    // Transfer owning arguments before entering the callee,
+                    // exactly as the canonical VM does. Borrowed arguments
+                    // remain live in the caller and keep their runtime root.
+                    // A trapped/budget-stopped call never fabricates cleanup.
+                    for (name, value) in op["args"].as_array().ok_or(Halt::Internal)?
+                        .iter().zip(&operands) {
+                        if matches!(value, RuntimeValue::Owner(_)) {
+                            env.remove(name.as_str().ok_or(Halt::Internal)?)
+                                .ok_or(Halt::Internal)?;
+                        }
+                    }
                     self.invoke(callee, operands, depth + 1)?
                 } else if ByteMemory::supports(op_name) {
                     self.memory.as_mut().ok_or(Halt::Internal)?.operation(op_name, &operands)?
@@ -291,7 +302,8 @@ pub fn execute_scalar(input: &[u8], function: &str, arguments: &[Value],
 }
 
 /// Opt-in finite byte-owner execution in the SAME Machine as scalar execution.
-/// One function/block, scalar entry/return and no call/branch/chain/bulk opcode.
+/// Verified CFG/loops and internal scalar/owner/loan calls share one ledger.
+/// Public entry/return remains scalar; chain and bulk opcodes are not admitted.
 /// Static ownership admission still comes from the existing verify_owned.
 pub fn execute_owned(input: &[u8], function: &str, arguments: &[Value],
                      max_steps: u64, max_heap_bytes: u64,
@@ -310,29 +322,37 @@ fn owned_execution_profile(document: &Value) -> R<()> {
     let functions = document["functions"].as_array().ok_or_else(|| super::VerifyError {
         code: "E_HIA_RUST_UNSUPPORTED", detail: "missing function inventory".into(),
     })?;
-    if functions.len() != 1 {
-        return failure("E_HIA_RUST_UNSUPPORTED", "byte-owner execution requires exactly one function");
-    }
-    let function = &functions[0];
-    for param in function["params"].as_array().unwrap() {
-        super::scalar(&param["type"])?;
-    }
-    for ty in function["returns"].as_array().unwrap() { super::scalar(ty)?; }
-    let blocks = function["blocks"].as_array().unwrap();
-    if blocks.len() != 1 || !matches!(blocks[0]["term"]["op"].as_str(), Some("ret" | "trap")) {
-        return failure("E_HIA_RUST_UNSUPPORTED", "byte-owner execution requires one terminal block");
-    }
-    for op in blocks[0]["ops"].as_array().unwrap() {
-        let opcode = op["op"].as_str().unwrap();
-        let scalar = matches!(opcode,
-            "const" | "int.add.checked" | "int.sub.checked" | "int.mul.checked" |
-            "int.add.wrap" | "int.sub.wrap" | "int.mul.wrap" | "int.div.checked" |
-            "int.rem.checked" | "int.shl.checked" | "int.shr.checked" | "int.neg.checked" |
-            "bit.and" | "bit.or" | "bit.xor" | "bit.not" | "compare.eq" | "compare.ne" |
-            "compare.lt" | "compare.le" | "compare.gt" | "compare.ge" | "bool.not" |
-            "bool.and" | "bool.or" | "int.cast" | "select");
-        if !scalar && !ByteMemory::supports(opcode) {
-            return failure("E_HIA_RUST_UNSUPPORTED", format!("byte-owner execution refuses {opcode}"));
+    // Check every function, including nonexported helpers that this execution
+    // would not call. No hidden chain signature or unsupported suffix can be
+    // laundered through an early return, failure injection, or small budget.
+    for function in functions {
+        let mut types: Vec<&Value> = function["params"].as_array().unwrap()
+            .iter().map(|p| &p["type"]).collect();
+        types.extend(function["returns"].as_array().unwrap());
+        for block in function["blocks"].as_array().unwrap() {
+            types.extend(block["params"].as_array().unwrap().iter().map(|p| &p["type"]));
+            if !matches!(block["term"]["op"].as_str(), Some("ret" | "trap" | "jump" | "branch")) {
+                return failure("E_HIA_RUST_UNSUPPORTED", "unsupported byte-owner CFG terminator");
+            }
+            for op in block["ops"].as_array().unwrap() {
+                types.extend(op["out"].as_array().unwrap().iter().map(|p| &p["type"]));
+                let opcode = op["op"].as_str().unwrap();
+                let scalar = matches!(opcode,
+                    "const" | "int.add.checked" | "int.sub.checked" | "int.mul.checked" |
+                    "int.add.wrap" | "int.sub.wrap" | "int.mul.wrap" | "int.div.checked" |
+                    "int.rem.checked" | "int.shl.checked" | "int.shr.checked" | "int.neg.checked" |
+                    "bit.and" | "bit.or" | "bit.xor" | "bit.not" | "compare.eq" | "compare.ne" |
+                    "compare.lt" | "compare.le" | "compare.gt" | "compare.ge" | "bool.not" |
+                    "bool.and" | "bool.or" | "int.cast" | "select");
+                if !scalar && opcode != "call" && !ByteMemory::supports(opcode) {
+                    return failure("E_HIA_RUST_UNSUPPORTED", format!("byte-owner execution refuses {opcode}"));
+                }
+            }
+        }
+        for ty in types {
+            if !matches!(ty.as_str(), Some("buffer" | "readbuf" | "mutbuf")) {
+                super::scalar(ty)?;
+            }
         }
     }
     Ok(())
@@ -368,6 +388,13 @@ fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
     let Some(parameters) = entry["params"].as_array() else {
         return failure("E_HIA_INPUT", "invalid entry signature");
     };
+    // Without an explicit exports list, resource helpers are still internal.
+    // Refuse resource results BEFORE running a scalar-argument constructor;
+    // a later cleanliness/result check would already have executed its effects.
+    if parameters.iter().any(|p| super::scalar(&p["type"]).is_err()) ||
+       entry["returns"].as_array().unwrap().iter().any(|ty| super::scalar(ty).is_err()) {
+        return failure("E_HIA_INPUT", "public evaluator boundary cannot carry capabilities");
+    }
     if parameters.len() != arguments.len() || parameters.iter().zip(arguments).any(|(p, v)| {
         !p["type"].as_str().is_some_and(|ty| valid_constant(ty, v))
     }) {
@@ -396,14 +423,18 @@ fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
     });
     if let Some(memory) = machine.memory.as_ref() {
         report["schema"] = json!("hepta.hia.rust-byte-owner-execution.v1");
-        report["profile"] = json!("single-block-byte-owner-v1");
+        report["profile"] = json!("bounded-cfg-byte-owner-v2");
         report["resources"] = memory.report(document["schema"] == "hepta.hia.program.v7");
         report["max_heap_bytes"] = json!(owned_policy.unwrap().0);
         report["allocation_fail_at"] = json!(owned_policy.unwrap().1);
         report["claims"] = json!({
             "finite_scalar_execution": true,
             "finite_byte_owner_execution": true,
-            "single_block_scalar_entry_only": true,
+            "single_block_scalar_entry_only": false,
+            "scalar_public_entry_and_results_only": true,
+            "verified_resource_cfg_execution": true,
+            "interprocedural_byte_owner_and_loan_execution": true,
+            "chain_and_bulk_execution": false,
             "general_resource_execution": false,
             "production_admission_authorized": false,
             "whole_language_soundness_proved": false,

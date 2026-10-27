@@ -1,6 +1,6 @@
 """Actual Rust byte-owner execution against canonical Python operations/ledgers.
 
-This finite single-block shadow is not production admission or native LLVM
+These finite single-block fixtures are not production admission or native LLVM
 qualification. Every positive source passes the Python Core verifier first.
 """
 from __future__ import annotations
@@ -15,7 +15,7 @@ from hepta.hia_program import HIAProgramRejected, verify_program
 from hepta.hia_program_runtime import (
     HIAProgramBudgetExceeded, HIAProgramTrap, execute_program,
 )
-from tests.test_hia_program import b, c, f, i, m, ret, resource_program, joined_loan_program
+from tests.test_hia_program import b, c, f, i, m, ret, resource_program
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "rust" / "hia-core-shadow" / "Cargo.toml"
@@ -205,15 +205,17 @@ class RustByteOwnerVmParity(unittest.TestCase):
         bulk["functions"][0]["blocks"][0]["ops"].insert(
             2, i("buffer.fill", ["writer", "value"]))
         variants.append((bulk, "owned", [4, 7]))
-        recursive = resource_program()
-        recursive["functions"][0]["blocks"][0]["ops"].insert(
-            1, i("call", ["n", "value"], [("recursive", "u8")], function="owned"))
-        variants.append((recursive, "owned", [4, 7]))
+        # Additional functions and resource CFG/calls are now supported by
+        # bounded-cfg-byte-owner-v2. Still reject a genuinely unsupported
+        # operation in an uncalled private helper before executing the entry.
         hidden = resource_program()
+        hidden["schema"] = "hepta.hia.program.v2"
         hidden["exports"] = ["owned"]
-        hidden["functions"].append(f("hidden", [], [], [], [b("hidden_entry", [], [], ret())]))
+        hidden["functions"].append(f("hidden", [("view", "mutbuf"), ("byte", "u8")],
+                                    [], ["write"], [
+            b("hidden_entry", [("view", "mutbuf"), ("byte", "u8")],
+              [i("buffer.fill", ["view", "byte"])], ret())]))
         variants.append((hidden, "owned", [4, 7]))
-        variants.append((joined_loan_program(), "join", [True]))
         for source, entry, args in variants:
             raw = verify_program(source).canonical_bytes
             result = self.raw_run(raw, entry, args, fail=1)

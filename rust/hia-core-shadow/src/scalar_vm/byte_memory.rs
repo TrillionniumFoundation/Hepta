@@ -10,6 +10,51 @@ struct Loan {
     mutable: bool,
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn scalar(n: u64) -> RuntimeValue { RuntimeValue::Scalar(json!(n)) }
+
+    #[test]
+    fn shared_call_alias_reads_do_not_enable_parent_writes_or_early_end() {
+        let mut memory = ByteMemory::new(8, None);
+        let owner = memory.operation("buffer.new", &[scalar(1)]).unwrap().remove(0);
+        let parent = memory.operation("borrow.mut", &[owner.clone()]).unwrap().remove(0);
+        let shared = memory.operation("borrow.read", &[parent.clone()]).unwrap().remove(0);
+        let read = memory.operation("buffer.load", &[parent.clone(), scalar(0)]).unwrap();
+        assert_eq!(read[0].scalar().unwrap(), &json!(0));
+        assert!(matches!(memory.operation("buffer.store", &[parent.clone(), scalar(0), scalar(42)]),
+                         Err(Halt::Internal)));
+        assert!(matches!(memory.operation("loan.end", &[parent.clone()]), Err(Halt::Internal)));
+        assert!(matches!(memory.operation("borrow.mut", &[shared.clone()]), Err(Halt::Internal)));
+        memory.operation("loan.end", &[shared]).unwrap();
+        memory.operation("buffer.store", &[parent.clone(), scalar(0), scalar(42)]).unwrap();
+        memory.operation("loan.end", &[parent]).unwrap();
+        memory.operation("owner.drop", &[owner]).unwrap();
+        assert!(memory.is_clean());
+    }
+
+    #[test]
+    fn mutable_child_still_suspends_parent_reads_and_writes() {
+        let mut memory = ByteMemory::new(8, None);
+        let owner = memory.operation("buffer.new", &[scalar(1)]).unwrap().remove(0);
+        let parent = memory.operation("borrow.mut", &[owner.clone()]).unwrap().remove(0);
+        let child = memory.operation("borrow.mut", &[parent.clone()]).unwrap().remove(0);
+        assert!(matches!(memory.operation("buffer.load", &[parent.clone(), scalar(0)]),
+                         Err(Halt::Internal)));
+        assert!(matches!(memory.operation("buffer.store", &[parent.clone(), scalar(0), scalar(7)]),
+                         Err(Halt::Internal)));
+        memory.operation("buffer.store", &[child.clone(), scalar(0), scalar(7)]).unwrap();
+        memory.operation("loan.end", &[child]).unwrap();
+        let read = memory.operation("buffer.load", &[parent.clone(), scalar(0)]).unwrap();
+        assert_eq!(read[0].scalar().unwrap(), &json!(7));
+        memory.operation("loan.end", &[parent]).unwrap();
+        memory.operation("owner.drop", &[owner]).unwrap();
+        assert!(memory.is_clean());
+    }
+}
+
 pub(super) struct ByteMemory {
     owners: BTreeMap<u64, Vec<u8>>,
     loans: BTreeMap<u64, Loan>,
@@ -106,7 +151,17 @@ impl ByteMemory {
     fn access(&self, value: &RuntimeValue, mutable: bool) -> Exec<u64> {
         let RuntimeValue::Loan(id) = value else { return Err(Halt::Internal); };
         let loan = self.loans.get(id).ok_or(Halt::Internal)?;
-        if (mutable && !loan.mutable) || self.child_exists(*id) { return Err(Halt::Internal); }
+        if mutable {
+            if !loan.mutable || self.child_exists(*id) { return Err(Halt::Internal); }
+        } else if self.loans.values().any(|child| child.mutable &&
+            matches!(child.parent, RuntimeValue::Loan(parent) if parent == *id)) {
+            return Err(Halt::Internal);
+        }
+        // Two read-only formal parameters may alias one caller loan. A shared
+        // reborrow through one formal must not disable reads through the other.
+        // Writes still require exclusivity. A mutable descendant must start
+        // with a mutable child: shared loans can never be upgraded to mutable.
+        // Static per-SSA suspension rules remain enforced by verify_owned.
         self.root(value)
     }
 

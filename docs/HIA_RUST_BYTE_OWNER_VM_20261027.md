@@ -9,9 +9,11 @@ programs.
 
 ## Execution boundary
 
-The input must be a primitive `hepta.hia.program.v1` through `v7` document with
-exactly one function and one basic block. Its external parameters and return
-types must be scalars, and the block must terminate with `ret` or `trap`.
+The input must be a primitive `hepta.hia.program.v1` through `v7` document.
+The v2 execution profile supports multiple functions/blocks, verified CFG
+branches and loops, and internal scalar/owner/loan calls. The selected public
+entry's parameters and return types must be scalars, including when no explicit
+export list exists. Blocks use `jump`, `branch`, `ret` or `trap`.
 The existing strict schema, ownership/loan rules, effect checks, explicit
 exports policy, and scalar argument validation apply before execution.
 
@@ -28,10 +30,14 @@ allocation failure is still rejected before any instruction executes.
 | `owner.move`, `owner.drop` | Consumes the old SSA name; move preserves storage identity; drop records explicit cleanup |
 | `buffer.load`, `buffer.store` | Checked `usize` offset and `u8` value, with bounds traps |
 
-The existing scalar operation implementation is reused. Calls, CFG edges,
-multiple functions or blocks, chain operations, bulk buffer operations,
-resource entry/return types, and direct nominal/composite documents are outside
-this execution profile. Primitive operations outside the profile produce
+The existing scalar operation implementation and `Machine` are reused. Internal
+calls may consume/return byte owners and borrow nonescaping views. Owning call
+arguments are consumed before entering the callee. Read-only formal parameters
+may alias one actual caller loan; shared reborrows permit those shared reads,
+while mutable-child suspension, parent writes and early loan-end still reject.
+Chain types/operations, bulk buffer operations, resource **public** entry/return
+types, and direct nominal/composite documents are outside this execution
+profile. Primitive operations outside the profile produce
 `E_HIA_RUST_UNSUPPORTED`. A direct nominal document fails the existing strict
 primitive-schema check with `E_HIA_FORMAT`; no new schema fallback is installed.
 
@@ -57,10 +63,14 @@ injected allocation failure.
 
 Execution reports use the new schema
 `hepta.hia.rust-byte-owner-execution.v1` and profile
-`single-block-byte-owner-v1`. They include the source digest, entry function,
+`bounded-cfg-byte-owner-v2`. They include the source digest, entry function,
 execution policy, status, steps, scalar values or error code, and the complete
 resource ledger. The general-resource, production-admission, whole-language,
 native-refinement, and ABI/hardware claims remain false.
+
+The call-depth bound admits 32 simultaneously live frames, including the root,
+and rejects the next frame before its entry tick or side effects. All frames
+share the same heap, allocation-failure counter and resource ledger.
 
 The ledger records allocations, frees, allocator attempts, owners created and
 dropped, live owners/bytes, peak bytes, loans started and ended, and live local
@@ -74,6 +84,23 @@ reclaims its host containers when the execution function exits; that host
 cleanup is not reported as an executed Hepta `owner.drop` or `loan.end`.
 
 ## Executed evidence
+
+### CFG/call extension qualification
+
+`tests/test_hia_rust_owned_cfg.py` runs the real Rust executable against the
+canonical Python interpreter. Its finite corpus covers loop-carried owner/loan
+identity, failure branches, owner replacement/recovery across calls, aliased
+shared formals and reborrows, owner-returning recursion, every executed step cut,
+and precise heap/call-budget stops. Unsupported hidden helpers, resource public
+signatures, duplicated transfers and conflicting loan joins remain negative
+controls. The original single-block differential corpus remains active.
+
+`tools/qualify_hia_rust_owned_cfg.py --output REPORT.json` retains the actual
+programs, complete paired VM reports, source before/after hashes, binary and
+toolchain identity, and non-skipped test counts. A report qualifies its recorded
+source inventory only. The historical counts below do not qualify this expanded
+profile or establish production authority, native refinement or whole-language
+soundness.
 
 ### Historical implementation before workspace recovery
 
@@ -138,7 +165,7 @@ process results, timestamps, source hashes and unchanged-source checks.
 | `python.log` | `4840162da1ac456eb87b1d1a4248d958d36aa0e0c52d89de6b9fc11b740ec3f8` |
 | `validation.json` | `c8e159dbc12846c148e8494c390c6d26befb4a68bfa1a4abda6afaf1b97e0a9b` |
 
-This evidence establishes the tested finite interpreter correspondence. It
+This historical evidence establishes the tested finite interpreter correspondence. It
 does not establish general resource execution, recursive resource calls,
 chain execution, unwinding semantics, LLVM refinement, broad target support,
 or production qualification. Future support must extend the same execution
