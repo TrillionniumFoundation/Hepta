@@ -104,21 +104,96 @@ def _bad_constant(value):
     _reject("nonfinite JSON value", "E_HIA_FORMAT")
 
 
+def _json_string_bytes(value, remaining):
+    """Exact UTF-8 length of ensure_ascii=False compact JSON string output.
+
+    No escaped/encoded string is materialized during this preflight. In
+    particular a short sequence of control characters may require six
+    serialized bytes for every source character.
+    """
+    if len(value) + 2 > remaining:
+        _reject("program exceeds byte budget before encoding", "E_HIA_LIMIT")
+    size = 2  # opening and closing JSON quotes
+    for char in value:
+        point = ord(char)
+        if point < 32:
+            width = 2 if point in (8, 9, 10, 12, 13) else 6
+        elif point in (34, 92):  # escaped double quote/backslash
+            width = 2
+        elif point < 0x80:
+            width = 1
+        elif 0xD800 <= point <= 0xDFFF:
+            _reject("unpaired Unicode surrogate", "E_HIA_FORMAT")
+        elif point < 0x800:
+            width = 2
+        elif point < 0x10000:
+            width = 3
+        else:
+            width = 4
+        size += width
+        if size > remaining:
+            _reject("program exceeds byte budget before encoding", "E_HIA_LIMIT")
+    return size
+
+
 def _structure(value):
-    pending, count = [(value, 0)], 0
+    """Count exact canonical JSON bytes AND nodes before json.dumps.
+
+    In-process dicts are not byte-bounded by the text preflight. The active
+    identity set also refuses cycles, and queued leaf counts refuse huge
+    container fanout before extending the work stack. This is a size gate,
+    not a replacement for the canonical HIA typed SSA/ownership verifier.
+    """
+    pending = [(value, 0, False)]
+    active = set()
+    count, queued, size = 0, 1, 0
     while pending:
-        current, depth = pending.pop()
+        current, depth, leaving = pending.pop()
+        if leaving:
+            active.remove(id(current))
+            continue
+        queued -= 1
         count += 1
         if count > MAX_NODES or depth > MAX_DEPTH:
             _reject("program exceeds structural budget", "E_HIA_LIMIT")
-        if type(current) is dict:
-            if any(type(k) is not str for k in current):
-                _reject("non-string JSON key", "E_HIA_FORMAT")
-            pending.extend((v, depth + 1) for v in current.values())
-        elif type(current) is list:
-            pending.extend((v, depth + 1) for v in current)
-        elif type(current) not in (str, int, bool, type(None)):
+        if type(current) in (dict, list):
+            identity = id(current)
+            if identity in active:
+                _reject("cyclic HIA JSON structure", "E_HIA_FORMAT")
+            active.add(identity)
+            children = len(current)
+            if children > MAX_NODES - count - queued:
+                _reject("program exceeds queued-node budget", "E_HIA_LIMIT")
+            queued += children
+            size += 2 + max(0, children - 1)  # container plus commas
+            if type(current) is dict:
+                size += children  # colons
+                for key in current:
+                    if type(key) is not str:
+                        _reject("non-string JSON key", "E_HIA_FORMAT")
+                    size += _json_string_bytes(key, MAX_BYTES - size)
+                values = current.values()
+            else:
+                values = current
+            pending.append((current, depth, True))
+            pending.extend((child, depth + 1, False) for child in values)
+        elif type(current) is str:
+            size += _json_string_bytes(current, MAX_BYTES - size)
+        elif type(current) is bool:
+            size += 4 if current else 5
+        elif type(current) is int:
+            # Fail without converting a potentially enormous host integer
+            # into a decimal string merely to discover it exceeds 8 MiB.
+            if current.bit_length() > MAX_BYTES * 4:
+                _reject("integer exceeds JSON byte budget", "E_HIA_LIMIT")
+            size += len(str(current))
+        elif current is None:
+            size += 4
+        else:
             _reject("only bounded integer JSON values are supported", "E_HIA_FORMAT")
+        if size > MAX_BYTES:
+            _reject("program exceeds byte budget before encoding", "E_HIA_LIMIT")
+    return size
 
 
 def _decode(value):
