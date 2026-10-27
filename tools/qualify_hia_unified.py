@@ -43,7 +43,7 @@ def _command(argv, timeout=1800):
                             stdout_limit=4 * 1024 * 1024, stderr_limit=8 * 1024 * 1024)
         return {"argv": list(map(str, argv)), "returncode": value.returncode,
                 "stdout": value.stdout, "stderr": value.stderr,
-                "seconds": time.monotonic() - started}
+                "seconds": time.monotonic() - started, "timeout_seconds": timeout}
     except CaptureRejected as exc:
         partial = getattr(exc, "capture", None)
         stdout = partial.stdout.decode("utf-8", errors="replace") if partial is not None else ""
@@ -57,7 +57,7 @@ def _command(argv, timeout=1800):
                     "stderr_total_bytes": partial.stderr_total_bytes,
                     "stdout_retained_bytes": len(partial.stdout),
                     "stderr_retained_bytes": len(partial.stderr)},
-                "seconds": time.monotonic() - started}
+                "seconds": time.monotonic() - started, "timeout_seconds": timeout}
 
 
 def unittest_outcome(stderr, returncode):
@@ -87,7 +87,14 @@ def unittest_outcome(stderr, returncode):
     return result
 
 
-def qualify(output, *, clang, rustc, qemu_aarch64, qemu_riscv64, qemu_system_arm, linker, lean, cxx):
+def _validate_unit_timeout_seconds(value):
+    if type(value) is not int or not 1 <= value <= 3600:
+        raise ValueError("unit_timeout_seconds must be an integer from 1 through 3600")
+
+
+def qualify(output, *, clang, rustc, qemu_aarch64, qemu_riscv64, qemu_system_arm, linker, lean, cxx,
+            unit_timeout_seconds=1800):
+    _validate_unit_timeout_seconds(unit_timeout_seconds)
     output = Path(output).absolute()
     if output.exists() or output.is_symlink():
         raise ValueError("output directory must be new")
@@ -146,6 +153,8 @@ def qualify(output, *, clang, rustc, qemu_aarch64, qemu_riscv64, qemu_system_arm
                                     "--rustc", rustc, "--output", output / "performance.json",
                                     "--artifact-directory", output / "performance-artifacts"], output / "performance.json"),
     ]
+    gate_timeouts = {name: unit_timeout_seconds if name == "unit_regression" else 1800
+                     for name, _, _ in plan}
     report = {"schema": "hepta.hia.unified-qualification.v2", "git_commit": commit["stdout"].strip(),
         "compiler_tree_sha256": compiler_hash(), "source_snapshot_before": before,
         "temporary_directory": tempfile.gettempdir(),
@@ -162,7 +171,8 @@ def qualify(output, *, clang, rustc, qemu_aarch64, qemu_riscv64, qemu_system_arm
             "Whole-compiler soundness and Rust-wide performance superiority are unproved"]}
     write_new(output / "plan.json", (json.dumps({"git_commit": report["git_commit"],
         "source_snapshot_sha256": before["sha256"],
-        "commands": [{"name": name, "argv": list(map(str, argv))} for name, argv, _ in plan]},
+        "commands": [{"name": name, "argv": list(map(str, argv)), "timeout_seconds": gate_timeouts[name]}
+                     for name, argv, _ in plan]},
         indent=2, sort_keys=True) + "\n").encode())
     previous_cwd, old_path = Path.cwd(), os.environ.get("PATH", "")
     old_rustc, old_clang, old_lean = (os.environ.get(name) for name in ("RUSTC", "CLANG", "LEAN"))
@@ -179,8 +189,8 @@ def qualify(output, *, clang, rustc, qemu_aarch64, qemu_riscv64, qemu_system_arm
             os.environ["RUSTC"], os.environ["CLANG"], os.environ["LEAN"] = rustc, clang, lean
             os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
             for name, argv, evidence in plan:
-                print(json.dumps({"gate": name, "status": "running"}), flush=True)
-                executed = _command(argv)
+                print(json.dumps({"gate": name, "status": "running", "timeout_seconds": gate_timeouts[name]}), flush=True)
+                executed = _command(argv, timeout=gate_timeouts[name])
                 row = {k: v for k, v in executed.items() if k not in {"stdout", "stderr"}}
                 row["name"], row["passed"] = name, False
                 for channel in ("stdout", "stderr"):
@@ -204,7 +214,7 @@ def qualify(output, *, clang, rustc, qemu_aarch64, qemu_riscv64, qemu_system_arm
                         row["evidence_error"] = {"type": type(exc).__name__, "message": str(exc)}
                 report["gates"].append(row)
                 print(json.dumps({"gate": name, "passed": row["passed"], "seconds": row["seconds"],
-                                  "returncode": row["returncode"]}), flush=True)
+                                  "returncode": row["returncode"], "timeout_seconds": row["timeout_seconds"]}), flush=True)
     finally:
         os.chdir(previous_cwd)
         os.environ["PATH"] = old_path
@@ -227,6 +237,8 @@ def qualify(output, *, clang, rustc, qemu_aarch64, qemu_riscv64, qemu_system_arm
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-directory", required=True)
+    parser.add_argument("--unit-timeout-seconds", type=int, default=1800,
+                        help="unit gate timeout in seconds, 1..3600 (default: 1800); other gates remain 1800")
     parser.add_argument("--clang", default=shutil.which("clang") or "clang")
     parser.add_argument("--rustc", default=os.environ.get("RUSTC") or shutil.which("rustc") or "rustc")
     parser.add_argument("--qemu-aarch64", required=True)
@@ -236,9 +248,14 @@ def main():
     parser.add_argument("--lean", required=True)
     parser.add_argument("--cxx", default=shutil.which("g++") or "g++")
     args = parser.parse_args()
+    try:
+        _validate_unit_timeout_seconds(args.unit_timeout_seconds)
+    except ValueError as exc:
+        parser.error(str(exc))
     result = qualify(args.output_directory, clang=args.clang, rustc=args.rustc,
                      qemu_aarch64=args.qemu_aarch64, qemu_riscv64=args.qemu_riscv64,
-                     qemu_system_arm=args.qemu_system_arm, linker=args.linker, lean=args.lean, cxx=args.cxx)
+                     qemu_system_arm=args.qemu_system_arm, linker=args.linker, lean=args.lean, cxx=args.cxx,
+                     unit_timeout_seconds=args.unit_timeout_seconds)
     print(json.dumps({key: result[key] for key in ("ok", "status", "passed_gates", "completed_gates", "unchanged_source", "full_seven_deliverables_complete")}))
     return 0 if result["ok"] else 1
 

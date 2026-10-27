@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from hepta.c_project import verify_capture
+from hepta.c_project import captured_source_argument, verify_capture
 from hepta.clang_capture import run_bounded
 from hepta.cpp_project_migrate import lower_cpp_project
 from hepta.hia_program import execute_program, verify_program
@@ -63,14 +63,15 @@ def _write(path, value):
         stream.write("\n")
 
 
-def _process(argv, report, directory, *, stdin=None, expected=0):
+def _process(argv, report, directory, *, stdin=None, expected=0, cwd=None):
     start = time.perf_counter()
-    result = run_bounded(list(map(str, argv)), input_text=stdin, timeout=90,
+    result = run_bounded(list(map(str, argv)), cwd=cwd, input_text=stdin, timeout=90,
                          stdout_limit=2_000_000, stderr_limit=1_000_000)
     ordinal = len(report["processes"])
     out, err = directory / f"process-{ordinal:02d}.stdout", directory / f"process-{ordinal:02d}.stderr"
     out.write_text(result.stdout); err.write_text(result.stderr)
-    row = {"argv": list(map(str, argv)), "returncode": result.returncode,
+    row = {"argv": list(map(str, argv)), "cwd": str(Path.cwd() if cwd is None else cwd),
+           "returncode": result.returncode,
            "seconds": time.perf_counter() - start,
            "stdout": str(out), "stdout_sha256": digest(out),
            "stderr": str(err), "stderr_sha256": digest(err)}
@@ -241,7 +242,9 @@ def qualify_cpp_templates_to_hia(workdir, *, clang="clang", clangxx="clang++"):
         originals = []
         for config in migration["capture"]["configurations"]:
             obj = directory / f"original-{config['index']}.o"; originals.append(obj)
-            _process([tools["clangxx"]["path"], *config["frontend_arguments"], "-c", config["source"], "-o", obj], report, directory)
+            _process([tools["clangxx"]["path"], *config["frontend_arguments"], "-c",
+                      captured_source_argument(config, language="c++"), "-o", obj],
+                     report, directory, cwd=Path(config["directory"]))
         _process([tools["clangxx"]["path"], "-shared", *originals, "-o", directory / "original.so"], report, directory)
         actual_cases = cases()
         reference = [expected(row) for row in actual_cases]

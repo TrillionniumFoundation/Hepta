@@ -1,0 +1,63 @@
+{
+  "schema": "hepta.audit.source-operand-targeted-tests.v1",
+  "argv": [
+    "/usr/bin/python3",
+    "-m",
+    "unittest",
+    "-v",
+    "test_c_project_source_arguments",
+    "test_c_project_semantic_flags",
+    "test_c_project.CProjectMigrationTests.test_capture_includes_flags_headers_and_rejects_changed_inputs",
+    "test_c_project.CProjectMigrationTests.test_replay_rejects_missing_or_resealed_source_configuration",
+    "test_c_project.CProjectMigrationTests.test_resealed_c_capture_provenance_and_typed_model_rejected",
+    "test_c_project.CProjectMigrationTests.test_duplicate_compdb_key_rejected_after_resealing",
+    "test_c_project.CProjectMigrationTests.test_compdb_edit_during_actual_clang_probes_rejected",
+    "test_c_project.CProjectMigrationTests.test_resigned_abi_probe_argument_injection_rejected",
+    "test_c_project.CProjectMigrationTests.test_macro_model_identity_rechecked_even_when_source_preprocessing_is_equal",
+    "test_c_project.CProjectMigrationTests.test_unmodeled_build_flags_are_not_silently_discarded",
+    "test_c_project.CProjectMigrationTests.test_retargeted_header_symlink_invalidates_build_capture",
+    "test_c_project.CProjectMigrationTests.test_command_string_is_never_run_as_shell",
+    "test_c_project.CProjectMigrationTests.test_duplicate_macro_configurations_require_separate_artifacts",
+    "test_cpp_project_hia.CPPProjectHIATests.test_actual_two_units_templates_overloads_scalar_abi_and_native_overflow",
+    "test_cpp_project_hia.CPPProjectHIATests.test_captured_header_macro_and_schema_replay_are_not_receipt_authority",
+    "test_cpp_project_hia.CPPProjectHIATests.test_repeated_inline_template_definition_requires_same_instantiated_semantics",
+    "test_c_project_matrix.CProjectMatrixTests.test_two_configurations_two_units_native_without_original_target_objects",
+    "test_c_scalar_matrix.CScalarMatrixTests.test_real_two_by_two_c_native_keeps_c_symbols_without_original_implementation"
+  ],
+  "directory": "/workspace/scratch/4bc91e0ee48c/hepta-p3-path-semantics",
+  "environment_overrides": {
+    "CLANG": "/usr/lib/llvm-20/bin/clang",
+    "CLANGXX": "/usr/lib/llvm-20/bin/clang++",
+    "PYTHONPATH": ".:tests"
+  },
+  "path_prepend": "/usr/lib/llvm-20/bin",
+  "returncode": 1,
+  "wall_seconds": 199.90778891399896,
+  "tests_run": 27,
+  "unittest_seconds": 198.933,
+  "log_sha256": "b2504ad3368f1f1b52dad37adff60d7a0e4b87661da1d32af8ecbdd6642def74",
+  "source_before": {
+    "hepta/c_project.py": "d75706830e2dbc9ca5da9f360652845228ceafd8dda996c3f1f7a10760df8356",
+    "hepta/c_translation.py": "36d29d13cab5d75095aed1f5ad586942b6c5581a6ac8b6b63e6826212db3dd9e",
+    "hepta/cpp_project_migrate.py": "8fe8d0258380276fafb3dca4068d785d16fb2cbc63872b99c63e14a448d7ad7a",
+    "tools/qualify_c_project_matrix.py": "db0dc467774d61da8c04b78c36eed501cb980e216222157e4acc0fc3fa6700b5",
+    "tools/qualify_cpp_project_matrix.py": "a9c457cf92330b3b044dfc2e43a27e485091bdf9e316404166a4d6ae1b9134c3",
+    "tools/qualify_cpp_project_hia.py": "94a0875dc7df5bc77954523e446ffa8e009ac40170ec164a289270d95e8bc173",
+    "tests/test_c_project_source_arguments.py": "b164a0a30668e5ab27ef01dc281fe9cef67aab84b653a00d46e0ccd6684d106d",
+    "tests/test_c_project_semantic_flags.py": "04e2158b22352fd6a74c38fb518ff9f9de46a21fe70ba3b7234f3780dffde896"
+  },
+  "source_after": {
+    "hepta/c_project.py": "d75706830e2dbc9ca5da9f360652845228ceafd8dda996c3f1f7a10760df8356",
+    "hepta/c_translation.py": "36d29d13cab5d75095aed1f5ad586942b6c5581a6ac8b6b63e6826212db3dd9e",
+    "hepta/cpp_project_migrate.py": "8fe8d0258380276fafb3dca4068d785d16fb2cbc63872b99c63e14a448d7ad7a",
+    "tools/qualify_c_project_matrix.py": "db0dc467774d61da8c04b78c36eed501cb980e216222157e4acc0fc3fa6700b5",
+    "tools/qualify_cpp_project_matrix.py": "a9c457cf92330b3b044dfc2e43a27e485091bdf9e316404166a4d6ae1b9134c3",
+    "tools/qualify_cpp_project_hia.py": "94a0875dc7df5bc77954523e446ffa8e009ac40170ec164a289270d95e8bc173",
+    "tests/test_c_project_source_arguments.py": "b164a0a30668e5ab27ef01dc281fe9cef67aab84b653a00d46e0ccd6684d106d",
+    "tests/test_c_project_semantic_flags.py": "04e2158b22352fd6a74c38fb518ff9f9de46a21fe70ba3b7234f3780dffde896"
+  },
+  "source_unchanged": true,
+  "skips_reported": false,
+  "full_suite_executed": false,
+  "model_or_performance_executed": false
+}

@@ -117,7 +117,7 @@ class CapturedSemanticFlagsTests(unittest.TestCase):
                     # Compile the real source under the database's exact semantic
                     # options. Linking separately must not add -fPIC/-O2 to its
                     # preprocessing or replace the user's final option.
-                    self.native_command([compiler, *options, "-c", source, "-o", "original.o"], directory)
+                    self.native_command([compiler, *options, "-c", source.name, "-o", "original.o"], directory)
                     self.native_command([compiler, "-shared", "original.o", "-o", "original.so"], directory)
                     original = self.observe(directory / "original.so", "probe")
                     observed.append(original)
@@ -166,7 +166,7 @@ class CapturedSemanticFlagsTests(unittest.TestCase):
                     "c", flags, body, label="pedantic" + str(index), standard="-std=c99")
                 macros.append(self.native_command(
                     [compiler, *options, "-dM", "-E", "-x", "c", "/dev/null"], directory).stdout)
-                self.native_command([compiler, *options, "-c", source, "-o", "original.o"], directory)
+                self.native_command([compiler, *options, "-c", source.name, "-o", "original.o"], directory)
                 self.native_command([compiler, "-shared", "original.o", "-o", "original.so"], directory)
                 original = self.observe(directory / "original.so", "probe")
                 observed.append(original)

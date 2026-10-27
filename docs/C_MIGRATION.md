@@ -80,12 +80,27 @@ Unmodeled semantic options such as `-fwrapv` still reject. Multiple configuratio
 for one source must be qualified in separate complete database runs or an
 explicit build matrix.
 
+The source operand is preserved exactly as spelled in the original argv, and
+Clang runs in the captured working directory. The normalized `source` path is
+only a dependency/file identity; it is not substituted into compiler commands.
+This matters for `__FILE__`, `__BASE_FILE__`, `__has_include(__FILE__)`, and quoted
+header lookup when the main source is reached through a symlink. Dependency
+discovery, preprocessing, AST generation, replay and original comparison builds
+use the same source operand. It is recovered through the same strict command
+parser from the hash-bound `original_arguments`, rather than trusted as a new
+independent manifest field. Leading `@` response operands, bare `-` stdin and
+option-like source operands are rejected; an explicit `./` filename prefix
+does not become a driver option.
+
 Captures made by older compilers which omitted these semantic options do not
 become valid by recomputing the receipt hash. They must be recaptured from the
 unchanged compilation database so the actual selected declarations and
 dependencies can be checked again. The generated HIA backend may optimize its
 already-selected program independently; this does not authorize changing which
-source branch was imported.
+source branch was imported. The same recapture requirement applies to receipts
+produced by replacing a relative or symlink source operand with its normalized
+absolute path; replay checks the original spelling's dependency graph and
+preprocessed bytes.
 
 To reproduce the native differential qualification:
 

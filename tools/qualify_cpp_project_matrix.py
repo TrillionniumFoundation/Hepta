@@ -21,6 +21,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from hepta.c_migrate import MigrationRejected
+from hepta.c_project import captured_source_argument
 from hepta.c_project_matrix import capture_project_matrix, verify_project_matrix
 from hepta.cpp_project_migrate import lower_cpp_project_matrix
 from hepta.hia_program import execute_program, verify_program
@@ -240,7 +241,8 @@ def qualify_cpp_matrix(workdir, *, clang="clang", clangxx="clang++"):
                 obj = work / f"original-{config['index']}.o"
                 objects.append(obj)
                 _process([report["tools"]["clangxx"]["path"], *config["frontend_arguments"],
-                          "-c", config["source"], "-o", obj], row, work)
+                          "-c", captured_source_argument(config, language="c++"), "-o", obj],
+                         row, work, cwd=Path(config["directory"]))
             _process([report["tools"]["clangxx"]["path"], "-shared", *objects, "-o", work / "original.so"], row, work)
             row["expected"] = [expected(name, case) for case in cases()]
             row["interpreter_results"] = [execute_program(program, case["function"], case["arguments"])["result"] for case in cases()]

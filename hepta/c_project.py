@@ -206,11 +206,16 @@ def _path(value: str, directory: Path) -> Path:
     return (directory / path).resolve() if not path.is_absolute() else path.resolve()
 
 
-def _flags(argv: list[str], source: Path, directory: Path, *, language: str = "c") -> tuple[list[str], list[dict]]:
+def _command_arguments(argv: list[str], source: Path, directory: Path, *, language: str = "c") -> tuple[list[str], list[dict], str]:
     if language not in {"c", "c++"}:
         raise MigrationRejected("E_C_BUILD_COMMAND", "Unsupported captured source language")
     if not argv or any(not isinstance(x, str) or "\x00" in x for x in argv):
         raise MigrationRejected("E_C_BUILD_COMMAND", "Expected a nonempty argv string list")
+    # Replaying a source token verbatim must never turn a literal filename
+    # accepted through canonicalization into driver-level response expansion.
+    # This also covers an @ operand consumed by a flag such as -o.
+    if any(argument.startswith("@") for argument in argv[1:]):
+        raise MigrationRejected("E_C_BUILD_FLAG", "Response files are not supported")
     # The database compiler is recorded but not executed; Clang is selected by
     # the caller. Wrappers, shell syntax, response files and compiler plugins
     # are not guessed or expanded.
@@ -220,7 +225,7 @@ def _flags(argv: list[str], source: Path, directory: Path, *, language: str = "c
     if Path(argv[0]).name not in drivers:
         raise MigrationRejected("E_C_BUILD_COMMAND", "Unsupported database compiler or wrapper")
     forwarded, omitted = [], []
-    seen_source = 0
+    source_arguments = []
     i = 1
     while i < len(argv):
         value = argv[i]
@@ -249,15 +254,36 @@ def _flags(argv: list[str], source: Path, directory: Path, *, language: str = "c
             omitted.append({"argument": value, "operand": argv[i], "reason": "object_output_not_executed"})
             i += 1
         elif not value.startswith("-") and _path(value, directory) == source:
-            seen_source += 1
+            source_arguments.append(value)
         else:
             raise MigrationRejected("E_C_BUILD_FLAG", "Flag or argument outside the captured C profile: " + value)
-    if seen_source != 1:
+    if len(source_arguments) != 1:
         raise MigrationRejected("E_C_BUILD_COMMAND", "Each command must name its C source exactly once")
     if not any(x.startswith("-std=") for x in forwarded):
         # Never guess a compiler's default language standard.
         raise MigrationRejected("E_C_BUILD_STANDARD", "An explicit captured language standard is required")
-    return forwarded, omitted
+    return forwarded, omitted, source_arguments[0]
+
+
+def _flags(argv: list[str], source: Path, directory: Path, *, language: str = "c") -> tuple[list[str], list[dict]]:
+    flags, omitted, _ = _command_arguments(argv, source, directory, language=language)
+    return flags, omitted
+
+
+def captured_source_argument(config: dict, *, language: str = "c") -> str:
+    """Recover the exact source operand through the shared command authority.
+
+    The canonical source path identifies dependency bytes; substituting it into
+    a compiler invocation changes __FILE__/__BASE_FILE__ and quoted includes
+    through a source symlink. The original spelling is already hash-bound in
+    original_arguments, so no second parser or extra manifest authority is used.
+    """
+    flags, omitted, source_argument = _command_arguments(
+        config["original_arguments"], Path(config["source"]),
+        Path(config["directory"]), language=language)
+    if flags != config["frontend_arguments"] or omitted != config["omitted_arguments"]:
+        raise MigrationRejected("E_C_BUILD_IDENTITY", "Source invocation differs from captured arguments")
+    return source_argument
 
 
 def _abi_model_arguments(flags: list[str]) -> list[str]:
@@ -284,8 +310,9 @@ def _abi_model_arguments(flags: list[str]) -> list[str]:
     return result
 
 
-def _dependencies(clang: str, flags: list[str], source: Path, directory: Path, *, system: bool) -> list[Path]:
-    text = invoke([clang, *flags, "-M" if system else "-MM", "-MT", "hepta_dependencies", str(source)], directory)
+def _dependencies(clang: str, flags: list[str], source: Path, directory: Path, *, system: bool,
+                  source_argument: str) -> list[Path]:
+    text = invoke([clang, *flags, "-M" if system else "-MM", "-MT", "hepta_dependencies", source_argument], directory)
     body = text.replace("\\\n", " ").partition(":")[2]
     paths = sorted({_path(token, directory) for token in shlex.split(body)}, key=str)
     if not paths or source not in paths or len(paths) > 512:
@@ -414,11 +441,14 @@ def verify_capture(capture: dict) -> None:
     for config in capture["configurations"]:
         directory, source = Path(config["directory"]), Path(config["source"])
         flags = config["frontend_arguments"]
-        actual = list(map(str, _dependencies(compiler["path"], flags, source, directory, system=True)))
-        local = list(map(str, _dependencies(compiler["path"], flags, source, directory, system=False)))
+        source_argument = captured_source_argument(config, language=language)
+        actual = list(map(str, _dependencies(compiler["path"], flags, source, directory, system=True,
+                                            source_argument=source_argument)))
+        local = list(map(str, _dependencies(compiler["path"], flags, source, directory, system=False,
+                                           source_argument=source_argument)))
         if actual != config["all_dependencies"] or local != config["local_dependencies"]:
             raise MigrationRejected("E_C_BUILD_CHANGED", "Compiler dependency graph changed")
-        preprocessed = invoke([compiler["path"], *flags, "-E", str(source)], directory)
+        preprocessed = invoke([compiler["path"], *flags, "-E", source_argument], directory)
         if digest(preprocessed.encode()) != config["preprocessed_sha256"]:
             raise MigrationRejected("E_C_BUILD_CHANGED", "Preprocessed configuration changed")
         # Macro inventories and ABI model flags are distinct from a TU's
@@ -480,9 +510,11 @@ def capture_project(database: str | Path, *, clang: str = "clang", language: str
             argv = shlex.split(entry["command"], posix=True)
         if not isinstance(argv, list):
             raise MigrationRejected("E_C_BUILD_COMMAND", "arguments must be a string list")
-        flags, omitted = _flags(argv, source, directory, language=language)
-        all_deps = _dependencies(executable, flags, source, directory, system=True)
-        local_deps = set(_dependencies(executable, flags, source, directory, system=False))
+        flags, omitted, source_argument = _command_arguments(argv, source, directory, language=language)
+        all_deps = _dependencies(executable, flags, source, directory, system=True,
+                                 source_argument=source_argument)
+        local_deps = set(_dependencies(executable, flags, source, directory, system=False,
+                                       source_argument=source_argument))
         for path in all_deps:
             content = _read_dependency(path)
             item = {"path": str(path), "sha256": digest(content), "bytes": len(content),
@@ -493,7 +525,7 @@ def capture_project(database: str | Path, *, clang: str = "clang", language: str
                     raise MigrationRejected("E_C_BUILD_CHANGED", "Dependency changed during capture")
                 item["project_input"] |= previous["project_input"]
             dependencies[str(path)] = item
-        preprocessed = invoke([executable, *flags, "-E", str(source)], directory)
+        preprocessed = invoke([executable, *flags, "-E", source_argument], directory)
         macros = invoke([executable, *flags, "-dM", "-E", "-x", language, "-"], directory, stdin="")
         # User -D/-U macros may intentionally spell predefined names. They
         # affect preprocessed source semantics, but cannot attest native ABI
