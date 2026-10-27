@@ -1,0 +1,355 @@
+{
+  "schema": "hepta.audit.execution-recovery-checkpoint.v1",
+  "status": "terminal_qualification_unavailable_after_environment_access_loss",
+  "recorded_utc": "2026-10-27 17:43:23 UTC",
+  "provenance": "Transcribed from reports and tool output actually read before access loss, plus the current GitHub read. This is an observation summary, not a reconstructed original execution report.",
+  "implementation": {
+    "commit": "108762baaefedde931f4160dbeadb6442fbb824b",
+    "tree": "c5f5995586877b8b5c52ec2188377e3f7ebe2f56",
+    "upstream_base": "209fa298127adf41b24d128d0291dcb4a0649c73",
+    "source_snapshot_at_launch_sha256": "46dede19aacd1efd42fa99bffa38825cc1177f8243d4728f71a6bd2e2027066d",
+    "git_remote_head_rechecked_after_access_loss": true,
+    "final_local_source_snapshot_after_run_recovered": false,
+    "review_url": "https://github.com/TrillionniumFoundation/Hepta/pull/322"
+  },
+  "access_loss": {
+    "environment_error": "exec-server connection attempt failed: timed out waiting for exec-server initialize handshake after 10s",
+    "exec_recovery_read_error": "No usable execution environment is available. Wait for an environment to become available before using this tool.",
+    "raw_report_upload_error": "no primary turn environment is available",
+    "qualification_process_current_state": "unknown",
+    "access_loss_is_not_proof_of_process_termination": true
+  },
+  "final_source_attempt": {
+    "started_utc": "2026-10-27T13:54:22.862489+00:00",
+    "execution_commit": "108762baaefedde931f4160dbeadb6442fbb824b",
+    "planned_gate_count": 19,
+    "unit_outer_timeout_seconds": 3600,
+    "other_gate_timeout_seconds": 1800,
+    "performance_attempt_declared_before_execution": true,
+    "performance_protocol_changed": false,
+    "observed_completed_gates": [
+      {
+        "name": "unit_regression",
+        "passed": true,
+        "returncode": 0,
+        "tests_run": 2424,
+        "skipped": 0,
+        "failures": 0,
+        "errors": 0,
+        "unittest_footer_seconds": 2293.959,
+        "outer_gate_seconds": 2298.4425130650015
+      },
+      {
+        "name": "standalone_native",
+        "passed": true,
+        "returncode": 0,
+        "outer_gate_seconds": 29.77626699600296
+      },
+      {
+        "name": "standalone_resources",
+        "passed": true,
+        "returncode": 0,
+        "outer_gate_seconds": 24.18971802300075
+      },
+      {
+        "name": "composite_resources",
+        "passed": true,
+        "returncode": 0,
+        "outer_gate_seconds": 7.968323453998892
+      }
+    ],
+    "last_observed_started_gate": "composite_bulk_targets",
+    "last_observation_of_that_gate": "running",
+    "current_state_of_that_gate": "unknown",
+    "terminal_completed_gates": null,
+    "terminal_passed_gates": null,
+    "terminal_ok": null,
+    "terminal_source_unchanged": null,
+    "terminal_performance_status": null,
+    "unobserved_outcomes_are_not_assigned_pass_or_failure": true,
+    "observed_unittest_footer": "Ran 2424 tests in 2293.959s\n\nOK\n",
+    "original_logs_currently_readable": false
+  },
+  "earlier_focused_validation": {
+    "execution_commit": "d1c1291e4a32755d4de1b2d69713ccf12af4d051",
+    "same_tree_and_snapshot_as_implementation": true,
+    "tests_run": 57,
+    "skipped": 0,
+    "failures": 0,
+    "errors": 0,
+    "passed": true,
+    "report_sha256_observed_before_loss": "b71a75d58872955d29cc97aa56475dee696406131b01bd5efb32bd79889a178e",
+    "executed_under_published_108_git_sha": false
+  },
+  "earlier_evidence": [
+    {
+      "execution_commit": "32efbbea6bc2140a95482415bafbba66b2bc0680",
+      "kind": "integrated_qualification",
+      "completed_gates": 19,
+      "passed_gates": 15,
+      "terminal": true
+    },
+    {
+      "execution_commit": "32efbbea6bc2140a95482415bafbba66b2bc0680",
+      "kind": "separate_reviewed_static_qemu_replay",
+      "completed_gates": 2,
+      "passed_gates": 2,
+      "combined_with_old_19_gate_result": false
+    },
+    {
+      "execution_commit": "eb722984c488a721bd6c69d2bd9a69d7c600def1",
+      "kind": "complete_python_suite",
+      "tests_run": 2411,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 1,
+      "passed": false,
+      "outer_seconds": 1393.852364058,
+      "production_rejection_was_correct": true,
+      "test_entrypoint_contract_subsequently_repaired": true
+    },
+    {
+      "execution_commit": "eb722984c488a721bd6c69d2bd9a69d7c600def1",
+      "kind": "protocol_regressions",
+      "passed_tests": 15
+    },
+    {
+      "execution_commit": "eb722984c488a721bd6c69d2bd9a69d7c600def1",
+      "kind": "locked_offline_rust_suite",
+      "passed_tests": 49
+    },
+    {
+      "execution_commit": "eb722984c488a721bd6c69d2bd9a69d7c600def1",
+      "kind": "finite_rust_python_v1_probes",
+      "passed_probes": 785,
+      "includes_separate_alias_counterexample": false
+    }
+  ],
+  "earlier_performance": {
+    "execution_commit": "32efbbea6bc2140a95482415bafbba66b2bc0680",
+    "status": "measurement_inconclusive",
+    "raw_samples": 63,
+    "native_correctness_calls": 588,
+    "series_exceeding_relative_mad_limit": 8,
+    "series_count": 9,
+    "relative_mad_limit": 0.05,
+    "separate_untimed_resource_observer_passed": true,
+    "paired_median_time_ratios": [
+      {
+        "kernel": "full_lifecycle",
+        "hia_over_generated_rust": 0.9142,
+        "hia_over_handwritten_safe_rust": 0.966087
+      },
+      {
+        "kernel": "constructor_error",
+        "hia_over_generated_rust": 0.777264,
+        "hia_over_handwritten_safe_rust": 0.84643
+      },
+      {
+        "kernel": "two_stage",
+        "hia_over_generated_rust": 0.959586,
+        "hia_over_handwritten_safe_rust": 1.040114
+      }
+    ],
+    "descriptive_geometric_mean_ratios": {
+      "generated_rust": 0.880166,
+      "handwritten_safe_rust": 0.947464
+    },
+    "performance_advantage_qualified": false,
+    "relabelled_as_108_result": false,
+    "pooled_with_new_attempt": false
+  },
+  "real_model_v2": {
+    "execution_commit": "eb722984c488a721bd6c69d2bd9a69d7c600def1",
+    "completed": true,
+    "distinct_composed_tasks": 4,
+    "arms_per_model": 4,
+    "model_families": 2,
+    "task_cells": 32,
+    "preflights": 4,
+    "requests_started": 36,
+    "responses_received": 36,
+    "native_control_conditions_passed": 32,
+    "unknown_usage": 0,
+    "original_report_sha256_observed_before_loss": "a80cc22d2db42091802d0e00b65e9cace780107640f44df7a4a08ae71edd3251",
+    "independent_audit_consistent_before_loss": true,
+    "arms": [
+      {
+        "model": "Qwen2.5-Coder 7B Q4_K_M",
+        "arm": "hia_full_context",
+        "correct": 0,
+        "tasks": 4,
+        "input_tokens": 3359,
+        "output_tokens": 261,
+        "total_task_tokens": 3620,
+        "response_contract_rejections": 0,
+        "accepted_semantic_failures": 4
+      },
+      {
+        "model": "Qwen2.5-Coder 7B Q4_K_M",
+        "arm": "hia_edit_query",
+        "correct": 1,
+        "tasks": 4,
+        "input_tokens": 1801,
+        "output_tokens": 262,
+        "total_task_tokens": 2063,
+        "response_contract_rejections": 0,
+        "accepted_semantic_failures": 3
+      },
+      {
+        "model": "Qwen2.5-Coder 7B Q4_K_M",
+        "arm": "rust_full_context",
+        "correct": 0,
+        "tasks": 4,
+        "input_tokens": 1602,
+        "output_tokens": 250,
+        "total_task_tokens": 1852,
+        "response_contract_rejections": 0,
+        "accepted_semantic_failures": 4
+      },
+      {
+        "model": "Qwen2.5-Coder 7B Q4_K_M",
+        "arm": "rust_edit_query",
+        "correct": 1,
+        "tasks": 4,
+        "input_tokens": 1441,
+        "output_tokens": 246,
+        "total_task_tokens": 1687,
+        "response_contract_rejections": 0,
+        "accepted_semantic_failures": 3
+      },
+      {
+        "model": "Granite 3.3 2B Q8_0",
+        "arm": "hia_full_context",
+        "correct": 0,
+        "tasks": 4,
+        "input_tokens": 3655,
+        "output_tokens": 290,
+        "total_task_tokens": 3945,
+        "response_contract_rejections": 1,
+        "accepted_semantic_failures": 3
+      },
+      {
+        "model": "Granite 3.3 2B Q8_0",
+        "arm": "hia_edit_query",
+        "correct": 0,
+        "tasks": 4,
+        "input_tokens": 2142,
+        "output_tokens": 292,
+        "total_task_tokens": 2434,
+        "response_contract_rejections": 3,
+        "accepted_semantic_failures": 1
+      },
+      {
+        "model": "Granite 3.3 2B Q8_0",
+        "arm": "rust_full_context",
+        "correct": 0,
+        "tasks": 4,
+        "input_tokens": 1888,
+        "output_tokens": 265,
+        "total_task_tokens": 2153,
+        "response_contract_rejections": 2,
+        "accepted_semantic_failures": 2
+      },
+      {
+        "model": "Granite 3.3 2B Q8_0",
+        "arm": "rust_edit_query",
+        "correct": 0,
+        "tasks": 4,
+        "input_tokens": 1654,
+        "output_tokens": 248,
+        "total_task_tokens": 1902,
+        "response_contract_rejections": 0,
+        "accepted_semantic_failures": 4
+      }
+    ],
+    "comparisons": [
+      {
+        "model": "Qwen2.5-Coder 7B Q4_K_M",
+        "primary": false,
+        "secondary": false,
+        "preflight_tokens": 178,
+        "total_observed_tokens_including_preflight": 9400
+      },
+      {
+        "model": "Granite 3.3 2B Q8_0",
+        "primary": false,
+        "secondary": false,
+        "preflight_tokens": 232,
+        "total_observed_tokens_including_preflight": 10666
+      }
+    ],
+    "rejections_were_out_of_candidate_list": false,
+    "rejections_were_model_safety_refusals": false,
+    "limits": [
+      "Finite candidate-selection maintenance with one greedy attempt per cell.",
+      "Four composed tasks reused across arms; not an independent holdout.",
+      "Rust fixtures include a finite three-file composition, not representative repository maintenance.",
+      "Task-arm token comparisons exclude preflights; total observed tokens include them.",
+      "Different tokenizers do not make cross-model token totals an economic cost comparison.",
+      "The configured 180-second completion HTTP/socket timeout is not an independent supervisor for the entire generation path.",
+      "Interrupted v1 observations are not rescored or pooled.",
+      "The actual model study is not relabelled as execution on 108."
+    ],
+    "rejected_response_code_suffix_counts": {
+      "SITE": 2,
+      "FIELD": 3,
+      "FIELDS": 1
+    }
+  },
+  "component_boundary": {
+    "hia_python_sources_rust_tree_model_tool_and_model_lock_unchanged_eb_to_108": true,
+    "whole_hepta_tree_unchanged_eb_to_108": false,
+    "changed_c_modules": [
+      "hepta/c_project.py",
+      "hepta/c_translation.py",
+      "hepta/cpp_project_migrate.py"
+    ]
+  },
+  "archive": {
+    "full_raw_zip_created_by_this_workflow": false,
+    "full_raw_zip_verified": false,
+    "full_raw_zip_saved": false,
+    "prepared_helpers_are_not_archive_execution_evidence": true,
+    "preparation_paths": [
+      "/tmp/hepta-final-evidence-summary",
+      "/tmp/hepta-final-evidence-rootmap-prep",
+      "/tmp/hepta-evidence-packager"
+    ],
+    "helper_sha256_observed_before_loss": {
+      "summary": "d9989d7cab46c63db3b69e2ae67adbe03035aa7d12280d6a2ff8d40ba4cab64a",
+      "rootmap": "817060593d15b904141afc14baf04e2e8132bf758bc606b32f7e90c491fdb54c",
+      "packager": "e02336f26120c39a3d74e2c6a435a4bf639f4078b40d39da166eb99e7903ba0e"
+    },
+    "local_raw_evidence_existence_after_access_loss": "unknown"
+  },
+  "recovery_inputs": {
+    "final_qualification": "/tmp/hepta-p0p7-qualification-108762ba/qualification.json",
+    "final_launch": "/tmp/hepta-p0p7-qualification-108762ba-launch/report.json",
+    "final_freeze": "/tmp/hepta-p0p7-final-freeze-108762ba.json",
+    "final_freeze_file_sha256_observed_before_loss": "476e2c960e4bae50114764139ed2d71af8e70afbf37f95b3abb38eafe49400e2",
+    "model_audit": "/tmp/hepta-p6-report-audit/final-v2-extraction.json",
+    "model_original_report": "/tmp/hepta-p0p7-agent-v2-eb722984/report.json",
+    "full_c_operand_audit": "/tmp/hepta-p3-path-semantics-audit"
+  },
+  "claims": {
+    "all_p0_p7_acceptance_conditions": false,
+    "whole_language_soundness": false,
+    "general_llvm_backend_refinement": false,
+    "arbitrary_c_cpp_automatic_safe_migration": false,
+    "original_gcc_gpp_driver_equivalence": false,
+    "universal_rust_performance_superiority": false,
+    "general_agent_productivity_advantage": false,
+    "actual_gpu_execution": false,
+    "physical_board_execution": false,
+    "production_recovery_qualification": false
+  },
+  "recovery_rules": [
+    "Recover and read the original terminal reports before starting or relabelling any new attempt.",
+    "Confirm selected writers have stopped; compare the original launch and ending source/tool identities.",
+    "Do not infer a terminal qualification verdict from elapsed time, a GitHub head, a plan, or access failure.",
+    "If raw evidence cannot be recovered, state that explicitly. Any replacement execution is a new attempt with its own identity.",
+    "Run the prepared summary, rootmap and packager only after their original terminal-input preconditions are actually satisfied.",
+    "Keep old failures, timing regressions and both model families' failed criteria visible."
+  ]
+}
