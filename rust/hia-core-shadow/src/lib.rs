@@ -536,7 +536,12 @@ pub fn verify_owned(input: &[u8]) -> R<Value> {
 /// or production final-use authorization.
 pub fn verify(input: &[u8]) -> R<Value> {
     let (doc, _canonical_bytes) = decode_hia(input)?;
-    let top = object(&doc, &["schema", "module", "functions"], "program")?;
+    let keys: &[&str] = if doc.get("exports").is_some() {
+        &["schema", "module", "functions", "exports"]
+    } else {
+        &["schema", "module", "functions"]
+    };
+    let top = object(&doc, keys, "program")?;
     let schema = string(&top["schema"], "schema")?;
     if !matches!(schema, "hepta.hia.program.v1" | "hepta.hia.program.v2"
         | "hepta.hia.program.v3" | "hepta.hia.program.v4"
@@ -565,6 +570,22 @@ pub fn verify(input: &[u8]) -> R<Value> {
         };
         if signatures.insert(name, sig).is_some() {
             return failure("E_HIA_NAME", "duplicate function name");
+        }
+    }
+    // The standalone Core permits an explicit scalar-only public export list.
+    // This shadow admits only scalar functions, so every named export has
+    // already passed the strict scalar-signature checker above.
+    if let Some(raw_exports) = top.get("exports") {
+        let exports = array(raw_exports, "exports")?;
+        let mut names = BTreeSet::new();
+        for entry in exports {
+            let name = ident(entry)?;
+            if !signatures.contains_key(&name) {
+                return failure("E_HIA_CALL", "explicit export references missing function");
+            }
+            if !names.insert(name) {
+                return failure("E_HIA_NAME", "duplicate explicit export");
+            }
         }
     }
     let mut blocks_checked = 0;
