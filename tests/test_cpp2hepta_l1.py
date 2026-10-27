@@ -591,6 +591,26 @@ extern "C" int cpp_do_sum(int n){return do_sum(n);}
             self.assertEqual(cpp(n), hepta(n), n)
 
 
+    def test_cpp20_ternary_implicit_conversion_and_effect_rejected(self):
+        # Current _conditional_value is more general than the older PR #240
+        # wrapper fix. Keep its conversion/effect refusals as actual regressions
+        # rather than replacing the newer canonical C/C++ translator.
+        for source, diagnostic in (
+            ("int unsafe(unsigned int x, int y) noexcept { return x > 0u ? x : y; }",
+             "E_C_CAST"),
+            ("int unsafe(int x, int y) noexcept { return x > 0 ? x++ : y; }",
+             "E_C_EXPRESSION"),
+        ):
+            with self.subTest(source=source):
+                self.dst.unlink(missing_ok=True)
+                self.src.write_text(source)
+                report = migrate_cpp(self.src, self.dst)
+                self.assertFalse(report["ok"], report)
+                # A missing compiler or malformed fixture must not masquerade
+                # as proof of the actual conversion/effect safety boundary.
+                self.assertIn(diagnostic, [item.get("code") for item in report["rejected"]], report)
+                self.assertFalse(self.dst.exists())
+
     def test_ternary_cpp20_return_and_assignment_native(self):
         self.src.write_text("""
 int choose(int x, int y) noexcept { return x > y ? x : y; }
