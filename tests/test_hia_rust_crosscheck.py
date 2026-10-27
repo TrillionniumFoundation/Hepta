@@ -216,5 +216,64 @@ else:
                     except ProcessLookupError:
                         pass
 
+    @unittest.skipUnless(hasattr(os, "WNOWAIT") and Path("/proc/self/stat").exists(),
+                         "Linux waitid and /proc required")
+    def test_successful_shadow_must_cleanup_pipe_closing_descendant(self):
+        """A valid leader report may not strand a live child in its session.
+
+        The child closes all standard FDs before sleeping, so the transport
+        can see EOF + exit code zero. A cleanup rule only on timeout misses it.
+        """
+        from hepta.hia_rust_crosscheck import _run_bounded_shadow
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            marker = root / "sleeping.pid"
+            launcher = root / "launcher.py"
+            child_code = (
+                "import os,time;from pathlib import Path;"
+                f"Path({str(marker)!r}).write_text(str(os.getpid()));"
+                "os.close(0);os.close(1);os.close(2);time.sleep(30)"
+            )
+            launcher.write_text(
+                "import subprocess,sys,time\nfrom pathlib import Path\n"
+                f"subprocess.Popen([sys.executable,'-c',{child_code!r}])\n"
+                f"marker = Path({str(marker)!r})\n"
+                "for _ in range(500):\n"
+                "    if marker.is_file(): break\n"
+                "    time.sleep(0.005)\n"
+                "assert marker.is_file()\n"
+                "print('qualified', flush=True)\n",
+                encoding="utf-8",
+            )
+            pid = None
+
+            def still_running(child_pid):
+                try:
+                    state = Path(f"/proc/{child_pid}/stat").read_text().rsplit(")", 1)[1]
+                    return state.split()[0] != "Z"
+                except FileNotFoundError:
+                    return False
+
+            try:
+                stdout, stderr, returncode = _run_bounded_shadow(
+                    [sys.executable, str(launcher)], b"", timeout=5.0)
+                self.assertEqual((stdout, stderr, returncode), (b"qualified\n", b"", 0))
+                self.assertTrue(marker.is_file(), "child never started")
+                pid = int(marker.read_text(encoding="utf-8"))
+                deadline = time.monotonic() + 2
+                while still_running(pid) and time.monotonic() < deadline:
+                    time.sleep(0.02)
+                self.assertFalse(still_running(pid),
+                                 "successful shadow transport stranded a child process")
+            finally:
+                if pid is None and marker.is_file():
+                    pid = int(marker.read_text(encoding="utf-8"))
+                if pid is not None and still_running(pid):
+                    try:
+                        os.kill(pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+
 if __name__ == "__main__":
     unittest.main()
