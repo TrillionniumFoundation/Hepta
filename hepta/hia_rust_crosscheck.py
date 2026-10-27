@@ -146,6 +146,7 @@ def _run_bounded_shadow(cmd: list[str], payload: bytes, timeout: float):
     will kill its process group on a transport violation or deadline.
     """
     proc = None
+    completed = False
     try:
         proc = subprocess.Popen(
             cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -201,6 +202,7 @@ def _run_bounded_shadow(cmd: list[str], payload: bytes, timeout: float):
             if remaining <= 0:
                 _reject("shadow exceeded execution deadline")
             proc.wait(timeout=remaining)
+            completed = True
             return bytes(collected["stdout"]), bytes(collected["stderr"]), proc.returncode
     except (subprocess.TimeoutExpired, OSError) as exc:
         raise HIARustCrosscheckRejected(
@@ -208,7 +210,12 @@ def _run_bounded_shadow(cmd: list[str], payload: bytes, timeout: float):
         ) from exc
     finally:
         if proc is not None:
-            if proc.poll() is None:
+            # A process can exit while one of its descendants still holds
+            # stdout/stderr open.  poll() reports the LEADER as terminated in
+            # that case, but the session's process group remains alive.
+            # On ANY unsuccessful transport, kill the group BEFORE reaping
+            # the leader rather than consulting its exit status.
+            if not completed:
                 try:
                     os.killpg(proc.pid, signal.SIGKILL)
                 except ProcessLookupError:

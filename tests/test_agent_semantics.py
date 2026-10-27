@@ -176,6 +176,37 @@ class AgentSemanticTests(unittest.TestCase):
                     with self.assertRaisesRegex(WorkspaceError, "source graph identity"):
                         agent_semantics.inspect_pinned_semantics("/immutable/store")
 
+        # A malformed or absent identity must not escape through raw AttributeError.
+        del self.graph.identity
+        with (patch.object(agent_semantics, "inspect_workspace", return_value=self.snapshot),
+              patch.object(agent_semantics, "load_project", return_value=self.graph),
+              patch.object(agent_semantics, "compiler_hash", return_value=self.COMPILER)):
+            with self.assertRaisesRegex(WorkspaceError, "source graph identity"):
+                agent_semantics.inspect_pinned_semantics("/immutable/store")
+
+    def test_pinned_source_identity_read_only_once(self):
+        # A graph identity may be a dynamic property backed by an external
+        # source binding. Checking one value and returning another would forge
+        # the provenance attributed to a successful semantic inspection.
+        class ChangingIdentity:
+            def __init__(self):
+                self.program = object()
+                self.reads = 0
+
+            @property
+            def identity(self):
+                self.reads += 1
+                return "f" * 64 if self.reads == 1 else "0" * 64
+
+            def unchanged(self):
+                return True
+
+        graph = ChangingIdentity()
+        self.graph = graph
+        result = self._inspect()
+        self.assertEqual(result["source_graph_sha256"], "f" * 64)
+        self.assertEqual(graph.reads, 1)
+
     def test_compiler_identity_change_rejected(self):
         self.snapshot["snapshot"]["manifest"]["compiler_sha256"] = "f" * 64
         with (patch.object(agent_semantics, "inspect_workspace", return_value=self.snapshot),
