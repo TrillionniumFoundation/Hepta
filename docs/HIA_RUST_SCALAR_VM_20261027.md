@@ -22,10 +22,13 @@ unchanged. Do not use this oracle to grant production Final-use.
   digest is re-derived from HIA bytes. The evaluator has no IO, allocator
   capability, native ABI, GPU, pointer or file access.
 - CLI: `cargo run --manifest-path rust/hia-core-shadow/Cargo.toml -- --scalar-run calc '[2,3]'`
-  with complete HIA JSON supplied on stdin. Output is an explicit limited
+  with complete HIA JSON supplied on stdin. A fourth CLI argument may specify
+  an integer step limit (1..1,000,000); the default is 100,000.
+  Output is an explicit limited
   JSON report with false soundness/backend/Final-use claims.
 - Rust arithmetic and CFG tests plus opt-in existing Python VM differential
-  tests distinguish value results, overflow and division traps and steps.
+  tests distinguish value results, overflow and division traps, direct/nested
+  calls, SSA backedge/PHI forwarding, step exhaustion and depth exhaustion.
 
 ## Execute exact full-checkout acceptance
 
