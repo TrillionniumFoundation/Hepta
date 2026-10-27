@@ -10,6 +10,7 @@ import urllib.error
 from tools import bootstrap_verification as bootstrap
 
 URL = "https://snapshot.ubuntu.com/ubuntu/20260828T000000Z/pool/universe/q/qemu/qemu-user-static_8.2.2+ds-0ubuntu1.18_amd64.deb"
+FALLBACK_URL = "https://security.ubuntu.com/ubuntu/pool/universe/q/qemu/qemu-user-static_8.2.2+ds-0ubuntu1.18_amd64.deb"
 
 
 def http_error(code):
@@ -84,6 +85,58 @@ class DownloadQemuTests(unittest.TestCase):
         self.assertEqual(request.call_count, 1)
         sleep.assert_not_called()
         self.assertFalse(self.package.exists())
+
+
+    def test_official_mirror_after_persistent_503(self):
+        with patch.object(bootstrap.urllib.request, "urlopen",
+                          side_effect=[http_error(503)] * 3 + [io.BytesIO(self.data)]) as fetch, \
+                patch.object(bootstrap.time, "sleep") as sleep:
+            bootstrap.download_qemu_package(URL, self.package, self.digest, FALLBACK_URL)
+        self.assertEqual([call.args[0] for call in fetch.call_args_list],
+                         [URL] * 3 + [FALLBACK_URL])
+        self.assertEqual([call.args[0] for call in sleep.call_args_list], [1, 2])
+        self.assertEqual(self.package.read_bytes(), self.data)
+
+    def test_official_mirror_http_exhaustion_fails_closed(self):
+        with patch.object(bootstrap.urllib.request, "urlopen",
+                          side_effect=[http_error(503)] * 6) as fetch, \
+                patch.object(bootstrap.time, "sleep") as sleep:
+            with self.assertRaises(urllib.error.HTTPError):
+                bootstrap.download_qemu_package(URL, self.package, self.digest, FALLBACK_URL)
+        self.assertEqual([call.args[0] for call in fetch.call_args_list],
+                         [URL] * 3 + [FALLBACK_URL] * 3)
+        self.assertEqual([call.args[0] for call in sleep.call_args_list], [1, 2, 1, 2])
+        self.assertFalse(self.package.exists())
+
+    def test_official_mirror_checksum_mismatch_never_installed(self):
+        with patch.object(bootstrap.urllib.request, "urlopen",
+                          side_effect=[http_error(503)] * 3 + [io.BytesIO(b"incorrect")]) as fetch, \
+                patch.object(bootstrap.time, "sleep"):
+            with self.assertRaisesRegex(RuntimeError, "checksum mismatch"):
+                bootstrap.download_qemu_package(URL, self.package, self.digest, FALLBACK_URL)
+        self.assertEqual(fetch.call_count, 4)
+        self.assertFalse(self.package.exists())
+
+    def test_primary_404_does_not_try_official_mirror(self):
+        with patch.object(bootstrap.urllib.request, "urlopen",
+                          side_effect=http_error(404)) as fetch, \
+                patch.object(bootstrap.time, "sleep") as sleep:
+            with self.assertRaises(urllib.error.HTTPError):
+                bootstrap.download_qemu_package(URL, self.package, self.digest, FALLBACK_URL)
+        self.assertEqual(fetch.call_count, 1)
+        sleep.assert_not_called()
+        self.assertFalse(self.package.exists())
+
+    def test_non_http_failure_does_not_try_official_mirror(self):
+        with patch.object(bootstrap.urllib.request, "urlopen",
+                          side_effect=OSError("broken stream")) as fetch, \
+                patch.object(bootstrap.time, "sleep") as sleep:
+            with self.assertRaises(OSError):
+                bootstrap.download_qemu_package(URL, self.package, self.digest, FALLBACK_URL)
+        self.assertEqual(fetch.call_count, 1)
+        sleep.assert_not_called()
+        self.assertFalse(self.package.exists())
+
 
 
 if __name__ == "__main__":
