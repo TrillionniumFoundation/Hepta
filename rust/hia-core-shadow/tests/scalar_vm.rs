@@ -46,6 +46,19 @@ fn old_scalar_v6_profile_rejects_an_unreviewed_exports_field() {
 }
 
 #[test]
+fn explicit_export_list_refuses_private_scalar_entries() {
+    let mut doc = machine("int.add.wrap", "u32", vec![]);
+    let arguments = vec![json!(2), json!(3)];
+    assert_eq!(run(&doc, "calculate", arguments.clone(), 100)["values"], json!([5]));
+    doc["exports"] = json!(["calculate"]);
+    assert_eq!(run(&doc, "calculate", arguments.clone(), 100)["values"], json!([5]));
+    for exports in [json!([]), json!(["unknown"]), json!(["calculate", "calculate"]), json!([false])] {
+        doc["exports"] = exports;
+        assert!(execute_scalar(&serde_json::to_vec(&doc).unwrap(),
+                               "calculate", &arguments, 100).is_err());
+    }
+}
+#[test]
 fn signed_division_and_remainder_truncate_toward_zero() {
     let division = machine("int.div.checked","i64",vec!["trap"]);
     assert_eq!(run(&division,"calculate",vec![json!(-7),json!(3)],100)["values"],json!([-2]));

@@ -260,6 +260,14 @@ pub fn execute_scalar(input: &[u8], function: &str, arguments: &[Value],
     })?;
     let by_name: BTreeMap<&str, &Value> = functions.iter()
         .map(|f| (f["name"].as_str().unwrap_or(""), f)).collect();
+    if let Some(exports) = document.get("exports") {
+        let entries = exports.as_array().ok_or_else(|| super::VerifyError {
+            code: "E_HIA_INPUT", detail: "invalid verified exports".into(),
+        })?;
+        if !entries.iter().any(|name| name.as_str() == Some(function)) {
+            return failure("E_HIA_INPUT", "entry is not explicitly exported");
+        }
+    }
     let Some(entry) = by_name.get(function) else {
         return failure("E_HIA_INPUT", "unknown public scalar entry");
     };
