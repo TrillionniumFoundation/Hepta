@@ -65,6 +65,31 @@ def recursive_call():
         ], ret("v"))
     ]))
 
+
+def eager_cast_select():
+    return m(f("choose", [("a", "i32"), ("b", "i32"), ("pick", "bool")],
+               ["u8"], ["trap"], [
+        b("entry", [("a", "i32"), ("b", "i32"), ("pick", "bool")], [
+            i("int.cast", ["a"], [("checked", "u8")], mode="checked"),
+            i("int.cast", ["b"], [("wrapped", "u8")], mode="wrap"),
+            i("bool.not", ["pick"], [("opposite", "bool")]),
+            i("bool.not", ["opposite"], [("chosen", "bool")]),
+            i("select", ["chosen", "checked", "wrapped"], [("result", "u8")]),
+        ], ret("result"))
+    ]))
+
+
+def boolean_composition():
+    return m(f("check", [("left", "bool"), ("right", "bool")],
+               ["bool"], [], [
+        b("entry", [("left", "bool"), ("right", "bool")], [
+            i("bool.and", ["left", "right"], [("both", "bool")]),
+            i("bool.or", ["left", "right"], [("either", "bool")]),
+            i("bool.not", ["both"], [("negated", "bool")]),
+            i("compare.eq", ["negated", "either"], [("answer", "bool")])
+        ], ret("answer"))
+    ]))
+
 @unittest.skipUnless(shutil.which("cargo"), "Cargo missing: NO Rust/VM qualification")
 class RustScalarVmParity(unittest.TestCase):
     @classmethod
@@ -125,6 +150,31 @@ class RustScalarVmParity(unittest.TestCase):
                     python = execute_program(program, entry, args,
                                              max_steps=max_steps, max_call_depth=32)
                 except (HIAProgramTrap, HIAProgramBudgetExceeded) as exc:
+                    python = exc.report
+                self.assertEqual(rust["status"], python["status"])
+                self.assertEqual(rust["steps"], python["steps"])
+                if python["status"] == "returned":
+                    self.assertEqual(rust["values"], python["values"])
+                else:
+                    self.assertEqual(rust["error"]["code"], python["error"]["code"])
+
+    def test_select_casts_boolean_and_eager_traps(self):
+        cases = [
+            (eager_cast_select(), "choose", [12, -1, True]),
+            (eager_cast_select(), "choose", [12, -1, False]),
+            # Even the unselected side is evaluated when it is an earlier
+            # SSA operation: a trapping checked cast cannot be skipped.
+            (eager_cast_select(), "choose", [-1, 7, False]),
+            (boolean_composition(), "check", [True, True]),
+            (boolean_composition(), "check", [True, False]),
+            (boolean_composition(), "check", [False, False]),
+        ]
+        for program, entry, args in cases:
+            with self.subTest(entry=entry, args=args):
+                rust = self.rust(program, entry, args)
+                try:
+                    python = execute_program(program, entry, args, max_call_depth=32)
+                except HIAProgramTrap as exc:
                     python = exc.report
                 self.assertEqual(rust["status"], python["status"])
                 self.assertEqual(rust["steps"], python["steps"])
