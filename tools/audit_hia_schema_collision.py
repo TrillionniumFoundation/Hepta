@@ -21,6 +21,9 @@ _PROFILE_NAME = re.compile(r"PROFILE(?:_V[1-9][0-9]*)?\Z")
 _SCHEMA_VALUE = re.compile(r"hepta\.hia\.program\.v[1-9][0-9]*\Z")
 
 
+_DIGEST = re.compile(r"[0-9a-f]{64}\Z")
+
+
 class HIAWireAuditRejected(ValueError):
     pass
 
@@ -41,6 +44,71 @@ def _read(path: Path) -> bytes:
     return raw
 
 
+def _sensitive(name: object) -> bool:
+    return type(name) is str and bool(
+        _SCHEMA_NAME.fullmatch(name) or _PROFILE_NAME.fullmatch(name)
+    )
+
+
+def _reject_hidden_rebindings(tree: ast.AST, declared_nodes: set[int]) -> None:
+    """Literal-only audit: reject noncanonical bindings, including nested ones.
+
+    Runtime reflection cannot be represented as a trustworthy literal inventory.
+    This is a static conflict detector, NOT a proof of runtime module semantics.
+    """
+    for node in ast.walk(tree):
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                and node.func.id in {"globals", "locals", "vars", "exec", "eval", "setattr", "delattr"}):
+            _fail("dynamic namespace mutation/reflection cannot be audited")
+        if (isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del))
+                and id(node) not in declared_nodes and _sensitive(node.id)):
+            _fail("hidden schema/profile rebinding: " + node.id)
+        if isinstance(node, ast.alias):
+            bound = node.asname or node.name.split(".")[0]
+            if _sensitive(bound):
+                _fail("import binds schema/profile authority: " + bound)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and _sensitive(node.name):
+            _fail("definition shadows schema/profile authority: " + node.name)
+        if isinstance(node, ast.arg) and _sensitive(node.arg):
+            _fail("parameter shadows schema/profile authority: " + node.arg)
+        if isinstance(node, (ast.Global, ast.Nonlocal)):
+            if any(_sensitive(name) for name in node.names):
+                _fail("global/nonlocal schema/profile rebinding")
+        if isinstance(node, ast.ExceptHandler) and _sensitive(node.name):
+            _fail("exception binding shadows schema/profile authority")
+        if isinstance(node, (ast.MatchAs, ast.MatchStar)) and _sensitive(node.name):
+            _fail("pattern binding shadows schema/profile authority")
+        if isinstance(node, ast.MatchMapping) and _sensitive(node.rest):
+            _fail("pattern rest binding shadows schema/profile authority")
+
+
+def _validated_inventory(value: dict) -> dict[str, str]:
+    """Fail closed on duplicate/forged-shaped caller inventories.
+
+    The digest is only checked for shape; it never authenticates a producer.
+    Real audit evidence must originate from declarations() of pinned source bytes.
+    """
+    if type(value) is not dict or set(value) != {"sha256", "profiles"}:
+        _fail("invalid schema inventory envelope")
+    digest, profiles = value["sha256"], value["profiles"]
+    if (type(digest) is not str or _DIGEST.fullmatch(digest) is None
+            or type(profiles) is not list or not 1 <= len(profiles) <= 128):
+        _fail("invalid schema inventory digest/profile count")
+    by_schema, seen_names = {}, set()
+    for entry in profiles:
+        if type(entry) is not dict or set(entry) != {"declaration", "schema", "profile"}:
+            _fail("malformed schema inventory entry")
+        name, schema, profile = entry["declaration"], entry["schema"], entry["profile"]
+        if (type(name) is not str or _SCHEMA_NAME.fullmatch(name) is None
+                or type(schema) is not str or _SCHEMA_VALUE.fullmatch(schema) is None
+                or type(profile) is not str or not 0 < len(profile) <= 256
+                or name in seen_names or schema in by_schema):
+            _fail("ambiguous or duplicate schema/profile inventory")
+        seen_names.add(name)
+        by_schema[schema] = profile
+    return by_schema
+
+
 def declarations(raw: bytes) -> dict:
     """Inspect only top-level literal SCHEMA/PROFILE pairs, not docstrings/comments.
 
@@ -55,6 +123,7 @@ def declarations(raw: bytes) -> dict:
     except (SyntaxError, UnicodeError, ValueError, RecursionError) as exc:
         raise HIAWireAuditRejected("E_HIA_SCHEMA_AUDIT: invalid Python source") from exc
     values = {}
+    declared_nodes: set[int] = set()
     for node in tree.body:
         # Any dynamic, annotated or tuple assignment to a schema name is an
         # unknown contract, not an excuse to infer that the schema is absent.
@@ -73,11 +142,13 @@ def declarations(raw: bytes) -> dict:
             if name in values or not isinstance(node.value, ast.Constant) or type(node.value.value) is not str:
                 _fail("reassigned or dynamic schema/profile constant: " + name)
             values[name] = node.value.value
+            declared_nodes.add(id(node.targets[0]))
         elif isinstance(node, (ast.AnnAssign, ast.AugAssign)):
             if any(isinstance(child, ast.Name) and (
                     _SCHEMA_NAME.fullmatch(child.id) or _PROFILE_NAME.fullmatch(child.id))
                     for child in ast.walk(node.target)):
                 _fail("annotated/dynamic schema/profile assignment")
+    _reject_hidden_rebindings(tree, declared_nodes)
     profiles = []
     for name, schema in sorted(values.items()):
         if not _SCHEMA_NAME.fullmatch(name):
@@ -93,15 +164,14 @@ def declarations(raw: bytes) -> dict:
         _fail("no explicit HIA program schema/profile pair")
     if len({p["schema"] for p in profiles}) != len(profiles):
         _fail("duplicate schema value within one authority")
-    return {"sha256": sha256(raw).hexdigest(), "profiles": profiles}
+    result = {"sha256": sha256(raw).hexdigest(), "profiles": profiles}
+    _validated_inventory(result)
+    return result
 
 
 def compare(left: dict, right: dict) -> dict:
-    if (type(left) is not dict or type(right) is not dict
-            or type(left.get("profiles")) is not list or type(right.get("profiles")) is not list):
-        _fail("invalid audit source inventory")
-    a = {p["schema"]: p["profile"] for p in left["profiles"]}
-    b = {p["schema"]: p["profile"] for p in right["profiles"]}
+    a = _validated_inventory(left)
+    b = _validated_inventory(right)
     overlapping = sorted(set(a) & set(b))
     conflicting = [{"schema": s, "left_profile": a[s], "right_profile": b[s]}
                    for s in overlapping if a[s] != b[s]]
