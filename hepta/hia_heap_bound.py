@@ -52,8 +52,9 @@ _NO_ALLOCATION_OPS = frozenset({
 
 
 # P1 finite peak for a narrowly qualified cyclic owner scope.  Each block
-# starts/ends without an owner/loan; each admitted allocation is from a
-# positive, exact usize constant defined in that SAME block.  Therefore no
+# starts/ends without an owner/loan; each allocation has a bounded usize
+# extent established within that SAME block from a constant or a checked
+# typed cast. Therefore no
 # outstanding heap bytes accumulate over any number of backedges.  This does
 # NOT bound cumulative allocator interactions, steps, termination or RSS.
 # Keep try_new, calls, memory operations and borrowed owners out of scope.
@@ -76,7 +77,10 @@ def _scoped_allocating_cycle_peak(fn: dict) -> int | None:
     peak = 0
     saw_allocation = False
     for block in fn["blocks"]:
-        exact_usize: dict[str, int] = {}
+        # Seed the preexisting abstract domain with intrinsic machine-type
+        # bounds, independent of caller values. Only constants and the
+        # reviewed cast transfer may refine sizes inside this block.
+        known = _typed_entry_bounds(block["params"])
         live: dict[str, int] = {}
         live_bytes = 0
         for ins in block["ops"]:
@@ -84,19 +88,31 @@ def _scoped_allocating_cycle_peak(fn: dict) -> int | None:
             if op not in _SCOPED_CYCLE_OPS:
                 return None
             if op == "const":
-                if (len(outputs) == 1 and outputs[0]["type"] == "usize"
-                        and type(attrs.get("value")) is int
-                        and 0 <= attrs["value"] <= MAX_REQUEST):
-                    exact_usize[outputs[0]["name"]] = attrs["value"]
+                if (len(outputs) == 1 and type(attrs.get("value")) is int):
+                    known[outputs[0]["name"]] = attrs["value"]
+            elif op == "int.cast":
+                # Reuse the preexisting source-typed, trap-aware cast
+                # interval transfer. Unknown source values can still be
+                # bounded by the destination machine type after a successful
+                # checked cast; wrapped small destinations have a complete
+                # finite domain as well.
+                folded = _bounded_cast(known.get(args[0]),
+                                       outputs[0]["type"], attrs["mode"])
+                if folded is not None:
+                    known[outputs[0]["name"]] = folded
             elif op == "buffer.new":
-                # Exclude zero-length and fallible owners from this narrow
-                # cycle proof. Size from prior blocks or unproved SSA math is
-                # never accepted as an exact repeated-allocation invariant.
+                # Exclude proven-all-zero and fallible owners from this narrow
+                # cycle proof. A size derived from an unproved SSA operation
+                # or another block is not a repeated-allocation invariant.
                 if len(args) != 1 or len(outputs) != 1:
                     return None
-                amount = exact_usize.get(args[0])
-                if type(amount) is not int or amount <= 0:
+                extent = _span(known.get(args[0]))
+                if (extent is None or extent.lo < 0
+                        or extent.hi <= 0 or extent.hi > MAX_REQUEST):
                     return None
+                # Worst successful request within the independently typed
+                # interval; no owner survives the current block.
+                amount = extent.hi
                 key = outputs[0]["name"]
                 if key in live:
                     return None

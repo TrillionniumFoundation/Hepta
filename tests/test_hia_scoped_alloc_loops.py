@@ -89,16 +89,57 @@ class ScopedAllocatingLoopTests(unittest.TestCase):
         with self.assertRaisesRegex(HIAStaticBudgetRejected, "E_HIA_BUDGET_UNBOUNDED"):
             analyze_constant_live_heap(verify_program(source))
 
-    def test_dynamic_extent_cannot_be_assumed_constant_across_backedge(self):
+    def test_checked_small_cast_bounds_dynamic_loop_even_without_termination(self):
         source = scoped_loop()
         body = next(x for x in source["functions"][0]["blocks"] if x["id"] == "body")
         body["ops"] = [
-            i("int.cast", ["r"], [("dynamic_size", "usize")], mode="checked"),
-            i("buffer.new", ["dynamic_size"], [("dynamic_owner", "buffer")]),
+            i("int.cast", ["r"], [("small", "u8")], mode="checked"),
+            i("int.cast", ["small"], [("bounded", "usize")], mode="checked"),
+            i("buffer.new", ["bounded"], [("dynamic_owner", "buffer")]),
             i("owner.drop", ["dynamic_owner"]),
             *body["ops"][4:],
         ]
         verified = verify_program(source)
+        # The continuing path after a successful checked u8 cast has a
+        # machine-type maximum of 255 without assuming n <= 255 at entry.
+        self.assertEqual(analyze_constant_live_heap(verified), {"count_down": 255})
+        for n in (0, 1, 2, 7, 63, 255):
+            with self.subTest(iterations=n):
+                observed = execute_program(verified, "count_down", [n])
+                self.assertEqual(observed["resources"]["peak_bytes"], n)
+                self.assertEqual(observed["resources"]["live_bytes"], 0)
+        from hepta.hia_program_runtime import HIAProgramTrap
+        with self.assertRaises(HIAProgramTrap):
+            execute_program(verified, "count_down", [256])
+
+    def test_full_u32_machine_domain_binds_repeat_allocation_peak(self):
+        source = scoped_loop()
+        body = next(x for x in source["functions"][0]["blocks"] if x["id"] == "body")
+        body["ops"] = [
+            i("int.cast", ["r"], [("size", "usize")], mode="checked"),
+            i("buffer.new", ["size"], [("dynamic_owner", "buffer")]),
+            i("owner.drop", ["dynamic_owner"]),
+            *body["ops"][4:],
+        ]
+        verified = verify_program(source)
+        self.assertEqual(analyze_constant_live_heap(verified),
+                         {"count_down": (1 << 32) - 1})
+        self.assertEqual(execute_program(verified, "count_down", [7])["resources"]["peak_bytes"], 7)
+
+    def test_unproved_arithmetic_extent_still_rejects_on_cycle(self):
+        source = scoped_loop()
+        body = next(x for x in source["functions"][0]["blocks"] if x["id"] == "body")
+        body["ops"] = [
+            i("int.cast", ["r"], [("first", "usize")], mode="checked"),
+            c("one_more", "usize", 1),
+            i("int.add.checked", ["first", "one_more"], [("computed_size", "usize")]),
+            i("buffer.new", ["computed_size"], [("dynamic_owner", "buffer")]),
+            i("owner.drop", ["dynamic_owner"]),
+            *body["ops"][4:],
+        ]
+        verified = verify_program(source)
+        # This loop profile intentionally does not reimplement the complete
+        # numeric SSA transfer; unreviewed local arithmetic stays unknown.
         with self.assertRaisesRegex(HIAStaticBudgetRejected, "E_HIA_BUDGET_UNBOUNDED"):
             analyze_constant_live_heap(verified)
 

@@ -15,10 +15,18 @@ for a narrowly recognized *cyclic* profile:
   or exits a block over any CFG edge.
 - Instruction vocabulary is frozen: pure scalar operations plus
   `buffer.new`, `owner.move` and `owner.drop`. No calls, borrow,
-  memory access, FFI, arbitrary allocator or future opcode.
-- Each `buffer.new` uses an exactly typed, strictly positive `usize`
-  `const` emitted **earlier in the same block**, no interblock or inferred
-  SSA size, not even one derived from a checked cast.
+  memory access, FFI, arbitrary allocator or future opcode. Scalar arithmetic
+  can affect control flow but does not create a new allocation-size proof
+  unless the existing bound transfer explicitly covers the operation.
+- Each `buffer.new` uses a nonnegative `usize` extent whose upper bound is
+  **strictly positive** and at most `MAX_REQUEST`, proved within that block
+  from exact integer constants, intrinsic width bounds on its block-local
+  scalar parameters, or the already implemented trap-aware `int.cast`
+  interval transfer. No unreviewed arithmetic result, caller assertion or
+  interblock bound is accepted.
+- A checked narrowing cast may trap for out-of-domain inputs; its successful
+  continuation can still have a finite destination-type interval. Wrapping
+  casts use only the previously audited bounded small-domain policy.
 - Each ordinary block exit has **no outstanding owned buffer**. Each local
   move preserves the same measured extent, and each drop subtracts precisely
   its recorded extent. A `trap` may retain owners because execution stops;
@@ -55,7 +63,9 @@ proof; all acyclic programs retain the existing full interval-aware analyzer.
 HIA verifier and VM with actual finite loop executions, verifies a 9-byte
 cycle independent of iteration count, a 13-byte concurrent local owner peak,
 and that independent 3-/9-byte scopes take a maximum instead of a sum.
-Negative tests cover fallible owner loops, unknown dynamic sizes, escaped
+Additional positive tests bind variable u32/u8 narrowing-cast extents from
+the language's full machine type domains, then compare actual VM peaks.
+Negative tests cover fallible owner loops, unreviewed arithmetic sizes, escaped
 owner block arguments, unrecognized calls, and the independent static-budget
 cyclic refusal.
 
