@@ -49,3 +49,20 @@ python tools/release_check.py
 
 `whole_project_blockers_closed=false`. Do not treat remote CI queueing as
 a development stop, or independent arithmetic controls as a production pass.
+
+## Additional native/VM acceptance boundary
+
+`tests.test_hia_heap_modulo` now contains an opt-in **actual HIA**
+`verify_program -> emit_program_llvm -> compile_program_llvm` x86-64 shared
+library differential against the independent Core VM on bounded u64 inputs.
+The test is skipped unless the pinned Clang20+ toolchain is available;
+skipping must never be reported as a passing native qualification.
+
+Separately, a handwritten LLVM control using the current emitter's
+`icmp ne i64 divisor,0` / `urem i64` pattern compiled under Clang17 and
+matched Python arithmetic on 250,000 fixed-seed u64 input/divisor pairs.
+A separately compiled native C11 control matched 265,280 u8/u64 cases.
+These are **real host machine-code probes but NOT Hepta-emitted objects**,
+and must not be substituted for the unexecuted in-repository native test.
+The handwritten LLVM shared object SHA-256 was
+`742da3324514ea9704adc348c407f428013054d72a54ef8bd4c9bdf017663796`.
