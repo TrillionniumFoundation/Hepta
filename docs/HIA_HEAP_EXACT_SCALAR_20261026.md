@@ -31,6 +31,15 @@ This remains valid for signed two's-complement inputs because the positive mask
 cannot retain a sign bit. A negative mask or an unconstrained `bit.not`
 result does not qualify an external dynamic byte count.
 
+At function entry, already typed public/internal unsigned small integer parameters
+`u8`, `u16` and `u32` are also given their **full** representable
+intervals. These bounds are valid for every caller without external promises;
+they support bounded `int.cast.checked` into an allocation request. No
+`usize/u64` bound is inferred because the entire representable 64-bit
+unsigned domain exceeds `MAX_REQUEST`; signed dynamic parameters remain
+unknown. Such bounds may be too large for a requested policy and are rejected
+normally. This is not an operating-system RSS bound.
+
 The preexisting P1 checked-negation interval rule is retained unchanged.
 All owner roots, borrow/Loan/Drop and CFG validation remain exclusively
 the responsibility of `hia_program.verify_program`; this analyzer cannot
@@ -45,7 +54,9 @@ python -m unittest tests.test_hia_program tests.test_hia_program_llvm -v
 ```
 
 New tests include actual Core verifier + VM + static-budget comparisons,
-the expected 11/12/6/2/3-byte peaks, plus 0/7/15-byte dynamic nonnegative-mask bounds with all 256 signed/unsigned 8-bit inputs; exact known-trap negatives, unsigned
+the expected 11/12/6/2/3-byte peaks, plus 0/7/15-byte dynamic nonnegative-mask bounds with all 256 signed/unsigned 8-bit inputs; type-only
+dynamic u8/u16/u32 caller bounds (255 / 65535 / 4294967295 bytes) with
+small real VM executions and policy rejection at max-1; exact known-trap negatives, unsigned
 zero/shift edges, signed negative quotient/remainder, truly unknown inputs,
 Boolean-as-int and exhaustive 8-bit scalar transfer controls.
 

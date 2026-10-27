@@ -205,6 +205,19 @@ def _merge(previous, proposed, label):
     return owners, known, dict(old_loans)
 
 
+
+def _typed_entry_bounds(parameters):
+    """Upper bounds intrinsic to small unsigned HIA machine parameter types.
+
+    C/Agent callers may supply *any* representable value; no caller contract
+    or input probe is trusted. u64/usize remain unknown because their full
+    representable range exceeds the bounded allocator object-size model.
+    """
+    return {
+        param["name"]: _Span(0, (1 << WIDTHS[param["type"]]) - 1)
+        for param in parameters if param["type"] in {"u8", "u16", "u32"}
+    }
+
 def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) -> int:
     from .hia_program import WIDTHS
 
@@ -218,7 +231,7 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) 
     order = _dag(list(blocks), edges, f"{fn['name']} heap control flow")
     # owners: SSA owner -> max requested bytes; known: scalar intervals;
     # loans: live readbuf/mutbuf -> root owner SSA name.
-    states = {fn["entry"]: ({}, {}, {})}
+    states = {fn["entry"]: ({}, _typed_entry_bounds(fn["params"]), {})}
     peak = 0
     for name in order:
         if name not in states:

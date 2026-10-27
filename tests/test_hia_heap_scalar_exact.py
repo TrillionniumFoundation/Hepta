@@ -88,6 +88,12 @@ def unknown_operand():
     ], "size", "u8", parameters=[("value", "u8")])
 
 
+
+def bounded_input(typ):
+    return allocation("bounded_input", [], "value", typ,
+                      parameters=[("value", typ)])
+
+
 def masked_unknown(mask=15, typ="u8"):
     return allocation("masked_unknown", [
         c("mask", typ, mask),
@@ -162,6 +168,35 @@ class HIAExactScalarBudgetTests(unittest.TestCase):
                     observed = execute_program(core, "masked_unknown", [value])
                     self.assertEqual(observed["result"], value & mask)
                     self.assertLessEqual(observed["resources"]["peak_bytes"], mask)
+
+    def test_unsigned_small_public_parameters_have_type_bounds(self):
+        # The type itself, not a sample runtime value, bounds every call.
+        for typ, limit, samples in [
+            ("u8", 255, (0, 1, 255)),
+            ("u16", 65535, (0, 200, 1024)),
+            ("u32", 4294967295, (0, 37, 1024)),
+        ]:
+            with self.subTest(typ=typ):
+                core = verify_program(bounded_input(typ))
+                self.assertEqual(analyze_constant_live_heap(core),
+                                 {"bounded_input": limit})
+                self.assertEqual(
+                    analyze_static_budget(core, max_live_heap_bytes=limit)
+                    ["functions"][0]["max_live_heap_bytes"], limit)
+                with self.assertRaisesRegex(ValueError, "E_HIA_BUDGET_EXCEEDED"):
+                    analyze_static_budget(core, max_live_heap_bytes=limit - 1)
+                for size in samples:
+                    report = execute_program(core, "bounded_input", [size])
+                    self.assertEqual(report["result"], size)
+                    self.assertLessEqual(report["resources"]["peak_bytes"], limit)
+
+    def test_unsigned_wide_and_signed_dynamic_parameters_still_refuse(self):
+        for typ in ("u64", "usize", "i8", "i16", "i32"):
+            with self.subTest(typ=typ):
+                core = verify_program(bounded_input(typ))
+                with self.assertRaisesRegex(
+                        HIAHeapBoundRejected, "E_HIA_BUDGET_UNBOUNDED"):
+                    analyze_constant_live_heap(core)
 
     def test_signed_negative_mask_is_not_a_valid_static_payload_bound(self):
         core = verify_program(masked_unknown(-1, "i8"))
