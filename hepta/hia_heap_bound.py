@@ -21,6 +21,21 @@ _SMALL_CAST_DOMAINS = frozenset({"i8", "i16", "i32", "u8", "u16", "u32"})
 _ALLOWED_SCHEMAS = frozenset(f"hepta.hia.program.v{version}" for version in range(1, 7))
 # New executable Core opcodes must be explicitly audited before any native
 # resource policy can rely on this analysis. Never guess "does not allocate".
+# A separately audited, explicit whitelist for arbitrary CFG cycles.
+# If *every* executable opcode in a verified function is pure scalar, it can
+# never create, transfer or free a HIA heap owner regardless of iteration count.
+# Do not derive this from the broader _NO_ALLOCATION_OPS: that set also
+# includes memory operations and can grow independently in future schemas.
+_ZERO_HEAP_CYCLIC_SCALARS = frozenset({
+    "const", "int.cast", "int.neg.checked", "select",
+    "bool.not", "bool.and", "bool.or",
+    "bit.and", "bit.or", "bit.xor", "bit.not",
+    "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge",
+    "int.add.checked", "int.sub.checked", "int.mul.checked",
+    "int.add.wrap", "int.sub.wrap", "int.mul.wrap",
+    "int.div.checked", "int.rem.checked", "int.shl.checked", "int.shr.checked",
+})
+
 _NO_ALLOCATION_OPS = frozenset({
     "int.cast", "int.neg.checked", "select",
     "bool.not", "bool.and", "bool.or",
@@ -407,6 +422,14 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) 
         _reject(f"{fn['name']}: resource arguments have unbounded external extent")
     if any(t in {"buffer", "readbuf", "mutbuf"} for t in fn["returns"]):
         _reject(f"{fn['name']}: owned return needs a caller-size invariant")
+    # P1 zero-heap proof for verifier-accepted scalar CFGs, including loops.
+    # No function calls, allocators, buffer accesses, loans, drops, or unknown
+    # opcodes are admitted. A loop may be nonterminating; this proves only
+    # live HIA payload bytes == 0, NEVER finite VM ticks or CPU time.
+    # The caller has already independently run verify_program on *all* blocks.
+    if all(ins["op"] in _ZERO_HEAP_CYCLIC_SCALARS
+           for block in fn["blocks"] for ins in block["ops"]):
+        return 0
     blocks = {b["id"]: b for b in fn["blocks"]}
     edges = {key: {e["target"] for e in _paths(block["term"])}
              for key, block in blocks.items()}
