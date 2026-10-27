@@ -1,6 +1,6 @@
 //! v7 Chain owner/loan/CFG shadow: genuine byte-exact authoritative Core fixtures.
 //! These are acceptance inputs; without cargo execution they are not pass evidence.
-use hia_core_shadow::verify_owned;
+use hia_core_shadow::{verify, verify_owned};
 use serde_json::{json, Value};
 
 fn source() -> Value {
@@ -44,7 +44,10 @@ fn accepted(source: &Value) -> bool {
 }
 #[test]
 fn v7_resource_profile_is_strictly_opt_in_and_safety_claims_remain_false() {
-    let report = verify_owned(&serde_json::to_vec(&source()).unwrap()).unwrap();
+    let raw = serde_json::to_vec(&source()).unwrap();
+    // Scalar-only verification MUST refuse this same valid v7 resource input.
+    assert!(verify(&raw).is_err(), "default scalar gate promoted a resource program");
+    let report = verify_owned(&raw).unwrap();
     assert_eq!(report["claims"]["v7_chain_owner_loan_cfg_checked"], true);
     assert_eq!(report["claims"]["v7_chain_native_semantics_proved"], false);
     assert_eq!(report["claims"]["rust_is_production_admission_authority"], false);

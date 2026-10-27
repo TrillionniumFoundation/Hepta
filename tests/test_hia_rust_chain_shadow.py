@@ -81,6 +81,13 @@ class RustChainShadowDifferential(unittest.TestCase):
     def test_complete_primitive_and_older_version_negative(self):
         document = chain_primitive()
         verified = verify_program(document)
+        # Default Rust mode must not promote the same resource program.
+        default = subprocess.run(
+            ["cargo", "run", "--quiet", "--offline",
+             "--manifest-path", str(MANIFEST)],
+            cwd=ROOT, input=verified.canonical_bytes, capture_output=True,
+            timeout=60, check=False)
+        self.assertNotEqual(default.returncode, 0)
         result = self.rust(verified.canonical_bytes)
         self.assertEqual(result.returncode, 0, result.stderr.decode(errors="replace"))
         self.assertEqual(json.loads(result.stdout)["program_sha256"], verified.sha256)
