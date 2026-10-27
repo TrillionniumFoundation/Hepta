@@ -466,6 +466,8 @@ fn check_function(fn_value: &Value, sig: &Signature, functions: &BTreeMap<String
     Ok(blocks.len())
 }
 mod ownership;
+mod scalar_vm;
+pub use scalar_vm::execute_scalar;
 
 fn decode_hia(input: &[u8]) -> R<(Value, Vec<u8>)> {
     if input.len() > MAX_BYTES {
