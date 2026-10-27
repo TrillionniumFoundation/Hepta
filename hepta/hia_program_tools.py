@@ -176,18 +176,30 @@ def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True):
                 active.add(id(node))
                 pending.append((node, True, depth))
                 if type(node) is dict:
+                    # Python dict keys can differ while their JSON field names
+                    # collide (1 vs "1", True vs "true", None vs "null").
+                    # Decode rejects duplicate JSON keys; fail before encoder
+                    # materialization instead of producing an unusable wire.
+                    wire_keys = set()
                     for key, child in node.items():
                         if type(key) not in (str, int, float, bool, type(None)):
                             _reject("unsupported JSON object key")
                         if type(key) is str:
                             _bounded_json_string_size(key, maximum, ensure_ascii)
+                            wire_key = key
                         else:
                             # Avoid unbounded decimal materialization for
                             # pathological in-memory integer object keys.
                             if type(key) is int and key.bit_length() > maximum * 4:
                                 _reject("JSON key exceeds numeric byte budget")
-                            if len(str(key)) + 2 > maximum:
+                            # Match JSONEncoder's spelling for int, float,
+                            # bool and None, including nonfinite rejection.
+                            wire_key = json.dumps(key, allow_nan=False)
+                            if len(wire_key) + 2 > maximum:
                                 _reject("JSON key exceeds byte budget")
+                        if wire_key in wire_keys:
+                            _reject("JSON object key collision after JSON conversion")
+                        wire_keys.add(wire_key)
                         pending.append((child, False, depth + 1))
                 else:
                     pending.extend((child, False, depth + 1) for child in node)
