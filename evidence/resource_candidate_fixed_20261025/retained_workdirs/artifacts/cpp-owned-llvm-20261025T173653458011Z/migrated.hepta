@@ -1,0 +1,69 @@
+module cpp_owned_migrated;
+
+pub struct OwnedBytes { data: Buffer<u8> }
+
+pub fn OwnedBytes_new(size: usize, reject: bool) -> Result<OwnedBytes, u8> effects {alloc, block} {
+    match try_buffer(size) {
+        Result::Err(code) => { return Result::Err(code); },
+        Result::Ok(bytes) => {
+            if reject {
+                drop(move bytes);
+                return Result::Err(2);
+            }
+            return Result::Ok(OwnedBytes {data: move bytes});
+        },
+    }
+}
+
+pub fn OwnedBytes_move(owner: take OwnedBytes) -> OwnedBytes effects {} {
+    return move owner;
+}
+
+pub fn OwnedBytes_drop(owner: take OwnedBytes) -> Unit effects {alloc, block} {
+    drop(move owner);
+}
+
+pub fn OwnedBytes_size(owner: read OwnedBytes) -> usize effects {} {
+    return len(owner.data);
+}
+
+pub fn OwnedBytes_data(owner: read OwnedBytes) -> read [u8] from owner effects {} {
+    return read owner.data;
+}
+
+pub fn OwnedBytes_fill(owner: mut OwnedBytes, value: u8) -> Unit effects {panic, write} {
+    for index in 0..len(owner.data) { owner.data[index] = value; }
+}
+
+pub fn OwnedBytes_get(owner: read OwnedBytes, index: usize) -> u8 effects {panic} {
+    return owner.data[index];
+}
+
+pub fn OwnedBytes_set(owner: mut OwnedBytes, index: usize, value: u8) -> Unit effects {panic, write} {
+    owner.data[index] = value;
+}
+
+pub fn run_owned(size: usize, value: u8, index: usize, reject_constructor: bool, early: bool) -> u64
+effects {alloc, block, panic, write} {
+    match OwnedBytes_new(size, reject_constructor) {
+        Result::Err(code) => { return 1000 + code as u64; },
+        Result::Ok(created) => {
+            let mut first = move created;
+            OwnedBytes_fill(mut first, value);
+            if size != 0 { OwnedBytes_set(mut first, 0, value ^ 90); }
+            let second = OwnedBytes_move(move first);
+            if early {
+                OwnedBytes_drop(move second);
+                return 2002;
+            }
+            if index >= OwnedBytes_size(read second) {
+                OwnedBytes_drop(move second);
+                return 2003;
+            }
+            let answer = OwnedBytes_data(read second)[index] as u64
+                + OwnedBytes_get(read second, index) as u64 + OwnedBytes_size(read second) as u64;
+            OwnedBytes_drop(move second);
+            return answer;
+        },
+    }
+}

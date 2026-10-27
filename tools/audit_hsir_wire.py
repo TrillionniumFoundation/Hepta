@@ -33,8 +33,93 @@ PROFILES = {
     },
 }
 
+PROFILE_LAYOUTS = {
+    # Two historical producers accidentally share a schema name; only their
+    # exact known envelopes are admissible for audit, not for execution.
+    "source_bound_dict_v0": frozenset({
+        "schema", "profile", "module", "path", "source_sha256",
+        "project_sha256", "imports", "structs", "enums", "functions",
+        "untyped_expressions", "all_expressions_typed", "external_obligations",
+        "volatile_accesses", "foreign_assumptions", "resource_contracts",
+        "owned_types", "claims", "sha256",
+    }),
+    "frozen_snapshot_v0": frozenset({
+        "schema", "status", "program", "source_sha256", "imports",
+        "structs", "enums", "functions", "external_assumptions",
+        "resource_contracts", "typed_expression_count", "claims", "sha256",
+    }),
+}
+
 class HSIRWireRejected(ValueError):
     pass
+
+
+OBLIGATION_REASONS = frozenset({
+    "foreign_function", "raw_pointer_signature", "unsafe_effect",
+    "ffi_effect", "volatile_access",
+})
+
+
+def require_unresolved_obligations(items: object) -> None:
+    """Accept only PR #14's explicitly unresolved FFI obligation wire shape."""
+    if not isinstance(items, list):
+        raise HSIRWireRejected("E_HSIR_OBLIGATIONS")
+    for entry in items:
+        if (not isinstance(entry, dict)
+                or set(entry) != {"function", "reasons", "status"}
+                or not isinstance(entry["function"], str)
+                or not entry["function"]
+                or entry["status"] != "caller_obligation_not_dischargeable_by_hsir"
+                or not isinstance(entry["reasons"], list)
+                or not entry["reasons"]
+                or any(type(reason) is not str or reason not in OBLIGATION_REASONS
+                       for reason in entry["reasons"])
+                or len(entry["reasons"]) != len(set(entry["reasons"]))):
+            raise HSIRWireRejected("E_HSIR_OBLIGATION_STATUS")
+
+
+UNPROVED_EXTERNAL_OBLIGATIONS = (
+    "foreign implementation obeys the declared ABI and effect upper bound",
+    "caller establishes pointer validity, lifetime, alignment, initialization and aliasing obligations",
+)
+
+
+def require_unproved_external_assumptions(items: object) -> None:
+    """Validate pinned PR #36 checker assumption shapes without discharging them."""
+    if type(items) is not list:
+        raise HSIRWireRejected("E_HSIR_EXTERNAL_ASSUMPTIONS")
+    for entry in items:
+        if type(entry) is not dict or type(entry.get("kind")) is not str:
+            raise HSIRWireRejected("E_HSIR_EXTERNAL_ASSUMPTION")
+        kind = entry["kind"]
+        if (kind not in {"extern_contract", "unsafe_obligation"}
+                or type(entry.get("function")) is not str
+                or not entry["function"]):
+            raise HSIRWireRejected("E_HSIR_EXTERNAL_ASSUMPTION")
+        if kind == "extern_contract":
+            if (set(entry) != {"kind", "function", "abi", "declared_effects",
+                              "parameters", "return_type", "status", "obligations"}
+                    or entry["abi"] != "C"
+                    or entry["status"] != "assumed_not_verified"
+                    or type(entry["return_type"]) is not str
+                    or not entry["return_type"]
+                    or type(entry["declared_effects"]) is not list
+                    or any(type(effect) is not str or not effect
+                           for effect in entry["declared_effects"])
+                    or len(entry["declared_effects"]) != len(set(entry["declared_effects"]))
+                    or type(entry["parameters"]) is not list
+                    or any(type(param) is not dict or set(param) != {"name", "type"}
+                           or type(param["name"]) is not str or not param["name"]
+                           or type(param["type"]) is not str or not param["type"]
+                           for param in entry["parameters"])
+                    or entry["obligations"] != list(UNPROVED_EXTERNAL_OBLIGATIONS)):
+                raise HSIRWireRejected("E_HSIR_EXTERNAL_ASSUMPTION")
+        elif (set(entry) != {"kind", "function", "operation", "path", "line", "status"}
+              or entry["status"] != "not_proved_by_frontend"
+              or type(entry["operation"]) is not str or not entry["operation"]
+              or type(entry["path"]) is not str
+              or type(entry["line"]) is not int or entry["line"] < 1):
+            raise HSIRWireRejected("E_HSIR_EXTERNAL_ASSUMPTION")
 
 
 def pairs_unique(pairs):
@@ -104,8 +189,13 @@ def fingerprint(record: dict) -> dict:
             name, profile = candidate, settings
     if profile is None or ("profile" in record and "status" in record):
         raise HSIRWireRejected("E_HSIR_UNKNOWN_PROFILE")
-    if any(key not in record for key in profile["required"]):
+    # A rehashed unknown field must not slip through as an accepted version.
+    # This audit never treats a recognized layout as semantic equivalence.
+    actual_fields = set(record)
+    if PROFILE_LAYOUTS[name] - actual_fields:
         raise HSIRWireRejected("E_HSIR_MISSING_FIELDS")
+    if actual_fields - PROFILE_LAYOUTS[name]:
+        raise HSIRWireRejected("E_HSIR_UNKNOWN_FIELDS")
     if not isinstance(record.get("functions"), list):
         raise HSIRWireRejected("E_HSIR_INVALID_FUNCTIONS")
     if not isinstance(record.get("source_sha256"), str) or not SHA256.fullmatch(record["source_sha256"]):
@@ -116,13 +206,14 @@ def fingerprint(record: dict) -> dict:
             raise HSIRWireRejected("E_HSIR_PROJECT_ID")
         if type(record["all_expressions_typed"]) is not bool:
             raise HSIRWireRejected("E_HSIR_TYPE_COMPLETENESS")
-        if not isinstance(record["external_obligations"], list):
-            raise HSIRWireRejected("E_HSIR_OBLIGATIONS")
+        require_unresolved_obligations(record["external_obligations"])
     else:
         if type(record["typed_expression_count"]) is not int or record["typed_expression_count"] < 0:
             raise HSIRWireRejected("E_HSIR_TYPE_COUNT")
+        require_unproved_external_assumptions(record["external_assumptions"])
     claims = record.get("claims")
-    if not isinstance(claims, dict) or not all(claims.get(k) is False for k in profile["denied_claims"]):
+    if (type(claims) is not dict or set(claims) != set(profile["denied_claims"])
+            or not all(claims.get(k) is False for k in profile["denied_claims"])):
         raise HSIRWireRejected("E_HSIR_UNSUPPORTED_PROOF_CLAIM")
     if any(value is not False for value in claims.values()):
         raise HSIRWireRejected("E_HSIR_UNRECOGNIZED_PROOF_CLAIM")

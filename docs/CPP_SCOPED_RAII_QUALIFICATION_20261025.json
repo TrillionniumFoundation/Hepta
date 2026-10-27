@@ -1,0 +1,252 @@
+{
+  "foreign_cpp_library_rewritten": false,
+  "limitations": [
+    "This is an execution summary, not a source-equivalence or safety certificate.",
+    "Complete reports and native binaries were temporary; rerun hepta.cpp_scoped to reconstruct new execution evidence.",
+    "GCC timing samples were collected sequentially on one shared host without LTO.",
+    "C++ allocation counters observe ordinary new/delete and exclude the warmed process-lifetime registry.",
+    "Foreign source remains C++ and numeric handle APIs still require explicit destruction."
+  ],
+  "qualifications": [
+    {
+      "cpp_compiler": {
+        "executable_sha256": "1353e9bdd29a7295c7226bf6c63abccce056d8cac31f112e5cdbecc3f28c2769",
+        "path": "/usr/bin/x86_64-linux-gnu-g++-13",
+        "target": "x86_64-linux-gnu",
+        "version": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0"
+      },
+      "cpp_object_sha256": {
+        "bridge.o": "3a23c336dec4d7665b5babc4c21eb14a4ec77e8ea40a919126c9905ab5cc4c63",
+        "foreign.o": "bfd6c6e74bb2118b1fb8e1982adeda06ba8a1081b877454bc7861707a917674d",
+        "harness.o": "c97e809c846f0f5b977f081146a83a6b6e1aeb8833cd45b89f46786924decfc2"
+      },
+      "example_input_sha256": {
+        "examples/cpp/scoped/benchmark.cpp": "b032b3adf079b6cea5224c3175bd109c7bedeb8c313bfda0b96308e700db769b",
+        "examples/cpp/scoped/consumer.hepta": "0c00138147236eb4ee2c7e9984bc6c046530265fab650f245ed9ea0a47b7ba62",
+        "examples/cpp/scoped/contract.json": "f4f1b7dedb32fb85e5e4802442216627ad951736d826b74266e3f59be334eec5",
+        "examples/cpp/scoped/foreign.cpp": "45031edfc9781e97dfe1ebf739f15edaab3225c0313a841d11d6388506b95f3b",
+        "examples/cpp/scoped/foreign.hpp": "5b2b9b62d7a5b0bd29edf1c0228c5bb0aa40b3d54368006e0cea3e9c3c819553",
+        "examples/cpp/scoped/harness.cpp": "236b7d56a04a760c152bd307dc6cc74e4c3cc081781a269a1a4a74e125832ebe"
+      },
+      "executable_sha256": "462ec3f7d80357086de1ef88482b31208db16943ea295ac15e06a6411ba276f2",
+      "execution": {
+        "allocation_recoveries": 2,
+        "allocation_refusal_sites": 2,
+        "direct_cpp_new_calls": 2,
+        "foreign_cpp_library_rewritten": false,
+        "handle_cpp_new_calls": 5,
+        "live_cpp_allocation_delta": 0,
+        "output_after_destructor": true,
+        "output_guard_cases": 2,
+        "pod_reference_copy": true,
+        "probe_lifecycle_paths": 4,
+        "scoped_cpp_new_calls": 2,
+        "scoped_wrapper_allocation_delta": 0,
+        "unit_cleanup_paths": 2,
+        "vector_differential_cases": 16
+      },
+      "execution_process": {
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "03032699879b8743a38baae4f255edc156a398aac212a88ae520ade133ce5e01"
+      },
+      "generated_at_utc": "2026-10-25T15:32:56.422574+00:00",
+      "generated_output_sha256": {
+        "bridge.cpp": "3f1b7de7b206fb83d64a4d3af877cd598f8b58805ba2fcd3ec0816adf65de0ec",
+        "bridge.h": "6febd6dd83a51662a4114d6741927da2f5d86652ee9886238b2d35951fb6d99e",
+        "bridge.hepta": "6c2d38030b003883d3ee2a8277923f0c9ff64ce3b4efaf89625bcd6eb0c91173",
+        "contract.json": "0c1400c7ae8c3e8942fd3c13c2a455047e7bf24b5308eefcb4197d387799e424"
+      },
+      "hepta_compiler_sha256": "15e8df77752511b437b79f3a3d381b96738bcd50bf3495392eed9d7914cdc67c",
+      "hepta_library_sha256": "54d0fb7655ad1b85562d08ee54ac916afbe6cbf8cbfbe40b79fab8668cecac7c",
+      "hepta_rust_sha256": "9a1ceedae99fd446c4bd7dfc7add4cc210ee44b68223301b4f7f9438f84a120d",
+      "hepta_source_sha256": "0c00138147236eb4ee2c7e9984bc6c046530265fab650f245ed9ea0a47b7ba62",
+      "native_link_qualified": true,
+      "ok": true,
+      "performance": {
+        "benchmark_sha256": "e04d3b669725d6ff16e242086ea5a51c8af5cf8fd7f3a6b618339008215891ee",
+        "limitations": [
+          "One host and selected C++/Rust compilers; seven sequential samples; no LTO.",
+          "Timings include foreign vector allocations; C++ new counts are measured separately.",
+          "No universal speedup, tail-latency, total-stack-bound or arbitrary library claim."
+        ],
+        "measurements": [
+          {
+            "case": "native_cpp_lifecycle",
+            "checksum": 774872,
+            "iterations": 50000,
+            "median_ns_per_lifecycle": 30.86238,
+            "samples_ns": [
+              1607704,
+              1506794,
+              1570059,
+              1474847,
+              1485233,
+              1543119,
+              1790746
+            ]
+          },
+          {
+            "case": "scoped_cpp_lifecycle",
+            "checksum": 774872,
+            "iterations": 50000,
+            "median_ns_per_lifecycle": 32.3632,
+            "samples_ns": [
+              2393731,
+              2347522,
+              1852687,
+              1556128,
+              1618160,
+              1573974,
+              1595386
+            ]
+          },
+          {
+            "case": "hepta_scoped_lifecycle",
+            "checksum": 774872,
+            "iterations": 50000,
+            "median_ns_per_lifecycle": 32.30192,
+            "samples_ns": [
+              1616487,
+              1607054,
+              1660482,
+              1595626,
+              1615096,
+              1633552,
+              1593304
+            ]
+          },
+          {
+            "case": "handle_cpp_lifecycle",
+            "checksum": 774872,
+            "iterations": 50000,
+            "median_ns_per_lifecycle": 147.65038,
+            "samples_ns": [
+              7664066,
+              7670286,
+              7341959,
+              9028950,
+              7139129,
+              7302860,
+              7382519
+            ]
+          }
+        ],
+        "observed_median_ratios_to_native": {
+          "handle_cpp_lifecycle": 4.784154041263182,
+          "hepta_scoped_lifecycle": 1.0466438427626126,
+          "native_cpp_lifecycle": 1.0,
+          "scoped_cpp_lifecycle": 1.0486294316899734
+        },
+        "process": {
+          "returncode": 0,
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_sha256": "23de61105890deaf0e00a8c8b79784798b74194a2b128fcac3d2bdec7abd8121"
+        },
+        "scope": "construct_append_at_and_destroy_entire_lifecycle",
+        "status": "measured"
+      },
+      "receipt_sha256": "ed837e7737bb0e578ad5667203849c0419e92ac7c360326fb0d649fb7fd90ab8",
+      "rust_compiler": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+        "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "source_snapshot_unchanged": true,
+      "standard_library_macros": [
+        "#define __GLIBCXX__ 20240904",
+        "#define _GLIBCXX_RELEASE 13"
+      ]
+    },
+    {
+      "cpp_compiler": {
+        "executable_sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+        "path": "/usr/lib/llvm-20/bin/clang",
+        "target": "x86_64-pc-linux-gnu",
+        "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+      },
+      "cpp_object_sha256": {
+        "bridge.o": "551a83fb91160c8feec0de050b9a5dff2480bcf22e5bad9b4077aed46aa1fd0d",
+        "foreign.o": "37d9f9c981a40ff1d3c66f800bba05cee60bb243afb3ada8d816d0f819304f27",
+        "harness.o": "33396738a679a89f6178f9c0b2027549c822b62ed9968842afdf98326e83667a"
+      },
+      "example_input_sha256": {
+        "examples/cpp/scoped/benchmark.cpp": "b032b3adf079b6cea5224c3175bd109c7bedeb8c313bfda0b96308e700db769b",
+        "examples/cpp/scoped/consumer.hepta": "0c00138147236eb4ee2c7e9984bc6c046530265fab650f245ed9ea0a47b7ba62",
+        "examples/cpp/scoped/contract.json": "f4f1b7dedb32fb85e5e4802442216627ad951736d826b74266e3f59be334eec5",
+        "examples/cpp/scoped/foreign.cpp": "45031edfc9781e97dfe1ebf739f15edaab3225c0313a841d11d6388506b95f3b",
+        "examples/cpp/scoped/foreign.hpp": "5b2b9b62d7a5b0bd29edf1c0228c5bb0aa40b3d54368006e0cea3e9c3c819553",
+        "examples/cpp/scoped/harness.cpp": "236b7d56a04a760c152bd307dc6cc74e4c3cc081781a269a1a4a74e125832ebe"
+      },
+      "executable_sha256": "7ab6766ea4e517874549e9d32a857822a1691ab83589904b203e11844e9aa030",
+      "execution": {
+        "allocation_recoveries": 2,
+        "allocation_refusal_sites": 2,
+        "direct_cpp_new_calls": 2,
+        "foreign_cpp_library_rewritten": false,
+        "handle_cpp_new_calls": 5,
+        "live_cpp_allocation_delta": 0,
+        "output_after_destructor": true,
+        "output_guard_cases": 2,
+        "pod_reference_copy": true,
+        "probe_lifecycle_paths": 4,
+        "scoped_cpp_new_calls": 2,
+        "scoped_wrapper_allocation_delta": 0,
+        "unit_cleanup_paths": 2,
+        "vector_differential_cases": 16
+      },
+      "execution_process": {
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "03032699879b8743a38baae4f255edc156a398aac212a88ae520ade133ce5e01"
+      },
+      "generated_at_utc": "2026-10-25T15:37:14.738708+00:00",
+      "generated_output_sha256": {
+        "bridge.cpp": "3f1b7de7b206fb83d64a4d3af877cd598f8b58805ba2fcd3ec0816adf65de0ec",
+        "bridge.h": "6febd6dd83a51662a4114d6741927da2f5d86652ee9886238b2d35951fb6d99e",
+        "bridge.hepta": "6c2d38030b003883d3ee2a8277923f0c9ff64ce3b4efaf89625bcd6eb0c91173",
+        "contract.json": "0c1400c7ae8c3e8942fd3c13c2a455047e7bf24b5308eefcb4197d387799e424"
+      },
+      "hepta_compiler_sha256": "d741007d44d14b8f94a2080fda7d6a416d281a5aa08ab709e57800aae8c0dbc3",
+      "hepta_library_sha256": "54d0fb7655ad1b85562d08ee54ac916afbe6cbf8cbfbe40b79fab8668cecac7c",
+      "hepta_rust_sha256": "39c01a33a5d0d3028e54070edffe329771c8a2f30524bb3e46c71bec89a3ece9",
+      "hepta_source_sha256": "0c00138147236eb4ee2c7e9984bc6c046530265fab650f245ed9ea0a47b7ba62",
+      "native_link_qualified": true,
+      "ok": true,
+      "performance": {
+        "status": "not_run"
+      },
+      "receipt_sha256": "85fa7e36c10a2bf5b9b5ca06ce8740330b39579e6c9c3341917f8fc86923e79f",
+      "rust_compiler": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+        "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "source_snapshot_unchanged": true,
+      "standard_library_macros": [
+        "#define _GLIBCXX_RELEASE 13",
+        "#define __GLIBCXX__ 20240904"
+      ]
+    }
+  ],
+  "regression": {
+    "clang": "20.1.2",
+    "command": "python -m unittest tests.test_cpp_scoped tests.test_cpp_contracts tests.test_cpp_constructors tests.test_cpp_bridge tests.test_cpp_contract_capture -v",
+    "duration_seconds": 60.971,
+    "gpp": "13.3.0",
+    "result": "OK",
+    "rustc": "1.90.0 (1159e78c4 2025-09-14)",
+    "skip_count": 0,
+    "tests_run": 39
+  },
+  "schema": "hepta.cpp-scoped-execution-summary.v1",
+  "scope": "selected_C++_RAII_operations_through_Rust_backed_Hepta_C_ABI",
+  "universal_performance_advantage_proved": false,
+  "whole_library_memory_safety_proved": false
+}

@@ -16,6 +16,9 @@ import subprocess
 import time
 
 
+SYSTEM_ROOTS = ('/usr', '/lib', '/lib64', '/bin')
+
+
 def clean_environment(pass_names=()):
     result = {'PATH': os.defpath, 'LANG': 'C.UTF-8', 'LC_ALL': 'C.UTF-8'}
     for name in pass_names:
@@ -29,10 +32,28 @@ def _base_bwrap():
     executable = shutil.which('bwrap')
     if not executable:
         raise ValueError('E_SANDBOX_UNAVAILABLE: bubblewrap is not installed')
-    args = [executable, '--die-with-parent', '--unshare-all', '--new-session']
-    for path in ('/usr', '/lib', '/lib64', '/bin'):
-        if Path(path).exists(): args += ['--ro-bind', path, path]
-    args += ['--proc', '/proc', '--dev', '/dev', '--tmpfs', '/tmp']
+    args = [executable, '--die-with-parent', '--unshare-all', '--unshare-user',
+            '--unshare-pid', '--unshare-ipc', '--unshare-net',
+            '--new-session', '--cap-drop', 'ALL']
+    for path in SYSTEM_ROOTS:
+        if Path(path).is_symlink():
+            # Preserve merged-/usr aliases. Flattening /bin into a bind mount
+            # makes compilers infer /bin-relative library paths without procfs.
+            target = os.readlink(path)
+            lexical = Path(os.path.normpath(os.path.join(str(Path(path).parent), target)))
+            if not any(lexical.is_relative_to(root) for root in SYSTEM_ROOTS):
+                raise ValueError('E_SANDBOX_SYSTEM_PATH: system alias leaves the allowlist: ' + path)
+            resolved = Path(path).resolve(strict=True)
+            if not any(resolved.is_relative_to(root) for root in SYSTEM_ROOTS):
+                raise ValueError('E_SANDBOX_SYSTEM_PATH: system alias resolves outside the allowlist: ' + path)
+            args += ['--symlink', target, path]
+        elif Path(path).exists():
+            args += ['--ro-bind', path, path]
+    # A new PID namespace does not require a procfs mount. Some container
+    # hosts prohibit mounting procfs even when every namespace can be created.
+    # Keep /proc empty rather than exposing the parent's procfs or relaxing
+    # user/PID/IPC/network isolation to make a mount succeed.
+    args += ['--dir', '/proc', '--dev', '/dev', '--tmpfs', '/tmp']
     return args
 
 
@@ -44,11 +65,13 @@ def probe_sandbox():
         proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                 text=True, env=clean_environment(), start_new_session=True)
         _, stderr = proc.communicate(timeout=3)
-        return {'kind': 'bubblewrap_namespaces', 'available': proc.returncode == 0,
+        return {'kind': 'bubblewrap_namespaces', 'proc_policy': 'empty_directory',
+                'available': proc.returncode == 0,
                 'probe_returncode': proc.returncode,
                 'reason': '' if proc.returncode == 0 else stderr.strip()[:500]}
     except (OSError, ValueError, subprocess.TimeoutExpired) as exc:
-        return {'kind': 'bubblewrap_namespaces', 'available': False, 'reason': str(exc)[:500]}
+        return {'kind': 'bubblewrap_namespaces', 'proc_policy': 'empty_directory',
+                'available': False, 'reason': str(exc)[:500]}
     finally:
         if proc is not None:
             kill_process(proc)
@@ -63,9 +86,22 @@ def wrap_command(command, capsule: Path, *, fixture=False, read_only=(), network
     if not probe['available']:
         raise ValueError('E_SANDBOX_UNAVAILABLE: production runs require namespace isolation; ' + probe['reason'])
     args = _base_bwrap()
+    rust_libraries = []
     for path in read_only:
-        path = str(Path(path).resolve())
+        root = Path(path).resolve()
+        path = str(root)
         args += ['--ro-bind', path, path]
+        # ELF $ORIGIN resolution can depend on /proc/self/exe. Only add the
+        # explicitly mounted toolchain's libraries, never a host-provided
+        # LD_LIBRARY_PATH or a candidate-controlled directory.
+        if (root / 'lib' / 'rustlib').is_dir():
+            library = str(root / 'lib')
+            if os.pathsep in library:
+                raise ValueError('E_TOOLCHAIN: toolchain path contains a library-path separator')
+            if library not in rust_libraries:
+                rust_libraries.append(library)
+    if rust_libraries:
+        args += ['--setenv', 'LD_LIBRARY_PATH', os.pathsep.join(rust_libraries)]
     if network:
         args += ['--share-net']
         for path in ('/etc/resolv.conf', '/etc/hosts', '/etc/ssl/certs'):

@@ -1,0 +1,68 @@
+{
+  "aggregate_status": "failed",
+  "code_commit": "9ce4bc1dc3f831401af5a2736b319d61bfd7c0f2",
+  "code_tree": "629b85b18e97d77b5a5f3022d8cc830786e3dfc9",
+  "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+  "failed_gates": [
+    {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "tools.validate_cpp_owned",
+        "--workdir",
+        "artifacts/cpp-owned-20261025T171524382241Z",
+        "--out",
+        "evidence/resource_candidate_20261025/cpp_owned.json"
+      ],
+      "evidence": "evidence/resource_candidate_20261025/cpp_owned.json",
+      "exit_code": 0,
+      "log": "evidence/resource_candidate_20261025/cpp_owned_migration.log",
+      "log_sha256": "26c5ece8e376937390b82875e99d69331adc268e9a895afb91b289e4d3a998c4",
+      "name": "cpp_owned_migration",
+      "reason": "Expected evidence status 'passed', got 'native_owned_implementation_and_cleanup_qualified'",
+      "seconds": 1.45,
+      "status": "failed",
+      "validation_error": "Expected evidence status 'passed', got 'native_owned_implementation_and_cleanup_qualified'"
+    },
+    {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "tools.qualify_llvm_owned",
+        "--output",
+        "evidence/resource_candidate_20261025/llvm_owned.json"
+      ],
+      "evidence": "evidence/resource_candidate_20261025/llvm_owned.json",
+      "exit_code": 1,
+      "log": "evidence/resource_candidate_20261025/llvm_owned_performance.log",
+      "log_sha256": "ebdfd2f8845085d49034b7cf4295846c7dac46a8212799bcef89394b9ec9ff7b",
+      "name": "llvm_owned_performance",
+      "reason": "Gate command did not succeed; retained failure evidence is not qualification",
+      "seconds": 103.923,
+      "status": "failed",
+      "validation_error": "Gate command did not succeed; retained failure evidence is not qualification"
+    }
+  ],
+  "gates_completed": 46,
+  "gates_passed": 44,
+  "owned_performance_geometric_ratios": {
+    "handwritten_rust": 0.7708252729636925,
+    "rust": 0.8073235145328421
+  },
+  "owned_performance_quality_failures": [
+    "full_lifecycle/llvm: relative MAD above fixed maximum",
+    "full_lifecycle/handwritten_rust: relative MAD above fixed maximum",
+    "constructor_error/llvm: relative MAD above fixed maximum",
+    "constructor_error/handwritten_rust: relative MAD above fixed maximum",
+    "two_stage/handwritten_rust: relative MAD above fixed maximum"
+  ],
+  "owned_performance_speed_failures": [],
+  "owned_performance_status": "measurement_inconclusive",
+  "planned_gates": 46,
+  "schema": "hepta.integrated-resource-attempt.v1",
+  "snapshot_unchanged": true,
+  "source_snapshot_sha256": "ef24464829b85b4757ec0ccf6147229775a10d0a0b069e5d36fcd33afba19b39",
+  "tests": 1369,
+  "tests_skipped": 0,
+  "whole_project_blockers_closed": false
+}

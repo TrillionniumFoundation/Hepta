@@ -1,0 +1,38 @@
+fn exchange(data:take Buffer<u8>,cancel:read Cancellation,sender:read Sender<u64>)->u64 effects {alloc,block,panic,io,write} {
+    release(move data);
+    let mut io=io_reactor(2,2,128); assert(io_attach(mut io,read sender)==0);
+    let pair=io_local_pair(mut io); assert(pair.status==0);
+    let input=buffer(64);let mut output=buffer(64);
+    for i in 0..len(output) {output[i]=i as u8;}
+    let reading=io_read(mut io,pair.left,move input,64,1000);
+    let writing=io_write(mut io,pair.right,move output,64,1000);
+    let mut count:usize=0;let mut status:u8=0;
+    let received=io_wait(mut io,move reading,mut count,mut status);
+    assert(status==0 && count==64);
+    for i in 0..len(received) {assert(received[i]==i as u8);}
+    release(move received);
+    let sent=io_wait(mut io,move writing,mut count,mut status);
+    assert(status==0 && count==64);release(move sent);
+    let done=io_shutdown(move io);assert(done.reserved_bytes==0 && done.open_ports==0);
+    return done.read_bytes+done.written_bytes;
+}
+fn main()->Unit effects {alloc,block,panic,io,write,spawn} {
+    let mut root=task_group(0,0,1);
+    assert(group_budget_configure(mut root,2,2,5,131072,65536));
+    assert(group_io_configure(mut root,2,8,4,256));
+    let mut observer=task_group(0,0,1);let mut branch=task_group(0,0,1);
+    let mut first=task_group(1,1,1);let mut second=task_group(1,1,1);
+    assert(group_budget_share(mut observer,read root));assert(group_budget_share(mut branch,read root));
+    assert(group_budget_share(mut first,read root));assert(group_budget_share(mut second,read root));
+    assert(group_spawn(mut first,exchange,move buffer(1)));assert(group_spawn(mut second,exchange,move buffer(1)));
+    assert(group_adopt(mut branch,move first));assert(group_adopt(mut branch,move second));
+    assert(group_adopt(mut root,move branch));
+    let joined=group_tree_join(move root);
+    assert(joined.groups==4 && joined.joined_groups==4 && joined.completed_tasks==2);
+    assert(joined.active_tasks==0 && joined.sum==256);
+    let io=group_io_snapshot(read observer);let tasks=group_budget_snapshot(read observer);
+    assert(io.attached_reactors==0 && io.reserved_port_slots==0 && io.reserved_request_slots==0 && io.reserved_bytes==0);
+    assert(tasks.reserved_threads==0 && tasks.reserved_input_bytes==0 && tasks.reserved_requested_stack_bytes==0);
+    assert(tasks.reserved_queue_slots==1);group_tree_join(move observer);
+    print_i64(joined.groups as i64);print_i64(joined.sum as i64);print_i64(io.reserved_bytes as i64);
+}

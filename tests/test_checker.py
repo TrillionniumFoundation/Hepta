@@ -136,8 +136,8 @@ class CheckerTests(_CheckerAssertions, unittest.TestCase):
             with self.subTest(typ=typ):
                 self.rejects(f'fn f(b:read {typ})->Unit effects {{}} {{}}', 'E_NESTED_LINEAR')
 
-    def test_struct_buffer_rejected(self):
-        self.rejects('struct S { b:Buffer<u8> } fn f()->Unit effects {} {}', 'E_NESTED_LINEAR')
+    def test_struct_buffer_cannot_hide_a_forgotten_owner(self):
+        self.rejects('struct S { b:Buffer<u8> } fn f(s:take S)->Unit effects {} {}', 'E_LINEAR_UNCONSUMED')
 
     def test_discard_fresh_buffer(self):
         self.rejects('fn f()->Unit effects {alloc,block,panic} {buffer(4);}', 'E_LINEAR_DISCARD')

@@ -1,0 +1,7 @@
+struct View<'a>{ data:read 'a [u8] }
+fn view<'a>(data:read 'a Buffer<u8>)->View<'a> effects {} {return View{data:read data};}
+
+fn bad<'a>(owner:take Buffer<u8>)->View<'a> effects {alloc,block} {
+    let value=view(read owner);release(move owner);return value;
+}
+fn main()->Unit effects {} {}

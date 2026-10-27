@@ -1,0 +1,739 @@
+{
+  "cases": [
+    {
+      "case": "group_joined_in_timeout_operand",
+      "concurrent_ir_ok": false,
+      "expectation": "invalid",
+      "frontend_ok": true,
+      "graph": {
+        "bytes": 1561,
+        "path": "evidence/audits/concurrent_ir/after.graphs/group_joined_in_timeout_operand.json",
+        "sha256": "71e4663d45503f777c8992875f462d2b4dfcbac533fb23fa53be9ac34fc70ca7"
+      },
+      "lowering_diagnostics": null,
+      "native_checks": {
+        "rust_borrows_types": "rejected",
+        "syntax": "passed",
+        "types_effects_resources": "passed_in_supported_subset"
+      },
+      "native_diagnostics": [
+        {
+          "code": "E0505",
+          "message": "cannot move out of `h_group` because it is borrowed",
+          "phase": "backend"
+        },
+        {
+          "code": "E_RUSTC",
+          "message": "aborting due to 1 previous error",
+          "phase": "backend"
+        }
+      ],
+      "native_ok": false,
+      "native_toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+        "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "source_sha256": "aafdf758bff5f0bfc7f1106facf05d51519b8dda78bf1c66a9485f8a50e9fb61",
+      "verifier": {
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "diagnostics": [
+          {
+            "code": "E_CIR_USE_AFTER_MOVE",
+            "message": "Resource is moved, uninitialized, or only borrowed: v1"
+          }
+        ],
+        "ok": false,
+        "schema": "hepta.concurrent-ir.verification.v1"
+      }
+    },
+    {
+      "case": "left_joined_in_select_operand",
+      "concurrent_ir_ok": false,
+      "expectation": "invalid",
+      "frontend_ok": true,
+      "graph": {
+        "bytes": 2149,
+        "path": "evidence/audits/concurrent_ir/after.graphs/left_joined_in_select_operand.json",
+        "sha256": "cfe6747f286e2f409ff49a5f56a98e838bcb202975abce25e8590fa9eb5c12ce"
+      },
+      "lowering_diagnostics": null,
+      "native_checks": {
+        "rust_borrows_types": "rejected",
+        "syntax": "passed",
+        "types_effects_resources": "passed_in_supported_subset"
+      },
+      "native_diagnostics": [
+        {
+          "code": "E0505",
+          "message": "cannot move out of `h_left` because it is borrowed",
+          "phase": "backend"
+        },
+        {
+          "code": "E_RUSTC",
+          "message": "aborting due to 1 previous error",
+          "phase": "backend"
+        }
+      ],
+      "native_ok": false,
+      "native_toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+        "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "source_sha256": "a9fe0024c1beaff16060e30054e9befd0c62eb7e008ab886b22fe607ccf538c7",
+      "verifier": {
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "diagnostics": [
+          {
+            "code": "E_CIR_USE_AFTER_MOVE",
+            "message": "Resource is moved, uninitialized, or only borrowed: v1"
+          }
+        ],
+        "ok": false,
+        "schema": "hepta.concurrent-ir.verification.v1"
+      }
+    },
+    {
+      "case": "right_joined_in_select_operand",
+      "concurrent_ir_ok": false,
+      "expectation": "invalid",
+      "frontend_ok": true,
+      "graph": {
+        "bytes": 2149,
+        "path": "evidence/audits/concurrent_ir/after.graphs/right_joined_in_select_operand.json",
+        "sha256": "852408a7a5c0c1de5938e48cdfb47dc28306aa6089c7e53cf4b3505765f77c21"
+      },
+      "lowering_diagnostics": null,
+      "native_checks": {
+        "rust_borrows_types": "rejected",
+        "syntax": "passed",
+        "types_effects_resources": "passed_in_supported_subset"
+      },
+      "native_diagnostics": [
+        {
+          "code": "E0505",
+          "message": "cannot move out of `h_right` because it is borrowed",
+          "phase": "backend"
+        },
+        {
+          "code": "E_RUSTC",
+          "message": "aborting due to 1 previous error",
+          "phase": "backend"
+        }
+      ],
+      "native_ok": false,
+      "native_toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+        "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "source_sha256": "8d5fc8e9ab13f668deb5b38860d22068ca80ecb73e5d1c03e47b4c00c7e3c879",
+      "verifier": {
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "diagnostics": [
+          {
+            "code": "E_CIR_USE_AFTER_MOVE",
+            "message": "Resource is moved, uninitialized, or only borrowed: v3"
+          }
+        ],
+        "ok": false,
+        "schema": "hepta.concurrent-ir.verification.v1"
+      }
+    },
+    {
+      "case": "group_joined_in_budget_configuration",
+      "concurrent_ir_ok": false,
+      "expectation": "invalid",
+      "frontend_ok": true,
+      "graph": {
+        "bytes": 1562,
+        "path": "evidence/audits/concurrent_ir/after.graphs/group_joined_in_budget_configuration.json",
+        "sha256": "d75fd74d9193d2c2283680b63ff19c14ce080f80329db32efed42367ae4a064e"
+      },
+      "lowering_diagnostics": null,
+      "native_checks": {
+        "rust_borrows_types": "rejected",
+        "syntax": "passed",
+        "types_effects_resources": "passed_in_supported_subset"
+      },
+      "native_diagnostics": [
+        {
+          "code": "E0505",
+          "message": "cannot move out of `h_group` because it is borrowed",
+          "phase": "backend"
+        },
+        {
+          "code": "E_RUSTC",
+          "message": "aborting due to 1 previous error",
+          "phase": "backend"
+        }
+      ],
+      "native_ok": false,
+      "native_toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+        "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "source_sha256": "976b7b4f154c0eee5fc1953a6c1782cea015b434230bcea857d2513ed4abcd3d",
+      "verifier": {
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "diagnostics": [
+          {
+            "code": "E_CIR_USE_AFTER_MOVE",
+            "message": "Resource is moved, uninitialized, or only borrowed: v1"
+          }
+        ],
+        "ok": false,
+        "schema": "hepta.concurrent-ir.verification.v1"
+      }
+    },
+    {
+      "case": "buffer_dropped_by_index_computation",
+      "concurrent_ir_ok": false,
+      "expectation": "invalid",
+      "frontend_ok": true,
+      "graph": {
+        "bytes": 2355,
+        "path": "evidence/audits/concurrent_ir/after.graphs/buffer_dropped_by_index_computation.json",
+        "sha256": "1a7c603761aca3b83832a274cde371f9d805c13d37b92c5868b647193cd91cf0"
+      },
+      "lowering_diagnostics": null,
+      "native_checks": {
+        "rust_borrows_types": "rejected",
+        "syntax": "passed",
+        "types_effects_resources": "passed_in_supported_subset"
+      },
+      "native_diagnostics": [
+        {
+          "code": "E0505",
+          "message": "cannot move out of `h_b` because it is borrowed",
+          "phase": "backend"
+        },
+        {
+          "code": "E_RUSTC",
+          "message": "aborting due to 1 previous error",
+          "phase": "backend"
+        }
+      ],
+      "native_ok": false,
+      "native_toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+        "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "source_sha256": "d2acb6585d66676c2c771e1abefba0254cc7e5eb229901a874b276b292434c11",
+      "verifier": {
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "diagnostics": [
+          {
+            "code": "E_CIR_USE_AFTER_MOVE",
+            "message": "Resource is moved, uninitialized, or only borrowed: v1"
+          }
+        ],
+        "ok": false,
+        "schema": "hepta.concurrent-ir.verification.v1"
+      }
+    },
+    {
+      "case": "buffer_dropped_by_assignment_index",
+      "concurrent_ir_ok": false,
+      "expectation": "invalid",
+      "frontend_ok": true,
+      "graph": {
+        "bytes": 2355,
+        "path": "evidence/audits/concurrent_ir/after.graphs/buffer_dropped_by_assignment_index.json",
+        "sha256": "ca117b5d51eb3ab972ca683ba1fef69df6d4dcb1819677276fee81b77a319cc2"
+      },
+      "lowering_diagnostics": null,
+      "native_checks": {
+        "rust_borrows_types": "rejected",
+        "syntax": "passed",
+        "types_effects_resources": "passed_in_supported_subset"
+      },
+      "native_diagnostics": [
+        {
+          "code": "E0505",
+          "message": "cannot move out of `h_b` because it is borrowed",
+          "phase": "backend"
+        },
+        {
+          "code": "E_RUSTC",
+          "message": "aborting due to 1 previous error",
+          "phase": "backend"
+        }
+      ],
+      "native_ok": false,
+      "native_toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+        "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "source_sha256": "486b5745b09b443cf83accb6e8bc5ce1298e772dd05f0cde104be659f65a9e17",
+      "verifier": {
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "diagnostics": [
+          {
+            "code": "E_CIR_USE_AFTER_MOVE",
+            "message": "Resource is moved, uninitialized, or only borrowed: v1"
+          }
+        ],
+        "ok": false,
+        "schema": "hepta.concurrent-ir.verification.v1"
+      }
+    },
+    {
+      "case": "buffer_dropped_by_assignment_rhs",
+      "concurrent_ir_ok": false,
+      "expectation": "invalid",
+      "frontend_ok": true,
+      "graph": {
+        "bytes": 2352,
+        "path": "evidence/audits/concurrent_ir/after.graphs/buffer_dropped_by_assignment_rhs.json",
+        "sha256": "566688efdb13cab073ac52cc2b5442b0a5b219cb02f6331f961e433c3941615c"
+      },
+      "lowering_diagnostics": null,
+      "native_checks": {
+        "rust_borrows_types": "rejected",
+        "syntax": "passed",
+        "types_effects_resources": "passed_in_supported_subset"
+      },
+      "native_diagnostics": [
+        {
+          "code": "E0382",
+          "message": "borrow of moved value: `h_b`",
+          "phase": "backend"
+        },
+        {
+          "code": "E_RUSTC",
+          "message": "aborting due to 1 previous error",
+          "phase": "backend"
+        }
+      ],
+      "native_ok": false,
+      "native_toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+        "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "source_sha256": "dcfd1ca6f52cf97466d628d8f327d3082f75ab2484bc38e547a67e3473259941",
+      "verifier": {
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "diagnostics": [
+          {
+            "code": "E_CIR_USE_AFTER_MOVE",
+            "message": "Resource is moved, uninitialized, or only borrowed: v1"
+          }
+        ],
+        "ok": false,
+        "schema": "hepta.concurrent-ir.verification.v1"
+      }
+    },
+    {
+      "case": "earlier_call_borrow_consumed_by_later_argument",
+      "concurrent_ir_ok": false,
+      "expectation": "invalid",
+      "frontend_ok": true,
+      "graph": {
+        "bytes": 3207,
+        "path": "evidence/audits/concurrent_ir/after.graphs/earlier_call_borrow_consumed_by_later_argument.json",
+        "sha256": "aac15a0cca86a29a7eecf87e203aea39e75b2e79cbd9e857dc528c7ce94599e9"
+      },
+      "lowering_diagnostics": null,
+      "native_checks": {
+        "rust_borrows_types": "rejected",
+        "syntax": "passed",
+        "types_effects_resources": "passed_in_supported_subset"
+      },
+      "native_diagnostics": [
+        {
+          "code": "E0505",
+          "message": "cannot move out of `h_b` because it is borrowed",
+          "phase": "backend"
+        },
+        {
+          "code": "E_RUSTC",
+          "message": "aborting due to 1 previous error",
+          "phase": "backend"
+        }
+      ],
+      "native_ok": false,
+      "native_toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+        "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "source_sha256": "9ee2f4acfc3998d18c9205662f86efe9ace5f098c9261f98fc21e7250b84b318",
+      "verifier": {
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "diagnostics": [
+          {
+            "code": "E_CIR_USE_AFTER_MOVE",
+            "message": "Resource is moved, uninitialized, or only borrowed: v1"
+          }
+        ],
+        "ok": false,
+        "schema": "hepta.concurrent-ir.verification.v1"
+      }
+    },
+    {
+      "case": "index_consumes_other_buffer",
+      "concurrent_ir_ok": true,
+      "expectation": "valid",
+      "frontend_ok": true,
+      "graph": {
+        "bytes": 2873,
+        "path": "evidence/audits/concurrent_ir/after.graphs/index_consumes_other_buffer.json",
+        "sha256": "360ed28630661c5f04cb8509c8dec032e13b8b197ff81a8c75c66c671b3c2f5d"
+      },
+      "lowering_diagnostics": null,
+      "native_checks": {
+        "rust_borrows_types": "rustc_checked",
+        "syntax": "passed",
+        "types_effects_resources": "passed_in_supported_subset"
+      },
+      "native_diagnostics": [],
+      "native_ok": true,
+      "native_toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+        "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "source_sha256": "5ff29452c407b2757b72ddabbfbea29531fb73db5c142afaa40a405b8f90cd42",
+      "verifier": {
+        "blocks": 2,
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "functions": 2,
+        "group_spawns": 0,
+        "ir_sha256": "cf80522848bb059b2e97c19d95347b13482ee8bb363600f93bdd3682c9101a10",
+        "normal_exits": 2,
+        "ok": true,
+        "operations": 12,
+        "schema": "hepta.concurrent-ir.verification.v1",
+        "task_spawns": 0
+      }
+    },
+    {
+      "case": "assignment_rhs_and_index_complete_before_store",
+      "concurrent_ir_ok": true,
+      "expectation": "valid",
+      "frontend_ok": true,
+      "graph": {
+        "bytes": 3043,
+        "path": "evidence/audits/concurrent_ir/after.graphs/assignment_rhs_and_index_complete_before_store.json",
+        "sha256": "a6c50635b959a8a3d147f4f3307aaaec59c71ec05796c88fd624d6d51f8b6c4f"
+      },
+      "lowering_diagnostics": null,
+      "native_checks": {
+        "rust_borrows_types": "rustc_checked",
+        "syntax": "passed",
+        "types_effects_resources": "passed_in_supported_subset"
+      },
+      "native_diagnostics": [],
+      "native_ok": true,
+      "native_toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+        "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "source_sha256": "1c4dfa627f69a5d23e8a6fca7f7413fe71131a29930a37666df398d1befdd58f",
+      "verifier": {
+        "blocks": 2,
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "functions": 2,
+        "group_spawns": 0,
+        "ir_sha256": "046e54f7cf979f3b9c361f354573eaf0bf4482370417f2f500813b03248e0a0c",
+        "normal_exits": 2,
+        "ok": true,
+        "operations": 14,
+        "schema": "hepta.concurrent-ir.verification.v1",
+        "task_spawns": 0
+      }
+    },
+    {
+      "case": "group_operand_joins_another_group",
+      "concurrent_ir_ok": true,
+      "expectation": "valid",
+      "frontend_ok": true,
+      "graph": {
+        "bytes": 2115,
+        "path": "evidence/audits/concurrent_ir/after.graphs/group_operand_joins_another_group.json",
+        "sha256": "106b4c875cd0c1beb8730bb988dd58fd7aef39b4c570298056c10b9223a49b5b"
+      },
+      "lowering_diagnostics": null,
+      "native_checks": {
+        "rust_borrows_types": "rustc_checked",
+        "syntax": "passed",
+        "types_effects_resources": "passed_in_supported_subset"
+      },
+      "native_diagnostics": [],
+      "native_ok": true,
+      "native_toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+        "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "source_sha256": "7bf43318a518c3dfaa2ea6507f5ddc91b7def2f7d953f2a889f082b8e252d86d",
+      "verifier": {
+        "blocks": 1,
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "functions": 1,
+        "group_spawns": 0,
+        "ir_sha256": "e33ca8d6b7970cfdd12c1eac331ed54b56b39de39c0a1130b5ff909b0fb78614",
+        "normal_exits": 1,
+        "ok": true,
+        "operations": 9,
+        "schema": "hepta.concurrent-ir.verification.v1",
+        "task_spawns": 0
+      }
+    },
+    {
+      "case": "snapshot_then_join",
+      "concurrent_ir_ok": true,
+      "expectation": "valid",
+      "frontend_ok": true,
+      "graph": {
+        "bytes": 1553,
+        "path": "evidence/audits/concurrent_ir/after.graphs/snapshot_then_join.json",
+        "sha256": "de94f065738ae0b93de6564d801d2cf0c2ee82800d9eba09b57cfe923f990bbb"
+      },
+      "lowering_diagnostics": null,
+      "native_checks": {
+        "rust_borrows_types": "rustc_checked",
+        "syntax": "passed",
+        "types_effects_resources": "passed_in_supported_subset"
+      },
+      "native_diagnostics": [],
+      "native_ok": true,
+      "native_toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+        "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "source_sha256": "8da08c2cf8e20496862049f03aed43a8979acaa5886c07f4bb0dc2428b11071d",
+      "verifier": {
+        "blocks": 1,
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "functions": 1,
+        "group_spawns": 0,
+        "ir_sha256": "cb308ea27ee4f1b09762f7c1531788d5d67ddd781c65048915ad95d352e713f2",
+        "normal_exits": 1,
+        "ok": true,
+        "operations": 5,
+        "schema": "hepta.concurrent-ir.verification.v1",
+        "task_spawns": 0
+      }
+    },
+    {
+      "case": "loop_condition_only_borrows_then_final_join",
+      "concurrent_ir_ok": true,
+      "expectation": "valid",
+      "frontend_ok": true,
+      "graph": {
+        "bytes": 2918,
+        "path": "evidence/audits/concurrent_ir/after.graphs/loop_condition_only_borrows_then_final_join.json",
+        "sha256": "33db11e6f47d1db3d1d09522c3efad4de80ad63d79809859a35cd69243065d0e"
+      },
+      "lowering_diagnostics": null,
+      "native_checks": {
+        "rust_borrows_types": "rustc_checked",
+        "syntax": "passed",
+        "types_effects_resources": "passed_in_supported_subset"
+      },
+      "native_diagnostics": [],
+      "native_ok": true,
+      "native_toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+        "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "source_sha256": "4fc513e3370a6f055a317357f3258b05219d4f66b1000673bb39099ccf62a718",
+      "verifier": {
+        "blocks": 7,
+        "claims": {
+          "cancellation_termination_proved": false,
+          "deadlock_freedom_proved": false,
+          "normal_exit_join_obligations_verified": true,
+          "runtime_budget_bounds_proved": false,
+          "runtime_data_race_freedom_proved": false,
+          "source_to_ir_refinement_proved": false,
+          "whole_language_soundness_proved": false,
+          "worker_input_transfer_verified": true
+        },
+        "functions": 1,
+        "group_spawns": 0,
+        "ir_sha256": "34381f020c0d80b72324dfc7af232e0e1f1f64e4e81199d67ebf1870b593550b",
+        "normal_exits": 1,
+        "ok": true,
+        "operations": 6,
+        "schema": "hepta.concurrent-ir.verification.v1",
+        "task_spawns": 0
+      }
+    }
+  ],
+  "cases_sha256": "f954a90888838140060e3a8909e3492916bd383bd2e28b9f11fa3c6d41651ad6",
+  "checkout": "/workspace/scratch/0817a147930b/Hepta-cir-audit",
+  "commit": "b31c3ccc7cb1e7e228730fcbc7cac331b9b1c1ed",
+  "compiler_sha256": "2d8ed6cdd171f6351f996607d395dca83187b61c364cc33e5b4e642a0d392c15",
+  "compiler_unchanged_during_audit": true,
+  "generated_at_utc": "2026-10-25T01:16:09.526476+00:00",
+  "native_rejected_invalid": 8,
+  "native_unsafe_artifact_produced": false,
+  "reviewed_files": {
+    "hepta/backend.py": "354d7f76b488e670cc18a8b858cc5d4e7865180b0f072fb4afef627142b99ad0",
+    "hepta/concurrent_ir.py": "af04b1cf4814e88cb3503597e083a893859cc63be9a8c62b7dd09de060dd99ad",
+    "hepta/concurrent_lowering.py": "ff3708ccae6f07d1b9de6e4e8caabb2f7ed48e2f29fb22349fdcac806fb23061",
+    "hepta/pipeline.py": "0309dd7d4b90c85a51e3c1568e558f4f5f310228f5466c31eafd57d6464c99bf"
+  },
+  "schema": "hepta.concurrent-ir-audit.v1",
+  "source_to_ir_refinement_proved": false,
+  "unexpectedly_accepted_invalid_ir": 0,
+  "valid_ir_and_native_accepted": 5
+}

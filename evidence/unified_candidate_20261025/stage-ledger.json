@@ -1,0 +1,88 @@
+{
+  "schema": "hepta.seven-stage-checkpoint.v1",
+  "recorded_utc": "2026-10-25T16:17:32.241668+00:00",
+  "code_commit": "776f005d0f709c5033d513f113b4e4175e5be035",
+  "code_tree": "f811842173ae41e23c52ee46bbe8d5df3b5e78d0",
+  "source_snapshot_sha256": "940d204d11807b774e53b2c3e4f8ffe362c4071b541c8b87477771cd700ceead",
+  "compiler_sha256": "d6475034519620649030e534b1a6585e40f327355edf3a6fd1f628188a4d8934",
+  "gates_passed": 40,
+  "tests": 1287,
+  "tests_skipped": 0,
+  "whole_project_blockers_closed": false,
+  "stages": [
+    {
+      "stage": 1,
+      "status": "qualified_current_candidate",
+      "scope": "40/40 gates, one source commit, unchanged source snapshot; published backend support matrix",
+      "remaining": [
+        "Full backend feature parity is not claimed."
+      ]
+    },
+    {
+      "stage": 2,
+      "status": "partially_implemented",
+      "scope": "Owned ADT, Result, partial moves, explicit return borrows, tasks and resource/source replay profiles",
+      "remaining": [
+        "Stored-borrow independent resource verification incomplete.",
+        "Combined lifetime/type generics unsupported.",
+        "No unified whole-process memory/worker/FFI/thread-stack budget."
+      ]
+    },
+    {
+      "stage": 3,
+      "status": "qualified_selected_C_module_profiles",
+      "scope": "Compilation-database C module inventories; actual upstream and stateful module differential/native tests",
+      "remaining": [
+        "Packed/bitfield/varargs and arbitrary foreign retention unsupported.",
+        "Manual review time, agent tokens and complete migration cost unmeasured."
+      ]
+    },
+    {
+      "stage": 4,
+      "status": "qualified_selected_CPP_library_bridges",
+      "scope": "Real STL/Boost typed construction and call-scoped RAII through generated C ABI",
+      "remaining": [
+        "Foreign implementation safety remains external.",
+        "No cross-version upstream upgrade/maintenance-cost qualification yet."
+      ]
+    },
+    {
+      "stage": 5,
+      "status": "qualified_scalar_value_class_rewrite",
+      "scope": "Complete selected class constructor and methods translated; 3554 native comparisons; no original C++ link input",
+      "remaining": [
+        "Nontrivial resource-owning RAII implementation migration not implemented.",
+        "Scoped C++ RAII remains C++ and is not implementation migration."
+      ]
+    },
+    {
+      "stage": 6,
+      "status": "qualified_independent_scalar32_LLVM_only",
+      "scope": "Source-bound i32/u32 SSA to direct LLVM; frozen scalar workload performance gate passed",
+      "remaining": [
+        "Owned ADT/borrows/drop/heap allocation/general effects not lowered to LLVM.",
+        "Rust reference validation remains required.",
+        "Resource workload performance not qualified."
+      ]
+    },
+    {
+      "stage": 7,
+      "status": "partial_platform_and_evaluator_infrastructure",
+      "scope": "Actual Linux native, remote Windows ABI, QEMU, strict namespace workspace recovery and scripted evaluator fixtures",
+      "remaining": [
+        "Actual controlled AI model runs: 0; API credential absent and API DNS unavailable.",
+        "Production TCP/TLS/long-running service measurements absent.",
+        "Other remote CI hosts pending at this checkpoint.",
+        "Physical board, DMA and GPU execution absent; DMA/GPU language support also incomplete."
+      ]
+    }
+  ],
+  "next_implementation": "Owned C++ resource class -> Hepta Buffer/borrow/Result -> independent LLVM; independent stored-loan verification",
+  "qualification_elapsed_seconds": 582.804,
+  "claims_not_established": [
+    "Whole-language soundness",
+    "Universal Rust performance superiority",
+    "Arbitrary C/C++ equivalence",
+    "General agent productivity or total-cost advantage"
+  ]
+}

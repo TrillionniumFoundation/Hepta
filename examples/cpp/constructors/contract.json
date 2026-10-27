@@ -1,0 +1,253 @@
+{
+  "schema": "hepta.cpp-contract.v2",
+  "module": "ctors",
+  "pod_types": [
+    {
+      "name": "Config",
+      "cpp_type": "hepta_ctor_example::Config",
+      "fields": [
+        {
+          "name": "tag",
+          "type": "u64"
+        },
+        {
+          "name": "bias",
+          "type": "i64"
+        }
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "live_span_owners",
+      "cpp_name": "hepta_ctor_example::live_span_owners",
+      "template_args": [],
+      "params": [],
+      "returns": "u64",
+      "exception": "noexcept",
+      "threading": "any_thread",
+      "reentrancy": "allowed",
+      "allocation": "none_declared"
+    },
+    {
+      "name": "live_nothrow_values",
+      "cpp_name": "hepta_ctor_example::live_nothrow_values",
+      "template_args": [],
+      "params": [],
+      "returns": "u64",
+      "exception": "noexcept",
+      "threading": "any_thread",
+      "reentrancy": "allowed",
+      "allocation": "none_declared"
+    }
+  ],
+  "handles": [
+    {
+      "name": "IntVector",
+      "cpp_type": "std::vector",
+      "template_args": [
+        "i64"
+      ],
+      "threading": "serialized",
+      "reentrancy": "reject",
+      "allocator": "cpp_shared_owner",
+      "destruction": "nothrow_defer_inflight",
+      "constructors": [
+        {
+          "name": "sized",
+          "params": [
+            {
+              "name": "count",
+              "type": "usize",
+              "mode": "value"
+            }
+          ],
+          "exception": "catch_status"
+        },
+        {
+          "name": "filled",
+          "params": [
+            {
+              "name": "count",
+              "type": "usize",
+              "mode": "value"
+            },
+            {
+              "name": "value",
+              "type": "i64",
+              "mode": "const_ref",
+              "retention": "call_only"
+            }
+          ],
+          "exception": "catch_status"
+        }
+      ],
+      "methods": [
+        {
+          "name": "size",
+          "cpp_method": "size",
+          "const": true,
+          "params": [],
+          "returns": "usize",
+          "return_mode": "value",
+          "exception": "noexcept"
+        },
+        {
+          "name": "at",
+          "cpp_method": "at",
+          "const": true,
+          "params": [
+            {
+              "name": "index",
+              "type": "usize",
+              "mode": "value"
+            }
+          ],
+          "returns": "i64",
+          "return_mode": "copy_from_reference",
+          "exception": "catch_status"
+        }
+      ]
+    },
+    {
+      "name": "Student",
+      "cpp_type": "boost::math::students_t_distribution",
+      "template_args": [
+        "f64"
+      ],
+      "threading": "serialized",
+      "reentrancy": "reject",
+      "allocator": "cpp_shared_owner",
+      "destruction": "nothrow_defer_inflight",
+      "constructors": [
+        {
+          "name": "new",
+          "params": [
+            {
+              "name": "degrees",
+              "type": "f64",
+              "mode": "value"
+            }
+          ],
+          "exception": "catch_status"
+        }
+      ],
+      "methods": [
+        {
+          "name": "degrees",
+          "cpp_method": "degrees_of_freedom",
+          "const": true,
+          "params": [],
+          "returns": "f64",
+          "return_mode": "value",
+          "exception": "catch_status"
+        }
+      ]
+    },
+    {
+      "name": "SpanOwner",
+      "cpp_type": "hepta_ctor_example::SpanOwner",
+      "template_args": [],
+      "threading": "serialized",
+      "reentrancy": "reject",
+      "allocator": "cpp_shared_owner",
+      "destruction": "nothrow_defer_inflight",
+      "constructors": [
+        {
+          "name": "new",
+          "params": [
+            {
+              "name": "config",
+              "type": "Config",
+              "mode": "value"
+            },
+            {
+              "name": "values",
+              "type": "i64",
+              "mode": "borrow_const",
+              "retention": "call_only"
+            }
+          ],
+          "exception": "catch_status"
+        }
+      ],
+      "methods": [
+        {
+          "name": "size",
+          "cpp_method": "size",
+          "const": true,
+          "params": [],
+          "returns": "usize",
+          "return_mode": "value",
+          "exception": "noexcept"
+        },
+        {
+          "name": "at",
+          "cpp_method": "at",
+          "const": true,
+          "params": [
+            {
+              "name": "index",
+              "type": "usize",
+              "mode": "value"
+            }
+          ],
+          "returns": "i64",
+          "return_mode": "value",
+          "exception": "catch_status"
+        },
+        {
+          "name": "tag",
+          "cpp_method": "tag",
+          "const": true,
+          "params": [],
+          "returns": "u64",
+          "return_mode": "value",
+          "exception": "noexcept"
+        },
+        {
+          "name": "bias",
+          "cpp_method": "bias",
+          "const": true,
+          "params": [],
+          "returns": "i64",
+          "return_mode": "value",
+          "exception": "noexcept"
+        }
+      ]
+    },
+    {
+      "name": "NoThrowValue",
+      "cpp_type": "hepta_ctor_example::NoThrowValue",
+      "template_args": [],
+      "threading": "serialized",
+      "reentrancy": "reject",
+      "allocator": "cpp_shared_owner",
+      "destruction": "nothrow_defer_inflight",
+      "constructors": [
+        {
+          "name": "new",
+          "params": [
+            {
+              "name": "value",
+              "type": "u64",
+              "mode": "value"
+            }
+          ],
+          "exception": "noexcept"
+        }
+      ],
+      "methods": [
+        {
+          "name": "value",
+          "cpp_method": "value",
+          "const": true,
+          "params": [],
+          "returns": "u64",
+          "return_mode": "value",
+          "exception": "noexcept"
+        }
+      ]
+    }
+  ]
+}

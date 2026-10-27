@@ -1,0 +1,3351 @@
+{
+  "assertions": "NDEBUG captured explicitly; other macro configurations unqualified",
+  "boundary_controls": [
+    {
+      "actual_exit": -6,
+      "case": "null_record",
+      "expected_exit": -6,
+      "original_C_executed": false,
+      "scope": "outside_qualified_view_contract"
+    },
+    {
+      "actual_exit": -6,
+      "case": "misaligned_record",
+      "expected_exit": -6,
+      "original_C_executed": false,
+      "scope": "outside_qualified_view_contract"
+    },
+    {
+      "actual_exit": -6,
+      "case": "record_buffer_overlap",
+      "expected_exit": -6,
+      "original_C_executed": false,
+      "scope": "outside_qualified_view_contract"
+    },
+    {
+      "actual_exit": -6,
+      "case": "output_buffer_overlap",
+      "expected_exit": -6,
+      "original_C_executed": false,
+      "scope": "outside_qualified_view_contract"
+    },
+    {
+      "actual_exit": -6,
+      "case": "input_buffer_overlap",
+      "expected_exit": -6,
+      "original_C_executed": false,
+      "scope": "outside_qualified_view_contract"
+    },
+    {
+      "actual_exit": -6,
+      "case": "extent_overflow",
+      "expected_exit": -6,
+      "original_C_executed": false,
+      "scope": "outside_qualified_view_contract"
+    },
+    {
+      "actual_exit": -6,
+      "case": "bad_index",
+      "expected_exit": -6,
+      "original_C_executed": false,
+      "scope": "outside_qualified_view_contract"
+    },
+    {
+      "actual_exit": -6,
+      "case": "null_storage",
+      "expected_exit": -6,
+      "original_C_executed": false,
+      "scope": "outside_qualified_view_contract"
+    },
+    {
+      "actual_exit": -6,
+      "case": "zero_capacity",
+      "expected_exit": -6,
+      "original_C_executed": false,
+      "scope": "outside_qualified_view_contract"
+    }
+  ],
+  "build_configuration": [
+    "-std=c11",
+    "-DNDEBUG",
+    "-funsigned-char"
+  ],
+  "cost": {
+    "adapter_runtime_cost_measured": true,
+    "elapsed_seconds": 1.93797382899902,
+    "generated_core_lines": 104,
+    "manual_review_hours": null,
+    "model_runs": 0,
+    "model_tokens": null,
+    "upstream_source_lines": 78
+  },
+  "execution": {
+    "calls_by_function": {
+      "dequeue": 2681,
+      "dequeue_arr": 2748,
+      "init": 2715,
+      "is_empty": 16384,
+      "is_full": 16384,
+      "num_items": 16384,
+      "peek": 2714,
+      "queue": 2721,
+      "queue_arr": 2813
+    },
+    "capacities": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      256
+    ],
+    "checks": [
+      "C/Hepta returns",
+      "independent bounded deque oracle",
+      "all persistent scalar state",
+      "every backing-store byte",
+      "output sentinels",
+      "unchanged source input",
+      "backing-pointer identity"
+    ],
+    "native_differential_calls": 65544,
+    "resets": 2707,
+    "source_equivalence_proved": false,
+    "state_transitions": 16384,
+    "steps_per_capacity": 2048,
+    "zero_length_null_slice_calls": 543
+  },
+  "foreign_pointer_validity_proved": false,
+  "implementation_files": {
+    "hepta/c_migration_project.py": "cc3078780c69db953758c140a32d36e0ea9a17eb808c999772ff2860d0cb4bce",
+    "hepta/c_project.py": "196003dd3fb5090719f5b810d2a960e9b60edd508a1e20b468865963fc64c17f",
+    "hepta/c_record_views.py": "d36017bec07bd51d069fd0f6d76ceb0697d8e2579d4089c8df6ad408e71f1750",
+    "hepta/c_translation.py": "f0f04bd16e894d8692dbba58643ed9aee64d68ad282640001d7306ff05d461a0",
+    "tools/qualify_c_ring_buffer.py": "7e02d94220ff97bd0b01257eef9323cd50191e28f6b050ac28cf5a2c7ec19f56"
+  },
+  "layout_probe": {
+    "align": {
+      "gcc": 8,
+      "rust": 8
+    },
+    "buffer": {
+      "gcc": 0,
+      "rust": 0
+    },
+    "buffer_mask": {
+      "gcc": 8,
+      "rust": 8
+    },
+    "head_index": {
+      "gcc": 24,
+      "rust": 24
+    },
+    "size": {
+      "gcc": 32,
+      "rust": 32
+    },
+    "tail_index": {
+      "gcc": 16,
+      "rust": 16
+    }
+  },
+  "migration": {
+    "artifacts": {
+      "bridge.rs": {
+        "bytes": 14008,
+        "sha256": "5238558c67cb6dd155d6aba7f30e06081e2018fef93a8da05119c8a2706866ad"
+      },
+      "generated.rs": {
+        "bytes": 37573,
+        "sha256": "25c8b8e71a2e229aefa6656e3170def0743e38918581f507c193db420515ff83"
+      },
+      "libtranslated.so": {
+        "bytes": 3825624,
+        "sha256": "78e0a72c3af7f6c627e47f46918bf1f431704426031663313f00254f71867c96"
+      },
+      "source.hepta": {
+        "bytes": 6193,
+        "sha256": "975b2540f49be843afe818d3262244f1196783e2f00c7b0d6f6dc7c1822189d3"
+      }
+    },
+    "build": {
+      "compiler": {
+        "executable_sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+        "path": "/usr/lib/llvm-20/bin/clang",
+        "target": "x86_64-pc-linux-gnu",
+        "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+      },
+      "configurations": [
+        {
+          "abi_model_arguments": [
+            "-std=c11",
+            "-funsigned-char"
+          ],
+          "abi_predefined_macros_sha256": "603a12b83bba89b1c0b8bb42dfdb32c395459b8056bfb5ab3e271a5543a52f0d",
+          "all_dependencies": [
+            "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.c",
+            "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.h",
+            "/usr/include/assert.h",
+            "/usr/include/features-time64.h",
+            "/usr/include/features.h",
+            "/usr/include/inttypes.h",
+            "/usr/include/stdc-predef.h",
+            "/usr/include/stdint.h",
+            "/usr/include/x86_64-linux-gnu/bits/libc-header-start.h",
+            "/usr/include/x86_64-linux-gnu/bits/long-double.h",
+            "/usr/include/x86_64-linux-gnu/bits/stdint-intn.h",
+            "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+            "/usr/include/x86_64-linux-gnu/bits/stdint-uintn.h",
+            "/usr/include/x86_64-linux-gnu/bits/time64.h",
+            "/usr/include/x86_64-linux-gnu/bits/timesize.h",
+            "/usr/include/x86_64-linux-gnu/bits/types.h",
+            "/usr/include/x86_64-linux-gnu/bits/typesizes.h",
+            "/usr/include/x86_64-linux-gnu/bits/wchar.h",
+            "/usr/include/x86_64-linux-gnu/bits/wordsize.h",
+            "/usr/include/x86_64-linux-gnu/gnu/stubs-64.h",
+            "/usr/include/x86_64-linux-gnu/gnu/stubs.h",
+            "/usr/include/x86_64-linux-gnu/sys/cdefs.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/__stddef_header_macro.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/__stddef_max_align_t.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/__stddef_null.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/__stddef_offsetof.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/__stddef_ptrdiff_t.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/__stddef_size_t.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/__stddef_wchar_t.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/inttypes.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/stddef.h",
+            "/usr/lib/llvm-20/lib/clang/20/include/stdint.h"
+          ],
+          "directory": "/tmp/hepta-ring-qualification-kodbe8p3",
+          "frontend_arguments": [
+            "-std=c11",
+            "-DNDEBUG",
+            "-funsigned-char"
+          ],
+          "index": 0,
+          "local_dependencies": [
+            "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.c",
+            "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.h"
+          ],
+          "model": {
+            "char_unsigned": true,
+            "long_bits": 64,
+            "pointer_bits": 64
+          },
+          "omitted_arguments": [
+            {
+              "argument": "-O2",
+              "reason": "driver_output_or_diagnostic_flag"
+            },
+            {
+              "argument": "-c",
+              "reason": "driver_output_or_diagnostic_flag"
+            }
+          ],
+          "original_arguments": [
+            "clang",
+            "-std=c11",
+            "-DNDEBUG",
+            "-funsigned-char",
+            "-O2",
+            "-c",
+            "ringbuffer.c"
+          ],
+          "predefined_macros_sha256": "bbdbb9553de10c7dc3698443131905dd939b6e2f0beb88c3f9629c191773656e",
+          "preprocessed_sha256": "310d18d5f52e206bb5b20a9691df95988dc9b21146f032c0ab42b77bdd13bc6d",
+          "source": "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.c"
+        }
+      ],
+      "database": {
+        "path": "/tmp/hepta-ring-qualification-kodbe8p3/compile_commands.json",
+        "sha256": "dd03ad43eb4704e8a7751d34da03ef444d23dbb9440c68d33834ee6dd66741fa"
+      },
+      "dependencies": [
+        {
+          "bytes": 2203,
+          "path": "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.c",
+          "project_input": true,
+          "sha256": "21fde4113929246e00ad79533f83bb6def2bb154a18c12c2d84159bc61d4c39f"
+        },
+        {
+          "bytes": 4446,
+          "path": "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.h",
+          "project_input": true,
+          "sha256": "065589a731ffa8367ace4a17885968a53f35e265c7d0d45cdddbe3fa09cfa9e9"
+        },
+        {
+          "bytes": 5086,
+          "path": "/usr/include/assert.h",
+          "project_input": false,
+          "sha256": "538cc7466f2e7b6d34f716f4f4ef601fc6ce940098668c207b1a0d30c8e2341a"
+        },
+        {
+          "bytes": 1409,
+          "path": "/usr/include/features-time64.h",
+          "project_input": false,
+          "sha256": "345acb98767d04277e413c4951fbb199b0500be23d43cddf17c6cd9fb319a8da"
+        },
+        {
+          "bytes": 18527,
+          "path": "/usr/include/features.h",
+          "project_input": false,
+          "sha256": "940d486d050fc87420d8ffc008e17f31ffb04467534ad1b039ed25abc52382f9"
+        },
+        {
+          "bytes": 11309,
+          "path": "/usr/include/inttypes.h",
+          "project_input": false,
+          "sha256": "0070668ad665de2a164c82f370161f8e238ab03188ed51f99b08981f8027527f"
+        },
+        {
+          "bytes": 2462,
+          "path": "/usr/include/stdc-predef.h",
+          "project_input": false,
+          "sha256": "8db4f65e62cade8ae4d9b77960ee6aee093255acc1b637e3fb37d79179733b15"
+        },
+        {
+          "bytes": 8155,
+          "path": "/usr/include/stdint.h",
+          "project_input": false,
+          "sha256": "c26c51b07feadd45ca25e9c95e393b6783d580ab318a567c119828191a80bbed"
+        },
+        {
+          "bytes": 4286,
+          "path": "/usr/include/x86_64-linux-gnu/bits/libc-header-start.h",
+          "project_input": false,
+          "sha256": "e86638082f9ce98c82e3022018fa5be175473445c824fe17bd32bf9668582368"
+        },
+        {
+          "bytes": 970,
+          "path": "/usr/include/x86_64-linux-gnu/bits/long-double.h",
+          "project_input": false,
+          "sha256": "40367287cd437d78a05313f6ec52cb0f0a711e1b6711fdcc3699bf2bf28e810f"
+        },
+        {
+          "bytes": 1037,
+          "path": "/usr/include/x86_64-linux-gnu/bits/stdint-intn.h",
+          "project_input": false,
+          "sha256": "94286e42e4970304da5cbef69de6695c84132ff8fbd4b6d72d29aeb7406dc5ff"
+        },
+        {
+          "bytes": 1300,
+          "path": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+          "project_input": false,
+          "sha256": "5bf66871bfc18ae6d22c91d03e392c1a4cc5969ca74c5fa31b7510703a496844"
+        },
+        {
+          "bytes": 1049,
+          "path": "/usr/include/x86_64-linux-gnu/bits/stdint-uintn.h",
+          "project_input": false,
+          "sha256": "aeee224a19434556ef4a9a4afad553736789274656ca12463122300b557ce78c"
+        },
+        {
+          "bytes": 1340,
+          "path": "/usr/include/x86_64-linux-gnu/bits/time64.h",
+          "project_input": false,
+          "sha256": "2be9170ce3621ea6062f10edef68bbc2db09bb454ec4397534263dd37b8f1f6a"
+        },
+        {
+          "bytes": 1109,
+          "path": "/usr/include/x86_64-linux-gnu/bits/timesize.h",
+          "project_input": false,
+          "sha256": "8b686ad5fec2c4d6f759a6594d7c216337774d059623677547b7e182cc5269ae"
+        },
+        {
+          "bytes": 8806,
+          "path": "/usr/include/x86_64-linux-gnu/bits/types.h",
+          "project_input": false,
+          "sha256": "371847ed3adab1c19db392034f6a22407d321b1dc5f2440563f4b0b8b6c5386b"
+        },
+        {
+          "bytes": 3737,
+          "path": "/usr/include/x86_64-linux-gnu/bits/typesizes.h",
+          "project_input": false,
+          "sha256": "047ee5ab17a95364c4b0f14c3eb0750e84e457c408f9a65a6c225ece585e0c14"
+        },
+        {
+          "bytes": 1906,
+          "path": "/usr/include/x86_64-linux-gnu/bits/wchar.h",
+          "project_input": false,
+          "sha256": "893fa450527ce645f17922788097d5fe331e2a53012bab4e724d8a1f63e21aa2"
+        },
+        {
+          "bytes": 442,
+          "path": "/usr/include/x86_64-linux-gnu/bits/wordsize.h",
+          "project_input": false,
+          "sha256": "716d8459074e2a082d65a28192b32eddbfd7587348372395b1c283a723ae4c18"
+        },
+        {
+          "bytes": 481,
+          "path": "/usr/include/x86_64-linux-gnu/gnu/stubs-64.h",
+          "project_input": false,
+          "sha256": "0b6ab3e2ed3ba79b30fe6ba81a68fc41f57965b8d56662763633431b703c9289"
+        },
+        {
+          "bytes": 384,
+          "path": "/usr/include/x86_64-linux-gnu/gnu/stubs.h",
+          "project_input": false,
+          "sha256": "ef444295a0a9e8f5c40918399a00cc91ba0bd79774110cdf6e652baa6cfadb2e"
+        },
+        {
+          "bytes": 27011,
+          "path": "/usr/include/x86_64-linux-gnu/sys/cdefs.h",
+          "project_input": false,
+          "sha256": "173afb522c6877dda3be1c93742c2061cd6e748ce395d2b3ae833fb49bfbfc4f"
+        },
+        {
+          "bytes": 417,
+          "path": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_header_macro.h",
+          "project_input": false,
+          "sha256": "4cf46e8fbb809df048eecbbd63686fa741da27afa8db4245bd1f61c1fb1611dc"
+        },
+        {
+          "bytes": 857,
+          "path": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_max_align_t.h",
+          "project_input": false,
+          "sha256": "3c1e4de47f4f06b35e2c5890d670052e84f716760505ff51b022fc8b21a9400f"
+        },
+        {
+          "bytes": 875,
+          "path": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_null.h",
+          "project_input": false,
+          "sha256": "b1d71b08563ab3d2c22a1e4f8ddf4d9a1111c89e9404b859a45c307e8ebc6c69"
+        },
+        {
+          "bytes": 708,
+          "path": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_offsetof.h",
+          "project_input": false,
+          "sha256": "e5f0f4ff8ff5fc6a1cc8b535f5065f1728eadd2bf1e1401f021f803ec7b4222f"
+        },
+        {
+          "bytes": 717,
+          "path": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_ptrdiff_t.h",
+          "project_input": false,
+          "sha256": "b4178a57f3711b7013cba747a72a2f178c29fa9364e77d75b2159754072ced43"
+        },
+        {
+          "bytes": 708,
+          "path": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_size_t.h",
+          "project_input": false,
+          "sha256": "d86ddc0238da09b385846ebef814ffc50a44e40cf85d4e3793f485952b7e73ad"
+        },
+        {
+          "bytes": 853,
+          "path": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_wchar_t.h",
+          "project_input": false,
+          "sha256": "1900d4998aef3698b06399ed686db0c21e26509b08638a25734fb97ae89b1001"
+        },
+        {
+          "bytes": 2458,
+          "path": "/usr/lib/llvm-20/lib/clang/20/include/inttypes.h",
+          "project_input": false,
+          "sha256": "5433291db785860ede1e69d234a77f0536e004d4f9b2db916def7748432fe84d"
+        },
+        {
+          "bytes": 5053,
+          "path": "/usr/lib/llvm-20/lib/clang/20/include/stddef.h",
+          "project_input": false,
+          "sha256": "b3e62a046ddf28d09eedebe6eb9461cb7060e47cad2c69964b222c4eea10347e"
+        },
+        {
+          "bytes": 31054,
+          "path": "/usr/lib/llvm-20/lib/clang/20/include/stdint.h",
+          "project_input": false,
+          "sha256": "655616d8fcb2c92b38c039019685c658c2346b3dd0021aed4ea057b43f621247"
+        }
+      ],
+      "schema": "hepta.c-build.v1",
+      "scope": "all_listed_commands_only_not_unlisted_platforms_or_configurations",
+      "sha256": "4103a8d5a753df50230264f1772d78d4f70d915dc4497ab46dbe7f30e9528e37"
+    },
+    "claims": {
+      "all_c_or_cpp_supported": false,
+      "foreign_pointer_validity_checked": false,
+      "pointer_contracts_inferred": false,
+      "source_equivalence_proved": false,
+      "unlisted_build_configurations_qualified": false,
+      "whole_language_soundness_proved": false
+    },
+    "contract_scope": {
+      "may_narrow_original_c_input_domain": true,
+      "not_runtime_checked": [
+        "allocation provenance",
+        "actual allocation size",
+        "initialization",
+        "aliasing",
+        "concurrent foreign accesses"
+      ],
+      "origin": "caller_supplied_not_inferred_or_proved",
+      "pointer_requirements": [
+        "initialized elements",
+        "one live aligned allocation",
+        "stable lifetime throughout call",
+        "exclusive access for mutable slices",
+        "length at most isize::MAX / element_size"
+      ],
+      "runtime_checks": [
+        "non-null for nonempty buffers",
+        "alignment",
+        "representable slice length",
+        "safe-core bounds checks"
+      ]
+    },
+    "contracts": {
+      "functions": {
+        "ring_buffer_dequeue": {
+          "records": {
+            "buffer": {
+              "access": "mut"
+            }
+          },
+          "slices": {
+            "data": {
+              "access": "mut",
+              "length": 1
+            }
+          }
+        },
+        "ring_buffer_dequeue_arr": {
+          "records": {
+            "buffer": {
+              "access": "mut"
+            }
+          },
+          "slices": {
+            "data": {
+              "access": "mut",
+              "length": "len"
+            }
+          }
+        },
+        "ring_buffer_init": {
+          "records": {
+            "buffer": {
+              "access": "mut",
+              "initialize": {
+                "buffer": "buf"
+              }
+            }
+          },
+          "slices": {
+            "buf": {
+              "access": "mut",
+              "length": "buf_size"
+            }
+          }
+        },
+        "ring_buffer_is_empty": {
+          "records": {
+            "buffer": {
+              "access": "read"
+            }
+          },
+          "slices": {}
+        },
+        "ring_buffer_is_full": {
+          "records": {
+            "buffer": {
+              "access": "read"
+            }
+          },
+          "slices": {}
+        },
+        "ring_buffer_num_items": {
+          "records": {
+            "buffer": {
+              "access": "read"
+            }
+          },
+          "slices": {}
+        },
+        "ring_buffer_peek": {
+          "records": {
+            "buffer": {
+              "access": "mut"
+            }
+          },
+          "slices": {
+            "data": {
+              "access": "mut",
+              "length": 1
+            }
+          }
+        },
+        "ring_buffer_queue": {
+          "records": {
+            "buffer": {
+              "access": "mut"
+            }
+          },
+          "slices": {}
+        },
+        "ring_buffer_queue_arr": {
+          "records": {
+            "buffer": {
+              "access": "mut"
+            }
+          },
+          "slices": {
+            "data": {
+              "access": "read",
+              "length": "size"
+            }
+          }
+        }
+      },
+      "records": {
+        "ring_buffer_t": {
+          "buffers": {
+            "buffer": {
+              "add": 1,
+              "length_field": "buffer_mask"
+            }
+          }
+        }
+      },
+      "schema": "hepta.c-record-views.v1"
+    },
+    "cost": {
+      "agent_tokens": null,
+      "caller_record_view_contracts": 9,
+      "caller_slice_contracts": 5,
+      "compile_configurations": 1,
+      "generated_abi_bridge_lines": 169,
+      "generated_hepta_lines": 104,
+      "manual_review_hours": null,
+      "migration_seconds": 0.5625692949997756,
+      "project_input_bytes": 6649,
+      "project_input_files": 2
+    },
+    "coverage": {
+      "active_project_declarations": 22,
+      "denominator": "active_declarations_in_all_listed_preprocessed_translation_units",
+      "status_counts": {
+        "function_converted": 9,
+        "prototype_resolved": 9,
+        "record_converted": 1,
+        "record_forward_resolved": 1,
+        "type_alias_resolved": 2
+      },
+      "system_or_compiler_declarations_recorded": 111,
+      "unlisted_macro_configurations_included": false
+    },
+    "declaration_inventory_complete": true,
+    "declarations": [
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__int128_t",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__uint128_t",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__NSConstantString",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__builtin_ms_va_list",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": null,
+        "kind": "TypedefDecl",
+        "name": "__builtin_va_list",
+        "offset": null,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__u_char",
+        "offset": 1102,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__u_short",
+        "offset": 1139,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__u_int",
+        "offset": 1171,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__u_long",
+        "offset": 1206,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int8_t",
+        "offset": 1313,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint8_t",
+        "offset": 1345,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int16_t",
+        "offset": 1381,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint16_t",
+        "offset": 1419,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int32_t",
+        "offset": 1450,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint32_t",
+        "offset": 1482,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int64_t",
+        "offset": 1539,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint64_t",
+        "offset": 1576,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int_least8_t",
+        "offset": 1781,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint_least8_t",
+        "offset": 1815,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int_least16_t",
+        "offset": 1850,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint_least16_t",
+        "offset": 1886,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int_least32_t",
+        "offset": 1922,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint_least32_t",
+        "offset": 1958,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__int_least64_t",
+        "offset": 1994,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uint_least64_t",
+        "offset": 2030,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__quad_t",
+        "offset": 2118,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__u_quad_t",
+        "offset": 2154,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__intmax_t",
+        "offset": 2352,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uintmax_t",
+        "offset": 2390,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__dev_t",
+        "offset": 5308,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__uid_t",
+        "offset": 5372,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__gid_t",
+        "offset": 5442,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__ino_t",
+        "offset": 5513,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__ino64_t",
+        "offset": 5584,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__mode_t",
+        "offset": 5660,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__nlink_t",
+        "offset": 5736,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__off_t",
+        "offset": 5804,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__off64_t",
+        "offset": 5878,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__pid_t",
+        "offset": 5958,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "RecordDecl",
+        "name": "<anonymous>",
+        "offset": 6018,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__fsid_t",
+        "offset": 6032,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__clock_t",
+        "offset": 6100,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__rlim_t",
+        "offset": 6169,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__rlim64_t",
+        "offset": 6244,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__id_t",
+        "offset": 6323,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__time_t",
+        "offset": 6386,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__useconds_t",
+        "offset": 6457,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__suseconds_t",
+        "offset": 6531,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__suseconds64_t",
+        "offset": 6615,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__daddr_t",
+        "offset": 6659,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__key_t",
+        "offset": 6729,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__clockid_t",
+        "offset": 6845,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__timer_t",
+        "offset": 6929,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__blksize_t",
+        "offset": 7006,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__blkcnt_t",
+        "offset": 7144,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__blkcnt64_t",
+        "offset": 7185,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__fsblkcnt_t",
+        "offset": 7270,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__fsblkcnt64_t",
+        "offset": 7315,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__fsfilcnt_t",
+        "offset": 7401,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__fsfilcnt64_t",
+        "offset": 7446,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__fsword_t",
+        "offset": 7539,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__ssize_t",
+        "offset": 7578,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__syscall_slong_t",
+        "offset": 7707,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__syscall_ulong_t",
+        "offset": 7806,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__loff_t",
+        "offset": 7951,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__caddr_t",
+        "offset": 8020,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__intptr_t",
+        "offset": 8123,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__socklen_t",
+        "offset": 8199,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/types.h",
+        "kind": "TypedefDecl",
+        "name": "__sig_atomic_t",
+        "offset": 8413,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-intn.h",
+        "kind": "TypedefDecl",
+        "name": "int8_t",
+        "offset": 915,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-intn.h",
+        "kind": "TypedefDecl",
+        "name": "int16_t",
+        "offset": 941,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-intn.h",
+        "kind": "TypedefDecl",
+        "name": "int32_t",
+        "offset": 968,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-intn.h",
+        "kind": "TypedefDecl",
+        "name": "int64_t",
+        "offset": 995,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-uintn.h",
+        "kind": "TypedefDecl",
+        "name": "uint8_t",
+        "offset": 919,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-uintn.h",
+        "kind": "TypedefDecl",
+        "name": "uint16_t",
+        "offset": 947,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-uintn.h",
+        "kind": "TypedefDecl",
+        "name": "uint32_t",
+        "offset": 976,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-uintn.h",
+        "kind": "TypedefDecl",
+        "name": "uint64_t",
+        "offset": 1005,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "int_least8_t",
+        "offset": 955,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "int_least16_t",
+        "offset": 993,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "int_least32_t",
+        "offset": 1032,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "int_least64_t",
+        "offset": 1071,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "uint_least8_t",
+        "offset": 1128,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "uint_least16_t",
+        "offset": 1168,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "uint_least32_t",
+        "offset": 1209,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/x86_64-linux-gnu/bits/stdint-least.h",
+        "kind": "TypedefDecl",
+        "name": "uint_least64_t",
+        "offset": 1250,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "int_fast8_t",
+        "offset": 1282,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "int_fast16_t",
+        "offset": 1334,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "int_fast32_t",
+        "offset": 1366,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "int_fast64_t",
+        "offset": 1398,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "uint_fast8_t",
+        "offset": 1573,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "uint_fast16_t",
+        "offset": 1634,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "uint_fast32_t",
+        "offset": 1675,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "uint_fast64_t",
+        "offset": 1716,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "intptr_t",
+        "offset": 1983,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "uintptr_t",
+        "offset": 2056,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "intmax_t",
+        "offset": 2255,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/stdint.h",
+        "kind": "TypedefDecl",
+        "name": "uintmax_t",
+        "offset": 2286,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/inttypes.h",
+        "kind": "TypedefDecl",
+        "name": "__gwchar_t",
+        "offset": 1189,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/inttypes.h",
+        "kind": "RecordDecl",
+        "name": "<anonymous>",
+        "offset": 8438,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/inttypes.h",
+        "kind": "TypedefDecl",
+        "name": "imaxdiv_t",
+        "offset": 8527,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/inttypes.h",
+        "kind": "FunctionDecl",
+        "name": "imaxabs",
+        "offset": 8815,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/inttypes.h",
+        "kind": "FunctionDecl",
+        "name": "imaxdiv",
+        "offset": 8971,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/inttypes.h",
+        "kind": "FunctionDecl",
+        "name": "strtoimax",
+        "offset": 9124,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/inttypes.h",
+        "kind": "FunctionDecl",
+        "name": "strtoumax",
+        "offset": 9289,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/inttypes.h",
+        "kind": "FunctionDecl",
+        "name": "wcstoimax",
+        "offset": 9453,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/include/inttypes.h",
+        "kind": "FunctionDecl",
+        "name": "wcstoumax",
+        "offset": 9635,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_ptrdiff_t.h",
+        "kind": "TypedefDecl",
+        "name": "ptrdiff_t",
+        "offset": 698,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_size_t.h",
+        "kind": "TypedefDecl",
+        "name": "size_t",
+        "offset": 692,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_wchar_t.h",
+        "kind": "TypedefDecl",
+        "name": "wchar_t",
+        "offset": 828,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_max_align_t.h",
+        "kind": "RecordDecl",
+        "name": "<anonymous>",
+        "offset": 620,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/usr/lib/llvm-20/lib/clang/20/include/__stddef_max_align_t.h",
+        "kind": "TypedefDecl",
+        "name": "max_align_t",
+        "offset": 829,
+        "reason": "recorded_dependency_outside_translated_project_declarations",
+        "status": "system_or_compiler_declaration",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.h",
+        "kind": "TypedefDecl",
+        "name": "ring_buffer_size_t",
+        "offset": 644,
+        "reason": null,
+        "status": "type_alias_resolved",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.h",
+        "kind": "RecordDecl",
+        "name": "ring_buffer_t",
+        "offset": 972,
+        "reason": null,
+        "status": "record_forward_resolved",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.h",
+        "kind": "TypedefDecl",
+        "name": "ring_buffer_t",
+        "offset": 986,
+        "reason": null,
+        "status": "type_alias_resolved",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.h",
+        "kind": "RecordDecl",
+        "name": "ring_buffer_t",
+        "offset": 1139,
+        "reason": null,
+        "status": "record_converted",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.h",
+        "kind": "FunctionDecl",
+        "name": "ring_buffer_init",
+        "offset": 1728,
+        "reason": null,
+        "status": "prototype_resolved",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.h",
+        "kind": "FunctionDecl",
+        "name": "ring_buffer_queue",
+        "offset": 1942,
+        "reason": null,
+        "status": "prototype_resolved",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.h",
+        "kind": "FunctionDecl",
+        "name": "ring_buffer_queue_arr",
+        "offset": 2225,
+        "reason": null,
+        "status": "prototype_resolved",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.h",
+        "kind": "FunctionDecl",
+        "name": "ring_buffer_dequeue",
+        "offset": 2569,
+        "reason": null,
+        "status": "prototype_resolved",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.h",
+        "kind": "FunctionDecl",
+        "name": "ring_buffer_dequeue_arr",
+        "offset": 2948,
+        "reason": null,
+        "status": "prototype_resolved",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.h",
+        "kind": "FunctionDecl",
+        "name": "ring_buffer_peek",
+        "offset": 3345,
+        "reason": null,
+        "status": "prototype_resolved",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.h",
+        "kind": "FunctionDecl",
+        "name": "ring_buffer_is_empty",
+        "offset": 3609,
+        "reason": null,
+        "status": "function_converted",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.h",
+        "kind": "FunctionDecl",
+        "name": "ring_buffer_is_full",
+        "offset": 3891,
+        "reason": null,
+        "status": "function_converted",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.h",
+        "kind": "FunctionDecl",
+        "name": "ring_buffer_num_items",
+        "offset": 4260,
+        "reason": null,
+        "status": "function_converted",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.c",
+        "kind": "FunctionDecl",
+        "name": "ring_buffer_init",
+        "offset": 92,
+        "reason": null,
+        "status": "function_converted",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.c",
+        "kind": "FunctionDecl",
+        "name": "ring_buffer_queue",
+        "offset": 350,
+        "reason": null,
+        "status": "function_converted",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.c",
+        "kind": "FunctionDecl",
+        "name": "ring_buffer_queue_arr",
+        "offset": 787,
+        "reason": null,
+        "status": "function_converted",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.c",
+        "kind": "FunctionDecl",
+        "name": "ring_buffer_dequeue",
+        "offset": 1016,
+        "reason": null,
+        "status": "function_converted",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.c",
+        "kind": "FunctionDecl",
+        "name": "ring_buffer_dequeue_arr",
+        "offset": 1306,
+        "reason": null,
+        "status": "function_converted",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.c",
+        "kind": "FunctionDecl",
+        "name": "ring_buffer_peek",
+        "offset": 1641,
+        "reason": null,
+        "status": "function_converted",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.c",
+        "kind": "FunctionDecl",
+        "name": "ring_buffer_is_empty",
+        "offset": 2012,
+        "reason": null,
+        "status": "prototype_resolved",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.c",
+        "kind": "FunctionDecl",
+        "name": "ring_buffer_is_full",
+        "offset": 2079,
+        "reason": null,
+        "status": "prototype_resolved",
+        "unit": 0
+      },
+      {
+        "file": "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.c",
+        "kind": "FunctionDecl",
+        "name": "ring_buffer_num_items",
+        "offset": 2156,
+        "reason": null,
+        "status": "prototype_resolved",
+        "unit": 0
+      }
+    ],
+    "diagnostics": [],
+    "differential_execution": "not_run",
+    "frontend_validation": "passed",
+    "functions": [
+      {
+        "external_symbol": true,
+        "hepta_name": "c_ring_buffer_dequeue",
+        "initializer": false,
+        "key": "ring_buffer_dequeue",
+        "name": "ring_buffer_dequeue",
+        "nonsemantic_documentation_comments": 0,
+        "params": [
+          {
+            "c_const": false,
+            "initialize": null,
+            "mode": "mut",
+            "name": "buffer",
+            "pointer": true,
+            "record": true,
+            "type": "C_ring_buffer_t"
+          },
+          {
+            "c_const": false,
+            "c_void": false,
+            "contract_selector": "data",
+            "length": 1,
+            "mode": "mut",
+            "name": "data",
+            "pointer": true,
+            "type": "u8"
+          }
+        ],
+        "return": "u8",
+        "unit": 0
+      },
+      {
+        "external_symbol": true,
+        "hepta_name": "c_ring_buffer_dequeue_arr",
+        "initializer": false,
+        "key": "ring_buffer_dequeue_arr",
+        "name": "ring_buffer_dequeue_arr",
+        "nonsemantic_documentation_comments": 0,
+        "params": [
+          {
+            "c_const": false,
+            "initialize": null,
+            "mode": "mut",
+            "name": "buffer",
+            "pointer": true,
+            "record": true,
+            "type": "C_ring_buffer_t"
+          },
+          {
+            "c_const": false,
+            "c_void": false,
+            "contract_selector": "data",
+            "length": "len",
+            "mode": "mut",
+            "name": "data",
+            "pointer": true,
+            "type": "u8"
+          },
+          {
+            "mode": "value",
+            "name": "len",
+            "pointer": false,
+            "type": "usize"
+          }
+        ],
+        "return": "usize",
+        "unit": 0
+      },
+      {
+        "external_symbol": true,
+        "hepta_name": "c_ring_buffer_init",
+        "initializer": true,
+        "key": "ring_buffer_init",
+        "name": "ring_buffer_init",
+        "nonsemantic_documentation_comments": 1,
+        "params": [
+          {
+            "c_const": false,
+            "initialize": {
+              "buffer": "buf"
+            },
+            "mode": "mut",
+            "name": "buffer",
+            "pointer": true,
+            "record": true,
+            "type": "C_ring_buffer_t"
+          },
+          {
+            "c_const": false,
+            "c_void": false,
+            "contract_selector": "buf",
+            "length": "buf_size",
+            "mode": "mut",
+            "name": "buf",
+            "pointer": true,
+            "type": "u8"
+          },
+          {
+            "mode": "value",
+            "name": "buf_size",
+            "pointer": false,
+            "type": "usize"
+          }
+        ],
+        "return": "Unit",
+        "unit": 0
+      },
+      {
+        "external_symbol": true,
+        "hepta_name": "c_ring_buffer_is_empty",
+        "initializer": false,
+        "key": "ring_buffer_is_empty",
+        "name": "ring_buffer_is_empty",
+        "nonsemantic_documentation_comments": 1,
+        "params": [
+          {
+            "c_const": false,
+            "initialize": null,
+            "mode": "read",
+            "name": "buffer",
+            "pointer": true,
+            "record": true,
+            "type": "C_ring_buffer_t"
+          }
+        ],
+        "return": "u8",
+        "unit": 0
+      },
+      {
+        "external_symbol": true,
+        "hepta_name": "c_ring_buffer_is_full",
+        "initializer": false,
+        "key": "ring_buffer_is_full",
+        "name": "ring_buffer_is_full",
+        "nonsemantic_documentation_comments": 1,
+        "params": [
+          {
+            "c_const": false,
+            "initialize": null,
+            "mode": "read",
+            "name": "buffer",
+            "pointer": true,
+            "record": true,
+            "type": "C_ring_buffer_t"
+          }
+        ],
+        "return": "u8",
+        "unit": 0
+      },
+      {
+        "external_symbol": true,
+        "hepta_name": "c_ring_buffer_num_items",
+        "initializer": false,
+        "key": "ring_buffer_num_items",
+        "name": "ring_buffer_num_items",
+        "nonsemantic_documentation_comments": 1,
+        "params": [
+          {
+            "c_const": false,
+            "initialize": null,
+            "mode": "read",
+            "name": "buffer",
+            "pointer": true,
+            "record": true,
+            "type": "C_ring_buffer_t"
+          }
+        ],
+        "return": "usize",
+        "unit": 0
+      },
+      {
+        "external_symbol": true,
+        "hepta_name": "c_ring_buffer_peek",
+        "initializer": false,
+        "key": "ring_buffer_peek",
+        "name": "ring_buffer_peek",
+        "nonsemantic_documentation_comments": 0,
+        "params": [
+          {
+            "c_const": false,
+            "initialize": null,
+            "mode": "mut",
+            "name": "buffer",
+            "pointer": true,
+            "record": true,
+            "type": "C_ring_buffer_t"
+          },
+          {
+            "c_const": false,
+            "c_void": false,
+            "contract_selector": "data",
+            "length": 1,
+            "mode": "mut",
+            "name": "data",
+            "pointer": true,
+            "type": "u8"
+          },
+          {
+            "mode": "value",
+            "name": "index",
+            "pointer": false,
+            "type": "usize"
+          }
+        ],
+        "return": "u8",
+        "unit": 0
+      },
+      {
+        "external_symbol": true,
+        "hepta_name": "c_ring_buffer_queue",
+        "initializer": false,
+        "key": "ring_buffer_queue",
+        "name": "ring_buffer_queue",
+        "nonsemantic_documentation_comments": 0,
+        "params": [
+          {
+            "c_const": false,
+            "initialize": null,
+            "mode": "mut",
+            "name": "buffer",
+            "pointer": true,
+            "record": true,
+            "type": "C_ring_buffer_t"
+          },
+          {
+            "mode": "value",
+            "name": "data",
+            "pointer": false,
+            "type": "u8"
+          }
+        ],
+        "return": "Unit",
+        "unit": 0
+      },
+      {
+        "external_symbol": true,
+        "hepta_name": "c_ring_buffer_queue_arr",
+        "initializer": false,
+        "key": "ring_buffer_queue_arr",
+        "name": "ring_buffer_queue_arr",
+        "nonsemantic_documentation_comments": 0,
+        "params": [
+          {
+            "c_const": false,
+            "initialize": null,
+            "mode": "mut",
+            "name": "buffer",
+            "pointer": true,
+            "record": true,
+            "type": "C_ring_buffer_t"
+          },
+          {
+            "c_const": true,
+            "c_void": false,
+            "contract_selector": "data",
+            "length": "size",
+            "mode": "read",
+            "name": "data",
+            "pointer": true,
+            "type": "u8"
+          },
+          {
+            "mode": "value",
+            "name": "size",
+            "pointer": false,
+            "type": "usize"
+          }
+        ],
+        "return": "Unit",
+        "unit": 0
+      }
+    ],
+    "native_build": {
+      "artifact": "/tmp/hepta-ring-qualification-kodbe8p3/translated/libtranslated.so",
+      "artifact_bytes": 3825624,
+      "artifact_sha256": "78e0a72c3af7f6c627e47f46918bf1f431704426031663313f00254f71867c96",
+      "check_only": false,
+      "crate_type": "cdylib",
+      "diagnostics": [],
+      "flags": [
+        "edition=2021",
+        "opt-level=3",
+        "overflow-checks=yes",
+        "panic=abort",
+        "codegen-units=1",
+        "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+      ],
+      "link_args": [],
+      "linker": null,
+      "ok": true,
+      "rust_sha256": "25c8b8e71a2e229aefa6656e3170def0743e38918581f507c193db420515ff83",
+      "rustc_crate_type": "cdylib",
+      "status": "rustc_checked",
+      "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+      "target": "x86_64-unknown-linux-gnu",
+      "toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+        "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "validation_artifact_sha256": "78e0a72c3af7f6c627e47f46918bf1f431704426031663313f00254f71867c96"
+    },
+    "native_validation": "passed",
+    "ok": true,
+    "output_directory": "/tmp/hepta-ring-qualification-kodbe8p3/translated",
+    "profile": "captured_C_record_views_and_checked_cursor_slices",
+    "publication": "new_directory_manifest_last_not_crash_atomic",
+    "record_views": {
+      "allocation_inference": false,
+      "original_record_abi": "generated_repr_C_caller_unsafe_bridge",
+      "ownership_inference": false,
+      "records": {
+        "ring_buffer_t": {
+          "buffer": {
+            "add": 1,
+            "element": "u8",
+            "length_field": "buffer_mask"
+          }
+        }
+      },
+      "remaining_obligations": [
+        "initialized live record and complete buffer storage",
+        "pointer provenance and allocation extent",
+        "foreign concurrency exclusion",
+        "record extent field validity",
+        "captured build configuration only"
+      ],
+      "runtime_checks": [
+        "non-null/alignment/representable length",
+        "numeric mutable storage non-overlap",
+        "cursor and element bounds"
+      ],
+      "safe_core": "scalar_records_plus_explicit_borrowed_slices_no_raw_pointers",
+      "schema": "hepta.c-record-view-report.v1",
+      "source_equivalence_proved": false,
+      "stored_references_added_to_language": false
+    },
+    "schema": "hepta.c-project-migration.v1",
+    "status": "native_built_not_equivalence_proved"
+  },
+  "ok": true,
+  "original_build": {
+    "argv": [
+      "/usr/bin/gcc",
+      "-std=c11",
+      "-DNDEBUG",
+      "-funsigned-char",
+      "-O2",
+      "-shared",
+      "-fPIC",
+      "/tmp/hepta-ring-qualification-kodbe8p3/ringbuffer.c",
+      "-o",
+      "/tmp/hepta-ring-qualification-kodbe8p3/original.so"
+    ],
+    "exit_code": 0,
+    "seconds": 0.04931972899976245,
+    "stderr": "",
+    "stdout": ""
+  },
+  "original_compiler": {
+    "path": "/usr/bin/gcc",
+    "sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26",
+    "version": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0"
+  },
+  "owned_client": {
+    "actual_allocator_refusal": true,
+    "calls": [
+      {
+        "early_return": false,
+        "live_allocations_after": 0,
+        "result": 0,
+        "size": 8
+      },
+      {
+        "early_return": true,
+        "live_allocations_after": 0,
+        "result": 7,
+        "size": 8
+      },
+      {
+        "early_return": false,
+        "live_allocations_after": 0,
+        "result": -1,
+        "size": 65519
+      },
+      {
+        "early_return": false,
+        "live_allocations_after": 0,
+        "result": 0,
+        "size": 16
+      },
+      {
+        "early_return": true,
+        "live_allocations_after": 0,
+        "result": -1,
+        "size": 65519
+      },
+      {
+        "early_return": false,
+        "live_allocations_after": 0,
+        "result": 0,
+        "size": 32
+      }
+    ],
+    "client_kind": "authored_Hepta_Buffer_owner_of_upstream_caller_owned_storage",
+    "native_build": {
+      "artifact": "/tmp/hepta-ring-qualification-kodbe8p3/owned_client.so",
+      "artifact_bytes": 3823680,
+      "artifact_sha256": "8594d033d05d897fdfb301fc8a6c4195c2f54fd5a57d1cd7cb3684540ecd173f",
+      "check_only": false,
+      "crate_type": "cdylib",
+      "diagnostics": [],
+      "flags": [
+        "edition=2021",
+        "opt-level=3",
+        "overflow-checks=yes",
+        "panic=abort",
+        "codegen-units=1",
+        "sysroot=/workspace/scratch/0817a147930b/toolchains/rust-1.90.0"
+      ],
+      "link_args": [],
+      "linker": null,
+      "ok": true,
+      "rust_sha256": "fc55c6fe74c375eec85248ebcae3eade8c7127df749833781150c667af97f6ad",
+      "rustc_crate_type": "cdylib",
+      "status": "rustc_checked",
+      "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+      "target": "x86_64-unknown-linux-gnu",
+      "toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0/bin/rustc",
+        "sysroot": "/workspace/scratch/0817a147930b/toolchains/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "validation_artifact_sha256": "8594d033d05d897fdfb301fc8a6c4195c2f54fd5a57d1cd7cb3684540ecd173f"
+    },
+    "source_sha256": "51c024d5425be985f6438037847bbc35be14ee247830c46c29c4cb0c7ce227df",
+    "upstream_allocator_migration_claimed": false
+  },
+  "performance": {
+    "build": {
+      "argv": [
+        "/usr/bin/gcc",
+        "-std=c11",
+        "-DNDEBUG",
+        "-funsigned-char",
+        "-O2",
+        "-I/tmp/hepta-ring-qualification-kodbe8p3",
+        "/workspace/scratch/0817a147930b/Hepta-work/tools/fixtures/c_ring_buffer_benchmark.c",
+        "-ldl",
+        "-o",
+        "/tmp/hepta-ring-qualification-kodbe8p3/ring-benchmark"
+      ],
+      "exit_code": 0,
+      "seconds": 0.06238881299941568,
+      "stderr": "",
+      "stdout": ""
+    },
+    "harness_sha256": "c8f6ae195d1c984f7f38b85e125aba66f4eba70364842385016b70657e6347ee",
+    "limitations": [
+      "One shared x86-64 host, seven alternating-order samples, no affinity control",
+      "GCC -O2 original and Hepta pinned Rust -O3 checked reference backend; no LTO",
+      "Both routes use the same dlsym function-pointer dispatcher",
+      "Source/core translation, scalar-state copying and pointer/bounds guards are measured together",
+      "Object creation and allocator failure are outside timed loops; no whole-application or hardware superiority claim"
+    ],
+    "measurements": [
+      {
+        "ABI_calls_per_iteration": 2,
+        "Hepta_C_ABI_median_ns_per_iteration": 7.0171,
+        "case": "single_byte_enqueue_dequeue",
+        "checksum": 12742320,
+        "execution_order": [
+          "original_C",
+          "Hepta_C_ABI",
+          "Hepta_C_ABI",
+          "original_C",
+          "original_C",
+          "Hepta_C_ABI",
+          "Hepta_C_ABI",
+          "original_C",
+          "original_C",
+          "Hepta_C_ABI",
+          "Hepta_C_ABI",
+          "original_C",
+          "original_C",
+          "Hepta_C_ABI"
+        ],
+        "iterations_per_sample": 100000,
+        "observed_Hepta_over_C_ratio": 1.3440300022601295,
+        "original_C_median_ns_per_iteration": 5.22094,
+        "samples_nanoseconds": {
+          "Hepta_C_ABI": [
+            561803,
+            567101,
+            701710,
+            720900,
+            718606,
+            887646,
+            560631
+          ],
+          "original_C": [
+            537157,
+            522094,
+            433172,
+            605858,
+            436117,
+            495084,
+            574693
+          ]
+        }
+      },
+      {
+        "ABI_calls_per_iteration": 2,
+        "Hepta_C_ABI_median_ns_per_iteration": 131.29032,
+        "case": "64_byte_enqueue_dequeue",
+        "checksum": 3149488,
+        "execution_order": [
+          "original_C",
+          "Hepta_C_ABI",
+          "Hepta_C_ABI",
+          "original_C",
+          "original_C",
+          "Hepta_C_ABI",
+          "Hepta_C_ABI",
+          "original_C",
+          "original_C",
+          "Hepta_C_ABI",
+          "Hepta_C_ABI",
+          "original_C",
+          "original_C",
+          "Hepta_C_ABI"
+        ],
+        "iterations_per_sample": 100000,
+        "observed_Hepta_over_C_ratio": 0.49349699296089095,
+        "original_C_median_ns_per_iteration": 266.04077,
+        "samples_nanoseconds": {
+          "Hepta_C_ABI": [
+            13129032,
+            11456001,
+            13614513,
+            11532254,
+            13797985,
+            13410070,
+            11897587
+          ],
+          "original_C": [
+            36448299,
+            26604077,
+            24745431,
+            25396838,
+            34725043,
+            27481249,
+            24962849
+          ]
+        }
+      },
+      {
+        "ABI_calls_per_iteration": 3,
+        "Hepta_C_ABI_median_ns_per_iteration": 7.13518,
+        "case": "count_empty_full_queries",
+        "checksum": 100000,
+        "execution_order": [
+          "original_C",
+          "Hepta_C_ABI",
+          "Hepta_C_ABI",
+          "original_C",
+          "original_C",
+          "Hepta_C_ABI",
+          "Hepta_C_ABI",
+          "original_C",
+          "original_C",
+          "Hepta_C_ABI",
+          "Hepta_C_ABI",
+          "original_C",
+          "original_C",
+          "Hepta_C_ABI"
+        ],
+        "iterations_per_sample": 100000,
+        "observed_Hepta_over_C_ratio": 0.9354533786255279,
+        "original_C_median_ns_per_iteration": 7.62751,
+        "samples_nanoseconds": {
+          "Hepta_C_ABI": [
+            941617,
+            649734,
+            700769,
+            713518,
+            705766,
+            812285,
+            738505
+          ],
+          "original_C": [
+            809791,
+            963639,
+            622634,
+            762751,
+            814418,
+            658788,
+            672858
+          ]
+        }
+      }
+    ],
+    "status": "measured"
+  },
+  "performance_parity_claimed": false,
+  "retained_generated_sources": {
+    "bridge.rs": {
+      "path": "artifacts/next-stage-20261025T013607328397Z/ring-buffer-generated/bridge.rs",
+      "sha256": "5238558c67cb6dd155d6aba7f30e06081e2018fef93a8da05119c8a2706866ad"
+    },
+    "source.hepta": {
+      "path": "artifacts/next-stage-20261025T013607328397Z/ring-buffer-generated/source.hepta",
+      "sha256": "975b2540f49be843afe818d3262244f1196783e2f00c7b0d6f6dc7c1822189d3"
+    }
+  },
+  "schema": "hepta.c-stateful-upstream-qualification.v1",
+  "scope": "complete_upstream_stateful_ring_module_not_general_C_ownership_translation",
+  "seed": 827203,
+  "source_equivalence_proved": false,
+  "source_snapshot_after": {
+    "files": {
+      ".github/workflows/hepta-migration-audit.yml": "c19404df74fe2a41b29e77bf0f791d19e931878607ca8be2074c735e396eccd5",
+      ".github/workflows/hepta-migration.yml": "2af3d3ef6b9e08f6f162810cf98c51a7e992a63a3a25d347ff33b1c976fa11d1",
+      ".github/workflows/hepta-native-hosts.yml": "34eba3cc37e09372d5b70683bde1011ebad6f9ba55669d9ba926b6e1ab606092",
+      ".github/workflows/hepta-qualification.yml": "467c18b0e7e95ac9942d045cba7503c5de2d604a50b8e696c0ad83b26b31d8d5",
+      ".gitignore": "9399a21680374f3896d147d76c56692df08bfffc51f2c9bfc08130b1cc73e3ee",
+      "INTERFACES.md": "64098000d2fb309900b888f66d475c85010eae397a396612fedb78891cd0c1c3",
+      "Makefile": "70062822b57b49a2ce44000d561b72ebe32a43f5ce6fdc83abf5ac73a4d44b2a",
+      "README.md": "2d009c9573a70f63d73beb50580965747eea0bfe1250d75193cfdda5f5f4f1c5",
+      "benchmarks/README.md": "2e706e95740ae80abeb82d5f81b30e05191c7c5e41c397eb6c6e8f259ee5e523",
+      "benchmarks/applications.h": "e7581fbd430d2fd812494675e309a12f7a66fb070563bf8d6d9d535cdecd776d",
+      "benchmarks/applications.hepta": "f7daf384313c91c0bd7773db5bdc1d3d3a470c8b23827c2596b24bc35f9e35b0",
+      "benchmarks/applications.rs": "c029f0b4389e5ecac42797a3e51a046a1542d25f74a9945c88ae8adfefc8e772",
+      "benchmarks/applications_allocator.rs": "288724cd4a253a2b90730110a2d4e648e33dc9b3fb5371e78ed0d16fa1006cd0",
+      "benchmarks/applications_driver.c": "831b6592bc93dc7387078b994c1ff0545ab7434f2f957afa051c616233e67088",
+      "benchmarks/applications_meter.c": "c502fd1bf463857e719f633687edb0094c64abb9cd3dfc5a09edd2a0dfa3dad1",
+      "benchmarks/applications_wrong.c": "fc2c43665ab82a8ab6dfb3ed3c78922724faad005c677a7658c0a1d7a16fdc1b",
+      "benchmarks/baseline.c": "3fd6fc6d915fb9f6a370b0e24d5e677c0daea86badf30cf3ab1efda4d3c1964a",
+      "benchmarks/baseline.rs": "073e4027746aba1ec392ab3d4477a25b6343e475101537c169f7b8e5d5f42bd8",
+      "benchmarks/borrowed.hepta": "84697f404f0637b158f9ed47540c1b7a71f64ae18ac87b251ac1d4d2db5a87b7",
+      "benchmarks/borrowed.rs": "de0e419772aeb4bf9e45ebc420563416429d372f3e739adcce5a8d9ecbb41274",
+      "benchmarks/driver.c": "ab80500cb4e82463ee9ede9ce92da3acf7f2ef39e79748961612fa15dcd04007",
+      "benchmarks/kernels.hepta": "1f25a2ff79632fcaf2d489117d4fc9034ff03cf80e957ab3b056c917195f70b3",
+      "benchmarks/representative.hepta": "87fc435abdcaca6cf742dc1c79347ae15c4897ae8d5ef3e2cee3afb327954fb5",
+      "benchmarks/representative.rs": "f3a6c815bca6d68a57f9e0844df9e8cb32132fdac5bb1cda22463765c5ca9e66",
+      "benchmarks/representative_driver.c": "8d6ca43135cfbde9d558f40feb841b680c17893b56e9e65a210a898c4980a551",
+      "docs/ADTS_GENERICS.md": "301408640cbcf397ce52807b1e2d085bf02342bc1411f16d098ab8ab25131212",
+      "docs/AGENT_PROTOCOL.md": "500938abd82612dccca792f5239768dd87388e60b1479d01366c1d5d1a50e3db",
+      "docs/AGENT_WORKSPACE.md": "ae898b2259425a7eabfede48dedc6e01da93149f086b4f84208fd56eb3fcc3fe",
+      "docs/APPLICATION_BENCHMARKS.md": "c816fa74a8c39702aba134326f8592d6f971bf7111ca459acba576833c9b7b4e",
+      "docs/BLOCKERS.md": "360f13ce4539d3ec63cb6ff779966d03c84782b6a1425e2b82851a1d7b2a668a",
+      "docs/BOUNDED_CONCURRENCY.md": "5ef1c58ab72df720dce8b839eaa4a36eb670859207750a4955a6f7ee9c003789",
+      "docs/CFG_IR.md": "813ecc718f5799657808599126f0bda66e539f18e7f93759f18efb4151418904",
+      "docs/COMPATIBILITY.md": "5d13d5a9c09d4528de50a9a60c762e17271383082f451af83fee2841b99ad05e",
+      "docs/CONCURRENT_IR.md": "50fb21a5b6e7915ef80537f7a45fa0d6445b4d082b7a6bfbadb21426f88e0eea",
+      "docs/CPP_CONSTRUCTORS.md": "461c4fa0c769f9247ab16c8aab431edebb3e6226cc0b40df4cb3ea40928d8238",
+      "docs/CPP_INTEROP.md": "269a9448326ce384d230b794ca692d31727594b293864351448d747f60fff5ee",
+      "docs/CROSSFILE_AGENT_EVAL.md": "f3cf15addf538578b6a6a15619a435c6621aa104d28bfcec76e2a1515ebef2b4",
+      "docs/CROSSFILE_CRASH_QUALIFICATION.md": "9bfe52e8f5230d9a5f48ef2b1e9b1c9ff250b29aab55352ed1b1e89a10579a21",
+      "docs/C_IMPORT_PROTOTYPE_PROBES.md": "03f85e8549dc062c4dae30abf744cf58877f9ba6a555066fb458f57984470c12",
+      "docs/C_IMPORT_SAFETY_INTEGRATION.md": "3344a84aa05d2c350e8af4c1d2037bdb8f205e4fd0b39f1c918f5a8dcedcd1e9",
+      "docs/C_IMPORT_TYPEDEF_SAFETY.md": "040880e519f1a52edb97449477dc8aeb7cc1bf5b42158b3e7bcd5d7815d99afb",
+      "docs/C_INTEROP.md": "b405d6ef07e407ff15fa1eb2c7d84230504ac55372f6988348fc789609a9ff41",
+      "docs/C_MIGRATION.md": "29f05c8f5bd7674e44efb9d2eed353ccd8c319f033792a860bc6a34fc73490ee",
+      "docs/C_OWNED_BACKEND.md": "5c356a14c44cc89330159ea714abcb0abd388c7e52ddbdff1a12e18c0b9335ce",
+      "docs/C_RECORD_VIEWS.md": "801bfb821758571e35fc4d5a68187829facf804acdb8be5133257e9928179982",
+      "docs/DEBUGGING.md": "a2b4836605829e63f5b64295d71c605e2b80be104360e8b1e2201f85a5108214",
+      "docs/HSIR_RAW_BOUNDARY_INVENTORY.md": "075a348e2d6e094761008e531832b95741f1f45e9a62a3b91e591ffcb607e87e",
+      "docs/IMPLEMENTATION_P0_P7.md": "cc8b3bcc6955cac5d7351e234522403f6c5e2bfd657379082c1b23c1cf940e55",
+      "docs/MODULES_PACKAGES.md": "e446e8d9018aa165097733a972fda60c9cda342054ee5ca69e0e8b881649390c",
+      "docs/NATIVE_HOSTS.md": "1e899d3f8ef0acf980a05b83b1b5b0c00481c9269e133ac2d9eda8d398999ec3",
+      "docs/NEXT_STAGE_EXECUTION.md": "934d41a9ad322da3b7eb55fb30536807a278d4b84364e0ff374e31ab3a13f99b",
+      "docs/OWNED_GENERICS.md": "73f89d2faf550971ee16bcf3687d061420a8c6c38386f3c8a940ff0d738aeaed",
+      "docs/OWNED_TYPES.md": "bbf272b35fe33de40a96d4520549d1763936acb373c8e1b614d934c4829166d5",
+      "docs/P0_P7_EXECUTION.md": "09adea3184bbfedad4ed4e1bae8b8b81f046626c32a2e421b2377e00daffdfef",
+      "docs/PARTIAL_PLACES.md": "86f7929575cc53cf538ceece56727001b761dc6d3a5957cd9bb0cf0519f1026d",
+      "docs/REPRESENTATIVE_BENCHMARKS.md": "b863ef29522a76ce1736695f8d59040a88133f30fc3ca6b36ae0fd44ea5895d5",
+      "docs/RESEARCH.md": "9fca2660a16799ada72a2eab138f557575839e1d4aa7755cd0c9ae3ffebe758f",
+      "docs/RESOURCE_IR.md": "2011faf7e6b0ae7b5f3d0d1f9c66d68b64aef646db192ffa17923e335d491aa0",
+      "docs/SANDBOX_QUALIFICATION.md": "27eca83515ec1dbeb84db8b5869f6fb83c9785600f16950dce39f233f89497fa",
+      "docs/SHARED_RUNTIME.md": "e0831b73c0fc56a0030c3d5a7f8490fc39c5173285d54fc4f8d51e20d03a3e70",
+      "docs/SPEC.md": "38ce8db8c324a76b157f3c0f9d4538b687b20573dd7fb6735d8ea6843313a172",
+      "examples/c_owned_backend/main.hepta": "bcbc6709732ce15e9e2cc54e51fb2484e528f02c44b8499695dfaea612e33229",
+      "examples/c_owned_backend/owned.hepta": "12a03e593b5de4804035a8db5ddae002f8c1cdccecf2fafd37e91706371e3c48",
+      "examples/cpp/constructors/benchmark.cpp": "3fde177cd43becb64ac6f19f9fc29a13d2c698d210754b338bbd63c9186da31f",
+      "examples/cpp/constructors/consumer.hepta": "da43b2572a82ae954eac16808a37d2e9e45c3411c57ccbd00e5258d753a5a3b4",
+      "examples/cpp/constructors/contract.json": "48fe161850726cf542c27d233d48f14f5bfe2a655a1c811a5bec1afd98aaf92d",
+      "examples/cpp/constructors/foreign.cpp": "48972607a1c4fdf5837dbbf12c462c8b9e64d9f40827ab25505ecfd24201acb8",
+      "examples/cpp/constructors/foreign.hpp": "cf565d280476e4770f41cf4ba42f49046426fef0a339c4a69d5c753eacc20dd6",
+      "examples/cpp/constructors/harness.cpp": "fdcce10be9f27a5667d56ec90c7b603f914939e2acb23f88c328d9c1e9efdcae",
+      "examples/cpp/stdlib/benchmark.cpp": "31422a07cd59efbe4031fcda8f685730df17396df8b09ea422ef59c3dad54d7e",
+      "examples/cpp/stdlib/consumer.hepta": "73c3c6635441b3350aac674ab5a0e47e7811541e74b5e6f72dbcc3a763d07e87",
+      "examples/cpp/stdlib/contract.json": "314c6c820a5c457546d01cc53abc3f2d41d7d784e22d54919d476ce8615c31d9",
+      "examples/cpp/stdlib/foreign.cpp": "1088dafc696e443e80f2635a203b30ba660ba4f914b161fe6b1ab69ef05dbb5c",
+      "examples/cpp/stdlib/foreign.hpp": "322c69c2dea9a33d18ce6685ed1f9c4cc44896fff431196e94f1d30182e60698",
+      "examples/cpp/stdlib/harness.cpp": "20845fe1acb59e973801c28ef590cd0f4005c9a55d30d6912d261cdac76659d1",
+      "examples/debug/main.hepta": "f4728117e6ebc2f97f1d5463fc139a109d2e5b08cf4944d08b104c7a5a7e1c8c",
+      "examples/ffi/abi.hepta": "b3ad3c0b50249a07a6d6da2df2de369194d7e834437a44c3e9daffafffc0b3fc",
+      "examples/ffi/harness.c": "589321ec560b4b44d811ea41b33eb00fc6ceeb5b55e4693e0bbd16e0c49622e0",
+      "examples/groups/admission_budgets.hepta": "2d13649569812185dff136e54b456b6fb2edd72353ccdce295bfc4add5add53a",
+      "examples/groups/bounded_pipeline.hepta": "83b3dd2e4f1d9cced6ca7ca51cd80bd0a919cfab9ec0b50be7c25968daef88b1",
+      "examples/groups/cancellation.hepta": "bdd4dbe166374332aa4f2a029ce0a988bc9dbe6058c80cc84dabf1282f690f2f",
+      "examples/groups/protocol.hepta": "157257c3214d961e4996a15bbad7eee509ec61b83fca66ed030b08e7d6e71cd5",
+      "examples/groups/select_pipeline.hepta": "7111b32b895597c335efc6d2f1fca3d5174c28b583febb822f517d76ae9419f0",
+      "examples/groups/shared_budget.hepta": "5481f979bdb709b317ad69319b0140991b0dab8fb657760c10a9d7445e67dead",
+      "examples/groups/timeouts.hepta": "0cb40f6860c3014c518b31b056ea463d3e31bd1a776788cbdd410b1a0d126681",
+      "examples/groups/worker_failure.hepta": "1a6ca8b8e82c6edfbb469f6e692aa71cdbc549266dd43e37beb523ea90481bcf",
+      "examples/interop/native.c": "6d09a60ef96cf28287e860e49d024d5e090e0bd16a5e81e3070f7b634df9e3ab",
+      "examples/interop/native.h": "3e57605954390904a3ce39380715c1a61cfd49b4d1951a96ec29842d19988bba",
+      "examples/owned/buffers.hepta": "7b0bc2cc57324d507b6d0584ac5fd699b1b2add4cc9f6c5997498657f7eb3d5e",
+      "examples/owned/main.hepta": "b1432eea4b84696e51148f30072e44a698f158c8c6194a1d5c285fe26cccf2ae",
+      "examples/owned_generics/main.hepta": "923e26a2ccb01654bc292dbe55dcf02fcbd333079806f3f859982ec2d94949bc",
+      "examples/owned_generics/operations.hepta": "03e4987153a346bb51014574e363c0839d255ec62b622cf2214b677a2087ff8d",
+      "examples/ownership.hepta": "02abf1c775d9a866647d0e47113b307ebe116b41a69476499a66b8740e848a26",
+      "examples/packages/algebra/hepta.toml": "4d30fd04c2d28f96b62677cf9a50e00cf6802222f6d633ae17d78c1c68d91334",
+      "examples/packages/algebra/src/lib.hepta": "6771cc2a9ea5339f2d7af52c82687032b32e02fa201b59187b35069158f4e7c2",
+      "examples/packages/app/Hepta.lock": "c92a6288f66c3a7bfa9352faf570b9b62cd51cc18ccea4484c6bc56763f05c0a",
+      "examples/packages/app/hepta.toml": "e4620c1596016b91d7e23de6de3d039f062ecfd99c20e300c654388e89ff07a7",
+      "examples/packages/app/src/main.hepta": "eafc681eadec73fd32c51d37ebf00a91817c94def3003a924f2fde9349ff455a",
+      "examples/parser.hepta": "f4c2cf3890ba16abef1f2a3181c231e19256b67c1de362c52d0db2e8a0a161be",
+      "examples/places/cancel.hepta": "9f6ce4d03e0303f205049eecd2cc83a9709e04b97385c67ca6cf295cea0602e2",
+      "examples/places/library.hepta": "9000a472ce7fe96a8fa980589c4d3a00d1d54a3f7f93ececfe11d7733e059627",
+      "examples/resource_ir/returned_views.hepta": "a05fc7434898ff5bc619c4e67ef97e829f6463674c2cb871aacee06a69caf65b",
+      "examples/results.hepta": "8c0185ff86a809a7073022b2d96a2926dc7014b76129d95394eef581ea7cfb3d",
+      "examples/tasks.hepta": "366814fdcf4f4091f5cd93bd03920d3a80602480981a6bf8fc11a3c37c8d3ea7",
+      "experiments/agent_eval/README.md": "7634581c9cc6ff659f3244ad1dd1148f2cd63bc5a385ecd598ec9fc349e0fff8",
+      "experiments/agent_eval/__init__.py": "cbc1a72b7cc556ecb9bf3bba15a52f4b5c95f79d3c6bd55b5a9dc98321154722",
+      "experiments/agent_eval/__main__.py": "c137334f2bce877ce14b47e045c9a3c864d768954af1c57578a8cad053e94be0",
+      "experiments/agent_eval/_frontend.py": "efb5b039ed89b1ca3f7a14aa7e678b3e84e5f31791f50ec5d5088253c2699875",
+      "experiments/agent_eval/_private/__init__.py": "f78b788ad039c22d6551574884c120645b33f33e8db0ebe51fd4d893bdc40293",
+      "experiments/agent_eval/_private/oracles.py": "25b7d6c1c54607eee628e9f42e1eacf4833793b854611b6afe2805ebd95e5078",
+      "experiments/agent_eval/_private/solutions.py": "fdf35d79974bfb7058869ad10e4748b813dc0c4fa713309d29e03312c5b08fee",
+      "experiments/agent_eval/driver.c": "16a2c4b5d7aa9dc504d59d166b78cf8a498f15b425cd1073425824c783c00631",
+      "experiments/agent_eval/fixtures/__init__.py": "f1b0788efe4b677e765ec0fd0007259584e1b4d97d07999be99bbf87e5ee66e7",
+      "experiments/agent_eval/fixtures/adapters.py": "f107ac73e088cbd10b770bee3f0616a4d5561b91085e6590e2d051b095cf57f5",
+      "experiments/agent_eval/harness.py": "ae1ebd36850fb4b1161611218e9955b82dc284faf55e484d38f82bc914645445",
+      "experiments/agent_eval/hepta_reference.md": "2e3626b49e78a22fb004d6adabf6f4ecb85cabad628876d24425b96228c3a817",
+      "experiments/agent_eval/manifest.json": "39af0ef415b221523a33568b38f702f5ab63d65bc44d41bac65faca09f0782f8",
+      "experiments/agent_eval/qualification.py": "657ae0b14e485881ee47fdf6e41f5e4bee065cb78b05894399e28bf929e2f473",
+      "experiments/agent_eval/rust_reference.md": "91b3ca95a70bd6388a16586203a37ea3f6e6d8a8b47c1f625872e83ad75afb8a",
+      "experiments/agent_eval/sandbox.py": "f3e47e5a2b83b7322161934bbc600a3257d153bd60ebc9ea91ea847da5059ad9",
+      "experiments/agent_eval/sandbox_qualification.py": "fc908e80c7731d9d7f597103cab339bf6080680444cd9a63f390d466a35f89ef",
+      "experiments/agent_eval/scoring.py": "242a73c13bf6e8c0cad080b05f755548c4a2492eef63de58cdb869cf345d13e8",
+      "experiments/agent_eval/tasks.py": "259b976c26dbcfc27d9a2167840720cf07d10eaab252db626f5a65e09dbaceda",
+      "experiments/agent_eval/tasks/compact_runs/instructions.md": "07cb8acf18af79f9c293dc2d711618ebe02983411ef6b7ac86b871fee87adfbb",
+      "experiments/agent_eval/tasks/compact_runs/public.json": "407cdf95289e7e1709d9c06ac529de84ab508b97fead3bbdf9066a34e01d0e15",
+      "experiments/agent_eval/tasks/compact_runs/starter.hepta": "e2774af01a76c4a65a34780656e4013bb9625ad61bcc803d9dbe26a510186942",
+      "experiments/agent_eval/tasks/compact_runs/starter.rs": "69f72ba062c433307521193e4c560536b4a526f492e269292bb185621c2f6dc9",
+      "experiments/agent_eval/tasks/lower_bound/instructions.md": "90ea565536beb83fa05fdc27d4c42abb204f9f491d8f0fd448cc903a6f2e1fbf",
+      "experiments/agent_eval/tasks/lower_bound/public.json": "4ed2cdbb84eb9ecdff4bf75842198f90bc9a831e9da8409ef5ef452c04e500d0",
+      "experiments/agent_eval/tasks/lower_bound/starter.hepta": "2e8120e5c24563804f1515740f3b2976371738517f0fe1d94c9d9e0c7ffe5a68",
+      "experiments/agent_eval/tasks/lower_bound/starter.rs": "eeaa922ff5d6c6496856cc852eb98eca5d2f354205cd82a3a99d7668787aaf62",
+      "experiments/agent_eval/tasks/parse_decimal/instructions.md": "633fffd5fa60b33f0c136308c7b5f0e55dbf6a569b753f92998b89969ad2e63d",
+      "experiments/agent_eval/tasks/parse_decimal/public.json": "7adfdfe157ffe06ae89c2ec9b455d86f7c128fdd58dd7991989cffea6eac3967",
+      "experiments/agent_eval/tasks/parse_decimal/starter.hepta": "9660c36ce43767211894c3ad7ffb0bbdd69a08355cfebfdbd4c564f78a32ae36",
+      "experiments/agent_eval/tasks/parse_decimal/starter.rs": "4d5c92fdf4d8ebac173c914b45d100d8e2d1e69b44b59cffee816a166fddf650",
+      "experiments/agent_eval/tasks/rolling_sum/instructions.md": "7efb6b012024df094282f2b8aabf52d414de2734074d190a803d234720d7b81d",
+      "experiments/agent_eval/tasks/rolling_sum/public.json": "ae95cbec8f25ebe75de38f33402b8608e10becfcaab9f44f2b37e74d73fd5cea",
+      "experiments/agent_eval/tasks/rolling_sum/starter.hepta": "aafd71ee3df85bab6f819f9263c1018643bba4fdebeaaaf03cb23bb81c24c75b",
+      "experiments/agent_eval/tasks/rolling_sum/starter.rs": "75769296b19db497e4ef51636f9e06160b5c29db9ffc962fd355549499672cf9",
+      "experiments/crossfile_eval/README.md": "64a2736ce582f5b0acc1698005a35aadf2419c41794663d42d7f092fbbde755b",
+      "experiments/crossfile_eval/__init__.py": "0a96f0bbd17edca1253aff2a4a0e8ea220c9e4df1fd0bae6a0422fd8d52eb85b",
+      "experiments/crossfile_eval/__main__.py": "4baffbd60c3ceb5106037ad146cf45f9c309e810faaee684aaf529447eeee93d",
+      "experiments/crossfile_eval/_frontend.py": "46bdddb79c81f15f3a5f3726ae8ac8e57ac6c5964059c6ef113113e581e0c983",
+      "experiments/crossfile_eval/_private/__init__.py": "333bb7065a2d8d32fd4e8f767aecd442656d7fcda589f6c0067cf4d7dab778b9",
+      "experiments/crossfile_eval/_private/oracles.py": "afd47d74fb47cb136c34a06012674de58e01e12cab7a0e4f1312abcc3865beb0",
+      "experiments/crossfile_eval/_private/references/api_migration/hepta/main.hepta": "e895137671257f259c99906babf157d6faf47fcfaceb235167534d79b3c0f657",
+      "experiments/crossfile_eval/_private/references/api_migration/hepta/pricing.hepta": "76c2c1b1f720bc0688b9e3443f75261369769270a1f1eb06598772b7e11a8c84",
+      "experiments/crossfile_eval/_private/references/api_migration/hepta/receipt.hepta": "3d9174cf194670b9678c00a35af8b178280284a68cf3d81d5f30d0414c1511e0",
+      "experiments/crossfile_eval/_private/references/api_migration/rust/main.rs": "b39073f2cafca6824699d992b74ea9bec6f6612f658720f1cb64430fb0b36a31",
+      "experiments/crossfile_eval/_private/references/api_migration/rust/pricing.rs": "ec9efe5d45466a7aa7555e89a7f5f1f5e74f6625f5e7a12f40a01f5d1bcde3f0",
+      "experiments/crossfile_eval/_private/references/api_migration/rust/receipt.rs": "1aa47c111c0b47db302a0c73faf5ce6a8fb6d13b84b64815cfdb6230425075ea",
+      "experiments/crossfile_eval/_private/references/defect_repair/hepta/data.hepta": "aa003d3fe77e5cd65d33675497ccd5ba4d7ff27c960f5df9bf99c4c336921051",
+      "experiments/crossfile_eval/_private/references/defect_repair/hepta/main.hepta": "a07dab5cb4c49467e76f8425020902cb6447ef3cea8bb89a70442f743723ce01",
+      "experiments/crossfile_eval/_private/references/defect_repair/hepta/search.hepta": "d6de331a89cad9f48aec9d2c0447627c89bee58936ac713aca94483bc07a3c86",
+      "experiments/crossfile_eval/_private/references/defect_repair/rust/data.rs": "588a03cc900f910d9ed73dbce6b9123a0988169aeca405850a32e81a313759a8",
+      "experiments/crossfile_eval/_private/references/defect_repair/rust/main.rs": "7b468c3440651bd584f716b788d86646b6aeac6d0e67ca5770d286dcbc0fb51b",
+      "experiments/crossfile_eval/_private/references/defect_repair/rust/search.rs": "0c2dabcb2c1bedc81cd6e221e5a5d1103f25de02d7b03beb0c6d18068323811a",
+      "experiments/crossfile_eval/_private/references/native_bridge/hepta/adapter.hepta": "1449dcdb557d42431992d15ef869a794ac93f2c25724dc2e390717b943505ac7",
+      "experiments/crossfile_eval/_private/references/native_bridge/hepta/foreign.hepta": "1e8dbcf60776fe48058120c84b03dd1b96e74f3e002379f67bffdc67fcf0103b",
+      "experiments/crossfile_eval/_private/references/native_bridge/hepta/main.hepta": "5b8d76b4bb81d88685b486cbc0d2767536d54934aab2ab0bdec892ae96769eaa",
+      "experiments/crossfile_eval/_private/references/native_bridge/hepta/native/api.h": "8cc076569faba2f17d97b845d10d288a63b81c13bbe8181da7b55e4e8ff9ff86",
+      "experiments/crossfile_eval/_private/references/native_bridge/hepta/native/arith.c": "25e7731eb0ceaa89394c063597577a76cb3743343e90cfa0e7a4b627b4ad7f81",
+      "experiments/crossfile_eval/_private/references/native_bridge/hepta/native/meter.cpp": "04cf66de4666bbfd47a07e9a80a9a5dccc991f294ef41ddabf6aa7a834d15f6f",
+      "experiments/crossfile_eval/_private/references/native_bridge/rust/adapter.rs": "e55c5717da15a1def31c99d6573112de904786dde5818c01da17ef181abfc722",
+      "experiments/crossfile_eval/_private/references/native_bridge/rust/foreign.rs": "4f426e63eea8eb2a40ce49a267b24acc1bedeb8d42fc969dd557424cc43f1171",
+      "experiments/crossfile_eval/_private/references/native_bridge/rust/main.rs": "73a006a61d7c59221fd43d56360556b23fee64314d116d8afb68300a9be810ab",
+      "experiments/crossfile_eval/_private/references/native_bridge/rust/native/api.h": "8cc076569faba2f17d97b845d10d288a63b81c13bbe8181da7b55e4e8ff9ff86",
+      "experiments/crossfile_eval/_private/references/native_bridge/rust/native/arith.c": "25e7731eb0ceaa89394c063597577a76cb3743343e90cfa0e7a4b627b4ad7f81",
+      "experiments/crossfile_eval/_private/references/native_bridge/rust/native/meter.cpp": "04cf66de4666bbfd47a07e9a80a9a5dccc991f294ef41ddabf6aa7a834d15f6f",
+      "experiments/crossfile_eval/_private/references/owned_result/hepta/main.hepta": "8a07978c54762ec668661ae0313dfca3024425569632c85635b87b59fd8a549d",
+      "experiments/crossfile_eval/_private/references/owned_result/hepta/service.hepta": "8acda4fbe1be4c58349730e9d8af74fb4430bc30f8c8e40627c25e6bf528c841",
+      "experiments/crossfile_eval/_private/references/owned_result/hepta/storage.hepta": "6ac34b8c4584ea9bb24ab73167406ed8ec314602eccb8cd58ae5cc2b28745a13",
+      "experiments/crossfile_eval/_private/references/owned_result/rust/main.rs": "740f20ddbb776543777dae1bb1dd6743705f6bd4ed2211ba9fbf78d9913e1921",
+      "experiments/crossfile_eval/_private/references/owned_result/rust/service.rs": "02230ae5c343893f990c87ee12abbed872eeb178c73e20a77667498cbe8020f2",
+      "experiments/crossfile_eval/_private/references/owned_result/rust/storage.rs": "6f4f2f5b8b77a2aa2d86c8e273129f5da1723436c05359e3561394f14eb77446",
+      "experiments/crossfile_eval/_private/references/resource_cancel/hepta/main.hepta": "1360427bab468a782ed61f1418f0ae1d649f0ea0b069414c432dc4e4bac3be4c",
+      "experiments/crossfile_eval/_private/references/resource_cancel/hepta/service.hepta": "721644c0accde3b3f03b0528a35df26aa3b7921891299c84f573b7f103228b36",
+      "experiments/crossfile_eval/_private/references/resource_cancel/hepta/worker.hepta": "fdc39e145ed439ec3365b81b00f6f973d966193c9ec8eb7f48b7475041341720",
+      "experiments/crossfile_eval/_private/references/resource_cancel/rust/main.rs": "17e6dbd691d683e971ccfa0ee8160b999db1d3a3718a11c5f54129f830382a79",
+      "experiments/crossfile_eval/_private/references/resource_cancel/rust/service.rs": "30c74fd0055326bdf05a89063c18382d6c87da7a302d1f3efc2406da920028cf",
+      "experiments/crossfile_eval/_private/references/resource_cancel/rust/worker.rs": "f91dcbe63e20a3271be9554f2ea2eac67dd6b4f5c3cfab191e285172a70a9692",
+      "experiments/crossfile_eval/_study_frontend.py": "e99b205206d42072de5cccee8a03c2574af38682cac6ae88e6a4396f0f853546",
+      "experiments/crossfile_eval/_workspace_crash_frontend.py": "12385c0bda593f9e43e16110b9f030e892a76a9946c871c7368a62817dbb7bed",
+      "experiments/crossfile_eval/_workspace_frontend.py": "bfbe6f77459d7d3d3a6ff93afe567307cdbaa263a12053dd34ef0031d32d0d52",
+      "experiments/crossfile_eval/adapter_binding.py": "e1233a9cc0c31ca20d2047b927ee6d45b104735bac75d79a835b933a7ef2b859",
+      "experiments/crossfile_eval/driver.rs": "acbf3af0ae90aa90296be36f6633b780f499a0999d7802c7566668ad2d5f5d6f",
+      "experiments/crossfile_eval/fixtures/__init__.py": "f0c69e9a9c7d5c8fb3c879310cd04086d4b82111e852165b8bdfa1aaf0c68dd6",
+      "experiments/crossfile_eval/fixtures/adapters.py": "2ed4814df275712bfbfbd76893521905f29a808bb002fbac06025c680e780ba5",
+      "experiments/crossfile_eval/hepta_reference.md": "d9e12a968c3158158a11d199152bf21bbd3016a75bafe9d24fef09d50e6ba3a6",
+      "experiments/crossfile_eval/manifest.json": "040644fcaa8893bd0ea982234c98352994427382deb55e32e82fb0a767e53e5e",
+      "experiments/crossfile_eval/monitor.c": "889a2ce1d9bc5c19d6d76da74567317f5a7f13fbf410735659744b49aeed1ff8",
+      "experiments/crossfile_eval/native_stub.c": "f9fb5b28d9c59f8fd9f490c14b48f41604c23006585eabf1484329affef76a36",
+      "experiments/crossfile_eval/plan.py": "f2f978ff31e35a56576eac750ac4cdd0a4bd733b1ea0a0d15fe1d2c229d59971",
+      "experiments/crossfile_eval/qualification.py": "9219910fcde48a78489c54c485e7b1f9bc25ad972a67d3c09f587fb0f67857d7",
+      "experiments/crossfile_eval/records.py": "feffa9c3b994878713cbf0643f58e10d0ee60c62430a3d5114adb9520c7ff2a4",
+      "experiments/crossfile_eval/reporting.py": "ca65d726ea7e1e266aa0add76c405b6e401ce9d3e8f1c7ff814f8345e6f67b18",
+      "experiments/crossfile_eval/runner.py": "66d7128cda3d45e92b2f00492a5311cdda99c8689b2cba345fe078804da0bf9b",
+      "experiments/crossfile_eval/rust_reference.md": "e2cdb5b7d43a05ff1278e7fbf17358f26b0394ee5735a28e7d9d881606cccca3",
+      "experiments/crossfile_eval/scoring.py": "9783790e26e2f40fb0cb74fde19d194d54ef99d5392d049ef44305c5c63ec4c7",
+      "experiments/crossfile_eval/semantic.py": "df5763b1d08d6c4f99af7b6095ca9d6006afa429d6c2fcc69c3aeb5473b2439c",
+      "experiments/crossfile_eval/tasks.py": "fea045d42cc1661262fb8e6a323b1883a064ac18df90624b6c0c348614cca1ea",
+      "experiments/crossfile_eval/tasks/api_migration/hepta/main.hepta": "e895137671257f259c99906babf157d6faf47fcfaceb235167534d79b3c0f657",
+      "experiments/crossfile_eval/tasks/api_migration/hepta/pricing.hepta": "0178aef60d30f7fded0b166dba7170db725805a5c2ede23a082bf8cc909cc1bc",
+      "experiments/crossfile_eval/tasks/api_migration/hepta/receipt.hepta": "feaf0c5c3dc4fb1b3bc96dc28b3d0a4a3d5859ecf4d92b197a95e4f60388f68a",
+      "experiments/crossfile_eval/tasks/api_migration/instructions.md": "8751dcb3140e4bc9ce902c296ffaae1002a9b803aab9b550edddbf896916bac8",
+      "experiments/crossfile_eval/tasks/api_migration/public.json": "5e0641501eb1209582c18a39cba8ffa1719ff0ac959b00812a6176fc882b8979",
+      "experiments/crossfile_eval/tasks/api_migration/rust/main.rs": "b39073f2cafca6824699d992b74ea9bec6f6612f658720f1cb64430fb0b36a31",
+      "experiments/crossfile_eval/tasks/api_migration/rust/pricing.rs": "b52aa533e7159706ddf9942c241b514a3a249e8c5c9c9a0a21a5deb90a5bd78c",
+      "experiments/crossfile_eval/tasks/api_migration/rust/receipt.rs": "4542aae2179d05e0c5823de6882710961dac874a42ba3dfb3d912d6134c850a2",
+      "experiments/crossfile_eval/tasks/defect_repair/hepta/data.hepta": "594ce098b8e976af97fa98e75c58255a72bdcd196feb17c8696ed386f00fcda6",
+      "experiments/crossfile_eval/tasks/defect_repair/hepta/main.hepta": "a07dab5cb4c49467e76f8425020902cb6447ef3cea8bb89a70442f743723ce01",
+      "experiments/crossfile_eval/tasks/defect_repair/hepta/search.hepta": "e7a2cccf01977d0468f94c4a32f48700c324432cbf3fda4a11c34c4661b68df9",
+      "experiments/crossfile_eval/tasks/defect_repair/instructions.md": "cc1d7a27bb250ceb8145e897f03aa7923834f343484edb8d7fc8d15e422095d7",
+      "experiments/crossfile_eval/tasks/defect_repair/public.json": "e9c0c73727c8cc05abd137032e45bfbc4100c50ed7e3ffd3d443501cfaca4bfd",
+      "experiments/crossfile_eval/tasks/defect_repair/rust/data.rs": "e2b34f66a9db8d30749933970d6a8e309842295ec8a4219e402f0e46aa6fac80",
+      "experiments/crossfile_eval/tasks/defect_repair/rust/main.rs": "7b468c3440651bd584f716b788d86646b6aeac6d0e67ca5770d286dcbc0fb51b",
+      "experiments/crossfile_eval/tasks/defect_repair/rust/search.rs": "3da7865a00f0e0cac292f8be0f3708b6736bbd4e4be9d82d74ef22cb35c036f7",
+      "experiments/crossfile_eval/tasks/native_bridge/hepta/adapter.hepta": "21f16c59ea28e9c0b5b525623211b7f6c3f2607255da70a9e26fa3eb981eb1f0",
+      "experiments/crossfile_eval/tasks/native_bridge/hepta/foreign.hepta": "0a8f8873dbc588c8d9424a69f61e5a20d3ba8bee2130b0f8498ee9b8e5f1b45f",
+      "experiments/crossfile_eval/tasks/native_bridge/hepta/main.hepta": "5b8d76b4bb81d88685b486cbc0d2767536d54934aab2ab0bdec892ae96769eaa",
+      "experiments/crossfile_eval/tasks/native_bridge/hepta/native/api.h": "8cc076569faba2f17d97b845d10d288a63b81c13bbe8181da7b55e4e8ff9ff86",
+      "experiments/crossfile_eval/tasks/native_bridge/hepta/native/arith.c": "25e7731eb0ceaa89394c063597577a76cb3743343e90cfa0e7a4b627b4ad7f81",
+      "experiments/crossfile_eval/tasks/native_bridge/hepta/native/meter.cpp": "04cf66de4666bbfd47a07e9a80a9a5dccc991f294ef41ddabf6aa7a834d15f6f",
+      "experiments/crossfile_eval/tasks/native_bridge/instructions.md": "d942f3d7e6b5f2243f53d2e25be553f578e07f68f75dd32cbed006804958f8c3",
+      "experiments/crossfile_eval/tasks/native_bridge/public.json": "21eb528b1a810acaa9ebf6a10aeec2d87976a7f9e4da2cd79e242f5dbf9f8a24",
+      "experiments/crossfile_eval/tasks/native_bridge/rust/adapter.rs": "3eb527e335b39e64bac9f307226426591ee1ac5ef02a864f966f653775e8d90e",
+      "experiments/crossfile_eval/tasks/native_bridge/rust/foreign.rs": "ae7409c10cc8289dbeac14e8c45ebceda63c44a4321aa2cae09c168feaa3a8ce",
+      "experiments/crossfile_eval/tasks/native_bridge/rust/main.rs": "73a006a61d7c59221fd43d56360556b23fee64314d116d8afb68300a9be810ab",
+      "experiments/crossfile_eval/tasks/native_bridge/rust/native/api.h": "8cc076569faba2f17d97b845d10d288a63b81c13bbe8181da7b55e4e8ff9ff86",
+      "experiments/crossfile_eval/tasks/native_bridge/rust/native/arith.c": "25e7731eb0ceaa89394c063597577a76cb3743343e90cfa0e7a4b627b4ad7f81",
+      "experiments/crossfile_eval/tasks/native_bridge/rust/native/meter.cpp": "04cf66de4666bbfd47a07e9a80a9a5dccc991f294ef41ddabf6aa7a834d15f6f",
+      "experiments/crossfile_eval/tasks/owned_result/hepta/main.hepta": "8a07978c54762ec668661ae0313dfca3024425569632c85635b87b59fd8a549d",
+      "experiments/crossfile_eval/tasks/owned_result/hepta/service.hepta": "1275b702fdb6f4ab89c821568491cd525bb6e6080bfd65657a67f5776bf6ba9f",
+      "experiments/crossfile_eval/tasks/owned_result/hepta/storage.hepta": "8d5f180fc67ed11a42214be6cda0cfc3e4f2a35c295c811647a724dbdaf82344",
+      "experiments/crossfile_eval/tasks/owned_result/instructions.md": "e6596b59be4af64aaf55d2414f93bde60f54e72876f115c02af5c467951fc23d",
+      "experiments/crossfile_eval/tasks/owned_result/public.json": "a91ceffaa5a7f9a5886557c8c6ba0b07a4827fae004870eaa3c68f7cc818127b",
+      "experiments/crossfile_eval/tasks/owned_result/rust/main.rs": "740f20ddbb776543777dae1bb1dd6743705f6bd4ed2211ba9fbf78d9913e1921",
+      "experiments/crossfile_eval/tasks/owned_result/rust/service.rs": "06cf4c6b6a0a2063795badbe6335e9cfb3ac90c5a617c033f88d340b01c1e673",
+      "experiments/crossfile_eval/tasks/owned_result/rust/storage.rs": "7e07f9418b9fdb027804b28c4894efb9462d29f5800b7f160b39390574cbf063",
+      "experiments/crossfile_eval/tasks/resource_cancel/hepta/main.hepta": "1360427bab468a782ed61f1418f0ae1d649f0ea0b069414c432dc4e4bac3be4c",
+      "experiments/crossfile_eval/tasks/resource_cancel/hepta/service.hepta": "c6d46f498eb5fa42bd4985934d08e4f00402c65f2666efbeb6e9fb7c4e28cdfe",
+      "experiments/crossfile_eval/tasks/resource_cancel/hepta/worker.hepta": "55dc05c8231ecade246acab1d4ab4ff289a16269501b284601594d1cf3e823e0",
+      "experiments/crossfile_eval/tasks/resource_cancel/instructions.md": "746a2557e38e7aa1da1e7c800123a39c30687db6ae4dbc9047d03e362b36e5ee",
+      "experiments/crossfile_eval/tasks/resource_cancel/public.json": "a91ceffaa5a7f9a5886557c8c6ba0b07a4827fae004870eaa3c68f7cc818127b",
+      "experiments/crossfile_eval/tasks/resource_cancel/rust/main.rs": "17e6dbd691d683e971ccfa0ee8160b999db1d3a3718a11c5f54129f830382a79",
+      "experiments/crossfile_eval/tasks/resource_cancel/rust/service.rs": "3a4265a40e99a71be1b250df7fbd18e05441f654d01d0dae2fd25aaaf3e0e975",
+      "experiments/crossfile_eval/tasks/resource_cancel/rust/worker.rs": "355a8ba134ccf7d7752806ec1b661ce0c29e0518f0b15bb6f74cfa4d2900273b",
+      "experiments/crossfile_eval/workspace_crash_evidence.py": "4ff1cd180a692fc439311324186ace03654977102fdebf45aa0c2a9fa7471eea",
+      "experiments/crossfile_eval/workspace_crash_qualification.py": "aa4399281854d60f976cc3e0f7c9ed6b3fd5a2e6654771154c969c3f6ce8aaf2",
+      "experiments/crossfile_eval/workspace_evidence.py": "0a327270d110476f27b4658d7ddd51f4267f0b5c6cc64c0a659d4e8c2e478469",
+      "experiments/crossfile_eval/workspace_qualification.py": "dee336504a5e5254bc4864f1cdb2af8213c3194ca66f799ff80a231a95779e2b",
+      "experiments/crossfile_eval/workspace_session.py": "82c8d958bc8a2307d1653d322f783597ffd20ac51de1be6bbb23b3d52c536fd0",
+      "formal/HeptaCore.lean": "d3c3fb1e773cde932b5801684ddaffba2149dd565a67950a4c3b8623bca63423",
+      "formal/HeptaMemory.lean": "4cb928c449e14ff4a12f81487e28507e1fc8cd2690ddb436058310362fe1f726",
+      "formal/README.md": "52de3054c141a4565ba9bc3130bdf714cc5124cb78ac7e79cb8471c65967beb5",
+      "formal/proof-dependencies.txt": "77616e1c541092ffc3f6c32b02cf37746bef0466732c381e99e28de1b23310fa",
+      "formal/qemu-toolchain-lock.json": "6e9cf3922aaa65f99e3c9536b829b9bb4bfbc528555cc90480a36076a4cacdce",
+      "formal/toolchain-lock.json": "af6824b79535fcf144ff823444649ef218b8af84a211cb2e9fa3082629003036",
+      "hepta/__init__.py": "8448813083e33f38f96474d5c3b3b690284fcf9c1ca939c33683618b419031b2",
+      "hepta/__main__.py": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d",
+      "hepta/ast.py": "304c5ab45267f9b074e00106cb83cd3bfd9546b8209924aadeec54676978334d",
+      "hepta/backend.py": "354d7f76b488e670cc18a8b858cc5d4e7865180b0f072fb4afef627142b99ad0",
+      "hepta/c_aliases.py": "bc6c0533fff674f20d64619c50afb81a07375c37f158bf17ea7034026e25baf9",
+      "hepta/c_allocation.py": "e11ad48fa7e2af3fd9d0ec3932f002277bbdf44c0d164593432c5965bfd686d0",
+      "hepta/c_backend.py": "21dc234de556a98550a75df5c9557db8dbe58581bb50e19266ff3b590ccdc382",
+      "hepta/c_import.py": "57362c9f54bde1b0ad693fa0d62a428c3861b2f2dca2e9c0f41a5ee888749ac9",
+      "hepta/c_migrate.py": "70783d7da852acbd220c0ab3a7c1749d56fe8fab4b54807c49050ca291b1735b",
+      "hepta/c_migration_project.py": "cc3078780c69db953758c140a32d36e0ea9a17eb808c999772ff2860d0cb4bce",
+      "hepta/c_project.py": "196003dd3fb5090719f5b810d2a960e9b60edd508a1e20b468865963fc64c17f",
+      "hepta/c_record_views.py": "d36017bec07bd51d069fd0f6d76ceb0697d8e2579d4089c8df6ad408e71f1750",
+      "hepta/c_translation.py": "f0f04bd16e894d8692dbba58643ed9aee64d68ad282640001d7306ff05d461a0",
+      "hepta/checker.py": "fd2680f21061cad77d32b910f6960af17d2b7d8b74edaf5f8e642dbca5cd762c",
+      "hepta/cli.py": "c9cdf5e5cf4c1f1744d4eaae5e1b8270c1ad9e544254f42e0246d6d122f40892",
+      "hepta/concurrent_ir.py": "af04b1cf4814e88cb3503597e083a893859cc63be9a8c62b7dd09de060dd99ad",
+      "hepta/concurrent_lowering.py": "ff3708ccae6f07d1b9de6e4e8caabb2f7ed48e2f29fb22349fdcac806fb23061",
+      "hepta/cpp_bridge.py": "d6e60271306a37b74a231e9130660c5d2843b8f7b3cbcba26487fbb09b016dda",
+      "hepta/cpp_contracts.py": "bcabcc477dc73c5cdfd929825dcf560810ca609c58f43066110c8724ad7e2b6e",
+      "hepta/debug_info.py": "e30097582366ae3a5f4bae5e545b77046e0b4d8b4f2a2b34abc691de20c61d20",
+      "hepta/flow_ir.py": "5edd756cdf3fd183b9f109905b5365f5b9627761dc3c22bd0034f0daf8fcbad5",
+      "hepta/hmir.py": "68d7905b9215e5842010695a8386835ef618e43118a4037ef9aac48c5018a6a5",
+      "hepta/lexer.py": "06546e68725a3311c00b21d960ef6a63585d876fd6517e171669f13d0a143626",
+      "hepta/migration_ir.py": "af7011a20f17de92b108ce1e200dc8b50a9ba9aabde528afe4bff8fca6c30f5e",
+      "hepta/modules.py": "ecfcd55f095e3a7946cafda0ce7d4649920393cb87ad6718d875120e64c68137",
+      "hepta/packages.py": "f8a6f1beedcec4c11dbd544c2c60521f8aab40aac4a05a558d5c6a05dc14bb5f",
+      "hepta/parser.py": "3ea045c00651a964d038abcde49c2f159f1fb6989ec94c076f0931b944ba5bfe",
+      "hepta/pipeline.py": "0309dd7d4b90c85a51e3c1568e558f4f5f310228f5466c31eafd57d6464c99bf",
+      "hepta/protocol.py": "7c4e9c6b71391f34662bd161864cdac63b90574f65dd77e9489a3820299c6972",
+      "hepta/protocol_v3.py": "ffcae884ccb4a0d32b1736bc272a92678ad8b37b7bc7c677107b84c693cbd903",
+      "hepta/resource_ir.py": "a9fddb7b1b34e64338dfc1a699d74367fada2e87715a7ce2185ccc3c27d43f29",
+      "hepta/resource_lowering.py": "c7a9b4e789f896ad4958cd414f211c23dadc9c219f237202c69ba3f5264770c1",
+      "hepta/runtime_concurrency.py": "e270070d75590799de0cde345145bc2548189a78a4c975de745c6d9be8afe3ce",
+      "hepta/semantic_ir.py": "22d62f0391c4c142899e2da8383d6c9c982292feca6e9c03256972c52662c8cd",
+      "hepta/source_map.py": "7a602a7728da1729c0a625eac04acbb0cd47ccf17788c5a31f20f292e3b736f8",
+      "hepta/workspace.py": "eb04e1087b297e70e73fe1eb0b747f0b36a088ddd3728ac4efb2ab7a83ec5279",
+      "pyproject.toml": "5a94d676fea75e0774f0e1486fdc10fc264f43c75e8cfc264d8fcb57a785949f",
+      "tests/fixtures/c_migration/buffer_ops.c": "8ce9fbce9d741a3a32f1b9f768fed63a1e0ca0c912862ccaee9195a1d15308ae",
+      "tests/fixtures/c_migration/c_algorithms/COPYING.md": "164ddf1a88f6379e2d3bb6e3af5ba4dc2b209b8f9258fa5fc5fc18ecfb48424c",
+      "tests/fixtures/c_migration/c_algorithms/PROVENANCE.md": "26abeddc49b03ad7d11f12ae7484341b46f649b3a7cb9f113965342f89d4cb7b",
+      "tests/fixtures/c_migration/c_algorithms/UPSTREAM.json": "71b986b5acc43895862a2e3f83806b85dfd00e98e66f6db09d612c41c05feb46",
+      "tests/fixtures/c_migration/c_algorithms/UPSTREAM_README.md": "a44ea2456f4e4226acd484262cfacad424a9352c20d0884a36c743eb0c86e16b",
+      "tests/fixtures/c_migration/c_algorithms/compare-int.c": "e31f939aac72fe45f771a39237538d90c8c65e87c908c685791e6f3248355b46",
+      "tests/fixtures/c_migration/c_algorithms/compare-int.h": "f1d31375d1106557d537567cfda01e53d15502b901d8935374e9c1a804b0116d",
+      "tests/fixtures/c_migration/c_algorithms/contracts.json": "d93b5d4df49bae22a416d08c5038d33e65195b55b1d5e93399980a426f2f9d4a",
+      "tests/fixtures/c_migration/c_algorithms/hash-int.c": "0f317af10597f1df9503c76dcb4128579fa4b3247931545749ecb14e2ec36acf",
+      "tests/fixtures/c_migration/c_algorithms/hash-int.h": "5361e6c63cff34ac63bf86b5af491a6a7e4d321ee7d5166717803e39a4af2473",
+      "tests/fixtures/c_migration/native/PROVENANCE.md": "82daa0fe338a778bedcf0ebfd7040d9286ed242f5e2231abcd367b5c6ef44d0d",
+      "tests/fixtures/c_migration/native/contracts.json": "2908465367f90d81c62ef60d093db2bf21f838c05ce6643fc0b981d859974f60",
+      "tests/fixtures/c_migration/native/native.c": "6d09a60ef96cf28287e860e49d024d5e090e0bd16a5e81e3070f7b634df9e3ab",
+      "tests/fixtures/c_migration/native/native.h": "3e57605954390904a3ce39380715c1a61cfd49b4d1951a96ec29842d19988bba",
+      "tests/fixtures/c_migration/owned_bytes.c": "b5fda5b38a11dca4574e816acf34bf258408c280f0190f935b2fe2a2c0f9981a",
+      "tests/fixtures/c_migration/ring_buffer/LICENSE": "b894277418ceef41a36383e6337978192505f2385f36a6cb8d27cb5c4b4db36d",
+      "tests/fixtures/c_migration/ring_buffer/PROVENANCE.md": "8f2c5ad805c59889cff4d6629832d73cd7cdc731a10a65f573e74037f164eadd",
+      "tests/fixtures/c_migration/ring_buffer/UPSTREAM.json": "73693d9894947c504461b2f73bf1e5fc09184b01ed8b6844a64dd56e0d0245af",
+      "tests/fixtures/c_migration/ring_buffer/UPSTREAM_README.md": "163b43e9963400e1afeb55c82ddb8048c27d1ffd73ab64f52ae1c4a44e10bd6c",
+      "tests/fixtures/c_migration/ring_buffer/contracts.json": "3b7dcf14ba43aff30faf8a9e68678b4b18d0660a23cefecdadf4e9ee27faca56",
+      "tests/fixtures/c_migration/ring_buffer/ringbuffer.c": "21fde4113929246e00ad79533f83bb6def2bb154a18c12c2d84159bc61d4c39f",
+      "tests/fixtures/c_migration/ring_buffer/ringbuffer.h": "065589a731ffa8367ace4a17885968a53f35e265c7d0d45cdddbe3fa09cfa9e9",
+      "tests/fixtures/release_evidence/README.md": "9d0351c32816898f28d0e705171aa85ec9f5960908e5fb3b9fd142f4194c7110",
+      "tests/fixtures/release_evidence/groups.json": "9656e2459f3c5878288cbb24034dcac0b4c67ae14a013bfff166035ccc0236d0",
+      "tests/fixtures/release_evidence/owned_generics.resource-ir.json": "bed6cb9115328617d5c94d1f1c57ca6620b2140c45ef128302311b4dba1c202c",
+      "tests/fixtures/release_evidence/owned_library.resource-ir.json": "816ba33dc17f30e2eebf2d372c481ce0429da9d53c96d93b119f4184ba934bd4",
+      "tests/fixtures/release_evidence/performance.json": "1d4c40c8471af9da6687e08893cef85d7c6069ec6d5d9838435c303ea285753e",
+      "tests/fixtures/release_evidence/provenance.json": "154dbff40bc0c63ec199de2bc13a1d8a4389d44bca32a3bcf26a2eec893d77d9",
+      "tests/fixtures/release_evidence/resources.json": "5a0d9bd89c91bf9c707698efcacd7a5916d8c659d85b06b907a0efacd39c324b",
+      "tests/fixtures/release_evidence/returned_views.resource-ir.json": "8b48456c1466628a89504cb874e93dc948dea3fa1d912176aea1b49b37580243",
+      "tests/native_evidence_cases.py": "c9f2e8ccf1d0914804114321b3d407400ffb4516706e7ef7847744f547fca017",
+      "tests/test_abi_matrix.py": "09beeea09898cc2bd361893cf226f45aaf6f1a7d8206eda4a6617ec611c4bbe9",
+      "tests/test_agent_eval.py": "b04a668db31e7cabb1680ac8933fc015f8da4a851231e4f2c2e4ef6125ad16b2",
+      "tests/test_application_benchmarks.py": "4640ff5eb9fdcd6ab0954ea3bb742e3f0e03b84f893786f36a90619dd75d5e21",
+      "tests/test_backend.py": "2af1de16d04e29a20748ccd48ace90ad5465bfdef0dce4ec5e75ff6dfb55083e",
+      "tests/test_borrowed_returns.py": "80aba1157e129a7319dc2526911966a228e04cd6954396ed9c27ef1168974efa",
+      "tests/test_c2hepta.py": "11e355a627e3970b1ce1d3a4e99639f24cad8c7d7b1e122b25d4bd18ad7bb44e",
+      "tests/test_c_backend.py": "947eff4fe674c08404c3fb06c0ad06eb8315893af298997a156cb4ad64b72339",
+      "tests/test_c_import.py": "28e4880bf453ce41f4cdb201eb7b006834261ed1eb3d5658bb3b6e9088ecebc9",
+      "tests/test_c_import_prototypes.py": "c3f08a9702a5dcb37d4e9056684706e35d1b83dd7ddab1c6201ca86ff676dab8",
+      "tests/test_c_import_typedefs.py": "fc4c53f95bfb460ff8059402a2d7ad0fecf1e3ccc5d80e7dd6d7c229455dd9cb",
+      "tests/test_c_migrate.py": "2d96c9d409af28f798285c6035b8e1c350535f2214d3e62ba31a965f9b8d3d32",
+      "tests/test_c_migrate_adversarial.py": "14d0f7b674c695e49abd60796e7ccda51f21479e03b6aac08e40b58bdb77fce5",
+      "tests/test_c_owned_backend.py": "0c59fa79e7fcf1b2a56dbfdffe2902d9df46455df56bbda52a3bb90bcdab3103",
+      "tests/test_c_project.py": "988351fe7d74b06dbbce1e3e6636d281eb4afaa6829b5e060dda03295709b35e",
+      "tests/test_c_record_views.py": "ff3b93cee0fd84d4f4993fa54cc6fb39a2e0945c8bc812a62a69a6d085ec2f64",
+      "tests/test_checker.py": "8dfc4e79d338c3b75641e6268343e295e1b17bc93557bface386e70841da4b99",
+      "tests/test_concurrent_ir.py": "e15ed42308db0f10649d6e199dc02525361aa782779d0b310c6929f8ee97e77c",
+      "tests/test_concurrent_ir_audit.py": "a16eb643e284926714ae22ad8f5e0015c949f6bc223b0877f0977e426d5ecf86",
+      "tests/test_cpp_bridge.py": "4e267035f836afee3ae336c650afdfdb1a3cae57927c2e02dc28c95e48e9e4be",
+      "tests/test_cpp_constructors.py": "899354ecab573d7047681fa9581aee8c3717807f0606ab653e50f7f48db3d402",
+      "tests/test_cpp_contracts.py": "6ff4a07763982442c79667fefcb117a9fbb871d850e9f0f6d4d0d63b2fe4fe1f",
+      "tests/test_cross_feature_audit.py": "f7cc9f3cb463c08b9b8b66d8be85cb40bc592e7418e737e217904efa31a63344",
+      "tests/test_crossfile_eval.py": "a7e03a844ab9ded9ab246fffa916df29f16c84885a956fbbeca1564d3a1d3840",
+      "tests/test_crossfile_protocol_v2.py": "a2a8c71a246656a57b51691b45b0c0aeb74562861e08941c504b71edd710c703",
+      "tests/test_crossfile_workspace_crashes.py": "5c2ef2de5c36b4e1264a55283e4eb21da3936137256c7a8e5689a911b00fb14d",
+      "tests/test_debug_info.py": "f5adaa73c4383c0adf4160ee5741169434ce89991edd718119e8c0c7e33ec849",
+      "tests/test_flow_ir.py": "68e6bc886873df5f9ed088d5881ba18cea8e4a8c69f7b5749dfe5451d40c3457",
+      "tests/test_group_timeouts.py": "b865c0057840902f3597e21be6c23054584931bd0c6e92161a22cf263fa20d4a",
+      "tests/test_hmir.py": "c25f2164efd012c0958f224fcdbb76e06eb653431443fd0cb9dfafa309719d82",
+      "tests/test_language.py": "6d7f026b01437a4053e4ae8f815c7ec58ee3fbc34823d06f9c7c9ae2275c7436",
+      "tests/test_modules.py": "767f55789fff5979778a4d0dbbdc014b3b337e24081cbb022f79e1e541579ef4",
+      "tests/test_namespace_sandbox.py": "02ef61cde69099e39e37765bf5fb16f1d618ecc3ac60ae807b47d3589862c0b8",
+      "tests/test_native.py": "ee047474c0a227ede9ea4d54a8bc458fc91dc2d1e8769837ae1c4653488db6a7",
+      "tests/test_native_evidence_validators.py": "85c12faac8f6a7fe0d32594311b4e03c198d94111aa24241f20483987b93ed91",
+      "tests/test_openai_provider_adapter.py": "f41406536f01b899f0fcef058ed159f8c4373dbdd0cea033e53f3585de7c8f76",
+      "tests/test_owned_generics.py": "81d8b2cb90439d6aaaed2e12e37dc02bc5f4bdd1a28611e5b56718f7d203a402",
+      "tests/test_owned_types.py": "404d89ffc3ad4b8ac20ce6b7d8f6a6a6337a13ecad13f271a630c85352a47f38",
+      "tests/test_parser.py": "3f8d46e1f954ae4592f4263b676a57f6880a0bb46008ea04922326b882bd5701",
+      "tests/test_partial_places.py": "64f63f075bc163a7128ec4d22b0849d233040f1b3c7b8caac7c0fd93710f891e",
+      "tests/test_project_protocol.py": "345b066422de7242fbc0f76621e5ea67b8219a7eaffaa57c99d25a7999b57c48",
+      "tests/test_protocol.py": "278fd2e1202515a37dfc4e38b132879daf75fa10c9ea937ebad637c6bc24198f",
+      "tests/test_protocol_v3.py": "9bae22a3205af84d3bd441769967196653c59c9dbd98250e8f76ac5e5e882623",
+      "tests/test_release_evidence.py": "f344fbd64b693d789c7a7bd2e41948fd4879ccae2509a988999934d05829eb09",
+      "tests/test_representative.py": "b8095d601f2057cdd07b520f7ba239d2d285a90b72909c0f19b2f987aba5c1a2",
+      "tests/test_resource_evaluation_order.py": "5f44995419982a41e9bb2ac2b1097b3f129b7b743a5537b0d22e6375151fbd1c",
+      "tests/test_resource_ir.py": "1bd448f25ba15579b6343345dd9900440fafd7a9fc21805e77aeec7096089a7f",
+      "tests/test_resource_ir_cli.py": "053314ed4d14b1e13e1c6e0359584b7472da4b24077d9a15999f446a70f9ae93",
+      "tests/test_semantic_ir.py": "1cd4d68da0c665d6bd4356df293be57349f19173e5efeaf580a35737fbbcb2c8",
+      "tests/test_semantic_ir_raw_boundaries.py": "cfae849792a3e34e93cb3af1228ba5509d69b1d89313543f755172d2a740eb92",
+      "tests/test_shared_runtime.py": "dfb5339e16c52eed25d6086df4dc0ca0b0c7b7db24980a798de656f2a6cb69bd",
+      "tests/test_source_map.py": "9012eed2264fdda5e36c70985e11f1001d14af065c7a7887c08db2f725a0379e",
+      "tests/test_task_groups.py": "dacc0e77ab7e88582d7ce08e48fc819f33c7f6ac90b70eb2bd3babf7cd1ee913",
+      "tests/test_tasks.py": "63a568d5946d62a95c09768773fdb07bbd9060e5a08c0ac286b54b5e15b4124c",
+      "tests/test_workspace.py": "f647df899de6e8e8cee2ca5649b96b4c021598da171f9d399005d67466e6d977",
+      "toolchain-lock.json": "a89a2e1b891817b9509b7791203b7c19a5d845c471540feffe5ac86fb53f5ed9",
+      "tools/abi_fuzz.py": "c0b7336cf4ffe8ff807d3f28ad01b0139a019edf098506a68d5cfdef3c8541d7",
+      "tools/audit_execution_prerequisites.py": "05d052cb609f295c53b927022e5d785f166e6fa33a602ffa4ceca951400f64c2",
+      "tools/benchmark_applications.py": "0f3079205c48f8f945f0aca4231c5076e5fd25b33a72552861bb84ac0f8d731d",
+      "tools/benchmark_suite.py": "16c0778e0c5250dbcdee0abd734f6aa3faf5e8f9d0cb6223c4a050e48993a67b",
+      "tools/bootstrap_toolchain.py": "cb35c334cd3ba8552835dbb53db33fea5a81dc8869b70da4224ccf3b5cb4de70",
+      "tools/bootstrap_verification.py": "8b95198a1e50ceca34e17869412edc02a31f9be38e3052750ea5ba53ecc16286",
+      "tools/c2hepta.py": "f0a3cebcb22641f08d76d871b44cf89fb6ef7bd98b4224aaac1acec1f1b46017",
+      "tools/evidence_checks.py": "720a9f55e73e3af3467918efabf0db8b5ff85da8ab07c3efd115d8b1423bd3d7",
+      "tools/fixtures/c_owned_allocator.c": "3a3ff8a37e880bb1c52d0f82144c2caa71e7b59c8e4b463e3b7c7c5b936665a4",
+      "tools/fixtures/c_owned_allocator.rs": "22fe049997dc7713eec65d4a7216173be7e0cf0948ab7164b9b9dee45d3b436f",
+      "tools/fixtures/c_ring_buffer_benchmark.c": "c8f6ae195d1c984f7f38b85e125aba66f4eba70364842385016b70657e6347ee",
+      "tools/fixtures/shared_runtime_controls.rs": "917ee0568ddc5ecf79bb002db31fd723c419e117f58b9b34730deb512ffdf848",
+      "tools/fixtures/shared_runtime_faults.c": "afaa8712088beb500f441cd05f580cd9896bc8636ea39a7791dc643ba6d84cb5",
+      "tools/migrate_c_project.py": "80f49735f32b178bc9468adfb2c43925b2de310b7a3391e7aff6ae105cf54e50",
+      "tools/provider_adapter/README.md": "ca4287da5fb759cb705163e97fdb7877967d6fc72e0614c448fffa135ad5ac27",
+      "tools/provider_adapter/export.py": "0724905c96a12e299b7a65998848bfd4e85cf8cf9e86552453ef89dc2cec401b",
+      "tools/provider_adapter/openai_chat.py": "2566ed560ffbdc903555fa0c89153955924565b7960faa8e0207b4a752237507",
+      "tools/qualify_c_algorithms.py": "3475da9c256adbafed65b9b6b53712cda27875b866114eb7a8d5cc5be4e46933",
+      "tools/qualify_c_migration.py": "97b35cf01db80ce2173711c636771be3abff22ba93df757f6489402ade78658e",
+      "tools/qualify_c_ring_buffer.py": "7e02d94220ff97bd0b01257eef9323cd50191e28f6b050ac28cf5a2c7ec19f56",
+      "tools/qualify_places.py": "2468ea1de14e45a73f895868fa657510a340d9d23f79c867d0257cd2d599552f",
+      "tools/release_check.py": "1e5f00a1fba6dcd2a35d4678cc767bce179598c7042005d15c8f74f5aa548ec4",
+      "tools/validate.py": "59b2c48b65286cd7a6e2d0dc72cb552e267ce543ccf83c1c8a8838c74757aedc",
+      "tools/validate_c_owned.py": "cfe93d19fe37a22baf9c873f61783729f55257e427545aa6171ebc694c2977c5",
+      "tools/validate_concurrent_ir.py": "57f1d62d7daf7ff3b64dc1aa9a3104db944f9effea2cf3a757bd56578c5df934",
+      "tools/validate_cpp.py": "117e8e8d91cca3a03024dff1ad598ac583cb4696ce96b92621715bf0e6370327",
+      "tools/validate_cpp_constructors.py": "5fca5947433fce0d8b18c0cb8316a6ca702d861b48588dffd09649266f3361b1",
+      "tools/validate_cross.py": "ba115d253d1accff1cd17d7337f2c523ef7a19006c9538fafd76609f6f12f74f",
+      "tools/validate_debugger.py": "9c4909f8606fdbcfde72330e1be86764c80f8709679688927510a8225bd48a0b",
+      "tools/validate_groups.py": "a7becf8db86e0f92df37d593d80f841e1d8a04a8f6c8a9931da88b7997ff3f67",
+      "tools/validate_native_host.py": "5e2603536c753efb2f26c45d29818d7fee551db403ade3e3835f91e034a1d84b",
+      "tools/validate_resources.py": "923164a3fb8f28a7e69747a771c745b621fee64db3affc1c1f31fca7a8781e4b",
+      "tools/validate_sandbox.py": "2aebd83419de30fc6dd4fe6845aa2905f97af9a14d80d1954eb9c5ee7339d064",
+      "tools/validate_shared_runtime.py": "cb5f8a975114f1cf555f29166b9bee5ccbb60a47dd4c17f2f4516787829a94ce",
+      "tools/verify_formal.py": "bae25ba84c0aa685fc8473e78249e60880916399fc1278c426e350bef63eaa64",
+      "tools/verify_memory.py": "82bc78c3b0be9296c4f9a36a5112a8d3584c695c1d7c8d7444ea9e243790d7bd"
+    },
+    "sha256": "762cfed6c3788d1a58f03dad959db7268efce3a38738d7305b66a2167ad77eed"
+  },
+  "source_snapshot_before": {
+    "files": {
+      ".github/workflows/hepta-migration-audit.yml": "c19404df74fe2a41b29e77bf0f791d19e931878607ca8be2074c735e396eccd5",
+      ".github/workflows/hepta-migration.yml": "2af3d3ef6b9e08f6f162810cf98c51a7e992a63a3a25d347ff33b1c976fa11d1",
+      ".github/workflows/hepta-native-hosts.yml": "34eba3cc37e09372d5b70683bde1011ebad6f9ba55669d9ba926b6e1ab606092",
+      ".github/workflows/hepta-qualification.yml": "467c18b0e7e95ac9942d045cba7503c5de2d604a50b8e696c0ad83b26b31d8d5",
+      ".gitignore": "9399a21680374f3896d147d76c56692df08bfffc51f2c9bfc08130b1cc73e3ee",
+      "INTERFACES.md": "64098000d2fb309900b888f66d475c85010eae397a396612fedb78891cd0c1c3",
+      "Makefile": "70062822b57b49a2ce44000d561b72ebe32a43f5ce6fdc83abf5ac73a4d44b2a",
+      "README.md": "2d009c9573a70f63d73beb50580965747eea0bfe1250d75193cfdda5f5f4f1c5",
+      "benchmarks/README.md": "2e706e95740ae80abeb82d5f81b30e05191c7c5e41c397eb6c6e8f259ee5e523",
+      "benchmarks/applications.h": "e7581fbd430d2fd812494675e309a12f7a66fb070563bf8d6d9d535cdecd776d",
+      "benchmarks/applications.hepta": "f7daf384313c91c0bd7773db5bdc1d3d3a470c8b23827c2596b24bc35f9e35b0",
+      "benchmarks/applications.rs": "c029f0b4389e5ecac42797a3e51a046a1542d25f74a9945c88ae8adfefc8e772",
+      "benchmarks/applications_allocator.rs": "288724cd4a253a2b90730110a2d4e648e33dc9b3fb5371e78ed0d16fa1006cd0",
+      "benchmarks/applications_driver.c": "831b6592bc93dc7387078b994c1ff0545ab7434f2f957afa051c616233e67088",
+      "benchmarks/applications_meter.c": "c502fd1bf463857e719f633687edb0094c64abb9cd3dfc5a09edd2a0dfa3dad1",
+      "benchmarks/applications_wrong.c": "fc2c43665ab82a8ab6dfb3ed3c78922724faad005c677a7658c0a1d7a16fdc1b",
+      "benchmarks/baseline.c": "3fd6fc6d915fb9f6a370b0e24d5e677c0daea86badf30cf3ab1efda4d3c1964a",
+      "benchmarks/baseline.rs": "073e4027746aba1ec392ab3d4477a25b6343e475101537c169f7b8e5d5f42bd8",
+      "benchmarks/borrowed.hepta": "84697f404f0637b158f9ed47540c1b7a71f64ae18ac87b251ac1d4d2db5a87b7",
+      "benchmarks/borrowed.rs": "de0e419772aeb4bf9e45ebc420563416429d372f3e739adcce5a8d9ecbb41274",
+      "benchmarks/driver.c": "ab80500cb4e82463ee9ede9ce92da3acf7f2ef39e79748961612fa15dcd04007",
+      "benchmarks/kernels.hepta": "1f25a2ff79632fcaf2d489117d4fc9034ff03cf80e957ab3b056c917195f70b3",
+      "benchmarks/representative.hepta": "87fc435abdcaca6cf742dc1c79347ae15c4897ae8d5ef3e2cee3afb327954fb5",
+      "benchmarks/representative.rs": "f3a6c815bca6d68a57f9e0844df9e8cb32132fdac5bb1cda22463765c5ca9e66",
+      "benchmarks/representative_driver.c": "8d6ca43135cfbde9d558f40feb841b680c17893b56e9e65a210a898c4980a551",
+      "docs/ADTS_GENERICS.md": "301408640cbcf397ce52807b1e2d085bf02342bc1411f16d098ab8ab25131212",
+      "docs/AGENT_PROTOCOL.md": "500938abd82612dccca792f5239768dd87388e60b1479d01366c1d5d1a50e3db",
+      "docs/AGENT_WORKSPACE.md": "ae898b2259425a7eabfede48dedc6e01da93149f086b4f84208fd56eb3fcc3fe",
+      "docs/APPLICATION_BENCHMARKS.md": "c816fa74a8c39702aba134326f8592d6f971bf7111ca459acba576833c9b7b4e",
+      "docs/BLOCKERS.md": "360f13ce4539d3ec63cb6ff779966d03c84782b6a1425e2b82851a1d7b2a668a",
+      "docs/BOUNDED_CONCURRENCY.md": "5ef1c58ab72df720dce8b839eaa4a36eb670859207750a4955a6f7ee9c003789",
+      "docs/CFG_IR.md": "813ecc718f5799657808599126f0bda66e539f18e7f93759f18efb4151418904",
+      "docs/COMPATIBILITY.md": "5d13d5a9c09d4528de50a9a60c762e17271383082f451af83fee2841b99ad05e",
+      "docs/CONCURRENT_IR.md": "50fb21a5b6e7915ef80537f7a45fa0d6445b4d082b7a6bfbadb21426f88e0eea",
+      "docs/CPP_CONSTRUCTORS.md": "461c4fa0c769f9247ab16c8aab431edebb3e6226cc0b40df4cb3ea40928d8238",
+      "docs/CPP_INTEROP.md": "269a9448326ce384d230b794ca692d31727594b293864351448d747f60fff5ee",
+      "docs/CROSSFILE_AGENT_EVAL.md": "f3cf15addf538578b6a6a15619a435c6621aa104d28bfcec76e2a1515ebef2b4",
+      "docs/CROSSFILE_CRASH_QUALIFICATION.md": "9bfe52e8f5230d9a5f48ef2b1e9b1c9ff250b29aab55352ed1b1e89a10579a21",
+      "docs/C_IMPORT_PROTOTYPE_PROBES.md": "03f85e8549dc062c4dae30abf744cf58877f9ba6a555066fb458f57984470c12",
+      "docs/C_IMPORT_SAFETY_INTEGRATION.md": "3344a84aa05d2c350e8af4c1d2037bdb8f205e4fd0b39f1c918f5a8dcedcd1e9",
+      "docs/C_IMPORT_TYPEDEF_SAFETY.md": "040880e519f1a52edb97449477dc8aeb7cc1bf5b42158b3e7bcd5d7815d99afb",
+      "docs/C_INTEROP.md": "b405d6ef07e407ff15fa1eb2c7d84230504ac55372f6988348fc789609a9ff41",
+      "docs/C_MIGRATION.md": "29f05c8f5bd7674e44efb9d2eed353ccd8c319f033792a860bc6a34fc73490ee",
+      "docs/C_OWNED_BACKEND.md": "5c356a14c44cc89330159ea714abcb0abd388c7e52ddbdff1a12e18c0b9335ce",
+      "docs/C_RECORD_VIEWS.md": "801bfb821758571e35fc4d5a68187829facf804acdb8be5133257e9928179982",
+      "docs/DEBUGGING.md": "a2b4836605829e63f5b64295d71c605e2b80be104360e8b1e2201f85a5108214",
+      "docs/HSIR_RAW_BOUNDARY_INVENTORY.md": "075a348e2d6e094761008e531832b95741f1f45e9a62a3b91e591ffcb607e87e",
+      "docs/IMPLEMENTATION_P0_P7.md": "cc8b3bcc6955cac5d7351e234522403f6c5e2bfd657379082c1b23c1cf940e55",
+      "docs/MODULES_PACKAGES.md": "e446e8d9018aa165097733a972fda60c9cda342054ee5ca69e0e8b881649390c",
+      "docs/NATIVE_HOSTS.md": "1e899d3f8ef0acf980a05b83b1b5b0c00481c9269e133ac2d9eda8d398999ec3",
+      "docs/NEXT_STAGE_EXECUTION.md": "934d41a9ad322da3b7eb55fb30536807a278d4b84364e0ff374e31ab3a13f99b",
+      "docs/OWNED_GENERICS.md": "73f89d2faf550971ee16bcf3687d061420a8c6c38386f3c8a940ff0d738aeaed",
+      "docs/OWNED_TYPES.md": "bbf272b35fe33de40a96d4520549d1763936acb373c8e1b614d934c4829166d5",
+      "docs/P0_P7_EXECUTION.md": "09adea3184bbfedad4ed4e1bae8b8b81f046626c32a2e421b2377e00daffdfef",
+      "docs/PARTIAL_PLACES.md": "86f7929575cc53cf538ceece56727001b761dc6d3a5957cd9bb0cf0519f1026d",
+      "docs/REPRESENTATIVE_BENCHMARKS.md": "b863ef29522a76ce1736695f8d59040a88133f30fc3ca6b36ae0fd44ea5895d5",
+      "docs/RESEARCH.md": "9fca2660a16799ada72a2eab138f557575839e1d4aa7755cd0c9ae3ffebe758f",
+      "docs/RESOURCE_IR.md": "2011faf7e6b0ae7b5f3d0d1f9c66d68b64aef646db192ffa17923e335d491aa0",
+      "docs/SANDBOX_QUALIFICATION.md": "27eca83515ec1dbeb84db8b5869f6fb83c9785600f16950dce39f233f89497fa",
+      "docs/SHARED_RUNTIME.md": "e0831b73c0fc56a0030c3d5a7f8490fc39c5173285d54fc4f8d51e20d03a3e70",
+      "docs/SPEC.md": "38ce8db8c324a76b157f3c0f9d4538b687b20573dd7fb6735d8ea6843313a172",
+      "examples/c_owned_backend/main.hepta": "bcbc6709732ce15e9e2cc54e51fb2484e528f02c44b8499695dfaea612e33229",
+      "examples/c_owned_backend/owned.hepta": "12a03e593b5de4804035a8db5ddae002f8c1cdccecf2fafd37e91706371e3c48",
+      "examples/cpp/constructors/benchmark.cpp": "3fde177cd43becb64ac6f19f9fc29a13d2c698d210754b338bbd63c9186da31f",
+      "examples/cpp/constructors/consumer.hepta": "da43b2572a82ae954eac16808a37d2e9e45c3411c57ccbd00e5258d753a5a3b4",
+      "examples/cpp/constructors/contract.json": "48fe161850726cf542c27d233d48f14f5bfe2a655a1c811a5bec1afd98aaf92d",
+      "examples/cpp/constructors/foreign.cpp": "48972607a1c4fdf5837dbbf12c462c8b9e64d9f40827ab25505ecfd24201acb8",
+      "examples/cpp/constructors/foreign.hpp": "cf565d280476e4770f41cf4ba42f49046426fef0a339c4a69d5c753eacc20dd6",
+      "examples/cpp/constructors/harness.cpp": "fdcce10be9f27a5667d56ec90c7b603f914939e2acb23f88c328d9c1e9efdcae",
+      "examples/cpp/stdlib/benchmark.cpp": "31422a07cd59efbe4031fcda8f685730df17396df8b09ea422ef59c3dad54d7e",
+      "examples/cpp/stdlib/consumer.hepta": "73c3c6635441b3350aac674ab5a0e47e7811541e74b5e6f72dbcc3a763d07e87",
+      "examples/cpp/stdlib/contract.json": "314c6c820a5c457546d01cc53abc3f2d41d7d784e22d54919d476ce8615c31d9",
+      "examples/cpp/stdlib/foreign.cpp": "1088dafc696e443e80f2635a203b30ba660ba4f914b161fe6b1ab69ef05dbb5c",
+      "examples/cpp/stdlib/foreign.hpp": "322c69c2dea9a33d18ce6685ed1f9c4cc44896fff431196e94f1d30182e60698",
+      "examples/cpp/stdlib/harness.cpp": "20845fe1acb59e973801c28ef590cd0f4005c9a55d30d6912d261cdac76659d1",
+      "examples/debug/main.hepta": "f4728117e6ebc2f97f1d5463fc139a109d2e5b08cf4944d08b104c7a5a7e1c8c",
+      "examples/ffi/abi.hepta": "b3ad3c0b50249a07a6d6da2df2de369194d7e834437a44c3e9daffafffc0b3fc",
+      "examples/ffi/harness.c": "589321ec560b4b44d811ea41b33eb00fc6ceeb5b55e4693e0bbd16e0c49622e0",
+      "examples/groups/admission_budgets.hepta": "2d13649569812185dff136e54b456b6fb2edd72353ccdce295bfc4add5add53a",
+      "examples/groups/bounded_pipeline.hepta": "83b3dd2e4f1d9cced6ca7ca51cd80bd0a919cfab9ec0b50be7c25968daef88b1",
+      "examples/groups/cancellation.hepta": "bdd4dbe166374332aa4f2a029ce0a988bc9dbe6058c80cc84dabf1282f690f2f",
+      "examples/groups/protocol.hepta": "157257c3214d961e4996a15bbad7eee509ec61b83fca66ed030b08e7d6e71cd5",
+      "examples/groups/select_pipeline.hepta": "7111b32b895597c335efc6d2f1fca3d5174c28b583febb822f517d76ae9419f0",
+      "examples/groups/shared_budget.hepta": "5481f979bdb709b317ad69319b0140991b0dab8fb657760c10a9d7445e67dead",
+      "examples/groups/timeouts.hepta": "0cb40f6860c3014c518b31b056ea463d3e31bd1a776788cbdd410b1a0d126681",
+      "examples/groups/worker_failure.hepta": "1a6ca8b8e82c6edfbb469f6e692aa71cdbc549266dd43e37beb523ea90481bcf",
+      "examples/interop/native.c": "6d09a60ef96cf28287e860e49d024d5e090e0bd16a5e81e3070f7b634df9e3ab",
+      "examples/interop/native.h": "3e57605954390904a3ce39380715c1a61cfd49b4d1951a96ec29842d19988bba",
+      "examples/owned/buffers.hepta": "7b0bc2cc57324d507b6d0584ac5fd699b1b2add4cc9f6c5997498657f7eb3d5e",
+      "examples/owned/main.hepta": "b1432eea4b84696e51148f30072e44a698f158c8c6194a1d5c285fe26cccf2ae",
+      "examples/owned_generics/main.hepta": "923e26a2ccb01654bc292dbe55dcf02fcbd333079806f3f859982ec2d94949bc",
+      "examples/owned_generics/operations.hepta": "03e4987153a346bb51014574e363c0839d255ec62b622cf2214b677a2087ff8d",
+      "examples/ownership.hepta": "02abf1c775d9a866647d0e47113b307ebe116b41a69476499a66b8740e848a26",
+      "examples/packages/algebra/hepta.toml": "4d30fd04c2d28f96b62677cf9a50e00cf6802222f6d633ae17d78c1c68d91334",
+      "examples/packages/algebra/src/lib.hepta": "6771cc2a9ea5339f2d7af52c82687032b32e02fa201b59187b35069158f4e7c2",
+      "examples/packages/app/Hepta.lock": "c92a6288f66c3a7bfa9352faf570b9b62cd51cc18ccea4484c6bc56763f05c0a",
+      "examples/packages/app/hepta.toml": "e4620c1596016b91d7e23de6de3d039f062ecfd99c20e300c654388e89ff07a7",
+      "examples/packages/app/src/main.hepta": "eafc681eadec73fd32c51d37ebf00a91817c94def3003a924f2fde9349ff455a",
+      "examples/parser.hepta": "f4c2cf3890ba16abef1f2a3181c231e19256b67c1de362c52d0db2e8a0a161be",
+      "examples/places/cancel.hepta": "9f6ce4d03e0303f205049eecd2cc83a9709e04b97385c67ca6cf295cea0602e2",
+      "examples/places/library.hepta": "9000a472ce7fe96a8fa980589c4d3a00d1d54a3f7f93ececfe11d7733e059627",
+      "examples/resource_ir/returned_views.hepta": "a05fc7434898ff5bc619c4e67ef97e829f6463674c2cb871aacee06a69caf65b",
+      "examples/results.hepta": "8c0185ff86a809a7073022b2d96a2926dc7014b76129d95394eef581ea7cfb3d",
+      "examples/tasks.hepta": "366814fdcf4f4091f5cd93bd03920d3a80602480981a6bf8fc11a3c37c8d3ea7",
+      "experiments/agent_eval/README.md": "7634581c9cc6ff659f3244ad1dd1148f2cd63bc5a385ecd598ec9fc349e0fff8",
+      "experiments/agent_eval/__init__.py": "cbc1a72b7cc556ecb9bf3bba15a52f4b5c95f79d3c6bd55b5a9dc98321154722",
+      "experiments/agent_eval/__main__.py": "c137334f2bce877ce14b47e045c9a3c864d768954af1c57578a8cad053e94be0",
+      "experiments/agent_eval/_frontend.py": "efb5b039ed89b1ca3f7a14aa7e678b3e84e5f31791f50ec5d5088253c2699875",
+      "experiments/agent_eval/_private/__init__.py": "f78b788ad039c22d6551574884c120645b33f33e8db0ebe51fd4d893bdc40293",
+      "experiments/agent_eval/_private/oracles.py": "25b7d6c1c54607eee628e9f42e1eacf4833793b854611b6afe2805ebd95e5078",
+      "experiments/agent_eval/_private/solutions.py": "fdf35d79974bfb7058869ad10e4748b813dc0c4fa713309d29e03312c5b08fee",
+      "experiments/agent_eval/driver.c": "16a2c4b5d7aa9dc504d59d166b78cf8a498f15b425cd1073425824c783c00631",
+      "experiments/agent_eval/fixtures/__init__.py": "f1b0788efe4b677e765ec0fd0007259584e1b4d97d07999be99bbf87e5ee66e7",
+      "experiments/agent_eval/fixtures/adapters.py": "f107ac73e088cbd10b770bee3f0616a4d5561b91085e6590e2d051b095cf57f5",
+      "experiments/agent_eval/harness.py": "ae1ebd36850fb4b1161611218e9955b82dc284faf55e484d38f82bc914645445",
+      "experiments/agent_eval/hepta_reference.md": "2e3626b49e78a22fb004d6adabf6f4ecb85cabad628876d24425b96228c3a817",
+      "experiments/agent_eval/manifest.json": "39af0ef415b221523a33568b38f702f5ab63d65bc44d41bac65faca09f0782f8",
+      "experiments/agent_eval/qualification.py": "657ae0b14e485881ee47fdf6e41f5e4bee065cb78b05894399e28bf929e2f473",
+      "experiments/agent_eval/rust_reference.md": "91b3ca95a70bd6388a16586203a37ea3f6e6d8a8b47c1f625872e83ad75afb8a",
+      "experiments/agent_eval/sandbox.py": "f3e47e5a2b83b7322161934bbc600a3257d153bd60ebc9ea91ea847da5059ad9",
+      "experiments/agent_eval/sandbox_qualification.py": "fc908e80c7731d9d7f597103cab339bf6080680444cd9a63f390d466a35f89ef",
+      "experiments/agent_eval/scoring.py": "242a73c13bf6e8c0cad080b05f755548c4a2492eef63de58cdb869cf345d13e8",
+      "experiments/agent_eval/tasks.py": "259b976c26dbcfc27d9a2167840720cf07d10eaab252db626f5a65e09dbaceda",
+      "experiments/agent_eval/tasks/compact_runs/instructions.md": "07cb8acf18af79f9c293dc2d711618ebe02983411ef6b7ac86b871fee87adfbb",
+      "experiments/agent_eval/tasks/compact_runs/public.json": "407cdf95289e7e1709d9c06ac529de84ab508b97fead3bbdf9066a34e01d0e15",
+      "experiments/agent_eval/tasks/compact_runs/starter.hepta": "e2774af01a76c4a65a34780656e4013bb9625ad61bcc803d9dbe26a510186942",
+      "experiments/agent_eval/tasks/compact_runs/starter.rs": "69f72ba062c433307521193e4c560536b4a526f492e269292bb185621c2f6dc9",
+      "experiments/agent_eval/tasks/lower_bound/instructions.md": "90ea565536beb83fa05fdc27d4c42abb204f9f491d8f0fd448cc903a6f2e1fbf",
+      "experiments/agent_eval/tasks/lower_bound/public.json": "4ed2cdbb84eb9ecdff4bf75842198f90bc9a831e9da8409ef5ef452c04e500d0",
+      "experiments/agent_eval/tasks/lower_bound/starter.hepta": "2e8120e5c24563804f1515740f3b2976371738517f0fe1d94c9d9e0c7ffe5a68",
+      "experiments/agent_eval/tasks/lower_bound/starter.rs": "eeaa922ff5d6c6496856cc852eb98eca5d2f354205cd82a3a99d7668787aaf62",
+      "experiments/agent_eval/tasks/parse_decimal/instructions.md": "633fffd5fa60b33f0c136308c7b5f0e55dbf6a569b753f92998b89969ad2e63d",
+      "experiments/agent_eval/tasks/parse_decimal/public.json": "7adfdfe157ffe06ae89c2ec9b455d86f7c128fdd58dd7991989cffea6eac3967",
+      "experiments/agent_eval/tasks/parse_decimal/starter.hepta": "9660c36ce43767211894c3ad7ffb0bbdd69a08355cfebfdbd4c564f78a32ae36",
+      "experiments/agent_eval/tasks/parse_decimal/starter.rs": "4d5c92fdf4d8ebac173c914b45d100d8e2d1e69b44b59cffee816a166fddf650",
+      "experiments/agent_eval/tasks/rolling_sum/instructions.md": "7efb6b012024df094282f2b8aabf52d414de2734074d190a803d234720d7b81d",
+      "experiments/agent_eval/tasks/rolling_sum/public.json": "ae95cbec8f25ebe75de38f33402b8608e10becfcaab9f44f2b37e74d73fd5cea",
+      "experiments/agent_eval/tasks/rolling_sum/starter.hepta": "aafd71ee3df85bab6f819f9263c1018643bba4fdebeaaaf03cb23bb81c24c75b",
+      "experiments/agent_eval/tasks/rolling_sum/starter.rs": "75769296b19db497e4ef51636f9e06160b5c29db9ffc962fd355549499672cf9",
+      "experiments/crossfile_eval/README.md": "64a2736ce582f5b0acc1698005a35aadf2419c41794663d42d7f092fbbde755b",
+      "experiments/crossfile_eval/__init__.py": "0a96f0bbd17edca1253aff2a4a0e8ea220c9e4df1fd0bae6a0422fd8d52eb85b",
+      "experiments/crossfile_eval/__main__.py": "4baffbd60c3ceb5106037ad146cf45f9c309e810faaee684aaf529447eeee93d",
+      "experiments/crossfile_eval/_frontend.py": "46bdddb79c81f15f3a5f3726ae8ac8e57ac6c5964059c6ef113113e581e0c983",
+      "experiments/crossfile_eval/_private/__init__.py": "333bb7065a2d8d32fd4e8f767aecd442656d7fcda589f6c0067cf4d7dab778b9",
+      "experiments/crossfile_eval/_private/oracles.py": "afd47d74fb47cb136c34a06012674de58e01e12cab7a0e4f1312abcc3865beb0",
+      "experiments/crossfile_eval/_private/references/api_migration/hepta/main.hepta": "e895137671257f259c99906babf157d6faf47fcfaceb235167534d79b3c0f657",
+      "experiments/crossfile_eval/_private/references/api_migration/hepta/pricing.hepta": "76c2c1b1f720bc0688b9e3443f75261369769270a1f1eb06598772b7e11a8c84",
+      "experiments/crossfile_eval/_private/references/api_migration/hepta/receipt.hepta": "3d9174cf194670b9678c00a35af8b178280284a68cf3d81d5f30d0414c1511e0",
+      "experiments/crossfile_eval/_private/references/api_migration/rust/main.rs": "b39073f2cafca6824699d992b74ea9bec6f6612f658720f1cb64430fb0b36a31",
+      "experiments/crossfile_eval/_private/references/api_migration/rust/pricing.rs": "ec9efe5d45466a7aa7555e89a7f5f1f5e74f6625f5e7a12f40a01f5d1bcde3f0",
+      "experiments/crossfile_eval/_private/references/api_migration/rust/receipt.rs": "1aa47c111c0b47db302a0c73faf5ce6a8fb6d13b84b64815cfdb6230425075ea",
+      "experiments/crossfile_eval/_private/references/defect_repair/hepta/data.hepta": "aa003d3fe77e5cd65d33675497ccd5ba4d7ff27c960f5df9bf99c4c336921051",
+      "experiments/crossfile_eval/_private/references/defect_repair/hepta/main.hepta": "a07dab5cb4c49467e76f8425020902cb6447ef3cea8bb89a70442f743723ce01",
+      "experiments/crossfile_eval/_private/references/defect_repair/hepta/search.hepta": "d6de331a89cad9f48aec9d2c0447627c89bee58936ac713aca94483bc07a3c86",
+      "experiments/crossfile_eval/_private/references/defect_repair/rust/data.rs": "588a03cc900f910d9ed73dbce6b9123a0988169aeca405850a32e81a313759a8",
+      "experiments/crossfile_eval/_private/references/defect_repair/rust/main.rs": "7b468c3440651bd584f716b788d86646b6aeac6d0e67ca5770d286dcbc0fb51b",
+      "experiments/crossfile_eval/_private/references/defect_repair/rust/search.rs": "0c2dabcb2c1bedc81cd6e221e5a5d1103f25de02d7b03beb0c6d18068323811a",
+      "experiments/crossfile_eval/_private/references/native_bridge/hepta/adapter.hepta": "1449dcdb557d42431992d15ef869a794ac93f2c25724dc2e390717b943505ac7",
+      "experiments/crossfile_eval/_private/references/native_bridge/hepta/foreign.hepta": "1e8dbcf60776fe48058120c84b03dd1b96e74f3e002379f67bffdc67fcf0103b",
+      "experiments/crossfile_eval/_private/references/native_bridge/hepta/main.hepta": "5b8d76b4bb81d88685b486cbc0d2767536d54934aab2ab0bdec892ae96769eaa",
+      "experiments/crossfile_eval/_private/references/native_bridge/hepta/native/api.h": "8cc076569faba2f17d97b845d10d288a63b81c13bbe8181da7b55e4e8ff9ff86",
+      "experiments/crossfile_eval/_private/references/native_bridge/hepta/native/arith.c": "25e7731eb0ceaa89394c063597577a76cb3743343e90cfa0e7a4b627b4ad7f81",
+      "experiments/crossfile_eval/_private/references/native_bridge/hepta/native/meter.cpp": "04cf66de4666bbfd47a07e9a80a9a5dccc991f294ef41ddabf6aa7a834d15f6f",
+      "experiments/crossfile_eval/_private/references/native_bridge/rust/adapter.rs": "e55c5717da15a1def31c99d6573112de904786dde5818c01da17ef181abfc722",
+      "experiments/crossfile_eval/_private/references/native_bridge/rust/foreign.rs": "4f426e63eea8eb2a40ce49a267b24acc1bedeb8d42fc969dd557424cc43f1171",
+      "experiments/crossfile_eval/_private/references/native_bridge/rust/main.rs": "73a006a61d7c59221fd43d56360556b23fee64314d116d8afb68300a9be810ab",
+      "experiments/crossfile_eval/_private/references/native_bridge/rust/native/api.h": "8cc076569faba2f17d97b845d10d288a63b81c13bbe8181da7b55e4e8ff9ff86",
+      "experiments/crossfile_eval/_private/references/native_bridge/rust/native/arith.c": "25e7731eb0ceaa89394c063597577a76cb3743343e90cfa0e7a4b627b4ad7f81",
+      "experiments/crossfile_eval/_private/references/native_bridge/rust/native/meter.cpp": "04cf66de4666bbfd47a07e9a80a9a5dccc991f294ef41ddabf6aa7a834d15f6f",
+      "experiments/crossfile_eval/_private/references/owned_result/hepta/main.hepta": "8a07978c54762ec668661ae0313dfca3024425569632c85635b87b59fd8a549d",
+      "experiments/crossfile_eval/_private/references/owned_result/hepta/service.hepta": "8acda4fbe1be4c58349730e9d8af74fb4430bc30f8c8e40627c25e6bf528c841",
+      "experiments/crossfile_eval/_private/references/owned_result/hepta/storage.hepta": "6ac34b8c4584ea9bb24ab73167406ed8ec314602eccb8cd58ae5cc2b28745a13",
+      "experiments/crossfile_eval/_private/references/owned_result/rust/main.rs": "740f20ddbb776543777dae1bb1dd6743705f6bd4ed2211ba9fbf78d9913e1921",
+      "experiments/crossfile_eval/_private/references/owned_result/rust/service.rs": "02230ae5c343893f990c87ee12abbed872eeb178c73e20a77667498cbe8020f2",
+      "experiments/crossfile_eval/_private/references/owned_result/rust/storage.rs": "6f4f2f5b8b77a2aa2d86c8e273129f5da1723436c05359e3561394f14eb77446",
+      "experiments/crossfile_eval/_private/references/resource_cancel/hepta/main.hepta": "1360427bab468a782ed61f1418f0ae1d649f0ea0b069414c432dc4e4bac3be4c",
+      "experiments/crossfile_eval/_private/references/resource_cancel/hepta/service.hepta": "721644c0accde3b3f03b0528a35df26aa3b7921891299c84f573b7f103228b36",
+      "experiments/crossfile_eval/_private/references/resource_cancel/hepta/worker.hepta": "fdc39e145ed439ec3365b81b00f6f973d966193c9ec8eb7f48b7475041341720",
+      "experiments/crossfile_eval/_private/references/resource_cancel/rust/main.rs": "17e6dbd691d683e971ccfa0ee8160b999db1d3a3718a11c5f54129f830382a79",
+      "experiments/crossfile_eval/_private/references/resource_cancel/rust/service.rs": "30c74fd0055326bdf05a89063c18382d6c87da7a302d1f3efc2406da920028cf",
+      "experiments/crossfile_eval/_private/references/resource_cancel/rust/worker.rs": "f91dcbe63e20a3271be9554f2ea2eac67dd6b4f5c3cfab191e285172a70a9692",
+      "experiments/crossfile_eval/_study_frontend.py": "e99b205206d42072de5cccee8a03c2574af38682cac6ae88e6a4396f0f853546",
+      "experiments/crossfile_eval/_workspace_crash_frontend.py": "12385c0bda593f9e43e16110b9f030e892a76a9946c871c7368a62817dbb7bed",
+      "experiments/crossfile_eval/_workspace_frontend.py": "bfbe6f77459d7d3d3a6ff93afe567307cdbaa263a12053dd34ef0031d32d0d52",
+      "experiments/crossfile_eval/adapter_binding.py": "e1233a9cc0c31ca20d2047b927ee6d45b104735bac75d79a835b933a7ef2b859",
+      "experiments/crossfile_eval/driver.rs": "acbf3af0ae90aa90296be36f6633b780f499a0999d7802c7566668ad2d5f5d6f",
+      "experiments/crossfile_eval/fixtures/__init__.py": "f0c69e9a9c7d5c8fb3c879310cd04086d4b82111e852165b8bdfa1aaf0c68dd6",
+      "experiments/crossfile_eval/fixtures/adapters.py": "2ed4814df275712bfbfbd76893521905f29a808bb002fbac06025c680e780ba5",
+      "experiments/crossfile_eval/hepta_reference.md": "d9e12a968c3158158a11d199152bf21bbd3016a75bafe9d24fef09d50e6ba3a6",
+      "experiments/crossfile_eval/manifest.json": "040644fcaa8893bd0ea982234c98352994427382deb55e32e82fb0a767e53e5e",
+      "experiments/crossfile_eval/monitor.c": "889a2ce1d9bc5c19d6d76da74567317f5a7f13fbf410735659744b49aeed1ff8",
+      "experiments/crossfile_eval/native_stub.c": "f9fb5b28d9c59f8fd9f490c14b48f41604c23006585eabf1484329affef76a36",
+      "experiments/crossfile_eval/plan.py": "f2f978ff31e35a56576eac750ac4cdd0a4bd733b1ea0a0d15fe1d2c229d59971",
+      "experiments/crossfile_eval/qualification.py": "9219910fcde48a78489c54c485e7b1f9bc25ad972a67d3c09f587fb0f67857d7",
+      "experiments/crossfile_eval/records.py": "feffa9c3b994878713cbf0643f58e10d0ee60c62430a3d5114adb9520c7ff2a4",
+      "experiments/crossfile_eval/reporting.py": "ca65d726ea7e1e266aa0add76c405b6e401ce9d3e8f1c7ff814f8345e6f67b18",
+      "experiments/crossfile_eval/runner.py": "66d7128cda3d45e92b2f00492a5311cdda99c8689b2cba345fe078804da0bf9b",
+      "experiments/crossfile_eval/rust_reference.md": "e2cdb5b7d43a05ff1278e7fbf17358f26b0394ee5735a28e7d9d881606cccca3",
+      "experiments/crossfile_eval/scoring.py": "9783790e26e2f40fb0cb74fde19d194d54ef99d5392d049ef44305c5c63ec4c7",
+      "experiments/crossfile_eval/semantic.py": "df5763b1d08d6c4f99af7b6095ca9d6006afa429d6c2fcc69c3aeb5473b2439c",
+      "experiments/crossfile_eval/tasks.py": "fea045d42cc1661262fb8e6a323b1883a064ac18df90624b6c0c348614cca1ea",
+      "experiments/crossfile_eval/tasks/api_migration/hepta/main.hepta": "e895137671257f259c99906babf157d6faf47fcfaceb235167534d79b3c0f657",
+      "experiments/crossfile_eval/tasks/api_migration/hepta/pricing.hepta": "0178aef60d30f7fded0b166dba7170db725805a5c2ede23a082bf8cc909cc1bc",
+      "experiments/crossfile_eval/tasks/api_migration/hepta/receipt.hepta": "feaf0c5c3dc4fb1b3bc96dc28b3d0a4a3d5859ecf4d92b197a95e4f60388f68a",
+      "experiments/crossfile_eval/tasks/api_migration/instructions.md": "8751dcb3140e4bc9ce902c296ffaae1002a9b803aab9b550edddbf896916bac8",
+      "experiments/crossfile_eval/tasks/api_migration/public.json": "5e0641501eb1209582c18a39cba8ffa1719ff0ac959b00812a6176fc882b8979",
+      "experiments/crossfile_eval/tasks/api_migration/rust/main.rs": "b39073f2cafca6824699d992b74ea9bec6f6612f658720f1cb64430fb0b36a31",
+      "experiments/crossfile_eval/tasks/api_migration/rust/pricing.rs": "b52aa533e7159706ddf9942c241b514a3a249e8c5c9c9a0a21a5deb90a5bd78c",
+      "experiments/crossfile_eval/tasks/api_migration/rust/receipt.rs": "4542aae2179d05e0c5823de6882710961dac874a42ba3dfb3d912d6134c850a2",
+      "experiments/crossfile_eval/tasks/defect_repair/hepta/data.hepta": "594ce098b8e976af97fa98e75c58255a72bdcd196feb17c8696ed386f00fcda6",
+      "experiments/crossfile_eval/tasks/defect_repair/hepta/main.hepta": "a07dab5cb4c49467e76f8425020902cb6447ef3cea8bb89a70442f743723ce01",
+      "experiments/crossfile_eval/tasks/defect_repair/hepta/search.hepta": "e7a2cccf01977d0468f94c4a32f48700c324432cbf3fda4a11c34c4661b68df9",
+      "experiments/crossfile_eval/tasks/defect_repair/instructions.md": "cc1d7a27bb250ceb8145e897f03aa7923834f343484edb8d7fc8d15e422095d7",
+      "experiments/crossfile_eval/tasks/defect_repair/public.json": "e9c0c73727c8cc05abd137032e45bfbc4100c50ed7e3ffd3d443501cfaca4bfd",
+      "experiments/crossfile_eval/tasks/defect_repair/rust/data.rs": "e2b34f66a9db8d30749933970d6a8e309842295ec8a4219e402f0e46aa6fac80",
+      "experiments/crossfile_eval/tasks/defect_repair/rust/main.rs": "7b468c3440651bd584f716b788d86646b6aeac6d0e67ca5770d286dcbc0fb51b",
+      "experiments/crossfile_eval/tasks/defect_repair/rust/search.rs": "3da7865a00f0e0cac292f8be0f3708b6736bbd4e4be9d82d74ef22cb35c036f7",
+      "experiments/crossfile_eval/tasks/native_bridge/hepta/adapter.hepta": "21f16c59ea28e9c0b5b525623211b7f6c3f2607255da70a9e26fa3eb981eb1f0",
+      "experiments/crossfile_eval/tasks/native_bridge/hepta/foreign.hepta": "0a8f8873dbc588c8d9424a69f61e5a20d3ba8bee2130b0f8498ee9b8e5f1b45f",
+      "experiments/crossfile_eval/tasks/native_bridge/hepta/main.hepta": "5b8d76b4bb81d88685b486cbc0d2767536d54934aab2ab0bdec892ae96769eaa",
+      "experiments/crossfile_eval/tasks/native_bridge/hepta/native/api.h": "8cc076569faba2f17d97b845d10d288a63b81c13bbe8181da7b55e4e8ff9ff86",
+      "experiments/crossfile_eval/tasks/native_bridge/hepta/native/arith.c": "25e7731eb0ceaa89394c063597577a76cb3743343e90cfa0e7a4b627b4ad7f81",
+      "experiments/crossfile_eval/tasks/native_bridge/hepta/native/meter.cpp": "04cf66de4666bbfd47a07e9a80a9a5dccc991f294ef41ddabf6aa7a834d15f6f",
+      "experiments/crossfile_eval/tasks/native_bridge/instructions.md": "d942f3d7e6b5f2243f53d2e25be553f578e07f68f75dd32cbed006804958f8c3",
+      "experiments/crossfile_eval/tasks/native_bridge/public.json": "21eb528b1a810acaa9ebf6a10aeec2d87976a7f9e4da2cd79e242f5dbf9f8a24",
+      "experiments/crossfile_eval/tasks/native_bridge/rust/adapter.rs": "3eb527e335b39e64bac9f307226426591ee1ac5ef02a864f966f653775e8d90e",
+      "experiments/crossfile_eval/tasks/native_bridge/rust/foreign.rs": "ae7409c10cc8289dbeac14e8c45ebceda63c44a4321aa2cae09c168feaa3a8ce",
+      "experiments/crossfile_eval/tasks/native_bridge/rust/main.rs": "73a006a61d7c59221fd43d56360556b23fee64314d116d8afb68300a9be810ab",
+      "experiments/crossfile_eval/tasks/native_bridge/rust/native/api.h": "8cc076569faba2f17d97b845d10d288a63b81c13bbe8181da7b55e4e8ff9ff86",
+      "experiments/crossfile_eval/tasks/native_bridge/rust/native/arith.c": "25e7731eb0ceaa89394c063597577a76cb3743343e90cfa0e7a4b627b4ad7f81",
+      "experiments/crossfile_eval/tasks/native_bridge/rust/native/meter.cpp": "04cf66de4666bbfd47a07e9a80a9a5dccc991f294ef41ddabf6aa7a834d15f6f",
+      "experiments/crossfile_eval/tasks/owned_result/hepta/main.hepta": "8a07978c54762ec668661ae0313dfca3024425569632c85635b87b59fd8a549d",
+      "experiments/crossfile_eval/tasks/owned_result/hepta/service.hepta": "1275b702fdb6f4ab89c821568491cd525bb6e6080bfd65657a67f5776bf6ba9f",
+      "experiments/crossfile_eval/tasks/owned_result/hepta/storage.hepta": "8d5f180fc67ed11a42214be6cda0cfc3e4f2a35c295c811647a724dbdaf82344",
+      "experiments/crossfile_eval/tasks/owned_result/instructions.md": "e6596b59be4af64aaf55d2414f93bde60f54e72876f115c02af5c467951fc23d",
+      "experiments/crossfile_eval/tasks/owned_result/public.json": "a91ceffaa5a7f9a5886557c8c6ba0b07a4827fae004870eaa3c68f7cc818127b",
+      "experiments/crossfile_eval/tasks/owned_result/rust/main.rs": "740f20ddbb776543777dae1bb1dd6743705f6bd4ed2211ba9fbf78d9913e1921",
+      "experiments/crossfile_eval/tasks/owned_result/rust/service.rs": "06cf4c6b6a0a2063795badbe6335e9cfb3ac90c5a617c033f88d340b01c1e673",
+      "experiments/crossfile_eval/tasks/owned_result/rust/storage.rs": "7e07f9418b9fdb027804b28c4894efb9462d29f5800b7f160b39390574cbf063",
+      "experiments/crossfile_eval/tasks/resource_cancel/hepta/main.hepta": "1360427bab468a782ed61f1418f0ae1d649f0ea0b069414c432dc4e4bac3be4c",
+      "experiments/crossfile_eval/tasks/resource_cancel/hepta/service.hepta": "c6d46f498eb5fa42bd4985934d08e4f00402c65f2666efbeb6e9fb7c4e28cdfe",
+      "experiments/crossfile_eval/tasks/resource_cancel/hepta/worker.hepta": "55dc05c8231ecade246acab1d4ab4ff289a16269501b284601594d1cf3e823e0",
+      "experiments/crossfile_eval/tasks/resource_cancel/instructions.md": "746a2557e38e7aa1da1e7c800123a39c30687db6ae4dbc9047d03e362b36e5ee",
+      "experiments/crossfile_eval/tasks/resource_cancel/public.json": "a91ceffaa5a7f9a5886557c8c6ba0b07a4827fae004870eaa3c68f7cc818127b",
+      "experiments/crossfile_eval/tasks/resource_cancel/rust/main.rs": "17e6dbd691d683e971ccfa0ee8160b999db1d3a3718a11c5f54129f830382a79",
+      "experiments/crossfile_eval/tasks/resource_cancel/rust/service.rs": "3a4265a40e99a71be1b250df7fbd18e05441f654d01d0dae2fd25aaaf3e0e975",
+      "experiments/crossfile_eval/tasks/resource_cancel/rust/worker.rs": "355a8ba134ccf7d7752806ec1b661ce0c29e0518f0b15bb6f74cfa4d2900273b",
+      "experiments/crossfile_eval/workspace_crash_evidence.py": "4ff1cd180a692fc439311324186ace03654977102fdebf45aa0c2a9fa7471eea",
+      "experiments/crossfile_eval/workspace_crash_qualification.py": "aa4399281854d60f976cc3e0f7c9ed6b3fd5a2e6654771154c969c3f6ce8aaf2",
+      "experiments/crossfile_eval/workspace_evidence.py": "0a327270d110476f27b4658d7ddd51f4267f0b5c6cc64c0a659d4e8c2e478469",
+      "experiments/crossfile_eval/workspace_qualification.py": "dee336504a5e5254bc4864f1cdb2af8213c3194ca66f799ff80a231a95779e2b",
+      "experiments/crossfile_eval/workspace_session.py": "82c8d958bc8a2307d1653d322f783597ffd20ac51de1be6bbb23b3d52c536fd0",
+      "formal/HeptaCore.lean": "d3c3fb1e773cde932b5801684ddaffba2149dd565a67950a4c3b8623bca63423",
+      "formal/HeptaMemory.lean": "4cb928c449e14ff4a12f81487e28507e1fc8cd2690ddb436058310362fe1f726",
+      "formal/README.md": "52de3054c141a4565ba9bc3130bdf714cc5124cb78ac7e79cb8471c65967beb5",
+      "formal/proof-dependencies.txt": "77616e1c541092ffc3f6c32b02cf37746bef0466732c381e99e28de1b23310fa",
+      "formal/qemu-toolchain-lock.json": "6e9cf3922aaa65f99e3c9536b829b9bb4bfbc528555cc90480a36076a4cacdce",
+      "formal/toolchain-lock.json": "af6824b79535fcf144ff823444649ef218b8af84a211cb2e9fa3082629003036",
+      "hepta/__init__.py": "8448813083e33f38f96474d5c3b3b690284fcf9c1ca939c33683618b419031b2",
+      "hepta/__main__.py": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d",
+      "hepta/ast.py": "304c5ab45267f9b074e00106cb83cd3bfd9546b8209924aadeec54676978334d",
+      "hepta/backend.py": "354d7f76b488e670cc18a8b858cc5d4e7865180b0f072fb4afef627142b99ad0",
+      "hepta/c_aliases.py": "bc6c0533fff674f20d64619c50afb81a07375c37f158bf17ea7034026e25baf9",
+      "hepta/c_allocation.py": "e11ad48fa7e2af3fd9d0ec3932f002277bbdf44c0d164593432c5965bfd686d0",
+      "hepta/c_backend.py": "21dc234de556a98550a75df5c9557db8dbe58581bb50e19266ff3b590ccdc382",
+      "hepta/c_import.py": "57362c9f54bde1b0ad693fa0d62a428c3861b2f2dca2e9c0f41a5ee888749ac9",
+      "hepta/c_migrate.py": "70783d7da852acbd220c0ab3a7c1749d56fe8fab4b54807c49050ca291b1735b",
+      "hepta/c_migration_project.py": "cc3078780c69db953758c140a32d36e0ea9a17eb808c999772ff2860d0cb4bce",
+      "hepta/c_project.py": "196003dd3fb5090719f5b810d2a960e9b60edd508a1e20b468865963fc64c17f",
+      "hepta/c_record_views.py": "d36017bec07bd51d069fd0f6d76ceb0697d8e2579d4089c8df6ad408e71f1750",
+      "hepta/c_translation.py": "f0f04bd16e894d8692dbba58643ed9aee64d68ad282640001d7306ff05d461a0",
+      "hepta/checker.py": "fd2680f21061cad77d32b910f6960af17d2b7d8b74edaf5f8e642dbca5cd762c",
+      "hepta/cli.py": "c9cdf5e5cf4c1f1744d4eaae5e1b8270c1ad9e544254f42e0246d6d122f40892",
+      "hepta/concurrent_ir.py": "af04b1cf4814e88cb3503597e083a893859cc63be9a8c62b7dd09de060dd99ad",
+      "hepta/concurrent_lowering.py": "ff3708ccae6f07d1b9de6e4e8caabb2f7ed48e2f29fb22349fdcac806fb23061",
+      "hepta/cpp_bridge.py": "d6e60271306a37b74a231e9130660c5d2843b8f7b3cbcba26487fbb09b016dda",
+      "hepta/cpp_contracts.py": "bcabcc477dc73c5cdfd929825dcf560810ca609c58f43066110c8724ad7e2b6e",
+      "hepta/debug_info.py": "e30097582366ae3a5f4bae5e545b77046e0b4d8b4f2a2b34abc691de20c61d20",
+      "hepta/flow_ir.py": "5edd756cdf3fd183b9f109905b5365f5b9627761dc3c22bd0034f0daf8fcbad5",
+      "hepta/hmir.py": "68d7905b9215e5842010695a8386835ef618e43118a4037ef9aac48c5018a6a5",
+      "hepta/lexer.py": "06546e68725a3311c00b21d960ef6a63585d876fd6517e171669f13d0a143626",
+      "hepta/migration_ir.py": "af7011a20f17de92b108ce1e200dc8b50a9ba9aabde528afe4bff8fca6c30f5e",
+      "hepta/modules.py": "ecfcd55f095e3a7946cafda0ce7d4649920393cb87ad6718d875120e64c68137",
+      "hepta/packages.py": "f8a6f1beedcec4c11dbd544c2c60521f8aab40aac4a05a558d5c6a05dc14bb5f",
+      "hepta/parser.py": "3ea045c00651a964d038abcde49c2f159f1fb6989ec94c076f0931b944ba5bfe",
+      "hepta/pipeline.py": "0309dd7d4b90c85a51e3c1568e558f4f5f310228f5466c31eafd57d6464c99bf",
+      "hepta/protocol.py": "7c4e9c6b71391f34662bd161864cdac63b90574f65dd77e9489a3820299c6972",
+      "hepta/protocol_v3.py": "ffcae884ccb4a0d32b1736bc272a92678ad8b37b7bc7c677107b84c693cbd903",
+      "hepta/resource_ir.py": "a9fddb7b1b34e64338dfc1a699d74367fada2e87715a7ce2185ccc3c27d43f29",
+      "hepta/resource_lowering.py": "c7a9b4e789f896ad4958cd414f211c23dadc9c219f237202c69ba3f5264770c1",
+      "hepta/runtime_concurrency.py": "e270070d75590799de0cde345145bc2548189a78a4c975de745c6d9be8afe3ce",
+      "hepta/semantic_ir.py": "22d62f0391c4c142899e2da8383d6c9c982292feca6e9c03256972c52662c8cd",
+      "hepta/source_map.py": "7a602a7728da1729c0a625eac04acbb0cd47ccf17788c5a31f20f292e3b736f8",
+      "hepta/workspace.py": "eb04e1087b297e70e73fe1eb0b747f0b36a088ddd3728ac4efb2ab7a83ec5279",
+      "pyproject.toml": "5a94d676fea75e0774f0e1486fdc10fc264f43c75e8cfc264d8fcb57a785949f",
+      "tests/fixtures/c_migration/buffer_ops.c": "8ce9fbce9d741a3a32f1b9f768fed63a1e0ca0c912862ccaee9195a1d15308ae",
+      "tests/fixtures/c_migration/c_algorithms/COPYING.md": "164ddf1a88f6379e2d3bb6e3af5ba4dc2b209b8f9258fa5fc5fc18ecfb48424c",
+      "tests/fixtures/c_migration/c_algorithms/PROVENANCE.md": "26abeddc49b03ad7d11f12ae7484341b46f649b3a7cb9f113965342f89d4cb7b",
+      "tests/fixtures/c_migration/c_algorithms/UPSTREAM.json": "71b986b5acc43895862a2e3f83806b85dfd00e98e66f6db09d612c41c05feb46",
+      "tests/fixtures/c_migration/c_algorithms/UPSTREAM_README.md": "a44ea2456f4e4226acd484262cfacad424a9352c20d0884a36c743eb0c86e16b",
+      "tests/fixtures/c_migration/c_algorithms/compare-int.c": "e31f939aac72fe45f771a39237538d90c8c65e87c908c685791e6f3248355b46",
+      "tests/fixtures/c_migration/c_algorithms/compare-int.h": "f1d31375d1106557d537567cfda01e53d15502b901d8935374e9c1a804b0116d",
+      "tests/fixtures/c_migration/c_algorithms/contracts.json": "d93b5d4df49bae22a416d08c5038d33e65195b55b1d5e93399980a426f2f9d4a",
+      "tests/fixtures/c_migration/c_algorithms/hash-int.c": "0f317af10597f1df9503c76dcb4128579fa4b3247931545749ecb14e2ec36acf",
+      "tests/fixtures/c_migration/c_algorithms/hash-int.h": "5361e6c63cff34ac63bf86b5af491a6a7e4d321ee7d5166717803e39a4af2473",
+      "tests/fixtures/c_migration/native/PROVENANCE.md": "82daa0fe338a778bedcf0ebfd7040d9286ed242f5e2231abcd367b5c6ef44d0d",
+      "tests/fixtures/c_migration/native/contracts.json": "2908465367f90d81c62ef60d093db2bf21f838c05ce6643fc0b981d859974f60",
+      "tests/fixtures/c_migration/native/native.c": "6d09a60ef96cf28287e860e49d024d5e090e0bd16a5e81e3070f7b634df9e3ab",
+      "tests/fixtures/c_migration/native/native.h": "3e57605954390904a3ce39380715c1a61cfd49b4d1951a96ec29842d19988bba",
+      "tests/fixtures/c_migration/owned_bytes.c": "b5fda5b38a11dca4574e816acf34bf258408c280f0190f935b2fe2a2c0f9981a",
+      "tests/fixtures/c_migration/ring_buffer/LICENSE": "b894277418ceef41a36383e6337978192505f2385f36a6cb8d27cb5c4b4db36d",
+      "tests/fixtures/c_migration/ring_buffer/PROVENANCE.md": "8f2c5ad805c59889cff4d6629832d73cd7cdc731a10a65f573e74037f164eadd",
+      "tests/fixtures/c_migration/ring_buffer/UPSTREAM.json": "73693d9894947c504461b2f73bf1e5fc09184b01ed8b6844a64dd56e0d0245af",
+      "tests/fixtures/c_migration/ring_buffer/UPSTREAM_README.md": "163b43e9963400e1afeb55c82ddb8048c27d1ffd73ab64f52ae1c4a44e10bd6c",
+      "tests/fixtures/c_migration/ring_buffer/contracts.json": "3b7dcf14ba43aff30faf8a9e68678b4b18d0660a23cefecdadf4e9ee27faca56",
+      "tests/fixtures/c_migration/ring_buffer/ringbuffer.c": "21fde4113929246e00ad79533f83bb6def2bb154a18c12c2d84159bc61d4c39f",
+      "tests/fixtures/c_migration/ring_buffer/ringbuffer.h": "065589a731ffa8367ace4a17885968a53f35e265c7d0d45cdddbe3fa09cfa9e9",
+      "tests/fixtures/release_evidence/README.md": "9d0351c32816898f28d0e705171aa85ec9f5960908e5fb3b9fd142f4194c7110",
+      "tests/fixtures/release_evidence/groups.json": "9656e2459f3c5878288cbb24034dcac0b4c67ae14a013bfff166035ccc0236d0",
+      "tests/fixtures/release_evidence/owned_generics.resource-ir.json": "bed6cb9115328617d5c94d1f1c57ca6620b2140c45ef128302311b4dba1c202c",
+      "tests/fixtures/release_evidence/owned_library.resource-ir.json": "816ba33dc17f30e2eebf2d372c481ce0429da9d53c96d93b119f4184ba934bd4",
+      "tests/fixtures/release_evidence/performance.json": "1d4c40c8471af9da6687e08893cef85d7c6069ec6d5d9838435c303ea285753e",
+      "tests/fixtures/release_evidence/provenance.json": "154dbff40bc0c63ec199de2bc13a1d8a4389d44bca32a3bcf26a2eec893d77d9",
+      "tests/fixtures/release_evidence/resources.json": "5a0d9bd89c91bf9c707698efcacd7a5916d8c659d85b06b907a0efacd39c324b",
+      "tests/fixtures/release_evidence/returned_views.resource-ir.json": "8b48456c1466628a89504cb874e93dc948dea3fa1d912176aea1b49b37580243",
+      "tests/native_evidence_cases.py": "c9f2e8ccf1d0914804114321b3d407400ffb4516706e7ef7847744f547fca017",
+      "tests/test_abi_matrix.py": "09beeea09898cc2bd361893cf226f45aaf6f1a7d8206eda4a6617ec611c4bbe9",
+      "tests/test_agent_eval.py": "b04a668db31e7cabb1680ac8933fc015f8da4a851231e4f2c2e4ef6125ad16b2",
+      "tests/test_application_benchmarks.py": "4640ff5eb9fdcd6ab0954ea3bb742e3f0e03b84f893786f36a90619dd75d5e21",
+      "tests/test_backend.py": "2af1de16d04e29a20748ccd48ace90ad5465bfdef0dce4ec5e75ff6dfb55083e",
+      "tests/test_borrowed_returns.py": "80aba1157e129a7319dc2526911966a228e04cd6954396ed9c27ef1168974efa",
+      "tests/test_c2hepta.py": "11e355a627e3970b1ce1d3a4e99639f24cad8c7d7b1e122b25d4bd18ad7bb44e",
+      "tests/test_c_backend.py": "947eff4fe674c08404c3fb06c0ad06eb8315893af298997a156cb4ad64b72339",
+      "tests/test_c_import.py": "28e4880bf453ce41f4cdb201eb7b006834261ed1eb3d5658bb3b6e9088ecebc9",
+      "tests/test_c_import_prototypes.py": "c3f08a9702a5dcb37d4e9056684706e35d1b83dd7ddab1c6201ca86ff676dab8",
+      "tests/test_c_import_typedefs.py": "fc4c53f95bfb460ff8059402a2d7ad0fecf1e3ccc5d80e7dd6d7c229455dd9cb",
+      "tests/test_c_migrate.py": "2d96c9d409af28f798285c6035b8e1c350535f2214d3e62ba31a965f9b8d3d32",
+      "tests/test_c_migrate_adversarial.py": "14d0f7b674c695e49abd60796e7ccda51f21479e03b6aac08e40b58bdb77fce5",
+      "tests/test_c_owned_backend.py": "0c59fa79e7fcf1b2a56dbfdffe2902d9df46455df56bbda52a3bb90bcdab3103",
+      "tests/test_c_project.py": "988351fe7d74b06dbbce1e3e6636d281eb4afaa6829b5e060dda03295709b35e",
+      "tests/test_c_record_views.py": "ff3b93cee0fd84d4f4993fa54cc6fb39a2e0945c8bc812a62a69a6d085ec2f64",
+      "tests/test_checker.py": "8dfc4e79d338c3b75641e6268343e295e1b17bc93557bface386e70841da4b99",
+      "tests/test_concurrent_ir.py": "e15ed42308db0f10649d6e199dc02525361aa782779d0b310c6929f8ee97e77c",
+      "tests/test_concurrent_ir_audit.py": "a16eb643e284926714ae22ad8f5e0015c949f6bc223b0877f0977e426d5ecf86",
+      "tests/test_cpp_bridge.py": "4e267035f836afee3ae336c650afdfdb1a3cae57927c2e02dc28c95e48e9e4be",
+      "tests/test_cpp_constructors.py": "899354ecab573d7047681fa9581aee8c3717807f0606ab653e50f7f48db3d402",
+      "tests/test_cpp_contracts.py": "6ff4a07763982442c79667fefcb117a9fbb871d850e9f0f6d4d0d63b2fe4fe1f",
+      "tests/test_cross_feature_audit.py": "f7cc9f3cb463c08b9b8b66d8be85cb40bc592e7418e737e217904efa31a63344",
+      "tests/test_crossfile_eval.py": "a7e03a844ab9ded9ab246fffa916df29f16c84885a956fbbeca1564d3a1d3840",
+      "tests/test_crossfile_protocol_v2.py": "a2a8c71a246656a57b51691b45b0c0aeb74562861e08941c504b71edd710c703",
+      "tests/test_crossfile_workspace_crashes.py": "5c2ef2de5c36b4e1264a55283e4eb21da3936137256c7a8e5689a911b00fb14d",
+      "tests/test_debug_info.py": "f5adaa73c4383c0adf4160ee5741169434ce89991edd718119e8c0c7e33ec849",
+      "tests/test_flow_ir.py": "68e6bc886873df5f9ed088d5881ba18cea8e4a8c69f7b5749dfe5451d40c3457",
+      "tests/test_group_timeouts.py": "b865c0057840902f3597e21be6c23054584931bd0c6e92161a22cf263fa20d4a",
+      "tests/test_hmir.py": "c25f2164efd012c0958f224fcdbb76e06eb653431443fd0cb9dfafa309719d82",
+      "tests/test_language.py": "6d7f026b01437a4053e4ae8f815c7ec58ee3fbc34823d06f9c7c9ae2275c7436",
+      "tests/test_modules.py": "767f55789fff5979778a4d0dbbdc014b3b337e24081cbb022f79e1e541579ef4",
+      "tests/test_namespace_sandbox.py": "02ef61cde69099e39e37765bf5fb16f1d618ecc3ac60ae807b47d3589862c0b8",
+      "tests/test_native.py": "ee047474c0a227ede9ea4d54a8bc458fc91dc2d1e8769837ae1c4653488db6a7",
+      "tests/test_native_evidence_validators.py": "85c12faac8f6a7fe0d32594311b4e03c198d94111aa24241f20483987b93ed91",
+      "tests/test_openai_provider_adapter.py": "f41406536f01b899f0fcef058ed159f8c4373dbdd0cea033e53f3585de7c8f76",
+      "tests/test_owned_generics.py": "81d8b2cb90439d6aaaed2e12e37dc02bc5f4bdd1a28611e5b56718f7d203a402",
+      "tests/test_owned_types.py": "404d89ffc3ad4b8ac20ce6b7d8f6a6a6337a13ecad13f271a630c85352a47f38",
+      "tests/test_parser.py": "3f8d46e1f954ae4592f4263b676a57f6880a0bb46008ea04922326b882bd5701",
+      "tests/test_partial_places.py": "64f63f075bc163a7128ec4d22b0849d233040f1b3c7b8caac7c0fd93710f891e",
+      "tests/test_project_protocol.py": "345b066422de7242fbc0f76621e5ea67b8219a7eaffaa57c99d25a7999b57c48",
+      "tests/test_protocol.py": "278fd2e1202515a37dfc4e38b132879daf75fa10c9ea937ebad637c6bc24198f",
+      "tests/test_protocol_v3.py": "9bae22a3205af84d3bd441769967196653c59c9dbd98250e8f76ac5e5e882623",
+      "tests/test_release_evidence.py": "f344fbd64b693d789c7a7bd2e41948fd4879ccae2509a988999934d05829eb09",
+      "tests/test_representative.py": "b8095d601f2057cdd07b520f7ba239d2d285a90b72909c0f19b2f987aba5c1a2",
+      "tests/test_resource_evaluation_order.py": "5f44995419982a41e9bb2ac2b1097b3f129b7b743a5537b0d22e6375151fbd1c",
+      "tests/test_resource_ir.py": "1bd448f25ba15579b6343345dd9900440fafd7a9fc21805e77aeec7096089a7f",
+      "tests/test_resource_ir_cli.py": "053314ed4d14b1e13e1c6e0359584b7472da4b24077d9a15999f446a70f9ae93",
+      "tests/test_semantic_ir.py": "1cd4d68da0c665d6bd4356df293be57349f19173e5efeaf580a35737fbbcb2c8",
+      "tests/test_semantic_ir_raw_boundaries.py": "cfae849792a3e34e93cb3af1228ba5509d69b1d89313543f755172d2a740eb92",
+      "tests/test_shared_runtime.py": "dfb5339e16c52eed25d6086df4dc0ca0b0c7b7db24980a798de656f2a6cb69bd",
+      "tests/test_source_map.py": "9012eed2264fdda5e36c70985e11f1001d14af065c7a7887c08db2f725a0379e",
+      "tests/test_task_groups.py": "dacc0e77ab7e88582d7ce08e48fc819f33c7f6ac90b70eb2bd3babf7cd1ee913",
+      "tests/test_tasks.py": "63a568d5946d62a95c09768773fdb07bbd9060e5a08c0ac286b54b5e15b4124c",
+      "tests/test_workspace.py": "f647df899de6e8e8cee2ca5649b96b4c021598da171f9d399005d67466e6d977",
+      "toolchain-lock.json": "a89a2e1b891817b9509b7791203b7c19a5d845c471540feffe5ac86fb53f5ed9",
+      "tools/abi_fuzz.py": "c0b7336cf4ffe8ff807d3f28ad01b0139a019edf098506a68d5cfdef3c8541d7",
+      "tools/audit_execution_prerequisites.py": "05d052cb609f295c53b927022e5d785f166e6fa33a602ffa4ceca951400f64c2",
+      "tools/benchmark_applications.py": "0f3079205c48f8f945f0aca4231c5076e5fd25b33a72552861bb84ac0f8d731d",
+      "tools/benchmark_suite.py": "16c0778e0c5250dbcdee0abd734f6aa3faf5e8f9d0cb6223c4a050e48993a67b",
+      "tools/bootstrap_toolchain.py": "cb35c334cd3ba8552835dbb53db33fea5a81dc8869b70da4224ccf3b5cb4de70",
+      "tools/bootstrap_verification.py": "8b95198a1e50ceca34e17869412edc02a31f9be38e3052750ea5ba53ecc16286",
+      "tools/c2hepta.py": "f0a3cebcb22641f08d76d871b44cf89fb6ef7bd98b4224aaac1acec1f1b46017",
+      "tools/evidence_checks.py": "720a9f55e73e3af3467918efabf0db8b5ff85da8ab07c3efd115d8b1423bd3d7",
+      "tools/fixtures/c_owned_allocator.c": "3a3ff8a37e880bb1c52d0f82144c2caa71e7b59c8e4b463e3b7c7c5b936665a4",
+      "tools/fixtures/c_owned_allocator.rs": "22fe049997dc7713eec65d4a7216173be7e0cf0948ab7164b9b9dee45d3b436f",
+      "tools/fixtures/c_ring_buffer_benchmark.c": "c8f6ae195d1c984f7f38b85e125aba66f4eba70364842385016b70657e6347ee",
+      "tools/fixtures/shared_runtime_controls.rs": "917ee0568ddc5ecf79bb002db31fd723c419e117f58b9b34730deb512ffdf848",
+      "tools/fixtures/shared_runtime_faults.c": "afaa8712088beb500f441cd05f580cd9896bc8636ea39a7791dc643ba6d84cb5",
+      "tools/migrate_c_project.py": "80f49735f32b178bc9468adfb2c43925b2de310b7a3391e7aff6ae105cf54e50",
+      "tools/provider_adapter/README.md": "ca4287da5fb759cb705163e97fdb7877967d6fc72e0614c448fffa135ad5ac27",
+      "tools/provider_adapter/export.py": "0724905c96a12e299b7a65998848bfd4e85cf8cf9e86552453ef89dc2cec401b",
+      "tools/provider_adapter/openai_chat.py": "2566ed560ffbdc903555fa0c89153955924565b7960faa8e0207b4a752237507",
+      "tools/qualify_c_algorithms.py": "3475da9c256adbafed65b9b6b53712cda27875b866114eb7a8d5cc5be4e46933",
+      "tools/qualify_c_migration.py": "97b35cf01db80ce2173711c636771be3abff22ba93df757f6489402ade78658e",
+      "tools/qualify_c_ring_buffer.py": "7e02d94220ff97bd0b01257eef9323cd50191e28f6b050ac28cf5a2c7ec19f56",
+      "tools/qualify_places.py": "2468ea1de14e45a73f895868fa657510a340d9d23f79c867d0257cd2d599552f",
+      "tools/release_check.py": "1e5f00a1fba6dcd2a35d4678cc767bce179598c7042005d15c8f74f5aa548ec4",
+      "tools/validate.py": "59b2c48b65286cd7a6e2d0dc72cb552e267ce543ccf83c1c8a8838c74757aedc",
+      "tools/validate_c_owned.py": "cfe93d19fe37a22baf9c873f61783729f55257e427545aa6171ebc694c2977c5",
+      "tools/validate_concurrent_ir.py": "57f1d62d7daf7ff3b64dc1aa9a3104db944f9effea2cf3a757bd56578c5df934",
+      "tools/validate_cpp.py": "117e8e8d91cca3a03024dff1ad598ac583cb4696ce96b92621715bf0e6370327",
+      "tools/validate_cpp_constructors.py": "5fca5947433fce0d8b18c0cb8316a6ca702d861b48588dffd09649266f3361b1",
+      "tools/validate_cross.py": "ba115d253d1accff1cd17d7337f2c523ef7a19006c9538fafd76609f6f12f74f",
+      "tools/validate_debugger.py": "9c4909f8606fdbcfde72330e1be86764c80f8709679688927510a8225bd48a0b",
+      "tools/validate_groups.py": "a7becf8db86e0f92df37d593d80f841e1d8a04a8f6c8a9931da88b7997ff3f67",
+      "tools/validate_native_host.py": "5e2603536c753efb2f26c45d29818d7fee551db403ade3e3835f91e034a1d84b",
+      "tools/validate_resources.py": "923164a3fb8f28a7e69747a771c745b621fee64db3affc1c1f31fca7a8781e4b",
+      "tools/validate_sandbox.py": "2aebd83419de30fc6dd4fe6845aa2905f97af9a14d80d1954eb9c5ee7339d064",
+      "tools/validate_shared_runtime.py": "cb5f8a975114f1cf555f29166b9bee5ccbb60a47dd4c17f2f4516787829a94ce",
+      "tools/verify_formal.py": "bae25ba84c0aa685fc8473e78249e60880916399fc1278c426e350bef63eaa64",
+      "tools/verify_memory.py": "82bc78c3b0be9296c4f9a36a5112a8d3584c695c1d7c8d7444ea9e243790d7bd"
+    },
+    "sha256": "762cfed6c3788d1a58f03dad959db7268efce3a38738d7305b66a2167ad77eed"
+  },
+  "stage": "complete",
+  "upstream": {
+    "commit": "8de8fff55a0baee4fef2a1c6a82d258a27c3c0ba",
+    "files": [
+      {
+        "bytes": 2203,
+        "git_blob": "39fbea599e9e2c62561f1cd2e80bb08717e9e656",
+        "local_path": "ringbuffer.c",
+        "sha256": "21fde4113929246e00ad79533f83bb6def2bb154a18c12c2d84159bc61d4c39f",
+        "upstream_path": "ringbuffer.c"
+      },
+      {
+        "bytes": 4446,
+        "git_blob": "36da6eb18805853f79f5b558714204517fd969a0",
+        "local_path": "ringbuffer.h",
+        "sha256": "065589a731ffa8367ace4a17885968a53f35e265c7d0d45cdddbe3fa09cfa9e9",
+        "upstream_path": "ringbuffer.h"
+      },
+      {
+        "bytes": 1079,
+        "git_blob": "4e5491e49deef7fce4c58480177f501d8cc8dea9",
+        "local_path": "LICENSE",
+        "sha256": "b894277418ceef41a36383e6337978192505f2385f36a6cb8d27cb5c4b4db36d",
+        "upstream_path": "LICENSE"
+      },
+      {
+        "bytes": 1325,
+        "git_blob": "9936f6af274d25abdc0a87f77595df41d49a25d7",
+        "local_path": "UPSTREAM_README.md",
+        "sha256": "163b43e9963400e1afeb55c82ddb8048c27d1ffd73ab64f52ae1c4a44e10bd6c",
+        "upstream_path": "README.md"
+      }
+    ],
+    "license": "MIT",
+    "repository": "https://github.com/AndersKaloer/Ring-Buffer",
+    "scope": "complete ringbuffer.c and ringbuffer.h, exact C11 unsigned-char NDEBUG configuration"
+  },
+  "whole_project_blockers_closed": false,
+  "wrong_implementation_control": {
+    "compiled": true,
+    "first_mismatch": "('is_empty', 1, 0, 1, 0, 1)",
+    "rejected_by_full_oracle": true
+  }
+}

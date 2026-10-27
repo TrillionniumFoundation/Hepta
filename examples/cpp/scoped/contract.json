@@ -1,0 +1,349 @@
+{
+  "schema": "hepta.cpp-contract.v3",
+  "module": "scoped",
+  "pod_types": [
+    {
+      "name": "Pair",
+      "cpp_type": "scoped_example::Pair",
+      "fields": [
+        {
+          "name": "first",
+          "type": "i64"
+        },
+        {
+          "name": "second",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "handles": [
+    {
+      "name": "Vector",
+      "cpp_type": "std::vector",
+      "template_args": [
+        "i64"
+      ],
+      "threading": "serialized",
+      "reentrancy": "reject",
+      "allocator": "cpp_shared_owner",
+      "destruction": "nothrow_defer_inflight",
+      "constructors": [
+        {
+          "name": "filled",
+          "params": [
+            {
+              "name": "count",
+              "type": "usize",
+              "mode": "value"
+            },
+            {
+              "name": "initial",
+              "type": "i64",
+              "mode": "value"
+            }
+          ],
+          "exception": "catch_status"
+        }
+      ],
+      "methods": [
+        {
+          "name": "append",
+          "cpp_method": "push_back",
+          "const": false,
+          "params": [
+            {
+              "name": "value",
+              "type": "i64",
+              "mode": "const_ref",
+              "retention": "call_only"
+            }
+          ],
+          "returns": "Unit",
+          "return_mode": "value",
+          "exception": "catch_status"
+        },
+        {
+          "name": "at",
+          "cpp_method": "at",
+          "const": true,
+          "params": [
+            {
+              "name": "index",
+              "type": "usize",
+              "mode": "value"
+            }
+          ],
+          "returns": "i64",
+          "return_mode": "copy_from_reference",
+          "exception": "catch_status"
+        }
+      ]
+    },
+    {
+      "name": "Probe",
+      "cpp_type": "scoped_example::Probe",
+      "template_args": [],
+      "threading": "serialized",
+      "reentrancy": "reject",
+      "allocator": "cpp_shared_owner",
+      "destruction": "nothrow_defer_inflight",
+      "constructors": [
+        {
+          "name": "new",
+          "params": [
+            {
+              "name": "count",
+              "type": "usize",
+              "mode": "value"
+            },
+            {
+              "name": "initial",
+              "type": "i64",
+              "mode": "value"
+            },
+            {
+              "name": "mode",
+              "type": "u64",
+              "mode": "value"
+            }
+          ],
+          "exception": "catch_status"
+        }
+      ],
+      "methods": [
+        {
+          "name": "append",
+          "cpp_method": "append",
+          "const": false,
+          "params": [
+            {
+              "name": "value",
+              "type": "i64",
+              "mode": "const_ref",
+              "retention": "call_only"
+            }
+          ],
+          "returns": "Unit",
+          "return_mode": "value",
+          "exception": "catch_status"
+        },
+        {
+          "name": "at",
+          "cpp_method": "at",
+          "const": true,
+          "params": [
+            {
+              "name": "index",
+              "type": "usize",
+              "mode": "value"
+            }
+          ],
+          "returns": "i64",
+          "return_mode": "copy_from_reference",
+          "exception": "catch_status"
+        }
+      ]
+    },
+    {
+      "name": "PairOwner",
+      "cpp_type": "scoped_example::PairOwner",
+      "template_args": [],
+      "threading": "serialized",
+      "reentrancy": "reject",
+      "allocator": "cpp_shared_owner",
+      "destruction": "nothrow_defer_inflight",
+      "constructors": [
+        {
+          "name": "new",
+          "params": [
+            {
+              "name": "initial",
+              "type": "Pair",
+              "mode": "value"
+            }
+          ],
+          "exception": "noexcept"
+        }
+      ],
+      "methods": [
+        {
+          "name": "get",
+          "cpp_method": "get",
+          "const": true,
+          "params": [],
+          "returns": "Pair",
+          "return_mode": "copy_from_reference",
+          "exception": "noexcept"
+        }
+      ]
+    }
+  ],
+  "scopes": [
+    {
+      "name": "vector_roundtrip",
+      "handle": "Vector",
+      "constructor": "filled",
+      "params": [
+        {
+          "name": "count",
+          "type": "usize",
+          "mode": "value"
+        },
+        {
+          "name": "initial",
+          "type": "i64",
+          "mode": "value"
+        },
+        {
+          "name": "appended",
+          "type": "i64",
+          "mode": "const_ref",
+          "retention": "call_only"
+        },
+        {
+          "name": "index",
+          "type": "usize",
+          "mode": "value"
+        }
+      ],
+      "constructor_args": [
+        "count",
+        "initial"
+      ],
+      "calls": [
+        {
+          "method": "append",
+          "args": [
+            "appended"
+          ]
+        },
+        {
+          "method": "at",
+          "args": [
+            "index"
+          ]
+        }
+      ],
+      "lifetime": "call_scoped_cpp_raii"
+    },
+    {
+      "name": "probe_roundtrip",
+      "handle": "Probe",
+      "constructor": "new",
+      "params": [
+        {
+          "name": "count",
+          "type": "usize",
+          "mode": "value"
+        },
+        {
+          "name": "initial",
+          "type": "i64",
+          "mode": "value"
+        },
+        {
+          "name": "mode",
+          "type": "u64",
+          "mode": "value"
+        },
+        {
+          "name": "appended",
+          "type": "i64",
+          "mode": "const_ref",
+          "retention": "call_only"
+        },
+        {
+          "name": "index",
+          "type": "usize",
+          "mode": "value"
+        }
+      ],
+      "constructor_args": [
+        "count",
+        "initial",
+        "mode"
+      ],
+      "calls": [
+        {
+          "method": "append",
+          "args": [
+            "appended"
+          ]
+        },
+        {
+          "method": "at",
+          "args": [
+            "index"
+          ]
+        }
+      ],
+      "lifetime": "call_scoped_cpp_raii"
+    },
+    {
+      "name": "probe_unit",
+      "handle": "Probe",
+      "constructor": "new",
+      "params": [
+        {
+          "name": "count",
+          "type": "usize",
+          "mode": "value"
+        },
+        {
+          "name": "initial",
+          "type": "i64",
+          "mode": "value"
+        },
+        {
+          "name": "mode",
+          "type": "u64",
+          "mode": "value"
+        },
+        {
+          "name": "appended",
+          "type": "i64",
+          "mode": "const_ref",
+          "retention": "call_only"
+        }
+      ],
+      "constructor_args": [
+        "count",
+        "initial",
+        "mode"
+      ],
+      "calls": [
+        {
+          "method": "append",
+          "args": [
+            "appended"
+          ]
+        }
+      ],
+      "lifetime": "call_scoped_cpp_raii"
+    },
+    {
+      "name": "pair_copy",
+      "handle": "PairOwner",
+      "constructor": "new",
+      "params": [
+        {
+          "name": "initial",
+          "type": "Pair",
+          "mode": "value"
+        }
+      ],
+      "constructor_args": [
+        "initial"
+      ],
+      "calls": [
+        {
+          "method": "get",
+          "args": []
+        }
+      ],
+      "lifetime": "call_scoped_cpp_raii"
+    }
+  ]
+}

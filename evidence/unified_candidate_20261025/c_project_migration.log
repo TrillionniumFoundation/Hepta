@@ -1,0 +1,97 @@
+{
+  "ok": true,
+  "output": "evidence/unified_candidate_20261025/c_project.json",
+  "execution": {
+    "differential_cases": {
+      "native_add": 256,
+      "native_transform": 256,
+      "sum_bytes": 256,
+      "mutate_bytes": 256,
+      "owned_malloc_sum": 11,
+      "owned_calloc_sum": 11
+    },
+    "total_differential_cases": 1046,
+    "fault_injection": [
+      {
+        "function": "owned_malloc_sum",
+        "size": 65519,
+        "result": -1,
+        "c_live_allocations": 0,
+        "hepta_live_allocations": 0
+      },
+      {
+        "function": "owned_malloc_sum",
+        "size": 32,
+        "result": 496,
+        "c_live_allocations": 0,
+        "hepta_live_allocations": 0
+      },
+      {
+        "function": "owned_malloc_sum",
+        "size": 65519,
+        "result": -1,
+        "c_live_allocations": 0,
+        "hepta_live_allocations": 0
+      },
+      {
+        "function": "owned_malloc_sum",
+        "size": 0,
+        "result": 0,
+        "c_live_allocations": 0,
+        "hepta_live_allocations": 0
+      },
+      {
+        "function": "owned_malloc_sum",
+        "size": 251,
+        "result": 31375,
+        "c_live_allocations": 0,
+        "hepta_live_allocations": 0
+      },
+      {
+        "function": "owned_calloc_sum",
+        "size": 65519,
+        "result": -1,
+        "c_live_allocations": 0,
+        "hepta_live_allocations": 0
+      },
+      {
+        "function": "owned_calloc_sum",
+        "size": 32,
+        "result": 0,
+        "c_live_allocations": 0,
+        "hepta_live_allocations": 0
+      },
+      {
+        "function": "owned_calloc_sum",
+        "size": 65519,
+        "result": -1,
+        "c_live_allocations": 0,
+        "hepta_live_allocations": 0
+      },
+      {
+        "function": "owned_calloc_sum",
+        "size": 0,
+        "result": 0,
+        "c_live_allocations": 0,
+        "hepta_live_allocations": 0
+      },
+      {
+        "function": "owned_calloc_sum",
+        "size": 251,
+        "result": 0,
+        "c_live_allocations": 0,
+        "hepta_live_allocations": 0
+      }
+    ],
+    "wrong_result_control_rejected": true,
+    "allocator_fault_shim_sha256": "283a611e3e9bea4aeb570c5e7b2414d668dc81695015699266025e8ad7fdf633",
+    "rust_allocator_fault_shim_sha256": "6677b3bfc90d9d4ddc41338d3d8a2d9c448acdf5427bfd442a8ff0235c47185d",
+    "checks": [
+      "return values",
+      "struct values",
+      "mutated buffer contents",
+      "allocation refusal returns",
+      "allocation/free balance"
+    ]
+  }
+}

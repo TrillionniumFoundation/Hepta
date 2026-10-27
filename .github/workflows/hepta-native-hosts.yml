@@ -1,0 +1,66 @@
+name: Hepta actual host ABI qualification
+
+on:
+  push:
+    branches: [feat/hepta-safe-migration-agent-20261024, dot/hepta-p0-p1-semantic-bridge-20261025, dot/hepta-p0-p7-integration-20261025]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  native-host:
+    name: ${{ matrix.os }} / ${{ matrix.machine }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            system: Linux
+            machine: x86_64
+          - os: ubuntu-24.04-arm
+            system: Linux
+            machine: aarch64
+          - os: windows-2025
+            system: Windows
+            machine: x86_64
+          - os: macos-15
+            system: Darwin
+            machine: aarch64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      HEPTA_QUALIFICATION_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_QUALIFICATION_HEAD_SHA }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify exact head and install the pinned native Rust version
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$HEPTA_QUALIFICATION_HEAD_SHA"
+          rustup toolchain install 1.90.0 --profile minimal
+      - name: Execute both C optimization profiles and a compiled wrong control
+        shell: bash
+        run: |
+          python tools/validate_native_host.py \
+            --rustc "$(rustup which --toolchain 1.90.0 rustc)" --cc clang \
+            --expected-system '${{ matrix.system }}' --expected-machine '${{ matrix.machine }}' \
+            --output artifacts/native-host.json
+      - name: Retain actual host evidence, including failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.os }}-${{ env.HEPTA_QUALIFICATION_HEAD_SHA }}
+          path: artifacts/native-host.json
+          if-no-files-found: error

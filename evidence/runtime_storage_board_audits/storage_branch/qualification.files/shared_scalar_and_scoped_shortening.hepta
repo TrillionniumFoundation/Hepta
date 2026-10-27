@@ -1,0 +1,9 @@
+struct Value<'a>{item:read 'a u64}
+fn choose<'a>(a:Value<'a>,b:Value<'a>,right:bool)->Value<'a> effects {} {if right{return b;}return a;}
+fn main()->Unit effects {panic} {
+    let outer:u64=7;
+    if true {let inner:u64=9;let a=Value{item:read outer};let b=Value{item:read inner};
+        let chosen=choose(a,b,true);let copy=chosen;assert(copy.item==9);assert(a.item==7);
+        let inline=choose(Value{item:read outer},b,false);assert(inline.item==7);}
+    assert(outer==7);
+}

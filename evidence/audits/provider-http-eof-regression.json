@@ -1,0 +1,117 @@
+{
+  "actual_ai_model_runs": 0,
+  "actual_api_calls": 0,
+  "ai_comparison_eligible": false,
+  "baseline_commit": "022ed82baf2c9afee470022d20c70c5d17682982",
+  "credentials": "synthetic unit-test sentinel only; no real credential read",
+  "evidence_kind": "offline_http_parser_regression",
+  "external_http_requests": 0,
+  "fixed_all_four_paths_passed": true,
+  "fixed_commit": "854ebb2211e1eed53b2585380420919627035ed1",
+  "results": [
+    {
+      "abort_usage_complete": false,
+      "case": "content_length_close",
+      "error_code": "E_OPENAI_TRANSPORT",
+      "expected_valid_completion": true,
+      "frame_kind": "abort",
+      "meets_expected_result": false,
+      "returncode": 2,
+      "revision": "before",
+      "synthetic_receipt_count": 0,
+      "synthetic_unit_test_usage_total": null
+    },
+    {
+      "abort_usage_complete": false,
+      "case": "chunked_close",
+      "error_code": "E_OPENAI_TRANSPORT",
+      "expected_valid_completion": true,
+      "frame_kind": "abort",
+      "meets_expected_result": false,
+      "returncode": 2,
+      "revision": "before",
+      "synthetic_receipt_count": 0,
+      "synthetic_unit_test_usage_total": null
+    },
+    {
+      "abort_usage_complete": null,
+      "case": "eof_delimited",
+      "error_code": null,
+      "expected_valid_completion": true,
+      "frame_kind": "final",
+      "meets_expected_result": true,
+      "returncode": 0,
+      "revision": "before",
+      "synthetic_receipt_count": 1,
+      "synthetic_unit_test_usage_total": 160
+    },
+    {
+      "abort_usage_complete": null,
+      "case": "content_length_truncated_valid_json",
+      "error_code": null,
+      "expected_valid_completion": false,
+      "frame_kind": "final",
+      "meets_expected_result": false,
+      "returncode": 0,
+      "revision": "before",
+      "synthetic_receipt_count": 1,
+      "synthetic_unit_test_usage_total": 160
+    },
+    {
+      "abort_usage_complete": null,
+      "case": "content_length_close",
+      "error_code": null,
+      "expected_valid_completion": true,
+      "frame_kind": "final",
+      "meets_expected_result": true,
+      "returncode": 0,
+      "revision": "after",
+      "synthetic_receipt_count": 1,
+      "synthetic_unit_test_usage_total": 160
+    },
+    {
+      "abort_usage_complete": null,
+      "case": "chunked_close",
+      "error_code": null,
+      "expected_valid_completion": true,
+      "frame_kind": "final",
+      "meets_expected_result": true,
+      "returncode": 0,
+      "revision": "after",
+      "synthetic_receipt_count": 1,
+      "synthetic_unit_test_usage_total": 160
+    },
+    {
+      "abort_usage_complete": null,
+      "case": "eof_delimited",
+      "error_code": null,
+      "expected_valid_completion": true,
+      "frame_kind": "final",
+      "meets_expected_result": true,
+      "returncode": 0,
+      "revision": "after",
+      "synthetic_receipt_count": 1,
+      "synthetic_unit_test_usage_total": 160
+    },
+    {
+      "abort_usage_complete": false,
+      "case": "content_length_truncated_valid_json",
+      "error_code": "E_OPENAI_TRANSPORT",
+      "expected_valid_completion": false,
+      "frame_kind": "abort",
+      "meets_expected_result": true,
+      "returncode": 2,
+      "revision": "after",
+      "synthetic_receipt_count": 0,
+      "synthetic_unit_test_usage_total": null
+    }
+  ],
+  "schema": "hepta.adapter_http_eof_audit.v1",
+  "source_path": "tools/provider_adapter/openai_chat.py",
+  "source_sha256": {
+    "after": "2566ed560ffbdc903555fa0c89153955924565b7960faa8e0207b4a752237507",
+    "before": "a0e39275b10cac4eb8e4f591f50733157b17a6dd508aaf72cc71da733c67eb49"
+  },
+  "synthetic_usage_explanation": "120 input + 40 output are fixture integers, not provider usage or billing evidence",
+  "transport": "AF_UNIX socketpair; unchanged stdlib HTTPConnection.request/getresponse and HTTPResponse.read/close; only connect is local"
+}

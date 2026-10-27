@@ -1,0 +1,56 @@
+module shared_budget;
+
+fn complete(data: take Buffer<u8>, cancel: read Cancellation,
+            output: read Sender<u64>) -> u64
+effects {alloc, block} {
+    let result = len(data) as u64;
+    release(move data);
+    return result;
+}
+
+fn main() -> Unit effects {alloc, block, panic, write, spawn, io} {
+    let mut root = task_group(0, 0, 1);
+    let mut left = task_group(4, 64, 2);
+    let mut right = task_group(4, 64, 2);
+    let mut overflow = task_group(0, 0, 1);
+    assert(group_budget_configure(mut root, 2, 12, 5, 131072, 65536));
+    assert(!group_budget_configure(mut root, 100, 100, 100, 6553600, 65536));
+    assert(group_budget_share(mut left, read root));
+    assert(group_budget_share(mut right, read left));
+    assert(!group_budget_share(mut overflow, read root));
+    group_cancel_and_join(move overflow);
+    assert(group_spawn(mut left, complete, move buffer(4)));
+    assert(group_spawn(mut right, complete, move buffer(8)));
+    assert(!group_spawn(mut left, complete, move buffer(1)));
+    let full = group_budget_snapshot(read root);
+    assert(full.reserved_threads == 2);
+    assert(full.reserved_input_bytes == 12);
+    assert(full.reserved_requested_stack_bytes == 131072);
+    assert(full.reserved_queue_slots == 5);
+    assert(full.rejected_admissions == 1);
+    assert(full.attachment_refusals == 1);
+    let a = group_drain_and_join(move left);
+    assert(a.sum == 4);
+    // Only actual join releases reservations, even if a worker finished early.
+    let freed = group_budget_snapshot(read right);
+    assert(freed.reserved_threads == 1);
+    assert(freed.reserved_input_bytes == 8);
+    assert(freed.reserved_queue_slots == 3);
+    assert(group_spawn(mut right, complete, move buffer(4)));
+    let b = group_drain_and_join(move right);
+    assert(b.sum == 12);
+    let empty = group_budget_snapshot(read root);
+    assert(empty.reserved_threads == 0);
+    assert(empty.reserved_input_bytes == 0);
+    assert(empty.reserved_requested_stack_bytes == 0);
+    assert(empty.reserved_queue_slots == 1);
+    assert(empty.attached_groups == 1);
+    group_join(move root);
+    print_i64(full.peak_threads as i64);
+    print_i64(full.peak_input_bytes as i64);
+    print_i64(full.peak_queue_slots as i64);
+    print_i64(full.peak_requested_stack_bytes as i64);
+    print_i64(empty.reserved_threads as i64);
+    print_i64(empty.rejected_admissions as i64);
+    print_i64(empty.attachment_refusals as i64);
+}

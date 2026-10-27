@@ -1,0 +1,45 @@
+module places;
+
+struct Chunk<T> { data:T, tag:u64 }
+struct Pair { head:Chunk<Buffer<u8>>, tail:Buffer<u8> }
+
+fn split<T:Owned>(packet:take Chunk<T>)->T effects {} {
+    return move packet.data;
+}
+
+fn selected(packet:read Chunk<Buffer<u8>>, other:read [u8])->read [u8] from packet effects {} {
+    return read packet.data;
+}
+
+// Native qualification injects a real allocation refusal for size 12281.
+// Every ordinary/early/error exit consumes all remaining owned fields.
+pub fn exercise(early:bool, size:usize)->u64 effects {alloc,block,panic} {
+    let mut packet=Pair{head:Chunk{data:buffer(4093),tag:7},tail:buffer(8161)};
+    assert(len(selected(read packet.head,read packet.tail))==4093);
+    let first=move packet.head.data;
+    release(move first);
+    if early {
+        release(move packet.tail);
+        return packet.head.tag;
+    }
+    match try_buffer(size) {
+        Result::Ok(replacement)=>{packet.head.data=move replacement;},
+        Result::Err(code)=>{release(move packet.tail);return code as u64;}
+    }
+    let extracted=split::<Buffer<u8>>(move packet.head);
+    let length=len(extracted);
+    release(move extracted);
+    release(move packet.tail);
+    return length as u64;
+}
+
+pub fn cycles()->u64 effects {alloc,block,panic} {
+    let mut packet:Chunk<Buffer<u8>>=Chunk{data:buffer(4093),tag:11};
+    for iteration in 0..5 {
+        let old=move packet.data;
+        release(move old);
+        packet.data=buffer(4093);
+    }
+    release(move packet.data);
+    return packet.tag;
+}

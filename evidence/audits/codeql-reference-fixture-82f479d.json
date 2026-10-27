@@ -1,0 +1,135 @@
+{
+  "alert_comment": "https://github.com/TrillionniumFoundation/Hepta/pull/14#discussion_r4367717313",
+  "assessment": "no_credential_or_PII_flow_found_in_reviewed_call_chain",
+  "facts": [
+    "The only current call to this fixture writer is qualify_fixtures, using fixed TASK_IDS/ARMS and trusted_reference after manifest verification.",
+    "The serialized object contains only files and declarations. Values are committed source text and slices of that same source; it does not serialize live Cancellation objects.",
+    "Reference-source token identifiers denote Cancellation or Arc<AtomicBool>; the lexer Token type represents source tokens. The exact CodeQL taint source is unknown without SARIF.",
+    "Provider run enters evaluate directly and never invokes this writer. Fixture generation explicitly uses fixture qualification with zero provider token budget.",
+    "No provider reply, receipt, API key, passed environment value, or external user data is merged into this object by the reviewed callers.",
+    "The reference answers are intentionally materialized for trusted deterministic clients; they remain unavailable to active provider capsules.",
+    "All ten language/task payloads were reconstructed in memory, covering twenty editable source files; no provider API was called."
+  ],
+  "github_alert_dismissed": false,
+  "independent_review": "Source-flow review repeated by the separate safe_systems_language agent; findings were checked against the published commit and manifest.",
+  "inputs": {
+    "experiments/agent_eval/harness.py": "ae1ebd36850fb4b1161611218e9955b82dc284faf55e484d38f82bc914645445",
+    "experiments/crossfile_eval/__main__.py": "f832761bfb64ace4a2234cad0d69f95ad354a4ec56fb37898d93c930f210d4a7",
+    "experiments/crossfile_eval/fixtures/adapters.py": "2ed4814df275712bfbfbd76893521905f29a808bb002fbac06025c680e780ba5",
+    "experiments/crossfile_eval/qualification.py": "f8a26f126dfa9e2f065db8d3e9c8611afc87d8e854651e850af3924daa846e2e",
+    "experiments/crossfile_eval/runner.py": "d7f71c9a0276e582a5185a89cf07ab8195ef56c4a39c35e51025e4c88bd3ca2b",
+    "experiments/crossfile_eval/semantic.py": "df5763b1d08d6c4f99af7b6095ca9d6006afa429d6c2fcc69c3aeb5473b2439c",
+    "experiments/crossfile_eval/tasks.py": "153b64db766d7b93fbde3523d09001eb70b0f9ab655412486fa865e48086e053"
+  },
+  "record_sha256": "4a4bf129b19082a799dd37bc5a663a3da1cc8cd71a4f0003625e47439b266a94",
+  "reference_sources": [
+    {
+      "declarations": 2,
+      "path": "experiments/crossfile_eval/_private/references/api_migration/rust/pricing.rs",
+      "sha256": "ec9efe5d45466a7aa7555e89a7f5f1f5e74f6625f5e7a12f40a01f5d1bcde3f0"
+    },
+    {
+      "declarations": 1,
+      "path": "experiments/crossfile_eval/_private/references/api_migration/rust/receipt.rs",
+      "sha256": "1aa47c111c0b47db302a0c73faf5ce6a8fb6d13b84b64815cfdb6230425075ea"
+    },
+    {
+      "declarations": 2,
+      "path": "experiments/crossfile_eval/_private/references/api_migration/hepta/pricing.hepta",
+      "sha256": "76c2c1b1f720bc0688b9e3443f75261369769270a1f1eb06598772b7e11a8c84"
+    },
+    {
+      "declarations": 1,
+      "path": "experiments/crossfile_eval/_private/references/api_migration/hepta/receipt.hepta",
+      "sha256": "3d9174cf194670b9678c00a35af8b178280284a68cf3d81d5f30d0414c1511e0"
+    },
+    {
+      "declarations": 1,
+      "path": "experiments/crossfile_eval/_private/references/owned_result/rust/service.rs",
+      "sha256": "02230ae5c343893f990c87ee12abbed872eeb178c73e20a77667498cbe8020f2"
+    },
+    {
+      "declarations": 3,
+      "path": "experiments/crossfile_eval/_private/references/owned_result/rust/storage.rs",
+      "sha256": "6f4f2f5b8b77a2aa2d86c8e273129f5da1723436c05359e3561394f14eb77446"
+    },
+    {
+      "declarations": 1,
+      "path": "experiments/crossfile_eval/_private/references/owned_result/hepta/service.hepta",
+      "sha256": "8acda4fbe1be4c58349730e9d8af74fb4430bc30f8c8e40627c25e6bf528c841"
+    },
+    {
+      "declarations": 3,
+      "path": "experiments/crossfile_eval/_private/references/owned_result/hepta/storage.hepta",
+      "sha256": "6ac34b8c4584ea9bb24ab73167406ed8ec314602eccb8cd58ae5cc2b28745a13"
+    },
+    {
+      "declarations": 1,
+      "path": "experiments/crossfile_eval/_private/references/native_bridge/rust/adapter.rs",
+      "sha256": "e55c5717da15a1def31c99d6573112de904786dde5818c01da17ef181abfc722"
+    },
+    {
+      "declarations": 3,
+      "path": "experiments/crossfile_eval/_private/references/native_bridge/rust/foreign.rs",
+      "sha256": "4f426e63eea8eb2a40ce49a267b24acc1bedeb8d42fc969dd557424cc43f1171"
+    },
+    {
+      "declarations": 1,
+      "path": "experiments/crossfile_eval/_private/references/native_bridge/hepta/adapter.hepta",
+      "sha256": "1449dcdb557d42431992d15ef869a794ac93f2c25724dc2e390717b943505ac7"
+    },
+    {
+      "declarations": 5,
+      "path": "experiments/crossfile_eval/_private/references/native_bridge/hepta/foreign.hepta",
+      "sha256": "1e8dbcf60776fe48058120c84b03dd1b96e74f3e002379f67bffdc67fcf0103b"
+    },
+    {
+      "declarations": 1,
+      "path": "experiments/crossfile_eval/_private/references/resource_cancel/rust/service.rs",
+      "sha256": "30c74fd0055326bdf05a89063c18382d6c87da7a302d1f3efc2406da920028cf"
+    },
+    {
+      "declarations": 1,
+      "path": "experiments/crossfile_eval/_private/references/resource_cancel/rust/worker.rs",
+      "sha256": "f91dcbe63e20a3271be9554f2ea2eac67dd6b4f5c3cfab191e285172a70a9692"
+    },
+    {
+      "declarations": 1,
+      "path": "experiments/crossfile_eval/_private/references/resource_cancel/hepta/service.hepta",
+      "sha256": "721644c0accde3b3f03b0528a35df26aa3b7921891299c84f573b7f103228b36"
+    },
+    {
+      "declarations": 1,
+      "path": "experiments/crossfile_eval/_private/references/resource_cancel/hepta/worker.hepta",
+      "sha256": "fdc39e145ed439ec3365b81b00f6f973d966193c9ec8eb7f48b7475041341720"
+    },
+    {
+      "declarations": 1,
+      "path": "experiments/crossfile_eval/_private/references/defect_repair/rust/data.rs",
+      "sha256": "588a03cc900f910d9ed73dbce6b9123a0988169aeca405850a32e81a313759a8"
+    },
+    {
+      "declarations": 1,
+      "path": "experiments/crossfile_eval/_private/references/defect_repair/rust/search.rs",
+      "sha256": "0c2dabcb2c1bedc81cd6e221e5a5d1103f25de02d7b03beb0c6d18068323811a"
+    },
+    {
+      "declarations": 1,
+      "path": "experiments/crossfile_eval/_private/references/defect_repair/hepta/data.hepta",
+      "sha256": "aa003d3fe77e5cd65d33675497ccd5ba4d7ff27c960f5df9bf99c4c336921051"
+    },
+    {
+      "declarations": 1,
+      "path": "experiments/crossfile_eval/_private/references/defect_repair/hepta/search.hepta",
+      "sha256": "d6de331a89cad9f48aec9d2c0447627c89bee58936ac713aca94483bc07a3c86"
+    }
+  ],
+  "reviewed_commit": "82f479d21de50626914468f81d8c032df62327da",
+  "rule_suppressed": false,
+  "rule_title": "Clear-text storage of sensitive information",
+  "sarif_source_path_reviewed": false,
+  "schema": "hepta.codeql-source-review.v1",
+  "scope": "Current frozen, repository-published reference-source fixtures only; not a universal assertion about arbitrary future callers.",
+  "sink": "experiments/crossfile_eval/fixtures/adapters.py:17",
+  "taskset_sha256": "de45fa4c8b47938473a3cd13ddb45a02161b5c6bfd972026b322d0ad11a275f4"
+}

@@ -342,13 +342,10 @@ class CIntegrationAudit(ProjectFixture):
         self.put("api.hepta.imports.json", json.dumps(imported.manifest))
         return header, binding
 
-    def test_new_language_features_fail_before_c_codegen_or_artifact_replacement(self):
+    def test_unsupported_language_features_fail_before_artifact_replacement(self):
         sources = [
-            "enum Flag{A,B} fn main()->Unit effects {} {}",
-            "fn unused<T>(value:T)->T effects {} {return value;} fn main()->Unit effects {} {}",
-            "struct Box<T>{value:T} fn main()->Unit effects {} {let value:Box<u64>=Box{value:1};}",
-            "fn value()->Result<u64,u8> effects {} {return Result::Ok(1);} fn main()->Unit effects {} {}",
             "fn main()->Unit effects {alloc,block,panic,write} {let group=task_group(0,0,1);group_cancel_and_join(move group);}",
+            "fn main()->Unit effects {} {let value:i32=3.5 as i32;}",
         ]
         destination = self.put("existing-artifact", "previous-artifact-must-survive")
         for source in sources:
@@ -357,7 +354,7 @@ class CIntegrationAudit(ProjectFixture):
                 result = analyze_project(entry, backend="c", crate_type="bin")
                 self.assertFalse(result.report["ok"], result.report)
                 self.assertEqual(result.report["checks"]["types_effects_resources"], "passed_in_supported_subset")
-                self.assertIn("E_C_BACKEND_SUBSET", {d["code"] for d in result.report["diagnostics"]})
+                self.assertTrue({"E_C_RESOURCE_IR", "E_C_BACKEND_CAST"} & {d["code"] for d in result.report["diagnostics"]})
                 self.assertIsNone(result.c)
                 process = subprocess.run([sys.executable, "-m", "hepta", "build", str(entry), "--backend", "c", "-o", str(destination)], cwd=ROOT, capture_output=True, timeout=15)
                 self.assertNotEqual(process.returncode, 0)

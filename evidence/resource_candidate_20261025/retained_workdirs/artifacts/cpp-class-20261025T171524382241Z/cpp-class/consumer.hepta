@@ -1,0 +1,57 @@
+module scalar_class_consumer;
+import scalar_state as value;
+
+export "C" fn word_trace(initial: u32, step: u32, reset: u32, last: u32) -> u32 effects {panic, write} {
+    let mut state = value::ScalarState_new(initial, 0, 0, 0);
+    let snapshot = state;
+    let first = value::ScalarState_add_word(mut state, step);
+    value::ScalarState_set_word(mut state, reset);
+    let final = value::ScalarState_add_word(mut state, last);
+    return first ^ final ^ value::ScalarState_word_value(read snapshot);
+}
+
+export "C" fn wide_trace(initial: u64, first: u64, second: u64) -> u64 effects {panic, write} {
+    let mut state = value::ScalarState_new(0, initial, 0, 0);
+    let snapshot = state;
+    let a = value::ScalarState_mix(mut state, first);
+    let b = value::ScalarState_mix(mut state, second);
+    return a ^ b ^ value::ScalarState_wide_value(read snapshot);
+}
+
+export "C" fn balance_trace(initial: i32, lower: i32, upper: i32) -> i32 effects {panic, write} {
+    let mut state = value::ScalarState_new(0, 0, initial, 0);
+    value::ScalarState_clamp_balance(mut state, lower, upper);
+    return value::ScalarState_balance_value(read state);
+}
+
+export "C" fn position_trace(initial: i64, next: i64) -> i64 effects {panic, write} {
+    let mut state = value::ScalarState_new(0, 0, 0, initial);
+    value::ScalarState_replace_position(mut state, next);
+    return value::ScalarState_position_value(read state);
+}
+
+export "C" fn state_guard(word: u32, wide: u64, balance: i32, position: i64,
+                          step: u32, mix: u64, lower: i32, upper: i32, next: i64) -> i32 effects {panic, write} {
+    let mut state = value::ScalarState_new(word, wide, balance, position);
+    let new_word = value::ScalarState_add_word(mut state, step);
+    if value::ScalarState_word_value(read state) != new_word || value::ScalarState_wide_value(read state) != wide ||
+       value::ScalarState_balance_value(read state) != balance || value::ScalarState_position_value(read state) != position {
+        return 1;
+    }
+    let new_wide = value::ScalarState_mix(mut state, mix);
+    if value::ScalarState_word_value(read state) != new_word || value::ScalarState_wide_value(read state) != new_wide ||
+       value::ScalarState_balance_value(read state) != balance || value::ScalarState_position_value(read state) != position {
+        return 2;
+    }
+    let new_balance = value::ScalarState_clamp_balance(mut state, lower, upper);
+    if value::ScalarState_word_value(read state) != new_word || value::ScalarState_wide_value(read state) != new_wide ||
+       value::ScalarState_balance_value(read state) != new_balance || value::ScalarState_position_value(read state) != position {
+        return 3;
+    }
+    let new_position = value::ScalarState_replace_position(mut state, next);
+    if value::ScalarState_word_value(read state) != new_word || value::ScalarState_wide_value(read state) != new_wide ||
+       value::ScalarState_balance_value(read state) != new_balance || value::ScalarState_position_value(read state) != new_position {
+        return 4;
+    }
+    return 0;
+}

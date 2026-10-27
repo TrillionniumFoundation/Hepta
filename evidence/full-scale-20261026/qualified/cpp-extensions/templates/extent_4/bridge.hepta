@@ -1,0 +1,13 @@
+module sized;
+// All foreign calls remain explicitly unsafe; no C++ safety proof is claimed.
+extern "C" fn hepta_cpp_sized_add(value: u32) -> u32 effects {ffi, unsafe};
+extern "C" fn hepta_cpp_sized_Array_new(out: raw mut u64) -> i32 effects {alloc, block, ffi, unsafe, write};
+extern "C" fn hepta_cpp_sized_Array_destroy(handle: u64) -> i32 effects {alloc, block, ffi, unsafe, write};
+extern "C" fn hepta_cpp_sized_Array_fill(handle: u64, value: u32) -> i32 effects {alloc, block, ffi, unsafe, write};
+extern "C" fn hepta_cpp_sized_Array_at(handle: u64, index: usize, out: raw mut u32) -> i32 effects {alloc, block, ffi, unsafe, write};
+extern "C" fn hepta_cpp_sized_Counted_new(reject: u32, out: raw mut u64) -> i32 effects {alloc, block, ffi, unsafe, write};
+extern "C" fn hepta_cpp_sized_Counted_destroy(handle: u64) -> i32 effects {alloc, block, ffi, unsafe, write};
+extern "C" fn hepta_cpp_sized_Counted_fill(handle: u64, value: u32) -> i32 effects {alloc, block, ffi, unsafe, write};
+extern "C" fn hepta_cpp_sized_Counted_at(handle: u64, index: usize, out: raw mut u32) -> i32 effects {alloc, block, ffi, unsafe, write};
+extern "C" fn hepta_cpp_sized_array_roundtrip(value: u32, index: usize, out: raw mut u32) -> i32 effects {alloc, block, ffi, unsafe, write};
+extern "C" fn hepta_cpp_sized_counted_roundtrip(reject: u32, value: u32, index: usize, out: raw mut u32) -> i32 effects {alloc, block, ffi, unsafe, write};

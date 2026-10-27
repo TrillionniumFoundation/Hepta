@@ -1,0 +1,110 @@
+module c_project_migrated;
+
+// Safe Hepta core. C ABI bridges carry separate caller obligations.
+
+fn c_bool_to_int(value: bool) -> i32 effects {} { if value { return 1; } else { return 0; } }
+
+repr(C) struct C_NativePoint { f_x: i32, f_y: f64, }
+
+pub fn c_local_1_mix_byte(p_value: u32) -> u32 effects {alloc, block, panic, write} {
+    let mut v_value: u32 = p_value;
+    return wrapping_add(wrapping_mul(v_value, (1664525 as u32)), (1013904223 as u32));
+}
+
+pub fn c_mutate_bytes(p_data: mut [u8], p_count: usize, p_seed: u8) -> u32 effects {alloc, block, panic, write} {
+    assert((p_count as usize) <= len(read p_data));
+    let mut v_count: usize = p_count;
+    let mut v_seed: u8 = p_seed;
+    let mut v_total_1: u32 = (0 as u32);
+    let mut v_i_2: usize = ((0 as i32) as usize);
+    while (v_i_2 < v_count) {
+        p_data[v_i_2] = ((c_local_1_mix_byte(wrapping_add((p_data[v_i_2] as u32), (v_seed as u32))) >> ((24 as i32) as u32)) as u8);
+        v_total_1 = wrapping_add(v_total_1, (p_data[v_i_2] as u32));
+        v_i_2 = wrapping_add(v_i_2, (1 as usize));
+    }
+    return v_total_1;
+}
+
+pub fn c_native_add(p_a: i32, p_b: i32) -> i32 effects {alloc, block, panic, write} {
+    let mut v_a: i32 = p_a;
+    let mut v_b: i32 = p_b;
+    return (v_a + v_b);
+}
+
+pub fn c_native_transform(p_value: C_NativePoint, p_data: read [u8], p_count: usize) -> C_NativePoint effects {alloc, block, panic, write} {
+    let mut v_value: C_NativePoint = p_value;
+    assert((p_count as usize) <= len(read p_data));
+    let mut v_count: usize = p_count;
+    let mut v_i_1: usize = ((0 as i32) as usize);
+    while (v_i_1 < v_count) {
+        (v_value).f_x = ((v_value).f_x + (p_data[v_i_1] as i32));
+        v_i_1 = wrapping_add(v_i_1, (1 as usize));
+    }
+    (v_value).f_y = ((v_value).f_y + (v_count as f64));
+    return v_value;
+}
+
+pub fn c_owned_calloc_sum(p_count: usize) -> i64 effects {alloc, block, panic, write} {
+    let mut v_count: usize = p_count;
+    if (v_count == ((0 as i32) as usize)) {
+        return ((0 as i32) as i64);
+    }
+    let allocation_result: Result<Buffer<u8>, u8> = try_buffer(v_count);
+    match move allocation_result {
+        Result::Err(allocation_error) => {
+            return ((-(1 as i32)) as i64);
+        },
+        Result::Ok(allocation_owner) => {
+            let mut owned_data: Buffer<u8> = move allocation_owner;
+            let mut v_result_1: i64 = ((0 as i32) as i64);
+            let mut v_i_2: usize = ((0 as i32) as usize);
+            while (v_i_2 < v_count) {
+                v_result_1 = (v_result_1 + (owned_data[v_i_2] as i64));
+                v_i_2 = wrapping_add(v_i_2, (1 as usize));
+            }
+            release(move owned_data);
+            return v_result_1;
+        },
+    }
+}
+
+pub fn c_owned_malloc_sum(p_count: usize) -> i64 effects {alloc, block, panic, write} {
+    let mut v_count: usize = p_count;
+    if (v_count == ((0 as i32) as usize)) {
+        return ((0 as i32) as i64);
+    }
+    let allocation_result: Result<Buffer<u8>, u8> = try_buffer(v_count);
+    match move allocation_result {
+        Result::Err(allocation_error) => {
+            return ((-(1 as i32)) as i64);
+        },
+        Result::Ok(allocation_owner) => {
+            let mut owned_data: Buffer<u8> = move allocation_owner;
+            let mut v_i_1: usize = ((0 as i32) as usize);
+            while (v_i_1 < v_count) {
+                owned_data[v_i_1] = ((v_i_1 % ((251 as u32) as usize)) as u8);
+                v_i_1 = wrapping_add(v_i_1, (1 as usize));
+            }
+            let mut v_result_2: i64 = ((0 as i32) as i64);
+            let mut v_j_3: usize = ((0 as i32) as usize);
+            while (v_j_3 < v_count) {
+                v_result_2 = (v_result_2 + (owned_data[v_j_3] as i64));
+                v_j_3 = wrapping_add(v_j_3, (1 as usize));
+            }
+            release(move owned_data);
+            return v_result_2;
+        },
+    }
+}
+
+pub fn c_sum_bytes(p_data: read [u8], p_count: usize) -> u32 effects {alloc, block, panic, write} {
+    assert((p_count as usize) <= len(read p_data));
+    let mut v_count: usize = p_count;
+    let mut v_total_1: u32 = (0 as u32);
+    let mut v_i_2: usize = ((0 as i32) as usize);
+    while (v_i_2 < v_count) {
+        v_total_1 = wrapping_add(v_total_1, (p_data[v_i_2] as u32));
+        v_i_2 = wrapping_add(v_i_2, (1 as usize));
+    }
+    return v_total_1;
+}

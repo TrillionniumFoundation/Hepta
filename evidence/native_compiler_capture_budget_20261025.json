@@ -1,0 +1,101 @@
+{
+  "schema": "hepta.native-process-budget-local.v1",
+  "scope": "standalone_compiler_process_and_subprocess_budget_probe_not_full_Hepta_language_qualification",
+  "source_implementation": "local hepta_capture_lab prototype of PR71 run_bounded",
+  "status": "passed_standalone_scope",
+  "python": "3.13.5",
+  "claims": {
+    "foreign_cpp_memory_safe": false,
+    "full_Hepta_native_suite_executed": false,
+    "physical_hardware_verified": false,
+    "real_cross_target_ABI_executed": false,
+    "source_to_IR_refinement_proved": false,
+    "whole_project_blockers_closed": false
+  },
+  "tools": {
+    "clang": {
+      "sha256": "aa7389d9766be7e61df76cf094ac4f1861fd067e12908d1e9fd5cd7eb2a078f4",
+      "version": "clang version 17.0.0 (https://github.com/swiftlang/llvm-project.git 10999b6d034fe318f3d56c83bddb6572593a8bb0)"
+    },
+    "clangxx": {
+      "sha256": "aa7389d9766be7e61df76cf094ac4f1861fd067e12908d1e9fd5cd7eb2a078f4",
+      "version": "clang version 17.0.0 (https://github.com/swiftlang/llvm-project.git 10999b6d034fe318f3d56c83bddb6572593a8bb0)"
+    },
+    "gcc": {
+      "sha256": "a23ecab8ff08f09ad8c80602c2c5df7f49e09c25905cb8975902e101bf72635f",
+      "version": "x86_64-linux-gnu-gcc-14 (Debian 14.2.0-19) 14.2.0"
+    }
+  },
+  "runs": [
+    {
+      "name": "P5_host_ELF_shared",
+      "artifact_bytes": 14976,
+      "artifact_sha256": "bcdfce3c045a458e0c9a4e9b055a1207739ed560d254a9da1cc3758672e55621",
+      "exit_code": 0,
+      "output_excerpt": "",
+      "stderr_bytes": 116,
+      "stdout_bytes": 0
+    },
+    {
+      "name": "P5_arm64_macho_obj",
+      "artifact_bytes": 368,
+      "artifact_sha256": "28267664aa88a596c46649109f9207cb2b29f05a97d70943f30c8997f37d4533",
+      "exit_code": 0,
+      "output_excerpt": "",
+      "stderr_bytes": 116,
+      "stdout_bytes": 0
+    },
+    {
+      "name": "P4_cpp20_std_vector_obj",
+      "artifact_bytes": 1104,
+      "artifact_sha256": "b24b2405f5db606303efc3d51b155908e9a328d1720ca981fe57879518a46db1",
+      "exit_code": 0,
+      "output_excerpt": "",
+      "stderr_bytes": 0,
+      "stdout_bytes": 0
+    },
+    {
+      "name": "P3_gcc_c11_probe_compiled",
+      "artifact_bytes": 15952,
+      "artifact_sha256": "f9a5a48a01c2cb4f68dffbe11d3fb41dd286af01e8bddee7b15ed5c6f196c37b",
+      "exit_code": 0,
+      "output_excerpt": "",
+      "stderr_bytes": 0,
+      "stdout_bytes": 0
+    },
+    {
+      "name": "P3_gcc_probe_executed",
+      "artifact_bytes": null,
+      "artifact_sha256": null,
+      "exit_code": 0,
+      "output_excerpt": "P|int|4|4|1\n",
+      "stderr_bytes": 0,
+      "stdout_bytes": 12
+    }
+  ],
+  "rejections": [
+    {
+      "name": "stdout_quota",
+      "result": "correctly_rejected",
+      "code": "E_CAPTURE_OUTPUT_SIZE"
+    },
+    {
+      "name": "stderr_quota",
+      "result": "correctly_rejected",
+      "code": "E_CAPTURE_OUTPUT_SIZE"
+    },
+    {
+      "name": "timeout",
+      "result": "correctly_rejected",
+      "code": "E_CAPTURE_TIMEOUT"
+    }
+  ],
+  "tests": {
+    "suite": "tests.test_clang_capture",
+    "count": 9,
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0,
+    "exit_code": 0
+  }
+}

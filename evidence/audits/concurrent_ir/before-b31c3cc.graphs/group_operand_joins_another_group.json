@@ -1,0 +1,87 @@
+{
+  "claims": {
+    "cancellation_termination_proved": false,
+    "deadlock_freedom_proved": false,
+    "normal_exit_join_obligations_verified": true,
+    "runtime_budget_bounds_proved": false,
+    "runtime_data_race_freedom_proved": false,
+    "source_to_ir_refinement_proved": false,
+    "whole_language_soundness_proved": false,
+    "worker_input_transfer_verified": true
+  },
+  "functions": [
+    {
+      "blocks": [
+        {
+          "id": "bb0",
+          "operations": [
+            {
+              "dest": "v0",
+              "op": "create",
+              "type": "TaskGroup"
+            },
+            {
+              "dest": "v1",
+              "op": "move",
+              "src": "v0"
+            },
+            {
+              "dest": "v2",
+              "op": "create",
+              "type": "TaskGroup"
+            },
+            {
+              "dest": "v3",
+              "op": "move",
+              "src": "v2"
+            },
+            {
+              "mode": "group_receive_timeout",
+              "op": "group",
+              "src": "v1"
+            },
+            {
+              "dest": "v4",
+              "op": "move",
+              "src": "v3"
+            },
+            {
+              "mode": "group_cancel_and_join",
+              "op": "join",
+              "src": "v4"
+            },
+            {
+              "dest": "v5",
+              "op": "move",
+              "src": "v1"
+            },
+            {
+              "mode": "group_cancel_and_join",
+              "op": "join",
+              "src": "v5"
+            }
+          ],
+          "terminator": {
+            "op": "return",
+            "owner": null
+          }
+        }
+      ],
+      "entry": "bb0",
+      "name": "f",
+      "params": [],
+      "returns": "Unit",
+      "slots": {
+        "v0": "TaskGroup",
+        "v1": "TaskGroup",
+        "v2": "TaskGroup",
+        "v3": "TaskGroup",
+        "v4": "TaskGroup",
+        "v5": "TaskGroup"
+      }
+    }
+  ],
+  "project_sha256": null,
+  "schema": "hepta.concurrent-ir.v1",
+  "source_sha256": "7bf43318a518c3dfaa2ea6507f5ddc91b7def2f7d953f2a889f082b8e252d86d"
+}

@@ -1,0 +1,98 @@
+{
+  "checked_source_sha256": "0a8787298855964da23e36063b198fff9419218445c750e890e4f80a38b7b8fb",
+  "claims": {
+    "abstract_core_theorems_checked": true,
+    "ffi_or_hardware_proved": false,
+    "production_compiler_refinement_proved": false,
+    "termination_or_bounded_cancellation_proved": false,
+    "whole_language_soundness_proved": false
+  },
+  "kernel_output": "'Hepta.resource_preservation' depends on axioms: [propext]\n'Hepta.resource_trace_preservation' depends on axioms: [propext]\n'Hepta.budget_preservation' depends on axioms: [propext, Quot.sound]\n'Hepta.lowering_preserves_value' depends on axioms: [propext, Quot.sound]\n'Hepta.execute_append' depends on axioms: [propext]\n'Hepta.exhausted_tasks_reject_admission' depends on axioms: [propext, Quot.sound]\n'Hepta.full_channel_rejects_send' depends on axioms: [propext]\n'Hepta.no_release_with_readers' depends on axioms: [propext]\n'Hepta.no_release_with_writer' depends on axioms: [propext]\n'Hepta.release_is_not_repeatable' depends on axioms: [propext]\n'Hepta.released_cannot_be_borrowed' depends on axioms: [propext]\n",
+  "kernel_output_sha256": "4bef07a01c2442826e299187cf1f00321667cc46dbd3dc294ae8dcbb3e5e4165",
+  "kernel_returncode": 0,
+  "kernel_stderr": "",
+  "kernel_stdout": "'Hepta.resource_preservation' depends on axioms: [propext]\n'Hepta.resource_trace_preservation' depends on axioms: [propext]\n'Hepta.budget_preservation' depends on axioms: [propext, Quot.sound]\n'Hepta.lowering_preserves_value' depends on axioms: [propext, Quot.sound]\n'Hepta.execute_append' depends on axioms: [propext]\n'Hepta.exhausted_tasks_reject_admission' depends on axioms: [propext, Quot.sound]\n'Hepta.full_channel_rejects_send' depends on axioms: [propext]\n'Hepta.no_release_with_readers' depends on axioms: [propext]\n'Hepta.no_release_with_writer' depends on axioms: [propext]\n'Hepta.release_is_not_repeatable' depends on axioms: [propext]\n'Hepta.released_cannot_be_borrowed' depends on axioms: [propext]\n",
+  "lean": "Lean (version 4.19.0, x86_64-unknown-linux-gnu, commit 6caaee842e94, Release)",
+  "lean_binary_sha256": "92c3d35b5bfaa5e0fea413a775d504cf46cd95e1345df61c2274f76779e7e023",
+  "limits": [
+    "The core does not model production pointer provenance, lifetimes, allocator behavior, FFI, scheduling or hardware.",
+    "No correspondence theorem to the Python checker, resource IR or actual Rust/C/LLVM backend is established.",
+    "The pinned executable relies on its installed Lean runtime and imported standard library as trusted infrastructure.",
+    "Receipt validation checks retained observations and identities; it does not authenticate arbitrary third-party JSON or a hostile host."
+  ],
+  "negative_mutations": [
+    {
+      "checked_source_sha256": "fbf6620940fff8d542359acb612afffd51ed08f39bd9631eb5558a6894851777",
+      "failed_theorem": "Hepta.no_release_with_readers",
+      "log": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-proofs-mn55i011/Check.lean:56:51: error: omega could not prove the goal:\na possible counterexample may satisfy the constraints\n  a \u2265 1\nwhere\n a := \u2191s.readers\n/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-proofs-mn55i011/Check.lean:61:25: error: omega could not prove the goal:\na possible counterexample may satisfy the constraints\n  a \u2265 1\nwhere\n a := \u2191s.readers\n'Hepta.resource_preservation' depends on axioms: [propext, sorryAx]\n'Hepta.resource_trace_preservation' depends on axioms: [propext, sorryAx]\n'Hepta.budget_preservation' depends on axioms: [propext, Quot.sound]\n'Hepta.lowering_preserves_value' depends on axioms: [propext, Quot.sound]\n'Hepta.execute_append' depends on axioms: [propext]\n'Hepta.exhausted_tasks_reject_admission' depends on axioms: [propext, Quot.sound]\n'Hepta.full_channel_rejects_send' depends on axioms: [propext]\n'Hepta.no_release_with_readers' depends on axioms: [propext, sorryAx]\n'Hepta.no_release_with_writer' depends on axioms: [propext]\n'Hepta.release_is_not_repeatable' depends on axioms: [propext]\n'Hepta.released_cannot_be_borrowed' depends on axioms: [propext]\n",
+      "log_sha256": "db8402c3e194ce1a6ad566ae29525f07946602c70d9f332b68c5aed25cf5a852",
+      "mutation": "release_while_borrowed",
+      "returncode": 1,
+      "source_sha256": "bc654b94e6787809b717ad9e232bbbd92d8fe08a8d65725078517f2af5d996c4",
+      "status": "rejected_as_expected",
+      "stderr": "",
+      "stdout": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-proofs-mn55i011/Check.lean:56:51: error: omega could not prove the goal:\na possible counterexample may satisfy the constraints\n  a \u2265 1\nwhere\n a := \u2191s.readers\n/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-proofs-mn55i011/Check.lean:61:25: error: omega could not prove the goal:\na possible counterexample may satisfy the constraints\n  a \u2265 1\nwhere\n a := \u2191s.readers\n'Hepta.resource_preservation' depends on axioms: [propext, sorryAx]\n'Hepta.resource_trace_preservation' depends on axioms: [propext, sorryAx]\n'Hepta.budget_preservation' depends on axioms: [propext, Quot.sound]\n'Hepta.lowering_preserves_value' depends on axioms: [propext, Quot.sound]\n'Hepta.execute_append' depends on axioms: [propext]\n'Hepta.exhausted_tasks_reject_admission' depends on axioms: [propext, Quot.sound]\n'Hepta.full_channel_rejects_send' depends on axioms: [propext]\n'Hepta.no_release_with_readers' depends on axioms: [propext, sorryAx]\n'Hepta.no_release_with_writer' depends on axioms: [propext]\n'Hepta.release_is_not_repeatable' depends on axioms: [propext]\n'Hepta.released_cannot_be_borrowed' depends on axioms: [propext]\n"
+    },
+    {
+      "checked_source_sha256": "4f5d596388372b0d6eed2c7f4ba478c9c87636e3b2d0a2ff3d09c74d0e22e8c4",
+      "failed_theorem": "Hepta.exhausted_tasks_reject_admission",
+      "log": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-proofs-mn55i011/Check.lean:125:49: error: omega could not prove the goal:\na possible counterexample may satisfy the constraints\n  g \u2265 0\n  f \u2265 0\n  e \u2265 0\n  e - f \u2265 0\n  d \u2265 0\n  c \u2265 0\n  c - d \u2265 0\n  c - d - g \u2265 0\n  a \u2265 0\nwhere\n a := \u2191u.admitted\n c := \u2191b.inputBytes\n d := \u2191u.inputBytes\n e := \u2191b.queueSlots\n f := \u2191u.queued\n g := \u2191bytes\u271d\n/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-proofs-mn55i011/Check.lean:133:30: error: omega could not prove the goal:\na possible counterexample may satisfy the constraints\n  e \u2265 0\n  d \u2265 0\n  c \u2265 0\n  c - d - e \u2265 0\n  a \u2265 0\nwhere\n a := \u2191b.tasks\n c := \u2191b.inputBytes\n d := \u2191u.inputBytes\n e := \u2191bytes\n'Hepta.resource_preservation' depends on axioms: [propext]\n'Hepta.resource_trace_preservation' depends on axioms: [propext]\n'Hepta.budget_preservation' depends on axioms: [propext, sorryAx]\n'Hepta.lowering_preserves_value' depends on axioms: [propext, Quot.sound]\n'Hepta.execute_append' depends on axioms: [propext]\n'Hepta.exhausted_tasks_reject_admission' depends on axioms: [propext, sorryAx]\n'Hepta.full_channel_rejects_send' depends on axioms: [propext]\n'Hepta.no_release_with_readers' depends on axioms: [propext]\n'Hepta.no_release_with_writer' depends on axioms: [propext]\n'Hepta.release_is_not_repeatable' depends on axioms: [propext]\n'Hepta.released_cannot_be_borrowed' depends on axioms: [propext]\n",
+      "log_sha256": "b6e4f104c0167cd1f5e4e3c6e977a865d93a4eb26d260eb90a26600fe6c3c0e9",
+      "mutation": "unbounded_task_admission",
+      "returncode": 1,
+      "source_sha256": "38ea1bd19d04928db1f21956323ae2b307ede2c978e683ea21519e5231a0700d",
+      "status": "rejected_as_expected",
+      "stderr": "",
+      "stdout": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-proofs-mn55i011/Check.lean:125:49: error: omega could not prove the goal:\na possible counterexample may satisfy the constraints\n  g \u2265 0\n  f \u2265 0\n  e \u2265 0\n  e - f \u2265 0\n  d \u2265 0\n  c \u2265 0\n  c - d \u2265 0\n  c - d - g \u2265 0\n  a \u2265 0\nwhere\n a := \u2191u.admitted\n c := \u2191b.inputBytes\n d := \u2191u.inputBytes\n e := \u2191b.queueSlots\n f := \u2191u.queued\n g := \u2191bytes\u271d\n/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-proofs-mn55i011/Check.lean:133:30: error: omega could not prove the goal:\na possible counterexample may satisfy the constraints\n  e \u2265 0\n  d \u2265 0\n  c \u2265 0\n  c - d - e \u2265 0\n  a \u2265 0\nwhere\n a := \u2191b.tasks\n c := \u2191b.inputBytes\n d := \u2191u.inputBytes\n e := \u2191bytes\n'Hepta.resource_preservation' depends on axioms: [propext]\n'Hepta.resource_trace_preservation' depends on axioms: [propext]\n'Hepta.budget_preservation' depends on axioms: [propext, sorryAx]\n'Hepta.lowering_preserves_value' depends on axioms: [propext, Quot.sound]\n'Hepta.execute_append' depends on axioms: [propext]\n'Hepta.exhausted_tasks_reject_admission' depends on axioms: [propext, sorryAx]\n'Hepta.full_channel_rejects_send' depends on axioms: [propext]\n'Hepta.no_release_with_readers' depends on axioms: [propext]\n'Hepta.no_release_with_writer' depends on axioms: [propext]\n'Hepta.release_is_not_repeatable' depends on axioms: [propext]\n'Hepta.released_cannot_be_borrowed' depends on axioms: [propext]\n"
+    }
+  ],
+  "schema": "hepta.formal.v2",
+  "scope": "Abstract loan-count resource states, group admission/channel occupancy, wrapping-u64 expression-to-stack lowering",
+  "source": "formal/HeptaCore.lean",
+  "source_sha256": "d3c3fb1e773cde932b5801684ddaffba2149dd565a67950a4c3b8623bca63423",
+  "status": "passed",
+  "theorems": {
+    "budget_preservation": [
+      "propext",
+      "Quot.sound"
+    ],
+    "execute_append": [
+      "propext"
+    ],
+    "exhausted_tasks_reject_admission": [
+      "propext",
+      "Quot.sound"
+    ],
+    "full_channel_rejects_send": [
+      "propext"
+    ],
+    "lowering_preserves_value": [
+      "propext",
+      "Quot.sound"
+    ],
+    "no_release_with_readers": [
+      "propext"
+    ],
+    "no_release_with_writer": [
+      "propext"
+    ],
+    "release_is_not_repeatable": [
+      "propext"
+    ],
+    "released_cannot_be_borrowed": [
+      "propext"
+    ],
+    "resource_preservation": [
+      "propext"
+    ],
+    "resource_trace_preservation": [
+      "propext"
+    ]
+  },
+  "toolchain_lock_sha256": "af6824b79535fcf144ff823444649ef218b8af84a211cb2e9fa3082629003036",
+  "version_probe": {
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "Lean (version 4.19.0, x86_64-unknown-linux-gnu, commit 6caaee842e94, Release)\n"
+  }
+}

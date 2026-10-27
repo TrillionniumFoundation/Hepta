@@ -1,7 +1,7 @@
 # Representative native kernel measurements in v0.2
 
 This suite compares four algorithms beyond the initial sum/copy examples using
-three native implementations. The authoritative numeric results are in
+four native implementations. The authoritative numeric results are in
 [`artifacts/representative-benchmarks.json`](../artifacts/representative-benchmarks.json).
 Read them with the compiler/source identities recorded in that report. Earlier
 development-branch timing tables and function-size numbers are not carried
@@ -14,6 +14,7 @@ forward as measurements of a different v0.2 source snapshot.
 | `hepta_rust` | [`representative.hepta`](../benchmarks/representative.hepta), checked and emitted by Hepta, then compiled by rustc |
 | `rust` | Independently handwritten [`representative.rs`](../benchmarks/representative.rs), compiled directly by rustc |
 | `hepta_c` | The same checked Hepta program lowered directly to C11 and compiled by GCC |
+| `hepta_c_unroll` | The identical generated C with the explicit `unroll` optimization profile (`-funroll-loops`) |
 
 The primary comparison, `hepta_rust` against `rust`, uses the same Rust compiler,
 target and default target CPU, optimization level 3, overflow checks enabled,
@@ -22,7 +23,7 @@ handwritten baseline is not generated from Hepta's emitted Rust. Compiler
 versions, flags, commands, generated-source identities, and artifact identities
 are recorded where each build path exposes them.
 
-All three implementations have the same external C calling convention and
+All four implementations have the same external C calling convention and
 raw-pointer caller obligations. Kernels allocate nothing, and the driver
 allocates outside timed regions. The dot product and FNV computation use
 explicit modular arithmetic. These kernels measure a raw-pointer, allocation-free
@@ -49,8 +50,8 @@ executable's output before measuring it:
 | Binary-search batches | Find lower bounds in a sorted table containing duplicates and gaps; compare with an oracle that sorts queries and performs a linear merge |
 
 The correctness lengths are 1, 3, 31, 255, 257, and 4,099, covering short inputs,
-tails, and bin boundaries. Three implementations, four kernels, and six lengths
-produce 72 correctness invocations. The driver also checks zero-length inputs
+tails, and bin boundaries. Four implementations, four kernels, and six lengths
+produce 96 correctness invocations. The driver also checks zero-length inputs
 and empty query batches. These checks can catch mismatched answers and edge
 behavior; they are not proofs for every input or proof that unsafe caller
 obligations are satisfied in arbitrary applications.
@@ -71,8 +72,8 @@ and must be at least three.
 The default configuration uses seven trials for each of two sizes, 4,096 and
 262,144 input elements. Implementation order is randomized with seed 20261024;
 execution is pinned to one available CPU when affinity and `taskset` are
-supported. Four kernels, two sizes, three implementations, and seven trials
-produce **168 timing samples**. The first three kernels are reported in
+supported. Four kernels, two sizes, four implementations, and seven trials
+produce **224 timing samples**. The first three kernels are reported in
 nanoseconds per element; binary search is reported in nanoseconds per query.
 Sample count and units must be taken from the actual report if options change.
 
@@ -82,6 +83,28 @@ median time by the independently handwritten Rust median for that kernel and
 size. A ratio above 1 means an observed slowdown; below 1 means a shorter
 observed time. `measurements.all_observed_slowdowns` retains every ratio above 1
 without claiming statistical significance.
+
+## Explicit C loop optimization
+
+The default C flags remain unchanged. `hepta build/run/check --backend c
+--c-opt unroll` selects a separately identified optimization profile. Both the
+native checking compilation and the final artifact use that selection. Invalid
+profiles, use with the Rust backend, and combining `unroll` with disabled
+optimization fail explicitly. The profile enables ordinary compiler loop
+unrolling; it does not remove overflow/bounds guards, enable fast-math, infer
+restrict/no-alias contracts, or change the language's modular arithmetic.
+
+The previous modular dot slowdown was reproduced as scalar GCC output. In an
+exploratory comparison, both a relaxed vectorization cost model and loop
+unrolling improved that kernel; their effects on histogram/search differed.
+The accepted optional profile uses only `-funroll-loops`. The suite retains the
+default C baseline, includes the unrolled variant in **all** kernels/sizes, and
+reports every slowdown for it too. No benchmark winner is selected per kernel
+at runtime. GCC documents that [loop unrolling increases code size and may or
+may not improve performance](https://gcc.gnu.org/onlinedocs/gcc-13.4.0/gcc/Optimize-Options.html#index-funroll-loops).
+This is an exposed and measured tradeoff, not a guarantee that all C output
+matches or beats Rust. The complete unchanged-source release run is the source
+for current measurements; exploratory numbers are not substituted for it.
 
 ## Reading the release report
 

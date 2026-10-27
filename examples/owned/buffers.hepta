@@ -1,0 +1,31 @@
+module buffers;
+
+pub struct Packet { bytes: Buffer<u8>, tag: u32 }
+pub enum BuildError { Empty, AboveLimit, AllocationFailed }
+
+// The application limit is separate from the allocator's fallible reservation.
+pub fn create(size: usize, limit: usize, tag: u32) -> Result<Packet, BuildError>
+effects {alloc, block, panic} {
+    if size == 0 { return Result::Err(BuildError::Empty); }
+    if size > limit { return Result::Err(BuildError::AboveLimit); }
+    match try_buffer(size) {
+        Result::Ok(bytes) => { return Result::Ok(Packet { bytes: move bytes, tag: tag }); },
+        Result::Err(code) => { return Result::Err(BuildError::AllocationFailed); },
+    }
+}
+
+pub fn fill(packet: mut Packet, byte: u8) -> Unit effects {panic, write} {
+    for i in 0..len(packet.bytes) { packet.bytes[i] = byte; }
+}
+
+pub fn checksum(packet: read Packet) -> u64 effects {panic} {
+    let mut sum: u64 = 0;
+    for i in 0..len(packet.bytes) { sum = wrapping_add(sum, packet.bytes[i] as u64); }
+    return sum;
+}
+
+pub fn forward(packet: take Packet) -> Packet effects {} { return move packet; }
+
+pub fn close(packet: take Packet) -> Unit effects {alloc, block} {
+    drop(move packet);
+}

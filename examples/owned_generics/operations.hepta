@@ -1,0 +1,43 @@
+module operations;
+
+pub fn forward<T: Owned>(value: take T) -> T effects {} {
+  return move value;
+}
+
+pub fn dispose<T: Owned>(value: take T) -> Unit effects {alloc, block} {
+  drop(move value);
+}
+
+pub fn finish<T: Owned, E: Copy>(value: take T, ok: bool, error: E)
+    -> Result<T, E> effects {alloc, block} {
+  if !ok {
+    dispose::<T>(move value);
+    return Result::Err(error);
+  }
+  return Result::Ok(move forward::<T>(move value));
+}
+
+pub fn recover<T: Owned, E: Copy>(outcome: take Result<T, E>, backup: take T)
+    -> T effects {alloc, block} {
+  match move outcome {
+    Result::Ok(value) => {
+      dispose::<T>(move backup);
+      return move value;
+    },
+    Result::Err(error) => { return move backup; }
+  }
+}
+
+pub fn choose<T: Owned, E: Owned>(value: take T, error: take E, ok: bool)
+    -> Result<T, E> effects {alloc, block} {
+  if ok {
+    dispose::<E>(move error);
+    return Result::Ok(move value);
+  }
+  dispose::<T>(move value);
+  return Result::Err(move error);
+}
+
+pub fn view<T: Owned>(value: read T) -> read T effects {} {
+  return read value;
+}

@@ -1,0 +1,462 @@
+{
+  "created_utc": "2026-10-25T17:23:06.577243+00:00",
+  "limits": [
+    "Budgets are per group, not global process bounds.",
+    "Input-byte budgets count cumulative admitted Buffer lengths, not worker allocations or RSS.",
+    "Task limits count total admissions for the group's lifetime; completed slots are not recycled.",
+    "Cancellation and group_fail are cooperative; arbitrary worker termination is not proved.",
+    "Channel timeouts use one monotonic deadline; mutex scheduling and subsequent joins are not wall-clock bounded.",
+    "panic=abort remains process-fatal; cooperative error reporting is not panic containment.",
+    "Observed elapsed times are not latency bounds or Rust performance superiority evidence."
+  ],
+  "scenarios": [
+    {
+      "artifact_sha256": "6cb6d62bb8b14c4768192e3714d87b0eb3dd697940f0765f4d7dba5b4f52dfc7",
+      "backend_validation": {
+        "rust_borrows_types": "rustc_checked",
+        "syntax": "passed",
+        "types_effects_resources": "passed_in_supported_subset"
+      },
+      "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+      "resource_contracts": [
+        {
+          "enforcement": "runtime_admission_and_fixed_queue",
+          "excludes": [
+            "other_group_instances",
+            "allocations_before_submission",
+            "worker_internal_allocations",
+            "thread_stacks",
+            "runtime_metadata",
+            "process_RSS",
+            "CPU_time"
+          ],
+          "function": "main",
+          "kind": "task_group",
+          "limits": {
+            "admitted_input_bytes": 32768,
+            "admitted_tasks": 8,
+            "queued_u64_values": 4
+          },
+          "line": 17,
+          "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/groups/bounded_pipeline.hepta",
+          "scope": "one_runtime_instance"
+        }
+      ],
+      "runs": [
+        {
+          "elapsed_ms": 313.904,
+          "metrics": {
+            "active_tasks": 0,
+            "admitted_input_bytes": 32768,
+            "completed_tasks": 8,
+            "peak_queued": 4,
+            "received_sum": 32768,
+            "send_waits": 25716
+          },
+          "returncode": 0
+        },
+        {
+          "elapsed_ms": 226.065,
+          "metrics": {
+            "active_tasks": 0,
+            "admitted_input_bytes": 32768,
+            "completed_tasks": 8,
+            "peak_queued": 4,
+            "received_sum": 32768,
+            "send_waits": 18724
+          },
+          "returncode": 0
+        },
+        {
+          "elapsed_ms": 252.982,
+          "metrics": {
+            "active_tasks": 0,
+            "admitted_input_bytes": 32768,
+            "completed_tasks": 8,
+            "peak_queued": 4,
+            "received_sum": 32768,
+            "send_waits": 24324
+          },
+          "returncode": 0
+        }
+      ],
+      "rust_sha256": "1bf8caabd83ef6b365711cebef8b06e18f53af7bdaee04b90794daad13d76fb0",
+      "scenario": "bounded_pipeline",
+      "source": "examples/groups/bounded_pipeline.hepta",
+      "source_sha256": "83b3dd2e4f1d9cced6ca7ca51cd80bd0a919cfab9ec0b50be7c25968daef88b1",
+      "status": "passed"
+    },
+    {
+      "artifact_sha256": "8fbacfd9815d03f342597b5a613f9f28f7810d402cf4805cf7493a599b505efe",
+      "backend_validation": {
+        "rust_borrows_types": "rustc_checked",
+        "syntax": "passed",
+        "types_effects_resources": "passed_in_supported_subset"
+      },
+      "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+      "resource_contracts": [
+        {
+          "enforcement": "runtime_admission_and_fixed_queue",
+          "excludes": [
+            "other_group_instances",
+            "allocations_before_submission",
+            "worker_internal_allocations",
+            "thread_stacks",
+            "runtime_metadata",
+            "process_RSS",
+            "CPU_time"
+          ],
+          "function": "main",
+          "kind": "task_group",
+          "limits": {
+            "admitted_input_bytes": 128,
+            "admitted_tasks": 2,
+            "queued_u64_values": 1
+          },
+          "line": 12,
+          "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/groups/admission_budgets.hepta",
+          "scope": "one_runtime_instance"
+        },
+        {
+          "enforcement": "runtime_admission_and_fixed_queue",
+          "excludes": [
+            "other_group_instances",
+            "allocations_before_submission",
+            "worker_internal_allocations",
+            "thread_stacks",
+            "runtime_metadata",
+            "process_RSS",
+            "CPU_time"
+          ],
+          "function": "main",
+          "kind": "task_group",
+          "limits": {
+            "admitted_input_bytes": 8,
+            "admitted_tasks": 3,
+            "queued_u64_values": 1
+          },
+          "line": 22,
+          "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/groups/admission_budgets.hepta",
+          "scope": "one_runtime_instance"
+        },
+        {
+          "enforcement": "runtime_admission_and_fixed_queue",
+          "excludes": [
+            "other_group_instances",
+            "allocations_before_submission",
+            "worker_internal_allocations",
+            "thread_stacks",
+            "runtime_metadata",
+            "process_RSS",
+            "CPU_time"
+          ],
+          "function": "main",
+          "kind": "task_group",
+          "limits": {
+            "admitted_input_bytes": 0,
+            "admitted_tasks": 0,
+            "queued_u64_values": 1
+          },
+          "line": 32,
+          "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/groups/admission_budgets.hepta",
+          "scope": "one_runtime_instance"
+        }
+      ],
+      "runs": [
+        {
+          "elapsed_ms": 1.702,
+          "metrics": {
+            "admitted_input_bytes": 8,
+            "admitted_tasks": 2,
+            "input_budget_rejections": 1,
+            "task_budget_rejections": 1,
+            "zero_budget_completed": 0
+          },
+          "returncode": 0
+        },
+        {
+          "elapsed_ms": 2.048,
+          "metrics": {
+            "admitted_input_bytes": 8,
+            "admitted_tasks": 2,
+            "input_budget_rejections": 1,
+            "task_budget_rejections": 1,
+            "zero_budget_completed": 0
+          },
+          "returncode": 0
+        },
+        {
+          "elapsed_ms": 1.995,
+          "metrics": {
+            "admitted_input_bytes": 8,
+            "admitted_tasks": 2,
+            "input_budget_rejections": 1,
+            "task_budget_rejections": 1,
+            "zero_budget_completed": 0
+          },
+          "returncode": 0
+        }
+      ],
+      "rust_sha256": "2aa0e2633c0e95dd92f552e85b982ac4fc8cb956cb0b87393f4ab601512f40f0",
+      "scenario": "admission_budgets",
+      "source": "examples/groups/admission_budgets.hepta",
+      "source_sha256": "2d13649569812185dff136e54b456b6fb2edd72353ccdce295bfc4add5add53a",
+      "status": "passed"
+    },
+    {
+      "artifact_sha256": "9a05c503fe384e1c3b266bdf310a270e22cbdaf1a7efaaee41bb50076bb8680a",
+      "backend_validation": {
+        "rust_borrows_types": "rustc_checked",
+        "syntax": "passed",
+        "types_effects_resources": "passed_in_supported_subset"
+      },
+      "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+      "resource_contracts": [
+        {
+          "enforcement": "runtime_admission_and_fixed_queue",
+          "excludes": [
+            "other_group_instances",
+            "allocations_before_submission",
+            "worker_internal_allocations",
+            "thread_stacks",
+            "runtime_metadata",
+            "process_RSS",
+            "CPU_time"
+          ],
+          "function": "main",
+          "kind": "task_group",
+          "limits": {
+            "admitted_input_bytes": 256,
+            "admitted_tasks": 4,
+            "queued_u64_values": 1
+          },
+          "line": 15,
+          "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/groups/cancellation.hepta",
+          "scope": "one_runtime_instance"
+        }
+      ],
+      "runs": [
+        {
+          "elapsed_ms": 1.814,
+          "metrics": {
+            "active_tasks": 0,
+            "completed_tasks": 4,
+            "discarded_values": 1,
+            "waiting_senders": 0,
+            "worker_result_sum": 256
+          },
+          "returncode": 0
+        },
+        {
+          "elapsed_ms": 1.356,
+          "metrics": {
+            "active_tasks": 0,
+            "completed_tasks": 4,
+            "discarded_values": 1,
+            "waiting_senders": 0,
+            "worker_result_sum": 256
+          },
+          "returncode": 0
+        },
+        {
+          "elapsed_ms": 1.416,
+          "metrics": {
+            "active_tasks": 0,
+            "completed_tasks": 4,
+            "discarded_values": 1,
+            "waiting_senders": 0,
+            "worker_result_sum": 256
+          },
+          "returncode": 0
+        }
+      ],
+      "rust_sha256": "ffb33215e324445e46c38bf61e62d2acc66d9b0fa90b0e1dccd525cd73c0cf6c",
+      "scenario": "cancellation",
+      "source": "examples/groups/cancellation.hepta",
+      "source_sha256": "bdd4dbe166374332aa4f2a029ce0a988bc9dbe6058c80cc84dabf1282f690f2f",
+      "status": "passed"
+    },
+    {
+      "artifact_sha256": "0f4dd7e8f0adf45aca0db11c769cc07d2749449e1cdef1c9ac4e0ba6a7be7105",
+      "backend_validation": {
+        "rust_borrows_types": "rustc_checked",
+        "syntax": "passed",
+        "types_effects_resources": "passed_in_supported_subset"
+      },
+      "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+      "resource_contracts": [
+        {
+          "enforcement": "runtime_admission_and_fixed_queue",
+          "excludes": [
+            "other_group_instances",
+            "allocations_before_submission",
+            "worker_internal_allocations",
+            "thread_stacks",
+            "runtime_metadata",
+            "process_RSS",
+            "CPU_time"
+          ],
+          "function": "main",
+          "kind": "task_group",
+          "limits": {
+            "admitted_input_bytes": 193,
+            "admitted_tasks": 4,
+            "queued_u64_values": 1
+          },
+          "line": 25,
+          "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/groups/worker_failure.hepta",
+          "scope": "one_runtime_instance"
+        }
+      ],
+      "runs": [
+        {
+          "elapsed_ms": 1.804,
+          "metrics": {
+            "active_tasks": 0,
+            "completed_tasks": 4,
+            "failure_code": 17,
+            "received_before_close": 16,
+            "waiting_senders": 0
+          },
+          "returncode": 0
+        },
+        {
+          "elapsed_ms": 1.65,
+          "metrics": {
+            "active_tasks": 0,
+            "completed_tasks": 4,
+            "failure_code": 17,
+            "received_before_close": 5,
+            "waiting_senders": 0
+          },
+          "returncode": 0
+        },
+        {
+          "elapsed_ms": 1.532,
+          "metrics": {
+            "active_tasks": 0,
+            "completed_tasks": 4,
+            "failure_code": 17,
+            "received_before_close": 2,
+            "waiting_senders": 0
+          },
+          "returncode": 0
+        }
+      ],
+      "rust_sha256": "6b41b394c5680c2a04c30ba264fc69f6b1886392a78d933511632afa91481483",
+      "scenario": "worker_failure",
+      "source": "examples/groups/worker_failure.hepta",
+      "source_sha256": "1a6ca8b8e82c6edfbb469f6e692aa71cdbc549266dd43e37beb523ea90481bcf",
+      "status": "passed"
+    },
+    {
+      "artifact_sha256": "0d03e421423b514b4e0f8c5924528fcbd4ee7784a49400b80c4070e1fc939e9f",
+      "backend_validation": {
+        "rust_borrows_types": "rustc_checked",
+        "syntax": "passed",
+        "types_effects_resources": "passed_in_supported_subset"
+      },
+      "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+      "resource_contracts": [
+        {
+          "enforcement": "runtime_admission_and_fixed_queue",
+          "excludes": [
+            "other_group_instances",
+            "allocations_before_submission",
+            "worker_internal_allocations",
+            "thread_stacks",
+            "runtime_metadata",
+            "process_RSS",
+            "CPU_time"
+          ],
+          "function": "main",
+          "kind": "task_group",
+          "limits": {
+            "admitted_input_bytes": 8,
+            "admitted_tasks": 1,
+            "queued_u64_values": 1
+          },
+          "line": 34,
+          "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/groups/timeouts.hepta",
+          "scope": "one_runtime_instance"
+        },
+        {
+          "enforcement": "runtime_admission_and_fixed_queue",
+          "excludes": [
+            "other_group_instances",
+            "allocations_before_submission",
+            "worker_internal_allocations",
+            "thread_stacks",
+            "runtime_metadata",
+            "process_RSS",
+            "CPU_time"
+          ],
+          "function": "main",
+          "kind": "task_group",
+          "limits": {
+            "admitted_input_bytes": 16,
+            "admitted_tasks": 1,
+            "queued_u64_values": 1
+          },
+          "line": 53,
+          "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/groups/timeouts.hepta",
+          "scope": "one_runtime_instance"
+        }
+      ],
+      "runs": [
+        {
+          "elapsed_ms": 6.887,
+          "metrics": {
+            "active_tasks": 0,
+            "completed_tasks": 1,
+            "receive_timeouts": 1,
+            "received": 1,
+            "send_timeouts": 1,
+            "worker_result_sum": 2
+          },
+          "returncode": 0
+        },
+        {
+          "elapsed_ms": 6.369,
+          "metrics": {
+            "active_tasks": 0,
+            "completed_tasks": 1,
+            "receive_timeouts": 1,
+            "received": 1,
+            "send_timeouts": 1,
+            "worker_result_sum": 2
+          },
+          "returncode": 0
+        },
+        {
+          "elapsed_ms": 6.386,
+          "metrics": {
+            "active_tasks": 0,
+            "completed_tasks": 1,
+            "receive_timeouts": 1,
+            "received": 1,
+            "send_timeouts": 1,
+            "worker_result_sum": 2
+          },
+          "returncode": 0
+        }
+      ],
+      "rust_sha256": "cfd3aa539bb837a92d2e3aa882f66cce03fe38795d2fe707c83f678ca33683c9",
+      "scenario": "timeouts",
+      "source": "examples/groups/timeouts.hepta",
+      "source_sha256": "0cb40f6860c3014c518b31b056ea463d3e31bd1a776788cbdd410b1a0d126681",
+      "status": "passed"
+    }
+  ],
+  "schema": "hepta.groups.evidence.v1",
+  "scope": "bounded group-owned u64 channels and one TaskGroup admission budget",
+  "status": "passed",
+  "toolchain": {
+    "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+    "host": "x86_64-unknown-linux-gnu",
+    "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+    "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+    "sysroot_discovery": "verified_compiler_prefix",
+    "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+  }
+}

@@ -1,0 +1,16 @@
+module c_owned_example;
+import owned;
+
+fn main()->Unit effects {alloc,block,panic,io} {
+  let mut checksum:u64=0;
+  for index in 0..128 {
+    let size=index as usize;
+    let accepted=owned::probe(size,true);
+    let refused=owned::probe(size,false);
+    assert(accepted==index as u64+23);
+    assert(refused==19);
+    checksum=checksum+accepted+refused;
+  }
+  assert(checksum==13504);
+  print_i64(checksum as i64);
+}

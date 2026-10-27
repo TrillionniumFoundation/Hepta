@@ -1,0 +1,131 @@
+{
+  "actual_ai_model_runs": 0,
+  "api_credentials_used": false,
+  "conclusion": "Parent and initial capsule both fail api.openai.com DNS; follow-up confirms shared provider net namespace and distinct user/PID/IPC/mount namespaces. TLS readiness is unverified; no API request or credential use.",
+  "endpoint": "api.openai.com:443",
+  "http_requests_sent": 0,
+  "initial_capsule_probe": {
+    "api_credentials_used": false,
+    "ca_directory_readable": true,
+    "ca_store": {
+      "crl": 0,
+      "x509": 124,
+      "x509_ca": 124
+    },
+    "check_hostname": true,
+    "credential_forwarded": false,
+    "dns": {
+      "errno": -3,
+      "error": "[Errno -3] Temporary failure in name resolution",
+      "error_type": "gaierror",
+      "status": "failed"
+    },
+    "hosts_readable": true,
+    "http_requests_sent": 0,
+    "network_requested": true,
+    "observation_tool_chunk": "4f4e0f",
+    "resolv_conf_readable": true,
+    "returncode": 0,
+    "source_commit": "022ed82baf2c9afee470022d20c70c5d17682982",
+    "stdlib_ssl": true,
+    "tls": {
+      "reason": "DNS failed before socket/TLS connection",
+      "status": "not_run"
+    },
+    "verify_mode": 2
+  },
+  "namespace_config": [
+    "/usr/bin/bwrap",
+    "--die-with-parent",
+    "--unshare-all",
+    "--unshare-user",
+    "--unshare-pid",
+    "--unshare-ipc",
+    "--unshare-net",
+    "--new-session",
+    "--cap-drop",
+    "ALL",
+    "--ro-bind",
+    "/usr",
+    "/usr",
+    "--symlink",
+    "usr/lib",
+    "/lib",
+    "--symlink",
+    "usr/lib64",
+    "/lib64",
+    "--symlink",
+    "usr/bin",
+    "/bin",
+    "--dir",
+    "/proc",
+    "--dev",
+    "/dev",
+    "--tmpfs",
+    "/tmp",
+    "--share-net",
+    "--ro-bind",
+    "/etc/resolv.conf",
+    "/etc/resolv.conf",
+    "--ro-bind",
+    "/etc/hosts",
+    "/etc/hosts",
+    "--ro-bind",
+    "/etc/ssl/certs",
+    "/etc/ssl/certs",
+    "--bind",
+    "/tmp/hepta-adapter-dns-audit-gtt7hgxh",
+    "/tmp/hepta-adapter-dns-audit-gtt7hgxh",
+    "--chdir",
+    "/tmp/hepta-adapter-dns-audit-gtt7hgxh"
+  ],
+  "namespaces": {
+    "ipc": {
+      "child": "ipc:[4026532278]",
+      "different": true,
+      "parent": "ipc:[4026532191]"
+    },
+    "mnt": {
+      "child": "mnt:[4026532208]",
+      "different": true,
+      "parent": "mnt:[4026532201]"
+    },
+    "net": {
+      "child": "net:[4026531833]",
+      "different": false,
+      "parent": "net:[4026531833]"
+    },
+    "pid": {
+      "child": "pid:[4026532279]",
+      "different": true,
+      "parent": "pid:[4026532200]"
+    },
+    "user": {
+      "child": "user:[4026532207]",
+      "different": true,
+      "parent": "user:[4026531837]"
+    }
+  },
+  "network_requested": true,
+  "parent_dns": {
+    "errno": -3,
+    "error": "[Errno -3] Temporary failure in name resolution",
+    "error_type": "gaierror",
+    "status": "failed"
+  },
+  "probe_error": {
+    "message": "DNS probe timeout",
+    "type": "TimeoutError"
+  },
+  "schema": "hepta.adapter_runtime_audit.v1",
+  "source_commit": "022ed82baf2c9afee470022d20c70c5d17682982",
+  "source_sha256": {
+    "experiments/agent_eval/sandbox.py": "f3e47e5a2b83b7322161934bbc600a3257d153bd60ebc9ea91ea847da5059ad9",
+    "tools/provider_adapter/export.py": "0724905c96a12e299b7a65998848bfd4e85cf8cf9e86552453ef89dc2cec401b",
+    "tools/provider_adapter/openai_chat.py": "a0e39275b10cac4eb8e4f591f50733157b17a6dd508aaf72cc71da733c67eb49"
+  },
+  "tls": {
+    "reason": "DNS/runtime-only audit; no HTTP request authorized",
+    "status": "not_run"
+  }
+}

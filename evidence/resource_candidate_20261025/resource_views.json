@@ -1,0 +1,572 @@
+{
+  "allocator_source_sha256": "e03cca6f4d8d71c27216fd18c23c987eaec2915e51408480dffb6f32f005b0bb",
+  "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+  "driver_build": {
+    "argv": [
+      "/usr/bin/x86_64-linux-gnu-gcc-13",
+      "-std=c11",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-view-native-y2c0d6aq/driver.c",
+      "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-view-native-y2c0d6aq/views.a",
+      "-pthread",
+      "-ldl",
+      "-lm",
+      "-o",
+      "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-view-native-y2c0d6aq/views"
+    ],
+    "artifact_sha256": "ac2289850b4b55937432ddb86281a480d5cbf12960628e5986fe0ee562b9b2e1",
+    "returncode": 0,
+    "seconds": 0.10882861699792556,
+    "stderr": "",
+    "stdout": ""
+  },
+  "driver_compiler": {
+    "executable_sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26",
+    "path": "/usr/bin/x86_64-linux-gnu-gcc-13"
+  },
+  "driver_source_sha256": "73809fcc356b15c9f544df303c2f71515378b7e425dd059cd11ec30af5ce372a",
+  "execution": {
+    "argv": [
+      "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-view-native-y2c0d6aq/views"
+    ],
+    "executable_sha256": "ac2289850b4b55937432ddb86281a480d5cbf12960628e5986fe0ee562b9b2e1",
+    "returncode": 0,
+    "seconds": 0.0011467290023574606,
+    "stderr": "",
+    "stdout": "{\"size\":0,\"mode\":0,\"result\":-1,\"live\":0}\n{\"size\":4,\"mode\":0,\"result\":7,\"live\":0}\n{\"size\":4,\"mode\":1,\"result\":-2,\"live\":0}\n{\"size\":4,\"mode\":2,\"result\":11,\"live\":0}\n{\"size\":65519,\"mode\":0,\"result\":-1,\"live\":0}\n{\"size\":4,\"mode\":0,\"result\":7,\"live\":0}\n{\"size\":65519,\"mode\":1,\"result\":-1,\"live\":0}\n{\"size\":4,\"mode\":2,\"result\":11,\"live\":0}\n{\"size\":65536,\"mode\":0,\"result\":-3,\"live\":0}\n{\"allocator_refusals\":2}\n"
+  },
+  "graph": {
+    "path": "evidence/resource_candidate_20261025/resource_views.graph.json",
+    "schema": "hepta.resource-ir.v4",
+    "sha256": "930b29d1b1585361ce7b39cea3dac04f1984a8b57381bb9032aa8e429ff6243d"
+  },
+  "independent_process": {
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "-c",
+      "import json,sys;from hepta.resource_ir import read_resource_ir,verify_resource_ir;r=verify_resource_ir(read_resource_ir(sys.argv[1]));r['frontend_modules_imported']=[m for m in ('hepta.parser','hepta.checker') if m in sys.modules];print(json.dumps(r));sys.exit(0 if r['ok'] and not r['frontend_modules_imported'] else 1)",
+      "evidence/resource_candidate_20261025/resource_views.graph.json"
+    ],
+    "returncode": 0,
+    "seconds": 0.04402253800071776,
+    "stderr": "",
+    "stdout": "{\"schema\": \"hepta.resource-ir-validation.v1\", \"ok\": true, \"status\": \"resource_cfg_verified\", \"functions\": [{\"function\": \"forward\", \"reachable_blocks\": 1, \"total_blocks\": 1, \"normal_exits\": 1}, {\"function\": \"create\", \"reachable_blocks\": 12, \"total_blocks\": 12, \"normal_exits\": 5}, {\"function\": \"exercise\", \"reachable_blocks\": 12, \"total_blocks\": 12, \"normal_exits\": 3}, {\"function\": \"main\", \"reachable_blocks\": 1, \"total_blocks\": 1, \"normal_exits\": 1}], \"operations_checked\": 62, \"generic_functions_checked\": 1, \"generic_calls_checked\": 1, \"owned_types\": [\"@forward::T\", \"Box<Buffer<u8>>\", \"Buffer<u8>\", \"Edit<'_>\", \"Result<Box<Buffer<u8>>, u8>\", \"Result<Buffer<u8>, u8>\"], \"external_obligations\": {}, \"diagnostics\": [], \"claims\": {\"source_to_ir_refinement_proved\": false, \"native_codegen_uses_this_ir\": false, \"whole_language_soundness_proved\": false, \"external_contracts_proved\": false, \"termination_proved\": false, \"scalar_value_semantics_verified\": false}, \"stored_views\": {\"profile\": \"local_single_u8_slice_records_v1\", \"types\": [\"Bytes<'_>\", \"Edit<'_>\"], \"scope\": \"explicit_cfg_loans_with_lexical_shared_view_end_and_affine_mutable_view_drop\", \"interprocedural_stored_regions_checked\": false, \"generic_lifetime_composition_checked\": false}, \"ir_sha256\": \"6af7380ce7741a08f2b1c497f071f6c9ba001436aacd7cb8546411e2f4f74f2d\", \"frontend_modules_imported\": []}\n"
+  },
+  "inputs": {
+    "examples/resource_views/owned_buffer.hepta": "6ea5830d984470ab5b8778fedf884675435a0671527625767b6464de3173eea7",
+    "tools/qualify_resource_views.py": "f8c4dff3c3da88ae320a8d3292da617146b17be343668c276b00438f9d6f21e5"
+  },
+  "instrumented_rust_sha256": "a35f496ef19a6fba7067a5a325f6f220f9ee6ce3102b49d13f373df9296ef90c",
+  "mixed_generic_lifetime_parameters_supported": false,
+  "native_build": {
+    "artifact": "/dev/shm/hepta-c7c6ee414a6c/tmp/hepta-view-native-y2c0d6aq/views.a",
+    "artifact_bytes": 20953690,
+    "artifact_sha256": "f925ba747e99987f667c769b4c2b0a4db25ec718e4737709f8d94bc28d22ae3a",
+    "check_only": false,
+    "crate_type": "staticlib",
+    "diagnostics": [],
+    "flags": [
+      "edition=2021",
+      "opt-level=3",
+      "overflow-checks=yes",
+      "panic=abort",
+      "codegen-units=1",
+      "sysroot=/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0"
+    ],
+    "link_args": [],
+    "linker": null,
+    "ok": true,
+    "rust_sha256": "a35f496ef19a6fba7067a5a325f6f220f9ee6ce3102b49d13f373df9296ef90c",
+    "rustc_crate_type": "staticlib",
+    "status": "rustc_checked",
+    "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+    "target": "x86_64-unknown-linux-gnu",
+    "toolchain": {
+      "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+      "host": "x86_64-unknown-linux-gnu",
+      "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+      "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+      "sysroot_discovery": "verified_compiler_prefix",
+      "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+    },
+    "validation_artifact_sha256": "f925ba747e99987f667c769b4c2b0a4db25ec718e4737709f8d94bc28d22ae3a"
+  },
+  "observations": [
+    {
+      "live": 0,
+      "mode": 0,
+      "result": -1,
+      "size": 0
+    },
+    {
+      "live": 0,
+      "mode": 0,
+      "result": 7,
+      "size": 4
+    },
+    {
+      "live": 0,
+      "mode": 1,
+      "result": -2,
+      "size": 4
+    },
+    {
+      "live": 0,
+      "mode": 2,
+      "result": 11,
+      "size": 4
+    },
+    {
+      "live": 0,
+      "mode": 0,
+      "result": -1,
+      "size": 65519
+    },
+    {
+      "live": 0,
+      "mode": 0,
+      "result": 7,
+      "size": 4
+    },
+    {
+      "live": 0,
+      "mode": 1,
+      "result": -1,
+      "size": 65519
+    },
+    {
+      "live": 0,
+      "mode": 2,
+      "result": 11,
+      "size": 4
+    },
+    {
+      "live": 0,
+      "mode": 0,
+      "result": -3,
+      "size": 65536
+    },
+    {
+      "allocator_refusals": 2
+    }
+  ],
+  "ok": true,
+  "resource_verification": {
+    "claims": {
+      "external_contracts_proved": false,
+      "native_codegen_uses_this_ir": false,
+      "scalar_value_semantics_verified": false,
+      "source_to_ir_refinement_proved": false,
+      "termination_proved": false,
+      "whole_language_soundness_proved": false
+    },
+    "diagnostics": [],
+    "external_obligations": {},
+    "frontend_modules_imported": [],
+    "functions": [
+      {
+        "function": "forward",
+        "normal_exits": 1,
+        "reachable_blocks": 1,
+        "total_blocks": 1
+      },
+      {
+        "function": "create",
+        "normal_exits": 5,
+        "reachable_blocks": 12,
+        "total_blocks": 12
+      },
+      {
+        "function": "exercise",
+        "normal_exits": 3,
+        "reachable_blocks": 12,
+        "total_blocks": 12
+      },
+      {
+        "function": "main",
+        "normal_exits": 1,
+        "reachable_blocks": 1,
+        "total_blocks": 1
+      }
+    ],
+    "generic_calls_checked": 1,
+    "generic_functions_checked": 1,
+    "ir_sha256": "6af7380ce7741a08f2b1c497f071f6c9ba001436aacd7cb8546411e2f4f74f2d",
+    "ok": true,
+    "operations_checked": 62,
+    "owned_types": [
+      "@forward::T",
+      "Box<Buffer<u8>>",
+      "Buffer<u8>",
+      "Edit<'_>",
+      "Result<Box<Buffer<u8>>, u8>",
+      "Result<Buffer<u8>, u8>"
+    ],
+    "schema": "hepta.resource-ir-validation.v1",
+    "status": "resource_cfg_verified",
+    "stored_views": {
+      "generic_lifetime_composition_checked": false,
+      "interprocedural_stored_regions_checked": false,
+      "profile": "local_single_u8_slice_records_v1",
+      "scope": "explicit_cfg_loans_with_lexical_shared_view_end_and_affine_mutable_view_drop",
+      "types": [
+        "Bytes<'_>",
+        "Edit<'_>"
+      ]
+    }
+  },
+  "schema": "hepta.local-resource-views-qualification.v1",
+  "source_refinement_proved": false,
+  "source_replay": {
+    "binding_scope": "exact_current_source_resource_projection_replay",
+    "claims": {
+      "external_contracts_proved": false,
+      "functional_equivalence_proved": false,
+      "native_codegen_uses_this_ir": false,
+      "scalar_value_semantics_verified": false,
+      "source_to_ir_refinement_proved": false,
+      "termination_proved": false,
+      "user_program_executed": false,
+      "whole_language_soundness_proved": false
+    },
+    "diagnostics": [],
+    "ok": true,
+    "resource_verification": {
+      "claims": {
+        "external_contracts_proved": false,
+        "native_codegen_uses_this_ir": false,
+        "scalar_value_semantics_verified": false,
+        "source_to_ir_refinement_proved": false,
+        "termination_proved": false,
+        "whole_language_soundness_proved": false
+      },
+      "diagnostics": [],
+      "external_obligations": {},
+      "functions": [
+        {
+          "function": "forward",
+          "normal_exits": 1,
+          "reachable_blocks": 1,
+          "total_blocks": 1
+        },
+        {
+          "function": "create",
+          "normal_exits": 5,
+          "reachable_blocks": 12,
+          "total_blocks": 12
+        },
+        {
+          "function": "exercise",
+          "normal_exits": 3,
+          "reachable_blocks": 12,
+          "total_blocks": 12
+        },
+        {
+          "function": "main",
+          "normal_exits": 1,
+          "reachable_blocks": 1,
+          "total_blocks": 1
+        }
+      ],
+      "generic_calls_checked": 1,
+      "generic_functions_checked": 1,
+      "ir_sha256": "6af7380ce7741a08f2b1c497f071f6c9ba001436aacd7cb8546411e2f4f74f2d",
+      "ok": true,
+      "operations_checked": 62,
+      "owned_types": [
+        "@forward::T",
+        "Box<Buffer<u8>>",
+        "Buffer<u8>",
+        "Edit<'_>",
+        "Result<Box<Buffer<u8>>, u8>",
+        "Result<Buffer<u8>, u8>"
+      ],
+      "schema": "hepta.resource-ir-validation.v1",
+      "status": "resource_cfg_verified",
+      "stored_views": {
+        "generic_lifetime_composition_checked": false,
+        "interprocedural_stored_regions_checked": false,
+        "profile": "local_single_u8_slice_records_v1",
+        "scope": "explicit_cfg_loans_with_lexical_shared_view_end_and_affine_mutable_view_drop",
+        "types": [
+          "Bytes<'_>",
+          "Edit<'_>"
+        ]
+      }
+    },
+    "schema": "hepta.resource-source-validation.v1",
+    "sha256": "a1a06cb1077891890fbda69d4e6b7d4b09c039cad7c7a4a0a676ff171c7f2c50",
+    "source_binding": {
+      "canonical_external_obligations": [],
+      "canonical_foreign_assumptions": [],
+      "canonical_semantic_schema": "hepta.hsir.v0",
+      "canonical_semantic_sha256": "208c20e9ea574a4331653bf94705eedc522f7a0be6b8290e215d522a9c777e24",
+      "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+      "external_obligations": {},
+      "independent_stored_views": {
+        "generic_lifetime_composition_checked": false,
+        "interprocedural_stored_regions_checked": false,
+        "profile": "local_single_u8_slice_records_v1",
+        "scope": "explicit_cfg_loans_with_lexical_shared_view_end_and_affine_mutable_view_drop",
+        "types": [
+          "Bytes<'_>",
+          "Edit<'_>"
+        ]
+      },
+      "native_reference": "rustc_checked",
+      "project_sha256": "cd19d46367047a944b090011c453f4cdafe2998fd1f19fadcd93fcf378a95056",
+      "resource_ir_sha256": "6af7380ce7741a08f2b1c497f071f6c9ba001436aacd7cb8546411e2f4f74f2d",
+      "source_inventory": {
+        "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/resource_views/owned_buffer.hepta": "6ea5830d984470ab5b8778fedf884675435a0671527625767b6464de3173eea7"
+      },
+      "source_sha256": "6ea5830d984470ab5b8778fedf884675435a0671527625767b6464de3173eea7"
+    },
+    "source_binding_verified": true,
+    "source_validation": {
+      "assumptions": [],
+      "backend": {
+        "check_only": true,
+        "crate_type": "rlib",
+        "diagnostics": [],
+        "flags": [
+          "edition=2021",
+          "opt-level=3",
+          "overflow-checks=yes",
+          "panic=abort",
+          "codegen-units=1",
+          "sysroot=/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0"
+        ],
+        "link_args": [],
+        "linker": null,
+        "ok": true,
+        "rust_sha256": "5c746d0b35e32a78d007f8d1f249288397d7225bd1f3d16b334232f3cdfa474a",
+        "rustc_crate_type": "lib",
+        "status": "rustc_checked",
+        "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+          "host": "x86_64-unknown-linux-gnu",
+          "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+          "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+          "sysroot_discovery": "verified_compiler_prefix",
+          "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+        },
+        "validation_artifact_sha256": "69c6a1f489e00997cefe4eb1e1febf17555189c19077894324bc0af5b2bf246e"
+      },
+      "borrowed_storage": {
+        "c_backend_supported": false,
+        "general_lifetime_system_complete": false,
+        "independent_resource_ir_supported": false,
+        "native_lifetimes_checked": true,
+        "native_lifetimes_required": true,
+        "profile": "explicit-lifetime-records-v1"
+      },
+      "checks": {
+        "rust_borrows_types": "rustc_checked",
+        "syntax": "passed",
+        "types_effects_resources": "passed_in_supported_subset"
+      },
+      "claims": {
+        "all_programs_faster_than_rust": false,
+        "bounded_cancellation_latency_proved": false,
+        "deadlock_freedom_proved": false,
+        "hardware_execution_verified": false,
+        "whole_language_soundness_proved": false
+      },
+      "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+      "compiler_version": "0.2.0",
+      "diagnostics": [],
+      "effects": {
+        "create": [
+          "alloc",
+          "block"
+        ],
+        "exercise": [
+          "alloc",
+          "block",
+          "panic",
+          "write"
+        ],
+        "forward": [],
+        "main": [
+          "alloc",
+          "block",
+          "panic",
+          "write"
+        ]
+      },
+      "interface_sha256": "acd09db3ba1fe76cc7979b52f14f880c845c2633c4ede697fce97e8c3ac76721",
+      "ok": true,
+      "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/resource_views/owned_buffer.hepta",
+      "profile": {
+        "crate_type": "rlib",
+        "no_std": false,
+        "overflow_checks": true,
+        "panic": "abort"
+      },
+      "project": {
+        "c_imports": [],
+        "entry": "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/resource_views/owned_buffer.hepta",
+        "locked": false,
+        "modules": [
+          {
+            "imports": {},
+            "module": "resource_views",
+            "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/resource_views/owned_buffer.hepta",
+            "symbols": {
+              "Box": "Box",
+              "Bytes": "Bytes",
+              "Edit": "Edit",
+              "create": "create",
+              "exercise": "exercise",
+              "forward": "forward",
+              "main": "main"
+            }
+          }
+        ],
+        "package": null,
+        "path_bindings": {
+          "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/resource_views/owned_buffer.hepta": "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/resource_views/owned_buffer.hepta"
+        },
+        "schema": "hepta.module-graph.v1",
+        "sha256": "cd19d46367047a944b090011c453f4cdafe2998fd1f19fadcd93fcf378a95056",
+        "sources": {
+          "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/resource_views/owned_buffer.hepta": "6ea5830d984470ab5b8778fedf884675435a0671527625767b6464de3173eea7"
+        }
+      },
+      "resource_contracts": [],
+      "rust_sha256": "5c746d0b35e32a78d007f8d1f249288397d7225bd1f3d16b334232f3cdfa474a",
+      "schema": "hepta.check.v1",
+      "source_sha256": "6ea5830d984470ab5b8778fedf884675435a0671527625767b6464de3173eea7",
+      "status": "checked"
+    },
+    "status": "source_replayed"
+  },
+  "source_sha256": "6ea5830d984470ab5b8778fedf884675435a0671527625767b6464de3173eea7",
+  "source_validation": {
+    "assumptions": [],
+    "backend": {
+      "check_only": true,
+      "crate_type": "staticlib",
+      "diagnostics": [],
+      "flags": [
+        "edition=2021",
+        "opt-level=3",
+        "overflow-checks=yes",
+        "panic=abort",
+        "codegen-units=1",
+        "sysroot=/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0"
+      ],
+      "link_args": [],
+      "linker": null,
+      "ok": true,
+      "rust_sha256": "5c746d0b35e32a78d007f8d1f249288397d7225bd1f3d16b334232f3cdfa474a",
+      "rustc_crate_type": "lib",
+      "status": "rustc_checked",
+      "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+      "target": "x86_64-unknown-linux-gnu",
+      "toolchain": {
+        "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "host": "x86_64-unknown-linux-gnu",
+        "path": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0/bin/rustc",
+        "sysroot": "/dev/shm/hepta-c7c6ee414a6c/rust-1.90.0",
+        "sysroot_discovery": "verified_compiler_prefix",
+        "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+      },
+      "validation_artifact_sha256": "36f4265b8d7fa00509fe76e7c876cbdec7425a429b3191add7142abc31e9e14c"
+    },
+    "borrowed_storage": {
+      "c_backend_supported": false,
+      "general_lifetime_system_complete": false,
+      "independent_resource_ir_supported": false,
+      "native_lifetimes_checked": true,
+      "native_lifetimes_required": true,
+      "profile": "explicit-lifetime-records-v1"
+    },
+    "checks": {
+      "rust_borrows_types": "rustc_checked",
+      "syntax": "passed",
+      "types_effects_resources": "passed_in_supported_subset"
+    },
+    "claims": {
+      "all_programs_faster_than_rust": false,
+      "bounded_cancellation_latency_proved": false,
+      "deadlock_freedom_proved": false,
+      "hardware_execution_verified": false,
+      "whole_language_soundness_proved": false
+    },
+    "compiler_sha256": "0bc527cfc5aec67c6bf9b41929dec267abe5eda0704aa12bc63256817374b6b9",
+    "compiler_version": "0.2.0",
+    "diagnostics": [],
+    "effects": {
+      "create": [
+        "alloc",
+        "block"
+      ],
+      "exercise": [
+        "alloc",
+        "block",
+        "panic",
+        "write"
+      ],
+      "forward": [],
+      "main": [
+        "alloc",
+        "block",
+        "panic",
+        "write"
+      ]
+    },
+    "interface_sha256": "acd09db3ba1fe76cc7979b52f14f880c845c2633c4ede697fce97e8c3ac76721",
+    "ok": true,
+    "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/resource_views/owned_buffer.hepta",
+    "profile": {
+      "crate_type": "staticlib",
+      "no_std": false,
+      "overflow_checks": true,
+      "panic": "abort"
+    },
+    "project": {
+      "c_imports": [],
+      "entry": "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/resource_views/owned_buffer.hepta",
+      "locked": false,
+      "modules": [
+        {
+          "imports": {},
+          "module": "resource_views",
+          "path": "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/resource_views/owned_buffer.hepta",
+          "symbols": {
+            "Box": "Box",
+            "Bytes": "Bytes",
+            "Edit": "Edit",
+            "create": "create",
+            "exercise": "exercise",
+            "forward": "forward",
+            "main": "main"
+          }
+        }
+      ],
+      "package": null,
+      "path_bindings": {
+        "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/resource_views/owned_buffer.hepta": "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/resource_views/owned_buffer.hepta"
+      },
+      "schema": "hepta.module-graph.v1",
+      "sha256": "cd19d46367047a944b090011c453f4cdafe2998fd1f19fadcd93fcf378a95056",
+      "sources": {
+        "/workspace/scratch/c7c6ee414a6c/hepta-research/examples/resource_views/owned_buffer.hepta": "6ea5830d984470ab5b8778fedf884675435a0671527625767b6464de3173eea7"
+      }
+    },
+    "resource_contracts": [],
+    "rust_sha256": "5c746d0b35e32a78d007f8d1f249288397d7225bd1f3d16b334232f3cdfa474a",
+    "schema": "hepta.check.v1",
+    "source_sha256": "6ea5830d984470ab5b8778fedf884675435a0671527625767b6464de3173eea7",
+    "status": "checked"
+  },
+  "status": "passed",
+  "stored_view_parameters_or_returns_supported": false,
+  "whole_language_soundness_proved": false
+}

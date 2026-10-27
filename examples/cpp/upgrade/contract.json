@@ -1,0 +1,104 @@
+{
+  "schema": "hepta.cpp-contract.v3",
+  "module": "json_upgrade",
+  "pod_types": [],
+  "functions": [],
+  "handles": [
+    {
+      "name": "Document",
+      "cpp_type": "hepta_json_upgrade::Document",
+      "template_args": [],
+      "threading": "serialized",
+      "reentrancy": "reject",
+      "allocator": "cpp_shared_owner",
+      "destruction": "nothrow_defer_inflight",
+      "constructors": [
+        {
+          "name": "parse",
+          "params": [
+            {
+              "name": "text",
+              "type": "u8",
+              "mode": "borrow_const",
+              "retention": "call_only"
+            }
+          ],
+          "exception": "catch_status"
+        }
+      ],
+      "methods": [
+        {
+          "name": "replace",
+          "cpp_method": "replace",
+          "const": false,
+          "params": [
+            {
+              "name": "index",
+              "type": "usize",
+              "mode": "value"
+            },
+            {
+              "name": "value",
+              "type": "i64",
+              "mode": "value"
+            }
+          ],
+          "returns": "Unit",
+          "return_mode": "value",
+          "exception": "catch_status"
+        },
+        {
+          "name": "sum",
+          "cpp_method": "sum",
+          "const": true,
+          "params": [],
+          "returns": "i64",
+          "return_mode": "value",
+          "exception": "catch_status"
+        }
+      ]
+    }
+  ],
+  "scopes": [
+    {
+      "name": "replace_sum",
+      "handle": "Document",
+      "constructor": "parse",
+      "params": [
+        {
+          "name": "text",
+          "type": "u8",
+          "mode": "borrow_const",
+          "retention": "call_only"
+        },
+        {
+          "name": "index",
+          "type": "usize",
+          "mode": "value"
+        },
+        {
+          "name": "value",
+          "type": "i64",
+          "mode": "value"
+        }
+      ],
+      "constructor_args": [
+        "text"
+      ],
+      "calls": [
+        {
+          "method": "replace",
+          "args": [
+            "index",
+            "value"
+          ]
+        },
+        {
+          "method": "sum",
+          "args": []
+        }
+      ],
+      "lifetime": "call_scoped_cpp_raii"
+    }
+  ]
+}

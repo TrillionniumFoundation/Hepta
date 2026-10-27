@@ -1,0 +1,69 @@
+{
+  "artifact_identities": {
+    "generated_rust": {
+      "binary_identity_matches": false,
+      "frozen_measurement_binary_sha256": "4dcc199e41d2188f1162eb6f44f2865b50ff90b4c25f1fea3223f799dafec77e",
+      "retained_binary_sha256": "d59a6dce4c562f5ea4bae9e93b663c594cb4571ee23ef339f2cc2ba3052e7f06",
+      "scope": "retained same-source/same-toolchain/same-flags binary; not the exact final measured binary"
+    },
+    "handwritten_rust": {
+      "binary_identity_matches": true,
+      "frozen_measurement_binary_sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77",
+      "retained_binary_sha256": "123d8d5d9c20b23e9dc6f06ea43a52f018ef6690a5d9e20fd4257d17f40b9a77",
+      "scope": "exact frozen measured binary"
+    },
+    "hia": {
+      "binary_identity_matches": true,
+      "frozen_measurement_binary_sha256": "4be95147379f8a2bad705ee1d1c0bb7713d55a0db183f58b9d710a88ec075dfe",
+      "retained_binary_sha256": "4be95147379f8a2bad705ee1d1c0bb7713d55a0db183f58b9d710a88ec075dfe",
+      "scope": "exact frozen measured binary"
+    }
+  },
+  "confirmed_observations": [
+    "HIA checksum loop has a separate per-byte index/buffer-length bounds branch plus checked-add overflow branch; both Rust variants retain checked-add overflow but no corresponding per-byte bounds branch.",
+    "All three implementations have a 16-byte vector fill loop; Rust variants additionally have a four-byte vector epilogue.",
+    "At the frozen 4093-byte input, HIA has 13 scalar tail stores; the Rust variants use three four-byte vector tail stores then one scalar store.",
+    "All three checksum loops remain scalar and use unsigned-add overflow checking.",
+    "HIA calls calloc for this function; both Rust variants retain bulk memset(size-1) plus a last-byte zero store before the fill. Constructor-only zero-elision diagnosis therefore does not establish a unique full_lifecycle zeroing cost."
+  ],
+  "frozen_commit": "06266df5df19cb2b08ec3756ac750699cd987b81",
+  "frozen_performance_report": "evidence/hia_unified_final_20261026/performance.json",
+  "frozen_performance_report_sha256": "1b6b8cd3e17c8b01cd82c06b3e2ff1248f69b54ed0042591d7b101acc95a8d11",
+  "generated_rust_source_sha256": "47cdc8237c5a8a06d778057490e8ffb1af9baf11974cc2dc1267d1d211ad085c",
+  "implementation_sha256": "30c72316ea49f3fd5ac555e1b89e9d2520f47351d2a4ac333f85911cfe0c1c9b",
+  "inference": "HIA extracts buffer length and success from an aggregate allocation-result PHI and retains size and length as distinct SSA values. This is consistent with the optimizer failing to prove their equality; it is not a formally established sole cause.",
+  "llvm_sha256": "f22b38cbcc52baf4ba70ab9aa9b5f50e875fece3ec2d2fb8a3d37a8986fbf643",
+  "new_native_kernel_executions": 0,
+  "new_timing_samples": 0,
+  "not_established": [
+    "No causal percentage of the noisy 1.333/1.309 ratios is attributed to a specific instruction.",
+    "No claim that HIA lacks vectorization or Rust drops integer safety checks.",
+    "Allocator/library differences, LLVM 20.1.2 versus 20.1.8, and shared-host noise have not been isolated.",
+    "No new compiler optimization, benchmark rerun, or passing P5 result."
+  ],
+  "p5_qualified": false,
+  "parent_manifest_sha256": "bb1f17b6a73085745087b03353808de2536e131f9700179148c70bd3376ce4cd",
+  "performance_status": "measurement_inconclusive",
+  "recorded_noisy_full_lifecycle_ratios": {
+    "handwritten_rust": 1.3093954422083094,
+    "rust": 1.3332306708163646
+  },
+  "schema": "hepta.hia.full-lifecycle-static-diagnosis.v2",
+  "source_and_ir_identity_match": true,
+  "toolchains": {
+    "hia_clang": {
+      "default_target": "x86_64-pc-linux-gnu",
+      "path": "/usr/lib/llvm-20/bin/clang",
+      "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+      "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+    },
+    "rust": {
+      "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+      "host": "x86_64-unknown-linux-gnu",
+      "path": "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+      "sysroot": "/tmp/hepta-ai-rust-1.90.0",
+      "sysroot_discovery": "verified_compiler_prefix",
+      "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+    }
+  }
+}

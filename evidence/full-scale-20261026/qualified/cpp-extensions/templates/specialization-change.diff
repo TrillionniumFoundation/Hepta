@@ -1,0 +1,158 @@
+--- extent_4/bridge.cpp
++++ extent_8/bridge.cpp
+@@ -13,7 +13,7 @@
+ #include <utility>
+ #include <atomic>
+ using hepta_cpp_sized_add_signature = std::uint32_t(*)(std::uint32_t) noexcept;
+-static constexpr hepta_cpp_sized_add_signature hepta_cpp_sized_add_target = static_cast<hepta_cpp_sized_add_signature>(&sized_example::add_size<static_cast<std::size_t>(4)>);
++static constexpr hepta_cpp_sized_add_signature hepta_cpp_sized_add_target = static_cast<hepta_cpp_sized_add_signature>(&sized_example::add_size<static_cast<std::size_t>(8)>);
+ extern "C" std::uint32_t hepta_cpp_sized_add(std::uint32_t hepta_arg0) noexcept {
+     auto result = hepta_cpp_sized_add_target(static_cast<std::uint32_t>(hepta_arg0));
+     return result;
+@@ -34,22 +34,22 @@
+ }
+ }
+ namespace {
+-using hepta_cpp_sized_Array_object = std::array<std::uint32_t, static_cast<std::size_t>(4)>;
+-static_assert(std::is_nothrow_destructible_v<std::array<std::uint32_t, static_cast<std::size_t>(4)>>);
+-struct hepta_cpp_sized_Array_entry { std::recursive_mutex mutex; std::shared_ptr<std::array<std::uint32_t, static_cast<std::size_t>(4)>> object; std::shared_ptr<const std::uint8_t> creator; unsigned active = 0; };
++using hepta_cpp_sized_Array_object = std::array<std::uint32_t, static_cast<std::size_t>(8)>;
++static_assert(std::is_nothrow_destructible_v<std::array<std::uint32_t, static_cast<std::size_t>(8)>>);
++struct hepta_cpp_sized_Array_entry { std::recursive_mutex mutex; std::shared_ptr<std::array<std::uint32_t, static_cast<std::size_t>(8)>> object; std::shared_ptr<const std::uint8_t> creator; unsigned active = 0; };
+ struct hepta_cpp_sized_Array_registry { std::mutex mutex; std::unordered_map<std::uint64_t, std::shared_ptr<hepta_cpp_sized_Array_entry>> objects; };
+ // Process-lifetime registry avoids destroying abandoned affine objects on an arbitrary shutdown thread.
+ hepta_cpp_sized_Array_registry& hepta_cpp_sized_Array_registry_get() { static auto* r = new hepta_cpp_sized_Array_registry; return *r; }
+ struct hepta_cpp_sized_Array_active { hepta_cpp_sized_Array_entry& e; explicit hepta_cpp_sized_Array_active(hepta_cpp_sized_Array_entry& v): e(v) { ++e.active; } ~hepta_cpp_sized_Array_active() { --e.active; } };
+ }
+-static_assert(std::is_constructible_v<std::array<std::uint32_t, static_cast<std::size_t>(4)>>);
+-static_assert(std::is_nothrow_constructible_v<std::array<std::uint32_t, static_cast<std::size_t>(4)>>);
++static_assert(std::is_constructible_v<std::array<std::uint32_t, static_cast<std::size_t>(8)>>);
++static_assert(std::is_nothrow_constructible_v<std::array<std::uint32_t, static_cast<std::size_t>(8)>>);
+ extern "C" std::int32_t hepta_cpp_sized_Array_new(std::uint64_t* out) noexcept {
+     if (!out) return 1;
+     if (reinterpret_cast<std::uintptr_t>(out) % alignof(std::uint64_t)) return 8;
+     try {
+         auto entry = std::make_shared<hepta_cpp_sized_Array_entry>();
+-        entry->object = std::make_shared<std::array<std::uint32_t, static_cast<std::size_t>(4)>>();
++        entry->object = std::make_shared<std::array<std::uint32_t, static_cast<std::size_t>(8)>>();
+         auto handle = hepta_cpp_sized_allocate_handle();
+         if (!handle) return 4;
+         auto& registry = hepta_cpp_sized_Array_registry_get();
+@@ -82,7 +82,7 @@
+         return 0;
+     } catch (...) { return 3; }
+ }
+-static_assert(std::is_same_v<decltype(std::declval<std::array<std::uint32_t, static_cast<std::size_t>(4)>&>().fill(std::declval<const std::uint32_t&>())), void>);
++static_assert(std::is_same_v<decltype(std::declval<std::array<std::uint32_t, static_cast<std::size_t>(8)>&>().fill(std::declval<const std::uint32_t&>())), void>);
+ extern "C" std::int32_t hepta_cpp_sized_Array_fill(std::uint64_t handle, std::uint32_t hepta_arg0) noexcept {
+     try {
+         auto& registry = hepta_cpp_sized_Array_registry_get();
+@@ -98,12 +98,12 @@
+         if (entry->active) return 6;
+         auto object = entry->object;
+         hepta_cpp_sized_Array_active active(*entry);
+-        std::array<std::uint32_t, static_cast<std::size_t>(4)>& receiver = *object;
++        std::array<std::uint32_t, static_cast<std::size_t>(8)>& receiver = *object;
+         receiver.fill(static_cast<const std::uint32_t&>(hepta_arg0));
+         return 0;
+     } catch (...) { return 3; }
+ }
+-static_assert(std::is_reference_v<decltype(std::declval<const std::array<std::uint32_t, static_cast<std::size_t>(4)>&>().at(std::declval<std::size_t>()))> && std::is_same_v<std::remove_cvref_t<decltype(std::declval<const std::array<std::uint32_t, static_cast<std::size_t>(4)>&>().at(std::declval<std::size_t>()))>, std::uint32_t>);
++static_assert(std::is_reference_v<decltype(std::declval<const std::array<std::uint32_t, static_cast<std::size_t>(8)>&>().at(std::declval<std::size_t>()))> && std::is_same_v<std::remove_cvref_t<decltype(std::declval<const std::array<std::uint32_t, static_cast<std::size_t>(8)>&>().at(std::declval<std::size_t>()))>, std::uint32_t>);
+ extern "C" std::int32_t hepta_cpp_sized_Array_at(std::uint64_t handle, std::size_t hepta_arg0, std::uint32_t* out) noexcept {
+     if (!out) return 1;
+     if (reinterpret_cast<std::uintptr_t>(out) % alignof(std::uint32_t)) return 8;
+@@ -121,28 +121,28 @@
+         if (entry->active) return 6;
+         auto object = entry->object;
+         hepta_cpp_sized_Array_active active(*entry);
+-        const std::array<std::uint32_t, static_cast<std::size_t>(4)>& receiver = *object;
++        const std::array<std::uint32_t, static_cast<std::size_t>(8)>& receiver = *object;
+         auto result = receiver.at(static_cast<std::size_t>(hepta_arg0));
+         *out = result;
+         return 0;
+     } catch (...) { return 3; }
+ }
+ namespace {
+-using hepta_cpp_sized_Counted_object = sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(4)>;
+-static_assert(std::is_nothrow_destructible_v<sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(4)>>);
+-struct hepta_cpp_sized_Counted_entry { std::recursive_mutex mutex; std::shared_ptr<sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(4)>> object; std::shared_ptr<const std::uint8_t> creator; unsigned active = 0; };
++using hepta_cpp_sized_Counted_object = sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(8)>;
++static_assert(std::is_nothrow_destructible_v<sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(8)>>);
++struct hepta_cpp_sized_Counted_entry { std::recursive_mutex mutex; std::shared_ptr<sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(8)>> object; std::shared_ptr<const std::uint8_t> creator; unsigned active = 0; };
+ struct hepta_cpp_sized_Counted_registry { std::mutex mutex; std::unordered_map<std::uint64_t, std::shared_ptr<hepta_cpp_sized_Counted_entry>> objects; };
+ // Process-lifetime registry avoids destroying abandoned affine objects on an arbitrary shutdown thread.
+ hepta_cpp_sized_Counted_registry& hepta_cpp_sized_Counted_registry_get() { static auto* r = new hepta_cpp_sized_Counted_registry; return *r; }
+ struct hepta_cpp_sized_Counted_active { hepta_cpp_sized_Counted_entry& e; explicit hepta_cpp_sized_Counted_active(hepta_cpp_sized_Counted_entry& v): e(v) { ++e.active; } ~hepta_cpp_sized_Counted_active() { --e.active; } };
+ }
+-static_assert(std::is_constructible_v<sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(4)>, std::uint32_t>);
++static_assert(std::is_constructible_v<sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(8)>, std::uint32_t>);
+ extern "C" std::int32_t hepta_cpp_sized_Counted_new(std::uint32_t hepta_arg0, std::uint64_t* out) noexcept {
+     if (!out) return 1;
+     if (reinterpret_cast<std::uintptr_t>(out) % alignof(std::uint64_t)) return 8;
+     try {
+         auto entry = std::make_shared<hepta_cpp_sized_Counted_entry>();
+-        entry->object = std::make_shared<sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(4)>>(static_cast<std::uint32_t>(hepta_arg0));
++        entry->object = std::make_shared<sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(8)>>(static_cast<std::uint32_t>(hepta_arg0));
+         auto handle = hepta_cpp_sized_allocate_handle();
+         if (!handle) return 4;
+         auto& registry = hepta_cpp_sized_Counted_registry_get();
+@@ -175,7 +175,7 @@
+         return 0;
+     } catch (...) { return 3; }
+ }
+-static_assert(std::is_same_v<decltype(std::declval<sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(4)>&>().fill(std::declval<const std::uint32_t&>())), void>);
++static_assert(std::is_same_v<decltype(std::declval<sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(8)>&>().fill(std::declval<const std::uint32_t&>())), void>);
+ extern "C" std::int32_t hepta_cpp_sized_Counted_fill(std::uint64_t handle, std::uint32_t hepta_arg0) noexcept {
+     try {
+         auto& registry = hepta_cpp_sized_Counted_registry_get();
+@@ -191,12 +191,12 @@
+         if (entry->active) return 6;
+         auto object = entry->object;
+         hepta_cpp_sized_Counted_active active(*entry);
+-        sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(4)>& receiver = *object;
++        sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(8)>& receiver = *object;
+         receiver.fill(static_cast<const std::uint32_t&>(hepta_arg0));
+         return 0;
+     } catch (...) { return 3; }
+ }
+-static_assert(std::is_reference_v<decltype(std::declval<const sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(4)>&>().at(std::declval<std::size_t>()))> && std::is_same_v<std::remove_cvref_t<decltype(std::declval<const sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(4)>&>().at(std::declval<std::size_t>()))>, std::uint32_t>);
++static_assert(std::is_reference_v<decltype(std::declval<const sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(8)>&>().at(std::declval<std::size_t>()))> && std::is_same_v<std::remove_cvref_t<decltype(std::declval<const sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(8)>&>().at(std::declval<std::size_t>()))>, std::uint32_t>);
+ extern "C" std::int32_t hepta_cpp_sized_Counted_at(std::uint64_t handle, std::size_t hepta_arg0, std::uint32_t* out) noexcept {
+     if (!out) return 1;
+     if (reinterpret_cast<std::uintptr_t>(out) % alignof(std::uint32_t)) return 8;
+@@ -214,7 +214,7 @@
+         if (entry->active) return 6;
+         auto object = entry->object;
+         hepta_cpp_sized_Counted_active active(*entry);
+-        const sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(4)>& receiver = *object;
++        const sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(8)>& receiver = *object;
+         auto result = receiver.at(static_cast<std::size_t>(hepta_arg0));
+         *out = result;
+         return 0;
+@@ -225,9 +225,9 @@
+     if (reinterpret_cast<std::uintptr_t>(out) % alignof(std::uint32_t)) return 8;
+     try {
+         auto _hepta_scoped_result = [&]() -> std::uint32_t {
+-            auto _hepta_scoped_object = std::array<std::uint32_t, static_cast<std::size_t>(4)>();
+-            (void)static_cast<std::array<std::uint32_t, static_cast<std::size_t>(4)>&>(_hepta_scoped_object).fill(static_cast<const std::uint32_t&>(hepta_arg0));
+-            return static_cast<const std::array<std::uint32_t, static_cast<std::size_t>(4)>&>(_hepta_scoped_object).at(static_cast<std::size_t>(hepta_arg1));
++            auto _hepta_scoped_object = std::array<std::uint32_t, static_cast<std::size_t>(8)>();
++            (void)static_cast<std::array<std::uint32_t, static_cast<std::size_t>(8)>&>(_hepta_scoped_object).fill(static_cast<const std::uint32_t&>(hepta_arg0));
++            return static_cast<const std::array<std::uint32_t, static_cast<std::size_t>(8)>&>(_hepta_scoped_object).at(static_cast<std::size_t>(hepta_arg1));
+         }();
+         *out = _hepta_scoped_result;
+         return 0;
+@@ -238,9 +238,9 @@
+     if (reinterpret_cast<std::uintptr_t>(out) % alignof(std::uint32_t)) return 8;
+     try {
+         auto _hepta_scoped_result = [&]() -> std::uint32_t {
+-            auto _hepta_scoped_object = sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(4)>(static_cast<std::uint32_t>(hepta_arg0));
+-            (void)static_cast<sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(4)>&>(_hepta_scoped_object).fill(static_cast<const std::uint32_t&>(hepta_arg1));
+-            return static_cast<const sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(4)>&>(_hepta_scoped_object).at(static_cast<std::size_t>(hepta_arg2));
++            auto _hepta_scoped_object = sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(8)>(static_cast<std::uint32_t>(hepta_arg0));
++            (void)static_cast<sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(8)>&>(_hepta_scoped_object).fill(static_cast<const std::uint32_t&>(hepta_arg1));
++            return static_cast<const sized_example::CountedArray<std::uint32_t, static_cast<std::size_t>(8)>&>(_hepta_scoped_object).at(static_cast<std::size_t>(hepta_arg2));
+         }();
+         *out = _hepta_scoped_result;
+         return 0;

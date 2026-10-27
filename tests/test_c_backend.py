@@ -1,8 +1,10 @@
 from pathlib import Path
+import json
 import os
 import random
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -116,7 +118,7 @@ class CBackendTests(unittest.TestCase):
 
     def test_unsupported_semantics_are_explicit_errors(self):
         for source, code in [
-            ("fn main() -> Unit effects { alloc, block, panic } { let x = buffer(4); release(move x); }", "E_C_BACKEND_SUBSET"),
+            ("fn main() -> Unit effects { alloc, block, panic,write } { let x = task_group(0,0,1); group_cancel_and_join(move x); }", "E_C_RESOURCE_IR"),
             ("fn main() -> Unit effects {} { let x: i32 = 3.5 as i32; }", "E_C_BACKEND_CAST")]:
             program, checked = self.frontend(source)
             with self.assertRaises(HeptaError) as error:
@@ -141,6 +143,30 @@ class CBackendTests(unittest.TestCase):
         self.assertTrue(report["ok"], report["diagnostics"])
         self.assertGreater(output.stat().st_size, 0)
         self.assertTrue(output.read_bytes().startswith(b"\x7fELF"))
+
+    def test_explicit_unroll_profile_is_used_by_cli_check_and_final_build(self):
+        source = self.directory / 'loop.hepta'
+        source.write_text('fn main()->Unit effects {panic} {let mut total:u64=0;for i in 0..4099 {total=wrapping_add(total,i as u64);}assert(total==' + str(sum(range(4099))) + ');}')
+        # A real emitted program and executable must agree with the separately
+        # selected profile; changing just the reported metadata cannot pass.
+        output = self.directory / 'loop'
+        built = subprocess.run([sys.executable, '-m', 'hepta', 'build', str(source),
+                                '--backend', 'c', '--c-opt', 'unroll', '-o', str(output)],
+                               cwd=ROOT, capture_output=True, text=True, timeout=30)
+        self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
+        report = json.loads(built.stdout)
+        for native in (report['validation']['backend'], report['build']):
+            self.assertEqual(native['optimization_profile'], 'unroll')
+            self.assertIn('-funroll-loops', native['flags'])
+            self.assertIn('-ffp-contract=off', native['flags'])
+        self.assertEqual(subprocess.run([output], capture_output=True).returncode, 0)
+
+    def test_invalid_or_unoptimized_named_profile_fails_closed(self):
+        for options in ({'optimization_profile': 'fastest'},
+                        {'optimization_profile': 'unroll', 'optimize': False}):
+            with self.subTest(options=options), self.assertRaises(HeptaError) as error:
+                compile_c('int main(void){return 0;}', **options)
+            self.assertEqual(error.exception.diagnostic.code, 'E_C_OPTIMIZATION')
 
 
 if __name__ == "__main__":

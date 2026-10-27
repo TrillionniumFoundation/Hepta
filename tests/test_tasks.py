@@ -16,7 +16,7 @@ from hepta.pipeline import analyze
 
 
 ROOT = Path(__file__).resolve().parents[1]
-RUSTC = ROOT.parent / "toolchains" / "rust-1.90.0" / "bin" / "rustc"
+RUSTC = Path(os.environ.get("RUSTC", ROOT.parent / "toolchains" / "rust-1.90.0" / "bin" / "rustc"))
 NATIVE_AVAILABLE = RUSTC.is_file() and os.access(RUSTC, os.X_OK)
 TASK_EFFECTS = "alloc, block, spawn, panic"
 WORKER = """fn worker(data: take Buffer<u8>, token: read Cancellation) -> u64

@@ -1,0 +1,104 @@
+{
+  "functions": [],
+  "handles": [
+    {
+      "allocator": "cpp_shared_owner",
+      "constructors": [
+        {
+          "exception": "catch_status",
+          "name": "parse",
+          "params": [
+            {
+              "mode": "borrow_const",
+              "name": "text",
+              "retention": "call_only",
+              "type": "u8"
+            }
+          ]
+        }
+      ],
+      "cpp_type": "hepta_json_upgrade::Document",
+      "destruction": "nothrow_defer_inflight",
+      "methods": [
+        {
+          "const": false,
+          "cpp_method": "replace",
+          "exception": "catch_status",
+          "name": "replace",
+          "params": [
+            {
+              "mode": "value",
+              "name": "index",
+              "type": "usize"
+            },
+            {
+              "mode": "value",
+              "name": "value",
+              "type": "i64"
+            }
+          ],
+          "return_mode": "value",
+          "returns": "Unit"
+        },
+        {
+          "const": true,
+          "cpp_method": "sum",
+          "exception": "catch_status",
+          "name": "sum",
+          "params": [],
+          "return_mode": "value",
+          "returns": "u32"
+        }
+      ],
+      "name": "Document",
+      "reentrancy": "reject",
+      "template_args": [],
+      "threading": "serialized"
+    }
+  ],
+  "module": "json_upgrade",
+  "pod_types": [],
+  "schema": "hepta.cpp-contract.v3",
+  "scopes": [
+    {
+      "calls": [
+        {
+          "args": [
+            "index",
+            "value"
+          ],
+          "method": "replace"
+        },
+        {
+          "args": [],
+          "method": "sum"
+        }
+      ],
+      "constructor": "parse",
+      "constructor_args": [
+        "text"
+      ],
+      "handle": "Document",
+      "lifetime": "call_scoped_cpp_raii",
+      "name": "replace_sum",
+      "params": [
+        {
+          "mode": "borrow_const",
+          "name": "text",
+          "retention": "call_only",
+          "type": "u8"
+        },
+        {
+          "mode": "value",
+          "name": "index",
+          "type": "usize"
+        },
+        {
+          "mode": "value",
+          "name": "value",
+          "type": "i64"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+module io_library;
+
+pub fn queue_read(io: mut IoReactor, port: u64, size: usize, deadline: u64) -> IoRequest effects {alloc,block,panic,io,write} {
+    let data = buffer(size);
+    return io_read(mut io,port,move data,size,deadline);
+}
+
+pub fn queue_write(io: mut IoReactor, port: u64, size: usize, value: u8) -> IoRequest effects {alloc,block,panic,io,write} {
+    let mut data = buffer(size);
+    for i in 0..size { data[i] = value; }
+    return io_write(mut io,port,move data,size,1000);
+}
+
+pub fn check(data: read Buffer<u8>, size: usize, value: u8) -> Unit effects {panic} {
+    assert(len(data) == size);
+    for i in 0..size { assert(data[i] == value); }
+}
+
+pub fn finish(io: take IoReactor, request: take IoRequest) -> u8 effects {alloc,block,panic,io,write} {
+    let mut owned = move io;
+    let mut count: usize = 0; let mut status: u8 = 0;
+    let bytes = io_take(mut owned,move request,mut count,mut status);
+    release(move bytes);
+    let report = io_shutdown(move owned);
+    assert(report.open_ports == 0); assert(report.reserved_bytes == 0);
+    assert(report.occupied_requests == 0); assert(report.abandoned == 0);
+    if status != 0 { return status; }
+    return 0;
+}

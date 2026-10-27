@@ -1,0 +1,27 @@
+module executable_core_example;
+
+fn fill(data: mut Buffer<u8>, value: u8) -> Unit effects {panic, write} {
+    for index in 0..len(data) { data[index] = value; }
+}
+
+fn sum(data: read Buffer<u8>) -> u64 effects {panic} {
+    let mut total: u64 = 0;
+    for index in 0..len(data) {
+        total = wrapping_add(total, data[index] as u64);
+    }
+    return total;
+}
+
+export "C" fn checksum(size: usize, value: u8) -> u64
+effects {alloc, block, panic, write} {
+    match try_buffer(size) {
+        Result::Err(code) => { return 1000 + code as u64; },
+        Result::Ok(created) => {
+            let mut owned = move created;
+            fill(mut owned, value);
+            let answer = sum(read owned);
+            drop(move owned);
+            return answer;
+        }
+    }
+}

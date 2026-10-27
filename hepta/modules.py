@@ -122,7 +122,10 @@ def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject
                 fail("E_C_IMPORT_MANIFEST", "Imported C bindings require their generated sidecar: " + str(e), span)
             if not isinstance(metadata, dict) or metadata.get("schema") != "hepta.c-import.v1" or metadata.get("source_sha256") != digest(data):
                 fail("E_C_IMPORT_IDENTITY", "C binding source differs from its probe metadata", span)
-            if not all(isinstance(metadata.get(k), str) for k in ("header", "header_sha256", "target")) or not Path(metadata["header"]).is_absolute():
+            relative_header = metadata.get("header_path_kind") == "relative_to_manifest"
+            if (not all(isinstance(metadata.get(k), str) for k in ("header", "header_sha256", "target"))
+                    or metadata.get("header_path_kind") not in {None, "relative_to_manifest"}
+                    or Path(metadata["header"]).is_absolute() == relative_header):
                 fail("E_C_IMPORT_MANIFEST", "C import metadata has invalid header/target identity fields", span)
             host = {"system": platform.system(), "machine": platform.machine(), "pointer_bits": struct.calcsize("P") * 8}
             if metadata.get("host") != host:
@@ -131,6 +134,10 @@ def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject
             source_bytes[str(sidecar)] = metadata_bytes
             bindings[str(sidecar)] = str(sidecar.resolve())
             original_header = Path(metadata.get("header", ""))
+            if relative_header:
+                original_header = (sidecar.parent / original_header).resolve()
+                if not original_header.is_relative_to(pkg.root) or not original_header.is_file():
+                    fail("E_C_IMPORT_MANIFEST", "Portable C header must exist inside its package", span)
             if original_header.resolve().is_relative_to(pkg.root) and original_header.is_file():
                 original_data = original_header.read_bytes()
                 if digest(original_data) != metadata.get("header_sha256"):
@@ -206,7 +213,7 @@ def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject
         def transform(value, params=frozenset()):
             if isinstance(value, Type):
                 name = value.name if value.name in params else resolve(value.name, "type", Span(path=str(unit.path)))
-                return Type(name, tuple(transform(a, params) for a in value.args), value.length)
+                return Type(name, tuple(transform(a, params) for a in value.args), value.length, value.lifetimes)
             if isinstance(value, Expr):
                 if value.kind in {"name", "call"} and isinstance(value.value, str):
                     if value.kind == "call" or "::" in value.value or value.value in unit.functions:

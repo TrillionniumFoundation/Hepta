@@ -1,0 +1,32 @@
+module io_cancellation;
+fn main() -> Unit effects {alloc,block,panic,io,write} {
+    let mut io = io_reactor(2,2,64);
+    let pair = io_local_pair(mut io); assert(pair.status == 0);
+    let first_buffer = buffer(17);
+    let first = io_read(mut io,pair.left,move first_buffer,17,1000);
+    assert(io_cancel(mut io,read first));
+    assert(!io_cancel(mut io,read first));
+    let mut count: usize = 0; let mut status: u8 = 0;
+    let cancelled = io_wait(mut io,move first,mut count,mut status);
+    assert(status == 1); assert(count == 0); release(move cancelled);
+    let timeout_buffer = buffer(17);
+    let timeout = io_read(mut io,pair.left,move timeout_buffer,17,20);
+    let timed = io_wait(mut io,move timeout,mut count,mut status);
+    assert(status == 2); assert(count == 0); release(move timed);
+    assert(io_close_port(mut io,pair.right));
+    let eof_buffer = buffer(17);
+    let eof = io_read(mut io,pair.left,move eof_buffer,17,1000);
+    let ended = io_wait(mut io,move eof,mut count,mut status);
+    assert(status == 3); assert(count == 0); release(move ended);
+    let broken_buffer = buffer(17);
+    let broken = io_write(mut io,pair.left,move broken_buffer,17,1000);
+    let failed = io_wait(mut io,move broken,mut count,mut status);
+    assert(status == 5); assert(count == 0); release(move failed);
+    let report = io_shutdown(move io);
+    assert(report.poll_calls >= 1); assert(report.poll_calls <= 4);
+    assert(report.reserved_bytes == 0); assert(report.open_ports == 0);
+    print_i64(report.cancelled as i64);
+    print_i64(report.timed_out as i64);
+    print_i64(report.completed as i64);
+    print_i64(report.abandoned as i64);
+}

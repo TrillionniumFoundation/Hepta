@@ -1,0 +1,3 @@
+struct View<'a>{ data:read 'a [u8] }
+fn view<'a>(data:read 'a Buffer<u8>)->View<'a> effects {} {return View{data:read data};}
+struct Box<T>{item:T} fn bad<'a>(x:Box<View<'a>>)->Unit effects {} {}

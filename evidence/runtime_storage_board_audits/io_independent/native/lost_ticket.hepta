@@ -1,0 +1,10 @@
+fn main()->Unit effects {alloc,block,panic,io,write} {
+ let mut a=io_reactor(2,1,8);let mut b=io_reactor(2,1,8);let pair=io_local_pair(mut a);
+ let ticket=io_read(mut a,pair.left,move buffer(8),8,0);
+ let mut n:usize=0;let mut status:u8=0;
+ let empty=io_take(mut b,move ticket,mut n,mut status);assert(status==10);release(move empty);
+ let retained=io_report(read a);assert(retained.occupied_requests==1 && retained.reserved_bytes==8);
+ let next=io_write(mut a,pair.right,move buffer(8),8,1000);
+ let refused=io_take(mut a,move next,mut n,mut status);assert(status==7);release(move refused);
+ let done=io_shutdown(move a);assert(done.abandoned==1 && done.reserved_bytes==0);io_shutdown(move b);
+}

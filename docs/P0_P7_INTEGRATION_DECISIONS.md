@@ -190,3 +190,21 @@ comparison is included in the 19 passing synthetic/regression tests.
 
 Only source and output-shape inspections were performed for the producer
 branches; actual Hepta native producer commands were not run here.
+
+
+## P1 versioned scalar HSIR compatibility boundary (additive integration candidate)
+
+The checked source-semantic owner remains `hepta.semantic_ir` with
+`hepta.hsir.v0`. The *derived*, restricted scalar CFG/SSA input has now been
+renamed to `hepta.hsir.scalar.v1` rather than exporting an incompatible
+`hepta.hsir.v0` payload under the same schema name. `lower_hsir_cfg`
+requires this exact version. The adapter continues to bind
+`source_semantic_sha256`, reject owner/loan/FFI/provenance obligations and
+preserve explicit false proof claims. A legacy derived v0 snapshot is rejected,
+not silently relabeled. The original audit's PR #14 versus PR #36 historical
+v0 collision remains a real finding for those frozen branches; this versioned
+candidate removes ambiguity *only along this integrated adapter/CFG path*.
+
+Executable source-to-canonical-to-derived-to-CFG/SSA tests and downgrade
+negative cases are in `tests/test_hsir_bridge.py`. Full native refinement,
+ownership-aware SSA and formal language soundness are **not proven**.

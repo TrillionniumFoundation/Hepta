@@ -1,0 +1,123 @@
+{
+  "claims": {
+    "abstract_provenance_theorems_checked": true,
+    "closed_expression_type_soundness_checked": true,
+    "foreign_pointer_validity_proved": false,
+    "hardware_behavior_proved": false,
+    "production_type_system_soundness_proved": false,
+    "source_to_ir_or_backend_refinement_proved": false
+  },
+  "kernel_output": "'Hepta.Memory.access_authorized' does not depend on any axioms\n'Hepta.Memory.access_within_allocation' does not depend on any axioms\n'Hepta.Memory.admission_preserves_exclusivity' depends on axioms: [propext]\n'Hepta.Memory.compatible_symmetric' does not depend on any axioms\n'Hepta.Memory.narrowing_cannot_gain_write' depends on axioms: [propext]\n'Hepta.Memory.narrowing_preserves_authority' depends on axioms: [propext, Quot.sound]\n'Hepta.Memory.narrowing_preserves_origin' depends on axioms: [propext]\n'Hepta.Memory.one_past_cannot_read' depends on axioms: [propext, Quot.sound]\n'Hepta.Memory.other_identity_rejected' depends on axioms: [propext]\n'Hepta.Memory.overlapping_mutable_view_rejected' depends on axioms: [propext, Quot.sound]\n'Hepta.Memory.retired_allocation_rejected' depends on axioms: [propext]\n'Hepta.Memory.reuse_does_not_revive_old_pointer' depends on axioms: [propext, Classical.choice, Quot.sound]\n'Hepta.Memory.stale_generation_rejected' depends on axioms: [propext]\n'Hepta.TypedCore.bool_canonical' does not depend on any axioms\n'Hepta.TypedCore.preservation' depends on axioms: [propext]\n'Hepta.TypedCore.progress' depends on axioms: [propext]\n'Hepta.TypedCore.trace_preservation' depends on axioms: [propext]\n'Hepta.TypedCore.well_typed_cannot_get_stuck' depends on axioms: [propext]\n'Hepta.TypedCore.word_canonical' does not depend on any axioms\n",
+  "lean": "Lean (version 4.19.0, x86_64-unknown-linux-gnu, commit 6caaee842e94, Release)",
+  "lean_binary_sha256": "92c3d35b5bfaa5e0fea413a775d504cf46cd95e1345df61c2274f76779e7e023",
+  "negative_mutations": [
+    {
+      "log": "/tmp/hepta-memory-proofs-0c5qdmzy/Check.lean:54:63: error: unsolved goals\na : Allocation\np : Pointer\nwidth : Nat\nh : p.identity \u2260 a.identity\n\u22a2 a.live = true \u2192 p.generation = a.generation \u2192 a.bytes < p.offset + width\n'Hepta.Memory.access_authorized' does not depend on any axioms\n'Hepta.Memory.access_within_allocation' does not depend on any axioms\n'Hepta.Memory.admission_preserves_exclusivity' depends on axioms: [propext]\n'Hepta.Memory.compatible_symmetric' does not depend on any axioms\n'Hepta.Memory.narrowing_cannot_gain_write' depends on axioms: [propext]\n'Hepta.Memory.narrowing_preserves_authority' depends on axioms: [propext, Quot.sound]\n'Hepta.Memory.narrowing_preserves_origin' depends on axioms: [propext]\n'Hepta.Memory.one_past_cannot_read' depends on axioms: [propext, Quot.sound]\n'Hepta.Memory.other_identity_rejected' depends on axioms: [propext, sorryAx]\n'Hepta.Memory.overlapping_mutable_view_rejected' depends on axioms: [propext, Quot.sound]\n'Hepta.Memory.retired_allocation_rejected' depends on axioms: [propext]\n'Hepta.Memory.reuse_does_not_revive_old_pointer' depends on axioms: [propext, Classical.choice, Quot.sound]\n'Hepta.Memory.stale_generation_rejected' depends on axioms: [propext]\n'Hepta.TypedCore.bool_canonical' does not depend on any axioms\n'Hepta.TypedCore.preservation' depends on axioms: [propext]\n'Hepta.TypedCore.progress' depends on axioms: [propext]\n'Hepta.TypedCore.trace_preservation' depends on axioms: [propext]\n'Hepta.TypedCore.well_typed_cannot_get_stuck' depends on axioms: [propext]\n'Hepta.TypedCore.word_canonical' does not depend on any axioms\n",
+      "log_sha256": "c9a92dbde9e1d979589052d980a9a28c2397afecf1d5597919bc2b86fea23967",
+      "mutation": "discard_allocation_identity",
+      "returncode": 1,
+      "source_sha256": "90d4d48440ca8535b762b9e2746de48dfad9bae8636a3494afd806e47f8c1252",
+      "status": "rejected_as_expected"
+    },
+    {
+      "log": "/tmp/hepta-memory-proofs-0c5qdmzy/Check.lean:58:67: error: unsolved goals\na : Allocation\np : Pointer\nwidth : Nat\nh : p.generation \u2260 a.generation\n\u22a2 a.live = true \u2192 p.identity = a.identity \u2192 a.bytes < p.offset + width\n/tmp/hepta-memory-proofs-0c5qdmzy/Check.lean:67:45: error: unsolved goals\na : Allocation\np : Pointer\nwidth bytes : Nat\nh : p.generation = a.generation\n\u22a2 p.identity = a.identity \u2192 bytes < p.offset + width\n'Hepta.Memory.access_authorized' does not depend on any axioms\n'Hepta.Memory.access_within_allocation' does not depend on any axioms\n'Hepta.Memory.admission_preserves_exclusivity' depends on axioms: [propext]\n'Hepta.Memory.compatible_symmetric' does not depend on any axioms\n'Hepta.Memory.narrowing_cannot_gain_write' depends on axioms: [propext]\n'Hepta.Memory.narrowing_preserves_authority' depends on axioms: [propext, Quot.sound]\n'Hepta.Memory.narrowing_preserves_origin' depends on axioms: [propext]\n'Hepta.Memory.one_past_cannot_read' depends on axioms: [propext, Quot.sound]\n'Hepta.Memory.other_identity_rejected' depends on axioms: [propext]\n'Hepta.Memory.overlapping_mutable_view_rejected' depends on axioms: [propext, Quot.sound]\n'Hepta.Memory.retired_allocation_rejected' depends on axioms: [propext]\n'Hepta.Memory.reuse_does_not_revive_old_pointer' depends on axioms: [propext, sorryAx]\n'Hepta.Memory.stale_generation_rejected' depends on axioms: [propext, sorryAx]\n'Hepta.TypedCore.bool_canonical' does not depend on any axioms\n'Hepta.TypedCore.preservation' depends on axioms: [propext]\n'Hepta.TypedCore.progress' depends on axioms: [propext]\n'Hepta.TypedCore.trace_preservation' depends on axioms: [propext]\n'Hepta.TypedCore.well_typed_cannot_get_stuck' depends on axioms: [propext]\n'Hepta.TypedCore.word_canonical' does not depend on any axioms\n",
+      "log_sha256": "ca956d5441e6d639978fa86b082e4d34685b95c7343c682169ef358bd65a16bc",
+      "mutation": "discard_generation",
+      "returncode": 1,
+      "source_sha256": "0fab435c4b91c73b688d88f37a6174a0b2b468f6af75492b1135cd3e63446fdf",
+      "status": "rejected_as_expected"
+    },
+    {
+      "log": "/tmp/hepta-memory-proofs-0c5qdmzy/Check.lean:26:47: warning: unused variable `width`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`\n/tmp/hepta-memory-proofs-0c5qdmzy/Check.lean:51:2: error: type mismatch\n  (access_authorized h).right.right.right\nhas type\n  True : Prop\nbut is expected to have type\n  p.offset + width \u2264 a.bytes : Prop\n/tmp/hepta-memory-proofs-0c5qdmzy/Check.lean:72:31: error: unsolved goals\na : Allocation\np : Pointer\nwidth : Nat\natEnd : p.offset = a.bytes\nnonempty : 0 < width\nh : \u00acp.offset + width \u2264 a.bytes\n\u22a2 a.live = true \u2192 p.identity = a.identity \u2192 \u00acp.generation = a.generation\n/tmp/hepta-memory-proofs-0c5qdmzy/Check.lean:113:42: error: omega could not prove the goal:\na possible counterexample may satisfy the constraints\n  f \u2265 0\n  e \u2265 0\n  d \u2265 0\n  c \u2265 0\n  b \u2265 0\n  b - c - d \u2265 0\nwhere\n b := \u2191v.length\n c := \u2191offset\n d := \u2191length\n e := \u2191a.identity\n f := \u2191a.generation\n'Hepta.Memory.access_authorized' does not depend on any axioms\n'Hepta.Memory.access_within_allocation' depends on axioms: [sorryAx]\n'Hepta.Memory.admission_preserves_exclusivity' depends on axioms: [propext]\n'Hepta.Memory.compatible_symmetric' does not depend on any axioms\n'Hepta.Memory.narrowing_cannot_gain_write' depends on axioms: [propext]\n'Hepta.Memory.narrowing_preserves_authority' depends on axioms: [propext, sorryAx]\n'Hepta.Memory.narrowing_preserves_origin' depends on axioms: [propext]\n'Hepta.Memory.one_past_cannot_read' depends on axioms: [propext, sorryAx, Quot.sound]\n'Hepta.Memory.other_identity_rejected' depends on axioms: [propext]\n'Hepta.Memory.overlapping_mutable_view_rejected' depends on axioms: [propext, Quot.sound]\n'Hepta.Memory.retired_allocation_rejected' depends on axioms: [propext]\n'Hepta.Memory.reuse_does_not_revive_old_pointer' depends on axioms: [propext, Classical.choice, Quot.sound]\n'Hepta.Memory.stale_generation_rejected' depends on axioms: [propext]\n'Hepta.TypedCore.bool_canonical' does not depend on any axioms\n'Hepta.TypedCore.preservation' depends on axioms: [propext]\n'Hepta.TypedCore.progress' depends on axioms: [propext]\n'Hepta.TypedCore.trace_preservation' depends on axioms: [propext]\n'Hepta.TypedCore.well_typed_cannot_get_stuck' depends on axioms: [propext]\n'Hepta.TypedCore.word_canonical' does not depend on any axioms\n",
+      "log_sha256": "a06ede057804e3c50019c402a05cdf46841d927151d96cacaf1dde17bf7c9275",
+      "mutation": "discard_access_extent",
+      "returncode": 1,
+      "source_sha256": "fbdb3df382c8efd11c1b59c49f5a9a662815a31fb46ab151813e2c09351d683f",
+      "status": "rejected_as_expected"
+    },
+    {
+      "log": "/tmp/hepta-memory-proofs-0c5qdmzy/Check.lean:121:2: error: unsolved goals\ncase isTrue.true\nv : View\noffset length : Nat\nreadOnly : v.writable = false\nh\u271d : offset + length \u2264 v.length\n\u22a2 False\n'Hepta.Memory.access_authorized' does not depend on any axioms\n'Hepta.Memory.access_within_allocation' does not depend on any axioms\n'Hepta.Memory.admission_preserves_exclusivity' depends on axioms: [propext]\n'Hepta.Memory.compatible_symmetric' does not depend on any axioms\n'Hepta.Memory.narrowing_cannot_gain_write' depends on axioms: [sorryAx]\n'Hepta.Memory.narrowing_preserves_authority' depends on axioms: [propext, Quot.sound]\n'Hepta.Memory.narrowing_preserves_origin' depends on axioms: [propext]\n'Hepta.Memory.one_past_cannot_read' depends on axioms: [propext, Quot.sound]\n'Hepta.Memory.other_identity_rejected' depends on axioms: [propext]\n'Hepta.Memory.overlapping_mutable_view_rejected' depends on axioms: [propext, Quot.sound]\n'Hepta.Memory.retired_allocation_rejected' depends on axioms: [propext]\n'Hepta.Memory.reuse_does_not_revive_old_pointer' depends on axioms: [propext, Classical.choice, Quot.sound]\n'Hepta.Memory.stale_generation_rejected' depends on axioms: [propext]\n'Hepta.TypedCore.bool_canonical' does not depend on any axioms\n'Hepta.TypedCore.preservation' depends on axioms: [propext]\n'Hepta.TypedCore.progress' depends on axioms: [propext]\n'Hepta.TypedCore.trace_preservation' depends on axioms: [propext]\n'Hepta.TypedCore.well_typed_cannot_get_stuck' depends on axioms: [propext]\n'Hepta.TypedCore.word_canonical' does not depend on any axioms\n",
+      "log_sha256": "1fb8c8d26069c056e11c554c8ef6c39533f274deb9d20a02c5109e06c06366a9",
+      "mutation": "gain_write_on_readonly_view",
+      "returncode": 1,
+      "source_sha256": "7ccc15081b6e14203fd72be1f7fdbf2c0c77777dbbc1a50e6f051c29342bc192",
+      "status": "rejected_as_expected"
+    },
+    {
+      "log": "/tmp/hepta-memory-proofs-0c5qdmzy/Check.lean:228:28: error: type mismatch\n  Typed.word ?m.12116\nhas type\n  Typed (Expr.word ?m.12116) Ty.word : Prop\nbut is expected to have type\n  Typed (Expr.boolean true) Ty.word : Prop\n'Hepta.Memory.access_authorized' does not depend on any axioms\n'Hepta.Memory.access_within_allocation' does not depend on any axioms\n'Hepta.Memory.admission_preserves_exclusivity' depends on axioms: [propext]\n'Hepta.Memory.compatible_symmetric' does not depend on any axioms\n'Hepta.Memory.narrowing_cannot_gain_write' depends on axioms: [propext]\n'Hepta.Memory.narrowing_preserves_authority' depends on axioms: [propext, Quot.sound]\n'Hepta.Memory.narrowing_preserves_origin' depends on axioms: [propext]\n'Hepta.Memory.one_past_cannot_read' depends on axioms: [propext, Quot.sound]\n'Hepta.Memory.other_identity_rejected' depends on axioms: [propext]\n'Hepta.Memory.overlapping_mutable_view_rejected' depends on axioms: [propext, Quot.sound]\n'Hepta.Memory.retired_allocation_rejected' depends on axioms: [propext]\n'Hepta.Memory.reuse_does_not_revive_old_pointer' depends on axioms: [propext, Classical.choice, Quot.sound]\n'Hepta.Memory.stale_generation_rejected' depends on axioms: [propext]\n'Hepta.TypedCore.bool_canonical' does not depend on any axioms\n'Hepta.TypedCore.preservation' depends on axioms: [sorryAx]\n'Hepta.TypedCore.progress' does not depend on any axioms\n'Hepta.TypedCore.trace_preservation' depends on axioms: [sorryAx]\n'Hepta.TypedCore.well_typed_cannot_get_stuck' depends on axioms: [sorryAx]\n'Hepta.TypedCore.word_canonical' does not depend on any axioms\n",
+      "log_sha256": "6a263ee40248e744838a5df1c4d67d413bc26956ce03e6e3449906f92c9fd54a",
+      "mutation": "addition_changes_value_type",
+      "returncode": 1,
+      "source_sha256": "4b6d41d5f012e9458b5761d72107bd606abf10643a921185f1ddb507d9add530",
+      "status": "rejected_as_expected"
+    }
+  ],
+  "schema": "hepta.memory-proofs.v1",
+  "scope": {
+    "limits": [
+      "Natural-number extents and fresh generations do not model machine integer wraparound or address reuse internals.",
+      "Loan admission alone is not the production lifetime/ownership checker.",
+      "No correspondence theorem to Python, resource IR, Rust or C lowering is established.",
+      "No foreign pointer, thread interleaving, hardware or full language proof is asserted."
+    ],
+    "memory": "fresh allocation identity and generation, byte ranges, view narrowing and pairwise loan compatibility",
+    "types": "closed wrapping-u64/boolean/add/equality/conditional expression small-step progress and preservation"
+  },
+  "source": "formal/HeptaMemory.lean",
+  "source_sha256": "4cb928c449e14ff4a12f81487e28507e1fc8cd2690ddb436058310362fe1f726",
+  "status": "passed",
+  "theorems": {
+    "Hepta.Memory.access_authorized": [],
+    "Hepta.Memory.access_within_allocation": [],
+    "Hepta.Memory.admission_preserves_exclusivity": [
+      "propext"
+    ],
+    "Hepta.Memory.compatible_symmetric": [],
+    "Hepta.Memory.narrowing_cannot_gain_write": [
+      "propext"
+    ],
+    "Hepta.Memory.narrowing_preserves_authority": [
+      "propext",
+      "Quot.sound"
+    ],
+    "Hepta.Memory.narrowing_preserves_origin": [
+      "propext"
+    ],
+    "Hepta.Memory.one_past_cannot_read": [
+      "propext",
+      "Quot.sound"
+    ],
+    "Hepta.Memory.other_identity_rejected": [
+      "propext"
+    ],
+    "Hepta.Memory.overlapping_mutable_view_rejected": [
+      "propext",
+      "Quot.sound"
+    ],
+    "Hepta.Memory.retired_allocation_rejected": [
+      "propext"
+    ],
+    "Hepta.Memory.reuse_does_not_revive_old_pointer": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Hepta.Memory.stale_generation_rejected": [
+      "propext"
+    ],
+    "Hepta.TypedCore.bool_canonical": [],
+    "Hepta.TypedCore.preservation": [
+      "propext"
+    ],
+    "Hepta.TypedCore.progress": [
+      "propext"
+    ],
+    "Hepta.TypedCore.trace_preservation": [
+      "propext"
+    ],
+    "Hepta.TypedCore.well_typed_cannot_get_stuck": [
+      "propext"
+    ],
+    "Hepta.TypedCore.word_canonical": []
+  }
+}

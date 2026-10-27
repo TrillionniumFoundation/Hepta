@@ -1,0 +1,65 @@
+module hia_benchmarks;
+
+fn transfer(value:take Buffer<u8>)->Buffer<u8> effects {} {return move value;}
+
+export "C" fn full_lifecycle(size:usize,seed:u32)->u64 effects {alloc,block,panic,write} {
+    match try_buffer(size) {
+        Result::Err(code)=>{return 1000+(code as u64);},
+        Result::Ok(initial)=>{
+            let mut bytes=move initial;
+            for i in 0..size {bytes[i]=wrapping_add(i as u32,seed) as u8;}
+            let moved=transfer(move bytes);
+            let mut total:u64=0;
+            for i in 0..size {total=total+(moved[i] as u64);}
+            drop(move moved);
+            return total;
+        },
+    }
+}
+
+export "C" fn constructor_error(size:usize,seed:u32)->u64 effects {alloc,block,panic} {
+    match try_buffer(size) {
+        Result::Err(code)=>{return 1000+(code as u64)+(seed as u64);},
+        Result::Ok(bytes)=>{drop(move bytes);return 1002+(seed as u64);},
+    }
+}
+
+export "C" fn two_stage(size:usize,seed:u32)->u64 effects {alloc,block,panic,write} {
+    match try_buffer(size) {
+        Result::Err(code)=>{return 1000+(code as u64);},
+        Result::Ok(initial)=>{
+            let mut first=move initial;
+            for i in 0..size {first[i]=seed as u8;}
+            match try_buffer(size+17) {
+                Result::Err(code)=>{drop(move first);return 1000+(code as u64);},
+                Result::Ok(other)=>{
+                    let mut second=move other;
+                    for i in 0..size {second[i]=first[i]^90;}
+                    let mut total:u64=0;
+                    for i in 0..len(second) {total=total+(second[i] as u64);}
+                    drop(move second);drop(move first);
+                    return total;
+                },
+            }
+        },
+    }
+}
+
+export "C" fn two_alloc(second:usize,refuse:u32)->u64 effects {alloc,block,panic,write} {
+    match try_buffer(7) {
+        Result::Err(code)=>{return 100+(code as u64);},
+        Result::Ok(initial)=>{
+            let mut first=move initial;
+            first[0]=19;
+            match try_buffer(second) {
+                Result::Err(code)=>{drop(move first);return code as u64;},
+                Result::Ok(other)=>{
+                    let moved=transfer(move other);
+                    if refuse!=0 {drop(move moved);drop(move first);return 2;}
+                    let result=(len(moved) as u64)+(first[0] as u64);
+                    drop(move moved);drop(move first);return result;
+                },
+            }
+        },
+    }
+}

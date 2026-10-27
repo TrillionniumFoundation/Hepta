@@ -1,0 +1,14 @@
+module source_debug;
+
+fn adjust(input: i64) -> i64 effects {panic} {
+    let base = input + 5;
+    let result = base * 3;
+    assert(result == 36);
+    return result;
+}
+
+fn main() -> Unit effects {alloc, block, panic, io} {
+    let answer = adjust(7);
+    assert(answer == 36);
+    print_i64(answer);
+}

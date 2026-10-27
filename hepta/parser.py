@@ -132,6 +132,35 @@ class Parser:
         self._type_close()
         return tuple(params)
 
+    def _function_type_params(self) -> tuple[tuple[str, ...], dict[str, str], tuple[str, ...]]:
+        if not self._take("<"):
+            return (), {}, ()
+        params, bounds, lifetimes = [], {}, []
+        while True:
+            if self._at("LIFETIME"):
+                lifetimes.append(self._advance().value)
+            else:
+                name = self._expect("IDENT", "Expected a type or lifetime parameter").value
+                params.append(name)
+                bounds[name] = self._expect("IDENT", "Expected Copy or Owned constraint").value if self._take(":") else "Copy"
+            if not self._take(","):
+                break
+        self._type_close()
+        return tuple(params), bounds, tuple(lifetimes)
+
+    def _type_instantiation(self) -> tuple[tuple[Type, ...], tuple[str, ...]]:
+        self._expect("<")
+        args, lifetimes = [], []
+        while True:
+            if self._at("LIFETIME"):
+                lifetimes.append(self._advance().value)
+            else:
+                args.append(self._type())
+            if not self._take(","):
+                break
+        self._type_close()
+        return tuple(args), tuple(lifetimes)
+
     def _type_args(self) -> tuple[Type, ...]:
         self._expect("<")
         args = [self._type()]
@@ -177,7 +206,9 @@ class Parser:
             repr_c = True
         self._expect("struct")
         name = self._expect("IDENT", "Expected a struct name").value
-        type_params = self._type_params()
+        type_params, bounds, lifetime_params = self._function_type_params()
+        if any(value != "Copy" for value in bounds.values()):
+            self._error("Struct parameters do not accept ownership bounds", code="E_PARSE_GENERIC")
         self._expect("{")
         fields: list[Param] = []
         while not self._at("}"):
@@ -188,7 +219,7 @@ class Parser:
             if not self._take(","):
                 break
         end = self._expect("}", "Expected ',' or '}' after a struct field").span
-        return Struct(name, fields, repr_c, _cover(start, end), type_params, public)
+        return Struct(name, fields, repr_c, _cover(start, end), type_params, public, lifetime_params)
 
     def _enum(self) -> Enum:
         start = self.current.span
@@ -231,7 +262,7 @@ class Parser:
                 self._abi()
         self._expect("fn")
         name = self._expect("IDENT", "Expected a function name").value
-        type_params = self._type_params()
+        type_params, type_bounds, lifetime_params = self._function_type_params()
         self._expect("(")
         params: list[Param] = []
         while not self._at(")"):
@@ -240,14 +271,23 @@ class Parser:
             mode = "value"
             if self.current.kind in ("read", "mut", "take"):
                 mode = self._advance().value
+            lifetime = self._advance().value if self._at("LIFETIME") else None
             parameter_type = self._type()
             params.append(Param(param.value, parameter_type, mode,
-                                _cover(param.span, self.previous.span)))
+                                _cover(param.span, self.previous.span), lifetime))
             if not self._take(","):
                 break
         self._expect(")", "Expected ',' or ')' after a parameter")
         self._expect("->", "Functions require an explicit return type after '->'")
+        return_mode = self._advance().value if self.current.kind in {"read", "mut"} else "value"
+        return_lifetime = self._advance().value if self._at("LIFETIME") else None
         return_type = self._type()
+        return_origin = None
+        # Contextual keyword: existing locals/functions named `from` remain
+        # legal. Only the position after a return type gives it this meaning.
+        if self._at("IDENT") and self.current.value == "from":
+            self._advance()
+            return_origin = self._expect("IDENT", "Expected a borrowed parameter after 'from'").value
         effects = self._effects()
         resources: dict = {}
         if extern_c:
@@ -260,7 +300,8 @@ class Parser:
             body, body_span = self._block()
             end = body_span
         return Function(name, params, return_type, effects, body, public, extern_c,
-                        export_c, resources, _cover(start, end), body_span, type_params)
+                        export_c, resources, _cover(start, end), body_span, type_params, return_mode, type_bounds, return_origin,
+                        lifetime_params, return_lifetime)
 
     def _effects(self) -> set[str]:
         self._expect("effects", "Every function requires an explicit effects clause")
@@ -313,6 +354,10 @@ class Parser:
 
     def _type(self) -> Type:
         with self._nested():
+            if self.current.kind in {"read", "mut"}:
+                mode = self._advance().value
+                lifetime = self._expect("LIFETIME", "Stored references require an explicit lifetime: read 'a T").value
+                return Type("ref_" + mode, (self._type(),), lifetimes=(lifetime,))
             if self._take("["):
                 element = self._type()
                 if self._take(";"):
@@ -327,10 +372,10 @@ class Parser:
                 mode = self._advance().value
                 return Type("raw_" + mode, (self._type(),))
             name = self._path()
-            args = self._type_args() if self._at("<") else ()
+            args, lifetimes = self._type_instantiation() if self._at("<") else ((), ())
             if name in {"Buffer", "Task", "Sender"} and len(args) != 1:
                 self._error(f"{name} requires exactly one element type: {name}<T>")
-            return Type(name, args)
+            return Type(name, args, lifetimes=lifetimes)
 
     def _block(self) -> tuple[list[Stmt], Span]:
         with self._nested():

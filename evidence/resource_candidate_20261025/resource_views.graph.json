@@ -1,0 +1,1398 @@
+{
+  "claims": {
+    "external_contracts_proved": false,
+    "native_codegen_uses_this_ir": false,
+    "scalar_value_semantics_verified": false,
+    "source_to_ir_refinement_proved": false,
+    "termination_proved": false,
+    "whole_language_soundness_proved": false
+  },
+  "functions": [
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "dest": "v0",
+              "op": "move",
+              "src": "p0"
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v0"
+          }
+        }
+      ],
+      "entry": "b0",
+      "external": false,
+      "locals": [
+        {
+          "id": "v0",
+          "mutable": false,
+          "type": "@forward::T"
+        }
+      ],
+      "name": "forward",
+      "obligation": null,
+      "params": [
+        {
+          "id": "p0",
+          "mode": "take",
+          "type": "@forward::T"
+        }
+      ],
+      "returns": {
+        "mode": "value",
+        "origin": null,
+        "type": "@forward::T"
+      },
+      "type_params": [
+        "@forward::T"
+      ]
+    },
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "p0"
+              }
+            }
+          ],
+          "term": {
+            "condition": "v1",
+            "else": "b2",
+            "op": "branch",
+            "then": "b1"
+          }
+        },
+        {
+          "id": "b1",
+          "ops": [
+            {
+              "dest": "v3",
+              "fields": [
+                "v2"
+              ],
+              "op": "pack",
+              "variant": "Err"
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v3"
+          }
+        },
+        {
+          "id": "b2",
+          "ops": [],
+          "term": {
+            "op": "jump",
+            "target": "b3"
+          }
+        },
+        {
+          "id": "b3",
+          "ops": [
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "p0"
+              }
+            }
+          ],
+          "term": {
+            "condition": "v5",
+            "else": "b5",
+            "op": "branch",
+            "then": "b4"
+          }
+        },
+        {
+          "id": "b4",
+          "ops": [
+            {
+              "dest": "v7",
+              "fields": [
+                "v6"
+              ],
+              "op": "pack",
+              "variant": "Err"
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v7"
+          }
+        },
+        {
+          "id": "b5",
+          "ops": [],
+          "term": {
+            "op": "jump",
+            "target": "b6"
+          }
+        },
+        {
+          "id": "b6",
+          "ops": [
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "p0"
+              }
+            },
+            {
+              "dest": "v8",
+              "kind": "try_buffer",
+              "op": "acquire"
+            }
+          ],
+          "term": {
+            "cases": [
+              {
+                "target": "b7",
+                "variant": "Ok"
+              },
+              {
+                "target": "b8",
+                "variant": "Err"
+              }
+            ],
+            "op": "switch",
+            "src": "v8"
+          }
+        },
+        {
+          "id": "b7",
+          "ops": [
+            {
+              "dests": [
+                "v9"
+              ],
+              "op": "unpack",
+              "src": "v8",
+              "variant": "Ok"
+            },
+            {
+              "dest": "v10",
+              "op": "move",
+              "src": "v9"
+            },
+            {
+              "dest": "v11",
+              "fields": [
+                "v10"
+              ],
+              "op": "pack",
+              "variant": null
+            },
+            {
+              "dest": "v12",
+              "op": "move",
+              "src": "v11"
+            },
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "p1"
+              }
+            }
+          ],
+          "term": {
+            "condition": "p1",
+            "else": "b10",
+            "op": "branch",
+            "then": "b9"
+          }
+        },
+        {
+          "id": "b8",
+          "ops": [
+            {
+              "dests": [
+                "v19"
+              ],
+              "op": "unpack",
+              "src": "v8",
+              "variant": "Err"
+            },
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "v19"
+              }
+            },
+            {
+              "dest": "v20",
+              "fields": [
+                "v19"
+              ],
+              "op": "pack",
+              "variant": "Err"
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v20"
+          }
+        },
+        {
+          "id": "b9",
+          "ops": [
+            {
+              "dest": "v13",
+              "op": "move",
+              "src": "v12"
+            },
+            {
+              "op": "drop",
+              "src": "v13"
+            },
+            {
+              "dest": "v15",
+              "fields": [
+                "v14"
+              ],
+              "op": "pack",
+              "variant": "Err"
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v15"
+          }
+        },
+        {
+          "id": "b10",
+          "ops": [],
+          "term": {
+            "op": "jump",
+            "target": "b11"
+          }
+        },
+        {
+          "id": "b11",
+          "ops": [
+            {
+              "dest": "v16",
+              "op": "move",
+              "src": "v12"
+            },
+            {
+              "args": [
+                {
+                  "id": "v16",
+                  "kind": "owner"
+                }
+              ],
+              "function": "forward",
+              "obligation": null,
+              "op": "call",
+              "result": "v17",
+              "result_loan": null,
+              "type_args": [
+                "Box<Buffer<u8>>"
+              ]
+            },
+            {
+              "dest": "v18",
+              "fields": [
+                "v17"
+              ],
+              "op": "pack",
+              "variant": "Ok"
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v18"
+          }
+        }
+      ],
+      "entry": "b0",
+      "external": false,
+      "locals": [
+        {
+          "id": "v0",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v1",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v2",
+          "mutable": false,
+          "type": "u8"
+        },
+        {
+          "id": "v3",
+          "mutable": false,
+          "type": "Result<Box<Buffer<u8>>, u8>"
+        },
+        {
+          "id": "v4",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v5",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v6",
+          "mutable": false,
+          "type": "u8"
+        },
+        {
+          "id": "v7",
+          "mutable": false,
+          "type": "Result<Box<Buffer<u8>>, u8>"
+        },
+        {
+          "id": "v8",
+          "mutable": false,
+          "type": "Result<Buffer<u8>, u8>"
+        },
+        {
+          "id": "v9",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v10",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v11",
+          "mutable": false,
+          "type": "Box<Buffer<u8>>"
+        },
+        {
+          "id": "v12",
+          "mutable": false,
+          "type": "Box<Buffer<u8>>"
+        },
+        {
+          "id": "v13",
+          "mutable": false,
+          "type": "Box<Buffer<u8>>"
+        },
+        {
+          "id": "v14",
+          "mutable": false,
+          "type": "u8"
+        },
+        {
+          "id": "v15",
+          "mutable": false,
+          "type": "Result<Box<Buffer<u8>>, u8>"
+        },
+        {
+          "id": "v16",
+          "mutable": false,
+          "type": "Box<Buffer<u8>>"
+        },
+        {
+          "id": "v17",
+          "mutable": false,
+          "type": "Box<Buffer<u8>>"
+        },
+        {
+          "id": "v18",
+          "mutable": false,
+          "type": "Result<Box<Buffer<u8>>, u8>"
+        },
+        {
+          "id": "v19",
+          "mutable": false,
+          "type": "u8"
+        },
+        {
+          "id": "v20",
+          "mutable": false,
+          "type": "Result<Box<Buffer<u8>>, u8>"
+        }
+      ],
+      "name": "create",
+      "obligation": null,
+      "params": [
+        {
+          "id": "p0",
+          "mode": "value",
+          "type": "usize"
+        },
+        {
+          "id": "p1",
+          "mode": "value",
+          "type": "bool"
+        }
+      ],
+      "returns": {
+        "mode": "value",
+        "origin": null,
+        "type": "Result<Box<Buffer<u8>>, u8>"
+      }
+    },
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "p0"
+              }
+            },
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "p1"
+              }
+            },
+            {
+              "args": [
+                {
+                  "id": "p0",
+                  "kind": "value"
+                },
+                {
+                  "id": "v1",
+                  "kind": "value"
+                }
+              ],
+              "function": "create",
+              "obligation": null,
+              "op": "call",
+              "result": "v2",
+              "result_loan": null
+            }
+          ],
+          "term": {
+            "cases": [
+              {
+                "target": "b1",
+                "variant": "Ok"
+              },
+              {
+                "target": "b2",
+                "variant": "Err"
+              }
+            ],
+            "op": "switch",
+            "src": "v2"
+          }
+        },
+        {
+          "id": "b1",
+          "ops": [
+            {
+              "dests": [
+                "v3"
+              ],
+              "op": "unpack",
+              "src": "v2",
+              "variant": "Ok"
+            },
+            {
+              "dest": "v4",
+              "op": "move",
+              "src": "v3"
+            },
+            {
+              "dest": "v5",
+              "op": "move",
+              "src": "v4"
+            },
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "p0"
+              }
+            }
+          ],
+          "term": {
+            "condition": "v7",
+            "else": "b4",
+            "op": "branch",
+            "then": "b3"
+          }
+        },
+        {
+          "id": "b2",
+          "ops": [
+            {
+              "dests": [
+                "v35"
+              ],
+              "op": "unpack",
+              "src": "v2",
+              "variant": "Err"
+            },
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "v35"
+              }
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v38"
+          }
+        },
+        {
+          "id": "b3",
+          "ops": [
+            {
+              "id": "l0",
+              "mode": "mut",
+              "op": "borrow",
+              "place": {
+                "path": [
+                  "value"
+                ],
+                "root": "v5"
+              },
+              "type": "[u8]"
+            },
+            {
+              "dest": "v8",
+              "loan": "l0",
+              "op": "bind_view"
+            },
+            {
+              "dest": "v9",
+              "op": "move_view",
+              "src": "v8"
+            },
+            {
+              "mode": "write",
+              "op": "use_view",
+              "src": "v9"
+            },
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "p1"
+              }
+            }
+          ],
+          "term": {
+            "condition": "v13",
+            "else": "b6",
+            "op": "branch",
+            "then": "b5"
+          }
+        },
+        {
+          "id": "b4",
+          "ops": [],
+          "term": {
+            "op": "jump",
+            "target": "b11"
+          }
+        },
+        {
+          "id": "b5",
+          "ops": [
+            {
+              "dest": "v14",
+              "op": "move_view",
+              "src": "v9"
+            },
+            {
+              "op": "end_view",
+              "src": "v14"
+            },
+            {
+              "dest": "v15",
+              "op": "move",
+              "src": "v5"
+            },
+            {
+              "op": "drop",
+              "src": "v15"
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v16"
+          }
+        },
+        {
+          "id": "b6",
+          "ops": [],
+          "term": {
+            "op": "jump",
+            "target": "b7"
+          }
+        },
+        {
+          "id": "b7",
+          "ops": [
+            {
+              "dest": "v17",
+              "op": "move_view",
+              "src": "v9"
+            },
+            {
+              "op": "end_view",
+              "src": "v17"
+            },
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "p0"
+              }
+            }
+          ],
+          "term": {
+            "condition": "v19",
+            "else": "b9",
+            "op": "branch",
+            "then": "b8"
+          }
+        },
+        {
+          "id": "b8",
+          "ops": [
+            {
+              "id": "l1",
+              "mode": "read",
+              "op": "borrow",
+              "place": {
+                "path": [
+                  "value"
+                ],
+                "root": "v5"
+              },
+              "type": "[u8]"
+            },
+            {
+              "dest": "v20",
+              "loan": "l1",
+              "op": "bind_view"
+            },
+            {
+              "dest": "v21",
+              "op": "copy_view",
+              "src": "v20"
+            },
+            {
+              "op": "end_view",
+              "src": "v20"
+            },
+            {
+              "mode": "read",
+              "op": "use_view",
+              "src": "v21"
+            },
+            {
+              "dest": "v22",
+              "op": "copy_view",
+              "src": "v21"
+            },
+            {
+              "mode": "read",
+              "op": "use_view",
+              "src": "v22"
+            },
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "p0"
+              }
+            },
+            {
+              "mode": "read",
+              "op": "use_view",
+              "src": "v22"
+            },
+            {
+              "mode": "read",
+              "op": "use_view",
+              "src": "v21"
+            },
+            {
+              "op": "end_view",
+              "src": "v22"
+            },
+            {
+              "op": "end_view",
+              "src": "v21"
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b10"
+          }
+        },
+        {
+          "id": "b9",
+          "ops": [],
+          "term": {
+            "op": "jump",
+            "target": "b10"
+          }
+        },
+        {
+          "id": "b10",
+          "ops": [
+            {
+              "op": "forget",
+              "src": "v9"
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b11"
+          }
+        },
+        {
+          "id": "b11",
+          "ops": [
+            {
+              "dest": "v33",
+              "op": "move",
+              "src": "v5"
+            },
+            {
+              "op": "drop",
+              "src": "v33"
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v34"
+          }
+        }
+      ],
+      "entry": "b0",
+      "external": false,
+      "locals": [
+        {
+          "id": "v0",
+          "mutable": false,
+          "type": "u8"
+        },
+        {
+          "id": "v1",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v2",
+          "mutable": false,
+          "type": "Result<Box<Buffer<u8>>, u8>"
+        },
+        {
+          "id": "v3",
+          "mutable": false,
+          "type": "Box<Buffer<u8>>"
+        },
+        {
+          "id": "v4",
+          "mutable": false,
+          "type": "Box<Buffer<u8>>"
+        },
+        {
+          "id": "v5",
+          "mutable": true,
+          "type": "Box<Buffer<u8>>"
+        },
+        {
+          "id": "v6",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v7",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v8",
+          "mutable": false,
+          "type": "Edit<'_>"
+        },
+        {
+          "id": "v9",
+          "mutable": true,
+          "type": "Edit<'_>"
+        },
+        {
+          "id": "v10",
+          "mutable": false,
+          "type": "u8"
+        },
+        {
+          "id": "v11",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v12",
+          "mutable": false,
+          "type": "u8"
+        },
+        {
+          "id": "v13",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v14",
+          "mutable": false,
+          "type": "Edit<'_>"
+        },
+        {
+          "id": "v15",
+          "mutable": false,
+          "type": "Box<Buffer<u8>>"
+        },
+        {
+          "id": "v16",
+          "mutable": false,
+          "type": "i32"
+        },
+        {
+          "id": "v17",
+          "mutable": false,
+          "type": "Edit<'_>"
+        },
+        {
+          "id": "v18",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v19",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v20",
+          "mutable": false,
+          "type": "Bytes<'_>"
+        },
+        {
+          "id": "v21",
+          "mutable": false,
+          "type": "Bytes<'_>"
+        },
+        {
+          "id": "v22",
+          "mutable": false,
+          "type": "Bytes<'_>"
+        },
+        {
+          "id": "v23",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v24",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v25",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v26",
+          "mutable": false,
+          "type": "u8"
+        },
+        {
+          "id": "v27",
+          "mutable": false,
+          "type": "u8"
+        },
+        {
+          "id": "v28",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v29",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v30",
+          "mutable": false,
+          "type": "u8"
+        },
+        {
+          "id": "v31",
+          "mutable": false,
+          "type": "u8"
+        },
+        {
+          "id": "v32",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v33",
+          "mutable": false,
+          "type": "Box<Buffer<u8>>"
+        },
+        {
+          "id": "v34",
+          "mutable": false,
+          "type": "i32"
+        },
+        {
+          "id": "v35",
+          "mutable": false,
+          "type": "u8"
+        },
+        {
+          "id": "v36",
+          "mutable": false,
+          "type": "i32"
+        },
+        {
+          "id": "v37",
+          "mutable": false,
+          "type": "i32"
+        },
+        {
+          "id": "v38",
+          "mutable": false,
+          "type": "i32"
+        }
+      ],
+      "name": "exercise",
+      "obligation": null,
+      "params": [
+        {
+          "id": "p0",
+          "mode": "value",
+          "type": "usize"
+        },
+        {
+          "id": "p1",
+          "mode": "value",
+          "type": "u8"
+        }
+      ],
+      "returns": {
+        "mode": "value",
+        "origin": null,
+        "type": "i32"
+      }
+    },
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "args": [
+                {
+                  "id": "v0",
+                  "kind": "value"
+                },
+                {
+                  "id": "v1",
+                  "kind": "value"
+                }
+              ],
+              "function": "exercise",
+              "obligation": null,
+              "op": "call",
+              "result": "v2",
+              "result_loan": null
+            },
+            {
+              "args": [
+                {
+                  "id": "v6",
+                  "kind": "value"
+                },
+                {
+                  "id": "v7",
+                  "kind": "value"
+                }
+              ],
+              "function": "exercise",
+              "obligation": null,
+              "op": "call",
+              "result": "v8",
+              "result_loan": null
+            },
+            {
+              "args": [
+                {
+                  "id": "v12",
+                  "kind": "value"
+                },
+                {
+                  "id": "v13",
+                  "kind": "value"
+                }
+              ],
+              "function": "exercise",
+              "obligation": null,
+              "op": "call",
+              "result": "v14",
+              "result_loan": null
+            },
+            {
+              "args": [
+                {
+                  "id": "v17",
+                  "kind": "value"
+                },
+                {
+                  "id": "v18",
+                  "kind": "value"
+                }
+              ],
+              "function": "exercise",
+              "obligation": null,
+              "op": "call",
+              "result": "v19",
+              "result_loan": null
+            },
+            {
+              "args": [
+                {
+                  "id": "v22",
+                  "kind": "value"
+                },
+                {
+                  "id": "v23",
+                  "kind": "value"
+                }
+              ],
+              "function": "exercise",
+              "obligation": null,
+              "op": "call",
+              "result": "v24",
+              "result_loan": null
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": null
+          }
+        }
+      ],
+      "entry": "b0",
+      "external": false,
+      "locals": [
+        {
+          "id": "v0",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v1",
+          "mutable": false,
+          "type": "u8"
+        },
+        {
+          "id": "v2",
+          "mutable": false,
+          "type": "i32"
+        },
+        {
+          "id": "v3",
+          "mutable": false,
+          "type": "i32"
+        },
+        {
+          "id": "v4",
+          "mutable": false,
+          "type": "i32"
+        },
+        {
+          "id": "v5",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v6",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v7",
+          "mutable": false,
+          "type": "u8"
+        },
+        {
+          "id": "v8",
+          "mutable": false,
+          "type": "i32"
+        },
+        {
+          "id": "v9",
+          "mutable": false,
+          "type": "i32"
+        },
+        {
+          "id": "v10",
+          "mutable": false,
+          "type": "i32"
+        },
+        {
+          "id": "v11",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v12",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v13",
+          "mutable": false,
+          "type": "u8"
+        },
+        {
+          "id": "v14",
+          "mutable": false,
+          "type": "i32"
+        },
+        {
+          "id": "v15",
+          "mutable": false,
+          "type": "i32"
+        },
+        {
+          "id": "v16",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v17",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v18",
+          "mutable": false,
+          "type": "u8"
+        },
+        {
+          "id": "v19",
+          "mutable": false,
+          "type": "i32"
+        },
+        {
+          "id": "v20",
+          "mutable": false,
+          "type": "i32"
+        },
+        {
+          "id": "v21",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v22",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v23",
+          "mutable": false,
+          "type": "u8"
+        },
+        {
+          "id": "v24",
+          "mutable": false,
+          "type": "i32"
+        },
+        {
+          "id": "v25",
+          "mutable": false,
+          "type": "i32"
+        },
+        {
+          "id": "v26",
+          "mutable": false,
+          "type": "i32"
+        },
+        {
+          "id": "v27",
+          "mutable": false,
+          "type": "bool"
+        }
+      ],
+      "name": "main",
+      "obligation": null,
+      "params": [],
+      "returns": {
+        "mode": "value",
+        "origin": null,
+        "type": "Unit"
+      }
+    }
+  ],
+  "obligations": {},
+  "project_sha256": "cd19d46367047a944b090011c453f4cdafe2998fd1f19fadcd93fcf378a95056",
+  "schema": "hepta.resource-ir.v4",
+  "source_sha256": "6ea5830d984470ab5b8778fedf884675435a0671527625767b6464de3173eea7",
+  "types": {
+    "@forward::T": {
+      "bound": "Owned",
+      "function": "forward",
+      "kind": "parameter",
+      "name": "T"
+    },
+    "Box<Buffer<u8>>": {
+      "args": [
+        "Buffer<u8>"
+      ],
+      "fields": [
+        {
+          "name": "value",
+          "type": "Buffer<u8>"
+        }
+      ],
+      "kind": "struct",
+      "name": "Box"
+    },
+    "Buffer<u8>": {
+      "element": "u8",
+      "kind": "buffer"
+    },
+    "Bytes<'_>": {
+      "field": "data",
+      "kind": "view",
+      "mode": "read",
+      "name": "Bytes",
+      "pointee": "[u8]"
+    },
+    "Edit<'_>": {
+      "field": "data",
+      "kind": "view",
+      "mode": "mut",
+      "name": "Edit",
+      "pointee": "[u8]"
+    },
+    "Result<Box<Buffer<u8>>, u8>": {
+      "args": [
+        "Box<Buffer<u8>>",
+        "u8"
+      ],
+      "kind": "enum",
+      "name": "Result",
+      "variants": [
+        {
+          "fields": [
+            "Box<Buffer<u8>>"
+          ],
+          "name": "Ok"
+        },
+        {
+          "fields": [
+            "u8"
+          ],
+          "name": "Err"
+        }
+      ]
+    },
+    "Result<Buffer<u8>, u8>": {
+      "args": [
+        "Buffer<u8>",
+        "u8"
+      ],
+      "kind": "enum",
+      "name": "Result",
+      "variants": [
+        {
+          "fields": [
+            "Buffer<u8>"
+          ],
+          "name": "Ok"
+        },
+        {
+          "fields": [
+            "u8"
+          ],
+          "name": "Err"
+        }
+      ]
+    },
+    "Unit": {
+      "kind": "scalar",
+      "name": "Unit"
+    },
+    "[u8]": {
+      "element": "u8",
+      "kind": "slice"
+    },
+    "bool": {
+      "kind": "scalar",
+      "name": "bool"
+    },
+    "i32": {
+      "kind": "scalar",
+      "name": "i32"
+    },
+    "u8": {
+      "kind": "scalar",
+      "name": "u8"
+    },
+    "usize": {
+      "kind": "scalar",
+      "name": "usize"
+    }
+  },
+  "value_semantics": "copied_values_abstract_not_executable"
+}

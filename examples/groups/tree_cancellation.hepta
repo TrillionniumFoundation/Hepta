@@ -1,0 +1,40 @@
+module tree_cancellation;
+
+fn produce(data: take Buffer<u8>, cancel: read Cancellation, out: read Sender<u64>) -> u64
+effects {alloc, block, panic, write} {
+    for i in 0..1024 {
+        if !group_send(read out, i as u64) {
+            let stopped_size = len(data) as u64;
+            release(move data);
+            return stopped_size;
+        }
+    }
+    let size = len(data) as u64;
+    release(move data);
+    return size;
+}
+
+fn main() -> Unit effects {alloc, block, panic, write, spawn, io} {
+    let mut root = task_group(1, 1, 1);
+    let mut branch = task_group(0, 0, 1);
+    let mut leaf = task_group(1, 8, 1);
+    assert(group_spawn(mut leaf, produce, move buffer(8)));
+    assert(group_adopt(mut branch, move leaf));
+    assert(group_adopt(mut root, move branch));
+    group_cancel(mut root);
+    assert(!group_spawn(mut root, produce, move buffer(0)));
+    let late = task_group(0, 0, 1);
+    assert(!group_adopt(mut root, move late));
+    let done = group_tree_cancel_and_join(move root);
+    assert(done.groups == 3 && done.depth == 3 && done.joined_groups == 3);
+    assert(done.completed_tasks == 1 && done.active_tasks == 0);
+    assert(done.cancelled && !done.failed && done.sum == 8);
+    assert(done.adoption_refusals == 1 && done.rejected_tasks == 1);
+    assert(done.queued == 0 && done.waiting_senders == 0);
+    print_i64(done.groups as i64);
+    print_i64(done.joined_groups as i64);
+    print_i64(done.completed_tasks as i64);
+    print_i64(done.adoption_refusals as i64);
+    print_i64(done.rejected_tasks as i64);
+    print_i64(done.active_tasks as i64);
+}

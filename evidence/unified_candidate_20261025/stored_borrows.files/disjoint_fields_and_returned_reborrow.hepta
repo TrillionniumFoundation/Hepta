@@ -1,0 +1,10 @@
+struct Owners{left:Buffer<u8>,right:Buffer<u8>}
+struct Split<'a>{output:mut 'a [u8],input:read 'a [u8]}
+fn split<'a>(owner:mut 'a Owners)->Split<'a> effects {} {
+    return Split{output:mut owner.left,input:read owner.right};
+}
+fn main()->Unit effects {alloc,block,panic,write} {
+    let mut owner=Owners{left:buffer(3),right:buffer(3)};owner.right[0]=41;
+    let mut view=split(mut owner);view.output[0]=view.input[0];drop(move view);
+    assert(owner.left[0]==41);drop(move owner);
+}

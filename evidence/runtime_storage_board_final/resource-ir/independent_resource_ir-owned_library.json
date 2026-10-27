@@ -1,0 +1,1390 @@
+{
+  "claims": {
+    "external_contracts_proved": false,
+    "native_codegen_uses_this_ir": false,
+    "scalar_value_semantics_verified": false,
+    "source_to_ir_refinement_proved": false,
+    "termination_proved": false,
+    "whole_language_soundness_proved": false
+  },
+  "functions": [
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "p0"
+              }
+            }
+          ],
+          "term": {
+            "condition": "v1",
+            "else": "b2",
+            "op": "branch",
+            "then": "b1"
+          }
+        },
+        {
+          "id": "b1",
+          "ops": [
+            {
+              "dest": "v2",
+              "fields": [],
+              "op": "pack",
+              "variant": "Empty"
+            },
+            {
+              "dest": "v3",
+              "fields": [
+                "v2"
+              ],
+              "op": "pack",
+              "variant": "Err"
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v3"
+          }
+        },
+        {
+          "id": "b2",
+          "ops": [],
+          "term": {
+            "op": "jump",
+            "target": "b3"
+          }
+        },
+        {
+          "id": "b3",
+          "ops": [
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "p0"
+              }
+            },
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "p1"
+              }
+            }
+          ],
+          "term": {
+            "condition": "v4",
+            "else": "b5",
+            "op": "branch",
+            "then": "b4"
+          }
+        },
+        {
+          "id": "b4",
+          "ops": [
+            {
+              "dest": "v5",
+              "fields": [],
+              "op": "pack",
+              "variant": "AboveLimit"
+            },
+            {
+              "dest": "v6",
+              "fields": [
+                "v5"
+              ],
+              "op": "pack",
+              "variant": "Err"
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v6"
+          }
+        },
+        {
+          "id": "b5",
+          "ops": [],
+          "term": {
+            "op": "jump",
+            "target": "b6"
+          }
+        },
+        {
+          "id": "b6",
+          "ops": [
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "p0"
+              }
+            },
+            {
+              "dest": "v7",
+              "kind": "try_buffer",
+              "op": "acquire"
+            }
+          ],
+          "term": {
+            "cases": [
+              {
+                "target": "b7",
+                "variant": "Ok"
+              },
+              {
+                "target": "b8",
+                "variant": "Err"
+              }
+            ],
+            "op": "switch",
+            "src": "v7"
+          }
+        },
+        {
+          "id": "b7",
+          "ops": [
+            {
+              "dests": [
+                "v8"
+              ],
+              "op": "unpack",
+              "src": "v7",
+              "variant": "Ok"
+            },
+            {
+              "dest": "v9",
+              "op": "move",
+              "src": "v8"
+            },
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "p2"
+              }
+            },
+            {
+              "dest": "v10",
+              "fields": [
+                "v9",
+                "p2"
+              ],
+              "op": "pack",
+              "variant": null
+            },
+            {
+              "dest": "v11",
+              "fields": [
+                "v10"
+              ],
+              "op": "pack",
+              "variant": "Ok"
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v11"
+          }
+        },
+        {
+          "id": "b8",
+          "ops": [
+            {
+              "dests": [
+                "v12"
+              ],
+              "op": "unpack",
+              "src": "v7",
+              "variant": "Err"
+            },
+            {
+              "dest": "v13",
+              "fields": [],
+              "op": "pack",
+              "variant": "AllocationFailed"
+            },
+            {
+              "dest": "v14",
+              "fields": [
+                "v13"
+              ],
+              "op": "pack",
+              "variant": "Err"
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v14"
+          }
+        }
+      ],
+      "entry": "b0",
+      "external": false,
+      "locals": [
+        {
+          "id": "v0",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v1",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v2",
+          "mutable": false,
+          "type": "M3b64d9d9456ba393_BuildError"
+        },
+        {
+          "id": "v3",
+          "mutable": false,
+          "type": "Result<M3b64d9d9456ba393_Packet, M3b64d9d9456ba393_BuildError>"
+        },
+        {
+          "id": "v4",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v5",
+          "mutable": false,
+          "type": "M3b64d9d9456ba393_BuildError"
+        },
+        {
+          "id": "v6",
+          "mutable": false,
+          "type": "Result<M3b64d9d9456ba393_Packet, M3b64d9d9456ba393_BuildError>"
+        },
+        {
+          "id": "v7",
+          "mutable": false,
+          "type": "Result<Buffer<u8>, u8>"
+        },
+        {
+          "id": "v8",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v9",
+          "mutable": false,
+          "type": "Buffer<u8>"
+        },
+        {
+          "id": "v10",
+          "mutable": false,
+          "type": "M3b64d9d9456ba393_Packet"
+        },
+        {
+          "id": "v11",
+          "mutable": false,
+          "type": "Result<M3b64d9d9456ba393_Packet, M3b64d9d9456ba393_BuildError>"
+        },
+        {
+          "id": "v12",
+          "mutable": false,
+          "type": "u8"
+        },
+        {
+          "id": "v13",
+          "mutable": false,
+          "type": "M3b64d9d9456ba393_BuildError"
+        },
+        {
+          "id": "v14",
+          "mutable": false,
+          "type": "Result<M3b64d9d9456ba393_Packet, M3b64d9d9456ba393_BuildError>"
+        }
+      ],
+      "name": "M3b64d9d9456ba393_create",
+      "obligation": null,
+      "params": [
+        {
+          "id": "p0",
+          "mode": "value",
+          "type": "usize"
+        },
+        {
+          "id": "p1",
+          "mode": "value",
+          "type": "usize"
+        },
+        {
+          "id": "p2",
+          "mode": "value",
+          "type": "u32"
+        }
+      ],
+      "returns": {
+        "mode": "value",
+        "origin": null,
+        "type": "Result<M3b64d9d9456ba393_Packet, M3b64d9d9456ba393_BuildError>"
+      }
+    },
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "id": "l0",
+              "mode": "read",
+              "op": "borrow",
+              "place": {
+                "path": [
+                  "bytes"
+                ],
+                "root": "p0"
+              },
+              "type": "Buffer<u8>"
+            },
+            {
+              "loan": "l0",
+              "mode": "read",
+              "op": "use"
+            },
+            {
+              "id": "l0",
+              "op": "end_borrow"
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b1"
+          }
+        },
+        {
+          "id": "b1",
+          "ops": [],
+          "term": {
+            "condition": "v3",
+            "else": "b3",
+            "op": "branch",
+            "then": "b2"
+          }
+        },
+        {
+          "id": "b2",
+          "ops": [
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "p1"
+              }
+            },
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "v2"
+              }
+            },
+            {
+              "mode": "write",
+              "op": "use",
+              "place": {
+                "path": [
+                  "bytes",
+                  "*"
+                ],
+                "root": "p0"
+              }
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b1"
+          }
+        },
+        {
+          "id": "b3",
+          "ops": [],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": null
+          }
+        }
+      ],
+      "entry": "b0",
+      "external": false,
+      "locals": [
+        {
+          "id": "v0",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v1",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v2",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v3",
+          "mutable": false,
+          "type": "bool"
+        }
+      ],
+      "name": "M3b64d9d9456ba393_fill",
+      "obligation": null,
+      "params": [
+        {
+          "id": "p0",
+          "mode": "mut",
+          "type": "M3b64d9d9456ba393_Packet"
+        },
+        {
+          "id": "p1",
+          "mode": "value",
+          "type": "u8"
+        }
+      ],
+      "returns": {
+        "mode": "value",
+        "origin": null,
+        "type": "Unit"
+      }
+    },
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "id": "l0",
+              "mode": "read",
+              "op": "borrow",
+              "place": {
+                "path": [
+                  "bytes"
+                ],
+                "root": "p0"
+              },
+              "type": "Buffer<u8>"
+            },
+            {
+              "loan": "l0",
+              "mode": "read",
+              "op": "use"
+            },
+            {
+              "id": "l0",
+              "op": "end_borrow"
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b1"
+          }
+        },
+        {
+          "id": "b1",
+          "ops": [],
+          "term": {
+            "condition": "v5",
+            "else": "b3",
+            "op": "branch",
+            "then": "b2"
+          }
+        },
+        {
+          "id": "b2",
+          "ops": [
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "v1"
+              }
+            },
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "v4"
+              }
+            },
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [
+                  "bytes",
+                  "*"
+                ],
+                "root": "p0"
+              }
+            },
+            {
+              "mode": "write",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "v1"
+              }
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b1"
+          }
+        },
+        {
+          "id": "b3",
+          "ops": [
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "v1"
+              }
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v1"
+          }
+        }
+      ],
+      "entry": "b0",
+      "external": false,
+      "locals": [
+        {
+          "id": "v0",
+          "mutable": false,
+          "type": "u64"
+        },
+        {
+          "id": "v1",
+          "mutable": true,
+          "type": "u64"
+        },
+        {
+          "id": "v2",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v3",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v4",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v5",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v6",
+          "mutable": false,
+          "type": "u8"
+        },
+        {
+          "id": "v7",
+          "mutable": false,
+          "type": "u64"
+        },
+        {
+          "id": "v8",
+          "mutable": false,
+          "type": "u64"
+        }
+      ],
+      "name": "M3b64d9d9456ba393_checksum",
+      "obligation": null,
+      "params": [
+        {
+          "id": "p0",
+          "mode": "read",
+          "type": "M3b64d9d9456ba393_Packet"
+        }
+      ],
+      "returns": {
+        "mode": "value",
+        "origin": null,
+        "type": "u64"
+      }
+    },
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "dest": "v0",
+              "op": "move",
+              "src": "p0"
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": "v0"
+          }
+        }
+      ],
+      "entry": "b0",
+      "external": false,
+      "locals": [
+        {
+          "id": "v0",
+          "mutable": false,
+          "type": "M3b64d9d9456ba393_Packet"
+        }
+      ],
+      "name": "M3b64d9d9456ba393_forward",
+      "obligation": null,
+      "params": [
+        {
+          "id": "p0",
+          "mode": "take",
+          "type": "M3b64d9d9456ba393_Packet"
+        }
+      ],
+      "returns": {
+        "mode": "value",
+        "origin": null,
+        "type": "M3b64d9d9456ba393_Packet"
+      }
+    },
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "dest": "v0",
+              "op": "move",
+              "src": "p0"
+            },
+            {
+              "op": "drop",
+              "src": "v0"
+            }
+          ],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": null
+          }
+        }
+      ],
+      "entry": "b0",
+      "external": false,
+      "locals": [
+        {
+          "id": "v0",
+          "mutable": false,
+          "type": "M3b64d9d9456ba393_Packet"
+        }
+      ],
+      "name": "M3b64d9d9456ba393_close",
+      "obligation": null,
+      "params": [
+        {
+          "id": "p0",
+          "mode": "take",
+          "type": "M3b64d9d9456ba393_Packet"
+        }
+      ],
+      "returns": {
+        "mode": "value",
+        "origin": null,
+        "type": "Unit"
+      }
+    },
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "args": [
+                {
+                  "id": "v0",
+                  "kind": "value"
+                },
+                {
+                  "id": "v1",
+                  "kind": "value"
+                },
+                {
+                  "id": "v2",
+                  "kind": "value"
+                }
+              ],
+              "function": "M3b64d9d9456ba393_create",
+              "obligation": null,
+              "op": "call",
+              "result": "v3",
+              "result_loan": null
+            },
+            {
+              "dest": "v4",
+              "op": "move",
+              "src": "v3"
+            },
+            {
+              "dest": "v5",
+              "op": "move",
+              "src": "v4"
+            }
+          ],
+          "term": {
+            "cases": [
+              {
+                "target": "b1",
+                "variant": "Ok"
+              },
+              {
+                "target": "b2",
+                "variant": "Err"
+              }
+            ],
+            "op": "switch",
+            "src": "v5"
+          }
+        },
+        {
+          "id": "b1",
+          "ops": [
+            {
+              "dests": [
+                "v6"
+              ],
+              "op": "unpack",
+              "src": "v5",
+              "variant": "Ok"
+            },
+            {
+              "dest": "v7",
+              "op": "move",
+              "src": "v6"
+            },
+            {
+              "args": [
+                {
+                  "id": "v7",
+                  "kind": "owner"
+                }
+              ],
+              "function": "M3b64d9d9456ba393_forward",
+              "obligation": null,
+              "op": "call",
+              "result": "v8",
+              "result_loan": null
+            },
+            {
+              "dest": "v9",
+              "op": "move",
+              "src": "v8"
+            },
+            {
+              "id": "l0",
+              "mode": "mut",
+              "op": "borrow",
+              "place": {
+                "path": [],
+                "root": "v9"
+              },
+              "type": "M3b64d9d9456ba393_Packet"
+            },
+            {
+              "args": [
+                {
+                  "id": "l0",
+                  "kind": "borrow"
+                },
+                {
+                  "id": "v10",
+                  "kind": "value"
+                }
+              ],
+              "function": "M3b64d9d9456ba393_fill",
+              "obligation": null,
+              "op": "call",
+              "result": null,
+              "result_loan": null
+            },
+            {
+              "id": "l0",
+              "op": "end_borrow"
+            },
+            {
+              "id": "l1",
+              "mode": "read",
+              "op": "borrow",
+              "place": {
+                "path": [],
+                "root": "v9"
+              },
+              "type": "M3b64d9d9456ba393_Packet"
+            },
+            {
+              "args": [
+                {
+                  "id": "l1",
+                  "kind": "borrow"
+                }
+              ],
+              "function": "M3b64d9d9456ba393_checksum",
+              "obligation": null,
+              "op": "call",
+              "result": "v11",
+              "result_loan": null
+            },
+            {
+              "id": "l1",
+              "op": "end_borrow"
+            },
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [
+                  "tag"
+                ],
+                "root": "v9"
+              }
+            },
+            {
+              "dest": "v17",
+              "op": "move",
+              "src": "v9"
+            },
+            {
+              "args": [
+                {
+                  "id": "v17",
+                  "kind": "owner"
+                }
+              ],
+              "function": "M3b64d9d9456ba393_close",
+              "obligation": null,
+              "op": "call",
+              "result": null,
+              "result_loan": null
+            },
+            {
+              "op": "forget",
+              "src": "v9"
+            },
+            {
+              "op": "forget",
+              "src": "v6"
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b3"
+          }
+        },
+        {
+          "id": "b2",
+          "ops": [
+            {
+              "dests": [
+                "v18"
+              ],
+              "op": "unpack",
+              "src": "v5",
+              "variant": "Err"
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b3"
+          }
+        },
+        {
+          "id": "b3",
+          "ops": [
+            {
+              "args": [
+                {
+                  "id": "v20",
+                  "kind": "value"
+                },
+                {
+                  "id": "v21",
+                  "kind": "value"
+                },
+                {
+                  "id": "v22",
+                  "kind": "value"
+                }
+              ],
+              "function": "M3b64d9d9456ba393_create",
+              "obligation": null,
+              "op": "call",
+              "result": "v23",
+              "result_loan": null
+            }
+          ],
+          "term": {
+            "cases": [
+              {
+                "target": "b4",
+                "variant": "Ok"
+              },
+              {
+                "target": "b5",
+                "variant": "Err"
+              }
+            ],
+            "op": "switch",
+            "src": "v23"
+          }
+        },
+        {
+          "id": "b4",
+          "ops": [
+            {
+              "dests": [
+                "v24"
+              ],
+              "op": "unpack",
+              "src": "v23",
+              "variant": "Ok"
+            },
+            {
+              "dest": "v25",
+              "op": "move",
+              "src": "v24"
+            },
+            {
+              "args": [
+                {
+                  "id": "v25",
+                  "kind": "owner"
+                }
+              ],
+              "function": "M3b64d9d9456ba393_close",
+              "obligation": null,
+              "op": "call",
+              "result": null,
+              "result_loan": null
+            },
+            {
+              "op": "forget",
+              "src": "v24"
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b10"
+          }
+        },
+        {
+          "id": "b5",
+          "ops": [
+            {
+              "dests": [
+                "v27"
+              ],
+              "op": "unpack",
+              "src": "v23",
+              "variant": "Err"
+            },
+            {
+              "mode": "read",
+              "op": "use",
+              "place": {
+                "path": [],
+                "root": "v27"
+              }
+            }
+          ],
+          "term": {
+            "cases": [
+              {
+                "target": "b6",
+                "variant": "Empty"
+              },
+              {
+                "target": "b7",
+                "variant": "AboveLimit"
+              },
+              {
+                "target": "b8",
+                "variant": "AllocationFailed"
+              }
+            ],
+            "op": "switch",
+            "src": "v27"
+          }
+        },
+        {
+          "id": "b6",
+          "ops": [
+            {
+              "dests": [],
+              "op": "unpack",
+              "src": "v27",
+              "variant": "Empty"
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b9"
+          }
+        },
+        {
+          "id": "b7",
+          "ops": [
+            {
+              "dests": [],
+              "op": "unpack",
+              "src": "v27",
+              "variant": "AboveLimit"
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b9"
+          }
+        },
+        {
+          "id": "b8",
+          "ops": [
+            {
+              "dests": [],
+              "op": "unpack",
+              "src": "v27",
+              "variant": "AllocationFailed"
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b9"
+          }
+        },
+        {
+          "id": "b9",
+          "ops": [],
+          "term": {
+            "op": "jump",
+            "target": "b10"
+          }
+        },
+        {
+          "id": "b10",
+          "ops": [],
+          "term": {
+            "loan": null,
+            "op": "return",
+            "value": null
+          }
+        }
+      ],
+      "entry": "b0",
+      "external": false,
+      "locals": [
+        {
+          "id": "v0",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v1",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v2",
+          "mutable": false,
+          "type": "u32"
+        },
+        {
+          "id": "v3",
+          "mutable": false,
+          "type": "Result<M3b64d9d9456ba393_Packet, M3b64d9d9456ba393_BuildError>"
+        },
+        {
+          "id": "v4",
+          "mutable": false,
+          "type": "Result<M3b64d9d9456ba393_Packet, M3b64d9d9456ba393_BuildError>"
+        },
+        {
+          "id": "v5",
+          "mutable": false,
+          "type": "Result<M3b64d9d9456ba393_Packet, M3b64d9d9456ba393_BuildError>"
+        },
+        {
+          "id": "v6",
+          "mutable": false,
+          "type": "M3b64d9d9456ba393_Packet"
+        },
+        {
+          "id": "v7",
+          "mutable": false,
+          "type": "M3b64d9d9456ba393_Packet"
+        },
+        {
+          "id": "v8",
+          "mutable": false,
+          "type": "M3b64d9d9456ba393_Packet"
+        },
+        {
+          "id": "v9",
+          "mutable": true,
+          "type": "M3b64d9d9456ba393_Packet"
+        },
+        {
+          "id": "v10",
+          "mutable": false,
+          "type": "u8"
+        },
+        {
+          "id": "v11",
+          "mutable": false,
+          "type": "u64"
+        },
+        {
+          "id": "v12",
+          "mutable": false,
+          "type": "u64"
+        },
+        {
+          "id": "v13",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v14",
+          "mutable": false,
+          "type": "u32"
+        },
+        {
+          "id": "v15",
+          "mutable": false,
+          "type": "u32"
+        },
+        {
+          "id": "v16",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v17",
+          "mutable": false,
+          "type": "M3b64d9d9456ba393_Packet"
+        },
+        {
+          "id": "v18",
+          "mutable": false,
+          "type": "M3b64d9d9456ba393_BuildError"
+        },
+        {
+          "id": "v19",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v20",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v21",
+          "mutable": false,
+          "type": "usize"
+        },
+        {
+          "id": "v22",
+          "mutable": false,
+          "type": "u32"
+        },
+        {
+          "id": "v23",
+          "mutable": false,
+          "type": "Result<M3b64d9d9456ba393_Packet, M3b64d9d9456ba393_BuildError>"
+        },
+        {
+          "id": "v24",
+          "mutable": false,
+          "type": "M3b64d9d9456ba393_Packet"
+        },
+        {
+          "id": "v25",
+          "mutable": false,
+          "type": "M3b64d9d9456ba393_Packet"
+        },
+        {
+          "id": "v26",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v27",
+          "mutable": false,
+          "type": "M3b64d9d9456ba393_BuildError"
+        },
+        {
+          "id": "v28",
+          "mutable": false,
+          "type": "bool"
+        },
+        {
+          "id": "v29",
+          "mutable": false,
+          "type": "bool"
+        }
+      ],
+      "name": "main",
+      "obligation": null,
+      "params": [],
+      "returns": {
+        "mode": "value",
+        "origin": null,
+        "type": "Unit"
+      }
+    }
+  ],
+  "obligations": {},
+  "project_sha256": "3a1b73d281b42bee7d8f3582337493059fddc939fa9edf394794e25888d40570",
+  "schema": "hepta.resource-ir.v3",
+  "source_sha256": "b1432eea4b84696e51148f30072e44a698f158c8c6194a1d5c285fe26cccf2ae",
+  "types": {
+    "Buffer<u8>": {
+      "element": "u8",
+      "kind": "buffer"
+    },
+    "M3b64d9d9456ba393_BuildError": {
+      "args": [],
+      "kind": "enum",
+      "name": "M3b64d9d9456ba393_BuildError",
+      "variants": [
+        {
+          "fields": [],
+          "name": "Empty"
+        },
+        {
+          "fields": [],
+          "name": "AboveLimit"
+        },
+        {
+          "fields": [],
+          "name": "AllocationFailed"
+        }
+      ]
+    },
+    "M3b64d9d9456ba393_Packet": {
+      "args": [],
+      "fields": [
+        {
+          "name": "bytes",
+          "type": "Buffer<u8>"
+        },
+        {
+          "name": "tag",
+          "type": "u32"
+        }
+      ],
+      "kind": "struct",
+      "name": "M3b64d9d9456ba393_Packet"
+    },
+    "Result<Buffer<u8>, u8>": {
+      "args": [
+        "Buffer<u8>",
+        "u8"
+      ],
+      "kind": "enum",
+      "name": "Result",
+      "variants": [
+        {
+          "fields": [
+            "Buffer<u8>"
+          ],
+          "name": "Ok"
+        },
+        {
+          "fields": [
+            "u8"
+          ],
+          "name": "Err"
+        }
+      ]
+    },
+    "Result<M3b64d9d9456ba393_Packet, M3b64d9d9456ba393_BuildError>": {
+      "args": [
+        "M3b64d9d9456ba393_Packet",
+        "M3b64d9d9456ba393_BuildError"
+      ],
+      "kind": "enum",
+      "name": "Result",
+      "variants": [
+        {
+          "fields": [
+            "M3b64d9d9456ba393_Packet"
+          ],
+          "name": "Ok"
+        },
+        {
+          "fields": [
+            "M3b64d9d9456ba393_BuildError"
+          ],
+          "name": "Err"
+        }
+      ]
+    },
+    "Unit": {
+      "kind": "scalar",
+      "name": "Unit"
+    },
+    "bool": {
+      "kind": "scalar",
+      "name": "bool"
+    },
+    "u32": {
+      "kind": "scalar",
+      "name": "u32"
+    },
+    "u64": {
+      "kind": "scalar",
+      "name": "u64"
+    },
+    "u8": {
+      "kind": "scalar",
+      "name": "u8"
+    },
+    "usize": {
+      "kind": "scalar",
+      "name": "usize"
+    }
+  },
+  "value_semantics": "copied_values_abstract_not_executable"
+}

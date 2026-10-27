@@ -1,0 +1,910 @@
+diff --git a/.github/workflows/hepta-qualification.yml b/.github/workflows/hepta-qualification.yml
+index aaa9a0e9c9efd8744bb4100b5bbdccd466c3bac3..b933cb856842a77163e91dd5e270e8b1a16bc80d 100644
+--- a/.github/workflows/hepta-qualification.yml
++++ b/.github/workflows/hepta-qualification.yml
+@@ -10,6 +10,7 @@ on:
+       - dot/hepta-p0-p7-integration-20261025
+       - codex/hepta-p4-p6-guardrails-20261025
+       - assistant/hepta-p0-p7-semantic-budget-20261025
++      - implement/hia-unified-native-20261026
+   pull_request:
+     branches:
+       - main
+@@ -82,6 +83,18 @@ jobs:
+           python tools/release_check.py
+           --output-directory artifacts/candidate
+           --continue-on-failure
++      - name: Qualify the standalone HIA interpreter and direct native paths
++        if: ${{ !cancelled() }}
++        shell: bash
++        run: |
++          export LEAN="$GITHUB_WORKSPACE/../toolchains/lean-4.19.0/bin/lean"
++          python tools/qualify_hia_unified.py \
++            --output-directory artifacts/hia-unified \
++            --clang /usr/lib/llvm-20/bin/clang \
++            --rustc "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/bin/rustc" \
++            --linker "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld" \
++            --qemu-aarch64 "$GITHUB_WORKSPACE/../toolchains/qemu-8.2.2/qemu-aarch64-static" \
++            --qemu-system-arm /usr/bin/qemu-system-arm
+       - name: Preserve failures and all raw evidence
+         if: always()
+         uses: actions/upload-artifact@v4
+diff --git a/docs/HIA_PROGRAM.md b/docs/HIA_PROGRAM.md
+index dd06a1f0c2fff558fb65adf33d9907f82bfdc71f..8d745c616acd1dd1947f7cf684ea4819002ddaf7 100644
+--- a/docs/HIA_PROGRAM.md
++++ b/docs/HIA_PROGRAM.md
+@@ -172,6 +172,18 @@ preserves calls through declaration-level `"no-builtins"` plus call-site
+ the measured LLVM optimizer. Native evidence separately intercepts allocator
+ calls and NULL returns, including a missing-free machine-code negative control.
+ 
++The backend may omit zero writes only when the complete verified function has
++scalar parameters/results and every block uses an explicit closed whitelist
++that excludes all calls, byte loads and byte stores. Unknown instructions,
++unknown boundary types and unknown terminators disable this optimization.
++These local owners cannot escape or expose their byte contents; `malloc`
++replaces `calloc` while preserving the allocation attempt, NULL branch, live
++storage and explicit free. All functions that can observe bytes retain zeroed
++allocation. This is an implementation optimization, not an uninitialized-buffer
++operation in Core. The allocator must supply a fresh, nonaliasing region or
++NULL, and free must accept either allocation family or NULL. It does not promise
++that different allocator implementations fail on the same physical request.
++
+ Loans carry a root owner or external borrowed parameter and a parent loan.
+ Reborrowing suspends use of the parent until the child ends. A view can cross
+ blocks and loop iterations only with its root and parent capability. Incoming
+@@ -223,6 +235,18 @@ inline assembly, atomics, MMIO, floats and 32-bit word models remain excluded.
+ Their existence in a broader historical backend does not enable them in this
+ standalone core.
+ 
++`tools/qualify_hia_migration.py` exercises actual frontend output: a C
++compilation-database input with two byte owners, a migrated C++ scalar value
++class, and freshly generated output from the closed C++ exclusive-owner
++migrator. The owned-class path loads the generated Hepta module and its
++consumer, lowers their real checked AST to standalone HIA, and compares all
++475 existing lifecycle/fault vectors against a separately compiled original.
++The target links the generated HIA object and a scalar C observation driver;
++it does not link the original C++ implementation. Declaration/member inventory,
++source/IR/artifact hashes and allocator traces remain separate evidence. This
++qualifies the declared normalized owner protocol, not arbitrary C++ class
++bodies, STL templates, class-layout ABI compatibility or migration labor cost.
++
+ ## Interpreter, native code and external conditions
+ 
+ `execute_program` admits scalar arguments and scalar return values at its
+@@ -262,7 +286,7 @@ Publication creates a new file without replacing an existing path.
+ | Static checker | Typed closed SSA, complete local linear flows, nonconflicting loan graph, effect coverage | Whole-language soundness theorem, frontend/backend refinement theorem |
+ | Runtime checks | Integer overflow/division/shift/cast guards, byte bounds, fallible allocation | All program logic, termination, performance, operating-system isolation |
+ | Native qualification | Actual finite outputs, aborts, allocation/refusal/cleanup traces, artifact inventory | Exhaustive input equivalence or all machine/optimizer behaviors |
+-| External conditions | Allocator must return distinct initialized live regions; free must accept its live allocation or NULL; platform ABI must hold | Arbitrary foreign callers, malicious same-user artifact modification, device protocol correctness |
++| External conditions | Allocators return fresh disjoint live regions or NULL; calloc initializes bytes, while malloc is used only when bytes cannot be observed; free accepts either family or NULL; platform ABI holds | Arbitrary foreign callers, malicious same-user artifact modification, device protocol correctness |
+ 
+ The compiler and Python checker, LLVM/Clang, the native runtime, libc and the
+ platform are part of the present trusted implementation. Foreign code has no
+diff --git a/examples/hia_migration/README.md b/examples/hia_migration/README.md
+index bbde3f89a27500cca570df133859fdf5d51cbd32..79ea3651d3ecaeb2dc75f32bc7edea4cf2453a02 100644
+--- a/examples/hia_migration/README.md
++++ b/examples/hia_migration/README.md
+@@ -31,14 +31,34 @@ python tools/qualify_hia_migration.py --workdir /tmp/hia-migration-run \
+   --clang /usr/lib/llvm-20/bin/clang --clangxx /usr/lib/llvm-20/bin/clang++
+ ```
+ 
+-The current case inventory contains 56 C multi-owner cases and 20 existing
+-C++ `ScalarState` migration cases. Each executes both the separate original
+-implementation and the HIA native target, for 152 native result observations;
+-16 observations include a real intercepted allocator refusal. The standalone
+-HIA interpreter is a third consumer. Reports retain commands, raw process
+-output, declaration inventory, hashes, link inputs and observed allocation/free
+-counts. These are finite correctness and cleanup observations, not performance
+-or engineering-cost measurements.
++The current case inventory contains 56 C multi-owner cases, 20 existing
++C++ `ScalarState` migration cases, and all 475 existing C++ `OwnedBytes`
++lifecycle vectors. Each executes both the separate original implementation and
++the HIA native target, for 1,102 native result observations. There are 212
++actual allocator-refusal observations: 16 in the C multi-owner cases and 196
++across the two C++ owner implementations. The HIA interpreter also executes
++the C/scalar-class vectors and all C++ owner vectors whose extent is at most
++17 bytes. Reports retain commands, raw process output, declaration inventory,
++hashes, link inputs and observed allocation/free counts. These are finite
++correctness and cleanup observations, not performance or engineering-cost
++measurements.
++
++The C++ owner path invokes `migrate_cpp_owned` on the actual original source,
++resolves its freshly generated module with the actual consumer, and feeds that
++AST into standalone HIA. It accounts for both top-level declarations and all
++15 inventoried class members. This existing migrator accepts a complete
++normalized AST ownership/lifecycle protocol; it is narrower than the C
++multi-owner structural translator and does not migrate arbitrary RAII code.
++C++ allocation/constructor exceptions become explicit `Result` errors, moves
++consume owners, and borrowed reads end before explicit drop. C++ class ABI
++preservation and general C++ exception unwinding are not claimed.
++
++The 475-vector native owner run observes 359 allocations, 359 releases, 98
++allocator refusals and zero live allocations in each implementation. The HIA
++target links its direct LLVM object with the C observation harness and an
++explicit `owned_case` scalar prototype; missing declarations are compile
++errors. The original C++ implementation is linked only into its separate
++oracle executable.
+ 
+ ## Concrete generic instances
+ 
+diff --git a/hepta/hia_program_llvm.py b/hepta/hia_program_llvm.py
+index 4a151e986c88c8958d4f60b7e9d153c0db91b9e5..34d98abcbcd0c68cefc380490ff66e39f3bc4495 100644
+--- a/hepta/hia_program_llvm.py
++++ b/hepta/hia_program_llvm.py
+@@ -38,6 +38,36 @@ _BUFFERS = {"buffer", "readbuf", "mutbuf"}
+ _RUNTIME_NAMES = {"abort", "calloc", "free", "malloc", "memset", "memcpy", "memmove"}
+ _IMPORTS = {"abort", "calloc", "free", "malloc", "memset", "memcpy", "memmove"}
+ 
++# This is a closed optimization whitelist, not a blacklist of known readers.
++# New instructions must be audited before they can omit zero initialization.
++_UNREAD_ALLOCATION_OPS = frozenset({
++    "const", "int.cast", "int.neg.checked", "select",
++    "bool.not", "bool.and", "bool.or", "bit.and", "bit.or", "bit.xor", "bit.not",
++    "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge",
++    "int.add.checked", "int.sub.checked", "int.mul.checked", "int.div.checked",
++    "int.rem.checked", "int.shl.checked", "int.shr.checked",
++    "int.add.wrap", "int.sub.wrap", "int.mul.wrap",
++    "buffer.new", "buffer.try_new", "buffer.len", "borrow.read", "borrow.mut",
++    "loan.end", "owner.move", "owner.drop",
++})
++
++
++def _can_elide_zero_initialization(function):
++    """Prove bytes of all local allocations unobservable in this function.
++
++    Resource arguments/results, every call, every byte load/store, and unknown
++    instructions reject this optimization. Scan every block, including loops
++    and branches. Only zero writes disappear: allocation attempts, failure,
++    live storage and explicit drops still execute. This does not admit a new
++    uninitialized-buffer operation to Core or expose bytes to external code.
++    """
++    scalars = set(_WIDTHS) | {"bool", "unit"}
++    return (all(param["type"] in scalars for param in function["params"])
++            and all(typ in scalars for typ in function["returns"])
++            and all(block["term"]["op"] in {"ret", "jump", "branch", "trap"}
++                    and all(operation["op"] in _UNREAD_ALLOCATION_OPS for operation in block["ops"])
++                    for block in function["blocks"]))
++
+ 
+ class HIAProgramLLVMRejected(ValueError):
+     """The standalone program or requested native build is not admitted."""
+@@ -127,6 +157,7 @@ class _FunctionEmitter:
+     def __init__(self, parent, function, number):
+         self.parent = parent
+         self.function = function
++        self.zero_bytes = "false" if _can_elide_zero_initialization(function) else "true"
+         self.number = number
+         self.serial = 0
+         self.lines = []
+@@ -280,7 +311,7 @@ class _FunctionEmitter:
+                     results = [self.instruction("extractvalue " + _return_type(returns) + " " + value + ", " + str(index))
+                                for index in range(len(returns))]
+         elif op in {"buffer.new", "buffer.try_new"}:
+-            pair = self.instruction("call %hia.alloc @__hia_allocate(i64 " + arguments[0][0] + ")")
++            pair = self.instruction("call %hia.alloc @__hia_allocate(i64 " + arguments[0][0] + ", i1 " + self.zero_bytes + ")")
+             owner = self.instruction("extractvalue %hia.alloc " + pair + ", 0")
+             success = self.instruction("extractvalue %hia.alloc " + pair + ", 1")
+             if op == "buffer.new":
+@@ -384,7 +415,7 @@ class _FunctionEmitter:
+ _BUFFER_RUNTIME = r"""
+ ; A failed allocation is an empty, valid owner plus false. Zero length succeeds.
+ ; The independent verifier still requires every resulting owner to be consumed.
+-define internal %hia.alloc @__hia_allocate(i64 %length) {
++define internal %hia.alloc @__hia_allocate(i64 %length, i1 %zero_bytes) {
+ entry:
+   %zero = icmp eq i64 %length, 0
+   br i1 %zero, label %empty, label %nonempty
+@@ -395,7 +426,15 @@ nonempty:
+   %valid = icmp ule i64 %length, 9223372036854775807
+   br i1 %valid, label %allocate, label %failed
+ allocate:
+-  %pointer = call ptr @calloc(i64 1, i64 %length) nobuiltin
++  br i1 %zero_bytes, label %zeroed, label %unread
++zeroed:
++  %zero_pointer = call ptr @calloc(i64 1, i64 %length) nobuiltin
++  br label %allocated
++unread:
++  %unread_pointer = call ptr @malloc(i64 %length) nobuiltin
++  br label %allocated
++allocated:
++  %pointer = phi ptr [ %zero_pointer, %zeroed ], [ %unread_pointer, %unread ]
+   %success = icmp ne ptr %pointer, null
+   br i1 %success, label %ready, label %failed
+ ready:
+@@ -455,6 +494,7 @@ class _Emitter:
+         # refusal and cleanup, including calls later observed by link wrappers.
+         declarations = ["declare void @abort() noreturn",
+                         'declare ptr @calloc(i64, i64) "no-builtins"',
++                        'declare ptr @malloc(i64) "no-builtins"',
+                         'declare void @free(ptr) "no-builtins"']
+         declarations += ["declare { i" + str(bits) + ", i1 } @" + name + "(i" + str(bits) + ", i" + str(bits) + ")"
+                          for name, bits in sorted(self.intrinsics)]
+@@ -566,7 +606,8 @@ def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared"):
+             "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+             "runtime_assumptions": ["Linux LP64 target with 64-bit pointers and size_t",
+                                     "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+-                                    "C free accepts a live allocation from calloc or null",
++                                    "C malloc returns null or a fresh nonaliasing allocation of the requested size; used only when byte contents cannot be observed",
++                                    "C free accepts a live allocation from calloc or malloc, or null",
+                                     "abort terminates execution; no cleanup after traps is promised",
+                                     "native compiler, linker, loader, libc and host hardware are trusted"],
+             "toolchain": {"path": str(compiler), "sha256": compiler_digest,
+diff --git a/tests/test_hia_cpp_owned_integration.py b/tests/test_hia_cpp_owned_integration.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..79ed7dd4cb923001570730fd2075173071ac63dd
+--- /dev/null
++++ b/tests/test_hia_cpp_owned_integration.py
+@@ -0,0 +1,49 @@
++"""Fresh bounded C++ ownership implementation -> standalone HIA -> native."""
++from copy import deepcopy
++import os
++from pathlib import Path
++import shutil
++import tempfile
++import unittest
++
++from tools.qualify_hia_migration import qualify_cpp_owned_to_hia, validate_cpp_owned_hia_receipt
++
++CLANG = os.environ.get("CLANG") or shutil.which("clang")
++CLANGXX = os.environ.get("CLANGXX") or (str(Path(CLANG).with_name("clang++")) if CLANG else None)
++CC, CXX = shutil.which("gcc"), shutil.which("g++")
++
++
++@unittest.skipUnless(CLANG and CLANGXX and CC and CXX, "Clang 20 and native C/C++ references required")
++class HIAOwnedMigrationIntegrationTests(unittest.TestCase):
++    def test_real_migrator_all_475_native_vectors_and_receipt_mutations(self):
++        with tempfile.TemporaryDirectory() as td:
++            report = qualify_cpp_owned_to_hia(Path(td) / "owned", clang=CLANG,
++                                             clangxx=CLANGXX, cc=CC, cxx=CXX)
++            self.assertTrue(report["ok"], report.get("diagnostic"))
++            self.assertEqual(report["source_declarations"], 2)
++            self.assertEqual(len(report["declaration_inventory"]), 15)
++            self.assertEqual(report["case_count"], 475)
++            self.assertEqual(report["native_result_executions"], 950)
++            self.assertEqual(report["actual_fault_executions"], 196)
++            self.assertEqual(report["observed"]["standalone_hia"]["allocations"], 359)
++            self.assertEqual(report["observed"]["standalone_hia"]["frees"], 359)
++            self.assertEqual(report["observed"]["standalone_hia"]["live"], 0)
++            self.assertTrue(report["interpreter_cases"])
++            for mutation in (lambda r: r["observed"]["standalone_hia"].update(frees=0),
++                             lambda r: r.update(cpp_class_abi_preserved=True),
++                             lambda r: r.update(foreign_cpp_link_inputs=["original.cpp"]),
++                             lambda r: r["target_link_argv"].append("original.cpp")):
++                forged = deepcopy(report)
++                mutation(forged)
++                with self.assertRaises(ValueError):
++                    validate_cpp_owned_hia_receipt(forged)
++            forged = deepcopy(report)
++            forged["expected_target_link_argv"] = [*forged["expected_target_link_argv"], "original.o"]
++            forged["target_link_argv"] = [*forged["target_link_argv"], "original.o"]
++            forged["processes"][0]["argv"] = list(forged["target_link_argv"])
++            with self.assertRaisesRegex(ValueError, "Target must link the standalone HIA object"):
++                validate_cpp_owned_hia_receipt(forged)
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/tests/test_hia_program_llvm.py b/tests/test_hia_program_llvm.py
+index 99e9fac49f093da52e2a486e5dbb85fcf05e518a..440791fc31325b918133adf70e2d37449b96d6db 100644
+--- a/tests/test_hia_program_llvm.py
++++ b/tests/test_hia_program_llvm.py
+@@ -17,7 +17,8 @@ from hepta.clang_capture import run_bounded
+ from hepta.hia_program import execute_program, verify_program
+ from hepta.hia_program_runtime import HIAProgramTrap
+ from hepta.hia_program_llvm import (
+-    HIAProgramLLVMRejected, TARGET_AARCH64, build_program_native, compile_program_llvm, emit_program_llvm,
++    HIAProgramLLVMRejected, TARGET_AARCH64, _can_elide_zero_initialization,
++    build_program_native, compile_program_llvm, emit_program_llvm,
+ )
+ 
+ 
+@@ -221,6 +222,103 @@ class StandaloneHIANativeTests(unittest.TestCase):
+             with self.assertRaisesRegex(HIAProgramLLVMRejected, "unsupported"):
+                 emit_program_llvm(self.program, target="riscv64-unknown-linux-gnu")
+ 
++    def test_unread_allocation_keeps_zero_reads_null_guards_and_real_allocator_events(self):
++        from tools.qualify_hia_program import block, constant, function, jump, operation, ret
++        unused = function("unused_buffer", [("n", "usize")], ["u64"], ["alloc"], [
++            block("entry", [("n", "usize")], [
++                operation("buffer.try_new", ["n"], [("owner", "buffer"), ("ok", "bool")]),
++                operation("buffer.len", ["owner"], [("length", "usize")]),
++                operation("owner.drop", ["owner"]),
++                operation("int.cast", ["length"], [("wide", "u64")], mode="wrap"),
++                constant("error", "u64", 99),
++                operation("select", ["ok", "wide", "error"], [("answer", "u64")]),
++            ], ret("answer")),
++        ])
++        read = function("read_zero_bytes", [("n", "usize")], ["u8"], ["alloc", "read", "trap"], [
++            block("entry", [("n", "usize")], [operation("buffer.new", ["n"], [("owner", "buffer")])],
++                  jump("later", "owner")),
++            block("later", [("later_owner", "buffer")], [
++                constant("at", "usize", 0), operation("borrow.read", ["later_owner"], [("view", "readbuf")]),
++                operation("buffer.load", ["view", "at"], [("byte", "u8")]),
++                operation("loan.end", ["view"]), operation("owner.drop", ["later_owner"]),
++            ], ret("byte")),
++        ])
++        infallible = function("new_unused", [("n", "usize")], ["u64"], ["alloc", "trap"], [
++            block("entry", [("n", "usize")], [
++                operation("buffer.new", ["n"], [("owner", "buffer")]),
++                operation("buffer.len", ["owner"], [("length", "usize")]), operation("owner.drop", ["owner"]),
++                operation("int.cast", ["length"], [("answer", "u64")], mode="wrap"),
++            ], ret("answer")),
++        ])
++        core = verify_program({"schema": "hepta.hia.program.v1", "module": "unread_allocation", "functions": [unused, read, infallible]})
++        self.assertTrue(_can_elide_zero_initialization(unused))
++        self.assertFalse(_can_elide_zero_initialization(read))
++        self.assertTrue(_can_elide_zero_initialization(infallible))
++        self.assertEqual(execute_program(core, "read_zero_bytes", [17])["result"], 0)
++        self.assertEqual(execute_program(core, "unused_buffer", [12281], allocation_fail_at=1)["result"], 99)
++        driver = r"""
++#include <stdint.h>
++#include <stddef.h>
++#include <stdlib.h>
++#include <stdio.h>
++#include <string.h>
++void *__real_malloc(size_t); void *__real_calloc(size_t,size_t); void __real_free(void *);
++static void *addresses[8];
++static size_t plain=0,zeroed=0,releases=0,live=0,refused=0;
++static void *remember(void *p) {
++  if(p){size_t i;for(i=0;i<8;i++)if(!addresses[i])break;
++    if(i==8)exit(80);addresses[i]=p;live++;}return p;
++}
++void *__wrap_malloc(size_t n) {
++  if(n==12281){refused++;return NULL;}
++  void *p=__real_malloc(n);if(p){memset(p,0xa5,n);plain++;}return remember(p);
++}
++void *__wrap_calloc(size_t n,size_t width) {
++  if(n==1 && width==12281){refused++;return NULL;}
++  void *p=__real_calloc(n,width);if(p)zeroed++;return remember(p);
++}
++void __wrap_free(void *p) {
++  if(p){size_t i;for(i=0;i<8;i++)if(addresses[i]==p)break;
++    if(i==8)exit(81);addresses[i]=NULL;releases++;live--;}__real_free(p);
++}
++uint64_t unused_buffer(size_t); uint8_t read_zero_bytes(size_t); uint64_t new_unused(size_t);
++int main(int argc,char **argv) {
++  (void)argv;
++  if(argc>1)return (int)new_unused(12281);
++  if(unused_buffer(17)!=17 || unused_buffer(0)!=0 || unused_buffer(12281)!=99 || unused_buffer(SIZE_MAX)!=99)return 82;
++  if(read_zero_bytes(17)!=0 || read_zero_bytes(17)!=0 || new_unused(17)!=17)return 83;
++  printf("%zu %zu %zu %zu %zu\n",plain,zeroed,releases,live,refused);
++  return plain!=2 || zeroed!=2 || releases!=4 || live!=0 || refused!=1;
++}
++"""
++        with tempfile.TemporaryDirectory(dir=self.path) as temporary:
++            folder = Path(temporary); obj, source, binary = folder / "program.o", folder / "driver.c", folder / "driver"
++            compile_program_llvm(emit_program_llvm(core), program=core, output=obj, clang=CLANG, kind="object")
++            source.write_text(driver)
++            linked = run_bounded([CLANG, "-O2", str(source), str(obj), "-Wl,--wrap=malloc",
++                                  "-Wl,--wrap=calloc", "-Wl,--wrap=free", "-o", str(binary)])
++            self.assertEqual(linked.returncode, 0, linked.stderr)
++            executed = run_bounded([str(binary)])
++            self.assertEqual(executed.returncode, 0, executed.stdout + executed.stderr)
++            self.assertEqual(executed.stdout.strip(), "2 2 4 0 1")
++            self.assertEqual(run_bounded([str(binary), "trap"]).returncode, -6)
++
++    def test_zero_initialization_elision_rejects_future_ops_types_and_terminators(self):
++        from copy import deepcopy
++        function = self.functions["sum_to"]
++        self.assertTrue(_can_elide_zero_initialization(function))
++        for name in ("buffer.load", "buffer.store", "call", "future.byte_operation"):
++            changed = deepcopy(function)
++            changed["blocks"][-1]["ops"].append({"op": name, "args": [], "out": [], "attrs": {}})
++            self.assertFalse(_can_elide_zero_initialization(changed))
++        for typ in ("buffer", "readbuf", "mutbuf", "future_resource"):
++            changed = deepcopy(function); changed["params"][0]["type"] = typ
++            self.assertFalse(_can_elide_zero_initialization(changed))
++            changed = deepcopy(function); changed["returns"] = [typ]
++            self.assertFalse(_can_elide_zero_initialization(changed))
++        changed = deepcopy(function); changed["blocks"][-1]["term"]["op"] = "future_escape"
++        self.assertFalse(_can_elide_zero_initialization(changed))
++
+ 
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/tests/test_hia_unified_qualification.py b/tests/test_hia_unified_qualification.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..f5818fd76ef78309a631b918fd1d56bbf10574a9
+--- /dev/null
++++ b/tests/test_hia_unified_qualification.py
+@@ -0,0 +1,30 @@
++"""Qualification summaries must preserve failures and reject incomplete runs."""
++import unittest
++
++from tools.qualify_hia_unified import unittest_outcome
++
++
++class UnifiedQualificationSummaryTests(unittest.TestCase):
++    def test_completed_failure_keeps_denominator_and_counts(self):
++        result = unittest_outcome(
++            "diagnostic\nRan 1723 tests in 495.436s\n\n"
++            "FAILED (failures=15, errors=1)\n", 1)
++        self.assertEqual(result, {"tests_run": 1723, "skipped": 0,
++                                  "failures": 15, "errors": 1, "passed": False})
++
++    def test_only_completed_nonempty_zero_skip_success_passes(self):
++        self.assertTrue(unittest_outcome("Ran 7 tests in 1.200s\n\nOK\n", 0)["passed"])
++        for text, code in [
++            ("Ran 7 tests in 1.200s\n\nOK (skipped=1)\n", 0),
++            ("Ran 7 tests in 1.200s\n\nOK\n", 1),
++            ("Ran 7 tests in 1.200s\n\nOK\nwrite failure\n", 0),
++            ("Ran 7 tests in 1.200s\n", 0),
++            ("Ran 0 tests in 0.000s\n\nOK\n", 0),
++            ("Ran 7 tests in 1.200s\n\nOK (expected failures=1)\n", 0),
++        ]:
++            with self.subTest(text=text, code=code):
++                self.assertFalse(unittest_outcome(text, code)["passed"])
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/tests/test_native_resource_gate.py b/tests/test_native_resource_gate.py
+index c4bee77f1bac0205539a4c241d663f9fb1d67d89..7b7d2014a926c1a9eeb8f126bbe360d450d04030 100644
+--- a/tests/test_native_resource_gate.py
++++ b/tests/test_native_resource_gate.py
+@@ -121,11 +121,28 @@ class NativeResourceGateTests(unittest.TestCase):
+                     with (patch("hepta.llvm_ssa_pipeline.analyze_project", return_value=analysis),
+                           patch("hepta.llvm_ssa_pipeline.qualify_native_resource_source",
+                                 return_value=forged),
++                          patch("hepta.hia_core.qualify_native_resource_source",
++                                wraps=qualify_native_resource_source) as replay,
++                          patch("hepta.llvm_ssa_pipeline.emit_scalar_ssa_llvm") as emitter,
+                           patch("hepta.llvm_ssa_pipeline.compile_scalar_ssa_llvm") as compiler):
+                         report = build_llvm_ssa_source(src, dest)
+                     self.assertFalse(report["ok"], report)
+-                    self.assertEqual(report["diagnostics"][0]["code"], "E_NATIVE_RESOURCE_GATE")
++                    if label == "unbound_graph":
++                        # A well-shaped but unrelated graph digest passes the
++                        # receipt shape check. The mandatory HIA source replay
++                        # independently rederives the graph and rejects the
++                        # mismatch before LLVM emission or native compilation.
++                        self.assertEqual(report["diagnostics"][0]["code"], "E_HIA_CORE")
++                        self.assertIn("resource gate does not replay from checked source",
++                                      report["diagnostics"][0]["message"])
++                        replay.assert_called_once()
++                    else:
++                        self.assertEqual(report["diagnostics"][0]["code"], "E_NATIVE_RESOURCE_GATE")
++                        replay.assert_not_called()
++                    self.assertFalse(report["claims"]["hia_scalar_core_source_replayed"])
++                    self.assertFalse(report["claims"]["native_artifact_compiled"])
+                     self.assertFalse(dest.exists())
++                    emitter.assert_not_called()
+                     compiler.assert_not_called()
+ 
+     def test_noncanonical_source_foreign_obligations_refused(self):
+diff --git a/tests/test_ssa_verify.py b/tests/test_ssa_verify.py
+index cb45381511343960f5982ca6c0957f17c96cd0d7..da40bff3d2dd3d7efaacbe672dbd3307a2cffb98 100644
+--- a/tests/test_ssa_verify.py
++++ b/tests/test_ssa_verify.py
+@@ -211,7 +211,13 @@ class SSAVerificationTests(unittest.TestCase):
+                     verify_scalar_ssa(encoded(forged), cfg)
+ 
+     def test_literal_types_and_source_spans_survive_ssa_rehash(self):
+-        cfg = snapshot([block(0, [let("x", i(0))], kind="return", value=i(0))])
++        instruction = let("x", i(0))
++        # The generic hand-built CFG helpers intentionally use span=None.
++        # This attack needs a real zero-valued source coordinate: False must
++        # not impersonate 0 after the SSA envelope has been rehashed.
++        instruction["span"] = {"path": "ssa-origin.hepta", "start": 0,
++                               "end": 1, "line": 1, "column": 1}
++        cfg = snapshot([block(0, [instruction], kind="return", value=i(0))])
+         ssa = lower_cfg_scalar_ssa(cfg)
+         self.assertTrue(verify_scalar_ssa(ssa, cfg).as_dict())
+         for name, mutation in {
+@@ -221,6 +227,8 @@ class SSAVerificationTests(unittest.TestCase):
+                 lambda f: f["blocks"][0]["terminator"]["value"].update(value=False),
+             "span_start_bool_instead_of_zero":
+                 lambda f: f["blocks"][0]["instructions"][0]["span"].update(start=False),
++            "span_removed":
++                lambda f: f["blocks"][0]["instructions"][0].update(span=None),
+         }.items():
+             with self.subTest(case=name):
+                 forged = ssa.as_dict()
+@@ -229,6 +237,18 @@ class SSAVerificationTests(unittest.TestCase):
+                 with self.assertRaisesRegex(SSAVerificationRejected, "ORIGIN"):
+                     verify_scalar_ssa(encoded(forged), cfg)
+ 
++    def test_absent_source_span_is_preserved_and_cannot_be_invented_after_rehash(self):
++        cfg = snapshot([block(0, [let("x", i(0))], kind="return", value=i(0))])
++        ssa = lower_cfg_scalar_ssa(cfg)
++        self.assertTrue(verify_scalar_ssa(ssa, cfg).as_dict())
++        self.assertIsNone(ssa.as_dict()["functions"][0]["blocks"][0]["instructions"][0]["span"])
++        forged = ssa.as_dict()
++        forged.pop("sha256")
++        forged["functions"][0]["blocks"][0]["instructions"][0]["span"] = {
++            "path": "invented.hepta", "start": 0, "end": 1, "line": 1, "column": 1}
++        with self.assertRaisesRegex(SSAVerificationRejected, "ORIGIN"):
++            verify_scalar_ssa(encoded(forged), cfg)
++
+     def test_duplicate_definition_wrong_count(self):
+         cfg, ssa = self.fixture()
+         x = ssa.as_dict()
+diff --git a/tests/test_static_resource_lowering.py b/tests/test_static_resource_lowering.py
+index a645c7da2871ae7dca5273ca0afc0e31ee800a23..bef7f8fe64f669cde180b39b47e7b6db11c69a79 100644
+--- a/tests/test_static_resource_lowering.py
++++ b/tests/test_static_resource_lowering.py
+@@ -3,7 +3,7 @@ from __future__ import annotations
+ 
+ import unittest
+ 
+-from hepta.pipeline import analyze
++from hepta.pipeline import analyze, resource_ir_analysis
+ from hepta.resource_ir import ResourceIRError, verify_resource_ir
+ from hepta.resource_lowering import lower_resource_ir
+ from hepta.llvm_owned_backend import emit_owned_llvm, _resources_allowed
+@@ -27,6 +27,24 @@ def checked(source=SAFE):
+ 
+ 
+ class ResourceStaticCompilerTests(unittest.TestCase):
++    def test_resource_error_keeps_code_separate_from_human_message(self):
++        analysis = checked()
++        analysis.program.functions[0].resources["heap_allocations"] = False
++        with self.assertRaises(ResourceIRError) as rejected:
++            lower_resource_ir(analysis.program, analysis.checked)
++        # ResourceIRError exposes a structured code; its text is the message
++        # consumed by the JSON diagnostics API, not a code-prefixed string.
++        self.assertEqual(rejected.exception.code, "E_RIR_LOWER_UNSUPPORTED")
++        self.assertEqual(str(rejected.exception),
++                         "Unknown, ill-typed or effect-inconsistent static resource clause")
++        exported = resource_ir_analysis(analysis)
++        self.assertFalse(exported["ok"])
++        self.assertEqual(exported["diagnostics"], [{
++            "phase": "resource-ir",
++            "code": rejected.exception.code,
++            "message": str(rejected.exception),
++        }])
++
+     def test_checked_static_contract_reaches_both_resource_ir_and_native_emitter(self):
+         analysis = checked()
+         self.assertTrue(_resources_allowed(analysis.program.functions[0], analysis.checked))
+@@ -47,15 +65,17 @@ class ResourceStaticCompilerTests(unittest.TestCase):
+                 analysis = checked()
+                 analysis.program.functions[0].resources[resource] = fake_value
+                 self.assertFalse(_resources_allowed(analysis.program.functions[0], analysis.checked))
+-                with self.assertRaisesRegex(ResourceIRError, "E_RIR_LOWER_UNSUPPORTED"):
++                with self.assertRaises(ResourceIRError) as rejected:
+                     lower_resource_ir(analysis.program, analysis.checked)
++                self.assertEqual(rejected.exception.code, "E_RIR_LOWER_UNSUPPORTED")
+ 
+     def test_unreviewed_runtime_budget_does_not_enter_owner_ir(self):
+         analysis = checked()
+         analysis.program.functions[0].resources["max_tasks"] = 8
+         self.assertFalse(_resources_allowed(analysis.program.functions[0], analysis.checked))
+-        with self.assertRaisesRegex(ResourceIRError, "E_RIR_LOWER_UNSUPPORTED"):
++        with self.assertRaises(ResourceIRError) as rejected:
+             lower_resource_ir(analysis.program, analysis.checked)
++        self.assertEqual(rejected.exception.code, "E_RIR_LOWER_UNSUPPORTED")
+ 
+     def test_transitive_allocation_or_blocking_invalidates_zero_cost_guarantee(self):
+         for effect in ("alloc", "block", "spawn", "ffi", "unsafe", "io"):
+@@ -63,8 +83,9 @@ class ResourceStaticCompilerTests(unittest.TestCase):
+                 analysis = checked()
+                 analysis.checked.effects["constrained"].add(effect)
+                 self.assertFalse(_resources_allowed(analysis.program.functions[0], analysis.checked))
+-                with self.assertRaisesRegex(ResourceIRError, "E_RIR_LOWER_UNSUPPORTED"):
++                with self.assertRaises(ResourceIRError) as rejected:
+                     lower_resource_ir(analysis.program, analysis.checked)
++                self.assertEqual(rejected.exception.code, "E_RIR_LOWER_UNSUPPORTED")
+ 
+     def test_unchecked_frontend_cannot_authorize_zero_cost_contract(self):
+         analysis = checked()
+@@ -73,8 +94,9 @@ class ResourceStaticCompilerTests(unittest.TestCase):
+         analysis.checked.diagnostics.append("synthetic rejected source")
+         self.assertFalse(analysis.checked.ok)
+         self.assertFalse(_resources_allowed(analysis.program.functions[0], analysis.checked))
+-        with self.assertRaisesRegex(ResourceIRError, "E_RIR_LOWER_REJECTED"):
++        with self.assertRaises(ResourceIRError) as rejected:
+             lower_resource_ir(analysis.program, analysis.checked)
++        self.assertEqual(rejected.exception.code, "E_RIR_LOWER_REJECTED")
+ 
+     def test_non_suspending_claim_excludes_unmodelled_block_and_spawn(self):
+         for effect in ("block", "spawn"):
+@@ -84,8 +106,9 @@ class ResourceStaticCompilerTests(unittest.TestCase):
+                 analysis.program.functions[0].resources = {"may_suspend": False}
+                 analysis.checked.effects["constrained"].add(effect)
+                 self.assertFalse(_resources_allowed(analysis.program.functions[0], analysis.checked))
+-                with self.assertRaisesRegex(ResourceIRError, "E_RIR_LOWER_UNSUPPORTED"):
++                with self.assertRaises(ResourceIRError) as rejected:
+                     lower_resource_ir(analysis.program, analysis.checked)
++                self.assertEqual(rejected.exception.code, "E_RIR_LOWER_UNSUPPORTED")
+ 
+     def test_unconstrained_legacy_functions_keep_original_resource_ir(self):
+         analysis = checked("""\
+diff --git a/tools/qualify_hia_migration.py b/tools/qualify_hia_migration.py
+index 026ca1a0c075b0a1914e81ec006d18546970c32b..3315f5bc3077521d2b2d6a97d97c8d1ac1a6b32c 100644
+--- a/tools/qualify_hia_migration.py
++++ b/tools/qualify_hia_migration.py
+@@ -8,6 +8,7 @@ deterministic allocator refusals and actual cleanup counts.
+ from __future__ import annotations
+ 
+ import argparse
++from collections import Counter
+ import hashlib
+ import json
+ import os
+@@ -22,6 +23,7 @@ if str(ROOT) not in sys.path:
+ 
+ from hepta.c_project import verify_capture
+ from hepta.cpp_class_migrate import migrate_cpp_class
++from hepta.cpp_owned_migrate import migrate_cpp_owned
+ from hepta.hia_program import execute_program
+ from hepta.hia_program_llvm import build_program_native, emit_program_llvm
+ from hepta.hia_program_source import lower_c_multi_owner, lower_program
+@@ -139,6 +141,167 @@ def _expected(case):
+     return sum((i + seed) % 251 for i in range(left)) + sum(((i + seed) % 251) ^ 90 for i in range(right))
+ 
+ 
++def _identity(path):
++    path = Path(path).absolute()
++    return {"path": str(path), "sha256": digest(path), "bytes": path.stat().st_size}
++
++
++def validate_cpp_owned_hia_receipt(report):
++    """Recheck retained source, core, native observations and link provenance."""
++    from tools.evidence_checks import require, strict_equal
++    from tools.validate_cpp_owned import EXAMPLE, cases, _observation_oracle, WRAP_FLAGS
++    from hepta.hia_program import verify_program
++    require(report.get("ok") is True and report.get("status") == "bounded_cpp_owner_to_standalone_hia_passed",
++            "Completed actual C++ owner/HIA qualification required")
++    migration = json.loads(Path(report["migration_receipt"]["path"]).read_text())
++    require(report["migration_receipt"] == _identity(report["migration_receipt"]["path"]), "Migration receipt changed")
++    require(migration["ok"] is True and migration["protocol_verified"] is True
++            and migration["source_sha256"] == digest(EXAMPLE / "owned_bytes.cpp")
++            and migration["output_sha256"] == report["migrated_source"]["sha256"]
++            and migration["source_declarations"] == migration["converted_source_declarations"] == 2
++            and len(migration["declaration_inventory"]) == 15 and migration["unconverted_members"] == []
++            and migration["complete_ast_sha256"] == migration["protocol_ast_sha256"]
++            and migration["foreign_cpp_implementation_retained"] is False
++            and type(migration["foreign_cpp_calls"]) is int and migration["foreign_cpp_calls"] == 0,
++            "Complete bounded C++ implementation inventory/source binding required")
++    require(report["source_declarations"] == migration["source_declarations"]
++            and report["converted_source_declarations"] == migration["converted_source_declarations"]
++            and report["source_sha256"] == migration["source_sha256"]
++            and strict_equal(report["declaration_inventory"], migration["declaration_inventory"]),
++            "Displayed owned declaration accounting differs from the actual translator receipt")
++    for key in ("migrated_source", "consumer", "core", "object", "case_manifest", "case_header", "prototype", "target", "original"):
++        require(report[key] == _identity(report[key]["path"]), "Retained owned artifact changed: " + key)
++    core = verify_program(Path(report["core"]["path"]).read_bytes())
++    project = load_project(report["consumer"]["path"])
++    require(lower_program(project.program).canonical_bytes == core.canonical_bytes
++            and project.identity == report["project_sha256"], "Fresh migrated source differs from the compiled HIA")
++    require(report["native_build"]["ok"] is True and report["native_build"]["core_sha256"] == core.sha256
++            and report["native_build"]["artifact_sha256"] == report["object"]["sha256"], "Native object/core binding changed")
++    vectors, expected = cases(), _observation_oracle(cases())
++    require(strict_equal(json.loads(Path(report["case_manifest"]["path"]).read_text()), vectors)
++            and report["case_count"] == len(vectors)
++            and strict_equal(report["case_families"], dict(Counter(row["family"] for row in vectors))), "Complete owner vector inventory changed")
++    require(report["foreign_cpp_link_inputs"] == [] and report["cpp_class_abi_preserved"] is False
++            and report["general_cpp_raii_supported"] is False
++            and report["source_equivalence_proved"] is False
++            and report["migration_strategy"] == "complete_normalized_ast_protocol", "Unsupported C++ migration or ABI claim")
++    recorded_link = report["target_link_argv"]
++    require(type(recorded_link) is list and recorded_link
++            and all(type(part) is str and part for part in recorded_link), "Recorded target link command required")
++    directory = Path(report["case_header"]["path"]).parent
++    expected_link = [recorded_link[0], "-std=c11", "-O2", "-fno-lto", "-Werror=implicit-function-declaration",
++        *WRAP_FLAGS, "-I" + str(directory), "-include", report["prototype"]["path"],
++        str(EXAMPLE / "harness.c"), report["object"]["path"], "-o", report["target"]["path"]]
++    # These two receipt arrays are not independent evidence. Reconstruct the
++    # closed input vector and bind the actual recorded link process to it too;
++    # coordinated additions of an original .o/.a must also reject.
++    require(recorded_link == expected_link and report["expected_target_link_argv"] == expected_link
++            and report["processes"][0]["argv"] == expected_link,
++            "Target must link the standalone HIA object with the correctly declared C harness only")
++    for name in ("original_cpp", "standalone_hia"):
++        process = report["processes"][report["execution_process_indices"][name]]
++        require(process["returncode"] == 0 and digest(process["stdout"]) == process["stdout_sha256"]
++                and strict_equal(json.loads(Path(process["stdout"]).read_text()), expected)
++                and strict_equal(report["observed"][name], expected), "Actual owner values/allocator/refusal/cleanup observations differ")
++    require(report["native_result_executions"] == 2 * len(vectors)
++            and report["actual_fault_executions"] == 2 * expected["refusals"], "Native case/refusal accounting changed")
++
++
++def qualify_cpp_owned_to_hia(workdir, *, clang="clang", clangxx="clang++", cc="cc", cxx="c++"):
++    """Fresh real owner migration; original C++ is a separate native oracle."""
++    from tools.validate_cpp_owned import EXAMPLE, cases, _case_sources, _observation_oracle, WRAP_FLAGS, CPP_FLAGS
++    from tools.evidence_checks import strict_equal
++    directory = Path(workdir).absolute()
++    if directory.exists() or directory.is_symlink():
++        raise ValueError("C++ owned qualification requires a new directory")
++    directory.mkdir(parents=True)
++    report = {"schema": "hepta.hia-cpp-owned-qualification.v1", "ok": False, "status": "in_progress",
++              "processes": [], "foreign_cpp_link_inputs": [], "cpp_class_abi_preserved": False,
++              "general_cpp_raii_supported": False, "source_equivalence_proved": False,
++              "migration_strategy": "complete_normalized_ast_protocol"}
++    try:
++        migrated, consumer = directory / "migrated.hepta", directory / "consumer.hepta"
++        migration = migrate_cpp_owned(EXAMPLE / "owned_bytes.cpp", migrated, clangxx=clangxx)
++        _write_json(directory / "migration.json", migration)
++        if migration["ok"] is not True:
++            raise ValueError("Actual C++ owned implementation migration rejected: " + repr(migration["diagnostics"]))
++        report["translator_invocation"] = {"callable": "hepta.cpp_owned_migrate.migrate_cpp_owned",
++            "source": str(EXAMPLE / "owned_bytes.cpp"), "output": str(migrated), "clangxx": clangxx,
++            "implementation_sha256": digest(ROOT / "hepta/cpp_owned_migrate.py")}
++        report["migration_receipt"] = _identity(directory / "migration.json")
++        report["source_declarations"] = migration["source_declarations"]
++        report["converted_source_declarations"] = migration["converted_source_declarations"]
++        report["declaration_inventory"] = migration["declaration_inventory"]
++        report["source_sha256"] = migration["source_sha256"]
++        report["exception_mapping"] = migration["exception_mapping"]
++        report["limitations"] = migration["limitations"]
++        consumer.write_bytes((EXAMPLE / "consumer.hepta").read_bytes())
++        report["migrated_source"], report["consumer"] = _identity(migrated), _identity(consumer)
++        project = load_project(consumer)
++        core = lower_program(project.program)
++        (directory / "owned.hia.json").write_bytes(core.canonical_bytes)
++        (directory / "owned.ll").write_text(emit_program_llvm(core).text)
++        report["core"], report["project_sha256"] = _identity(directory / "owned.hia.json"), project.identity
++        obj = directory / "owned.o"
++        report["native_build"] = build_program_native(core, obj, clang=clang, kind="object")
++        report["object"] = _identity(obj)
++        vectors = cases()
++        _write_json(directory / "cases.json", vectors)
++        header, _ = _case_sources(vectors)
++        (directory / "cases.h").write_text(header)
++        prototype = directory / "owned_case.h"
++        prototype.write_text('#include <stddef.h>\n#include <stdint.h>\n'
++            'extern uint64_t owned_case(size_t, uint8_t, size_t, uint32_t, uint32_t);\n')
++        report["case_manifest"], report["case_header"], report["prototype"] = (
++            _identity(directory / "cases.json"), _identity(directory / "cases.h"), _identity(prototype))
++        target, original = directory / "standalone_hia", directory / "original_cpp"
++        target_link = [cc, "-std=c11", "-O2", "-fno-lto", "-Werror=implicit-function-declaration",
++            *WRAP_FLAGS, "-I" + str(directory), "-include", str(prototype), str(EXAMPLE / "harness.c"), str(obj), "-o", str(target)]
++        report["expected_target_link_argv"] = list(target_link)
++        _run(target_link, report, directory)
++        report["target_link_argv"] = report["processes"][-1]["argv"]
++        _run([cxx, *CPP_FLAGS, "-I" + str(directory), "-x", "c++", EXAMPLE / "harness.c",
++              EXAMPLE / "reference.cpp", "-o", original], report, directory)
++        report["target"], report["original"] = _identity(target), _identity(original)
++        symbols = _run(["nm", "-u", obj], report, directory)
++        report["target_undefined_symbols"] = symbols.splitlines()
++        if any(line.split()[-1] not in {"abort", "calloc", "malloc", "free", "memset", "memcpy", "memmove"}
++               for line in symbols.splitlines() if line.split()):
++            raise ValueError("Owned HIA object imports an unmodeled or original implementation symbol")
++        report["observed"], report["execution_process_indices"] = {}, {}
++        for name, binary in (("original_cpp", original), ("standalone_hia", target)):
++            report["execution_process_indices"][name] = len(report["processes"])
++            report["observed"][name] = json.loads(_run([binary], report, directory))
++            if not strict_equal(report["observed"][name], _observation_oracle(vectors)):
++                raise ValueError("Actual C++ owner/HIA native lifecycle differential failed")
++        # The complete 475-vector corpus runs natively on both implementations.
++        # Interpret all small extents too; large-buffer interpreter throughput
++        # is not needed to establish that this is the same standalone core.
++        report["interpreter_cases"] = []
++        for index, case in enumerate(vectors):
++            if case["size"] > 17:
++                continue
++            args = [case[key] for key in ("size", "value", "index", "reject", "early")]
++            observed = execute_program(core, "owned_case", args, allocation_fail_at=1 if case["refuse"] else None)
++            resources = observed["resources"]
++            if (observed["result"] != case["expected"] or resources["allocations"] != case["allocated"]
++                    or resources["frees"] != case["allocated"] or resources["live_owners"] != 0
++                    or resources["allocation_attempts"] != case["allocated"] + case["refusals"]):
++                raise ValueError("Actual migrated source interpreter lifecycle differential failed")
++            report["interpreter_cases"].append({"case_index": index, "execution": observed})
++        if not project.unchanged() or digest(EXAMPLE / "owned_bytes.cpp") != migration["source_sha256"]:
++            raise ValueError("C++ owner source or actual migrated module changed during execution")
++        report.update(ok=True, status="bounded_cpp_owner_to_standalone_hia_passed",
++                      case_count=len(vectors), case_families=dict(Counter(row["family"] for row in vectors)),
++                      native_result_executions=2 * len(vectors),
++                      actual_fault_executions=2 * sum(row["refusals"] for row in vectors))
++        validate_cpp_owned_hia_receipt(report)
++    except Exception as exc:
++        report.update(ok=False, status="rejected", diagnostic={"type": type(exc).__name__, "message": str(exc)})
++    _write_json(directory / "qualification.json", report)
++    return report
++
++
+ def qualify(workdir, *, clang="clang", clangxx="clang++", cc="cc", cxx="c++"):
+     directory = Path(workdir).absolute()
+     if directory.exists() or directory.is_symlink():
+@@ -149,20 +312,24 @@ def qualify(workdir, *, clang="clang", clangxx="clang++", cc="cc", cxx="c++"):
+               "cpp_class_cases": [], "claims": {
+                   "standalone_core_consumed": True, "source_required_for_hia_execution": False,
+                   "original_implementations_linked_into_targets": False,
+-                  "whole_program_ast_template": False, "all_c_cpp_supported": False,
++                  "c_multi_owner_whole_program_ast_template": False,
++                  "cpp_owned_complete_protocol_ast_match": True, "all_c_cpp_supported": False,
+                   "source_equivalence_proved": False, "backend_refinement_proved": False,
+                   "rust_performance_parity_proved": False, "human_labor_reduction_measured": False}}
+     implementation = [ROOT / "hepta" / name for name in
+                       ("hia_program.py", "hia_program_runtime.py", "hia_program_source.py", "hia_program_llvm.py",
+                        "ast.py", "parser.py", "checker.py", "modules.py", "c_project.py", "c_translation.py",
+-                       "cpp_class_migrate.py")]
++                       "cpp_class_migrate.py", "cpp_owned_migrate.py")]
+     implementation.append(Path(__file__).resolve())
++    implementation.extend(ROOT / name for name in ("tools/validate_cpp_owned.py", "tools/evidence_checks.py"))
+     before = {str(path.relative_to(ROOT)): digest(path) for path in implementation}
+     report["implementation_sha256"] = before
+     fixture_inputs = [ROOT / relative for relative in (
+         "examples/hia_migration/paired_bytes.c", "examples/hia_migration/paired_bytes.h",
+         "examples/cpp/class_migration/scalar_state.cpp", "examples/cpp/class_migration/consumer.hepta",
+-        "examples/cpp/class_migration/reference.cpp")]
++        "examples/cpp/class_migration/reference.cpp", "examples/cpp/owned_migration/owned_bytes.cpp",
++        "examples/cpp/owned_migration/consumer.hepta", "examples/cpp/owned_migration/reference.cpp",
++        "examples/cpp/owned_migration/harness.c")]
+     input_before = {str(path.relative_to(ROOT)): digest(path) for path in fixture_inputs}
+     report["source_inputs_sha256"] = input_before
+     try:
+@@ -266,6 +433,10 @@ def qualify(workdir, *, clang="clang", clangxx="clang++", cc="cc", cxx="c++"):
+                                "public_scalar_consumer_abi_executed": True}
+         if not project.unchanged():
+             raise ValueError("Resolved class migration project changed during qualification")
++        report["cpp_owned"] = qualify_cpp_owned_to_hia(directory / "cpp_owned", clang=clang,
++                                                       clangxx=clangxx, cc=cc, cxx=cxx)
++        if report["cpp_owned"]["ok"] is not True:
++            raise ValueError("Actual C++ owner to standalone HIA qualification failed: " + repr(report["cpp_owned"].get("diagnostic")))
+         after = {str(path.relative_to(ROOT)): digest(path) for path in implementation}
+         report["implementation_after_sha256"] = after
+         if before != after:
+@@ -277,8 +448,9 @@ def qualify(workdir, *, clang="clang", clangxx="clang++", cc="cc", cxx="c++"):
+         report.update(ok=True, status="finite_source_to_hia_native_qualification_passed",
+                       multi_owner_case_count=len(report["multi_owner_cases"]),
+                       cpp_class_case_count=len(report["cpp_class_cases"]),
+-                      native_result_executions=2 * (len(report["multi_owner_cases"]) + len(report["cpp_class_cases"])),
+-                      actual_fault_executions=2 * sum(c["allocation_fail_at"] is not None for c in report["multi_owner_cases"]))
++                      cpp_owned_case_count=report["cpp_owned"]["case_count"],
++                      native_result_executions=2 * (len(report["multi_owner_cases"]) + len(report["cpp_class_cases"])) + report["cpp_owned"]["native_result_executions"],
++                      actual_fault_executions=2 * sum(c["allocation_fail_at"] is not None for c in report["multi_owner_cases"]) + report["cpp_owned"]["actual_fault_executions"])
+     except Exception as exc:
+         report.update(ok=False, status="rejected", diagnostic={"type": type(exc).__name__, "message": str(exc)})
+     _write_json(directory / "qualification.json", report)
+@@ -294,7 +466,7 @@ def main(argv=None):
+     parser.add_argument("--cxx", default=os.environ.get("CXX", "c++"))
+     args = parser.parse_args(argv)
+     report = qualify(args.workdir, clang=args.clang, clangxx=args.clangxx, cc=args.cc, cxx=args.cxx)
+-    print(json.dumps({key: report[key] for key in ("ok", "status", "multi_owner_case_count", "cpp_class_case_count", "native_result_executions", "diagnostic") if key in report}, sort_keys=True))
++    print(json.dumps({key: report[key] for key in ("ok", "status", "multi_owner_case_count", "cpp_class_case_count", "cpp_owned_case_count", "native_result_executions", "actual_fault_executions", "diagnostic") if key in report}, sort_keys=True))
+     return 0 if report["ok"] else 1
+ 
+ 
+diff --git a/tools/qualify_hia_unified.py b/tools/qualify_hia_unified.py
+index 27ca3c4eb78aa2cde3814a9f95dfee86afb9d648..1821cfee9b7546c3194fd9b092f3a6c2edf969f5 100644
+--- a/tools/qualify_hia_unified.py
++++ b/tools/qualify_hia_unified.py
+@@ -50,6 +50,33 @@ def _command(argv, timeout=1800):
+                 "seconds": time.monotonic() - started}
+ 
+ 
++def unittest_outcome(stderr, returncode):
++    """Retain failed-run counts without accepting partial or skipped runs."""
++    match = re.search(
++        r"(?m)^Ran ([0-9]+) tests? in [0-9.]+s\s+"
++        r"(OK|FAILED)(?: \(([^\n]*)\))?\s*\Z", stderr)
++    result = {"tests_run": None, "skipped": None, "failures": None,
++              "errors": None, "passed": False}
++    if match is None:
++        return result
++    result.update(tests_run=int(match.group(1)), skipped=0, failures=0, errors=0)
++    details = match.group(3)
++    if details:
++        for item in details.split(", "):
++            field = re.fullmatch(r"(skipped|failures|errors)=([0-9]+)", item)
++            if field is None:
++                # Expected/unexpected successes or a changed summary format
++                # require an explicit policy before the aggregate can pass.
++                return result
++            result[field.group(1)] = int(field.group(2))
++    result["passed"] = (returncode == 0 and match.group(2) == "OK"
++                        and result["tests_run"] > 0
++                        and result["skipped"] == 0
++                        and result["failures"] == 0
++                        and result["errors"] == 0)
++    return result
++
++
+ def qualify(output, *, clang, rustc, qemu_aarch64, qemu_system_arm, linker):
+     output = Path(output).absolute()
+     if output.exists() or output.is_symlink():
+@@ -122,10 +149,7 @@ def qualify(output, *, clang, rustc, qemu_aarch64, qemu_system_arm, linker):
+                     write_new(logfile, raw)
+                     row[channel] = {"path": str(logfile.relative_to(output)), "sha256": sha(raw), "bytes": len(raw)}
+                 if evidence is None:
+-                    match = re.search(r"(?m)^Ran ([0-9]+) tests? in [0-9.]+s\s+OK(?: \(skipped=([0-9]+)\))?\s*\Z", executed["stderr"])
+-                    row["tests_run"] = int(match.group(1)) if match else None
+-                    row["skipped"] = int(match.group(2) or 0) if match else None
+-                    row["passed"] = executed["returncode"] == 0 and bool(match) and row["skipped"] == 0
++                    row.update(unittest_outcome(executed["stderr"], executed["returncode"]))
+                 elif evidence.is_file() and not evidence.is_symlink():
+                     raw = evidence.read_bytes()
+                     payload = json.loads(raw)

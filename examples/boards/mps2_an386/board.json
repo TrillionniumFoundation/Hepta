@@ -1,0 +1,23 @@
+{
+  "schema": "hepta.board-profile.v1",
+  "board": "mps2-an386",
+  "cpu": "cortex-m4",
+  "target": "thumbv7em-none-eabi",
+  "qemu_model_version": "8.2.2",
+  "system_clock_hz": 25000000,
+  "flash": {"address": 0, "bytes": 4194304},
+  "ram": {"address": 536870912, "bytes": 4194304},
+  "register_width_bits": 32,
+  "uart0": {"address": 1073758208, "data": 0, "state": 4, "control": 8, "bauddiv": 16},
+  "timer0": {"address": 1073741824, "control": 0, "value": 4, "reload": 8, "interrupt_status": 12, "irq": 8},
+  "trusted_boundary": ["Reset assembly and linker script", "BSP register addresses and CPU barriers", "QEMU CPU, CMSDK UART and timer models", "Rust compiler and target core library", "Atomic ISR/main communication", "Semihosted SYS_EXIT_EXTENDED only"],
+  "physical_board_qualified": false,
+  "dma_qualified": false,
+  "gpu_qualified": false,
+  "references": [
+    {"url": "https://github.com/qemu/qemu/blob/v8.2.2/hw/arm/mps2.c", "git_blob_sha1": "292a180ad27eac0800f265e9a39f17d173058b35"},
+    {"url": "https://github.com/qemu/qemu/blob/v8.2.2/hw/char/cmsdk-apb-uart.c", "git_blob_sha1": "d466cd93de43057e5eb13d9f6cbe6e186594ac48"},
+    {"url": "https://github.com/qemu/qemu/blob/v8.2.2/hw/timer/cmsdk-apb-timer.c", "git_blob_sha1": "68aa1a76360d303613a57b856b811ddc922e82cc"},
+    {"url": "https://github.com/ARM-software/CMSIS_5/blob/5.9.0/CMSIS/Core/Include/core_cm4.h"}
+  ]
+}

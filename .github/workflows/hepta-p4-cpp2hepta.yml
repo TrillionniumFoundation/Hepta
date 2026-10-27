@@ -1,0 +1,31 @@
+name: Hepta P4 strict C++ L1 migration
+on:
+  push:
+    branches:
+      - dot/hepta-p4-cpp2hepta-shared-lowerer-20261025
+  pull_request:
+    branches:
+      - dot/hepta-p0-p1-semantic-bridge-20261025
+permissions:
+  contents: read
+jobs:
+  cpp-l1:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify exact source identity
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          test -z "$(git status --porcelain)"
+      - name: Native compilers
+        run: |
+          clang++ --version
+          gcc --version
+      - name: Test actual C++ AST translation and native C++/Hepta differential
+        run: python -m unittest tests.test_cpp2hepta_l1 -v

@@ -1,0 +1,14 @@
+module storage;
+pub struct Packet { bytes: Buffer<u8> }
+pub fn make(n: usize) -> Result<Packet, i32> effects {alloc,block,panic,write} {
+    if n == 0 { return Result::Err(1); }
+    match try_buffer(n) {
+        Result::Err(code) => { return Result::Err(3); },
+        Result::Ok(owner) => {
+            let mut bytes: Buffer<u8> = move owner;
+            for i in 0..n { bytes[i] = ((i * 7 + 3) % 251) as u8; }
+            return Result::Ok(Packet {bytes: move bytes});
+        },
+    }
+}
+pub fn close(packet: take Packet) -> Unit effects {alloc,block} { drop(move packet); }
