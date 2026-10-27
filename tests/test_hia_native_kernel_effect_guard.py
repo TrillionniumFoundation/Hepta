@@ -30,7 +30,10 @@ _SYSV = (29, 30, 31, 64, 65, 66, 67, 68, 69, 70, 71, 220)
 _KEYS = (248, 249, 250)
 _SCHEDULER = (141, 142, 144, 203, 251, 314)
 _FD_DUPLICATION = (32, 33, 72, 292)
-_ALL = _SYSV + _KEYS + _SCHEDULER + _FD_DUPLICATION
+_POSIX_MQUEUE = (240, 241, 242, 243, 244, 245)
+_LEGACY_AIO = (206, 207, 208, 209, 210)
+_ALL = (_SYSV + _KEYS + _SCHEDULER + _FD_DUPLICATION
+        + _POSIX_MQUEUE + _LEGACY_AIO)
 assert len(_ALL) == len(set(_ALL))
 
 
@@ -113,6 +116,12 @@ class HIANativeKernelEffectFilterTests(unittest.TestCase):
 
     def test_descriptor_dup_and_fcntl_denied(self):
         self.assert_seccomp_denies(_FD_DUPLICATION)
+
+    def test_posix_message_queue_mutation_denied(self):
+        self.assert_seccomp_denies(_POSIX_MQUEUE)
+
+    def test_legacy_async_io_contexts_denied(self):
+        self.assert_seccomp_denies(_LEGACY_AIO)
 
 
 if __name__ == "__main__":
