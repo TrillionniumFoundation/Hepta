@@ -13,11 +13,13 @@ from hashlib import sha256
 import json
 
 from .hia_program import verify_program
-from .hia_program_tools import HIAEditRejected, PATCH_SCHEMA, apply_program_patch, decode_json
+from .hia_program_tools import (HIAEditRejected, PATCH_SCHEMA, apply_program_patch,
+                                  bounded_json_wire, decode_json)
 
 QUERY_SCHEMA = "hepta.hia.edit-query.v1"
 FIELDS = frozenset({"op", "args", "attrs"})
 MAX_RESPONSE_BYTES = 16 * 1024
+MAX_QUERY_BYTES = 1024 * 1024
 # Bound context shown to an Agent. Never silently truncate SSA descendants:
 # an incomplete downstream slice is not safe to present as complete.
 MAX_VISIBLE_OPERATIONS = 256
@@ -28,7 +30,7 @@ def _reject(message):
 
 
 def _wire(value):
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+    return bounded_json_wire(value, MAX_QUERY_BYTES)
 
 
 def prepare_edit(document, *, function, block, output, fields):
@@ -132,12 +134,7 @@ def apply_edit(document, query, response):
             _reject("response exceeds edit budget")
         response = decode_json(raw)
     else:
-        try:
-            raw = _wire(response)
-        except (TypeError, ValueError, RecursionError) as exc:
-            raise HIAEditRejected("E_HIA_QUERY: response is not bounded JSON") from exc
-        if len(raw) > MAX_RESPONSE_BYTES:
-            _reject("response exceeds edit budget")
+        raw = bounded_json_wire(response, MAX_RESPONSE_BYTES)
         response = decode_json(raw)
     if (type(response) is not dict or not response
             or not set(response).issubset(reconstructed["fields"])):
@@ -164,6 +161,7 @@ def render_edit_context(query):
     """Deterministic compact editing view; it does not define executable syntax."""
     if type(query) is not dict or query.get("schema") != QUERY_SCHEMA:
         _reject("expected a prepared edit query")
+    _wire(query)  # Refuse unbounded forged display data before rendering.
     context = query["context"]
     fn = context["function"]
     params = ", ".join(v["name"] + ":" + v["type"] for v in fn["params"])
