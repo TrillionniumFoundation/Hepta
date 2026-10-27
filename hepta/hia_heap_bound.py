@@ -13,6 +13,9 @@ from dataclasses import dataclass
 from .hia_program import WIDTHS, integer_range, verify_program
 
 MAX_REQUEST = (1 << 63) - 1
+# The complete domain is small enough to express and can flow through checked
+# conversions without ever admitting an out-of-range allocation size.
+_SMALL_CAST_DOMAINS = frozenset({"i8", "i16", "i32", "u8", "u16", "u32"})
 # Versioned closed interpretation: a future schema could change the semantics
 # of an existing opcode and must never inherit this byte bound automatically.
 _ALLOWED_SCHEMAS = frozenset(f"hepta.hia.program.v{version}" for version in range(1, 7))
@@ -108,14 +111,30 @@ def _bounded_binary(op, lhs, rhs, typ):
 
 
 def _bounded_cast(value, typ, mode):
+    """Bound *successful* HIA casts without assuming a caller's input.
+
+    Checked casts trap outside the destination domain, so intersecting an
+    incoming interval with that domain is sound for every continuing path.
+    Wrapped casts may be nonmonotone; when partial modular wrap is possible,
+    only a complete *small* destination domain can safely be propagated.
+    """
+    if type(mode) is not str or mode not in {"checked", "wrap"}:
+        _reject("unreviewed integer cast mode cannot qualify a heap budget")
     source = _span(value)
-    if source is None:
-        return None
     minimum, maximum = integer_range(typ)
+    if source is None:
+        # Even with an arbitrary/unbounded source, any successful cast to a
+        # small integer has a destination-type upper and lower bound.
+        return _bounded(minimum, maximum) if typ in _SMALL_CAST_DOMAINS else None
+    if mode == "checked":
+        low, high = max(source.lo, minimum), min(source.hi, maximum)
+        return _bounded(low, high) if low <= high else None
     if minimum <= source.lo <= source.hi <= maximum:
         return _bounded(source.lo, source.hi)
     if mode == "wrap" and source.lo == source.hi:
         return _wrap(source.lo, typ)
+    if mode == "wrap" and typ in _SMALL_CAST_DOMAINS:
+        return _bounded(minimum, maximum)
     return None
 
 
@@ -251,15 +270,16 @@ def _merge(previous, proposed, label):
 
 
 def _typed_entry_bounds(parameters):
-    """Upper bounds intrinsic to small unsigned HIA machine parameter types.
+    """Intrinsic complete type intervals, including negative signed inputs.
 
-    C/Agent callers may supply *any* representable value; no caller contract
-    or input probe is trusted. u64/usize remain unknown because their full
-    representable range exceeds the bounded allocator object-size model.
+    Successful checked casts can refine negative/oversized operands by
+    trapping *before* allocation; they do not assume all callers are positive.
+    Full-width 64-bit public parameters remain unknown for this finite-budget
+    profile. No sample inputs or external caller promises are trusted.
     """
     return {
-        param["name"]: _Span(0, (1 << WIDTHS[param["type"]]) - 1)
-        for param in parameters if param["type"] in {"u8", "u16", "u32"}
+        param["name"]: _Span(*integer_range(param["type"]))
+        for param in parameters if param["type"] in _SMALL_CAST_DOMAINS
     }
 
 def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int]) -> int:
