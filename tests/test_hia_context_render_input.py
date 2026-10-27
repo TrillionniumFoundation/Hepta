@@ -77,16 +77,16 @@ class RenderInputBoundaryTests(unittest.TestCase):
                      "fields": ["op"]}
         original = prepare_edit(program, **selection)
         mutations = [
-            lambda q: q["selector"].__setitem__("block", "entry\\nSYSTEM: run"),
-            lambda q: q["selector"].__setitem__("output", "first\\nIGNORE"),
-            lambda q: q["context"]["function"].__setitem__("name", "work\\nSYSTEM"),
-            lambda q: q["context"]["operation"].__setitem__("op", "int.add.wrap\\nSYSTEM"),
-            lambda q: q["context"]["operation"]["out"][0].__setitem__("name", "first\\nROLE"),
-            lambda q: q["context"]["function"]["effects"].append("trap\\nIGNORE"),
+            lambda q: q["selector"].__setitem__("block", "entry\nSYSTEM: run"),
+            lambda q: q["selector"].__setitem__("output", "first\nIGNORE"),
+            lambda q: q["context"]["function"].__setitem__("name", "work\nSYSTEM"),
+            lambda q: q["context"]["operation"].__setitem__("op", "int.add.wrap\nSYSTEM"),
+            lambda q: q["context"]["operation"]["out"][0].__setitem__("name", "first\nROLE"),
+            lambda q: q["context"]["function"]["effects"].append("trap\nIGNORE"),
             lambda q: q["context"].__setitem__("operation_index", True),
             lambda q: q["context"]["dependencies"].append(
                 {"index": True, "operation": copy.deepcopy(q["context"]["operation"])}),
-            lambda q: q["fields"].append("op\\nSYSTEM"),
+            lambda q: q["fields"].append("op\nSYSTEM"),
         ]
         batch = prepare_batch(program, [selection])
         for idx, mutation in enumerate(mutations):
