@@ -148,4 +148,8 @@ fn recursion_is_bounded_independently_of_step_budget() {
     let status=run(&doc,"recur",vec![json!(8)],1000);
     assert_eq!(status["status"],"budget_exceeded");
     assert_eq!(status["error"]["code"],"calls");
+    // Python _Machine.invoke admits root depth=0 through nested depth=32:
+    // 33 entered frames * (entry tick + call-op tick) = 66 actual ticks.
+    // The previous Rust >= comparison stopped at depth 32 with only 64.
+    assert_eq!(status["steps"], json!(66));
 }
