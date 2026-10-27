@@ -64,14 +64,12 @@ fn checked_and_wrapping_u64_arithmetic_are_distinct() {
     assert_eq!(run(&doc, "calculate", vec![json!(u64::MAX),json!(u64::MAX)], 100)["values"], json!([1]));
 }
 #[test]
-fn scalar_shadow_does_not_silently_admit_the_new_v7_grammar() {
-    // Standalone HIA v7 may have the same scalar instructions, but
-    // version selection alone does not prove Rust-shadow refinement.
+fn v7_scalar_instructions_retain_v6_semantics_without_resource_admission() {
     let mut scalar = machine("int.add.wrap", "u32", vec![]);
-    scalar["schema"] = json!("hepta.hia.program.v6");
+    scalar["schema"] = json!("hepta.hia.program.v7");
     let args = vec![json!(2), json!(3)];
     assert_eq!(run(&scalar, "calculate", args.clone(), 100)["values"], json!([5]));
-    scalar["schema"] = json!("hepta.hia.program.v7");
+    scalar["functions"][0]["blocks"][0]["ops"][0]["op"] = json!("chain.empty");
     assert!(execute_scalar(&serde_json::to_vec(&scalar).unwrap(),
                            "calculate", &args, 100).is_err());
 }

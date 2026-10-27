@@ -185,17 +185,39 @@ class RustScalarVmParity(unittest.TestCase):
                 else:
                     self.assertEqual(rust["error"]["code"], python["error"]["code"])
 
-    def test_v7_requires_separate_rust_scalar_profile_qualification(self):
+    def test_v7_scalar_is_equivalent_but_v7_chain_is_not_admitted(self):
         source = arithmetic("int.add.wrap", "u32", effects=())
         source["schema"] = "hepta.hia.program.v7"
         checked = verify_program(source)
-        self.assertEqual(execute_program(checked, "calc", [3, 4])["result"], 7)
-        # Rust's opt-in scalar shadow has verified v1-v6 grammars only.
-        # A valid Python v7 program must not acquire implicit permission.
+        python = execute_program(checked, "calc", [3, 4], max_call_depth=32)
+        rust = self.rust(source, "calc", [3, 4])
+        self.assertEqual(rust["status"], python["status"])
+        self.assertEqual(rust["values"], python["values"])
+        self.assertEqual(rust["steps"], python["steps"])
+
+        # Independently accepted v7 chain/Owner operations remain OUTSIDE
+        # the Rust scalar verifier; this is a real canonical positive fixture.
+        chain = {
+            "schema": "hepta.hia.program.v7", "module": "chain_shadow_boundary",
+            "functions": [{
+                "name": "empty_chain", "params": [], "returns": [],
+                "effects": ["alloc"], "entry": "entry",
+                "blocks": [{
+                    "id": "entry", "params": [],
+                    "ops": [
+                        {"op": "chain.empty", "args": [],
+                         "out": [{"name": "head", "type": "chain"}], "attrs": {}},
+                        {"op": "owner.drop", "args": ["head"], "out": [], "attrs": {}}
+                    ],
+                    "term": {"op": "ret", "values": []}
+                }]
+            }]
+        }
+        canon = verify_program(chain)
         denied = subprocess.run([
             "cargo", "run", "--quiet", "--offline", "--manifest-path", str(MANIFEST),
-            "--", "--scalar-run", "calc", "[3,4]"
-        ], input=checked.canonical_bytes, cwd=ROOT, capture_output=True, timeout=60)
+            "--", "--scalar-run", "empty_chain", "[]"
+        ], input=canon.canonical_bytes, cwd=ROOT, capture_output=True, timeout=60)
         self.assertNotEqual(denied.returncode, 0)
 
     def test_explicit_public_exports_and_internal_calls_match_canonical_core(self):

@@ -48,7 +48,7 @@ class RustScalarShadow(unittest.TestCase):
         return result
 
     def test_reference_scalar_digest(self):
-        for version in range(1, 7):
+        for version in range(1, 8):
             source = sample()
             source["schema"] = f"hepta.hia.program.v{version}"
             reference = verify_program(source)
