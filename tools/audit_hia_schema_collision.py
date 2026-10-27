@@ -10,6 +10,7 @@ import argparse
 import ast
 from hashlib import sha256
 import json
+import os
 from pathlib import Path
 import re
 import stat
@@ -33,15 +34,34 @@ def _fail(reason: str) -> None:
 
 
 def _read(path: Path) -> bytes:
-    info = path.lstat()
-    if not stat.S_ISREG(info.st_mode) or not 0 < info.st_size <= MAX_SOURCE_BYTES:
+    """Read one pinned ordinary inode; path changes never redirect the read.
+
+    A pre-open lstat followed by Path.read_bytes() could follow a symlink
+    swapped in between those operations. Keep O_NOFOLLOW and verify the same
+    file-descriptor identity before and after consuming bounded bytes.
+    """
+    if not hasattr(os, "O_NOFOLLOW"):
+        _fail("no-follow file descriptors are required for source auditing")
+    before = path.lstat()
+    if not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= MAX_SOURCE_BYTES:
         _fail("expected bounded ordinary source file")
-    raw = path.read_bytes()
-    after = path.lstat()
-    if (len(raw) != info.st_size or (info.st_dev, info.st_ino, info.st_mtime_ns, info.st_ctime_ns) !=
-            (after.st_dev, after.st_ino, after.st_mtime_ns, after.st_ctime_ns)):
-        _fail("source modified during audit")
-    return raw
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0))
+    try:
+        opened = os.fstat(fd)
+        identity = lambda s: (s.st_dev, s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns)
+        if not stat.S_ISREG(opened.st_mode) or identity(opened) != identity(before):
+            _fail("source identity changed before audit read")
+        with os.fdopen(fd, "rb", closefd=False) as stream:
+            raw = stream.read(MAX_SOURCE_BYTES + 1)
+        after_fd = os.fstat(fd)
+        after_path = path.lstat()
+        if (len(raw) != before.st_size or identity(after_fd) != identity(before)
+                or not stat.S_ISREG(after_path.st_mode)
+                or identity(after_path) != identity(before)):
+            _fail("source identity or contents changed during audit")
+        return raw
+    finally:
+        os.close(fd)
 
 
 def _sensitive(name: object) -> bool:
