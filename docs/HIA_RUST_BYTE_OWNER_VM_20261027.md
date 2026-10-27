@@ -9,9 +9,11 @@ programs.
 
 ## Execution boundary
 
-The input must be a primitive `hepta.hia.program.v1` through `v7` document with
-exactly one function and one basic block. Its external parameters and return
-types must be scalars, and the block must terminate with `ret` or `trap`.
+The input must be a primitive `hepta.hia.program.v1` through `v7` document.
+Its externally invoked function must have scalar parameters and returns.
+Internal functions may consume/return byte owners and receive borrowed views;
+borrowed returns remain forbidden by the existing verifier. Multiple blocks,
+`jump`/`branch`, loops, and bounded recursive calls use the existing `Machine`.
 The existing strict schema, ownership/loan rules, effect checks, explicit
 exports policy, and scalar argument validation apply before execution.
 
@@ -27,10 +29,11 @@ allocation failure is still rejected before any instruction executes.
 | `loan.end` | Ends the local loan after its children have ended |
 | `owner.move`, `owner.drop` | Consumes the old SSA name; move preserves storage identity; drop records explicit cleanup |
 | `buffer.load`, `buffer.store` | Checked `usize` offset and `u8` value, with bounds traps |
+| `call` | Consumes owner arguments, preserves allocation identity and binds independent formal loan witnesses |
 
-The existing scalar operation implementation is reused. Calls, CFG edges,
-multiple functions or blocks, chain operations, bulk buffer operations,
-resource entry/return types, and direct nominal/composite documents are outside
+The existing scalar operation implementation is reused. Chain operations and
+types, bulk buffer operations, public resource entry/return types, and direct
+nominal/composite documents are outside
 this execution profile. Primitive operations outside the profile produce
 `E_HIA_RUST_UNSUPPORTED`. A direct nominal document fails the existing strict
 primitive-schema check with `E_HIA_FORMAT`; no new schema fallback is installed.
@@ -38,6 +41,17 @@ primitive-schema check with `E_HIA_FORMAT`; no new schema fallback is installed.
 Resource handles cannot be supplied or returned through JSON. Runtime owner
 and loan maps supplement the existing static admission check; they are not a
 replacement verifier or a second source of language rules.
+
+Each borrowed call formal receives a distinct runtime identity and the exact
+permission in its signature. Two readonly formals may alias a mutable caller
+loan: reborrowing one suspends that formal, not its readonly sibling. All actual
+views are checked before introducing formal witnesses. On normal return,
+formal witnesses are retired without changing the source loan counters; a
+callee cannot end its caller's loan. Owner arguments consume their caller SSA
+bindings before invocation, including when a call-depth/step budget then stops
+the program. These are the compatible semantics carried forward from PR #322
+at `108762baaefedde931f4160dbeadb6442fbb824b`; its separate v1-only VM and JSON
+options interface are not introduced alongside the shared Machine.
 
 ## Explicit invocation and report
 
@@ -57,7 +71,7 @@ injected allocation failure.
 
 Execution reports use the new schema
 `hepta.hia.rust-byte-owner-execution.v1` and profile
-`single-block-byte-owner-v1`. They include the source digest, entry function,
+`cfg-call-byte-owner-v2`. They include the source digest, entry function,
 execution policy, status, steps, scalar values or error code, and the complete
 resource ledger. The general-resource, production-admission, whole-language,
 native-refinement, and ABI/hardware claims remain false.
@@ -66,6 +80,13 @@ The ledger records allocations, frees, allocator attempts, owners created and
 dropped, live owners/bytes, peak bytes, loans started and ended, and live local
 loans. For v7, the canonical six chain counters are present and zero because no
 chain opcode is admitted.
+
+The `byte_owner_cfg_and_calls` and `scalar_public_entry_only` scope claims are
+true; the old `single_block_scalar_entry_only` claim is false. The CLI and its
+finite heap/step limits remain compatible with the earlier byte-owner profile.
+Exactly 32 call frames are admitted; a thirty-third invocation stops before
+its entry tick. Unsupported content is rejected across the entire module,
+including an uncalled helper and any chain-typed signature.
 
 Successful returns require the explicit resource ledger to be clean. A trap
 or exhausted budget reports the resources still live at that stop point,
@@ -138,8 +159,16 @@ process results, timestamps, source hashes and unchanged-source checks.
 | `python.log` | `4840162da1ac456eb87b1d1a4248d958d36aa0e0c52d89de6b9fc11b740ec3f8` |
 | `validation.json` | `c8e159dbc12846c148e8494c390c6d26befb4a68bfa1a4abda6afaf1b97e0a9b` |
 
-This evidence establishes the tested finite interpreter correspondence. It
-does not establish general resource execution, recursive resource calls,
-chain execution, unwinding semantics, LLVM refinement, broad target support,
-or production qualification. Future support must extend the same execution
-profile deliberately and retain canonical Python differential evidence.
+That historical evidence establishes only the single-block profile tested at
+the recorded SHA. It does not qualify the later CFG/call extension above.
+The new tests in `tests/test_hia_rust_owned_cfg.py` compare complete ledgers,
+steps, trap/budget codes and results for loops, joins, owner transfer, nested
+borrowed calls, aliased readonly formals, allocator failures and recursive
+call-depth stops. Their native test independently links emitted LLVM objects
+with an instrumented C allocator. Fresh command results belong in the current
+source-bound execution record; historical counts are not reused.
+
+No result here establishes general resource execution, chain execution,
+unwinding semantics, LLVM refinement, broad target support, or production
+qualification. Every extension must retain canonical Python differential
+evidence and explicit unsupported boundaries.

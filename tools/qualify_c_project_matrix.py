@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from hepta.c_project import captured_source_argument
 from hepta.c_project_matrix import verify_project_matrix
 from hepta.c_scalar_matrix import lower_c_project_matrix
 from hepta.hia_program import execute_program, verify_program
@@ -171,7 +172,9 @@ def qualify_c_matrix(workdir, *, clang="clang"):
             for config in variant["capture"]["configurations"]:
                 obj = work / f"original-{config['index']}.o"
                 originals.append(obj)
-                _process([compiler, *config["frontend_arguments"], "-O2", "-fPIC", "-c", config["source"], "-o", obj], row, work)
+                _process([compiler, *config["frontend_arguments"], "-c",
+                          captured_source_argument(config), "-o", obj], row, work,
+                         cwd=Path(config["directory"]))
                 symbols = inspect_object_symbols(obj.read_bytes(), "ELF64", 62)
                 original_defined.update(symbols["defined"])
                 row["original_object_symbols"].append({

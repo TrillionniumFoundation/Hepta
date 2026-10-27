@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import copy
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -104,8 +105,9 @@ def _bounded_json_string_size(value: str, maximum: int, ensure_ascii: bool) -> i
 
     An in-memory string of N control characters can require 6*N encoded
     bytes; non-BMP characters may require 12*N when ensure_ascii=True.
-    The existing streamed serializer remains the only encoder and will
-    still enforce the complete cumulative output byte budget.
+    The caller subtracts already-counted wire bytes from maximum so repeated
+    references cannot restart the whole byte budget. The existing streamed
+    serializer remains the only encoder and checks the output again.
     """
     if len(value) + 2 > maximum:
         _reject("JSON string exceeds byte budget before encoding")
@@ -122,10 +124,12 @@ def _bounded_json_string_size(value: str, maximum: int, ensure_ascii: bool) -> i
             # Without this exception a small raw string can allocate a
             # fragment six times the admitted byte budget before refusal.
             width = 6 if point == 127 and ensure_ascii else 1
+        elif 0xd800 <= point <= 0xdfff:
+            # ASCII escaping a lone surrogate still yields text rejected by
+            # HIA JSON predecode; never serialize that invalid wire form.
+            _reject("unpaired Unicode surrogate in UTF-8 JSON")
         elif ensure_ascii:
             width = 6 if point <= 0xffff else 12
-        elif 0xd800 <= point <= 0xdfff:
-            _reject("unpaired Unicode surrogate in UTF-8 JSON")
         elif point < 0x800:
             width = 2
         elif point < 0x10000:
@@ -153,7 +157,7 @@ def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True):
         # one huge escaped fragment. Iterative DFS also rejects cycles.
         pending = [(value, False, 0)]
         active = set()
-        nodes, queued = 0, 1
+        nodes, queued, size = 0, 1, 0
         while pending:
             node, leaving, depth = pending.pop()
             if depth > MAX_AGENT_JSON_DEPTH:
@@ -174,35 +178,78 @@ def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True):
                 if len(node) > node_budget - nodes - queued:
                     _reject("JSON container exceeds queued-node/byte budget")
                 queued += len(node)
+                # Count the entire compact wire, not just each individual
+                # fragment. Shared references count at every serialized
+                # occurrence, bounding preflight work by the same budget.
+                size += 2 + max(0, len(node) - 1)  # braces/brackets and commas
+                if type(node) is dict:
+                    size += len(node)  # colons
+                if size > maximum:
+                    _reject("JSON input exceeds cumulative byte budget before encoding")
                 if id(node) in active:
                     _reject("cyclic JSON container")
                 active.add(id(node))
                 pending.append((node, True, depth))
                 if type(node) is dict:
+                    # Python dict keys can differ while their JSON field names
+                    # collide (1 vs "1", True vs "true", None vs "null").
+                    # Decode rejects duplicate JSON keys; fail before encoder
+                    # materialization instead of producing an unusable wire.
+                    wire_keys = set()
                     for key, child in node.items():
                         if type(key) not in (str, int, float, bool, type(None)):
                             _reject("unsupported JSON object key")
                         if type(key) is str:
-                            _bounded_json_string_size(key, maximum, ensure_ascii)
+                            size += _bounded_json_string_size(key, maximum - size, ensure_ascii)
+                            wire_key = key
                         else:
                             # Avoid unbounded decimal materialization for
                             # pathological in-memory integer object keys.
-                            if type(key) is int and key.bit_length() > maximum * 4:
+                            if type(key) is int and key.bit_length() > (maximum - size) * 4:
                                 _reject("JSON key exceeds numeric byte budget")
-                            if len(str(key)) + 2 > maximum:
+                            # Match the stdlib encoder's exact scalar key
+                            # spellings without invoking an encoder during
+                            # preflight. The admitted key types are exact
+                            # builtins, so custom repr hooks cannot run.
+                            if key is None:
+                                wire_key = "null"
+                            elif type(key) is bool:
+                                wire_key = "true" if key else "false"
+                            elif type(key) is float:
+                                if not math.isfinite(key):
+                                    _reject("nonfinite JSON object key")
+                                wire_key = float.__repr__(key)
+                            else:
+                                wire_key = int.__repr__(key)
+                            size += len(wire_key) + 2
+                            if size > maximum:
                                 _reject("JSON key exceeds byte budget")
+                        if wire_key in wire_keys:
+                            _reject("JSON object key collision after JSON conversion")
+                        wire_keys.add(wire_key)
                         pending.append((child, False, depth + 1))
                 else:
                     pending.extend((child, False, depth + 1) for child in node)
             elif type(node) is str:
-                _bounded_json_string_size(node, maximum, ensure_ascii)
+                size += _bounded_json_string_size(node, maximum - size, ensure_ascii)
             elif type(node) is int:
                 # The encoder emits decimal digits as one fragment; reject
                 # obviously excessive integers before producing that string.
-                if node.bit_length() > maximum * 4:
+                if node.bit_length() > (maximum - size) * 4:
                     _reject("JSON integer exceeds byte budget")
-            elif type(node) not in (bool, float, type(None)):
+                size += len(int.__repr__(node))
+            elif type(node) is bool:
+                size += 4 if node else 5
+            elif type(node) is float:
+                if not math.isfinite(node):
+                    _reject("nonfinite JSON number")
+                size += len(float.__repr__(node))
+            elif node is None:
+                size += 4
+            else:
                 _reject("non-JSON in-process value")
+            if size > maximum:
+                _reject("JSON input exceeds cumulative byte budget before encoding")
         chunks = []
         count = 0
         encoder = json.JSONEncoder(ensure_ascii=ensure_ascii, sort_keys=sort_keys,
