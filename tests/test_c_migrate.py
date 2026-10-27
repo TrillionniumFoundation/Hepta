@@ -324,9 +324,15 @@ int sum_for(int n) {
         ]
         for src in sources:
             with self.subTest(src=src):
+                # A previous acceptance must never turn the next semantic
+                # negative into a misleading E_C_EXISTS refusal.
+                self.hepta.unlink(missing_ok=True)
                 self.c.write_text(src)
                 result = migrate_c(self.c, self.hepta)
                 self.assertFalse(result["ok"], result)
+                codes = [item["code"] for item in result["rejected"]]
+                self.assertTrue(codes, result)
+                self.assertNotIn("E_C_EXISTS", codes)
                 self.assertFalse(self.hepta.exists())
 
 
@@ -497,11 +503,45 @@ int clamp(int x) { int y=0; y = x > 0 ? x : 0; return y; }
         ]
         for source in cases:
             with self.subTest(source=source):
+                self.hepta.unlink(missing_ok=True)
                 self.c.write_text(source)
                 report = migrate_c(self.c, self.hepta)
                 self.assertFalse(report["ok"], report)
                 self.assertFalse(self.hepta.exists())
-                self.assertTrue(report["rejected"])
+                codes = [item["code"] for item in report["rejected"]]
+                self.assertTrue(codes, report)
+                self.assertNotIn("E_C_EXISTS", codes)
+                if "static int" in source:
+                    self.assertIn("E_C_LOCAL_STORAGE", codes)
+
+    def test_standalone_increment_c11_vs_hepta_c_native(self):
+        # C permits a standalone post-increment whose result is discarded.
+        # That is different from the still-unsupported return x++ negative.
+        self.c.write_text("int f(int n) { int x=0; x++; return x+n; }\n")
+        report = migrate_c(self.c, self.hepta)
+        self.assertTrue(report["ok"], report)
+        self.assertFalse(report["source_equivalence_proved"])
+        self.assertEqual(report["native_validation"], "not_run")
+        self.assertIn("x = (x + 1);", self.hepta.read_text())
+        original = self.directory / "increment-original.so"
+        converted = self.directory / "increment-hepta.so"
+        build_c = subprocess.run(
+            ["gcc", "-std=c11", "-O2", "-shared", "-fPIC",
+             str(self.c), "-o", str(original)],
+            capture_output=True, text=True, timeout=30)
+        self.assertEqual(build_c.returncode, 0, build_c.stderr)
+        build_hepta = subprocess.run(
+            [sys.executable, "-m", "hepta", "build", str(self.hepta),
+             "--backend", "c", "--crate-type", "cdylib", "-o", str(converted)],
+            capture_output=True, text=True, timeout=90)
+        self.assertEqual(build_hepta.returncode, 0,
+                         build_hepta.stdout + build_hepta.stderr)
+        left, right = ctypes.CDLL(str(original)).f, ctypes.CDLL(str(converted)).f
+        for fn in (left, right):
+            fn.argtypes, fn.restype = [ctypes.c_int32], ctypes.c_int32
+        for n in (-(2**31), -1000, -7, -1, 0, 1, 9, 1000, 2**31-2):
+            with self.subTest(n=n):
+                self.assertEqual(left(n), right(n))
 
     def test_unsupported_cast_rejected_without_writing(self):
         self.c.write_text("unsigned long long f(unsigned long long x) {return (unsigned int)x;}\n")
