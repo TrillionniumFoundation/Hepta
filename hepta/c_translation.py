@@ -26,6 +26,29 @@ def ident(name: str) -> str:
     return name
 
 
+def reject_adjusted_pointer_parameter(node: dict) -> None:
+    """Refuse C array parameter decay before a pointer slice contract is admitted.
+
+    Clang's qualType turns 'T data[++n]' into 'T *' and discards the
+    parameter-entry increment. Only the direct declarator ending at its
+    declared name is supported; array suffixes and macro-ambiguous locations
+    require an independent source-semantic lowering, not a slice contract.
+    """
+    loc = node.get("loc")
+    span = node.get("range")
+    end = span.get("end") if isinstance(span, dict) else None
+    if not isinstance(loc, dict) or not isinstance(end, dict):
+        raise MigrationRejected("E_C_PARAMETER_DECLARATOR", "Parameter source location is not available")
+    for position in (loc, end):
+        if (type(position.get("offset")) is not int or position["offset"] < 0
+                or type(position.get("tokLen")) is not int or position["tokLen"] <= 0):
+            raise MigrationRejected("E_C_PARAMETER_DECLARATOR",
+                                    "Ambiguous or expanded parameter declarator")
+    if (loc["offset"], loc["tokLen"]) != (end["offset"], end["tokLen"]):
+        raise MigrationRejected("E_C_PARAMETER_DECLARATOR",
+                                "Array or trailing parameter syntax is not a plain pointer")
+
+
 def width(typ: str) -> int:
     return 64 if typ in {"usize", "isize"} else int(typ[1:])
 
@@ -273,6 +296,7 @@ class CTranslator:
             raw = child["type"]["qualType"]
             pointer = re.fullmatch(r"(const\s+)?([^*]+?)\s*\*", raw)
             if pointer:
+                reject_adjusted_pointer_parameter(child)
                 # C prototypes may legally use different parameter names from
                 # their implementation. Ordinal selectors remain unambiguous.
                 selectors = [key for key in (pname, str(len(params))) if key in contract["slices"]]
