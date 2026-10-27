@@ -62,6 +62,42 @@ class L1SnapshotTests(unittest.TestCase):
             self.assertEqual(len(calls), 1)
             self.assertTrue(previous.is_file())
 
+    def test_cross_phase_same_bytes_different_inode_rejected(self):
+        with tempfile.TemporaryDirectory() as root:
+            p = Path(root) / "input.c"
+            previous = Path(root) / "previous.c"
+            payload = b"int f(int x) { return x; }\\n"
+            p.write_bytes(payload)
+            observed, identity = _read_snapshot(
+                p, MAX_L1_SOURCE_BYTES, capture_identity=True)
+            self.assertEqual(observed, payload)
+            p.rename(previous)
+            p.write_bytes(payload)
+            self.assertEqual(_read_snapshot(p, MAX_L1_SOURCE_BYTES), payload)
+            with self.assertRaisesRegex(HIAMigrationRejected, "identity changed between phases"):
+                _read_snapshot(p, MAX_L1_SOURCE_BYTES, expected_identity=identity)
+
+    def test_source_rebind_with_identical_bytes_blocks_native_builder(self):
+        from tests.test_hia_migrate import fake_migrate
+        with tempfile.TemporaryDirectory() as root:
+            p = Path(root) / "input.c"
+            previous = Path(root) / "previous.c"
+            output = Path(root) / "converted"
+            p.write_bytes(b"int f(int x) { return x; }\\n")
+            def migrate_then_rebind(path, dst, **kwargs):
+                receipt = fake_migrate(path, dst, **kwargs)
+                p.rename(previous)
+                p.write_bytes(previous.read_bytes())
+                return receipt
+            with (patch("hepta.hia_migrate.migrate_c", side_effect=migrate_then_rebind),
+                  patch("hepta.hia_migrate.build_checked_hepta_hia_native",
+                        side_effect=AssertionError("rebound source reached native build"))):
+                result = migrate_scalar_to_hia(p, output, language="c")
+            self.assertFalse(result["ok"])
+            self.assertEqual(result["status"], "rejected")
+            self.assertFalse(output.exists())
+            self.assertIn("identity changed between phases", str(result["diagnostics"]))
+
     def test_candidate_sparse_output_refused_before_native_build(self):
         with tempfile.TemporaryDirectory() as root:
             p = Path(root) / "input.c"
