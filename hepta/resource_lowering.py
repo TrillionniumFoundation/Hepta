@@ -2,7 +2,10 @@
 
 This pass is a conservative, explicitly unproved abstraction. Scalars have
 abstract values; owned aggregate transfers and loans are explicit operations.
-The generated resource graph is not used by either native code generator.
+The graph is not a complete executable instruction stream. Source backends
+consume verified type/layout metadata, and owned LLVM derives finite Drop
+plans from it; scalar expressions and control flow still lower from checked
+source. This partial consumption does not establish source/native refinement.
 """
 from __future__ import annotations
 

@@ -1,6 +1,7 @@
 """Actual RV64GC/LP64D ABI, execution and fail-closed target controls."""
 from copy import deepcopy
 from dataclasses import replace
+import os
 from pathlib import Path
 import re
 import shutil
@@ -16,10 +17,17 @@ from tools.qualify_hia_program import block, function, ret
 from tools.qualify_hia_riscv64 import (C_TYPES, TYPES, expected_counts, qualify,
                                        raw_oracle, validate_qualification)
 
-CLANG = "/usr/lib/llvm-20/bin/clang"
-LINKER = "/usr/lib/llvm-20/bin/ld.lld"
-READOBJ = "/usr/lib/llvm-20/bin/llvm-readobj"
-QEMU = "/usr/bin/qemu-riscv64-static"
+def configured_tool(variable, default):
+    selected = os.environ.get(variable, default)
+    return shutil.which(selected) or selected
+
+
+# Bind the configured executable or its exact PATH resolution. An explicit
+# missing path must remain missing, even if a different PATH tool is present.
+CLANG = configured_tool("CLANG", "clang")
+LINKER = configured_tool("HEPTA_LLD", "ld.lld")
+READOBJ = configured_tool("HEPTA_LLVM_READOBJ", "llvm-readobj")
+QEMU = configured_tool("HEPTA_QEMU_RISCV64", "qemu-riscv64")
 
 
 def identities(version=6):

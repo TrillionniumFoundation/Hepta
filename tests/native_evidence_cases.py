@@ -25,10 +25,18 @@ MUTATIONS = {
         ("wrong_host_machine", [(('host','machine'), 'aarch64')]),
         ("emulator_claimed_as_host", [(('host','execution'), 'qemu')]),
         ("missing_c_compiler", [(('c_compiler',), {})]),
+        ("wrong_compiler_family", [(('c_compiler','family'), 'msvc')]),
+        ("missing_compiler_macro_probe", [(('c_compiler','identity_probe'), {})]),
+        ("changed_compiler_macro_probe", [(('commands',-10,'stdout'), 'HEPTA_CC_FAMILY msvc\n')]),
+        ("wrong_compiler_version", [(('c_compiler','version'), 'unrelated compiler 0.0.0')]),
         ("missing_header_hash", [(('header_sha256',), None)]),
         ("missing_commands", [(('commands',), [])]),
-        ("wrong_compile_command", [(('commands',2,'argv'), ['true'])]),
-        ("unexecuted_native_driver", [(('commands',3,'returncode'), 1)]),
+        ("wrong_compile_command", [(('commands',-9,'argv'), ['true'])]),
+        ("unexecuted_native_driver", [(('commands',-8,'returncode'), 1)]),
+        ("missing_type_controls", [(('type_negative_controls',), [])]),
+        ("wrong_type_control_header", [(('type_negative_controls',0,'header_sha256'), '0'*64)]),
+        ("type_control_boolean_exit", [(('type_negative_controls',0,'returncode'), True)]),
+        ("type_control_failed_for_wrong_reason", [(('commands',-5,'stdout'), 'unrelated error'), (('commands',-5,'stderr'), '')]),
         ("missing_executable_hashes", [(('executable_sha256s',), [])]),
         ("missing_object_hashes", [(('native_object','artifact_sha256'), None),(('native_object','validation_artifact_sha256'), None)]),
         ("missing_object_source", [(('native_object','rust_sha256'), None)]),
@@ -72,6 +80,8 @@ def alter(report, changes):
             replacement = 'Linux'
         if path == ('host', 'machine') and target[path[-1]] == replacement:
             replacement = 'x86_64'
+        if path == ('c_compiler', 'family') and target[path[-1]] == replacement:
+            replacement = 'clang'
         target[path[-1]] = deepcopy(replacement)
     return value
 

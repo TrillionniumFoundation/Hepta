@@ -503,7 +503,7 @@ fn check_function(fn_value: &Value, sig: &Signature, functions: &BTreeMap<String
 }
 mod ownership;
 mod scalar_vm;
-pub use scalar_vm::execute_scalar;
+pub use scalar_vm::{execute_owned, execute_scalar};
 
 fn decode_hia(input: &[u8]) -> R<(Value, Vec<u8>)> {
     if input.len() > MAX_BYTES {

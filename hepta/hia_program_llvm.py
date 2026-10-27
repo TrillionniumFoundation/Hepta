@@ -3,8 +3,9 @@
 This backend consumes the immutable canonical program accepted by
 ``hia_program.verify_program``.  It has no source AST, source replay, Rust
 borrow-checking gate, or C/Rust implementation fallback.  Its finite profile is
-Linux x86-64, checked/wrapping integer block-argument SSA, internal calls, and
-owned zero-initialized byte buffers with checked byte access.  Verification and
+64-bit checked/wrapping integer block-argument SSA, internal calls, versioned
+byte-owner operations and v7 recursive chains. Linux x86-64 admits shared
+libraries/objects; AArch64 and RV64GC/LP64D admit objects only. Verification and
 finite native comparisons are not a compiler-refinement or soundness proof.
 """
 from __future__ import annotations

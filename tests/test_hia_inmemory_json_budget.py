@@ -44,11 +44,21 @@ class HIAInMemoryJSONBudgetTests(unittest.TestCase):
                 True, False, None, "".join(rng.choice(alphabet) for _ in range(rng.randrange(12))),
             ])
         for _ in range(300):
-            value = example()
+            # A top-level str argument to _decode is encoded JSON, not an
+            # in-memory scalar string. Keep every generated payload inside
+            # a real in-memory document, including unquoted string leaves.
+            value = {"payload": example()}
             wire = json.dumps(value, sort_keys=True, separators=(",", ":"),
                               ensure_ascii=False, allow_nan=False).encode("utf-8")
             self.assertEqual(core._structure(value), len(wire))
             self.assertEqual(core._decode(value)[1], wire)
+            self.assertEqual(core._decode(wire), (value, wire))
+
+    def test_string_input_retains_json_transport_semantics(self):
+        self.assertEqual(core._decode('null'), (None, b'null'))
+        self.assertEqual(core._decode('"payload"'), ('payload', b'"payload"'))
+        with self.assertRaises(HIAProgramRejected):
+            core._decode('payload')
 
     def test_inprocess_giant_escaped_string_refused_without_dumping(self):
         # 350 NULs need 2,100 JSON string bytes although the host string

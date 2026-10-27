@@ -1,9 +1,12 @@
-"""Standalone HIA v1: closed, typed SSA blocks with checked resource flow.
+"""Standalone HIA v1-v7: closed, typed SSA blocks with checked resource flow.
 
 The authority is this program's operations, not a source file, producer hash,
 claim, or source-checker receipt.  Blocks are closed: all incoming values are
 explicit block parameters.  The profile has 64-bit usize/isize, byte owners,
 lexical/reborrowed views, finite machine integers and non-escaping call loans.
+Versioned bulk-byte operations and v7 recursive byte-owner chains follow the
+shared schema registry. Composite v1/v2 normalize to primitive v6/v7 before
+the complete executable resource flow is checked.
 
 This is an executable checker, not a machine-checked soundness/refinement proof.
 In particular explicit/arithmetic traps abort; cleanup is required at ordinary

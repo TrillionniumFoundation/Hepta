@@ -81,6 +81,11 @@ def decode_json(payload):
             raise HIAEditRejected(
                 "E_HIA_EDIT: JSON node/depth budget exceeded before decoding"
             ) from exc
+        except ValueError as exc:
+            # Keep the bounded syntax reason (including duplicate keys)
+            # when the early gate rejects before the object-pairs hook.
+            # Never retry the full decoder merely to obtain its diagnostic.
+            raise HIAEditRejected("E_HIA_EDIT: invalid JSON: " + str(exc)) from exc
         return json.loads(source, object_pairs_hook=_pairs,
                           parse_constant=lambda value: _reject("nonfinite JSON number"))
     except HIAEditRejected:

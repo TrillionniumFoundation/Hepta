@@ -46,6 +46,22 @@ class TextAgentJSONPredecodeTests(unittest.TestCase):
         with self.assertRaises(HIAEditRejected):
             decode_json('{"amount": 1.25}')  # HIA patch profile is integer-only
 
+    def test_duplicate_diagnostic_survives_without_materializing_value_tree(self):
+        original_loads = json.loads
+
+        def keys_only(text, *args, **kwargs):
+            if not text.startswith('"'):
+                raise AssertionError("duplicate document reached full JSON decoder")
+            return original_loads(text, *args, **kwargs)
+
+        for second_key in ('"schema"', '"\\u0073chema"'):
+            wire = '{"schema":1,' + second_key + ':[' + ','.join('0' for _ in range(1000)) + ']}'
+            with self.subTest(second_key=second_key):
+                with mock.patch("hepta.hia_program_tools.json.loads", side_effect=keys_only) as decoder:
+                    with self.assertRaisesRegex(HIAEditRejected, "duplicate"):
+                        decode_json(wire)
+                    self.assertEqual(decoder.call_count, 2)
+
 
 if __name__ == "__main__":
     unittest.main()

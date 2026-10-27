@@ -1,14 +1,17 @@
-//! Independent, bounded, resource-free scalar HIA execution oracle.
+//! Independent, bounded HIA execution oracle with explicit finite profiles.
 //! IMPORTANT: this is a development shadow, NOT native final-use authorization.
-//! Every input is rechecked by the existing Rust scalar verifier. Rust may
-//! execute only operations from the verified, closed numeric/boolean ISA.
-//! Invalid programs and resource instructions never gain an execution path.
+//! Scalar mode retains its resource-free ISA. The opt-in byte-owner mode uses
+//! the existing Owner/Loan verifier plus a whole-module execution whitelist.
 use std::collections::BTreeMap;
 use serde_json::{json, Value};
-use super::{decode_hia, failure, int_bits, valid_constant, verify, R};
+use super::{decode_hia, failure, int_bits, valid_constant, verify, verify_owned, R};
+
+mod byte_memory;
+use byte_memory::ByteMemory;
 
 const MAX_STEPS: u64 = 1_000_000;
 const MAX_CALL_DEPTH: u32 = 32;
+const MAX_OWNED_HEAP_BYTES: u64 = 16 * 1024 * 1024;
 
 #[derive(Debug)]
 enum Halt {
@@ -17,6 +20,22 @@ enum Halt {
     Internal,
 }
 type Exec<T> = Result<T, Halt>;
+
+// Capabilities never cross the public JSON argument/result boundary. Cloning
+// an internal handle while reading operands does not duplicate language
+// ownership: the existing verifier checks linear use and consumed SSA names
+// are removed after the corresponding operation succeeds.
+#[derive(Clone)]
+enum RuntimeValue {
+    Scalar(Value),
+    Owner(u64),
+    Loan(u64),
+}
+impl RuntimeValue {
+    fn scalar(&self) -> Exec<&Value> {
+        match self { Self::Scalar(value) => Ok(value), _ => Err(Halt::Internal) }
+    }
+}
 
 fn integer(v: &Value) -> Exec<i128> {
     v.as_i64().map(i128::from)
@@ -153,15 +172,15 @@ fn opcode_results(v: &Value, values: &[Value]) -> Exec<Vec<Value>> {
     }
     Ok(result)
 }
-fn lookup(env: &BTreeMap<String, Value>, name: &Value) -> Exec<Value> {
+fn lookup(env: &BTreeMap<String, RuntimeValue>, name: &Value) -> Exec<RuntimeValue> {
     env.get(name.as_str().ok_or(Halt::Internal)?)
         .cloned().ok_or(Halt::Internal)
 }
-fn resolve(env: &BTreeMap<String, Value>, names: &Value) -> Exec<Vec<Value>> {
+fn resolve(env: &BTreeMap<String, RuntimeValue>, names: &Value) -> Exec<Vec<RuntimeValue>> {
     names.as_array().ok_or(Halt::Internal)?
         .iter().map(|v| lookup(env, v)).collect()
 }
-fn bind(params: &Value, values: Vec<Value>) -> Exec<BTreeMap<String, Value>> {
+fn bind(params: &Value, values: Vec<RuntimeValue>) -> Exec<BTreeMap<String, RuntimeValue>> {
     let params = params.as_array().ok_or(Halt::Internal)?;
     if params.len() != values.len() { return Err(Halt::Internal); }
     let mut env = BTreeMap::new();
@@ -174,13 +193,14 @@ struct Machine<'a> {
     functions: BTreeMap<&'a str, &'a Value>,
     steps: u64,
     limit: u64,
+    memory: Option<ByteMemory>,
 }
 impl<'a> Machine<'a> {
     fn tick(&mut self) -> Exec<()> {
         self.steps += 1;
         if self.steps > self.limit { Err(Halt::Budget("steps")) } else { Ok(()) }
     }
-    fn invoke(&mut self, name: &str, args: Vec<Value>, depth: u32) -> Exec<Vec<Value>> {
+    fn invoke(&mut self, name: &str, args: Vec<RuntimeValue>, depth: u32) -> Exec<Vec<RuntimeValue>> {
         // Canonical Python uses a zero-based depth and a root-inclusive
         // frame limit: depth >= max_call_depth rejects BEFORE its entry tick.
         // With MAX_CALL_DEPTH=32 there are exactly 32 admitted frames
@@ -204,11 +224,28 @@ impl<'a> Machine<'a> {
                 let outputs = if op_name == "call" {
                     let callee = op["attrs"]["function"].as_str().ok_or(Halt::Internal)?;
                     self.invoke(callee, operands, depth + 1)?
+                } else if ByteMemory::supports(op_name) {
+                    self.memory.as_mut().ok_or(Halt::Internal)?.operation(op_name, &operands)?
                 } else {
-                    opcode_results(op, &operands)?
+                    let scalars = operands.iter().map(|v| v.scalar().cloned())
+                        .collect::<Exec<Vec<_>>>()?;
+                    opcode_results(op, &scalars)?.into_iter().map(RuntimeValue::Scalar).collect()
                 };
-                for (parameter, value) in op["out"].as_array().ok_or(Halt::Internal)?
-                    .iter().zip(outputs) {
+                let parameters = op["out"].as_array().ok_or(Halt::Internal)?;
+                if parameters.len() != outputs.len() { return Err(Halt::Internal); }
+                if matches!(op_name, "owner.move" | "owner.drop" | "loan.end") {
+                    let consumed = op["args"][0].as_str().ok_or(Halt::Internal)?;
+                    env.remove(consumed).ok_or(Halt::Internal)?;
+                }
+                for (parameter, value) in parameters.iter().zip(outputs) {
+                    let ty = parameter["type"].as_str().ok_or(Halt::Internal)?;
+                    match &value {
+                        RuntimeValue::Scalar(v) if valid_constant(ty, v) => {}
+                        RuntimeValue::Owner(_) if ty == "buffer" => {}
+                        RuntimeValue::Loan(id) if self.memory.as_ref()
+                            .is_some_and(|m| m.loan_type(*id) == Some(ty)) => {}
+                        _ => return Err(Halt::Internal),
+                    }
                     env.insert(parameter["name"].as_str().ok_or(Halt::Internal)?.into(), value);
                 }
             }
@@ -229,7 +266,7 @@ impl<'a> Machine<'a> {
                 }
                 "jump" | "branch" => {
                     let edge = if term["op"] == "jump" { term }
-                        else if boolean(&lookup(&env, &term["cond"])?)? {
+                        else if boolean(lookup(&env, &term["cond"])?.scalar()?)? {
                             &term["then"]
                         } else { &term["else"] };
                     let values = resolve(&env, &edge["args"])?;
@@ -250,11 +287,65 @@ impl<'a> Machine<'a> {
 /// This is NOT an alternative native final-use authorization or refinement proof.
 pub fn execute_scalar(input: &[u8], function: &str, arguments: &[Value],
                       max_steps: u64) -> R<Value> {
+    execute(input, function, arguments, max_steps, None)
+}
+
+/// Opt-in finite byte-owner execution in the SAME Machine as scalar execution.
+/// One function/block, scalar entry/return and no call/branch/chain/bulk opcode.
+/// Static ownership admission still comes from the existing verify_owned.
+pub fn execute_owned(input: &[u8], function: &str, arguments: &[Value],
+                     max_steps: u64, max_heap_bytes: u64,
+                     allocation_fail_at: Option<u64>) -> R<Value> {
+    if max_heap_bytes > MAX_OWNED_HEAP_BYTES || allocation_fail_at == Some(0) {
+        return failure("E_HIA_BUDGET_POLICY", "owned heap/failure policy outside finite profile");
+    }
+    execute(input, function, arguments, max_steps,
+            Some((max_heap_bytes, allocation_fail_at)))
+}
+
+fn owned_execution_profile(document: &Value) -> R<()> {
+    // This is an execution capability boundary, not a second verifier. The
+    // entire document has already passed verify_owned. Reject an unsupported
+    // operation even if a preceding allocation failure/trap would hide it.
+    let functions = document["functions"].as_array().ok_or_else(|| super::VerifyError {
+        code: "E_HIA_RUST_UNSUPPORTED", detail: "missing function inventory".into(),
+    })?;
+    if functions.len() != 1 {
+        return failure("E_HIA_RUST_UNSUPPORTED", "byte-owner execution requires exactly one function");
+    }
+    let function = &functions[0];
+    for param in function["params"].as_array().unwrap() {
+        super::scalar(&param["type"])?;
+    }
+    for ty in function["returns"].as_array().unwrap() { super::scalar(ty)?; }
+    let blocks = function["blocks"].as_array().unwrap();
+    if blocks.len() != 1 || !matches!(blocks[0]["term"]["op"].as_str(), Some("ret" | "trap")) {
+        return failure("E_HIA_RUST_UNSUPPORTED", "byte-owner execution requires one terminal block");
+    }
+    for op in blocks[0]["ops"].as_array().unwrap() {
+        let opcode = op["op"].as_str().unwrap();
+        let scalar = matches!(opcode,
+            "const" | "int.add.checked" | "int.sub.checked" | "int.mul.checked" |
+            "int.add.wrap" | "int.sub.wrap" | "int.mul.wrap" | "int.div.checked" |
+            "int.rem.checked" | "int.shl.checked" | "int.shr.checked" | "int.neg.checked" |
+            "bit.and" | "bit.or" | "bit.xor" | "bit.not" | "compare.eq" | "compare.ne" |
+            "compare.lt" | "compare.le" | "compare.gt" | "compare.ge" | "bool.not" |
+            "bool.and" | "bool.or" | "int.cast" | "select");
+        if !scalar && !ByteMemory::supports(opcode) {
+            return failure("E_HIA_RUST_UNSUPPORTED", format!("byte-owner execution refuses {opcode}"));
+        }
+    }
+    Ok(())
+}
+
+fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
+           owned_policy: Option<(u64, Option<u64>)>) -> R<Value> {
     if !(1..=MAX_STEPS).contains(&max_steps) {
         return failure("E_HIA_BUDGET_POLICY", "max_steps outside bounded Rust oracle profile");
     }
-    let verification = verify(input)?; // whole-module scalar SSA gate, no resource fallback
+    let verification = if owned_policy.is_some() { verify_owned(input)? } else { verify(input)? };
     let (document, _) = decode_hia(input)?;
+    if owned_policy.is_some() { owned_execution_profile(&document)?; }
     let functions = document["functions"].as_array().ok_or_else(|| super::VerifyError {
         code: "E_HIA_FORMAT", detail: "missing verified function inventory".into(),
     })?;
@@ -282,8 +373,10 @@ pub fn execute_scalar(input: &[u8], function: &str, arguments: &[Value],
     }) {
         return failure("E_HIA_INPUT", "entry arguments do not match exact scalar types");
     }
-    let mut machine = Machine { functions: by_name, steps: 0, limit: max_steps };
-    let result = machine.invoke(function, arguments.to_vec(), 0);
+    let mut machine = Machine { functions: by_name, steps: 0, limit: max_steps,
+        memory: owned_policy.map(|(heap, fail)| ByteMemory::new(heap, fail)) };
+    let result = machine.invoke(function,
+        arguments.iter().cloned().map(RuntimeValue::Scalar).collect(), 0);
     let mut report = json!({
         "schema": "hepta.hia.rust-scalar-execution.v1",
         "status": "unknown",
@@ -301,10 +394,34 @@ pub fn execute_scalar(input: &[u8], function: &str, arguments: &[Value],
             "abi_or_hardware_qualified": false
         }
     });
+    if let Some(memory) = machine.memory.as_ref() {
+        report["schema"] = json!("hepta.hia.rust-byte-owner-execution.v1");
+        report["profile"] = json!("single-block-byte-owner-v1");
+        report["resources"] = memory.report(document["schema"] == "hepta.hia.program.v7");
+        report["max_heap_bytes"] = json!(owned_policy.unwrap().0);
+        report["allocation_fail_at"] = json!(owned_policy.unwrap().1);
+        report["claims"] = json!({
+            "finite_scalar_execution": true,
+            "finite_byte_owner_execution": true,
+            "single_block_scalar_entry_only": true,
+            "general_resource_execution": false,
+            "production_admission_authorized": false,
+            "whole_language_soundness_proved": false,
+            "native_backend_refinement_proved": false,
+            "abi_or_hardware_qualified": false
+        });
+    }
     match result {
         Ok(values) => {
+            if machine.memory.as_ref().is_some_and(|memory| !memory.is_clean()) {
+                return failure("E_HIA_RUST_RUNTIME", "successful scalar entry retained resources");
+            }
+            let scalars: Vec<Value> = values.iter().map(|value| value.scalar().cloned())
+                .collect::<Exec<_>>().map_err(|_| super::VerifyError {
+                    code: "E_HIA_RUST_RUNTIME", detail: "resource cannot escape scalar entry".into(),
+                })?;
             report["status"] = json!("returned");
-            report["values"] = json!(values);
+            report["values"] = json!(scalars);
         }
         Err(Halt::Trap(code)) => {
             report["status"] = json!("trapped");

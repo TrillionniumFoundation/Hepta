@@ -3,7 +3,9 @@
 The old primitive bulk-v2 and nominal-v2 producers shared a wire spelling.
 Neither a version label nor a receipt authenticates a producer. The caller
 must select one adapter; its entire source grammar, operations and resource
-flow are checked before conversion, then the canonical v6 result is checked.
+flow are checked before conversion, then the selected primitive result is
+checked. The legacy nominal import retains its v6 target; explicit primitive
+upgrades to v6/v7 retain the operational payload and reverify both versions.
 No adapter accepts HSIR, raw Resource IR, or unverified external evidence.
 """
 from __future__ import annotations

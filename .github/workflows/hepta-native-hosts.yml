@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   native-host:
-    name: ${{ matrix.os }} / ${{ matrix.machine }}
+    name: ${{ matrix.os }} / ${{ matrix.machine }} / ${{ matrix.cc_family }}
     strategy:
       fail-fast: false
       matrix:
@@ -24,24 +24,57 @@ jobs:
           - os: ubuntu-24.04
             system: Linux
             machine: x86_64
+            cc: gcc
+            cc_family: gcc
+          - os: ubuntu-24.04
+            system: Linux
+            machine: x86_64
+            cc: clang
+            cc_family: clang
           - os: ubuntu-24.04-arm
             system: Linux
             machine: aarch64
+            cc: gcc
+            cc_family: gcc
+          - os: ubuntu-24.04-arm
+            system: Linux
+            machine: aarch64
+            cc: clang
+            cc_family: clang
           - os: windows-2025
             system: Windows
             machine: x86_64
+            cc: cl.exe
+            cc_family: msvc
+          - os: windows-2025
+            system: Windows
+            machine: x86_64
+            cc: clang
+            cc_family: clang
           - os: macos-15
             system: Darwin
             machine: aarch64
+            cc: clang
+            cc_family: clang
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     env:
       HEPTA_QUALIFICATION_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      HEPTA_HOST_CC: ${{ matrix.cc }}
+      HEPTA_HOST_CC_FAMILY: ${{ matrix.cc_family }}
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.HEPTA_QUALIFICATION_HEAD_SHA }}
+      - name: Retain an unqualified result if setup or execution never finishes
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          cat > artifacts/native-host.json <<'JSON'
+          {"schema":"hepta.native-host.v2","status":"failed","error":"Native host setup or execution did not finish; inspect retained setup/test logs.","requested_compiler":"${{ matrix.cc }}","requested_family":"${{ matrix.cc_family }}","claims":{"cross_host_results_inferred":false}}
+          JSON
+          git rev-parse HEAD > artifacts/native-host-setup.log
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -49,18 +82,61 @@ jobs:
         shell: bash
         run: |
           test "$(git rev-parse HEAD)" = "$HEPTA_QUALIFICATION_HEAD_SHA"
-          rustup toolchain install 1.90.0 --profile minimal
-      - name: Execute both C optimization profiles and a compiled wrong control
+          rustup toolchain install 1.90.0 --profile minimal 2>&1 | tee -a artifacts/native-host-setup.log
+      - name: Establish the actual Visual Studio and Windows SDK environment
+        if: matrix.system == 'Windows'
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          if (-not (Test-Path -LiteralPath $vswhere)) { throw 'System vswhere.exe is required' }
+          $installDir = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if ($LASTEXITCODE -ne 0 -or -not $installDir) { throw 'An installed Microsoft C++ x64 toolchain is required' }
+          $devcmd = Join-Path -Path ($installDir.Trim()) -ChildPath 'Common7\Tools\VsDevCmd.bat'
+          if (-not (Test-Path -LiteralPath $devcmd)) { throw 'Installed VsDevCmd.bat is required' }
+          "vswhere=$vswhere`nVsDevCmd=$devcmd`narchitecture=x64/host_x64" | Out-File artifacts/native-host-setup.log -Append -Encoding utf8
+          $environmentLines = & $env:ComSpec /d /s /c "`"$devcmd`" -no_logo -arch=x64 -host_arch=x64 && set"
+          if ($LASTEXITCODE -ne 0) {
+            $environmentLines | Where-Object { $_ -notmatch '^[^=]+=' } | Out-File artifacts/native-host-setup.log -Append -Encoding utf8
+            throw 'VsDevCmd failed; see retained setup log'
+          }
+          # Import only compiler/SDK search paths into this job, never print the
+          # complete environment captured by cmd.exe or alter machine settings.
+          $allowed = @('PATH', 'INCLUDE', 'LIB', 'LIBPATH', 'VCToolsInstallDir', 'VCINSTALLDIR', 'VSINSTALLDIR', 'WindowsSdkDir', 'WindowsSDKVersion', 'UniversalCRTSdkDir', 'UCRTVersion')
+          $captured = @{}
+          foreach ($line in $environmentLines) {
+            if ($line -match '^([^=]+)=(.*)$' -and $allowed -contains $Matches[1]) {
+              $captured[$Matches[1]] = $Matches[2]
+            }
+          }
+          foreach ($required in @('PATH', 'INCLUDE', 'LIB', 'LIBPATH')) {
+            if (-not $captured.ContainsKey($required)) { throw "VsDevCmd did not provide $required" }
+          }
+          foreach ($name in $allowed) {
+            if ($captured.ContainsKey($name)) {
+              [Environment]::SetEnvironmentVariable($name, $captured[$name], 'Process')
+              "$name=$($captured[$name])" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+            }
+          }
+          "cl.exe=$((Get-Command cl.exe -ErrorAction Stop).Source)" | Out-File artifacts/native-host-setup.log -Append -Encoding utf8
+      - name: Check adapter and failed-report contracts
+        shell: bash
+        run: |
+          python -m unittest tests.test_native_host_evidence -v 2>&1 | tee artifacts/native-host-adapter-tests.log
+      - name: Execute both C profiles, three ill-typed declarations, and a compiled wrong echo
         shell: bash
         run: |
           python tools/validate_native_host.py \
-            --rustc "$(rustup which --toolchain 1.90.0 rustc)" --cc clang \
+            --rustc "$(rustup which --toolchain 1.90.0 rustc)" \
+            --cc "$HEPTA_HOST_CC" --cc-family "$HEPTA_HOST_CC_FAMILY" \
             --expected-system '${{ matrix.system }}' --expected-machine '${{ matrix.machine }}' \
             --output artifacts/native-host.json
       - name: Retain actual host evidence, including failures
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: native-${{ matrix.os }}-${{ env.HEPTA_QUALIFICATION_HEAD_SHA }}
-          path: artifacts/native-host.json
+          name: native-${{ matrix.os }}-${{ matrix.cc_family }}-${{ env.HEPTA_QUALIFICATION_HEAD_SHA }}
+          path: |
+            artifacts/native-host.json
+            artifacts/native-host-setup.log
+            artifacts/native-host-adapter-tests.log
           if-no-files-found: error

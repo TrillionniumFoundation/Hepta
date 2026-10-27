@@ -11,6 +11,12 @@ from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
+RISCV_TOOLS = (
+    ("CLANG", "CLANG", "clang"),
+    ("HEPTA_LLD", "LINKER", "ld.lld"),
+    ("HEPTA_LLVM_READOBJ", "READOBJ", "llvm-readobj"),
+    ("HEPTA_QEMU_RISCV64", "QEMU", "qemu-riscv64"),
+)
 
 
 def workflow_step():
@@ -45,7 +51,9 @@ class QualificationEnvironmentTests(unittest.TestCase):
         prefix = workspace.parent / "toolchains"
         tools = {"lean": prefix / "lean-4.19.0/bin/lean",
                  "qemu-aarch64": prefix / "qemu-8.2.2/qemu-aarch64-static",
+                 "qemu-riscv64": prefix / "qemu-8.2.2/qemu-riscv64-static",
                  "ld.lld": prefix / "rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld",
+                 "llvm-readobj": runner / "test-only-llvm-readobj",
                  "rustc": prefix / "rust-1.90.0/bin/rustc",
                  "clang": runner / "test-only-clang"}
         for path in tools.values():
@@ -142,6 +150,46 @@ class QualificationEnvironmentTests(unittest.TestCase):
             self.assertFalse(getattr(study.StudyActualNativeControlTests, "__unittest_skip__", False))
             self.assertEqual(Path(study.CLANG).resolve(), tools["clang"])
             self.assertEqual(Path(study.RUSTC).resolve(), tools["rustc"])
+
+    def riscv_environment(self, directory):
+        tools, environment, _, _ = self.fixture(directory)
+        aliases = Path(directory) / "RV64 PATH aliases with spaces"
+        aliases.mkdir()
+        for variable, _, name in RISCV_TOOLS:
+            (aliases / name).symlink_to(tools[name])
+            environment.pop(variable, None)
+        environment["PATH"] = str(aliases)
+        return tools, environment, aliases
+
+    def test_riscv_native_controls_use_path_defaults_and_explicit_tools(self):
+        with tempfile.TemporaryDirectory() as directory:
+            tools, environment, aliases = self.riscv_environment(directory)
+            with patch.dict(os.environ, environment, clear=True):
+                native = load_test("test_hia_riscv64")
+            self.assertFalse(getattr(native.Riscv64NativeTests, "__unittest_skip__", False))
+            for _, attribute, name in RISCV_TOOLS:
+                self.assertEqual(getattr(native, attribute), str(aliases / name))
+
+            for variable, _, name in RISCV_TOOLS:
+                environment[variable] = str(tools[name])
+            with patch.dict(os.environ, environment, clear=True):
+                native = load_test("test_hia_riscv64")
+            self.assertFalse(getattr(native.Riscv64NativeTests, "__unittest_skip__", False))
+            for _, attribute, name in RISCV_TOOLS:
+                self.assertEqual(getattr(native, attribute), str(tools[name]))
+
+    def test_riscv_missing_explicit_tool_cannot_fall_back_to_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            _, environment, aliases = self.riscv_environment(directory)
+            for variable, attribute, name in RISCV_TOOLS:
+                missing = str(Path(directory) / ("unavailable-explicit-" + name))
+                with self.subTest(variable=variable):
+                    selected = dict(environment, **{variable: missing})
+                    with patch.dict(os.environ, selected, clear=True):
+                        self.assertEqual(shutil.which(name), str(aliases / name))
+                        native = load_test("test_hia_riscv64")
+                    self.assertEqual(getattr(native, attribute), missing)
+                    self.assertTrue(native.Riscv64NativeTests.__unittest_skip__)
 
     def test_lean_file_alone_is_insufficient_until_workflow_environment_is_inherited(self):
         with tempfile.TemporaryDirectory() as directory:
