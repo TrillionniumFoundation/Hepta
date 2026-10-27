@@ -47,6 +47,53 @@ class BoundedAgentJSONTests(unittest.TestCase):
         shared = []
         self.assertEqual(bounded_json_wire([shared, shared], 100), b"[[],[]]")
 
+    def test_nested_shared_fanout_refused_before_queuing_excess_nodes(self):
+        # A list's own len() fits the 1024-node budget, but nested shared
+        # fanout would queue >1024 pending children before visiting them.
+        leaf = [0] * 900
+        middle = [leaf] * 64
+        payload = [middle] * 64
+        with mock.patch("hepta.hia_program_tools.json.JSONEncoder.iterencode",
+                        side_effect=AssertionError("must refuse before encoding")) as encoder:
+            with self.assertRaisesRegex(HIAEditRejected, "queued-node"):
+                bounded_json_wire(payload, 1024)
+            encoder.assert_not_called()
+        self.assertEqual(bounded_json_wire([0] * 1023, 2048),
+                         json.dumps([0] * 1023, separators=(",", ":")).encode())
+
+    def test_escaped_json_string_exceeding_budget_is_refused_before_encoder(self):
+        # Raw string size may be below the budget even when a single encoded
+        # JSONEncoder fragment would be several times larger.
+        cases = (
+            ({"control": "\x00" * 350}, 1024, True),
+            ({"non_ascii": "é" * 300}, 1024, True),
+            ({"astral": "🌍" * 150}, 1024, True),
+            ({"surrogate": "\ud800" * 200}, 1024, True),
+            ({"key\x00" * 300: 1}, 1024, False),
+            ({"astral": "🌍" * 300}, 1024, False),
+        )
+        for value, budget, ascii_mode in cases:
+            with self.subTest(ascii_mode=ascii_mode, keys=list(value)):
+                with mock.patch("hepta.hia_program_tools.json.JSONEncoder.iterencode",
+                                side_effect=AssertionError("encoder must not be called")) as encode:
+                    with self.assertRaises(HIAEditRejected):
+                        bounded_json_wire(value, budget, ensure_ascii=ascii_mode)
+                    encode.assert_not_called()
+
+    def test_string_preflight_matches_encoder_with_ascii_and_unicode(self):
+        for ascii_mode in (True, False):
+            for string in ("plain", '"back\\\\slash"', "\x00\n\t\b\f\r",
+                           "é中🌍", "\u2028", "a" * 1022):
+                with self.subTest(ascii_mode=ascii_mode, value=string):
+                    value = {"key": string}
+                    expected = json.dumps(value, ensure_ascii=ascii_mode, sort_keys=True,
+                                          separators=(",", ":"), allow_nan=False).encode("utf-8")
+                    self.assertEqual(bounded_json_wire(value, len(expected),
+                                                        ensure_ascii=ascii_mode), expected)
+                    with self.assertRaises(HIAEditRejected):
+                        bounded_json_wire(value, len(expected) - 1,
+                                          ensure_ascii=ascii_mode)
+
     def test_inprocess_patch_is_bounded_without_changing_patch_semantics(self):
         original = fixture()
         snapshot = verify_program(original)
