@@ -236,12 +236,11 @@ def _bounded_divrem(op, lhs, rhs, typ):
     """Conservative checked div/rem transfer consistent with HIA's VM.
 
     Exact pairs retain the VM's truncation-toward-zero signed behavior.
-    For *unsigned remainder only*, any independently proven positive divisor
-    interval [lo,hi] implies a result in [0,hi-1], even when the dividend
-    is an arbitrary full-width u64/usize argument. Never infer a finite
-    bound for signed/unknown divisors or possible zero. For unsigned
-    division, a verified positive divisor lower bound also bounds the
-    successful quotient, even for arbitrary typed full-width dividends.
+    With independently proven strictly-positive divisors, unsigned division
+    and signed/unsigned remainder and quotient admit conservative intervals,
+    even for full-width unknown arguments. Signed division rounds toward zero
+    as the VM/LLVM do, not Python's floor division. A possibly-zero divisor,
+    unsafe signed overflow case, or out-of-type interval never mints a bound.
     """
     a, b = _span(lhs), _span(rhs)
     if b is None:
@@ -271,6 +270,33 @@ def _bounded_divrem(op, lhs, rhs, typ):
                                 numerator.hi // b.lo)
         else:
             # Malformed direct abstract-domain input must not mint a bound.
+            return None
+    if typ.startswith("i") and b.lo > 0:
+        # Positive denominators eliminate MIN/-1 signed overflow. Use the
+        # COMPLETE signed machine domain for unknown numerators, not caller
+        # samples. The quotient is truncation-towards-zero (unlike Python //).
+        minimum, maximum = integer_range(typ)
+        numerator = a if a is not None else _Span(minimum, maximum)
+        if (minimum <= numerator.lo <= numerator.hi <= maximum
+                and 1 <= b.lo <= b.hi <= maximum):
+            if (a is None or a.lo != a.hi or b.lo != b.hi):
+                if op == "int.div.checked":
+                    # The smallest positive divisor maximizes quotient
+                    # magnitude. Negative quotients round toward zero:
+                    # no negation of MIN as a fixed-width machine operation
+                    # occurs in this pure mathematical transfer.
+                    low = -(abs(min(numerator.lo, 0)) // b.lo)
+                    high = max(numerator.hi, 0) // b.lo
+                    return _bounded(low, high)
+                if op == "int.rem.checked":
+                    # Signed remainder has dividend sign and abs(r) < d.
+                    # Preserve an independently proven numerator sign where
+                    # possible; otherwise keep both outcomes.
+                    max_abs = b.hi - 1
+                    low = -max_abs if numerator.lo < 0 else 0
+                    high = max_abs if numerator.hi > 0 else 0
+                    return _bounded(low, high)
+        else:
             return None
     if a is None or a.lo != a.hi or b.lo != b.hi:
         return None
