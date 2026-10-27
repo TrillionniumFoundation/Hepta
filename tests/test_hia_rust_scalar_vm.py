@@ -66,6 +66,24 @@ def recursive_call():
     ]))
 
 
+def depth_boundary():
+    # Root is depth 0; n=32 succeeds at nested depth 32, n=33 refuses
+    # before the next recursive call's entry tick. Block SSA names are
+    # globally distinct even when reached through separate branch edges.
+    return m(f("bounded", [("n", "u32")], ["u32"], ["trap"], [
+        b("entry", [("n", "u32")], [
+            c("zero", "u32", 0),
+            i("compare.eq", ["n", "zero"], [("at_zero", "bool")]),
+        ], branch("at_zero", ("complete", "n"), ("work", "n"))),
+        b("complete", [("final", "u32")], [], ret("final")),
+        b("work", [("remaining", "u32")], [
+            c("one", "u32", 1),
+            i("int.sub.checked", ["remaining", "one"], [("previous", "u32")]),
+            i("call", ["previous"], [("result", "u32")], function="bounded"),
+        ], ret("result")),
+    ]))
+
+
 def eager_cast_select():
     return m(f("choose", [("a", "i32"), ("b", "i32"), ("pick", "bool")],
                ["u8"], ["trap"], [
@@ -166,6 +184,46 @@ class RustScalarVmParity(unittest.TestCase):
                     self.assertEqual(rust["values"], python["values"])
                 else:
                     self.assertEqual(rust["error"]["code"], python["error"]["code"])
+
+    def test_old_v6_canonical_core_rejects_explicit_exports(self):
+        source = nested_calls()
+        source["exports"] = ["outer"]
+        # An independent Rust shadow must not be credited with parity for
+        # a top-level field the canonical Python v6 Core does not recognize.
+        with self.assertRaisesRegex(HIAProgramRejected, "E_HIA_FORMAT"):
+            verify_program(source)
+
+    def test_recursive_depth_boundary_and_budget_ticks_match_exactly(self):
+        for n in (0, 1, 31, 32, 33):
+            with self.subTest(n=n):
+                source = depth_boundary()
+                rust = self.rust(source, "bounded", [n])
+                try:
+                    python = execute_program(source, "bounded", [n],
+                                             max_call_depth=32)
+                except HIAProgramBudgetExceeded as exc:
+                    python = exc.report
+                self.assertEqual(rust["status"], python["status"])
+                self.assertEqual(rust["steps"], python["steps"])
+                if n <= 32:
+                    self.assertEqual(rust["status"], "returned")
+                    self.assertEqual(rust["values"], python["values"])
+                else:
+                    self.assertEqual(rust["status"], "budget_exceeded")
+                    self.assertEqual(rust["error"]["code"], "calls")
+
+        rust = self.rust(recursive_call(), "recur", [1], max_steps=100_000)
+        try:
+            execute_program(recursive_call(), "recur", [1],
+                            max_steps=100_000, max_call_depth=32)
+        except HIAProgramBudgetExceeded as exc:
+            python = exc.report
+        else:
+            self.fail("canonical Python recursion must exceed depth budget")
+        self.assertEqual(rust["status"], "budget_exceeded")
+        self.assertEqual(rust["error"]["code"], "calls")
+        self.assertEqual(rust["steps"], python["steps"])
+        self.assertEqual(rust["steps"], 66)
 
     def test_select_casts_boolean_and_eager_traps(self):
         cases = [

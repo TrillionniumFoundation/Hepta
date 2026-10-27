@@ -35,6 +35,17 @@ fn checked_and_wrapping_u64_arithmetic_are_distinct() {
     assert_eq!(run(&doc, "calculate", vec![json!(u64::MAX),json!(u64::MAX)], 100)["values"], json!([1]));
 }
 #[test]
+fn old_scalar_v6_profile_rejects_an_unreviewed_exports_field() {
+    let mut doc = machine("int.add.wrap", "u32", vec![]);
+    doc["exports"] = json!(["calculate"]);
+    let args = vec![json!(2), json!(3)];
+    // The Python canonical v1-v6 program grammar does not admit exports.
+    // That feature belongs to the separately integrated v7 lineage.
+    assert!(execute_scalar(&serde_json::to_vec(&doc).unwrap(),
+                           "calculate", &args, 100).is_err());
+}
+
+#[test]
 fn signed_division_and_remainder_truncate_toward_zero() {
     let division = machine("int.div.checked","i64",vec!["trap"]);
     assert_eq!(run(&division,"calculate",vec![json!(-7),json!(3)],100)["values"],json!([-2]));
@@ -148,4 +159,8 @@ fn recursion_is_bounded_independently_of_step_budget() {
     let status=run(&doc,"recur",vec![json!(8)],1000);
     assert_eq!(status["status"],"budget_exceeded");
     assert_eq!(status["error"]["code"],"calls");
+    // Python _Machine.invoke admits root depth=0 through nested depth=32:
+    // 33 entered frames * (entry tick + call-op tick) = 66 actual ticks.
+    // The previous Rust >= comparison stopped at depth 32 with only 64.
+    assert_eq!(status["steps"], json!(66));
 }
