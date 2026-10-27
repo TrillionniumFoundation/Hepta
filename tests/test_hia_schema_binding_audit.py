@@ -52,6 +52,36 @@ class SchemaBindingAuditTests(unittest.TestCase):
                 with self.assertRaisesRegex(HIAWireAuditRejected, "identity changed"):
                     _read(p)
 
+    def test_fd_reader_fifo_swap_is_nonblocking_and_rejected(self):
+        # A swap from an initially regular source to a FIFO between lstat()
+        # and open() must not hang the audit before its fstat identity check.
+        # Check O_NONBLOCK inside the hook before opening, so a regression
+        # fails immediately rather than wedging the test process.
+        from tools.audit_hia_schema_collision import _read
+        import os
+        if not hasattr(os, "mkfifo") or not hasattr(os, "O_NONBLOCK"):
+            self.skipTest("POSIX FIFO/nonblocking descriptors required")
+        with tempfile.TemporaryDirectory() as directory:
+            p = Path(directory) / "source.py"
+            previous = Path(directory) / "previous.py"
+            p.write_bytes(BASE)
+            original = os.open
+            calls = []
+            def replace_with_fifo(path, flags, *args, **kwargs):
+                self.assertTrue(flags & os.O_NONBLOCK,
+                                "audit must never block opening an untrusted replacement FIFO")
+                self.assertTrue(flags & os.O_NOFOLLOW)
+                calls.append(flags)
+                p.rename(previous)
+                os.mkfifo(p)
+                return original(path, flags, *args, **kwargs)
+            with mock.patch("tools.audit_hia_schema_collision.os.open",
+                            side_effect=replace_with_fifo):
+                with self.assertRaisesRegex(HIAWireAuditRejected, "identity changed"):
+                    _read(p)
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(previous.read_bytes(), BASE)
+
     def test_literal_sources_remain_compatible_with_collision_report(self):
         nominal = declarations(BASE)
         bulk = declarations(OTHER)
