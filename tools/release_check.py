@@ -21,6 +21,10 @@ sys.path.insert(0, str(ROOT))
 from hepta.pipeline import compiler_hash
 
 
+# JSON qualification reports are separate from large retained binary artifacts.
+MAX_RELEASE_EVIDENCE_BYTES = 64 * 1024 * 1024
+
+
 
 def _evidence_state(path: Path):
     """Capture the *path entry*, not the target of a symlink."""
@@ -44,7 +48,13 @@ def _read_regular_evidence(path: Path):
         raise ValueError("E_MISSING_GATE_EVIDENCE: producer did not create a report")
     if not stat.S_ISREG(before[2]):
         raise ValueError("E_UNSAFE_GATE_EVIDENCE: report is not a regular file")
-    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    if not 0 < before[3] <= MAX_RELEASE_EVIDENCE_BYTES:
+        raise ValueError("E_OVERSIZED_GATE_EVIDENCE: bounded JSON report required")
+    if not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_NONBLOCK"):
+        raise ValueError("E_UNSAFE_GATE_EVIDENCE: no-follow nonblocking descriptors required")
+    # Do not block when a checked regular pathname is replaced by a FIFO.
+    flags = (os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+             | getattr(os, "O_CLOEXEC", 0))
     with os.fdopen(os.open(path, flags), "rb") as stream:
         def identity():
             current = os.fstat(stream.fileno())
@@ -52,7 +62,9 @@ def _read_regular_evidence(path: Path):
                     current.st_size, current.st_mtime_ns, current.st_ctime_ns)
         if identity() != before:
             raise ValueError("E_UNSAFE_GATE_EVIDENCE: report changed before opening")
-        data = stream.read()
+        data = stream.read(MAX_RELEASE_EVIDENCE_BYTES + 1)
+        if len(data) != before[3] or len(data) > MAX_RELEASE_EVIDENCE_BYTES:
+            raise ValueError("E_UNSAFE_GATE_EVIDENCE: extent changed during bounded read")
         if identity() != before:
             raise ValueError("E_UNSAFE_GATE_EVIDENCE: report changed while reading")
     if _evidence_state(path) != before:
