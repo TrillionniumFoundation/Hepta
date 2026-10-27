@@ -82,6 +82,33 @@ class ScopedArithmeticOwnerLoops(unittest.TestCase):
         self.assertEqual(analyze_constant_live_heap(verified), {"count_down": 4})
         self.assertEqual(execute_program(verified, "count_down", [4])["resources"]["peak_bytes"], 4)
 
+    def test_subtraction_interval_checked_or_wrapped_without_underflow(self):
+        for op in ("int.sub.checked", "int.sub.wrap"):
+            with self.subTest(op=op):
+                verified = verify_program(arithmetic_owner_loop([
+                    i("int.cast", ["r"], [("narrow", "u8")], mode="checked"),
+                    i("int.cast", ["narrow"], [("wide", "usize")], mode="checked"),
+                    c("fixed", "usize", 260),
+                    i(op, ["fixed", "wide"], [("length", "usize")]),
+                    *owner_with_size("length"),
+                ]))
+                self.assertEqual(analyze_constant_live_heap(verified), {"count_down": 260})
+                for n in (1, 2, 7):
+                    result = execute_program(verified, "count_down", [n])
+                    self.assertEqual(result["resources"]["peak_bytes"], 259)
+                    self.assertEqual(result["resources"]["live_bytes"], 0)
+
+    def test_multiplication_without_wrapping_also_admits_wrap_mode(self):
+        verified = verify_program(arithmetic_owner_loop([
+            i("int.cast", ["r"], [("narrow", "u8")], mode="checked"),
+            i("int.cast", ["narrow"], [("wide", "usize")], mode="checked"),
+            c("times", "usize", 4),
+            i("int.mul.wrap", ["wide", "times"], [("length", "usize")]),
+            *owner_with_size("length"),
+        ]))
+        self.assertEqual(analyze_constant_live_heap(verified), {"count_down": 1020})
+        self.assertEqual(execute_program(verified, "count_down", [7])["resources"]["peak_bytes"], 28)
+
     def test_partial_modular_wrap_cannot_mint_positive_budget(self):
         for op in ("int.add.wrap", "int.add.checked"):
             with self.subTest(op=op):
