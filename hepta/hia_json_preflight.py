@@ -45,8 +45,8 @@ def preflight_hia_json(text: str, *, max_nodes: int, max_depth: int) -> None:
             index += 1
             if ch == '"':
                 return text[first:index]
-            if ord(ch) < 32:
-                fail("unescaped control character")
+            if ord(ch) < 32 or 0xD800 <= ord(ch) <= 0xDFFF:
+                fail("unescaped control or isolated Unicode surrogate")
             if ch != "\\":
                 continue
             if index >= size:
@@ -59,7 +59,21 @@ def preflight_hia_json(text: str, *, max_nodes: int, max_depth: int) -> None:
                 fail("invalid JSON escape")
             if any(c not in "0123456789abcdefABCDEF" for c in text[index:index + 4]):
                 fail("invalid Unicode escape")
+            code_unit = int(text[index:index + 4], 16)
             index += 4
+            # HIA's UTF-8 canonical wire format cannot contain isolated
+            # UTF-16 surrogate code units. Reject them before json.loads
+            # materializes Agent values. A high unit must be immediately
+            # followed by the exact escaped low unit in the same token.
+            if 0xD800 <= code_unit <= 0xDBFF:
+                if (index + 6 > size or text[index:index + 2] != "\\u"
+                        or any(c not in "0123456789abcdefABCDEF"
+                               for c in text[index + 2:index + 6])
+                        or not 0xDC00 <= int(text[index + 2:index + 6], 16) <= 0xDFFF):
+                    fail("unpaired high Unicode surrogate")
+                index += 6
+            elif 0xDC00 <= code_unit <= 0xDFFF:
+                fail("unpaired low Unicode surrogate")
         fail("unterminated JSON string")
 
     def atom() -> None:
