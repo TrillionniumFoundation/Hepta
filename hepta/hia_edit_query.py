@@ -9,6 +9,7 @@ a proof of functional equivalence.
 from __future__ import annotations
 
 import copy
+from collections import deque
 from hashlib import sha256
 import json
 
@@ -31,6 +32,99 @@ def _reject(message):
 
 def _wire(value):
     return bounded_json_wire(value, MAX_QUERY_BYTES)
+
+
+def _cfg_edges(term):
+    """Real verified HIA terminators, not guessed textual jump targets."""
+    if term["op"] == "jump":
+        return (term,)
+    if term["op"] == "branch":
+        return (term["then"], term["else"])
+    return ()
+
+
+def _cfg_downstream_slice(fn, source_block, affected, shown_count):
+    """Bounded transitive *explicit SSA value* uses across CFG block arguments.
+
+    Canonical verify_program already admitted the complete function. This is
+    presentation-only: the graph contains no inferred alias/hidden-effect or
+    control-dependence proof. An affected backedge returning to the selected
+    block refuses the compact view rather than implying loop closure.
+    """
+    blocks = {block["id"]: block for block in fn["blocks"]}
+    incoming = {}
+    pending = deque()
+    queued = set()
+
+    def propagate(origin, flowing):
+        for edge in _cfg_edges(origin["term"]):
+            destination = blocks[edge["target"]]
+            forwarded = {formal["name"] for formal, actual
+                         in zip(destination["params"], edge["args"])
+                         if actual in flowing}
+            if not forwarded:
+                continue
+            if destination["id"] == source_block["id"]:
+                _reject("cross-block SSA cycle reaches selected block; use full-module view")
+            observed = incoming.setdefault(destination["id"], set())
+            fresh = forwarded - observed
+            if fresh:
+                observed.update(fresh)
+                if destination["id"] not in queued:
+                    pending.append(destination["id"])
+                    queued.add(destination["id"])
+
+    propagate(source_block, affected)
+    while pending:
+        ident = pending.popleft()
+        queued.remove(ident)
+        block = blocks[ident]
+        flowing = set(incoming[ident])
+        for ins in block["ops"]:
+            if flowing.intersection(ins["args"]):
+                flowing.update(out["name"] for out in ins["out"])
+        propagate(block, flowing)
+
+    result = []
+    # The immutable program's declaration order, not a hash/set order,
+    # determines visible block and instruction ordering.
+    for block in fn["blocks"]:
+        ident = block["id"]
+        if ident not in incoming:
+            continue
+        flowing = set(incoming[ident])
+        consumer_indices = set()
+        for index, ins in enumerate(block["ops"]):
+            if flowing.intersection(ins["args"]):
+                consumer_indices.add(index)
+                flowing.update(out["name"] for out in ins["out"])
+
+        producers = {out["name"]: index
+                     for index, ins in enumerate(block["ops"]) for out in ins["out"]}
+        needed = set()
+        pending_inputs = [arg for i in consumer_indices for arg in block["ops"][i]["args"]]
+        while pending_inputs:
+            value = pending_inputs.pop()
+            producer = producers.get(value)
+            if producer is not None and producer not in consumer_indices and producer not in needed:
+                needed.add(producer)
+                pending_inputs.extend(block["ops"][producer]["args"])
+        shown_count += len(consumer_indices) + len(needed)
+        if shown_count > MAX_VISIBLE_OPERATIONS:
+            _reject("transitive SSA view exceeds bounded operation budget")
+        result.append({
+            "id": ident,
+            "params": block["params"],
+            "affected_params": sorted(incoming[ident]),
+            "dependencies": [{"index": i, "operation": block["ops"][i]}
+                             for i in sorted(needed)],
+            "consumers": [{"index": i, "operation": block["ops"][i]}
+                          for i in sorted(consumer_indices)],
+            "terminator": block["term"],
+            "branch_condition_affected": (block["term"]["op"] == "branch"
+                                           and block["term"]["cond"] in flowing),
+        })
+    return result
 
 
 def prepare_edit(document, *, function, block, output, fields):
@@ -85,9 +179,14 @@ def prepare_edit(document, *, function, block, output, fields):
     # Prefer explicit refusal so an Agent can switch to a full-module view.
     if len(shown) + len(needed) > MAX_VISIBLE_OPERATIONS:
         _reject("transitive SSA view exceeds bounded operation budget")
-    calls = {op["attrs"]["function"] for op in [operation, *(node["ops"][i] for i in needed),
-                                               *(item["operation"] for item in consumers)]
-             if op["op"] == "call"}
+    downstream = _cfg_downstream_slice(fn, node, affected, len(shown) + len(needed))
+    visible_ops = [operation, *(node["ops"][i] for i in needed),
+                   *(item["operation"] for item in consumers)]
+    for downstream_block in downstream:
+        visible_ops.extend(item["operation"] for item in
+                           [*downstream_block["dependencies"],
+                            *downstream_block["consumers"]])
+    calls = {op["attrs"]["function"] for op in visible_ops if op["op"] == "call"}
     query = {
         "schema": QUERY_SCHEMA,
         "base_sha256": original.sha256,
@@ -102,12 +201,16 @@ def prepare_edit(document, *, function, block, output, fields):
             "operation_index": index,
             "operation": operation,
             "consumers": consumers,
+            "downstream": downstream,
             "terminator": node["term"],
             "callees": [{key: other[key] for key in ("name", "params", "returns", "effects")}
                         for other in data["functions"] if other["name"] in calls],
         },
-        "scope": "single-instruction view; omitted code is still reverified before admission",
+        "scope": ("single-instruction explicit SSA value slice (including CFG edges); "
+                  "control-dependence, aliases and omitted code are NOT proved; "
+                  "whole module is reverified"),
     }
+    _wire(query)  # Prepare never emits a query that the apply/render gate cannot read.
     return copy.deepcopy(query)
 
 
@@ -197,6 +300,16 @@ def _render_edit_context_checked(query):
     lines.extend(("EDIT " if item["index"] == selected else "") + line(item["operation"])
                  for item in sorted(instructions, key=lambda item: item["index"]))
     lines.append(_wire(context["terminator"]).decode())
+    for successor in context["downstream"]:
+        lines.append("downstream block " + successor["id"] + "(" +
+                     ", ".join(p["name"] + ":" + p["type"] for p in successor["params"]) +
+                     ") affected{" + ",".join(successor["affected_params"]) + "}")
+        if successor["branch_condition_affected"]:
+            lines.append("affected branch condition (control dependence unproved)")
+        entries = [*successor["dependencies"], *successor["consumers"]]
+        lines.extend(line(item["operation"]) for item in
+                     sorted(entries, key=lambda item: item["index"]))
+        lines.append(_wire(successor["terminator"]).decode())
     for callee in context["callees"]:
         lines.append("callee " + _wire(callee).decode())
     return "\n".join(lines)
