@@ -1,0 +1,250 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-q"
+      ],
+      "name": "unit_regression"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/qualify_hia_program.py",
+        "--clang",
+        "/usr/lib/llvm-20/bin/clang",
+        "--output",
+        "/tmp/hepta-unified-round2-run3/native.json"
+      ],
+      "name": "standalone_native"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/qualify_hia_program_resources.py",
+        "--output",
+        "/tmp/hepta-unified-round2-run3/resources.json"
+      ],
+      "name": "standalone_resources"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/qualify_hia_program_composite.py",
+        "--clang",
+        "/usr/lib/llvm-20/bin/clang",
+        "--workdir",
+        "/tmp/hepta-unified-round2-run3/composite"
+      ],
+      "name": "composite_resources"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/qualify_hia_composite_bulk.py",
+        "--clang",
+        "/usr/lib/llvm-20/bin/clang",
+        "--linker",
+        "/tmp/hepta-ai-rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld",
+        "--qemu-aarch64",
+        "/usr/bin/qemu-aarch64-static",
+        "--output-directory",
+        "/tmp/hepta-unified-round2-run3/composite-bulk"
+      ],
+      "name": "composite_bulk_targets"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/qualify_hia_recursive_chain.py",
+        "--clang",
+        "/usr/lib/llvm-20/bin/clang",
+        "--output-directory",
+        "/tmp/hepta-unified-round2-run3/recursive-chain"
+      ],
+      "name": "recursive_resource_chains"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/qualify_hia_migration.py",
+        "--clang",
+        "/usr/lib/llvm-20/bin/clang",
+        "--clangxx",
+        "/usr/lib/llvm-20/bin/clang++",
+        "--workdir",
+        "/tmp/hepta-unified-round2-run3/migration"
+      ],
+      "name": "source_migration"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/qualify_cpp_project_hia.py",
+        "--clang",
+        "/usr/lib/llvm-20/bin/clang",
+        "--clangxx",
+        "/usr/lib/llvm-20/bin/clang++",
+        "--workdir",
+        "/tmp/hepta-unified-round2-run3/cpp-templates"
+      ],
+      "name": "cpp_template_migration"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/qualify_c_project_matrix.py",
+        "--clang",
+        "/usr/lib/llvm-20/bin/clang",
+        "--workdir",
+        "/tmp/hepta-unified-round2-run3/c-matrix"
+      ],
+      "name": "c_configuration_matrix"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/qualify_cpp_project_matrix.py",
+        "--clang",
+        "/usr/lib/llvm-20/bin/clang",
+        "--clangxx",
+        "/usr/lib/llvm-20/bin/clang++",
+        "--workdir",
+        "/tmp/hepta-unified-round2-run3/cpp-matrix"
+      ],
+      "name": "cpp_configuration_matrix"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/qualify_c_resource_matrix.py",
+        "--clang",
+        "/usr/lib/llvm-20/bin/clang",
+        "--rustc",
+        "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+        "--workdir",
+        "/tmp/hepta-unified-round2-run3/c-resource-matrix"
+      ],
+      "name": "upstream_c_resource_matrix"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/qualify_cpp_composed.py",
+        "--cxx",
+        "/usr/bin/g++",
+        "--rustc",
+        "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+        "--workdir",
+        "/tmp/hepta-unified-round2-run3/cpp-composed"
+      ],
+      "name": "upstream_cpp_composed_lifetimes"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/qualify_hia_selected_formal.py",
+        "--lean",
+        "/tmp/hepta-ai-verification/lean-4.19.0/bin/lean",
+        "--clang",
+        "/usr/lib/llvm-20/bin/clang",
+        "--output-directory",
+        "/tmp/hepta-unified-round2-run3/selected-formal"
+      ],
+      "name": "selected_core_formal"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/qualify_hia_program_aarch64.py",
+        "--clang",
+        "/usr/lib/llvm-20/bin/clang",
+        "--linker",
+        "/tmp/hepta-ai-rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld",
+        "--qemu-aarch64",
+        "/usr/bin/qemu-aarch64-static",
+        "--output",
+        "/tmp/hepta-unified-round2-run3/aarch64.json"
+      ],
+      "name": "standalone_aarch64_qemu"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/qualify_hia_riscv64.py",
+        "--clang",
+        "/usr/lib/llvm-20/bin/clang",
+        "--linker",
+        "/usr/lib/llvm-20/bin/ld.lld",
+        "--readobj",
+        "/usr/lib/llvm-20/bin/llvm-readobj",
+        "--qemu-riscv64",
+        "/usr/bin/qemu-riscv64-static",
+        "--output-directory",
+        "/tmp/hepta-unified-round2-run3/riscv64"
+      ],
+      "name": "standalone_riscv64_qemu"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "hepta.executable_core_qualify",
+        "--clang",
+        "/usr/lib/llvm-20/bin/clang",
+        "--rustc",
+        "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+        "--report",
+        "/tmp/hepta-unified-round2-run3/legacy-core.json"
+      ],
+      "name": "legacy_executable_core"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "tools.qualify_lifecycle_composition",
+        "--rustc",
+        "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+        "--output",
+        "/tmp/hepta-unified-round2-run3/hosted-composition.json"
+      ],
+      "name": "legacy_hosted_composition"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/validate_board.py",
+        "--rustc",
+        "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+        "--qemu",
+        "/usr/bin/qemu-system-arm",
+        "--output",
+        "/tmp/hepta-unified-round2-run3/board.json"
+      ],
+      "name": "legacy_cortex_m4_qemu"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/qualify_hia_program_perf.py",
+        "--clang",
+        "/usr/lib/llvm-20/bin/clang",
+        "--rustc",
+        "/tmp/hepta-ai-rust-1.90.0/bin/rustc",
+        "--output",
+        "/tmp/hepta-unified-round2-run3/performance.json",
+        "--artifact-directory",
+        "/tmp/hepta-unified-round2-run3/performance-artifacts"
+      ],
+      "name": "standalone_performance"
+    }
+  ],
+  "git_commit": "5818c5814fb42dbd97a027e9b328f4ae3099c0fc",
+  "source_snapshot_sha256": "de71f2ae7267f323a318ca7aee422f6ed881a8351028a5583f74d3446b3272c6"
+}
