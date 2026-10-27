@@ -74,6 +74,41 @@ def _keys(value, expected, label):
         _reject(label + " requires exactly its declared fields; unknown or missing fields")
 
 
+def _bounded_json_string_bytes(value, maximum, ensure_ascii):
+    """Preflight one JSONEncoder string fragment before escape expansion.
+
+    JSONEncoder.iterencode materializes a complete escaped key/value string
+    before it yields the fragment. Length alone misses NULs (six ASCII
+    bytes) and non-ASCII surrogate-pair escapes (twelve ASCII bytes).
+    This measures the exact UTF-8 output length without constructing it.
+    """
+    if len(value) + 2 > maximum:
+        _reject("JSON string exceeds byte budget")
+    count = 2  # JSON quotes
+    for char in value:
+        point = ord(char)
+        if point < 32:
+            width = 2 if point in (8, 9, 10, 12, 13) else 6
+        elif point in (34, 92):
+            width = 2
+        elif point < 128 and (not ensure_ascii or point < 127):
+            width = 1
+        elif ensure_ascii:
+            width = 12 if point > 0xFFFF else 6
+        elif 0xD800 <= point <= 0xDFFF:
+            _reject("unpaired Unicode surrogate in JSON string")
+        elif point < 0x800:
+            width = 2
+        elif point < 0x10000:
+            width = 3
+        else:
+            width = 4
+        count += width
+        if count > maximum:
+            _reject("JSON escaped string exceeds byte budget")
+    return count
+
+
 def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True):
     """Stream a bounded in-process JSON snapshot rather than materialize first.
 
@@ -108,14 +143,33 @@ def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True):
                     for key, child in node.items():
                         if type(key) not in (str, int, float, bool, type(None)):
                             _reject("unsupported JSON object key")
-                        if len(str(key)) > maximum:
-                            _reject("JSON key exceeds byte budget")
+                        if type(key) is str:
+                            _bounded_json_string_bytes(key, maximum, ensure_ascii)
+                        elif type(key) is int:
+                            # Reject impossible huge integer keys before str().
+                            # 0.301 < log10(2), so this is a lower bound.
+                            if (key.bit_length() - 1) * 301 // 1000 + 1 > maximum:
+                                _reject("JSON integer key exceeds byte budget")
+                            _bounded_json_string_bytes(str(key), maximum, ensure_ascii)
+                        elif type(key) is bool:
+                            _bounded_json_string_bytes("true" if key else "false",
+                                                       maximum, ensure_ascii)
+                        elif key is None:
+                            _bounded_json_string_bytes("null", maximum, ensure_ascii)
+                        else:
+                            # Nonfinite floats are invalid under allow_nan=False.
+                            from math import isfinite
+                            if not isfinite(key):
+                                _reject("nonfinite JSON key")
+                            _bounded_json_string_bytes(str(key), maximum, ensure_ascii)
                         pending.append((child, False))
                 else:
                     pending.extend((child, False) for child in node)
             elif type(node) is str:
-                if len(node) > maximum:
-                    _reject("JSON string exceeds byte budget")
+                _bounded_json_string_bytes(node, maximum, ensure_ascii)
+            elif type(node) is int:
+                if (node.bit_length() - 1) * 301 // 1000 + 1 > maximum:
+                    _reject("JSON integer exceeds byte budget")
             elif type(node) not in (int, bool, float, type(None)):
                 _reject("non-JSON in-process value")
         chunks = []
