@@ -1,0 +1,38 @@
+{
+  "blocking_current_workflow_defect_confirmed": false,
+  "bootstrap_behavior": "Each invocation downloads and reinstalls every selected component. Host Cargo is newly mandatory. Empty --targets omits cross stdlibs only; Cargo, rustc and host std remain selected. No offline installer or existing-install reuse was added.",
+  "confirmed_path_facts": [
+    "bootstrap default prefix ROOT.parent/toolchains/rust-1.90.0 agrees with job RUSTC and explicit Cargo paths",
+    "current step calls Cargo by absolute path, so fetch does not depend on same-step GITHUB_PATH refresh",
+    "CARGO_HOME and CARGO_TARGET_DIR are outside source under runner.temp",
+    "only Cargo.toml is rust/hia-core-shadow/Cargo.toml, matching fetch --locked"
+  ],
+  "existing_tests_commit": "de40b4a029c00e5958663d8a30e44df7e6647904",
+  "existing_tests_count": 10,
+  "existing_tests_report": "/tmp/hepta-cargo-environment-validation-de40b4a/report.json",
+  "existing_tests_unittest_seconds": 1.097,
+  "existing_tests_wall_seconds": 1.703779098999803,
+  "findings": [
+    {
+      "details": "Dependency-free probe checks three workflow env values, external target_directory and source stability. It selects Cargo through ambient shutil.which; it does not exercise the workflow fetch step or GITHUB_PATH selection. Deleting cache warm-up would not be detected by this probe. The current workflow does contain explicit locked-Cargo fetch and PATH publication.",
+      "evidence_limit": "The existing 10 passed tests establish path isolation and installed-payload integrity controls, not cold-cache end-to-end CI execution.",
+      "file": "tests/test_qualification_cargo_environment.py",
+      "function": "test_actual_workflow_environment_keeps_cargo_build_outside_source",
+      "kind": "regression-test-coverage-gap"
+    }
+  ],
+  "installed_cargo_rehashed_sha256": "51de284e8bb0d03dcee595a0fb1cb3a952fe9e7e4b953a8b1467b7f71725b561",
+  "installed_matches_reported_official_payload": true,
+  "limits": [
+    "No bootstrap installation, compilation, test suite or remote CI was executed during this review.",
+    "The de40b4a execution evidence is not attributed to later heads.",
+    "Some preexisting Rust test setup calls still use cargo build without offline/locked flags; this change does not establish an entirely offline qualification job."
+  ],
+  "new_project_executions": 0,
+  "observed_head_at_end": "e6379178a3e9a682f88c344aaa86b3d74932ffd7",
+  "official_cargo_report": "/tmp/hepta-cargo-official-20261028/report.json",
+  "reviewed_commit": "e1cfb04057973b73f5008b68252730aea88c5866",
+  "reviewed_files_unchanged_at_observed_head": true,
+  "schema": "hepta.audit.cargo-readonly-review.v1",
+  "source_modified": false
+}

@@ -1,0 +1,235 @@
+{
+  "build": {
+    "compiler": {
+      "executable_sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+      "path": "/usr/lib/llvm-20/bin/clang",
+      "target": "x86_64-pc-linux-gnu",
+      "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+    },
+    "configurations": [
+      {
+        "abi_model_arguments": [
+          "-std=c11",
+          "-O0"
+        ],
+        "abi_predefined_macros_sha256": "36f785e6f89ff1b6a3a2424d2899ae37a8103bf02c5aa7727b4ca7a783dfc04e",
+        "all_dependencies": [
+          "/tmp/hepta-vla-original-type-20261027/before/input.c"
+        ],
+        "directory": "/tmp/hepta-vla-original-type-20261027/before",
+        "frontend_arguments": [
+          "-std=c11",
+          "-O0"
+        ],
+        "index": 0,
+        "local_dependencies": [
+          "/tmp/hepta-vla-original-type-20261027/before/input.c"
+        ],
+        "model": {
+          "char_unsigned": false,
+          "long_bits": 64,
+          "pointer_bits": 64
+        },
+        "omitted_arguments": [
+          {
+            "argument": "-c",
+            "reason": "driver_output_or_diagnostic_flag"
+          },
+          {
+            "argument": "-o",
+            "operand": "input.o",
+            "reason": "object_output_not_executed"
+          }
+        ],
+        "original_arguments": [
+          "clang",
+          "-std=c11",
+          "-O0",
+          "-c",
+          "input.c",
+          "-o",
+          "input.o"
+        ],
+        "predefined_macros_sha256": "36f785e6f89ff1b6a3a2424d2899ae37a8103bf02c5aa7727b4ca7a783dfc04e",
+        "preprocessed_sha256": "ab331afa8c6eed3a3f145ef051982e3d3b0a765171701b9ba4d12966f34d046a",
+        "source": "/tmp/hepta-vla-original-type-20261027/before/input.c"
+      }
+    ],
+    "database": {
+      "path": "/tmp/hepta-vla-original-type-20261027/before/compile_commands.json",
+      "sha256": "65d5647dcdfcd05ae4be31b38f9e68a3736d3d74fa6af82f808e608b09c3221f"
+    },
+    "dependencies": [
+      {
+        "bytes": 79,
+        "path": "/tmp/hepta-vla-original-type-20261027/before/input.c",
+        "project_input": true,
+        "sha256": "19677dbbf9a9690c5a16f1e90d5ed6e0e55d1c564830f7bd2d823e5b338f080a"
+      }
+    ],
+    "schema": "hepta.c-build.v1",
+    "scope": "all_listed_commands_only_not_unlisted_platforms_or_configurations",
+    "sha256": "39930ccbcf51b10a5005fba17f6d4d78705180601d37da3f66f68c27b08c6b9e"
+  },
+  "claims": {
+    "all_c_or_cpp_supported": false,
+    "foreign_pointer_validity_checked": false,
+    "pointer_contracts_inferred": false,
+    "source_equivalence_proved": false,
+    "unlisted_build_configurations_qualified": false,
+    "whole_language_soundness_proved": false
+  },
+  "coverage": {
+    "active_project_declarations": 1,
+    "denominator": "active_declarations_in_all_listed_preprocessed_translation_units",
+    "status_counts": {
+      "rejected": 1
+    },
+    "system_or_compiler_declarations_recorded": 5,
+    "unlisted_macro_configurations_included": false
+  },
+  "declaration_inventory_complete": true,
+  "declarations": [
+    {
+      "file": null,
+      "kind": "TypedefDecl",
+      "name": "__int128_t",
+      "offset": null,
+      "reason": "recorded_dependency_outside_translated_project_declarations",
+      "status": "system_or_compiler_declaration",
+      "unit": 0
+    },
+    {
+      "file": null,
+      "kind": "TypedefDecl",
+      "name": "__uint128_t",
+      "offset": null,
+      "reason": "recorded_dependency_outside_translated_project_declarations",
+      "status": "system_or_compiler_declaration",
+      "unit": 0
+    },
+    {
+      "file": null,
+      "kind": "TypedefDecl",
+      "name": "__NSConstantString",
+      "offset": null,
+      "reason": "recorded_dependency_outside_translated_project_declarations",
+      "status": "system_or_compiler_declaration",
+      "unit": 0
+    },
+    {
+      "file": null,
+      "kind": "TypedefDecl",
+      "name": "__builtin_ms_va_list",
+      "offset": null,
+      "reason": "recorded_dependency_outside_translated_project_declarations",
+      "status": "system_or_compiler_declaration",
+      "unit": 0
+    },
+    {
+      "file": null,
+      "kind": "TypedefDecl",
+      "name": "__builtin_va_list",
+      "offset": null,
+      "reason": "recorded_dependency_outside_translated_project_declarations",
+      "status": "system_or_compiler_declaration",
+      "unit": 0
+    },
+    {
+      "file": "/tmp/hepta-vla-original-type-20261027/before/input.c",
+      "kind": "FunctionDecl",
+      "name": "probe",
+      "offset": 13,
+      "reason": "E_C_VLA_PARAMETER",
+      "status": "rejected",
+      "unit": 0
+    }
+  ],
+  "diagnostics": [
+    {
+      "code": "E_C_VLA_PARAMETER",
+      "message": "Unmodeled original parameter type for probe.data: const unsigned int[++n]"
+    }
+  ],
+  "differential_execution": "not_run",
+  "elapsed_seconds": 2.246772496000631,
+  "frontend_validation": "not_run",
+  "native_validation": "not_run",
+  "ok": false,
+  "output_directory": "/tmp/hepta-vla-original-type-20261027/after/must-not-publish",
+  "profile": "captured_c_value_and_contracted_slice_subset",
+  "publication": "new_directory_manifest_last_not_crash_atomic",
+  "schema": "hepta.c-project-migration.v1",
+  "source_type_admission": [
+    {
+      "argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-emit-ast",
+        "input.c",
+        "-o",
+        "/tmp/hepta-original-types-rcpfarxv/input.ast"
+      ],
+      "capture_sha256": "39930ccbcf51b10a5005fba17f6d4d78705180601d37da3f66f68c27b08c6b9e",
+      "compiler": {
+        "executable_sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+        "path": "/usr/lib/llvm-20/bin/clang",
+        "target": "x86_64-pc-linux-gnu",
+        "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+      },
+      "cwd": "/tmp/hepta-vla-original-type-20261027/before",
+      "functions": [
+        {
+          "declaration": {
+            "file": "/tmp/hepta-vla-original-type-20261027/before/input.c",
+            "name": "probe",
+            "offset": 13,
+            "parameters": [
+              "n",
+              "data"
+            ],
+            "type": "unsigned int (unsigned int, const unsigned int *)"
+          },
+          "parameters": [
+            {
+              "kind": "UInt",
+              "name": "n",
+              "spelling": "unsigned int",
+              "state": "fixed"
+            },
+            {
+              "kind": "VariableArray",
+              "name": "data",
+              "spelling": "const unsigned int[++n]",
+              "state": "variable"
+            }
+          ]
+        }
+      ],
+      "limits": {
+        "ast_bytes": 32000000,
+        "compiler_seconds": 35,
+        "declarations": 100000,
+        "parameters": 1024,
+        "type_depth": 64,
+        "worker_seconds": 30
+      },
+      "reader": {
+        "bytes": 36282304,
+        "path": "/usr/lib/x86_64-linux-gnu/libclang-20.so.20",
+        "sha256": "0c655b8d99e8fab8f9f29e7b18515584c41c1f09f40c85007261b816571502c4",
+        "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+      },
+      "schema": "hepta.c-original-parameter-types.v1",
+      "serialized_ast": {
+        "bytes": 251520,
+        "path": "/tmp/hepta-original-types-rcpfarxv/input.ast",
+        "sha256": "56d3059ebcb213b08458d671933eb4db19e48a52a9be3f4740848b7ffd2aef8b"
+      },
+      "unit": 0
+    }
+  ],
+  "status": "rejected"
+}

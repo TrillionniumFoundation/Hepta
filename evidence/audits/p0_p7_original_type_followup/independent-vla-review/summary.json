@@ -1,0 +1,132 @@
+{
+  "candidate_results": {
+    "bytes": 14518,
+    "path": "/tmp/hepta-vla-independent-review-20261027/candidate-results.json",
+    "sha256": "2378ec7ef8c274b54d16bef1c0563174d48e87cf55d071ff34bafde420702edc"
+  },
+  "confirmed_blockers": [],
+  "conservative_admission_observation": {
+    "case": "vla_prototype_pointer_definition",
+    "interpretation": "A prototype-only VLA need not execute a runtime entry effect. The current profile intentionally rejects any modeled variable parameter type, so this is conservative admission, not evidence of an accepted mismatch.",
+    "migration_rejection": "E_C_VLA_PARAMETER",
+    "original_result_n7": 7
+  },
+  "declaration_results": {
+    "bytes": 40788,
+    "path": "/tmp/hepta-vla-independent-review-20261027/declaration-results.json",
+    "sha256": "06ad2d1259fb66dc2baeeea9e3b95bed625b274256b173f9e2eca68ee07a96c5"
+  },
+  "execution_counts": {
+    "accepted_effectful_inputs": 0,
+    "defined_input_effect_controls_excluding_null_type_explorations": 9,
+    "migration_positive_controls_accepted": 3,
+    "migration_rejections": 13,
+    "observed_entry_increment_inputs": 11,
+    "original_c_cases_compiled_and_called": 25,
+    "process_mechanism_fixture_cases": 2,
+    "public_migration_calls": 16,
+    "rejection_codes": {
+      "E_C_LOCAL": 2,
+      "E_C_VLA_PARAMETER": 11
+    }
+  },
+  "findings": [
+    {
+      "area": "prototype_definition_and_redeclarations",
+      "code": "hepta/c_translation.py:CTranslator.collect",
+      "conclusion": "Original types are checked before declaration coalescing. Pointer prototype followed by VLA definition, reverse redeclaration and local-header VLA definition reject in real public-entry probes."
+    },
+    {
+      "area": "record_view_rewrite",
+      "code": "hepta/c_record_views.py:CRecordViewTranslator.signature; hepta/c_translation.py:CTranslator.collect",
+      "conclusion": "Static review confirms the record parameter pointer flag is restored before collect triggers original-type admission. The immutable original declaration is used for expected receipt binding. Existing owner regression covers this path; this independent review did not duplicate that native test."
+    },
+    {
+      "area": "top_level_cursor_coverage",
+      "code": "hepta/c_parameter_types.py:_read_ast; hepta/c_translation.py:CTranslator.collect,stmt",
+      "conclusion": "Reader matches the translator top-level FunctionDecl inventory. Missing/duplicate bindings fail coverage. Nested function prototypes and local VLA typedefs are not silently skipped into a successful bundle; the public migration rejects them with E_C_LOCAL in the probes."
+    },
+    {
+      "area": "type_recursion_and_hidden_bounds",
+      "code": "hepta/c_parameter_types.py:_read_ast.type_state",
+      "conclusion": "Canonical variable arrays are rejected; pointer/array element types recurse with a 64-depth ceiling and unknown categories reject. Direct VLA, sizeof(VLA), typeof(VLA), comma and multiply-by-zero effectful bounds rejected. No accepted runtime-effect omission was found in the finite probes."
+    },
+    {
+      "area": "source_and_frontend_identity",
+      "code": "hepta/c_parameter_types.py:original_parameter_types,_emit_ast,_worker; hepta/c_project.py:verify_capture",
+      "conclusion": "Static review found compiler/libclang/AST hash, version, argv, cwd, declaration coverage and captured dependency revalidation bindings intact. No claimed generic toolchain-trust vulnerability."
+    },
+    {
+      "area": "cleanup_and_process_budgets",
+      "code": "hepta/c_parameter_types.py:_set_process_limits,_emit_ast; hepta/clang_capture.py:run_bounded",
+      "conclusion": "Two focused fixture executions confirmed exec preserves process group and AS/FSIZE limits, and normal completion/timeout clean same-group descendants. These fixture tests qualify the process mechanism only, not compiler semantics."
+    }
+  ],
+  "finished_utc": "2026-10-28T00:15:17.727587+00:00",
+  "finite_test_limits": [
+    "Three accepted positive controls were frontend migrations only; no generated Rust/native equivalence execution was added by this review.",
+    "Two GNU typeof NULL-array dereference/index exploration cases are retained but excluded from the defined-input-effect denominator; their rejection is not used as a C equivalence claim.",
+    "The per-phase 35/30-second subprocess budgets are not a whole-project migration deadline.",
+    "No complete suite, benchmark, physical device run or general soundness proof was performed."
+  ],
+  "nonblocking_scalability_observation": {
+    "analysis": "For N such TUs, this causes about 2N full-project revalidations, each iterating configurations: O(N^2) TU-revalidation work. This is static cost analysis only; no timing study or measured performance regression is claimed.",
+    "code": "original_parameter_types invokes verify_capture before and after each pointer-bearing TU read",
+    "performance_experiment_executed": false
+  },
+  "null_type_explorations_excluded_from_defined_input_equivalence": [
+    "typeof_deref_vla",
+    "typeof_index_vla"
+  ],
+  "original_reports_or_sealed_recovery_modified": false,
+  "resource_probe": {
+    "bytes": 4783,
+    "path": "/tmp/hepta-vla-resource-review-20261028/probe.py",
+    "sha256": "520b1f1e9893a957fef68e97532ae36c20ced9a2c25f95257b98f6b9d2589945"
+  },
+  "resource_review": {
+    "bytes": 1897,
+    "path": "/tmp/hepta-vla-resource-review-20261028/report.json",
+    "sha256": "a8dc923d0daf47dc6fd59622f2624f753089b4fde05cc2f3f75c78e4271dce00"
+  },
+  "reviewed_commit": "6e16922e9f5c19b332c2d520dc5651eed5c3aa13",
+  "reviewed_tree": "010a0ab6a61bfdb60e08b42bb047c13fb585c50f",
+  "schema": "hepta.audit.vla-independent-review.v1",
+  "scope": "Independent read-only review of c_parameter_types.py and CTranslator integration, with small C/native and public migration admission probes. Not the integrated 76c928ac validation and not original 108 evidence.",
+  "source_files": {
+    "hepta/c_migration_project.py": {
+      "bytes": 9285,
+      "path": "/workspace/scratch/4bc91e0ee48c/hepta-vla-original-type/hepta/c_migration_project.py",
+      "sha256": "88a9e8e9dbf8daa73833cc4652577116a30c58feebb12eb7f5662a625a4b4747"
+    },
+    "hepta/c_parameter_types.py": {
+      "bytes": 19658,
+      "path": "/workspace/scratch/4bc91e0ee48c/hepta-vla-original-type/hepta/c_parameter_types.py",
+      "sha256": "6e881f52a50de24516ddbe8c6b9deec38d1268cca2ee7e4489fb663e38544714"
+    },
+    "hepta/c_project.py": {
+      "bytes": 32454,
+      "path": "/workspace/scratch/4bc91e0ee48c/hepta-vla-original-type/hepta/c_project.py",
+      "sha256": "d75706830e2dbc9ca5da9f360652845228ceafd8dda996c3f1f7a10760df8356"
+    },
+    "hepta/c_record_views.py": {
+      "bytes": 35834,
+      "path": "/workspace/scratch/4bc91e0ee48c/hepta-vla-original-type/hepta/c_record_views.py",
+      "sha256": "d28057eb9a129ebe7a01f3400af002978898e2430f43e9ec2f02710859204e1f"
+    },
+    "hepta/c_translation.py": {
+      "bytes": 41903,
+      "path": "/workspace/scratch/4bc91e0ee48c/hepta-vla-original-type/hepta/c_translation.py",
+      "sha256": "78571fa7c7e61e2e58c6d09b8d17bfc42ff54c304e57c9410bc53810aa97352c"
+    },
+    "hepta/clang_capture.py": {
+      "bytes": 6897,
+      "path": "/workspace/scratch/4bc91e0ee48c/hepta-vla-original-type/hepta/clang_capture.py",
+      "sha256": "72b5f786ad949e0274e6c6543794d12280bf31c3269479ccc3d78427e9507d07"
+    }
+  },
+  "source_files_equal_reviewed_commit": true,
+  "source_or_remote_changes": false,
+  "status": "completed_no_confirmed_blocker_in_reviewed_scope",
+  "tracked_worktree_dirty": false
+}

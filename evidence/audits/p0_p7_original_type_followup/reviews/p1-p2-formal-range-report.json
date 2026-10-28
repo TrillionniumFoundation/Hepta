@@ -1,0 +1,137 @@
+{
+  "all_eight_matching": true,
+  "all_three_negatives_rejected": true,
+  "core_sha256": "4af6ad5ab77340f73d17b9f49e4735fb870283ad530219db605e28525e6f4db7",
+  "initial_harness_error": {
+    "cause": "Audit harness attempted JSON decoding of empty stdout after expected Rust static rejection; error is textual stderr with exit 1.",
+    "exception": "json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)",
+    "new_compilation": false,
+    "original_runner": "/tmp/hepta-p1-p2-formal-range-audit-20261028.py",
+    "production_failure": false,
+    "stage": "after 8 valid-input VM pairs and first static negative"
+  },
+  "limitations": [
+    "No new native LLVM execution.",
+    "No exhaustive correctness or safety claim."
+  ],
+  "native_compilations": 0,
+  "negatives": [
+    {
+      "name": "exclusive_alias",
+      "python": {
+        "accepted": false,
+        "code": "E_HIA_LOAN",
+        "error": "E_HIA_LOAN: aliased exclusive call arguments"
+      },
+      "rust_returncode": 1,
+      "rust_stderr": "E_HIA_LOAN: exclusive call view aliases another view\n",
+      "rust_stdout_empty": true
+    },
+    {
+      "name": "missing_parent",
+      "python": {
+        "accepted": false,
+        "code": "E_HIA_LOAN",
+        "error": "E_HIA_LOAN: loan must travel with its owner/parent capability"
+      },
+      "rust_returncode": 1,
+      "rust_stderr": "E_HIA_LOAN: borrow root not forwarded\n",
+      "rust_stdout_empty": true
+    },
+    {
+      "name": "readonly_upgrade",
+      "python": {
+        "accepted": false,
+        "code": "E_HIA_LOAN",
+        "error": "E_HIA_LOAN: invalid borrow permission"
+      },
+      "rust_returncode": 1,
+      "rust_stderr": "E_HIA_LOAN: borrow type mismatch\n",
+      "rust_stdout_empty": true
+    }
+  ],
+  "new_rust_invocations": 11,
+  "results": [
+    {
+      "actual": 0,
+      "expected": 0,
+      "expected_matches": true,
+      "number": 0,
+      "rust_returncode": 0,
+      "rust_stderr_empty": true,
+      "same": true
+    },
+    {
+      "actual": 37,
+      "expected": 37,
+      "expected_matches": true,
+      "number": 1,
+      "rust_returncode": 0,
+      "rust_stderr_empty": true,
+      "same": true
+    },
+    {
+      "actual": 37,
+      "expected": 37,
+      "expected_matches": true,
+      "number": 2,
+      "rust_returncode": 0,
+      "rust_stderr_empty": true,
+      "same": true
+    },
+    {
+      "actual": 37,
+      "expected": 37,
+      "expected_matches": true,
+      "number": 3,
+      "rust_returncode": 0,
+      "rust_stderr_empty": true,
+      "same": true
+    },
+    {
+      "actual": 0,
+      "expected": 0,
+      "expected_matches": true,
+      "number": 4,
+      "rust_returncode": 0,
+      "rust_stderr_empty": true,
+      "same": true
+    },
+    {
+      "actual": "bounds",
+      "expected": "bounds",
+      "expected_matches": true,
+      "number": 5,
+      "rust_returncode": 0,
+      "rust_stderr_empty": true,
+      "same": true
+    },
+    {
+      "actual": "bounds",
+      "expected": "bounds",
+      "expected_matches": true,
+      "number": 6,
+      "rust_returncode": 0,
+      "rust_stderr_empty": true,
+      "same": true
+    },
+    {
+      "actual": "bounds",
+      "expected": "bounds",
+      "expected_matches": true,
+      "number": 7,
+      "rust_returncode": 0,
+      "rust_stderr_empty": true,
+      "same": true
+    }
+  ],
+  "runners_sha256": {
+    "/tmp/hepta-p1-p2-formal-range-audit-20261028.py": "dc04013e9aae5b417d1758a2c4c6d5cdd77fa40e72cfdb2432b18a5ef2b287ea",
+    "/tmp/hepta-p1-p2-formal-range-audit-finish-20261028.py": "b7d0a1fada52fec21aa2afe11183d1c7875a56c59a6881d83cd8f1c600b0b4ce"
+  },
+  "schema": "hepta.audit.formal-range.v1",
+  "scope": "Eight v6 nested aliased-readonly formal / mutable reborrow / CFG offset-copy cases; three static safety negatives; existing independent Rust VM and Python runtime only.",
+  "source_and_tool_stable": true,
+  "source_modified": false,
+  "test_suite_executions": 0
+}

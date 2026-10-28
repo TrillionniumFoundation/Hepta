@@ -1,5 +1,7 @@
 # HIA follow-up: ABI admission, edit presentation and qualification CLI
 
+> **Execution status update:** The frozen `91225c023b3d61bd8b87bfbd16ac5990c3fb0a62` follow-up subsequently executed **47 distinct regression methods**, with zero failures, errors or skips, including real ABI and C/C++ migration controls. The earlier 108762ba terminal result was also recovered (18/19 gates; 2,424 tests). The original no-execution checkpoint below is retained as historical text. See the [subsequent source-bound review and results](../p0_p7_original_type_followup/README.md) for exact identities, logs, corrections and later VLA/Rust execution work; none of those results is substituted for another commit.
+
 ## Validation identity and status
 
 These changes are based on **3e2c4f73816f200409db74962420986804ef0ba6**.

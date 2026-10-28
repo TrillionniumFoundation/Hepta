@@ -31,6 +31,9 @@ jobs:
     timeout-minutes: 180
     env:
       HEPTA_QUALIFICATION_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      CARGO_HOME: ${{ runner.temp }}/hepta-cargo-home
+      CARGO_TARGET_DIR: ${{ runner.temp }}/hepta-cargo-target
+      RUSTC: ${{ github.workspace }}/../toolchains/rust-1.90.0/bin/rustc
     steps:
       - name: Checkout frozen source snapshot
         uses: actions/checkout@v4
@@ -78,7 +81,16 @@ jobs:
           printf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"
           /usr/lib/llvm-20/bin/clang --version
       - name: Install SHA-256-locked Rust 1.90.0 toolchain and cross stdlibs
-        run: python tools/bootstrap_toolchain.py
+        shell: bash
+        run: |
+          python tools/bootstrap_toolchain.py
+          printf '%s\n' "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/bin" >> "$GITHUB_PATH"
+          "$RUSTC" --version
+          "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/bin/cargo" --version
+          # Populate the locked registry cache before the offline Rust tests.
+          # Both Cargo cache and build outputs stay outside the frozen source.
+          "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/bin/cargo" fetch --locked \
+            --manifest-path rust/hia-core-shadow/Cargo.toml
       - name: Install SHA-256-locked Lean and QEMU tools
         run: python tools/bootstrap_verification.py
       - name: Run all current native and experiment qualification gates
