@@ -117,7 +117,10 @@ class RustOwnedMemoryParity(unittest.TestCase):
         raw = value.encode() if isinstance(value, str) else json.dumps(
             value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
         key = hashlib.sha256(raw).hexdigest()
-        type(self).inputs[key] = {"kind": kind, "name": name, "utf8": raw.decode()}
+        # A raw-format rejection can reuse an input already normalized by
+        # admit(). Keep that verified Core link while recording this use.
+        item = type(self).inputs.setdefault(key, {})
+        item.update({"kind": kind, "name": name, "utf8": raw.decode()})
         return key
 
     def admit(self, value, name="fixture"):
@@ -427,8 +430,15 @@ class RustOwnedMemoryParity(unittest.TestCase):
 
     def test_raw_nominal_and_unmodeled_source_do_not_silently_fall_back(self):
         nominal = task_program()
+        # Exercise the repeated-input path in isolation, without depending on
+        # the earlier nominal parity test to have populated the collector.
+        core = self.admit(nominal, "nominal-boundary-positive")
         key = self.remember(nominal, "raw-nominal-boundary", "nominal-boundary-negative")
-        verify_program(nominal)
+        retained = type(self).inputs[key]
+        self.assertEqual(retained.get("program_sha256"), core.sha256)
+        self.assertEqual(retained.get("normalization"), core.normalization_report)
+        self.assertEqual(retained["kind"], "nominal-boundary-negative")
+        self.assertEqual(retained["name"], "raw-nominal-boundary")
         raw = self.raw_run(json.dumps(nominal).encode(), "task_case", [0])
         type(self).admissions.append({"input_sha256": key, "rust_attempts": [raw],
                                       "rejected": raw["returncode"] != 0})

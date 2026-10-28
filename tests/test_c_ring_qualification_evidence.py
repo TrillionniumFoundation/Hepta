@@ -2,17 +2,19 @@
 from __future__ import annotations
 
 import contextlib
+import copy
 import io
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
 from unittest.mock import patch
 
-from tools.qualify_c_ring_buffer import main, qualify
+from tools.qualify_c_ring_buffer import QualificationEvidence, main, qualify
 
 
 class CRingQualificationEvidenceTests(unittest.TestCase):
@@ -144,6 +146,67 @@ class CRingQualificationEvidenceTests(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["returncode"], 0)
         self.assertEqual(rows[0]["stdout"]["representation"], "decoded_text_utf8")
+
+    def test_command_summary_preserves_measured_duration_for_release_consumer(self):
+        from tools.release_check import _command_completed
+
+        path = self.root / "process-summary.json"
+        with path.open("x") as stream:
+            evidence = QualificationEvidence(path, stream)
+            evidence.retained.mkdir()
+            for code in (0, 17):
+                summary = evidence.command(
+                    [sys.executable, "-c", f"import sys; print('observed'); sys.exit({code})"],
+                    role=f"test.exit_{code}", require_success=False)
+                rows = [json.loads(line) for line in (evidence.retained / "processes.jsonl").read_text().splitlines()]
+                measured = rows[summary["process_index"]]
+                with self.subTest(returncode=code):
+                    self.assertIs(type(summary["seconds"]), float)
+                    self.assertGreaterEqual(summary["seconds"], 0)
+                    self.assertEqual(summary["seconds"], measured["elapsed_seconds"])
+                    self.assertEqual(summary["exit_code"], measured["returncode"])
+                    self.assertEqual(_command_completed(summary), code == 0)
+
+
+@unittest.skipUnless(all(shutil.which(tool) for tool in ("clang", "rustc", "gcc")),
+                     "Clang, Rust and GCC required for the real ring release contract")
+class CRingReleaseContractTests(unittest.TestCase):
+    def test_actual_native_producer_satisfies_collector_and_failed_builds_stay_rejected(self):
+        from tools.release_check import require_collected_qualification
+
+        # This is the actual default producer/consumer boundary, including all
+        # 2048 state steps per capacity and 100000 iterations per timing sample.
+        # An optional external directory keeps this test's native evidence;
+        # otherwise the ordinary isolated test workspace is removed afterwards.
+        with contextlib.ExitStack() as stack:
+            retained = os.environ.get("HEPTA_C_RING_RELEASE_EVIDENCE_DIRECTORY")
+            if retained:
+                work = Path(retained).resolve()
+                work.mkdir(parents=True, exist_ok=False)
+            else:
+                work = Path(stack.enter_context(tempfile.TemporaryDirectory(prefix="hepta-ring-release-contract-")))
+            path = work / "qualification.json"
+            report = qualify(clang=shutil.which("clang"), rustc=shutil.which("rustc"), output=path)
+            self.assertEqual(report, json.loads(path.read_text()))
+            require_collected_qualification("stateful_c_module", report)
+            self.assertEqual(report["execution"]["state_transitions"], 16384)
+            process_path = path.parent / report["evidence"]["processes"]["path"]
+            processes = [json.loads(line) for line in process_path.read_text().splitlines()]
+            for build in (report["original_build"], report["performance"]["build"]):
+                self.assertEqual(build["seconds"], processes[build["process_index"]]["elapsed_seconds"])
+            changes = {
+                "missing_inventory": lambda r: r["migration"].update(declarations=[]),
+                "failed_original_build": lambda r: r["original_build"].update(exit_code=1),
+                "failed_translated_build": lambda r: r["migration"]["native_build"].update(ok=False),
+                "failed_timing_build": lambda r: r["performance"]["build"].update(exit_code=1),
+                "missing_original_duration": lambda r: r["original_build"].pop("seconds"),
+                "missing_timing_duration": lambda r: r["performance"]["build"].pop("seconds"),
+            }
+            for label, mutate in changes.items():
+                changed = copy.deepcopy(report)
+                mutate(changed)
+                with self.subTest(case=label), self.assertRaises(ValueError):
+                    require_collected_qualification("stateful_c_module", changed)
 
 
 if __name__ == "__main__":

@@ -428,6 +428,7 @@ class QualificationEvidence:
         self.started = time.perf_counter()
         self.previous = self.sample()
         self.process_count = 0
+        self._process_elapsed_seconds = {}
         self.transition_count = 0
         self.native_observation_count = 0
 
@@ -521,6 +522,7 @@ class QualificationEvidence:
             stdout, stderr, failure = b"", str(error).encode("utf-8", errors="replace"), error
             row["status"] = "interrupted" if isinstance(error, KeyboardInterrupt) else "spawn_failed"
         row["elapsed_seconds"] = time.perf_counter() - tick
+        self._process_elapsed_seconds[index] = row["elapsed_seconds"]
         row["timeout_seconds"] = kwargs.get("timeout")
         for name, value in (("stdout", stdout), ("stderr", stderr)):
             # compile_rust requests text=True; retain its original decoded
@@ -549,6 +551,7 @@ class QualificationEvidence:
                                      capture_output=True, timeout=timeout, cwd=cwd)
         return {"argv": list(argv), "cwd": str(Path(cwd or Path.cwd()).resolve()),
                 "exit_code": result.returncode, "process_index": index,
+                "seconds": self._process_elapsed_seconds[index],
                 "stdout": result.stdout.decode("utf-8"), "stderr": result.stderr.decode("utf-8")}
 
     @contextmanager
