@@ -7,7 +7,8 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from hepta.c_migrate import migrate_c_project
+from hepta.c_migrate import MigrationRejected, migrate_c_project
+from hepta.c_contracts import load_contracts
 
 
 def main() -> int:
@@ -19,7 +20,13 @@ def main() -> int:
     parser.add_argument("--rustc")
     parser.add_argument("--verify-native", action="store_true")
     args = parser.parse_args()
-    contracts = json.loads(args.contracts.read_text()) if args.contracts else None
+    try:
+        contracts = load_contracts(args.contracts) if args.contracts else None
+    except MigrationRejected as exc:
+        print(json.dumps({"ok": False, "status": "rejected",
+                          "diagnostics": [{"code": exc.code, "message": str(exc)}]},
+                         indent=2, sort_keys=True))
+        return 1
     result = migrate_c_project(args.database, args.output, contracts=contracts, clang=args.clang,
                                rustc=args.rustc, verify_native=args.verify_native)
     print(json.dumps(result, indent=2, sort_keys=True))

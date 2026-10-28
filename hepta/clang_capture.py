@@ -10,6 +10,8 @@ sessions and filesystem side effects are outside this control mechanism.
 """
 from __future__ import annotations
 
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 import math
 import os
@@ -49,6 +51,57 @@ class CaptureFailure:
     stderr: bytes
     stdout_total_bytes: int
     stderr_total_bytes: int
+
+
+@dataclass
+class CaptureDeadline:
+    """One synchronous, context-local deadline; elapsed time is not preemption."""
+
+    seconds: int | float | None
+    expires_at: float | None
+    expired: bool = False
+
+
+_DEADLINES: ContextVar[tuple[CaptureDeadline, ...]] = ContextVar(
+    "hepta_capture_deadlines", default=())
+
+
+def _refresh_deadlines() -> bool:
+    deadlines = _DEADLINES.get()
+    if not deadlines:
+        return False
+    now = time.monotonic()
+    for deadline in deadlines:
+        if deadline.expires_at is not None and now >= deadline.expires_at:
+            deadline.expired = True
+    return any(deadline.expired for deadline in deadlines)
+
+
+def check_capture_deadline() -> None:
+    """Check at a tool poll or explicit phase boundary, never asynchronously."""
+    if _refresh_deadlines():
+        raise CaptureRejected("E_CAPTURE_TOTAL_DEADLINE", "Cooperative capture deadline expired")
+
+
+@contextmanager
+def scoped_capture_deadline(seconds: int | float | None):
+    """Apply a deadline to tools in this execution context and restore on exit.
+
+    None adds no limit; an enclosing deadline still applies. Nested scopes
+    cannot extend their parent's budget. No signal handler or timer interrupts
+    Python, process creation, or cleanup. A scope exit records expiry even when
+    no tool poll or phase check ran, so callers can reject a late result.
+    """
+    if seconds is not None and (type(seconds) not in (int, float)
+            or not math.isfinite(seconds) or not 0 < seconds <= 3600):
+        raise ValueError("capture deadline must be None or finite seconds in (0,3600]")
+    deadline = CaptureDeadline(seconds, None if seconds is None else time.monotonic() + seconds)
+    token = _DEADLINES.set((*_DEADLINES.get(), deadline))
+    try:
+        yield deadline
+    finally:
+        _refresh_deadlines()
+        _DEADLINES.reset(token)
 
 
 def _terminate(proc: subprocess.Popen[bytes]) -> None:
@@ -113,24 +166,28 @@ def run_bounded(
           tempfile.TemporaryFile() as error_file):
         input_file.write(payload)
         input_file.seek(0)
-        try:
-            proc = subprocess.Popen(
-                argv, cwd=cwd, stdin=input_file, stdout=output_file,
-                stderr=error_file, shell=False,
-                start_new_session=(os.name == "posix"),
-            )
-        except OSError as exc:
-            raise CaptureRejected("E_CAPTURE_EXEC", "Compiler launch failed: " + str(exc)) from exc
-        deadline = time.monotonic() + timeout
+        proc = None
         failure = None
         try:
+            check_capture_deadline()
+            try:
+                proc = subprocess.Popen(
+                    argv, cwd=cwd, stdin=input_file, stdout=output_file,
+                    stderr=error_file, shell=False,
+                    start_new_session=(os.name == "posix"),
+                )
+            except OSError as exc:
+                raise CaptureRejected("E_CAPTURE_EXEC", "Compiler launch failed: " + str(exc)) from exc
+            deadline = time.monotonic() + timeout
             while proc.poll() is None:
+                check_capture_deadline()
                 if (os.fstat(output_file.fileno()).st_size > stdout_limit
                         or os.fstat(error_file.fileno()).st_size > stderr_limit):
                     raise CaptureRejected("E_CAPTURE_OUTPUT_SIZE", "Compiler exceeded stdout/stderr byte budget")
                 if time.monotonic() >= deadline:
                     raise CaptureRejected("E_CAPTURE_TIMEOUT", "Compiler exceeded wall-time budget")
                 time.sleep(min(.01, max(.001, deadline - time.monotonic())))
+            check_capture_deadline()
             # Parent exit does not mean descendants have exited: kill its group.
             _terminate(proc)
             stdout_size = os.fstat(output_file.fileno()).st_size
@@ -139,16 +196,19 @@ def run_bounded(
                 raise CaptureRejected("E_CAPTURE_OUTPUT_SIZE", "Compiler output exceeded byte budget")
             output_file.seek(0)
             error_file.seek(0)
-            return CaptureResult(
+            result = CaptureResult(
                 proc.returncode, _decode(output_file.read(), "stdout"),
                 _decode(error_file.read(), "stderr"),
             )
+            check_capture_deadline()
+            return result
         except CaptureRejected as error:
             failure = error
             raise
         finally:
-            _terminate(proc)
-            if failure is not None:
+            if proc is not None:
+                _terminate(proc)
+            if failure is not None and proc is not None:
                 try:
                     stdout_size = os.fstat(output_file.fileno()).st_size
                     stderr_size = os.fstat(error_file.fileno()).st_size

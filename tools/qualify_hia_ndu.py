@@ -7,6 +7,7 @@ projection assumes the declared call horizon and exactly the supplied corpus.
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -17,12 +18,34 @@ ROOT = Path(__file__).resolve().parents[1]
 if __package__ in {None, ""}:
     sys.path.insert(0, str(ROOT))
 
-from hepta.hia_ndu import (DECISION_RESERVE_NS, UPSTREAM_COMMIT, assess_samples,
+from hepta.hia_ndu import (DECISION_RESERVE_NS, PASS_ID, REGISTERED_PASSES, UPSTREAM_COMMIT, assess_samples,
                           identity, invoke_ndu, make_plan, observe_semantics,
                           prepare_candidate, read_json)
 from hepta.hia_program import verify_program
 from hepta.hia_program_tools import read_bounded
+from hepta.clang_capture import check_capture_deadline, scoped_capture_deadline
 from tools.hia_ndu_measure import measure_pair
+
+
+@contextmanager
+def cooperative_deadline(seconds):
+    """Let bounded subprocess owners clean up and retain captures on expiry.
+
+    Only explicit tool polls and phase boundaries check elapsed time. Python
+    execution is not preempted; no signal can interrupt process creation or
+    cleanup. A completed but late result is rejected by the CLI after this scope.
+    """
+    if seconds is not None and (type(seconds) is not int or not 1 <= seconds <= 120):
+        raise ValueError("cooperative deadline requires None or an integer in 1..120 seconds")
+    state = {"seconds": seconds, "expired": False, "hard_kill_deadline": False,
+             "enforcement": "tool_poll_and_phase_boundary", "asynchronous_signal": False}
+    deadline = None
+    try:
+        with scoped_capture_deadline(seconds) as deadline:
+            yield state
+    finally:
+        if deadline is not None:
+            state["expired"] = deadline.expired
 
 
 def _cases(value, *, allow_empty=False):
@@ -43,7 +66,7 @@ def qualify(program, plan, cases, *, negative_cases=(), bridge,
     report = {"schema": "hepta.hia.ndu-qualification.v1", "ok": False,
               "status": "no_change", "decision": "no_change", "activated": False,
               "upstream_commit": UPSTREAM_COMMIT,
-              "scope": "primitive v1-v6 byte-swap candidate; fixed native microbenchmark corpus",
+              "scope": "primitive v1-v6 registered candidate; fixed native microbenchmark corpus",
               "budget_enforcement": {"search_cost": "measured admission ceiling; not a preemptive whole-call deadline",
                                      "native_processes": "individually bounded by the measurement instrument",
                                      "decision_reserve_ns": DECISION_RESERVE_NS},
@@ -53,6 +76,7 @@ def qualify(program, plan, cases, *, negative_cases=(), bridge,
                          "native_hot_swap_performed": False, "p0_p7_fully_closed": False},
               "diagnostics": [], "costs": {}}
     try:
+        check_capture_deadline()
         prepared = prepare_candidate(program, plan)
         plan = prepared.plan
         cases, negative_cases = _cases(cases), _cases(negative_cases, allow_empty=True)
@@ -62,9 +86,11 @@ def qualify(program, plan, cases, *, negative_cases=(), bridge,
                                "candidate_sha256": prepared.candidate.sha256,
                                "replacements": prepared.replacements,
                                "canonical_core": prepared.candidate.canonical_json,
-                               "relation": "exact_reproduced_byte_swap"}
+                               "relation": "exact_reproduced_" + prepared.candidate_id}
+        check_capture_deadline()
         observations = observe_semantics(prepared, cases, negative_cases=negative_cases)
         report["semantic_validation"] = observations
+        check_capture_deadline()
         if not observations["ok"]:
             raise ValueError("finite semantic observation mismatch; no native candidate selected")
         if perf_counter_ns() - started + DECISION_RESERVE_NS > plan["objective"]["maximum_search_ns"]:
@@ -72,12 +98,15 @@ def qualify(program, plan, cases, *, negative_cases=(), bridge,
         measurement = measure_pair(prepared.baseline, prepared.candidate, plan["entry"], cases,
                                    clang=clang, samples=samples, iterations=iterations)
         report["measurement"] = measurement
+        check_capture_deadline()
         if not measurement["ok"]:
             raise ValueError("native measurement failed; all available observations retained")
         cost = perf_counter_ns() - started
         assessment = assess_samples(measurement["raw_samples"],
             calls_per_sample=measurement["counts"]["calls_per_sample"],
-            objective=plan["objective"], search_cost_ns=cost)
+            objective=plan["objective"], search_cost_ns=cost,
+            baseline_artifact_sha256=measurement["native"]["baseline"]["artifact_sha256"],
+            candidate_artifact_sha256=measurement["native"]["candidate"]["artifact_sha256"])
         if prepared.replacements == 0 or prepared.candidate.sha256 == prepared.baseline.sha256:
             assessment["eligible"] = False
             assessment["reasons"].append("no_registered_rewrite")
@@ -89,7 +118,7 @@ def qualify(program, plan, cases, *, negative_cases=(), bridge,
         report["evidence_bindings"] = evidence
         candidates = []
         for role, candidate_id, core in (("baseline", "abstain", prepared.baseline),
-                                        ("candidate", "byte_swap", prepared.candidate)):
+                                        ("candidate", prepared.candidate_id, prepared.candidate)):
             artifact = measurement["native"][role]
             if artifact["core_sha256"] != core.sha256:
                 raise ValueError("compiled artifact identity differs from the validated Core")
@@ -108,15 +137,17 @@ def qualify(program, plan, cases, *, negative_cases=(), bridge,
                    "candidates": candidates}
         # This reservation includes request/binding serialization, executable
         # identity checks and subprocess work, not just the evaluator's CPU.
+        check_capture_deadline()
         receipt = invoke_ndu(request, bridge=bridge, expected_binary_sha256=expected_bridge_sha256)
         selection_wall_ns = perf_counter_ns() - started - cost
         report["ndu"] = receipt
         report["claims"]["real_ndu_evaluator_executed"] = True
         report["costs"]["selection_wall_ns"] = selection_wall_ns
         report["costs"]["search_before_decision_ns"] = cost
+        check_capture_deadline()
         if selection_wall_ns > DECISION_RESERVE_NS:
             report["diagnostics"].append({"code": "decision_cost_exceeded_reserve"})
-        elif (receipt["response"]["advisory_recommendation"] == "byte_swap"
+        elif (receipt["response"]["advisory_recommendation"] == prepared.candidate_id
               and assessment["eligible"]):
             report["decision"] = "candidate_advised"
         report["ok"] = True
@@ -125,7 +156,8 @@ def qualify(program, plan, cases, *, negative_cases=(), bridge,
                             if report["decision"] == "candidate_advised" else
                             "baseline retained; measured gain, cost, resource limits or NDU frontier did not justify selection")
     except Exception as error:
-        report["diagnostics"].append({"type": type(error).__name__, "message": str(error)})
+        report["diagnostics"].append({"type": type(error).__name__,
+                                      "code": getattr(error, "code", None), "message": str(error)})
         report["status"] = "failed_closed_no_change"
     finally:
         report["costs"]["total_paid_wall_ns"] = perf_counter_ns() - started
@@ -138,18 +170,21 @@ def main():
     parser.add_argument("--cases", required=True, type=Path)
     parser.add_argument("--negative-cases", type=Path)
     parser.add_argument("--entry", required=True)
+    parser.add_argument("--pass-id", choices=REGISTERED_PASSES, default=PASS_ID)
     parser.add_argument("--bridge", required=True, type=Path)
     parser.add_argument("--bridge-sha256", required=True)
     parser.add_argument("--clang", default="clang")
     parser.add_argument("--samples", type=int, default=31)
     parser.add_argument("--iterations", type=int, default=10_000)
     parser.add_argument("--horizon-calls", type=int, default=100_000_000)
+    parser.add_argument("--deadline-seconds", type=int, choices=range(1, 121),
+                        help="optional cooperative deadline checked at tool polls and phase boundaries")
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
     # All source and case files are read before opening an exclusive new report.
     program_bytes = read_bounded(args.program)
     program = verify_program(program_bytes)
-    plan = make_plan(program, entry=args.entry, horizon_calls=args.horizon_calls)
+    plan = make_plan(program, entry=args.entry, horizon_calls=args.horizon_calls, pass_id=args.pass_id)
     cases = read_json(read_bounded(args.cases, limit=1_048_576))
     negative = read_json(read_bounded(args.negative_cases, limit=1_048_576)) if args.negative_cases else []
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -163,9 +198,15 @@ def main():
         stream.write("\n")
         stream.flush()
         try:
-            report = qualify(program, plan, cases, negative_cases=negative,
-                             bridge=args.bridge, expected_bridge_sha256=args.bridge_sha256,
-                             clang=args.clang, samples=args.samples, iterations=args.iterations)
+            with cooperative_deadline(args.deadline_seconds) as deadline:
+                report = qualify(program, plan, cases, negative_cases=negative,
+                                 bridge=args.bridge, expected_bridge_sha256=args.bridge_sha256,
+                                 clang=args.clang, samples=args.samples, iterations=args.iterations)
+            report["cooperative_deadline"] = deadline
+            if deadline["expired"]:
+                report.update(ok=False, status="failed_closed_no_change", decision="no_change", activated=False)
+                report["diagnostics"].append({"code": "E_CAPTURE_TOTAL_DEADLINE",
+                                              "message": "Cooperative qualification deadline expired"})
             report["input_files"] = {"program_sha256": sha256(program_bytes).hexdigest(),
                                      "cases_sha256": identity(cases), "negative_cases_sha256": identity(negative)}
         except BaseException as error:

@@ -176,6 +176,40 @@ Explicitly initialized locals can sequence such calls. All generated functions
 use a conservative effect upper bound; an allocating project includes `alloc`
 and `block` in that bound. This is not a minimal-effect inference engine.
 
+## Unambiguous, bounded resource-contract intake
+
+Both `python -m hepta migrate-c-project` and `tools/migrate_c_project.py` use
+`hepta.c_contracts.load_contracts`. Files must be ordinary, non-symlink inputs,
+at most 1 MiB. The existing JSON syntax preflight checks duplicate decoded keys,
+node count and nesting **before** the value graph is materialized. The limits
+are 32,768 value nodes, depth 32, and 4,096 UTF-8 bytes per decoded string.
+Nonfinite/fractional numbers and malformed Unicode are rejected. Integer intake
+is bounded to 64 magnitude bits; the existing field rules still restrict fixed
+slice lengths to exactly 1 and record-extent additions to 0 or 1.
+
+In particular, an object containing both `"access":"read"` and
+`"access":"mut"` is rejected; the last member cannot silently replace the
+first obligation. Escaped spellings of the same key are duplicates too. The
+same rule applies to `schema`, function maps, lengths and all nested fields.
+Unknown fields are preserved for schema validation and rejected, never removed
+to make a contract acceptable.
+
+At the Python API, only `contracts=None` selects the documented empty scalar
+contract. Explicit `{}` and textual `null` are invalid. All supplied values must
+be exact built-in JSON types, without custom mapping or scalar subclasses.
+Before compiler work, the API validates each encountered value while constructing
+an independent graph; subsequent lowering and serialization use only that graph.
+Concurrent mutation by a caller does not have an atomic point-in-time snapshot
+guarantee, but unchecked custom objects cannot enter later serialization through
+a second traversal of the caller's graph.
+
+The migration receipt includes `contract_input_origin` and `contract_identity`,
+binding the schema, canonical UTF-8 sorted compact JSON SHA-256, canonical byte
+count and intake limits. Whitespace and key ordering do not change this semantic
+identity. This digest binds declared obligations; it does not prove that the
+original C caller satisfies them. Qualification retains raw authored contract
+bytes and a separate raw digest when source-text identity is needed.
+
 ## Pointer contracts and the C ABI boundary
 
 For the frozen example:

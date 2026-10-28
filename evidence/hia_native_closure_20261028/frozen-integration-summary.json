@@ -1,0 +1,322 @@
+{
+  "complete_repository_suite_executed": false,
+  "environment": {
+    "CARGO_HOME": "/workspace/scratch/7e691a7ff65f/toolchains/cargo",
+    "CARGO_NET_OFFLINE": "true",
+    "CARGO_TARGET_DIR": "/workspace/scratch/7e691a7ff65f/hepta/rust/hia-core-shadow/target",
+    "CC": "/usr/bin/gcc",
+    "CLANG": "/usr/lib/llvm-20/bin/clang",
+    "CXX": "/usr/bin/g++",
+    "HEPTA_LLD": "/usr/lib/llvm-20/bin/ld.lld",
+    "HEPTA_LLVM_READOBJ": "/usr/lib/llvm-20/bin/llvm-readobj",
+    "HEPTA_QEMU_AARCH64": "/usr/bin/qemu-aarch64-static",
+    "HEPTA_QEMU_RISCV64": "/usr/bin/qemu-riscv64-static",
+    "LEAN": "/workspace/scratch/7e691a7ff65f/toolchains/lean-4.19.0/bin/lean",
+    "PATH": "/workspace/scratch/7e691a7ff65f/p7-suite-bin:/workspace/scratch/7e691a7ff65f/toolchains/rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin:/usr/lib/llvm-20/bin:/root/.codex/tmp/arg0/codex-arg0XUHZFx:/opt/codex/codex-path:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/override:/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/fallback",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONPATH": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages",
+    "RUSTC": "/workspace/scratch/7e691a7ff65f/toolchains/rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/rustc",
+    "RUSTUP_HOME": "/workspace/scratch/7e691a7ff65f/toolchains/rustup"
+  },
+  "finished_utc": "2026-10-28T00:27:10.718250+00:00",
+  "full_35_gate_qualification_executed": false,
+  "gates": [
+    {
+      "argv": [
+        "/workspace/scratch/7e691a7ff65f/p7-suite-bin/cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "rust/hia-core-shadow/Cargo.toml"
+      ],
+      "cwd": "/workspace/scratch/7e691a7ff65f/hepta",
+      "finished_utc": "2026-10-28T00:20:02.651350+00:00",
+      "name": "cargo",
+      "outcome": {
+        "failures": 0,
+        "filtered_out": 0,
+        "measured": 0,
+        "passed": true,
+        "skipped": 0,
+        "test_binaries": 10,
+        "tests_run": 54
+      },
+      "returncode": 0,
+      "started_utc": "2026-10-28T00:20:01.975106+00:00",
+      "stderr": {
+        "bytes": 1629,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-next-frozen/cargo.stderr.log",
+        "sha256": "a1cd1668ad4e2c9865a260660a01e534452c6d18364bff9422f83a948231a251"
+      },
+      "stdout": {
+        "bytes": 4622,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-next-frozen/cargo.stdout.log",
+        "sha256": "bd7f981d02a72c27b0a6925afa4872f9d3ed64ffc2e956b5057330720167f449"
+      },
+      "timeout_scope": "each underlying tool keeps its own bounded capture; outer coordinator does not kill child owners first",
+      "wall_ns": 676270636
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "unittest",
+        "tests.test_hia_fill_loop_opt",
+        "tests.test_hia_ndu",
+        "tests.test_hia_ndu_measure",
+        "tests.test_hia_ndu_builder",
+        "tests.test_hia_swap_opt",
+        "tests.test_hia_swap_schema_retain",
+        "tests.test_hia_swap_v4",
+        "tests.test_hia_json_preflight",
+        "tests.test_hia_schema_unification",
+        "tests.test_hia_schema_collision",
+        "tests.test_hia_schema_binding_audit",
+        "tests.test_hia_unified_qualification",
+        "tests.test_clang_capture",
+        "tests.test_clang_capture_integration",
+        "tests.test_hia_version_dispatch",
+        "tests.test_hia_native_version_dispatch",
+        "-v"
+      ],
+      "cwd": "/workspace/scratch/7e691a7ff65f/hepta",
+      "finished_utc": "2026-10-28T00:20:28.247489+00:00",
+      "name": "core_and_ndu",
+      "outcome": {
+        "errors": 0,
+        "failures": 0,
+        "passed": true,
+        "runner_seconds": 25.202,
+        "skipped": 0,
+        "tests_run": 149
+      },
+      "returncode": 0,
+      "started_utc": "2026-10-28T00:20:02.654066+00:00",
+      "stderr": {
+        "bytes": 25760,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-next-frozen/core_and_ndu.stderr.log",
+        "sha256": "10a0b426a70134fb75eeb5469ceb65d9ae3f69ba14fd54ff3ca35a3d0b081992"
+      },
+      "stdout": {
+        "bytes": 171,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-next-frozen/core_and_ndu.stdout.log",
+        "sha256": "68a9d18d5c0aebbcdf3c55bf3db52cc22cda2175e61b64c7937aadce8a02d303"
+      },
+      "timeout_scope": "each underlying tool keeps its own bounded capture; outer coordinator does not kill child owners first",
+      "wall_ns": 25593424418
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "unittest",
+        "tests.test_hia_rust_shadow",
+        "tests.test_hia_rust_owned_shadow",
+        "tests.test_hia_rust_calls_shadow",
+        "tests.test_hia_rust_chain_shadow",
+        "tests.test_hia_rust_scalar_vm",
+        "tests.test_hia_rust_crosscheck",
+        "tests.test_hia_rust_crosscheck_cli",
+        "tests.test_hia_rust_owned_vm",
+        "tests.test_hia_rust_owned_cfg",
+        "tests.test_hia_rust_owned_bulk",
+        "-v"
+      ],
+      "cwd": "/workspace/scratch/7e691a7ff65f/hepta",
+      "finished_utc": "2026-10-28T00:21:34.687288+00:00",
+      "name": "independent_rust",
+      "outcome": {
+        "errors": 0,
+        "failures": 0,
+        "passed": true,
+        "runner_seconds": 66.187,
+        "skipped": 0,
+        "tests_run": 68
+      },
+      "returncode": 0,
+      "started_utc": "2026-10-28T00:20:28.257054+00:00",
+      "stderr": {
+        "bytes": 11710,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-next-frozen/independent_rust.stderr.log",
+        "sha256": "232a3b7eca295809ca9ea79f1c0c5bc16282e0d40c098e114222e6864f1bdd7c"
+      },
+      "stdout": {
+        "bytes": 228,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-next-frozen/independent_rust.stdout.log",
+        "sha256": "44553dd25cc498380f1c66a7ac4109815c79605cd7da63cb9f063d0920c6dd47"
+      },
+      "timeout_scope": "each underlying tool keeps its own bounded capture; outer coordinator does not kill child owners first",
+      "wall_ns": 66430232457
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "unittest",
+        "tests.test_c_contracts",
+        "tests.test_c_ring_qualification_evidence",
+        "tests.test_c_record_views",
+        "tests.test_c_project",
+        "tests.test_c_project_matrix",
+        "tests.test_c_project_semantic_flags",
+        "tests.test_c_project_source_arguments",
+        "-v"
+      ],
+      "cwd": "/workspace/scratch/7e691a7ff65f/hepta",
+      "finished_utc": "2026-10-28T00:26:49.156308+00:00",
+      "name": "migration",
+      "outcome": {
+        "errors": 0,
+        "failures": 0,
+        "passed": true,
+        "runner_seconds": 313.762,
+        "skipped": 0,
+        "tests_run": 93
+      },
+      "returncode": 0,
+      "started_utc": "2026-10-28T00:21:34.689928+00:00",
+      "stderr": {
+        "bytes": 16920,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-next-frozen/migration.stderr.log",
+        "sha256": "0a7415c4696d3cd202212007696609993afe0941915c6b14ff2a65e053e4e33c"
+      },
+      "stdout": {
+        "bytes": 0,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-next-frozen/migration.stdout.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "timeout_scope": "each underlying tool keeps its own bounded capture; outer coordinator does not kill child owners first",
+      "wall_ns": 314466408935
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/qualify_c_ring_buffer.py",
+        "--clang",
+        "/usr/bin/clang-20",
+        "--rustc",
+        "/workspace/scratch/7e691a7ff65f/toolchains/rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/rustc",
+        "--output",
+        "/workspace/scratch/7e691a7ff65f/validation-next-frozen/ring-buffer.json"
+      ],
+      "cwd": "/workspace/scratch/7e691a7ff65f/hepta",
+      "finished_utc": "2026-10-28T00:27:09.603568+00:00",
+      "name": "ring_buffer",
+      "outcome": {
+        "execution": {
+          "actual_native_entry_invocations": 131088,
+          "calls_by_function": {
+            "dequeue": 2681,
+            "dequeue_arr": 2748,
+            "init": 2715,
+            "is_empty": 16384,
+            "is_full": 16384,
+            "num_items": 16384,
+            "peek": 2714,
+            "queue": 2721,
+            "queue_arr": 2813
+          },
+          "capacities": [
+            1,
+            2,
+            4,
+            8,
+            16,
+            32,
+            64,
+            256
+          ],
+          "checks": [
+            "C/Hepta returns",
+            "independent bounded deque oracle",
+            "all persistent scalar state",
+            "every backing-store byte",
+            "output sentinels",
+            "unchanged source input",
+            "backing-pointer identity"
+          ],
+          "native_differential_calls": 65544,
+          "native_entry_invocations_by_route": {
+            "Hepta_C_ABI": 65544,
+            "original_C": 65544
+          },
+          "paired_native_entry_comparisons": 65544,
+          "resets": 2707,
+          "source_equivalence_proved": false,
+          "state_transitions": 16384,
+          "steps_per_capacity": 2048,
+          "zero_length_null_slice_calls": 543
+        },
+        "passed": true,
+        "report_sha256": "4be891c12ad3038a0fb97f62816252f40a522fa3dc2d94e8376cdff1f3c17440",
+        "stage": "complete"
+      },
+      "returncode": 0,
+      "started_utc": "2026-10-28T00:26:49.162588+00:00",
+      "stderr": {
+        "bytes": 0,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-next-frozen/ring_buffer.stderr.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 1126,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-next-frozen/ring_buffer.stdout.log",
+        "sha256": "f59e83ecf4519eec68b4b82ecbc591b1f08b25f7c4b8f88dbf14b1d8903592f7"
+      },
+      "timeout_scope": "each underlying tool keeps its own bounded capture; outer coordinator does not kill child owners first",
+      "wall_ns": 20440977547
+    }
+  ],
+  "git_head": "581c55cc2f14af38a7486e125d5c33496ca95f0a",
+  "ok": true,
+  "p0_p7_fully_closed": false,
+  "repository_discovery_count": 2643,
+  "schema": "hepta.hia.continuation-frozen-integration.v1",
+  "selected_modules": {
+    "core_and_ndu": [
+      "tests.test_hia_fill_loop_opt",
+      "tests.test_hia_ndu",
+      "tests.test_hia_ndu_measure",
+      "tests.test_hia_ndu_builder",
+      "tests.test_hia_swap_opt",
+      "tests.test_hia_swap_schema_retain",
+      "tests.test_hia_swap_v4",
+      "tests.test_hia_json_preflight",
+      "tests.test_hia_schema_unification",
+      "tests.test_hia_schema_collision",
+      "tests.test_hia_schema_binding_audit",
+      "tests.test_hia_unified_qualification",
+      "tests.test_clang_capture",
+      "tests.test_clang_capture_integration",
+      "tests.test_hia_version_dispatch",
+      "tests.test_hia_native_version_dispatch"
+    ],
+    "independent_rust": [
+      "tests.test_hia_rust_shadow",
+      "tests.test_hia_rust_owned_shadow",
+      "tests.test_hia_rust_calls_shadow",
+      "tests.test_hia_rust_chain_shadow",
+      "tests.test_hia_rust_scalar_vm",
+      "tests.test_hia_rust_crosscheck",
+      "tests.test_hia_rust_crosscheck_cli",
+      "tests.test_hia_rust_owned_vm",
+      "tests.test_hia_rust_owned_cfg",
+      "tests.test_hia_rust_owned_bulk"
+    ],
+    "migration": [
+      "tests.test_c_contracts",
+      "tests.test_c_ring_qualification_evidence",
+      "tests.test_c_record_views",
+      "tests.test_c_project",
+      "tests.test_c_project_matrix",
+      "tests.test_c_project_semantic_flags",
+      "tests.test_c_project_source_arguments"
+    ]
+  },
+  "source_scope": "all Git-tracked files; ignored build caches excluded",
+  "source_unchanged": true,
+  "source_was_committed": true,
+  "status": "completed",
+  "tools_unchanged": true
+}

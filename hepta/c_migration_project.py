@@ -11,6 +11,7 @@ import time
 
 from .ast import HeptaError
 from .c_migrate import MigrationRejected
+from .c_contracts import contract_identity, snapshot_contracts
 from .c_project import capture_project, digest, verify_capture
 from .c_translation import CTranslator
 
@@ -35,6 +36,10 @@ def migrate_project(database: str | Path, output_directory: str | Path, *,
     try:
         if destination.exists() or destination.is_symlink():
             raise MigrationRejected("E_C_PROJECT_EXISTS", "Output bundle must be a new non-symlink directory")
+        report["contract_input_origin"] = ("default_empty_scalar_contract" if contracts is None
+                                           else "caller_supplied_contract")
+        contracts = snapshot_contracts(contracts)
+        report["contract_identity"] = contract_identity(contracts)
         capture = capture_project(database, clang=clang, command_indices=command_indices)
         report["build"] = capture
         if isinstance(contracts, dict) and contracts.get("schema") == "hepta.c-record-views.v1":

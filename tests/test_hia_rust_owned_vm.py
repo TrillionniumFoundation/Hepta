@@ -200,17 +200,17 @@ class RustByteOwnerVmParity(unittest.TestCase):
 
     def test_unsupported_whole_program_refuses_before_any_execution(self):
         variants = []
-        bulk = resource_program()
-        bulk["schema"] = "hepta.hia.program.v2"
-        bulk["functions"][0]["blocks"][0]["ops"].insert(
-            2, i("buffer.fill", ["writer", "value"]))
-        variants.append((bulk, "owned", [4, 7]))
+        unsupported = resource_program()
+        unsupported["schema"] = "hepta.hia.program.v7"
+        unsupported["functions"][0]["blocks"][0]["ops"][2:2] = [
+            i("chain.empty", out=[("chain", "chain")]), i("owner.drop", ["chain"])]
+        variants.append((unsupported, "owned", [4, 7]))
         # Uncalled code is still checked; an allocation trap in the entry
         # cannot hide an unsupported instruction in a different function.
         hidden = resource_program()
-        hidden["schema"] = "hepta.hia.program.v2"
+        hidden["schema"] = "hepta.hia.program.v7"
         hidden["exports"] = ["owned"]
-        extra = json.loads(json.dumps(bulk["functions"][0]))
+        extra = json.loads(json.dumps(unsupported["functions"][0]))
         extra["name"] = "hidden"
         hidden["functions"].append(extra)
         variants.append((hidden, "owned", [4, 7]))

@@ -14,6 +14,7 @@ import json
 import os
 from pathlib import Path
 import random
+import resource
 import shutil
 import statistics
 import subprocess
@@ -26,6 +27,8 @@ sys.path.insert(0, str(ROOT))
 from hepta.backend import compile_rust, emit_rust
 from hepta.checker import check
 from hepta.c_migrate import migrate_c_project
+from hepta.c_contracts import contract_identity, decode_contracts, MAX_CONTRACT_BYTES
+from hepta.hia_program_tools import read_bounded
 from hepta.parser import parse
 from tools.qualify_c_migration import command, sha, RUST_FAULT_ALLOCATOR
 
@@ -159,6 +162,9 @@ def run_sequences(original, translated, *, seed=827203, steps=2048):
         raise AssertionError("Complete function coverage missing")
     return {"capacities": capacities, "steps_per_capacity": steps, "state_transitions": observations,
             "native_differential_calls": sum(calls.values()), "calls_by_function": dict(calls),
+            "paired_native_entry_comparisons": sum(calls.values()),
+            "actual_native_entry_invocations": 2 * sum(calls.values()),
+            "native_entry_invocations_by_route": {"original_C": sum(calls.values()), "Hepta_C_ABI": sum(calls.values())},
             "zero_length_null_slice_calls": zero_length, "resets": resets,
             "checks": ["C/Hepta returns", "independent bounded deque oracle", "all persistent scalar state", "every backing-store byte", "output sentinels", "unchanged source input", "backing-pointer identity"],
             "source_equivalence_proved": False}
@@ -309,34 +315,107 @@ def benchmark(original, translated, work, compiler, *, iterations=100000):
             "limitations": ["One shared x86-64 host, seven alternating-order samples, no affinity control", "GCC -O2 original and Hepta pinned Rust -O3 checked reference backend; no LTO", "Both routes use the same dlsym function-pointer dispatcher", "Source/core translation, scalar-state copying and pointer/bounds guards are measured together", "Object creation and allocator failure are outside timed loops; no whole-application or hardware superiority claim"]}
 
 
+class QualificationEvidence:
+    """Keep this invocation's reserved report inode; never overwrite a prior run.
+
+    Checkpoints are flushed, not crash-atomic transactions. A replacement of
+    the pathname is rejected; writing uses only the descriptor we created.
+    """
+
+    def __init__(self, path, stream):
+        self.path, self.stream = path, stream
+        info = os.fstat(stream.fileno())
+        self.inode = (info.st_dev, info.st_ino)
+        self.retained = path.with_name(path.name + ".generated")
+        self.started = time.perf_counter()
+        self.previous = self.sample()
+
+    @staticmethod
+    def sample():
+        children = resource.getrusage(resource.RUSAGE_CHILDREN)
+        return (time.perf_counter(), time.process_time(), children.ru_utime, children.ru_stime)
+
+    def write(self, report):
+        current = self.path.lstat()
+        if (current.st_dev, current.st_ino) != self.inode:
+            raise RuntimeError("Qualification output path no longer refers to this run's reserved report")
+        payload = json.dumps(report, indent=2, sort_keys=True) + "\n"
+        self.stream.seek(0)
+        self.stream.write(payload)
+        self.stream.truncate()
+        self.stream.flush()
+        os.fsync(self.stream.fileno())
+
+
 def checkpoint(report, output, stage):
+    now = output.sample()
+    before = output.previous
+    report["cost"]["automatic_tool_stages"].append({
+        "stage": report["stage"], "wall_seconds": now[0] - before[0],
+        "coordinator_cpu_seconds": now[1] - before[1],
+        "completed_child_user_cpu_seconds": now[2] - before[2],
+        "completed_child_system_cpu_seconds": now[3] - before[3]})
+    output.previous = now
+    report["cost"]["elapsed_seconds"] = now[0] - output.started
     report["stage"] = stage
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+    output.write(report)
 
 
 def qualify(*, clang, rustc, output, seed=827203, steps=2048):
-    started = time.perf_counter()
+    path = Path(output).absolute()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # O_EXCL rejects existing regular files, symlinks and special path entries
+    # before source snapshots, compiler probes, or any other paid qualification.
+    with path.open("x", encoding="utf-8") as stream:
+        evidence = QualificationEvidence(path, stream)
+        report = {"schema": "hepta.c-stateful-upstream-qualification.v1", "ok": False,
+                  "stage": "source_identity_and_contract_intake",
+                  "evidence_publication": "reserved_new_report_inode_checkpoints_not_crash_atomic",
+                  "cost": {"automatic_tool_stages": [], "manual_contract_authoring_hours": None,
+                           "manual_review_hours": None, "maintenance_hours": None,
+                           "model_tokens": None, "model_runs": 0,
+                           "scope": "automatic_tools_only_not_total_migration_or_human_cost"}}
+        evidence.write(report)
+        try:
+            evidence.retained.mkdir()
+            return _qualify(clang=clang, rustc=rustc, output=evidence, report=report,
+                            seed=seed, steps=steps)
+        except BaseException as error:
+            report.update(ok=False, error=str(error), failed_stage=report["stage"],
+                          failure_type=type(error).__name__)
+            checkpoint(report, evidence, "failed")
+            raise
+
+
+def _qualify(*, clang, rustc, output, report, seed, steps):
     from tools.release_check import snapshot
     source_before = snapshot()
     metadata = verify_upstream()
+    authored_contract = read_bounded(FIXTURE / "contracts.json", limit=MAX_CONTRACT_BYTES)
+    contracts = decode_contracts(authored_contract)
     compiler = shutil.which("gcc")
     if not compiler:
         raise RuntimeError("Independent GCC compiler is required")
-    report = {"schema": "hepta.c-stateful-upstream-qualification.v1", "ok": False,
+    report.update({
               "upstream": metadata, "seed": seed, "build_configuration": FLAGS,
               "assertions": "NDEBUG captured explicitly; other macro configurations unqualified",
               "scope": "complete_upstream_stateful_ring_module_not_general_C_ownership_translation",
               "source_equivalence_proved": False, "whole_project_blockers_closed": False,
               "source_snapshot_before": source_before,
               "foreign_pointer_validity_proved": False, "performance_parity_claimed": False,
-              "implementation_files": {name: sha(ROOT / name) for name in ("hepta/c_record_views.py", "hepta/c_translation.py", "hepta/c_migration_project.py", "hepta/c_project.py", "tools/qualify_c_ring_buffer.py")},
-              "original_compiler": {"path": compiler, "sha256": sha(Path(compiler)), "version": command([compiler, "--version"])["stdout"].splitlines()[0]}}
+              "implementation_files": {name: sha(ROOT / name) for name in ("hepta/c_record_views.py", "hepta/c_translation.py", "hepta/c_contracts.py", "hepta/c_migration_project.py", "hepta/c_project.py", "tools/qualify_c_ring_buffer.py")},
+              "authored_contract_input": {"path": str(FIXTURE / "contracts.json"),
+                                          "raw_sha256": hashlib.sha256(authored_contract).hexdigest(),
+                                          "raw_bytes": len(authored_contract),
+                                          "identity": contract_identity(contracts),
+                                          "origin": "existing_caller_authored_repository_contract_not_generated_or_inferred",
+                                          "authoring_time_measured": False},
+              "original_compiler": {"path": compiler, "sha256": sha(Path(compiler)), "version": command([compiler, "--version"])["stdout"].splitlines()[0]}})
     checkpoint(report, output, "capture_and_migration")
     with tempfile.TemporaryDirectory(prefix="hepta-ring-qualification-") as temporary:
         work = Path(temporary)
         database = capture_fixture(work)
-        migration = migrate_c_project(database, work / "translated", contracts=json.loads((FIXTURE / "contracts.json").read_text()), clang=clang, rustc=rustc, verify_native=True)
+        migration = migrate_c_project(database, work / "translated", contracts=contracts, clang=clang, rustc=rustc, verify_native=True)
         report["migration"] = migration
         checkpoint(report, output, "native_original_build")
         if not migration["ok"] or not migration["declaration_inventory_complete"]:
@@ -344,12 +423,41 @@ def qualify(*, clang, rustc, output, seed=827203, steps=2048):
         expected = {"function_converted": 9, "prototype_resolved": 9, "record_converted": 1, "record_forward_resolved": 1, "type_alias_resolved": 2}
         if migration["coverage"]["active_project_declarations"] != 22 or migration["coverage"]["status_counts"] != expected:
             raise AssertionError("Complete active declaration denominator changed")
+        if migration["contract_identity"] != report["authored_contract_input"]["identity"]:
+            raise AssertionError("Migration consumed a different caller-authored contract")
+        functions = migration["functions"]
+        report["migration_disposition"] = {
+            "scope": "this_complete_pinned_upstream_module_and_one_listed_build_configuration_only",
+            "production_project_migration_rate_claimed": False,
+            "source_translation_units": 1, "active_source_headers": 1,
+            "listed_compile_commands": len(migration["build"]["configurations"]),
+            "function_definition_denominator": len(functions),
+            "function_bodies_converted": expected["function_converted"],
+            "function_bodies_left_in_C_behind_a_bridge": 0,
+            "function_bodies_rejected": 0, "function_bodies_unaccounted": 0,
+            "original_C_ABI_entry_wrappers": sum(fn["external_symbol"] for fn in functions),
+            "ABI_wrappers_are_not_additional_or_untranslated_functions": True,
+            "active_declaration_denominator": 22,
+            "active_declaration_dispositions": expected,
+            "input_disposition_scope": "module_source_and_local_migration_inputs; compiler/system dependencies remain in the captured build inventory",
+            "input_dispositions": {
+                "ringbuffer.c": "unchanged_upstream_translation_unit_converted",
+                "ringbuffer.h": "unchanged_upstream_active_declarations_and_inline_bodies_converted",
+                "LICENSE": "upstream_license_preserved",
+                "UPSTREAM_README.md": "upstream_context_identity_verified_not_compiled",
+                "UPSTREAM.json": "local_pinned_upstream_identity_manifest_checked_not_upstream_source",
+                "contracts.json": "caller_authored_resource_obligations_frozen_and_retained",
+                "compile_commands.json": "one_generated_listed_command_captured_and_replayed"},
+            "excluded_denominators": ["system_or_compiler_declarations", "inactive_preprocessor_branches",
+                                      "unlisted_build_configurations", "other_upstream_repositories_or_modules"],
+        }
         original, translated = work / "original.so", work / "translated/libtranslated.so"
         report["original_build"] = command([compiler, *FLAGS, "-O2", "-shared", "-fPIC", str(work / "ringbuffer.c"), "-o", str(original)])
+        checkpoint(report, output, "original_C_vs_translated_native_execution")
         report["execution"] = run_sequences(original, translated, seed=seed, steps=steps)
         checkpoint(report, output, "adversarial_boundary_controls")
         report["boundary_controls"] = boundary_controls(translated)
-        checkpoint(report, output, "owned_client")
+        checkpoint(report, output, "owned_client_and_native_layout")
         source = (work / "translated/source.hepta").read_text()
         generated = (work / "translated/generated.rs").read_text()
         report["owned_client"] = owned_client(source, work, rustc)
@@ -375,25 +483,27 @@ def qualify(*, clang, rustc, output, seed=827203, steps=2048):
             raise AssertionError("Wrong implementation escaped stateful oracle")
         checkpoint(report, output, "bridge_runtime_measurement")
         report["performance"] = benchmark(original, translated, work, compiler)
-        output.parent.mkdir(parents=True, exist_ok=True)
-        retained = output.parent / "ring-buffer-generated"
-        retained.mkdir(exist_ok=True)
+        checkpoint(report, output, "retention_and_source_revalidation")
+        retained = output.retained
         report["retained_generated_sources"] = {}
         for name in ("source.hepta", "bridge.rs"):
             shutil.copyfile(work / "translated" / name, retained / name)
             report["retained_generated_sources"][name] = {"path": str(retained / name), "sha256": sha(retained / name)}
         shutil.copyfile(FIXTURE / "LICENSE", retained / "LICENSE")
+        (retained / "contracts.json").write_bytes(authored_contract)
+        report["authored_contract_input"]["retained_path"] = str(retained / "contracts.json")
+        shutil.copyfile(database, retained / "compile_commands.json")
+        shutil.copyfile(work / "translated/migration.json", retained / "migration.json")
         (retained / "NOTICE").write_text("Generated derivative of AndersKaloer/Ring-Buffer at " + UPSTREAM_COMMIT + ".\nOriginal upstream files are unchanged. See LICENSE for MIT terms.\nThe generated safe core uses caller-supplied record-view contracts, not inferred foreign ownership.\n")
-    report["cost"] = {"elapsed_seconds": time.perf_counter() - started, "manual_review_hours": None, "model_tokens": None,
-                       "generated_core_lines": len(source.splitlines()), "upstream_source_lines": len((FIXTURE / "ringbuffer.c").read_text().splitlines()),
-                       "adapter_runtime_cost_measured": True, "model_runs": 0}
+    report["cost"].update({"generated_core_lines": len(source.splitlines()),
+                          "upstream_source_lines": len((FIXTURE / "ringbuffer.c").read_text().splitlines()),
+                          "adapter_runtime_cost_measured": True})
     report["source_snapshot_after"] = snapshot()
     if report["source_snapshot_after"] != source_before:
         checkpoint(report, output, "source_changed_rejected")
         raise RuntimeError("Implementation source changed during stateful C qualification")
-    report["stage"] = "complete"
     report["ok"] = True
-    output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+    checkpoint(report, output, "complete")
     return report
 
 
@@ -408,10 +518,6 @@ def main():
         print(json.dumps({"ok": report["ok"], "report": str(args.output), "execution": report["execution"]}, indent=2))
         return 0
     except Exception as error:
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        partial = json.loads(args.output.read_text()) if args.output.is_file() else {"schema": "hepta.c-stateful-upstream-qualification.v1"}
-        partial.update(ok=False, error=str(error))
-        args.output.write_text(json.dumps(partial, indent=2, sort_keys=True) + "\n")
         print(str(error), file=sys.stderr)
         return 1
 

@@ -1,0 +1,381 @@
+{
+  "functions": [
+    {
+      "blocks": [
+        {
+          "id": "start",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 0
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "zero",
+                  "type": "usize"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "view",
+              "type": "mutbuf"
+            },
+            {
+              "name": "byte",
+              "type": "u8"
+            }
+          ],
+          "term": {
+            "args": [
+              "view",
+              "zero",
+              "byte"
+            ],
+            "op": "jump",
+            "target": "loop"
+          }
+        },
+        {
+          "id": "loop",
+          "ops": [
+            {
+              "args": [
+                "lv"
+              ],
+              "attrs": {},
+              "op": "buffer.len",
+              "out": [
+                {
+                  "name": "length",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "index",
+                "length"
+              ],
+              "attrs": {},
+              "op": "compare.lt",
+              "out": [
+                {
+                  "name": "more",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "lv",
+              "type": "mutbuf"
+            },
+            {
+              "name": "index",
+              "type": "usize"
+            },
+            {
+              "name": "value",
+              "type": "u8"
+            }
+          ],
+          "term": {
+            "cond": "more",
+            "else": {
+              "args": [
+                "lv"
+              ],
+              "target": "done"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "lv",
+                "index",
+                "value"
+              ],
+              "target": "body"
+            }
+          }
+        },
+        {
+          "id": "body",
+          "ops": [
+            {
+              "args": [
+                "bv",
+                "bi",
+                "byte_value"
+              ],
+              "attrs": {},
+              "op": "buffer.store",
+              "out": []
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 1
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "one",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "bi",
+                "one"
+              ],
+              "attrs": {},
+              "op": "int.add.checked",
+              "out": [
+                {
+                  "name": "next",
+                  "type": "usize"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "bv",
+              "type": "mutbuf"
+            },
+            {
+              "name": "bi",
+              "type": "usize"
+            },
+            {
+              "name": "byte_value",
+              "type": "u8"
+            }
+          ],
+          "term": {
+            "args": [
+              "bv",
+              "next",
+              "byte_value"
+            ],
+            "op": "jump",
+            "target": "loop"
+          }
+        },
+        {
+          "id": "done",
+          "ops": [],
+          "params": [
+            {
+              "name": "dv",
+              "type": "mutbuf"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": []
+          }
+        }
+      ],
+      "effects": [
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "start",
+      "name": "fill_view",
+      "params": [
+        {
+          "name": "view",
+          "type": "mutbuf"
+        },
+        {
+          "name": "byte",
+          "type": "u8"
+        }
+      ],
+      "returns": []
+    },
+    {
+      "blocks": [
+        {
+          "id": "entry",
+          "ops": [
+            {
+              "args": [
+                "value"
+              ],
+              "attrs": {
+                "mode": "checked"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "byte",
+                  "type": "u8"
+                }
+              ]
+            },
+            {
+              "args": [
+                "mask"
+              ],
+              "attrs": {
+                "mode": "checked"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "mask_byte",
+                  "type": "u8"
+                }
+              ]
+            },
+            {
+              "args": [
+                "size"
+              ],
+              "attrs": {},
+              "op": "buffer.new",
+              "out": [
+                {
+                  "name": "owner",
+                  "type": "buffer"
+                }
+              ]
+            },
+            {
+              "args": [
+                "owner"
+              ],
+              "attrs": {},
+              "op": "borrow.mut",
+              "out": [
+                {
+                  "name": "view",
+                  "type": "mutbuf"
+                }
+              ]
+            },
+            {
+              "args": [
+                "view",
+                "byte"
+              ],
+              "attrs": {
+                "function": "fill_view"
+              },
+              "op": "call",
+              "out": []
+            },
+            {
+              "args": [
+                "view",
+                "probe"
+              ],
+              "attrs": {},
+              "op": "buffer.load",
+              "out": [
+                {
+                  "name": "observed",
+                  "type": "u8"
+                }
+              ]
+            },
+            {
+              "args": [
+                "observed",
+                "mask_byte"
+              ],
+              "attrs": {},
+              "op": "bit.xor",
+              "out": [
+                {
+                  "name": "answer",
+                  "type": "u8"
+                }
+              ]
+            },
+            {
+              "args": [
+                "view"
+              ],
+              "attrs": {},
+              "op": "loan.end",
+              "out": []
+            },
+            {
+              "args": [
+                "owner"
+              ],
+              "attrs": {},
+              "op": "owner.drop",
+              "out": []
+            }
+          ],
+          "params": [
+            {
+              "name": "size",
+              "type": "usize"
+            },
+            {
+              "name": "value",
+              "type": "usize"
+            },
+            {
+              "name": "probe",
+              "type": "usize"
+            },
+            {
+              "name": "mask",
+              "type": "usize"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "answer"
+            ]
+          }
+        }
+      ],
+      "effects": [
+        "alloc",
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "entry",
+      "name": "fill_probe",
+      "params": [
+        {
+          "name": "size",
+          "type": "usize"
+        },
+        {
+          "name": "value",
+          "type": "usize"
+        },
+        {
+          "name": "probe",
+          "type": "usize"
+        },
+        {
+          "name": "mask",
+          "type": "usize"
+        }
+      ],
+      "returns": [
+        "u8"
+      ]
+    }
+  ],
+  "module": "ndu_full_view_fill",
+  "schema": "hepta.hia.program.v1"
+}
