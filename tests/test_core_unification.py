@@ -52,23 +52,41 @@ class CoreUnificationTests(unittest.TestCase):
         program, checked, scalar = fixture(SCALAR)
         structured = lower_executable_core(program, checked)
         imported = [
-            from_scalar_core(scalar, program=program, checked=checked,
-                             project_sha256=_PROJECT),
-            from_executable_core(structured, source=SCALAR),
-            lower_source(SCALAR),
+            ("legacy_scalar_ssa", from_scalar_core(
+                scalar, program=program, checked=checked, project_sha256=_PROJECT),
+             {"schema", "module", "functions"}, None),
+            ("legacy_executable", from_executable_core(structured, source=SCALAR),
+             {"schema", "module", "functions", "exports"}, ["sum_rows"]),
+            ("source", lower_source(SCALAR),
+             {"schema", "module", "functions", "exports"}, ["sum_rows"]),
         ]
-        # The executable inputs are detached snapshots, with no source envelope.
-        for core in imported:
-            self.assertEqual(set(core.as_dict()), {"schema", "module", "functions"})
-            for n in (-2, 0, 1, 2, 3, 5, 9):
-                expected = sum(sum(range(i)) + (2 if i < 3 else 1)
-                               for i in range(max(n, 0)))
-                with patch("hepta.parser.parse", side_effect=AssertionError("source replay")):
-                    self.assertEqual(execute_core(core, "sum_rows", [n])["result"], expected)
+        # The legacy scalar-only import retains its closed v1 envelope. Source
+        # and structured imports also carry the source signature's checked
+        # scalar entry list; those exports are executable Core, not source or
+        # a producer receipt. Each route still has an exact field contract.
+        for route, core, fields, exports in imported:
+            with self.subTest(route=route):
+                snapshot = core.as_dict()
+                self.assertEqual(set(snapshot), fields)
+                self.assertEqual(snapshot["schema"], "hepta.hia.program.v1")
+                self.assertEqual(snapshot.get("exports"), exports)
+                self.assertIsNone(core.structured_bytes)
+                self.assertEqual(core.scalar_entrypoints, frozenset({"sum_rows"}))
+                self.assertEqual(verify_core(core.canonical_bytes).scalar_entrypoints,
+                                 frozenset({"sum_rows"}))
+                for n in (-2, 0, 1, 2, 3, 5, 9):
+                    expected = sum(sum(range(i)) + (2 if i < 3 else 1)
+                                   for i in range(max(n, 0)))
+                    with patch("hepta.parser.parse", side_effect=AssertionError("source replay")):
+                        self.assertEqual(execute_core(core, "sum_rows", [n])["result"], expected)
 
     def test_imported_owned_operations_share_the_same_resource_authority(self):
         old = lower_executable_core(parse(OWNED, "owned.hepta"))
         core = from_executable_core(old, source=OWNED)
+        self.assertEqual(set(core.as_dict()), {"schema", "module", "functions", "exports"})
+        self.assertEqual(core.as_dict()["exports"], ["checksum"])
+        self.assertEqual(core.scalar_entrypoints, frozenset({"checksum"}))
+        self.assertNotIn("fill", core.scalar_entrypoints)
         for n in (0, 1, 11, 260):
             report = execute_core(core, "checksum", [n])
             self.assertEqual(report["result"], sum(i % 256 for i in range(n)))
