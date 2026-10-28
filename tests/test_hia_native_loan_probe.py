@@ -136,7 +136,8 @@ class NativeLoanEmissionTests(unittest.TestCase):
                 return {"loan_probe_site": {"loan": "x"}}
         with mock.patch.object(probe.Thread, "start"):
             handle = probe.NativeLoanExecution(version=Version(), generation=0, function="f", word="u32",
-                                               arguments=(), timeout=1, release=lambda: None)
+                                               arguments=(), timeout=1, release=lambda: None,
+                                               quarantine=lambda cleanup, recovered: None)
         for values in ((0, 1, 5, 0, 0), (probe._MAGIC, 2, 5, 0, 0),
                        (probe._MAGIC, 1, 0, 1, 0), (probe._MAGIC, 1, 5, 256, 0),
                        (probe._MAGIC, 1, 2**63, 0, 0)):

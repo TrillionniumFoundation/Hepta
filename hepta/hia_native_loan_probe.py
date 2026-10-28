@@ -335,14 +335,19 @@ class NativeLoanExecution:
     it. Snapshot reports partial observations after failure; wait rethrows it.
     """
 
-    def __init__(self, *, version, generation, function, word, arguments, timeout, release):
+    def __init__(self, *, version, generation, function, word, arguments, timeout, release, quarantine):
         self._version, self._generation = version, generation
         self._function, self._word, self._arguments = function, word, arguments
         self._timeout, self._release = timeout, release
+        self._quarantine = quarantine
         self._condition = Condition()
         self._resume = Event()
         self._events, self._done, self._error, self._result = [], False, None, None
         self._ack_sent = False
+        self._spawn_attempted = False
+        self._child_pid = None
+        self._cleanup = None
+        self._quarantined = False
         self._thread = Thread(target=self._run, name="hia-native-loan-probe", daemon=False)
         self._thread.start()
 
@@ -384,12 +389,22 @@ class NativeLoanExecution:
 
     def snapshot(self):
         with self._condition:
-            return {"schema": "hepta.hia.native-loan-observation.v1", "generation": self._generation,
+            cleanup = None if self._cleanup is None else self._cleanup.snapshot()
+            entry_observed = bool(self._events) or (self._result is not None and self._result["status"] == "returned")
+            return {"schema": "hepta.hia.native-loan-observation.v2", "generation": self._generation,
                     "program_sha256": self._version.core_sha256,
                     "artifact_sha256": self._version.artifact_sha256,
                     "site": self._version.receipt()["loan_probe_site"],
                     "events": json.loads(json.dumps(self._events)), "ack_sent": self._ack_sent,
                     "done": self._done, "held": bool(self._events) and not self._ack_sent and not self._done,
+                    "quarantined": self._quarantined,
+                    "child_process": {"creation_attempted": self._spawn_attempted,
+                        "spawn_observed": self._child_pid is not None, "pid": self._child_pid,
+                        "known_child_processes_started": 1 if self._child_pid is not None else 0,
+                        "child_start_count_complete": self._child_pid is not None or not self._spawn_attempted,
+                        "native_entry_observed": entry_observed,
+                        "native_entry_outcome_available": entry_observed or not self._spawn_attempted,
+                        "cleanup": cleanup},
                     "error": None if self._error is None else {"type": type(self._error).__name__, "message": str(self._error)},
                     "claims": {"diagnostic_instrumentation": True, "selected_loan_only": True,
                                "full_resource_ledger_observed": False, "all_bytes_observed": False,
@@ -418,19 +433,25 @@ class NativeLoanExecution:
             descriptors += [ack_read, ack_write]
             os.set_blocking(event_read, False)
             with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
+                with self._condition:
+                    self._spawn_attempted = True
                 proc = subprocess.Popen([sys.executable, "-I", "-S", "-c", _WORKER,
                     "/proc/self/fd/" + str(self._version.descriptor), self._function, self._word,
                     json.dumps(self._arguments, separators=(",", ":")), str(event_write), str(ack_read)],
                     stdin=subprocess.DEVNULL, stdout=out, stderr=err,
                     env={"LC_ALL": "C", "LANG": "C", "TZ": "UTC"},
                     pass_fds=(self._version.descriptor, event_write, ack_read), start_new_session=True)
-                for fd in (event_write, ack_read):
-                    os.close(fd)
-                    descriptors.remove(fd)
-                deadline = monotonic() + self._timeout
-                timed_out, residual_group = False, False
-                pending = b""
+                cleanup = native.NativeChildCleanup(proc)
+                with self._condition:
+                    self._child_pid = proc.pid
+                    self._cleanup = cleanup
                 try:
+                    for fd in (event_write, ack_read):
+                        os.close(fd)
+                        descriptors.remove(fd)
+                    deadline = monotonic() + self._timeout
+                    timed_out, residual_group = False, False
+                    pending = b""
                     while True:
                         try:
                             chunk = os.read(event_read, 81)
@@ -468,12 +489,7 @@ class NativeLoanExecution:
                             break
                         sleep(min(0.005, remaining))
                 finally:
-                    try:
-                        os.killpg(proc.pid, signal.SIGKILL)
-                    except ProcessLookupError:
-                        pass
-                    finally:
-                        proc.wait(timeout=2)
+                    native._confirm_native_child_cleanup(cleanup)
                 if timed_out:
                     _reject("native child timed out while loan execution remained tracked; process group terminated")
                 if residual_group:
@@ -500,13 +516,21 @@ class NativeLoanExecution:
                     _reject("normal return did not observe the selected loan interval")
                 return "value", observed["value"]
         finally:
+            close_errors = []
             for fd in descriptors:
-                os.close(fd)
+                try:
+                    os.close(fd)
+                except BaseException as error:
+                    close_errors.append(error)
+                    if self._cleanup is not None:
+                        self._cleanup.retain_secondary_error(error)
+            if close_errors:
+                raise close_errors[0]
 
     def _run(self):
         try:
             outcome, value = self._observe()
-            self._result = {"schema": "hepta.hia.native-loan-execution.v1", "generation": self._generation,
+            self._result = {"schema": "hepta.hia.native-loan-execution.v2", "generation": self._generation,
                             "program_sha256": self._version.core_sha256,
                             "artifact_sha256": self._version.artifact_sha256,
                             "status": "returned" if outcome == "value" else "trapped", "value": value,
@@ -518,7 +542,18 @@ class NativeLoanExecution:
             self._error = error
         finally:
             try:
-                self._release()
+                # Channel/temp-file teardown may replace a pending-reap
+                # exception. The actual child owner is the authority for
+                # retaining this dispatch reference, regardless of that type.
+                if self._cleanup is not None and not self._cleanup.confirmed:
+                    self._cleanup.retain_secondary_error(self._error)
+                    self._error = native.NativeChildCleanupPending(self._cleanup)
+                    self._result = None
+                    with self._condition:
+                        self._quarantined = True
+                    self._quarantine(self._cleanup, self._cleanup_recovered)
+                else:
+                    self._release()
             except BaseException as error:
                 self._error = self._error or error
             finally:
@@ -527,3 +562,10 @@ class NativeLoanExecution:
                     if self._result is not None:
                         self._result["observation"] = self.snapshot()
                     self._condition.notify_all()
+
+    def _cleanup_recovered(self):
+        # The dispatcher has already confirmed the reap and idempotently
+        # released its tracked reference before invoking this internal notice.
+        with self._condition:
+            self._quarantined = False
+            self._condition.notify_all()

@@ -11,6 +11,15 @@ from tools import qualify_hia_native_loans as producer
 
 
 class NativeLoanQualificationProtocolTests(unittest.TestCase):
+    def test_a_pending_attempt_is_not_a_spawn_or_entry_observation(self):
+        counts = producer._execution_counts([{"name": "admission-or-start-failed"}])
+        self.assertEqual(counts["attempted_calls"], 1)
+        self.assertEqual(counts["child_processes_started"], 0)
+        self.assertFalse(counts["child_process_start_count_complete"])
+        self.assertEqual(counts["unavailable_child_start_outcomes"], 1)
+        self.assertEqual(counts["completed_observations"], 0)
+        self.assertIsNone(counts["native_entry_invocations"])
+
     def test_existing_evidence_is_not_overwritten(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "existing"

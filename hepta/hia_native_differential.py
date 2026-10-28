@@ -19,6 +19,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from threading import Lock
 
 _IDENT = re.compile(r"[A-Za-z_][A-Za-z_0-9]*\Z")
 _TYPES = {"i32": (-2**31, 2**31 - 1), "u32": (0, 2**32 - 1)}
@@ -144,6 +145,129 @@ print(json.dumps({"value": int(f(*args))}, separators=(",", ":")), flush=True)
 
 class HIADifferentialRejected(ValueError):
     """Invalid corpus, corrupted source/artifact, or actual native divergence."""
+
+
+class NativeChildCleanup:
+    """Own a child until its direct-process reap is positively confirmed.
+
+    The caller retains this object after any failed confirmation. The process
+    group is signalled once while its original leader is still the identity
+    anchor; retries only reap and never signal a potentially reused numeric
+    process group after an interrupted wait. This is not crash durability or
+    a way to force an uninterruptible kernel wait to finish immediately.
+    """
+
+    def __init__(self, process):
+        self._process = process
+        # Metadata readers must not wait behind an OS reap. In particular, a
+        # dispatcher snapshot may hold its admission condition while reading
+        # this state. Reap serialization has its own bounded acquisition.
+        self._state_lock = Lock()
+        self._reap_lock = Lock()
+        self._confirmed = False
+        self._signal_attempted = False
+        self._signal_delivered = False
+        self._attempts = 0
+        self._last_error = None
+        self._returncode = None
+        self._secondary_errors = []
+
+    @property
+    def confirmed(self):
+        with self._state_lock:
+            return self._confirmed
+
+    def _remember_primary_error(self, phase, error):
+        item = {"phase": phase, "type": type(error).__name__, "message": str(error)[:4096]}
+        with self._state_lock:
+            self._last_error = item
+
+    def retain_secondary_error(self, error):
+        """Keep bounded cleanup diagnostics without making them ownership."""
+        seen = set()
+        items = []
+        while error is not None and id(error) not in seen and len(seen) < 8:
+            seen.add(id(error))
+            if not isinstance(error, NativeChildCleanupPending):
+                items.append({"phase": "observer_cleanup", "type": type(error).__name__,
+                              "message": str(error)[:4096]})
+            error = error.__cause__ or error.__context__
+        with self._state_lock:
+            for item in items:
+                if item not in self._secondary_errors and len(self._secondary_errors) < 4:
+                    self._secondary_errors.append(item)
+
+    def try_reap(self, *, timeout=0.0):
+        if type(timeout) not in (int, float) or not 0 <= timeout <= 2:
+            raise ValueError("native cleanup retry timeout must be in [0,2]")
+        deadline = time.monotonic() + float(timeout)
+        acquired = (self._reap_lock.acquire(blocking=False) if timeout == 0 else
+                    self._reap_lock.acquire(timeout=max(0.0, deadline - time.monotonic())))
+        if not acquired:
+            return False
+        try:
+            with self._state_lock:
+                if self._confirmed:
+                    return True
+                self._attempts += 1
+                signal_needed = not self._signal_attempted
+                self._signal_attempted = True
+            if signal_needed:
+                try:
+                    os.killpg(self._process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    # A vanished group is not a successful reap. Still require
+                    # the owned Popen wait to confirm this direct child.
+                    pass
+                except BaseException as error:
+                    self._remember_primary_error("signal", error)
+                    return False
+                else:
+                    with self._state_lock:
+                        self._signal_delivered = True
+            try:
+                result = self._process.wait(timeout=max(0.0, deadline - time.monotonic()))
+            except BaseException as error:
+                self._remember_primary_error("reap", error)
+                return False
+            if type(result) is not int:
+                with self._state_lock:
+                    self._last_error = {"phase": "reap", "type": "InvalidWaitResult",
+                                        "message": "direct child wait returned no integer exit status"}
+                return False
+            with self._state_lock:
+                self._returncode = result
+                self._confirmed = True
+            return True
+        finally:
+            self._reap_lock.release()
+
+    def snapshot(self):
+        with self._state_lock:
+            return {"schema": "hepta.hia.native-child-cleanup.v1", "pid": self._process.pid,
+                    "cleanup_confirmed": self._confirmed,
+                    "quarantined": self._attempts > 0 and not self._confirmed,
+                    "status": "reaped" if self._confirmed else "quarantined" if self._attempts else "active",
+                    "reap_attempts": self._attempts, "returncode": self._returncode,
+                    "group_signal_attempted": self._signal_attempted,
+                    "group_signal_delivered": self._signal_delivered,
+                    "last_error": None if self._last_error is None else dict(self._last_error),
+                    "secondary_errors": [dict(item) for item in self._secondary_errors],
+                    "claims": {"direct_child_reaped": self._confirmed,
+                               "uninterruptible_kernel_wait_preempted": False}}
+
+
+class NativeChildCleanupPending(HIADifferentialRejected):
+    """The child owner must be retained and retried, never treated as drained."""
+
+    def __init__(self, cleanup):
+        super().__init__("E_HIA_NATIVE_CLEANUP: native child reap was not confirmed; ownership retained for recovery")
+        self.cleanup = cleanup
+
+
+def _confirm_native_child_cleanup(cleanup, *, timeout=2.0):
+    if not cleanup.try_reap(timeout=timeout):
+        raise NativeChildCleanupPending(cleanup)
 
 
 def _reject(message: str) -> None:
@@ -340,6 +464,7 @@ def _observe_native(library: Path, function: str, word: str, args: list[int], *,
             or type(word) is not str or word not in _TYPES
             or type(pinned_fd) is not int or pinned_fd < 0):
         _reject("bounded Linux host and sealed native fd required")
+    cleanup = None
     try:
         with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
             # The sealed memfd and checked ABI come from the unchanged
@@ -360,6 +485,7 @@ def _observe_native(library: Path, function: str, word: str, args: list[int], *,
                 # This worker needs no ambient environment or loader paths.
                 env={"LC_ALL": "C", "LANG": "C", "TZ": "UTC"},
                 pass_fds=(pinned_fd,), start_new_session=True)
+            cleanup = NativeChildCleanup(proc)
             # Linux waitid(WNOWAIT) observes direct-child termination
             # without reaping its PID. Popen.wait() would reap first, then
             # killpg(pid) could race a reused PID/PGID. Keep the zombie as
@@ -387,15 +513,10 @@ def _observe_native(library: Path, function: str, word: str, args: list[int], *,
                 # Clear the entire ordinary session/group for BOTH timeout
                 # and successful or trapped native exit, before waitpid reaps
                 # its leader. Seccomp blocks native fork/session escapes.
-                try:
-                    os.killpg(proc.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-                finally:
-                    # SIGKILL cannot immediately finish an uninterruptible
-                    # kernel wait. Bound the final reap; never block the
-                    # evaluator indefinitely after its deadline.
-                    proc.wait(timeout=2)
+                # A bounded wait failure retains an owned cleanup handle in
+                # NativeChildCleanupPending. Dispatch must quarantine its
+                # version/reference until a later retry confirms the reap.
+                _confirm_native_child_cleanup(cleanup)
             if timed_out:
                 _reject("native child timed out; process group terminated")
             if residual_group:
@@ -406,6 +527,13 @@ def _observe_native(library: Path, function: str, word: str, args: list[int], *,
             child_stderr = err.read(4097)
     except (subprocess.TimeoutExpired, OSError) as exc:
         raise HIADifferentialRejected("E_HIA_DIFFERENTIAL: native child unavailable or timed out") from exc
+    finally:
+        # Temporary-file close errors can replace the exception raised by the
+        # inner cleanup. Ownership follows the tracked child, not whichever
+        # exception survived those context-manager exits.
+        if cleanup is not None and not cleanup.confirmed:
+            cleanup.retain_secondary_error(sys.exc_info()[1])
+            raise NativeChildCleanupPending(cleanup)
     # RLIMIT_FSIZE can surface as SIGXFSZ, a child write exception, or a
     # Python exit code after a partial 4096-byte write. All are refusals.
     if len(child_stdout) >= 4096 or len(child_stderr) >= 4096:

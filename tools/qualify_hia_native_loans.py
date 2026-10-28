@@ -53,6 +53,41 @@ def _need(condition, reason):
         raise ValueError("E_NATIVE_LOAN_QUALIFICATION: " + reason)
 
 
+def _execution_counts(attempts):
+    """Count positive observations without inventing outcomes of failed starts.
+
+    A returned Popen establishes a child PID, not entry invocation. A loan
+    handshake or canonical returned value establishes entry execution. Missing
+    creation outcomes remain unavailable rather than silently becoming zero.
+    """
+    started = reaped = entries = completed = unknown_starts = unknown_entries = pending_reaps = 0
+    for row in attempts:
+        observation = row.get("final_observation")
+        process = observation.get("child_process") if type(observation) is dict else None
+        if type(process) is not dict:
+            unknown_starts += 1
+            unknown_entries += 1
+            continue
+        started += process.get("spawn_observed") is True
+        unknown_starts += process.get("child_start_count_complete") is not True
+        entries += process.get("native_entry_observed") is True
+        unknown_entries += process.get("native_entry_outcome_available") is not True
+        cleanup = process.get("cleanup")
+        confirmed = type(cleanup) is dict and cleanup.get("cleanup_confirmed") is True
+        reaped += confirmed
+        pending_reaps += process.get("spawn_observed") is True and not confirmed
+        result = row.get("result")
+        completed += confirmed and (type(result) is dict and result.get("status") in {"returned", "trapped"}
+            or type(row.get("expected_rejection")) is dict and "timed out" in row["expected_rejection"].get("message", ""))
+    return {"attempted_calls": len(attempts), "child_processes_started": started,
+            "child_process_start_count_complete": unknown_starts == 0,
+            "unavailable_child_start_outcomes": unknown_starts,
+            "child_processes_reaped": reaped, "unconfirmed_child_reaps": pending_reaps,
+            "completed_observations": completed, "native_entries_observed": entries,
+            "native_entry_invocations": None if unknown_entries else entries,
+            "unavailable_native_entry_outcomes": unknown_entries}
+
+
 def qualify(output, *, clang):
     output = Path(output).absolute()
     if output == ROOT or ROOT in output.parents:
@@ -62,7 +97,7 @@ def qualify(output, *, clang):
     output.mkdir(parents=True, exist_ok=False)
     report_path = output / "report.json"
     started = perf_counter_ns()
-    report = {"schema": "hepta.hia.native-loan-qualification.v1", "ok": False,
+    report = {"schema": "hepta.hia.native-loan-qualification.v2", "ok": False,
               "status": "running", "execution_passed": False,
               "started_utc": datetime.now(timezone.utc).isoformat(),
               "scope": "one local byte loan; diagnostic sealed native images; seven fixed child calls",
@@ -241,10 +276,15 @@ def qualify(output, *, clang):
             report["git_status_after"] = _git("status", "--porcelain=v1", "--untracked-files=all")
         except BaseException as error:
             report["post_snapshot_error"] = {"type": type(error).__name__, "message": str(error)}
+        report["counts"] = _execution_counts(report["attempts"])
         report["ok"] = (report["execution_passed"] and report.get("source_was_committed") is True
                         and report["source_unchanged"] and report["git_status_after"] == ""
                         and report.get("close", {}).get("drained") is True
-                        and "cleanup_error" not in report and "post_snapshot_error" not in report)
+                        and "cleanup_error" not in report and "post_snapshot_error" not in report
+                        and report["counts"]["child_process_start_count_complete"]
+                        and report["counts"]["child_processes_started"] == report["planned_child_calls"]
+                        and report["counts"]["child_processes_reaped"] == report["planned_child_calls"]
+                        and report["counts"]["completed_observations"] == report["planned_child_calls"])
         if report["execution_passed"]:
             report["status"] = "passed" if report["ok"] else "execution_only_source_not_frozen"
         report["wall_ns"] = perf_counter_ns() - started
@@ -260,7 +300,7 @@ def main():
     arguments = parser.parse_args()
     report = qualify(arguments.output_directory, clang=arguments.clang)
     print(json.dumps({"ok": report["ok"], "status": report["status"],
-                      "execution_passed": report["execution_passed"], "actual_child_calls": len(report["attempts"])}))
+                      "execution_passed": report["execution_passed"], "counts": report["counts"]}))
     return 0 if report["ok"] else 1
 
 

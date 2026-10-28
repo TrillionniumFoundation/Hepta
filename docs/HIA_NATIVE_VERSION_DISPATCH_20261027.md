@@ -85,7 +85,8 @@ seconds, with a 3-second default.
 | Call already admitted | Keep its captured generation and sealed descriptor through native execution |
 | Roll back | Route future calls to the retained baseline; existing candidate calls continue |
 | Last inactive candidate call finishes | Close its descriptor and remove it from the version inventory |
-| Native return, trap, timeout or observer rejection | Release the dispatch reference in `finally` |
+| Native return, trap, timeout or observer rejection with confirmed child reap | Release the dispatch reference |
+| Child reap cannot be confirmed | Quarantine the call and retain its version/reference until a later confirmed reap |
 | Close | Reject new submissions/calls/activation; cancel publication and drain admitted work |
 
 A normal result is recorded as `status=returned`. A silent native SIGABRT is
@@ -114,9 +115,53 @@ Compiler failure also leaves the previous native entry available.
 while existing calls or a build still own resources. `close(wait=True,
 timeout=...)` waits within the explicit bound, then reports whether everything
 is drained. A timed-out close keeps that work tracked. `closed`/`drained` means
-all owned version descriptors have been released and no admitted call or
-compiler task remains; it is not a crash-recovery or distributed guarantee.
+all owned version descriptors have been released, no admitted call or compiler
+task remains, and no known native child is awaiting reap confirmation. It is
+not a crash-recovery or distributed guarantee.
 The class also provides a context manager for explicit host-owned lifetime.
+
+### Unconfirmed native cleanup
+
+A bounded native-child wait can fail even after SIGKILL was sent. Both ordinary
+and diagnostic observers now retain an explicit `NativeChildCleanup` owner and
+raise `NativeChildCleanupPending` when the direct child cannot be confirmed
+reaped. The dispatcher quarantines that actual call: its in-flight count and
+sealed version descriptor remain held, rollback cannot retire its image, and
+`close` keeps `drained=false`. This is a cleanup error, not a successful native
+return, a successful trap observation, or evidence that kernel resources vanished.
+Outermost observer cleanup checks the retained child state after file/channel
+teardown, so a secondary close exception cannot conceal an unconfirmed reap
+and release the image. Bounded secondary-error diagnostics remain attached to
+the cleanup owner.
+
+`retry_cleanup(timeout=...)` performs bounded reaps without executing another
+native entry. `close(wait=True)` also retries within its own overall deadline;
+`close(wait=False)` leaves unresolved ownership tracked. Once the original
+Popen confirms a direct-child exit status, the reference is released exactly
+once and the diagnostic handle reports recovery. Repeated retries and closes
+are idempotent. Reaping does not retrospectively accept the earlier failed
+native result or discard its diagnostic history.
+Reap attempts use a separate serialization lock with a bounded acquisition and
+recompute the remaining wait budget after acquiring it. Metadata snapshots do
+not wait behind a process wait; a concurrent retry cannot indirectly hold the
+dispatch admission lock through such a snapshot. These are bounded application
+waits, not a hard real-time scheduling guarantee.
+
+The original process group is signalled at most once before the first wait.
+Retries do not send signals to a numeric PGID that could have been reused after
+an interrupted wait. An uninterruptible kernel wait may therefore leave an
+explicit quarantine that a caller must retain and recover; no bounded-time
+kernel completion or crash-durable recovery is promised. Close/snapshot receipts
+are now v2 and expose quarantined call identities and cleanup state. Historical
+v1 receipts retain their original scope.
+
+Direct callers of the lower-level native observer receive the same pending
+exception and must retain its `cleanup` owner and retry `try_reap` until
+confirmation. That helper does not create a dispatcher quarantine or a global
+recovery service. The public differential runner can reject and close its
+parent-side artifact descriptor while propagating the exception; the child
+has its own inherited descriptor. Dispatcher image-lifetime and recovery
+claims apply when the caller retains the dispatcher until it reports drained.
 
 Example, using a verified Core document with the supported external wrappers:
 
@@ -249,6 +294,30 @@ It requires a new output directory outside the checkout and checkpoints failures
 `execution_passed` describes the seven actual controls; `ok` additionally requires
 committed unchanged source and fully drained tracked work. A development run on
 uncommitted source cannot become a frozen qualification through a success flag.
+
+The producer and loan-observation receipts are now v2. Counts separate attempted
+calls, positively observed child starts, confirmed direct-child reaps and
+completed control observations. A successful Popen proves child creation, not
+that the HIA entry was invoked: loader/setup failure is still possible. A loan
+handshake or canonical returned value records an observed native entry. Failed
+process creation without a returned PID retains an unavailable start outcome;
+it is not silently counted as zero or as a successful spawn. Missing entry
+evidence leaves `native_entry_invocations=null` with an explicit unavailable
+denominator. For the seven passing fixed controls, all seven children are
+observed/reaped, while the pre-loan SIGABRT still does not independently prove
+entry invocation or trap cause.
+
+`tests/test_hia_native_cleanup_quarantine.py` adds actual-child fault controls:
+it observes real exit with WNOWAIT before deliberately refusing reap confirmation,
+checks retained images and `drained=false`, and then uses the original wait to
+reap that exact child. It also exercises repeated close/recovery, diagnostic
+timeout, failed Popen, and a real child that stops before loading the HIA image.
+Additional controls combine a real exited child with injected temporary-file
+or pipe-close errors, and hold one actual reap while another thread requests
+a zero-timeout retry, a snapshot and a short close. The close errors occur after
+the real descriptor close, and test cleanup reaps every observed exited child
+even when exercising a defective implementation.
+No live orphan or synthetic successful native result is used by those controls.
 
 ```sh
 /usr/bin/python3 tools/qualify_hia_native_loans.py \
