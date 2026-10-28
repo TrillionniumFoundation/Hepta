@@ -50,10 +50,12 @@ def main(argv=None) -> int:
     hia_actions.add_parser("routes", help="Exact source, historical IR and backend compatibility inventory")
     for action in ("verify", "inspect", "run", "emit", "build", "lower", "patch", "normalize",
                    "impact", "import-executable", "import-scalar", "import-cpp-project",
-                   "import-cpp-matrix", "import-composite-v2", "upgrade-v7",
+                   "import-cpp-matrix", "import-cpp-composed-project", "import-cpp-composed-matrix",
+                   "import-composite-v2", "upgrade-v7",
                    "edit-query", "edit-apply", "edit-batch-query", "edit-batch-apply",
                    "verify-translation", "optimize", "verify-optimization",
-                   "fold-constants", "build-optimized"):
+                   "fold-constants", "build-optimized",
+                   "optimize-guarded", "verify-guarded", "build-guarded"):
         h = hia_actions.add_parser(action)
         h.add_argument("input", help="Standalone HIA JSON program; lower accepts Hepta source")
         if action in {"verify-translation", "optimize"}:
@@ -74,18 +76,22 @@ def main(argv=None) -> int:
             h.add_argument("--max-candidates", type=int, default=8,
                            help="Maximum finite proposals, from one through eight")
         if action in {"emit", "build", "lower", "patch", "normalize", "import-executable", "import-scalar",
-                      "import-cpp-project", "import-cpp-matrix", "import-composite-v2", "upgrade-v7",
+                      "import-cpp-project", "import-cpp-matrix", "import-cpp-composed-project", "import-cpp-composed-matrix",
+                      "import-composite-v2", "upgrade-v7",
                       "edit-query", "edit-apply", "edit-batch-query", "edit-batch-apply",
-                      "fold-constants", "build-optimized"}:
-            h.add_argument("--output", "-o", required=action in {"build", "build-optimized"})
-        if action in {"verify-optimization", "fold-constants", "build-optimized"}:
+                      "fold-constants", "build-optimized", "optimize-guarded", "build-guarded"}:
+            h.add_argument("--output", "-o", required=action in {"build", "build-optimized", "build-guarded"})
+        if action in {"verify-optimization", "fold-constants", "build-optimized",
+                      "optimize-guarded", "verify-guarded", "build-guarded"}:
             h.add_argument("--policy", help="Exact versioned optimization policy JSON")
-        if action in {"verify-optimization", "build-optimized"}:
+        if action in {"verify-optimization", "build-optimized", "verify-guarded", "build-guarded"}:
             h.add_argument("--candidate", required=True, help="Actual proposed HIA bytes, never a verification receipt")
-        if action in {"import-cpp-project", "import-cpp-matrix"}:
+        if action == "optimize-guarded":
+            h.add_argument("--maximum", type=int, help="Runtime byte-count guard; the complete original fallback remains")
+        if action in {"import-cpp-project", "import-cpp-matrix", "import-cpp-composed-project", "import-cpp-composed-matrix"}:
             h.add_argument("--clangxx", default="clang++")
             h.add_argument("--report", help="New file for the complete capture and declaration ledger")
-        if action == "import-cpp-matrix":
+        if action in {"import-cpp-matrix", "import-cpp-composed-matrix"}:
             h.add_argument("--variant", required=True, help="Exact declared variant to publish after all builds verify")
         if action == "import-composite-v2":
             h.add_argument("--report", help="New file for explicit legacy import and reverification provenance")
@@ -109,7 +115,7 @@ def main(argv=None) -> int:
             h.add_argument("--max-steps", type=int, default=1000000)
             h.add_argument("--max-heap-bytes", type=int, default=1048576)
             h.add_argument("--allocation-fail-at", type=int)
-        if action in {"build", "build-optimized"}:
+        if action in {"build", "build-optimized", "build-guarded"}:
             h.add_argument("--clang", default="clang")
             h.add_argument("--kind", choices=["shared", "object"], default="shared")
         if action in {"emit", "build"}:
@@ -118,6 +124,10 @@ def main(argv=None) -> int:
                            default="x86_64-unknown-linux-gnu")
         if action in {"lower", "import-executable", "import-scalar"}:
             h.add_argument("--module", default="migrated")
+        if action == "lower":
+            from .hia_schema import SCHEMA, SCHEMA_V8
+            h.add_argument("--core-schema", choices=[SCHEMA, SCHEMA_V8], default=SCHEMA,
+                           help="Explicit source lowering contract; v8 retains parameter-origin returned loans as calls")
         if action in {"import-executable", "import-scalar"}:
             h.add_argument("--source", required=True, help="Legacy origin authentication only")
             h.add_argument("--project-sha256", required=action == "import-scalar")
@@ -278,7 +288,7 @@ def main(argv=None) -> int:
     try:
         if args.command == "hia":
             from .hia_program import verify_program
-            from .hia_routes import admit_route, route_inventory
+            from .hia_routes import admit_route, admit_captured_cpp, route_inventory
             from .hia_program_tools import (read_bounded, decode_json, inspect_program,
                                             apply_program_patch, publish_program)
             if args.hia_action == "routes":
@@ -293,28 +303,10 @@ def main(argv=None) -> int:
                         stream.write("\n")
                 output_json(publish_program(program, args.output) if args.output else program.as_dict())
                 return 0
-            if args.hia_action == "import-cpp-matrix":
-                from .cpp_project_migrate import lower_cpp_project_matrix
-                migrated = lower_cpp_project_matrix(args.input, clangxx=args.clangxx)
-                programs = {variant["name"]: verify_program(variant.pop("program"))
-                            for variant in migrated["variants"]}
-                if args.variant not in programs:
-                    raise ValueError("Requested C++ variant is not declared in the matrix")
-                for variant in migrated["variants"]:
-                    variant["program_sha256"] = programs[variant["name"]].sha256
-                if args.report:
-                    with Path(args.report).open("x", encoding="utf-8") as stream:
-                        json.dump(migrated, stream, sort_keys=True, indent=2)
-                        stream.write("\n")
-                program = programs[args.variant]
-                output_json(publish_program(program, args.output) if args.output else program.as_dict())
-                return 0
-            if args.hia_action == "import-cpp-project":
-                from .cpp_project_migrate import lower_cpp_project
-                migrated = lower_cpp_project(args.input, clangxx=args.clangxx)
-                program = verify_program(migrated.pop("program"))
-                migrated.update(schema="hepta.hia.cpp-project-import.v1",
-                                program_sha256=program.sha256, native_executed=False)
+            if args.hia_action in {"import-cpp-matrix", "import-cpp-composed-matrix",
+                                   "import-cpp-project", "import-cpp-composed-project"}:
+                program, migrated = admit_captured_cpp(args.hia_action.removeprefix("import-"), args.input,
+                    clangxx=args.clangxx, variant=getattr(args, "variant", None))
                 if args.report:
                     with Path(args.report).open("x", encoding="utf-8") as stream:
                         json.dump(migrated, stream, sort_keys=True, indent=2)
@@ -332,7 +324,8 @@ def main(argv=None) -> int:
                 return 0
             if args.hia_action == "lower":
                 program = admit_route("hepta-source", read_bounded(args.input),
-                                      path=str(Path(args.input).absolute()), module=args.module)
+                                      path=str(Path(args.input).absolute()), module=args.module,
+                                      core_schema=args.core_schema)
                 result = publish_program(program, args.output) if args.output else program.as_dict()
                 output_json(result)
                 return 0
@@ -376,6 +369,30 @@ def main(argv=None) -> int:
                 # Malformed inputs and identity failures still raise to the
                 # driver's normal nonzero structured-error path.
                 return 0
+            if args.hia_action in {"optimize-guarded", "verify-guarded", "build-guarded"}:
+                from .hia_guarded_optimization import (propose_guarded_reduction,
+                    verify_guarded_optimization, build_guarded_native)
+                policy = decode_json(read_bounded(args.policy)) if args.policy else None
+                proposal = (propose_guarded_reduction(program, maximum=args.maximum)
+                            if args.hia_action == "optimize-guarded" else
+                            decode_json(read_bounded(args.candidate)))
+                if args.hia_action == "build-guarded":
+                    result = build_guarded_native(program, proposal, args.output,
+                                                  policy=policy, clang=args.clang, kind=args.kind)
+                    output_json(result)
+                    return 0
+                result = verify_guarded_optimization(program, proposal, policy)
+                if args.hia_action == "optimize-guarded":
+                    wrapper = {"schema": "hepta.hia.guarded-optimization-proposal.v1", "verification": result}
+                    if result["status"] == "verified":
+                        if args.output:
+                            wrapper["publication"] = publish_json_view(proposal, args.output)
+                        else:
+                            wrapper["proposal"] = proposal
+                    output_json(wrapper)
+                else:
+                    output_json(result)
+                return 0 if result["status"] == "verified" else 1
             if args.hia_action in {"verify-optimization", "fold-constants", "build-optimized"}:
                 from .hia_optimization import verify_optimization, fold_constants, build_optimized_native
                 policy = decode_json(read_bounded(args.policy)) if args.policy else None

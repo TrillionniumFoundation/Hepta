@@ -3,10 +3,11 @@
 The authority is this program's operations, not a source file, producer hash,
 claim, or source-checker receipt.  Blocks are closed: all incoming values are
 explicit block parameters.  The profile has 64-bit usize/isize, byte owners,
-lexical/reborrowed views, finite machine integers and non-escaping call loans.
-Versioned bulk-byte operations and v7 recursive byte-owner chains follow the
-shared schema registry. Composite v1/v2 normalize to primitive v6/v7 before
-the complete executable resource flow is checked.
+lexical/reborrowed views and finite machine integers. V8 admits explicitly
+parameter-bound returned loans through the return_loans contract; v1-v7 keep
+non-escaping call loans. Versioned bulk-byte operations and v7 recursive
+byte-owner chains follow the shared schema registry. Composite v1/v2/v3
+normalize to primitive v6/v7 before the complete resource flow is checked.
 
 This is an executable checker, not a machine-checked soundness/refinement proof.
 In particular explicit/arithmetic traps abort; cleanup is required at ordinary

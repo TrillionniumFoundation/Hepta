@@ -5,8 +5,10 @@ the finite profile `closed-ssa-parameter-loan-returns-64-v8`. The production
 authority remains `verify_core`. Python execution and direct LLVM compilation
 reverify the same immutable program bytes; a source or proof receipt cannot
 grant admission. Primitive v1–v7 retain their existing wire grammar and reject
-borrowed results and the new field. Composite v1/v2 still normalize exactly to
-primitive v6/v7.
+borrowed results and the new field. Composite v1/v2/v3 still normalize exactly to
+primitive v6/v7. The earlier development-branch spelling `return_origins` is
+not a second accepted v8 wire format. Current source producers and examples
+emit `return_loans`, and historical receipts keep their original bytes.
 
 ## Function contract
 

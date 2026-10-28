@@ -1,0 +1,9 @@
+{
+  "unreachable_provider_wrong_body": {
+    "status": "ACCEPTED",
+    "files": {
+      "api.rs": "pub fn advance(offset:u32,amount:u32,capacity:u32)->(bool,u32) { (false, 0) }\n",
+      "client.rs": "use crate::api;\npub fn entrypoint(offset:u32,amount:u32,capacity:u32)->u64 { if false { let _ = api::advance(offset,amount,capacity); } let end = (offset as u64) + (amount as u64); if end <= capacity as u64 { end } else { u64::MAX } }\n"
+    }
+  }
+}

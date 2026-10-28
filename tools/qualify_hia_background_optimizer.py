@@ -26,6 +26,7 @@ from hepta.hia_program_llvm import TARGET
 SCHEMA = "hepta.hia.background-optimization-qualification.v1"
 ROOT = Path(__file__).resolve().parents[1]
 _SOURCES = ("hepta/hia_background_optimizer.py", "hepta/hia_multiversion.py",
+            "hepta/hia_native_retirement.py", "hepta/native_mapping_identity.py",
             "hepta/hia_ndu_optimizer.py", "hepta/hia_translation_validation.py",
             "hepta/hia_program.py", "hepta/hia_program_runtime.py", "hepta/hia_program_llvm.py",
             "hepta/elf_shared_abi.py", "tools/build_hia_ndu_bridge.py",
@@ -177,6 +178,8 @@ def qualify(clang, bridge, bridge_build_receipt):
                 final = runtime.snapshot()
         closed = runtime.snapshot()
         require(closed["closed"] and not closed["generations"], "native generations survived final close")
+        require(closed["cleanup"]["observed_closed_and_directory_absent"],
+                "post-close owned native/file/directory cleanup was not observed complete")
     sources_after = source_identity()
     require(sources_before == sources_after, "qualification source changed during execution")
     trials = [actual_trial, controlled_trial, refused]

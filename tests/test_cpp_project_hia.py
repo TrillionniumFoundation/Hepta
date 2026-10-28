@@ -1,10 +1,12 @@
 """Concrete C++ project migration uses real capture, instantiation and HIA."""
 from copy import deepcopy
+import ctypes
 import hashlib
 import json
 import os
 from pathlib import Path
 import shutil
+import subprocess
 import tempfile
 import unittest
 
@@ -106,6 +108,33 @@ extern "C" unsigned int unsigned_entry(unsigned int x) noexcept { return n::sele
         with self.assertRaises(MigrationRejected) as caught:
             lower_cpp_project(db, clangxx=CLANGXX)
         self.assertEqual(caught.exception.code, "E_CPP_PROJECT_ODR")
+
+    def test_shared_scalar_lowering_is_lazy_and_does_not_shadow_source_function(self):
+        source = '''
+extern "C" int migration_conditional_1(int x) noexcept { return x+5; }
+extern "C" int probe(int c,int a) noexcept {
+    int x;
+    if(c) x=a; else return 7;
+    return migration_conditional_1(x)+(a ? 12/a : 0);
+}
+'''
+        db = self.database({"main.cpp": source})
+        migrated = lower_cpp_project(db, clangxx=CLANGXX)
+        from hepta.hia_program_llvm import build_program_native
+        target = self.root / "target.so"
+        build = build_program_native(migrated["program"], target, clang=CLANG)
+        self.assertTrue(build["ok"], build)
+        original = self.root / "original.so"
+        compiled = subprocess.run([CLANGXX, "-std=c++20", "-O2", "-shared", "-fPIC",
+                                   str(self.root / "main.cpp"), "-o", str(original)], capture_output=True)
+        self.assertEqual(compiled.returncode, 0, compiled.stderr)
+        cases = [([0, 0], 7), ([1, 0], 5), ([1, 3], 12), ([-1, -3], -2)]
+        for path in (original, target):
+            library = ctypes.CDLL(str(path))
+            library.probe.argtypes, library.probe.restype = [ctypes.c_int32, ctypes.c_int32], ctypes.c_int32
+            for arguments, expected in cases:
+                self.assertEqual(library.probe(*arguments), expected)
+                self.assertEqual(execute_program(migrated["program"], "probe", arguments)["result"], expected)
 
     def test_all_active_declarations_and_uncaptured_operations_fail_closed(self):
         examples = [

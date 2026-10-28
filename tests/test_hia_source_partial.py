@@ -17,6 +17,7 @@ from hepta.hia_heap_bound import qualify_live_heap_budget
 from hepta.hia_program import HIAProgramRejected, verify_program
 from hepta.hia_program_runtime import HIAProgramBudgetExceeded, HIAProgramTrap, execute_program
 from hepta.hia_program_source import HIAProgramSourceRejected, lower_program, lower_source
+from hepta.hia_schema import SCHEMA_V8
 from hepta.hia_static_budget import HIAStaticBudgetRejected, analyze_static_budget, qualify_vm_call_depth
 from hepta.parser import parse
 from hepta.resource_ir import verify_resource_ir
@@ -24,6 +25,12 @@ from hepta.resource_lowering import lower_resource_ir
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = (ROOT / 'examples/hia_program/source_partial_restore.hepta').read_text()
+RETURNED_SOURCE = (ROOT / 'examples/hia_program/source_partial_returned_calls.hepta').read_text()
+# cancel, allocation failure, result, allocations/frees, peak payload, attempts.
+# These expectations follow the fixture's two initial owners and explicit paths.
+RETURNED_CASES = ((False, None, 65, 3, 14, 3),
+                  (True, None, 17, 2, 8, 2),
+                  (False, 3, 18, 2, 8, 3))
 CLANG = os.environ.get('CLANG') or shutil.which('clang')
 DECL = 'struct Pair{left:Buffer<u8>,right:Buffer<u8>,tag:u64}'
 INIT = 'let mut p=Pair{left:buffer(3),right:buffer(5),tag:7};'
@@ -243,6 +250,113 @@ class HIASourcePartialTests(unittest.TestCase):
                     function = getattr(library, name)
                     function.argtypes, function.restype = types, ctypes.c_size_t
                     self.assertEqual(function(*arguments), expected)
+
+
+    @unittest.skipUnless(shutil.which('cargo'), 'Cargo unavailable: partial/returned-loan Rust parity NOT qualified')
+    def test_partial_restoration_returned_calls_match_independent_rust_vm(self):
+        from tests.test_hia_rust_owned_cfg import RustByteOwnerCfgParity
+
+        # Reuse the existing raw Rust protocol and complete-ledger comparator
+        # without inheriting additional discoverable tests or another runtime.
+        class Parity(unittest.TestCase):
+            execution_profile = 'bounded-cfg-byte-owner-loan-returns-v4'
+            raw_run = RustByteOwnerCfgParity.raw_run
+            parity = RustByteOwnerCfgParity.parity
+
+        core = lower_source(RETURNED_SOURCE, core_schema=SCHEMA_V8)
+        with patch('hepta.parser.parse', side_effect=AssertionError('canonical consumers must not parse source')):
+            canonical = verify_program(core.canonical_bytes)
+        self.assertEqual(canonical.sha256, core.sha256)
+        body = canonical.as_dict()
+        self.assertEqual(body['schema'], SCHEMA_V8)
+        self.assertEqual(body['exports'], ['probe'])
+        self.assertEqual(canonical.scalar_entrypoints, frozenset({'probe'}))
+        functions = {fn['name']: fn for fn in body['functions']}
+        self.assertEqual(set(functions), {'marker_word', 'view', 'edit', 'probe'})
+        for name in ('view', 'edit'):
+            fn = functions[name]
+            self.assertEqual(fn['return_loans'], [fn['params'][0]['name']])
+            self.assertNotIn('return_origins', fn)
+        calls = {op['attrs']['function'] for block in functions['probe']['blocks']
+                 for op in block['ops'] if op['op'] == 'call'}
+        self.assertEqual(calls, {'view', 'edit'})
+
+        RustByteOwnerCfgParity.setUpClass.__func__(Parity)
+        harness = Parity()
+        type(self).returned_call_rust = {
+            'program_sha256': canonical.sha256, 'program': body,
+            'build': Parity.build, 'executable': Parity.executable,
+            'observations': Parity.observations,
+        }
+        for choose in (False, True):
+            for cancel, failure, value, allocations, peak, attempts in RETURNED_CASES:
+                with self.subTest(choose=choose, cancel=cancel, failure=failure):
+                    rust = harness.parity(canonical, 'probe', [choose, cancel], fail=failure)
+                    python = Parity.observations[-1]['python']
+                    self.assert_clean(python, result=value, allocations=allocations, peak=peak)
+                    self.assertEqual(rust['values'], [value])
+                    self.assertEqual(rust['resources']['allocation_attempts'], attempts)
+                    self.assertEqual(rust['resources']['loans_started'], rust['resources']['loans_ended'])
+        self.assertEqual(len(Parity.observations), 6)
+
+    @unittest.skipUnless(CLANG, 'Clang unavailable: partial/returned-loan native execution NOT qualified')
+    def test_native_partial_restoration_returned_calls_use_independent_allocator_oracle(self):
+        from hepta.hia_program_llvm import compile_program_llvm, emit_program_llvm
+
+        core = lower_source(RETURNED_SOURCE, core_schema=SCHEMA_V8)
+        canonical = verify_program(core.canonical_bytes)
+        ir = emit_program_llvm(canonical)
+        self.assertEqual(ir.exports, ('probe',))
+        self.assertEqual(ir.profile, 'hepta.hia.program.llvm-linux-x86_64-parameter-loan-returns.v8')
+        # Keep the same actual allocator observer. Only its declared scalar
+        # entry and argv dispatch change; no source C ABI is inferred here.
+        observer = RESTORE_OBSERVER.replace('extern size_t restore_try(void);',
+                                            'extern size_t probe(_Bool, _Bool);')
+        observer = observer.replace('if(argc!=2)', 'if(argc!=4)')
+        observer = observer.replace('size_t value=restore_try();',
+                                    'size_t value=probe((_Bool)strtoul(argv[2],NULL,10),'
+                                    '(_Bool)strtoul(argv[3],NULL,10));')
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            source, object_path, executable = directory / 'observer.c', directory / 'core.o', directory / 'run'
+            source.write_text(observer)
+            with patch('hepta.parser.parse', side_effect=AssertionError('native compilation must use canonical Core')):
+                compiled = compile_program_llvm(ir, program=canonical,
+                                                output=object_path, clang=CLANG, kind='object')
+            self.assertTrue(compiled['ok'], compiled)
+            built = subprocess.run([CLANG, '-std=c11', '-O2', str(source), str(object_path),
+                                    '-Wl,--wrap=malloc', '-Wl,--wrap=calloc', '-Wl,--wrap=free',
+                                    '-o', str(executable)], capture_output=True, text=True, timeout=30)
+            record = type(self).returned_call_native = {
+                'program_sha256': core.sha256, 'program': core.as_dict(), 'llvm': ir.text,
+                'observer_source': observer, 'object_receipt': compiled,
+                'link': {'argv': built.args, 'returncode': built.returncode,
+                         'stdout': built.stdout, 'stderr': built.stderr}, 'observations': [],
+            }
+            self.assertEqual(built.returncode, 0, built.stderr)
+            retained = os.environ.get('HIA_SOURCE_PARTIAL_RETURNED_NATIVE_DIR')
+            if retained:
+                # Retain the exact built files for a caller collecting this
+                # finite regression; later process failures cannot erase them.
+                destination = Path(retained) / 'native'
+                shutil.copytree(directory, destination)
+                record['retained_artifacts'] = str(destination)
+            for choose in (False, True):
+                for cancel, failure, value, allocations, peak, attempts in RETURNED_CASES:
+                    with self.subTest(choose=choose, cancel=cancel, failure=failure):
+                        run = subprocess.run([str(executable), str(failure or 0),
+                                              str(int(choose)), str(int(cancel))],
+                                             capture_output=True, text=True, timeout=10)
+                        record['observations'].append({
+                            'choose': choose, 'cancel': cancel, 'allocation_fail_at': failure,
+                            'process': {'argv': run.args, 'returncode': run.returncode,
+                                        'stdout': run.stdout, 'stderr': run.stderr},
+                        })
+                        self.assertEqual(run.returncode, 0, run.stderr)
+                        self.assertEqual(run.stderr, '')
+                        self.assertEqual(json.loads(run.stdout), {
+                            'value': value, 'attempts': attempts, 'allocations': allocations,
+                            'frees': allocations, 'live_bytes': 0, 'peak_bytes': peak})
 
 
 if __name__ == '__main__':

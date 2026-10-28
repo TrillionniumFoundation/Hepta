@@ -173,6 +173,8 @@ class CTranslator:
         self.bindings: dict[str, Expression] = {}
         self.binding_modes: dict[str, str] = {}
         self.counter = 0
+        self.expression_helpers: list[str] = []
+        self.conditional_count = 0
         self.original_type_receipts: list[dict] = []
         self.parameter_sources: dict[str, bytes] = {}
         self.physical_source_files: dict[int, str | None] = {}
@@ -488,6 +490,8 @@ class CTranslator:
 
     def expr(self, node: dict) -> Expression:
         kind, children = node.get("kind"), node.get("inner", [])
+        if kind == "ConditionalOperator":
+            return self.scalar_conditional(node)
         if kind == "ParenExpr" and len(children) == 1:
             return self.expr(children[0])
         if kind in {"ImplicitCastExpr", "CStyleCastExpr"} and len(children) == 1:
@@ -600,6 +604,56 @@ class CTranslator:
             return Expression(target["hepta_name"] + "(" + ", ".join(args) + ")", target["return"], side)
         raise MigrationRejected("E_C_EXPRESSION", "Unsupported C expression: " + str(kind))
 
+    def scalar_conditional(self, node: dict) -> Expression:
+        """A pure scalar value conditional remains lazy inside a helper body.
+
+        Only existing scalar values are passed eagerly. Branch expressions,
+        including checked division and nested conditionals, execute inside the
+        selected helper branch. Slice/record captures and mutating calls reject.
+        This avoids an eager select that could evaluate an invalid unused arm.
+        """
+        children = node.get("inner", [])
+        typ = self.typ(node.get("type", {}))
+        if len(children) != 3 or typ not in NUMBER | {"bool"}:
+            raise MigrationRejected("E_C_CONDITIONAL", "Require three operands and a scalar conditional result")
+        from .c_allocation import nodes
+        captured = {}
+        for part in nodes(node):
+            if part.get("kind") != "DeclRefExpr":
+                continue
+            reference = part.get("referencedDecl", {})
+            if reference.get("kind") == "FunctionDecl":
+                continue
+            key = reference.get("id")
+            value = self.bindings.get(key)
+            if value is None or value.typ not in NUMBER | {"bool"} or value.side_effect:
+                raise MigrationRejected("E_C_CONDITIONAL", "Value conditionals may capture initialized pure scalar locals only")
+            captured.setdefault(key, value)
+        self.conditional_count += 1
+        name = "migration_conditional_" + str(self.conditional_count)
+        while name in {function["hepta_name"] for function in self.functions.values()}:
+            self.conditional_count += 1
+            name = "migration_conditional_" + str(self.conditional_count)
+        parameters, arguments = [], []
+        previous = self.bindings
+        self.bindings = dict(previous)
+        try:
+            for index, (key, value) in enumerate(captured.items()):
+                parameter = "argument_" + str(index)
+                parameters.append(parameter + ": " + value.typ)
+                arguments.append(value.text)
+                self.bindings[key] = Expression(parameter, value.typ)
+            condition = truth(self.expr(children[0]))
+            yes, no = (cast(self.expr(child), typ) for child in children[1:])
+            if any(value.side_effect for value in (condition, yes, no)):
+                raise MigrationRejected("E_C_EVALUATION_ORDER", "Mutating value conditionals require a separate sequencing model")
+        finally:
+            self.bindings = previous
+        self.expression_helpers.append(
+            f"fn {name}({', '.join(parameters)}) -> {typ} effects {{panic, write}} {{\n"
+            f"    if {condition.text} {{ return {yes.text}; }} else {{ return {no.text}; }}\n}}")
+        return Expression(name + "(" + ", ".join(arguments) + ")", typ)
+
     def arithmetic(self, lhs: Expression, rhs: Expression, op: str, typ: str) -> Expression:
         if op not in {"+", "-", "*", "/", "%", "&", "|", "^", "<<", ">>"} or typ not in NUMBER:
             raise MigrationRejected("E_C_OPERATOR", "Unsupported arithmetic operator/type: " + str(op))
@@ -634,10 +688,15 @@ class CTranslator:
         if kind == "DeclStmt":
             output = []
             for child in children:
-                if child.get("kind") != "VarDecl" or child.get("storageClass") or len(child.get("inner", [])) != 1:
-                    raise MigrationRejected("E_C_LOCAL", "Locals require one initializer and ordinary automatic storage")
+                if child.get("kind") != "VarDecl" or child.get("storageClass") or len(child.get("inner", [])) > 1:
+                    raise MigrationRejected("E_C_LOCAL", "Locals require at most one initializer and ordinary automatic storage")
                 typ = self.typ(child["type"])
-                value = cast(self.expr(child["inner"][0]), typ)
+                if child.get("inner"):
+                    value = cast(self.expr(child["inner"][0]), typ)
+                elif typ in NUMBER | {"bool"} and self.current.get("definite_assignment", {}).get("checked"):
+                    value = Expression("false", "bool") if typ == "bool" else self._numeric("0.0" if typ in {"f32", "f64"} else "0", typ)
+                else:
+                    raise MigrationRejected("E_C_LOCAL", "Deferred initialization requires a checked scalar local")
                 self.counter += 1
                 name = "v_" + ident(child["name"]) + "_" + str(self.counter)
                 self.bindings[child["id"]] = Expression(name, typ)
@@ -749,6 +808,8 @@ class CTranslator:
         reports = []
         for key, fn in sorted(self.functions.items()):
             self.current, self.bindings, self.binding_modes, self.counter = fn, {}, {}, 0
+            from .c_definite_assignment import check_definite_assignment
+            fn["definite_assignment"] = check_definite_assignment(fn, lambda data: self.typ(data) in NUMBER | {"bool"})
             parameters, entry = [], []
             for param in fn["params"]:
                 pname = "p_" + param["name"]
@@ -771,7 +832,7 @@ class CTranslator:
             fn["inventory"].update(status="function_converted", reason=None)
             reports.append({k: v for k, v in fn.items() if k not in {"body", "node", "inventory", "model", "shape"}})
             reports[-1]["params"] = [{k: v for k, v in param.items() if k != "id"} for param in fn["params"]]
-        source = "\n\n".join(pieces) + "\n"
+        source = "\n\n".join(pieces + self.expression_helpers) + "\n"
         return source, self.bridge(), reports
 
     @staticmethod

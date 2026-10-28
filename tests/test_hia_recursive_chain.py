@@ -57,6 +57,8 @@ class HIARecursiveChainTests(unittest.TestCase):
         self.assertTrue(supports_feature(SCHEMA_V7, "recursive_chain"))
         self.assertFalse(supports_feature(SCHEMA_V6, "recursive_chain"))
         self.assertEqual(schema_registry()["latest_core_schema"], SCHEMA_V8)
+        self.assertFalse(supports_feature(SCHEMA_V7, "parameter_loan_returns"))
+        self.assertTrue(supports_feature(SCHEMA_V8, "parameter_loan_returns"))
         self.assertIn("v7", profile_for_schema(COMPOSITE_SCHEMA_V2))
         for name, program in self.programs.items():
             with self.subTest(name=name):

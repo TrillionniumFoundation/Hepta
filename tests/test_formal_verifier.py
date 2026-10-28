@@ -224,6 +224,15 @@ class FormalNativeEvidenceTests(unittest.TestCase):
             real_executable = Path(self.lean).resolve()
             copied = install / "bin/lean"
             shutil.copy2(real_executable, copied)
+            # Replace the path after the real probe. Opening a recently
+            # executed inode for append can raise ETXTBSY on a CI host before
+            # the identity guard is reached; an atomic replacement models the
+            # same changed-executable obligation without depending on that
+            # kernel scheduling window.
+            replacement = install / "bin/lean-replacement"
+            shutil.copy2(real_executable, replacement)
+            with replacement.open("ab") as stream:
+                stream.write(b"changed after actual pinned version probe")
             (install / "lib").symlink_to(real_executable.parent.parent / "lib", target_is_directory=True)
             real_run = subprocess.run
             executed = []
@@ -232,8 +241,7 @@ class FormalNativeEvidenceTests(unittest.TestCase):
                 proc = real_run(argv, **kwargs)
                 executed.append(argv)
                 if argv[1] == "--version":
-                    with copied.open("ab") as stream:
-                        stream.write(b"changed after actual pinned version probe")
+                    os.replace(replacement, copied)
                 return proc
 
             output = root / "result.json"

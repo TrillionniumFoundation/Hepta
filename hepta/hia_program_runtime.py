@@ -465,6 +465,7 @@ class _Machine:
                         continue
                     value, parent = values[index], bindings[origin]
                     _underlying(value)
+                    _underlying(parent)
                     if (not isinstance(value, _View) or not isinstance(parent, _View)
                             or typ == "mutbuf" and (not value.mutable or not parent.mutable)):
                         raise HIAProgramRejected("returned view permission invariant", "E_HIA_RUNTIME_INVARIANT")

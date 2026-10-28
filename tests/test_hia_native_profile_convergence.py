@@ -3,14 +3,16 @@ from __future__ import annotations
 
 import copy
 import importlib.util
+import json
 import os
 from pathlib import Path
 import shutil
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from hepta.hia_multiversion import (MultiversionRejected, PublicationCancellation,
-    ScalarMultiversionRuntime, _admissible, _assess_measurement, _measurement_snapshot)
+    ScalarMultiversionRuntime, _admit, _admissible, _assess_measurement, _measurement_snapshot)
 from hepta.hia_program import HIAProgramRejected, verify_program
 from hepta.hia_program_llvm import build_program_native
 from hepta.hia_program_runtime import execute_program
@@ -27,6 +29,22 @@ def policy_input():
 
 
 class NativeProfileBoundaryTests(unittest.TestCase):
+    def test_proved_total_opt_in_keeps_version_and_resource_admission_boundaries(self):
+        v8 = transition_program(version=8)
+        byte = resource_program()
+        byte["schema"] = "hepta.hia.program.v7"
+        hidden = transition_program()
+        hidden["functions"].append(f("release", [("owner", "chain")], [], ["alloc"],
+            [b("entry", [("owner", "chain")], [i("owner.drop", ["owner"])], ret())]))
+        hidden["exports"] = ["transition"]
+        for source in (v8, byte, hidden):
+            with self.subTest(schema=source["schema"], functions=len(source["functions"])):
+                verify_program(source)
+                with patch("hepta.hia_scalar_totality.validate_scalar_totality") as totality:
+                    with self.assertRaises(MultiversionRejected):
+                        _admit(source, prove_total=True)
+                    totality.assert_not_called()
+
     def test_v8_keeps_core_execution_but_refuses_lifecycle_and_specialization(self):
         source = transition_program(version=8)
         self.assertEqual(execute_program(source, "transition", [7, 5])["result"], 12)
@@ -181,6 +199,103 @@ class NativeLifecycleConvergenceTests(unittest.TestCase):
             self.assertFalse(result["measurement_admission"]["claims"]["general_performance_improvement_proved"])
             for args in ((0, 0), (0xFFFFFFFF, 0), (17, 29)):
                 self.assertEqual(runtime.call("calculate", list(args)), oracle(*args))
+
+    def test_measured_identity_refusal_retains_cleanup_without_publication(self):
+        # These synthetic timings exercise admission composition; no performance
+        # advantage is measured or claimed by this negative control.
+        from tools.qualify_hia_specialization import workload, oracle
+        baseline = workload()
+        candidate = propose_guarded_specializations(baseline, function="calculate",
+            assumptions=[{"parameter": "mask", "value": 0}])[0]["program"]
+        with ScalarMultiversionRuntime(baseline, self.directory, clang=self.clang,
+                                       validation_timeout_ms=5000) as runtime:
+            old = runtime.snapshot()["generations"][0]
+            measurement = policy_input()
+            measurement.update(before_sha256=verify_program(baseline).sha256,
+                               after_sha256=verify_program(candidate).sha256,
+                               before_artifact_sha256=old["artifact_sha256"],
+                               after_artifact_sha256="0" * 64, function="calculate")
+            token = PublicationCancellation()
+            target = runtime._directory / "generation-1.so"
+            original_unlink = Path.unlink
+
+            def deny_candidate_unlink(path, *args, **kwargs):
+                if path == target:
+                    raise PermissionError(13, "controlled candidate unlink refusal")
+                return original_unlink(path, *args, **kwargs)
+
+            with patch.object(Path, "unlink", deny_candidate_unlink):
+                with self.assertRaisesRegex(MultiversionRejected, "measurement native identity"):
+                    runtime.publish_if_current(candidate, 0, expected_epoch=0,
+                        max_prepare_ns=10_000_000_000, cancellation=token, measurement=measurement)
+            snapshot = runtime.snapshot()
+            self.assertEqual(snapshot["current_generation"], 0)
+            self.assertEqual(snapshot["selection_epoch"], 0)
+            self.assertFalse(token.committed())
+            self.assertEqual(len(snapshot["cleanup"]["pending"]), 1)
+            pending = snapshot["cleanup"]["pending"][0]
+            self.assertEqual(pending["cause"], "prepared_but_not_selected")
+            self.assertTrue(pending["native_release_succeeded"])
+            self.assertEqual(runtime.call("calculate", [17, 29]), oracle(17, 29))
+            self.assertEqual(runtime.retry_cleanup()["pending"], [])
+            self.assertFalse(target.exists())
+
+    def test_qualifier_retention_failure_transfers_cleanup_to_the_runtime_owner(self):
+        from tools import qualify_hia_native_lifecycle_convergence as qualification
+
+        output = self.directory / "retention-failure"
+        runtimes, disposals = [], []
+        actual_dispose = ScalarMultiversionRuntime._dispose
+        actual_copy = shutil.copyfile
+        actual_unlink = Path.unlink
+
+        def construct(*args, **kwargs):
+            runtime = ScalarMultiversionRuntime(*args, **kwargs)
+            runtimes.append(runtime)
+            return runtime
+
+        def record_disposal(runtime, generation, *args, **kwargs):
+            disposals.append((generation, kwargs["cause"]))
+            return actual_dispose(runtime, generation, *args, **kwargs)
+
+        def fail_retention(source, destination, *args, **kwargs):
+            if Path(destination).name == "prepared-generation-1.so":
+                raise PermissionError(13, "controlled retained-copy refusal")
+            return actual_copy(source, destination, *args, **kwargs)
+
+        def deny_candidate_unlink(path, *args, **kwargs):
+            if path.name == "generation-1.so":
+                raise PermissionError(13, "controlled candidate unlink refusal")
+            return actual_unlink(path, *args, **kwargs)
+
+        with patch.object(qualification, "ScalarMultiversionRuntime", side_effect=construct), \
+             patch.object(ScalarMultiversionRuntime, "_dispose", record_disposal), \
+             patch.object(shutil, "copyfile", fail_retention), \
+             patch.object(Path, "unlink", deny_candidate_unlink):
+            with self.assertRaisesRegex(PermissionError, "controlled retained-copy refusal"):
+                qualification.run(output, clang=self.clang, rustc=self.rustc)
+
+        self.assertEqual(len(runtimes), 1)
+        self.assertEqual([row for row in disposals if row[0] == 1],
+                         [(1, "qualification_retention_failed")])
+        snapshot = json.loads((output / "runtime-after-close.json").read_text())
+        self.assertTrue(snapshot["closed"])
+        self.assertEqual(snapshot["generations"], [])
+        self.assertFalse(snapshot["cleanup"]["observed_closed_and_directory_absent"])
+        self.assertEqual(len(snapshot["cleanup"]["pending"]), 1)
+        pending = snapshot["cleanup"]["pending"][0]
+        self.assertEqual(pending["cause"], "qualification_retention_failed")
+        self.assertTrue(pending["native_attempted"])
+        self.assertTrue(pending["native_release_succeeded"])
+        self.assertEqual(pending["disk"]["status"], "error")
+        self.assertFalse((output / "qualification.json").exists())
+        self.assertFalse((output / "paired-native-samples.stdout").exists())
+        # Retry only the owned filesystem cleanup. A completed native release
+        # must not be attempted again when the copy observer itself failed.
+        with patch("_ctypes.dlclose", side_effect=AssertionError("native release retried")):
+            cleaned = runtimes[0].retry_cleanup()
+        self.assertEqual(cleaned["pending"], [])
+        self.assertTrue(cleaned["observed_closed_and_directory_absent"])
 
 
 if __name__ == "__main__":

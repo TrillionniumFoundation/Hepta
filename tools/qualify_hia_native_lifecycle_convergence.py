@@ -26,7 +26,7 @@ if str(ROOT) not in sys.path:
 
 from hepta.hia_multiversion import (MEASUREMENT_SCHEMA, MultiversionRejected,
     PublicationCancellation, ScalarMultiversionRuntime, _admissible,
-    _assess_measurement, _measurement_snapshot, _remove_own_file, _unload)
+    _assess_measurement, _measurement_snapshot)
 from hepta.hia_program import HIAProgramRejected, verify_program
 from hepta import hia_program_llvm as llvm_backend
 from hepta.hia_program_llvm import _implementation_hash, build_program_native, emit_program_llvm
@@ -57,6 +57,7 @@ PROTOCOL = {
     "state_scope": "one host-owned u64 scalar; no heap/loan/stack migration or crash durability",
 }
 _BINDINGS = ("hepta/hia_multiversion.py", "hepta/hia_scalar_state.py", "hepta/hia_specialization.py",
+             "hepta/hia_native_retirement.py", "hepta/native_mapping_identity.py",
              "hepta/hia_translation_validation.py", "hepta/hia_program.py", "hepta/hia_program_runtime.py",
              "hepta/hia_program_llvm.py", "tools/qualify_hia_native_lifecycle_convergence.py")
 
@@ -260,9 +261,18 @@ def _run(output, *, clang, rustc, expected_head, native_commands):
                 shutil.copyfile(prepared.artifact, retained_path)
                 if _digest(retained_path) != prepared.info.artifact_sha256:
                     raise AssertionError("retained actual generation bytes changed")
-            except BaseException:
-                _unload(prepared.library, prepared.functions, prepared.fd)
-                _remove_own_file(prepared.artifact, prepared.inode)
+            except BaseException as failure:
+                # The observer has not returned this preparation to publish.
+                # Transfer its complete ownership to the same runtime ledger;
+                # never create a second owner or retry native release here.
+                try:
+                    runtime._dispose(prepared.info.generation, prepared.library,
+                        prepared.functions, prepared.fd, prepared.artifact,
+                        prepared.inode, prepared.identity_pin,
+                        cause="qualification_retention_failed")
+                except BaseException as cleanup_failure:
+                    failure.add_note("runtime retention cleanup raised "
+                        + type(cleanup_failure).__name__ + ": " + str(cleanup_failure))
                 raise
             return prepared
 
@@ -375,12 +385,18 @@ def _run(output, *, clang, rustc, expected_head, native_commands):
         refuse("wrong-semantics-control", wrong, wrong_measurement, "did not prove")
         runtime_after_controls = runtime.snapshot()
     finally:
-        runtime.close()
-        if candidate_lease is not None:
-            candidate_lease.close()
-    after_close = runtime.snapshot()
-    if after_close["generations"]:
-        raise AssertionError("native generations did not drain after close and lease release")
+        try:
+            runtime.close()
+        finally:
+            try:
+                if candidate_lease is not None:
+                    candidate_lease.close()
+            finally:
+                after_close = runtime.snapshot()
+                _write(output / "runtime-after-close.json", after_close)
+    if (after_close["generations"]
+            or after_close["cleanup"]["observed_closed_and_directory_absent"] is not True):
+        raise AssertionError("native generations or cleanup ownership did not drain after close and lease release")
     v8 = transition_program(version=8)
     v8_proof = validate_translation(v8, v8, function="transition")
     if execute_program(v8, "transition", [7, 5])["result"] != 12 or v8_proof["status"] != "unknown":

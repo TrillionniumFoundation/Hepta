@@ -24,6 +24,7 @@ from .ast import Expr, Function, MatchArm, Program, Stmt, Type
 from .checker import check
 from .parser import parse
 from .hia_program import HIAProgramRejected, VerifiedProgram, verify_program
+from .hia_schema import SCHEMA as SCHEMA_V1, SCHEMA_V8
 
 
 class HIAProgramSourceRejected(ValueError):
@@ -202,8 +203,11 @@ class _State:
 
 
 class _Lower:
-    def __init__(self, program: Program, checked, module: str | None, *, exports):
+    def __init__(self, program: Program, checked, module: str | None, *, exports, core_schema=SCHEMA_V1):
+        if type(core_schema) is not str or core_schema not in {SCHEMA_V1, SCHEMA_V8}:
+            _reject("source lowering supports explicit Core v1 or returned-loan Core v8")
         self.program, self.checked = program, checked
+        self.core_schema = core_schema
         self.module = module or program.name
         self.structs = {s.name: s for s in program.structs}
         self.functions = {f.name: f for f in program.functions}
@@ -627,7 +631,7 @@ class _Lower:
         fn = self.functions.get(name)
         if fn is None or fn.extern_c:
             _reject("foreign or unknown call " + str(name))
-        if fn.return_mode != "value":
+        if fn.return_mode != "value" and self.core_schema != SCHEMA_V8:
             return self.inline_borrow_return(state, fn, arguments)
         signature = self.signatures[name]
         args = [atom for key in arguments for atom in self.get(state, key).atoms]
@@ -638,8 +642,17 @@ class _Lower:
         for atom, leaf in zip(args, types):
             if leaf == "buffer":
                 self.consume(state, atom)
-        count = len(self.layout(fn.return_type))
-        result = self.value(state, typ, atoms[:count])
+        result_types = [leaf for _, leaf in self.layout(fn.return_type, fn.return_mode)]
+        count = len(result_types)
+        origin_argument = None
+        if fn.return_mode != "value":
+            origin_argument = arguments[next(i for i, p in enumerate(fn.params) if p.name == fn.return_origin)]
+            parent = self.get(state, origin_argument)
+            result = self.value(state, typ, atoms[:count], result_types,
+                                loans=[*parent.loans, *atoms[:count]], origin=parent.origin,
+                                borrow_mode=fn.return_mode, borrow_parents=[origin_argument])
+        else:
+            result = self.value(state, typ, atoms[:count], result_types)
         offset = count
         for param, key in zip(fn.params, arguments):
             value = state.values[key]
@@ -651,7 +664,8 @@ class _Lower:
                 for part, leaf in zip(indices, value.types):
                     if leaf not in _RESOURCE:
                         original.atoms[part] = atoms[offset]; offset += 1
-            self.end_loans(state, key)
+            if key != origin_argument:
+                self.end_loans(state, key)
         return state, result
 
     def inline_borrow_return(self, state, fn, arguments):
@@ -849,6 +863,7 @@ class _Lower:
         entry = {"id": f"b{self.block_serial}", "params": [], "ops": [], "term": None}
         self.blocks.append(entry)
         state = _State(entry, {}, {}, set())
+        origins = {}
         for param in fn.params:
             leaves = self.layout(param.type, param.mode)
             atoms = []
@@ -857,6 +872,7 @@ class _Lower:
                 entry["params"].append({"name": name, "type": typ})
                 atoms.append(name)
             key = self.value(state, param.type, atoms, [typ for _, typ in leaves])
+            origins[param.name] = list(atoms)
             state.env[param.name] = key
             if param.mode == "mut":
                 self.mutable_parameters.append(key)
@@ -869,9 +885,12 @@ class _Lower:
                        for atom, leaf in zip(state.values[key].atoms, state.values[key].types)
                        if leaf not in _RESOURCE]
             state.block["term"] = {"op": "ret", "values": outputs}
-        return {"name": fn.name, "params": entry["params"],
+        result = {"name": fn.name, "params": entry["params"],
                 "returns": self.signatures[fn.name]["returns"], "effects": [],
                 "entry": entry["id"], "blocks": self.blocks}
+        if self.core_schema == SCHEMA_V8 and fn.return_mode != "value":
+            result["return_loans"] = [origins[fn.return_origin][0]] + [None] * (len(result["returns"]) - 1)
+        return result
 
     def lower(self):
         if not self.checked.ok or self.checked.assumptions:
@@ -886,7 +905,14 @@ class _Lower:
                 _reject("unsupported function contract " + fn.name)
             if fn.return_lifetime:
                 _reject("stored lifetime returns are outside this profile")
-            if fn.return_mode != "value":
+            if fn.return_mode != "value" and self.core_schema == SCHEMA_V8:
+                origin = next((p for p in fn.params if p.name == fn.return_origin), None)
+                if (origin is None or origin.mode not in {"read", "mut"}
+                        or origin.type.name not in {"Buffer", "slice"}
+                        or self.layout(origin.type, origin.mode) not in [[((), "readbuf")], [((), "mutbuf")]]
+                        or self.layout(fn.return_type, fn.return_mode) not in [[((), "readbuf")], [((), "mutbuf")]]):
+                    _reject("v8 borrowed return requires one explicit byte-view parameter origin")
+            elif fn.return_mode != "value":
                 if len(fn.body) != 1 or fn.body[0].kind != "return":
                     _reject("every borrow-return declaration must be an inline projection helper")
                 projection = fn.body[0].data["expr"]
@@ -905,12 +931,15 @@ class _Lower:
                                 or fn.return_type.name not in _SCALARS | {"Unit"}):
                 _reject("aggregate scalarization does not preserve a public C ABI")
             self.signatures[fn.name] = {"params": params, "returns": returns}
-        functions = [self.function(fn) for fn in self.program.functions if fn.return_mode == "value"]
+        functions = [self.function(fn) for fn in self.program.functions
+                     if fn.return_mode == "value" or self.core_schema == SCHEMA_V8]
         # Infer a conservative effect fixed point from actual emitted operations.
         by_name = {fn["name"]: fn for fn in functions}
         effects, calls = {}, {}
         for fn in functions:
             local, invoked = set(), set()
+            if any(typ in {"readbuf", "mutbuf"} for typ in fn["returns"]):
+                local.add("read")
             for block in fn["blocks"]:
                 if block["term"]["op"] == "trap":
                     local.add("trap")
@@ -936,7 +965,7 @@ class _Lower:
                     effects[name] = combined; changed = True
         for name, fn in by_name.items():
             fn["effects"] = sorted(effects[name])
-        return {"schema": "hepta.hia.program.v1", "module": self.module,
+        return {"schema": self.core_schema, "module": self.module,
                 "exports": list(self.exports), "functions": functions}
 
 
@@ -973,33 +1002,37 @@ def _prepare(program):
     return program, fresh, instances, exports
 
 
-def lower_program(program: Program, checked=None, *, module: str | None = None) -> VerifiedProgram:
+def lower_program(program: Program, checked=None, *, module: str | None = None,
+                  core_schema: str = SCHEMA_V1) -> VerifiedProgram:
     """Lower an actual AST directly; the supplied check receipt is never trusted.
 
     Rechecking binds expression types to these AST objects.  No source text is
     generated, reparsed or needed by the resulting HIA executable program.
     """
     program, fresh, _, exports = _prepare(program)
-    return verify_program(_Lower(program, fresh, module, exports=exports).lower())
+    return verify_program(_Lower(program, fresh, module, exports=exports, core_schema=core_schema).lower())
 
 
-def lower_source(source: str, *, path="<hia-source>", module: str | None = None) -> VerifiedProgram:
+def lower_source(source: str, *, path="<hia-source>", module: str | None = None,
+                 core_schema: str = SCHEMA_V1) -> VerifiedProgram:
     """Parse once at the source boundary, then lower/check the standalone HIA."""
     if type(source) is not str or len(source.encode("utf-8")) > 1024 * 1024:
         _reject("source must be UTF-8 text within the one MiB limit")
-    return lower_program(parse(source, path), module=module)
+    return lower_program(parse(source, path), module=module, core_schema=core_schema)
 
 
-def source_report(source: str, *, path="<hia-source>", module: str | None = None) -> dict:
+def source_report(source: str, *, path="<hia-source>", module: str | None = None,
+                  core_schema: str = SCHEMA_V1) -> dict:
     """Describe the exact finite source adaptation without claiming refinement."""
     program = parse(source, path)
     concrete, checked, instances, exports = _prepare(program)
-    result = verify_program(_Lower(concrete, checked, module, exports=exports).lower())
+    result = verify_program(_Lower(concrete, checked, module, exports=exports, core_schema=core_schema).lower())
     emitted = {fn["name"] for fn in result.as_dict()["functions"]}
     specialized = {row["template"] for row in instances if row["kind"] == "fn"}
     return {"schema": "hepta.hia-source-lowering.v1", "ok": True,
             "source_sha256": hashlib.sha256(source.encode()).hexdigest(),
             "program_sha256": result.sha256,
+            "core_schema": core_schema,
             "functions": [{"name": fn.name, "status": ("template_specialized" if fn.name in specialized else "template_uninstantiated")
                            if fn.type_params else "lowered" if fn.name in emitted else "inlined_borrow_projection"}
                           for fn in program.functions],
@@ -1007,6 +1040,7 @@ def source_report(source: str, *, path="<hia-source>", module: str | None = None
                                  "scalarized_record" if row["kind"] == "record" else "inlined_borrow_projection"}
                                 for row in instances],
             "claims": {"standalone_program": True, "direct_ast_to_cfg": True,
+                       "primitive_returned_loans": core_schema == SCHEMA_V8,
                        "closed_generic_instances_checked": True,
                        "all_possible_generic_instantiations_proved": False,
                        "source_text_required_for_execution": False,

@@ -9,7 +9,7 @@ import hashlib
 import json
 import os
 from dataclasses import asdict, fields, is_dataclass
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import shutil
 import subprocess
 import tempfile
@@ -535,10 +535,101 @@ def toolchain_info(rustc: str) -> dict:
             "sysroot_discovery": "verified_compiler_prefix" if sysroot else "compiler_default"}
 
 
+def _linker_probe_acceptance(*, system: str, path: str, argv: list[str],
+                             returncode: int, stdout: str, stderr: str) -> str | None:
+    """Identity protocol only, never a successful native compilation result.
+
+    Two actual Windows CI jobs observed this exact MSVC version printing its
+    complete help with status 1100. No other nonzero status, host or tool version
+    is qualified by those observations. The caller separately binds tool bytes.
+    """
+    if returncode == 0 and (stdout.strip() or stderr.strip()):
+        return "zero_exit_readable_identity"
+    selected = PureWindowsPath(path)
+    if (system == "nt" and selected.is_absolute()
+            and selected.name.casefold() == "link.exe" and argv == [path, "/?"]
+            and returncode == 1100 and stderr == ""
+            and stdout.splitlines()
+            and stdout.splitlines()[0] == "Microsoft (R) Incremental Linker Version 14.51.36260.0"
+            and "usage: LINK [options] [files] [@commandfile]" in {line.strip() for line in stdout.splitlines()}
+            and "fatal error" not in stdout.lower() and "error lnk" not in stdout.lower()):
+        return "observed_windows_msvc_14.51.36260.0_help_exit_1100_identity_only"
+    return None
+
+
+def linker_info(explicit: str) -> dict:
+    """Bind one caller-selected absolute linker without consulting PATH.
+
+    The probe and digest identify the selected tool; they do not prove its
+    correctness or defend an adversarial build host. Consumers may additionally
+    require a particular family, as the actual Windows component gate does.
+    """
+    from base64 import b64encode
+    from .clang_capture import CaptureRejected, run_bounded
+    evidence = {"requested_path": explicit if isinstance(explicit, str) else repr(explicit),
+                "stage": "validate_absolute_path", "probe": None}
+    try:
+        if not isinstance(explicit, str) or not explicit or not Path(explicit).is_absolute():
+            raise ValueError("explicit linker must be an absolute path")
+        path = Path(explicit).resolve(strict=True)
+        evidence.update(path=str(path), stage="check_regular_executable_before_probe")
+        if not os.access(path, os.X_OK):
+            raise ValueError("selected linker is not executable")
+        before = digest_executable(path)
+        evidence["sha256_before_probe"] = before
+        command = [str(path), "/?" if path.name.casefold() == "link.exe" else "--version"]
+        evidence.update(stage="bounded_identity_probe", probe={"argv": command,
+            "timeout_seconds": 15, "stdout_limit_bytes": 65536, "stderr_limit_bytes": 65536})
+        probe = run_bounded(command, timeout=15, stdout_limit=65536, stderr_limit=65536)
+        evidence["probe"].update(returncode=probe.returncode, stdout=probe.stdout, stderr=probe.stderr,
+            text_normalization="UTF-8 with CRLF/CR normalized to LF by bounded capture",
+            stdout_normalized_sha256=sha256(probe.stdout.encode()),
+            stderr_normalized_sha256=sha256(probe.stderr.encode()))
+        evidence["stage"] = "check_regular_executable_after_probe"
+        after = digest_executable(path)
+        evidence["sha256_after_probe"] = after
+        evidence["stage"] = "probe_acceptance"
+        policy = _linker_probe_acceptance(system=os.name, path=str(path), argv=command,
+            returncode=probe.returncode, stdout=probe.stdout, stderr=probe.stderr)
+        evidence["probe_acceptance_policy"] = policy
+        if before != after or not os.access(path, os.X_OK) or policy is None:
+            raise ValueError("selected linker changed or its identity probe failed")
+        return {"path": str(path), "executable_sha256": after,
+                "selection": "explicit_absolute_path_not_PATH",
+                "probe_acceptance_policy": policy,
+                "probe": {"argv": command, "returncode": probe.returncode,
+                          "stdout": probe.stdout, "stderr": probe.stderr},
+                "unchanged_after_probe": True}
+    except (OSError, RuntimeError, ValueError) as exc:
+        # Preserve failure observations without converting a failed probe into
+        # an accepted identity. Non-UTF8 bytes remain raw, bounded, and hashable.
+        if isinstance(exc, CaptureRejected):
+            evidence["capture_error"] = {"code": exc.code, "message": str(exc)}
+            if exc.capture is not None:
+                capture = exc.capture
+                evidence["probe"].update(argv=list(capture.command), returncode=capture.returncode)
+                for name in ("stdout", "stderr"):
+                    data = getattr(capture, name)
+                    evidence["probe"][name + "_raw"] = {"base64": b64encode(data).decode("ascii"),
+                        "sha256": sha256(data), "retained_bytes": len(data),
+                        "total_bytes": getattr(capture, name + "_total_bytes")}
+            if exc.capture_error is not None:
+                evidence["capture_read_error"] = exc.capture_error
+        if evidence.get("path") and "sha256_after_probe" not in evidence:
+            try:
+                evidence["sha256_after_probe"] = digest_executable(evidence["path"])
+            except ToolIdentityRejected as identity_error:
+                evidence["after_probe_identity_error"] = str(identity_error)
+        error = HeptaError(Diagnostic("E_LINKER_IDENTITY", "Cannot bind the explicit native linker",
+                                     notes=[str(exc)], phase="backend"))
+        error.linker_evidence = evidence
+        raise error from exc
+
+
 def compile_rust(source: str, *, rustc: str | None = None, target: str | None = None,
                  crate_type: str = "rlib", output: str | Path | None = None,
                  check_only: bool = False, optimize: bool = True, link_args: list[str] | None = None,
-                 debug_info: bool = False) -> dict:
+                 debug_info: bool = False, linker: str | None = None) -> dict:
     compiler = find_rustc(rustc)
     info = toolchain_info(compiler)
     # Rust normally discovers its sysroot through its executable location.
@@ -546,8 +637,10 @@ def compile_rust(source: str, *, rustc: str | None = None, target: str | None = 
     # Keep the conventional-prefix check narrow; nonstandard host wrappers
     # retain their existing compiler-managed sysroot discovery.
     sysroot = info["sysroot"]
-    linker = None
-    if (target is None and not check_only and not link_args
+    explicit_linker = linker_info(linker) if linker is not None else None
+    if explicit_linker is not None:
+        linker = explicit_linker["path"]
+    elif (target is None and not check_only and not link_args
             and crate_type in {"bin", "cdylib", "dylib", "proc-macro"}
             and not shutil.which("cc")):
         # On Debian-like hosts cc can be an /etc/alternatives symlink. Do not
@@ -599,10 +692,19 @@ def compile_rust(source: str, *, rustc: str | None = None, target: str | None = 
             flags.append("sysroot=" + sysroot)
         if linker:
             flags.append("linker=" + linker)
+        if explicit_linker is not None:
+            try:
+                if (digest_executable(linker) != explicit_linker["executable_sha256"]
+                        or not os.access(linker, os.X_OK)):
+                    raise ToolIdentityRejected("explicit linker bytes changed before compilation")
+            except ToolIdentityRejected as exc:
+                raise HeptaError(Diagnostic("E_LINKER_IDENTITY", "Explicit linker changed before compilation",
+                                            notes=[str(exc)], phase="backend")) from exc
         try:
             p = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
         except subprocess.TimeoutExpired:
-            return {"ok": False, "status": "unknown", "diagnostics": [{"code": "E_BACKEND_TIMEOUT", "message": "rustc exceeded 120 seconds", "phase": "backend"}], "toolchain": info}
+            return {"ok": False, "status": "unknown", "diagnostics": [{"code": "E_BACKEND_TIMEOUT", "message": "rustc exceeded 120 seconds", "phase": "backend"}],
+                    "toolchain": info, "linker": linker, "linker_identity": explicit_linker}
         diagnostics = []
         for line in p.stderr.splitlines():
             try:
@@ -623,7 +725,19 @@ def compile_rust(source: str, *, rustc: str | None = None, target: str | None = 
                   "crate_type": crate_type, "rust_sha256": sha256(source.encode()), "check_only": check_only,
                   "rustc_crate_type": native_type,
                   "sysroot": str(sysroot) if sysroot else None, "linker": linker,
-                  "link_args": link_args or []}
+                  "linker_identity": explicit_linker, "link_args": link_args or []}
+        if explicit_linker is not None:
+            try:
+                after = digest_executable(linker)
+                if after != explicit_linker["executable_sha256"] or not os.access(linker, os.X_OK):
+                    raise ToolIdentityRejected("explicit linker bytes changed during compilation")
+                explicit_linker["sha256_after_compilation"] = after
+                explicit_linker["unchanged_after_compilation"] = True
+            except ToolIdentityRejected as exc:
+                explicit_linker["unchanged_after_compilation"] = False
+                result.update(ok=False, status="rejected")
+                result["diagnostics"].append({"code": "E_LINKER_IDENTITY", "message": str(exc), "phase": "backend"})
+                return result
         if debug_info:
             result["debug_info"] = retained_debug
         if p.returncode == 0 and (not native_out.is_file() or native_out.stat().st_size == 0):

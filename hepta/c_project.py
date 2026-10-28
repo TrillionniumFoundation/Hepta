@@ -85,7 +85,7 @@ def _read_dependency(path: Path) -> bytes:
         with path.open("rb") as handle:
             data = handle.read(_MAX_DEPENDENCY_BYTES + 1)
     except OSError as exc:
-        raise MigrationRejected("E_C_BUILD_CHANGED", "Captured dependency unavailable") from exc
+        raise MigrationRejected("E_C_BUILD_CHANGED", f"Captured dependency unavailable: {str(path)!r}") from exc
     if len(data) > _MAX_DEPENDENCY_BYTES:
         raise MigrationRejected("E_C_BUILD_SIZE", "Captured dependency exceeds 8 MB")
     return data
@@ -310,11 +310,83 @@ def _abi_model_arguments(flags: list[str]) -> list[str]:
     return result
 
 
+def _make_dependency_tokens(text: str) -> list[str]:
+    """Decode the single Make rule emitted by our fixed Clang -MT invocation.
+
+    This is not shell syntax: quotes are filename characters, ordinary native
+    backslashes survive, and dollars are doubled. Clang escapes a hash with one
+    backslash and a space with one plus a copy of every preceding backslash.
+    See llvmorg-20.1.8 clang/lib/Frontend/DependencyFile.cpp, PrintFilename.
+    Reject other Make rules, variables, comments and ambiguous raw whitespace.
+    """
+    def rejected():
+        raise MigrationRejected("E_C_BUILD_DEPENDENCIES", "Unsupported Clang Make dependency output")
+
+    prefix = "hepta_dependencies:"
+    if not isinstance(text, str) or not text.startswith(prefix):
+        rejected()
+    body = text[len(prefix):].replace("\r\n", "\n")
+    if body.endswith("\n"):
+        body = body[:-1]
+    body = body.replace(" \\\n", " ")
+    if any(char in body for char in "\t\r\n\v\f\x00"):
+        rejected()
+    words, word = [], []
+
+    def finish():
+        if word:
+            words.append("".join(word))
+            word.clear()
+            if len(words) > 512:
+                rejected()
+
+    index = 0
+    while index < len(body):
+        char = body[index]
+        if char == " ":
+            finish()
+            index += 1
+        elif char == "$":
+            if body[index:index + 2] != "$$":
+                rejected()
+            word.append("$")
+            index += 2
+        elif char == "#":
+            rejected()
+        elif char == "\\":
+            end = index
+            while end < len(body) and body[end] == "\\":
+                end += 1
+            count = end - index
+            following = body[end:end + 1]
+            if following == " ":
+                # A literal escaped space has 2*n+1 preceding backslashes.
+                # Trailing-backslash filenames are outside this profile.
+                if count % 2 == 0:
+                    rejected()
+                word.extend(("\\" * (count // 2), " "))
+                index = end + 1
+            elif following == "#":
+                word.extend(("\\" * (count - 1), "#"))
+                index = end + 1
+            elif not following:
+                rejected()
+            else:
+                word.append("\\" * count)
+                index = end
+        else:
+            word.append(char)
+            index += 1
+    finish()
+    if not words:
+        rejected()
+    return words
+
+
 def _dependencies(clang: str, flags: list[str], source: Path, directory: Path, *, system: bool,
                   source_argument: str) -> list[Path]:
     text = invoke([clang, *flags, "-M" if system else "-MM", "-MT", "hepta_dependencies", source_argument], directory)
-    body = text.replace("\\\n", " ").partition(":")[2]
-    paths = sorted({_path(token, directory) for token in shlex.split(body)}, key=str)
+    paths = sorted({_path(token, directory) for token in _make_dependency_tokens(text)}, key=str)
     if not paths or source not in paths or len(paths) > 512:
         raise MigrationRejected("E_C_BUILD_DEPENDENCIES", "Missing source or unsupported dependency inventory")
     return paths

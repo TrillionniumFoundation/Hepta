@@ -89,7 +89,6 @@ class CCursorControlTests(unittest.TestCase):
             ('unsigned probe(unsigned x) { for (;;x--) {} return x; }', "E_C_FOR"),
             ('unsigned probe(unsigned x) { for (;x;) {x--;} return x; }', "E_C_FOR"),
             ('unsigned probe(unsigned x) { return x++ ? 1u : 2u; }', "E_C_UNARY"),
-            ('unsigned probe(unsigned x) { unsigned y=x ? 1u : 2u; return y; }', "E_C_EXPRESSION"),
         ]
         for source, expected in cases:
             with self.subTest(source=source):

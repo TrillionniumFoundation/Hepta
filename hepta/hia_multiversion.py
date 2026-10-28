@@ -28,9 +28,13 @@ from .hia_program import integer_range, scalar_value_valid, verify_program
 from .hia_program_llvm import TARGET, build_program_native, emit_program_llvm
 from .hia_program_runtime import execute_program
 from .hia_translation_validation import QUALIFIED_CORE_SCHEMAS
+from .hia_native_retirement import NativeRetirement, PathIdentityPin, observe_directory, remove_directory
+from .native_mapping_identity import NativeMappingRejected, verify_loaded_symbols
 
 
 PROFILE = "hepta.hia.scalar-multiversion.linux-x86_64.v1"
+PROVED_TOTAL_PROFILE = "hepta.hia.scalar-multiversion-proved-total.linux-x86_64.v1"
+_PROVABLE_OPS = frozenset({"int.div.checked", "int.rem.checked"})
 MEASUREMENT_SCHEMA = "hepta.hia.native-publication-measurement.v1"
 MEASUREMENT_POLICY = "paired-native-artifact-cost-v1"
 _DECISION_RESERVE_NS = 2_000_000_000
@@ -206,6 +210,9 @@ class GenerationInfo:
     translation_proofs: int
     native_probe_calls: int
     baseline: bool
+    admission_profile: str = PROFILE
+    totality_proofs: int = 0
+    loaded_mapping: bytes = b""
 
     def as_dict(self):
         return {"generation": self.generation, "program_sha256": self.program_sha256,
@@ -214,10 +221,13 @@ class GenerationInfo:
                 "abi": [{"function": a.function, "parameters": list(a.parameters),
                          "result": a.result} for a in self.abi],
                 "translation_proofs": self.translation_proofs,
-                "native_probe_calls": self.native_probe_calls, "baseline": self.baseline}
+                "native_probe_calls": self.native_probe_calls, "baseline": self.baseline,
+                "admission_profile": self.admission_profile,
+                "totality_proofs": self.totality_proofs,
+                "loaded_mapping": json.loads(self.loaded_mapping) if self.loaded_mapping else None}
 
 
-def _admissible(document):
+def _admit(document, *, prove_total=False, timeout_ms=2000):
     """Reverify exact bytes, then close the extra total/native-callable profile."""
     program = verify_program(document)
     data = program.as_dict()
@@ -231,7 +241,8 @@ def _admissible(document):
     abi = []
     for function in functions:
         parameters = tuple(p["type"] for p in function["params"])
-        if (function["effects"] or len(parameters) > 16
+        bad_effects = (set(function["effects"]) - {"trap"} if prove_total else function["effects"])
+        if (bad_effects or len(parameters) > 16
                 or any(t not in _CTYPES for t in parameters)
                 or len(function["returns"]) != 1 or function["returns"][0] not in _CTYPES):
             _reject("only effect-free scalar signatures with one scalar result are admitted")
@@ -243,12 +254,14 @@ def _admissible(document):
             if any(p["type"] not in _CTYPES for p in block["params"]):
                 _reject("resource block parameters are outside the scalar profile")
             for op in block["ops"]:
-                if (op["op"] not in _OPS
+                proved_operation = (prove_total and op["op"] in _PROVABLE_OPS
+                                    and op["out"][0]["type"] in {"u8", "u16"})
+                if (op["op"] not in _OPS and not proved_operation
                         or op["op"] == "int.cast" and op["attrs"]["mode"] != "wrap"
                         or any(p["type"] not in _CTYPES for p in op["out"])):
                     _reject("instruction may trap, allocate, call or escape the total scalar profile")
             term = block["term"]
-            if term["op"] == "ret":
+            if term["op"] == "ret" or prove_total and term["op"] == "trap":
                 graph[block["id"]] = ()
             elif term["op"] == "jump":
                 graph[block["id"]] = (term["target"],)
@@ -275,7 +288,38 @@ def _admissible(document):
         if visited != len(graph):
             _reject("cyclic control flow is outside the total scalar profile")
         abi.append(ScalarABI(function["name"], parameters, function["returns"][0]))
-    return program, tuple(sorted(abi, key=lambda a: a.function))
+    abi = tuple(sorted(abi, key=lambda a: a.function))
+    totality = []
+    if prove_total:
+        from . import hia_scalar_totality as total
+        from . import hia_translation_validation as encoding
+        for signature in abi:
+            proof = total.validate_scalar_totality(program, function=signature.function,
+                                                  timeout_ms=timeout_ms)
+            expected = {"schema": total.SCHEMA, "profile": total.PROFILE,
+                        "scope": "selected_public_scalar_function", "status": "proved",
+                        "function": signature.function, "program_sha256": program.sha256,
+                        "input_sha256": program.input_sha256,
+                        "validator_sha256": total._implementation_digest(),
+                        "encoder_sha256": encoding._implementation_digest(),
+                        "encoder_profile": encoding.PROFILE}
+            if (type(proof) is not dict or any(proof.get(k) != v for k, v in expected.items())
+                    or proof.get("structural_verification") is not True
+                    or type(proof.get("claims")) is not dict
+                    or proof["claims"].get("all_inputs_return_normally_proved") is not True
+                    or type(proof.get("solver")) is not dict
+                    or proof["solver"].get("result") != "unsat"):
+                _reject("fresh scalar totality did not prove every input returns normally")
+            # Freeze evidence independently of a validator-owned mutable dict.
+            totality.append(json.dumps(proof, sort_keys=True, separators=(",", ":"),
+                                       allow_nan=False).encode())
+    return program, abi, tuple(totality)
+
+
+def _admissible(document):
+    """The original syntactically total profile remains the default contract."""
+    program, abi, _proofs = _admit(document)
+    return program, abi
 
 
 def _prove(baseline, candidate, abi, timeout_ms):
@@ -364,34 +408,10 @@ class _Generation:
     functions: dict
     artifact: Path
     inode: tuple[int, int]
+    identity_pin: PathIdentityPin
     leases: int = 0
     retired: bool = False
-
-
-def _remove_own_file(path, inode):
-    try:
-        current = path.lstat()
-        if stat.S_ISREG(current.st_mode) and (current.st_dev, current.st_ino) == inode:
-            path.unlink()
-    except OSError:
-        # A failed disk cleanup cannot undo a completed generation switch.
-        # The closed artifact path may remain, but it is never loaded again.
-        pass
-
-
-def _unload(library, functions, fd):
-    # Function pointers never leave this module, and the generation may only be
-    # disposed when all leases have exited. Clear references before dlclose.
-    functions.clear()
-    if library is not None:
-        import _ctypes
-        handle = library._handle
-        for key, value in list(vars(library).items()):
-            if isinstance(value, ctypes._CFuncPtr):
-                delattr(library, key)
-        _ctypes.dlclose(handle)
-    if fd is not None:
-        os.close(fd)
+    totality: tuple[bytes, ...] = ()
 
 
 class GenerationLease:
@@ -452,7 +472,7 @@ class ScalarMultiversionRuntime:
     migration, crash recovery or cross-process publication protocol.
     """
     def __init__(self, baseline, directory, *, clang="clang", validation_timeout_ms=2000,
-                 max_live_generations=8):
+                 max_live_generations=8, prove_total=False):
         if (platform.system() != "Linux" or platform.machine() not in {"x86_64", "amd64"}
                 or not hasattr(os, "memfd_create")):
             _reject("Linux x86-64 with sealing-capable memfd is required")
@@ -460,31 +480,56 @@ class ScalarMultiversionRuntime:
             _reject("translation validation timeout must be 1..30000 milliseconds")
         if type(max_live_generations) is not int or not 2 <= max_live_generations <= 64:
             _reject("live generation limit must be 2..64")
-        self._baseline, self._abi = _admissible(baseline)
+        if type(prove_total) is not bool:
+            _reject("prove_total must be an explicit Boolean profile choice")
+        self._prove_total = prove_total
+        self._profile = PROVED_TOTAL_PROFILE if prove_total else PROFILE
+        self._baseline, self._abi, totality = _admit(
+            baseline, prove_total=prove_total, timeout_ms=validation_timeout_ms)
         self._clang, self._timeout = clang, validation_timeout_ms
         self._max_live = max_live_generations
         self._lock, self._writer = threading.RLock(), threading.Lock()
         self._states = {}
         self._events = deque(maxlen=128)
+        self._cleanup_pending = {}
+        self._cleanup_events = deque(maxlen=128)
+        self._cleanup_attempts = 0
+        self._directory_cleanup = {"status": "not_attempted"}
         self._next, self._epoch, self._current, self._closed = 1, 0, None, False
         self._directory = Path(tempfile.mkdtemp(prefix="hia-multiversion-", dir=directory))
+        self._directory_inode = None
+        self._directory_pin = PathIdentityPin(self._directory, directory=True)
         try:
-            state = self._prepare(self._baseline, 0, 0, baseline=True)
+            directory_info = self._directory.lstat()
+            self._directory_inode = (directory_info.st_dev, directory_info.st_ino)
+            self._directory_pin.acquire(self._directory_inode)
+            state = self._prepare(self._baseline, 0, 0, baseline=True, totality=totality)
             self._states[0], self._current = state, 0
-        except BaseException:
+        except BaseException as exc:
             self._closed = True
             self._remove_directory()
+            # Construction did not return an owner through which a caller
+            # could inspect cleanup. Preserve the original exception and
+            # attach the same bounded diagnostic snapshot when possible.
+            try:
+                exc.hia_cleanup = self._cleanup_snapshot()
+            except Exception:
+                pass
             raise
 
-    def _prepare(self, program, generation, proofs, *, baseline=False):
+    def _prepare(self, program, generation, proofs, *, baseline=False, totality=()):
         output = self._directory / f"generation-{generation}.so"
         fd, library, functions, inode = None, None, {}, None
+        identity_pin = PathIdentityPin(output)
         try:
             receipt = build_program_native(program, output, clang=self._clang, kind="shared", target=TARGET)
             published = output.lstat()
             if stat.S_ISREG(published.st_mode):
                 inode = (published.st_dev, published.st_ino)
+            identity_pin.acquire(inode)
             data, inode = _read_artifact(output)
+            if inode != identity_pin.inode:
+                _reject("native artifact differs from its held identity pin")
             ir = emit_program_llvm(program)
             # Recompute identities and inspect actual ELF bytes. Receipt booleans
             # are never admission evidence, including ok/native_execution flags.
@@ -498,12 +543,26 @@ class ScalarMultiversionRuntime:
             inspect_owned_shared_elf(data, tuple(a.function for a in self._abi))
             fd = _sealed_fd(data)
             library = ctypes.CDLL(f"/proc/self/fd/{fd}", mode=os.RTLD_LOCAL | os.RTLD_NOW)
-            calls = 0
             for signature in self._abi:
                 native = getattr(library, signature.function)
                 native.argtypes = [_CTYPES[t] for t in signature.parameters]
                 native.restype = _CTYPES[signature.result]
                 functions[signature.function] = native
+            # A fully sealed new fd does not identify dlsym's actual mapping:
+            # the loader can retain an old /proc/self/fd/N pathname reference.
+            # Bind every export before even the first finite native probe.
+            mapping_source = Path(__file__).with_name("native_mapping_identity.py")
+            mapping_identity = sha256(mapping_source.read_bytes()).hexdigest()
+            try:
+                loaded_mapping = verify_loaded_symbols(fd, functions)
+            except NativeMappingRejected as error:
+                raise MultiversionRejected("E_HIA_MULTIVERSION: loaded native mapping does not bind the sealed artifact") from error
+            if sha256(mapping_source.read_bytes()).hexdigest() != mapping_identity:
+                _reject("loaded mapping checker changed during admission")
+            loaded_mapping["checker_sha256"] = mapping_identity
+            calls = 0
+            for signature in self._abi:
+                native = functions[signature.function]
                 for arguments in _probe_vectors(signature):
                     expected = execute_program(program, signature.function, list(arguments),
                                                max_steps=2 * (_MAX_OPS + _MAX_BLOCKS))["result"]
@@ -512,12 +571,13 @@ class ScalarMultiversionRuntime:
                     if type(actual) is not type(expected) or actual != expected:
                         _reject("actual native result differs from the independent HIA interpreter")
             info = GenerationInfo(generation, program.sha256, program.input_sha256,
-                                  sha256(data).hexdigest(), len(data), self._abi, proofs, calls, baseline)
-            return _Generation(info, fd, library, functions, output, inode)
+                                  sha256(data).hexdigest(), len(data), self._abi, proofs, calls, baseline,
+                                  self._profile, len(totality),
+                                  json.dumps(loaded_mapping, sort_keys=True, separators=(",", ":")).encode())
+            return _Generation(info, fd, library, functions, output, inode, identity_pin, totality=totality)
         except BaseException:
-            _unload(library, functions, fd)
-            if inode is not None:
-                _remove_own_file(output, inode)
+            self._dispose(generation, library, functions, fd, output, inode,
+                          identity_pin, cause="preparation_failed")
             raise
 
     def publish(self, candidate):
@@ -528,15 +588,16 @@ class ScalarMultiversionRuntime:
                     _reject("runtime is closed")
                 # Charge both current and candidate while staging. Old leased
                 # generations may not be discarded to make space for a new one.
-                if len(self._states) >= self._max_live:
+                if len(self._states) + len(self._cleanup_pending) >= self._max_live:
                     _reject("live artifact budget exhausted; existing generations remain selected")
                 number = self._next
                 self._next += 1
-            program, abi = _admissible(candidate)
+            program, abi, totality = _admit(candidate, prove_total=self._prove_total,
+                                           timeout_ms=self._timeout)
             if abi != self._abi:
                 _reject("candidate scalar ABI differs from the immutable baseline")
             _prove(self._baseline, program, abi, self._timeout)
-            state = self._prepare(program, number, len(abi))
+            state = self._prepare(program, number, len(abi), totality=totality)
             with self._lock:
                 previous = self._states[self._current]
                 self._states[number] = state
@@ -598,11 +659,12 @@ class ScalarMultiversionRuntime:
                     check_preparation()
                     if cancellation.committed():
                         _reject("publication cancellation token was already committed")
-                    if len(self._states) >= self._max_live:
+                    if len(self._states) + len(self._cleanup_pending) >= self._max_live:
                         _reject("live artifact budget exhausted; existing generations remain selected")
                     number = self._next
                     self._next += 1
-                program, abi = _admissible(candidate)
+                program, abi, totality = _admit(candidate, prove_total=self._prove_total,
+                                               timeout_ms=self._timeout)
                 if abi != self._abi:
                     _reject("candidate scalar ABI differs from the immutable baseline")
                 if measured is not None:
@@ -619,7 +681,7 @@ class ScalarMultiversionRuntime:
                         _reject("native measurement refused publication: " + ",".join(early["reasons"]))
                 _prove(self._baseline, program, abi, self._timeout)
                 check_preparation()
-                state = self._prepare(program, number, len(abi))
+                state = self._prepare(program, number, len(abi), totality=totality)
                 # Cancellation and publication have one linearization point.
                 # In particular an Event check alone would leave a check/swap
                 # race in which Future.cancel could succeed after the check.
@@ -659,8 +721,8 @@ class ScalarMultiversionRuntime:
                 return result
             except BaseException:
                 if state is not None and not published:
-                    _unload(state.library, state.functions, state.fd)
-                    _remove_own_file(state.artifact, state.inode)
+                    self._dispose(state.info.generation, state.library, state.functions, state.fd,
+                                  state.artifact, state.inode, state.identity_pin, cause="prepared_but_not_selected")
                 raise
 
     def lease(self):
@@ -696,9 +758,9 @@ class ScalarMultiversionRuntime:
 
     def _collect(self, state):
         if state.retired and state.leases == 0:
-            _unload(state.library, state.functions, state.fd)
+            self._dispose(state.info.generation, state.library, state.functions, state.fd,
+                          state.artifact, state.inode, state.identity_pin, cause="retired_generation")
             state.library = None
-            _remove_own_file(state.artifact, state.inode)
             del self._states[state.info.generation]
             self._events.append({"event": "retire", "generation": state.info.generation,
                                  "epoch": self._epoch})
@@ -706,20 +768,83 @@ class ScalarMultiversionRuntime:
                 self._remove_directory()
 
     def _remove_directory(self):
-        try:
-            self._directory.rmdir()
-        except (FileNotFoundError, OSError):
-            # Do not recursively erase an unexpected/competing file.
-            pass
+        self._directory_cleanup = remove_directory(self._directory, self._directory_inode, self._directory_pin)
+
+    def _dispose(self, generation, library, functions, fd, artifact, inode, identity_pin, *, cause):
+        with self._lock:
+            task = self._cleanup_pending.get(generation)
+            if task is None:
+                task = NativeRetirement(generation, cause, artifact, inode, library, functions, fd, identity_pin)
+                # Retain the record before attempting native release, so even
+                # an interrupted attempt cannot acquire a second close owner.
+                self._cleanup_pending[generation] = task
+            self._attempt_cleanup(task)
+
+    def _attempt_cleanup(self, task):
+        result = task.attempt()
+        self._cleanup_attempts += 1
+        self._cleanup_events.append(result)
+        if task.complete:
+            self._cleanup_pending.pop(task.generation, None)
+
+    def _cleanup_snapshot(self):
+        observation = observe_directory(self._directory, self._directory_inode, self._directory_pin)
+        native_complete = (self._closed and not self._states
+                           and all(t.native_succeeded for t in self._cleanup_pending.values()))
+        identity_complete = (self._closed and not self._states and self._directory_pin.release_succeeded
+                             and all(t.identity_pin.release_succeeded for t in self._cleanup_pending.values()))
+        pending_identity_closes = [
+            {"generation": t.generation, "kind": "artifact", "pin": t.identity_pin.snapshot()}
+            for t in self._cleanup_pending.values()
+            if not t.identity_pin.release_succeeded]
+        directory_pending = self._closed and not self._states and not self._directory_pin.release_succeeded
+        if directory_pending:
+            pending_identity_closes.append({"generation": None, "kind": "directory",
+                                            "pin": self._directory_pin.snapshot()})
+        return {"schema": "hepta.hia.native-retirement-observation.v1",
+                "attempts": self._cleanup_attempts, "history_limit": 128,
+                "pending": [t.snapshot() for _, t in sorted(self._cleanup_pending.items())],
+                "pending_identity_releases": pending_identity_closes,
+                "pending_resource_count": len(self._cleanup_pending) + int(directory_pending),
+                "recent_attempts": json.loads(json.dumps(list(self._cleanup_events))),
+                "directory_cleanup": json.loads(json.dumps(self._directory_cleanup)),
+                "directory_observation": observation,
+                "directory_identity_pin": self._directory_pin.snapshot(),
+                "owned_native_release_complete": native_complete,
+                "owned_identity_release_complete": identity_complete,
+                "observed_closed_and_directory_absent": (native_complete
+                    and identity_complete and not self._cleanup_pending and observation["status"] == "absent"),
+                "absence_is_a_permanent_filesystem_guarantee": False,
+                "native_release_failures_are_retried": False}
+
+    def retry_cleanup(self):
+        """Retry bounded owned-file/directory cleanup; never retry fd/dlclose.
+
+        Pending retirements consume the same finite artifact capacity as live
+        generations. A failed native release remains explicitly uncertain and
+        charged even if its numeric descriptor is later reused by the host.
+        """
+        with self._writer, self._lock:
+            for task in list(self._cleanup_pending.values()):
+                # A task never retries native or identity-fd close. It may
+                # observe that a caller removed a path and release its still
+                # held identity pin, even when native release remains unknown.
+                self._attempt_cleanup(task)
+            if self._closed and not self._states:
+                self._remove_directory()
+            return self._cleanup_snapshot()
 
     def snapshot(self):
         with self._lock:
-            return {"schema": PROFILE, "closed": self._closed, "selection_epoch": self._epoch,
+            return {"schema": self._profile, "closed": self._closed, "selection_epoch": self._epoch,
                     "current_generation": self._current,
                     "generations": [{**state.info.as_dict(), "active_leases": state.leases,
-                                     "retired": state.retired}
+                                     "retired": state.retired,
+                                     "artifact_identity_pin": state.identity_pin.snapshot(),
+                                     "totality_evidence": [json.loads(p) for p in state.totality]}
                                     for _, state in sorted(self._states.items())],
                     "recent_events": [dict(event) for event in self._events],
+                    "cleanup": self._cleanup_snapshot(),
                     "claims": {"sealed_artifact_generations": True, "per_call_generation_snapshot": True,
                                "general_live_code_patch": False, "state_layout_migration": False,
                                "backend_refinement_proved": False, "whole_language_soundness_proved": False}}

@@ -593,6 +593,11 @@ RISC-V ABI and does not introduce floating-point HIA operations. The checked
 source bridge in `hia_source_bridge.py` still admits only its x86-64/AArch64
 profiles; direct standalone RV64 support does not widen that bridge.
 
+Primitive v8 additionally emits on Linux x86-64. AArch64 and RV64 v8 emission
+explicitly rejects; the older target receipts do not establish returned-loan
+native behavior there. V8 borrowed returns remain private internal calls and
+do not create external C/C++ borrowed-result ABI contracts.
+
 The original finite AArch64 execution gate links the independently emitted
 object to a reviewed 4096-byte, one-live-allocation runtime and executes it
 with the pinned QEMU user-mode binary. That runtime's abort exits with code

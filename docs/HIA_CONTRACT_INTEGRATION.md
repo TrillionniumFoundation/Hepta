@@ -93,6 +93,15 @@ independent shadows; canonical Python Core still owns production admission.
 See [HIA_RUST_RETURNED_CHAINS_V8.md](HIA_RUST_RETURNED_CHAINS_V8.md) for the
 typed resource roots, distinct call-formal identities and return-origin rules.
 
+Source returned projection borrows still use the existing checked inlining;
+that remains the default v1 frontend contract. The explicit v8 frontend instead
+retains returned byte-view helpers as actual calls/returns with parameter-origin
+metadata. `hia lower --core-schema hepta.hia.program.v8` feeds the same canonical
+authority, Python VM, independent Rust resource VM and Linux x86-64 emitter.
+Old versions, nominal normalization, unsupported targets and arbitrary lifetime
+relations retain their refusal boundaries. See
+[HIA_RETURNED_LOANS_V8.md](HIA_RETURNED_LOANS_V8.md).
+
 Captured C source spelling, semantic driver dependencies and function-attribute
 ABI refusals are checked before translation, including the record-view route.
 Original parameter types now come from the selected Clang's serialized AST and
@@ -104,6 +113,13 @@ frontend trust boundary. [C_MUSL_COMPARE.md](C_MUSL_COMPARE.md) describes migrat
 of two unchanged, complete musl 1.2.5 comparison components. Its finite native
 oracle and authored platform/contract adapters do not imply a whole-libc build
 or general C++ translation. The existing C++ reuse and ownership gates remain.
+The next complete C component is unchanged upstream `stb_divide.h` v0.94:
+six public functions, both declared preprocessor configurations, all active
+declarations accounted for and independently compiled originals. Pure scalar
+lazy conditionals and checked definite assignment are shared lowering additions.
+[C_STB_DIVIDE.md](C_STB_DIVIDE.md) separates source migration, native ABI/oracle
+checks, target-only undefined-input traps and actual-host qualification. An
+authored seven-host CI step is not evidence that every host has executed it.
 
 [HIA_SCALAR_STATE.md](HIA_SCALAR_STATE.md) adds one explicit scalar state value
 on top of the existing generation-lease runtime. All-input equivalence includes
@@ -111,20 +127,49 @@ that state argument; revision checks prevent duplicate commits, cooperative
 cancellation can discard an in-flight result, and rollback changes code without
 rewinding data. Heap/loan/stack migration and profitability remain unestablished.
 
+## Proved total native candidates and finite economic search
+
+[HIA_PROVED_TOTAL_RUNTIME.md](HIA_PROVED_TOTAL_RUNTIME.md) adds an explicit
+runtime profile for acyclic u8/u16 checked division and remainder. Every exported
+function needs a fresh all-input normal-return proof before any native build;
+candidate equivalence is an additional independent obligation. A self-equivalent
+program that traps remains inadmissible. Unknown, timed-out, stale and malformed
+proofs cannot authorize a candidate. The original syntactically total profile
+remains the default.
+
+[HIA_NATIVE_RETIREMENT.md](HIA_NATIVE_RETIREMENT.md) defines observable resource
+retirement, finite pending-cleanup capacity, native operations attempted at most
+once, and explicit ownership-bound file cleanup. A cleanup error does not undo
+an already committed selection or become a fabricated successful release.
+The actual post-close observation is made before an outer temporary-directory
+helper can remove artifacts. This does not establish crash recovery or protect
+against arbitrary mutation by the trusted host process.
+
+[HIA_ECONOMIC_SEARCH_20261028.md](HIA_ECONOMIC_SEARCH_20261028.md) specifies a
+separate frozen experiment using the actual recursive NDU bridge to choose
+finite measure/stop actions. Exact arithmetic over the same supplied scalar
+model, fixed actions, a calibration-selected fixed action and exhaustive search
+remain controls. Costs include the dependencies each strategy actually uses;
+same-information costs and full single-deployment charges are also retained.
+The local native driver has its own explicit byte recurrence and independent
+long-run checksum oracle. It is not a `ScalarStateSession` commit experiment.
+Formal measurements belong only to their recorded source and protocol hashes;
+the earlier all-abstain `01310b2` campaign is not replaced or relabeled.
+
 ## Fresh integrated qualification
 
 `tools/qualify_hia_integrated.py` is the local single-run acceptance entrypoint.
 It requires the exact committed `--expected-head`, a clean tree and all tracked
 files materialized. It checks actual compiler/solver/emulator/tool identities,
 the loaded original-type reader and its worker bytes,
-real Linux sealing, both upstream Git inventories and native bridge replies,
+real Linux sealing, all three independently pinned upstream Git inventories and native bridge replies,
 the Rust crate, and exactly one full verbose Python discovery with zero skips.
 Critical module coverage is a view of that same discovery, not another test
 denominator. Source and external identity inventories must be unchanged after
 the gates. Failures and raw outputs are retained in the new output directory.
 
 The existing CI `release_check` already runs full Python discovery. CI prepares
-both independent bridges before that required gate; it does not invoke a second
+the independent bridges before that required gate; it does not invoke a second
 integrated full discovery in the same job. Existing finite/native qualifications
 and the seven-host ABI matrix remain in place.
 
@@ -156,3 +201,39 @@ reassign their observations to this source tree. Reduced native timing controls
 inside existing regression tests still execute and are identified as such.
 No integration result establishes NDU incremental gain, universal Rust
 performance superiority, whole-language soundness or global optimality.
+
+## Reconciliation of the 2026-10-28 source branches
+
+The resource v8 checkpoint and the newer guarded/owned-state work share the
+canonical Core implementation but use separate admission profiles. The merge
+retains explicit `core_schema="hepta.hia.program.v8"` admission, the returned-loan
+origin rules, the independent Rust resource interpreter and the existing
+ranking optimizer. Guarded CLI commands and the captured C++ composed-project
+adapter have distinct route/option validation; they do not downgrade a Core
+schema or substitute a proof from one profile for another.
+
+The native advisory dependencies remain explicit:
+
+| Consumer | Source identity | Environment | Compiler selection |
+| --- | --- | --- | --- |
+| Existing finite ranking optimizer | Existing ranking build receipt and upstream Git inventory | `HEPTA_NDU_BRIDGE`, `HEPTA_NDU_BUILD`, `HEPTA_NDU_UPSTREAM` | Existing ranking receipt |
+| Existing recursive scalar search | `2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b` | `HEPTA_RECURSIVE_NDU_BRIDGE`, `HEPTA_RECURSIVE_NDU_IDENTITY` | The collector's `--cargo` / `--rustc` |
+| New finite continuation graph | `4b6391e116949af0c7e59776baead67271856bdb` | `HEPTA_FINITE_NDU_BRIDGE`, `HEPTA_FINITE_NDU_IDENTITY` | Separate `--finite-cargo` / `--finite-rustc` |
+
+The integrated collector requires all three actual bridge configurations,
+including `--finite-bridge`, `--finite-identity` and `--finite-upstream`. It
+verifies the builder/compiler hashes, exact pinned Git bytes, fresh protocol
+responses and unchanged external identities. A finite-graph probe must
+actually choose a delayed transition across two future batches. It is a
+synthetic mechanism test, not evidence of incremental performance. The full
+regression must execute the graph, guarded-proof, mapping, owner-lifecycle
+and composed-project modules without skipping them.
+
+The `5fead4d` checkpoint's 2,887 Python tests, 60 Rust tests and seven actual
+migration hosts remain results for that exact earlier source. Its complete
+data-only evidence is retained in commit
+`cecbf0c5ba884f13ab5a11b4fd704caf7dc7839e`. It does not qualify this merged source.
+Likewise, the registered `8b0fd11d` NDU experiment remains 48 completed episodes,
+zero candidate publications and no demonstrated NDU increment. Adding a finite
+planner or a useful runtime mechanism does not turn that negative result into
+a positive performance result.
