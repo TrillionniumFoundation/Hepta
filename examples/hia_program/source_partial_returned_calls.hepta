@@ -1,0 +1,39 @@
+module partial_returned_calls;
+struct Pair { left: Buffer<u8>, right: Buffer<u8>, tag: u64 }
+struct Marker { word: u64 }
+fn marker_word(value: Marker) -> u64 effects {} { return value.word; }
+fn view(value: read Buffer<u8>, choose: bool) -> read [u8] from value effects {} {
+    if choose { return read value; }
+    return read value;
+}
+fn edit(value: mut Buffer<u8>) -> mut [u8] from value effects {} {
+    return mut value;
+}
+pub fn probe(choose: bool, cancel: bool) -> usize effects {alloc,block,panic,write} {
+    let mut p = Pair {left: buffer(3), right: buffer(5), tag: 7};
+    p.right[0] = 17;
+    release(move p.left);
+    if cancel {
+        let answer = view(read p.right, choose)[0];
+        release(move p.right);
+        return answer as usize;
+    }
+    let candidate = try_buffer(9);
+    match move candidate {
+        Result::Ok(replacement) => {
+            p.left = move replacement;
+            let old = edit(mut p.left)[0];
+            p.left[0] = old + 41;
+            let first = view(read p.left, choose)[0];
+            let second = view(read p.right, choose)[0];
+            let answer = (first as usize) + (second as usize) + (p.tag as usize);
+            drop(move p);
+            return answer;
+        },
+        Result::Err(code) => {
+            let remaining = view(read p.right, choose)[0];
+            release(move p.right);
+            return (remaining as usize) + (code as usize);
+        },
+    }
+}

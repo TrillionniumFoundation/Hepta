@@ -14,8 +14,9 @@ import re
 
 from .c_allocation import peel, nodes
 from .c_migrate import MigrationRejected
+from .c_contracts import snapshot_contracts
 from .c_translation import (CTranslator, Expression, INTEGER, NUMBER, cast, ident,
-                            reject_adjusted_pointer_parameter, truth)
+                            truth)
 
 
 class CRecordViewTranslator(CTranslator):
@@ -60,6 +61,7 @@ class CRecordViewTranslator(CTranslator):
         return semantic(old) == semantic(node)
 
     def __init__(self, capture: dict, contracts: dict):
+        contracts = snapshot_contracts(contracts)
         if (set(contracts) != {"schema", "records", "functions"}
                 or contracts.get("schema") != "hepta.c-record-views.v1"
                 or not isinstance(contracts["records"], dict)
@@ -91,7 +93,7 @@ class CRecordViewTranslator(CTranslator):
                                     "A cursor-only profile needs explicit slices and no record contracts")
         self.value_contracts = {"schema": "hepta.c-contracts.v1", "functions": value_functions}
         super().__init__(capture, self.value_contracts)
-        self.contracts = copy.deepcopy(contracts)
+        self.contracts = contracts
         self.slice_bindings = {}
         self.record_bindings = {}
         self.pending_locals = {}
@@ -151,10 +153,9 @@ class CRecordViewTranslator(CTranslator):
                 except MigrationRejected:
                     pass
             if record_type and record_type.startswith("C_") and record_type[2:] in self.views:
-                # Check the original pointer declarator before replacing its
-                # type with scalar state for the shared signature checker.
-                # Array-parameter entry effects survive Clang's type decay.
-                reject_adjusted_pointer_parameter(child)
+                # Shared collect() already bound the original result/parameter
+                # types and physical spelling before this scalar adaptation.
+                # The adapter must not become a second, weaker admission path.
                 pname = child.get("name", "")
                 selectors = [selector for selector in (pname, str(ordinal)) if selector in contract["records"]]
                 if len(selectors) != 1:

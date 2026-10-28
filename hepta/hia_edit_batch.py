@@ -11,12 +11,15 @@ import copy
 import json
 from hashlib import sha256
 
-from .hia_edit_query import prepare_edit, render_edit_context, QUERY_SCHEMA as EDIT_QUERY_SCHEMA
+from .hia_edit_query import (prepare_edit, render_edit_context,
+                             QUERY_SCHEMA as EDIT_QUERY_SCHEMA,
+                             QUERY_SCHEMA_V3 as EDIT_QUERY_SCHEMA_V3)
 from .hia_program import verify_program
 from .hia_program_tools import (HIAEditRejected, PATCH_SCHEMA, apply_program_patch,
                                   bounded_json_wire, decode_json)
 
 QUERY_SCHEMA = "hepta.hia.edit-batch-query.v2"
+QUERY_SCHEMA_V3 = "hepta.hia.edit-batch-query.v3"
 MAX_SITES = 16
 MAX_QUERY_BYTES = 1024 * 1024
 MAX_RESPONSE_BYTES = 64 * 1024
@@ -57,7 +60,8 @@ def prepare_batch(document, selections):
             _reject("selections overlap one instruction")
         seen.add(key)
         sites.append({"site": len(sites), "query": query})
-    result = {"schema": QUERY_SCHEMA, "base_sha256": original.sha256,
+    schema = QUERY_SCHEMA_V3 if sites[0]["query"]["schema"] == EDIT_QUERY_SCHEMA_V3 else QUERY_SCHEMA
+    result = {"schema": schema, "base_sha256": original.sha256,
               "input_sha256": getattr(original, "input_sha256", original.sha256),
               "sites": sites, "application": "simultaneous_preserving_interfaces",
               "scope": "selected fields only; whole module reverified after all replacements"}
@@ -70,7 +74,7 @@ def apply_batch(document, query, response):
     """Apply every selected site or reject the entire batch without publication."""
     original = verify_program(document)
     query, query_bytes = _bounded(query, MAX_QUERY_BYTES, "query")
-    if type(query) is not dict or query.get("schema") != QUERY_SCHEMA:
+    if type(query) is not dict or query.get("schema") not in (QUERY_SCHEMA, QUERY_SCHEMA_V3):
         _reject("expected an exact prepared batch query")
     sites = query.get("sites")
     if type(sites) is not list or not 1 <= len(sites) <= MAX_SITES:
@@ -116,7 +120,7 @@ def apply_batch(document, query, response):
                              "operation": operation})
     verified, receipt = apply_program_patch(original, {
         "schema": PATCH_SCHEMA, "expected_sha256": original.sha256, "edits": replacements})
-    receipt["edit_batch"] = {"schema": QUERY_SCHEMA, "sites": len(sites),
+    receipt["edit_batch"] = {"schema": reconstructed["schema"], "sites": len(sites),
                              "query_sha256": sha256(_wire(reconstructed)).hexdigest(),
                              "response_sha256": sha256(response_bytes).hexdigest(),
                              "response_bytes": len(response_bytes),
@@ -140,8 +144,10 @@ def _render_batch_context_checked(query):
     """Deduplicate dependency views while retaining original SSA order."""
     query, _ = _bounded(query, MAX_QUERY_BYTES, "query")
     expected = {"schema", "base_sha256", "input_sha256", "sites", "application", "scope"}
-    if type(query) is not dict or set(query) != expected or query.get("schema") != QUERY_SCHEMA:
+    if (type(query) is not dict or set(query) != expected
+            or query.get("schema") not in (QUERY_SCHEMA, QUERY_SCHEMA_V3)):
         _reject("expected exact prepared batch query fields")
+    edit_schema = EDIT_QUERY_SCHEMA_V3 if query["schema"] == QUERY_SCHEMA_V3 else EDIT_QUERY_SCHEMA
     functions, blocks, signatures = {}, {}, {}
     selected_instructions = set()
 
@@ -174,9 +180,9 @@ def _render_batch_context_checked(query):
             _reject("batch display sites must retain unique ordered integer identities")
         nested = item["query"]
         if (type(nested) is not dict or set(nested) != nested_fields
-                or nested.get("schema") != EDIT_QUERY_SCHEMA):
+                or nested.get("schema") != edit_schema):
             _reject("invalid nested edit query presentation")
-        if any(_wire(nested[key]) != _wire(query[key])
+        if any(type(query[key]) is not str or _wire(nested[key]) != _wire(query[key])
                for key in ("base_sha256", "input_sha256")):
             _reject("nested edit query belongs to a different snapshot")
         if type(nested["context"]) is not dict or type(nested["selector"]) is not dict:
@@ -223,7 +229,9 @@ def _render_batch_context_checked(query):
     for name, fn in functions.items():
         params = ",".join(v["name"] + ":" + v["type"] for v in fn["params"])
         lines.append("fn " + name + "(" + params + ")->" + ",".join(fn["returns"])
-                     + " effects{" + ",".join(fn["effects"]) + "}")
+                     + " effects{" + ",".join(fn["effects"]) + "}"
+                     + (" return_loans" + _wire(fn["return_loans"]).decode()
+                        if query["schema"] == QUERY_SCHEMA_V3 else ""))
         for (function, label), block in blocks.items():
             if function != name:
                 continue

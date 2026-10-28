@@ -19,6 +19,27 @@ and unmodeled flags reject. Duplicate configurations reject when imported into
 one standalone artifact; the explicit matrix entry point below keeps them in
 separate artifacts.
 
+Accepted optimization (`-O0`/`-O1`/`-O2`/`-O3`/`-Os`/`-Oz`) and PIC
+(`-fPIC`/`-fpic`) options remain in the captured frontend argument order because
+they change compiler-provided preprocessing macros. This applies equally to
+dependency discovery, AST selection, replay and original native comparison
+builds. A later comparison command must not override the captured mode with a
+new `-O2` or `-fPIC`. Old captures that omitted these semantic options must be
+recaptured; a resealed receipt cannot authorize a different active source tree.
+The shared C/C++ capture also preserves `-pedantic-errors`, which can change
+Clang's `__has_extension` builtin operator without changing its ordinary `-dM`
+macro dump. It is a source-selection option, not an omitted diagnostic-only flag.
+
+The original source operand and working directory also remain part of the
+selected source semantics. A normalized absolute file identity must not replace
+the original relative or symlink spelling in dependency, preprocessing, AST or
+native comparison commands. Otherwise quoted includes can select another header,
+and already-supported concrete template arguments such as
+`sizeof(__FILE__) + sizeof(__BASE_FILE__)` can instantiate different functions.
+The shared command parser recovers the operand from the bound original argv;
+response-file, stdin and option-like operands still reject. Older captures that
+rewrote this spelling require recapture, even after resealing their hashes.
+
 This capture describes the listed build only. It does not establish that every
 possible platform, macro configuration or dependency version has been listed.
 
@@ -38,8 +59,20 @@ project; each instance's actual body is translated and independently checked.
 Unused template patterns with no concrete executable destination reject. The
 pattern and its parameters remain inventoried as the source of the concrete
 instances. A repeated inline/template definition may merge only when normalized
-instantiated body semantics agree across translation units. A macro-dependent
-definition mismatch rejects.
+instantiated body semantics and complete template-pattern identities agree
+across translation units, including definitions at different source locations.
+A macro-dependent definition mismatch rejects even when it occurs only in a
+discarded template branch.
+
+An `if constexpr` with no init/condition-variable declaration is admitted when
+the captured concrete Clang AST supplies an exact Boolean `ConstantExpr`.
+Only its selected branch is lowered; a false condition without an else emits
+no runtime statement. Nested selections, full-definition identities and every
+discarded subtree receive explicit dispositions. Unknown conditions are never
+guessed. Selected operations remain subject to all scalar/lifetime rules;
+discarding a class/throwing branch does not enable its execution. See
+[CPP_CONSTEXPR_MIGRATION.md](CPP_CONSTEXPR_MIGRATION.md) for the exact boundary
+and its separate finite native qualification.
 
 Every active project declaration receives a disposition, including namespace and
 language-linkage containers, prototypes, patterns, parameters and instances.
@@ -50,7 +83,8 @@ rows and at most 120 concrete functions in this frontend.
 
 Class templates, STL objects, pointer/reference interfaces, exception unwinding,
 custom destructors, global state, template packs/defaults, dependent constraints,
-`if constexpr` and general C++ class or mangled ABI preservation are not in this
+`if consteval`, constexpr init/condition-variable statements, and general C++
+class or mangled ABI preservation are not in this
 profile. They fail closed rather than being silently omitted.
 
 ## Behavior, safety and ABI

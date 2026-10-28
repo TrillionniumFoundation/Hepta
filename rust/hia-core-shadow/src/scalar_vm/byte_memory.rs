@@ -1,13 +1,21 @@
 //! Optional finite byte storage for the existing execution Machine.
 //! Static linear/loan admission belongs to the existing ownership verifier.
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use serde_json::{json, Value};
 use super::{Exec, Halt, RuntimeValue};
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Root { Owner(u64), Chain(u64) }
+
 struct Loan {
     parent: RuntimeValue,
-    root: u64,
+    // A chain and a byte owner can have equal numeric IDs. Provenance belongs
+    // to the typed language root; byte access belongs to its payload storage.
+    root: Root,
+    storage: u64,
     mutable: bool,
+    // Call formals are distinct scope witnesses, not source borrow events.
+    external: bool,
 }
 
 // Flat identities avoid recursive host destruction when a finite-step stop
@@ -33,14 +41,20 @@ mod tests {
         let mut memory = ByteMemory::new(8, None);
         let owner = memory.operation("buffer.new", &[scalar(1)]).unwrap().remove(0);
         let parent = memory.operation("borrow.mut", &[owner.clone()]).unwrap().remove(0);
-        let shared = memory.operation("borrow.read", &[parent.clone()]).unwrap().remove(0);
-        let read = memory.operation("buffer.load", &[parent.clone(), scalar(0)]).unwrap();
+        let params = json!([{"name":"left","type":"readbuf"},{"name":"right","type":"readbuf"}]);
+        let (formal, scope) = memory.enter_call(&params, vec![parent.clone(), parent.clone()]).unwrap();
+        let shared = memory.operation("borrow.read", &[formal[0].clone()]).unwrap().remove(0);
+        let read = memory.operation("buffer.load", &[formal[1].clone(), scalar(0)]).unwrap();
         assert_eq!(read[0].scalar().unwrap(), &json!(0));
+        assert!(matches!(memory.operation("buffer.load", &[formal[0].clone(), scalar(0)]),
+                         Err(Halt::Internal)));
         assert!(matches!(memory.operation("buffer.store", &[parent.clone(), scalar(0), scalar(42)]),
                          Err(Halt::Internal)));
         assert!(matches!(memory.operation("loan.end", &[parent.clone()]), Err(Halt::Internal)));
         assert!(matches!(memory.operation("borrow.mut", &[shared.clone()]), Err(Halt::Internal)));
+        assert_eq!(memory.report(false)["live_local_loans"], 2);
         memory.operation("loan.end", &[shared]).unwrap();
+        memory.leave_call(&scope).unwrap();
         memory.operation("buffer.store", &[parent.clone(), scalar(0), scalar(42)]).unwrap();
         memory.operation("loan.end", &[parent]).unwrap();
         memory.operation("owner.drop", &[owner]).unwrap();
@@ -67,13 +81,43 @@ mod tests {
     }
 
     #[test]
+    fn copy_checks_both_extents_and_distinct_roots_before_writing() {
+        let mut memory = ByteMemory::new(32, None);
+        memory.new_owner(vec![11, 22, 33, 44]);
+        memory.new_owner(vec![99; 4]);
+        for (dst, src, count) in [(0, 3, 2), (3, 0, 2), (0, 0, u64::MAX),
+                                   (u64::MAX, 0, 0), (0, u64::MAX, 0)] {
+            assert!(matches!(memory.copy_distinct(2, 1, dst, src, count), Err(Halt::Trap("bounds"))));
+            assert_eq!(memory.owners[&2], vec![99; 4]);
+        }
+        assert!(matches!(memory.copy_distinct(1, 1, 4, 4, 0), Err(Halt::Internal)));
+        memory.copy_distinct(2, 1, 4, 4, 0).unwrap();
+        assert_eq!(memory.owners[&2], vec![99; 4]);
+    }
+
+    #[test]
+    fn multi_chunk_copy_preserves_exact_bytes_and_resource_ledger() {
+        let mut memory = ByteMemory::new(20000, None);
+        let source: Vec<u8> = (0..8250).map(|index| (index % 251) as u8).collect();
+        memory.new_owner(source.clone());
+        memory.new_owner(vec![254; 8250]);
+        let ledger = memory.report(false);
+        memory.copy_distinct(2, 1, 3, 25, 8200).unwrap();
+        let mut expected = vec![254; 8250];
+        expected[3..8203].copy_from_slice(&source[25..8225]);
+        assert_eq!(memory.owners[&1], source);
+        assert_eq!(memory.owners[&2], expected);
+        assert_eq!(memory.report(false), ledger);
+    }
+
+    #[test]
     fn all_bulk_bounds_are_checked_before_writes_and_copy_crosses_scratch_chunks() {
         let mut memory = ByteMemory::new(20_000, None);
         let source_bytes: Vec<u8> = (0..8193).map(|i| (i % 251) as u8).collect();
         let source = memory.new_owner(source_bytes.clone());
         let destination = memory.new_owner(vec![97; 8193]);
-        let source_id = memory.root(&source).unwrap();
-        let destination_id = memory.root(&destination).unwrap();
+        let source_id = memory.storage(&source).unwrap();
+        let destination_id = memory.storage(&destination).unwrap();
         let reader = memory.operation("borrow.read", &[source.clone()]).unwrap().remove(0);
         let writer = memory.operation("borrow.mut", &[destination.clone()]).unwrap().remove(0);
         for (dst, src, size) in [(0, 8193, 1), (8193, 0, 1), (0, u64::MAX, 0),
@@ -104,7 +148,7 @@ mod tests {
                                      (0, 1, vec![2, 3, 4, 5, 5])] {
             let mut memory = ByteMemory::new(5, None);
             let owner = memory.new_owner(vec![1, 2, 3, 4, 5]);
-            let root = memory.root(&owner).unwrap();
+            let root = memory.storage(&owner).unwrap();
             let writer = memory.operation("borrow.mut", &[owner.clone()]).unwrap().remove(0);
             memory.operation("buffer.move_within", &[writer.clone(), scalar(dst),
                 scalar(src), scalar(4)]).unwrap();
@@ -143,12 +187,69 @@ mod tests {
         memory.operation("loan.end", &[parent]).unwrap();
         let popped = memory.operation("chain.pop", &[chain]).unwrap();
         assert_eq!(memory.root(&popped[1]).unwrap(), memory.root(&payload).unwrap());
-        assert_eq!(memory.owners[&memory.root(&popped[1]).unwrap()], vec![42]);
+        assert_eq!(memory.owners[&memory.storage(&popped[1]).unwrap()], vec![42]);
         assert_eq!(memory.report(true)["chain_nodes_dropped"], 1);
         assert_eq!(memory.report(true)["live_bytes"], 1);
         memory.operation("owner.drop", &[popped[1].clone()]).unwrap();
         assert!(memory.begin_chain_drop(&popped[0]).unwrap().is_none());
         assert!(memory.is_clean());
+    }
+
+    #[test]
+    fn numeric_chain_and_byte_ids_never_alias_provenance_or_payload_extent() {
+        let mut memory = ByteMemory::new(64, None);
+        let empty = memory.operation("chain.empty", &[]).unwrap().remove(0);
+        let payload = memory.operation("buffer.new", &[scalar(3)]).unwrap().remove(0);
+        let independent = memory.operation("buffer.new", &[scalar(7)]).unwrap().remove(0);
+        let pushed = memory.operation("chain.try_push", &[empty, payload]).unwrap();
+        let chain = pushed[0].clone();
+        assert!(matches!(chain, RuntimeValue::Chain(2)));
+        assert!(matches!(independent, RuntimeValue::Owner(2)));
+        memory.operation("owner.drop", &[pushed[1].clone()]).unwrap();
+        let head = memory.operation("chain.head_mut", &[chain.clone()]).unwrap().remove(0);
+        let reader = memory.operation("borrow.read", &[independent.clone()]).unwrap().remove(0);
+        assert_ne!(memory.root(&head).unwrap(), memory.root(&reader).unwrap());
+        assert_eq!(memory.operation("buffer.len", &[head.clone()]).unwrap()[0].scalar().unwrap(), &json!(3));
+        assert_eq!(memory.operation("buffer.len", &[reader.clone()]).unwrap()[0].scalar().unwrap(), &json!(7));
+        memory.operation("buffer.copy", &[head.clone(), reader.clone(), scalar(3)]).unwrap();
+        assert!(matches!(memory.operation("buffer.len", &[chain.clone()]), Err(Halt::Internal)));
+        assert!(matches!(memory.begin_chain_drop(&chain), Err(Halt::Internal)));
+        memory.operation("loan.end", &[reader]).unwrap();
+        memory.operation("owner.drop", &[independent]).unwrap();
+        memory.operation("loan.end", &[head]).unwrap();
+        let node = memory.begin_chain_drop(&chain).unwrap().unwrap();
+        assert!(memory.drop_chain_node(node).unwrap().is_none());
+        assert!(memory.is_clean());
+    }
+
+    #[test]
+    fn formal_forward_and_direct_child_rebind_to_actual_without_counter_inflation() {
+        for direct in [false, true] {
+            let mut memory = ByteMemory::new(8, None);
+            let owner = memory.operation("buffer.new", &[scalar(1)]).unwrap().remove(0);
+            let parent = memory.operation("borrow.mut", &[owner.clone()]).unwrap().remove(0);
+            let params = json!([{"name":"input","type":"mutbuf"}]);
+            let (outer, outer_scope) = memory.enter_call(&params, vec![parent.clone()]).unwrap();
+            let (inner, inner_scope) = memory.enter_call(&params, vec![outer[0].clone()]).unwrap();
+            assert_eq!(memory.report(false)["loans_started"], 1);
+            assert_eq!(memory.report(false)["live_local_loans"], 1);
+            let child = if direct {
+                memory.operation("borrow.mut", &[inner[0].clone()]).unwrap().remove(0)
+            } else { inner[0].clone() };
+            let returned = memory.return_loan(&child, &inner[0], true).unwrap();
+            memory.leave_call(&inner_scope).unwrap();
+            let returned = memory.return_loan(&returned, &outer[0], true).unwrap();
+            memory.leave_call(&outer_scope).unwrap();
+            assert_eq!(memory.report(false)["loans_started"], 2);
+            assert_eq!(memory.report(false)["live_local_loans"], 2);
+            assert!(matches!(memory.operation("loan.end", &[parent.clone()]), Err(Halt::Internal)));
+            memory.operation("buffer.store", &[returned.clone(), scalar(0), scalar(73)]).unwrap();
+            memory.operation("loan.end", &[returned]).unwrap();
+            assert_eq!(memory.operation("buffer.load", &[parent.clone(), scalar(0)]).unwrap()[0].scalar().unwrap(), &json!(73));
+            memory.operation("loan.end", &[parent]).unwrap();
+            memory.operation("owner.drop", &[owner]).unwrap();
+            assert!(memory.is_clean());
+        }
     }
 }
 
@@ -170,6 +271,7 @@ pub(super) struct ByteMemory {
     owners_dropped: u64,
     loans_started: u64,
     loans_ended: u64,
+    next_loan: u64,
     live_bytes: u64,
     peak_bytes: u64,
 }
@@ -181,7 +283,7 @@ impl ByteMemory {
             chains_created: 0, chains_consumed: 0,
             chain_nodes_created: 0, chain_nodes_dropped: 0,
             attempts: 0, allocations: 0, frees: 0, owners_created: 0,
-            owners_dropped: 0, loans_started: 0, loans_ended: 0,
+            owners_dropped: 0, loans_started: 0, loans_ended: 0, next_loan: 0,
             live_bytes: 0, peak_bytes: 0 }
     }
 
@@ -198,6 +300,8 @@ impl ByteMemory {
             "chain.empty" | "chain.try_push" | "chain.pop" | "chain.is_empty" |
             "chain.head_read" | "chain.head_mut")
     }
+
+    pub(super) fn chain_operation(op: &str) -> bool { op.starts_with("chain.") }
 
     pub(super) fn live_chain(&self, id: u64) -> bool {
         self.chains.contains_key(&id)
@@ -217,18 +321,16 @@ impl ByteMemory {
     }
 
     fn unborrowed_owner(&self, id: u64) -> Exec<()> {
-        if !self.owners.contains_key(&id) || self.loans.values().any(|loan| loan.root == id) {
+        if !self.owners.contains_key(&id) || self.loans.values().any(|loan| loan.storage == id) {
             return Err(Halt::Internal);
         }
         Ok(())
     }
 
     fn unborrowed_chain(&self, id: u64) -> Exec<()> {
-        if let Some(head) = self.chains.get(&id).ok_or(Halt::Internal)? {
-            // Only the head payload can have an exposed loan. Any shape
-            // change requires it ended; tail payloads were enclosed with no
-            // live loans and cannot be addressed through a chain capability.
-            self.unborrowed_owner(self.chain_nodes.get(head).ok_or(Halt::Internal)?.payload)?;
+        if !self.chains.contains_key(&id)
+            || self.loans.values().any(|loan| loan.root == Root::Chain(id)) {
+            return Err(Halt::Internal);
         }
         Ok(())
     }
@@ -267,46 +369,147 @@ impl ByteMemory {
         self.loans.get(&id).map(|loan| if loan.mutable { "mutbuf" } else { "readbuf" })
     }
 
-    pub(super) fn return_loan(&mut self, parent: &RuntimeValue, value: &RuntimeValue,
+    pub(super) fn return_loan(&mut self, value: &RuntimeValue, parent: &RuntimeValue,
                              mutable: bool) -> Exec<RuntimeValue> {
-        let (RuntimeValue::Loan(parent_id), RuntimeValue::Loan(value_id)) = (parent, value)
-            else { return Err(Halt::Internal); };
-        self.root(parent)?;
+        let (RuntimeValue::Loan(id), RuntimeValue::Loan(parent_id)) = (value, parent) else {
+            return Err(Halt::Internal);
+        };
         self.root(value)?;
-        if parent_id == value_id {
-            // A returned incoming parameter is a NEW child of the caller's
-            // argument; ending it cannot consume the original caller loan.
-            return self.operation(if mutable { "borrow.mut" } else { "borrow.read" },
-                                  &[parent.clone()])?.pop().ok_or(Halt::Internal);
+        self.root(parent)?;
+        let loan = self.loans.get(id).ok_or(Halt::Internal)?;
+        let input = self.loans.get(parent_id).ok_or(Halt::Internal)?;
+        if mutable && (!loan.mutable || !input.mutable) { return Err(Halt::Internal); }
+        if self.child_exists(*id) { return Err(Halt::Internal); }
+        if !input.external { return Err(Halt::Internal); }
+        let caller = input.parent.clone();
+        if id == parent_id {
+            // Materialize this previously uncounted formal witness as a fresh
+            // source child of the actual caller. It is already distinct from
+            // the caller's loan; forwarding adds exactly one borrow event.
+            let output = self.loans.get_mut(id).ok_or(Halt::Internal)?;
+            output.external = false;
+            output.mutable = mutable;
+            self.loans_started += 1;
+            return Ok(value.clone());
         }
-        let loan = self.loans.get(value_id).ok_or(Halt::Internal)?;
-        if !matches!(&loan.parent, RuntimeValue::Loan(id) if id == parent_id) ||
-            loan.mutable != mutable || self.child_exists(*value_id) {
+        if loan.external || !matches!(loan.parent, RuntimeValue::Loan(id) if id == *parent_id) {
             return Err(Halt::Internal);
         }
+        // A callee-created direct child transfers exactly once, with no extra
+        // allocation, tick or started-loan event. Remove only its call-scope
+        // parent, retaining the selected actual and its typed logical root.
+        self.loans.get_mut(id).ok_or(Halt::Internal)?.parent = caller;
         Ok(value.clone())
     }
 
-    fn root(&self, value: &RuntimeValue) -> Exec<u64> {
+    fn root(&self, value: &RuntimeValue) -> Exec<Root> {
         let mut current = value;
         let mut traversed = 0;
+        let mut expected = None;
         loop {
             match current {
-                RuntimeValue::Owner(id) if self.owners.contains_key(id) => return Ok(*id),
+                RuntimeValue::Owner(id) if self.owners.contains_key(id) => {
+                    let root = Root::Owner(*id);
+                    return if expected.is_none_or(|r| r == root) { Ok(root) } else { Err(Halt::Internal) };
+                }
+                RuntimeValue::Chain(id) if self.chains.contains_key(id) => {
+                    let root = Root::Chain(*id);
+                    return if expected.is_none_or(|r| r == root) { Ok(root) } else { Err(Halt::Internal) };
+                }
                 RuntimeValue::Loan(id) => {
                     let loan = self.loans.get(id).ok_or(Halt::Internal)?;
                     // Parent handles are immutable and point only to an
                     // already-live ancestor; the bound also refuses a bug
                     // that would fabricate a cyclic runtime graph.
                     traversed += 1;
-                    if traversed > self.loans.len() || !self.owners.contains_key(&loan.root) {
+                    if traversed > self.loans.len() || !self.owners.contains_key(&loan.storage)
+                        || expected.is_some_and(|r| r != loan.root) {
                         return Err(Halt::Internal);
                     }
+                    expected = Some(loan.root);
                     current = &loan.parent;
                 }
                 _ => return Err(Halt::Internal),
             }
         }
+    }
+
+    fn storage(&self, value: &RuntimeValue) -> Exec<u64> {
+        self.root(value)?;
+        match value {
+            RuntimeValue::Owner(id) => Ok(*id),
+            RuntimeValue::Loan(id) => Ok(self.loans.get(id).ok_or(Halt::Internal)?.storage),
+            _ => Err(Halt::Internal),
+        }
+    }
+
+    fn borrow(&mut self, parent: &RuntimeValue, mutable: bool, head: bool) -> Exec<RuntimeValue> {
+        let root = self.root(parent)?;
+        let storage = if head {
+            let id = self.chain_id(parent)?;
+            let node = self.chains[&id].ok_or(Halt::Trap("bounds"))?;
+            self.chain_nodes.get(&node).ok_or(Halt::Internal)?.payload
+        } else { self.storage(parent)? };
+        let mut ancestors = BTreeSet::new();
+        let mut current = parent;
+        while let RuntimeValue::Loan(id) = current {
+            if !ancestors.insert(*id) { return Err(Halt::Internal); }
+            let loan = self.loans.get(id).ok_or(Halt::Internal)?;
+            if mutable && !loan.mutable { return Err(Halt::Internal); }
+            current = &loan.parent;
+        }
+        if self.loans.iter().any(|(id, loan)| loan.root == root
+            && !ancestors.contains(id) && (mutable || loan.mutable)) {
+            return Err(Halt::Internal);
+        }
+        self.next_loan += 1;
+        self.loans_started += 1;
+        self.loans.insert(self.next_loan, Loan { root, storage, mutable,
+            parent: parent.clone(), external: false });
+        Ok(RuntimeValue::Loan(self.next_loan))
+    }
+
+    pub(super) fn enter_call(&mut self, params: &Value, mut values: Vec<RuntimeValue>)
+        -> Exec<(Vec<RuntimeValue>, Vec<u64>)> {
+        let params = params.as_array().ok_or(Halt::Internal)?;
+        if params.len() != values.len() { return Err(Halt::Internal); }
+        // Check every actual before creating witnesses. A local child of one
+        // readonly formal must not suspend a distinct aliased readonly formal.
+        let mut views = Vec::new();
+        for (param, value) in params.iter().zip(&values) {
+            if !matches!(param["type"].as_str(), Some("readbuf" | "mutbuf")) { continue; }
+            let mutable = param["type"] == "mutbuf";
+            self.access(value, mutable)?;
+            let root = self.root(value)?;
+            if views.iter().any(|(other, exclusive)| *other == root && (*exclusive || mutable)) {
+                return Err(Halt::Internal);
+            }
+            views.push((root, mutable));
+        }
+        let mut formals = Vec::new();
+        for (param, value) in params.iter().zip(&mut values) {
+            if !matches!(param["type"].as_str(), Some("readbuf" | "mutbuf")) { continue; }
+            let root = self.root(value)?;
+            let storage = self.storage(value)?;
+            let mutable = param["type"] == "mutbuf";
+            self.next_loan += 1;
+            let id = self.next_loan;
+            self.loans.insert(id, Loan { root, storage, mutable, parent: value.clone(), external: true });
+            *value = RuntimeValue::Loan(id);
+            formals.push(id);
+        }
+        Ok((values, formals))
+    }
+
+    pub(super) fn leave_call(&mut self, formals: &[u64]) -> Exec<()> {
+        for id in formals {
+            let loan = self.loans.get(id).ok_or(Halt::Internal)?;
+            // A forwarded result materialized this witness into a local child.
+            if !loan.external { continue; }
+            if self.child_exists(*id) { return Err(Halt::Internal); }
+            self.loans.remove(id).ok_or(Halt::Internal)?;
+        }
+        Ok(())
     }
 
     fn new_owner(&mut self, bytes: Vec<u8>) -> RuntimeValue {
@@ -349,51 +552,44 @@ impl ByteMemory {
     fn access(&self, value: &RuntimeValue, mutable: bool) -> Exec<u64> {
         let RuntimeValue::Loan(id) = value else { return Err(Halt::Internal); };
         let loan = self.loans.get(id).ok_or(Halt::Internal)?;
-        if mutable {
-            if !loan.mutable || self.child_exists(*id) { return Err(Halt::Internal); }
-        } else if self.loans.values().any(|child| child.mutable &&
-            matches!(child.parent, RuntimeValue::Loan(parent) if parent == *id)) {
+        if mutable && !loan.mutable || self.child_exists(*id) {
             return Err(Halt::Internal);
         }
-        // Two read-only formal parameters may alias one caller loan. A shared
-        // reborrow through one formal must not disable reads through the other.
-        // Writes still require exclusivity. A mutable descendant must start
-        // with a mutable child: shared loans can never be upgraded to mutable.
-        // Static per-SSA suspension rules remain enforced by verify_owned.
-        self.root(value)
+        self.storage(value)
     }
 
     fn unsigned(value: &RuntimeValue) -> Exec<u64> {
         value.scalar()?.as_u64().ok_or(Halt::Internal)
     }
 
-    fn argument(args: &[RuntimeValue], index: usize) -> Exec<u64> {
-        Self::unsigned(args.get(index).ok_or(Halt::Internal)?)
-    }
-
-    fn range(&self, root: u64, offset: u64, size: u64) -> Exec<(usize, usize)> {
+    fn range(&self, root: u64, offset: u64, count: u64) -> Exec<std::ops::Range<usize>> {
         let length = self.owners.get(&root).ok_or(Halt::Internal)?.len() as u64;
-        if offset > length || size > length - offset { return Err(Halt::Trap("bounds")); }
-        Ok((usize::try_from(offset).map_err(|_| Halt::Internal)?,
-            usize::try_from(size).map_err(|_| Halt::Internal)?))
+        // Check by subtraction before converting, adding, slicing or writing.
+        // Empty extents at the end are valid; an offset beyond the end is not.
+        if offset > length || count > length - offset { return Err(Halt::Trap("bounds")); }
+        let start = usize::try_from(offset).map_err(|_| Halt::Internal)?;
+        let count = usize::try_from(count).map_err(|_| Halt::Internal)?;
+        Ok(start..start + count)
     }
 
-    fn copy_range(&mut self, destination: u64, source: u64,
-                  dst_offset: u64, src_offset: u64, size: u64) -> Exec<()> {
+    fn copy_distinct(&mut self, destination: u64, source: u64,
+                     dst_offset: u64, src_offset: u64, count: u64) -> Exec<()> {
+        // Even a zero-length copy must not erase the distinct-owner contract.
         if destination == source { return Err(Halt::Internal); }
-        // Validate BOTH complete ranges before the first write. Use fixed
-        // scratch rather than allocating another size-proportional buffer.
-        let (dst_offset, size) = self.range(destination, dst_offset, size)?;
-        let (src_offset, _) = self.range(source, src_offset, size as u64)?;
+        let dst = self.range(destination, dst_offset, count)?;
+        let src = self.range(source, src_offset, count)?;
+        // A bounded stack scratch avoids a host allocation proportional to the
+        // copy size and does not fabricate a language-level allocation event.
+        // Both ranges are checked before the first observable byte changes.
         let mut scratch = [0_u8; 4096];
         let mut copied = 0;
-        while copied < size {
-            let count = (size - copied).min(scratch.len());
-            scratch[..count].copy_from_slice(
-                &self.owners[&source][src_offset + copied..src_offset + copied + count]);
-            self.owners.get_mut(&destination).ok_or(Halt::Internal)?[
-                dst_offset + copied..dst_offset + copied + count].copy_from_slice(&scratch[..count]);
-            copied += count;
+        while copied < src.len() {
+            let chunk = (src.len() - copied).min(scratch.len());
+            scratch[..chunk].copy_from_slice(
+                &self.owners.get(&source).ok_or(Halt::Internal)?[src.start + copied..src.start + copied + chunk]);
+            self.owners.get_mut(&destination).ok_or(Halt::Internal)?
+                [dst.start + copied..dst.start + copied + chunk].copy_from_slice(&scratch[..chunk]);
+            copied += chunk;
         }
         Ok(())
     }
@@ -409,23 +605,16 @@ impl ByteMemory {
                 Ok(result)
             }
             "buffer.len" => {
-                let root = self.root(first)?;
+                let root = self.storage(first)?;
                 Ok(vec![RuntimeValue::Scalar(json!(self.owners[&root].len()))])
             }
             "borrow.read" | "borrow.mut" => {
-                let root = self.root(first)?;
-                let mutable = op == "borrow.mut";
-                if let RuntimeValue::Loan(id) = first {
-                    if mutable && !self.loans[id].mutable { return Err(Halt::Internal); }
-                }
-                self.loans_started += 1;
-                self.loans.insert(self.loans_started, Loan { root, mutable, parent: first.clone() });
-                Ok(vec![RuntimeValue::Loan(self.loans_started)])
+                Ok(vec![self.borrow(first, op == "borrow.mut", false)?])
             }
             "loan.end" => {
                 self.root(first)?;
                 let RuntimeValue::Loan(id) = first else { return Err(Halt::Internal); };
-                if self.child_exists(*id) { return Err(Halt::Internal); }
+                if self.child_exists(*id) || self.loans[id].external { return Err(Halt::Internal); }
                 self.loans.remove(id).ok_or(Halt::Internal)?;
                 self.loans_ended += 1;
                 Ok(vec![])
@@ -437,7 +626,7 @@ impl ByteMemory {
                 }
                 let RuntimeValue::Owner(id) = first else { return Err(Halt::Internal); };
                 self.root(first)?;
-                if self.loans.values().any(|loan| loan.root == *id) { return Err(Halt::Internal); }
+                self.unborrowed_owner(*id)?;
                 Ok(vec![first.clone()])
             }
             "owner.drop" => {
@@ -489,17 +678,7 @@ impl ByteMemory {
                 Ok(vec![RuntimeValue::Scalar(json!(self.chains[&chain].is_none()))])
             }
             "chain.head_read" | "chain.head_mut" => {
-                let chain = self.chain_id(first)?;
-                let head = self.chains[&chain].ok_or(Halt::Trap("bounds"))?;
-                let root = self.chain_nodes.get(&head).ok_or(Halt::Internal)?.payload;
-                let mutable = op == "chain.head_mut";
-                if self.loans.values().any(|loan| loan.root == root && (mutable || loan.mutable)) {
-                    return Err(Halt::Internal);
-                }
-                self.loans_started += 1;
-                self.loans.insert(self.loans_started,
-                    Loan { root, mutable, parent: RuntimeValue::Owner(root) });
-                Ok(vec![RuntimeValue::Loan(self.loans_started)])
+                Ok(vec![self.borrow(first, op == "chain.head_mut", true)?])
             }
             "buffer.load" | "buffer.store" => {
                 let root = self.access(first, op == "buffer.store")?;
@@ -515,44 +694,46 @@ impl ByteMemory {
             }
             "buffer.fill" | "buffer.fill_range" => {
                 let root = self.access(first, true)?;
-                let (offset, size, value) = if op == "buffer.fill" {
-                    (0, self.owners[&root].len() as u64, Self::argument(args, 1)?)
+                let (range, byte_index) = if op == "buffer.fill" {
+                    (0..self.owners.get(&root).ok_or(Halt::Internal)?.len(), 1)
                 } else {
-                    (Self::argument(args, 1)?, Self::argument(args, 2)?, Self::argument(args, 3)?)
+                    (self.range(root, Self::unsigned(args.get(1).ok_or(Halt::Internal)?)?,
+                                Self::unsigned(args.get(2).ok_or(Halt::Internal)?)?)?, 3)
                 };
-                let (offset, size) = self.range(root, offset, size)?;
-                let value = u8::try_from(value).map_err(|_| Halt::Internal)?;
-                self.owners.get_mut(&root).ok_or(Halt::Internal)?[offset..offset + size].fill(value);
+                let byte = u8::try_from(Self::unsigned(args.get(byte_index).ok_or(Halt::Internal)?)?)
+                    .map_err(|_| Halt::Internal)?;
+                self.owners.get_mut(&root).ok_or(Halt::Internal)?[range].fill(byte);
                 Ok(vec![])
             }
             "buffer.copy" | "buffer.copy_range" => {
                 let destination = self.access(first, true)?;
                 let source = self.access(args.get(1).ok_or(Halt::Internal)?, false)?;
-                let (dst_offset, src_offset, size) = if op == "buffer.copy" {
-                    (0, 0, Self::argument(args, 2)?)
+                let (dst, src, count) = if op == "buffer.copy" {
+                    (0, 0, Self::unsigned(args.get(2).ok_or(Halt::Internal)?)?)
                 } else {
-                    (Self::argument(args, 2)?, Self::argument(args, 3)?, Self::argument(args, 4)?)
+                    (Self::unsigned(args.get(2).ok_or(Halt::Internal)?)?,
+                     Self::unsigned(args.get(3).ok_or(Halt::Internal)?)?,
+                     Self::unsigned(args.get(4).ok_or(Halt::Internal)?)?)
                 };
-                self.copy_range(destination, source, dst_offset, src_offset, size)?;
+                self.copy_distinct(destination, source, dst, src, count)?;
                 Ok(vec![])
             }
             "buffer.move_within" => {
                 let root = self.access(first, true)?;
-                let destination = Self::argument(args, 1)?;
-                let source = Self::argument(args, 2)?;
-                let size = Self::argument(args, 3)?;
-                let (destination, size) = self.range(root, destination, size)?;
-                let (source, _) = self.range(root, source, size as u64)?;
-                self.owners.get_mut(&root).ok_or(Halt::Internal)?
-                    .copy_within(source..source + size, destination);
+                let dst = Self::unsigned(args.get(1).ok_or(Halt::Internal)?)?;
+                let src = Self::unsigned(args.get(2).ok_or(Halt::Internal)?)?;
+                let count = Self::unsigned(args.get(3).ok_or(Halt::Internal)?)?;
+                let destination = self.range(root, dst, count)?;
+                let source = self.range(root, src, count)?;
+                self.owners.get_mut(&root).ok_or(Halt::Internal)?.copy_within(source, destination.start);
                 Ok(vec![])
             }
             "buffer.swap" => {
                 let root = self.access(first, true)?;
-                let left = Self::argument(args, 1)?;
-                let right = Self::argument(args, 2)?;
-                let (left, _) = self.range(root, left, 1)?;
-                let (right, _) = self.range(root, right, 1)?;
+                let left = Self::unsigned(args.get(1).ok_or(Halt::Internal)?)?;
+                let right = Self::unsigned(args.get(2).ok_or(Halt::Internal)?)?;
+                let left = self.range(root, left, 1)?.start;
+                let right = self.range(root, right, 1)?.start;
                 self.owners.get_mut(&root).ok_or(Halt::Internal)?.swap(left, right);
                 Ok(vec![])
             }
@@ -575,7 +756,8 @@ impl ByteMemory {
             "owners_created": self.owners_created, "owners_dropped": self.owners_dropped,
             "live_owners": self.owners.len(), "live_bytes": self.live_bytes,
             "peak_bytes": self.peak_bytes, "loans_started": self.loans_started,
-            "loans_ended": self.loans_ended, "live_local_loans": self.loans.len()
+            "loans_ended": self.loans_ended,
+            "live_local_loans": self.loans.values().filter(|loan| !loan.external).count()
         });
         if v7 {
             report["chains_created"] = json!(self.chains_created);

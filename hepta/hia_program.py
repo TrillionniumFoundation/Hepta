@@ -3,11 +3,11 @@
 The authority is this program's operations, not a source file, producer hash,
 claim, or source-checker receipt.  Blocks are closed: all incoming values are
 explicit block parameters.  The profile has 64-bit usize/isize, byte owners,
-lexical/reborrowed views and finite machine integers. V8 additionally permits
-one returned view with an explicit incoming borrowed-parameter origin; v1-v7
-keep their non-escaping call rules. Versioned bulk-byte operations and v7
-recursive byte-owner chains follow the shared schema registry. Composite v1/v2
-normalize to primitive v6/v7 before the complete executable resource flow is checked.
+lexical/reborrowed views and finite machine integers. V8 admits explicitly
+parameter-bound returned loans through the return_loans contract; v1-v7 keep
+non-escaping call loans. Versioned bulk-byte operations and v7 recursive
+byte-owner chains follow the shared schema registry. Composite v1/v2/v3
+normalize to primitive v6/v7 before the complete resource flow is checked.
 
 This is an executable checker, not a machine-checked soundness/refinement proof.
 In particular explicit/arithmetic traps abort; cleanup is required at ordinary
@@ -24,7 +24,7 @@ import re
 from .hia_json_preflight import preflight_hia_json
 from .hia_schema import (
     COMPOSITE_SCHEMA, COMPOSITE_SCHEMAS, PRIMITIVE_SCHEMAS, PROFILE, PROFILE_V2, PROFILE_V3,
-    PROFILE_V4, PROFILE_V5, PROFILE_V6, PROFILE_V7, SCHEMA, SCHEMA_V2, SCHEMA_V3,
+    PROFILE_V4, PROFILE_V5, PROFILE_V6, PROFILE_V7, PROFILE_V8, SCHEMA, SCHEMA_V2, SCHEMA_V3,
     SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, profile_for_schema, supports_feature,
 )
 WORD_BITS = 64
@@ -305,7 +305,7 @@ class VerifiedProgram:
                            "backend_refinement_proved": False,
                            "foreign_code_supported": False,
                            "escaping_loans_supported": False,
-                           "explicit_parameter_returned_loan_checked": supports_feature(data["schema"], "returned_loan"),
+                           "parameter_bound_loan_returns_supported": supports_feature(data["schema"], "parameter_loan_returns"),
                            "concurrency_supported": False,
                            "nominal_products_and_enums_checked": checked.structured_bytes is not None,
                            "local_stored_loan_identity_checked": checked.structured_bytes is not None,
@@ -323,7 +323,8 @@ class _Capability:
     root: str
     parent: str | None = None
     external: bool = False
-    # Stable function parameter identity, unlike the block-local root name.
+    # Original function parameter identity, independent of CFG SSA renaming.
+    # Only functions with v8 borrowed results track this extra restriction.
     origin: str | None = None
 
 
@@ -379,10 +380,10 @@ def _edges(term):
     _reject("unknown terminator", "E_HIA_CFG")
 
 
-def _function_shape(fn, *, recursive_chain=False, returned_loan=False):
+def _function_shape(fn, *, recursive_chain=False, parameter_loan_returns=False):
     fields = {"name", "params", "returns", "effects", "entry", "blocks"}
-    if returned_loan and type(fn) is dict and "return_origins" in fn:
-        fields.add("return_origins")
+    if parameter_loan_returns and type(fn) is dict and "return_loans" in fn:
+        fields.add("return_loans")
     _keys(fn, fields, "function")
     name = _ident(fn["name"], "function")
     if name in _RESERVED_FUNCTIONS:
@@ -392,23 +393,20 @@ def _function_shape(fn, *, recursive_chain=False, returned_loan=False):
         _reject("returns must be a list", "E_HIA_TYPE")
     for typ in fn["returns"]:
         _type(typ)
-        if typ in {"readbuf", "mutbuf"} and not returned_loan:
-            _reject("call loans may not escape in v1", "E_HIA_LOAN")
-    views = [t for t in fn["returns"] if t in {"readbuf", "mutbuf"}]
-    if len(views) > 1 or views and any(t in OWNERS for t in fn["returns"]):
-        _reject("v8 returns at most one borrowed view plus scalar results", "E_HIA_LOAN")
-    origins = fn.get("return_origins", [None] * len(fn["returns"]))
-    if type(origins) is not list or len(origins) != len(fn["returns"]):
-        _reject("return_origins must correspond to every result", "E_HIA_LOAN")
-    params = {p["name"]: p["type"] for p in fn["params"]}
-    for typ, origin in zip(fn["returns"], origins):
-        if typ not in {"readbuf", "mutbuf"}:
-            if origin is not None:
-                _reject("nonborrowed result must have null return origin", "E_HIA_LOAN")
-        elif (type(origin) is not str or origin not in params
-              or params[origin] not in {"readbuf", "mutbuf"}
-              or typ == "mutbuf" and params[origin] != "mutbuf"):
-            _reject("returned view needs a compatible explicit borrowed parameter origin", "E_HIA_LOAN")
+        if typ in {"readbuf", "mutbuf"} and not parameter_loan_returns:
+            _reject("call loans require the v8 parameter-return contract", "E_HIA_LOAN")
+    if parameter_loan_returns:
+        origins = fn.get("return_loans", [None] * len(fn["returns"]))
+        if type(origins) is not list or len(origins) != len(fn["returns"]):
+            _reject("return_loans must match the return arity", "E_HIA_LOAN")
+        parameters = {p["name"]: p["type"] for p in fn["params"]}
+        for typ, origin in zip(fn["returns"], origins):
+            if typ not in {"readbuf", "mutbuf"}:
+                if origin is not None:
+                    _reject("nonloan result requires a null return_loans entry", "E_HIA_LOAN")
+            elif (type(origin) is not str or parameters.get(origin) not in {"readbuf", "mutbuf"}
+                  or typ == "mutbuf" and parameters[origin] != "mutbuf"):
+                _reject("borrowed result must name an input loan with sufficient permission", "E_HIA_LOAN")
     effects = fn["effects"]
     if (type(effects) is not list or any(type(e) is not str or e not in EFFECTS for e in effects)
             or len(effects) != len(set(effects))):
@@ -470,6 +468,17 @@ def _function_shape(fn, *, recursive_chain=False, returned_loan=False):
         if "chain" in declared:
             _reject("recursive chain types require HIA program v7", "E_HIA_TYPE")
     return by_id
+
+
+@dataclass(frozen=True, slots=True)
+class _FunctionInterface:
+    # Original formal identities are semantic inputs in v8: return_loans names
+    # a formal, not whichever same-typed or aliased argument happens to survive.
+    params: tuple[str, ...]
+    param_names: tuple[str, ...]
+    returns: tuple[str, ...]
+    return_loans: tuple[str | None, ...]
+    effects: frozenset[str]
 
 
 class _BlockCheck:
@@ -745,11 +754,10 @@ class _BlockCheck:
             if callee_name not in self.functions:
                 _reject("unknown callee", "E_HIA_CALL")
             callee = self.functions[callee_name]
-            if len(args) != len(callee["params"]):
+            if len(args) != len(callee.params):
                 _reject("call arity mismatch", "E_HIA_CALL")
             used_owners, views = set(), []
-            for name, typ, param in zip(args, actual, callee["params"]):
-                formal = param["type"]
+            for name, typ, formal in zip(args, actual, callee.params):
                 if typ != formal and not (formal == "readbuf" and typ == "mutbuf"):
                     _reject("call argument type mismatch", "E_HIA_CALL")
                 if typ in OWNERS:
@@ -763,8 +771,8 @@ class _BlockCheck:
                     if any(r == root and (m or formal == "mutbuf") for r, m in views):
                         _reject("aliased exclusive call arguments", "E_HIA_LOAN")
                     views.append((root, formal == "mutbuf"))
-            expected = callee["returns"]
-            self.required.update(callee["effects"])
+            expected = list(callee.returns)
+            self.required.update(callee.effects)
         else:
             _reject(f"unsupported opcode {op}", "E_HIA_OPCODE")
         if op not in {"const", "int.cast", "call"}:
@@ -796,13 +804,12 @@ class _BlockCheck:
             for name, typ in zip(args, actual):
                 if typ in OWNERS:
                     del self.caps[name]
-            for index, (name, typ) in enumerate(zip(names, types)):
+            bindings = dict(zip(callee.param_names, args))
+            for name, typ, origin in zip(names, types, callee.return_loans):
                 if typ in OWNERS:
                     self.caps[name] = _Capability(typ, name)
                 elif typ in {"readbuf", "mutbuf"}:
-                    origin = callee["return_origins"][index]
-                    position = next(i for i, p in enumerate(callee["params"]) if p["name"] == origin)
-                    self.borrow(args[position], name, typ == "mutbuf")
+                    self.borrow(bindings[origin], name, typ == "mutbuf")
         self.env.update(zip(names, types))
 
     def transfer(self, edge, target):
@@ -838,31 +845,120 @@ class _BlockCheck:
             types = [self.value(n) for n in names]
             if types != self.fn["returns"]:
                 _reject("return type/arity mismatch", "E_HIA_TYPE")
+            loans = [n for n, t in zip(names, types) if t in {"readbuf", "mutbuf"}]
+            if len(loans) != len(set(loans)):
+                _reject("same loan capability returned twice", "E_HIA_LOAN")
+            for name, typ, origin in zip(names, types, self.fn.get("return_loans", [None] * len(types))):
+                if typ not in {"readbuf", "mutbuf"}:
+                    continue
+                cap = self.caps[name]
+                parent = self.caps.get(cap.parent)
+                if (cap.origin != origin or self.children(name)
+                        or not (cap.external or parent is not None and parent.external)):
+                    _reject("returned loan must be its declared parameter or a direct child", "E_HIA_LOAN")
+            for name in loans:
+                del self.caps[name]
             owners = [n for n, t in zip(names, types) if t in OWNERS]
             if len(owners) != len(set(owners)):
                 _reject("same owner returned twice", "E_HIA_RESOURCE")
             for name in owners:
                 self.owner_free(name)
                 del self.caps[name]
-            for index, (name, typ) in enumerate(zip(names, types)):
-                if typ not in {"readbuf", "mutbuf"}:
-                    continue
-                cap = self.caps[name]
-                root = self.caps.get(cap.root)
-                origin = self.fn["return_origins"][index]
-                if (root is None or not root.external or cap.origin != origin
-                        or root.origin != origin or cap.parent not in {None, cap.root}):
-                    _reject("returned loan must directly borrow its declared incoming parameter", "E_HIA_LOAN")
-                self.access(name, typ == "mutbuf")
-                if not cap.external:
-                    del self.caps[name]  # Transfer this local loan to the caller.
-                self.required.add("read")
             if any(not cap.external for cap in self.caps.values()):
                 _reject("return leaves live owner/local loan", "E_HIA_RESOURCE")
         elif term["op"] == "trap":
             self.required.add("trap")
         if not self.required.issubset(self.fn["effects"]):
             _reject(f"missing effects {sorted(self.required - set(self.fn['effects']))}", "E_HIA_EFFECT")
+
+
+def _primitive_structure(data):
+    """Check every declaration, shape, SSA identity, CFG edge and export.
+
+    Incremental admission never caches this pass. It establishes every
+    function interface before any function body can be reused or checked.
+    """
+    fields = {"schema", "module", "functions"}
+    if type(data) is dict and "exports" in data:
+        fields.add("exports")
+    _keys(data, fields, "program")
+    if type(data["schema"]) is not str or data["schema"] not in PRIMITIVE_SCHEMAS:
+        _reject("unsupported program schema", "E_HIA_SCHEMA")
+    _ident(data["module"], "module")
+    if type(data["functions"]) is not list or not 1 <= len(data["functions"]) <= MAX_FUNCTIONS:
+        _reject("invalid function inventory", "E_HIA_FORMAT")
+    functions, block_maps = {}, {}
+    for fn in data["functions"]:
+        blocks = _function_shape(fn, recursive_chain=supports_feature(data["schema"], "recursive_chain"),
+                                 parameter_loan_returns=supports_feature(data["schema"], "parameter_loan_returns"))
+        if fn["name"] in functions:
+            _reject("duplicate function", "E_HIA_NAME")
+        functions[fn["name"]], block_maps[fn["name"]] = fn, blocks
+    if "exports" in data:
+        _names(data["exports"], "explicit scalar exports")
+        if len(data["exports"]) != len(set(data["exports"])):
+            _reject("duplicate explicit scalar export", "E_HIA_NAME")
+        for name in data["exports"]:
+            if name not in functions:
+                _reject("explicit export names a missing function", "E_HIA_CALL")
+            fn = functions[name]
+            if any(p["type"] not in SCALARS for p in fn["params"]) or any(t not in SCALARS for t in fn["returns"]):
+                _reject("public exports cannot carry resource descriptors", "E_HIA_TYPE")
+    return functions, block_maps
+
+
+def _function_interfaces(functions):
+    """Detached immutable facts visible across a body-checking boundary."""
+    return {name: _FunctionInterface(
+                tuple(p["type"] for p in fn["params"]),
+                tuple(p["name"] for p in fn["params"]),
+                tuple(fn["returns"]),
+                tuple(fn.get("return_loans", [None] * len(fn["returns"]))),
+                frozenset(fn["effects"]))
+            for name, fn in functions.items()}
+
+
+def _verify_function(schema, fn, blocks, interfaces):
+    """Verify a closed body using its bytes and immutable callee interfaces.
+
+    V8 formal identities and returned-loan declarations are dependencies.
+    Callee bodies, caller receipts and hidden global summaries are not inputs.
+    Any future cross-function obligation must extend the cache contract first.
+    """
+    track_origins = supports_feature(schema, "parameter_loan_returns") and any(
+        typ in {"readbuf", "mutbuf"} for typ in fn["returns"])
+    initial = {p["name"]: _Capability(p["type"], p["name"], external=p["type"] not in OWNERS,
+                                     origin=p["name"] if track_origins and p["type"] not in OWNERS else None)
+               for p in fn["params"] if p["type"] in RESOURCES}
+    incoming = {fn["entry"]: initial}
+    pending = deque([fn["entry"]])
+    processed = set()
+    while pending:
+        ident = pending.popleft()
+        if ident in processed:
+            continue
+        processed.add(ident)
+        block = blocks[ident]
+        check = _BlockCheck(fn, block, incoming[ident], interfaces,
+                            bulk_memory=supports_feature(schema, "bulk_memory"),
+                            inplace_memory=supports_feature(schema, "inplace_memory"),
+                            byte_swap=supports_feature(schema, "byte_swap"),
+                            offset_copy=supports_feature(schema, "offset_copy"),
+                            range_fill=supports_feature(schema, "range_fill"),
+                            recursive_chain=supports_feature(schema, "recursive_chain"))
+        for ins in block["ops"]:
+            check.instruction(ins)
+        check.finish()
+        for edge in _edges(block["term"]):
+            target = edge["target"]
+            state = check.transfer(edge, blocks[target])
+            if target in incoming and incoming[target] != state:
+                _reject("predecessors disagree on loan origins/permissions", "E_HIA_LOAN")
+            if target not in incoming:
+                incoming[target] = state
+                pending.append(target)
+    if processed != set(blocks):
+        _reject("not all blocks were checked", "E_HIA_CFG")
 
 
 def verify_program(program) -> VerifiedProgram:
@@ -891,67 +987,10 @@ def verify_program(program) -> VerifiedProgram:
         _reject("historical nominal v2 requires import_legacy_composite_v2; "
                 "the primitive v2 namespace cannot infer a producer profile",
                 "E_HIA_VERSION_COLLISION")
-    fields = {"schema", "module", "functions"}
-    if type(data) is dict and "exports" in data:
-        fields.add("exports")
-    _keys(data, fields, "program")
-    if type(data["schema"]) is not str or data["schema"] not in PRIMITIVE_SCHEMAS:
-        _reject("unsupported program schema", "E_HIA_SCHEMA")
-    _ident(data["module"], "module")
-    if type(data["functions"]) is not list or not 1 <= len(data["functions"]) <= MAX_FUNCTIONS:
-        _reject("invalid function inventory", "E_HIA_FORMAT")
-    functions, block_maps = {}, {}
-    for fn in data["functions"]:
-        blocks = _function_shape(fn, recursive_chain=supports_feature(data["schema"], "recursive_chain"),
-                                 returned_loan=supports_feature(data["schema"], "returned_loan"))
-        if fn["name"] in functions:
-            _reject("duplicate function", "E_HIA_NAME")
-        functions[fn["name"]], block_maps[fn["name"]] = fn, blocks
-    if "exports" in data:
-        _names(data["exports"], "explicit scalar exports")
-        if len(data["exports"]) != len(set(data["exports"])):
-            _reject("duplicate explicit scalar export", "E_HIA_NAME")
-        for name in data["exports"]:
-            if name not in functions:
-                _reject("explicit export names a missing function", "E_HIA_CALL")
-            fn = functions[name]
-            if any(p["type"] not in SCALARS for p in fn["params"]) or any(t not in SCALARS for t in fn["returns"]):
-                _reject("public exports cannot carry resource descriptors", "E_HIA_TYPE")
+    functions, block_maps = _primitive_structure(data)
+    interfaces = _function_interfaces(functions)
     for fn in functions.values():
-        blocks = block_maps[fn["name"]]
-        initial = {p["name"]: _Capability(p["type"], p["name"], external=p["type"] not in OWNERS,
-                                         origin=p["name"] if p["type"] not in OWNERS and
-                                         supports_feature(data["schema"], "returned_loan") else None)
-                   for p in fn["params"] if p["type"] in RESOURCES}
-        incoming = {fn["entry"]: initial}
-        pending = deque([fn["entry"]])
-        processed = set()
-        while pending:
-            ident = pending.popleft()
-            if ident in processed:
-                continue
-            processed.add(ident)
-            block = blocks[ident]
-            check = _BlockCheck(fn, block, incoming[ident], functions,
-                                bulk_memory=supports_feature(data["schema"], "bulk_memory"),
-                                inplace_memory=supports_feature(data["schema"], "inplace_memory"),
-                                byte_swap=supports_feature(data["schema"], "byte_swap"),
-                                offset_copy=supports_feature(data["schema"], "offset_copy"),
-                                range_fill=supports_feature(data["schema"], "range_fill"),
-                                recursive_chain=supports_feature(data["schema"], "recursive_chain"))
-            for ins in block["ops"]:
-                check.instruction(ins)
-            check.finish()
-            for edge in _edges(block["term"]):
-                target = edge["target"]
-                state = check.transfer(edge, blocks[target])
-                if target in incoming and incoming[target] != state:
-                    _reject("predecessors disagree on loan origins/permissions", "E_HIA_LOAN")
-                if target not in incoming:
-                    incoming[target] = state
-                    pending.append(target)
-        if processed != set(blocks):
-            _reject("not all blocks were checked", "E_HIA_CFG")
+        _verify_function(data["schema"], fn, block_maps[fn["name"]], interfaces)
     return VerifiedProgram(raw)
 
 

@@ -15,9 +15,10 @@ import json
 
 from .hia_program import _ident, verify_program
 from .hia_program_tools import (HIAEditRejected, PATCH_SCHEMA, apply_program_patch,
-                                  bounded_json_wire, decode_json)
+                                  bounded_json_wire, decode_json, function_signature)
 
 QUERY_SCHEMA = "hepta.hia.edit-query.v2"
+QUERY_SCHEMA_V3 = "hepta.hia.edit-query.v3"
 FIELDS = frozenset({"op", "args", "attrs"})
 MAX_RESPONSE_BYTES = 16 * 1024
 MAX_QUERY_BYTES = 1024 * 1024
@@ -41,6 +42,42 @@ def _display_atom(value, *, dotted=False):
     for part in value.split(".") if dotted else (value,):
         _ident(part, "Agent display name")
     return value
+
+
+def _display_signature(signature, *, return_loans):
+    """Check the declared presentation contract; admission still needs Core."""
+    fields = {"name", "params", "returns", "effects"}
+    if return_loans:
+        fields.add("return_loans")
+    if type(signature) is not dict or set(signature) != fields:
+        _reject("displayed function signature requires exactly its declared fields")
+    _display_atom(signature["name"])
+    if any(type(signature[key]) is not list for key in ("params", "returns", "effects")):
+        _reject("invalid displayed function signature lists")
+    params = {}
+    for parameter in signature["params"]:
+        if type(parameter) is not dict or set(parameter) != {"name", "type"}:
+            _reject("invalid displayed parameter")
+        name, typ = _display_atom(parameter["name"]), _display_atom(parameter["type"])
+        if name in params:
+            _reject("duplicate displayed parameter")
+        params[name] = typ
+    for typ in signature["returns"] + signature["effects"]:
+        _display_atom(typ)
+    if not return_loans:
+        return
+    origins = signature["return_loans"]
+    if type(origins) is not list or len(origins) != len(signature["returns"]):
+        _reject("return_loans must match displayed return arity")
+    for typ, origin in zip(signature["returns"], origins):
+        if typ not in {"readbuf", "mutbuf"}:
+            if origin is not None:
+                _reject("nonloan return must have a null origin")
+            continue
+        if type(origin) is not str or params.get(origin) not in {"readbuf", "mutbuf"}:
+            _reject("returned loan must name an input loan parameter")
+        if typ == "mutbuf" and params[origin] != "mutbuf":
+            _reject("mutable returned loan needs a mutable input loan")
 
 
 def _cfg_edges(term):
@@ -171,6 +208,7 @@ def prepare_edit(document, *, function, block, output, fields):
     if any(type(x) is not str for x in (function, block, output)):
         _reject("function, block and output identities must be strings")
     data = original.as_dict()
+    include_return_loans = data["schema"] == "hepta.hia.program.v8"
     matches = [fn for fn in data["functions"] if fn["name"] == function]
     if len(matches) != 1:
         _reject("function not found")
@@ -223,14 +261,14 @@ def prepare_edit(document, *, function, block, output, fields):
                             *downstream_block["consumers"]])
     calls = {op["attrs"]["function"] for op in visible_ops if op["op"] == "call"}
     query = {
-        "schema": QUERY_SCHEMA,
+        "schema": QUERY_SCHEMA_V3 if include_return_loans else QUERY_SCHEMA,
         "base_sha256": original.sha256,
         "input_sha256": getattr(original, "input_sha256", original.sha256),
         "selector": {"function": function, "block": block, "output": output},
         "fields": sorted(fields),
         "operation_sha256": sha256(_wire(operation)).hexdigest(),
         "context": {
-            "function": {key: fn[key] for key in ("name", "params", "returns", "effects")},
+            "function": function_signature(fn, include_return_loans=include_return_loans),
             "block_params": node["params"],
             "dependencies": [{"index": i, "operation": node["ops"][i]} for i in sorted(needed)],
             "operation_index": index,
@@ -238,7 +276,7 @@ def prepare_edit(document, *, function, block, output, fields):
             "consumers": consumers,
             "downstream": downstream,
             "terminator": node["term"],
-            "callees": [{key: other[key] for key in ("name", "params", "returns", "effects")}
+            "callees": [function_signature(other, include_return_loans=include_return_loans)
                         for other in data["functions"] if other["name"] in calls],
         },
         "scope": ("explicit SSA slice with complete displayed terminator inputs and "
@@ -289,7 +327,7 @@ def apply_edit(document, query, response):
         "edits": [{"action": "replace_operation", "function": selector["function"],
                    "block": selector["block"], "index": index, "operation": candidate}],
     })
-    receipt["edit_query"] = {"schema": QUERY_SCHEMA, "selector": selector,
+    receipt["edit_query"] = {"schema": reconstructed["schema"], "selector": selector,
                              "query_sha256": sha256(_wire(reconstructed)).hexdigest(),
                              "response_bytes": len(raw), "response_sha256": sha256(raw).hexdigest(),
                              "context_reconstructed": True, "entire_module_reverified": True}
@@ -311,7 +349,8 @@ def _render_edit_context_checked(query):
     """Deterministic display only; never a substitute for apply-time replay."""
     expected = {"schema", "base_sha256", "input_sha256", "selector", "fields",
                 "operation_sha256", "context", "scope"}
-    if type(query) is not dict or set(query) != expected or query.get("schema") != QUERY_SCHEMA:
+    if (type(query) is not dict or set(query) != expected
+            or query.get("schema") not in (QUERY_SCHEMA, QUERY_SCHEMA_V3)):
         _reject("expected exact prepared edit query fields")
     _wire(query)  # Refuse unbounded forged display data before rendering.
     if type(query["context"]) is not dict or type(query["selector"]) is not dict:
@@ -326,6 +365,12 @@ def _render_edit_context_checked(query):
             or len(set(query["fields"])) != len(query["fields"])):
         _reject("invalid rendered field selection")
     fn = context["function"]
+    has_return_loans = query["schema"] == QUERY_SCHEMA_V3
+    _display_signature(fn, return_loans=has_return_loans)
+    if type(context["callees"]) is not list:
+        _reject("invalid displayed callee list")
+    for callee in context["callees"]:
+        _display_signature(callee, return_loans=has_return_loans)
     if _display_atom(selector["function"]) != _display_atom(fn["name"]):
         _reject("rendered function disagrees with selector")
     selected_name = _display_atom(selector["output"])
@@ -335,7 +380,8 @@ def _render_edit_context_checked(query):
                        for v in fn["params"])
     lines = ["function " + _display_atom(fn["name"]) + "(" + params + ") -> "
              + ",".join(_display_atom(t) for t in fn["returns"])
-             + " effects{" + ",".join(_display_atom(t) for t in fn["effects"]) + "}",
+             + " effects{" + ",".join(_display_atom(t) for t in fn["effects"]) + "}"
+             + (" return_loans" + _wire(fn["return_loans"]).decode() if has_return_loans else ""),
              "block " + _display_atom(selector["block"]) + "(" +
              ", ".join(_display_atom(v["name"]) + ":" + _display_atom(v["type"])
                        for v in context["block_params"]) + ")"]

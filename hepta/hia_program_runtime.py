@@ -459,21 +459,23 @@ class _Machine:
             term = block["term"]
             if term["op"] == "ret":
                 values = [env[name] for name in term["values"]]
-                for index, origin in enumerate(fn.get("return_origins", [])):
-                    if origin is None:
+                bindings = {p["name"]: a for p, a in zip(fn["params"], arguments)}
+                for index, (typ, origin) in enumerate(zip(fn["returns"], fn.get("return_loans", [None] * len(values)))):
+                    if typ not in {"readbuf", "mutbuf"}:
                         continue
-                    position = next(i for i, p in enumerate(fn["params"]) if p["name"] == origin)
-                    parent, view = arguments[position], values[index]
-                    if not isinstance(parent, _View) or not isinstance(view, _View):
-                        raise HIAProgramRejected("returned loan lacks runtime view origin", "E_HIA_RUNTIME_INVARIANT")
-                    _underlying(parent); _underlying(view)
-                    if view is parent:
-                        # Returning a parameter creates a child, never gives the
-                        # caller permission to end its original argument loan.
-                        values[index] = _View(parent, fn["returns"][index] == "mutbuf")
+                    value, parent = values[index], bindings[origin]
+                    _underlying(value)
+                    _underlying(parent)
+                    if (not isinstance(value, _View) or not isinstance(parent, _View)
+                            or typ == "mutbuf" and (not value.mutable or not parent.mutable)):
+                        raise HIAProgramRejected("returned view permission invariant", "E_HIA_RUNTIME_INVARIANT")
+                    if value is parent:
+                        # Forwarding must not expose one consumable runtime view
+                        # as both the caller's parent and its returned child.
+                        values[index] = _View(parent, typ == "mutbuf")
                         self.loans_started += 1
-                    elif view.parent is not parent:
-                        raise HIAProgramRejected("returned loan has a local/incorrect parent", "E_HIA_RUNTIME_INVARIANT")
+                    elif value.parent is not parent:
+                        raise HIAProgramRejected("returned view origin invariant", "E_HIA_RUNTIME_INVARIANT")
                 return values
             if term["op"] == "trap":
                 raise HIAProgramTrap(term["code"], "explicit core trap")

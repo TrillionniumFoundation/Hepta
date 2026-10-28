@@ -1,0 +1,267 @@
+{
+  "schema": "hepta.hia.composite.v3",
+  "module": "partial_record_example",
+  "types": [
+    {
+      "name": "OwnedValue",
+      "params": [],
+      "kind": "record",
+      "fields": [
+        {
+          "name": "data",
+          "type": "buffer"
+        },
+        {
+          "name": "marker",
+          "type": "u8"
+        }
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "replace",
+      "params": [
+        {
+          "name": "size",
+          "type": "usize"
+        }
+      ],
+      "returns": [
+        "usize"
+      ],
+      "effects": [
+        "alloc"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "size",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "record.begin",
+              "args": [],
+              "out": [
+                {
+                  "name": "empty",
+                  "type": {
+                    "partial": "OwnedValue",
+                    "initialized": []
+                  }
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.try_new",
+              "args": [
+                "size"
+              ],
+              "out": [
+                {
+                  "name": "original",
+                  "type": "buffer"
+                },
+                {
+                  "name": "original_ok",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "record.insert",
+              "args": [
+                "empty",
+                "original"
+              ],
+              "out": [
+                {
+                  "name": "has_data",
+                  "type": {
+                    "partial": "OwnedValue",
+                    "initialized": [
+                      "data"
+                    ]
+                  }
+                }
+              ],
+              "attrs": {
+                "field": "data"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "marker",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 17
+              }
+            },
+            {
+              "op": "record.insert",
+              "args": [
+                "has_data",
+                "marker"
+              ],
+              "out": [
+                {
+                  "name": "initialized",
+                  "type": {
+                    "partial": "OwnedValue",
+                    "initialized": [
+                      "data",
+                      "marker"
+                    ]
+                  }
+                }
+              ],
+              "attrs": {
+                "field": "marker"
+              }
+            },
+            {
+              "op": "record.take",
+              "args": [
+                "initialized"
+              ],
+              "out": [
+                {
+                  "name": "detached",
+                  "type": "buffer"
+                },
+                {
+                  "name": "without_data",
+                  "type": {
+                    "partial": "OwnedValue",
+                    "initialized": [
+                      "marker"
+                    ]
+                  }
+                }
+              ],
+              "attrs": {
+                "field": "data"
+              }
+            },
+            {
+              "op": "owner.drop",
+              "args": [
+                "detached"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.try_new",
+              "args": [
+                "size"
+              ],
+              "out": [
+                {
+                  "name": "replacement",
+                  "type": "buffer"
+                },
+                {
+                  "name": "replacement_ok",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "record.insert",
+              "args": [
+                "without_data",
+                "replacement"
+              ],
+              "out": [
+                {
+                  "name": "reinitialized",
+                  "type": {
+                    "partial": "OwnedValue",
+                    "initialized": [
+                      "data",
+                      "marker"
+                    ]
+                  }
+                }
+              ],
+              "attrs": {
+                "field": "data"
+              }
+            },
+            {
+              "op": "record.finish",
+              "args": [
+                "reinitialized"
+              ],
+              "out": [
+                {
+                  "name": "complete",
+                  "type": "OwnedValue"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "record.unpack",
+              "args": [
+                "complete"
+              ],
+              "out": [
+                {
+                  "name": "data",
+                  "type": "buffer"
+                },
+                {
+                  "name": "observed_marker",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.len",
+              "args": [
+                "data"
+              ],
+              "out": [
+                {
+                  "name": "length",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "owner.drop",
+              "args": [
+                "data"
+              ],
+              "out": [],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "length"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

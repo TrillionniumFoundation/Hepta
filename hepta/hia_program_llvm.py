@@ -34,7 +34,7 @@ TARGET_AARCH64 = "aarch64-unknown-linux-gnu"
 TARGET_RISCV64 = "riscv64-unknown-linux-gnu"
 # RV64GC, LP64D: only the integer scalar ABI and explicit allocator/runtime imports.
 _RISCV64_PROFILES = {version: f"hepta.hia.program.llvm-linux-riscv64-lp64d-object.v{version}"
-                     for version in range(1, 8)}
+                     for version in range(1, 9)}
 PROFILE_AARCH64 = "hepta.hia.program.llvm-linux-aarch64-object.v1"
 PROFILE_V2 = "hepta.hia.program.llvm-linux-x86_64-bulk.v2"
 PROFILE_AARCH64_V2 = "hepta.hia.program.llvm-linux-aarch64-bulk-object.v2"
@@ -47,8 +47,9 @@ PROFILE_AARCH64_V5 = "hepta.hia.program.llvm-linux-aarch64-offset-copy-object.v5
 PROFILE_V6 = "hepta.hia.program.llvm-linux-x86_64-range-fill.v6"
 PROFILE_AARCH64_V6 = "hepta.hia.program.llvm-linux-aarch64-range-fill-object.v6"
 PROFILE_V7 = "hepta.hia.program.llvm-linux-x86_64-recursive-chain.v7"
-PROFILE_V8 = "hepta.hia.program.llvm-linux-x86_64-returned-loan.v8"
 PROFILE_AARCH64_V7 = "hepta.hia.program.llvm-linux-aarch64-recursive-chain-object.v7"
+PROFILE_V8 = "hepta.hia.program.llvm-linux-x86_64-parameter-loan-returns.v8"
+PROFILE_AARCH64_V8 = "hepta.hia.program.llvm-linux-aarch64-parameter-loan-returns-object.v8"
 MAX_LLVM_BYTES = 16 * 1024 * 1024
 MAX_ARTIFACT_BYTES = 64 * 1024 * 1024
 _WIDTHS = {**{f"{sign}{bits}": bits for sign in ("i", "u")
@@ -785,22 +786,20 @@ def emit_program_llvm(program, *, target=TARGET):
     verified = _verified(program)
     from .hia_program import SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8
     document = verified.as_dict()
-    if document["schema"] == SCHEMA_V8 and target != TARGET:
-        _reject("returned-loan v8 is qualified only for the Linux x86-64 native profile")
     emitter = _Emitter(document, target, verified.scalar_entrypoints)
     text = emitter.render()
     if not text.isascii() or len(text.encode()) > MAX_LLVM_BYTES:
         _reject("generated LLVM exceeds the closed textual profile")
     if _implementation_hash() != before:
         _reject("verifier/emitter implementation changed during generation", "E_HIA_PROGRAM_STALE")
-    if document["schema"] == SCHEMA_V8:
-        profile = PROFILE_V8
-    elif target == TARGET_RISCV64:
+    if target == TARGET_RISCV64:
         # The verifier has already selected a known primitive schema; never infer
         # a layout/ABI from an arbitrary version suffix before verification.
         versions = {SCHEMA: 1, SCHEMA_V2: 2, SCHEMA_V3: 3, SCHEMA_V4: 4,
-                    SCHEMA_V5: 5, SCHEMA_V6: 6, SCHEMA_V7: 7}
+                    SCHEMA_V5: 5, SCHEMA_V6: 6, SCHEMA_V7: 7, SCHEMA_V8: 8}
         profile = _RISCV64_PROFILES[versions[document["schema"]]]
+    elif document["schema"] == SCHEMA_V8:
+        profile = PROFILE_V8 if target == TARGET else PROFILE_AARCH64_V8
     elif document["schema"] == SCHEMA_V7:
         profile = PROFILE_V7 if target == TARGET else PROFILE_AARCH64_V7
     elif document["schema"] == SCHEMA_V6:

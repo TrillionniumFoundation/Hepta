@@ -142,12 +142,16 @@ def qualification_plan(output, *, python, clang, cc, rustc, cargo, qemu_aarch64,
                                 "tests.test_hia_rust_calls_shadow", "tests.test_hia_rust_chain_shadow",
                                 "tests.test_hia_rust_scalar_vm", "tests.test_hia_rust_crosscheck",
                                 "tests.test_hia_rust_crosscheck_cli", "tests.test_hia_rust_owned_vm",
+                                "tests.test_hia_rust_raw_integer", "tests.test_hia_rust_returned_loans",
+                                "tests.test_hia_rust_returned_chains", "tests.test_hia_rust_owned_memory",
                                 "-v"], None),
         ("agent_query_semantics", [python, "-m", "unittest",
                                    "tests.test_hia_edit_query", "tests.test_hia_edit_batch",
                                    "tests.test_hia_edit_transitive_context", "tests.test_hia_edit_cfg_context",
                                    "tests.test_hia_edit_control_context", "tests.test_hia_edit_batch_identity",
                                    "tests.test_hia_cfg_render_convergence", "tests.test_hia_context_render_input",
+                                   "tests.test_hia_incremental", "tests.test_hia_incremental_independent",
+                                   "tests.test_hia_incremental_v8",
                                    "-v"], None),
         ("standalone_native", [python, "tools/qualify_hia_program.py", "--clang", clang,
                                "--output", output / "native.json"], output / "native.json"),
@@ -155,6 +159,9 @@ def qualification_plan(output, *, python, clang, cc, rustc, cargo, qemu_aarch64,
                                   "--output", output / "resources.json"], output / "resources.json"),
         ("composite_resources", [python, "tools/qualify_hia_program_composite.py", "--clang", clang,
                                  "--workdir", output / "composite"], output / "composite/qualification.json"),
+        ("partial_record_resources", [python, "tools/qualify_hia_partial_records.py", "--clang", clang,
+                                      "--rust-vm", output / "rust-shadow-target/debug/hia-core-shadow",
+                                      "--output-directory", output / "partial-records"], output / "partial-records/report.json"),
         ("composite_bulk_targets", [python, "tools/qualify_hia_composite_bulk.py", "--clang", clang,
                                     "--linker", linker, "--qemu-aarch64", qemu_aarch64,
                                     "--output-directory", output / "composite-bulk"], output / "composite-bulk/qualification.json"),
@@ -166,6 +173,9 @@ def qualification_plan(output, *, python, clang, cc, rustc, cargo, qemu_aarch64,
         ("cpp_template_migration", [python, "tools/qualify_cpp_project_hia.py", "--clang", clang,
                                    "--clangxx", str(Path(clang).with_name("clang++")),
                                    "--workdir", output / "cpp-templates"], output / "cpp-templates/qualification.json"),
+        ("cpp_constexpr_migration", [python, "tools/qualify_cpp_constexpr.py", "--clang", clang,
+                                    "--clangxx", str(Path(clang).with_name("clang++")),
+                                    "--output-directory", output / "cpp-constexpr"], output / "cpp-constexpr/report.json"),
         ("c_configuration_matrix", [python, "tools/qualify_c_project_matrix.py", "--clang", clang,
                                     "--workdir", output / "c-matrix"], output / "c-matrix/qualification.json"),
         ("cpp_configuration_matrix", [python, "tools/qualify_cpp_project_matrix.py", "--clang", clang,
@@ -240,7 +250,9 @@ def qualification_plan(output, *, python, clang, cc, rustc, cargo, qemu_aarch64,
 
 
 def qualify(output, *, clang, cc, rustc, cargo, qemu_aarch64, qemu_riscv64,
-            qemu_system_arm, linker, lean, cxx):
+            qemu_system_arm, linker, lean, cxx, unit_timeout_seconds=1800):
+    if type(unit_timeout_seconds) is not int or not 1 <= unit_timeout_seconds <= 3600:
+        raise ValueError("unit timeout must be an integer in 1..3600 seconds")
     output = Path(output).absolute()
     if output.exists() or output.is_symlink():
         raise ValueError("output directory must be new")
@@ -256,6 +268,7 @@ def qualify(output, *, clang, cc, rustc, cargo, qemu_aarch64, qemu_riscv64,
     report = {"schema": "hepta.hia.unified-qualification.v3", "git_commit": commit["stdout"].strip(),
         "compiler_tree_sha256": compiler_hash(), "source_snapshot_before": before,
         "temporary_directory": tempfile.gettempdir(),
+        "unit_timeout_seconds": unit_timeout_seconds,
         "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "planned_gates": [name for name, _, _ in plan], "gates": [],
         "full_six_deliverables_complete": False,
@@ -300,9 +313,11 @@ def qualify(output, *, clang, cc, rustc, cargo, qemu_aarch64, qemu_riscv64,
             os.environ.update(environment)
             for name, argv, evidence in plan:
                 print(json.dumps({"gate": name, "status": "running"}), flush=True)
-                executed = _command(argv)
+                timeout = unit_timeout_seconds if name == "unit_regression" else 1800
+                executed = _command(argv, timeout=timeout)
                 row = {k: v for k, v in executed.items() if k not in {"stdout", "stderr"}}
                 row["name"], row["passed"] = name, False
+                row["timeout_seconds"] = timeout
                 for channel in ("stdout", "stderr"):
                     raw = executed[channel].encode()
                     logfile = output / (name + "." + channel + ".log")
@@ -320,7 +335,15 @@ def qualify(output, *, clang, cc, rustc, cargo, qemu_aarch64, qemu_riscv64,
                             raise ValueError("gate evidence must be a JSON object")
                         row["evidence"] = {"path": str(evidence.relative_to(output)), "sha256": sha(raw),
                                            "status": payload.get("status"), "ok": payload.get("ok")}
-                        if name in IMPORTED_QUALIFICATION_NAMES:
+                        if name == "partial_record_resources":
+                            from tools.hia_semantic_gate_receipts import validate_partial_records
+                            validate_partial_records(payload, evidence.parent)
+                            scoped_ok = True
+                        elif name == "cpp_constexpr_migration":
+                            from tools.qualify_cpp_constexpr import validate_cpp_constexpr_receipt
+                            validate_cpp_constexpr_receipt(payload)
+                            scoped_ok = payload.get("ok") is True
+                        elif name in IMPORTED_QUALIFICATION_NAMES:
                             # Existing producers have different success fields.
                             # Their shared validator owns that convention and
                             # the complete nested evidence requirements.
@@ -329,7 +352,7 @@ def qualify(output, *, clang, cc, rustc, cargo, qemu_aarch64, qemu_riscv64,
                         else:
                             scoped_ok = payload.get("ok") is True or (name == "legacy_cortex_m4_qemu" and payload.get("status") == "passed")
                         row["passed"] = executed["returncode"] == 0 and scoped_ok
-                    except (OSError, ValueError, TypeError) as exc:
+                    except (OSError, ValueError, TypeError, KeyError) as exc:
                         row["evidence_error"] = {"type": type(exc).__name__, "message": str(exc)}
                 report["gates"].append(row)
                 print(json.dumps({"gate": name, "passed": row["passed"], "seconds": row["seconds"],
@@ -365,10 +388,15 @@ def main():
     parser.add_argument("--linker", required=True)
     parser.add_argument("--lean", required=True)
     parser.add_argument("--cxx", default=shutil.which("g++") or "g++")
+    parser.add_argument("--unit-timeout-seconds", type=int, default=1800,
+                        help="full unit regression timeout, in 1..3600 seconds")
     args = parser.parse_args()
+    if not 1 <= args.unit_timeout_seconds <= 3600:
+        parser.error("--unit-timeout-seconds must be in 1..3600")
     result = qualify(args.output_directory, clang=args.clang, cc=args.cc, rustc=args.rustc, cargo=args.cargo,
                      qemu_aarch64=args.qemu_aarch64, qemu_riscv64=args.qemu_riscv64,
-                     qemu_system_arm=args.qemu_system_arm, linker=args.linker, lean=args.lean, cxx=args.cxx)
+                     qemu_system_arm=args.qemu_system_arm, linker=args.linker, lean=args.lean,
+                     cxx=args.cxx, unit_timeout_seconds=args.unit_timeout_seconds)
     print(json.dumps({key: result[key] for key in ("ok", "status", "passed_gates", "completed_gates", "unchanged_source", "full_seven_deliverables_complete")}))
     return 0 if result["ok"] else 1
 

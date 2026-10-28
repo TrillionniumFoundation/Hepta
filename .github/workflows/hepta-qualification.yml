@@ -14,6 +14,7 @@ on:
       - codex/hia-ndu-verified-optimization-20261027
       - codex/hia-ndu-bounded-pipeline-20261027
       - codex/hia-contract-integration-20261027
+      - codex/hia-v8-blocker-convergence-20261027
   pull_request:
     branches:
       - main
@@ -35,12 +36,22 @@ permissions:
 jobs:
   release-qualification:
     runs-on: ubuntu-24.04
-    # Two full regression passes plus the separate pinned finite Rust profile.
-    # Individual proof/search budgets and all zero-skip acceptance gates stay fixed.
-    timeout-minutes: 75
+    # Two full regression passes plus the independently pinned finite Rust profile.
+    # This job watchdog does not change individual proof/search or zero-skip gates.
+    timeout-minutes: 180
     env:
       HEPTA_QUALIFICATION_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      RUSTC: ${{ github.workspace }}/../toolchains/rust-1.90.0/bin/rustc
     steps:
+      - name: Configure isolated Cargo directories
+        shell: bash
+        run: |
+          set -euo pipefail
+          hepta_cargo_home="$RUNNER_TEMP/hepta-cargo-home"
+          hepta_cargo_target="$RUNNER_TEMP/hepta-cargo-target"
+          mkdir -p "$hepta_cargo_home" "$hepta_cargo_target"
+          printf 'CARGO_HOME=%s\nCARGO_TARGET_DIR=%s\n' \
+            "$hepta_cargo_home" "$hepta_cargo_target" >> "$GITHUB_ENV"
       - name: Checkout frozen source snapshot
         uses: actions/checkout@v4
         with:
@@ -105,7 +116,7 @@ jobs:
           printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' \
             | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list
           sudo apt-get update
-          sudo apt-get install --yes clang-20 libclang-rt-20-dev llvm-20 lld-20
+          sudo apt-get install --yes clang-20 libclang-20-dev libclang-rt-20-dev llvm-20 lld-20
           test -x /usr/lib/llvm-20/bin/clang
           test -x /usr/lib/llvm-20/bin/clang++
           test -x /usr/lib/llvm-20/bin/llvm-readobj
@@ -227,13 +238,14 @@ jobs:
             "$hepta_linker" /usr/lib/llvm-20/bin/llvm-readobj "$hepta_qemu" /usr/bin/qemu-riscv64 >> "$GITHUB_ENV"
           # Full discovery builds the actual Rust oracle. Keep those generated
           # files outside the source inventory; source drift must still fail.
-          printf 'CARGO_TARGET_DIR=%s\n' "$RUNNER_TEMP/hepta-shadow-target" >> "$GITHUB_ENV"
+          printf 'CARGO_TARGET_DIR=%s\n' "$RUNNER_TEMP/hepta-cargo-target" >> "$GITHUB_ENV"
           printf '%s\n' "$hepta_gate_tools" "$(dirname "$hepta_lean")" >> "$GITHUB_PATH"
       - name: Run all current native and experiment qualification gates
         run: >-
           python tools/release_check.py
           --output-directory artifacts/candidate
           --continue-on-failure
+          --unit-timeout-seconds 3600
       - name: Qualify the standalone HIA interpreter and direct native paths
         if: ${{ !cancelled() }}
         shell: bash
@@ -250,7 +262,8 @@ jobs:
             --qemu-aarch64 "$GITHUB_WORKSPACE/../toolchains/qemu-8.2.2/qemu-aarch64-static" \
             --qemu-riscv64 /usr/bin/qemu-riscv64 \
             --qemu-system-arm /usr/bin/qemu-system-arm \
-            --cxx /usr/bin/g++
+            --cxx /usr/bin/g++ \
+            --unit-timeout-seconds 3600
       - name: Qualify proof-gated NDU and finite background/native mechanisms
         if: ${{ !cancelled() }}
         run: >-

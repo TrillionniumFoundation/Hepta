@@ -1,23 +1,24 @@
 # Executed Rust byte-owner shadow: finite profile
 
-This document records the byte-only v2 boundary and its historical evidence.
-The same Machine now has a separately identified v3 bulk/chain capability set;
-see [owned-memory v3](HIA_RUST_OWNED_MEMORY_VM_20261028.md) for its exact scope,
-source projection-borrow lowering and independent execution collector.
-Byte-only modules retain the v2 report profile described here. Historical
-counts below do not qualify the v3 implementation or an integrated revision.
+This document records the byte-owner v3 and returned-loan v4 boundaries and
+historical evidence. The same Machine has a separately identified
+[v5 chain capability set](HIA_RUST_RETURNED_CHAINS_V8.md), including the
+[owned-memory corpus](HIA_RUST_OWNED_MEMORY_VM_20261028.md) for source/nominal
+lowering, actual observations and negative controls. Modules without chains
+retain the v3/v4 profiles described below. Historical counts do not qualify
+the expanded implementation or a later integrated revision.
 
 The existing Rust scalar `Machine` now has an explicitly enabled, bounded byte
 storage component. `--owned-run` executes a finite primitive HIA buffer/loan
 profile after the existing `verify_owned` admission check. This does not change
-Python Core authority, the production CLI, the native backend, or the
-Python/Rust verifier crosscheck protocol. `--scalar-run` still rejects resource
+Python Core authority, the production CLI or the native backend. The opt-in
+v8 verifier crosscheck uses its own versioned receipt. `--scalar-run` still rejects resource
 programs.
 
 ## Execution boundary
 
-The input must be a primitive `hepta.hia.program.v1` through `v7` document.
-The v2 execution profile supports multiple functions/blocks, verified CFG
+The input must be a primitive `hepta.hia.program.v1` through `v8` document.
+The v3 execution profile for v1–v7 supports multiple functions/blocks, verified CFG
 branches and loops, and internal scalar/owner/loan calls. The selected public
 entry's parameters and return types must be scalars, including when no explicit
 export list exists. Blocks use `jump`, `branch`, `ret` or `trap`.
@@ -36,17 +37,38 @@ allocation failure is still rejected before any instruction executes.
 | `loan.end` | Ends the local loan after its children have ended |
 | `owner.move`, `owner.drop` | Consumes the old SSA name; move preserves storage identity; drop records explicit cleanup |
 | `buffer.load`, `buffer.store` | Checked `usize` offset and `u8` value, with bounds traps |
+| `buffer.fill`, `buffer.copy` (v2+) | Whole-buffer fill and checked distinct-owner prefix copy |
+| `buffer.move_within` (v3+) | Checked overlap-safe byte movement within one mutable view |
+| `buffer.swap` (v4+) | Both offsets checked before swapping bytes |
+| `buffer.copy_range` (v5+) | Both source and destination extents checked before distinct-owner offset copy |
+| `buffer.fill_range` (v6+) | Checked offset/count and exact `u8` fill value |
 
 The existing scalar operation implementation and `Machine` are reused. Internal
-calls may consume/return byte owners and borrow nonescaping views. Owning call
+calls may consume/return byte owners and borrow nonescaping views. Primitive
+v8 additionally supports parameter-bound internal returned loans under the
+separate v4 profile described in [HIA_RUST_RETURNED_LOANS_V8.md](HIA_RUST_RETURNED_LOANS_V8.md). Owning call
 arguments are consumed before entering the callee. Read-only formal parameters
 may alias one actual caller loan; shared reborrows permit those shared reads,
 while mutable-child suspension, parent writes and early loan-end still reject.
-Chain types/operations, bulk buffer operations, resource **public** entry/return
+Chain types/operations, resource **public** entry/return
 types, and direct nominal/composite documents are outside this execution
 profile. Primitive operations outside the profile produce
 `E_HIA_RUST_UNSUPPORTED`. A direct nominal document fails the existing strict
 primitive-schema check with `E_HIA_FORMAT`; no new schema fallback is installed.
+
+Version admission still belongs to the existing verifier: an operation is
+not accepted under a schema older than its introduction. v7 inherits the bulk
+operations without authorizing chain execution. v8 requires independent
+returned-loan contract validation before execution. Offset/count checks use subtraction before addition,
+integer conversion or slicing. Zero extents accept exact-end offsets while
+refusing offsets beyond the end, and never relax distinct-owner copying.
+
+Overlap movement uses Rust's snapshot-equivalent `copy_within`. Distinct-owner
+copies use fixed 4096-byte stack scratch, including when a range crosses
+multiple chunks. The scratch is not a Hepta resource allocation and does not
+add ledger events. This bounds that temporary buffer, not whole-process
+memory. Bulk instructions retain Python's one-operation tick convention;
+their CPU work still depends on the byte extent.
 
 Resource handles cannot be supplied or returned through JSON. Runtime owner
 and loan maps supplement the existing static admission check; they are not a
@@ -70,7 +92,8 @@ injected allocation failure.
 
 Execution reports use the new schema
 `hepta.hia.rust-byte-owner-execution.v1` and profile
-`bounded-cfg-byte-owner-v2`. They include the source digest, entry function,
+`bounded-cfg-byte-owner-bulk-v3` for v1–v7, or
+`bounded-cfg-byte-owner-loan-returns-v4` for v8. They include the source digest, entry function,
 execution policy, status, steps, scalar values or error code, and the complete
 resource ledger. The general-resource, production-admission, whole-language,
 native-refinement, and ABI/hardware claims remain false.
@@ -81,7 +104,7 @@ share the same heap, allocation-failure counter and resource ledger.
 
 The ledger records allocations, frees, allocator attempts, owners created and
 dropped, live owners/bytes, peak bytes, loans started and ended, and live local
-loans. For v7, the canonical six chain counters are present and zero because no
+loans. For v7 and v8, the canonical six chain counters are present and zero because no
 chain opcode is admitted.
 
 Successful returns require the explicit resource ledger to be clean. A trap
@@ -92,7 +115,7 @@ cleanup is not reported as an executed Hepta `owner.drop` or `loan.end`.
 
 ## Executed evidence
 
-### CFG/call extension qualification
+### CFG/call and bulk extension qualification
 
 `tests/test_hia_rust_owned_cfg.py` runs the real Rust executable against the
 canonical Python interpreter. Its finite corpus covers loop-carried owner/loan
@@ -101,6 +124,13 @@ shared formals and reborrows, owner-returning recursion, every executed step cut
 and precise heap/call-budget stops. Unsupported hidden helpers, resource public
 signatures, duplicated transfers and conflicting loan joins remain negative
 controls. The original single-block differential corpus remains active.
+
+`tests/test_hia_rust_bulk_vm.py` adds actual execution of each versioned bulk
+operation, independent expected byte values, zero/end/overflow bounds, copies
+across 4096-byte chunks, allocation failures and heap stops. Every bulk opcode
+also executes through an internal borrowed helper with a mutable reborrow;
+each executed step boundary is compared. A loop-carried view and its fallible
+construction branch exercise composition with the existing CFG Machine.
 
 `tools/qualify_hia_rust_owned_cfg.py --output REPORT.json` retains the actual
 programs, complete paired VM reports, source before/after hashes, binary and

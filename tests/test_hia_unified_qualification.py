@@ -108,6 +108,12 @@ class UnifiedQualificationSummaryTests(unittest.TestCase):
             elif any(command in argv for command in success_flag_only):
                 Path(argv[argv.index("--output") + 1]).write_text(
                     json.dumps({"ok": True, "status": "passed"}))
+            elif any(command in argv for command in (
+                    "tools/qualify_cpp_constexpr.py", "tools/qualify_hia_partial_records.py")):
+                directory = Path(argv[argv.index("--output-directory") + 1])
+                directory.mkdir()
+                (directory / "report.json").write_text(json.dumps({
+                    "ok": True, "passed": True, "status": "passed"}))
             return dict(argv=argv, returncode=0, stdout=stdout, stderr=stderr, seconds=0.01)
 
         # These are collector protocol controls, not native qualification.
@@ -133,19 +139,30 @@ class UnifiedQualificationSummaryTests(unittest.TestCase):
             self.assertFalse(gates[name]["passed"])
             self.assertEqual(gates[name]["returncode"], 0)
         self.assertIn("evidence_error", gates["task_io_composition"])
+        for name in ("partial_record_resources", "cpp_constexpr_migration"):
+            self.assertFalse(gates[name]["passed"])
+            self.assertEqual(gates[name]["returncode"], 0)
+            self.assertIn("evidence_error", gates[name])
         self.assertFalse(report["ok"])
         self.assertFalse(report["full_seven_deliverables_complete"])
 
     def test_plan_keeps_hosted_denominators_compilers_and_timing_order_explicit(self):
         plan = qualification_plan(Path("/evidence"), python="python", **SELECTED_TOOLS)
         names = [name for name, _, _ in plan]
-        self.assertEqual(len(plan), 35)
-        self.assertEqual(len(set(names)), 35)
+        self.assertEqual(len(plan), 37)
+        self.assertEqual(len(set(names)), 37)
         self.assertEqual(names[-2:], ["application_performance", "standalone_performance"])
         commands = {name: list(map(str, argv)) for name, argv, _ in plan}
         reports = [str(path) for _, _, path in plan if path is not None]
         self.assertEqual(len(reports), len(set(reports)))
         self.assertIn("tests.test_hia_rust_owned_vm", commands["rust_shadow_parity"])
+        self.assertIn("tests.test_hia_rust_raw_integer", commands["rust_shadow_parity"])
+        self.assertIn("tests.test_hia_rust_returned_loans", commands["rust_shadow_parity"])
+        self.assertIn("tests.test_hia_incremental_v8", commands["agent_query_semantics"])
+        partial = commands["partial_record_resources"]
+        self.assertEqual(partial[partial.index("--rust-vm") + 1],
+                         "/evidence/rust-shadow-target/debug/hia-core-shadow")
+        self.assertIn("tools/qualify_cpp_constexpr.py", commands["cpp_constexpr_migration"])
         for module in ("tests.test_hia_edit_query", "tests.test_hia_edit_batch",
                        "tests.test_hia_edit_control_context", "tests.test_hia_edit_batch_identity"):
             self.assertIn(module, commands["agent_query_semantics"])
@@ -245,7 +262,7 @@ class UnifiedQualificationWorkflowTests(unittest.TestCase):
             qemu_riscv64="/usr/bin/qemu-riscv64",
             qemu_system_arm="/usr/bin/qemu-system-arm",
             linker=tools + "rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld",
-            lean=tools + "lean-4.19.0/bin/lean", cxx="/usr/bin/g++")
+            lean=tools + "lean-4.19.0/bin/lean", cxx="/usr/bin/g++", unit_timeout_seconds=3600)
 
         # The unified v7 candidate adds an independently executed RV64 gate.
         # Keep its required emulator argument when integrating older workflow

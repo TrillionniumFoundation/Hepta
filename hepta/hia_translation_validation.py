@@ -24,6 +24,7 @@ from .hia_program import (
 )
 
 SCHEMA = "hepta.hia.translation-validation.v1"
+QUALIFIED_CORE_SCHEMAS = frozenset("hepta.hia.program.v" + str(version) for version in range(1, 8))
 PROFILE = "hia.scalar-acyclic-bitvector-traps.v1"
 MAX_BLOCKS = 128
 MAX_OPERATIONS = 2048
@@ -344,6 +345,9 @@ def validate_translation(before, after, *, function=None, timeout_ms=2000):
         result[f"{label}_sha256"] = checked[label].sha256
         result[f"{label}_input_sha256"] = checked[label].input_sha256
     result["claims"]["canonical_core_reverified"] = True
+    if any(doc.as_dict()["schema"] not in QUALIFIED_CORE_SCHEMAS for doc in checked.values()):
+        result["reason"] = "core_schema_outside_qualified_v1_v7_profile"
+        return result
     functions = {label: {fn["name"]: fn for fn in doc.as_dict()["functions"]}
                  for label, doc in checked.items()}
     if function is None and all(len(fns) == 1 for fns in functions.values()):

@@ -24,8 +24,10 @@ _CPP_ROUTES = frozenset({"cpp-project", "cpp-matrix", "cpp-composed-project", "c
 
 def route_inventory():
     """Detached, versioned route metadata, including explicit nonroutes."""
+    versions = schema_registry()
+    latest = versions["latest_core_schema"].rsplit(".", 1)[-1]
     inputs = [
-        {"route": "standalone-hia", "input": "primitive v1-v8 / composite v1-v2",
+        {"route": "standalone-hia", "input": "primitive v1-" + latest + " / composite v1-v3",
          "adapter": "hepta.hia_program.verify_program", "admission": "supported",
          "origin_required": False},
         {"route": "hepta-source", "input": "checked finite Hepta source profile",
@@ -73,7 +75,7 @@ def route_inventory():
         {"backend": "interpreter", "entry": "hepta.core.execute_core", "same_standalone_core": True,
          "scope": "reverified values, traps, effects and resource CFG; evaluator budgets separate"},
         {"backend": "direct-llvm", "entry": "hepta.core.build_core", "same_standalone_core": True,
-         "scope": "x86-64 Linux shared/object through v8; AArch64/RV64 v1-v7 objects require separate execution qualification; v8 rejects on those targets"},
+         "scope": "x86-64 Linux shared/object; AArch64/RV64 objects through v8 require separate execution qualification; finite v8 execution has QEMU qualification, not physical-device qualification"},
         {"backend": "rust-shadow", "entry": "hepta.hia_rust_crosscheck.crosscheck_rust_shadow",
          "same_standalone_core": "finite profile only", "scope": "independent comparison, never deployment authority"},
         {"backend": "legacy-rust", "entry": "hepta.backend", "same_standalone_core": False,
@@ -91,14 +93,14 @@ def route_inventory():
          "scope": "proved runtime guard, inductive entry/edge/check obligations and complete original fallback"},
     ]
     result = {"schema": "hepta.hia.routes.v1", "inputs": inputs, "source_languages": sources,
-              "historical_ir": historical, "backends": backends, "versions": schema_registry(),
+              "historical_ir": historical, "backends": backends, "versions": versions,
               "optimization_profiles": [
                   {"command": "verify-translation", "checker": "hepta.hia_translation_validation.validate_translation",
-                   "scope": "selected public scalar function; full acyclic values and first traps",
+                   "scope": "primitive v1-v7; selected public scalar function; full acyclic values and first traps",
                    "success": "proved", "other_outcomes": ["disproved", "unknown"],
                    "resource_or_call_rewrites": False, "receipt_grants_admission": False},
                   {"command": "verify-optimization", "checker": "hepta.hia_optimization.verify_optimization",
-                   "scope": "whole module; unchanged CFG, interfaces and ordered resource/call skeleton",
+                   "scope": "primitive v1-v7; whole module; unchanged CFG, interfaces and ordered resource/call skeleton",
                    "success": "verified", "other_outcomes": ["rejected", "unknown", "timeout"],
                    "resource_or_call_rewrites": False, "receipt_grants_admission": False},
                   {"command": "fold-constants", "proposal": "whole-module constant folding",

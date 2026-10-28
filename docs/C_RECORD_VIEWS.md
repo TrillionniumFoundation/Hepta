@@ -63,6 +63,10 @@ extent is the unsigned `buffer_mask` field plus one:
 
 That fragment illustrates the schema; a complete module contract must describe
 every captured function. The frozen fixture contains the complete contract.
+Both migration CLIs use the [bounded contract intake](C_MIGRATION.md#contract-intake-before-compiler-work):
+duplicate keys, including conflicting read/mutable access declarations, reject
+before compilation. The API freezes a detached checked graph and records its
+canonical identity. These are authored obligations, not inferred contracts.
 The supported record has one primitive buffer pointer and primitive scalar
 state. Its extent expression is an unsigned field plus zero or one. A function
 may take one such record by pointer and additional primitive slice/scalar
@@ -151,7 +155,8 @@ The qualification builds the complete original module with independent GCC,
 builds the migrated module with the pinned Rust reference backend, and checks:
 
 - 16,384 state transitions across capacities 1, 2, 4, 8, 16, 32, 64 and 256;
-  65,544 paired native API calls, including 543 null/zero-length buffer calls
+  65,544 paired native API comparisons, comprising 65,544 original-C entries
+  and 65,544 translated entries (131,088 total native entries), including 543 null/zero-length buffer pairs
   for the frozen default seed. All nine functions are executed.
 - Return values, every scalar state field, every backing-buffer byte, output
   sentinels, unchanged input storage and backing-pointer identity, against both
@@ -178,13 +183,69 @@ allocation/startup are outside the timed loops. Actual regressions are retained.
 One shared host, GCC `-O2` versus Hepta's Rust `-O3` reference path, and no LTO or
 affinity control do not establish universal parity or superiority.
 
+`migration_disposition` separates the function and declaration denominators:
+nine converted function bodies, zero untranslated C bodies behind bridges,
+zero rejected/unaccounted bodies, and 22 active declarations with their exact
+dispositions. Nine generated original-C ABI wrappers call those nine converted
+bodies; they do not add nine more functions to the conversion denominator.
+One translation unit, one active header and one listed compilation command are
+covered. The license, upstream README, caller contract and compilation database
+each have explicit input dispositions. This complete pinned module is not a
+measurement of a production application's or the whole C ecosystem's migration
+rate; inactive branches and unlisted configurations remain outside scope.
+
 The report contains generated core/bridge line counts, elapsed migration and
 qualification time, original compiler identity, complete source snapshots
-before/after, input hashes, native builds and measured costs. Human review
-hours, model tokens and total migration labor remain unmeasured (`null`), not
-zero. Actual model runs remain zero. Intermediate qualification checkpoints
-are retained when a later step fails, and source changes during the run reject
-qualification. Generated derivatives retain the upstream license and notice.
+before/after, input hashes and native builds. Automatic stage costs distinguish
+wall time, coordinator CPU time, and completed child-process user/system CPU
+time. Contract authoring, human review and maintenance hours remain unmeasured
+(`null`), as do model tokens; actual model runs remain zero. The recorded tool
+duration is not the total migration labor or a maintenance-cost estimate.
+
+The output report must be a new path. Its inode is reserved before compiler
+work; existing success, failure or partial reports are never overwritten. Each
+report gets a new `<report-name>.generated/` directory rather than sharing a
+fixed generated-source destination. The exact authored `contracts.json`, its
+raw digest, generated core/bridge, migration receipt, compilation database,
+upstream license and notice are retained. Intermediate checkpoints retain later
+failures and interrupts. They are flushed writes, not a crash-atomic archive.
+A changed output pathname is rejected, and source changes during the run reject
+qualification. Use a fresh output name for every attempt, including retries.
+
+The report keeps its existing `hepta.c-stateful-upstream-qualification.v1`
+schema and adds `evidence` with schema `hepta.c-ring-retained-evidence.v2`.
+The actual workspace now remains inside `<report-name>.generated/workspace/`:
+original and translated libraries, the wrong candidate, layout libraries,
+benchmark binary, all authored/generated inputs and build receipts are retained.
+Artifact paths in this evidence object are relative to the report's parent;
+the complete ordinary-file inventory binds both bytes and SHA-256.
+
+`state-transitions.jsonl` records the actual initialization and every attempted
+transition: capacity, step, operation/input, both return values and outputs,
+scalar state, all backing bytes, pointer identities and actual query results.
+It also keeps the failing wrong-candidate observation, including partial query
+results and the exception; a failed observation is never counted as a passing
+transition. The positive summary counts are derived from these retained rows.
+`native-observations.jsonl` keeps owned-client and layout results. These
+observations are separate from unit-test methods and migration-function counts.
+
+`processes.jsonl` binds actual native compiler/version, boundary and benchmark
+argv/cwd/returncode to retained stdout/stderr. Boundary and benchmark summaries
+reference those process indices. The backend observer executes each command
+once and restores its module reference in `finally`; frontend capture continues
+through its existing bounded runner and receipts. Backend temporary source and
+output paths stay unchanged in the observed argv. Their exact bytes are copied
+and bound to explicit retained paths before normal staging cleanup, without
+pretending the compiler used a different path. Byte-mode subprocess streams are
+preserved byte for byte; backend text-mode streams are identified as decoded
+text retained in UTF-8 before diagnostic filtering.
+
+The defaults remain 2,048 steps per capacity and 100,000 benchmark iterations.
+`--steps` and `--benchmark-iterations` allow explicitly smaller development
+replays; a small run cannot claim the default run's observation denominator.
+Benchmark invocation counts cover the timed dispatch loops and explicitly
+exclude harness initialization. Failed and interrupted attempts retain process
+checkpoints and all completed observations instead of deleting their workspace.
 
 ## Independent audit findings retained
 

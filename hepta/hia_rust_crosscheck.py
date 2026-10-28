@@ -119,14 +119,16 @@ def _validate_report(raw: bytes, profile: str, checked):
     if profile == "scalar":
         keys.add("source_required")
     _exact_keys(report, keys, "shadow report")
+    body = checked.as_dict()
+    owned_v8 = profile == "owned" and body["schema"] == "hepta.hia.program.v8"
     expected_schema = ("hepta.hia.rust-scalar-shadow.v1" if profile == "scalar"
+                       else "hepta.hia.rust-owner-shadow.v2" if owned_v8
                        else "hepta.hia.rust-owner-shadow.v1")
     if (report["schema"] != expected_schema or report["ok"] is not True
             or report["program_sha256"] != checked.sha256):
         _reject("shadow report schema, outcome or canonical Core digest mismatch")
     if profile == "scalar" and report["source_required"] is not False:
         _reject("scalar shadow source contract was unexpectedly upgraded")
-    body = checked.as_dict()
     if (type(report["functions_checked"]) is not int or
             report["functions_checked"] != len(body["functions"]) or
             type(report["blocks_checked"]) is not int or
@@ -140,10 +142,10 @@ def _validate_report(raw: bytes, profile: str, checked):
                      else "v7_chain_owner_loan_cfg_checked")
     expected_claims = {
         **(_SCALAR_CLAIMS if profile == "scalar" else _OWNED_CLAIMS),
-        version_claim: body["schema"] in {"hepta.hia.program.v7", "hepta.hia.program.v8"},
+        version_claim: body["schema"] == "hepta.hia.program.v7" or owned_v8,
     }
-    if profile == "owned" and body["schema"] == "hepta.hia.program.v8":
-        expected_claims["explicit_parameter_returned_loan_checked"] = True
+    if owned_v8:
+        expected_claims["v8_parameter_bound_loan_returns_checked"] = True
     _exact_keys(report["claims"], set(expected_claims), "shadow safety claims")
     for name, wanted in expected_claims.items():
         if report["claims"][name] is not wanted:
@@ -250,9 +252,10 @@ def crosscheck_rust_shadow(program, executable: str | Path, *, executable_sha256
     if type(timeout) not in (int, float) or not 0 < timeout <= 15:
         _reject("shadow subprocess timeout must be in (0, 15] seconds")
     checked = verify_program(program)
-    maximum = 8 if profile == "owned" else 7
-    if checked.as_dict()["schema"] not in {f"hepta.hia.program.v{version}" for version in range(1, maximum + 1)}:
-        _reject(f"the pinned Rust {profile} shadow supports only primitive v1..v{maximum}")
+    maximum_version = 8 if profile == "owned" else 7
+    if checked.as_dict()["schema"] not in {
+            f"hepta.hia.program.v{version}" for version in range(1, maximum_version + 1)}:
+        _reject(f"the pinned Rust {profile} profile supports only primitive v1..v{maximum_version}")
     raw_exe = _verified_executable_bytes(Path(executable), executable_sha256)
     with tempfile.TemporaryDirectory(prefix="hepta-hia-rust-shadow-") as root:
         destination = Path(root) / "shadow"

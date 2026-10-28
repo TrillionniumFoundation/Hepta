@@ -11,6 +11,8 @@ byte buffers, concrete Results, direct calls and structured control flow.
 Closed generic calls/records are specialized as AST nodes before CFG lowering.
 Foreign code, tasks, stored references, floats and unbounded specialization reject.
 Scalarization is an internal calling convention, not a C aggregate ABI claim.
+Public scalar entries are selected from the original declarations before
+specialization or scalarization and retained in the verified Core exports.
 """
 from __future__ import annotations
 
@@ -201,7 +203,7 @@ class _State:
 
 
 class _Lower:
-    def __init__(self, program: Program, checked, module: str | None, core_schema=SCHEMA_V1):
+    def __init__(self, program: Program, checked, module: str | None, *, exports, core_schema=SCHEMA_V1):
         if type(core_schema) is not str or core_schema not in {SCHEMA_V1, SCHEMA_V8}:
             _reject("source lowering supports explicit Core v1 or returned-loan Core v8")
         self.program, self.checked = program, checked
@@ -215,6 +217,7 @@ class _Lower:
         self.mutable_parameters: list[int] = []
         self.signatures: dict[str, dict] = {}
         self.source_map: list[dict] = []
+        self.exports = tuple(exports)
 
     def fresh(self, prefix="v") -> str:
         self.serial += 1
@@ -719,8 +722,23 @@ class _Lower:
                     self.source_access(state, key, indices, write=True)
                     value = self.get(state, value_key)
                     old = state.values[key]
-                    if any(old.types[index] in _RESOURCE for index in indices):
-                        _reject("resource reassignment requires explicit drop and rebinding")
+                    selected_types = [old.types[index] for index in indices]
+                    if selected_types != value.types:
+                        _reject("assignment value and destination layouts differ")
+                    if any(typ in _RESOURCE for typ in selected_types):
+                        # Fresh source checking proves that this named owned
+                        # field, including its Copy members, was fully moved
+                        # out and that every enclosing record is still live.
+                        # Check the erased owner slots independently: restoring
+                        # a field must never overwrite a live capability or
+                        # turn a borrowed slot into a new owner.  Scalar atoms
+                        # are immutable copies, so their old aliases remain
+                        # valid while this destination receives new values.
+                        if (d["target"].kind != "field" or value.loans
+                                or value.origin is not None
+                                or any(old.types[index] != "buffer" or old.atoms[index] is not None
+                                       for index in indices if old.types[index] in _RESOURCE)):
+                            _reject("resource restoration requires a fully moved named owned field")
                     for index, atom in zip(indices, value.atoms):
                         old.atoms[index] = atom
             elif stmt.kind == "expr":
@@ -871,7 +889,7 @@ class _Lower:
                 "returns": self.signatures[fn.name]["returns"], "effects": [],
                 "entry": entry["id"], "blocks": self.blocks}
         if self.core_schema == SCHEMA_V8 and fn.return_mode != "value":
-            result["return_origins"] = [origins[fn.return_origin][0]] + [None] * (len(result["returns"]) - 1)
+            result["return_loans"] = [origins[fn.return_origin][0]] + [None] * (len(result["returns"]) - 1)
         return result
 
     def lower(self):
@@ -947,7 +965,8 @@ class _Lower:
                     effects[name] = combined; changed = True
         for name, fn in by_name.items():
             fn["effects"] = sorted(effects[name])
-        return {"schema": self.core_schema, "module": self.module, "functions": functions}
+        return {"schema": self.core_schema, "module": self.module,
+                "exports": list(self.exports), "functions": functions}
 
 
 def _prepare(program):
@@ -956,6 +975,19 @@ def _prepare(program):
     fresh = check(program)
     if not fresh.ok:
         _reject("source checking failed: " + "; ".join(d.message for d in fresh.diagnostics[:8]))
+    # An aggregate, borrowed scalar, or generic instance may flatten to the
+    # same primitive signature as a public C scalar function.  Its source
+    # calling convention does not thereby become a scalar C ABI.  Record this
+    # boundary before generic instantiation erases those original distinctions.
+    # Preserve the established convenience entrypoints for ordinary value
+    # scalar functions, including functions without an explicit export marker.
+    def scalar(typ, *, unit=False):
+        return (typ.name in _SCALARS | ({"Unit"} if unit else set())
+                and not typ.args and typ.length is None and not typ.lifetimes)
+    exports = tuple(sorted(fn.name for fn in program.functions
+        if not fn.extern_c and not fn.type_params and not fn.lifetime_params
+        and fn.return_mode == "value" and scalar(fn.return_type, unit=True)
+        and all(p.mode == "value" and scalar(p.type) for p in fn.params)))
     instances = []
     if any(fn.type_params for fn in program.functions) or any(record.type_params for record in program.structs):
         if (program.imports or program.enums or fresh.assumptions
@@ -967,7 +999,7 @@ def _prepare(program):
         fresh = check(program)
         if not fresh.ok:
             _reject("concrete instance checking failed: " + "; ".join(d.message for d in fresh.diagnostics[:8]))
-    return program, fresh, instances
+    return program, fresh, instances, exports
 
 
 def lower_program(program: Program, checked=None, *, module: str | None = None,
@@ -977,8 +1009,8 @@ def lower_program(program: Program, checked=None, *, module: str | None = None,
     Rechecking binds expression types to these AST objects.  No source text is
     generated, reparsed or needed by the resulting HIA executable program.
     """
-    program, fresh, _ = _prepare(program)
-    return verify_program(_Lower(program, fresh, module, core_schema).lower())
+    program, fresh, _, exports = _prepare(program)
+    return verify_program(_Lower(program, fresh, module, exports=exports, core_schema=core_schema).lower())
 
 
 def lower_source(source: str, *, path="<hia-source>", module: str | None = None,
@@ -993,8 +1025,8 @@ def source_report(source: str, *, path="<hia-source>", module: str | None = None
                   core_schema: str = SCHEMA_V1) -> dict:
     """Describe the exact finite source adaptation without claiming refinement."""
     program = parse(source, path)
-    concrete, checked, instances = _prepare(program)
-    result = verify_program(_Lower(concrete, checked, module, core_schema).lower())
+    concrete, checked, instances, exports = _prepare(program)
+    result = verify_program(_Lower(concrete, checked, module, exports=exports, core_schema=core_schema).lower())
     emitted = {fn["name"] for fn in result.as_dict()["functions"]}
     specialized = {row["template"] for row in instances if row["kind"] == "fn"}
     return {"schema": "hepta.hia-source-lowering.v1", "ok": True,

@@ -47,7 +47,8 @@ CRITICAL_MODULES = {
     "cpp_lexical_ownership": ("test_cpp_scoped_ownership_migration", "test_cpp_composed_migrate",
                               "test_cpp_composed_project"),
     "llvm_allocation_and_native_observables": ("test_hia_program_llvm", "test_hia_empty_owner_native",
-                                               "test_hia_native_side_effects", "test_hia_native_pinning"),
+                                               "test_hia_native_side_effects", "test_hia_native_pinning",
+                                               "test_hia_native_cleanup"),
     "acyclic_scalar_smt": ("test_hia_translation_validation", "test_hia_encoding_guard",
                            "test_hia_scalar_totality"),
     "compositional_barrier_smt": ("test_hia_optimization",),
@@ -66,8 +67,34 @@ CRITICAL_MODULES = {
     "cli_and_route_contracts": ("test_hia_optimization_cli", "test_hia_routes"),
     "finite_actions_and_instruction_grammar": ("test_hia_finite_actions", "test_hia_x86_search"),
     "rust_resource_execution": ("test_hia_rust_owned_vm", "test_hia_rust_owned_cfg",
-                                 "test_hia_rust_owned_memory", "test_hia_rust_migration",
-                                 "test_hia_returned_loans"),
+                                "test_hia_rust_owned_memory", "test_hia_rust_migration"),
+    "raw_rust_integer_admission": ("test_hia_rust_raw_integer",),
+    "partial_record_states": ("test_hia_partial_record", "test_hia_partial_record_scenarios",
+                              "test_hia_partial_finite_bounds"),
+    "source_partial_restore": ("test_hia_source_partial",),
+    "source_scalar_export_boundaries": ("test_hia_source_exports",),
+    "incremental_v8_admission": ("test_hia_incremental", "test_hia_incremental_independent",
+                                 "test_hia_incremental_v8"),
+    "cpp_constexpr_migration": ("test_cpp_constexpr_migration",),
+    "parameter_bound_loan_returns": ("test_hia_returned_loans", "test_hia_returned_chain_loans",
+                                     "test_hia_returned_loan_qualification"),
+    "returned_loan_agent_interfaces": ("test_hia_returned_loan_interfaces", "test_hia_patch_impact", "test_hia_edit_batch"),
+    "rust_bulk_resource_execution": ("test_hia_rust_bulk_vm",),
+    "rust_v8_returned_loan_execution": ("test_hia_rust_returned_loans", "test_hia_rust_crosscheck"),
+    "rust_returned_chain_execution": ("test_hia_rust_returned_chains",),
+    "returned_loan_resource_budgets": ("test_hia_returned_loan_budgets",),
+    "returned_loan_cross_target_execution": ("test_hia_returned_loans_cross",),
+    "migration_source_invocation": ("test_c_project_semantic_flags", "test_c_project_source_arguments",
+                                    "test_c_project", "test_c_project_driver_names", "test_c_cursor_control"),
+    "migration_parameter_entry_effects": ("test_c_array_declarator_guard", "test_c_parameter_entry_effects"),
+    "migration_original_parameter_types": ("test_c_parameter_types", "test_c_original_type_host_preflight",
+                                           "test_clang_capture", "test_c_process_limits"),
+    "migration_contract_intake_and_ring_evidence": ("test_c_contracts", "test_c_ring_qualification_evidence"),
+    "prospective_agent_choice_protocol": ("test_hia_batch_disclosed_choices",),
+    "native_profile_and_lifecycle_convergence": ("test_hia_native_profile_convergence",),
+    "qualification_toolchain_and_budgets": ("test_release_unit_timeout",
+        "test_qualification_cargo_environment", "test_hia_unified_workflow_cli", "test_source_checkout_identity",
+        "test_hia_semantic_gate_receipts"),
     "rust_native_tool_selection": ("test_linker_selection",),
     "captured_c_source_and_component_migration": ("test_c_project_source_arguments",
         "test_c_project_semantic_flags", "test_c_array_declarator_guard", "test_c_cursor_control",
@@ -137,7 +164,8 @@ def _environment(options, output):
         "HEPTA_FINITE_NDU_BRIDGE": str(options.finite_bridge.resolve()),
         "HEPTA_FINITE_NDU_IDENTITY": str(options.finite_identity.resolve()),
         "CARGO_NET_OFFLINE": "true", "PYTHONDONTWRITEBYTECODE": "1",
-        "CARGO_TARGET_DIR": str(output / "rust-target"),
+        "CARGO_TARGET_DIR": str(options.cargo_target_dir.resolve() if options.cargo_target_dir
+                                else output / "rust-target"),
         "PATH": os.pathsep.join([str(Path(clang).parent), str(Path(cargo).parent),
                                   str(Path(rustc).parent), os.environ.get("PATH", "")]),
         "PYTHONPATH": os.pathsep.join([str(ROOT), os.environ.get("PYTHONPATH", "")]),
@@ -162,6 +190,7 @@ def _tool_gate(options, output):
     import z3
     from hepta.hia_native_differential import _pin_native_artifact
     from hepta.hia_optimization import PINNED_Z3_VERSION, _solver_identity
+    from hepta.c_parameter_types import original_type_reader_identity
 
     _require(platform.system() == "Linux" and platform.machine() in {"x86_64", "AMD64"},
              "this integrated native qualification requires the declared Linux x86-64 host")
@@ -211,7 +240,13 @@ def _tool_gate(options, output):
     finally:
         os.close(descriptor)
     solver = _solver_identity(z3)
+    original_type_reader = original_type_reader_identity(os.environ["CLANG"])
+    _require(original_type_reader["compiler"]["path"] == tools["clang"]["path"] and
+             original_type_reader["compiler"]["executable_sha256"] == tools["clang"]["sha256"],
+             "original-type reader uses a different actual compiler")
+    _write(output / "original-type-reader-probe.json", original_type_reader)
     return {"passed": True, "tools": tools, "solver": solver,
+            "original_type_reader": original_type_reader,
             "linux_seals": {"required_bits": 15, "actual_bits": seals,
                              "actual_write_rejected_errno": errno.EPERM, "exact_readback": True},
             "scope": "actual host tools and kernel capability; individual native tests still execute their own gates"}
@@ -386,6 +421,14 @@ def _external_inventory(options, gates):
         _require(str(Path(row["invocation_path"]).resolve(strict=True)) == row["path"],
                  "tool invocation was retargeted since its actual version probe")
     paths.update(Path(row["path"]) for row in tools.get("tools", {}).values())
+    original_type_reader = tools.get("original_type_reader")
+    if original_type_reader:
+        from hepta.c_parameter_types import original_type_reader_identity
+
+        _require(original_type_reader_identity(os.environ["CLANG"]) == original_type_reader,
+                 "original-type compiler/reader/worker identity changed since its actual load probe")
+        paths.add(Path(original_type_reader["compiler"]["path"]))
+        paths.update(Path(original_type_reader[name]["path"]) for name in ("reader", "worker", "python"))
     if tools.get("solver"):
         import z3
         from hepta.hia_optimization import _solver_identity
@@ -407,6 +450,10 @@ def _external_inventory(options, gates):
         paths.update(Path(tool["path"]) for tool in native.get("build_tools", {}).values())
     actual = {str(path): _digest_file(path) for path in sorted(paths)}
     expected = {row["path"]: row["sha256"] for row in tools.get("tools", {}).values()}
+    if original_type_reader:
+        expected[original_type_reader["compiler"]["path"]] = original_type_reader["compiler"]["executable_sha256"]
+        expected.update({original_type_reader[name]["path"]: original_type_reader[name]["sha256"]
+                         for name in ("reader", "worker", "python")})
     if tools.get("solver"):
         expected[tools["solver"]["library_path"]] = tools["solver"]["library_sha256"]
     if ranking.get("passed"):
@@ -430,6 +477,9 @@ def _external_inventory(options, gates):
 def qualify(options):
     output = options.output_directory.resolve()
     _require(not output.is_relative_to(ROOT), "retain qualification output outside the frozen source worktree")
+    if options.cargo_target_dir:
+        _require(not options.cargo_target_dir.resolve().is_relative_to(ROOT),
+                 "retain the reusable Cargo target outside the frozen source worktree")
     _require(re.fullmatch(r"[0-9a-f]{40}", options.expected_head), "expected HEAD must be an exact full Git SHA")
     before = _source_state()
     _require(before["head"] == options.expected_head and not before["status"],
@@ -514,6 +564,8 @@ def main(argv=None):
     parser.add_argument("--expected-head", required=True)
     parser.add_argument("--clang", required=True)
     parser.add_argument("--cargo", required=True)
+    parser.add_argument("--cargo-target-dir", type=Path,
+                        help="optional reusable build cache outside the frozen source tree; defaults to output/rust-target")
     parser.add_argument("--rustc", required=True)
     parser.add_argument("--ranking-bridge", type=Path, required=True)
     parser.add_argument("--ranking-build-receipt", type=Path, required=True)
@@ -532,7 +584,7 @@ def main(argv=None):
                  "recursive_identity", "recursive_upstream", "finite_bridge", "finite_identity", "finite_upstream"):
         setattr(options, name, getattr(options, name).resolve())
     try:
-        _require(1 <= options.timeout <= 7200, "gate timeout must be in 1..7200 seconds")
+        _require(1 <= options.timeout <= 3600, "gate timeout must be in 1..3600 seconds")
         result = qualify(options)
     except Exception as error:
         print(json.dumps({"ok": False, "error": type(error).__name__ + ": " + str(error)}), file=sys.stderr)

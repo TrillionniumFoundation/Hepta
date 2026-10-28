@@ -1,31 +1,35 @@
 # HIA v8: explicit parameter-origin returned byte loans
 
-HIA Core v8 adds actual internal calls returning one `readbuf` or `mutbuf`.
+HIA Core v8 supports actual internal calls returning parameter-bound `readbuf` or `mutbuf` capabilities.
+This source-facing guide uses the canonical [v8 contract](HIA_PARAMETER_LOAN_RETURNS_V8.md).
+The earlier branch spelling `return_origins` is not an alias in the executable grammar;
+current producers and fixtures now emit `return_loans` explicitly.
 The Python verifier remains the executable admission authority. The separate
-Rust owner verifier, both finite VMs, and the Linux x86-64 LLVM emitter implement
+Rust owner verifier, both finite VMs, and the declared LLVM target profiles implement
 the declared subset. This is an executable contract with differential and native
 observations, not a machine-checked source/compiler soundness proof.
 
 ## Version and signatures
 
 The primitive wire schema is `hepta.hia.program.v8`, with profile
-`closed-ssa-explicit-returned-byte-loan-64-v8`. All v7 byte and chain operations
+`closed-ssa-parameter-loan-returns-64-v8`. All v7 byte and chain operations
 remain available. V1-v7 still reject borrowed results and the new function field.
-The existing composite v1/v2 grammars continue normalizing to primitive v6/v7;
+The existing composite v1/v2/v3 grammars continue normalizing to primitive v6/v7;
 they do not silently gain this contract. Neither old upgrade adapter accepts v8
 input as an implicit downgrade.
 
-A function that returns a view must carry `return_origins`, an array with exactly
+A function that returns a view must carry `return_loans`, an array with exactly
 one element for each result. A borrowed result names an entry borrowed parameter;
-every scalar result has `null`. The subset admits at most one view result plus
-scalar results, and does not combine returned views with returned owners.
+every scalar result has `null`. Each borrowed result carries its own declared origin. Multiple result capabilities
+remain distinct and must satisfy the canonical aliasing and resource-transfer rules.
+The source examples in this guide exercise one returned view at a time.
 
 ```json
 {
   "name": "view",
   "params": [{"name": "input", "type": "readbuf"}],
   "returns": ["readbuf"],
-  "return_origins": ["input"],
+  "return_loans": ["input"],
   "effects": ["read"],
   "entry": "entry",
   "blocks": [{
@@ -39,14 +43,16 @@ scalar results, and does not combine returned views with returned owners.
 
 `mutbuf` results require a `mutbuf` origin. A `readbuf` result may originate from
 either borrowed permission. An owner or scalar parameter is never an eligible
-origin. A function without a borrowed result can omit `return_origins`; if it
+origin. A function without a borrowed result can omit `return_loans`; if it
 provides the field, every element must be `null`.
 
 ## Lifetime and resource transitions
 
 Each incoming borrowed capability has an origin equal to its entry parameter
 identity. CFG edges rename SSA names, roots and parent capabilities, while keeping
-this origin unchanged. A join requires equal capability states including origin.
+this origin unchanged. For functions declaring borrowed results, a join requires equal capability states
+including origin. Functions without borrowed results retain the older compatible
+loan-graph join rules.
 Renaming a capability cannot make it originate from another parameter.
 
 A returned view must be either the declared incoming view itself or a live,
@@ -74,9 +80,11 @@ At runtime there are two distinct cases:
    pass this child through multiple returns without extra increments.
 
 Both VMs validate the runtime parent identity. The independent Rust executor uses
-`bounded-cfg-returned-loan-v4`; its scalar-only execution mode rejects v8. These
-reports retain the existing finite byte/chain ledger, including all zero-valued
-chain fields for a v8 program that does not use chains.
+`bounded-cfg-byte-owner-loan-returns-v4` for v8 without chains and
+`bounded-cfg-owned-memory-v5` when chain signatures or operations occur.
+Its scalar-only execution mode rejects v8. Distinct call-formal witnesses are
+not counted as source loan events; [the shared Machine contract](HIA_RUST_RETURNED_CHAINS_V8.md)
+defines the typed resource roots and exact returned-child accounting.
 
 Every return terminator already consumes one VM step. If the step budget stops
 there, the implicit child has not been created. Trap, heap, step, and call-depth
@@ -102,7 +110,7 @@ reinterpret a historical import. The default CLI lowering contract stays v1.
 
 The default remains Core v1, with the established source projection-helper
 inlining behavior. Under v8, borrowed helpers are emitted as actual Core function
-definitions with `call`, `ret`, and `return_origins`. They are not inlined by this
+definitions with `call`, `ret`, and `return_loans`. They are not inlined by this
 lowering pass. `examples/hia_returned_loans/returned_views.hepta` exercises read
 and mutable returned views and conditional return paths.
 
@@ -121,8 +129,9 @@ view itself, including finite recursion.
 ## Native and external boundaries
 
 LLVM uses its existing private byte-descriptor calling convention for internal
-helpers and a v8-specific native profile. Actual native qualification here is
-Linux x86-64 only. V8 AArch64 and RISC-V emission rejects explicitly. Public entry
+helpers and a v8-specific native profile. This source-specific qualifier executes
+Linux x86-64. The separate [cross-target qualifier](HIA_RETURNED_LOAN_CROSS_EXECUTION.md)
+executes finite AArch64 and RV64 cases under QEMU. Public entry
 arguments/results remain scalars; declaring a borrowed helper as a public Core
 export or C ABI export rejects. A private helper's descriptor return does not
 establish a safe external C or C++ lifetime contract.
@@ -156,7 +165,8 @@ escaping siblings, early ending/dropping/moving, missing effects, old versions,
 public resource exports, hidden unsupported suffixes, and uncalled bad helpers.
 
 The scalar translation validator produces `unknown` for functions involving
-resources/calls. The current static-budget certificate rejects v8 pending its
-own profile review. No finite differential or native corpus admits an unproved
+resources/calls. The separate [v8 resource-budget profiles](HIA_V8_RESOURCE_BUDGETS.md)
+retain their own finite acceptance boundaries; the original analyzers do not
+silently gain chain or returned-loan bounds. No finite differential or native corpus admits an unproved
 optimization, proves arbitrary memory safety, establishes Rust-level performance,
 or closes the entire resource-core milestone.

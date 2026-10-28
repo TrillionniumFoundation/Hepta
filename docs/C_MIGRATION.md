@@ -54,15 +54,53 @@ An example database entry is:
 
 The database's compiler command is parsed as data; it is never executed through
 a shell. The explicitly selected Clang performs preprocessing and AST capture.
+Recognized database driver spellings such as `gcc` and `cc` are recorded
+metadata; the original driver executable is neither executed nor attested.
+The captured compiler identity, predefined macros, data model and AST belong
+to the explicitly selected Clang. This does not qualify the original GCC's
+default macros or establish equivalence to the database's original driver.
+Original-driver semantic equivalence needs separate evidence; preserving the
+listed options alone does not close that build-replay boundary.
 Compiler wrappers, response files, plugin flags and unknown options are
-rejected. Accepted compile standards are explicit C99, C11 and C17. Includes
-and macro definitions are preserved. Optimization, PIC, `-fno-builtin` and
-`-pedantic-errors` options remain ordered semantic inputs because driver flags
-can change preprocessing or function semantics. Supported output and diagnostic
-flags that do not belong to this semantic frontend invocation are recorded with
-the reason for omission. Semantic options such as `-fwrapv` are not silently
-discarded. Multiple configurations for one source must be qualified in separate
-complete database runs.
+rejected. Accepted compile standards are explicit C99, C11 and C17. Includes,
+macro definitions, plain-char signedness, accepted optimization levels
+(`-O0`, `-O1`, `-O2`, `-O3`, `-Os`, `-Oz`), `-fno-builtin`, and PIC modes (`-fPIC`, `-fpic`) are
+preserved in their original order. Optimization and PIC modes can select source
+branches through compiler-defined macros such as `__OPTIMIZE__`,
+`__OPTIMIZE_SIZE__`, `__NO_INLINE__`, `__PIC__` and `__PIE__`. Dependency discovery,
+preprocessing, AST generation and macro replay must observe the same options;
+the original native comparison build must not append a conflicting mode.
+`-pedantic-errors` is also preserved: it changes Clang's `__has_extension`
+builtin preprocessing operator even when the ordinary `-dM` macro dump is
+unchanged. For example, C99 `__has_extension(c_static_assert)` selects a
+different branch under this option. Captured dependency discovery and function
+bodies must preserve that selection too.
+Output and diagnostic-only flags are recorded with the reason for omission.
+Unmodeled semantic options such as `-fwrapv` still reject. Multiple configurations
+for one source must be qualified in separate complete database runs or an
+explicit build matrix.
+
+The source operand is preserved exactly as spelled in the original argv, and
+Clang runs in the captured working directory. The normalized `source` path is
+only a dependency/file identity; it is not substituted into compiler commands.
+This matters for `__FILE__`, `__BASE_FILE__`, `__has_include(__FILE__)`, and quoted
+header lookup when the main source is reached through a symlink. Dependency
+discovery, preprocessing, AST generation, replay and original comparison builds
+use the same source operand. It is recovered through the same strict command
+parser from the hash-bound `original_arguments`, rather than trusted as a new
+independent manifest field. Leading `@` response operands, bare `-` stdin and
+option-like source operands are rejected; an explicit `./` filename prefix
+does not become a driver option.
+
+Captures made by older compilers which omitted these semantic options do not
+become valid by recomputing the receipt hash. They must be recaptured from the
+unchanged compilation database so the actual selected declarations and
+dependencies can be checked again. The generated HIA backend may optimize its
+already-selected program independently; this does not authorize changing which
+source branch was imported. The same recapture requirement applies to receipts
+produced by replacing a relative or symlink source operand with its normalized
+absolute path; replay checks the original spelling's dependency graph and
+preprocessed bytes.
 
 To reproduce the native differential qualification:
 
@@ -140,6 +178,88 @@ use a conservative effect upper bound; an allocating project includes `alloc`
 and `block` in that bound. This is not a minimal-effect inference engine.
 
 ## Pointer contracts and the C ABI boundary
+
+### Original parameter spelling before type adjustment
+
+Clang's JSON parameter type alone is insufficient to admit a slice contract.
+The declared `const unsigned int data[++n]` and
+`const __typeof__(unsigned int[++n]) data` can both appear as
+`const unsigned int *`, while entering the original function increments `n`.
+A caller-supplied `length=n` cannot recreate this erased source effect.
+
+The shared collector checks captured declaration bytes and independently reads
+original types from a serialized AST emitted by the selected captured Clang.
+Both checks run **before** record-view decomposition changes record-pointer
+parameters into value placeholders. Ordinary slice and record-view routes use
+the same admission; one original-type capture per compilation unit covers all
+project function declarations, including result types and header prototypes.
+
+The finite spelling profile accepts type-name/qualifier identifiers followed
+by a single explicit pointer token and the declared identifier. It also accepts
+a single array suffix only when the independently bound original type is a
+fixed `ConstantArray` or `IncompleteArray`. Whitespace, ordinary comments and
+phase-2 line splices are handled before matching. Fixed macro bounds can pass
+this combined gate; a lexical suffix alone does not establish a safe bound.
+Computed types such as `typeof`, ambiguous macro locations, macro-supplied
+pointer tokens, parenthesized declarators, qualified/static array suffixes and
+other unsupported forms reject with `E_C_PARAMETER_DECLARATOR`. Actual variable
+array types reject with `E_C_VLA_PARAMETER`, including a macro-hidden bound
+that mutates a scalar on entry. Missing or inconsistent original-type evidence
+rejects with `E_C_ORIGINAL_TYPE`.
+
+The parameter name and full range are checked against the hash-bound source or
+header dependency, with the existing 8 MB dependency limit, and are independently
+matched to actual serialized-AST cursor locations. Result/parameter canonical
+shape, qualifiers and fixed extents are recorded in the versioned
+`hepta.c-original-parameter-types.v2` receipt. The actual matching libclang,
+Python executable and reader worker are content-bound trusted components.
+This finite gate is not a general C declarator parser or source-equivalence
+proof; [original-type admission](C_ORIGINAL_PARAMETER_TYPES.md) defines its
+scope, budgets and replay command.
+
+The rejecting declaration is retained as `status=rejected` with its diagnostic
+code; later unattempted declarations remain separately identified. Header
+prototypes are checked against their header bytes, not the including C file.
+Clang's dump elides physical filenames globally across nested `loc`, `range`,
+and macro spelling/expansion positions. The collector restores that physical
+file state in the original JSON order, using the same out-of-band map for
+top-level declaration inventory and pointer-parameter admission. It does not
+rewrite the AST. `includedFrom` and `presumedFile`/`#line` names never select
+physical source bytes. Missing physical locations refuse admission.
+
+This finite profile requires the parameter name and both range endpoints to
+belong to the same physical file as the function declaration. An include
+inside a parameter list or a parameter range spanning files therefore rejects,
+even if a coincident offset in the function file contains plausible pointer
+text. Entire function prototypes in ordinary headers remain supported.
+The location compression behavior is documented by the pinned
+[Clang 20.1.8 JSONNodeDumper implementation](https://github.com/llvm/llvm-project/blob/llvmorg-20.1.8/clang/lib/AST/JSONNodeDumper.cpp).
+Resolving this source identity does not establish general declarator semantics
+or whole-source equivalence.
+The strict driver flag allowlist is unchanged: an unsupported `-Werror=vla`
+entry is still refused by capture. Native warning-suppression controls execute
+outside that capture route; they do not turn warnings into admission authority.
+
+Regression coverage includes actual Clang ASTs, native `-O0`/`-O2` entry-effect
+observations, both migration routes, header attribution and ordinary pointer
+positives. Earlier wrong-result observations belong to their recorded earlier
+source identities; current qualification must be rerun on the combined source.
+
+### Contract intake before compiler work
+
+Only an omitted Python `None` contract requests the empty scalar-project
+default. An explicit `{}` is an invalid envelope and is refused. Both CLI
+entry points use the same bounded JSON loader, reject duplicate keys (including
+escaped duplicates), nonfinite/fractional values, invalid Unicode, and
+nonordinary/symlink contract files before starting capture. The Python API
+accepts an exact built-in JSON tree, rejects container subclasses and cycles,
+and snapshots it without invoking caller hooks. The translator and record-view
+adapter retain detached snapshots so later caller mutation cannot change a
+checked obligation. Concurrent mutation during intake has no atomic
+point-in-time snapshot guarantee; every value actually admitted is validated
+as it enters the detached graph. Reports bind the canonical contract digest and its origin
+as caller-declared, not inferred or proved. The limits are 1 MiB input, 32,768
+nodes, depth 32, 4,096 UTF-8 bytes per string and bounded 64-bit integers.
 
 For the frozen example:
 

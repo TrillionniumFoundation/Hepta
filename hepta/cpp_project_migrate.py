@@ -38,6 +38,7 @@ class _ConcreteTranslator(CTranslator):
         self.symbol_names = {}
         self.templates = {}
         self.ast_observations = []
+        self.constexpr_selections = []
 
     def typ(self, data, *, model=None):
         qual = data if isinstance(data, str) else data.get("qualType", "")
@@ -88,7 +89,13 @@ class _ConcreteTranslator(CTranslator):
         key = json.dumps([file, item["offset"], list(namespace), name,
                           pattern.get("type"), parameters], sort_keys=True)
         template = self.templates.setdefault(key, {"name": "::".join((*namespace, name)),
-                                                   "parameters": parameters, "instances": set(), "rows": []})
+                                                   "parameters": parameters, "instances": set(), "rows": [],
+                                                   "patterns": [], "pattern_identity": None})
+        # Resolve function bindings after every unit has been collected. A
+        # discarded branch can name a TU-local helper with the same spelling
+        # and type as another unit's distinct helper. Its identity must survive
+        # even when Clang omits that branch from the selected specialization.
+        template["patterns"].append((config["index"], pattern))
         template["rows"].append(item)
         pattern_row = self._item(config, pattern, file, namespace, template=name)
         pattern_row.update(status="template_pattern_pending")
@@ -115,8 +122,9 @@ class _ConcreteTranslator(CTranslator):
     def _function(self, config, node, file, namespace, item, *, template=None):
         name = ident(node.get("name", ""))
         raw = node.get("type", {}).get("qualType", "")
-        if (not raw.endswith(" noexcept") or node.get("variadic") or node.get("constexpr")
-                or node.get("consteval") or node.get("isDeleted") or node.get("explicitlyDeleted")
+        if (not raw.endswith(" noexcept") or node.get("variadic")
+                or node.get("consteval") or node.get("immediate")
+                or node.get("isDeleted") or node.get("explicitlyDeleted")
                 or node.get("isDefaulted") or node.get("isImplicit")):
             _reject("Only explicit noexcept scalar functions with ordinary bodies are translated")
         if node.get("storageClass") not in {None, "static", "extern"}:
@@ -145,7 +153,8 @@ class _ConcreteTranslator(CTranslator):
         self.symbol_names[symbol] = generated
         self.function_rows.append((config, node, item, symbol, template))
         item.update(source_symbol=mangled, hia_function=generated, c_linkage=c_linkage,
-                    qualified_name="::".join((*namespace, name)), status="function_pending")
+                    qualified_name="::".join((*namespace, name)), status="function_pending",
+                    constexpr_runtime_body=bool(node.get("constexpr")))
         if template:
             self.templates[template]["instances"].add(symbol)
 
@@ -204,9 +213,20 @@ class _ConcreteTranslator(CTranslator):
                     for i, part in enumerate(part for part in _nodes(node)
                                              if part.get("kind") in {"ParmVarDecl", "VarDecl"}
                                              and "id" in part)}
+        # Discarded template-pattern branches can still contain complete local
+        # classes. Their member references use Clang pointer IDs too. Preserve
+        # the exact local declaration relation with a stable ordinal; deleting
+        # every member ID would conflate distinct bindings, while retaining the
+        # pointer address would reject identical patterns from different TUs.
+        declarations = {part["id"]: "declaration" + str(i)
+                        for i, part in enumerate(_nodes(node))
+                        if part.get("kind", "").endswith("Decl")
+                        and isinstance(part.get("id"), str)}
         ignored = {"id", "loc", "range", "previousDecl", "isUsed", "isReferenced", "mangledName",
                    "foundReferencedDecl", "parentDeclContextId"}
         def normalize(value, key=None):
+            if key == "referencedMemberDecl" and isinstance(value, str):
+                return declarations.get(value, value)
             if isinstance(value, list):
                 return [normalize(x) for x in value]
             if isinstance(value, dict):
@@ -237,6 +257,15 @@ class _ConcreteTranslator(CTranslator):
                                           "raw_ast_sha256": hashlib.sha256(raw.encode()).hexdigest()})
             self._walk(config, tree.get("inner", []))
         for template in self.templates.values():
+            identities = {hashlib.sha256(json.dumps({
+                "parameters": template["parameters"],
+                "function_ast": self._body_identity(self._rewrite(pattern, unit)),
+            }, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+                for unit, pattern in template["patterns"]}
+            if len(identities) != 1:
+                _reject("Conflicting complete template pattern or function binding across captured units",
+                        "E_CPP_PROJECT_ODR")
+            template["pattern_identity"] = identities.pop()
             if not template["instances"]:
                 _reject("Uninstantiated template has no executable destination: " + template["name"],
                         "E_CPP_PROJECT_UNINSTANTIATED")
@@ -257,7 +286,12 @@ class _ConcreteTranslator(CTranslator):
             signature.update(body=body, node=rewritten, inventory=item,
                              source_symbol=node["mangledName"], c_linkage=item["c_linkage"],
                              body_identity=self._body_identity(rewritten) if body else None,
-                             mergeable_definition=bool(template or node.get("inline")))
+                             template_pattern_identity=self.templates[template]["pattern_identity"] if template else None,
+                             # A constexpr function is implicitly inline. Clang
+                             # need not emit an explicit `inline` AST flag for
+                             # identical definitions included by multiple TUs.
+                             mergeable_definition=bool(template or node.get("inline")
+                                                       or node.get("constexpr")))
             previous = self.functions.get(generated)
             if previous is not None:
                 if previous["shape"] != signature["shape"]:
@@ -267,7 +301,8 @@ class _ConcreteTranslator(CTranslator):
                     continue
                 if previous["body"] is not None:
                     if (not signature["mergeable_definition"] or not previous["mergeable_definition"]
-                            or signature["body_identity"] != previous["body_identity"]):
+                            or signature["body_identity"] != previous["body_identity"]
+                            or signature["template_pattern_identity"] != previous["template_pattern_identity"]):
                         _reject("Conflicting/duplicate concrete definition across captured units", "E_CPP_PROJECT_ODR")
                     item.update(status="identical_inline_or_template_definition_resolved")
                     continue
@@ -297,8 +332,61 @@ class _ConcreteTranslator(CTranslator):
         return super().expr(node)
 
     def stmt(self, node, depth=1):
-        if node.get("kind") == "IfStmt" and (node.get("isConstexpr") or node.get("isConsteval")):
-            _reject("Compile-time discarded statement semantics are outside this profile")
+        if node.get("kind") == "IfStmt" and node.get("isConsteval"):
+            _reject("if consteval requires a separate execution-context model")
+        if node.get("kind") == "IfStmt" and node.get("isConstexpr"):
+            # This is a frontend rule over the selected compiler's concrete
+            # AST, not a Core instruction or a caller-provided proof. Clang
+            # has already evaluated the constant expression for this exact
+            # instantiation. Never guess from its source spelling, a missing
+            # value, or the truthiness of an arbitrary JSON field.
+            children = node.get("inner", [])
+            has_else = node.get("hasElse", False)
+            if (node.get("isConstexpr") is not True or type(has_else) is not bool
+                    or node.get("hasInit") or node.get("hasVar")
+                    or not isinstance(children, list)
+                    or len(children) != (3 if has_else else 2)
+                    or any(not isinstance(child, dict) or not child.get("kind")
+                           for child in children)):
+                _reject("if constexpr requires one evaluated condition and ordinary branches; "
+                        "init/condition-variable statements are unsupported", "E_CPP_PROJECT_CONSTEXPR")
+            condition = children[0]
+            if (condition.get("kind") != "ConstantExpr"
+                    or condition.get("type", {}).get("qualType") != "bool"
+                    or condition.get("valueCategory") != "prvalue"
+                    or type(condition.get("value")) is not str
+                    or condition["value"] not in {"true", "false"}
+                    or not isinstance(condition.get("inner"), list)
+                    or len(condition["inner"]) != 1
+                    or not isinstance(condition["inner"][0], dict)):
+                _reject("if constexpr condition lacks a concrete Clang Boolean constant result",
+                        "E_CPP_PROJECT_CONSTEXPR")
+            selected = 1 if condition["value"] == "true" else 2 if has_else else None
+            discarded = [index for index in range(1, len(children)) if index != selected]
+            # ODR comparison and symbol resolution already consumed the full
+            # rewritten function before stmt is called. Do not replace that
+            # identity with the selected subtree, or merge different captured
+            # definitions merely because their current results happen to agree.
+            self.constexpr_selections.append({
+                "unit": self.current["unit"],
+                "source_symbol": self.current["source_symbol"],
+                "hia_function": self.current["hepta_name"],
+                "source_file": self.current["inventory"]["file"],
+                "source_range": deepcopy(node.get("range", {})),
+                "condition_value": condition["value"] == "true",
+                "condition_ast_sha256": self._body_identity(condition),
+                "full_statement_ast_sha256": self._body_identity(node),
+                "full_function_odr_sha256": self.current["body_identity"],
+                "template_pattern_odr_sha256": self.current["template_pattern_identity"],
+                "selected_branch": "then" if selected == 1 else "else" if selected == 2 else "none",
+                "discarded_branches": [{
+                    "branch": "then" if index == 1 else "else",
+                    "disposition": "discarded_by_captured_clang_constant_not_lowered",
+                    "instantiated_ast_nodes": sum(1 for _ in _nodes(children[index])),
+                    "instantiated_ast_sha256": self._body_identity(children[index]),
+                } for index in discarded],
+            })
+            return [] if selected is None else self.stmt(children[selected], depth)
         return super().stmt(node, depth)
 
     def bridge(self):
@@ -332,10 +420,12 @@ def _lower_cpp_capture(capture):
             "capture": capture, "declarations": translator.inventory,
             "declaration_scope": capture["scope"],
             "ast_observations": translator.ast_observations,
+            "constexpr_selections": translator.constexpr_selections,
             "declaration_inventory_complete": translator.inventory_complete,
             "active_project_declarations": sum(row["status"] != "system_or_compiler_declaration"
                                                 for row in translator.inventory),
             "template_instances": [{"name": item["name"], "parameters": item["parameters"],
+                                     "pattern_ast_sha256": item["pattern_identity"],
                                      "instances": sorted(translator.symbol_names[s] for s in item["instances"])}
                                     for item in translator.templates.values()],
             "claims": {"structural_instantiated_ast_translation": True,

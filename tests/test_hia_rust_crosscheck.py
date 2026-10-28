@@ -88,7 +88,13 @@ data = sys.stdin.buffer.read()
 doc = json.loads(data)
 claims = {claims[profile]!r}
 version_claim = 'v7_scalar_only_checked' if profile == 'scalar' else 'v7_chain_owner_loan_cfg_checked'
-claims[version_claim] = doc['schema'] == 'hepta.hia.program.v7'
+owned_v8 = profile == 'owned' and doc['schema'] == 'hepta.hia.program.v8'
+claims[version_claim] = doc['schema'] == 'hepta.hia.program.v7' or owned_v8
+if owned_v8: claims['v8_parameter_bound_loan_returns_checked'] = True
+if mode == 'missing_v8_contract': claims.pop('v8_parameter_bound_loan_returns_checked', None)
+if mode == 'false_v8_contract': claims['v8_parameter_bound_loan_returns_checked'] = False
+if mode == 'integer_v8_contract': claims['v8_parameter_bound_loan_returns_checked'] = 1
+if mode == 'early_v8_contract': claims['v8_parameter_bound_loan_returns_checked'] = True
 if mode == 'wrong_version': claims[version_claim] = not claims[version_claim]
 if mode == 'integer_version': claims[version_claim] = int(claims[version_claim])
 if mode == 'missing_version': del claims[version_claim]
@@ -102,13 +108,15 @@ if mode == 'stderr':
 if mode == 'proof_promoted': claims['whole_language_soundness_proved'] = 0
 if mode == 'extra_claim': claims['future_claim'] = False
 result = {{
-    'schema': 'hepta.hia.rust-owner-shadow.v1' if profile == 'owned' else 'hepta.hia.rust-scalar-shadow.v1',
+    'schema': ('hepta.hia.rust-owner-shadow.v2' if owned_v8 else 'hepta.hia.rust-owner-shadow.v1') if profile == 'owned' else 'hepta.hia.rust-scalar-shadow.v1',
     'ok': True,
     'program_sha256': hashlib.sha256(data).hexdigest() if mode != 'wrong_digest' else '0' * 64,
     'functions_checked': len(doc['functions']),
     'blocks_checked': sum(len(fn['blocks']) for fn in doc['functions']),
     'claims': claims,
 }}
+if mode == 'downgrade_v8': result['schema'] = 'hepta.hia.rust-owner-shadow.v1'
+if mode == 'premature_v8_schema': result['schema'] = 'hepta.hia.rust-owner-shadow.v2'
 if profile == 'scalar': result['source_required'] = False
 if mode == 'duplicate':
     sys.stdout.write('{{"schema":"x","schema":"y"}}\\n')
@@ -157,6 +165,29 @@ else:
                             crosscheck_rust_shadow(program, exe,
                                                    executable_sha256=digest,
                                                    profile=profile)
+
+    def test_v8_contract_receipt_cannot_be_omitted_downgraded_or_backported(self):
+        from tests.test_hia_returned_loans import loan_program
+
+        program = loan_program()
+        with tempfile.TemporaryDirectory() as td:
+            exe, digest = self.make_fake(Path(td))
+            checked = crosscheck_rust_shadow(program, exe, executable_sha256=digest)
+            self.assertEqual(checked["shadow_report"]["schema"], "hepta.hia.rust-owner-shadow.v2")
+            self.assertIs(checked["shadow_report"]["claims"]["v8_parameter_bound_loan_returns_checked"], True)
+            for mode in ("missing_v8_contract", "false_v8_contract", "integer_v8_contract", "downgrade_v8"):
+                with self.subTest(mode=mode):
+                    exe, digest = self.make_fake(Path(td), mode=mode)
+                    with self.assertRaises(HIARustCrosscheckRejected):
+                        crosscheck_rust_shadow(program, exe, executable_sha256=digest)
+            for mode in ("early_v8_contract", "premature_v8_schema"):
+                exe, digest = self.make_fake(Path(td), mode=mode)
+                with self.assertRaises(HIARustCrosscheckRejected):
+                    crosscheck_rust_shadow(owned_program(), exe, executable_sha256=digest)
+            exe, digest = self.make_fake(Path(td), profile="scalar")
+            scalar = scalar_program(); scalar["schema"] = "hepta.hia.program.v8"
+            with self.assertRaisesRegex(HIARustCrosscheckRejected, "scalar profile"):
+                crosscheck_rust_shadow(scalar, exe, executable_sha256=digest, profile="scalar")
 
     def test_exact_executable_identity_is_required(self):
         with tempfile.TemporaryDirectory() as td:
@@ -249,6 +280,22 @@ class RustShadowCrosscheckNative(unittest.TestCase):
         # default scalar profile; a version match does not widen its grammar.
         with self.assertRaises(HIARustCrosscheckRejected):
             self.crosscheck(chain, "scalar")
+
+    def test_actual_v8_returned_loans_have_independent_versioned_admission(self):
+        from tests.test_hia_returned_loans import loan_program, multiple_shared, swapped_mutable
+        from tests.test_hia_returned_chain_loans import chain_program
+
+        programs = [loan_program(mode, form) for mode in ("read", "mut")
+                    for form in ("forward", "child", "cfg", "recursive")]
+        programs += [multiple_shared(form) for form in ("forward", "children", "mixed")]
+        programs.append(swapped_mutable())
+        programs += [chain_program(mode, form) for mode in ("read", "mut")
+                     for form in ("forward", "child")]
+        for source in programs:
+            report = self.crosscheck(source, "owned")
+            self.assertEqual(report["shadow_report"]["schema"], "hepta.hia.rust-owner-shadow.v2")
+            self.assertIs(report["shadow_report"]["claims"]["v8_parameter_bound_loan_returns_checked"], True)
+            self.assertIs(report["claims"]["rust_is_production_admission_authority"], False)
 
     def test_normalized_nominal_resources_and_cooperative_tasks(self):
         # Rust checks primitive Core. Composite source must first take the

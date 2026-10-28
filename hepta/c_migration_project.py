@@ -11,6 +11,7 @@ import time
 
 from .ast import HeptaError
 from .c_migrate import MigrationRejected
+from .c_contracts import contract_identity, snapshot_contracts
 from .c_project import capture_project, digest, verify_capture
 from .c_translation import CTranslator
 
@@ -35,6 +36,10 @@ def migrate_project(database: str | Path, output_directory: str | Path, *,
     try:
         if destination.exists() or destination.is_symlink():
             raise MigrationRejected("E_C_PROJECT_EXISTS", "Output bundle must be a new non-symlink directory")
+        report["contract_input_origin"] = ("default_empty_scalar_contract" if contracts is None
+                                           else "caller_supplied_contract")
+        contracts = snapshot_contracts(contracts)
+        report["contract_identity"] = contract_identity(contracts)
         capture = capture_project(database, clang=clang, command_indices=command_indices)
         report["build"] = capture
         if isinstance(contracts, dict) and contracts.get("schema") == "hepta.c-record-views.v1":
@@ -44,6 +49,7 @@ def migrate_project(database: str | Path, output_directory: str | Path, *,
         else:
             translator = CTranslator(capture, contracts)
         source, bridge, functions = translator.emit()
+        report["source_type_admission"] = translator.original_type_receipts
         report["functions"] = functions
         from .parser import parse
         from .checker import check
@@ -128,6 +134,7 @@ def migrate_project(database: str | Path, output_directory: str | Path, *,
         report.update(ok=False, status="rejected")
         report["diagnostics"].append({"code": getattr(exc, "code", "E_C_PROJECT_INPUT"), "message": str(exc)})
         if translator is not None:
+            report["source_type_admission"] = translator.original_type_receipts
             report["declaration_inventory_complete"] = translator.inventory_complete
             for item in translator.inventory:
                 if item["status"] in {"pending", "prototype_pending", "function_pending"}:

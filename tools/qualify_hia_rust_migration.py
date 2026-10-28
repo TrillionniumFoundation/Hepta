@@ -127,7 +127,7 @@ def _plans(native, directory):
 
 def _compare(plan, python, rust, core):
     require(rust.get("schema") == "hepta.hia.rust-byte-owner-execution.v1"
-            and rust.get("profile") == "bounded-cfg-byte-owner-v2"
+            and rust.get("profile") == "bounded-cfg-byte-owner-bulk-v3"
             and rust.get("program_sha256") == core.sha256
             and python.get("program_sha256") == core.sha256,
             "execution profile or Core identity differs")

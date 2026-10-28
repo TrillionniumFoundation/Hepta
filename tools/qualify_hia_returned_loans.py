@@ -11,6 +11,7 @@ import io
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import unittest
@@ -47,6 +48,18 @@ def command(argv):
         return {"argv": argv, "returncode": None, "error": str(exc)}
 
 
+def git_observation(head_before, status_before, head_after, status_after):
+    """An unavailable Git observation is neither a clean nor a stable source."""
+    commands = (head_before, status_before, head_after, status_after)
+    observed = all(type(row.get("returncode")) is int and row["returncode"] == 0
+                   and type(row.get("stdout")) is str for row in commands)
+    observed = observed and all(re.fullmatch(r"[0-9a-f]{40}\n?", row["stdout"]) is not None
+                                for row in (head_before, head_after))
+    same_head = observed and head_before["stdout"] == head_after["stdout"]
+    clean = observed and not status_before["stdout"] and not status_after["stdout"]
+    return {"observed": observed, "same_head": same_head, "clean": clean}
+
+
 def qualify(folder):
     started = datetime.now(timezone.utc).isoformat()
     before, head_before, status_before = inventory(), command(["git", "rev-parse", "HEAD"]), command(["git", "status", "--porcelain"])
@@ -68,11 +81,17 @@ def qualify(folder):
     after, head_after, status_after = inventory(), command(["git", "rev-parse", "HEAD"]), command(["git", "status", "--porcelain"])
     observations, admissions = ReturnedLoanRust.observations, ReturnedLoanRust.admissions
     natives = ReturnedLoanNative.records
+    execution_profiles = sorted({row.get("rust", {}).get("profile", "missing")
+                                 for row in observations})
+    allowed_profiles = {"bounded-cfg-byte-owner-loan-returns-v4", "bounded-cfg-owned-memory-v5"}
     files = {str(p.relative_to(folder)): digest(p) for p in sorted(native_dir.rglob("*")) if p.is_file()}
-    stable = before == after and head_before == head_after and status_before == status_after
+    git_state = git_observation(head_before, status_before, head_after, status_after)
+    stable = (git_state["observed"] and git_state["same_head"] and before == after
+              and head_before == head_after and status_before == status_after)
     controls = [control for native in natives for control in native.get("oracle_controls", [])]
     success = (result.wasSuccessful() and not result.skipped and result.testsRun == 10 and stable
                and bool(observations) and all(row.get("matched") for row in observations)
+               and set(execution_profiles) <= allowed_profiles
                and bool(admissions) and all(row.get("rejected") for row in admissions)
                and len(natives) == 5 and all(row.get("passed") for row in natives)
                and len(controls) == 2 and all(row.get("oracle_rejected") for row in controls))
@@ -81,13 +100,13 @@ def qualify(folder):
     executable_after = digest(Path(executable)) if executable else None
     success = success and executable_before is not None and executable_before == executable_after
     report = {
-        "schema": "hepta.hia.returned-loan-qualification.v1", "core_schema": "hepta.hia.program.v8",
-        "rust_execution_profile": "bounded-cfg-returned-loan-v4", "ok": success,
+        "schema": "hepta.hia.returned-loan-qualification.v2", "core_schema": "hepta.hia.program.v8",
+        "wire_contract": "return_loans", "rust_execution_profiles": execution_profiles, "ok": success,
         "started_utc": started, "finished_utc": datetime.now(timezone.utc).isoformat(),
         "source_before": before, "source_after": after, "source_unchanged": stable,
         "git_head_before": head_before, "git_head_after": head_after,
         "git_status_before": status_before, "git_status_after": status_after,
-        "git_clean": not status_before.get("stdout") and not status_after.get("stdout"),
+        "git_observed": git_state["observed"], "git_clean": git_state["clean"],
         "tests": {"run": result.testsRun, "failures": len(result.failures), "errors": len(result.errors), "skipped": len(result.skipped)},
         "test_log": captured.getvalue(), "build_process": getattr(ReturnedLoanRust, "build", None),
         "toolchains": {"rustc": command(["rustc", "-vV"]), "cargo": command(["cargo", "-V"]), "python": sys.version},
@@ -119,13 +138,13 @@ def qualify(folder):
             "full_resource_core_closed": False,
         },
         "limits": [
-            "One returned readbuf/mutbuf plus scalar results, with an explicit borrowed-parameter origin; no returned local owner, temporary parent, sibling escape, or arbitrary lifetime relation.",
+            "This source corpus exercises one returned readbuf/mutbuf plus scalar results. The canonical v8 contract independently supports multiple result positions with explicit parameter origins and checked aliasing; it rejects unconsumed local resources, unrepresented temporary parents and arbitrary lifetime relations.",
             "Source Core v8 is explicit opt-in and currently permits one Buffer<u8>/slice<u8> origin; stored returned borrows and borrowed-record projection returns remain outside this source profile.",
-            "Primitive returned loans can compose with existing v8 byte/chain operations. Nominal composite v1/v2 still normalize to v6/v7 and do not gain v8 returned loans.",
+            "Primitive returned loans can compose with existing v8 byte/chain operations. Nominal composite v1/v2/v3 still normalize to v6/v7 and do not gain v8 returned loans.",
             "Steps/heap/call stops preserve actual live resources; they do not perform cleanup or establish async cancellation/unwinding semantics.",
             "The native observer measures allocation calls/free/live bytes and scalar outcomes; compile-time loans have no native runtime ledger.",
             "Native artifacts do not implement VM step/heap/call-depth budgets, and no native recursion/stack/cancellation bound is established.",
-            "Actual native host is Linux x86-64 only. V8 AArch64/RISC-V emitters, static budget certificates, and scalar-only Rust shadow refuse this profile.",
+            "This qualifier's actual native host is Linux x86-64. Separate v8 qualifiers cover finite AArch64/RV64 execution under QEMU and resource budgets; this report does not inherit their execution counts. Scalar-only Rust shadow still refuses v8.",
             "The scalar translation validator returns unknown for resource/call functions. No optimization admission is granted by these finite observations.",
         ],
     }

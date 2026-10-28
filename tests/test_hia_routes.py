@@ -97,8 +97,8 @@ class RouteTests(unittest.TestCase):
         self.assertEqual(legacy.as_dict()["schema"], "hepta.hia.program.v1")
         self.assertEqual(current.as_dict()["schema"], "hepta.hia.program.v8")
         functions = {f["name"]: f for f in current.as_dict()["functions"]}
-        self.assertEqual(functions["view"]["return_origins"], [functions["view"]["params"][0]["name"]])
-        self.assertEqual(functions["edit"]["return_origins"], [functions["edit"]["params"][0]["name"]])
+        self.assertEqual(functions["view"]["return_loans"], [functions["view"]["params"][0]["name"]])
+        self.assertEqual(functions["edit"]["return_loans"], [functions["edit"]["params"][0]["name"]])
         calls = [op["attrs"]["function"] for b in functions["probe"]["blocks"] for op in b["ops"] if op["op"] == "call"]
         self.assertEqual(calls, ["edit", "view"])
         result = execute_route("hepta-source", source, "probe", [1, 42, True],
@@ -111,21 +111,33 @@ class RouteTests(unittest.TestCase):
                 admit_route(route, payload, core_schema="hepta.hia.program.v1")
 
     def test_cli_v8_lower_and_run_use_the_same_explicit_contract(self):
-        source = Path(__file__).resolve().parents[1] / "examples/hia_returned_loans/returned_views.hepta"
+        examples = Path(__file__).resolve().parents[1] / "examples/hia_returned_loans"
         with tempfile.TemporaryDirectory() as directory:
-            output = Path(directory) / "returned.json"
-            stream = io.StringIO()
-            with contextlib.redirect_stdout(stream):
-                self.assertEqual(main(["hia", "lower", str(source), "--core-schema",
-                    "hepta.hia.program.v8", "-o", str(output)]), 0)
-            self.assertEqual(json.loads(output.read_text())["schema"], "hepta.hia.program.v8")
-            stream = io.StringIO()
-            with contextlib.redirect_stdout(stream):
-                self.assertEqual(main(["hia", "run", str(output), "--function", "probe",
-                                       "--arguments", "[1,42,false]"]), 0)
-            report = json.loads(stream.getvalue())
-            self.assertEqual(report["result"], 42 ^ 90)
-            self.assertEqual(report["resources"]["live_owners"], 0)
+            for filename in ("returned_views.hepta", "returned_record_views.hepta"):
+                with self.subTest(source=filename):
+                    source = examples / filename
+                    output = Path(directory) / (source.stem + ".json")
+                    stream = io.StringIO()
+                    with contextlib.redirect_stdout(stream):
+                        self.assertEqual(main(["hia", "lower", str(source), "--core-schema",
+                            "hepta.hia.program.v8", "-o", str(output)]), 0)
+                    document = json.loads(output.read_text())
+                    self.assertEqual(document["schema"], "hepta.hia.program.v8")
+                    self.assertEqual(document["exports"], ["probe"])
+                    functions = {fn["name"]: fn for fn in document["functions"]}
+                    for name in ("view", "edit"):
+                        self.assertEqual(functions[name]["return_loans"],
+                                         [functions[name]["params"][0]["name"]])
+                        self.assertNotIn("return_origins", functions[name])
+                    for choose in (False, True):
+                        stream = io.StringIO()
+                        with contextlib.redirect_stdout(stream):
+                            self.assertEqual(main(["hia", "run", str(output), "--function", "probe",
+                                "--arguments", json.dumps([1, 42, choose])]), 0)
+                        report = json.loads(stream.getvalue())
+                        self.assertEqual(report["result"], 42 ^ 90)
+                        self.assertEqual(report["resources"]["live_owners"], 0)
+                        self.assertEqual(report["resources"]["live_local_loans"], 0)
             with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                 main(["hia", "lower", str(source), "--core-schema", "hepta.hia.program.v7"])
 
