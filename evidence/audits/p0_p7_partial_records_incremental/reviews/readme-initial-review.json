@@ -1,0 +1,30 @@
+{
+  "schema": "hepta.delivery-template-readonly-review.v1",
+  "reviewed_template": "/tmp/hepta-next-evidence-preparation-20261028/README.template.md",
+  "reviewed_template_sha256": "51d479b6c75343140543aebd05142dbc9bb4141a30881e762ac1b9b194c8715e",
+  "status": "two_narrative_corrections_requested",
+  "production_files_modified": false,
+  "applications_or_tests_rerun": false,
+  "full_execution_terminal_results_checked": false,
+  "publication_archive_hashes_checked": false,
+  "findings": [
+    {
+      "id": "R1",
+      "section": "P1 two-owner qualification",
+      "issue": "Positive native runs observe [2,1] must be restricted to two successfully allocated payloads.",
+      "native_order_counts_per_route": {"two_then_one": 12, "one": 16, "empty": 4},
+      "native_order_counts_both_routes": {"two_then_one": 24, "one": 32, "empty": 8},
+      "execution_result_affected": false
+    },
+    {
+      "id": "R2",
+      "section": "P6 concurrency",
+      "issue": "Exactly one winner is established by the tested valid changing conflicting patches, not by arbitrary pairs including rejected or canonical no-op requests.",
+      "basis": "Static source/test inspection only"
+    }
+  ],
+  "optional_wording": "P2: replace The new Core with Core normalized from the new composite profile.",
+  "evidence_counts_confirmed": {"fixed_inputs": 32, "python": 64, "rust": 32, "positive_native": 64, "negative_native": 4, "snapshot_files": 1065},
+  "underlying_report_sha256": "aa014199d233845735ea6e12cba855710da01ce4184ef609bb5810b4a7f8af46",
+  "underlying_seal_sha256": "94119f9672025c5157cb554f9328e92134ba759eead560bc4216cb9a1c922768"
+}

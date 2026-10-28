@@ -1,0 +1,535 @@
+{
+  "exploratory_attempts": [
+    {
+      "conclusion": "Original C++ executes; prior migration rejects constexpr with E_CPP_PROJECT_PROFILE. This is a capability boundary, not a source equivalence failure.",
+      "evidence": [
+        {
+          "bytes": 1140,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/before.json",
+          "sha256": "c1ffd015505ccd471b1e8f82dbbbd705338646b2b9ff72bc53550de2626fa259"
+        },
+        {
+          "bytes": 260,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/input.cpp",
+          "sha256": "49933d2b243e00b1976d5ee8bcb88fecc9f1edc1d8447ff3c0b831d51bb502a9"
+        },
+        {
+          "bytes": 162,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/compile_commands.json",
+          "sha256": "55117f823341d8392de198f78be336961a936e3602f60728f525f7477d7c8b92"
+        },
+        {
+          "bytes": 65909,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/ast.json",
+          "sha256": "77967b49717b564c048f8c61cbeeb567bbfd71cf627d8a349282c069186ae569"
+        },
+        {
+          "bytes": 0,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/ast.stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "bytes": 15320,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/original.so",
+          "sha256": "b9d68552dd53a2446aa8d9fdf70db869c44419faa6882eec3322db70acaee820"
+        },
+        {
+          "bytes": 0,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/original-build.stdout",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "bytes": 0,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/original-build.stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "kind": "exploratory_original_native_and_admission",
+      "name": "initial_constexpr_rejection",
+      "native_result_calls": 6
+    },
+    {
+      "conclusion": "One overbroad test assertion included the existing c_bool_to_int helper branch. Failure retained; not counted as all passed.",
+      "evidence": [
+        {
+          "bytes": 1574,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/non-native-first/plan.json",
+          "sha256": "b6810faf8e8a5509ba72ec19a09375d71bc2e4eb830573fd8d5a2c5a6ee4b198"
+        },
+        {
+          "bytes": 1806,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/non-native-first/report.json",
+          "sha256": "11dcce9386231e1d7a40d65926bb2a09fa91ffde44b0583eb1a9efd3d7281199"
+        },
+        {
+          "bytes": 2234,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/non-native-first/stderr.log",
+          "sha256": "09aeaa23ca696bdf75acd7ce93403fe05cc2e2882d7453c0ba2f4c8bf44b7f43"
+        },
+        {
+          "bytes": 0,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/non-native-first/stdout.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "failed_methods": 1,
+      "kind": "development_tests",
+      "methods": 8,
+      "name": "non_native_first",
+      "passed_methods": 7
+    },
+    {
+      "conclusion": "Corrected assertion checks instantiated template functions only.",
+      "evidence": [
+        {
+          "bytes": 554,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/non-native-corrected-one/plan.json",
+          "sha256": "7e9e772d78b67ffa4c4acf9e1b65484fbdb89aab1c7415f2ccb10d8469f75245"
+        },
+        {
+          "bytes": 299,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/non-native-corrected-one/report.json",
+          "sha256": "8094dad3e2730317fed03e76c9b39a21f038823984df15ef26bc721ee0bd0ee5"
+        },
+        {
+          "bytes": 288,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/non-native-corrected-one/stderr.log",
+          "sha256": "efcd91b40b0d55e6ca53a46b938952159aead3b17786bef75da9945943e6c905"
+        },
+        {
+          "bytes": 0,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/non-native-corrected-one/stdout.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "kind": "development_test",
+      "methods": 1,
+      "name": "non_native_corrected_one",
+      "passed_methods": 1
+    },
+    {
+      "conclusion": "Conflicting full template patterns in two translation units were merged because selected concrete bodies matched. This violates C++ ODR and is not defined-input equivalence evidence.",
+      "evidence": [
+        {
+          "bytes": 350,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/cross-file-odr-before/compile_commands.json",
+          "sha256": "c6867a7474528540f9f5b31e60fff58cc6c6352c9063d6b886ec4ec42a8a4708"
+        },
+        {
+          "bytes": 191,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/cross-file-odr-before/one.cpp",
+          "sha256": "a6b104930b07dd2b822572fd6407e71b712de24f1199c35aa0d881dc90be76df"
+        },
+        {
+          "bytes": 1897,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/cross-file-odr-before/report.json",
+          "sha256": "d29e62471739b88bf8187490e186ae844d2bb64055f05acea3b6b9e1885b13ba"
+        },
+        {
+          "bytes": 192,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/cross-file-odr-before/two.cpp",
+          "sha256": "1bc089dc120ce41e536397c5b43cc902360149a356279d79882e425704bde903"
+        }
+      ],
+      "kind": "malformed_source_admission_gap",
+      "name": "cross_file_odr_before"
+    },
+    {
+      "conclusion": "Concrete merge compares full template pattern identity; same conflicting inputs reject E_CPP_PROJECT_ODR; exact patterns admit.",
+      "evidence": [
+        {
+          "bytes": 312,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/cross-file-odr-after/plan.json",
+          "sha256": "26ec74885157450c8957d1de6b42c2eeab69188c1c6da7f0e540d2f83daf93d5"
+        },
+        {
+          "bytes": 149,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/cross-file-odr-after/report.json",
+          "sha256": "af27ceacb70e18179e6e89ec8624cbe8cb81cddb087f4f1209ce6077d83a3526"
+        },
+        {
+          "bytes": 616,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/cross-file-odr-after/same-source-admission.json",
+          "sha256": "574888e18e7af558b1de4078634f40ae7f7c5a38d734dfd8d9923bca2fb8c375"
+        },
+        {
+          "bytes": 301,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/cross-file-odr-after/stderr.log",
+          "sha256": "24d2d7741a215ba3242b0264d432f1abdb4f9050803aecbaf965f1458c83692c"
+        },
+        {
+          "bytes": 0,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/cross-file-odr-after/stdout.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "kind": "development_rejection_and_positive_control",
+      "name": "cross_file_odr_after"
+    },
+    {
+      "conclusion": "Identical discarded local-class members carry different Clang addresses across translation units, causing false ODR rejection.",
+      "evidence": [
+        {
+          "bytes": 406,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/two-unit-pattern-before/compile_commands.json",
+          "sha256": "82d3f3bf8f0cb48f5f94548c148f7ef2c49ae1249dc4b293f495c7ee263d6996"
+        },
+        {
+          "bytes": 1105,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/two-unit-pattern-before/normalization-diagnosis.json",
+          "sha256": "d14f8cc92819914019d4a4f5669fe679a86612fa957f05d45ba3898895f03018"
+        },
+        {
+          "bytes": 347,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/two-unit-pattern-before/report.json",
+          "sha256": "833fb5f4ec4d70bce6ff74f8ec8987f7f3d8fa0b701743477cd2666bba5556e9"
+        },
+        {
+          "bytes": 1325,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/two-unit-pattern-before/source/branches.hpp",
+          "sha256": "30854de98f9e1526c0a5a7d1a0f3d3b3da6c1ba977f11c57fdc104b6ef5b87c5"
+        },
+        {
+          "bytes": 424,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/two-unit-pattern-before/source/wide.cpp",
+          "sha256": "694ad0935df3800eae25e366f1dff7eb6df83b1002213c155219cc54140c018a"
+        },
+        {
+          "bytes": 482,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/two-unit-pattern-before/source/word.cpp",
+          "sha256": "71319954cff3160aff53a699b9cba191c164dadbe9133fbccca00d3dd84c7799"
+        },
+        {
+          "bytes": 304850,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/two-unit-pattern-before/wide.cpp.ast.json",
+          "sha256": "1ae9ec3919a39b109674ea6ec937aca4fd120b2c5a7f646ae3a491243f0f85d3"
+        },
+        {
+          "bytes": 0,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/two-unit-pattern-before/wide.cpp.ast.stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "bytes": 403831,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/two-unit-pattern-before/word.cpp.ast.json",
+          "sha256": "4b612a41c9435eea660f57e0a374efb600b56fa73628d49821fca6c7f531135b"
+        },
+        {
+          "bytes": 0,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/two-unit-pattern-before/word.cpp.ast.stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "kind": "valid_fixture_false_rejection",
+      "name": "two_unit_pattern_before"
+    },
+    {
+      "conclusion": "Known local member addresses normalize to stable declaration bindings; exact 2-TU fixture admits; old conflicting source still rejects. No native execution in this replay.",
+      "evidence": [
+        {
+          "bytes": 2293,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/two-unit-pattern-after/report.json",
+          "sha256": "c25bb611bd66b2a069ce3ae2da4bfaef69614f03c6e95b2c7a5e40ad602430f5"
+        }
+      ],
+      "kind": "development_admission_replay",
+      "name": "two_unit_pattern_after"
+    },
+    {
+      "conclusion": "Exact pattern positive control passes; changing referencedMemberDecl alone to a different known field in one TU rejects E_CPP_PROJECT_ODR. The mutation control is not defined C++ source.",
+      "evidence": [
+        {
+          "bytes": 563,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/member-binding-regression/plan.json",
+          "sha256": "f5b77d90a2c2857e842d30691712c508a4d22a15e6f69e04a21880a5524bf66e"
+        },
+        {
+          "bytes": 573,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/member-binding-regression/report.json",
+          "sha256": "b7f09ce428023152cb0ba30431d9d01a0dbd16bbec096eaae96b1071388f1874"
+        },
+        {
+          "bytes": 306,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/member-binding-regression/stderr.log",
+          "sha256": "c2713cbb945f4fa77c92b1b580b61572c45c53de8ea96dec115644dfa4ed449e"
+        },
+        {
+          "bytes": 0,
+          "path": "/tmp/hepta-cpp-constexpr-audit-20261028/member-binding-regression/stdout.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "kind": "development_ast_mutation_control",
+      "methods": 1,
+      "name": "member_binding_regression",
+      "passed_methods": 1
+    },
+    {
+      "conclusion": "Public C migration already rejects FENV_ACCESS/StrictFPAttr with E_C_ATTRIBUTE. No new defect, repair, or native result call.",
+      "evidence": [
+        {
+          "bytes": 5440,
+          "path": "/tmp/hepta-c-next-fp-audit-20261028/admission-report.json",
+          "sha256": "7487e712613af4926ce7bf42b966691d11670831a9c8b03c4a538b8e38b1a90b"
+        },
+        {
+          "bytes": 12802,
+          "path": "/tmp/hepta-c-next-fp-audit-20261028/ast.json",
+          "sha256": "9bea9a8f5d6f27c791d117f668594148e1c7eca8bbf69ea7c1acbabe2cb65478"
+        },
+        {
+          "bytes": 0,
+          "path": "/tmp/hepta-c-next-fp-audit-20261028/ast.stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "bytes": 143,
+          "path": "/tmp/hepta-c-next-fp-audit-20261028/compile_commands.json",
+          "sha256": "73c0d8a675b5decb809c61965fe01fcaf4ca8c749d3024bcaa9bf821d9c37046"
+        },
+        {
+          "bytes": 120,
+          "path": "/tmp/hepta-c-next-fp-audit-20261028/input.c",
+          "sha256": "97f0a9ffe7e3308ea9ad6a6b45b5f02863b7ff2c76ba9bea2bec15463aedd83f"
+        }
+      ],
+      "kind": "existing_correct_rejection",
+      "name": "floating_environment_probe"
+    }
+  ],
+  "formal_native": {
+    "all_retained_files": [
+      {
+        "bytes": 5407,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/manifest.json",
+        "sha256": "8ec66e042650eadc3f015a0da0618d12667ad4c18e82e59cb2c04cf27b8dc291"
+      },
+      {
+        "bytes": 543,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/compile_commands.json",
+        "sha256": "7572ebe42781db9e0ceb0f8b6890af91b843645ce9e16fb1ce24e14abd8502ed"
+      },
+      {
+        "bytes": 60557,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/migration.json",
+        "sha256": "331aced083f485e464b27898c2360752d230f462b6aad9d3fabd1f51a7717196"
+      },
+      {
+        "bytes": 1456,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/original-0.o",
+        "sha256": "934e0690610b68e04260b69ec7b6cfddb31c0f5dd5d6dcb5645deb8386318f55"
+      },
+      {
+        "bytes": 1272,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/original-1.o",
+        "sha256": "4eb71626d446553625f660f245497452c7e175a134714b6bee330db9e7496cbb"
+      },
+      {
+        "bytes": 15552,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/original.so",
+        "sha256": "d430b8fd12cde9c81e734001251565b85e92f85fb5a370da731a9d1a997aa3b4"
+      },
+      {
+        "bytes": 8966,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/plan.json",
+        "sha256": "fc2e663e769b2634e638f81ba9d522b06e929e85a3522b907d1ad0f3bed9783c"
+      },
+      {
+        "bytes": 0,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/process-00.stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 0,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/process-00.stdout",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 0,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/process-01.stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 0,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/process-01.stdout",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 0,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/process-02.stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 0,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/process-02.stdout",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 0,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/process-03.stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 0,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/process-03.stdout",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 0,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/process-04.stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 4439,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/process-04.stdin",
+        "sha256": "a516c02ef82ba57b58dc8b8db389f38bef6cb37d6a3ca6f57d6ab059a868bdd3"
+      },
+      {
+        "bytes": 520,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/process-04.stdout",
+        "sha256": "7089971c21a6e15ede4326d97dc025bae8c689f47038fc4070d8d9b6790835eb"
+      },
+      {
+        "bytes": 0,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/process-05.stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 4437,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/process-05.stdin",
+        "sha256": "8c7b34c5daf3a405a4f7471403df26323fda097f83685ccf08b83c2a24f44095"
+      },
+      {
+        "bytes": 520,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/process-05.stdout",
+        "sha256": "7089971c21a6e15ede4326d97dc025bae8c689f47038fc4070d8d9b6790835eb"
+      },
+      {
+        "bytes": 2917,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/program.hepta",
+        "sha256": "f1039a4030833b351bb8407470c8f09af78ae04ea16a8bdf1a73a884d08f9808"
+      },
+      {
+        "bytes": 7739,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/program.hia.json",
+        "sha256": "9c06c8c282363e45f5680216324624adb1d9d988abe937105dfc6e749fe02589"
+      },
+      {
+        "bytes": 5482,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/program.ll",
+        "sha256": "d5eb233a4c9a33f779106fc777f095e1507752cafb3cb8f19cc4103f7ea7c529"
+      },
+      {
+        "bytes": 1488,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/program.o",
+        "sha256": "5871302cf4e27dc45e17565ecd140844116d429e8fc52a6fbf92e9396b1ec504"
+      },
+      {
+        "bytes": 126024,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/report.json",
+        "sha256": "1dbdbd30d7c429241744c918fd273ccedf412a431c228f2e5fceee8b25309d4d"
+      },
+      {
+        "bytes": 1325,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/source/branches.hpp",
+        "sha256": "30854de98f9e1526c0a5a7d1a0f3d3b3da6c1ba977f11c57fdc104b6ef5b87c5"
+      },
+      {
+        "bytes": 424,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/source/wide.cpp",
+        "sha256": "694ad0935df3800eae25e366f1dff7eb6df83b1002213c155219cc54140c018a"
+      },
+      {
+        "bytes": 482,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/source/word.cpp",
+        "sha256": "71319954cff3160aff53a699b9cba191c164dadbe9133fbccca00d3dd84c7799"
+      },
+      {
+        "bytes": 15720,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/target.so",
+        "sha256": "a1a0205b2bf5e0e7a87ca8ba9a3bf18c59f87465027f601f8a823148bce8e2ec"
+      },
+      {
+        "bytes": 130473,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/plan.json",
+        "sha256": "9f614c4fa3efdb8fca229a067b7bae42bf5f55e9a0bf4dda63f00118a17973d9"
+      },
+      {
+        "bytes": 256519,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/report.json",
+        "sha256": "7477a8606f6df313f6cf971a6be71d53b78b7db5639089b7b910805b625eae11"
+      },
+      {
+        "bytes": 300,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/started.json",
+        "sha256": "78621f363d503ead3a7ae647f97bddaf292731185d14ba03345a954b5a080f31"
+      },
+      {
+        "bytes": 0,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/stderr.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 141,
+        "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/stdout.log",
+        "sha256": "7e50d96a4c01bcd462b3c8a7c86f2a80fdceb3bbf2b9ecb502cbc0272094e3a3"
+      }
+    ],
+    "case_count": 80,
+    "driver": {
+      "bytes": 6371,
+      "path": "/tmp/hepta-cpp-constexpr-audit-20261028/run_frozen_native.py",
+      "sha256": "6ac57befd9bb893f258ef0abfa764ff02e775d2d947df5cb90a66130b5ecd269"
+    },
+    "manifest": {
+      "bytes": 5407,
+      "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/manifest.json",
+      "sha256": "8ec66e042650eadc3f015a0da0618d12667ad4c18e82e59cb2c04cf27b8dc291"
+    },
+    "native_report": {
+      "bytes": 126024,
+      "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/native-80/report.json",
+      "sha256": "1dbdbd30d7c429241744c918fd273ccedf412a431c228f2e5fceee8b25309d4d"
+    },
+    "native_result_executions": 160,
+    "passed": true,
+    "report": {
+      "bytes": 256519,
+      "path": "/tmp/hepta-cpp-constexpr-final-d942f18b-20261028/report.json",
+      "sha256": "7477a8606f6df313f6cf971a6be71d53b78b7db5639089b7b910805b625eae11"
+    },
+    "seconds": 12.634544528002152,
+    "source_unchanged": true,
+    "tools_unchanged": true
+  },
+  "frozen_source": {
+    "commit": "d942f18b07c8811aa1418b6f67fabc23212317d1",
+    "official_snapshot_files": 1065,
+    "official_snapshot_sha256": "4a64e1a353585d0ee88985e4942c008bd82ec1482be7ce1158a60f24f550e8db",
+    "tree": "44823c1858d52e9043edebb83f2414d91087d743"
+  },
+  "limits": [
+    "Finite integer/Boolean concrete C++20 template instances only.",
+    "Selected general class lifecycle, exceptions, unknown constexpr conditions and unsupported init/condition-variable shapes remain rejected.",
+    "Discarded object/throw statements are not executed and do not qualify RAII or exception behavior.",
+    "No general C++ equivalence, ABI coverage, performance, or whole-language safety proof.",
+    "Full Python/Rust integration suite is owned and recorded separately by the parent; exploratory attempts are not frozen-run counts."
+  ],
+  "owned_source_hashes": {
+    "docs/CPP_CONSTEXPR_MIGRATION.md": "8076c22cda0a0373a79fa52dbb4400d467d76993214683a174dc33c82d8069dc",
+    "examples/cpp/project_constexpr/branches.hpp": "30854de98f9e1526c0a5a7d1a0f3d3b3da6c1ba977f11c57fdc104b6ef5b87c5",
+    "examples/cpp/project_constexpr/wide.cpp": "694ad0935df3800eae25e366f1dff7eb6df83b1002213c155219cc54140c018a",
+    "examples/cpp/project_constexpr/word.cpp": "71319954cff3160aff53a699b9cba191c164dadbe9133fbccca00d3dd84c7799",
+    "hepta/cpp_project_migrate.py": "b4e8fba62d69e33e6eafdd862dc246d8f6a8fccfaf8d3b11901a740a9c02d799",
+    "tests/test_cpp_constexpr_migration.py": "664ad29d3c07c5e9bc1e3132aede8b24b1be836002622e6ab73c5534ccf84849",
+    "tests/test_cpp_project_hia.py": "ef3e7c8d97d42211d520d425f6cef3839b49bff31eefb4d51d4b746c48841c21",
+    "tools/qualify_cpp_constexpr.py": "8dda743ba271eaa316dbf1571618c2d20480a34b6a8770bc4d05dd491008e147"
+  },
+  "partial_qualifier_readonly_review": {
+    "conclusion": "Independent logical Owner equality, bounded CaptureRejected raw prefix retention, successful-allocation IDs and released-slot reuse confirmed by source reading; no new blocker identified. Two-live-payload cancellation order explicitly remains unqualified.",
+    "new_execution_cases": 0,
+    "path": "tools/qualify_hia_partial_records.py",
+    "sha256": "62f5a91dfde53888336da9e0ab699784ba61fdbaa13797d60225b230da09031d"
+  },
+  "schema": "hepta.cpp-constexpr-evidence-index.v1"
+}

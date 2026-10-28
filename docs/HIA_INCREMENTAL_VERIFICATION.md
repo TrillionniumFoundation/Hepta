@@ -29,9 +29,11 @@ session.close()
 
 A failed candidate, stale patch or forbidden interface migration does not
 replace the saved baseline. All replacements in a patch are simultaneous;
-intermediate candidates are not admitted. A session serializes its operations,
-so two patches for one expected baseline cannot both commit different results:
-the later attempt observes a stale digest. Multiple sessions are independent.
+intermediate candidates are not admitted. A session serializes its operations
+and checks each patch's expected digest against the current baseline under the
+same lock. If the first accepted patch changes the digest, the next patch naming
+the old digest is rejected as stale; an accepted canonical no-op leaves that
+digest valid. Multiple sessions are independent.
 
 Existing patch v1 preserves interfaces. Patch v2 requires an explicit
 `interface_policy` of `preserve` or `migrate`. Allowing a migration does not
