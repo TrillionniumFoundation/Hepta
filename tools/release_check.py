@@ -895,7 +895,10 @@ def main(argv=None):
         # room for the mandatory new native regressions; zero skips and the
         # complete terminal unittest result remain required. This is a suite
         # watchdog, not a change to any performance protocol or threshold.
-        ("unit_and_integration", [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"], 900),
+        # The reconciled suite adds real guarded/graph/owner native profiles.
+        # This is only the enclosing discovery wall budget; every proof,
+        # candidate, runtime and economic-budget refusal remains unchanged.
+        ("unit_and_integration", [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"], 1200),
         ("strict_namespace_execution", [sys.executable, "tools/validate_sandbox.py", "--output", next_stage + "/sandbox.json"], 120),
         ("parser_example", [sys.executable, "-m", "hepta", "run", "examples/parser.hepta", "--json"], 60),
         ("ownership_example", [sys.executable, "-m", "hepta", "run", "examples/ownership.hepta", "--json"], 60),

@@ -26,6 +26,7 @@ from .hia_program import integer_range, scalar_value_valid, verify_program
 from .hia_program_llvm import TARGET, build_program_native, emit_program_llvm
 from .hia_program_runtime import execute_program
 from .hia_native_retirement import NativeRetirement, PathIdentityPin, observe_directory, remove_directory
+from .native_mapping_identity import NativeMappingRejected, verify_loaded_symbols
 
 
 PROFILE = "hepta.hia.scalar-multiversion.linux-x86_64.v1"
@@ -108,6 +109,7 @@ class GenerationInfo:
     baseline: bool
     admission_profile: str = PROFILE
     totality_proofs: int = 0
+    loaded_mapping: bytes = b""
 
     def as_dict(self):
         return {"generation": self.generation, "program_sha256": self.program_sha256,
@@ -118,7 +120,8 @@ class GenerationInfo:
                 "translation_proofs": self.translation_proofs,
                 "native_probe_calls": self.native_probe_calls, "baseline": self.baseline,
                 "admission_profile": self.admission_profile,
-                "totality_proofs": self.totality_proofs}
+                "totality_proofs": self.totality_proofs,
+                "loaded_mapping": json.loads(self.loaded_mapping) if self.loaded_mapping else None}
 
 
 def _admit(document, *, prove_total=False, timeout_ms=2000):
@@ -435,12 +438,26 @@ class ScalarMultiversionRuntime:
             inspect_owned_shared_elf(data, tuple(a.function for a in self._abi))
             fd = _sealed_fd(data)
             library = ctypes.CDLL(f"/proc/self/fd/{fd}", mode=os.RTLD_LOCAL | os.RTLD_NOW)
-            calls = 0
             for signature in self._abi:
                 native = getattr(library, signature.function)
                 native.argtypes = [_CTYPES[t] for t in signature.parameters]
                 native.restype = _CTYPES[signature.result]
                 functions[signature.function] = native
+            # A fully sealed new fd does not identify dlsym's actual mapping:
+            # the loader can retain an old /proc/self/fd/N pathname reference.
+            # Bind every export before even the first finite native probe.
+            mapping_source = Path(__file__).with_name("native_mapping_identity.py")
+            mapping_identity = sha256(mapping_source.read_bytes()).hexdigest()
+            try:
+                loaded_mapping = verify_loaded_symbols(fd, functions)
+            except NativeMappingRejected as error:
+                raise MultiversionRejected("E_HIA_MULTIVERSION: loaded native mapping does not bind the sealed artifact") from error
+            if sha256(mapping_source.read_bytes()).hexdigest() != mapping_identity:
+                _reject("loaded mapping checker changed during admission")
+            loaded_mapping["checker_sha256"] = mapping_identity
+            calls = 0
+            for signature in self._abi:
+                native = functions[signature.function]
                 for arguments in _probe_vectors(signature):
                     expected = execute_program(program, signature.function, list(arguments),
                                                max_steps=2 * (_MAX_OPS + _MAX_BLOCKS))["result"]
@@ -450,7 +467,8 @@ class ScalarMultiversionRuntime:
                         _reject("actual native result differs from the independent HIA interpreter")
             info = GenerationInfo(generation, program.sha256, program.input_sha256,
                                   sha256(data).hexdigest(), len(data), self._abi, proofs, calls, baseline,
-                                  self._profile, len(totality))
+                                  self._profile, len(totality),
+                                  json.dumps(loaded_mapping, sort_keys=True, separators=(",", ":")).encode())
             return _Generation(info, fd, library, functions, output, inode, identity_pin, totality=totality)
         except BaseException:
             self._dispose(generation, library, functions, fd, output, inode,

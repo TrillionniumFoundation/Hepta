@@ -32,6 +32,7 @@ from hepta.hia_program_source import lower_source
 FIXTURES = ROOT / "experiments/hia_optimizer_eval"
 KERNELS = ("full_lifecycle", "packet_xor")
 BACKENDS = ("hia", "rust_o3_lto", "c_o3_lto", "cpp_o3_lto", "c_pgo_lto", "cpp_pgo_lto")
+NEXT_PROTOCOL_PATH = "experiments/hia_optimizer_eval/next_20261028/PROTOCOL.json"
 PROTOCOL = {
     "id": "hepta.hia.optimizer-bench.v1", "scope": "Linux x86-64; two byte-owner kernels; finite successful-allocation inputs",
     "groups": 7, "batches": 31, "calls_per_batch": 128, "warmup_calls": 32,
@@ -73,9 +74,10 @@ def identity(path):
                 "sha256": hashlib.file_digest(stream, "sha256").hexdigest()}
 
 
-def source_bindings():
+def source_bindings(extra_paths=()):
     paths = [Path(__file__), *FIXTURES.glob("kernels.*"), FIXTURES / "driver.c"]
     paths.extend((ROOT / "hepta").rglob("*.py"))
+    paths.extend(ROOT / name for name in extra_paths)
     return {str(path.relative_to(ROOT)): identity(path)["sha256"] for path in sorted(paths)}
 
 
@@ -112,13 +114,14 @@ def successful(record):
     return record["stdout"]
 
 
-def sample_order():
+def sample_order(protocol=PROTOCOL, backends=BACKENDS):
+    backends = tuple(backends)
     result = []
-    for group in range(PROTOCOL["groups"]):
+    for group in range(protocol["groups"]):
         rotation = group % len(KERNELS)
         for kernel in KERNELS[rotation:] + KERNELS[:rotation]:
-            offset = (group + KERNELS.index(kernel)) % len(BACKENDS)
-            names = BACKENDS[offset:] + BACKENDS[:offset]
+            offset = (group + KERNELS.index(kernel)) % len(backends)
+            names = backends[offset:] + backends[:offset]
             if group % 2:
                 names = names[::-1]
             result.extend((group, kernel, name) for name in names)
@@ -137,28 +140,28 @@ def oracle(kernel, size, seed):
     return (size // 256) * sum(period) + sum(period[:size % 256])
 
 
-def timed_checksum(kernel, split="holdout"):
+def timed_checksum(kernel, split="holdout", protocol=PROTOCOL):
     require(split in {"train", "holdout"}, "unknown workload split")
     prefix = "training" if split == "train" else "holdout"
-    sizes, seeds = PROTOCOL[prefix + "_sizes"], PROTOCOL[prefix + "_seeds"]
+    sizes, seeds = protocol[prefix + "_sizes"], protocol[prefix + "_seeds"]
     value = 1469598103934665603
     cache = {(n, seed): oracle(kernel, n, seed) for n in sizes for seed in seeds}
-    for index in range(PROTOCOL["batches"] * PROTOCOL["calls_per_batch"]):
+    for index in range(protocol["batches"] * protocol["calls_per_batch"]):
         result = cache[sizes[index % len(sizes)], seeds[(index * 5 + 1) % len(seeds)]]
         value = ((value ^ result) * 1099511628211) % 2**64
     return value
 
 
-def workload_header():
+def workload_header(protocol=PROTOCOL):
     lines = []
     for label, prefix in (("TRAIN", "training"), ("HOLDOUT", "holdout")):
         for name, typ in (("sizes", "size_t"), ("seeds", "uint32_t")):
-            values = PROTOCOL[prefix + "_" + name]
+            values = protocol[prefix + "_" + name]
             lines.append("static const " + typ + " " + label + "_" + name.upper() + "[] = {" +
                          ",".join(str(v) + "U" for v in values) + "};")
             lines.append("#define " + label + "_" + name[:-1].upper() + "_COUNT " + str(len(values)))
     for label, key in (("BATCHES", "batches"), ("CALLS_PER_BATCH", "calls_per_batch"), ("WARMUP_CALLS", "warmup_calls")):
-        lines.append("#define " + label + " " + str(PROTOCOL[key]))
+        lines.append("#define " + label + " " + str(protocol[key]))
     return "\n".join(lines) + "\n"
 
 
@@ -167,8 +170,8 @@ def quantile(values, p):
     return sorted(values)[max(0, math.ceil(p * len(values)) - 1)]
 
 
-def evaluate_samples(rows):
-    expected = sample_order()
+def evaluate_samples(rows, protocol=PROTOCOL, backends=BACKENDS, candidate="hia"):
+    expected = sample_order(protocol, backends)
     quality = []
     if len(rows) != len(expected):
         quality.append("sample_inventory_incomplete")
@@ -185,25 +188,25 @@ def evaluate_samples(rows):
         if any(type(row.get(k)) is not int or row[k] <= 0 for k in integers):
             quality.append("sample_metrics_" + str(index)); continue
         batches = row.get("batch_ns")
-        if (type(batches) is not list or len(batches) != PROTOCOL["batches"] or
+        if (type(batches) is not list or len(batches) != protocol["batches"] or
                 any(type(v) is not int or v <= 0 for v in batches) or sum(batches) > row["elapsed_ns"]):
             quality.append("batch_metrics_" + str(index)); continue
-        if row.get("checksum") != timed_checksum(kernel):
+        if row.get("checksum") != timed_checksum(kernel, protocol=protocol):
             quality.append("checksum_" + str(index)); continue
-        if not PROTOCOL["minimum_sample_ns"] <= row["elapsed_ns"] <= PROTOCOL["maximum_sample_ns"]:
+        if not protocol["minimum_sample_ns"] <= row["elapsed_ns"] <= protocol["maximum_sample_ns"]:
             quality.append("sample_duration_" + str(index))
         valid[group, kernel, backend] = row
     summary = {}
     for kernel in KERNELS:
         summary[kernel] = {}
-        for backend in BACKENDS:
-            samples = [valid[g, kernel, backend] for g in range(PROTOCOL["groups"]) if (g, kernel, backend) in valid]
-            if len(samples) != PROTOCOL["groups"]:
+        for backend in backends:
+            samples = [valid[g, kernel, backend] for g in range(protocol["groups"]) if (g, kernel, backend) in valid]
+            if len(samples) != protocol["groups"]:
                 continue
             values = [row["elapsed_ns"] for row in samples]
             median = statistics.median(values)
             relative_mad = statistics.median(abs(v - median) for v in values) / median
-            if relative_mad > PROTOCOL["maximum_relative_mad"]:
+            if relative_mad > protocol["maximum_relative_mad"]:
                 quality.append("unstable_" + kernel + "_" + backend)
             batches = [value for row in samples for value in row["batch_ns"]]
             summary[kernel][backend] = {
@@ -216,23 +219,23 @@ def evaluate_samples(rows):
             }
     comparisons = []
     for kernel in KERNELS:
-        for baseline in BACKENDS[1:]:
-            if "hia" not in summary[kernel] or baseline not in summary[kernel]:
+        for baseline in (name for name in backends if name != candidate):
+            if candidate not in summary[kernel] or baseline not in summary[kernel]:
                 continue
-            log_ratios = [math.log(valid[g, kernel, "hia"]["elapsed_ns"] / valid[g, kernel, baseline]["elapsed_ns"])
-                          for g in range(PROTOCOL["groups"])]
+            log_ratios = [math.log(valid[g, kernel, candidate]["elapsed_ns"] / valid[g, kernel, baseline]["elapsed_ns"])
+                          for g in range(protocol["groups"])]
             mean = statistics.mean(log_ratios)
-            upper = math.exp(mean + PROTOCOL["paired_log_t_upper95_critical_df6"] * statistics.stdev(log_ratios) / math.sqrt(len(log_ratios)))
-            hia, other = summary[kernel]["hia"], summary[kernel][baseline]
+            upper = math.exp(mean + protocol["paired_log_t_upper95_critical_df6"] * statistics.stdev(log_ratios) / math.sqrt(len(log_ratios)))
+            hia, other = summary[kernel][candidate], summary[kernel][baseline]
             p95 = hia["batch_p95_ns"] / other["batch_p95_ns"]
             rss = hia["maximum_process_peak_rss_kib"] / other["maximum_process_peak_rss_kib"]
             comparisons.append({"kernel": kernel, "baseline": baseline, "paired_time_geomean_ratio": math.exp(mean),
                                 "paired_time_ratio_upper95": upper, "empirical_p95_batch_ratio": p95,
                                 "empirical_p99_batch_ratio": hia["batch_p99_ns"] / other["batch_p99_ns"],
                                 "peak_rss_ratio": rss, "noninferiority_thresholds_passed":
-                                upper <= PROTOCOL["maximum_paired_geomean_ratio_upper95"] and
-                                p95 <= PROTOCOL["maximum_empirical_p95_batch_ratio"] and rss <= PROTOCOL["maximum_peak_rss_ratio"]})
-    complete_comparisons = len(comparisons) == len(KERNELS) * (len(BACKENDS) - 1)
+                                upper <= protocol["maximum_paired_geomean_ratio_upper95"] and
+                                p95 <= protocol["maximum_empirical_p95_batch_ratio"] and rss <= protocol["maximum_peak_rss_ratio"]})
+    complete_comparisons = len(comparisons) == len(KERNELS) * (len(backends) - 1)
     passed = not quality and complete_comparisons and all(c["noninferiority_thresholds_passed"] for c in comparisons)
     return {"quality_passed": not quality, "quality_failures": quality, "summary": summary, "comparisons": comparisons,
             "noninferiority_passed": passed, "samples_excluded": 0, "thresholds_adjusted": False}
@@ -248,21 +251,41 @@ for case in json.loads(sys.argv[2]):
 '''
 
 
-def correctness_cases():
-    sizes = sorted({0, 1, 2, 7, 255, 256, 257, *PROTOCOL["holdout_sizes"]})
+def correctness_cases(protocol=PROTOCOL):
+    sizes = sorted({0, 1, 2, 7, 255, 256, 257, *protocol["holdout_sizes"]})
     seeds = (0, 1, 255, 256, 2147483648, 4294967295)
     return [{"kernel": k, "size": n, "seed": s, "expected": oracle(k, n, s)} for k in KERNELS for n in sizes for s in seeds]
 
 
+def next_protocol():
+    profile = json.loads((ROOT / NEXT_PROTOCOL_PATH).read_bytes())["benchmark"]
+    require(profile["id"] == "hepta.hia.optimizer-bench.next-20261028.v1", "unknown next protocol")
+    for key in ("groups", "batches", "calls_per_batch", "warmup_calls", "minimum_sample_ns", "maximum_sample_ns",
+                "maximum_relative_mad", "maximum_paired_geomean_ratio_upper95", "maximum_empirical_p95_batch_ratio",
+                "maximum_peak_rss_ratio", "paired_log_t_upper95_critical_df6"):
+        require(profile[key] == PROTOCOL[key], "next protocol may not relax the existing sampling or gates")
+    require(profile["backends"] == ["hia_original", "hia_verified", *BACKENDS[1:]], "strong baseline inventory changed")
+    return {**PROTOCOL, **profile,
+            "search": "one frozen deterministic guarded-reduction proposal; actual proposal/check/build costs retained"}
+
+
 def run(*, output_dir, clang="/usr/bin/clang-20", clangxx="/usr/bin/clang++-20",
         rustc="/tmp/hepta-ai-rust-1.90.0/bin/rustc", profdata="/usr/bin/llvm-profdata-20",
-        linker="/usr/bin/ld.lld-20", candidate_core=None, profile_runtime=None):
+        linker="/usr/bin/ld.lld-20", candidate_core=None, profile_runtime=None, guarded_next=False):
+    require(not (guarded_next and candidate_core), "next guarded experiment must start from the frozen original source")
+    protocol = next_protocol() if guarded_next else PROTOCOL
+    backends = tuple(protocol["backends"]) if guarded_next else BACKENDS
+    measured_candidate = "hia_verified" if guarded_next else "hia"
+    original_backend = "hia_original" if guarded_next else "hia"
+    extra_paths = (NEXT_PROTOCOL_PATH,) if guarded_next else ()
+    bindings = lambda: source_bindings(extra_paths)
+    order = sample_order(protocol, backends)
     out = Path(output_dir).absolute(); out.mkdir(parents=True, exist_ok=False)
-    report = {"schema": PROTOCOL["id"], "status": "running", "ok": False, "protocol": PROTOCOL,
-              "protocol_sha256": sha(wire(PROTOCOL)), "source_bindings": source_bindings(),
-              "kernels": list(KERNELS), "backends": list(BACKENDS),
+    report = {"schema": protocol["id"], "status": "running", "ok": False, "protocol": protocol,
+              "protocol_sha256": sha(wire(protocol)), "source_bindings": bindings(),
+              "kernels": list(KERNELS), "backends": list(backends), "candidate_backend": measured_candidate,
               "scheduled_samples": [{"sample_index": i, "group": g, "kernel": k, "backend": b}
-                                    for i, (g, k, b) in enumerate(sample_order())],
+                                    for i, (g, k, b) in enumerate(order)],
               "commands": [], "builds": {}, "training": [], "correctness": {}, "raw_samples": [],
               "search_cost": {"search_performed": False, "search_calls": 0, "wall_ns": 0},
               "claims": {"universal_rust_superiority": False, "resource_soundness_proved": False,
@@ -274,8 +297,8 @@ def run(*, output_dir, clang="/usr/bin/clang-20", clangxx="/usr/bin/clang++-20",
         return result
     try:
         require(platform.system() == "Linux" and platform.machine() == "x86_64", "Linux x86-64 required")
-        require(not set(PROTOCOL["training_sizes"]) & set(PROTOCOL["holdout_sizes"]) and
-                not set(PROTOCOL["training_seeds"]) & set(PROTOCOL["holdout_seeds"]), "PGO splits overlap")
+        require(not set(protocol["training_sizes"]) & set(protocol["holdout_sizes"]) and
+                not set(protocol["training_seeds"]) & set(protocol["holdout_seeds"]), "PGO splits overlap")
         report["git_commit"] = successful(command(["git", "-C", ROOT, "rev-parse", "HEAD"], "identity")).strip()
         report["git_status_at_start"] = successful(command(["git", "-C", ROOT, "status", "--porcelain"], "identity"))
         report["source_was_committed"] = not bool(report["git_status_at_start"])
@@ -294,9 +317,9 @@ def run(*, output_dir, clang="/usr/bin/clang-20", clangxx="/usr/bin/clang++-20",
         write_new(out / "plan.json", {k: report[k] for k in ("schema", "protocol", "protocol_sha256", "kernels", "backends", "scheduled_samples", "source_bindings", "tools", "profile_runtime", "git_commit", "git_status_at_start", "environment")})
         for name in ("kernels.hepta", "kernels.c", "kernels.cpp", "kernels.rs", "driver.c"):
             shutil.copyfile(FIXTURES / name, out / name)
-        (out / "workload.h").write_text(workload_header())
+        (out / "workload.h").write_text(workload_header(protocol))
         successful(command([clang, "-std=c11", "-O3", out / "driver.c", "-ldl", "-o", out / "driver"], "driver_build"))
-        libraries = {name: out / (name + ".so") for name in BACKENDS}
+        libraries = {name: out / (name + ".so") for name in backends}
         start = time.perf_counter_ns()
         core = (verify_program(Path(candidate_core).read_bytes()) if candidate_core else
                 lower_source((out / "kernels.hepta").read_text(), path=str(out / "kernels.hepta"), module="optimizer_bench"))
@@ -311,11 +334,39 @@ def run(*, output_dir, clang="/usr/bin/clang-20", clangxx="/usr/bin/clang++-20",
         (out / "program.ll").write_text(ir.text)
         start = time.perf_counter_ns()
         try:
-            receipt = compile_program_llvm(ir, program=core, output=libraries["hia"], clang=clang)
-            report["builds"]["hia"] = {"status": "compiled", "receipt": receipt}
+            receipt = compile_program_llvm(ir, program=core, output=libraries[original_backend], clang=clang)
+            report["builds"][original_backend] = {"status": "compiled", "receipt": receipt}
         except Exception as error:
-            report["builds"]["hia"] = {"status": "failed", "error": str(error)}
-        report["builds"]["hia"]["wall_ns"] = time.perf_counter_ns() - start
+            report["builds"][original_backend] = {"status": "failed", "error": str(error)}
+        report["builds"][original_backend]["wall_ns"] = time.perf_counter_ns() - start
+        if guarded_next:
+            start = time.perf_counter_ns()
+            try:
+                from hepta.hia_guarded_optimization import (propose_guarded_reduction, verify_guarded_optimization,
+                                                            guarded_program, build_guarded_native)
+                proposal_started = time.perf_counter_ns()
+                proposal = propose_guarded_reduction(core)
+                report["search_cost"] = {"search_performed": True, "search_calls": 1,
+                    "mode": "one registered deterministic proposal, no learned search or holdout-based selection",
+                    "wall_ns": time.perf_counter_ns() - proposal_started, "model_calls": 0}
+                write_new(out / "guarded-proposal.json", proposal)
+                verification_started = time.perf_counter_ns()
+                proof = verify_guarded_optimization(core, proposal)
+                report["guarded_verification_wall_ns"] = time.perf_counter_ns() - verification_started
+                write_new(out / "guarded-verification.json", proof)
+                require(proof["status"] == "verified", "guarded candidate has no independent proof")
+                guarded = verify_program(guarded_program(core, proposal))
+                (out / "guarded-program.hia").write_bytes(guarded.canonical_bytes)
+                (out / "guarded-program.ll").write_text(emit_program_llvm(guarded).text)
+                receipt = build_guarded_native(core, proposal, libraries["hia_verified"], clang=clang)
+                require(receipt["verification"]["status"] == "verified", "native guarded build lacks verified receipt")
+                require(identity(libraries["hia_verified"])["sha256"] == receipt["native"]["artifact_sha256"],
+                        "guarded native artifact differs from its independent receipt")
+                write_new(out / "guarded-native.json", receipt)
+                report["builds"]["hia_verified"] = {"status": "compiled", "receipt": receipt}
+            except Exception as error:
+                report["builds"]["hia_verified"] = {"status": "failed", "error": str(error)}
+            report["builds"]["hia_verified"]["wall_ns"] = time.perf_counter_ns() - start
         flags = ["-O3", "-flto=full", "-fuse-ld=" + linker, "-march=x86-64", "-mtune=generic", "-fPIC", "-shared"]
         for backend, compiler, source, standard in (("c_o3_lto", clang, "kernels.c", "c11"),
                                                      ("cpp_o3_lto", clangxx, "kernels.cpp", "c++17")):
@@ -346,7 +397,7 @@ def run(*, output_dir, clang="/usr/bin/clang-20", clangxx="/usr/bin/clang++-20",
                     item = {"backend": backend, "kernel": kernel, "split": "train", "command_index": len(report["commands"]) - 1}
                     report["training"].append(item)
                     measured = json.loads(successful(result)); item["measurement"] = measured
-                    require(measured["checksum"] == timed_checksum(kernel, "train"), "PGO training checksum")
+                    require(measured["checksum"] == timed_checksum(kernel, "train", protocol), "PGO training checksum")
                 profiles = sorted(directory.glob("*.profraw"))
                 require(len(profiles) == len(KERNELS) and all(p.stat().st_size > 0 for p in profiles), "actual training profiles absent")
                 merged = directory / "training.profdata"
@@ -359,8 +410,8 @@ def run(*, output_dir, clang="/usr/bin/clang-20", clangxx="/usr/bin/clang++-20",
             except Exception as error:
                 report["builds"][backend] = {"status": "failed", "error": str(error)}
             report["builds"][backend]["wall_ns"] = time.perf_counter_ns() - start
-        cases = correctness_cases()
-        for backend in BACKENDS:
+        cases = correctness_cases(protocol)
+        for backend in backends:
             start = time.perf_counter_ns()
             if report["builds"][backend]["status"] != "compiled":
                 report["correctness"][backend] = {"ok": False, "status": "not_built"}; continue
@@ -372,9 +423,10 @@ def run(*, output_dir, clang="/usr/bin/clang-20", clangxx="/usr/bin/clang++-20",
             except Exception as error:
                 report["correctness"][backend] = {"ok": False, "error": str(error)}
             report["correctness"][backend]["wall_ns"] = time.perf_counter_ns() - start
-        report["artifacts_before"] = {name: identity(path) for name, path in libraries.items() if path.exists()}
+        report["artifacts_before"] = {name: identity(path) for name, path in libraries.items()
+                                      if report["builds"][name]["status"] == "compiled" and path.exists()}
         report["driver_identity"] = identity(out / "driver")
-        for index, (group, kernel, backend) in enumerate(sample_order()):
+        for index, (group, kernel, backend) in enumerate(order):
             row = {"group": group, "kernel": kernel, "backend": backend, "sample_index": index, "status": "not_built"}
             report["raw_samples"].append(row)
             if backend in report["artifacts_before"]:
@@ -385,14 +437,14 @@ def run(*, output_dir, clang="/usr/bin/clang-20", clangxx="/usr/bin/clang++-20",
                 except Exception as error:
                     row.update(status="failed", error=str(error))
             write_new(out / ("sample-" + str(index).zfill(3) + ".json"), row)
-            print(json.dumps({"sample": index + 1, "total": len(sample_order()), "backend": backend, "kernel": kernel, "status": row["status"]}), flush=True)
-        report["evaluation"] = evaluate_samples(report["raw_samples"])
-        report["source_unchanged"] = source_bindings() == report["source_bindings"]
+            print(json.dumps({"sample": index + 1, "total": len(order), "backend": backend, "kernel": kernel, "status": row["status"]}), flush=True)
+        report["evaluation"] = evaluate_samples(report["raw_samples"], protocol, backends, measured_candidate)
+        report["source_unchanged"] = bindings() == report["source_bindings"]
         report["artifacts_unchanged"] = all(identity(libraries[name]) == item for name, item in report["artifacts_before"].items()) and identity(out / "driver") == report["driver_identity"]
         report["tools_unchanged"] = all(identity(path)["sha256"] == report["tools"][name]["sha256"] for name, path in tool_paths.items())
         if profile_runtime:
             report["tools_unchanged"] = report["tools_unchanged"] and identity(profile_runtime) == report["profile_runtime"]
-        correctness_ok = all(row["ok"] for row in report["correctness"].values()) and len(report["correctness"]) == len(BACKENDS)
+        correctness_ok = all(row["ok"] for row in report["correctness"].values()) and len(report["correctness"]) == len(backends)
         stable = report["source_unchanged"] and report["artifacts_unchanged"] and report["tools_unchanged"]
         report["quality_passed"] = correctness_ok and stable and report["evaluation"]["quality_passed"]
         report["ok"] = report["quality_passed"] and report["evaluation"]["noninferiority_passed"]
@@ -401,7 +453,8 @@ def run(*, output_dir, clang="/usr/bin/clang-20", clangxx="/usr/bin/clang++-20",
                            "explicit_core_verification_wall_ns": report["explicit_core_verification_wall_ns"],
                            "verification_in_native_build_included": True,
                            "finite_correctness_wall_ns": sum(c.get("wall_ns", 0) for c in report["correctness"].values()),
-                           "optimizer_search_wall_ns": 0,
+                           "optimizer_search_wall_ns": report["search_cost"]["wall_ns"],
+                           "guarded_proposal_verification_build_charged_to_candidate": guarded_next,
                            "pgo_training_and_compile_charged_to_pgo_builds": True}
     except Exception as error:
         report.update(status="blocked", diagnostic={"type": type(error).__name__, "message": str(error)})
@@ -424,6 +477,7 @@ def main(argv=None):
     parser.add_argument("--linker", default="/usr/bin/ld.lld-20")
     parser.add_argument("--profile-runtime", type=Path, help="optional explicit Clang compiler-rt profiling archive; bytes are hash-bound")
     parser.add_argument("--candidate-core", type=Path, help="optional independently verified candidate; finite oracle remains the frozen baseline")
+    parser.add_argument("--guarded-next", action="store_true", help="registered 2026-10-28 guarded-candidate vs original HIA and five strong baselines; unchanged acceptance thresholds")
     result = run(**vars(parser.parse_args(argv)))
     print(json.dumps({key: result.get(key) for key in ("status", "ok", "quality_passed", "diagnostic")}))
     return 0 if result["ok"] else 1

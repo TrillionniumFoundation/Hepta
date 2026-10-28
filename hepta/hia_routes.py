@@ -19,6 +19,7 @@ class RouteRejected(ValueError):
 
 _ADMITTED = frozenset({"standalone-hia", "hepta-source", "legacy-executable",
                        "legacy-scalar", "legacy-composite-v2"})
+_CPP_ROUTES = frozenset({"cpp-project", "cpp-matrix", "cpp-composed-project", "cpp-composed-matrix"})
 
 
 def route_inventory():
@@ -41,14 +42,20 @@ def route_inventory():
          "admission": "supported", "origin_required": False,
          "implicit_schema_guessing": False},
     ]
+    for route in sorted(_CPP_ROUTES):
+        inputs.append({"route": route, "input": "captured C++ compilation database" +
+                       (" matrix" if route.endswith("matrix") else ""),
+                       "adapter": "hepta.hia_routes.admit_captured_cpp", "admission": "supported",
+                       "origin_required": True, "all_declared_configurations_verified": True,
+                       "scope": "finite leaf owner or composed by-value owner profile"})
     sources = [
         {"language": "Hepta", "path": "hepta-source -> standalone-hia", "scope": "finite checked source profile"},
         {"language": "C", "path": "migrate-c / migrate-c-project -> Hepta -> hepta-source",
          "scope": "each complete captured profile must pass standalone admission; general C pointers are not admitted"},
         {"language": "C++", "path": "migrate-cpp[-class|-owned|-composed] -> Hepta -> hepta-source",
          "scope": "representable subset only; native legacy success does not imply standalone admission"},
-        {"language": "C++ compilation database", "path": "hia import-cpp-project / import-cpp-matrix -> standalone-hia",
-         "scope": "captured concrete bodies and finite configuration inventory"},
+        {"language": "C++ compilation database", "path": "hia import-cpp-[composed-]project / import-cpp-[composed-]matrix -> standalone-hia",
+         "scope": "captured concrete bodies, finite configuration inventory and checked by-value owner transfer across translation units"},
     ]
     for language in ("Rust", "TypeScript", "Python", "Go", "assembly"):
         sources.append({"language": language, "path": None, "scope": "no source frontend; reject as HIA input"})
@@ -77,6 +84,12 @@ def route_inventory():
          "same_standalone_core": False,
          "scope": "source/Resource IR profile; must explicitly lower to HIA to use standalone authority"},
     ]
+    optimizations = [
+        {"route": "scalar-equivalence", "entry": "hepta.hia_optimization.verify_optimization",
+         "scope": "equal control/resource skeleton and exact scalar first-trap equivalence"},
+        {"route": "guarded-reduction", "entry": "hepta.hia_guarded_optimization.verify_guarded_optimization",
+         "scope": "proved runtime guard, inductive entry/edge/check obligations and complete original fallback"},
+    ]
     result = {"schema": "hepta.hia.routes.v1", "inputs": inputs, "source_languages": sources,
               "historical_ir": historical, "backends": backends, "versions": schema_registry(),
               "optimization_profiles": [
@@ -96,7 +109,17 @@ def route_inventory():
                    "publication": "decision and selected Core; no native publication"},
                   {"command": "build-optimized", "verification_command": "verify-optimization",
                    "publication": "fresh checked native artifact bound to actual source and target"},
+                  {"command": "verify-guarded", "checker": "hepta.hia_guarded_optimization.verify_guarded_optimization",
+                   "scope": "inductively proved guarded reduction and complete original fallback",
+                   "success": "verified", "other_outcomes": ["rejected", "unknown", "timeout"],
+                   "resource_or_call_rewrites": False, "receipt_grants_admission": False},
+                  {"command": "optimize-guarded", "proposal": "bounded counted-byte reduction with explicit guard",
+                   "verification_command": "verify-guarded", "native_ndu": False,
+                   "publication": "checked proposal only; explicit output path"},
+                  {"command": "build-guarded", "verification_command": "verify-guarded",
+                   "publication": "fresh guarded native artifact with complete original fallback"},
               ],
+              "optimizations": optimizations,
               "authority": "hepta.hia_program.verify_program",
               "claims": {"implicit_fallback_allowed": False, "all_source_languages_implemented": False,
                          "source_to_core_refinement_proved": False, "backend_refinement_proved": False,
@@ -105,13 +128,56 @@ def route_inventory():
     return result
 
 
+def admit_captured_cpp(route, payload, *, clangxx="clang++", variant=None):
+    """Capture implementations, then verify every Core before selecting one.
+
+    The declaration ledger is provenance, never permission to execute. A bad
+    unselected matrix variant rejects the entire capture as well.
+    """
+    if route not in _CPP_ROUTES:
+        raise RouteRejected("E_HIA_ROUTE_UNSUPPORTED: no captured C++ adapter for " + str(route))
+    matrix = route.endswith("matrix")
+    if (matrix and type(variant) is not str) or (not matrix and variant is not None):
+        raise RouteRejected("E_HIA_ROUTE_VARIANT: exactly one declared matrix variant is required")
+    if route.startswith("cpp-composed-"):
+        from .cpp_composed_project import lower_composed_project, lower_composed_matrix
+        lower = lower_composed_matrix if matrix else lower_composed_project
+    else:
+        from .cpp_project_migrate import lower_cpp_project, lower_cpp_project_matrix
+        lower = lower_cpp_project_matrix if matrix else lower_cpp_project
+    migrated = lower(payload, clangxx=clangxx)
+    if matrix:
+        programs = {}
+        for row in migrated["variants"]:
+            name = row["name"]
+            if name in programs:
+                raise RouteRejected("E_HIA_ROUTE_VARIANT: duplicate captured variant")
+            programs[name] = verify_program(row.pop("program"))
+            row["program_sha256"] = programs[name].sha256
+        if variant not in programs:
+            raise RouteRejected("E_HIA_ROUTE_VARIANT: requested variant is not declared")
+        program = programs[variant]
+    else:
+        program = verify_program(migrated.pop("program"))
+        migrated.update(schema="hepta.hia." + route + "-import.v1",
+                        program_sha256=program.sha256)
+    migrated.update(route=route, native_executed=False, admission_authority="hepta.hia_program.verify_program")
+    return verify_program(program), migrated
+
+
 def admit_route(route, payload, *, source=None, path=None, project_sha256=None, module=None,
-                core_schema=None):
+                core_schema=None, clangxx=None, variant=None):
     """Perform the named import and reverify the resulting actual operations."""
+    if route in _CPP_ROUTES:
+        if any(value is not None for value in (source, path, project_sha256, module, core_schema)):
+            raise RouteRejected("E_HIA_ROUTE_CONTEXT: capture accepts no origin or Core schema override")
+        return admit_captured_cpp(route, payload, clangxx=clangxx or "clang++", variant=variant)[0]
     if route not in _ADMITTED:
         raise RouteRejected("E_HIA_ROUTE_UNSUPPORTED: no executable adapter for " + str(route))
     if core_schema is not None and route != "hepta-source":
         raise RouteRejected("E_HIA_ROUTE_CONTEXT: a source Core schema cannot override submitted or historical bytes")
+    if clangxx is not None or variant is not None:
+        raise RouteRejected("E_HIA_ROUTE_CONTEXT: capture options require a captured C++ route")
     if route == "standalone-hia":
         if any(value is not None for value in (source, path, project_sha256, module)):
             raise RouteRejected("E_HIA_ROUTE_CONTEXT: standalone bytes accept no source override")

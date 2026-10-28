@@ -89,7 +89,7 @@ INPUTS = (
     "hepta/hia_specialization.py", "hepta/hia_program.py", "hepta/hia_program_runtime.py",
     "hepta/hia_program_llvm.py", "hepta/hia_translation_validation.py", "hepta/hia_scalar_totality.py",
     "hepta/hia_multiversion.py", "hepta/hia_native_retirement.py", "hepta/hia_native_differential.py", "hepta/elf_shared_abi.py",
-    "hepta/clang_capture.py", "tools/build_hia_recursive_ndu_bridge.py",
+    "hepta/clang_capture.py", "hepta/native_mapping_identity.py", "tools/build_hia_recursive_ndu_bridge.py",
 )
 
 DRIVER = r'''#define _POSIX_C_SOURCE 200809L

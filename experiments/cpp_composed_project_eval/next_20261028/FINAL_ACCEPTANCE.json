@@ -1,0 +1,111 @@
+{
+  "authoritative_attempt": "final3",
+  "claims": {
+    "all_builds_in_declared_matrix_executed": true,
+    "cpp_class_or_mangled_abi_preserved": false,
+    "general_cpp_ownership_supported": false,
+    "original_cpp_objects_in_target": false,
+    "performance_qualified": false,
+    "scalar_c_abi_preserved": true,
+    "source_equivalence_formally_proved": false
+  },
+  "cli": {
+    "all_variants_core_verified": true,
+    "commands_exit_code": [
+      0,
+      0,
+      0
+    ],
+    "published_core_sha256": "9b7d0514f96007510672f06fc9414dd2cfe87a8eea1264f4e0f232b8a939d44c",
+    "selected_variant": "three_weight",
+    "variant_inventory": [
+      "three_weight",
+      "five_weight"
+    ],
+    "vm_resources": {
+      "allocation_attempts": 2,
+      "allocations": 2,
+      "frees": 2,
+      "live_bytes": 0,
+      "live_local_loans": 0,
+      "live_owners": 0,
+      "loans_ended": 29,
+      "loans_started": 29,
+      "owners_created": 2,
+      "owners_dropped": 2,
+      "peak_bytes": 8
+    },
+    "vm_result": 318
+  },
+  "cli_evidence_attempt": "cli2",
+  "cli_evidence_is_historical": true,
+  "compiler_sha256": "742467d9bdb4dc708c832544158590052905a3b8cfed16b74ce8486f31b60beb",
+  "native_reference_signature": "std::uint64_t(size_t,size_t,uint8_t,size_t,uint32_t,uint32_t) noexcept; identical typedefs to harness",
+  "negative_controls": {
+    "five_weight_missing_drop": {
+      "artifact_exists": false,
+      "diagnostic": "E_HIA_RESOURCE: return leaves live owner/local loan",
+      "rejected": true
+    },
+    "three_weight_missing_drop": {
+      "artifact_exists": false,
+      "diagnostic": "E_HIA_RESOURCE: return leaves live owner/local loan",
+      "rejected": true
+    }
+  },
+  "ok": true,
+  "requalification_reason": "Same native correctness matrix rebound after production loader mapping fix changed the compiler source identity; no performance measurement.",
+  "schema": "hepta.cpp-composed-project-final-acceptance.v1",
+  "source_bindings": {
+    "examples/cpp/composed_project_migration/compile_commands.json": "d4a475faf6588a00afc8b7a75aa252c135de131c0732bbae456f4c2360400627",
+    "examples/cpp/composed_project_migration/consume.cpp": "4cd4dbbd35af33d1c03cc494b4c1518a05a0c1f09b78385212a917d6e64fe1f2",
+    "examples/cpp/composed_project_migration/entry.cpp": "7b2a3d5c291c80485df209d504d3d4123c90d7156ff783c64a8a1a0157103b15",
+    "examples/cpp/composed_project_migration/matrix.json": "04d1b83e67018124a7a8f1edae59653cec239aba15ac128224a5e0eb18acded1",
+    "examples/cpp/composed_project_migration/owners.h": "1fc731c8f7684e01ea7366c4c6ac2b7f009913935419d8e140c3f47c7e675485",
+    "hepta/cpp_composed_project.py": "b0d22ec5baeabb1576d0452e7b95fecbbc2a4695180bc2581428ad4af63c3295",
+    "tools/qualify_cpp_composed_project.py": "406f78f6bdf92aa148232850cefc767c9b7e221313ca55e6687edf6915a189e7"
+  },
+  "source_bindings_unchanged": true,
+  "superseded_evidence_retained": [
+    "initial_smoke",
+    "final",
+    "cli",
+    "final2"
+  ],
+  "variants": [
+    {
+      "active_declarations_including_per_tu_header_occurrences": 139,
+      "cases": 437,
+      "cross_unit_owner_transfers": 1,
+      "name": "three_weight",
+      "native_observation": {
+        "allocations": 401,
+        "cases": 437,
+        "frees": 401,
+        "live": 0,
+        "observations_fnv64": "79fca1db8d2f0865",
+        "ok": true,
+        "refusals": 196
+      },
+      "original_cpp_link_inputs_in_target": [],
+      "total_inventory_including_compiler_implicit": 219
+    },
+    {
+      "active_declarations_including_per_tu_header_occurrences": 139,
+      "cases": 437,
+      "cross_unit_owner_transfers": 1,
+      "name": "five_weight",
+      "native_observation": {
+        "allocations": 401,
+        "cases": 437,
+        "frees": 401,
+        "live": 0,
+        "observations_fnv64": "dd7575852bb30d54",
+        "ok": true,
+        "refusals": 196
+      },
+      "original_cpp_link_inputs_in_target": [],
+      "total_inventory_including_compiler_implicit": 219
+    }
+  ]
+}

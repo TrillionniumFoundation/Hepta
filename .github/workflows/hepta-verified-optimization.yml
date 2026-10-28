@@ -8,13 +8,19 @@ on:
     paths:
       - 'hepta/**'
       - 'tests/test_hia_*'
+      - 'tests/test_core_unification.py'
+      - 'tests/test_cpp_composed_migrate.py'
       - 'tests/test_cpp_scoped_ownership_migration.py'
+      - 'tests/test_cpp_composed_project.py'
       - 'tools/qualify_hia_*'
       - 'tools/build_hia_ndu_bridge.py'
       - 'tools/build_hia_recursive_ndu_bridge.py'
       - 'tools/qualify_cpp_scoped_ownership.py'
+      - 'tools/qualify_cpp_composed_project.py'
       - 'examples/cpp/scoped_ownership_migration/**'
+      - 'examples/cpp/composed_project_migration/**'
       - 'experiments/hia_optimizer_eval/**'
+      - 'experiments/hia_verified_integration/**'
       - 'pyproject.toml'
       - '.github/workflows/hepta-verified-optimization.yml'
   workflow_dispatch:
@@ -29,6 +35,7 @@ jobs:
     env:
       HEPTA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       RECURSIVE_NDU_SOURCE_SHA: 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
+      FINITE_NDU_SOURCE_SHA: 4b6391e116949af0c7e59776baead67271856bdb
       CLANG: /usr/bin/clang-20
       CLANGXX: /usr/bin/clang++-20
       PYTHONDONTWRITEBYTECODE: '1'
@@ -60,9 +67,12 @@ jobs:
       - name: Install the pinned Rust toolchain
         run: |
           rustup toolchain install 1.90.0 --profile minimal
+          rustup toolchain install 1.95.0 --profile minimal
           echo "RUSTC=$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
           echo "CARGO=$(rustup which --toolchain 1.90.0 cargo)" >> "$GITHUB_ENV"
           dirname "$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_PATH"
+          echo "FINITE_NDU_RUSTC=$(rustup which --toolchain 1.95.0 rustc)" >> "$GITHUB_ENV"
+          echo "FINITE_NDU_CARGO=$(rustup which --toolchain 1.95.0 cargo)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           repository: TrillionniumFoundation/hepta-private-ci
@@ -80,10 +90,33 @@ jobs:
         run: |
           CARGO_INCREMENTAL=0 CARGO_PROFILE_RELEASE_DEBUG=0 python tools/build_hia_recursive_ndu_bridge.py \
             --ndu-source recursive-ndu-source --expected-source "$RECURSIVE_NDU_SOURCE_SHA" \
-            --cargo "$CARGO" --rustc "$RUSTC" --output "$RUNNER_TEMP/hia-recursive-ndu"
+            --cargo "$CARGO" --rustc "$RUSTC" --output "$RUNNER_TEMP/hia-recursive-ndu" \
+            --target-dir "$RUNNER_TEMP/hia-recursive-ndu-target"
           printf 'HEPTA_RECURSIVE_NDU_BRIDGE=%s\nHEPTA_RECURSIVE_NDU_IDENTITY=%s\n' \
-            "$RUNNER_TEMP/hia-recursive-ndu/target/release/hepta-hia-ndu-bridge" \
+            "$RUNNER_TEMP/hia-recursive-ndu/native/hepta-hia-ndu-bridge" \
             "$RUNNER_TEMP/hia-recursive-ndu/identity.json" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+        with:
+          repository: TrillionniumFoundation/hepta-private-ci
+          ref: ${{ env.FINITE_NDU_SOURCE_SHA }}
+          path: finite-ndu-source
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /codex-rs/Cargo.toml
+            /codex-rs/hepta-ndu/
+            /codex-rs/hepta-types/
+            /codex-rs/hepta-contracts/
+            /tools/hia-ndu-bridge/
+      - name: Build the separately pinned finite graph evaluator
+        run: |
+          CARGO_INCREMENTAL=0 CARGO_PROFILE_RELEASE_DEBUG=0 python tools/build_hia_recursive_ndu_bridge.py \
+            --ndu-source finite-ndu-source --expected-source "$FINITE_NDU_SOURCE_SHA" \
+            --cargo "$FINITE_NDU_CARGO" --rustc "$FINITE_NDU_RUSTC" \
+            --output "$RUNNER_TEMP/hia-finite-ndu" --target-dir "$RUNNER_TEMP/hia-finite-ndu-target"
+          printf 'HEPTA_FINITE_NDU_BRIDGE=%s\nHEPTA_FINITE_NDU_IDENTITY=%s\n' \
+            "$RUNNER_TEMP/hia-finite-ndu/native/hepta-hia-ndu-bridge" \
+            "$RUNNER_TEMP/hia-finite-ndu/identity.json" >> "$GITHUB_ENV"
       - name: Build the separate ranking NDU protocol for combined contract tests
         run: |
           hepta_ranking_checkout="$RUNNER_TEMP/hepta-ranking-ndu-source"
@@ -96,19 +129,23 @@ jobs:
           git -C "$hepta_ranking_checkout" -c protocol.version=2 fetch --filter=blob:none --depth=1 origin "$hepta_ranking_commit"
           test "$(git -C "$hepta_ranking_checkout" rev-parse FETCH_HEAD)" = "$hepta_ranking_commit"
           CARGO_TARGET_DIR="$RUNNER_TEMP/hepta-ranking-ndu-target" python tools/build_hia_ndu_bridge.py \
-            --upstream "$hepta_ranking_checkout" --output "$hepta_ranking_build" --cargo "$CARGO"
+            --upstream "$hepta_ranking_checkout" --output "$hepta_ranking_build" --cargo "$CARGO" \
+            > "$RUNNER_TEMP/hepta-ranking-ndu-build.stdout.log" 2> "$RUNNER_TEMP/hepta-ranking-ndu-build.stderr.log"
           printf 'HEPTA_NDU_BRIDGE=%s\nHEPTA_NDU_BUILD=%s\nHEPTA_NDU_UPSTREAM=%s\n' \
             "$RUNNER_TEMP/hepta-ranking-ndu-target/debug/hia-ndu-bridge" "$hepta_ranking_build" \
             "$hepta_ranking_checkout" >> "$GITHUB_ENV"
       - name: Run actual native integration and regression gates without skipped tests
         run: |
           python tools/qualify_hia_verified_increment.py --output artifacts/verified-optimization/regression
+          python experiments/hia_verified_integration/next_20261028/qualify_guarded_cli.py artifacts/verified-optimization/guarded-cli
       - name: Retain real finite NDU loop and migration/runtime evidence
         run: |
           python tools/qualify_hia_ndu_loop.py --identity "$HEPTA_RECURSIVE_NDU_IDENTITY" \
             --bridge "$HEPTA_RECURSIVE_NDU_BRIDGE" --clang "$CLANG" --output artifacts/verified-optimization/ndu-loop
           python tools/qualify_cpp_scoped_ownership.py --workdir artifacts/verified-optimization/cpp-scoped --clangxx "$CLANGXX" --clang "$CLANG" --rustc "$RUSTC" --cc gcc
           python tools/qualify_hia_adaptive.py --workdir artifacts/verified-optimization/adaptive --clang "$CLANG"
+          python tools/qualify_cpp_composed_project.py --workdir artifacts/verified-optimization/cpp-composed-project --clangxx "$CLANGXX" --clang "$CLANG" --cc gcc
+          python tools/qualify_hia_stateful.py --workdir artifacts/verified-optimization/owned-state --clang "$CLANG"
       - name: Retain all completed and failed evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -116,6 +153,10 @@ jobs:
           name: hia-verified-optimization-${{ env.HEPTA_SOURCE_SHA }}
           path: |
             artifacts/verified-optimization
-            ${{ runner.temp }}/hia-recursive-ndu/identity.json
+            ${{ runner.temp }}/hia-recursive-ndu/
+            ${{ runner.temp }}/hia-finite-ndu/
             ${{ runner.temp }}/hepta-ranking-ndu-build/build-receipt.json
+            ${{ runner.temp }}/hepta-ranking-ndu-target/debug/hia-ndu-bridge
+            ${{ runner.temp }}/hepta-ranking-ndu-build.stdout.log
+            ${{ runner.temp }}/hepta-ranking-ndu-build.stderr.log
           if-no-files-found: error

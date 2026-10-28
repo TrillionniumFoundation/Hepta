@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import ctypes
 from collections import Counter, deque
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from hashlib import sha256
 import json
 import os
@@ -18,6 +18,7 @@ import threading
 import time
 
 from .hia_native_differential import _pin_native_artifact
+from .native_mapping_identity import NativeMappingRejected, verify_loaded_symbols
 from .hia_optimization import (DEFAULT_POLICY, build_optimized_native,
                                checker_identity, verify_optimization)
 from .hia_program import verify_program
@@ -29,6 +30,7 @@ _TOTAL = frozenset({"const", "select", "bit.not", "bit.and", "bit.or", "bit.xor"
                     *["compare." + op for op in ("eq", "ne", "lt", "le", "gt", "ge")],
                     "int.add.wrap", "int.sub.wrap", "int.mul.wrap"})
 _MAX_BATCH = 65536
+_MAX_IMAGES = 16
 
 
 class AdaptiveRejected(ValueError):
@@ -42,6 +44,7 @@ def _digest(value):
 def _identity():
     return _digest({"runtime": sha256(Path(__file__).read_bytes()).hexdigest(),
                     "pinning": sha256(Path(__file__).with_name("hia_native_differential.py").read_bytes()).hexdigest(),
+                    "mapping": sha256(Path(__file__).with_name("native_mapping_identity.py").read_bytes()).hexdigest(),
                     "optimization": checker_identity(), "native": _implementation_hash()})
 
 
@@ -70,6 +73,66 @@ def _profile(document):
     return checked, state
 
 
+@dataclass(eq=False)
+class _NativeRelease:
+    """One attempt for each owned loader reference and descriptor.
+
+    An exception cannot tell us whether the kernel/loader already released a
+    capability. Keep that outcome pending; never retry its numeric identity.
+    Callers revoke their active function references before invoking this record.
+    This class does not own or remove publication paths.
+    """
+    library: object
+    fd: int | None
+    functions: dict = field(default_factory=dict)
+    attempted: bool = False
+    native: dict = field(default_factory=dict)
+
+    @property
+    def complete(self):
+        return (self.attempted and all(self.native.get(name, {}).get("status")
+                in {"closed", "not_acquired"} for name in ("library", "fd")))
+
+    def attempt(self):
+        if self.attempted:
+            return self.snapshot()
+        self.attempted = True
+        self.native = {"library": {"status": "not_acquired" if self.library is None else "unknown"},
+                       "fd": {"status": "not_acquired" if self.fd is None else "unknown"}}
+        self.functions.clear()
+        if self.library is not None:
+            try:
+                import _ctypes
+                for name, value in list(vars(self.library).items()):
+                    if isinstance(value, ctypes._CFuncPtr):
+                        delattr(self.library, name)
+                _ctypes.dlclose(self.library._handle)
+                self.native["library"] = {"status": "closed"}
+                self.library = None
+            except BaseException as error:
+                self.native["library"] = self._unknown(error)
+        # Loader failure cannot skip the independently owned descriptor.
+        if self.fd is not None:
+            try:
+                os.close(self.fd)
+                self.native["fd"] = {"status": "closed"}
+                self.fd = None
+            except BaseException as error:
+                self.native["fd"] = self._unknown(error)
+        return self.snapshot()
+
+    @staticmethod
+    def _unknown(error):
+        return {"status": "unknown", "error": {"type": type(error).__name__,
+                "message": str(error), "errno": getattr(error, "errno", None)}}
+
+    def snapshot(self):
+        return {"native_attempted": self.attempted,
+                "native": json.loads(json.dumps(self.native)),
+                "native_release_succeeded": self.complete,
+                "native_retry_permitted": False}
+
+
 @dataclass
 class _Image:
     program: object
@@ -81,11 +144,14 @@ class _Image:
     function: object
     preparation_ns: int
     receipt: dict
+    loaded_mapping: dict
+    release: _NativeRelease
 
 
-def _load_image(program, state, path, receipt, started):
+def _load_image(program, state, path, receipt, started, *, on_release=None):
     original, _, fd = _pin_native_artifact(path)
     library = None
+    release = _NativeRelease(None, fd)
     try:
         native = receipt["native"]
         if (sha256(original).hexdigest() != native["artifact_sha256"]
@@ -93,16 +159,23 @@ def _load_image(program, state, path, receipt, started):
                 or native["target"] != state["target"] or native["kind"] != "shared"):
             raise AdaptiveRejected("E_ADAPT_ARTIFACT: actual executable bytes do not match the internal build")
         library = ctypes.CDLL("/proc/self/fd/" + str(fd), mode=os.RTLD_LOCAL | os.RTLD_NOW)
+        release.library = library
         function = getattr(library, state["entry"])
+        release.functions[state["entry"]] = function
+        try:
+            loaded_mapping = verify_loaded_symbols(fd, {state["entry"]: function})
+        except NativeMappingRejected as error:
+            raise AdaptiveRejected("E_ADAPT_MAPPING: resolved native code does not match its sealed artifact") from error
         function.argtypes = [ctypes.c_uint64] * len(state["params"])
         function.restype = ctypes.c_uint64
         return _Image(program, state, path, native["artifact_sha256"], fd, library,
-                      function, time.monotonic_ns() - started, receipt)
-    except Exception:
-        if library is not None:
-            import _ctypes
-            _ctypes.dlclose(library._handle)
-        os.close(fd)
+                      function, time.monotonic_ns() - started, receipt, loaded_mapping, release)
+    except BaseException as error:
+        if on_release is None:
+            release.attempt()
+        else:
+            on_release(release)
+        error.native_cleanup = release.snapshot()
         raise
 
 
@@ -113,6 +186,9 @@ class AdaptiveRuntime:
     not implemented: the fully charged finite shadow experiment cannot repay
     itself. Automatic requests conservatively retain the current version.
     """
+    def _admit_profile(self, document):
+        return _profile(document)
+
     def __init__(self, base, directory, *, clang="clang", policy=None):
         started = time.monotonic_ns()
         self._identity = _identity()
@@ -122,7 +198,7 @@ class AdaptiveRuntime:
         if self._root.exists() or self._root.is_symlink():
             raise AdaptiveRejected("E_ADAPT_PATH: a new private build directory is required")
         self._root.mkdir(mode=0o700, parents=True)
-        checked, state = _profile(base)
+        checked, state = self._admit_profile(base)
         if self._policy.get("target") != state["target"]:
             raise AdaptiveRejected("E_ADAPT_TARGET: runtime only executes the qualified host ABI")
         path = self._root / "baseline.so"
@@ -135,8 +211,12 @@ class AdaptiveRuntime:
         self._measurements = {}
         self._events = deque(maxlen=4096)
         self._event_counts = Counter()
+        self._pending_native_releases = {}
+        self._native_release_history = deque(maxlen=64)
+        self._preparing_tokens = set()
         self._current = "baseline"
-        self._images[self._current] = _load_image(checked, state, path, receipt, started)
+        self._images[self._current] = _load_image(checked, state, path, receipt, started,
+            on_release=lambda release: self._record_release("baseline", release))
         if _identity() != self._identity:
             self.close()
             raise AdaptiveRejected("E_ADAPT_STALE: implementation changed during baseline admission")
@@ -171,25 +251,62 @@ class AdaptiveRuntime:
                     "state_sha256": _digest(image.state) if image else None,
                     "event_count": self._event_count, "event_counts": dict(self._event_counts),
                     "raw_events_dropped": self._event_count - len(self._events),
-                    "events": json.loads(json.dumps(list(self._events)))}
+                    "events": json.loads(json.dumps(list(self._events))),
+                    "cleanup": self._cleanup_snapshot()}
+
+    def _cleanup_snapshot(self):
+        return {"owned_native_release_complete": self._closed and not self._images
+                    and not self._preparing and not self._pending_native_releases,
+                "pending_resource_count": len(self._pending_native_releases),
+                "pending": [{"token": token, **release.snapshot()}
+                            for release, token in self._pending_native_releases.items()],
+                "recent_attempts": json.loads(json.dumps(list(self._native_release_history))),
+                "native_release_failures_are_retried": False,
+                "publication_paths_removed": False}
+
+    def _record_release(self, token, release):
+        with self._lock:
+            first = not release.attempted
+            # Capability identity, not a producer/random label, owns the
+            # pending slot. Reusing a label cannot overwrite another debt.
+            self._pending_native_releases.setdefault(release, token)
+            result = release.attempt()
+            if release.complete:
+                del self._pending_native_releases[release]
+            if first:
+                self._native_release_history.append({"token": token, **result})
+            return result
+
+    def _retire_image(self, token, image):
+        # Remove every active reference before a possibly successful unload.
+        image.function = image.library = image.fd = None
+        return self._record_release(token, image.release)
 
     def prepare(self, candidate):
         started = time.monotonic_ns()
         with self._lock:
             self._open()
-            if len(self._images) + self._preparing >= 16:
+            if len(self._images) + self._preparing + len(self._pending_native_releases) >= _MAX_IMAGES:
                 raise AdaptiveRejected("E_ADAPT_BUDGET: sixteen loaded versions maximum")
             base = self._images[self._current]
             self._preparing += 1
-        token = secrets.token_hex(16)
-        path = self._root / (token + ".so")
+        token, reserved = None, False
         image = None
         try:
-            checked, state = _profile(candidate)
+            token = secrets.token_hex(16)
+            with self._lock:
+                if (token in self._images or token in self._preparing_tokens
+                        or token in self._pending_native_releases.values()):
+                    raise AdaptiveRejected("E_ADAPT_TOKEN: native capability label is already owned")
+                self._preparing_tokens.add(token)
+                reserved = True
+            path = self._root / (token + ".so")
+            checked, state = self._admit_profile(candidate)
             if state != base.state:
                 raise AdaptiveRejected("E_ADAPT_STATE: complete state schema or ABI differs")
             receipt = build_optimized_native(base.program, checked, path, policy=self._policy, clang=self._clang)
-            image = _load_image(checked, state, path, receipt, started)
+            image = _load_image(checked, state, path, receipt, started,
+                on_release=lambda release: self._record_release(token, release))
             if _identity() != self._identity:
                 raise AdaptiveRejected("E_ADAPT_STALE: implementation changed during candidate admission")
             with self._lock:
@@ -198,15 +315,17 @@ class AdaptiveRuntime:
                 self._event("prepared", token=token, artifact_sha256=image.artifact_sha256,
                             preparation_ns=image.preparation_ns)
             return token
-        except Exception as error:
+        except BaseException as error:
             if image is not None:
-                self._dispose(image)
+                self._retire_image(token, image)
             with self._lock:
                 self._event("prepare_rejected", reason=str(error), elapsed_ns=time.monotonic_ns() - started)
             raise
         finally:
             with self._lock:
                 self._preparing -= 1
+                if reserved:
+                    self._preparing_tokens.remove(token)
 
     @staticmethod
     def _arguments(vectors, arity):
@@ -364,9 +483,8 @@ class AdaptiveRuntime:
     def _dispose(image):
         # No function pointer escapes the dispatcher. Caller holds the lock at
         # active==0, so native code cannot still be executing during dlclose.
-        import _ctypes
-        _ctypes.dlclose(image.library._handle)
-        os.close(image.fd)
+        image.function = image.library = image.fd = None
+        return image.release.attempt()
 
     def close(self):
         with self._lock:
@@ -374,8 +492,10 @@ class AdaptiveRuntime:
                 return
             if self._active or self._preparing:
                 raise AdaptiveRejected("E_ADAPT_BUSY: active native calls/builds prevent close")
-            for image in self._images.values():
-                self._dispose(image)
+            images = tuple(self._images.items())
             self._images.clear()
+            self._measurements.clear()
             self._closed = True
+            for token, image in images:
+                self._retire_image(token, image)
             self._event("closed")

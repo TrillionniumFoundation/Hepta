@@ -1,0 +1,23 @@
+{
+  "heap_box_default": {
+    "status": "ACCEPTED",
+    "files": {
+      "api.rs": "pub fn wire_length(length:u32)->u64 { let z: Option<Box<u64>> = None; let boxed = z.unwrap_or_default(); (length as u64) + *boxed }\n",
+      "client.rs": "use crate::api;\npub fn entrypoint(tag:u32,length:u32,reserved:u32)->u64 { let _ = reserved; (((tag & 255) as u64) << 32) | api::wire_length(length) }\n"
+    }
+  },
+  "indirect_provider_second_call": {
+    "status": "ValueError: E_UPGRADE_PROVIDER_CALL_COUNT",
+    "files": {
+      "api.rs": "pub fn wire_length(length:u32)->u64 { length as u64 }\n",
+      "client.rs": "use crate::api;\npub fn entrypoint(tag:u32,length:u32,reserved:u32)->u64 { let _ = reserved; let f = api::wire_length; let _ = api::wire_length(length); (((tag & 255) as u64) << 32) | (f)(length) }\n"
+    }
+  },
+  "hidden_self_recursion": {
+    "status": "ValueError: E_UPGRADE_RUST_CALLABLE_VALUE",
+    "files": {
+      "api.rs": "pub fn wire_length(length:u32)->u64 { (wire_length)(length) }\n",
+      "client.rs": "use crate::api;\npub fn entrypoint(tag:u32,length:u32,reserved:u32)->u64 { let _ = reserved; (((tag & 255) as u64) << 32) | api::wire_length(length) }\n"
+    }
+  }
+}

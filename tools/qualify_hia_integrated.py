@@ -3,7 +3,7 @@
 
 The full Python discovery is mandatory and executes exactly once. Its critical
 module coverage is a subset of that same run, never another test denominator.
-Real tool, Linux seal, two distinct native NDU protocols, and Rust crate gates
+Real tool, Linux seal, separately pinned native NDU profiles, and Rust crate gates
 are retained separately. Standalone historical performance/agent campaigns are
 neither replayed nor promoted to measurements of this merged source revision.
 Full regression still executes its existing native timing/budget controls.
@@ -37,23 +37,32 @@ from tools.release_check import _read_regular_evidence
 
 SCHEMA = "hepta.hia.integrated-contract-qualification.v1"
 RECURSIVE_SOURCE = "2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b"
+FINITE_SOURCE = "4b6391e116949af0c7e59776baead67271856bdb"
+EXPECTED_GATE_NAMES = ("actual_tools_and_linux_seals", "ranking_bridge_identity",
+                       "recursive_bridge_identity", "finite_bridge_identity",
+                       "rust_resource_crate", "full_regression", "merge_and_profile_coverage")
 CRITICAL_MODULES = {
     "wire_rejection": ("test_hia_inmemory_json_key_collisions", "test_hia_inmemory_surrogate_wire",
                        "test_hia_program_tools"),
-    "cpp_lexical_ownership": ("test_cpp_scoped_ownership_migration", "test_cpp_composed_migrate"),
+    "cpp_lexical_ownership": ("test_cpp_scoped_ownership_migration", "test_cpp_composed_migrate",
+                              "test_cpp_composed_project"),
     "llvm_allocation_and_native_observables": ("test_hia_program_llvm", "test_hia_empty_owner_native",
                                                "test_hia_native_side_effects", "test_hia_native_pinning"),
     "acyclic_scalar_smt": ("test_hia_translation_validation", "test_hia_encoding_guard",
                            "test_hia_scalar_totality"),
     "compositional_barrier_smt": ("test_hia_optimization",),
+    "guarded_inductive_optimization": ("test_hia_guarded_optimization",),
     "proof_profile_integration": ("test_hia_profile_integration",),
     "ranking_ndu": ("test_hia_ndu_bridge", "test_hia_ndu_optimizer", "test_hia_specialization"),
     "recursive_ndu": ("test_hia_ndu", "test_hia_ndu_loop", "test_hia_economic_search",
                       "test_hia_economic_experiment", "test_hia_economic_budget"),
-    "ndu_protocol_isolation": ("test_hia_ndu_bridge_isolation",),
+    "ndu_protocol_isolation": ("test_hia_ndu_bridge_isolation", "test_hia_recursive_ndu_builder"),
+    "finite_native_continuation_graph": ("test_hia_ndu_graph", "test_hia_next_evaluation"),
     "native_runtime_lifecycles": ("test_hia_multiversion", "test_hia_background_optimizer",
                                   "test_hia_adaptive", "test_hia_scalar_state",
-                                  "test_hia_multiversion_totality", "test_hia_native_retirement"),
+                                  "test_hia_multiversion_totality", "test_hia_native_retirement",
+                                  "test_hia_stateful", "test_hia_native_mapping_identity",
+                                  "test_hia_adaptive_retirement", "test_hia_multiversion_mapping"),
     "cli_and_route_contracts": ("test_hia_optimization_cli", "test_hia_routes"),
     "finite_actions_and_instruction_grammar": ("test_hia_finite_actions", "test_hia_x86_search"),
     "rust_resource_execution": ("test_hia_rust_owned_vm", "test_hia_rust_owned_cfg",
@@ -125,6 +134,8 @@ def _environment(options, output):
         "HEPTA_NDU_UPSTREAM": str(options.ranking_upstream.resolve()),
         "HEPTA_RECURSIVE_NDU_BRIDGE": str(options.recursive_bridge.resolve()),
         "HEPTA_RECURSIVE_NDU_IDENTITY": str(options.recursive_identity.resolve()),
+        "HEPTA_FINITE_NDU_BRIDGE": str(options.finite_bridge.resolve()),
+        "HEPTA_FINITE_NDU_IDENTITY": str(options.finite_identity.resolve()),
         "CARGO_NET_OFFLINE": "true", "PYTHONDONTWRITEBYTECODE": "1",
         "CARGO_TARGET_DIR": str(output / "rust-target"),
         "PATH": os.pathsep.join([str(Path(clang).parent), str(Path(cargo).parent),
@@ -260,29 +271,41 @@ def _ranking_gate(options, output):
             "scope": "one synthetic advisory protocol probe, not a program proof or performance trial"}
 
 
-def _recursive_gate(options, output):
-    from hepta.hia_ndu import NduBridge, Q32, REQUEST_SCHEMA, candidate, event
+def _native_ndu_gate(options, output, *, profile):
+    from hepta.hia_ndu import NduBridge, Q32, REQUEST_SCHEMA, candidate, event, finite_plan_request
 
-    bridge = NduBridge(options.recursive_bridge, options.recursive_identity)
+    _require(profile in {"recursive", "finite"}, "unknown native NDU profile")
+    binary = getattr(options, profile + "_bridge")
+    receipt_path = getattr(options, profile + "_identity")
+    upstream = getattr(options, profile + "_upstream")
+    expected_source = RECURSIVE_SOURCE if profile == "recursive" else FINITE_SOURCE
+    cargo = options.cargo if profile == "recursive" else options.finite_cargo
+    rustc = options.rustc if profile == "recursive" else options.finite_rustc
+    bridge = (NduBridge.for_finite_profile(binary, receipt_path)
+              if profile == "finite" else NduBridge(binary, receipt_path))
     manifest = bridge.manifest
-    raw, _ = _read_regular_evidence(options.recursive_identity)
+    declared_binary = manifest.get("binary")
+    _require(type(declared_binary) is str and Path(declared_binary).is_absolute()
+             and Path(declared_binary).resolve(strict=True) == binary.resolve(strict=True),
+             "native consumer and external inventory select different executable paths")
+    raw, _ = _read_regular_evidence(receipt_path)
     _require(json.loads(raw) == manifest, "recursive identity changed during read")
     receipt_digest = sha256(raw).hexdigest()
-    _require(manifest["identity"]["source_commit"] == RECURSIVE_SOURCE, "wrong recursive upstream source pin")
+    _require(manifest["identity"]["source_commit"] == expected_source, "wrong " + profile + " upstream source pin")
     _require(manifest.get("authority") == "DENY_ALL" and manifest.get("safety_certificate") is False,
              "recursive manifest claimed authority")
     expected_tools = {"builder_sha256": _digest_file(ROOT / "tools/build_hia_recursive_ndu_bridge.py"),
-                      "cargo_sha256": _digest_file(Path(_resolve_tool(options.cargo))),
-                      "rustc_sha256": _digest_file(Path(_resolve_tool(options.rustc)))}
+                      "cargo_sha256": _digest_file(Path(_resolve_tool(cargo))),
+                      "rustc_sha256": _digest_file(Path(_resolve_tool(rustc)))}
     _require(manifest["build_tools"] == expected_tools, "recursive builder/compiler bytes differ")
-    _checked_map(options.recursive_upstream, manifest["native_sources"])
-    _checked_map(options.recursive_upstream, manifest["bridge_sources"])
-    _git_inventory(options.recursive_upstream, RECURSIVE_SOURCE,
+    _checked_map(upstream, manifest["native_sources"])
+    _checked_map(upstream, manifest["bridge_sources"])
+    _git_inventory(upstream, expected_source,
                    {**manifest["native_sources"], **manifest["bridge_sources"]})
     for field, digest_field in (("native_sources", "source_digest"), ("bridge_sources", "bridge_digest")):
         digest = sha256(json.dumps(manifest[field], sort_keys=True, separators=(",", ":")).encode()).hexdigest()
         _require(digest == manifest["identity"][digest_field], "recursive embedded inventory digest differs")
-    _write(output / "recursive-build-identity.json", manifest)
+    _write(output / (profile + "-build-identity.json"), manifest)
     def plan(name, utility):
         digest = sha256(name.encode()).hexdigest()
         step = event(identity="integrated-probe:" + name, instant_q32=utility, preference_digest=digest)
@@ -292,18 +315,50 @@ def _recursive_gate(options, output):
                "generation": 1, "utility_unit": "normalized-net-benefit", "resource_unit": "modeled-work",
                "risk_unit": "probability", "resource_budget_q32": 10 * Q32, "risk_ceiling_q32": Q32 // 4,
                "candidates": [plan("abstain", 0), plan("control", Q32)]}
+    bundle = None
+    if profile == "finite":
+        ms = 1_000_000
+        bundle = finite_plan_request(objective_digest="11" * 32, snapshot_digest="22" * 32,
+            generation=1, initial_state="base",
+            states={"base": {"source_sha256": "33" * 32, "verification_sha256": "44" * 32,
+                              "status": "verified"},
+                    "fast": {"source_sha256": "55" * 32, "verification_sha256": "66" * 32,
+                              "status": "verified"}},
+            transitions=[{"id": "install-fast", "source": "base", "target": "fast",
+                          "setup_ns": 20 * ms, "status": "verified",
+                          "verification_sha256": "66" * 32, "support_sha256": "77" * 32}],
+            batch_costs_ns={"base": [10 * ms, 200 * ms], "fast": [50 * ms, ms]},
+            remaining_budget_ns=60 * ms, completion_value_ns=1000 * ms,
+            decision_cost_ns=ms, observations=[])
+        request = bundle["request"]
     response = bridge.evaluate(request)
-    _require(response["advisory_candidate_id"] == "control", "actual native recursive probe differs")
-    _require(_digest_file(options.recursive_bridge) == manifest["binary_sha256"],
+    if bundle is None:
+        _require(response["advisory_candidate_id"] == "control", "actual native recursive probe differs")
+    else:
+        selected = bundle["plans"].get(response["advisory_candidate_id"])
+        _require(selected is not None and [action["id"] for action in selected["actions"]]
+                 == ["hold", "install-fast"], "actual finite native continuation differs")
+    _require(_digest_file(binary) == manifest["binary_sha256"],
              "recursive binary changed during actual invocation")
-    _require(_digest_file(options.recursive_identity) == receipt_digest,
+    _require(_digest_file(receipt_path) == receipt_digest,
              "recursive identity changed during actual invocation")
-    return {"passed": True, "identity": manifest["identity"], "binary": str(options.recursive_bridge),
-            "binary_sha256": manifest["binary_sha256"], "receipt": str(options.recursive_identity),
+    return {"passed": True, "profile": profile, "identity": manifest["identity"], "binary": str(binary),
+            "manifest_binary_invocation": declared_binary,
+            "binary_sha256": manifest["binary_sha256"], "receipt": str(receipt_path),
             "receipt_sha256": receipt_digest,
+            "build_tools": {"cargo": {"path": _resolve_tool(cargo), "sha256": expected_tools["cargo_sha256"]},
+                            "rustc": {"path": _resolve_tool(rustc), "sha256": expected_tools["rustc_sha256"]}},
             "native_sources": manifest["native_sources"], "bridge_sources": manifest["bridge_sources"],
-            "request": request, "response": response,
+            "request": request, "response": response, "finite_bundle": bundle,
             "scope": "one synthetic advisory protocol probe; verified input flags confer no code admission authority"}
+
+
+def _recursive_gate(options, output):
+    return _native_ndu_gate(options, output, profile="recursive")
+
+
+def _finite_gate(options, output):
+    return _native_ndu_gate(options, output, profile="finite")
 
 
 def _coverage(execution, outcome):
@@ -323,7 +378,8 @@ def _coverage(execution, outcome):
 
 def _external_inventory(options, gates):
     paths = {Path(sys.executable).resolve(), options.ranking_bridge, options.ranking_build_receipt,
-             options.recursive_bridge, options.recursive_identity}
+             options.recursive_bridge, options.recursive_identity,
+             options.finite_bridge, options.finite_identity}
     by_name = {row["name"]: row for row in gates}
     tools = by_name.get("actual_tools_and_linux_seals", {})
     for row in tools.get("tools", {}).values():
@@ -340,9 +396,15 @@ def _external_inventory(options, gates):
         paths.update(Path(z3.__file__).parent.glob("*.py"))
     ranking = by_name.get("ranking_bridge_identity", {})
     paths.update(options.ranking_build_receipt.parent / name for name in ranking.get("build_inputs", {}))
-    recursive = by_name.get("recursive_bridge_identity", {})
-    for field in ("native_sources", "bridge_sources"):
-        paths.update(options.recursive_upstream / name for name in recursive.get(field, {}))
+    native_profiles = [(name, by_name.get(name + "_bridge_identity", {})) for name in ("recursive", "finite")]
+    for name, native in native_profiles:
+        upstream = getattr(options, name + "_upstream")
+        if native.get("passed"):
+            _require(str(Path(native["manifest_binary_invocation"]).resolve(strict=True)) == native["binary"],
+                     "native consumer invocation was retargeted since its identity gate")
+        for field in ("native_sources", "bridge_sources"):
+            paths.update(upstream / path for path in native.get(field, {}))
+        paths.update(Path(tool["path"]) for tool in native.get("build_tools", {}).values())
     actual = {str(path): _digest_file(path) for path in sorted(paths)}
     expected = {row["path"]: row["sha256"] for row in tools.get("tools", {}).values()}
     if tools.get("solver"):
@@ -352,12 +414,14 @@ def _external_inventory(options, gates):
         expected[str(options.ranking_build_receipt)] = ranking["identity"]["build_receipt_sha256"]
         expected.update({str(options.ranking_build_receipt.parent / name): digest
                          for name, digest in ranking["build_inputs"].items()})
-    if recursive.get("passed"):
-        expected[str(options.recursive_bridge)] = recursive["binary_sha256"]
-        expected[str(options.recursive_identity)] = recursive["receipt_sha256"]
-        for field in ("native_sources", "bridge_sources"):
-            expected.update({str(options.recursive_upstream / name): digest
-                             for name, digest in recursive[field].items()})
+    for name, native in native_profiles:
+        if native.get("passed"):
+            expected[str(getattr(options, name + "_bridge"))] = native["binary_sha256"]
+            expected[str(getattr(options, name + "_identity"))] = native["receipt_sha256"]
+            upstream = getattr(options, name + "_upstream")
+            for field in ("native_sources", "bridge_sources"):
+                expected.update({str(upstream / path): digest for path, digest in native[field].items()})
+            expected.update({tool["path"]: tool["sha256"] for tool in native["build_tools"].values()})
     _require(all(actual.get(name) == digest for name, digest in expected.items()),
              "external inputs changed since their actual identity gate")
     return actual
@@ -391,11 +455,13 @@ def qualify(options):
         _write(output / "frozen-plan.json", {"source_head": before["head"], "source_tree": before["tree"],
                "critical_modules": CRITICAL_MODULES, "configured_environment": configured,
                "commands": [{"name": name, "argv": argv} for name, argv, _ in commands],
-               "native_identity_gates": ["actual_tools_and_linux_seals", "ranking_bridge_identity", "recursive_bridge_identity"],
+               "native_identity_gates": ["actual_tools_and_linux_seals", "ranking_bridge_identity",
+                                         "recursive_bridge_identity", "finite_bridge_identity"],
                "historical_performance_denominators_combined": False})
         for name, function in (("actual_tools_and_linux_seals", _tool_gate),
                                ("ranking_bridge_identity", _ranking_gate),
-                               ("recursive_bridge_identity", _recursive_gate)):
+                               ("recursive_bridge_identity", _recursive_gate),
+                               ("finite_bridge_identity", _finite_gate)):
             print(json.dumps({"gate": name, "state": "running"}), flush=True)
             try:
                 row = {"name": name, **function(options, output)}
@@ -434,7 +500,8 @@ def qualify(options):
         except Exception as error:
             report.update(source_unchanged=False, source_identity_error=type(error).__name__ + ": " + str(error))
     report["ok"] = (report["source_unchanged"] and report.get("external_inputs_unchanged") is True
-                    and len(report["gates"]) == 6 and all(row["passed"] for row in report["gates"]))
+                    and tuple(row["name"] for row in report["gates"]) == EXPECTED_GATE_NAMES
+                    and all(row["passed"] for row in report["gates"]))
     report["status"] = "bounded_integrated_contracts_passed" if report["ok"] else "integration_qualification_failed"
     report["finished_utc"] = datetime.now(timezone.utc).isoformat()
     _write(output / "qualification.json", report)
@@ -454,10 +521,15 @@ def main(argv=None):
     parser.add_argument("--recursive-bridge", type=Path, required=True)
     parser.add_argument("--recursive-identity", type=Path, required=True)
     parser.add_argument("--recursive-upstream", type=Path, required=True)
+    parser.add_argument("--finite-bridge", type=Path, required=True)
+    parser.add_argument("--finite-identity", type=Path, required=True)
+    parser.add_argument("--finite-upstream", type=Path, required=True)
+    parser.add_argument("--finite-cargo", required=True)
+    parser.add_argument("--finite-rustc", required=True)
     parser.add_argument("--timeout", type=int, default=1800, help="timeout of each actual Rust/full regression gate")
     options = parser.parse_args(argv)
     for name in ("ranking_bridge", "ranking_build_receipt", "ranking_upstream", "recursive_bridge",
-                 "recursive_identity", "recursive_upstream"):
+                 "recursive_identity", "recursive_upstream", "finite_bridge", "finite_identity", "finite_upstream"):
         setattr(options, name, getattr(options, name).resolve())
     try:
         _require(1 <= options.timeout <= 7200, "gate timeout must be in 1..7200 seconds")

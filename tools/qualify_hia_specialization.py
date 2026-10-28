@@ -73,7 +73,7 @@ INPUTS = (
     "hepta/hia_specialization.py", "hepta/hia_program.py", "hepta/hia_program_runtime.py",
     "hepta/hia_program_llvm.py", "hepta/hia_translation_validation.py", "hepta/hia_ndu_optimizer.py",
     "hepta/hia_multiversion.py", "hepta/hia_background_optimizer.py", "hepta/hia_native_differential.py",
-    "hepta/elf_shared_abi.py", "hepta/clang_capture.py", "tools/qualify_hia_specialization.py",
+    "hepta/elf_shared_abi.py", "hepta/clang_capture.py", "hepta/native_mapping_identity.py", "tools/qualify_hia_specialization.py",
     "tools/qualify_hia_ndu_search.py", "tools/build_hia_ndu_bridge.py",
     "rust/hia-ndu-bridge/upstream.json", "rust/hia-ndu-bridge/src/main.rs",
     "rust/hia-ndu-bridge/Cargo.toml", "rust/hia-ndu-bridge/Cargo.lock",

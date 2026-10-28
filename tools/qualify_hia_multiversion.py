@@ -112,7 +112,7 @@ def qualify(clang):
         require(closed["cleanup"]["observed_closed_and_directory_absent"],
                 "post-close owned native/file/directory cleanup was not observed complete")
     root = Path(__file__).resolve().parents[1]
-    files = ("hepta/hia_multiversion.py", "hepta/hia_native_retirement.py", "hepta/hia_translation_validation.py",
+    files = ("hepta/hia_multiversion.py", "hepta/hia_native_retirement.py", "hepta/native_mapping_identity.py", "hepta/hia_translation_validation.py",
              "hepta/hia_program.py", "hepta/hia_program_runtime.py", "hepta/hia_program_llvm.py",
              "tools/qualify_hia_multiversion.py")
     return {"schema": "hepta.hia.scalar-multiversion-qualification.v1",

@@ -1,0 +1,19 @@
+{
+  "source_sha256": "28d9f5c02f97d26768ea8b3f04354f8f0de992bda5a5d6f1cbe4755a57cf491c",
+  "cases": {
+    "block_callee_recursion": {
+      "status": "ACCEPTED",
+      "files": {
+        "api.rs": "pub fn wire_length(length:u32)->u64 { let result = {wire_length}(length); result }\n",
+        "client.rs": "use crate::api;\npub fn entrypoint(tag:u32,length:u32,reserved:u32)->u64 { let _ = reserved; (((tag & 255) as u64) << 32) | api::wire_length(length) }\n"
+      }
+    },
+    "prelude_iterator_loop": {
+      "status": "ACCEPTED",
+      "files": {
+        "api.rs": "pub fn wire_length(length:u32)->u64 { (0..length as u64).max().unwrap_or(0) }\n",
+        "client.rs": "use crate::api;\npub fn entrypoint(tag:u32,length:u32,reserved:u32)->u64 { let _ = reserved; (((tag & 255) as u64) << 32) | api::wire_length(length) }\n"
+      }
+    }
+  }
+}
