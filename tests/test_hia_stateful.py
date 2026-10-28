@@ -98,6 +98,12 @@ class OwnedNativeTests(unittest.TestCase):
         self.assertLess(report["partial_execution"]["executed_steps"], 1_000_000_000)
         self.assertEqual(report["partial_execution"]["replayed_steps"], 0)
         self.assertEqual(report["final_native_ledger"]["live"], 0)
+        self.assertEqual(len(report["admitted_native_images"]), 2)
+        for retained in report["native_snapshots"].values():
+            admitted = report["admitted_native_images"][retained["image_token"]]
+            self.assertEqual(retained["loaded_mapping"], admitted["loaded_mapping"])
+            self.assertEqual(retained["sha256"], admitted["artifact_sha256"])
+            self.assertEqual(set(admitted["loaded_mapping"]["symbols"]), {"transition"})
 
     def test_whole_native_api_clock_keeps_audit_separate_and_retains_real_loss(self):
         measured = measure_fresh_deployment(self.root / "complete-wall", clang=CLANG, steps=1)
@@ -112,6 +118,7 @@ class OwnedNativeTests(unittest.TestCase):
         self.assertEqual(measured["execution"]["executed_steps"], 1)
         self.assertEqual(measured["final_native_ledger"]["live"], 0)
         self.assertEqual(measured["final_native_ledger"]["allocations"], measured["final_native_ledger"]["frees"])
+        self.assertEqual(len(measured["admitted_native_images"]), 2)
 
     def test_alias_modes_bounds_and_queue_staleness_are_real_state_gates(self):
         runtime = self.runtime()

@@ -1,0 +1,496 @@
+{
+  "authority": {
+    "admission": "hepta.hia_program.verify_program",
+    "external_receipts_grant_admission": false,
+    "input": "actual immutable canonical Core bytes; public VerifiedProgram objects are rechecked",
+    "metadata_grants_admission": false
+  },
+  "boundaries": {
+    "cancel": "Composite tasks and the owned-state queue implement explicit cooperative transitions. A VM budget stop, process signal, or host interruption is not a general source cancellation/unwind operation.",
+    "concurrent": "Core excludes arbitrary threads, shared mutable memory, atomics and MMIO. Host dispatcher locks and safe-point checks do not establish a general concurrent-language memory model.",
+    "error": "Errors represented as values use the same checked normal-return rules. A failed fallible allocation still produces a logical empty owner that must be consumed.",
+    "normal": "Local owned resources and loans must be consumed or transferred through a checked signature; explicit v8 returned loans retain parameter origins and suspend callers until children end.",
+    "recursive": "Core recursive calls and finite owned chains are separate from static finite-budget profiles. Native recursion/stack bounds and universal termination are not established.",
+    "trap": "The VM reports the stopped resource ledger. Native traps abort. No destructor recovery, exception unwinding, or cleanup completion theorem is claimed."
+  },
+  "capabilities": [
+    {
+      "entrypoints": [
+        "hepta.hia_program.verify_program"
+      ],
+      "exclusions": [
+        "no formal whole-language preservation/progress proof",
+        "no raw pointer or unchecked instruction escape"
+      ],
+      "guarantee": "checked_on_every_admission",
+      "id": "typed_core",
+      "regression_selectors": [
+        "tests.test_hia_program.CanonicalInputAndCFGTests.test_ssa_cfg_effect_and_unknown_claim_rejections",
+        "tests.test_hia_program.CanonicalInputAndCFGTests.test_immutable_snapshot_and_rechecked_public_constructor",
+        "tests.test_hia_schema_unification.SchemaUnificationTests.test_legacy_nominal_namespace_is_never_guessed_from_its_shape"
+      ],
+      "scope": "primitive v1-v8; all functions and blocks, including unused definitions"
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_program.verify_program"
+      ],
+      "exclusions": [
+        "no arbitrary pointer provenance inference",
+        "no borrowed resource public C ABI"
+      ],
+      "guarantee": "checked_on_every_admission",
+      "id": "owner_loan_linearity",
+      "regression_selectors": [
+        "tests.test_hia_program.StaticRejectionTests.test_consumed_owners_borrows_and_silent_loss",
+        "tests.test_hia_program.StaticRejectionTests.test_join_cannot_change_loan_root_despite_matching_types",
+        "tests.test_hia_program.StaticRejectionTests.test_exclusive_call_arguments_must_not_alias",
+        "tests.test_hia_returned_loans.ReturnedLoans.test_duplicate_return_and_exclusive_call_alias_refuse"
+      ],
+      "scope": "primitive byte owners; typed chain owners from v7; origin-bound returned loans from v8"
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_program_source.lower_source"
+      ],
+      "exclusions": [
+        "source-to-Core refinement not proved",
+        "no stored lifetime returns or general borrowed-record returns",
+        "no foreign calls, inline assembly, threads or implicit legacy backend fallback"
+      ],
+      "guarantee": "checked_source_and_reverified_core",
+      "id": "source_lowering",
+      "regression_selectors": [
+        "tests.test_hia_program_source.HIASourceTests.test_removed_drop_cannot_be_resealed_into_valid_hia",
+        "tests.test_hia_program_source.HIASourceTests.test_unmodeled_source_never_falls_back_to_foreign_or_rust_execution",
+        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_record_field_path_changes_local_origins_and_stored_borrows_reject"
+      ],
+      "scope": "default primitive v1; explicit v8; finite checked scalars, records, Result and closed specialization"
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_program.verify_program"
+      ],
+      "exclusions": [
+        "not primitive v8 returned-loan composition",
+        "not arbitrary cyclic nominal layouts"
+      ],
+      "guarantee": "checked_elaboration_and_reverified_core",
+      "id": "partial_record",
+      "regression_selectors": [
+        "tests.test_hia_partial_record.PartialRecordRejectionTests.test_uninitialized_read_and_borrow_reject",
+        "tests.test_hia_partial_record.PartialRecordRejectionTests.test_abandon_live_field_rejects",
+        "tests.test_hia_partial_record.PartialRecordRejectionTests.test_edge_different_initialization_state_rejects"
+      ],
+      "scope": "composite v3 initialized-field typestates normalize to primitive v7"
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_program.execute_program"
+      ],
+      "exclusions": [
+        "does not imply cleanup on traps, async cancellation or host failure"
+      ],
+      "guarantee": "finite_execution_evidence",
+      "id": "normal_error_cleanup",
+      "regression_selectors": [
+        "tests.test_hia_program.ResourceExecutionTests.test_allocation_failure_empty_owner_multireturn_and_error_cleanup",
+        "tests.test_hia_program_source.HIASourceTests.test_second_failure_drops_first_owner_and_failed_empty_owner"
+      ],
+      "scope": "normal return and errors-as-values in admitted resource profiles"
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_program.execute_program"
+      ],
+      "exclusions": [
+        "no automatic destructor cleanup or source cancellation",
+        "native build does not inherit evaluator budgets"
+      ],
+      "guarantee": "stopped_ledger_no_unwind",
+      "id": "trap_and_stop",
+      "regression_selectors": [
+        "tests.test_hia_program.ScalarExecutionTests.test_step_heap_and_call_budgets_are_not_semantic_traps",
+        "tests.test_hia_returned_loans.ReturnedLoans.test_traps_and_budget_stops_retain_stopped_resource_ledger"
+      ],
+      "scope": "VM semantic traps and independent step/heap/call-depth stops"
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_program.verify_program",
+        "hepta.hia_program.execute_program"
+      ],
+      "exclusions": [
+        "no asynchronous exception unwinding",
+        "no arbitrary scheduler or shared-memory threads"
+      ],
+      "guarantee": "explicit_cooperative_protocol",
+      "id": "cooperative_cancel",
+      "regression_selectors": [
+        "tests.test_hia_program_composite.CompositeRejectionTests.test_invalid_runtime_task_transitions_trap",
+        "tests.test_hia_partial_record.PartialRecordExecutionTests.test_error_and_cancel_only_clean_initialized_fields"
+      ],
+      "scope": "composite task transitions and partial-record initialized-field cleanup"
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_static_budget.analyze_static_budget"
+      ],
+      "exclusions": [
+        "no universal termination proof",
+        "no native stack byte bound",
+        "finite chain representation does not imply bounded chain length"
+      ],
+      "guarantee": "unknown_or_reject_outside_finite_profile",
+      "id": "recursion_bounds",
+      "regression_selectors": [
+        "tests.test_hia_static_budget.HIAStaticBudgetTests.test_loop_and_mutual_recursion_fail_closed",
+        "tests.test_hia_returned_loan_budgets.ReturnedLoanBudgetTests.test_recursive_returns_never_receive_a_finite_dag_certificate"
+      ],
+      "scope": "Core recursion is admitted separately from audited event/frame/heap analyses"
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_heap_bound.analyze_constant_live_heap",
+        "hepta.hia_static_budget.analyze_static_budget"
+      ],
+      "exclusions": [
+        "not process RSS, allocator metadata, foreign memory, native CPU time or stack bytes",
+        "not a runtime admission quota",
+        "unknown extents are not zero or caller promises"
+      ],
+      "guarantee": "recomputed_from_actual_core",
+      "id": "static_payload_budget",
+      "regression_selectors": [
+        "tests.test_hia_heap_bound.HIAHeapBoundTests.test_unknown_dynamic_extents_fail_closed",
+        "tests.test_hia_budget_numeric_replay.HIABudgetCanonicalReplayTests.test_self_rehashed_numeric_understatement_and_overstatement_refused",
+        "tests.test_hia_returned_loan_budgets.ReturnedLoanBudgetTests.test_old_receipts_and_old_native_consumer_do_not_acquire_v8_authority"
+      ],
+      "scope": "audited requested-live-payload and allocator/tick/depth profiles; v8 uses separate consumers"
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_program_llvm.build_program_native"
+      ],
+      "exclusions": [
+        "Core-to-LLVM refinement not proved",
+        "OS, allocator, linker, loader, LLVM and hardware remain trusted",
+        "no arbitrary C/C++ unsafe-code safety guarantee"
+      ],
+      "guarantee": "finite_execution_evidence",
+      "id": "native_lowering",
+      "regression_selectors": [
+        "tests.test_hia_program_llvm.StandaloneHIANativeTests.test_owned_allocation_moves_loans_and_normal_error_cleanup",
+        "tests.test_hia_program_llvm.StandaloneHIANativeTests.test_allocator_observer_rejects_compiled_leak_with_correct_return_values"
+      ],
+      "scope": "direct LLVM from immutable reverified HIA; Linux x86-64 native execution; other target qualification is separate"
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_rust_crosscheck.crosscheck_rust_shadow"
+      ],
+      "exclusions": [
+        "no deployment authority",
+        "agreement is not refinement or whole-language soundness"
+      ],
+      "guarantee": "independent_finite_comparison_only",
+      "id": "independent_shadow",
+      "regression_selectors": [
+        "tests.test_hia_rust_owned_vm.RustByteOwnerVmParity.test_wrong_types_exports_and_illegal_loans_cannot_enter_machine"
+      ],
+      "scope": "Rust closed byte-owner/returned-loan/owned-chain Machine profiles"
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_optimization.verify_optimization",
+        "hepta.hia_translation_validation.validate_translation",
+        "hepta.hia_narrowing.verify_guarded_narrowing"
+      ],
+      "exclusions": [
+        "unknown, timeout and refutation do not authorize build",
+        "no globally optimal instruction theorem",
+        "safety of an edit does not establish intended functionality"
+      ],
+      "guarantee": "proved_only_within_declared_solver_profile",
+      "id": "rewrite_equivalence",
+      "regression_selectors": [
+        "tests.test_hia_optimization.OptimizationVerificationTests.test_trap_order_cannot_be_reordered",
+        "tests.test_hia_optimization.OptimizationVerificationTests.test_timeout_unknown_and_assumed_preconditions_never_build",
+        "tests.test_hia_translation_validation.ScalarTranslationProofTests.test_safe_but_wrong_rewrite_gets_replayed_counterexample"
+      ],
+      "scope": "finite bitvector/scalar/effect/first-trap checks; unchanged resource/call skeleton except separately proved guarded profiles"
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_adaptive.AdaptiveRuntime",
+        "hepta.hia_stateful.OwnedAdaptiveRuntime"
+      ],
+      "exclusions": [
+        "not general heap/frame migration",
+        "not a static byte certificate",
+        "no general profitable automatic selection claim",
+        "host interpreter and runtime are trusted"
+      ],
+      "guarantee": "host_enforced_scoped_admission",
+      "id": "runtime_admission",
+      "regression_selectors": [
+        "tests.test_hia_prepared.PreparedNativeTests.test_new_candidate_still_needs_real_proof_and_live_loan_still_blocks_switch",
+        "tests.test_hia_prepared.PreparedNativeTests.test_changed_core_state_or_internal_build_record_cannot_use_an_old_proof",
+        "tests.test_hia_adaptive_retirement.AdapterReleaseTests.test_failed_admission_unknown_release_consumes_image_capacity"
+      ],
+      "scope": "private prepared scalar images and fixed-layout owned-state adapter; finite live/preparing/pending-image cap"
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_adaptive.AdaptiveRuntime.close"
+      ],
+      "exclusions": [
+        "failed release is not complete cleanup",
+        "no automatic replay of interrupted external operations"
+      ],
+      "guarantee": "uncertain_release_quarantined_no_numeric_retry",
+      "id": "native_release",
+      "regression_selectors": [
+        "tests.test_hia_adaptive_retirement.AdapterReleaseTests.test_partial_image_close_never_replays_prior_release_or_reused_fd",
+        "tests.test_hia_prepared.PreparedNativeTests.test_interrupt_after_publication_keeps_committed_image_owned_and_callable"
+      ],
+      "scope": "known quiescent image ownership; independent loader and descriptor outcomes"
+    },
+    {
+      "entrypoints": [
+        "hepta.c_migrate.migrate_c_project",
+        "hepta.cpp_unique_project.lower_unique_project"
+      ],
+      "exclusions": [
+        "caller-supplied pointer extent/provenance/lifetime obligations are not inferred or proved",
+        "unlisted configurations and arbitrary undefined C/C++ behavior are excluded",
+        "full C++ ABI compatibility and universal automatic migration are not claimed"
+      ],
+      "guarantee": "checked_translation_with_foreign_obligations",
+      "id": "ffi_contracts",
+      "regression_selectors": [
+        "tests.test_c_contract_identity.CContractIdentityTests.test_slice_length_rejects_parameter_position_drift_in_either_unit_order",
+        "tests.test_c_contract_identity.CContractIdentityTests.test_initializer_source_rejects_parameter_position_drift"
+      ],
+      "scope": "finite captured C/C++ profiles with complete selected declaration/configuration census"
+    }
+  ],
+  "judgment": {
+    "Effects": "declared effects cover actual operations and callees",
+    "Gamma": "SSA definitions, exact machine types, block parameters and function interfaces",
+    "Lambda": "loan roots, parent-child relationships, read/mut capability and suspended parents",
+    "Omega": "linear owner identities and current availability; a move consumes the old binding",
+    "form": "Gamma; Omega; Lambda; Effects |- instruction => Gamma_next; Omega_next; Lambda_next",
+    "formal_metatheory": "descriptive judgment for implemented checks; preservation/progress theorem not proved"
+  },
+  "registry": {
+    "canonical_core_schema": "hepta.hia.program.v6",
+    "composite": {
+      "nominal_operations": [
+        "enum.make",
+        "enum.tag",
+        "record.borrow",
+        "record.get",
+        "record.make",
+        "record.unpack",
+        "task.cancel",
+        "task.close",
+        "task.create",
+        "task.join",
+        "task.poll",
+        "task.start",
+        "task.state"
+      ],
+      "normalizes_to": "hepta.hia.program.v6",
+      "profile": "nominal-products-enums-cooperative-tasks-over-closed-ssa-v6",
+      "schema": "hepta.hia.composite.v1"
+    },
+    "composite_versions": [
+      {
+        "nominal_operations": [
+          "enum.make",
+          "enum.tag",
+          "record.borrow",
+          "record.get",
+          "record.make",
+          "record.unpack",
+          "task.cancel",
+          "task.close",
+          "task.create",
+          "task.join",
+          "task.poll",
+          "task.start",
+          "task.state"
+        ],
+        "normalizes_to": "hepta.hia.program.v6",
+        "profile": "nominal-products-enums-cooperative-tasks-over-closed-ssa-v6",
+        "schema": "hepta.hia.composite.v1"
+      },
+      {
+        "nominal_operations": [
+          "enum.make",
+          "enum.tag",
+          "record.borrow",
+          "record.get",
+          "record.make",
+          "record.unpack",
+          "task.cancel",
+          "task.close",
+          "task.create",
+          "task.join",
+          "task.poll",
+          "task.start",
+          "task.state"
+        ],
+        "normalizes_to": "hepta.hia.program.v7",
+        "profile": "nominal-products-enums-cooperative-tasks-over-closed-ssa-v7",
+        "schema": "hepta.hia.composite.v2"
+      },
+      {
+        "nominal_operations": [
+          "enum.make",
+          "enum.tag",
+          "record.abandon",
+          "record.begin",
+          "record.borrow",
+          "record.finish",
+          "record.get",
+          "record.insert",
+          "record.make",
+          "record.take",
+          "record.unpack",
+          "task.cancel",
+          "task.close",
+          "task.create",
+          "task.join",
+          "task.poll",
+          "task.start",
+          "task.state"
+        ],
+        "normalizes_to": "hepta.hia.program.v7",
+        "profile": "nominal-partial-records-enums-cooperative-tasks-over-closed-ssa-v7",
+        "schema": "hepta.hia.composite.v3"
+      }
+    ],
+    "latest_core_schema": "hepta.hia.program.v8",
+    "legacy_nominal": {
+      "explicit_adapter": "import_legacy_composite_v2",
+      "implicit_dispatch": false,
+      "profile": "nominal-products-enums-cooperative-tasks-over-closed-ssa-v2",
+      "schema": "hepta.hia.program.v2"
+    },
+    "primitive": [
+      {
+        "features": [],
+        "profile": "closed-ssa-integer-byte-resources-64-v1",
+        "schema": "hepta.hia.program.v1"
+      },
+      {
+        "features": [
+          "bulk_memory"
+        ],
+        "profile": "closed-ssa-integer-byte-resources-bulk-64-v2",
+        "schema": "hepta.hia.program.v2"
+      },
+      {
+        "features": [
+          "bulk_memory",
+          "inplace_memory"
+        ],
+        "profile": "closed-ssa-integer-byte-resources-overlap-64-v3",
+        "schema": "hepta.hia.program.v3"
+      },
+      {
+        "features": [
+          "bulk_memory",
+          "byte_swap",
+          "inplace_memory"
+        ],
+        "profile": "closed-ssa-integer-byte-resources-swap-64-v4",
+        "schema": "hepta.hia.program.v4"
+      },
+      {
+        "features": [
+          "bulk_memory",
+          "byte_swap",
+          "inplace_memory",
+          "offset_copy"
+        ],
+        "profile": "closed-ssa-integer-byte-resources-offset-copy-64-v5",
+        "schema": "hepta.hia.program.v5"
+      },
+      {
+        "features": [
+          "bulk_memory",
+          "byte_swap",
+          "inplace_memory",
+          "offset_copy",
+          "range_fill"
+        ],
+        "profile": "closed-ssa-integer-byte-resources-range-fill-64-v6",
+        "schema": "hepta.hia.program.v6"
+      },
+      {
+        "features": [
+          "bulk_memory",
+          "byte_swap",
+          "inplace_memory",
+          "offset_copy",
+          "range_fill",
+          "recursive_chain"
+        ],
+        "profile": "closed-ssa-integer-recursive-buffer-chain-64-v7",
+        "schema": "hepta.hia.program.v7"
+      },
+      {
+        "features": [
+          "bulk_memory",
+          "byte_swap",
+          "inplace_memory",
+          "offset_copy",
+          "parameter_loan_returns",
+          "range_fill",
+          "recursive_chain"
+        ],
+        "profile": "closed-ssa-parameter-loan-returns-64-v8",
+        "schema": "hepta.hia.program.v8"
+      }
+    ],
+    "schema": "hepta.hia.schema-registry.v1",
+    "schemas_are_not_safety_receipts": true
+  },
+  "schema": "hepta.hia.safety-contract.v1",
+  "status": "implementation_contract_with_finite_regression_evidence",
+  "trusted_computing_base": [
+    {
+      "component": "Python source checker, Core parser/verifier, normalization and operational implementations",
+      "reason": "production admission and execution definitions; not mechanically proved sound"
+    },
+    {
+      "component": "proof encoder and pinned SMT solver",
+      "reason": "bounded equivalence obligations; solver outcomes never bypass Core verification"
+    },
+    {
+      "component": "LLVM emitter, Clang/LLVM, linker, runtime/allocator, loader, OS and hardware",
+      "reason": "native code generation and actual execution; no end-to-end verified compilation chain"
+    },
+    {
+      "component": "Clang capture and declared foreign contracts",
+      "reason": "finite C/C++ source capture and ABI assumptions; unsafe foreign code remains outside safe Core"
+    },
+    {
+      "component": "host runtime and source/artifact identity mechanisms",
+      "reason": "image admission, safe points, ownership ledger and dispatch"
+    }
+  ],
+  "unproved_claims": {
+    "absolute_resource_safety_proved": false,
+    "core_to_native_refinement_proved": false,
+    "general_concurrent_memory_safety_proved": false,
+    "global_optimality_proved": false,
+    "native_process_memory_bound_proved": false,
+    "rust_performance_superiority_proved": false,
+    "source_to_core_refinement_proved": false,
+    "whole_language_soundness_proved": false
+  }
+}

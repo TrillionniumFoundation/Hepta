@@ -440,6 +440,10 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
                 or int(self._driver.hs_identity(self._state)) != self._allocation_address
                 or sha256(os.pread(image.fd, os.fstat(image.fd).st_size, 0)).hexdigest() != image.artifact_sha256):
             raise AdaptiveRejected("E_STATE_ROLLBACK: old artifact or fixed owner schema changed")
+        try:
+            verify_loaded_symbols(image.fd, {image.state["entry"]: image.function})
+        except NativeMappingRejected as error:
+            raise AdaptiveRejected("E_STATE_ROLLBACK: old function no longer belongs to its sealed image") from error
         previous = self._current
         self._current = token
         self._generation += 1

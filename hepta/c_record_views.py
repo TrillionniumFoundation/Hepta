@@ -16,7 +16,7 @@ from .c_allocation import peel, nodes
 from .c_migrate import MigrationRejected
 from .c_contracts import snapshot_contracts
 from .c_translation import (CTranslator, Expression, INTEGER, NUMBER, cast, ident,
-                            truth)
+                            truth, _signature_shape)
 
 
 class CRecordViewTranslator(CTranslator):
@@ -195,7 +195,7 @@ class CRecordViewTranslator(CTranslator):
                     source_param = params_by_name.get(source)
                     if source_param is None or not source_param["pointer"] or source_param.get("record") or source_param["mode"] != "mut" or source_param["type"] != self.views[typ[2:]][field].get("element"):
                         raise MigrationRejected("E_C_VIEW_INIT", "Initializer buffer source must be a compatible mutable slice parameter")
-        result["shape"] = (result["return"], [(p["type"], p["pointer"], p["mode"], p.get("c_const"), p.get("c_void"), p.get("initialize")) for p in result["params"]])
+        result["shape"] = _signature_shape(result["return"], result["params"])
         generated = []
         for param in result["params"]:
             name = "p_" + param["name"]

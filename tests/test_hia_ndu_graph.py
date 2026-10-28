@@ -270,5 +270,37 @@ class ActualCompilerGraphTests(unittest.TestCase):
         self.assertFalse(faults["artifact_mismatch"]["execution_attempted"])
 
 
+@unittest.skipUnless(_FULL_READY and os.environ.get("HEPTA_NDU_STREAM_IDENTITY"),
+                     "requires sealed original streaming NDU, pinned Z3 and Clang")
+class ActualStreamingNarrowingGraphTests(ActualCompilerGraphTests):
+    """A different native candidate chain and actual persistent evaluator process."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.temporary = tempfile.TemporaryDirectory()
+        cls.root = Path(cls.temporary.name) / "stream-graph"
+        protocol = dict(PROTOCOL, groups=1, calls=19, probe_size=5, batch_sizes=[5, 19, 47],
+                        calibration_repetitions=1, guard_limits={"guard-small": 8, "guard-wide": 32},
+                        native_transport="stream", narrow_targets=["guard-wide"])
+        cls.result = qualify(cls.root, identity=os.environ["HEPTA_NDU_STREAM_IDENTITY"],
+                             clang=_CLANG, protocol=protocol)
+
+    def test_actual_persistent_requests_and_chained_artifacts_are_accounted(self):
+        self.assertEqual(self.result["native_transport"], "stream")
+        session = self.result["native_session"]
+        self.assertTrue(session["closed"])
+        self.assertGreaterEqual(session["requests"], 4)
+        self.assertEqual(session["authority"], "DENY_ALL")
+        labels = {r["label"] for r in self.result["controller_setup_ledger"]["ndu"]}
+        self.assertTrue({"native.admission", "native.shutdown", "native.snapshot"} <= labels)
+        bank = json.loads((self.root / "BANK.json").read_bytes())
+        proof = bank["candidates"]["guard-wide"]["receipt"]["verification"]
+        self.assertEqual(proof["status"], "verified")
+        self.assertEqual(len(proof["stages"]), 2)
+        for row in self.result["episodes"]:
+            for sample in row["observations"]:
+                self.assertTrue(sample["loaded_mapping_verified"])
+
+
 if __name__ == "__main__":
     unittest.main()

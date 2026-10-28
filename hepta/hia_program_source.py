@@ -216,12 +216,63 @@ class _Lower:
         self.current: Function | None = None
         self.mutable_parameters: list[int] = []
         self.signatures: dict[str, dict] = {}
+        self.return_origin_leaves: dict[str, int] = {}
         self.source_map: list[dict] = []
         self.exports = tuple(exports)
 
     def fresh(self, prefix="v") -> str:
         self.serial += 1
         return f"{prefix}{self.serial}"
+
+    def returned_origin_leaf(self, fn: Function, origin) -> int:
+        """Bind a source record projection to one primitive borrowed parameter.
+
+        This is producer-side inference, not a safety certificate: the Core
+        verifier independently follows every emitted capability and CFG edge.
+        Keep the declared source origin and the selected scalarized field
+        separate. A branch returning a different field of the same record
+        cannot silently acquire the first field's lifetime contract.
+        """
+        leaves = self.layout(origin.type, origin.mode)
+        if origin.type.name in {"Buffer", "slice"}:
+            if leaves not in [[((), "readbuf")], [((), "mutbuf")]]:
+                _reject("v8 borrowed origin must be a byte view")
+            return 0
+        if origin.type.name not in self.structs:
+            _reject("v8 borrowed origin must be a byte view or concrete record")
+        projections = set()
+        pending = list(fn.body or [])
+        while pending:
+            node = pending.pop()
+            if isinstance(node, Stmt):
+                if node.kind == "return":
+                    expr = node.data.get("expr")
+                    if (not isinstance(expr, Expr) or expr.kind != "unary"
+                            or expr.value not in {"read", "mut"} or len(expr.children) != 1):
+                        _reject("record-origin borrowed returns require an explicit field projection")
+                    place, path = expr.children[0], []
+                    while place.kind == "field" and len(place.children) == 1:
+                        path.append(place.value)
+                        place = place.children[0]
+                    if place.kind != "name" or place.value != origin.name:
+                        _reject("returned field must project the declared borrowed parameter")
+                    projections.add(tuple(reversed(path)))
+                else:
+                    pending.extend(node.data.values())
+            elif isinstance(node, MatchArm):
+                pending.extend(node.body)
+            elif isinstance(node, (list, tuple)):
+                pending.extend(node)
+            elif isinstance(node, dict):
+                pending.extend(node.values())
+        if len(projections) != 1:
+            _reject("record-origin returns must select one stable field on every return path")
+        projection = next(iter(projections))
+        selected = [index for index, (path, leaf) in enumerate(leaves)
+                    if path == projection and leaf in {"readbuf", "mutbuf"}]
+        if len(selected) != 1:
+            _reject("returned record projection must select exactly one byte-view field")
+        return selected[0]
 
     def layout(self, typ: Type, mode="value", seen=()) -> list[tuple[tuple[str, ...], str]]:
         if typ.lifetimes or typ.length is not None:
@@ -889,7 +940,8 @@ class _Lower:
                 "returns": self.signatures[fn.name]["returns"], "effects": [],
                 "entry": entry["id"], "blocks": self.blocks}
         if self.core_schema == SCHEMA_V8 and fn.return_mode != "value":
-            result["return_loans"] = [origins[fn.return_origin][0]] + [None] * (len(result["returns"]) - 1)
+            leaf = self.return_origin_leaves[fn.name]
+            result["return_loans"] = [origins[fn.return_origin][leaf]] + [None] * (len(result["returns"]) - 1)
         return result
 
     def lower(self):
@@ -908,10 +960,9 @@ class _Lower:
             if fn.return_mode != "value" and self.core_schema == SCHEMA_V8:
                 origin = next((p for p in fn.params if p.name == fn.return_origin), None)
                 if (origin is None or origin.mode not in {"read", "mut"}
-                        or origin.type.name not in {"Buffer", "slice"}
-                        or self.layout(origin.type, origin.mode) not in [[((), "readbuf")], [((), "mutbuf")]]
                         or self.layout(fn.return_type, fn.return_mode) not in [[((), "readbuf")], [((), "mutbuf")]]):
-                    _reject("v8 borrowed return requires one explicit byte-view parameter origin")
+                    _reject("v8 borrowed return requires one explicit compatible parameter origin")
+                self.return_origin_leaves[fn.name] = self.returned_origin_leaf(fn, origin)
             elif fn.return_mode != "value":
                 if len(fn.body) != 1 or fn.body[0].kind != "return":
                     _reject("every borrow-return declaration must be an inline projection helper")
@@ -1041,6 +1092,7 @@ def source_report(source: str, *, path="<hia-source>", module: str | None = None
                                 for row in instances],
             "claims": {"standalone_program": True, "direct_ast_to_cfg": True,
                        "primitive_returned_loans": core_schema == SCHEMA_V8,
+                       "stable_record_field_return_origins": core_schema == SCHEMA_V8,
                        "closed_generic_instances_checked": True,
                        "all_possible_generic_instantiations_proved": False,
                        "source_text_required_for_execution": False,

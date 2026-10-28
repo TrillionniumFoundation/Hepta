@@ -7,6 +7,7 @@ import importlib.util
 import os
 import platform
 from pathlib import Path
+from hashlib import sha256
 import shutil
 import tempfile
 import unittest
@@ -76,6 +77,49 @@ class AdaptiveNativeTests(unittest.TestCase):
                          "conservative_shadow_costs_not_deployment_benefit")
         self.assertFalse(report["general_live_state_or_owner_migration"])
         self.assertEqual(report["final"]["active_calls"], 0)
+        self.assertEqual(len(report["admitted_native_images"]), 2)
+        for retained in report["retained_native_artifacts"].values():
+            admitted = report["admitted_native_images"][retained["image_token"]]
+            self.assertEqual(retained["loaded_mapping"], admitted["loaded_mapping"])
+            self.assertEqual(retained["sha256"], admitted["artifact_sha256"])
+            self.assertEqual(retained["bytes"], admitted["loaded_mapping"]["file_bytes"])
+        self.assertEqual(report["post_close"]["native_images"], {})
+
+    def test_each_native_mapping_receipt_matches_real_descriptor_and_is_detached(self):
+        runtime = self.runtime()
+        _, candidate = programs()
+        token = runtime.prepare(candidate)
+        snapshot = runtime.snapshot()
+        self.assertEqual(set(snapshot["native_images"]), {"baseline", token})
+        inodes = set()
+        for name, image in runtime._images.items():
+            row = snapshot["native_images"][name]
+            mapping = row["loaded_mapping"]
+            identity = os.fstat(image.fd)
+            self.assertEqual(mapping["inode"], identity.st_ino)
+            self.assertEqual(mapping["file_bytes"], identity.st_size)
+            self.assertEqual((mapping["device_major"], mapping["device_minor"]),
+                             (os.major(identity.st_dev), os.minor(identity.st_dev)))
+            self.assertEqual(set(mapping["symbols"]), {image.state["entry"]})
+            self.assertEqual(mapping["symbols"][image.state["entry"]]["permissions"], "r-xp")
+            self.assertEqual(row["artifact_sha256"], sha256(os.pread(image.fd, identity.st_size, 0)).hexdigest())
+            self.assertEqual(len(mapping["checker_sha256"]), 64)
+            self.assertFalse(row["serialized_evidence_is_authority"])
+            inodes.add(mapping["inode"])
+            mapping["inode"] = -1
+            row["artifact_sha256"] = "0" * 64
+        self.assertEqual(len(inodes), 2)
+        fresh = runtime.snapshot()
+        self.assertTrue(all(row["loaded_mapping"]["inode"] in inodes
+                            for row in fresh["native_images"].values()))
+        self.assertEqual(runtime.call(7, 2), 9)
+        self.assertTrue(runtime.select(token, mode="explicit")["selected"])
+        self.assertEqual(runtime.call(7, 2), 9)
+        runtime.close()
+        closed = runtime.snapshot()
+        self.assertEqual(closed["native_images"], {})
+        self.assertTrue(closed["cleanup"]["owned_native_release_complete"])
+        self.assertEqual(closed["cleanup"]["pending_resource_count"], 0)
 
     def test_complete_abi_state_and_bad_argument_refusals_preserve_baseline(self):
         runtime = self.runtime()

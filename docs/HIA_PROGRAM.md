@@ -334,7 +334,7 @@ standalone ISA:
 | Producer | Current emitted program | Scope boundary |
 | --- | --- | --- |
 | `hia lower` / `hia_program_source.lower_source` / `lower_program`, with the default `core_schema` | Primitive v1 | Checked source scalars, closed specialization, scalarized records, byte owners and built-in `Result`; immediate borrowed projection helpers are inlined; no source-to-chain, nominal/task or stored-lifetime-record lowering |
-| The same source entrypoints with `--core-schema hepta.hia.program.v8` / `core_schema="hepta.hia.program.v8"` | Primitive v8 | The same finite source layout profile, with real internal calls and `return_loans` for a borrowed byte-view result bound to one explicit incoming byte-view parameter; no stored-lifetime or public borrowed-result ABI |
+| The same source entrypoints with `--core-schema hepta.hia.program.v8` / `core_schema="hepta.hia.program.v8"` | Primitive v8 | The same finite source layout profile, with real internal calls and canonical `return_loans` for a byte-view result bound to one explicit incoming borrowed parameter, including one stable nested byte field of a concrete record; no stored-lifetime or public borrowed-result ABI |
 | `core.from_executable_core` / `from_scalar_core` | Primitive v1 | Explicit source-authenticated conversion of the admitted historical envelope subset |
 | `hia_program_source.lower_c_multi_owner` and the source migrations passed through `lower_program` | Primitive v1 | Their actual generated Hepta must fit the same source frontend; successful legacy C/C++ migration alone does not establish this |
 | `cpp_project_migrate` / `hia import-cpp-project` | Primitive v1 | Captured, actually instantiated scalar C++ template bodies and supported declarations, via the same checked source frontend |
@@ -378,15 +378,25 @@ result.
 
 Explicit primitive v8 lowering retains borrowed helpers as actual Core
 functions and calls. Each borrowed result must have one declared incoming
-`read` or `mut` byte-buffer/slice parameter as its origin; the producer emits
+`read` or `mut` byte-buffer/slice parameter, or one stable nested byte field of
+an explicitly borrowed concrete record parameter as its origin; the producer emits
 the canonical `return_loans` binding and the Core verifier checks the actual
 return paths, caller aliases and resource transitions. The helper body remains
 subject to the finite source profile. Stored lifetime returns, stored-reference
-layouts and borrowed results from an aggregate parameter are not admitted by
+layouts and general borrowed-record returns are not admitted by
 this source adapter. Both source versions preserve the public scalar-entry
 eligibility recorded before scalarization; a flattened aggregate or borrowed
 signature does not acquire a public scalar C ABI. This explicit source choice
 does not change composite v3's primitive v7 normalization.
+
+The explicit v8 source route retains those helpers as actual Core calls and
+returns, with named primitive `return_loans`. A borrowed concrete record may
+contain multiple byte-buffer fields and scalars, but each return must directly
+project the same nested byte field. The returned child keeps its caller's
+argument loans alive until immediate consumption; different field origins
+across return paths reject. Scalarized mutable fields retain explicit
+writeback results. See [the v8 contract](HIA_RETURNED_LOANS_V8.md) for the
+independent Rust and actual native validation scope.
 
 The exact high-level source frontend scope is recorded by its rejection tests
 and current qualification report. The source adapter does not yet emit the

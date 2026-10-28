@@ -23,6 +23,7 @@ ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 
 from hepta.hia_program import verify_program
+from hepta.hia_native_differential import _pin_native_artifact
 from hepta.hia_program_llvm import build_program_native
 from hepta.hia_program_tools import apply_program_patch, decode_json
 from tools.provider_adapter.llama_cpp_engine import LlamaCppEngine, canonical, file_identity
@@ -487,16 +488,15 @@ def execute(built, cases, expected):
     if not built["native_built"]:
         raise ValueError("unbuilt upgrade candidate")
     before = built["artifact"]
-    data = Path(before["path"]).read_bytes()
-    if hashlib.sha256(data).hexdigest() != before["sha256"]:
-        raise ValueError("upgrade artifact drift")
-    descriptor = os.memfd_create("hepta-upgrade-candidate", os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
+    # Use the same identity-bound, fully sealed byte snapshot as the native
+    # differential. Older Python headers can omit Linux UAPI constant names;
+    # the helper still requires actual kernel seal and exact-byte readback.
+    data, _, descriptor = _pin_native_artifact(Path(before["path"]))
     try:
-        with os.fdopen(os.dup(descriptor), "wb") as stream:
-            stream.write(data)
+        if hashlib.sha256(data).hexdigest() != before["sha256"]:
+            raise ValueError("upgrade artifact drift")
         os.fchmod(descriptor, 0o500)
-        seals = fcntl.F_SEAL_WRITE | fcntl.F_SEAL_SHRINK | fcntl.F_SEAL_GROW | fcntl.F_SEAL_SEAL
-        fcntl.fcntl(descriptor, fcntl.F_ADD_SEALS, seals)
+        get_seals = getattr(fcntl, "F_GET_SEALS", 1034)
         def limits():
             resource.setrlimit(resource.RLIMIT_CPU, (2, 2))
             resource.setrlimit(resource.RLIMIT_AS, (256 * 1024**2, 256 * 1024**2))
@@ -512,7 +512,8 @@ def execute(built, cases, expected):
             return {"status": "observable_timeout", "returncode": None, "stdout": text(error.stdout),
                     "stderr": text(error.stderr), "actual": None, "expected": expected, "cases": cases,
                     "wall_ns": time.monotonic_ns() - start, "artifact_sha256": before["sha256"],
-                    "sealed_image": True, "artifact_unchanged": file_identity(before["path"]) == before}
+                    "sealed_image": True, "seals": fcntl.fcntl(descriptor, get_seals),
+                    "artifact_unchanged": file_identity(before["path"]) == before}
         elapsed = time.monotonic_ns() - start
         native_provider, call_counts, arguments_match = None, None, None
         try:
@@ -529,7 +530,7 @@ def execute(built, cases, expected):
                 "returncode": result.returncode, "stdout": result.stdout, "stderr": result.stderr,
                 "actual": values, "expected": expected, "cases": cases, "wall_ns": elapsed,
                 "artifact_sha256": before["sha256"], "sealed_image": True,
-                "seals": fcntl.fcntl(descriptor, fcntl.F_GET_SEALS),
+                "seals": fcntl.fcntl(descriptor, get_seals),
                 "artifact_unchanged": file_identity(before["path"]) == before}
         if built.get("provider_audit"):
             audit_started = time.monotonic_ns()
@@ -583,6 +584,8 @@ def controls(output, clang, rustc):
 
 def bindings():
     result = base_bindings()
+    pinning = ROOT / "hepta/hia_native_differential.py"
+    result[str(pinning.relative_to(ROOT))] = file_identity(pinning)["sha256"]
     for path in sorted(Path(__file__).parent.glob("*.py")):
         result[str(path.relative_to(ROOT))] = file_identity(path)["sha256"]
     for name in ("PROTOCOL.json", "FIXTURES.json", "REGISTRATION.json"):

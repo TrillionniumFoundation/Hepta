@@ -1,0 +1,28 @@
+module upstream_host_consumer;
+import bridge;
+
+export "C" fn hepta_json_replace_sum(text: raw const u8, count: usize,
+                                    index: usize, value: i64, out: raw mut i64) -> i32
+effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_json_upgrade_replace_sum(text, count, index, value, out); }
+}
+
+export "C" fn hepta_json_host_parse(text: raw const u8, count: usize, out: raw mut u64) -> i32
+effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_json_upgrade_Document_parse(text, count, out); }
+}
+
+export "C" fn hepta_json_host_replace(handle: u64, index: usize, value: i64) -> i32
+effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_json_upgrade_Document_replace(handle, index, value); }
+}
+
+export "C" fn hepta_json_host_sum(handle: u64, out: raw mut i64) -> i32
+effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_json_upgrade_Document_sum(handle, out); }
+}
+
+export "C" fn hepta_json_host_destroy(handle: u64) -> i32
+effects {ffi, unsafe, write, alloc, block} {
+    unsafe { return bridge::hepta_cpp_json_upgrade_Document_destroy(handle); }
+}

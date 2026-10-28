@@ -1,0 +1,162 @@
+{
+  "diagnostic_source_bindings": {
+    "examples/hia_filecheck/rss_supervisor.c": "dcb48860d3c6f1b18f1b5504e882d488f6f70cfd1a433aa904088a886fefb96d",
+    "experiments/hia_filecheck/RSS_DIAGNOSTIC_PROTOCOL_20261028.json": "fddf2b1f7fde73c3e475f99f454b89d529818de15dd985c7dc4ecef4fb282a36",
+    "tools/qualify_hia_filecheck_rss.py": "777d5f653a35f55394981d116ad947de30803a95585b68f5ccbcf8b0daec43ba"
+  },
+  "diagnostic_source_commit": "c4efc29610fab58f495e38e22c7cb10b0d63c876",
+  "host": {
+    "exclusive_host": false,
+    "machine": "x86_64",
+    "platform": "Linux-6.18.55-x86_64-with-glibc2.39"
+  },
+  "new_performance_samples": 0,
+  "ok": false,
+  "original_performance_samples_replaced": 0,
+  "original_report": {
+    "bytes": 569961,
+    "path": "/tmp/hepta-six-filecheck-formal-01/qualification.json",
+    "sha256": "d8271f1aa20aecc8f47da773006246278ea13f2422f7e142b514f27047dae09e"
+  },
+  "original_report_performance_gate_unchanged": false,
+  "original_source_commit": "96bc1b4598a8469b0d44b09e7e97d4705cac2cc5",
+  "protocol": {
+    "algorithms": [
+      "ieee",
+      "castagnoli"
+    ],
+    "arms": [
+      "hia_default",
+      "hia_native_lto",
+      "c_native_lto",
+      "c_native_pgo",
+      "cpp_native_lto",
+      "cpp_native_pgo",
+      "rust_native_lto",
+      "rust_native_pgo"
+    ],
+    "failure_policy": "No retries or exclusions. Retain every started invocation's stdout, stderr, metadata and failure status.",
+    "groups": 3,
+    "identity_policy": "Hash original qualification report, driver, each library and input before observations and again after; recheck driver/library/input at every invocation. Hash diagnostic source, compiler and supervisor. Pathname execution on a trusted host, not a sealed-image certificate.",
+    "interpretation": "Report medians and ranges of resource observations, show controlled launch-floor effects, and state whether the evidence supports a launch-history contribution. RSS includes runtime, loader and shared pages; it is not live HIA owner bytes or a resource safety theorem.",
+    "new_binary": "A small C supervisor only. It records its current VmHWM/VmRSS and getrusage, forks a child, records the child's pre-exec floor, execs the unchanged filecheck argv, and obtains wait4 rusage.",
+    "ordering": "rotate arms by group plus algorithm index; reverse on odd groups",
+    "original_observed_rss_kib": [
+      35072
+    ],
+    "original_performance_samples": 112,
+    "original_report_sha256": "d8271f1aa20aecc8f47da773006246278ea13f2422f7e142b514f27047dae09e",
+    "original_source_commit": "96bc1b4598a8469b0d44b09e7e97d4705cac2cc5",
+    "parent_memory_control": {
+      "algorithm": "ieee",
+      "anchor_arm": "hia_default",
+      "groups_each": 3,
+      "launch_order": "direct first on even groups, supervisor first on odd groups",
+      "launches": [
+        "direct_subprocess",
+        "c_supervisor_fork_exec"
+      ],
+      "observations": 12,
+      "padding_bytes": 67108864,
+      "profiles_in_order": [
+        "ordinary_python",
+        "python_with_64MiB_touched_live_padding"
+      ],
+      "scope": "Finite intervention on launcher residency; not a proof of all kernel accounting paths. Padding stays live throughout padded controls. No ordinary controls occur after padding."
+    },
+    "performance_advantage_recomputed": false,
+    "preserve_original_report_and_samples": true,
+    "reference": "https://man7.org/linux/man-pages/man2/getrusage.2.html",
+    "reference_observation": "Linux man-pages documents ru_maxrss in KiB and preservation of resource usage metrics across execve; the fork/exec control is still measured rather than presumed correct.",
+    "resource_metrics": [
+      "unchanged filecheck RUSAGE_SELF ru_maxrss",
+      "wait4 child ru_maxrss",
+      "supervisor current VmHWM and VmRSS",
+      "supervisor RUSAGE_SELF ru_maxrss",
+      "child pre-exec VmHWM and VmRSS",
+      "child pre-exec RUSAGE_SELF ru_maxrss",
+      "Python launcher VmHWM, VmRSS and RUSAGE_SELF ru_maxrss"
+    ],
+    "resource_observations": 48,
+    "resource_superiority_gate": false,
+    "reuse_exact_original_driver_libraries_input": true,
+    "schema": "hepta.hia.filecheck.rss-diagnostic.protocol.v1",
+    "status": "post-hoc diagnostic registered before new resource observations",
+    "target_recompilation_allowed": false,
+    "timing_policy": "Original program timing fields remain in raw stdout for provenance only. No supplementary latency or throughput summaries, performance winner selection, or replacement of any of the 112 original samples.",
+    "trigger": "All 112 previously completed filecheck samples reported peak_rss_kib=35072, so launcher history may dominate the process high-water mark.",
+    "unit": "KiB on the recorded Linux host"
+  },
+  "protocol_sha256": "fddf2b1f7fde73c3e475f99f454b89d529818de15dd985c7dc4ecef4fb282a36",
+  "python": {
+    "bytes": 30894944,
+    "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+    "sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7",
+    "version": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]"
+  },
+  "schema": "hepta.hia.filecheck.rss-diagnostic.v1",
+  "status": "started",
+  "target_artifacts": {
+    "c_native_lto": {
+      "bytes": 6256,
+      "path": "/tmp/hepta-six-filecheck-formal-01/c_native_lto.so",
+      "sha256": "5d1fa6db879d96b59ef3ad7111f2aac3f158b2c54f5be09e5a45a1d7bf08ac57"
+    },
+    "c_native_pgo": {
+      "bytes": 6120,
+      "path": "/tmp/hepta-six-filecheck-formal-01/c_native_pgo.so",
+      "sha256": "885d9e2087212ff0cc380624376ba3e211adeb4b47dc5bcbe362814d4d0b4da4"
+    },
+    "cpp_native_lto": {
+      "bytes": 6640,
+      "path": "/tmp/hepta-six-filecheck-formal-01/cpp_native_lto.so",
+      "sha256": "37aef7f476bb19f526f8438f8b425ae3341853dca2f7ee5426f5c291f8f6a39b"
+    },
+    "cpp_native_pgo": {
+      "bytes": 6504,
+      "path": "/tmp/hepta-six-filecheck-formal-01/cpp_native_pgo.so",
+      "sha256": "30f31ff2ab2c3415189b41e6b14a33dafe8037998fd7713012fbc257c1719ff5"
+    },
+    "hia_default": {
+      "bytes": 15496,
+      "path": "/tmp/hepta-six-filecheck-formal-01/hia_default.so",
+      "sha256": "65b221f505b63195c1425cfd51f86a8cb50d793166cb41918eb7d860376787a4"
+    },
+    "hia_native_lto": {
+      "bytes": 6120,
+      "path": "/tmp/hepta-six-filecheck-formal-01/hia_native_lto.so",
+      "sha256": "60e3c7a92eb4ef81a43f532e2ed6afbde05306ab6522a61070c3f17cb4cc2424"
+    },
+    "host_driver": {
+      "bytes": 16936,
+      "path": "/tmp/hepta-six-filecheck-formal-01/filecheck",
+      "sha256": "ddd918921708953babea9b8935fe9beea7a5efb837fcf1366f7997579d98fbde"
+    },
+    "rust_native_lto": {
+      "bytes": 1559536,
+      "path": "/tmp/hepta-six-filecheck-formal-01/rust_native_lto.so",
+      "sha256": "cf959d83b63984768dcdb1443c105775a73df1e517ba18e52d8c23147c871925"
+    },
+    "rust_native_pgo": {
+      "bytes": 1571952,
+      "path": "/tmp/hepta-six-filecheck-formal-01/rust_native_pgo.so",
+      "sha256": "3fd2ff4ac9dc348cd1403b18b131274479209fa6b681868a93a332429b2d5913"
+    }
+  },
+  "target_input": {
+    "bytes": 524325,
+    "checksums": {
+      "castagnoli": 1488052475,
+      "ieee": 391362793
+    },
+    "path": "/tmp/hepta-six-filecheck-formal-01/held-out.bin",
+    "sha256": "f4044cf3fbc3cb5b6a81338e19228872984350ceab4ee69e16e1c110bd74ddb7"
+  },
+  "tools": {
+    "clang": {
+      "bytes": 132448,
+      "path": "/tmp/hepta-toolchains/llvm20/usr/lib/llvm-20/bin/clang",
+      "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe"
+    }
+  }
+}

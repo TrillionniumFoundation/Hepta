@@ -97,6 +97,7 @@ def measure_fresh_deployment(directory, *, clang="clang", steps):
                   "experiment_total_includes_baseline_audit": True,
                   "performance_not_generalized_beyond_this_queue": True,
                   "builds": {key: image.receipt for key, image in runtime._images.items()},
+                  "admitted_native_images": runtime.snapshot()["native_images"],
                   "driver": runtime._driver_receipt}
     finally:
         runtime.close()
@@ -149,6 +150,7 @@ def qualify(directory, *, clang="clang", performance_steps=0):
         runtime = OwnedAdaptiveRuntime(base, work / "runtime", initial, clang=clang)
         token = runtime.prepare(candidate)
         report["builds"] = {key: image.receipt for key, image in runtime._images.items()}
+        report["admitted_native_images"] = runtime.snapshot()["native_images"]
         report["driver"] = runtime._driver_receipt
         report["distinct_native_artifacts"] = runtime._images[token].artifact_sha256 != runtime._images["baseline"].artifact_sha256
         _require(report["distinct_native_artifacts"], "Two actually distinct native implementations required")
@@ -159,7 +161,15 @@ def qualify(directory, *, clang="clang", performance_steps=0):
             binary = os.pread(image.fd, os.fstat(image.fd).st_size, 0)
             _require(sha256(binary).hexdigest() == image.artifact_sha256, "Loaded artifact binding changed")
             (snapshots / (name + ".so")).write_bytes(binary)
-            report["native_snapshots"][name] = {"sha256": image.artifact_sha256, "bytes": len(binary)}
+            mapping = report["admitted_native_images"][key]["loaded_mapping"]
+            identity = os.fstat(image.fd)
+            _require(mapping["inode"] == identity.st_ino and mapping["file_bytes"] == len(binary)
+                     and mapping["device_major"] == os.major(identity.st_dev)
+                     and mapping["device_minor"] == os.minor(identity.st_dev)
+                     and set(mapping["symbols"]) == {image.state["entry"]},
+                     "Per-image mapping evidence differs from actual retained descriptor")
+            report["native_snapshots"][name] = {"sha256": image.artifact_sha256, "bytes": len(binary),
+                                               "image_token": key, "loaded_mapping": mapping}
         before = runtime.snapshot()
         lease = runtime.borrow(mutable=True)
         _require(lease.read(0) == initial[0], "Actual owner read differs")
