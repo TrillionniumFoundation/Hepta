@@ -1,0 +1,409 @@
+{
+  "schema": "hepta.hia.program.v1",
+  "module": "standalone_test",
+  "functions": [
+    {
+      "name": "calculate",
+      "params": [
+        {
+          "name": "x",
+          "type": "u32"
+        },
+        {
+          "name": "mask",
+          "type": "u32"
+        }
+      ],
+      "returns": [
+        "u32"
+      ],
+      "effects": [],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "x",
+              "type": "u32"
+            },
+            {
+              "name": "mask",
+              "type": "u32"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "a",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {
+                "value": 1664525
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "z",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {
+                "value": 1013904223
+              }
+            },
+            {
+              "op": "int.mul.wrap",
+              "args": [
+                "x",
+                "a"
+              ],
+              "out": [
+                {
+                  "name": "m0",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "m0",
+                "z"
+              ],
+              "out": [
+                {
+                  "name": "b0",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "bit.xor",
+              "args": [
+                "b0",
+                "mask"
+              ],
+              "out": [
+                {
+                  "name": "r0",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.mul.wrap",
+              "args": [
+                "r0",
+                "a"
+              ],
+              "out": [
+                {
+                  "name": "m1",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "m1",
+                "z"
+              ],
+              "out": [
+                {
+                  "name": "b1",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "bit.xor",
+              "args": [
+                "b1",
+                "mask"
+              ],
+              "out": [
+                {
+                  "name": "r1",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.mul.wrap",
+              "args": [
+                "r1",
+                "a"
+              ],
+              "out": [
+                {
+                  "name": "m2",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "m2",
+                "z"
+              ],
+              "out": [
+                {
+                  "name": "b2",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "bit.xor",
+              "args": [
+                "b2",
+                "mask"
+              ],
+              "out": [
+                {
+                  "name": "r2",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.mul.wrap",
+              "args": [
+                "r2",
+                "a"
+              ],
+              "out": [
+                {
+                  "name": "m3",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "m3",
+                "z"
+              ],
+              "out": [
+                {
+                  "name": "b3",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "bit.xor",
+              "args": [
+                "b3",
+                "mask"
+              ],
+              "out": [
+                {
+                  "name": "r3",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.mul.wrap",
+              "args": [
+                "r3",
+                "a"
+              ],
+              "out": [
+                {
+                  "name": "m4",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "m4",
+                "z"
+              ],
+              "out": [
+                {
+                  "name": "b4",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "bit.xor",
+              "args": [
+                "b4",
+                "mask"
+              ],
+              "out": [
+                {
+                  "name": "r4",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.mul.wrap",
+              "args": [
+                "r4",
+                "a"
+              ],
+              "out": [
+                {
+                  "name": "m5",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "m5",
+                "z"
+              ],
+              "out": [
+                {
+                  "name": "b5",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "bit.xor",
+              "args": [
+                "b5",
+                "mask"
+              ],
+              "out": [
+                {
+                  "name": "r5",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.mul.wrap",
+              "args": [
+                "r5",
+                "a"
+              ],
+              "out": [
+                {
+                  "name": "m6",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "m6",
+                "z"
+              ],
+              "out": [
+                {
+                  "name": "b6",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "bit.xor",
+              "args": [
+                "b6",
+                "mask"
+              ],
+              "out": [
+                {
+                  "name": "r6",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.mul.wrap",
+              "args": [
+                "r6",
+                "a"
+              ],
+              "out": [
+                {
+                  "name": "m7",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "m7",
+                "z"
+              ],
+              "out": [
+                {
+                  "name": "b7",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "bit.xor",
+              "args": [
+                "b7",
+                "mask"
+              ],
+              "out": [
+                {
+                  "name": "r7",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "r7"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
