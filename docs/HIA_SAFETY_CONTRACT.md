@@ -17,7 +17,13 @@ python tools/qualify_hia_safety_contract.py --output /tmp/hia-safety/report.json
 
 The output path must be new. The runner rejects registry drift, unresolved
 entrypoints, missing tests, test skips, failures and source changes during the
-run. It records per-test outcomes, source hashes, tool identities and the
+run. The runner also pins the canonical identity of this reviewed matrix before
+resolving any dynamic entrypoint. Removing capabilities, substituting tests or
+changing scope, exclusions or trust assumptions cannot qualify as the same
+protocol. A deliberate protocol revision requires reviewing and updating the
+matrix and its independent identity in the runner together. This identity fixes
+the qualification scope; it is not a semantic proof or program admission token.
+It records per-test outcomes, source hashes, tool identities and the
 remaining unproved claims. A passing report means the selected regressions
 passed on those bytes and that host. It is not a soundness or refinement proof.
 The runner does not replace or wrap the Core verifier and does not admit an

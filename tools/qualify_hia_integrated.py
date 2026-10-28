@@ -15,7 +15,6 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 import errno
 from hashlib import sha256
-import io
 import json
 import os
 from pathlib import Path
@@ -25,7 +24,6 @@ import shutil
 import stat
 import subprocess
 import sys
-import tarfile
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -35,11 +33,12 @@ from tools.qualify_hia_ndu_pipeline import _write
 from tools.qualify_hia_unified import _command, cargo_test_outcome, unittest_outcome
 from tools.release_check import _read_regular_evidence
 
-SCHEMA = "hepta.hia.integrated-contract-qualification.v1"
+SCHEMA = "hepta.hia.integrated-contract-qualification.v2"
 RECURSIVE_SOURCE = "2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b"
 FINITE_SOURCE = "4b6391e116949af0c7e59776baead67271856bdb"
+STREAM_SOURCE = "c4a1bbed3a39beba43a6abf1a18b6f75c5725c21"
 EXPECTED_GATE_NAMES = ("actual_tools_and_linux_seals", "ranking_bridge_identity",
-                       "recursive_bridge_identity", "finite_bridge_identity",
+                       "recursive_bridge_identity", "finite_bridge_identity", "stream_bridge_identity",
                        "rust_resource_crate", "full_regression", "merge_and_profile_coverage")
 CRITICAL_MODULES = {
     "wire_rejection": ("test_hia_inmemory_json_key_collisions", "test_hia_inmemory_surrogate_wire",
@@ -74,6 +73,13 @@ CRITICAL_MODULES = {
     "raw_rust_integer_admission": ("test_hia_rust_raw_integer",),
     "partial_record_states": ("test_hia_partial_record", "test_hia_partial_record_scenarios",
                               "test_hia_partial_finite_bounds"),
+    "source_local_views": ("test_hia_source_local_views",),
+    "rust_invocation_bound_execution": ("test_hia_rust_execution_crosscheck", "test_hia_rust_transport_lifecycle"),
+    "reviewed_safety_protocol": ("test_hia_safety_protocol", "test_hia_integrated_inputs"),
+    "scalar_c_pilot_admission": ("test_c2hepta_api_path_isolation", "test_c2hepta_bounded_source",
+        "test_c2hepta_bounded_capture", "test_migration_ir_identifier_guard",
+        "test_migration_ir_literal_guard", "test_migration_ir_structural_budget",
+        "test_migration_ir_neg_payload_guard", "test_migration_ir_parser_budget"),
     "source_partial_restore": ("test_hia_source_partial",),
     "source_scalar_export_boundaries": ("test_hia_source_exports",),
     "incremental_v8_admission": ("test_hia_incremental", "test_hia_incremental_independent",
@@ -111,7 +117,9 @@ def _require(condition, message):
 
 
 def _git(*arguments, root=ROOT):
-    return subprocess.check_output(["git", *map(str, arguments)], cwd=root)
+    # A local refs/replace entry must not reinterpret the commit/blob whose
+    # immutable identity is being qualified. This also covers source_state.
+    return subprocess.check_output(["git", "--no-replace-objects", *map(str, arguments)], cwd=root)
 
 
 def _digest_file(path):
@@ -166,6 +174,9 @@ def _environment(options, output):
         "HEPTA_RECURSIVE_NDU_IDENTITY": str(options.recursive_identity.resolve()),
         "HEPTA_FINITE_NDU_BRIDGE": str(options.finite_bridge.resolve()),
         "HEPTA_FINITE_NDU_IDENTITY": str(options.finite_identity.resolve()),
+        "HEPTA_NDU_STREAM_BRIDGE": str(options.stream_bridge.resolve()),
+        "HEPTA_NDU_STREAM_IDENTITY": str(options.stream_identity.resolve()),
+        "HEPTA_NDU_STREAM_UPSTREAM": str(options.stream_upstream.resolve()),
         "CARGO_NET_OFFLINE": "true", "PYTHONDONTWRITEBYTECODE": "1",
         "CARGO_TARGET_DIR": str(options.cargo_target_dir.resolve() if options.cargo_target_dir
                                 else output / "rust-target"),
@@ -271,14 +282,25 @@ def _checked_map(root, expected):
 def _git_inventory(checkout, commit, expected):
     observed = _git("rev-parse", commit + "^{commit}", root=checkout).decode().strip()
     _require(observed == commit, "upstream Git commit identity differs")
-    archive = _git("archive", commit, "--", *sorted(expected), root=checkout)
-    original = {}
-    with tarfile.open(fileobj=io.BytesIO(archive)) as package:
-        for entry in package:
-            if entry.isdir():
-                continue
-            _require(entry.isfile(), "source archive contains a nonregular member")
-            original[entry.name] = sha256(package.extractfile(entry).read()).hexdigest()
+    # Read the selected commit's raw blobs. `git archive` can apply
+    # export-subst/export-ignore and, for a partial clone, prefetch unrelated
+    # blobs from the whole repository before it filters the requested paths.
+    # Neither transformation nor unrelated downloads belong in this identity
+    # check of the already-declared compiler inputs.
+    tree = _git("ls-tree", "--full-tree", "-r", "-z", commit, "--", *sorted(expected), root=checkout)
+    entries = {}
+    for record in tree.split(b"\0"):
+        if not record:
+            continue
+        metadata, encoded_path = record.split(b"\t", 1)
+        mode, kind, object_id = metadata.decode("ascii").split()
+        name = encoded_path.decode("utf-8")
+        _require(mode in {"100644", "100755"} and kind == "blob" and name not in entries,
+                 "source tree contains a duplicate or nonregular member")
+        entries[name] = object_id
+    _require(set(entries) == set(expected), "source tree paths differ from the declared input inventory")
+    original = {name: sha256(_git("cat-file", "blob", object_id, root=checkout)).hexdigest()
+                for name, object_id in entries.items()}
     _require(original == expected, "recorded source bytes differ from the exact upstream Git object")
     return observed
 
@@ -312,13 +334,14 @@ def _ranking_gate(options, output):
 def _native_ndu_gate(options, output, *, profile):
     from hepta.hia_ndu import NduBridge, Q32, REQUEST_SCHEMA, candidate, event, finite_plan_request
 
-    _require(profile in {"recursive", "finite"}, "unknown native NDU profile")
+    _require(profile in {"recursive", "finite", "stream"}, "unknown native NDU profile")
     binary = getattr(options, profile + "_bridge")
     receipt_path = getattr(options, profile + "_identity")
     upstream = getattr(options, profile + "_upstream")
-    expected_source = RECURSIVE_SOURCE if profile == "recursive" else FINITE_SOURCE
-    cargo = options.cargo if profile == "recursive" else options.finite_cargo
-    rustc = options.rustc if profile == "recursive" else options.finite_rustc
+    expected_source = {"recursive": RECURSIVE_SOURCE, "finite": FINITE_SOURCE,
+                       "stream": STREAM_SOURCE}[profile]
+    cargo = options.finite_cargo if profile == "finite" else options.cargo
+    rustc = options.finite_rustc if profile == "finite" else options.rustc
     bridge = (NduBridge.for_finite_profile(binary, receipt_path)
               if profile == "finite" else NduBridge(binary, receipt_path))
     manifest = bridge.manifest
@@ -376,6 +399,23 @@ def _native_ndu_gate(options, output, *, profile):
         selected = bundle["plans"].get(response["advisory_candidate_id"])
         _require(selected is not None and [action["id"] for action in selected["actions"]]
                  == ["hold", "install-fast"], "actual finite native continuation differs")
+    session_observation = None
+    if profile == "stream":
+        from hepta.hia_ndu_session import NduSession
+
+        # The full suite uses the persistent transport as a separate native
+        # dependency. Bind and actually probe that process, not just its
+        # compatible one-shot interface or an inherited environment variable.
+        with NduSession(binary, receipt_path) as session:
+            pid = session.snapshot()["pid"]
+            for generation in (1, 2):
+                stream_request = {**request, "generation": generation}
+                _require(session.evaluate(stream_request) == bridge.evaluate(stream_request),
+                         "actual stream and one-shot controls differ")
+                _require(session.snapshot()["pid"] == pid, "stream unexpectedly replaced its process")
+            session_observation = session.snapshot()
+        _require(session.snapshot()["closed"] is True, "stream control did not close")
+        session_observation["closed_after_context"] = True
     _require(_digest_file(binary) == manifest["binary_sha256"],
              "recursive binary changed during actual invocation")
     _require(_digest_file(receipt_path) == receipt_digest,
@@ -388,6 +428,7 @@ def _native_ndu_gate(options, output, *, profile):
                             "rustc": {"path": _resolve_tool(rustc), "sha256": expected_tools["rustc_sha256"]}},
             "native_sources": manifest["native_sources"], "bridge_sources": manifest["bridge_sources"],
             "request": request, "response": response, "finite_bundle": bundle,
+            "session_observation": session_observation,
             "scope": "one synthetic advisory protocol probe; verified input flags confer no code admission authority"}
 
 
@@ -397,6 +438,10 @@ def _recursive_gate(options, output):
 
 def _finite_gate(options, output):
     return _native_ndu_gate(options, output, profile="finite")
+
+
+def _stream_gate(options, output):
+    return _native_ndu_gate(options, output, profile="stream")
 
 
 def _coverage(execution, outcome):
@@ -417,7 +462,7 @@ def _coverage(execution, outcome):
 def _external_inventory(options, gates):
     paths = {Path(sys.executable).resolve(), options.ranking_bridge, options.ranking_build_receipt,
              options.recursive_bridge, options.recursive_identity,
-             options.finite_bridge, options.finite_identity}
+             options.finite_bridge, options.finite_identity, options.stream_bridge, options.stream_identity}
     by_name = {row["name"]: row for row in gates}
     tools = by_name.get("actual_tools_and_linux_seals", {})
     for row in tools.get("tools", {}).values():
@@ -442,7 +487,8 @@ def _external_inventory(options, gates):
         paths.update(Path(z3.__file__).parent.glob("*.py"))
     ranking = by_name.get("ranking_bridge_identity", {})
     paths.update(options.ranking_build_receipt.parent / name for name in ranking.get("build_inputs", {}))
-    native_profiles = [(name, by_name.get(name + "_bridge_identity", {})) for name in ("recursive", "finite")]
+    native_profiles = [(name, by_name.get(name + "_bridge_identity", {}))
+                       for name in ("recursive", "finite", "stream")]
     for name, native in native_profiles:
         upstream = getattr(options, name + "_upstream")
         if native.get("passed"):
@@ -509,12 +555,13 @@ def qualify(options):
                "critical_modules": CRITICAL_MODULES, "configured_environment": configured,
                "commands": [{"name": name, "argv": argv} for name, argv, _ in commands],
                "native_identity_gates": ["actual_tools_and_linux_seals", "ranking_bridge_identity",
-                                         "recursive_bridge_identity", "finite_bridge_identity"],
+                                         "recursive_bridge_identity", "finite_bridge_identity", "stream_bridge_identity"],
                "historical_performance_denominators_combined": False})
         for name, function in (("actual_tools_and_linux_seals", _tool_gate),
                                ("ranking_bridge_identity", _ranking_gate),
                                ("recursive_bridge_identity", _recursive_gate),
-                               ("finite_bridge_identity", _finite_gate)):
+                               ("finite_bridge_identity", _finite_gate),
+                               ("stream_bridge_identity", _stream_gate)):
             print(json.dumps({"gate": name, "state": "running"}), flush=True)
             try:
                 row = {"name": name, **function(options, output)}
@@ -579,12 +626,16 @@ def main(argv=None):
     parser.add_argument("--finite-bridge", type=Path, required=True)
     parser.add_argument("--finite-identity", type=Path, required=True)
     parser.add_argument("--finite-upstream", type=Path, required=True)
+    parser.add_argument("--stream-bridge", type=Path, required=True)
+    parser.add_argument("--stream-identity", type=Path, required=True)
+    parser.add_argument("--stream-upstream", type=Path, required=True)
     parser.add_argument("--finite-cargo", required=True)
     parser.add_argument("--finite-rustc", required=True)
     parser.add_argument("--timeout", type=int, default=1800, help="timeout of each actual Rust/full regression gate")
     options = parser.parse_args(argv)
     for name in ("ranking_bridge", "ranking_build_receipt", "ranking_upstream", "recursive_bridge",
-                 "recursive_identity", "recursive_upstream", "finite_bridge", "finite_identity", "finite_upstream"):
+                 "recursive_identity", "recursive_upstream", "finite_bridge", "finite_identity", "finite_upstream",
+                 "stream_bridge", "stream_identity", "stream_upstream"):
         setattr(options, name, getattr(options, name).resolve())
     try:
         _require(1 <= options.timeout <= 3600, "gate timeout must be in 1..3600 seconds")

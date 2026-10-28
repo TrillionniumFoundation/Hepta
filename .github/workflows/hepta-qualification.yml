@@ -3,6 +3,7 @@ name: Hepta qualified full gates
 on:
   push:
     branches:
+      - codex/hia-core-closure-20261028
       - feat/hepta-p0-p1-verified-ir-20261024
       - feat/hepta-agent-safe-cfg-cpp-20261024
       - feat/hepta-safe-migration-agent-20261024
@@ -219,6 +220,28 @@ jobs:
             --output "$hepta_finite_build" --target-dir "$RUNNER_TEMP/hepta-finite-ndu-target"
           printf 'HEPTA_FINITE_NDU_BRIDGE=%s\nHEPTA_FINITE_NDU_IDENTITY=%s\n' \
             "$hepta_finite_build/native/hepta-hia-ndu-bridge" "$hepta_finite_build/identity.json" >> "$GITHUB_ENV"
+      - name: Build the separately pinned persistent stream NDU bridge
+        shell: bash
+        run: |
+          hepta_stream_checkout="$RUNNER_TEMP/hepta-stream-ndu-source"
+          hepta_stream_build="$RUNNER_TEMP/hepta-stream-ndu-build"
+          hepta_stream_commit=c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+          git init "$hepta_stream_checkout"
+          git -C "$hepta_stream_checkout" remote add origin https://github.com/TrillionniumFoundation/hepta-private-ci.git
+          git -C "$hepta_stream_checkout" config remote.origin.promisor true
+          git -C "$hepta_stream_checkout" config remote.origin.partialclonefilter blob:none
+          git -C "$hepta_stream_checkout" -c protocol.version=2 fetch --filter=blob:none --depth=1 origin "$hepta_stream_commit"
+          git -C "$hepta_stream_checkout" sparse-checkout set --no-cone \
+            /codex-rs/Cargo.toml /codex-rs/hepta-ndu/ /codex-rs/hepta-types/ \
+            /codex-rs/hepta-contracts/ /tools/hia-ndu-bridge/
+          git -C "$hepta_stream_checkout" checkout --detach FETCH_HEAD
+          test "$(git -C "$hepta_stream_checkout" rev-parse HEAD)" = "$hepta_stream_commit"
+          CARGO_INCREMENTAL=0 CARGO_PROFILE_RELEASE_DEBUG=0 python tools/build_hia_recursive_ndu_bridge.py \
+            --ndu-source "$hepta_stream_checkout" --expected-source "$hepta_stream_commit" \
+            --cargo "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/bin/cargo" --rustc "$RUSTC" \
+            --output "$hepta_stream_build" --target-dir "$RUNNER_TEMP/hepta-stream-ndu-target"
+          printf 'HEPTA_NDU_STREAM_BRIDGE=%s\nHEPTA_NDU_STREAM_IDENTITY=%s\n' \
+            "$hepta_stream_build/native/hepta-hia-ndu-bridge" "$hepta_stream_build/identity.json" >> "$GITHUB_ENV"
       - name: Install SHA-256-locked Lean and QEMU tools
         run: python tools/bootstrap_verification.py
       - name: Export verification tools for every qualification step

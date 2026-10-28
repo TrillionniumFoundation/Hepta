@@ -63,9 +63,16 @@
       "regression_selectors": [
         "tests.test_hia_program_source.HIASourceTests.test_removed_drop_cannot_be_resealed_into_valid_hia",
         "tests.test_hia_program_source.HIASourceTests.test_unmodeled_source_never_falls_back_to_foreign_or_rust_execution",
-        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_record_field_path_changes_local_origins_and_stored_borrows_reject"
+        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_record_field_path_changes_local_origins_and_stored_borrows_reject",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_local_views_enter_same_core_and_preserve_shared_aliases",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_mutable_views_move_drop_and_rejoin_each_loop",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_existing_invalid_aliases_and_escaping_storage_still_reject",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_removed_loan_end_rejected_by_canonical_core",
+        "tests.test_hia_source_local_views.HIASourceLocalViewRust.test_actual_rust_machine_matches_values_loans_failures_and_every_step",
+        "tests.test_hia_source_local_views.HIASourceLocalViewNative.test_source_rust_and_canonical_llvm_execute_same_finite_inputs",
+        "tests.test_hia_source_local_views.HIASourceLocalViewNative.test_actual_allocator_failure_preserves_local_view_cleanup"
       ],
-      "scope": "default primitive v1; explicit v8; finite checked scalars, records, Result and closed specialization"
+      "scope": "default primitive v1; explicit v8; finite checked scalars, records, Result and closed specialization; finite local byte-view records through the existing lexical Resource IR checker and canonical primitive v1/v8"
     },
     {
       "entrypoints": [
@@ -187,7 +194,8 @@
     },
     {
       "entrypoints": [
-        "hepta.hia_rust_crosscheck.crosscheck_rust_shadow"
+        "hepta.hia_rust_crosscheck.crosscheck_rust_shadow",
+        "hepta.hia_rust_crosscheck.crosscheck_rust_execution"
       ],
       "exclusions": [
         "no deployment authority",
@@ -196,9 +204,14 @@
       "guarantee": "independent_finite_comparison_only",
       "id": "independent_shadow",
       "regression_selectors": [
-        "tests.test_hia_rust_owned_vm.RustByteOwnerVmParity.test_wrong_types_exports_and_illegal_loans_cannot_enter_machine"
+        "tests.test_hia_rust_owned_vm.RustByteOwnerVmParity.test_wrong_types_exports_and_illegal_loans_cannot_enter_machine",
+        "tests.test_hia_rust_execution_crosscheck.RustExecutionCrosscheck.test_changed_request_is_rejected_even_when_rehashed_and_same_result",
+        "tests.test_hia_rust_execution_crosscheck.RustExecutionCrosscheck.test_complete_report_types_capabilities_and_stopped_ledger_are_checked",
+        "tests.test_hia_rust_execution_crosscheck.RustExecutionCrosscheck.test_return_trap_heap_and_every_step_stop_keep_exact_ledgers",
+        "tests.test_hia_rust_transport_lifecycle.RustShadowTransportLifecycle.test_exited_leader_with_inherited_pipe_reaps_descendant_on_deadline",
+        "tests.test_hia_rust_transport_lifecycle.RustShadowTransportLifecycle.test_success_nonzero_and_stderr_reap_descendant_before_returning"
       ],
-      "scope": "Rust closed byte-owner/returned-loan/owned-chain Machine profiles"
+      "scope": "Rust closed byte-owner/returned-loan/owned-chain Machine profiles; fresh invocation-bound Python/Rust comparison of scalar public entries, full outcomes and stopped resource ledgers; Linux process-group ownership retained through bounded cleanup"
     },
     {
       "entrypoints": [
@@ -259,7 +272,9 @@
     {
       "entrypoints": [
         "hepta.c_migrate.migrate_c_project",
-        "hepta.cpp_unique_project.lower_unique_project"
+        "hepta.cpp_unique_project.lower_unique_project",
+        "tools.c2hepta.migrate",
+        "hepta.migration_ir.check_function"
       ],
       "exclusions": [
         "caller-supplied pointer extent/provenance/lifetime obligations are not inferred or proved",
@@ -270,9 +285,31 @@
       "id": "ffi_contracts",
       "regression_selectors": [
         "tests.test_c_contract_identity.CContractIdentityTests.test_slice_length_rejects_parameter_position_drift_in_either_unit_order",
-        "tests.test_c_contract_identity.CContractIdentityTests.test_initializer_source_rejects_parameter_position_drift"
+        "tests.test_c_contract_identity.CContractIdentityTests.test_initializer_source_rejects_parameter_position_drift",
+        "tests.test_c2hepta_bounded_capture.C2HeptaCompilerCapture.test_every_clang_stage_enforces_stdout_budget_while_running",
+        "tests.test_c2hepta_bounded_capture.C2HeptaCompilerCapture.test_successful_query_also_reaps_its_descendant",
+        "tests.test_c2hepta_bounded_capture.C2HeptaCompilerCapture.test_query_timeout_reaps_its_descendant",
+        "tests.test_c2hepta_bounded_capture.C2HeptaCompilerCapture.test_original_c_and_emitted_hepta_have_matching_native_results"
       ],
-      "scope": "finite captured C/C++ profiles with complete selected declaration/configuration census"
+      "scope": "finite captured C/C++ profiles with complete selected declaration/configuration census; bounded scalar C pilot inputs, compiler capture and independent migration IR admission"
+    },
+    {
+      "entrypoints": [
+        "tools.qualify_hia_safety_contract.validate_contract"
+      ],
+      "exclusions": [
+        "no program admission authority",
+        "no authentication of a hostile host or maintainer",
+        "no soundness or refinement proof"
+      ],
+      "guarantee": "reviewed_qualification_protocol",
+      "id": "qualification_protocol_integrity",
+      "regression_selectors": [
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_removing_each_reviewed_capability_is_refused",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_removing_each_boundary_regression_is_refused",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_stateful_python_containers_cannot_reduce_the_hashed_selection"
+      ],
+      "scope": "exact reviewed capability/test/assumption matrix; dynamic resolution uses only the canonical bytes whose independent identity passed"
     }
   ],
   "judgment": {

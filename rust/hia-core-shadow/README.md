@@ -4,6 +4,12 @@ The Python Core verifier remains the production admission authority. This crate
 is an independent checking and execution oracle, not a native backend or a
 whole-language safety proof.
 
+For an exact invocation comparison, `--owned-run-bound` wraps the same Machine
+report with a canonical request binding the Core, entry, arguments and policy.
+The Python `crosscheck_rust_execution` API checks both full execution outcomes
+and stopped resource ledgers using the pinned executable. Legacy reports are
+unchanged. See [the invocation contract](../../docs/HIA_RUST_BOUND_EXECUTION.md).
+
 ## Byte-owner execution profile v3
 
 `--owned-run FUNCTION JSON_ARGS [MAX_STEPS MAX_HEAP_BYTES FAIL_AT|none]` uses

@@ -506,7 +506,7 @@ fn check_function(fn_value: &Value, sig: &Signature, functions: &BTreeMap<String
 }
 mod ownership;
 mod scalar_vm;
-pub use scalar_vm::{execute_owned, execute_scalar};
+pub use scalar_vm::{execute_owned, execute_owned_bound, execute_scalar};
 
 // serde_json reports the JSON integer token -0 through visit_f64, although
 // the Core JSON contract (and its Python decoder) treats that token as integer

@@ -4,6 +4,7 @@
 //! the existing Owner/Loan verifier plus a whole-module execution whitelist.
 use std::collections::BTreeMap;
 use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
 use super::{decode_hia, failure, int_bits, valid_constant, verify, verify_owned, R};
 
 mod byte_memory;
@@ -362,6 +363,52 @@ pub fn execute_owned(input: &[u8], function: &str, arguments: &[Value],
     }
     execute(input, function, arguments, max_steps,
             Some((max_heap_bytes, allocation_fail_at)))
+}
+
+/// Bind one actual independent execution to its complete caller request.
+///
+/// This opt-in transport envelope uses the SAME verifier and Machine as
+/// execute_owned. Legacy execution reports are unchanged. The hash binds
+/// canonical Core, entry, scalar arguments and all finite execution limits;
+/// it authenticates neither the binary nor a third-party report producer.
+pub fn execute_owned_bound(input: &[u8], function: &str, arguments: &[Value],
+                           max_steps: u64, max_heap_bytes: u64,
+                           allocation_fail_at: Option<u64>) -> R<Value> {
+    if arguments.len() > super::MAX_SCALAR_ARGS || arguments.iter().any(|value| {
+        !matches!(value, Value::Number(_) | Value::Bool(_) | Value::Null)
+    }) {
+        return failure("E_HIA_INPUT", "bound execution requires bounded scalar arguments");
+    }
+    let encoded_arguments = serde_json::to_vec(arguments).map_err(|error| super::VerifyError {
+        code: "E_HIA_INPUT", detail: error.to_string(),
+    })?;
+    if encoded_arguments.len() > super::MAX_SCALAR_ARGS_BYTES {
+        return failure("E_HIA_INPUT", "bound execution arguments exceed the wire budget");
+    }
+    let execution = execute_owned(input, function, arguments, max_steps,
+                                  max_heap_bytes, allocation_fail_at)?;
+    let request = json!({
+        "schema": "hepta.hia.rust-execution-request.v1",
+        "program_sha256": execution["program_sha256"],
+        "function": function,
+        "arguments": arguments,
+        "mode": "owned",
+        "policy": {
+            "max_steps": max_steps,
+            "max_heap_bytes": max_heap_bytes,
+            "allocation_fail_at": allocation_fail_at,
+            "max_call_depth": MAX_CALL_DEPTH,
+        },
+    });
+    let canonical_request = serde_json::to_vec(&request).map_err(|error| super::VerifyError {
+        code: "E_HIA_INPUT", detail: error.to_string(),
+    })?;
+    Ok(json!({
+        "schema": "hepta.hia.rust-bound-execution.v1",
+        "request_sha256": format!("{:x}", Sha256::digest(canonical_request)),
+        "request": request,
+        "execution": execution,
+    }))
 }
 
 fn owned_execution_profile(document: &Value) -> R<bool> {

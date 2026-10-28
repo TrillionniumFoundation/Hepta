@@ -29,6 +29,12 @@ if str(ROOT) not in sys.path:
 from hepta.hia_schema import schema_registry
 
 CONTRACT = ROOT / "docs/HIA_SAFETY_CONTRACT.json"
+# This is the reviewed qualification protocol, not a program admission receipt.
+# Pin it independently of the JSON supplied to validate_contract: otherwise a
+# caller can remove capabilities/tests and still obtain the same qualification
+# status for a weaker matrix. Deliberate protocol changes must review and update
+# this identity together with the contract and its boundary tests.
+REVIEWED_CONTRACT_SHA256 = "2f80ec47babde69b344d47f79a1ff4eb656029fa0aa061e37d5ceaa961cbd234"
 _UNPROVED = frozenset({"whole_language_soundness_proved", "source_to_core_refinement_proved",
     "core_to_native_refinement_proved", "global_optimality_proved", "absolute_resource_safety_proved",
     "general_concurrent_memory_safety_proved", "native_process_memory_bound_proved",
@@ -38,7 +44,7 @@ _GUARANTEES = frozenset({"checked_on_every_admission", "checked_source_and_rever
     "explicit_cooperative_protocol", "unknown_or_reject_outside_finite_profile", "recomputed_from_actual_core",
     "independent_finite_comparison_only", "proved_only_within_declared_solver_profile",
     "host_enforced_scoped_admission", "uncertain_release_quarantined_no_numeric_retry",
-    "checked_translation_with_foreign_obligations"})
+    "checked_translation_with_foreign_obligations", "reviewed_qualification_protocol"})
 
 
 def digest(path):
@@ -69,6 +75,17 @@ def resolve(name):
 
 def validate_contract(contract):
     """Check the review boundary and executable references; do not admit Core."""
+    try:
+        canonical = wire(contract)
+        identity = sha256(canonical).hexdigest()
+    except (TypeError, ValueError, OverflowError, RecursionError) as error:
+        raise ValueError("E_SAFETY_PROTOCOL: canonical reviewed contract required") from error
+    if identity != REVIEWED_CONTRACT_SHA256:
+        raise ValueError("E_SAFETY_PROTOCOL: reviewed capability, test and assumption matrix changed")
+    # Continue from the bytes that were checked. Public Python callers can pass
+    # stateful list/dict subclasses; iterating the caller's object again could
+    # otherwise select fewer regressions after its full matrix was hashed.
+    contract = json.loads(canonical)
     if (type(contract) is not dict or contract.get("schema") != "hepta.hia.safety-contract.v1"
             or contract.get("status") != "implementation_contract_with_finite_regression_evidence"
             or contract.get("registry") != schema_registry()):
@@ -209,6 +226,7 @@ def qualify():
     return {"schema": "hepta.hia.safety-contract-qualification.v1",
             "status": "passed" if passed else "failed", "contract": contract,
             "contract_sha256": sha256(wire(contract)).hexdigest(),
+            "reviewed_contract_sha256": REVIEWED_CONTRACT_SHA256,
             "source_before": before, "source_after": after, "source_stable": stable,
             "head_before": head_before, "head_after": head_after, "status_before": status_before,
             "environment": environment, "tests_run": result.testsRun, "expected_tests": len(selectors),
