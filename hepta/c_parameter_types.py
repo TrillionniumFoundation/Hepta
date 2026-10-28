@@ -15,6 +15,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 
@@ -240,9 +241,7 @@ def original_parameter_types(capture, config, declarations, physical_source_file
             emitted = run_bounded([*helper, "--emit-ast"], cwd=config["directory"],
                                   input_text=json.dumps(request), timeout=35,
                                   stdin_limit=8_000_000, stdout_limit=1_000_000, stderr_limit=1_000_000)
-            if (emitted.returncode or not ast_path.is_file()
-                    or not 0 < ast_path.stat().st_size <= MAX_AST_BYTES):
-                raise ValueError("serialized AST emission failed: " + emitted.stderr[-4000:])
+            _check_emitted_ast(emitted, ast_path, argv=request["argv"])
             ast_identity = _digest_file(ast_path)
             request["serialized_ast"] = ast_identity
             run = run_bounded([*helper, "--worker"], cwd=config["directory"],
@@ -291,6 +290,46 @@ def original_parameter_types(capture, config, declarations, physical_source_file
         raise
     except (CaptureRejected, OSError, ValueError, KeyError, TypeError, RecursionError) as exc:
         raise MigrationRejected("E_C_ORIGINAL_TYPE", str(exc)) from exc
+
+
+
+def _check_emitted_ast(emitted, ast_path, *, argv=None):
+    """Reject compiler or output failure with bounded, actual diagnostics."""
+    ast_path = Path(ast_path)
+    present, regular = ast_path.exists(), ast_path.is_file()
+    size = ast_path.stat().st_size if regular else None
+    if emitted.returncode or not regular or not 0 < size <= MAX_AST_BYTES:
+        details = {
+            "returncode": emitted.returncode,
+            "ast_path": str(ast_path), "ast_present": present,
+            "ast_regular_file": regular, "ast_bytes": size,
+            "ast_byte_limit": MAX_AST_BYTES,
+            "stdout_characters": len(emitted.stdout),
+            "stderr_characters": len(emitted.stderr),
+            "stdout_tail": emitted.stdout[-4000:],
+            "stderr_tail": emitted.stderr[-4000:],
+        }
+        if argv is not None:
+            details.update({
+                "argv": [argument[:1024] for argument in argv[:128]],
+                "argv_count": len(argv),
+                "argv_truncated": len(argv) > 128 or any(len(argument) > 1024 for argument in argv),
+                "argv_argument_limit": 128,
+                "argv_character_limit": 1024,
+            })
+        raise ValueError("serialized AST emission failed: " + json.dumps(details, sort_keys=True))
+
+
+def _wait_for_ast_compiler(argv):
+    """Use CreateProcess argument quoting and retain the wrapper until exit.
+
+    Inherit the outer bounded capture's file-backed standard handles and its
+    process-tree ownership. No shell, breakaway flag or new session is used.
+    The outer capture, rather than a second independent timer, owns the
+    unchanged compiler deadline and terminates the complete process tree.
+    """
+    process = subprocess.Popen(argv, shell=False)
+    return process.wait()
 
 
 def _limits():
@@ -480,8 +519,8 @@ def _read_ast(library, ast_path, expected):
 
 
 def _set_process_limits():
-    # Each phase is directly owned by the outer run_bounded process group.
-    # No nested session can outlive its parent compiler/reader deadline.
+    # POSIX phases retain the outer run_bounded process group. Windows child
+    # process ownership is established by that outer capture, not by rlimits.
     if os.name == "posix":
         import resource
         for kind, limit in ((resource.RLIMIT_AS, 2 * 1024 * 1024 * 1024),
@@ -534,7 +573,13 @@ def _emit_ast(request):
             or _digest_file(__file__) != request["worker"]
             or _digest_file(sys.executable) != request["python"]):
         raise ValueError("serialized AST emission input identity mismatch")
-    # Replace the wrapper, retaining its process group and file-size budget.
+    if os.name == "nt":
+        # Windows CRT exec is not POSIX process replacement. Keep this wrapper
+        # alive while the compiler runs so the outer capture cannot treat an
+        # early wrapper exit as completion. Popen quotes each argv element and
+        # the actual compiler status becomes this worker's status.
+        raise SystemExit(_wait_for_ast_compiler(argv))
+    # POSIX replacement retains the bounded process group and RLIMITs.
     os.execv(compiler["path"], argv)
 
 

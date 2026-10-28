@@ -33,6 +33,22 @@ class CaptureBudgets(unittest.TestCase):
         p = run_bounded([sys.executable, '-c', 'import sys; sys.exit(7)'], timeout=3)
         self.assertEqual(p.returncode, 7)
 
+    def test_launch_failure_cannot_start_the_requested_command(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            marker = Path(tmp) / 'must-not-start.txt'
+            command = [sys.executable, '-c',
+                       f'import pathlib; pathlib.Path({str(marker)!r}).write_text("started")']
+            # Windows starts the real gated launcher but denies actual job
+            # assignment. POSIX rejects process creation at the existing seam.
+            target = ('hepta.windows_capture.WindowsJob.assign' if os.name == 'nt'
+                      else 'hepta.clang_capture.subprocess.Popen')
+            with patch(target, side_effect=OSError('injected launch/assignment failure')):
+                with self.assertRaises(CaptureRejected) as caught:
+                    run_bounded(command, timeout=3)
+            self.assertEqual(caught.exception.code, 'E_CAPTURE_EXEC')
+            time.sleep(.4)
+            self.assertFalse(marker.exists(), 'requested compiler ran after failed admission')
+
     def test_stdout_limit(self):
         with self.assertRaises(CaptureRejected) as e:
             run_bounded([sys.executable, '-c', 'print("x"*1000000)'],
@@ -83,19 +99,51 @@ class CaptureBudgets(unittest.TestCase):
             run_bounded([sys.executable, '-c', 'import os;os.write(1,b"\\xff")'], timeout=3)
         self.assertEqual(e.exception.code, 'E_CAPTURE_ENCODING')
 
-    @unittest.skipUnless(os.name == 'posix', 'POSIX session descendants only')
-    def test_descendant_cancelled_even_when_parent_succeeds(self):
+    def _descendant_cleanup(self, mode):
         with tempfile.TemporaryDirectory() as tmp:
             signal_path = Path(tmp) / 'survived.txt'
-            grandchild = ("import time,pathlib;time.sleep(0.6);"
+            started_path = Path(tmp) / 'started.txt'
+            grandchild = ("import time,pathlib;"
+                          + f"pathlib.Path({str(started_path)!r}).write_text('started');"
+                          + "time.sleep(3);"
                           + f"pathlib.Path({str(signal_path)!r}).write_text('survived')")
-            child = ("import subprocess,sys;" +
-                     f"subprocess.Popen([sys.executable,'-c',{grandchild!r}]);" +
-                     "print('parent finished')")
-            result = run_bounded([sys.executable, '-c', child], timeout=2)
-            self.assertEqual(result.returncode, 0)
-            time.sleep(.9)
-            self.assertFalse(signal_path.exists(), 'compiler orphan survived parent completion')
+            child = ("import subprocess,sys,pathlib,time\n"
+                     + f"subprocess.Popen([sys.executable,'-c',{grandchild!r}])\n"
+                     + f"started = pathlib.Path({str(started_path)!r})\n"
+                     + "while not started.exists(): time.sleep(.005)\n"
+                     + "print('descendant started', flush=True)\n")
+            if mode == 'timeout':
+                child += "time.sleep(10)\n"
+            elif mode == 'output':
+                child += "print('x' * 100000, flush=True)\ntime.sleep(10)\n"
+            elif mode == 'nonzero':
+                child += "sys.exit(7)\n"
+            if mode in ('timeout', 'output'):
+                with self.assertRaises(CaptureRejected) as caught:
+                    run_bounded([sys.executable, '-c', child], timeout=2,
+                                stdout_limit=4096)
+                expected = 'E_CAPTURE_TIMEOUT' if mode == 'timeout' else 'E_CAPTURE_OUTPUT_SIZE'
+                self.assertEqual(caught.exception.code, expected)
+                self.assertIsNotNone(caught.exception.capture)
+                self.assertIn(b'descendant started', caught.exception.capture.stdout)
+            else:
+                result = run_bounded([sys.executable, '-c', child], timeout=3)
+                self.assertEqual(result.returncode, 7 if mode == 'nonzero' else 0)
+            self.assertTrue(started_path.exists(), 'descendant must really run before cleanup')
+            time.sleep(3.2)
+            self.assertFalse(signal_path.exists(), 'compiler descendant survived capture cleanup')
+
+    def test_descendant_cancelled_even_when_parent_succeeds(self):
+        self._descendant_cleanup('success')
+
+    def test_descendant_cancelled_when_parent_fails(self):
+        self._descendant_cleanup('nonzero')
+
+    def test_descendant_cancelled_on_wall_timeout(self):
+        self._descendant_cleanup('timeout')
+
+    def test_descendant_cancelled_on_output_limit(self):
+        self._descendant_cleanup('output')
 
 
 if __name__ == '__main__':

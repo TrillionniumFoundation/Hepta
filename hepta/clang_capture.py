@@ -2,8 +2,9 @@
 
 Stdin/stdout/stderr are file-backed, so even a noisy child cannot force an
 unbounded in-memory communicate() buffer. A poller checks output quotas while
-Clang is active; on POSIX each command is in a new process group so escaped
-compiler descendants are killed on failure, timeout and parent completion.
+Clang is active. POSIX commands own a process group. Windows commands start
+behind a gate assigned to a kill-on-close Job Object before compiler launch.
+Those descendants are terminated on failure, timeout and parent completion.
 
 This is a process budget, not a sandbox: privileged children, child-created
 sessions and filesystem side effects are outside this control mechanism.
@@ -51,7 +52,16 @@ class CaptureFailure:
     stderr_total_bytes: int
 
 
-def _terminate(proc: subprocess.Popen[bytes]) -> None:
+def _terminate(proc: subprocess.Popen[bytes], job=None) -> None:
+    if job is not None:
+        try:
+            if job.cleanup(proc):
+                return
+            reason = "Windows compiler job cleanup remains pending"
+        except OSError as error:
+            reason = "Windows compiler job cleanup failed: " + str(error)
+        job.retain(proc)
+        raise CaptureRejected("E_CAPTURE_CLEANUP", reason)
     # start_new_session=True gives this child its own group on POSIX.
     # The parent may have exited while one of its descendants is still alive.
     if os.name == "posix":
@@ -84,7 +94,7 @@ def run_bounded(
     stdout_limit: int = 32_000_000, stderr_limit: int = 1_000_000,
     stdin_limit: int = 1_000_000,
 ) -> CaptureResult:
-    """Run a real tool with wall-time/byte budgets and POSIX descendant cleanup.
+    """Run a real tool with wall-time/byte budgets and descendant cleanup.
 
     Limits and tool invocation are caller-owned. No shell, environment rewrite,
     network access control, or runtime filesystem containment is implied.
@@ -113,12 +123,18 @@ def run_bounded(
           tempfile.TemporaryFile() as error_file):
         input_file.write(payload)
         input_file.seek(0)
+        job = None
         try:
-            proc = subprocess.Popen(
-                argv, cwd=cwd, stdin=input_file, stdout=output_file,
-                stderr=error_file, shell=False,
-                start_new_session=(os.name == "posix"),
-            )
+            if os.name == "nt":
+                from .windows_capture import launch
+                proc, job = launch(argv, cwd=cwd, stdin=input_file,
+                                   stdout=output_file, stderr=error_file)
+            else:
+                proc = subprocess.Popen(
+                    argv, cwd=cwd, stdin=input_file, stdout=output_file,
+                    stderr=error_file, shell=False,
+                    start_new_session=(os.name == "posix"),
+                )
         except OSError as exc:
             raise CaptureRejected("E_CAPTURE_EXEC", "Compiler launch failed: " + str(exc)) from exc
         deadline = time.monotonic() + timeout
@@ -131,8 +147,8 @@ def run_bounded(
                 if time.monotonic() >= deadline:
                     raise CaptureRejected("E_CAPTURE_TIMEOUT", "Compiler exceeded wall-time budget")
                 time.sleep(min(.01, max(.001, deadline - time.monotonic())))
-            # Parent exit does not mean descendants have exited: kill its group.
-            _terminate(proc)
+            # Parent exit does not mean descendants have exited.
+            _terminate(proc, job)
             stdout_size = os.fstat(output_file.fileno()).st_size
             stderr_size = os.fstat(error_file.fileno()).st_size
             if stdout_size > stdout_limit or stderr_size > stderr_limit:
@@ -147,7 +163,13 @@ def run_bounded(
             failure = error
             raise
         finally:
-            _terminate(proc)
+            cleanup_failure = None
+            try:
+                _terminate(proc, job)
+            except CaptureRejected as error:
+                cleanup_failure = error
+                if failure is not None:
+                    failure.capture_error = str(error)
             if failure is not None:
                 try:
                     stdout_size = os.fstat(output_file.fileno()).st_size
@@ -163,3 +185,5 @@ def run_bounded(
                     # Preserve the original rejection/code even when the
                     # capture files themselves cannot be read.
                     failure.capture_error = str(error)
+            if cleanup_failure is not None and failure is None:
+                raise cleanup_failure

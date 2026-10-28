@@ -77,6 +77,9 @@ jobs:
           cat > artifacts/stb-divide-host.json <<'JSON'
           {"schema":"hepta.c-stb-divide-qualification.v1","ok":false,"status":"failed","error":"Complete component setup or execution did not finish; inspect retained setup and component logs.","claims":{"cross_host_results_inferred":false,"cpp_migration":false}}
           JSON
+          cat > artifacts/original-type-preflight.json <<'JSON'
+          {"schema":"hepta.c-original-type-host-preflight.v1","ok":false,"status":"failed","error":"Original-type preflight did not finish; inspect retained setup/preflight logs.","claims":{"native_component_qualified":false,"cross_host_results_inferred":false,"original_type_guard_bypassed":false}}
+          JSON
           git rev-parse HEAD > artifacts/native-host-setup.log
       - uses: actions/setup-python@v5
         with:
@@ -140,6 +143,26 @@ jobs:
             --cc "$HEPTA_HOST_CC" --cc-family "$HEPTA_HOST_CC_FAMILY" \
             --expected-system '${{ matrix.system }}' --expected-machine '${{ matrix.machine }}' \
             --output artifacts/native-host.json
+      - name: Check bounded compiler capture process ownership on this host
+        shell: bash
+        run: |
+          set +e
+          python -m unittest tests.test_clang_capture -v 2>&1 | tee artifacts/clang-capture-tests.log
+          capture_status=${PIPESTATUS[0]}
+          exit "$capture_status"
+      - name: Resolve capture Clang and check actual original array parameter types
+        shell: bash
+        run: |
+          set +e
+          python tools/preflight_c_original_types.py \
+            --clang clang --expected-system '${{ matrix.system }}' \
+            --output-directory artifacts/original-type-preflight \
+            --github-env "$GITHUB_ENV" 2>&1 | tee artifacts/original-type-preflight.log
+          preflight_status=${PIPESTATUS[0]}
+          if [ -f artifacts/original-type-preflight/qualification.json ]; then
+            cp artifacts/original-type-preflight/qualification.json artifacts/original-type-preflight.json
+          fi
+          exit "$preflight_status"
       - name: Execute the complete frozen stb_divide C component on this actual host
         shell: bash
         run: |
@@ -150,7 +173,7 @@ jobs:
           fi
           set +e
           python tools/qualify_c_stb_divide.py \
-            --clang clang --rustc "$(rustup which --toolchain 1.90.0 rustc)" \
+            --clang "$HEPTA_CAPTURE_CLANG" --rustc "$(rustup which --toolchain 1.90.0 rustc)" \
             "${linker_args[@]}" \
             --cc "$HEPTA_HOST_CC" --cc-family "$HEPTA_HOST_CC_FAMILY" \
             --expected-system '${{ matrix.system }}' --expected-machine '${{ matrix.machine }}' \
@@ -169,6 +192,10 @@ jobs:
             artifacts/native-host.json
             artifacts/native-host-setup.log
             artifacts/native-host-adapter-tests.log
+            artifacts/clang-capture-tests.log
+            artifacts/original-type-preflight.json
+            artifacts/original-type-preflight.log
+            artifacts/original-type-preflight/
             artifacts/stb-divide-host.json
             artifacts/stb-divide-host.log
             artifacts/stb-divide-host/

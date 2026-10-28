@@ -5,10 +5,13 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
+from hepta import c_parameter_types as parameter_types
 from hepta.c_migrate import migrate_c_project
 from hepta.clang_capture import CaptureResult, run_bounded
 
@@ -184,6 +187,36 @@ class OriginalParameterTypeTests(unittest.TestCase):
                 self.assertFalse(output.exists())
                 self.assertIn("E_C_ORIGINAL_TYPE", [x["code"] for x in report["diagnostics"]], report)
 
+    def test_failed_emission_retains_returncode_missing_ast_and_both_streams(self):
+        database = self.project("unsigned int probe(unsigned int n, const unsigned int data[8]) { return n; }\n")
+
+        def refused(argv, **kwargs):
+            if argv[-1] == "--emit-ast":
+                return CaptureResult(23, "compiler stdout marker", "")
+            return run_bounded(argv, **kwargs)
+
+        destination = self.root / "failed-emission"
+        with patch("hepta.clang_capture.run_bounded", side_effect=refused):
+            report = self.migrate(database, destination)
+        self.assertFalse(report["ok"], report)
+        self.assertFalse(destination.exists())
+        failure = next(row for row in report["diagnostics"] if row["code"] == "E_C_ORIGINAL_TYPE")
+        details = json.loads(failure["message"].split("serialized AST emission failed: ", 1)[1])
+        self.assertEqual(details["returncode"], 23)
+        self.assertIs(details["ast_present"], False)
+        self.assertIs(details["ast_regular_file"], False)
+        self.assertIsNone(details["ast_bytes"])
+        self.assertEqual(details["stdout_tail"], "compiler stdout marker")
+        self.assertEqual(details["stderr_tail"], "")
+        self.assertEqual(details["stdout_characters"], len("compiler stdout marker"))
+        self.assertEqual(details["stderr_characters"], 0)
+        self.assertEqual(details["ast_byte_limit"], parameter_types.MAX_AST_BYTES)
+        self.assertEqual(details["argv"][0], str(Path(self.clang).resolve()))
+        self.assertEqual(details["argv"][-5:],
+                         ["-Werror", "-emit-ast", "input.c", "-o", details["ast_path"]])
+        self.assertEqual(details["argv_count"], len(details["argv"]))
+        self.assertIs(details["argv_truncated"], False)
+
     def test_scalar_only_functions_and_all_result_types_are_captured(self):
         database = self.project("typedef unsigned int Word;\n"
             "Word scalar(Word n) { return n; }\nvoid done(void) { return; }\n"
@@ -257,6 +290,119 @@ class OriginalParameterTypeTests(unittest.TestCase):
         self.assertEqual(result["compiler"]["version"], result["reader"]["version"])
         for name in ("reader", "worker", "python"):
             self.assertEqual(result[name]["sha256"], sha256(Path(result[name]["path"]).read_bytes()).hexdigest())
+
+
+class OriginalTypeEmissionProcessTests(unittest.TestCase):
+    """Real host subprocess checks, not a claim of Windows host execution."""
+
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory(prefix="hepta-ast-process-")
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+
+    def request(self):
+        compiler = parameter_types._digest_file(sys.executable)
+        argv = [compiler["path"], "-Werror", "-emit-ast", "translation unit.c",
+                "-o", str(self.root / "output with spaces.ast")]
+        return {"compiler": {"path": compiler["path"], "executable_sha256": compiler["sha256"]},
+                "arguments": [], "source_argument": "translation unit.c", "argv": argv,
+                "directory": str(Path.cwd()), "worker": parameter_types._digest_file(parameter_types.__file__),
+                "python": parameter_types._digest_file(sys.executable)}
+
+    def test_real_wait_preserves_exit_status_streams_and_quoted_arguments(self):
+        folder = self.root / "compiler fixture with spaces"
+        folder.mkdir()
+        child = folder / "child script.py"
+        child.write_text("import json,sys\nfrom pathlib import Path\n"
+                         "Path(sys.argv[1]).write_text(json.dumps(sys.argv[3:]))\n"
+                         "print('actual compiler stdout')\n"
+                         "print('actual compiler stderr',file=sys.stderr)\n"
+                         "raise SystemExit(int(sys.argv[2]))\n")
+        wrapper = ("import runpy,sys; worker=runpy.run_path(sys.argv[1]); "
+                   "raise SystemExit(worker['_wait_for_ast_compiler'](sys.argv[2:]))")
+        arguments = ['input with spaces.c', '-DNAME="quoted value"', 'literal trailing\\']
+        for status in (0, 23):
+            with self.subTest(status=status):
+                output = folder / (str(status) + " output.ast")
+                result = run_bounded([sys.executable, "-I", "-c", wrapper,
+                    str(Path(parameter_types.__file__).resolve()), sys.executable,
+                    str(child), str(output), str(status), *arguments], timeout=10)
+                self.assertEqual(result.returncode, status)
+                self.assertEqual(result.stdout, "actual compiler stdout\n")
+                self.assertEqual(result.stderr, "actual compiler stderr\n")
+                self.assertEqual(json.loads(output.read_text()), arguments)
+                if status == 0:
+                    parameter_types._check_emitted_ast(result, output)
+                else:
+                    with self.assertRaises(ValueError) as failed:
+                        parameter_types._check_emitted_ast(result, output)
+                    details = json.loads(str(failed.exception).split(": ", 1)[1])
+                    self.assertEqual(details["returncode"], status)
+                    self.assertEqual(details["ast_bytes"], output.stat().st_size)
+                    self.assertIs(details["ast_present"], True)
+                    self.assertEqual(details["stdout_tail"], result.stdout)
+                    self.assertEqual(details["stderr_tail"], result.stderr)
+
+    def test_windows_dispatch_waits_with_inherited_io_and_no_exec_or_shell(self):
+        request = self.request()
+        process = Mock()
+        process.wait.return_value = 23
+        windows = SimpleNamespace(name="nt", execv=Mock())
+        with patch.object(parameter_types, "os", windows), \
+                patch.object(parameter_types.subprocess, "Popen", return_value=process) as launch:
+            with self.assertRaises(SystemExit) as stopped:
+                parameter_types._emit_ast(request)
+        self.assertEqual(stopped.exception.code, 23)
+        launch.assert_called_once_with(request["argv"], shell=False)
+        process.wait.assert_called_once_with()
+        windows.execv.assert_not_called()
+
+    def test_stale_tool_or_command_identity_is_rejected_before_launch(self):
+        for field in ("compiler", "worker", "python", "directory", "argv"):
+            with self.subTest(field=field):
+                request = self.request()
+                if field == "compiler":
+                    request[field]["executable_sha256"] = "0" * 64
+                elif field in {"worker", "python"}:
+                    request[field]["sha256"] = "0" * 64
+                elif field == "directory":
+                    request[field] = str(self.root)
+                else:
+                    request[field][-3] = "other source.c"
+                with patch.object(parameter_types, "os", SimpleNamespace(name="nt", execv=Mock())), \
+                        patch.object(parameter_types.subprocess, "Popen") as launch:
+                    with self.assertRaisesRegex(ValueError, "input identity mismatch"):
+                        parameter_types._emit_ast(request)
+                launch.assert_not_called()
+
+    def test_zero_exit_does_not_admit_missing_empty_or_oversize_ast(self):
+        missing, empty, excessive = (self.root / name for name in ("missing.ast", "empty.ast", "excessive.ast"))
+        empty.write_bytes(b"")
+        with excessive.open("wb") as stream:
+            stream.truncate(parameter_types.MAX_AST_BYTES + 1)
+        for output, present, size in ((missing, False, None), (empty, True, 0),
+                                      (excessive, True, parameter_types.MAX_AST_BYTES + 1)):
+            with self.subTest(output=output):
+                result = CaptureResult(0, "out" * 2000, "err" * 2000)
+                with self.assertRaises(ValueError) as failed:
+                    parameter_types._check_emitted_ast(result, output)
+                details = json.loads(str(failed.exception).split(": ", 1)[1])
+                self.assertEqual(details["returncode"], 0)
+                self.assertIs(details["ast_present"], present)
+                self.assertEqual(details["ast_bytes"], size)
+                self.assertEqual(details["stdout_characters"], 6000)
+                self.assertEqual(details["stderr_characters"], 6000)
+                self.assertEqual(details["stdout_tail"], result.stdout[-4000:])
+                self.assertEqual(details["stderr_tail"], result.stderr[-4000:])
+        arguments = ["compiler with spaces", "x" * 1025, *["argument"] * 127]
+        with self.assertRaises(ValueError) as failed:
+            parameter_types._check_emitted_ast(result, missing, argv=arguments)
+        details = json.loads(str(failed.exception).split(": ", 1)[1])
+        self.assertEqual(details["argv_count"], len(arguments))
+        self.assertEqual(details["argv"], [argument[:1024] for argument in arguments[:128]])
+        self.assertIs(details["argv_truncated"], True)
+        self.assertEqual(details["argv_argument_limit"], 128)
+        self.assertEqual(details["argv_character_limit"], 1024)
 
 
 if __name__ == "__main__":
