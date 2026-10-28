@@ -5,6 +5,7 @@ import os
 import shutil
 from pathlib import Path
 import unittest
+from unittest import mock
 import tempfile
 import tarfile
 
@@ -184,11 +185,41 @@ class NextAgentTests(unittest.TestCase):
             built = upgrade.build(task, "rust", json.dumps({"files": item["files"]}),
                                   Path(directory) / "dead", "unused-clang", rustc)
             self.assertTrue(built["native_built"], built)
-            observed = upgrade.execute(built, task["public_cases"], task["public_expected"])
+            # Exercise the actual kernel and Rust executable even on Python
+            # builds whose fcntl module exports none of the Linux seal names.
+            try:
+                raise ValueError("earlier candidate rejected")
+            except ValueError:
+                # Recovery while another exception is being handled must not
+                # make the sealing helper close its successfully transferred fd.
+                with mock.patch.dict(upgrade.fcntl.__dict__):
+                    for name in ("F_SEAL_WRITE", "F_SEAL_SHRINK", "F_SEAL_GROW", "F_SEAL_SEAL",
+                                 "F_ADD_SEALS", "F_GET_SEALS"):
+                        upgrade.fcntl.__dict__.pop(name, None)
+                    observed = upgrade.execute(built, task["public_cases"], task["public_expected"])
         self.assertEqual(observed["actual"], task["public_expected"])
+        self.assertEqual(observed["seals"] & 15, 15)
         self.assertEqual(observed["provider_call_counts"], [0, 0, 0])
         self.assertFalse(observed["provider_contract_passed"])
         self.assertEqual(observed["status"], "observable_wrong")
+
+    def test_upgrade_refuses_missing_kernel_seals_before_native_execution(self):
+        if not hasattr(os, "memfd_create"):
+            self.skipTest("Linux sealed-executable admission required")
+        from hepta.hia_native_differential import HIADifferentialRejected
+        real_fcntl = upgrade.fcntl.fcntl
+        get_seals = getattr(upgrade.fcntl, "F_GET_SEALS", 1034)
+        def missing_seals(descriptor, command, *arguments):
+            return 0 if command == get_seals else real_fcntl(descriptor, command, *arguments)
+        with tempfile.TemporaryDirectory() as directory:
+            candidate = Path(directory) / "unexecuted-candidate"
+            candidate.write_bytes(b"This negative control must never be executed.")
+            built = {"native_built": True, "artifact": upgrade.file_identity(candidate)}
+            with mock.patch.object(upgrade.fcntl, "fcntl", side_effect=missing_seals), \
+                    mock.patch.object(upgrade.subprocess, "run") as child:
+                with self.assertRaisesRegex(HIADifferentialRejected, "sealed executable-byte snapshot"):
+                    upgrade.execute(built, [], [])
+                child.assert_not_called()
 
     def test_independent_oracle_covers_widening_and_overflow(self):
         self.assertEqual(upgrade.oracle("wire_length_v2", (256, 2**32-1, 17)), 2**32-1)

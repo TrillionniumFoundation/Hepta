@@ -265,6 +265,7 @@ def _pin_native_artifact(path: Path):
     """
     original, identity = _read_regular_artifact(path)
     fd = None
+    transferred = False
     try:
         # Keep the module importable on non-Linux hosts; the execution path
         # itself still refuses anything except qualified Linux.
@@ -291,12 +292,15 @@ def _pin_native_artifact(path: Path):
                 fcntl.fcntl(fd, getattr(fcntl, "F_GET_SEALS", 1034)) & expected_seals != expected_seals or
                 os.pread(fd, len(original), 0) != original):
             _reject("sealed executable-byte snapshot differs from source")
+        transferred = True
         return original, identity, fd
     except (OSError, AttributeError, ImportError) as exc:
         raise HIADifferentialRejected("E_HIA_DIFFERENTIAL: sealed executable snapshot unavailable") from exc
     finally:
         # Ownership of a successfully sealed descriptor transfers to caller.
-        if fd is not None and sys.exc_info()[0] is not None:
+        # sys.exc_info() also reports an exception handled by the caller. An
+        # outer except block must not close a successfully transferred fd.
+        if fd is not None and not transferred:
             os.close(fd)
 
 
