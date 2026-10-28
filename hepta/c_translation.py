@@ -71,6 +71,31 @@ def truth(expr: Expression) -> Expression:
     return Expression(f"({expr.text} != ({zero} as {expr.typ}))", "bool", expr.side_effect)
 
 
+def _signature_shape(return_type: str, parameters: list[dict]) -> tuple:
+    """Compare validated contracts by ABI argument position, never spelling.
+
+    Parameter names may differ between compatible C declarations. A named
+    extent or initializer source must nevertheless denote the same argument
+    in every declaration. Keep the original names in the parameters/contracts
+    for emission and diagnostics, and use this resolved identity only when
+    coalescing declarations. Both value and record-view profiles call this
+    after their existing contract validation has completed.
+    """
+    ordinals = {parameter["name"]: index for index, parameter in enumerate(parameters)}
+    shape = []
+    for parameter in parameters:
+        length = None
+        if parameter["pointer"] and not parameter.get("record"):
+            extent = parameter["length"]
+            length = ("fixed", extent) if type(extent) is int else ("parameter", ordinals[extent])
+        initialize = parameter.get("initialize")
+        sources = (None if initialize is None else
+                   tuple(sorted((field, ordinals[source]) for field, source in initialize.items())))
+        shape.append((parameter["type"], parameter["pointer"], parameter["mode"],
+                      parameter.get("c_const"), parameter.get("c_void"), length, sources))
+    return return_type, shape
+
+
 class CTranslator:
     def __init__(self, capture: dict, contracts: dict | None = None):
         self.capture = capture
@@ -341,7 +366,7 @@ class CTranslator:
             length = values.get(pointer["length"])
             if length is None or length["type"] not in {"usize", "u32", "u64"}:
                 raise MigrationRejected("E_C_POINTER_CONTRACT", "Slice length must name an unsigned scalar parameter")
-        shape = (ret, [(p["type"], p["pointer"], p["mode"], p.get("c_const"), p.get("c_void")) for p in params])
+        shape = _signature_shape(ret, params)
         return {"key": key, "name": name, "hepta_name": "c_" + key, "unit": unit, "model": model,
                 "return": ret, "params": params, "shape": shape,
                 "nonsemantic_documentation_comments": sum(child.get("kind") == "FullComment" for child in node.get("inner", [])),
