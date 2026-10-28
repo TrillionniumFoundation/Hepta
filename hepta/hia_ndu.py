@@ -18,7 +18,7 @@ from types import MappingProxyType
 from .clang_capture import run_bounded
 from .hia_program import VerifiedProgram, verify_program
 from .hia_program_runtime import HIAProgramBudgetExceeded, HIAProgramTrap, execute_program
-from .hia_schema import SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6
+from .hia_schema import SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7
 from .hia_swap_opt import rewrite_byte_swap
 from .hia_fill_loop_opt import PASS_ID as FILL_LOOP_PASS_ID, rewrite_full_view_fill_loop
 from .hia_checked_reduction_opt import PASS_ID as REDUCTION_PASS_ID, rewrite_checked_unsigned_reduction
@@ -34,7 +34,12 @@ _CANDIDATE_IDS = MappingProxyType({PASS_ID: "byte_swap", FILL_LOOP_PASS_ID: "fil
                                  REDUCTION_PASS_ID: "checked_reduction"})
 REGISTERED_PASSES = tuple(_REWRITES)
 DECISION_RESERVE_NS = 2_000_000_000
-_SCHEMAS = {SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6}
+_SCHEMAS = frozenset({SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7})
+# Register existing rule contracts explicitly. A new Core version does not
+# implicitly extend every optimizer; fill-loop still admits only v1-v6.
+_PASS_SCHEMAS = MappingProxyType({PASS_ID: _SCHEMAS,
+                                FILL_LOOP_PASS_ID: _SCHEMAS - {SCHEMA_V7},
+                                REDUCTION_PASS_ID: _SCHEMAS})
 _HEX = re.compile(r"[0-9a-f]{64}")
 
 
@@ -44,6 +49,20 @@ class HIANDURejected(ValueError):
 
 def _reject(message):
     raise HIANDURejected("E_HIA_NDU: " + message)
+
+
+def _primitive_program(program):
+    checked = verify_program(program)
+    if checked.structured_bytes is not None or checked.as_dict()["schema"] not in _SCHEMAS:
+        _reject("the candidate adapter requires primitive v1-v7 identity; composite input is not admitted")
+    return checked
+
+
+def _registered_profile(program, pass_id):
+    if type(pass_id) is not str or pass_id not in _REWRITES:
+        _reject("unregistered transformation")
+    if program.as_dict()["schema"] not in _PASS_SCHEMAS[pass_id]:
+        _reject("registered transformation does not admit " + program.as_dict()["schema"])
 
 
 def _integer(value, lower, upper, label):
@@ -92,9 +111,8 @@ def read_json(payload, *, limit=1_048_576):
 
 
 def make_plan(baseline, *, entry, generation=1, horizon_calls=100_000_000, pass_id=PASS_ID):
-    checked = verify_program(baseline)
-    if type(pass_id) is not str or pass_id not in _REWRITES:
-        _reject("unregistered transformation")
+    checked = _primitive_program(baseline)
+    _registered_profile(checked, pass_id)
     return {"schema": PLAN_SCHEMA, "baseline_sha256": checked.sha256,
             "pass_id": pass_id, "entry": entry, "generation": generation,
             "objective": {"horizon_calls": horizon_calls,
@@ -141,16 +159,15 @@ def prepare_candidate(baseline, plan, *, candidate_bytes=None):
     """Reverify both programs and reproduce the exact registered transformation.
 
     A caller's nominal VerifiedProgram or "feasible" flag is not a witness.
-    Composite/v7 programs remain outside this adapter's registered contract.
-    The public byte-swap API separately preserves v7 and rejects composites.
+    Byte-swap and checked reduction admit primitive v1-v7; fill-loop retains
+    v1-v6. Composite identity is refused at every program boundary. Existing
+    rule-specific old-version upgrades remain valid; v7 is never downgraded.
     """
-    checked = verify_program(baseline)
-    if checked.structured_bytes is not None or checked.as_dict()["schema"] not in _SCHEMAS:
-        _reject("the candidate adapter supports primitive v1-v6 only")
+    checked = _primitive_program(baseline)
     _object(plan, ("schema", "baseline_sha256", "pass_id", "entry", "generation", "objective"), "plan")
-    if (plan["schema"] != PLAN_SCHEMA or type(plan["pass_id"]) is not str
-            or plan["pass_id"] not in _REWRITES):
-        _reject("unregistered plan schema or transformation")
+    if plan["schema"] != PLAN_SCHEMA:
+        _reject("unregistered plan schema")
+    _registered_profile(checked, plan["pass_id"])
     if _digest(plan["baseline_sha256"], "baseline identity") != checked.sha256:
         _reject("stale baseline identity")
     if type(plan["entry"]) is not str or plan["entry"] not in checked.scalar_entrypoints:
@@ -158,11 +175,14 @@ def prepare_candidate(baseline, plan, *, candidate_bytes=None):
     _integer(plan["generation"], 1, (1 << 63) - 1, "generation")
     _objective(plan["objective"])
     rewrite = _REWRITES[plan["pass_id"]](checked)
-    candidate = verify_program(rewrite.program.canonical_bytes)
+    candidate = _primitive_program(rewrite.program)
+    _registered_profile(candidate, plan["pass_id"])
+    if checked.as_dict()["schema"] == SCHEMA_V7 and candidate.as_dict()["schema"] != SCHEMA_V7:
+        _reject("registered rewrite changed primitive v7 identity")
     if candidate_bytes is not None:
         if type(candidate_bytes) is not bytes:
             _reject("candidate exchange requires immutable bytes")
-        supplied = verify_program(candidate_bytes)
+        supplied = _primitive_program(candidate_bytes)
         if supplied.canonical_bytes != candidate.canonical_bytes:
             _reject("candidate differs from the reproduced registered rewrite")
     return PreparedCandidate(checked, candidate, canonical(plan), rewrite.replacements)
@@ -242,8 +262,12 @@ def observe_semantics(prepared, cases, *, negative_cases=()):
     """
     if not isinstance(prepared, PreparedCandidate):
         _reject("prepared candidate required")
+    # The public dataclass is not an admission receipt. Reverify the complete
+    # object before extracting bytes, so structured identity or inconsistent
+    # structured metadata cannot disappear through canonicalization.
+    candidate = _primitive_program(prepared.candidate)
     checked = prepare_candidate(prepared.baseline, prepared.plan,
-                                candidate_bytes=prepared.candidate.canonical_bytes)
+                                candidate_bytes=candidate.canonical_bytes)
     if type(cases) is not list or not 1 <= len(cases) <= 64:
         _reject("1..64 positive cases required")
     if type(negative_cases) not in (list, tuple) or len(negative_cases) > 64:

@@ -14,7 +14,7 @@ admission path retained the baseline when improvement was not established.
 
 | Component | Responsibility | Boundary |
 | --- | --- | --- |
-| `hepta.hia_ndu.prepare_candidate` | Verify immutable baseline, bind a strict plan, reproduce one of the three registered rules below, reverify exact candidate | Primitive v1–v6; scalar public entry; arbitrary type-safe edits are refused |
+| `hepta.hia_ndu.prepare_candidate` | Verify immutable baseline, bind a strict plan, reproduce one of the three registered rules below, reverify exact candidate | Rule-specific primitive v1–v7 admission below; scalar public entry; arbitrary type-safe edits are refused |
 | `observe_semantics` | Compare actual interpreter results, trap codes and complete resource ledgers, including injected allocation failure | Finite corpus; instruction budget equivalence and foreign effects are excluded |
 | `tools.hia_ndu_measure.measure_pair` | Compile both Cores through the current LLVM consumer; check each native result; retain paired C-loop timings and optionally the actual measured binaries | Linux x86-64, `(usize, usize, usize, usize) -> u8`, 1–64 cases |
 | `rust/hia-ndu-bridge` | Call the actual upstream V2 evaluator with required abstain, explicit utility/aggregation rules and resource ceilings | Host-supplied evidence; authority remains `DENY_ALL` |
@@ -31,16 +31,42 @@ not an admissibility certificate.
 All three registered passes have finite structural contracts. They are not
 general semantic equivalence provers.
 
-| Registered pass | Exact admitted change |
-| --- | --- |
-| `byte-swap.v1` | Replace the checked two-load/two-store swap of one mutable view with `buffer.swap` |
-| `full-view-fill-loop.v1` | Replace a closed zero-to-view-length, unit-stride byte-store loop with `buffer.fill` |
-| `checked-unsigned-reduction.v1` | Replace an exact zero-initialized unsigned checked-add counting loop with checked multiplication |
+| Registered pass | Primitive input | Exact admitted change |
+| --- | --- | --- |
+| `byte-swap.v1` | v1–v7 | Replace the checked two-load/two-store swap of one mutable view with `buffer.swap` |
+| `full-view-fill-loop.v1` | v1–v6 | Replace a closed zero-to-view-length, unit-stride byte-store loop with `buffer.fill` |
+| `checked-unsigned-reduction.v1` | v1–v7 | Replace an exact zero-initialized unsigned checked-add counting loop with checked multiplication |
 
-Composite and primitive v7 inputs remain outside this NDU adapter's contract.
-The separate public byte-swap and checked-reduction APIs preserve v7 and refuse
-composite input instead of erasing its structured identity. Their wider public
-API support does not expand NDU admission automatically.
+Version admission is explicit for each registered rule, including at plan
+construction. The v7 extension uses the existing byte-swap and checked-reduction
+contracts without changing their matchers. Fill-loop v7 remains unsupported.
+Composite input is refused at the baseline, reproduced-result and supplied-
+candidate boundaries, even when its normalized primitive bytes would match.
+The semantic observer rechecks the complete candidate object in a caller-built
+`PreparedCandidate` before extracting bytes; canonical Core equality does not
+erase structured input identity or validate forged structured metadata.
+Explicitly elaborated primitive bytes can be submitted as a new primitive
+input; the adapter does not claim to validate the original composite identity.
+
+The complete input and reproduced result are reverified. Both v7 rules preserve
+v7, including the chain operations, other functions and resource events outside
+the exact matched pattern. Historical rule-specific upgrades remain valid:
+byte-swap upgrades v1–v3 to v4 when it rewrites, and fill-loop upgrades v1 to v2.
+There is no incorrect global requirement that all input/output versions match.
+
+The existing plan schema is unchanged. Its baseline digest covers the exact
+canonical Core bytes, including the schema; candidate and native-artifact
+bindings refer to the exact reproduced Core digest. A valid v6 plan, candidate
+or artifact identity cannot be relabelled as v7. The finite v7 controls use an
+actual chain node and a formal read loan through the reduction loop, compare
+complete VM resource observations, and reject node-allocation failure/trap
+reordering, invalid unused functions, active-loan drops and resource edits.
+See [v7 admission controls and limits](HIA_NDU_V7_ADMISSION_20261028.md).
+
+This extension does not widen the separate interpreter/native version
+dispatchers or static resource-bound analyzers: their existing version profiles
+continue to apply. It establishes neither v7 fill-loop semantics nor general
+candidate equivalence, production dynamic optimization or a performance gain.
 
 The fill-loop rule recognizes an actual zero-to-length, unit-stride loop over
 the same exclusive byte view, with an invariant byte and no other body effects.
