@@ -123,6 +123,10 @@ _MAX_IR_DEPTH = 128
 _MAX_IR_NODES = 4096
 _MAX_IR_PARAMS = 256
 _MAX_IR_TOKEN_LENGTH = 256
+# The Hepta parser caps nesting at 96. Emission adds parentheses and an
+# extra recursive parse level for prefix negation / binary right operands.
+# Leave eight levels of headroom for enclosing function/type syntax.
+_MAX_EMITTED_PARSE_NESTING = 88
 
 
 def _preflight_shape(function: Function) -> None:
@@ -143,17 +147,18 @@ def _preflight_shape(function: Function) -> None:
                 or len(item[1]) > 16):
             raise IRValidationError("invalid migration IR parameter shape")
 
-    pending: list[tuple[str, object, int]] = [("block", function.body, 0)]
+    pending: list[tuple[str, object, int, int]] = [("block", function.body, 0, 0)]
     examined = 0
     while pending:
-        category, item, depth = pending.pop()
+        category, item, depth, parse_depth = pending.pop()
         examined += 1
-        if examined > _MAX_IR_NODES or depth > _MAX_IR_DEPTH:
+        if (examined > _MAX_IR_NODES or depth > _MAX_IR_DEPTH
+                or parse_depth > _MAX_EMITTED_PARSE_NESTING):
             raise IRValidationError("migration IR structural budget exceeded")
         if category == "block":
             if not isinstance(item, tuple) or len(item) != 1:
                 raise IRValidationError("invalid migration IR block shape")
-            pending.append(("stmt", item[0], depth + 1))
+            pending.append(("stmt", item[0], depth + 1, parse_depth + 1))
         elif category == "stmt":
             if (not isinstance(item, Stmt) or not isinstance(item.kind, str)
                     or len(item.kind) > 16
@@ -161,11 +166,11 @@ def _preflight_shape(function: Function) -> None:
                     or not isinstance(item.else_body, tuple)):
                 raise IRValidationError("invalid migration IR statement shape")
             if item.kind == "if":
-                pending.append(("block", item.then_body, depth + 1))
-                pending.append(("block", item.else_body, depth + 1))
+                pending.append(("block", item.then_body, depth + 1, parse_depth))
+                pending.append(("block", item.else_body, depth + 1, parse_depth))
             elif item.kind != "return":
                 raise IRValidationError("unsupported migration IR statement")
-            pending.append(("expr", item.expr, depth + 1))
+            pending.append(("expr", item.expr, depth + 1, parse_depth + 1))
         else:
             if (not isinstance(item, Expr)
                     or not isinstance(item.kind, str)
@@ -177,8 +182,19 @@ def _preflight_shape(function: Function) -> None:
                     or not isinstance(item.args, tuple)
                     or len(item.args) > 2):
                 raise IRValidationError("invalid migration IR expression shape")
-            for arg in item.args:
-                pending.append(("expr", arg, depth + 1))
+            # Source emission is more deeply nested than the IR tree:
+            # (-child) adds a parenthesized expression and unary operand;
+            # binary right operands add a Pratt-recursive expression.
+            if item.kind == "literal" and parse_depth + 1 > _MAX_EMITTED_PARSE_NESTING:
+                raise IRValidationError("migration IR emitted parser budget exceeded")
+            for i, arg in enumerate(item.args):
+                extra = 0
+                if item.kind == "neg":
+                    extra = 2
+                elif item.kind in {"arith", "compare"}:
+                    extra = (1 if item.kind == "arith" and item.ty == "u32"
+                             else 2 if i == 1 else 1)
+                pending.append(("expr", arg, depth + 1, parse_depth + extra))
 
 
 def check_function(function: Function) -> frozenset[str]:
