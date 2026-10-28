@@ -44,6 +44,7 @@ def migrate_project(database: str | Path, output_directory: str | Path, *,
         else:
             translator = CTranslator(capture, contracts)
         source, bridge, functions = translator.emit()
+        report["source_type_admission"] = translator.original_type_receipts
         report["functions"] = functions
         from .parser import parse
         from .checker import check
@@ -128,6 +129,7 @@ def migrate_project(database: str | Path, output_directory: str | Path, *,
         report.update(ok=False, status="rejected")
         report["diagnostics"].append({"code": getattr(exc, "code", "E_C_PROJECT_INPUT"), "message": str(exc)})
         if translator is not None:
+            report["source_type_admission"] = translator.original_type_receipts
             report["declaration_inventory_complete"] = translator.inventory_complete
             for item in translator.inventory:
                 if item["status"] in {"pending", "prototype_pending", "function_pending"}:
