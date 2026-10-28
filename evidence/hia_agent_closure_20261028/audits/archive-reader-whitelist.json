@@ -1,0 +1,82 @@
+{
+  "delta_binding": "Reversing the single declared CI_DIRS loop replacement in memory exactly matches the prior packager SHA-256. No other logic changed.",
+  "full_ci_freezes": [
+    {
+      "bytes": 5373,
+      "complete_original_zip_selected": true,
+      "packager_also_retains_v2_manifest_itself": true,
+      "path": "round4-full-ci-c9f1915/FREEZE-v2.json",
+      "relative_unique_canonical_paths": true,
+      "rows_are_not_recursively_treated_as_freeze_manifests": true,
+      "selected_bytes_inside_manifest": 299336250,
+      "selected_files_inside_manifest": 26,
+      "sha256": "47424a78364d7c379ad678c83d897cc541b6c4a20aeaee7e83ab8d9edae11b80",
+      "source_commit": "c9f191549befe7a439039eb7282376c8892ac43c",
+      "superseded_manifest_selected_as_plain_file": true
+    },
+    {
+      "bytes": 4978,
+      "complete_original_zip_selected": true,
+      "packager_also_retains_v2_manifest_itself": true,
+      "path": "round4-full-ci-fc5c155/FREEZE-v2.json",
+      "relative_unique_canonical_paths": true,
+      "rows_are_not_recursively_treated_as_freeze_manifests": true,
+      "selected_bytes_inside_manifest": 299320272,
+      "selected_files_inside_manifest": 24,
+      "sha256": "7d6c81803119c67a7cc5ef9420610fd7778a0e107118de45253ae8cf8ad55797",
+      "source_commit": "fc5c155c47a7920519ed79a9953f8e415b0a7863",
+      "superseded_manifest_selected_as_plain_file": true
+    }
+  ],
+  "packager_copy_byte_identical": true,
+  "packager_executed": false,
+  "previous_packager_sha256": "022a25c341cf84bf46c0317206c628c3a087cf165df53d2c31a32e2c70a1cc0d",
+  "prior_reviews_preserved_unchanged": true,
+  "project_code_executed": false,
+  "remaining_boundaries": [
+    "This review did not rehash the multi-hundred-megabyte original ZIPs or rerun collection audits; their freeze bindings are rechecked by the parent final selector.",
+    "Final selected counts, packaging, shard identities and verify-only restoration remain parent steps and are not certified by this source-delta review.",
+    "No new blocker was found in this narrow change."
+  ],
+  "restore_executed": false,
+  "restore_unchanged": true,
+  "reviewed_inputs": [
+    {
+      "bytes": 13653,
+      "path": "round4-build-evidence.py",
+      "sha256": "b9838e514247ed8730ce31e7daeb5ce75ac4045deeb15aa704fef4cef930fb5c"
+    },
+    {
+      "bytes": 13653,
+      "path": "hepta-round4-evidence/evidence/hia_agent_closure_20261028/PACKAGER-SOURCE.py",
+      "sha256": "b9838e514247ed8730ce31e7daeb5ce75ac4045deeb15aa704fef4cef930fb5c"
+    },
+    {
+      "bytes": 7926,
+      "path": "hepta-round4-evidence/evidence/hia_agent_closure_20261028/RESTORE.py",
+      "sha256": "2c24a8008e8c3c258d5f8fd7fe153f6c3bfc3afaec06e6708045bc5feadc8f3e"
+    },
+    {
+      "bytes": 6374,
+      "path": "round4-archive-reader-review.json",
+      "sha256": "067a08cdd7634f96f027a49b525e28af18bfd7a649abdc72b1c69d6858ad956a"
+    },
+    {
+      "bytes": 3583,
+      "path": "round4-archive-reader-review-final.json",
+      "sha256": "0d624458a5b1d0afc8f6fa600dc5e4556fe86fb6a44ee44b513fd04f41505fea"
+    }
+  ],
+  "schema": "hepta.archive-full-ci-whitelist-delta-review.v1",
+  "scope": "Only the full-CI selection branch, its two explicit FREEZE-v2 structures, retained packager source-copy identity and unchanged restore reader.",
+  "selection_findings": [
+    "Only the two round4-full-ci-* entries switch from directory enumeration to the explicit FREEZE-v2 list; existing audited C, C++, and verified CI collection paths keep their previous selection behavior.",
+    "frozen() reads each v2 files list once, binds paths relative to that full-CI root, and verifies listed SHA-256/byte identities when the parent runs selection.",
+    "FREEZE.json is added through add() as an ordinary listed file. Its superseded files list is not read or recursively followed.",
+    "Unlisted full-CI transfer temporaries are not selected by the modified CI loop.",
+    "Each v2 file_count describes its listed payload files only: 26 for c9f and 24 for fc5. The packager separately includes each v2 manifest itself.",
+    "The final selection will include this new root review JSON; previous previews are not the final archive denominator."
+  ],
+  "status": "passed_readonly_delta_review",
+  "tests_executed": false
+}

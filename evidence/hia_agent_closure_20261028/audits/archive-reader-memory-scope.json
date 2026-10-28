@@ -1,0 +1,66 @@
+{
+  "delta_verification": {
+    "changed_lines": 4,
+    "compression_label_matches_setting": true,
+    "lzma_dictionary_bytes": 536870912,
+    "method": "Reversed exactly four declared line replacements in memory and matched the complete previous packager SHA-256; no historical source file was reconstructed on disk or edited.",
+    "previous_packager_sha256": "774bf6a92178f573bf57c1e741a38d937a55ae5e5fbe4019bc770a0f8787b6e3",
+    "previous_source_count_and_no_clobber_guards_unchanged": true,
+    "selection_zip_validation_and_six_mib_split_logic_unchanged": true,
+    "three_modified_areas": [
+      "LZMA2 dictionary setting plus matching compression-description metadata",
+      "archive_scope now distinguishes omitted local caches from intact original CI ZIP members",
+      "excluded wording now explicitly limits the cache and SDK omission to local material"
+    ]
+  },
+  "final_archive_frozen": false,
+  "packager_copy_byte_identical": true,
+  "packager_executed": false,
+  "prior_review_retained_unchanged": true,
+  "project_code_executed": false,
+  "readme_checks": {
+    "512_mib_dictionary_and_additional_memory_requirement_explicit": true,
+    "intact_original_ci_zip_cache_members_explicit": true,
+    "local_cache_sdk_scope_explicit": true
+  },
+  "remaining_boundaries": [
+    "Final full-CI collection completion, final index counts, archive bytes/parts and verify-only execution are still owned by the parent; they were not performed or certified by this delta review.",
+    "The prior original findings and their resolved guards remain recorded in the unchanged earlier review JSON.",
+    "A 512 MiB LZMA2 dictionary requires more than 512 MiB of memory with decoder and process overhead; README states that boundary.",
+    "No new evidence-removal, overwrite or path-validation change is introduced by these reviewed edits."
+  ],
+  "restore_executed": false,
+  "restore_reader_byte_identical_to_previous_review": true,
+  "retention_reasoning": "The unchanged builder reads and hashes every original ZIP member and compares its original extracted bytes; retaining and later hash-verifying the complete original ZIP preserves those bytes without deleting cache members. Verify-only validates the outer archive and retained ZIP bytes; it does not itself expand or newly execute those inner artifacts.",
+  "reviewed_inputs": [
+    {
+      "bytes": 13376,
+      "path": "round4-build-evidence.py",
+      "sha256": "022a25c341cf84bf46c0317206c628c3a087cf165df53d2c31a32e2c70a1cc0d"
+    },
+    {
+      "bytes": 13376,
+      "path": "hepta-round4-evidence/evidence/hia_agent_closure_20261028/PACKAGER-SOURCE.py",
+      "sha256": "022a25c341cf84bf46c0317206c628c3a087cf165df53d2c31a32e2c70a1cc0d"
+    },
+    {
+      "bytes": 7926,
+      "path": "hepta-round4-evidence/evidence/hia_agent_closure_20261028/RESTORE.py",
+      "sha256": "2c24a8008e8c3c258d5f8fd7fe153f6c3bfc3afaec06e6708045bc5feadc8f3e"
+    },
+    {
+      "bytes": 17329,
+      "path": "round4-evidence-README-draft.md",
+      "sha256": "21c611db9ac2b847f8f47557ed45f3d11dcc6737bfd1dbd0d86b048291bbf9b5"
+    },
+    {
+      "bytes": 6374,
+      "path": "round4-archive-reader-review.json",
+      "sha256": "067a08cdd7634f96f027a49b525e28af18bfd7a649abdc72b1c69d6858ad956a"
+    }
+  ],
+  "schema": "hepta.archive-builder-reader-final-review.v1",
+  "scope": "Review of the final packager delta, its retained source copy, unchanged restore reader and current README scope/memory text; not a complete full-CI or final archive validation.",
+  "status": "passed_readonly_delta_review",
+  "tests_executed": false
+}

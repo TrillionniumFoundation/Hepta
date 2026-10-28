@@ -1,0 +1,79 @@
+{
+  "current_preview_result": "No observed selection loss, duplicate extracted-file omission, cache-tree inclusion or path traversal in the current selected files.",
+  "current_review_status": "No concrete blocking issue remains in the reviewed patch/current preview; final archive construction and restore remain unexecuted by this reviewer.",
+  "finite_boundaries": [
+    "Restore writes only canonical relative regular-file members into a newly created output directory, rejects an existing output and link members, and uses exclusive file creation. No current ZIP traversal or overwrite route was found under the single-writer filesystem assumption.",
+    "The reader does not currently validate zip_expansions.member_bytes; actual expanded byte counts are computed from verified bytes, so the current printed count is not derived from that unchecked field.",
+    "The builder checks every selected ZIP member against its extraction, but its code does not independently reject extra files in an omitted extraction directory. This review checked the 37 current destinations and found no extras; repeat the set comparison when pending full-CI artifacts arrive.",
+    "The signed-URL scanner recognizes a narrower set of query keys than the independent migration whitelist scan, omitting plain token. No secret or signed transfer request was found in the current reviewed selection; the final incoming full-CI files still require the final scan.",
+    "Validation failure can leave a newly created partial output directory. It does not overwrite an original directory or imply successful restoration.",
+    "This review does not count as a successful archive build, restore or finalized CI gate."
+  ],
+  "followup": "Final pending CI additions still need ZIP/extracted-set and sensitive-transfer checks, followed by the parent final archive/restore validation. No additional project tests are requested.",
+  "input_identity_scope": "The recorded script hashes identify the patched scripts re-read for closure; the original finding descriptions refer to the earlier observed source, whose full bytes were not separately snapshotted.",
+  "preview_is_final_freeze": false,
+  "preview_observations": {
+    "archive_output_paths_already_present": [],
+    "ci_original_zip_count": 37,
+    "explicit_executed_target_binary": "round4-ndu-ranking-build/target/debug/hia-ndu-bridge",
+    "noncanonical_zip_member_paths": [],
+    "selected_build_cache_trees": 0,
+    "selected_bytes": 621681089,
+    "selected_files": 4132,
+    "unrecorded_extracted_files": [],
+    "zip_reconstruction_files": 3403
+  },
+  "prior_preview_observation": {
+    "ci_original_zip_count": 37,
+    "full_snapshot_retention": "volatile selection preview later replaced by the builder; no final evidence was overwritten",
+    "is_final_freeze": false,
+    "selected_bytes": 420945687,
+    "selected_files": 4017
+  },
+  "project_code_executed": false,
+  "requested_guards": [
+    {
+      "current_data_state": "Builder currently produces consistent values; this is a reader acceptance gap, not an observed corrupted preview.",
+      "effect": "Changing only the outer source/count fields leaves all byte checks unchanged and can produce an all_passed receipt carrying the wrong source identity or silently inconsistent declared totals.",
+      "file": "hepta-round4-evidence/evidence/hia_agent_closure_20261028/RESTORE.py",
+      "id": "archive_index_identity_totals_binding",
+      "issue": "The reader validates the index hash and its internal totals but never compares archive.source_commit to index.source_commit, nor archive.file_count/uncompressed_file_bytes to the verified index totals. Its final all_passed result copies the outer source_commit.",
+      "location": "run(), immediately after reading RAW-INDEX.json and computing its totals",
+      "requested_change": "Compare archive/index source_commit and declared file_count/uncompressed_file_bytes before producing a success receipt.",
+      "resolution": "RESTORE now explicitly refuses source_commit mismatch and both outer/index total mismatches before creating an output directory.",
+      "status": "resolved_by_readonly_source_review"
+    },
+    {
+      "current_data_state": "All those output paths were absent at review time; no prior evidence overwrite was observed.",
+      "effect": "A later attempt after moving/removing prior shards can overwrite previous metadata or the retained unsplit original archive instead of refusing.",
+      "file": "round4-build-evidence.py",
+      "id": "pack_all_outputs_no_clobber",
+      "issue": "Preflight checks the destination temporary tar and shard names only. RAW-INDEX.json and ARCHIVE.json use overwriting writes; the final POSIX rename can replace an existing ROOT/round4-evidence-raw.tar.xz.",
+      "location": "pack() output preflight, write() calls and final rename()",
+      "remaining_assumption": "Metadata and shard writes are protected by the whole-output preflight under the single-writer packaging assumption; this is not a concurrent hostile-filesystem guarantee.",
+      "requested_change": "Preflight all output names including RAW-INDEX.json, ARCHIVE.json and the external retained tar; use exclusive creation/non-clobber promotion and refuse existing files or dangling symlinks.",
+      "resolution": "pack now preflights the temporary tar, all shards, RAW-INDEX.json, ARCHIVE.json and the retained external tar, including dangling symlinks; final promotion uses exclusive os.link followed by unlink instead of overwrite-capable rename.",
+      "status": "resolved_by_readonly_source_review"
+    }
+  ],
+  "review_mode": "read-only source and selection-preview inspection; neither packaging nor restore nor project execution performed",
+  "reviewed_inputs": [
+    {
+      "bytes": 13219,
+      "path": "round4-build-evidence.py",
+      "sha256": "774bf6a92178f573bf57c1e741a38d937a55ae5e5fbe4019bc770a0f8787b6e3"
+    },
+    {
+      "bytes": 7926,
+      "path": "hepta-round4-evidence/evidence/hia_agent_closure_20261028/RESTORE.py",
+      "sha256": "2c24a8008e8c3c258d5f8fd7fe153f6c3bfc3afaec06e6708045bc5feadc8f3e"
+    },
+    {
+      "bytes": 2049142,
+      "path": "round4-evidence-selection.json",
+      "sha256": "ed7ac95b642da52f1fe7e6d21afc0fd3783c3f5a0aef376fd0e58b895242303f"
+    }
+  ],
+  "schema": "hepta.archive-builder-reader-review.v1",
+  "tests_executed": false
+}
