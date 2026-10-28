@@ -63,6 +63,7 @@ def qualify(directory, *, clang="clang"):
         runtime = AdaptiveRuntime(base, work / "runtime", clang=clang)
         token = runtime.prepare(candidate)
         report["builds"] = {key: image.receipt for key, image in runtime._images.items()}
+        report["admitted_native_images"] = runtime.snapshot()["native_images"]
         report["distinct_native_artifacts"] = (
             runtime._images[token].artifact_sha256 != runtime._images["baseline"].artifact_sha256)
         if not report["distinct_native_artifacts"]:
@@ -79,7 +80,16 @@ def qualify(directory, *, clang="clang"):
             snapshot_path.write_bytes(actual)
             report["retained_native_artifacts"][name] = {
                 "path": str(snapshot_path.relative_to(work)), "sha256": image.artifact_sha256,
-                "bytes": len(actual), "origin": "actual sealed descriptor before tamper controls"}
+                "bytes": len(actual), "image_token": key,
+                "loaded_mapping": report["admitted_native_images"][key]["loaded_mapping"],
+                "origin": "actual sealed descriptor before tamper controls"}
+            mapping = report["admitted_native_images"][key]["loaded_mapping"]
+            identity = os.fstat(image.fd)
+            if (mapping["inode"] != identity.st_ino or mapping["file_bytes"] != len(actual)
+                    or mapping["device_major"] != os.major(identity.st_dev)
+                    or mapping["device_minor"] != os.minor(identity.st_dev)
+                    or set(mapping["symbols"]) != {image.state["entry"]}):
+                raise ValueError("Per-image mapping evidence differs from actual retained descriptor")
         rng = random.Random(271027)
         vectors = [[0, 0], [2**64 - 1, 1], [2**64 - 1, 2**64 - 1]]
         vectors += [[rng.randrange(2**64), rng.randrange(2**64)] for _ in range(128)]

@@ -68,13 +68,15 @@ def qualify(folder):
     after, head_after, status_after = inventory(), command(["git", "rev-parse", "HEAD"]), command(["git", "status", "--porcelain"])
     observations, admissions = ReturnedLoanRust.observations, ReturnedLoanRust.admissions
     natives = ReturnedLoanNative.records
+    cli_records = ReturnedLoanSemantics.cli_records
     files = {str(p.relative_to(folder)): digest(p) for p in sorted(native_dir.rglob("*")) if p.is_file()}
     stable = before == after and head_before == head_after and status_before == status_after
     controls = [control for native in natives for control in native.get("oracle_controls", [])]
-    success = (result.wasSuccessful() and not result.skipped and result.testsRun == 10 and stable
+    success = (result.wasSuccessful() and not result.skipped and result.testsRun == 13 and stable
                and bool(observations) and all(row.get("matched") for row in observations)
                and bool(admissions) and all(row.get("rejected") for row in admissions)
-               and len(natives) == 5 and all(row.get("passed") for row in natives)
+               and len(natives) == 6 and all(row.get("passed") for row in natives)
+               and len(cli_records) == 4 and all(row.get("matched") for row in cli_records)
                and len(controls) == 2 and all(row.get("oracle_rejected") for row in controls))
     executable = getattr(ReturnedLoanRust, "executable", None)
     executable_before = getattr(ReturnedLoanRust, "executable_sha256", None)
@@ -95,6 +97,7 @@ def qualify(folder):
                             "sha256_after_build": executable_before,
                             "unchanged_during_execution": executable_before == executable_after} if executable else None,
         "source_inputs": ReturnedLoanRust.sources, "programs": ReturnedLoanRust.programs,
+        "nested_record_cli": cli_records,
         "parity_observations": len(observations), "negative_admissions": len(admissions),
         "observed_statuses": dict(Counter(row.get("rust", {}).get("status", "process_failure") for row in observations)),
         "observations": observations, "admissions": admissions, "native": natives,
@@ -109,6 +112,8 @@ def qualify(folder):
             "actual_linux_x86_64_native_execution_and_allocator_observation": success,
             "native_wrong_value_and_missing_free_controls_rejected": success,
             "v1_v7_returned_loan_rejections_preserved": success,
+            "stable_nested_source_record_field_return_supported": success,
+            "actual_nested_record_frontend_verify_run_cli_exercised": success,
             "nominal_record_returned_loan_composition_supported": False,
             "asynchronous_cancellation_or_exception_unwinding_supported": False,
             "native_loan_lifetime_ledger_observed": False,
@@ -120,7 +125,7 @@ def qualify(folder):
         },
         "limits": [
             "One returned readbuf/mutbuf plus scalar results, with an explicit borrowed-parameter origin; no returned local owner, temporary parent, sibling escape, or arbitrary lifetime relation.",
-            "Source Core v8 is explicit opt-in and currently permits one Buffer<u8>/slice<u8> origin; stored returned borrows and borrowed-record projection returns remain outside this source profile.",
+            "Source Core v8 is explicit opt-in and permits one Buffer<u8>/slice<u8> origin or one stable direct nested byte-view field of an explicitly borrowed concrete record parameter. Different field origins across return paths, stored returned borrows and record-origin forwarding through temporary loans reject.",
             "Primitive returned loans can compose with existing v8 byte/chain operations. Nominal composite v1/v2 still normalize to v6/v7 and do not gain v8 returned loans.",
             "Steps/heap/call stops preserve actual live resources; they do not perform cleanup or establish async cancellation/unwinding semantics.",
             "The native observer measures allocation calls/free/live bytes and scalar outcomes; compile-time loans have no native runtime ledger.",

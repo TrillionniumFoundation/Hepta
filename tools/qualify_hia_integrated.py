@@ -58,6 +58,8 @@ CRITICAL_MODULES = {
                       "test_hia_economic_experiment", "test_hia_economic_budget"),
     "ndu_protocol_isolation": ("test_hia_ndu_bridge_isolation", "test_hia_recursive_ndu_builder"),
     "finite_native_continuation_graph": ("test_hia_ndu_graph", "test_hia_next_evaluation"),
+    "exact_native_advisory_reuse": ("test_hia_ndu_cache",),
+    "real_cpp_host_contract": ("test_cpp_upstream_host", "test_cpp_contract_capture"),
     "native_runtime_lifecycles": ("test_hia_multiversion", "test_hia_background_optimizer",
                                   "test_hia_adaptive", "test_hia_scalar_state",
                                   "test_hia_multiversion_totality", "test_hia_native_retirement",

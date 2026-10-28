@@ -28,6 +28,7 @@ if __package__ in {None, ""}:
 from hepta.hia_guarded_optimization import (build_guarded_native,
     guarded_checker_identity, propose_guarded_reduction, verify_guarded_optimization)
 from hepta.hia_ndu import FINITE_RUSTC_VERSION, FINITE_SOURCE_PIN, NduBridge, finite_plan_request
+from hepta.hia_ndu_cache import NduDecisionCache
 from hepta.hia_optimization import (DEFAULT_POLICY, OptimizationRejected,
     build_optimized_native, verify_optimization)
 from hepta.hia_program_source import lower_source
@@ -275,7 +276,24 @@ def selected_native_plan(bundle, response):
     return plan
 
 
-def run_episode(arm, group, base, bank, root, driver, bridge, clang, protocol, decision_costs):
+def choose_native_graph_plan(bundle, bridge, *, decision_cache=None):
+    """Use exact advisory reuse without bypassing the compiler publication path.
+
+    The selected action still reaches run_episode's fresh proposal, proof,
+    native build and artifact gates. Cache hits are explicitly reported as
+    reused responses, never as new native evaluation or proof receipts.
+    """
+    if decision_cache is None:
+        response, reuse_receipt = bridge.evaluate(bundle["request"]), None
+    else:
+        if not isinstance(decision_cache, NduDecisionCache) or not decision_cache.is_bound_to(bridge):
+            raise OptimizationRejected("E_HIA_NDU_REUSE_IDENTITY: cache belongs to a different bridge")
+        response, reuse_receipt = decision_cache.evaluate_with_receipt(bundle["request"])
+    return selected_native_plan(bundle, response), response, reuse_receipt
+
+
+def run_episode(arm, group, base, bank, root, driver, bridge, clang, protocol, decision_costs,
+                *, decision_cache=None):
     folder = root / f"episode-{group}-{arm}"
     folder.mkdir()
     started, ledger, observations = time.monotonic_ns(), [], []
@@ -330,16 +348,16 @@ def run_episode(arm, group, base, bank, root, driver, bridge, clang, protocol, d
                         remaining_sizes=protocol["batch_sizes"][batch:], observations=observations,
                         remaining_ns=remaining, decision_ns=decision_costs.get(arm, 0),
                         protocol=protocol, snapshot=snapshot, generation=batch + 1)
-                    response = None
+                    response, reuse_receipt = None, None
                     if arm == "ndu":
                         bundle = graph_bundle(bank, **inputs)
                         previous_timeout = bridge.timeout
                         try:
                             bridge.timeout = min(previous_timeout, budget.remaining_ns() / 1e9)
-                            response = bridge.evaluate(bundle["request"])
+                            selected, response, reuse_receipt = choose_native_graph_plan(
+                                bundle, bridge, decision_cache=decision_cache)
                         finally:
                             bridge.timeout = previous_timeout
-                        selected = selected_native_plan(bundle, response)
                     elif arm in {"light", "fixed-best-plan"}:
                         bundle = light_bundle(bank, **inputs)
                         selected = arithmetic_choice(bundle, remaining_ns=remaining,
@@ -353,13 +371,14 @@ def run_episode(arm, group, base, bank, root, driver, bridge, clang, protocol, d
                             remaining_ns=remaining, completion_ns=protocol["completion_value_ns"])
                         if selected:
                             fixed_actions = deepcopy(selected["actions"])
-                    return bundle, response, selected
+                    return bundle, response, selected, reuse_receipt
 
                 if fixed_actions is None:
-                    bundle, response, selected = stage("control." + str(batch), choose)
+                    bundle, response, selected, reuse_receipt = stage("control." + str(batch), choose)
                     record["decisions"].append({"batch": batch, "snapshot_sha256": snapshot,
                         "bundle": bundle, "native_response": response,
-                        "selected_plan": selected["id"] if selected else "abstain"})
+                        "selected_plan": selected["id"] if selected else "abstain",
+                        "exact_advisory_reuse": reuse_receipt})
                     if selected is None:
                         record["status"] = "abstained"
                         break
@@ -437,8 +456,13 @@ def failure_probes(base, bank, root, driver, protocol, ledger):
             "process_timeout": process_timeout, "ledger": ledger}
 
 
-def qualify(output, *, identity, clang, protocol=None):
+def qualify(output, *, identity, clang, protocol=None, decision_cache_entries=0):
     protocol = deepcopy(PROTOCOL if protocol is None else protocol)
+    if type(decision_cache_entries) is not int or not 0 <= decision_cache_entries <= 128:
+        raise ValueError("decision cache entries must be an integer in 0..128")
+    if decision_cache_entries:
+        protocol["exact_advisory_reuse"] = {"max_entries": decision_cache_entries,
+            "scope": "identical request and admitted identity only; fresh compiler gates unchanged"}
     root = Path(output).resolve()
     root.mkdir(parents=True, exist_ok=False)
     repository = Path(__file__).resolve().parents[1]
@@ -467,6 +491,9 @@ def qualify(output, *, identity, clang, protocol=None):
     save(root / "NATIVE_BUILD_IDENTITY.json", manifest)
     bridge = measured("native.admission", controller_setup["ndu"],
                       lambda: NduBridge.for_finite_profile(manifest["binary"], identity))
+    decision_cache = (measured("native.exact-reuse-admission", controller_setup["ndu"],
+        lambda: NduDecisionCache(bridge, max_entries=decision_cache_entries))
+        if decision_cache_entries else None)
     (root / "driver.c").write_text(DRIVER)
     driver = root / "driver"
     def build_driver():
@@ -489,6 +516,10 @@ def qualify(output, *, identity, clang, protocol=None):
                 protocol=protocol, snapshot=digest({"calibration": bank["bank_sha256"], "arm": arm}), generation=1)
             if arm == "ndu":
                 bundle = graph_bundle(bank, **inputs)
+                # Calibrate an actual native miss. Identical calibration
+                # requests must not make future changed snapshots appear to
+                # have the cheaper cache-hit cost, or require a unique plan
+                # before the decision-cost forecast itself has been measured.
                 return bridge.evaluate(bundle["request"])
             bundle = light_bundle(bank, **inputs)
             return arithmetic_choice(bundle, remaining_ns=protocol["episode_budget_ns"],
@@ -506,7 +537,8 @@ def qualify(output, *, identity, clang, protocol=None):
             order = order[::-1]
         for arm in order:
             before = time.monotonic_ns()
-            row = run_episode(arm, group, base, bank, root, driver, bridge, clang, protocol, decision_costs)
+            row = run_episode(arm, group, base, bank, root, driver, bridge, clang, protocol, decision_costs,
+                              decision_cache=decision_cache)
             outer = time.monotonic_ns() - before
             # Attribute the full per-arm evidence encoding/write to that arm.
             # Native receipts are larger; charging their serialization to shared
@@ -519,6 +551,7 @@ def qualify(output, *, identity, clang, protocol=None):
             row["net_utility_ns"] = (protocol["completion_value_ns"] if row["completion_admitted"] else 0) - outer
             row["reported_cost_scope"] = "outer observed episode, including its full evidence encoding/write; this aggregate report's final write excluded"
             episodes.append(row)
+    reuse_state = decision_cache.close() if decision_cache else None
     if any(sha256((repository / name).read_bytes()).hexdigest() != expected for name, expected in source_identity.items()):
         raise RuntimeError("source changed during graph measurement; retain the attempt without qualification")
     study_ns = time.monotonic_ns() - start
@@ -535,7 +568,8 @@ def qualify(output, *, identity, clang, protocol=None):
     result = {"schema": "hepta.hia.ndu.graph.result.v1", "protocol_sha256": digest(protocol),
         "host": host, "source_identity": source_identity, "native_identity": manifest["identity"],
         "native_binary_sha256": manifest["binary_sha256"], "driver": driver_identity,
-        "bank_sha256": bank["bank_sha256"], "shared_setup_ledger": shared,
+        "bank_sha256": bank["bank_sha256"], "exact_advisory_reuse": reuse_state,
+        "shared_setup_ledger": shared,
         "controller_setup_ledger": controller_setup, "shared_setup_wall_ns": common_ns,
         "setup_accounting": {"common_once_per_standalone_strategy": True,
             "native_build_charged_to": "ndu", "native_build_cost": build_cost,
@@ -564,8 +598,11 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--identity", type=Path, required=True)
     parser.add_argument("--clang", default="clang")
+    parser.add_argument("--decision-cache-entries", type=int, default=0,
+                        help="opt-in exact advisory reuse; compiler proof/publication checks remain fresh")
     args = parser.parse_args()
-    result = qualify(args.output, identity=args.identity, clang=args.clang)
+    result = qualify(args.output, identity=args.identity, clang=args.clang,
+                     decision_cache_entries=args.decision_cache_entries)
     print(json.dumps({key: result[key] for key in ("all_episodes_completed", "actual_transitions",
           "median_episode_cost_ns", "median_amortized_cost_ns")}, indent=2))
     if not result["all_episodes_completed"]:

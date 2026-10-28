@@ -328,11 +328,12 @@ standalone ISA:
 
 | Producer | Current emitted program | Scope boundary |
 | --- | --- | --- |
-| `hia lower` / `hia_program_source.lower_source` / `lower_program` | Primitive v1 | Checked source scalars, closed specialization, scalarized records, byte owners and built-in `Result`; no source-to-chain, nominal/task or stored-lifetime-record lowering |
+| `hia lower` / `hia_program_source.lower_source` / `lower_program`, default | Primitive v1 | Checked source scalars, closed specialization, scalarized records, byte owners and built-in `Result`; no source-to-chain, nominal/task or stored-lifetime-record lowering |
+| The same source routes with explicit `core_schema="hepta.hia.program.v8"` / `--core-schema hepta.hia.program.v8` | Primitive v8 | Actual byte-view return calls with an explicit borrowed-parameter origin, including one stable nested field of a borrowed concrete record; still no stored returned borrows or general borrowed-record returns |
 | `core.from_executable_core` / `from_scalar_core` | Primitive v1 | Explicit source-authenticated conversion of the admitted historical envelope subset |
 | `hia_program_source.lower_c_multi_owner` and the source migrations passed through `lower_program` | Primitive v1 | Their actual generated Hepta must fit the same source frontend; successful legacy C/C++ migration alone does not establish this |
 | `cpp_project_migrate` / `hia import-cpp-project` | Primitive v1 | Captured, actually instantiated scalar C++ template bodies and supported declarations, via the same checked source frontend |
-| Direct primitive JSON | The declared v1–v7 | Every operation, edge and resource obligation is independently checked |
+| Direct primitive JSON | The declared v1–v8 | Every operation, edge and resource obligation is independently checked |
 | Direct composite JSON | v1 → primitive v6; v2 → primitive v7 | Structural elaboration of the respective nominal grammar, followed by full primitive checking |
 
 Version support by the verifier does not silently increase a producer's source
@@ -362,12 +363,21 @@ instance. Recursion that continually grows its type arguments rejects when a
 budget is reached. These finite checks establish no theorem about all possible
 future substitutions or termination of the resulting program.
 
-Immediate borrowed-return helpers have a narrower rule: the body must be one
+Under the default v1 source route, immediate borrowed-return helpers have a narrower rule: the body must be one
 explicit `return read ...` or `return mut ...` projection of an incoming
 borrowed parameter or its record fields. The adapter inlines that projection
 as checked borrow/reborrow operations and ends local loans after their use;
 reading a Copy field produces an independent scalar value. It does not emit
 an escaping loan as a function result or enable stored source references.
+
+The explicit v8 source route retains those helpers as actual Core calls and
+returns, with named primitive `return_origins`. A borrowed concrete record may
+contain multiple byte-buffer fields and scalars, but each return must directly
+project the same nested byte field. The returned child keeps its caller's
+argument loans alive until immediate consumption; different field origins
+across return paths reject. Scalarized mutable fields retain explicit
+writeback results. See [the v8 contract](HIA_RETURNED_LOANS_V8.md) for the
+independent Rust and actual native validation scope.
 
 The exact high-level source frontend scope is recorded by its rejection tests
 and current qualification report. The source adapter does not yet emit the

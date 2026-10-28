@@ -106,15 +106,29 @@ definitions with `call`, `ret`, and `return_origins`. They are not inlined by th
 lowering pass. `examples/hia_returned_loans/returned_views.hepta` exercises read
 and mutable returned views and conditional return paths.
 
-The v8 source subset requires an explicit `from parameter` and one borrowed
-`Buffer<u8>` or byte slice parameter as the origin. It supports immediate indexed
-or length consumption of the returned view and ends temporary argument loans
-after the returned child. A caller may own a scalarized source record and pass
-its byte-buffer field to that helper; `returned_record_views.hepta` exercises
-that composition. Local storage of returned borrows, arbitrary lifetime
-parameters, a borrowed record parameter as return origin, and forwarding through a new
-local temporary parent are outside this initial source profile. These cases
-reject rather than selecting a different semantic path. Primitive Core offers
+The v8 source subset requires an explicit `from parameter`. Its origin can be a
+borrowed `Buffer<u8>`/byte slice or a concrete borrowed record containing byte
+buffers. For a record origin, each source return must directly project the same
+nested byte-buffer field. The lowering binds that field to its named primitive
+argument, which need not be the first scalarized argument. Different fields on
+different return paths reject even when they belong to the same source record.
+The canonical Core verifier and independent Rust verifier still check the
+emitted origin and every resource transition; source inference grants no
+admission authority.
+
+Immediate indexed or length consumption ends temporary argument loans only
+after the returned child. Mutable scalar fields keep the established explicit
+return/writeback convention. `returned_record_views.hepta` passes a record field
+as a primitive argument. `returned_nested_field.hepta` instead passes an entire
+record with two nested buffer fields and scalar prefix/suffix fields to real
+read/mut helpers; both return the second nested buffer, and the mutable helper
+also changes a scalar field. Its source-derived Core is checked byte-for-byte
+against `returned_nested_field.json`, then consumed by independent Rust tests.
+
+Local storage of returned borrows, arbitrary lifetime parameters, returned
+borrowed records, and record-origin forwarding through a new local temporary
+parent remain outside this source profile. These cases reject rather than
+selecting a different semantic path. Primitive Core offers
 direct identity returns and forwarding of calls whose argument is the incoming
 view itself, including finite recursion.
 

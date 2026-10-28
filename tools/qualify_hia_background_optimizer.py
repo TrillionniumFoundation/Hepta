@@ -113,6 +113,12 @@ def qualify(clang, bridge, bridge_build_receipt):
                 candidate_build_ns = time.perf_counter_ns() - build_started
                 measured_candidate = measure(measured_runtime)
                 measured_candidate_generation = measured_runtime.snapshot()["generations"][0]
+            measured_candidate_closed = measured_runtime.snapshot()
+            require(measured_candidate_closed["closed"] and not measured_candidate_closed["generations"],
+                    "measurement candidate generations survived close")
+            require(measured_candidate_closed["cleanup"]["observed_closed_and_directory_absent"]
+                    and measured_candidate_closed["cleanup"]["pending_resource_count"] == 0,
+                    "measurement candidate post-close cleanup was not observed complete")
             setup_started = time.perf_counter_ns()
             with BackgroundOptimizer(runtime, baseline, function="calculate", bridge=bridge_spec,
                                      max_pending=2) as coordinator:
@@ -194,6 +200,7 @@ def qualify(clang, bridge, bridge_build_receipt):
                              "baseline_build_ns": baseline_build_ns, "candidate_build_ns": candidate_build_ns,
                              "coordinator_setup_ns": coordinator_setup_ns,
                              "measurement_candidate_generation": measured_candidate_generation,
+                             "measurement_candidate_after_close": measured_candidate_closed,
                              "cold_build_cost_charged_once_to_first_horizon": True},
             "trials": {"measured_finite_horizon": actual_trial,
                        "synthetic_cost_lifecycle": controlled_trial,

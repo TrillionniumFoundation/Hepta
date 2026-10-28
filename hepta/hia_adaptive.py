@@ -166,6 +166,8 @@ def _load_image(program, state, path, receipt, started, *, on_release=None):
             loaded_mapping = verify_loaded_symbols(fd, {state["entry"]: function})
         except NativeMappingRejected as error:
             raise AdaptiveRejected("E_ADAPT_MAPPING: resolved native code does not match its sealed artifact") from error
+        loaded_mapping["checker_sha256"] = sha256(
+            Path(__file__).with_name("native_mapping_identity.py").read_bytes()).hexdigest()
         function.argtypes = [ctypes.c_uint64] * len(state["params"])
         function.restype = ctypes.c_uint64
         return _Image(program, state, path, native["artifact_sha256"], fd, library,
@@ -249,6 +251,17 @@ class AdaptiveRuntime:
                     "measurement_mode": "conservative_shadow_only",
                     "state_schema": json.loads(json.dumps(image.state)) if image else None,
                     "state_sha256": _digest(image.state) if image else None,
+                    # Retain each admitted image's own kernel observation;
+                    # a state/ABI hash cannot stand in for its loaded mapping.
+                    # This detached copy is evidence, never a capability.
+                    "native_images": {token: {
+                        "core_sha256": admitted.program.sha256,
+                        "artifact_sha256": admitted.artifact_sha256,
+                        "state_sha256": _digest(admitted.state),
+                        "loaded_mapping": json.loads(json.dumps(admitted.loaded_mapping)),
+                        "mapping_observation": "native_admission_before_first_call",
+                        "serialized_evidence_is_authority": False,
+                    } for token, admitted in self._images.items()},
                     "event_count": self._event_count, "event_counts": dict(self._event_counts),
                     "raw_events_dropped": self._event_count - len(self._events),
                     "events": json.loads(json.dumps(list(self._events))),

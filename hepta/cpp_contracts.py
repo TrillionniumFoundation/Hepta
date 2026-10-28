@@ -8,6 +8,7 @@ validity remain stated obligations, never conclusions inferred from a schema.
 from __future__ import annotations
 
 from copy import deepcopy
+import base64
 import hashlib
 import json
 from pathlib import Path
@@ -605,9 +606,9 @@ class _Generator:
                 invocation = "std::declval<" + ref + ">()." + m["cpp_method"] + "(" + ", ".join("std::declval<" + self.cpp_arg_type(p) + ">()" for p in m["params"]) + ")"
                 rtype = self.cpp_type(m["returns"])
                 if m["return_mode"] == "copy_from_reference":
-                    self.cpp += [f"static_assert(std::is_reference_v<decltype({invocation})> && std::is_same_v<std::remove_cvref_t<decltype({invocation})>, {rtype}>);"]
+                    self.cpp += [f'static_assert(std::is_reference_v<decltype({invocation})> && std::is_same_v<std::remove_cvref_t<decltype({invocation})>, {rtype}>, "HEPTA_CPP_METHOD_RESULT:{symbol}");']
                 else:
-                    self.cpp += [f"static_assert(std::is_same_v<decltype({invocation}), {rtype}>);"]
+                    self.cpp += [f'static_assert(std::is_same_v<decltype({invocation}), {rtype}>, "HEPTA_CPP_METHOD_RESULT:{symbol}");']
                 if m["exception"] == "noexcept":
                     self.cpp += [f"static_assert(noexcept({invocation}));"]
                 params = self.parameters(m, handle=True, checked=True)
@@ -782,20 +783,51 @@ def _command(argv: list[str], *, timeout: int = 90) -> CaptureResult:
     This protects the Agent host from unbounded diagnostic capture. The
     compiler and foreign header are not sandboxed against filesystem effects.
     """
+    executable = shutil.which(argv[0]) if argv else None
+    def identity():
+        try:
+            return hashlib.sha256(Path(executable).read_bytes()).hexdigest() if executable else None
+        except OSError:
+            return None
+    before = identity()
+
+    def streams(raw_out, raw_err, stdout, stderr):
+        result = {'stdout': stdout, 'stderr': stderr,
+                  'raw_streams_available': raw_out is not None and raw_err is not None}
+        for name, data in [('stdout', raw_out), ('stderr', raw_err)]:
+            result[name + '_raw_base64'] = base64.b64encode(data).decode('ascii') if data is not None else None
+            result[name + '_raw_sha256'] = hashlib.sha256(data).hexdigest() if data is not None else None
+            result[name + '_raw_bytes'] = len(data) if data is not None else None
+        return result
+
+    common = {'argv': list(argv), 'executable_sha256': before,
+              'timeout_seconds': timeout, 'stdout_limit': 64000, 'stderr_limit': 256000,
+              'text_normalization': 'strict UTF-8 with universal newline normalization'}
     try:
         p = run_bounded(argv, timeout=timeout, stdin_limit=0,
                         stdout_limit=64_000, stderr_limit=256_000)
     except CaptureRejected as exc:
         code = ("E_CPP_CAPTURE" if exc.code in
                 {"E_CAPTURE_OUTPUT_SIZE", "E_CAPTURE_ENCODING"} else "E_CPP_ENV")
-        _reject(f"{exc.code}: {exc}", code)
+        rejection = MigrationRejected(code, f"{exc.code}: {exc}")
+        captured = exc.capture
+        rejection.native_process = {**common, 'status': 'capture_rejected',
+            'capture_error': exc.code, 'exit_code': captured.returncode if captured else None,
+            'executable_unchanged': before is not None and identity() == before,
+            **streams(captured.stdout if captured else None, captured.stderr if captured else None, None, None)}
+        raise rejection from exc
     if p.returncode:
-        _reject((p.stderr or p.stdout)[-8000:], "E_CPP_NATIVE")
+        rejection = MigrationRejected('E_CPP_NATIVE', (p.stderr or p.stdout)[-8000:])
+        rejection.native_process = {**common, 'status': 'exited', 'exit_code': p.returncode,
+            'executable_unchanged': before is not None and identity() == before,
+            **streams(p.raw_stdout, p.raw_stderr, p.stdout, p.stderr)}
+        raise rejection
     return p
 
 
 def bridge_cpp_contracts(header: str | Path, contract: dict | str | Path,
-                         output_dir: str | Path, *, cxx: str = "c++", rustc: str | None = None) -> dict:
+                         output_dir: str | Path, *, cxx: str = "c++", rustc: str | None = None,
+                         cxx_family: str = "auto") -> dict:
     """Check actual C++ signatures/POD layouts and Rust-lowered declarations.
 
     An existing output directory is never replaced. Success writes source and
@@ -809,6 +841,8 @@ def bridge_cpp_contracts(header: str | Path, contract: dict | str | Path,
               "paired_toolchain_abi_qualified": False,
               "foreign_library_soundness_proved": False, "borrow_retention_proved": False,
               "foreign_thread_safety_proved": False, "caller_pointer_validity_proved": False}
+    phase = 'input_validation'
+    generated_failure_inputs = None
     try:
         original_dest = Path(output_dir)
         if original_dest.is_symlink() or dest.exists() or not src.is_file() or src.suffix not in {".h", ".hpp", ".hh"}:
@@ -825,18 +859,25 @@ def bridge_cpp_contracts(header: str | Path, contract: dict | str | Path,
             _reject("Header exceeds 256 KB", "E_CPP_SIZE")
         generator = _Generator(src, c)
         cpp, ch, hp = generator.render()
-        compiler = shutil.which(cxx)
-        if not compiler:
-            _reject("C++ compiler is unavailable", "E_CPP_ENV")
-        info = {"path": str(Path(compiler).resolve()), "version": _command([compiler, "--version"]).stdout.splitlines()[0],
-                "target": _command([compiler, "-dumpmachine"]).stdout.strip(),
-                "executable_sha256": hashlib.sha256(Path(compiler).read_bytes()).hexdigest()}
+        phase = 'compiler_identity'
+        from .cpp_host_toolchain import compiler_identity, compile_command, compile_flags
+        info = compiler_identity(cxx, _command, family=cxx_family)
+        report['compiler'] = info
         with tempfile.TemporaryDirectory(prefix="hepta-cpp-contract-") as td:
             temp = Path(td)
-            (temp / "bridge.cpp").write_text(cpp, encoding="utf-8")
-            (temp / "bridge.h").write_text(ch, encoding="utf-8")
-            flags = ["-std=c++20", "-O2", "-fPIC", "-pthread", "-Werror", "-MMD", "-MF", str(temp / "bridge.d")]
-            _command([compiler, *flags, "-c", str(temp / "bridge.cpp"), "-o", str(temp / "bridge.o")])
+            (temp / "bridge.cpp").write_text(cpp, encoding="utf-8", newline="\n")
+            (temp / "bridge.h").write_text(ch, encoding="utf-8", newline="\n")
+            flags = compile_flags(info)
+            generated_failure_inputs = {'header': str(src),
+                'header_sha256': hashlib.sha256(header_bytes).hexdigest(),
+                'contract': c,
+                'contract_sha256': hashlib.sha256(json.dumps(c, sort_keys=True, separators=(',', ':')).encode()).hexdigest(),
+                'source_path': str(temp / 'bridge.cpp'), 'object_path': str(temp / 'bridge.o'),
+                'dependency_path': str(temp / 'bridge.d'),
+                'files': {name: {'text': text, 'sha256': hashlib.sha256(text.encode()).hexdigest(), 'bytes': len(text.encode())}
+                          for name, text in [('bridge.cpp', cpp), ('bridge.h', ch), ('bridge.hepta', hp)]}}
+            phase = 'cpp_compile'
+            _command(compile_command(info, temp / "bridge.cpp", temp / "bridge.o", dependency=temp / "bridge.d"))
             obj = temp / "bridge.o"
             if not obj.is_file() or not obj.stat().st_size:
                 _reject("C++ compiler did not produce a nonempty object", "E_CPP_ARTIFACT")
@@ -844,6 +885,7 @@ def bridge_cpp_contracts(header: str | Path, contract: dict | str | Path,
             # Record that distinction instead of presenting a header hash as a
             # hermetic dependency lock.
             depfile = (temp / "bridge.d").read_text(encoding="utf-8")
+            phase = 'hepta_frontend'
             from .pipeline import analyze
             checked = analyze(hp, str(dest / "bridge.hepta"), rustc=rustc)
             if not checked.report["ok"]:
@@ -855,9 +897,10 @@ def bridge_cpp_contracts(header: str | Path, contract: dict | str | Path,
             report.update({"ok": True, "status": "cpp_object_and_hepta_native_checked",
                            "header": str(src), "header_sha256": hashlib.sha256(header_bytes).hexdigest(),
                            "contract_sha256": hashlib.sha256(json.dumps(c, sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
-                           "compiler": info, "cpp_flags": ["-std=c++20", "-O2", "-fPIC", "-pthread", "-Werror"],
+                           "compiler": info, "cpp_flags": flags,
                            "object_sha256": hashlib.sha256(obj.read_bytes()).hexdigest(), "object_bytes": obj.stat().st_size,
                            "compiler_user_header_dependencies": depfile,
+                           "compiler_dependency_format": "msvc_source_dependencies_json" if info["driver"] == "msvc" else "make_user_headers",
                            "transitive_dependency_lock": "not_established_rebuild_from_current_headers_required",
                            "hepta_validation": checked.report, "status_codes": STATUS,
                            "cost_accounting": generator.costs, "constructor_checks": generator.constructor_checks,
@@ -886,13 +929,14 @@ def bridge_cpp_contracts(header: str | Path, contract: dict | str | Path,
         files = {"bridge.cpp": cpp, "bridge.h": ch, "bridge.hepta": hp,
                  "contract.json": json.dumps(c, indent=2, sort_keys=True) + "\n"}
         report["outputs"] = {name: {"path": str(dest / name), "sha256": hashlib.sha256(data.encode()).hexdigest()} for name, data in files.items()}
+        phase = 'publication'
         # mkdir(exist_ok=False) is the publication guard. No existing directory
         # is ever removed, and partial output is not advertised as success.
         dest.mkdir(parents=True, exist_ok=False)
         try:
             for name, data in files.items():
-                (dest / name).write_text(data, encoding="utf-8")
-            (dest / "report.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+                (dest / name).write_text(data, encoding="utf-8", newline="\n")
+            (dest / "report.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="\n")
         except OSError:
             report.update(ok=False, status="publication_failed")
             raise
@@ -900,6 +944,9 @@ def bridge_cpp_contracts(header: str | Path, contract: dict | str | Path,
     except (MigrationRejected, OSError, ValueError, TypeError) as exc:
         report.update(ok=False, status="rejected")
         report["diagnostics"].append({"code": getattr(exc, "code", "E_CPP_INPUT"), "message": str(exc)})
+        report['failure'] = {'phase': phase, 'process': getattr(exc, 'native_process', None)}
+        if phase == 'cpp_compile' and generated_failure_inputs is not None:
+            report['failure']['generated_inputs'] = generated_failure_inputs
         return report
 
 
@@ -910,9 +957,11 @@ def main() -> int:
     parser.add_argument("--contract", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--cxx", default="c++")
+    parser.add_argument("--cxx-family", choices=["auto", "gcc", "clang", "msvc"], default="auto")
     parser.add_argument("--rustc")
     args = parser.parse_args()
-    result = bridge_cpp_contracts(args.header, args.contract, args.output_dir, cxx=args.cxx, rustc=args.rustc)
+    result = bridge_cpp_contracts(args.header, args.contract, args.output_dir, cxx=args.cxx, rustc=args.rustc,
+                                  cxx_family=args.cxx_family)
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0 if result["ok"] else 1
 

@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -34,6 +35,7 @@ CLANG = os.environ.get("CLANG", "/usr/lib/llvm-20/bin/clang")
 SOURCE_PATH = ROOT / "examples/hia_returned_loans/returned_views.hepta"
 SOURCE = SOURCE_PATH.read_text()
 RECORD_SOURCE = (ROOT / "examples/hia_returned_loans/returned_record_views.hepta").read_text()
+NESTED_SOURCE = (ROOT / "examples/hia_returned_loans/returned_nested_field.hepta").read_text()
 
 
 def borrowed_function(name, params, returns, blocks, *, origin="p", effects=("read",)):
@@ -198,10 +200,37 @@ def negative_programs():
             doc["functions"].append(fn)
         fn["blocks"][0]["ops"].append(i("unqualified.future.loan"))
         rows.append(("unknown_" + place, doc))
+    # These mutations start with the actual source-derived nested-record Core.
+    # Source field names are erased; the independent verifier must still reject
+    # a sibling's origin and use of the caller's frozen parent/owner.
+    nested = lower_source(NESTED_SOURCE, core_schema=SCHEMA_V8).as_dict()
+    for origin_index in (0, 1):
+        doc = copy.deepcopy(nested)
+        helper = doc["functions"][0]
+        helper["return_origins"][0] = helper["params"][origin_index]["name"]
+        rows.append(("record_scalar_origin" if origin_index == 0 else "record_sibling_origin", doc))
+    for operation in ("loan.end", "owner.drop", "owner.move"):
+        doc = copy.deepcopy(nested)
+        caller = next(fn for fn in doc["functions"] if fn["name"] == "probe")
+        block = next(bb for bb in caller["blocks"] if any(
+            op["op"] == "call" and op["attrs"]["function"] == "view" for op in bb["ops"]))
+        at = next(n for n, op in enumerate(block["ops"]) if op["op"] == "call" and op["attrs"]["function"] == "view")
+        parent = block["ops"][at]["args"][2]
+        root = next(op["args"][0] for op in block["ops"] if any(out["name"] == parent for out in op["out"]))
+        operand = parent if operation == "loan.end" else root
+        outputs = [("illegally_moved_record_field", "buffer")] if operation == "owner.move" else []
+        block["ops"].insert(at + 1, i(operation, [operand], outputs))
+        rows.append(("record_early_" + operation, doc))
     return rows
 
 
 class ReturnedLoanSemantics(unittest.TestCase):
+    cli_records = []
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cli_records = []
+
     def test_source_retains_functions_calls_and_explicit_origin(self):
         core = lower_source(SOURCE, core_schema=SCHEMA_V8)
         body = core.as_dict()
@@ -221,12 +250,65 @@ class ReturnedLoanSemantics(unittest.TestCase):
     def test_existing_source_default_and_unsupported_stored_origin_contracts(self):
         legacy = (ROOT / "examples/hia_resource_core/borrowed_projection.hepta").read_text()
         self.assertEqual(lower_source(legacy).as_dict()["schema"], "hepta.hia.program.v1")
-        with self.assertRaises(HIAProgramSourceRejected):
-            lower_source(legacy, core_schema=SCHEMA_V8)  # record-to-field return origin is not this source profile
+        modern = lower_source(legacy, core_schema=SCHEMA_V8)
+        self.assertEqual(execute_program(modern, "projection_probe", [2, 19])["values"], [73])
         for source in (SOURCE.replace(" from value", ""),
                        SOURCE.replace("let answer = view(read bytes, choose)[0];", "let held = view(read bytes, choose);\n let answer = held[0];"),
                        SOURCE.replace("fn edit", "export \"C\" fn edit")):
             with self.subTest(source=source), self.assertRaises((HIAProgramSourceRejected, ValueError)):
+                lower_source(source, core_schema=SCHEMA_V8)
+
+    def test_nested_record_origin_is_named_nonfirst_leaf_with_scalar_writeback(self):
+        core = lower_source(NESTED_SOURCE, core_schema=SCHEMA_V8)
+        self.assertEqual(core.as_dict(), json.loads((ROOT / "examples/hia_returned_loans/returned_nested_field.json").read_text()))
+        for fn in core.as_dict()["functions"][:2]:
+            self.assertEqual(fn["return_origins"][0], fn["params"][2]["name"])
+            self.assertTrue(all(origin is None for origin in fn["return_origins"][1:]))
+        self.assertTrue(source_report(NESTED_SOURCE, core_schema=SCHEMA_V8)["claims"]["stable_record_field_return_origins"])
+        for choose in (False, True):
+            for byte in (0, 19, 255):
+                observed = execute_program(core, "probe", [3, byte, choose])
+                self.assertEqual(observed["values"], [byte ^ 90])
+                for key, expected in (("allocations", 2), ("frees", 2), ("owners_created", 2),
+                                      ("owners_dropped", 2), ("loans_started", 13), ("loans_ended", 13),
+                                      ("live_local_loans", 0), ("live_owners", 0), ("live_bytes", 0)):
+                    self.assertEqual(observed["resources"][key], expected)
+        with tempfile.TemporaryDirectory(prefix="hia-record-origin-cli-") as temporary:
+            output = Path(temporary) / "core.json"
+            source = ROOT / "examples/hia_returned_loans/returned_nested_field.hepta"
+            commands = [
+                (["lower", str(source), "--core-schema", SCHEMA_V8, "--module", "returned_nested_field", "-o", str(output)], 0),
+                (["verify", str(output)], 0),
+                (["run", str(output), "--function", "probe", "--arguments", "[2,19,true]"], 0),
+                (["lower", str(source)], 2),
+            ]
+            for arguments, expected in commands:
+                argv = [sys.executable, "-m", "hepta", "hia", *arguments]
+                proc = subprocess.run(argv, cwd=ROOT, capture_output=True, text=True, timeout=30)
+                row = {"argv": argv, "returncode": proc.returncode, "stdout": proc.stdout,
+                       "stderr": proc.stderr, "expected_returncode": expected}
+                type(self).cli_records.append(row)
+                self.assertEqual(proc.returncode, expected, row)
+                if arguments[0] == "lower" and expected == 0:
+                    self.assertEqual(verify_program(output.read_bytes()).canonical_bytes, core.canonical_bytes)
+                if arguments[0] == "run":
+                    self.assertEqual(json.loads(proc.stdout)["values"], [73])
+                row["matched"] = True
+
+    def test_record_field_path_changes_local_origins_and_stored_borrows_reject(self):
+        alternatives = {
+            "different_field_on_one_path": NESTED_SOURCE.replace(
+                "if choose { return read value.payload.right; }", "if choose { return read value.payload.left; }"),
+            "different_mutable_field_on_one_path": NESTED_SOURCE.replace(
+                "if choose { return mut value.payload.right; }", "if choose { return mut value.payload.left; }"),
+            "stored_return_then_owner_drop": NESTED_SOURCE.replace(
+                "let before = view(read packet, choose)[0];", "let held = view(read packet, choose);\n drop(move packet);\n let before = held[0];"),
+            "stored_return_then_owner_move": NESTED_SOURCE.replace(
+                "let before = view(read packet, choose)[0];", "let held = view(read packet, choose);\n let moved = move packet;\n let before = held[0];"),
+            "scalar_field_is_not_a_view": NESTED_SOURCE.replace("return read value.payload.right;", "return read value.prefix;"),
+        }
+        for label, source in alternatives.items():
+            with self.subTest(label=label), self.assertRaises((HIAProgramSourceRejected, ValueError)):
                 lower_source(source, core_schema=SCHEMA_V8)
 
     def test_identity_child_relay_join_and_original_parent_survives(self):
@@ -384,6 +466,24 @@ class ReturnedLoanRust(unittest.TestCase):
         for heap, fail in ((1, None), (2, None), (26, None), (27, None), (100, 1), (100, 2)):
             self.parity(doc, [2, 81], heap=heap, fail=fail)
 
+    def test_nested_record_actual_origins_failures_and_every_step_boundary(self):
+        core = lower_source(NESTED_SOURCE, core_schema=SCHEMA_V8)
+        type(self).sources[hashlib.sha256(NESTED_SOURCE.encode()).hexdigest()] = {
+            "text": NESTED_SOURCE, "core_sha256": core.sha256,
+            "report": source_report(NESTED_SOURCE, core_schema=SCHEMA_V8)}
+        for choose in (False, True):
+            successful = self.parity(core, [2, 19, choose])
+            self.assertEqual(successful["resources"]["allocations"], 2)
+            self.assertEqual(successful["resources"]["loans_started"], 13)
+            for steps in range(1, successful["steps"] + 2):
+                self.parity(core, [2, 19, choose], steps=steps)
+            for size, byte in ((1, 0), (7, 255)):
+                self.parity(core, [size, byte, choose])
+        for arguments, heap, fail in (([0, 0, False], 100, None),
+                                      ([2, 19, False], 1, None), ([2, 19, True], 3, None),
+                                      ([2, 19, False], 100, 1), ([2, 19, True], 100, 2)):
+            self.parity(core, arguments, heap=heap, fail=fail)
+
     def test_all_invalid_modules_before_any_execution_and_pinned_shadow(self):
         for label, doc in negative_programs():
             row = {"label": label, "input": doc, "rust_attempts": []}
@@ -427,6 +527,7 @@ class ReturnedLoanNative(unittest.TestCase):
         for name, core, nargs, expected_xor in (
             ("source", lower_source(SOURCE, core_schema=SCHEMA_V8), 3, 90),
             ("source-record", lower_source(RECORD_SOURCE, core_schema=SCHEMA_V8), 3, 90),
+            ("source-nested-field", lower_source(NESTED_SOURCE, core_schema=SCHEMA_V8), 3, 90),
             ("primitive", verify_program(returned_program("relay", mutable=True)), 3, 90),
             ("scratch", verify_program(returned_program("scratch", mutable=True)), 3, 90),
             ("chain", verify_program(chain_program()), 2, 0),

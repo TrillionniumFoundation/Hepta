@@ -33,6 +33,8 @@ MODULES = (
     "tests.test_hia_ndu_loop", "tests.test_hia_ndu_bridge_isolation", "tests.test_hia_adaptive",
     "tests.test_hia_optimizer_bench", "tests.test_hia_agent_holdout",
     "tests.test_hia_guarded_optimization", "tests.test_hia_ndu_graph",
+    "tests.test_hia_ndu_cache", "tests.test_hia_returned_loans",
+    "tests.test_cpp_upstream_host", "tests.test_cpp_contract_capture",
     "tests.test_cpp_composed_project", "tests.test_hia_stateful",
     "tests.test_hia_native_mapping_identity",
     "tests.test_hia_next_evaluation",
