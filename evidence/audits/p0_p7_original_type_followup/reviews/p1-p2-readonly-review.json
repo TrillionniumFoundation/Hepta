@@ -1,0 +1,35 @@
+{
+  "conclusion": "No concrete accepted-input safety or execution discrepancy confirmed in this focused review.",
+  "confirmed_blockers": [],
+  "discarded_candidate": "Potential scalar writeback through a mutable projection-return helper is not an accepted counterexample: taking a borrow of a call result is rejected by the HIA place boundary; source call mode also requires an explicit borrow. No executable bad result was observed.",
+  "dynamic_evidence": {
+    "all_match": true,
+    "bounds_trapped": 3,
+    "cases": 8,
+    "checks": "Exact status, values or trap code, steps and all resource-ledger fields; exclusive alias, missing parent forwarding and readonly permission upgrade all rejected by both checkers.",
+    "new_native_compilations": 0,
+    "new_test_suite_executions": 0,
+    "report": "/tmp/hepta-p1-p2-formal-range-audit-20261028/report.json",
+    "returned": 5,
+    "rust_vm_invocations": 11,
+    "safety_negatives": 3,
+    "sha256": "5796be5c698cd76affbbedef84af640004f4d602ca012c2e678b764309c76474"
+  },
+  "head": "e6379178a3e9a682f88c344aaa86b3d74932ffd7",
+  "limits": [
+    "Current primitive loans represent whole buffers; offset/count are memory-instruction inputs. No invented subslice semantics was assumed.",
+    "Native LLVM reviewed statically only; no new native execution.",
+    "Initial temporary harness failed decoding textual Rust rejection as JSON after eight paired cases; raw files and error receipt were retained, then only two remaining negatives were run.",
+    "This finite review is not a complete soundness/refinement proof, and does not close explicit unsupported general-purpose memory or concurrency features."
+  ],
+  "schema": "hepta.audit.p1-p2-readonly-review.v1",
+  "source_and_tool_stable": true,
+  "source_modified": false,
+  "static_scope": [
+    "Primitive loan roots, parents, external formals and CFG transfer in hia_program.py and Rust ownership.rs / owned_vm.rs.",
+    "Python / Rust v2-v6 range checks, range copy, readonly formal aliasing and suspended parents.",
+    "LLVM guarded byte addresses, range writes, zero-count paths, allocation zeroing whitelist and control-flow edge splitting.",
+    "Nominal record initialization/make/unpack/get/borrow and task cancellation/ready-state documented semantics.",
+    "Source scalarized mutable argument writeback and immediate projection borrow-return admission."
+  ]
+}

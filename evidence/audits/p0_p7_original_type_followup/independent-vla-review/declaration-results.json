@@ -1,0 +1,1205 @@
+{
+  "cases": [
+    {
+      "case": "pointer_prototype_vla_definition",
+      "compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "input.c",
+        "-o",
+        "original.so"
+      ],
+      "compile_returncode": 0,
+      "declarations": [
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__int128_t",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__uint128_t",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__NSConstantString",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__builtin_ms_va_list",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__builtin_va_list",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": "/tmp/hepta-vla-independent-review-20261027/pointer_prototype_vla_definition/input.c",
+          "kind": "FunctionDecl",
+          "name": "probe",
+          "offset": 9,
+          "reason": "whole_bundle_rejected",
+          "status": "not_attempted_due_to_rejection",
+          "unit": 0
+        },
+        {
+          "file": "/tmp/hepta-vla-independent-review-20261027/pointer_prototype_vla_definition/input.c",
+          "kind": "FunctionDecl",
+          "name": "probe",
+          "offset": 60,
+          "reason": "E_C_VLA_PARAMETER",
+          "status": "rejected",
+          "unit": 0
+        }
+      ],
+      "diagnostics": [
+        {
+          "code": "E_C_VLA_PARAMETER",
+          "message": "Unmodeled original parameter type for probe.data: const unsigned int[++n]"
+        }
+      ],
+      "header": null,
+      "migration_ok": false,
+      "original_result_n7": 8,
+      "original_type_receipts": [
+        {
+          "argv": [
+            "/usr/lib/llvm-20/bin/clang",
+            "-std=c11",
+            "-O0",
+            "-Werror",
+            "-emit-ast",
+            "input.c",
+            "-o",
+            "/tmp/hepta-original-types-bmgmncae/input.ast"
+          ],
+          "capture_sha256": "dc0a0bc2e6a4d1cd19f2f49088a430b0a62fe9f70e29b92852908db243c64a53",
+          "compiler": {
+            "executable_sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+            "path": "/usr/lib/llvm-20/bin/clang",
+            "target": "x86_64-pc-linux-gnu",
+            "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+          },
+          "cwd": "/tmp/hepta-vla-independent-review-20261027/pointer_prototype_vla_definition",
+          "functions": [
+            {
+              "declaration": {
+                "file": "/tmp/hepta-vla-independent-review-20261027/pointer_prototype_vla_definition/input.c",
+                "name": "probe",
+                "offset": 9,
+                "parameters": [
+                  "n",
+                  "other"
+                ],
+                "type": "unsigned int (unsigned int, const unsigned int *)"
+              },
+              "parameters": [
+                {
+                  "kind": "UInt",
+                  "name": "n",
+                  "spelling": "unsigned int",
+                  "state": "fixed"
+                },
+                {
+                  "kind": "Pointer",
+                  "name": "other",
+                  "spelling": "const unsigned int *",
+                  "state": "fixed"
+                }
+              ]
+            },
+            {
+              "declaration": {
+                "file": "/tmp/hepta-vla-independent-review-20261027/pointer_prototype_vla_definition/input.c",
+                "name": "probe",
+                "offset": 60,
+                "parameters": [
+                  "n",
+                  "data"
+                ],
+                "type": "unsigned int (unsigned int, const unsigned int *)"
+              },
+              "parameters": [
+                {
+                  "kind": "UInt",
+                  "name": "n",
+                  "spelling": "unsigned int",
+                  "state": "fixed"
+                },
+                {
+                  "kind": "VariableArray",
+                  "name": "data",
+                  "spelling": "const unsigned int[++n]",
+                  "state": "variable"
+                }
+              ]
+            }
+          ],
+          "limits": {
+            "ast_bytes": 32000000,
+            "compiler_seconds": 35,
+            "declarations": 100000,
+            "parameters": 1024,
+            "type_depth": 64,
+            "worker_seconds": 30
+          },
+          "reader": {
+            "bytes": 36282304,
+            "path": "/usr/lib/x86_64-linux-gnu/libclang-20.so.20",
+            "sha256": "0c655b8d99e8fab8f9f29e7b18515584c41c1f09f40c85007261b816571502c4",
+            "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+          },
+          "schema": "hepta.c-original-parameter-types.v1",
+          "serialized_ast": {
+            "bytes": 251852,
+            "path": "/tmp/hepta-original-types-bmgmncae/input.ast",
+            "sha256": "cf0301d226d7aa51f81e5b718a42ef1f078a99a3e4bf8f4e29a19520585f5f07"
+          },
+          "unit": 0
+        }
+      ],
+      "source": "unsigned probe(unsigned n, const unsigned *other);\nunsigned probe(unsigned n, const unsigned data[++n]) { return n; }\n"
+    },
+    {
+      "case": "vla_definition_pointer_redeclaration",
+      "compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "input.c",
+        "-o",
+        "original.so"
+      ],
+      "compile_returncode": 0,
+      "declarations": [
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__int128_t",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__uint128_t",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__NSConstantString",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__builtin_ms_va_list",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__builtin_va_list",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": "/tmp/hepta-vla-independent-review-20261027/vla_definition_pointer_redeclaration/input.c",
+          "kind": "FunctionDecl",
+          "name": "probe",
+          "offset": 9,
+          "reason": "E_C_VLA_PARAMETER",
+          "status": "rejected",
+          "unit": 0
+        },
+        {
+          "file": "/tmp/hepta-vla-independent-review-20261027/vla_definition_pointer_redeclaration/input.c",
+          "kind": "FunctionDecl",
+          "name": "probe",
+          "offset": 76,
+          "reason": "whole_bundle_rejected",
+          "status": "not_attempted_due_to_rejection",
+          "unit": 0
+        }
+      ],
+      "diagnostics": [
+        {
+          "code": "E_C_VLA_PARAMETER",
+          "message": "Unmodeled original parameter type for probe.data: const unsigned int[++n]"
+        }
+      ],
+      "header": null,
+      "migration_ok": false,
+      "original_result_n7": 8,
+      "original_type_receipts": [
+        {
+          "argv": [
+            "/usr/lib/llvm-20/bin/clang",
+            "-std=c11",
+            "-O0",
+            "-Werror",
+            "-emit-ast",
+            "input.c",
+            "-o",
+            "/tmp/hepta-original-types-8lxei6sd/input.ast"
+          ],
+          "capture_sha256": "248261ecdbf9227ac21b1ca72f60954dd511d7bfef0f968bb55a5054fdbeb7f1",
+          "compiler": {
+            "executable_sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+            "path": "/usr/lib/llvm-20/bin/clang",
+            "target": "x86_64-pc-linux-gnu",
+            "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+          },
+          "cwd": "/tmp/hepta-vla-independent-review-20261027/vla_definition_pointer_redeclaration",
+          "functions": [
+            {
+              "declaration": {
+                "file": "/tmp/hepta-vla-independent-review-20261027/vla_definition_pointer_redeclaration/input.c",
+                "name": "probe",
+                "offset": 9,
+                "parameters": [
+                  "n",
+                  "data"
+                ],
+                "type": "unsigned int (unsigned int, const unsigned int *)"
+              },
+              "parameters": [
+                {
+                  "kind": "UInt",
+                  "name": "n",
+                  "spelling": "unsigned int",
+                  "state": "fixed"
+                },
+                {
+                  "kind": "VariableArray",
+                  "name": "data",
+                  "spelling": "const unsigned int[++n]",
+                  "state": "variable"
+                }
+              ]
+            },
+            {
+              "declaration": {
+                "file": "/tmp/hepta-vla-independent-review-20261027/vla_definition_pointer_redeclaration/input.c",
+                "name": "probe",
+                "offset": 76,
+                "parameters": [
+                  "n",
+                  "other"
+                ],
+                "type": "unsigned int (unsigned int, const unsigned int *)"
+              },
+              "parameters": [
+                {
+                  "kind": "UInt",
+                  "name": "n",
+                  "spelling": "unsigned int",
+                  "state": "fixed"
+                },
+                {
+                  "kind": "Pointer",
+                  "name": "other",
+                  "spelling": "const unsigned int *",
+                  "state": "fixed"
+                }
+              ]
+            }
+          ],
+          "limits": {
+            "ast_bytes": 32000000,
+            "compiler_seconds": 35,
+            "declarations": 100000,
+            "parameters": 1024,
+            "type_depth": 64,
+            "worker_seconds": 30
+          },
+          "reader": {
+            "bytes": 36282304,
+            "path": "/usr/lib/x86_64-linux-gnu/libclang-20.so.20",
+            "sha256": "0c655b8d99e8fab8f9f29e7b18515584c41c1f09f40c85007261b816571502c4",
+            "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+          },
+          "schema": "hepta.c-original-parameter-types.v1",
+          "serialized_ast": {
+            "bytes": 251864,
+            "path": "/tmp/hepta-original-types-8lxei6sd/input.ast",
+            "sha256": "d0b81d4e2e0dbc56effc27a882043ecd200178651d285ca2b01b89814000ad31"
+          },
+          "unit": 0
+        }
+      ],
+      "source": "unsigned probe(unsigned n, const unsigned data[++n]) { return n; }\nunsigned probe(unsigned n, const unsigned *other);\n"
+    },
+    {
+      "case": "vla_prototype_pointer_definition",
+      "compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "input.c",
+        "-o",
+        "original.so"
+      ],
+      "compile_returncode": 0,
+      "declarations": [
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__int128_t",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__uint128_t",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__NSConstantString",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__builtin_ms_va_list",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__builtin_va_list",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": "/tmp/hepta-vla-independent-review-20261027/vla_prototype_pointer_definition/input.c",
+          "kind": "FunctionDecl",
+          "name": "probe",
+          "offset": 9,
+          "reason": "E_C_VLA_PARAMETER",
+          "status": "rejected",
+          "unit": 0
+        },
+        {
+          "file": "/tmp/hepta-vla-independent-review-20261027/vla_prototype_pointer_definition/input.c",
+          "kind": "FunctionDecl",
+          "name": "probe",
+          "offset": 64,
+          "reason": "whole_bundle_rejected",
+          "status": "not_attempted_due_to_rejection",
+          "unit": 0
+        }
+      ],
+      "diagnostics": [
+        {
+          "code": "E_C_VLA_PARAMETER",
+          "message": "Unmodeled original parameter type for probe.other: const unsigned int[++n]"
+        }
+      ],
+      "header": null,
+      "migration_ok": false,
+      "original_result_n7": 7,
+      "original_type_receipts": [
+        {
+          "argv": [
+            "/usr/lib/llvm-20/bin/clang",
+            "-std=c11",
+            "-O0",
+            "-Werror",
+            "-emit-ast",
+            "input.c",
+            "-o",
+            "/tmp/hepta-original-types-95f1hrkc/input.ast"
+          ],
+          "capture_sha256": "6373d0517bc8a5ead7c54a25bf438d0fa42528f5857ce58a9e2af6e5f42e8eae",
+          "compiler": {
+            "executable_sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+            "path": "/usr/lib/llvm-20/bin/clang",
+            "target": "x86_64-pc-linux-gnu",
+            "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+          },
+          "cwd": "/tmp/hepta-vla-independent-review-20261027/vla_prototype_pointer_definition",
+          "functions": [
+            {
+              "declaration": {
+                "file": "/tmp/hepta-vla-independent-review-20261027/vla_prototype_pointer_definition/input.c",
+                "name": "probe",
+                "offset": 9,
+                "parameters": [
+                  "n",
+                  "other"
+                ],
+                "type": "unsigned int (unsigned int, const unsigned int *)"
+              },
+              "parameters": [
+                {
+                  "kind": "UInt",
+                  "name": "n",
+                  "spelling": "unsigned int",
+                  "state": "fixed"
+                },
+                {
+                  "kind": "VariableArray",
+                  "name": "other",
+                  "spelling": "const unsigned int[++n]",
+                  "state": "variable"
+                }
+              ]
+            },
+            {
+              "declaration": {
+                "file": "/tmp/hepta-vla-independent-review-20261027/vla_prototype_pointer_definition/input.c",
+                "name": "probe",
+                "offset": 64,
+                "parameters": [
+                  "n",
+                  "data"
+                ],
+                "type": "unsigned int (unsigned int, const unsigned int *)"
+              },
+              "parameters": [
+                {
+                  "kind": "UInt",
+                  "name": "n",
+                  "spelling": "unsigned int",
+                  "state": "fixed"
+                },
+                {
+                  "kind": "Pointer",
+                  "name": "data",
+                  "spelling": "const unsigned int *",
+                  "state": "fixed"
+                }
+              ]
+            }
+          ],
+          "limits": {
+            "ast_bytes": 32000000,
+            "compiler_seconds": 35,
+            "declarations": 100000,
+            "parameters": 1024,
+            "type_depth": 64,
+            "worker_seconds": 30
+          },
+          "reader": {
+            "bytes": 36282304,
+            "path": "/usr/lib/x86_64-linux-gnu/libclang-20.so.20",
+            "sha256": "0c655b8d99e8fab8f9f29e7b18515584c41c1f09f40c85007261b816571502c4",
+            "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+          },
+          "schema": "hepta.c-original-parameter-types.v1",
+          "serialized_ast": {
+            "bytes": 251852,
+            "path": "/tmp/hepta-original-types-95f1hrkc/input.ast",
+            "sha256": "5874d8c2ee50b2ef1176a5542c6989aef08a07b327fce04396d3eeda8962a84e"
+          },
+          "unit": 0
+        }
+      ],
+      "source": "unsigned probe(unsigned n, const unsigned other[++n]);\nunsigned probe(unsigned n, const unsigned *data) { return n; }\n"
+    },
+    {
+      "case": "fixed_prototype_pointer_definition",
+      "compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "input.c",
+        "-o",
+        "original.so"
+      ],
+      "compile_returncode": 0,
+      "declarations": [
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__int128_t",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__uint128_t",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__NSConstantString",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__builtin_ms_va_list",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__builtin_va_list",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": "/tmp/hepta-vla-independent-review-20261027/fixed_prototype_pointer_definition/input.c",
+          "kind": "FunctionDecl",
+          "name": "probe",
+          "offset": 9,
+          "reason": null,
+          "status": "prototype_resolved",
+          "unit": 0
+        },
+        {
+          "file": "/tmp/hepta-vla-independent-review-20261027/fixed_prototype_pointer_definition/input.c",
+          "kind": "FunctionDecl",
+          "name": "probe",
+          "offset": 62,
+          "reason": null,
+          "status": "function_converted",
+          "unit": 0
+        }
+      ],
+      "diagnostics": [],
+      "header": null,
+      "migration_ok": true,
+      "original_result_n7": 7,
+      "original_type_receipts": [
+        {
+          "argv": [
+            "/usr/lib/llvm-20/bin/clang",
+            "-std=c11",
+            "-O0",
+            "-Werror",
+            "-emit-ast",
+            "input.c",
+            "-o",
+            "/tmp/hepta-original-types-9btkqgs4/input.ast"
+          ],
+          "capture_sha256": "e2536a93caf53011c6df81711994e35c79c8088b2d635be78a55c0b5c481cf79",
+          "compiler": {
+            "executable_sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+            "path": "/usr/lib/llvm-20/bin/clang",
+            "target": "x86_64-pc-linux-gnu",
+            "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+          },
+          "cwd": "/tmp/hepta-vla-independent-review-20261027/fixed_prototype_pointer_definition",
+          "functions": [
+            {
+              "declaration": {
+                "file": "/tmp/hepta-vla-independent-review-20261027/fixed_prototype_pointer_definition/input.c",
+                "name": "probe",
+                "offset": 9,
+                "parameters": [
+                  "n",
+                  "other"
+                ],
+                "type": "unsigned int (unsigned int, const unsigned int *)"
+              },
+              "parameters": [
+                {
+                  "kind": "UInt",
+                  "name": "n",
+                  "spelling": "unsigned int",
+                  "state": "fixed"
+                },
+                {
+                  "kind": "ConstantArray",
+                  "name": "other",
+                  "spelling": "const unsigned int[8]",
+                  "state": "fixed"
+                }
+              ]
+            },
+            {
+              "declaration": {
+                "file": "/tmp/hepta-vla-independent-review-20261027/fixed_prototype_pointer_definition/input.c",
+                "name": "probe",
+                "offset": 62,
+                "parameters": [
+                  "n",
+                  "data"
+                ],
+                "type": "unsigned int (unsigned int, const unsigned int *)"
+              },
+              "parameters": [
+                {
+                  "kind": "UInt",
+                  "name": "n",
+                  "spelling": "unsigned int",
+                  "state": "fixed"
+                },
+                {
+                  "kind": "Pointer",
+                  "name": "data",
+                  "spelling": "const unsigned int *",
+                  "state": "fixed"
+                }
+              ]
+            }
+          ],
+          "limits": {
+            "ast_bytes": 32000000,
+            "compiler_seconds": 35,
+            "declarations": 100000,
+            "parameters": 1024,
+            "type_depth": 64,
+            "worker_seconds": 30
+          },
+          "reader": {
+            "bytes": 36282304,
+            "path": "/usr/lib/x86_64-linux-gnu/libclang-20.so.20",
+            "sha256": "0c655b8d99e8fab8f9f29e7b18515584c41c1f09f40c85007261b816571502c4",
+            "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+          },
+          "schema": "hepta.c-original-parameter-types.v1",
+          "serialized_ast": {
+            "bytes": 251840,
+            "path": "/tmp/hepta-original-types-9btkqgs4/input.ast",
+            "sha256": "792464ab52237d1f34e46bd2190758cabdf2e111f0d69bdb69c1a4bbb7c93446"
+          },
+          "unit": 0
+        }
+      ],
+      "source": "unsigned probe(unsigned n, const unsigned other[8]);\nunsigned probe(unsigned n, const unsigned *data) { return n; }\n"
+    },
+    {
+      "case": "header_vla_definition",
+      "compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "input.c",
+        "-o",
+        "original.so"
+      ],
+      "compile_returncode": 0,
+      "declarations": [
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__int128_t",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__uint128_t",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__NSConstantString",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__builtin_ms_va_list",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__builtin_va_list",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": "/tmp/hepta-vla-independent-review-20261027/header_vla_definition/local.h",
+          "kind": "FunctionDecl",
+          "name": "probe",
+          "offset": 9,
+          "reason": "E_C_VLA_PARAMETER",
+          "status": "rejected",
+          "unit": 0
+        }
+      ],
+      "diagnostics": [
+        {
+          "code": "E_C_VLA_PARAMETER",
+          "message": "Unmodeled original parameter type for probe.data: const unsigned int[++n]"
+        }
+      ],
+      "header": "unsigned probe(unsigned n, const unsigned data[++n]) { return n; }\n",
+      "migration_ok": false,
+      "original_result_n7": 8,
+      "original_type_receipts": [
+        {
+          "argv": [
+            "/usr/lib/llvm-20/bin/clang",
+            "-std=c11",
+            "-O0",
+            "-Werror",
+            "-emit-ast",
+            "input.c",
+            "-o",
+            "/tmp/hepta-original-types-12gh1d7k/input.ast"
+          ],
+          "capture_sha256": "cc068d256ea06e0c9c28cccc63feab550cf902db857d24985b70a2b2ec7b8081",
+          "compiler": {
+            "executable_sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+            "path": "/usr/lib/llvm-20/bin/clang",
+            "target": "x86_64-pc-linux-gnu",
+            "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+          },
+          "cwd": "/tmp/hepta-vla-independent-review-20261027/header_vla_definition",
+          "functions": [
+            {
+              "declaration": {
+                "file": "/tmp/hepta-vla-independent-review-20261027/header_vla_definition/local.h",
+                "name": "probe",
+                "offset": 9,
+                "parameters": [
+                  "n",
+                  "data"
+                ],
+                "type": "unsigned int (unsigned int, const unsigned int *)"
+              },
+              "parameters": [
+                {
+                  "kind": "UInt",
+                  "name": "n",
+                  "spelling": "unsigned int",
+                  "state": "fixed"
+                },
+                {
+                  "kind": "VariableArray",
+                  "name": "data",
+                  "spelling": "const unsigned int[++n]",
+                  "state": "variable"
+                }
+              ]
+            }
+          ],
+          "limits": {
+            "ast_bytes": 32000000,
+            "compiler_seconds": 35,
+            "declarations": 100000,
+            "parameters": 1024,
+            "type_depth": 64,
+            "worker_seconds": 30
+          },
+          "reader": {
+            "bytes": 36282304,
+            "path": "/usr/lib/x86_64-linux-gnu/libclang-20.so.20",
+            "sha256": "0c655b8d99e8fab8f9f29e7b18515584c41c1f09f40c85007261b816571502c4",
+            "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+          },
+          "schema": "hepta.c-original-parameter-types.v1",
+          "serialized_ast": {
+            "bytes": 251812,
+            "path": "/tmp/hepta-original-types-12gh1d7k/input.ast",
+            "sha256": "de27f4afce315d59d57157fb9c670cb4edced45a4af75bb2d7a8167eca3ea1ca"
+          },
+          "unit": 0
+        }
+      ],
+      "source": "#include \"local.h\"\n"
+    },
+    {
+      "case": "local_typedef_vla",
+      "compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "input.c",
+        "-o",
+        "original.so"
+      ],
+      "compile_returncode": 0,
+      "declarations": [
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__int128_t",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__uint128_t",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__NSConstantString",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__builtin_ms_va_list",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__builtin_va_list",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": "/tmp/hepta-vla-independent-review-20261027/local_typedef_vla/input.c",
+          "kind": "FunctionDecl",
+          "name": "probe",
+          "offset": 9,
+          "reason": "whole_bundle_rejected",
+          "status": "not_attempted_due_to_rejection",
+          "unit": 0
+        }
+      ],
+      "diagnostics": [
+        {
+          "code": "E_C_LOCAL",
+          "message": "Locals require one initializer and ordinary automatic storage"
+        }
+      ],
+      "header": null,
+      "migration_ok": false,
+      "original_result_n7": 8,
+      "original_type_receipts": [
+        {
+          "argv": [
+            "/usr/lib/llvm-20/bin/clang",
+            "-std=c11",
+            "-O0",
+            "-Werror",
+            "-emit-ast",
+            "input.c",
+            "-o",
+            "/tmp/hepta-original-types-0g1a21ds/input.ast"
+          ],
+          "capture_sha256": "575d0350fda723304cbccc6d0714321dd5d5211005a48d9c1326d012de5b456f",
+          "compiler": {
+            "executable_sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+            "path": "/usr/lib/llvm-20/bin/clang",
+            "target": "x86_64-pc-linux-gnu",
+            "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+          },
+          "cwd": "/tmp/hepta-vla-independent-review-20261027/local_typedef_vla",
+          "functions": [
+            {
+              "declaration": {
+                "file": "/tmp/hepta-vla-independent-review-20261027/local_typedef_vla/input.c",
+                "name": "probe",
+                "offset": 9,
+                "parameters": [
+                  "n",
+                  "data"
+                ],
+                "type": "unsigned int (unsigned int, const unsigned int *)"
+              },
+              "parameters": [
+                {
+                  "kind": "UInt",
+                  "name": "n",
+                  "spelling": "unsigned int",
+                  "state": "fixed"
+                },
+                {
+                  "kind": "Pointer",
+                  "name": "data",
+                  "spelling": "const unsigned int *",
+                  "state": "fixed"
+                }
+              ]
+            }
+          ],
+          "limits": {
+            "ast_bytes": 32000000,
+            "compiler_seconds": 35,
+            "declarations": 100000,
+            "parameters": 1024,
+            "type_depth": 64,
+            "worker_seconds": 30
+          },
+          "reader": {
+            "bytes": 36282304,
+            "path": "/usr/lib/x86_64-linux-gnu/libclang-20.so.20",
+            "sha256": "0c655b8d99e8fab8f9f29e7b18515584c41c1f09f40c85007261b816571502c4",
+            "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+          },
+          "schema": "hepta.c-original-parameter-types.v1",
+          "serialized_ast": {
+            "bytes": 251652,
+            "path": "/tmp/hepta-original-types-0g1a21ds/input.ast",
+            "sha256": "0dacd10ef8af377ed8ba58a2ec6f49d296786760f0a62e5eb853f729e8c96d80"
+          },
+          "unit": 0
+        }
+      ],
+      "source": "unsigned probe(unsigned n, const unsigned *data) { typedef unsigned Row[++n]; return n; }\n"
+    },
+    {
+      "case": "nested_vla_prototype",
+      "compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "input.c",
+        "-o",
+        "original.so"
+      ],
+      "compile_returncode": 0,
+      "declarations": [
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__int128_t",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__uint128_t",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__NSConstantString",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__builtin_ms_va_list",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": null,
+          "kind": "TypedefDecl",
+          "name": "__builtin_va_list",
+          "offset": null,
+          "reason": "recorded_dependency_outside_translated_project_declarations",
+          "status": "system_or_compiler_declaration",
+          "unit": 0
+        },
+        {
+          "file": "/tmp/hepta-vla-independent-review-20261027/nested_vla_prototype/input.c",
+          "kind": "FunctionDecl",
+          "name": "probe",
+          "offset": 9,
+          "reason": "whole_bundle_rejected",
+          "status": "not_attempted_due_to_rejection",
+          "unit": 0
+        }
+      ],
+      "diagnostics": [
+        {
+          "code": "E_C_LOCAL",
+          "message": "Locals require one initializer and ordinary automatic storage"
+        }
+      ],
+      "header": null,
+      "migration_ok": false,
+      "original_result_n7": 7,
+      "original_type_receipts": [
+        {
+          "argv": [
+            "/usr/lib/llvm-20/bin/clang",
+            "-std=c11",
+            "-O0",
+            "-Werror",
+            "-emit-ast",
+            "input.c",
+            "-o",
+            "/tmp/hepta-original-types-pw44birp/input.ast"
+          ],
+          "capture_sha256": "e873565812b8d347a00c559a5c40ddf9fee28835468220399bc2b1c100478d9a",
+          "compiler": {
+            "executable_sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+            "path": "/usr/lib/llvm-20/bin/clang",
+            "target": "x86_64-pc-linux-gnu",
+            "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+          },
+          "cwd": "/tmp/hepta-vla-independent-review-20261027/nested_vla_prototype",
+          "functions": [
+            {
+              "declaration": {
+                "file": "/tmp/hepta-vla-independent-review-20261027/nested_vla_prototype/input.c",
+                "name": "probe",
+                "offset": 9,
+                "parameters": [
+                  "n",
+                  "data"
+                ],
+                "type": "unsigned int (unsigned int, const unsigned int *)"
+              },
+              "parameters": [
+                {
+                  "kind": "UInt",
+                  "name": "n",
+                  "spelling": "unsigned int",
+                  "state": "fixed"
+                },
+                {
+                  "kind": "Pointer",
+                  "name": "data",
+                  "spelling": "const unsigned int *",
+                  "state": "fixed"
+                }
+              ]
+            }
+          ],
+          "limits": {
+            "ast_bytes": 32000000,
+            "compiler_seconds": 35,
+            "declarations": 100000,
+            "parameters": 1024,
+            "type_depth": 64,
+            "worker_seconds": 30
+          },
+          "reader": {
+            "bytes": 36282304,
+            "path": "/usr/lib/x86_64-linux-gnu/libclang-20.so.20",
+            "sha256": "0c655b8d99e8fab8f9f29e7b18515584c41c1f09f40c85007261b816571502c4",
+            "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+          },
+          "schema": "hepta.c-original-parameter-types.v1",
+          "serialized_ast": {
+            "bytes": 251912,
+            "path": "/tmp/hepta-original-types-pw44birp/input.ast",
+            "sha256": "87b6d949b78ded570a9cde6abe30c83dfc2978c32b1c7d8419f0187711b4837a"
+          },
+          "unit": 0
+        }
+      ],
+      "source": "unsigned probe(unsigned n, const unsigned *data) { unsigned nested(unsigned m, const unsigned a[++m]); return n; }\n"
+    }
+  ],
+  "git_commit": "6e16922e9f5c19b332c2d520dc5651eed5c3aa13",
+  "schema": "hepta.audit.vla-independent-declarations.v1"
+}

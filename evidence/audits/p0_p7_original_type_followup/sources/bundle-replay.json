@@ -1,0 +1,63 @@
+{
+  "all_five_component_commits_actually_in_pack": true,
+  "bundle_sha256": "086fcffda5bb0f7c71324227343e38ee88e4a6639a6df5662009a2d5f86f3854",
+  "initialization": {
+    "argv": [
+      "git",
+      "init",
+      "--bare",
+      "/tmp/hepta-component-sources-20261028/replay.git"
+    ],
+    "returncode": 0,
+    "stderr": "hint: Using 'master' as the name for the initial branch. This default branch name\nhint: is subject to change. To configure the initial branch name to use in all\nhint: of your new repositories, which will suppress this warning, call:\nhint:\nhint: \tgit config --global init.defaultBranch <name>\nhint:\nhint: Names commonly chosen instead of 'master' are 'main', 'trunk' and\nhint: 'development'. The just-created branch can be renamed via this command:\nhint:\nhint: \tgit branch -m <name>\nhint:\nhint: Disable this message with \"git config set advice.defaultBranchName false\"\n",
+    "stdout": "Initialized empty Git repository in /tmp/hepta-component-sources-20261028/replay.git/\n"
+  },
+  "new_pack_commit_objects": [
+    "0f272a4424f87997e96cbfa5f69dc7d818280370",
+    "6e16922e9f5c19b332c2d520dc5651eed5c3aa13",
+    "de40b4a029c00e5958663d8a30e44df7e6647904",
+    "dfdf944f9868fd30f3ac4bbb43a675343de7442a",
+    "e1cfb04057973b73f5008b68252730aea88c5866"
+  ],
+  "pack_files": [
+    {
+      "bytes": 2444,
+      "name": "pack-da22f8acc5fa08d60b624565d8199e77bd1e30cd.idx",
+      "sha256": "b2df9f9f0d0b0e8e76c8544ebd64aa1ba2ca2d3ea3da626e7281348059ff0c93"
+    },
+    {
+      "bytes": 96498,
+      "name": "pack-da22f8acc5fa08d60b624565d8199e77bd1e30cd.pack",
+      "sha256": "dd8832465525ea3c22e821716d22ff30a718d6af0da5d0972a42674b775b1aef"
+    },
+    {
+      "bytes": 248,
+      "name": "pack-da22f8acc5fa08d60b624565d8199e77bd1e30cd.rev",
+      "sha256": "bc0ed23666e7e97f2789b081a77fa2f16fd8dcf5d8936549de006529142d3081"
+    }
+  ],
+  "schema": "hepta.audit.component-bundle-unpack.v1",
+  "scope": "Unpack and checksum all bundled objects in a new temporary bare object directory. Public/base objects are resolved through read-only alternates; each advertised component commit is independently confirmed in the newly written pack, not merely found through alternates. No project tests are run.",
+  "unbundle": {
+    "argv": [
+      "git",
+      "bundle",
+      "unbundle",
+      "/tmp/hepta-component-sources-20261028/verified-component-sources.bundle"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "dfdf944f9868fd30f3ac4bbb43a675343de7442a refs/heads/work/hia-independent-resource-v2-v7-20261027\nde40b4a029c00e5958663d8a30e44df7e6647904 refs/heads/work/hia-original-types-published-20261027\n0f272a4424f87997e96cbfa5f69dc7d818280370 refs/heads/work/hia-qualification-budget-20261027\n6e16922e9f5c19b332c2d520dc5651eed5c3aa13 refs/heads/work/hia-vla-original-type-20261027\n"
+  },
+  "verify_pack": {
+    "argv": [
+      "git",
+      "verify-pack",
+      "-v",
+      "/tmp/hepta-component-sources-20261028/replay.git/objects/pack/pack-da22f8acc5fa08d60b624565d8199e77bd1e30cd.idx"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "de40b4a029c00e5958663d8a30e44df7e6647904 commit 260 189 12\ne1cfb04057973b73f5008b68252730aea88c5866 commit 262 185 201\ndfdf944f9868fd30f3ac4bbb43a675343de7442a commit 260 186 386\n6e16922e9f5c19b332c2d520dc5651eed5c3aa13 commit 257 183 572\n0f272a4424f87997e96cbfa5f69dc7d818280370 commit 259 186 755\n66d0950ce0d41c0b705509b14ac97313052ec3ef tree   200 226 941 1 3e7fe6cc7a9319f478aaee5af54b63733587a813\n42865a9047ebe574dd0afec392249c7268ffae11 tree   36 45 1167\n5466b7754d759ce879fe8a730f1caf81e0a8661b tree   32 63 1212 1 47b1332346350cfea3e2832445dddef9fb7d7be4\n96bd8eab26470023f72975be68df2f068e7a3c31 blob   533 394 1275 1 e8ae4c79938abacbe0df14ff94031fcf8825dfa7\ne1d98669b181bbc77c55b6cc60ff6be4c7ffbab6 tree   110 143 1669 1 044f42ac4e9359c3ff617d2bf67fd9e78079a44f\n1e07f41812b577d14847b1a0bdf431a328655610 blob   572 426 1812 1 1037e7d1445957384ce6f28508bcd60507990014\nfc6c7304e0376f011c59cde05387a508a888f141 blob   6036 2771 2238\n8fb2b0b15169a3ce8e0be75cfb4cfbb026fe677c blob   596 426 5009 1 4b12772b9c42a128f2e4f25cced04a6f9699088e\nac22522b3dc8e5fd627e49cc6dc6c1f7a1cd72d9 tree   42 51 5435\n85001cfcf8c49db22777421a7965fb68ad2ca184 tree   138 136 5486\n3d0689d046611e6b19882a361eb6368f6ded3ddd tree   188 169 5622\nc0c3797c1957a65acc8aa86a12ab5a7e04f0e01d blob   19 50 5791 1 ae872d4452b2621df0ed2563f8576138b64c1596\n84a4b21816d5cd1409e540528900ed92e2d3d8d4 blob   7918 3487 5841 1 b1db30cbb9bdef4756447cc588e584e322d5cfb8\n644e5200c2dc64d4fe328a03d6977faf7fa2d3a6 tree   30 61 9328 1 60d929528dd2b4787946e3b3907a10ce688360be\na4cd9fb71f2650834d2ea2d6d9238ecd206f6732 blob   16525 3498 9389\n19349310d4454dd6c20f49ee14055ef5a395e3b9 tree   140 170 12887 1 3d2e44516ec1cc43835eec94183f86120e64c149\n06803ab2e3a9f9c5243000a25dc70c18dbde125b blob   406 360 13057 1 ab3066883b597ab0e0b5e7591461886c5be0a38c\n2f9ff8f0cacf6803f0c72a2e8b6169d6534e6fbc blob   43581 10615 13417\n4d327b4316cb0cc61627ef0487d80ff47c2eee37 blob   5612 1854 24032\n008105260daab371968a48e08c27540f0b2c84ae blob   103 126 25886 1 ffb02c2e63bf8a8849915c2b6e9da7a12cd91373\nfe12d12164657666d1d01ea6199c2c57e772ab73 tree   33 64 26012 1 943773b6e3f27d9e4c03de42cdf334edfcf283b9\n9cbe5aa1c2a3f0e0408d5d1c504a1e268322a743 blob   73 78 26076 1 3719c0589d3d6d46dc622309d447f84a860ae250\nbdfc0e8d7e346e6592a9956ea2109fd568258eee tree   89 105 26154 2 66d0950ce0d41c0b705509b14ac97313052ec3ef\nd9548a46a1a8bd0bea01574ff098c01155c80cf0 tree   37 50 26259 2 19349310d4454dd6c20f49ee14055ef5a395e3b9\n576744fce2799e69bb7500ec54421b6102361c5a tree   89 122 26309 1 3e7fe6cc7a9319f478aaee5af54b63733587a813\n8544037c30136c88c65d4aff1504c3554dcef4ff tree   12 23 26431 2 19349310d4454dd6c20f49ee14055ef5a395e3b9\n010a0ab6a61bfdb60e08b42bb047c13fb585c50f tree   89 122 26454 1 3e7fe6cc7a9319f478aaee5af54b63733587a813\ne85350fa98856a28d4c727a7a564ef5e86d92ee5 tree   12 41 26576 1 3d2e44516ec1cc43835eec94183f86120e64c149\nee605774627c257b4bbe7d23ef0c8061a655e17f tree   82 115 26617 1 3e7fe6cc7a9319f478aaee5af54b63733587a813\nbd26c27990c2939f274a62901ce87a7d8a1263da tree   12 41 26732 1 3d2e44516ec1cc43835eec94183f86120e64c149\n3e7fe6cc7a9319f478aaee5af54b63733587a813 tree   647 594 26773\n47b1332346350cfea3e2832445dddef9fb7d7be4 tree   623 448 27367\ne8ae4c79938abacbe0df14ff94031fcf8825dfa7 blob   5098 2078 27815\n044f42ac4e9359c3ff617d2bf67fd9e78079a44f tree   12243 7355 29893\n1037e7d1445957384ce6f28508bcd60507990014 blob   40796 17753 37248\n4b12772b9c42a128f2e4f25cced04a6f9699088e blob   8639 4313 55001\nae872d4452b2621df0ed2563f8576138b64c1596 blob   26942 8790 59314\nb1db30cbb9bdef4756447cc588e584e322d5cfb8 blob   22024 6980 68104\n60d929528dd2b4787946e3b3907a10ce688360be tree   224 195 75084\n3d2e44516ec1cc43835eec94183f86120e64c149 tree   13628 8096 75279\nab3066883b597ab0e0b5e7591461886c5be0a38c blob   24213 7568 83375\nffb02c2e63bf8a8849915c2b6e9da7a12cd91373 blob   1210 430 90943\n943773b6e3f27d9e4c03de42cdf334edfcf283b9 tree   3912 2542 91373\n3719c0589d3d6d46dc622309d447f84a860ae250 blob   6812 2563 93915\nnon delta: 27 objects\nchain length = 1: 19 objects\nchain length = 2: 3 objects\n/tmp/hepta-component-sources-20261028/replay.git/objects/pack/pack-da22f8acc5fa08d60b624565d8199e77bd1e30cd.pack: ok\n"
+  }
+}

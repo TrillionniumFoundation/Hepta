@@ -1,0 +1,58 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "/tmp/hepta-toolchains/rust-1.90.0/bin/cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "/workspace/scratch/4bc91e0ee48c/hepta-independent-resources/rust/hia-core-shadow/Cargo.toml"
+      ],
+      "name": "rust",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "unittest",
+        "tests.test_hia_rust_owned_vm",
+        "-v"
+      ],
+      "name": "python",
+      "timeout_seconds": 900
+    }
+  ],
+  "cwd": "/workspace/scratch/4bc91e0ee48c/hepta-independent-resources",
+  "env": {
+    "CARGO_TARGET_DIR": "/tmp/hepta-p2-independent-v2-v7-target",
+    "CLANG": "/usr/lib/llvm-20/bin/clang",
+    "HEPTA_RUST_OWNED_EVIDENCE_DIR": "/tmp/hepta-independent-resources-20261028/components-dfdf944f/cases",
+    "PATH": "/usr/lib/llvm-20/bin:/tmp/hepta-toolchains/rust-1.90.0/bin:/usr/bin:/bin",
+    "RUSTC": "/tmp/hepta-toolchains/rust-1.90.0/bin/rustc"
+  },
+  "free_bytes_before": 630149120,
+  "git_commit": "dfdf944f9868fd30f3ac4bbb43a675343de7442a",
+  "schema": "hepta.audit.independent-resources.v1",
+  "source_sha256": "205472509a2d04ab0c1abf1769630faa2d38995d84546592cdefded352d1fc96",
+  "started_utc": "2026-10-28T00:40:33Z",
+  "tools": {
+    "cargo": {
+      "path": "/tmp/hepta-toolchains/rust-1.90.0/bin/cargo",
+      "sha256": "51de284e8bb0d03dcee595a0fb1cb3a952fe9e7e4b953a8b1467b7f71725b561"
+    },
+    "clang": {
+      "path": "/usr/lib/llvm-20/bin/clang",
+      "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe"
+    },
+    "python": {
+      "path": "/usr/bin/python3",
+      "sha256": "e50d468e8b0adfb05733f5b87b3cff34829c4a8c1aea50c865aa8bdfe4bb150f"
+    },
+    "rustc": {
+      "path": "/tmp/hepta-toolchains/rust-1.90.0/bin/rustc",
+      "sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa"
+    }
+  }
+}

@@ -1,0 +1,510 @@
+{
+  "cases": [
+    {
+      "case": "ordinary_pointer",
+      "compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "input.c",
+        "-o",
+        "original.so"
+      ],
+      "compile_returncode": 0,
+      "diagnostics": [],
+      "migration_ok": true,
+      "original_result_n7": 7,
+      "original_type_states": [
+        {
+          "kind": "UInt",
+          "name": "n",
+          "spelling": "unsigned int",
+          "state": "fixed"
+        },
+        {
+          "kind": "Pointer",
+          "name": "data",
+          "spelling": "const unsigned int *",
+          "state": "fixed"
+        }
+      ],
+      "source": "unsigned probe(unsigned n, const unsigned *data) { return n; }\n",
+      "source_sha256": "2712a8cd912ca75254fbbf87d91592f8615b8692488921ec55132e0fc779969c"
+    },
+    {
+      "case": "ordinary_fixed",
+      "compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "input.c",
+        "-o",
+        "original.so"
+      ],
+      "compile_returncode": 0,
+      "diagnostics": [],
+      "migration_ok": true,
+      "original_result_n7": 7,
+      "original_type_states": [
+        {
+          "kind": "UInt",
+          "name": "n",
+          "spelling": "unsigned int",
+          "state": "fixed"
+        },
+        {
+          "kind": "ConstantArray",
+          "name": "data",
+          "spelling": "const unsigned int[8]",
+          "state": "fixed"
+        }
+      ],
+      "source": "unsigned probe(unsigned n, const unsigned data[8]) { return n; }\n",
+      "source_sha256": "70bc042f3542ee3e735773149b019244d32c1eac5690279ad0f8dd442428668a"
+    },
+    {
+      "case": "direct_vla",
+      "compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "input.c",
+        "-o",
+        "original.so"
+      ],
+      "compile_returncode": 0,
+      "diagnostics": [
+        {
+          "code": "E_C_VLA_PARAMETER",
+          "message": "Unmodeled original parameter type for probe.data: const unsigned int[++n]"
+        }
+      ],
+      "migration_ok": false,
+      "original_result_n7": 8,
+      "original_type_states": [
+        {
+          "kind": "UInt",
+          "name": "n",
+          "spelling": "unsigned int",
+          "state": "fixed"
+        },
+        {
+          "kind": "VariableArray",
+          "name": "data",
+          "spelling": "const unsigned int[++n]",
+          "state": "variable"
+        }
+      ],
+      "source": "unsigned probe(unsigned n, const unsigned data[++n]) { return n; }\n",
+      "source_sha256": "bb5376d4f19c0ed26c58b502dfe6a8e9a6bce21a4be3569fbbb3a5f8bdf9885d"
+    },
+    {
+      "case": "sizeof_vla",
+      "compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "input.c",
+        "-o",
+        "original.so"
+      ],
+      "compile_returncode": 0,
+      "diagnostics": [
+        {
+          "code": "E_C_VLA_PARAMETER",
+          "message": "Unmodeled original parameter type for probe.data: const unsigned int[sizeof(unsigned int[++n])]"
+        }
+      ],
+      "migration_ok": false,
+      "original_result_n7": 8,
+      "original_type_states": [
+        {
+          "kind": "UInt",
+          "name": "n",
+          "spelling": "unsigned int",
+          "state": "fixed"
+        },
+        {
+          "kind": "VariableArray",
+          "name": "data",
+          "spelling": "const unsigned int[sizeof(unsigned int[++n])]",
+          "state": "variable"
+        }
+      ],
+      "source": "unsigned probe(unsigned n, const unsigned data[sizeof(unsigned[++n])]) { return n; }\n",
+      "source_sha256": "ee5f2abb0375c62e025a434668077b7e6b58d92ddf6f90dc78e97f74567a6231"
+    },
+    {
+      "case": "typeof_vla",
+      "compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "input.c",
+        "-o",
+        "original.so"
+      ],
+      "compile_returncode": 0,
+      "diagnostics": [
+        {
+          "code": "E_C_VLA_PARAMETER",
+          "message": "Unmodeled original parameter type for probe.data: typeof(const unsigned int[++n])"
+        }
+      ],
+      "migration_ok": false,
+      "original_result_n7": 8,
+      "original_type_states": [
+        {
+          "kind": "UInt",
+          "name": "n",
+          "spelling": "unsigned int",
+          "state": "fixed"
+        },
+        {
+          "kind": "Unexposed",
+          "name": "data",
+          "spelling": "typeof(const unsigned int[++n])",
+          "state": "variable"
+        }
+      ],
+      "source": "unsigned probe(unsigned n, __typeof__(const unsigned[++n]) data) { return n; }\n",
+      "source_sha256": "a621c6e8456241e9b08001b2b66af6b9470cd32f55ccec327a60e7c987763c57"
+    },
+    {
+      "case": "typeof_deref_vla",
+      "compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "input.c",
+        "-o",
+        "original.so"
+      ],
+      "compile_returncode": 0,
+      "diagnostics": [
+        {
+          "code": "E_C_VLA_PARAMETER",
+          "message": "Unmodeled original parameter type for probe.data: typeof (*(const unsigned int (*)[++n])0)"
+        }
+      ],
+      "migration_ok": false,
+      "original_result_n7": 8,
+      "original_type_states": [
+        {
+          "kind": "UInt",
+          "name": "n",
+          "spelling": "unsigned int",
+          "state": "fixed"
+        },
+        {
+          "kind": "Unexposed",
+          "name": "data",
+          "spelling": "typeof (*(const unsigned int (*)[++n])0)",
+          "state": "variable"
+        }
+      ],
+      "source": "unsigned probe(unsigned n, __typeof__(*(const unsigned (*)[++n])0) data) { return n; }\n",
+      "source_sha256": "5eeaefbdaea1228899130bc69b24eda210ac53d170c1bc5e0cf573849e537249"
+    },
+    {
+      "case": "typeof_index_vla",
+      "compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "input.c",
+        "-o",
+        "original.so"
+      ],
+      "compile_returncode": 0,
+      "diagnostics": [
+        {
+          "code": "E_C_VLA_PARAMETER",
+          "message": "Unmodeled original parameter type for probe.data: typeof (((const unsigned int (*)[++n])0)[0])"
+        }
+      ],
+      "migration_ok": false,
+      "original_result_n7": 8,
+      "original_type_states": [
+        {
+          "kind": "UInt",
+          "name": "n",
+          "spelling": "unsigned int",
+          "state": "fixed"
+        },
+        {
+          "kind": "Unexposed",
+          "name": "data",
+          "spelling": "typeof (((const unsigned int (*)[++n])0)[0])",
+          "state": "variable"
+        }
+      ],
+      "source": "unsigned probe(unsigned n, __typeof__(((const unsigned (*)[++n])0)[0]) data) { return n; }\n",
+      "source_sha256": "625e91e40635519f8effbd1640f6396ea0b37c616a950f2b3d99adf57d8371f9"
+    },
+    {
+      "case": "comma_bound",
+      "compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "input.c",
+        "-o",
+        "original.so"
+      ],
+      "compile_returncode": 0,
+      "diagnostics": [
+        {
+          "code": "E_C_VLA_PARAMETER",
+          "message": "Unmodeled original parameter type for probe.data: const unsigned int[(++n , 8)]"
+        }
+      ],
+      "migration_ok": false,
+      "original_result_n7": 8,
+      "original_type_states": [
+        {
+          "kind": "UInt",
+          "name": "n",
+          "spelling": "unsigned int",
+          "state": "fixed"
+        },
+        {
+          "kind": "VariableArray",
+          "name": "data",
+          "spelling": "const unsigned int[(++n , 8)]",
+          "state": "variable"
+        }
+      ],
+      "source": "unsigned probe(unsigned n, const unsigned data[(++n, 8)]) { return n; }\n",
+      "source_sha256": "cec588e44dd82d210e2ac2b060d81e958757df31521b95915b3311d4709d4b01"
+    },
+    {
+      "case": "zero_times_effect",
+      "compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "input.c",
+        "-o",
+        "original.so"
+      ],
+      "compile_returncode": 0,
+      "diagnostics": [
+        {
+          "code": "E_C_VLA_PARAMETER",
+          "message": "Unmodeled original parameter type for probe.data: const unsigned int[8 + 0 * ++n]"
+        }
+      ],
+      "migration_ok": false,
+      "original_result_n7": 8,
+      "original_type_states": [
+        {
+          "kind": "UInt",
+          "name": "n",
+          "spelling": "unsigned int",
+          "state": "fixed"
+        },
+        {
+          "kind": "VariableArray",
+          "name": "data",
+          "spelling": "const unsigned int[8 + 0 * ++n]",
+          "state": "variable"
+        }
+      ],
+      "source": "unsigned probe(unsigned n, const unsigned data[8 + 0 * ++n]) { return n; }\n",
+      "source_sha256": "be8f4a64d81dc76489943c4a3e8b2e8ad0e244ea63a8349b25b6b7d3262ee1fb"
+    },
+    {
+      "case": "sizeof_vm_pointer",
+      "compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "input.c",
+        "-o",
+        "original.so"
+      ],
+      "compile_returncode": 0,
+      "original_result_n7": 7,
+      "source": "unsigned probe(unsigned n, const unsigned data[sizeof(unsigned (*)[++n])]) { return n; }\n",
+      "source_sha256": "0aff10d2b33cfccf22022ddd6361eaec5e9833a5305f919fa07096a2ead1196a"
+    },
+    {
+      "case": "sizeof_vm_pointer_nested",
+      "compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "input.c",
+        "-o",
+        "original.so"
+      ],
+      "compile_returncode": 0,
+      "original_result_n7": 7,
+      "source": "unsigned probe(unsigned n, const unsigned data[sizeof(unsigned (*)[sizeof(unsigned[++n])])]) { return n; }\n",
+      "source_sha256": "a7820702db7194f166d345c9fd1ec9e1e600a377638673c97a5f9fc3a42dc930"
+    },
+    {
+      "case": "typeof_sizeof_vm_pointer_array",
+      "compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "input.c",
+        "-o",
+        "original.so"
+      ],
+      "compile_returncode": 0,
+      "original_result_n7": 7,
+      "source": "unsigned probe(unsigned n, __typeof__(const unsigned[sizeof(unsigned (*)[++n])]) data) { return n; }\n",
+      "source_sha256": "d014bb53fb886b1e77d92fab9c96de9e50b67652969c1af5a04ce2087c4cf9f0"
+    },
+    {
+      "case": "typeof_sizeof_vla_scalar",
+      "compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "input.c",
+        "-o",
+        "original.so"
+      ],
+      "compile_returncode": 0,
+      "original_result_n7": 7,
+      "source": "unsigned probe(unsigned n, __typeof__(sizeof(unsigned[++n])) value) { return n; }\n",
+      "source_sha256": "e102f295d712d9418384a149ed14721f4e4341685539c86a49c8fa03db4436bf"
+    },
+    {
+      "case": "typeof_comma_sizeof_vla_scalar",
+      "compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "input.c",
+        "-o",
+        "original.so"
+      ],
+      "compile_returncode": 0,
+      "original_result_n7": 7,
+      "source": "unsigned probe(unsigned n, __typeof__((sizeof(unsigned[++n]), 0u)) value) { return n; }\n",
+      "source_sha256": "a3f2e7d786266018d57b4eb9dc55a9ff1b0349823f894f78d3eba057916c77ec"
+    },
+    {
+      "case": "typeof_fixed_pointer_from_vm_sizeof",
+      "compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "input.c",
+        "-o",
+        "original.so"
+      ],
+      "compile_returncode": 0,
+      "original_result_n7": 7,
+      "source": "unsigned probe(unsigned n, __typeof__(((void)sizeof(unsigned[++n]), (const unsigned *)0)) data) { return n; }\n",
+      "source_sha256": "8f7e2c08083e962eb12486a13aed8860945a5fc550efe8c24f967e733c8bf740"
+    },
+    {
+      "case": "typeof_fixed_pointer_from_vm_deref",
+      "compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "input.c",
+        "-o",
+        "original.so"
+      ],
+      "compile_returncode": 0,
+      "original_result_n7": 7,
+      "source": "unsigned probe(unsigned n, __typeof__((0 ? *(const unsigned (*)[++n])0 : (const unsigned *)0)) data) { return n; }\n",
+      "source_sha256": "b124efc5840dbcf419fdb19f43ef2572508bc6dd949695da2c6a457fab61a9d2"
+    },
+    {
+      "case": "typeof_conditional_compatible_arrays",
+      "compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "input.c",
+        "-o",
+        "original.so"
+      ],
+      "compile_returncode": 0,
+      "original_result_n7": 7,
+      "source": "unsigned probe(unsigned n, __typeof__(*(0 ? (const unsigned (*)[++n])0 : (const unsigned (*)[8])0)) data) { return n; }\n",
+      "source_sha256": "dab8d41517924fb72c6831accaf72ac8b8d9a77cb44562d280a5ed6c2ae5e2f4"
+    },
+    {
+      "case": "typeof_conditional_reverse_arrays",
+      "compile_argv": [
+        "/usr/lib/llvm-20/bin/clang",
+        "-std=c11",
+        "-O0",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "input.c",
+        "-o",
+        "original.so"
+      ],
+      "compile_returncode": 0,
+      "original_result_n7": 7,
+      "source": "unsigned probe(unsigned n, __typeof__(*(0 ? (const unsigned (*)[8])0 : (const unsigned (*)[++n])0)) data) { return n; }\n",
+      "source_sha256": "84e0d87c894dd2ed1d4d3863f02649cc8ceefd1954fd5d23fead56ebd9822d33"
+    }
+  ],
+  "git_commit": "6e16922e9f5c19b332c2d520dc5651eed5c3aa13",
+  "no_performance_measurement": true,
+  "schema": "hepta.audit.vla-independent-candidates.v1"
+}

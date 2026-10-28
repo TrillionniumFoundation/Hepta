@@ -1,5 +1,7 @@
 # Hepta HIA P0–P7：已发布实现与执行中断后的状态记录
 
+> **后续恢复结果已确认：** 原 `108762ba` 的 19 个门禁全部实际执行，18 个通过；完整单测 2,424 项通过、零 skip/failure/error。唯一未通过项仍是 `standalone_performance`，状态为 `measurement_inconclusive`。本文下方保留失联时的历史检查点；其中“尚未恢复”等时态不再代表当前状态。后续修复、原始身份和新执行结果见 [当前审查记录](../p0_p7_original_type_followup/README.md)。恢复检查未把旧结果改标为新提交的执行。
+
 **实现已发布；完整 P0–P7 验收仍未完成。本文件记录环境失联前已经读取的结果，不能替代尚未取回的原始终态报告。**
 
 - 实现提交：[108762ba](https://github.com/TrillionniumFoundation/Hepta/commit/108762baaefedde931f4160dbeadb6442fbb824b)。
