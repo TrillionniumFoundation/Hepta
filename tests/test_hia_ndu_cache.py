@@ -6,6 +6,7 @@ import json
 import importlib.util
 import os
 from pathlib import Path
+import shutil
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -13,6 +14,8 @@ from unittest.mock import patch
 from hepta.hia_ndu import NduBridge, NduBridgeError, finite_plan_request
 from hepta.hia_ndu_cache import NduDecisionCache, _wire
 from tests.test_hia_ndu_graph import fixture
+
+CLANG = os.environ.get("CLANG", os.environ.get("HEPTA_CLANG", "clang"))
 
 
 class CountingBridge(NduBridge):
@@ -309,7 +312,7 @@ class DecisionReuseProtocolTests(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get("HEPTA_FINITE_NDU_IDENTITY")
                      and os.environ.get("HEPTA_FINITE_NDU_BRIDGE")
-                     and os.environ.get("HEPTA_CLANG") and importlib.util.find_spec("z3"),
+                     and shutil.which(CLANG) and importlib.util.find_spec("z3"),
                      "requires actual finite NDU, Clang and Z3 for compiler integration")
 class NativeReuseCompilerIntegrationTests(unittest.TestCase):
     def test_existing_graph_opt_in_still_proves_builds_and_executes_candidates(self):
@@ -318,7 +321,7 @@ class NativeReuseCompilerIntegrationTests(unittest.TestCase):
             protocol = dict(PROTOCOL, groups=1, calls=16, probe_size=3, batch_sizes=[3, 17, 33],
                             guard_limits={"guard-small": 8, "guard-wide": 64})
             result = qualify(Path(temporary) / "graph", identity=Path(os.environ["HEPTA_FINITE_NDU_IDENTITY"]),
-                             clang=os.environ["HEPTA_CLANG"], protocol=protocol, decision_cache_entries=8)
+                             clang=CLANG, protocol=protocol, decision_cache_entries=8)
             self.assertTrue(result["all_episodes_completed"])
             self.assertTrue(result["all_outputs_correct"])
             self.assertGreaterEqual(result["actual_transitions"], 2)
