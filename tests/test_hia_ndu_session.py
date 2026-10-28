@@ -14,6 +14,7 @@ from unittest.mock import patch
 from hepta.hia_ndu import NduBridge, NduBridgeError
 from hepta.hia_ndu_session import MAX_SESSION_REQUESTS, NduSession
 from tests.test_hia_ndu import plan, request
+from tests.test_hia_ndu_response import fault_request, response_faults
 
 
 @unittest.skipUnless(os.environ.get("HEPTA_NDU_STREAM_IDENTITY"),
@@ -104,6 +105,26 @@ class NativeNduSessionTests(unittest.TestCase):
                 with self.assertRaisesRegex(NduBridgeError, "sequence or authority"):
                     stream.evaluate(request(plan("candidate", [1])))
             self.assertTrue(stream.snapshot()["closed"])
+
+    def test_malformed_inner_native_replies_close_reap_and_cannot_resume(self):
+        for profile in ("sealed", "rehash"):
+            for name, mutate in response_faults().items():
+                with self.subTest(profile=profile, fault=name):
+                    stream = self.session(image_check=profile)
+                    exchange = stream._exchange
+                    def malformed(payload):
+                        envelope = exchange(payload)
+                        mutate(envelope["response"])
+                        return envelope
+                    with patch.object(stream, "_exchange", side_effect=malformed):
+                        with self.assertRaises(NduBridgeError):
+                            stream.evaluate(fault_request())
+                    self.assertTrue(stream.snapshot()["closed"])
+                    self.assertIsNotNone(stream._process.returncode)
+                    self.assertIsNone(stream._fd)
+                    with patch.object(stream, "_exchange", side_effect=AssertionError("resumed native process")):
+                        with self.assertRaisesRegex(NduBridgeError, "closed"):
+                            stream.evaluate(fault_request())
 
     def test_oversized_identity_is_rejected_by_a_bounded_read_before_native_launch(self):
         with tempfile.TemporaryDirectory(prefix="hia-ndu-manifest-") as directory:

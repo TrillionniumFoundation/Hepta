@@ -580,6 +580,32 @@ class ScalarMultiversionRuntime:
                           identity_pin, cause="preparation_failed")
             raise
 
+    def _commit_prepared(self, state, cancellation):
+        """Transfer a prepared image under the runtime and token locks.
+
+        The token is the commit marker, written only after the complete
+        selection is installed. A failed dictionary insertion may already have
+        inserted its item; roll back that partial ownership transfer before the
+        caller retires the still-unpublished image. Once marked committed, a
+        later reporting/retirement interruption cannot release the selected
+        image as if preparation had failed.
+        """
+        number = state.info.generation
+        previous_number, previous_epoch = self._current, self._epoch
+        previous = self._states[previous_number]
+        try:
+            self._states[number] = state
+            self._current = number
+            self._epoch = previous_epoch + 1
+            cancellation._committed = True
+        except BaseException:
+            if not cancellation._committed:
+                self._current, self._epoch = previous_number, previous_epoch
+                if self._states.get(number) is state:
+                    self._states.pop(number)
+            raise
+        return previous, self._epoch
+
     def publish(self, candidate):
         """Freshly prove/build/observe candidate; atomically select on success."""
         with self._writer:
@@ -592,22 +618,28 @@ class ScalarMultiversionRuntime:
                     _reject("live artifact budget exhausted; existing generations remain selected")
                 number = self._next
                 self._next += 1
-            program, abi, totality = _admit(candidate, prove_total=self._prove_total,
-                                           timeout_ms=self._timeout)
-            if abi != self._abi:
-                _reject("candidate scalar ABI differs from the immutable baseline")
-            _prove(self._baseline, program, abi, self._timeout)
-            state = self._prepare(program, number, len(abi), totality=totality)
-            with self._lock:
-                previous = self._states[self._current]
-                self._states[number] = state
-                self._current = number
-                self._epoch += 1
-                self._events.append({"event": "publish", "generation": number, "epoch": self._epoch})
-                if not previous.info.baseline:
-                    previous.retired = True
-                    self._collect(previous)
-            return state.info
+            state = None
+            committed = PublicationCancellation()
+            try:
+                program, abi, totality = _admit(candidate, prove_total=self._prove_total,
+                                               timeout_ms=self._timeout)
+                if abi != self._abi:
+                    _reject("candidate scalar ABI differs from the immutable baseline")
+                _prove(self._baseline, program, abi, self._timeout)
+                state = self._prepare(program, number, len(abi), totality=totality)
+                with self._lock, committed._lock:
+                    previous, epoch = self._commit_prepared(state, committed)
+                    self._events.append({"event": "publish", "generation": number, "epoch": epoch})
+                    if not previous.info.baseline:
+                        previous.retired = True
+                        self._collect(previous)
+                return state.info
+            except BaseException:
+                if state is not None and not committed.committed():
+                    self._dispose(state.info.generation, state.library, state.functions, state.fd,
+                                  state.artifact, state.inode, state.identity_pin,
+                                  cause="prepared_but_not_published")
+                raise
 
     def publish_if_current(self, candidate, expected_generation, *, expected_epoch,
                            max_prepare_ns, cancellation, preparation_started_ns=None, measurement=None):
@@ -651,7 +683,8 @@ class ScalarMultiversionRuntime:
             if time.perf_counter_ns() - started > max_prepare_ns:
                 _reject("actual preparation budget exceeded before selection")
 
-        state, published = None, False
+        state = None
+        committed_here = False
         with self._writer:
             try:
                 with self._lock:
@@ -702,12 +735,8 @@ class ScalarMultiversionRuntime:
                         admission = _assess_measurement(measured, prepare_ns=prepare_ns)
                         if not admission["eligible"]:
                             _reject("native measurement refused publication: " + ",".join(admission["reasons"]))
-                    cancellation._committed = True
-                    self._states[number] = state
-                    self._current = number
-                    self._epoch += 1
-                    published = True
-                    epoch = self._epoch
+                    previous, epoch = self._commit_prepared(state, cancellation)
+                    committed_here = True
                     self._events.append({"event": "publish_if_current", "generation": number,
                                          "epoch": epoch, "prepare_ns": prepare_ns,
                                          "max_prepare_ns": max_prepare_ns})
@@ -720,7 +749,13 @@ class ScalarMultiversionRuntime:
                     result["measurement_admission"] = admission
                 return result
             except BaseException:
-                if state is not None and not published:
+                # The marker may have been installed before the helper's
+                # return was interrupted. Check the actual owned selection as
+                # well; do not unload a generation visible to native leases.
+                with self._lock:
+                    owned = (state is not None and cancellation.committed()
+                             and self._states.get(state.info.generation) is state)
+                if state is not None and not committed_here and not owned:
                     self._dispose(state.info.generation, state.library, state.functions, state.fd,
                                   state.artifact, state.inode, state.identity_pin, cause="prepared_but_not_selected")
                 raise
@@ -758,10 +793,15 @@ class ScalarMultiversionRuntime:
 
     def _collect(self, state):
         if state.retired and state.leases == 0:
-            self._dispose(state.info.generation, state.library, state.functions, state.fd,
-                          state.artifact, state.inode, state.identity_pin, cause="retired_generation")
+            # Transfer ownership before attempting release. If release or its
+            # return is interrupted, no live-table entry may later manufacture
+            # a second close owner for an already released/reused descriptor.
+            task = self._retirement_task(state.info.generation, state.library, state.functions,
+                                        state.fd, state.artifact, state.inode, state.identity_pin,
+                                        cause="retired_generation")
             state.library = None
-            del self._states[state.info.generation]
+            self._states.pop(state.info.generation, None)
+            self._attempt_cleanup(task)
             self._events.append({"event": "retire", "generation": state.info.generation,
                                  "epoch": self._epoch})
             if self._closed and not self._states:
@@ -770,7 +810,7 @@ class ScalarMultiversionRuntime:
     def _remove_directory(self):
         self._directory_cleanup = remove_directory(self._directory, self._directory_inode, self._directory_pin)
 
-    def _dispose(self, generation, library, functions, fd, artifact, inode, identity_pin, *, cause):
+    def _retirement_task(self, generation, library, functions, fd, artifact, inode, identity_pin, *, cause):
         with self._lock:
             task = self._cleanup_pending.get(generation)
             if task is None:
@@ -778,9 +818,28 @@ class ScalarMultiversionRuntime:
                 # Retain the record before attempting native release, so even
                 # an interrupted attempt cannot acquire a second close owner.
                 self._cleanup_pending[generation] = task
+            return task
+
+    def _dispose(self, generation, library, functions, fd, artifact, inode, identity_pin, *, cause):
+        with self._lock:
+            task = self._retirement_task(generation, library, functions, fd, artifact, inode,
+                                        identity_pin, cause=cause)
             self._attempt_cleanup(task)
 
     def _attempt_cleanup(self, task):
+        # Registration of the retirement owner can itself have been
+        # interrupted before _collect detached the old live-table row.
+        # Complete that transfer here too, including retry_cleanup's path,
+        # before an attempt can release or forget the unique native owner.
+        state = self._states.get(task.generation)
+        if state is not None:
+            if (not state.retired or state.leases != 0
+                    or task.fd != state.fd or task.artifact != state.artifact
+                    or task.inode != state.inode or task.identity_pin is not state.identity_pin
+                    or task.functions is not state.functions):
+                _reject("retirement owner does not bind a detached, unleased generation")
+            state.library = None
+            self._states.pop(task.generation)
         result = task.attempt()
         self._cleanup_attempts += 1
         self._cleanup_events.append(result)
@@ -851,11 +910,23 @@ class ScalarMultiversionRuntime:
 
     def close(self):
         with self._writer, self._lock:
-            if not self._closed:
-                self._closed, self._current = True, None
-                for state in list(self._states.values()):
+            self._closed, self._current = True, None
+            interrupted = None
+            # A previous close may have been interrupted before transferring
+            # every remaining image. Revisit only the still-owned generations;
+            # completed/native-uncertain retirement records keep their own
+            # one-attempt semantics and cannot be recreated from stale rows.
+            for state in list(self._states.values()):
+                try:
                     state.retired = True
                     self._collect(state)
+                except BaseException as error:
+                    if interrupted is None:
+                        interrupted = error
+            if not self._states:
+                self._remove_directory()
+            if interrupted is not None:
+                raise interrupted
 
     def __enter__(self):
         return self

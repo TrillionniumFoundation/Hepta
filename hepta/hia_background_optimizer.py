@@ -86,6 +86,17 @@ class _OptimizationFuture(Future):
                 if not self.cancelled():
                     raise
 
+    def _settle_token_cancellation(self):
+        """Finish the Future side of an already accepted token cancellation.
+
+        The cancelling thread may have been interrupted between those two
+        state transitions. Do not replay token.cancel or assume its success
+        already made the Future terminal.
+        """
+        if not self._publication_cancellation.cancelled():
+            raise InvalidStateError("publication token has not been cancelled")
+        return super().cancel()
+
 
 @dataclass
 class _Job:
@@ -140,6 +151,7 @@ class BackgroundOptimizer:
         self._condition = threading.Condition()
         self._queue, self._pending = deque(), {}
         self._next, self._active, self._closed = 1, None, False
+        self._worker_failure = None
         self._worker = threading.Thread(target=self._work, name="hia-background-optimizer", daemon=True)
         self._worker.start()
 
@@ -324,37 +336,103 @@ class BackgroundOptimizer:
                                postcommit_runtime_return_ns=publication_finished - handoff_ns - publication["prepare_ns"])
         return result
 
-    def _work(self):
-        while True:
-            with self._condition:
-                while not self._queue and not self._closed:
-                    self._condition.wait()
-                if not self._queue:
-                    return
-                job = self._queue.popleft()
-                self._active = job.number
-            result = None
+    def _stop_failed_worker(self, active, error, phase):
+        """Close admission and settle every accepted future after interruption.
+
+        Native generations remain owned by the runtime. An interrupted worker
+        cannot retry a publication or infer that a committed image was never
+        selected. Completion callbacks run outside coordinator/runtime locks;
+        a second callback failure must not strand the remaining bounded queue.
+        """
+        try:
+            detail = str(error)[:2048]
+        except BaseException:
+            detail = "exception text unavailable"
+        failure = {"type": type(error).__name__, "detail": detail, "phase": phase,
+                   "job": None if active is None else active.number,
+                   "completion_callback_failures": 0, "cancellation_failures": 0}
+        with self._condition:
+            self._closed = True
+            pending = dict(self._pending)
+            if active is not None:
+                pending[active.number] = active
+            self._queue.clear()
+            self._pending.clear()
+            self._active = None
+            self._worker_failure = failure
+            self._condition.notify_all()
+        for job in pending.values():
+            if job.future.done():
+                continue
             try:
-                if not job.cancellation.cancelled():
-                    result = self._execute(job)
-            except Exception as error:
-                status = "rejected" if self._same_snapshot(job) else "stale"
-                result = self._report(job, status, type(error).__name__)
-                result["detail"] = str(error)[:2048]
-            finally:
+                job.cancellation.cancel()
+            except BaseException:
                 with self._condition:
-                    self._active = None
-                    self._pending.pop(job.number, None)
-                    self._condition.notify_all()
-            if result is not None:
-                result["costs"]["job_wall_before_future_completion_ns"] = time.perf_counter_ns() - job.submitted_ns
+                    failure["cancellation_failures"] += 1
+            committed = job.cancellation.committed()
+            result = self._report(job, "interrupted" if committed else "rejected",
+                "worker_interrupted_after_publication" if committed else "worker_unavailable")
+            result["publication_committed"] = committed
+            if committed:
+                result["selected_id"] = None
+            result["worker_failure"] = {k: v for k, v in failure.items()
+                                        if k != "completion_callback_failures"}
+            result["costs"]["job_wall_before_future_completion_ns"] = (
+                time.perf_counter_ns() - job.submitted_ns)
+            try:
                 job.future._complete(result)
+            except BaseException:
+                # Future.set_result marks the future terminal before invoking
+                # callbacks. Do not replay those callbacks or their effects.
+                with self._condition:
+                    failure["completion_callback_failures"] += 1
+
+    def _work(self):
+        job, phase = None, "dequeue"
+        try:
+            while True:
+                job, phase = None, "dequeue"
+                with self._condition:
+                    while not self._queue and not self._closed:
+                        self._condition.wait()
+                    if not self._queue:
+                        return
+                    job = self._queue.popleft()
+                    self._active = job.number
+                result, phase = None, "execute"
+                try:
+                    if not job.cancellation.cancelled():
+                        result = self._execute(job)
+                    if job.cancellation.cancelled():
+                        phase = "cancel"
+                        job.future._settle_token_cancellation()
+                        result = None
+                except Exception as error:
+                    if job.cancellation.committed():
+                        raise
+                    status = "rejected" if self._same_snapshot(job) else "stale"
+                    result = self._report(job, status, type(error).__name__)
+                    result["detail"] = str(error)[:2048]
+                finally:
+                    with self._condition:
+                        self._active = None
+                        self._pending.pop(job.number, None)
+                        self._condition.notify_all()
+                if result is not None:
+                    phase = "complete"
+                    result["costs"]["job_wall_before_future_completion_ns"] = (
+                        time.perf_counter_ns() - job.submitted_ns)
+                    job.future._complete(result)
+        except BaseException as error:
+            self._stop_failed_worker(job, error, phase)
 
     def snapshot(self):
         with self._condition:
             return {"schema": SCHEMA, "closed": self._closed, "max_pending": self._max_pending,
                     "outstanding": len(self._pending), "queued": len(self._queue),
-                    "active_job": self._active, "worker_alive": self._worker.is_alive()}
+                    "active_job": self._active, "worker_alive": self._worker.is_alive(),
+                    "worker_failure": (None if self._worker_failure is None
+                                       else dict(self._worker_failure))}
 
     def shutdown(self, wait=True, *, cancel_pending=True):
         """Stop new submissions; cancel accepted jobs or drain the finite queue."""
@@ -364,10 +442,17 @@ class BackgroundOptimizer:
             self._closed = True
             pending = list(self._pending.values()) if cancel_pending else []
             self._condition.notify_all()
+        interrupted = None
         for job in pending:
-            job.future.cancel()
+            try:
+                job.future.cancel()
+            except BaseException as error:
+                if interrupted is None:
+                    interrupted = error
         if wait and threading.current_thread() is not self._worker:
             self._worker.join()
+        if interrupted is not None:
+            raise interrupted
 
     def __enter__(self):
         return self

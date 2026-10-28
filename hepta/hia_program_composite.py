@@ -20,7 +20,7 @@ from .hia_program import (EFFECTS, MAX_BLOCKS, MAX_FUNCTIONS, OWNERS, BYTE_RESOU
                           TYPES, _ident, _keys, _names, _reject)
 from .hia_schema import (CANONICAL_CORE_SCHEMA, COMPOSITE_OPERATIONS_BY_SCHEMA,
                          COMPOSITE_PROFILE, COMPOSITE_SCHEMA, COMPOSITE_SCHEMAS,
-                         COMPOSITE_SCHEMA_V3, composite_core_schema,
+                         COMPOSITE_SCHEMA_V3, COMPOSITE_SCHEMA_V4, composite_core_schema,
                          LEGACY_COMPOSITE_OPERATIONS)
 
 SCHEMA = COMPOSITE_SCHEMA
@@ -64,13 +64,10 @@ class _Type:
 
     @property
     def owns(self):
-        if self.kind == "primitive":
-            return self.key in OWNERS
-        if self.kind in {"task", "partial_record"}:
-            return True
-        if self.kind == "record":
-            return any(t.owns for _, t in self.fields)
-        return any(t.owns for _, fields in self.variants for _, t in fields)
+        # Every owner has an actual primitive slot, including zero-byte task
+        # and partial-record tokens. Inspect this bounded layout instead of
+        # recursively expanding a shared DAG of zero-width record fields.
+        return any(slot in OWNERS for slot in self.flat)
 
 
 class _Types:
@@ -376,7 +373,7 @@ class _Types:
     def partial_record(self, base, initialized):
         """A structural typestate whose missing fields have no primitive slot."""
         if not self.partial_records or base.kind != "record":
-            _reject("partial type requires a nominal record in composite v3", "E_HIA_TYPE")
+            _reject("partial type requires a nominal record in composite v3/v4", "E_HIA_TYPE")
         if base.has_loans:
             _reject("partial record fields may not contain stored loans", "E_HIA_LOAN")
         selected = set(initialized)
@@ -439,14 +436,19 @@ class _Elaborator:
                                    COMPOSITE_OPERATIONS_BY_SCHEMA[document["schema"]])
         self.types = _Types(document["types"],
                             recursive_chain=document["schema"] != SCHEMA,
-                            partial_records=document["schema"] == COMPOSITE_SCHEMA_V3)
+                            partial_records=document["schema"] in {
+                                COMPOSITE_SCHEMA_V3, COMPOSITE_SCHEMA_V4})
+        self.parameter_loan_returns = document["schema"] == COMPOSITE_SCHEMA_V4
         functions = document["functions"]
         if type(functions) is not list or not 1 <= len(functions) <= MAX_FUNCTIONS:
             _reject("invalid nominal function inventory", "E_HIA_FORMAT")
-        self.functions, self.signatures = {}, {}
+        self.functions, self.signatures, self.return_origins = {}, {}, {}
         self.helpers, self.helper_names = [], {}
         for fn in functions:
-            _keys(fn, {"name", "params", "returns", "effects", "entry", "blocks"}, "function")
+            fields = {"name", "params", "returns", "effects", "entry", "blocks"}
+            if self.parameter_loan_returns and type(fn) is dict and "return_loans" in fn:
+                fields.add("return_loans")
+            _keys(fn, fields, "function")
             name = _name(fn["name"], "function")
             if name in self.functions:
                 _reject("duplicate nominal function", "E_HIA_NAME")
@@ -454,8 +456,11 @@ class _Elaborator:
             if type(fn["returns"]) is not list:
                 _reject("function returns must be a list", "E_HIA_TYPE")
             returns = tuple(self.types.resolve(t) for t in fn["returns"])
-            if any(t.has_loans for t in returns):
+            if any(t.has_loans and (not self.parameter_loan_returns or t.kind != "primitive")
+                   for t in returns):
                 _reject("stored loans may not escape a function", "E_HIA_LOAN")
+            if self.parameter_loan_returns:
+                self.return_origins[name] = self.loan_origins(fn, params, returns)
             effects = fn["effects"]
             if (type(effects) is not list or any(type(e) is not str or e not in EFFECTS for e in effects)
                     or len(set(effects)) != len(effects)):
@@ -467,6 +472,54 @@ class _Elaborator:
         for definition in document["types"]:
             if definition["kind"] == "task":
                 self.check_task(self.types.resolve(definition["name"]))
+
+    @staticmethod
+    def loan_origins(fn, params, returns):
+        """Resolve v4 source names/field paths, never caller-supplied slot IDs.
+
+        Only a primitive incoming loan or a loan-only record's primitive leaf
+        may anchor a primitive borrowed result. The selected offset refers to
+        the original formal's exact layout; function() binds it to that
+        formal's actual generated entry parameter. Primitive Core then checks
+        ancestry, permission, CFG joins and every call independently.
+        """
+        annotations = fn.get("return_loans", [None] * len(returns))
+        if type(annotations) is not list or len(annotations) != len(returns):
+            _reject("nominal return_loans must match return arity", "E_HIA_LOAN")
+        parameters, result = dict(params), []
+        for typ, annotation in zip(returns, annotations):
+            if not typ.has_loans:
+                if annotation is not None:
+                    _reject("nonloan nominal result requires a null origin", "E_HIA_LOAN")
+                result.append(None)
+                continue
+            _keys(annotation, {"param", "fields"}, "nominal returned-loan origin")
+            name = _name(annotation["param"], "returned-loan parameter")
+            if name not in parameters:
+                _reject("returned loan names no original parameter", "E_HIA_LOAN")
+            selected = parameters[name]
+            if selected.kind not in {"primitive", "record"} or selected.owns:
+                _reject("returned-loan origin requires an incoming loan-only parameter", "E_HIA_LOAN")
+            path = annotation["fields"]
+            if type(path) is not list or len(path) > MAX_TYPE_DEPTH:
+                _reject("returned-loan field path exceeds finite budget", "E_HIA_LIMIT")
+            offset = 0
+            for field in path:
+                _name(field, "returned-loan field")
+                if selected.kind != "record":
+                    _reject("returned-loan path must traverse record fields", "E_HIA_LOAN")
+                for candidate, nested in selected.fields:
+                    if candidate == field:
+                        selected = nested
+                        break
+                    offset += len(nested.flat)
+                else:
+                    _reject("returned-loan path names no record field", "E_HIA_LOAN")
+            if (selected.kind != "primitive" or selected.key not in {"readbuf", "mutbuf"}
+                    or typ.key == "mutbuf" and selected.key != "mutbuf"):
+                _reject("returned-loan field must be an incoming loan with sufficient permission", "E_HIA_LOAN")
+            result.append((name, offset))
+        return tuple(result)
 
     def fresh(self):
         # Enforce this *while* expanding, before constructing the next
@@ -1094,9 +1147,16 @@ class _Elaborator:
                     cursor += width
             else:
                 _reject("unknown nominal terminator", "E_HIA_CFG")
-        return {"name": fn["name"], "params": flattened[fn["entry"]],
-                "returns": [p for t in self.signatures[fn["name"]][1] for p in t.flat],
-                "effects": fn["effects"], "entry": fn["entry"], "blocks": result}
+        lowered = {"name": fn["name"], "params": flattened[fn["entry"]],
+                   "returns": [p for t in self.signatures[fn["name"]][1] for p in t.flat],
+                   "effects": fn["effects"], "entry": fn["entry"], "blocks": result}
+        if self.parameter_loan_returns and "return_loans" in fn:
+            entry_values = environments[fn["entry"]]
+            lowered["return_loans"] = [
+                entry_values[origin[0]].names[origin[1]] if origin is not None else None
+                for typ, origin in zip(self.signatures[fn["name"]][1], self.return_origins[fn["name"]])
+                for _ in typ.flat]
+        return lowered
 
     def lower(self):
         functions = [self.function(fn) for fn in self.document["functions"]]

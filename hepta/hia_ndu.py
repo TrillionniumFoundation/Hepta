@@ -16,6 +16,8 @@ from pathlib import Path
 import subprocess
 from typing import Any
 
+from .hia_ndu_response import NduResponseError, RESPONSE_PROFILE, validate_response
+
 Q32 = 1 << 32
 REQUEST_SCHEMA = "hepta.hia.ndu.request.v1"
 MAX_REQUEST_BYTES = 1_048_576
@@ -50,6 +52,14 @@ def _read_json(raw: bytes) -> dict[str, Any]:
     if not isinstance(result, dict):
         raise NduBridgeError("expected a JSON object")
     return result
+
+
+def _validate_response(response, request, payload, manifest):
+    """One response profile for ordinary, persistent and reused advice."""
+    try:
+        validate_response(response, request, payload, manifest, profile=RESPONSE_PROFILE)
+    except NduResponseError as error:
+        raise NduBridgeError(str(error)) from error
 
 
 def _sha256_file(path: Path) -> str:
@@ -369,16 +379,5 @@ class NduBridge:
         frozen = _read_json(payload)
         self._verify_binary()
         response = self._invoke([], payload)
-        if response.get("schema") != "hepta.hia.ndu.response.v1" or response.get("status") != "advisory":
-            raise NduBridgeError("unsupported native response")
-        expected = {"objective_digest": frozen.get("objective_digest"),
-                    "snapshot_digest": frozen.get("snapshot_digest"),
-                    "generation": frozen.get("generation"),
-                    "request_digest": hashlib.sha256(payload).hexdigest(),
-                    "identity": self.manifest["identity"]}
-        if any(response.get(key) != value for key, value in expected.items()):
-            raise NduBridgeError("native response has stale or foreign bindings")
-        candidates = {row["id"] for row in frozen.get("candidates", [])}
-        if response.get("advisory_candidate_id") not in candidates | {None}:
-            raise NduBridgeError("native response names an unknown candidate")
+        _validate_response(response, frozen, payload, self.manifest)
         return response

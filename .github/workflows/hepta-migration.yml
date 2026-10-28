@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - dot/hsir-c2hepta-p0-p3-20261024
+      - codex/hia-round5-*
   workflow_dispatch:
 
 concurrency:
@@ -17,12 +18,46 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Install and identify the pinned native Rust compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.90.0 --profile minimal
+          pinned="$(rustup which --toolchain 1.90.0 rustc)"
+          test -f "$pinned" && test -x "$pinned"
+          python3 -c 'import sys; from hepta.backend import find_rustc, toolchain_info; print(toolchain_info(find_rustc(sys.argv[1]))["version"])' "$pinned"
+          printf 'RUSTC=%s\n' "$pinned" >> "$GITHUB_ENV"
       - name: Verify compilers
         run: |
           python3 --version
           clang --version
           gcc --version
-      - name: Run c2hepta and HSIR suite
-        run: python3 -m unittest discover -s tests -p test_c2hepta.py -v
-      - name: Run entire Python test suite
-        run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Run migration and compiler qualification without skips
+        run: |
+          python3 - <<'PY'
+          import unittest
+          # This workflow qualifies the scalar C importer, public migration IR
+          # and real compiler boundary. Whole-language/NDU qualification has
+          # its own fully provisioned workflows; do not silently skip it here.
+          patterns = (
+              "test_c2hepta.py",
+              "test_c2hepta_api_path_isolation.py",
+              "test_c2hepta_bounded_source.py",
+              "test_migration_ir_identifier_guard.py",
+              "test_migration_ir_literal_guard.py",
+              "test_migration_ir_structural_budget.py",
+              "test_migration_ir_neg_payload_guard.py",
+              "test_migration_ir_parser_budget.py",
+              "test_rustup_real_compiler_identity.py",
+              "test_toolchain_selection.py",
+              "test_native_tool_identity.py",
+              "test_backend.py",
+          )
+          suite = unittest.TestSuite(
+              unittest.defaultTestLoader.discover("tests", pattern=pattern)
+              for pattern in patterns
+          )
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if not result.testsRun or not result.wasSuccessful() or result.skipped:
+              raise SystemExit(1)
+          PY
