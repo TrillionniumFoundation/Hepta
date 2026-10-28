@@ -1,0 +1,473 @@
+{
+  "claims": {
+    "all_input_equivalence_proved": false,
+    "code_activated": false,
+    "full_35_gate_qualification_executed": false,
+    "p4_closed": false,
+    "p7_closed": false,
+    "production_gain_proved": false
+  },
+  "commands": [
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/qualify_hia_ndu.py",
+        "--program",
+        "examples/hia_ndu/fill_loop.json",
+        "--cases",
+        "examples/hia_ndu/fill_loop_cases.json",
+        "--entry",
+        "fill_probe",
+        "--pass-id",
+        "full-view-fill-loop.v1",
+        "--bridge",
+        "/workspace/scratch/7e691a7ff65f/hepta/rust/hia-ndu-bridge/target/release/hia-ndu-bridge",
+        "--bridge-sha256",
+        "ada753864ff3bcf03f56fbbc6cc0884259fdf513565bbf6499e19f1c6e93d3e8",
+        "--clang",
+        "/usr/lib/llvm-20/bin/clang",
+        "--samples",
+        "31",
+        "--iterations",
+        "10000",
+        "--horizon-calls",
+        "100000000",
+        "--output",
+        "/workspace/scratch/7e691a7ff65f/validation-next-performance/fill-loop-1.json",
+        "--deadline-seconds",
+        "120",
+        "--negative-cases",
+        "examples/hia_ndu/fill_loop_negative_cases.json"
+      ],
+      "case_count": 16,
+      "cooperative_deadline": {
+        "asynchronous_signal": false,
+        "enforcement": "tool_poll_and_phase_boundary",
+        "hard_kill_deadline": false,
+        "seconds": 120
+      },
+      "expected_counts": {
+        "calls_per_sample": 160000,
+        "cases": 16,
+        "paired_samples": 31,
+        "timed_calls_total": 9920000,
+        "untimed_correctness_calls": 32
+      },
+      "id": "fill-loop-1",
+      "outer_force_kill_deadline": false,
+      "report": "/workspace/scratch/7e691a7ff65f/validation-next-performance/fill-loop-1.json"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/qualify_hia_ndu.py",
+        "--program",
+        "examples/hia_ndu/fill_loop.json",
+        "--cases",
+        "examples/hia_ndu/fill_loop_cases.json",
+        "--entry",
+        "fill_probe",
+        "--pass-id",
+        "full-view-fill-loop.v1",
+        "--bridge",
+        "/workspace/scratch/7e691a7ff65f/hepta/rust/hia-ndu-bridge/target/release/hia-ndu-bridge",
+        "--bridge-sha256",
+        "ada753864ff3bcf03f56fbbc6cc0884259fdf513565bbf6499e19f1c6e93d3e8",
+        "--clang",
+        "/usr/lib/llvm-20/bin/clang",
+        "--samples",
+        "31",
+        "--iterations",
+        "10000",
+        "--horizon-calls",
+        "100000000",
+        "--output",
+        "/workspace/scratch/7e691a7ff65f/validation-next-performance/fill-loop-2.json",
+        "--deadline-seconds",
+        "120",
+        "--negative-cases",
+        "examples/hia_ndu/fill_loop_negative_cases.json"
+      ],
+      "case_count": 16,
+      "cooperative_deadline": {
+        "asynchronous_signal": false,
+        "enforcement": "tool_poll_and_phase_boundary",
+        "hard_kill_deadline": false,
+        "seconds": 120
+      },
+      "expected_counts": {
+        "calls_per_sample": 160000,
+        "cases": 16,
+        "paired_samples": 31,
+        "timed_calls_total": 9920000,
+        "untimed_correctness_calls": 32
+      },
+      "id": "fill-loop-2",
+      "outer_force_kill_deadline": false,
+      "report": "/workspace/scratch/7e691a7ff65f/validation-next-performance/fill-loop-2.json"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/qualify_hia_ndu.py",
+        "--program",
+        "examples/hia_ndu/byte_swap.json",
+        "--cases",
+        "examples/hia_ndu/byte_swap_cases.json",
+        "--entry",
+        "swap_candidate",
+        "--pass-id",
+        "byte-swap.v1",
+        "--bridge",
+        "/workspace/scratch/7e691a7ff65f/hepta/rust/hia-ndu-bridge/target/release/hia-ndu-bridge",
+        "--bridge-sha256",
+        "ada753864ff3bcf03f56fbbc6cc0884259fdf513565bbf6499e19f1c6e93d3e8",
+        "--clang",
+        "/usr/lib/llvm-20/bin/clang",
+        "--samples",
+        "31",
+        "--iterations",
+        "10000",
+        "--horizon-calls",
+        "100000000",
+        "--output",
+        "/workspace/scratch/7e691a7ff65f/validation-next-performance/swap-control.json",
+        "--deadline-seconds",
+        "120"
+      ],
+      "case_count": 20,
+      "cooperative_deadline": {
+        "asynchronous_signal": false,
+        "enforcement": "tool_poll_and_phase_boundary",
+        "hard_kill_deadline": false,
+        "seconds": 120
+      },
+      "expected_counts": {
+        "calls_per_sample": 200000,
+        "cases": 20,
+        "paired_samples": 31,
+        "timed_calls_total": 12400000,
+        "untimed_correctness_calls": 40
+      },
+      "id": "swap-control",
+      "outer_force_kill_deadline": false,
+      "report": "/workspace/scratch/7e691a7ff65f/validation-next-performance/swap-control.json"
+    }
+  ],
+  "finished_utc": "2026-10-28T00:27:57.449438+00:00",
+  "git_head": "581c55cc2f14af38a7486e125d5c33496ca95f0a",
+  "host": {
+    "dot_physical_host_identity_established": false,
+    "exclusive_host": false,
+    "machine": "x86_64",
+    "release": "6.18.55",
+    "system": "Linux"
+  },
+  "ok": true,
+  "protocol_sha256": "84e03afb4aa77c3e0e562fa113097c0d6c9aa5b4f0502f94e1828e275d831909",
+  "results": [
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/qualify_hia_ndu.py",
+        "--program",
+        "examples/hia_ndu/fill_loop.json",
+        "--cases",
+        "examples/hia_ndu/fill_loop_cases.json",
+        "--entry",
+        "fill_probe",
+        "--pass-id",
+        "full-view-fill-loop.v1",
+        "--bridge",
+        "/workspace/scratch/7e691a7ff65f/hepta/rust/hia-ndu-bridge/target/release/hia-ndu-bridge",
+        "--bridge-sha256",
+        "ada753864ff3bcf03f56fbbc6cc0884259fdf513565bbf6499e19f1c6e93d3e8",
+        "--clang",
+        "/usr/lib/llvm-20/bin/clang",
+        "--samples",
+        "31",
+        "--iterations",
+        "10000",
+        "--horizon-calls",
+        "100000000",
+        "--output",
+        "/workspace/scratch/7e691a7ff65f/validation-next-performance/fill-loop-1.json",
+        "--deadline-seconds",
+        "120",
+        "--negative-cases",
+        "examples/hia_ndu/fill_loop_negative_cases.json"
+      ],
+      "case_count": 16,
+      "child_cpu_system_seconds": 0.37943399999999994,
+      "child_cpu_user_seconds": 4.664638999999999,
+      "cooperative_deadline": {
+        "asynchronous_signal": false,
+        "enforcement": "tool_poll_and_phase_boundary",
+        "hard_kill_deadline": false,
+        "seconds": 120
+      },
+      "cooperative_deadline_expired": false,
+      "decision": "no_change",
+      "expected_counts": {
+        "calls_per_sample": 160000,
+        "cases": 16,
+        "paired_samples": 31,
+        "timed_calls_total": 9920000,
+        "untimed_correctness_calls": 32
+      },
+      "finished_utc": "2026-10-28T00:27:51.440737+00:00",
+      "id": "fill-loop-1",
+      "outer_force_kill_deadline": false,
+      "protocol_check": {
+        "complete": true,
+        "consistent": true,
+        "errors": [],
+        "expected": {
+          "case_inventory_sha256": "b3f5387b0a84fc5415b8a4121441f19992bdd7e7f884089ae0d4231672dd555d",
+          "cooperative_deadline": {
+            "asynchronous_signal": false,
+            "enforcement": "tool_poll_and_phase_boundary",
+            "hard_kill_deadline": false,
+            "seconds": 120
+          },
+          "counts": {
+            "calls_per_sample": 160000,
+            "cases": 16,
+            "paired_samples": 31,
+            "timed_calls_total": 9920000,
+            "untimed_correctness_calls": 32
+          },
+          "decision_reserve_ns": 2000000000,
+          "measurement_protocol": {
+            "adaptive_repetition": false,
+            "iterations": 10000,
+            "sample_trimming": false,
+            "samples": 31
+          },
+          "objective": {
+            "horizon_calls": 100000000,
+            "maximum_artifact_bytes": 67108864,
+            "maximum_live_bytes": 16777216,
+            "maximum_mad_ppm": 50000,
+            "maximum_search_ns": 60000000000,
+            "minimum_gain_ppm": 20000
+          }
+        },
+        "measurement_complete": true,
+        "outcome": "completed_qualification",
+        "schema": "hepta.hia.ndu-frozen-report-check.v1",
+        "stop_protocol": false
+      },
+      "qualification_ok": true,
+      "qualification_report_sha256": "99bf6c56f93a49e570d212daa58d70547f1a4850e950bbd5b36ba61e53e7a399",
+      "qualification_status": "completed_no_change",
+      "report": "/workspace/scratch/7e691a7ff65f/validation-next-performance/fill-loop-1.json",
+      "returncode": 0,
+      "started_utc": "2026-10-28T00:27:46.269789+00:00",
+      "total_cli_wall_ns": 5170952306
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/qualify_hia_ndu.py",
+        "--program",
+        "examples/hia_ndu/fill_loop.json",
+        "--cases",
+        "examples/hia_ndu/fill_loop_cases.json",
+        "--entry",
+        "fill_probe",
+        "--pass-id",
+        "full-view-fill-loop.v1",
+        "--bridge",
+        "/workspace/scratch/7e691a7ff65f/hepta/rust/hia-ndu-bridge/target/release/hia-ndu-bridge",
+        "--bridge-sha256",
+        "ada753864ff3bcf03f56fbbc6cc0884259fdf513565bbf6499e19f1c6e93d3e8",
+        "--clang",
+        "/usr/lib/llvm-20/bin/clang",
+        "--samples",
+        "31",
+        "--iterations",
+        "10000",
+        "--horizon-calls",
+        "100000000",
+        "--output",
+        "/workspace/scratch/7e691a7ff65f/validation-next-performance/fill-loop-2.json",
+        "--deadline-seconds",
+        "120",
+        "--negative-cases",
+        "examples/hia_ndu/fill_loop_negative_cases.json"
+      ],
+      "case_count": 16,
+      "child_cpu_system_seconds": 0.28429000000000004,
+      "child_cpu_user_seconds": 2.6431770000000006,
+      "cooperative_deadline": {
+        "asynchronous_signal": false,
+        "enforcement": "tool_poll_and_phase_boundary",
+        "hard_kill_deadline": false,
+        "seconds": 120
+      },
+      "cooperative_deadline_expired": false,
+      "decision": "no_change",
+      "expected_counts": {
+        "calls_per_sample": 160000,
+        "cases": 16,
+        "paired_samples": 31,
+        "timed_calls_total": 9920000,
+        "untimed_correctness_calls": 32
+      },
+      "finished_utc": "2026-10-28T00:27:54.401877+00:00",
+      "id": "fill-loop-2",
+      "outer_force_kill_deadline": false,
+      "protocol_check": {
+        "complete": true,
+        "consistent": true,
+        "errors": [],
+        "expected": {
+          "case_inventory_sha256": "b3f5387b0a84fc5415b8a4121441f19992bdd7e7f884089ae0d4231672dd555d",
+          "cooperative_deadline": {
+            "asynchronous_signal": false,
+            "enforcement": "tool_poll_and_phase_boundary",
+            "hard_kill_deadline": false,
+            "seconds": 120
+          },
+          "counts": {
+            "calls_per_sample": 160000,
+            "cases": 16,
+            "paired_samples": 31,
+            "timed_calls_total": 9920000,
+            "untimed_correctness_calls": 32
+          },
+          "decision_reserve_ns": 2000000000,
+          "measurement_protocol": {
+            "adaptive_repetition": false,
+            "iterations": 10000,
+            "sample_trimming": false,
+            "samples": 31
+          },
+          "objective": {
+            "horizon_calls": 100000000,
+            "maximum_artifact_bytes": 67108864,
+            "maximum_live_bytes": 16777216,
+            "maximum_mad_ppm": 50000,
+            "maximum_search_ns": 60000000000,
+            "minimum_gain_ppm": 20000
+          }
+        },
+        "measurement_complete": true,
+        "outcome": "completed_qualification",
+        "schema": "hepta.hia.ndu-frozen-report-check.v1",
+        "stop_protocol": false
+      },
+      "qualification_ok": true,
+      "qualification_report_sha256": "4e234f8a2c1e22f3eb8b17d6c1ac04f0d7b608c8483633a4098eb85aa0ac19cb",
+      "qualification_status": "completed_no_change",
+      "report": "/workspace/scratch/7e691a7ff65f/validation-next-performance/fill-loop-2.json",
+      "returncode": 0,
+      "started_utc": "2026-10-28T00:27:51.452057+00:00",
+      "total_cli_wall_ns": 2949834299
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "tools/qualify_hia_ndu.py",
+        "--program",
+        "examples/hia_ndu/byte_swap.json",
+        "--cases",
+        "examples/hia_ndu/byte_swap_cases.json",
+        "--entry",
+        "swap_candidate",
+        "--pass-id",
+        "byte-swap.v1",
+        "--bridge",
+        "/workspace/scratch/7e691a7ff65f/hepta/rust/hia-ndu-bridge/target/release/hia-ndu-bridge",
+        "--bridge-sha256",
+        "ada753864ff3bcf03f56fbbc6cc0884259fdf513565bbf6499e19f1c6e93d3e8",
+        "--clang",
+        "/usr/lib/llvm-20/bin/clang",
+        "--samples",
+        "31",
+        "--iterations",
+        "10000",
+        "--horizon-calls",
+        "100000000",
+        "--output",
+        "/workspace/scratch/7e691a7ff65f/validation-next-performance/swap-control.json",
+        "--deadline-seconds",
+        "120"
+      ],
+      "case_count": 20,
+      "child_cpu_system_seconds": 0.5537650000000001,
+      "child_cpu_user_seconds": 1.5990970000000004,
+      "cooperative_deadline": {
+        "asynchronous_signal": false,
+        "enforcement": "tool_poll_and_phase_boundary",
+        "hard_kill_deadline": false,
+        "seconds": 120
+      },
+      "cooperative_deadline_expired": false,
+      "decision": "no_change",
+      "expected_counts": {
+        "calls_per_sample": 200000,
+        "cases": 20,
+        "paired_samples": 31,
+        "timed_calls_total": 12400000,
+        "untimed_correctness_calls": 40
+      },
+      "finished_utc": "2026-10-28T00:27:56.612440+00:00",
+      "id": "swap-control",
+      "outer_force_kill_deadline": false,
+      "protocol_check": {
+        "complete": true,
+        "consistent": true,
+        "errors": [],
+        "expected": {
+          "case_inventory_sha256": "dcb3ef75c91e33937349447eed1fd96b35a63c7ffc954c3040f1bd780097cbfb",
+          "cooperative_deadline": {
+            "asynchronous_signal": false,
+            "enforcement": "tool_poll_and_phase_boundary",
+            "hard_kill_deadline": false,
+            "seconds": 120
+          },
+          "counts": {
+            "calls_per_sample": 200000,
+            "cases": 20,
+            "paired_samples": 31,
+            "timed_calls_total": 12400000,
+            "untimed_correctness_calls": 40
+          },
+          "decision_reserve_ns": 2000000000,
+          "measurement_protocol": {
+            "adaptive_repetition": false,
+            "iterations": 10000,
+            "sample_trimming": false,
+            "samples": 31
+          },
+          "objective": {
+            "horizon_calls": 100000000,
+            "maximum_artifact_bytes": 67108864,
+            "maximum_live_bytes": 16777216,
+            "maximum_mad_ppm": 50000,
+            "maximum_search_ns": 60000000000,
+            "minimum_gain_ppm": 20000
+          }
+        },
+        "measurement_complete": true,
+        "outcome": "completed_qualification",
+        "schema": "hepta.hia.ndu-frozen-report-check.v1",
+        "stop_protocol": false
+      },
+      "qualification_ok": true,
+      "qualification_report_sha256": "1e0ac9f4d3e2416b7599d25537854167145439af6a0639bf839326cd982f2bfa",
+      "qualification_status": "completed_no_change",
+      "report": "/workspace/scratch/7e691a7ff65f/validation-next-performance/swap-control.json",
+      "returncode": 0,
+      "started_utc": "2026-10-28T00:27:54.407309+00:00",
+      "total_cli_wall_ns": 2205121889
+    }
+  ],
+  "schema": "hepta.hia.ndu-frozen-protocol-run.v1",
+  "source_unchanged": true,
+  "source_was_committed": true,
+  "status": "completed",
+  "tools_unchanged": true
+}
