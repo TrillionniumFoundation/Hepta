@@ -70,7 +70,7 @@ CRITICAL_MODULES = {
     "prospective_agent_choice_protocol": ("test_hia_batch_disclosed_choices",),
     "native_profile_and_lifecycle_convergence": ("test_hia_native_profile_convergence",),
     "qualification_toolchain_and_budgets": ("test_release_unit_timeout",
-        "test_qualification_cargo_environment", "test_hia_unified_workflow_cli"),
+        "test_qualification_cargo_environment", "test_hia_unified_workflow_cli", "test_source_checkout_identity"),
 }
 
 

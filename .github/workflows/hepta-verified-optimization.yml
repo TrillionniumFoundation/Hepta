@@ -33,9 +33,16 @@ jobs:
       CLANG: /usr/bin/clang-20
       CLANGXX: /usr/bin/clang++-20
       PYTHONDONTWRITEBYTECODE: '1'
-      CARGO_HOME: ${{ runner.temp }}/hepta-verified-cargo-home
-      CARGO_TARGET_DIR: ${{ runner.temp }}/hepta-verified-cargo-target
     steps:
+      - name: Configure isolated Cargo directories
+        shell: bash
+        run: |
+          set -euo pipefail
+          hepta_cargo_home="$RUNNER_TEMP/hepta-verified-cargo-home"
+          hepta_cargo_target="$RUNNER_TEMP/hepta-verified-cargo-target"
+          mkdir -p "$hepta_cargo_home" "$hepta_cargo_target"
+          printf 'CARGO_HOME=%s\nCARGO_TARGET_DIR=%s\n' \
+            "$hepta_cargo_home" "$hepta_cargo_target" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.HEPTA_SOURCE_SHA }}
