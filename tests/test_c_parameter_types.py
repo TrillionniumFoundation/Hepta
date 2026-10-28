@@ -108,6 +108,56 @@ class OriginalParameterTypeTests(unittest.TestCase):
                 self.assertLess(binding["begin"]["offset"], binding["offset"])
                 self.assertGreater(binding["end"]["offset"], binding["offset"])
 
+    def test_symlink_temporary_root_preserves_fixed_and_vla_type_admission(self):
+        physical = self.root / "physical temporary root"
+        physical.mkdir()
+        alias = self.root / "temporary root alias"
+        alias.symlink_to(physical, target_is_directory=True)
+
+        def linked_temporary_directory(*args, **kwargs):
+            return tempfile.TemporaryDirectory(*args, dir=alias, **kwargs)
+
+        for name, extent, expected_kind in (("fixed", "8", "ConstantArray"),
+                                             ("vla", "++n", "VariableArray")):
+            with self.subTest(shape=name):
+                database = self.project(
+                    "unsigned int probe(unsigned int n, const unsigned int data[" + extent
+                    + "]) { return n; }\n")
+                observed = []
+
+                def observe(argv, **kwargs):
+                    result = run_bounded(argv, **kwargs)
+                    if argv[-1] == "--worker" and result.returncode == 0:
+                        observed.append((json.loads(kwargs["input_text"]), json.loads(result.stdout)))
+                    return result
+
+                destination = self.root / ("linked-" + name)
+                with patch.object(parameter_types, "tempfile", SimpleNamespace(
+                        TemporaryDirectory=linked_temporary_directory)), \
+                        patch("hepta.clang_capture.run_bounded", side_effect=observe):
+                    report = self.migrate(database, destination, verify_native=False)
+                if name == "fixed":
+                    self.assertTrue(report["ok"], report["diagnostics"])
+                else:
+                    self.assertFalse(report["ok"], report)
+                    self.assertFalse(destination.exists())
+                    self.assertIn("E_C_VLA_PARAMETER", [row["code"] for row in report["diagnostics"]],
+                                  report["diagnostics"])
+                self.assertEqual(len(observed), 1)
+                request, receipt = observed[0]
+                self.assertEqual(request["argv"][-1], request["serialized_ast"]["path"])
+                self.assertEqual(Path(request["argv"][-1]).parents[1], physical.resolve(strict=True))
+                self.assertEqual(request["argv"][-3], "input.c")
+                self.assertEqual(receipt["argv"], request["argv"])
+                self.assertEqual(receipt["serialized_ast"], request["serialized_ast"])
+                self.assertEqual(receipt["limits"], parameter_types._limits())
+                original = receipt["functions"][0]["parameters"][1]
+                self.assertEqual(original["shape"]["kind"], expected_kind)
+                if name == "fixed":
+                    self.assertEqual(original["shape"]["extent"], 8)
+                else:
+                    self.assertEqual(original["state"], "variable")
+
     def test_record_view_rewrite_cannot_hide_original_vla_parameter(self):
         database = self.project(
             "struct State { unsigned int *data; unsigned int length; };\n"
@@ -163,7 +213,7 @@ class OriginalParameterTypeTests(unittest.TestCase):
 
     def test_incomplete_or_mismatched_probe_receipt_rejects(self):
         database = self.project("unsigned int probe(unsigned int n, const unsigned int *data) { return n; }\n")
-        for mutation in ("missing", "duplicate", "command", "unknown_type"):
+        for mutation in ("missing", "duplicate", "command", "limits", "serialized_ast", "unknown_type"):
             with self.subTest(mutation=mutation):
                 def altered(argv, **kwargs):
                     result = run_bounded(argv, **kwargs)
@@ -176,6 +226,10 @@ class OriginalParameterTypeTests(unittest.TestCase):
                         value["functions"] *= 2
                     elif mutation == "command":
                         value["argv"][-3] = str(self.root / "input.c")
+                    elif mutation == "limits":
+                        value["limits"]["compiler_seconds"] = 34
+                    elif mutation == "serialized_ast":
+                        value["serialized_ast"]["sha256"] = "0" * 64
                     else:
                         value["functions"][0]["parameters"][1]["state"] = "unmodeled"
                     return CaptureResult(result.returncode, json.dumps(value), result.stderr)
@@ -186,6 +240,19 @@ class OriginalParameterTypeTests(unittest.TestCase):
                 self.assertFalse(report["ok"], report)
                 self.assertFalse(output.exists())
                 self.assertIn("E_C_ORIGINAL_TYPE", [x["code"] for x in report["diagnostics"]], report)
+                if mutation in {"command", "limits", "serialized_ast"}:
+                    failure = next(row for row in report["diagnostics"] if row["code"] == "E_C_ORIGINAL_TYPE")
+                    details = json.loads(failure["message"].split(
+                        "original-type AST command/budget identity mismatch: ", 1)[1])
+                    for field in ("serialized_ast", "argv", "limits"):
+                        changed = field == {"command": "argv", "limits": "limits",
+                                            "serialized_ast": "serialized_ast"}[mutation]
+                        self.assertIs(details["matches"][field], not changed)
+                        for side in ("expected", "actual"):
+                            preview = details[side][field]
+                            self.assertLessEqual(len(preview["json_prefix"]), 4096)
+                            self.assertIs(preview["truncated"], False)
+                            json.loads(preview["json_prefix"])
 
     def test_failed_emission_retains_returncode_missing_ast_and_both_streams(self):
         database = self.project("unsigned int probe(unsigned int n, const unsigned int data[8]) { return n; }\n")

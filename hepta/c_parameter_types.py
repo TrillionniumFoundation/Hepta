@@ -235,7 +235,9 @@ def original_parameter_types(capture, config, declarations, physical_source_file
                    "source_argument": captured_source_argument(config), "expected": expected}
         helper = [sys.executable, "-I", str(Path(__file__).resolve())]
         with tempfile.TemporaryDirectory(prefix="hepta-original-types-") as temporary:
-            ast_path = Path(temporary) / "input.ast"
+            # Pin the existing directory spelling before constructing argv.
+            # The later AST digest resolves paths too (symlinks/Windows short names).
+            ast_path = Path(temporary).resolve(strict=True) / "input.ast"
             request["argv"] = [capture["compiler"]["path"], *config["frontend_arguments"],
                                "-Werror", "-emit-ast", captured_source_argument(config), "-o", str(ast_path)]
             emitted = run_bounded([*helper, "--emit-ast"], cwd=config["directory"],
@@ -265,9 +267,19 @@ def original_parameter_types(capture, config, declarations, physical_source_file
             raise ValueError("original-type reader receipt identity mismatch")
         expected_argv = [capture["compiler"]["path"], *config["frontend_arguments"],
                          "-Werror", "-emit-ast", captured_source_argument(config), "-o", ast_identity["path"]]
-        if (not _same(receipt["serialized_ast"], ast_identity) or not _same(receipt["argv"], expected_argv)
-                or not _same(receipt["limits"], _limits())):
-            raise ValueError("original-type AST command/budget identity mismatch")
+        expected_binding = {"serialized_ast": ast_identity, "argv": expected_argv, "limits": _limits()}
+        matches = {name: _same(receipt[name], expected_binding[name]) for name in expected_binding}
+        if not all(matches.values()):
+            def preview(value):
+                encoded = json.dumps(value, sort_keys=True, ensure_ascii=True, allow_nan=False)
+                return {"json_prefix": encoded[:4096], "json_characters": len(encoded),
+                        "truncated": len(encoded) > 4096}
+
+            details = {"matches": matches,
+                       "expected": {name: preview(value) for name, value in expected_binding.items()},
+                       "actual": {name: preview(receipt[name]) for name in expected_binding}}
+            raise ValueError("original-type AST command/budget identity mismatch: "
+                             + json.dumps(details, sort_keys=True))
         for want, actual in zip(expected, receipt["functions"]):
             if (type(actual) is not dict or set(actual) != {"declaration", "result", "parameters"}
                     or not _same(actual["declaration"], want) or type(actual["parameters"]) is not list
@@ -518,18 +530,105 @@ def _read_ast(library, ast_path, expected):
         lib.clang_disposeIndex(index)
 
 
+def _darwin_virtual_size():
+    """Read the current Mach task's actual mapped address-space baseline.
+
+    Apple MACH_TASK_BASIC_INFO uses pack(4), 48 bytes, and a count of twelve
+    natural_t words. The borrowed mach_task_self_ port is not deallocated.
+    No ps output, guessed shared-cache size, or ignored kernel error is used.
+    """
+    if sys.platform != "darwin" or ctypes.sizeof(ctypes.c_void_p) != 8:
+        raise ValueError("Darwin address-space observation requires a 64-bit Darwin host")
+
+    class TimeValue(ctypes.Structure):
+        _fields_ = [("seconds", ctypes.c_int32), ("microseconds", ctypes.c_int32)]
+
+    class MachTaskBasicInfo(ctypes.Structure):
+        _pack_ = 4
+        _fields_ = [("virtual_size", ctypes.c_uint64),
+                    ("resident_size", ctypes.c_uint64),
+                    ("resident_size_max", ctypes.c_uint64),
+                    ("user_time", TimeValue), ("system_time", TimeValue),
+                    ("policy", ctypes.c_int32), ("suspend_count", ctypes.c_int32)]
+
+    expected_offsets = (0, 8, 16, 24, 32, 40, 44)
+    if (ctypes.sizeof(MachTaskBasicInfo) != 48 or ctypes.alignment(MachTaskBasicInfo) != 4
+            or tuple(getattr(MachTaskBasicInfo, name).offset
+                     for name, _ in MachTaskBasicInfo._fields_) != expected_offsets):
+        raise ValueError("unexpected MACH_TASK_BASIC_INFO ABI")
+    library = ctypes.CDLL("/usr/lib/libSystem.B.dylib")
+    port = ctypes.c_uint32.in_dll(library, "mach_task_self_").value
+    if port in (0, 0xffffffff):
+        raise ValueError("invalid current Mach task port")
+    function = library.task_info
+    function.argtypes = [ctypes.c_uint32, ctypes.c_uint32,
+                         ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_uint32)]
+    function.restype = ctypes.c_int32
+    information, count = MachTaskBasicInfo(), ctypes.c_uint32(12)
+    result = function(port, 20, ctypes.cast(ctypes.byref(information),
+                                          ctypes.POINTER(ctypes.c_int32)), ctypes.byref(count))
+    baseline = information.virtual_size
+    if result != 0 or count.value != 12 or not 0 < baseline < (1 << 63) - 1 - (2 << 30):
+        raise ValueError("Mach address-space observation failed: " + json.dumps({
+            "returncode": result, "natural_words": count.value, "virtual_bytes": baseline}))
+    return baseline
+
+
+def _enforce_process_limit(resource, kind, requested, name, *, context=None):
+    if (type(requested) is not int or requested < 0 or requested == resource.RLIM_INFINITY
+            or (resource.RLIM_INFINITY >= 0 and requested >= resource.RLIM_INFINITY)):
+        raise ValueError("expected a finite nonnegative process limit: " + name)
+    soft, hard = resource.getrlimit(kind)
+    bound = requested if hard == resource.RLIM_INFINITY else min(requested, hard)
+    if soft != resource.RLIM_INFINITY:
+        bound = min(bound, soft)
+    observation = {**(context or {}), "resource": name, "before": [soft, hard],
+                   "requested_bytes": requested, "applied_pair": [bound, bound]}
+    try:
+        resource.setrlimit(kind, (bound, bound))
+        after = resource.getrlimit(kind)
+    except (OSError, ValueError) as error:
+        try:
+            observation["after"] = list(resource.getrlimit(kind))
+        except (OSError, ValueError) as readback_error:
+            observation["after_unavailable"] = str(readback_error)
+        raise ValueError("original-type process limit failed: " + json.dumps({
+            **observation, "error": str(error)}, sort_keys=True)) from error
+    observation["after"] = list(after)
+    if (len(after) != 2 or any(type(value) is not int or value == resource.RLIM_INFINITY for value in after)
+            or not 0 <= after[0] <= after[1] <= bound):
+        raise ValueError("original-type process limit readback mismatch: "
+                         + json.dumps(observation, sort_keys=True))
+    observation["status"] = "enforced_and_read_back"
+    return observation
+
+
 def _set_process_limits():
     # POSIX phases retain the outer run_bounded process group. Windows child
     # process ownership is established by that outer capture, not by rlimits.
-    if os.name == "posix":
-        import resource
-        for kind, limit in ((resource.RLIMIT_AS, 2 * 1024 * 1024 * 1024),
-                            (resource.RLIMIT_FSIZE, MAX_AST_BYTES)):
-            soft, hard = resource.getrlimit(kind)
-            bound = limit if hard == resource.RLIM_INFINITY else min(limit, hard)
-            if soft != resource.RLIM_INFINITY:
-                bound = min(bound, soft)
-            resource.setrlimit(kind, (bound, bound))
+    report = {"schema": "hepta.c-original-type-process-limits.v1", "platform": sys.platform,
+              "address_space": {"mode": "not_enforced_here"},
+              "file_size": {"mode": "not_enforced_here"}, "whole_process_rss_bounded": False}
+    if os.name != "posix":
+        return report
+    import resource
+    memory_budget = 2 * 1024 * 1024 * 1024
+    if sys.platform == "darwin":
+        # XNU refuses RLIMIT_AS below the current VM map size. That baseline
+        # includes the host runtime/shared mappings and can exceed 2 GiB before
+        # Clang is loaded. Limit additional address space, not resident memory.
+        baseline = _darwin_virtual_size()
+        requested = baseline + memory_budget
+        policy = {"mode": "initial_virtual_size_plus_growth", "baseline_virtual_bytes": baseline,
+                  "growth_budget_bytes": memory_budget}
+    else:
+        requested = memory_budget
+        policy = {"mode": "absolute_address_space", "absolute_budget_bytes": memory_budget}
+    report["address_space"] = {**policy, **_enforce_process_limit(
+        resource, resource.RLIMIT_AS, requested, "RLIMIT_AS", context=policy)}
+    report["file_size"] = {"mode": "absolute_file_size", **_enforce_process_limit(
+        resource, resource.RLIMIT_FSIZE, MAX_AST_BYTES, "RLIMIT_FSIZE")}
+    return report
 
 
 def _identity_worker(request):
@@ -611,9 +710,12 @@ def _worker(request):
 
 
 if __name__ == "__main__":
-    # -I suppresses cwd/PYTHONPATH injection. Both subprocess modes use only
+    # -I suppresses cwd/PYTHONPATH injection. The subprocess modes use only
     # the standard library; no import is resolved from the captured C cwd.
     try:
+        if sys.argv[1:] == ["--process-limits"]:
+            print(json.dumps(_set_process_limits(), sort_keys=True, allow_nan=False))
+            raise SystemExit(0)
         if sys.argv[1:] not in (["--worker"], ["--emit-ast"], ["--identity"]):
             raise ValueError("expected original-type subprocess mode")
         payload = sys.stdin.buffer.read(8_000_001)

@@ -87,7 +87,7 @@ CRITICAL_MODULES = {
                                     "test_c_project", "test_c_project_driver_names", "test_c_cursor_control"),
     "migration_parameter_entry_effects": ("test_c_array_declarator_guard", "test_c_parameter_entry_effects"),
     "migration_original_parameter_types": ("test_c_parameter_types", "test_c_original_type_host_preflight",
-                                           "test_clang_capture"),
+                                           "test_clang_capture", "test_c_process_limits"),
     "migration_contract_intake_and_ring_evidence": ("test_c_contracts", "test_c_ring_qualification_evidence"),
     "prospective_agent_choice_protocol": ("test_hia_batch_disclosed_choices",),
     "native_profile_and_lifecycle_convergence": ("test_hia_native_profile_convergence",),

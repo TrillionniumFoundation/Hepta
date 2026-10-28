@@ -116,6 +116,44 @@ def check_identity(identity, chosen, version, target, system):
                 "original-type identity bytes changed: " + name)
 
 
+def check_process_limits(report):
+    require(report.get("schema") == "hepta.c-original-type-process-limits.v1"
+            and report.get("platform") == sys.platform
+            and report.get("whole_process_rss_bounded") is False,
+            "wrong process-limit observation identity or scope")
+    if sys.platform == "win32":
+        require(report["address_space"] == {"mode": "not_enforced_here"}
+                and report["file_size"] == {"mode": "not_enforced_here"},
+                "Windows probe cannot claim POSIX memory/file limits")
+        return
+    memory = report["address_space"]
+    budget = 2 * 1024 * 1024 * 1024
+    if sys.platform == "darwin":
+        baseline = memory.get("baseline_virtual_bytes")
+        require(memory.get("mode") == "initial_virtual_size_plus_growth"
+                and type(baseline) is int and baseline > 0
+                and memory.get("growth_budget_bytes") == budget
+                and memory.get("requested_bytes") == baseline + budget,
+                "Darwin probe must bind actual baseline plus finite growth")
+    else:
+        require(memory.get("mode") == "absolute_address_space"
+                and memory.get("absolute_budget_bytes") == budget
+                and memory.get("requested_bytes") == budget,
+                "POSIX absolute address-space policy differs")
+    require(report["file_size"].get("mode") == "absolute_file_size"
+            and report["file_size"].get("requested_bytes") == 32_000_000,
+            "AST file-size policy differs")
+    for key, resource_name in (("address_space", "RLIMIT_AS"), ("file_size", "RLIMIT_FSIZE")):
+        row = report[key]
+        applied, after = row.get("applied_pair"), row.get("after")
+        require(row.get("resource") == resource_name and row.get("status") == "enforced_and_read_back"
+                and type(applied) is list and type(after) is list
+                and len(applied) == len(after) == 2
+                and all(type(n) is int for n in [*applied, *after])
+                and 0 <= after[0] <= after[1] <= applied[0] == applied[1] <= row["requested_bytes"],
+                "process limit was not enforced/read back within its bound: " + key)
+
+
 def check_case(name, report, identity, work):
     receipts = report.get("source_type_admission", [])
     require(len(receipts) == 1,
@@ -180,8 +218,17 @@ def preflight(folder, requested, expected_system):
         report["selected_clang"] = str(chosen)
         version = observe([str(chosen), "--version"], folder, report["identity_commands"])
         target = observe([str(chosen), "-dumpmachine"], folder, report["identity_commands"])
+        worker = ROOT / "hepta" / "c_parameter_types.py"
+        worker_sha = sha(worker)
+        limits = json.loads(observe([sys.executable, "-I", str(worker), "--process-limits"],
+                                   folder, report["identity_commands"]))
+        report["process_limits"] = limits
+        require(sha(worker) == worker_sha, "process-limit observer changed during execution")
+        check_process_limits(limits)
+        write(folder / "process-limits.json", limits)
         identity = original_type_reader_identity(str(chosen))
         report["reader_identity"] = identity
+        require(identity["worker"]["sha256"] == worker_sha, "process-limit observer and reader worker differ")
         write(folder / "reader-identity.json", identity)
         check_identity(identity, chosen, version, target, report["system"])
         for name, source in CASES.items():
