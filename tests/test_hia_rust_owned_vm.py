@@ -1,4 +1,4 @@
-"""Actual independent Rust v1 resource execution vs Python and native LLVM.
+"""Existing byte-resource behavior under independent Rust execution report v2.
 
 Cargo/Clang absence is an explicit skip, never a qualified result. Counter and
 trap comparisons use the canonical Python VM only as a separate oracle; the
@@ -181,9 +181,13 @@ class RustOwnedVmParity(unittest.TestCase):
             self.assertEqual(rust["values"], python["values"])
         else:
             self.assertEqual(rust["error"]["code"], python["error"]["code"])
-        self.assertTrue(rust["claims"]["finite_v1_byte_resource_execution"])
+        self.assertEqual(rust["schema"], "hepta.hia.rust-owned-execution.v2")
+        self.assertEqual(rust["program_schema"], core.as_dict()["schema"])
+        self.assertTrue(rust["claims"]["finite_primitive_resource_execution"])
+        self.assertTrue(rust["claims"]["primitive_v1_v7_resource_execution"])
+        self.assertTrue(rust["claims"]["recursive_buffer_chains_supported"])
         for claim in ("production_admission_authorized", "whole_language_soundness_proved",
-                      "native_backend_refinement_proved", "later_isa_versions_supported"):
+                      "native_backend_refinement_proved"):
             self.assertFalse(rust["claims"][claim])
         return rust
 
@@ -337,8 +341,12 @@ class RustOwnedVmParity(unittest.TestCase):
             self.assertEqual(result.stdout, b"")
             self.assertNotIn(b"E_HIA_INPUT", result.stderr)  # module validation came first
 
-    def test_newer_schemas_unknown_options_and_capability_entries_refuse(self):
-        for version in (2, 3, 4, 5, 6, 7, 8):
+    def test_versioned_execution_unknown_options_and_capability_entries(self):
+        for version in range(1, 8):
+            document = resource_program()
+            document["schema"] = f"hepta.hia.program.v{version}"
+            self.assertEqual(self.assert_parity(document, "owned", [7, 9])["values"], [9])
+        for version in (0, 8, 99):
             document = resource_program()
             document["schema"] = f"hepta.hia.program.v{version}"
             refused = self.rust_process(document, "owned", [7, 9])

@@ -63,9 +63,14 @@ its scalar interpreter admits resource-free programs under v1..v7, while
 `--owned-shadow` independently checks Owner/Loan CFG rules including the v7
 chain grammar. Static ownership checking is not dynamic chain execution or
 an allocator-fault equivalence proof. The independent `--owned-run` execution
-oracle supports only primitive v1 byte resources, calls and CFG; it refuses
-v2–v7 before execution. Its finite resource/trap differential tests do not
-qualify later resource operations or dynamic chain execution.
+oracle executes the closed primitive v1–v7 resource ISA, including checked bulk
+operations and iterative chains, and emits the distinct
+`hepta.hia.rust-owned-execution.v2` report. It preserves old input ledgers,
+version gates, scalar public entries and stopped resource accounting. Nominal
+inputs must be normalized and independently checked as primitive Core first;
+the Rust interpreter never invokes the Python interpreter. See
+[HIA_RUST_RESOURCE_EXECUTION_V2.md](HIA_RUST_RESOURCE_EXECUTION_V2.md) for exact
+coverage and limits. A test's presence is not a recorded execution result.
 Rust cannot grant production native
 admission. Budget analyzers also retain their own exact version and operation
 limits; recognizing v7 never permits treating a dynamic chain destructor as

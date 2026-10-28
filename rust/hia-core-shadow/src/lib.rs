@@ -2,7 +2,7 @@
 //! This crate is NOT the language admission authority: the canonical Python
 //! verify_program remains mandatory until semantic refinement is demonstrated.
 //! Scalar and Owner/Loan checking remain explicit shadow profiles. Finite
-//! execution supports the scalar ISA and the closed v1 byte-resource ISA.
+//! execution supports the scalar ISA and the closed v1-v7 resource ISA.
 //! Every unsupported feature rejects instead of being interpreted as safe.
 #![forbid(unsafe_code)]
 

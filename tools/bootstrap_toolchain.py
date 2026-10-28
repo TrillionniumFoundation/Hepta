@@ -98,7 +98,8 @@ def main():
     if platform.system() != "Linux" or platform.machine() not in {"x86_64", "AMD64"}:
         parser.error("This verified installer bootstraps a Linux x86-64 host; use rustup 1.90.0 for other hosts")
     locked = json.loads((ROOT / "toolchain-lock.json").read_text())
-    wanted = {"rustc-1.90.0-" + HOST, "rust-std-1.90.0-" + HOST}
+    wanted = {"cargo-1.90.0-" + HOST, "rustc-1.90.0-" + HOST,
+              "rust-std-1.90.0-" + HOST}
     wanted.update("rust-std-1.90.0-" + t for t in args.targets)
     selected = [r for r in locked if r["package"] in wanted]
     if {r["package"] for r in selected} != wanted:

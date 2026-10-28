@@ -448,10 +448,16 @@ the state at the stop and do not invent cleanup after an aborted computation.
 The optional Rust shadow has separate static and execution modes. Its
 `--owned-shadow` checker covers the admitted finite Owner/Loan CFG rules,
 including v7 chains; `--scalar-run` executes resource-free scalar v1–v7.
-`--owned-run FUNCTION JSON_ARGS OPTIONS_JSON` independently executes only
-primitive v1 byte resources, calls and CFG, including allocation failure and
-stopped resource accounting. It checks the whole module before execution and
-rejects v2–v7, even when the selected entry uses only old operations. Its
+`--owned-run FUNCTION JSON_ARGS OPTIONS_JSON` independently executes primitive
+v1–v7 byte resources, checked bulk operations, recursive buffer chains, calls
+and CFG, including allocation failure and stopped resource accounting. It
+checks the whole module before execution and preserves each input version's
+closed opcode/type set. Unknown versions and nominal inputs reject even when
+the selected entry uses only old operations. Execution reports use the explicit
+`hepta.hia.rust-owned-execution.v2` schema; v1–v6 input ledgers retain their
+original byte-resource fields, while v7 also reports chain roots and nodes.
+The implementation and report boundary are specified in
+[HIA_RUST_RESOURCE_EXECUTION_V2.md](HIA_RUST_RESOURCE_EXECUTION_V2.md). Its
 finite limits are 1–1,000,000 steps, 0–64 MiB live requested bytes and 32
 simultaneously active calls; defaults are 100,000 steps and 16 MiB. These are
 oracle policy limits, not new Core semantics or native runtime guarantees.

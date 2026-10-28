@@ -1,7 +1,7 @@
-//! Independent finite execution of the existing v1 byte Owner/Loan ISA.
+//! Independent finite execution of the existing v1-v7 resource ISA.
 //! This is a development oracle, never the production admission authority.
 //! There is no Python invocation, native execution, source replay, raw pointer,
-//! borrowed return, concurrency or acceptance of later resource ISA versions.
+//! borrowed return, concurrency or acceptance of unknown resource ISA versions.
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde::Deserialize;
@@ -13,6 +13,7 @@ use super::{decode_hia, failure, valid_constant, verify_owned, R};
 const MAX_STEPS: u64 = 1_000_000;
 const MAX_HEAP_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_CALL_DEPTH: u32 = 32;
+const CHAIN_NODE_BYTES: u64 = 24;
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(default, deny_unknown_fields)]
@@ -37,13 +38,22 @@ impl Default for OwnedOptions {
 enum RuntimeValue {
     Scalar(Value),
     Owner(u64),
+    Chain(u64),
     View { id: u64, mutable: bool },
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum Parent { Owner(u64), View(u64) }
+enum Root { Owner(u64), Chain(u64) }
 
-struct Loan { root: u64, parent: Parent, mutable: bool, external: bool }
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Parent { Root(Root), View(u64) }
+
+// A head loan has chain provenance but accesses its head payload's storage.
+// Keeping those identities separate prevents treating a chain as a byte buffer
+// or moving its root while an otherwise valid payload view remains live.
+struct Loan { root: Root, storage: u64, parent: Parent, mutable: bool, external: bool }
+
+struct ChainNode { storage: u64, payload: u64, tail: Option<u64> }
 
 type Environment = BTreeMap<String, RuntimeValue>;
 
@@ -79,6 +89,13 @@ struct Machine<'a> {
     steps: u64,
     owners: BTreeMap<u64, Vec<u8>>,
     loans: BTreeMap<u64, Loan>,
+    chains: BTreeMap<u64, Option<u64>>,
+    nodes: BTreeMap<u64, ChainNode>,
+    recursive_chain: bool,
+    chains_created: u64,
+    chains_consumed: u64,
+    chain_nodes_created: u64,
+    chain_nodes_dropped: u64,
     owner_count: u64,
     drops: u64,
     allocations: u64,
@@ -92,9 +109,13 @@ struct Machine<'a> {
 }
 
 impl<'a> Machine<'a> {
-    fn new(functions: BTreeMap<&'a str, &'a Value>, options: OwnedOptions) -> Self {
+    fn new(functions: BTreeMap<&'a str, &'a Value>, options: OwnedOptions,
+           recursive_chain: bool) -> Self {
         Self { functions, options, steps: 0, owners: BTreeMap::new(),
                loans: BTreeMap::new(), owner_count: 0, drops: 0,
+               chains: BTreeMap::new(), nodes: BTreeMap::new(), recursive_chain,
+               chains_created: 0, chains_consumed: 0,
+               chain_nodes_created: 0, chain_nodes_dropped: 0,
                allocations: 0, frees: 0, allocation_attempts: 0,
                live_bytes: 0, peak_bytes: 0, loans_started: 0, loans_ended: 0,
                next_loan_id: 0 }
@@ -137,45 +158,144 @@ impl<'a> Machine<'a> {
         Ok((self.new_owner(bytes), true))
     }
 
-    fn root(&self, value: &RuntimeValue) -> Exec<u64> {
+    fn drop_bytes(&mut self, id: u64) -> Exec<()> {
+        if self.loans.values().any(|loan| loan.storage == id) {
+            return Err(Halt::Internal);
+        }
+        let bytes = self.owners.remove(&id).ok_or(Halt::Internal)?;
+        if !bytes.is_empty() { self.frees += 1; }
+        self.live_bytes -= bytes.len() as u64;
+        self.drops += 1;
+        Ok(())
+    }
+
+    fn new_chain(&mut self, head: Option<u64>) -> RuntimeValue {
+        self.chains_created += 1;
+        self.chains.insert(self.chains_created, head);
+        RuntimeValue::Chain(self.chains_created)
+    }
+
+    fn chain_head(&self, value: &RuntimeValue) -> Exec<Option<u64>> {
+        let RuntimeValue::Chain(id) = value else { return Err(Halt::Internal); };
+        self.chains.get(id).copied().ok_or(Halt::Internal)
+    }
+
+    fn consume_chain(&mut self, value: &RuntimeValue) -> Exec<Option<u64>> {
+        let Root::Chain(id) = self.free_owner(value)? else { return Err(Halt::Internal); };
+        let head = self.chains.remove(&id).ok_or(Halt::Internal)?;
+        self.chains_consumed += 1;
+        Ok(head)
+    }
+
+    fn drop_chain(&mut self, value: &RuntimeValue) -> Exec<()> {
+        // Consume the root before charging destruction, as specified by Core.
+        // If a tick stops us, the remaining nodes/storage stay in the ledger;
+        // dropping this oracle's host maps is not source-program cleanup.
+        let mut head = self.consume_chain(value)?;
+        while let Some(id) = head {
+            self.tick()?;
+            let node = self.nodes.remove(&id).ok_or(Halt::Internal)?;
+            self.drop_bytes(node.payload)?;
+            self.drop_bytes(node.storage)?;
+            self.chain_nodes_dropped += 1;
+            head = node.tail;
+        }
+        Ok(())
+    }
+
+    fn range(extent: usize, offset: u64, size: u64) -> Exec<std::ops::Range<usize>> {
+        // Check subtraction before forming an endpoint or host slice index.
+        // Even a zero-size operation must have an in-range offset.
+        if offset > extent as u64 || size > extent as u64 - offset {
+            return Err(Halt::Trap("bounds"));
+        }
+        Ok(offset as usize..(offset + size) as usize)
+    }
+
+    fn copy_bytes(&mut self, destination: u64, source: u64,
+                  dst_offset: u64, src_offset: u64, size: u64) -> Exec<()> {
+        if destination == source { return Err(Halt::Internal); }
+        let dst = Self::range(self.owners.get(&destination).ok_or(Halt::Internal)?.len(),
+                              dst_offset, size)?;
+        let src = Self::range(self.owners.get(&source).ok_or(Halt::Internal)?.len(),
+                              src_offset, size)?;
+        // Move a Vec handle, never clone bytes or allocate count-sized scratch.
+        // All fallible guards precede removal; source and destination are
+        // distinct, so the checked source remains present until reinsertion.
+        let mut bytes = self.owners.remove(&destination).ok_or(Halt::Internal)?;
+        bytes[dst].copy_from_slice(&self.owners[&source][src]);
+        self.owners.insert(destination, bytes);
+        Ok(())
+    }
+
+    fn root(&self, value: &RuntimeValue) -> Exec<Root> {
         let root = match value {
-            RuntimeValue::Owner(id) => *id,
+            RuntimeValue::Owner(id) => Root::Owner(*id),
+            RuntimeValue::Chain(id) => Root::Chain(*id),
             RuntimeValue::View { id, .. } => {
                 let mut current = *id;
                 loop {
                     let loan = self.loans.get(&current).ok_or(Halt::Internal)?;
                     match loan.parent {
-                        Parent::Owner(owner) => break owner,
+                        Parent::Root(root) => break root,
                         Parent::View(parent) => current = parent,
                     }
                 }
             }
             RuntimeValue::Scalar(_) => return Err(Halt::Internal),
         };
-        if !self.owners.contains_key(&root) { return Err(Halt::Internal); }
+        let alive = match root {
+            Root::Owner(id) => self.owners.contains_key(&id),
+            Root::Chain(id) => self.chains.contains_key(&id),
+        };
+        if !alive { return Err(Halt::Internal); }
         Ok(root)
     }
 
-    fn free_owner(&self, value: &RuntimeValue) -> Exec<u64> {
-        let RuntimeValue::Owner(id) = value else { return Err(Halt::Internal); };
-        if !self.owners.contains_key(id) || self.loans.values().any(|l| l.root == *id) {
-            return Err(Halt::Internal);
-        }
-        Ok(*id)
+    fn byte_owner(&self, value: &RuntimeValue) -> Exec<u64> {
+        let root = self.root(value)?;
+        let storage = match value {
+            RuntimeValue::Owner(id) => *id,
+            RuntimeValue::View { id, .. } => {
+                let loan = self.loans.get(id).ok_or(Halt::Internal)?;
+                if loan.root != root { return Err(Halt::Internal); }
+                loan.storage
+            }
+            _ => return Err(Halt::Internal),
+        };
+        if !self.owners.contains_key(&storage) { return Err(Halt::Internal); }
+        Ok(storage)
     }
 
-    fn borrow(&mut self, value: &RuntimeValue, mutable: bool) -> Exec<RuntimeValue> {
+    fn free_owner(&self, value: &RuntimeValue) -> Exec<Root> {
+        if !matches!(value, RuntimeValue::Owner(_) | RuntimeValue::Chain(_)) {
+            return Err(Halt::Internal);
+        }
         let root = self.root(value)?;
+        if self.loans.values().any(|l| l.root == root) {
+            return Err(Halt::Internal);
+        }
+        Ok(root)
+    }
+
+    fn borrow(&mut self, value: &RuntimeValue, mutable: bool, head: bool)
+        -> Exec<RuntimeValue> {
+        let root = self.root(value)?;
+        let storage = if head {
+            let node = self.chain_head(value)?.ok_or(Halt::Trap("bounds"))?;
+            self.nodes.get(&node).ok_or(Halt::Internal)?.payload
+        } else { self.byte_owner(value)? };
+        if !self.owners.contains_key(&storage) { return Err(Halt::Internal); }
         let mut ancestors = BTreeSet::new();
         let parent = match value {
-            RuntimeValue::Owner(id) => Parent::Owner(*id),
+            RuntimeValue::Owner(_) | RuntimeValue::Chain(_) => Parent::Root(root),
             RuntimeValue::View { id, mutable: permitted } => {
                 if mutable && !permitted { return Err(Halt::Internal); }
                 let mut current = *id;
                 loop {
                     if !ancestors.insert(current) { return Err(Halt::Internal); }
                     match self.loans.get(&current).ok_or(Halt::Internal)?.parent {
-                        Parent::Owner(_) => break,
+                        Parent::Root(_) => break,
                         Parent::View(previous) => current = previous,
                     }
                 }
@@ -190,7 +310,7 @@ impl<'a> Machine<'a> {
         self.loans_started += 1;
         self.next_loan_id += 1;
         let id = self.next_loan_id;
-        self.loans.insert(id, Loan { root, parent, mutable, external: false });
+        self.loans.insert(id, Loan { root, storage, parent, mutable, external: false });
         Ok(RuntimeValue::View { id, mutable })
     }
 
@@ -201,7 +321,7 @@ impl<'a> Machine<'a> {
             || self.loans.values().any(|l| l.parent == Parent::View(*id)) {
             return Err(Halt::Internal);
         }
-        self.root(value)
+        self.byte_owner(value)
     }
 
     fn enter_call(&mut self, params: &Value, mut values: Vec<RuntimeValue>)
@@ -215,7 +335,8 @@ impl<'a> Machine<'a> {
         for (param, value) in parameters.iter().zip(&values) {
             if matches!(param["type"].as_str(), Some("readbuf" | "mutbuf")) {
                 let mutable = param["type"] == "mutbuf";
-                let root = self.access(value, mutable)?;
+                self.access(value, mutable)?;
+                let root = self.root(value)?;
                 if views.iter().any(|(other_root, exclusive)| {
                     *other_root == root && (*exclusive || mutable)
                 }) { return Err(Halt::Internal); }
@@ -226,6 +347,7 @@ impl<'a> Machine<'a> {
         for (param, value) in parameters.iter().zip(&mut values) {
             if !matches!(param["type"].as_str(), Some("readbuf" | "mutbuf")) { continue; }
             let root = self.root(value)?;
+            let storage = self.byte_owner(value)?;
             let RuntimeValue::View { id: parent, .. } = value else { return Err(Halt::Internal); };
             let mutable = param["type"] == "mutbuf";
             self.next_loan_id += 1;
@@ -234,7 +356,7 @@ impl<'a> Machine<'a> {
             // A local child of `left` suspends `left`, not another readonly
             // formal `right` sharing its root. Retain the real parent/root
             // for conflict checks, and never upgrade the caller permission.
-            self.loans.insert(id, Loan { root, parent: Parent::View(*parent),
+            self.loans.insert(id, Loan { root, storage, parent: Parent::View(*parent),
                                         mutable, external: true });
             *value = RuntimeValue::View { id, mutable };
             formals.push(id);
@@ -273,10 +395,53 @@ impl<'a> Machine<'a> {
                 result
             }
             "buffer.len" => {
-                let root = self.root(get(0)?)?;
-                vec![RuntimeValue::Scalar(json!(self.owners[&root].len() as u64))]
+                let storage = self.byte_owner(get(0)?)?;
+                vec![RuntimeValue::Scalar(json!(self.owners[&storage].len() as u64))]
             }
-            "borrow.read" | "borrow.mut" => vec![self.borrow(get(0)?, opcode == "borrow.mut")?],
+            "chain.empty" => vec![self.new_chain(None)],
+            "chain.try_push" => {
+                let head = self.chain_head(get(0)?)?;
+                self.free_owner(get(0)?)?;
+                let Root::Owner(payload) = self.free_owner(get(1)?)?
+                    else { return Err(Halt::Internal); };
+                let (storage, succeeded) = self.allocate(CHAIN_NODE_BYTES, true)?;
+                let RuntimeValue::Owner(storage) = storage else { return Err(Halt::Internal); };
+                let (head, fallback) = if succeeded {
+                    self.chain_nodes_created += 1;
+                    let id = self.chain_nodes_created;
+                    self.nodes.insert(id, ChainNode { storage, payload, tail: head });
+                    (Some(id), self.new_owner(Vec::new()))
+                } else {
+                    // Optional allocation made a real empty owner. Its
+                    // internal release must count, without a free(NULL).
+                    self.drop_bytes(storage)?;
+                    (head, RuntimeValue::Owner(payload))
+                };
+                self.consume_chain(get(0)?)?;
+                let chain = self.new_chain(head);
+                consume(env, 0)?;
+                consume(env, 1)?;
+                vec![chain, fallback, RuntimeValue::Scalar(json!(succeeded))]
+            }
+            "chain.pop" => {
+                let head = self.consume_chain(get(0)?)?;
+                let (tail, payload, present) = if let Some(id) = head {
+                    let node = self.nodes.remove(&id).ok_or(Halt::Internal)?;
+                    self.drop_bytes(node.storage)?;
+                    self.chain_nodes_dropped += 1;
+                    (self.new_chain(node.tail), RuntimeValue::Owner(node.payload), true)
+                } else {
+                    let tail = self.new_chain(None);
+                    (tail, self.new_owner(Vec::new()), false)
+                };
+                consume(env, 0)?;
+                vec![tail, payload, RuntimeValue::Scalar(json!(present))]
+            }
+            "chain.is_empty" => vec![RuntimeValue::Scalar(json!(self.chain_head(get(0)?)?.is_none()))],
+            "chain.head_read" | "chain.head_mut" =>
+                vec![self.borrow(get(0)?, opcode == "chain.head_mut", true)?],
+            "borrow.read" | "borrow.mut" =>
+                vec![self.borrow(get(0)?, opcode == "borrow.mut", false)?],
             "loan.end" => {
                 let RuntimeValue::View { id, .. } = get(0)? else { return Err(Halt::Internal); };
                 self.root(get(0)?)?;
@@ -295,11 +460,10 @@ impl<'a> Machine<'a> {
                 vec![get(0)?.clone()]
             }
             "owner.drop" => {
-                let id = self.free_owner(get(0)?)?;
-                let bytes = self.owners.remove(&id).ok_or(Halt::Internal)?;
-                if !bytes.is_empty() { self.frees += 1; }
-                self.live_bytes -= bytes.len() as u64;
-                self.drops += 1;
+                match self.free_owner(get(0)?)? {
+                    Root::Owner(id) => self.drop_bytes(id)?,
+                    Root::Chain(_) => self.drop_chain(get(0)?)?,
+                }
                 consume(env, 0)?;
                 vec![]
             }
@@ -315,11 +479,53 @@ impl<'a> Machine<'a> {
                     vec![RuntimeValue::Scalar(json!(bytes[index as usize]))]
                 }
             }
+            "buffer.fill" | "buffer.fill_range" => {
+                let storage = self.access(get(0)?, true)?;
+                let bytes = self.owners.get_mut(&storage).ok_or(Halt::Internal)?;
+                let (range, byte) = if opcode == "buffer.fill" {
+                    (0..bytes.len(), integer(get(1)?)?)
+                } else {
+                    (Self::range(bytes.len(), integer(get(1)?)?, integer(get(2)?)?)?,
+                     integer(get(3)?)?)
+                };
+                bytes[range].fill(u8::try_from(byte).map_err(|_| Halt::Internal)?);
+                vec![]
+            }
+            "buffer.copy" | "buffer.copy_range" => {
+                let destination = self.access(get(0)?, true)?;
+                let source = self.access(get(1)?, false)?;
+                if self.root(get(0)?)? == self.root(get(1)?)? { return Err(Halt::Internal); }
+                let (dst_offset, src_offset, size) = if opcode == "buffer.copy" {
+                    (0, 0, integer(get(2)?)?)
+                } else { (integer(get(2)?)?, integer(get(3)?)?, integer(get(4)?)?) };
+                self.copy_bytes(destination, source, dst_offset, src_offset, size)?;
+                vec![]
+            }
+            "buffer.move_within" => {
+                let storage = self.access(get(0)?, true)?;
+                let bytes = self.owners.get_mut(&storage).ok_or(Halt::Internal)?;
+                let (dst, src, size) = (integer(get(1)?)?, integer(get(2)?)?, integer(get(3)?)?);
+                let dst = Self::range(bytes.len(), dst, size)?;
+                let src = Self::range(bytes.len(), src, size)?;
+                // copy_within is overlap-safe without allocating a temporary.
+                bytes.copy_within(src, dst.start);
+                vec![]
+            }
+            "buffer.swap" => {
+                let storage = self.access(get(0)?, true)?;
+                let bytes = self.owners.get_mut(&storage).ok_or(Halt::Internal)?;
+                let (left, right) = (integer(get(1)?)?, integer(get(2)?)?);
+                if left >= bytes.len() as u64 || right >= bytes.len() as u64 {
+                    return Err(Halt::Trap("bounds"));
+                }
+                bytes.swap(left as usize, right as usize);
+                vec![]
+            }
             "call" => {
                 let name = op["attrs"]["function"].as_str().ok_or(Halt::Internal)?;
                 let callee = *self.functions.get(name).ok_or(Halt::Internal)?;
                 for (n, param) in callee["params"].as_array().ok_or(Halt::Internal)?.iter().enumerate() {
-                    if param["type"] == "buffer" {
+                    if matches!(param["type"].as_str(), Some("buffer" | "chain")) {
                         self.free_owner(get(n)?)?;
                         consume(env, n)?;
                     }
@@ -328,8 +534,8 @@ impl<'a> Machine<'a> {
             }
             _ => {
                 // Share the independent Rust scalar arithmetic semantics,
-                // never the Python VM. Verification has already refused every
-                // non-v1 opcode in the whole module, including dead callees.
+                // never the Python VM. Verification has already checked the
+                // declared ISA in the whole module, including dead callees.
                 let values = operands.iter().map(|v| scalar(v).cloned()).collect::<Exec<Vec<_>>>()?;
                 opcode_results(op, &values)?.into_iter().map(RuntimeValue::Scalar).collect()
             }
@@ -393,19 +599,29 @@ impl<'a> Machine<'a> {
     }
 
     fn resources(&self) -> Value {
-        json!({"allocations": self.allocations, "frees": self.frees,
+        let mut result = json!({"allocations": self.allocations, "frees": self.frees,
             "allocation_attempts": self.allocation_attempts,
             "owners_created": self.owner_count, "owners_dropped": self.drops,
             "live_owners": self.owners.len(), "live_bytes": self.live_bytes,
             "peak_bytes": self.peak_bytes, "loans_started": self.loans_started,
             "loans_ended": self.loans_ended,
-            "live_local_loans": self.loans.values().filter(|loan| !loan.external).count()})
+            "live_local_loans": self.loans.values().filter(|loan| !loan.external).count()});
+        // Old input profiles retain their original byte-resource ledger.
+        if self.recursive_chain {
+            result["chains_created"] = json!(self.chains_created);
+            result["chains_consumed"] = json!(self.chains_consumed);
+            result["live_chains"] = json!(self.chains.len());
+            result["chain_nodes_created"] = json!(self.chain_nodes_created);
+            result["chain_nodes_dropped"] = json!(self.chain_nodes_dropped);
+            result["live_chain_nodes"] = json!(self.nodes.len());
+        }
+        result
     }
 }
 
-/// Execute an independently verified, closed v1 byte-resource program.
+/// Execute an independently verified, closed v1-v7 resource program.
 /// This finite oracle is not a proof or an alternative production verifier.
-/// Native traps/budget stops retain their stopped logical resource state;
+/// Core traps/budget stops retain their stopped logical resource state;
 /// Rust releasing oracle host memory is not represented as program cleanup.
 pub fn execute_owned(input: &[u8], function: &str, arguments: &[Value],
                      options: OwnedOptions) -> R<Value> {
@@ -415,10 +631,14 @@ pub fn execute_owned(input: &[u8], function: &str, arguments: &[Value],
         return failure("E_HIA_BUDGET_POLICY", "owned oracle options outside finite limits");
     }
     let (document, _) = decode_hia(input)?;
-    // Explicitly refuse newer semantics before executing anything, even if a
-    // particular entry does not happen to reach its new opcodes or types.
-    if document["schema"] != "hepta.hia.program.v1" {
-        return failure("E_HIA_RUST_UNSUPPORTED", "owned execution supports only primitive HIA v1");
+    // An explicit closed version list: neither unknown versions nor nominal
+    // inputs inherit primitive execution authority from a similar entry body.
+    if !matches!(document["schema"].as_str(), Some(
+        "hepta.hia.program.v1" | "hepta.hia.program.v2" | "hepta.hia.program.v3" |
+        "hepta.hia.program.v4" | "hepta.hia.program.v5" | "hepta.hia.program.v6" |
+        "hepta.hia.program.v7"
+    )) {
+        return failure("E_HIA_RUST_UNSUPPORTED", "owned execution supports primitive HIA v1-v7");
     }
     let verification = verify_owned(input)?;
     let functions = document["functions"].as_array().ok_or_else(|| super::VerifyError {
@@ -444,25 +664,28 @@ pub fn execute_owned(input: &[u8], function: &str, arguments: &[Value],
     })) {
         return failure("E_HIA_INPUT", "public entry must use exactly typed scalar arguments and returns");
     }
-    let mut machine = Machine::new(by_name, options);
+    let mut machine = Machine::new(by_name, options, document["schema"] == "hepta.hia.program.v7");
     let args = arguments.iter().cloned().map(RuntimeValue::Scalar).collect();
     let result = machine.invoke(function, args, 0);
     let mut report = json!({
-        "schema": "hepta.hia.rust-owned-execution.v1", "status": "unknown",
+        "schema": "hepta.hia.rust-owned-execution.v2", "status": "unknown",
+        "program_schema": document["schema"],
         "function": function, "program_sha256": verification["program_sha256"],
         "steps": machine.steps, "max_steps": machine.options.max_steps,
         "max_call_depth": MAX_CALL_DEPTH, "max_heap_bytes": machine.options.max_heap_bytes,
         "resources": machine.resources(), "word_bits": 64,
-        "claims": {"finite_v1_byte_resource_execution": true,
-            "later_isa_versions_supported": false, "source_replayed": false,
+        "claims": {"finite_primitive_resource_execution": true,
+            "primitive_v1_v7_resource_execution": true,
+            "recursive_buffer_chains_supported": true, "source_replayed": false,
             "production_admission_authorized": false, "whole_language_soundness_proved": false,
             "general_memory_provenance_proved": false, "native_backend_refinement_proved": false,
             "abi_or_hardware_qualified": false}
     });
     match result {
         Ok(values) => {
-            if !machine.owners.is_empty() || !machine.loans.is_empty() {
-                return failure("E_HIA_RUST_RUNTIME", "successful scalar entry retained owner/loan state");
+            if !machine.owners.is_empty() || !machine.loans.is_empty()
+                || !machine.chains.is_empty() || !machine.nodes.is_empty() {
+                return failure("E_HIA_RUST_RUNTIME", "successful scalar entry retained owner/chain/loan state");
             }
             let scalars = values.iter().map(|v| scalar(v).cloned()).collect::<Exec<Vec<_>>>()
                 .map_err(|_| super::VerifyError { code: "E_HIA_RUST_RUNTIME",
