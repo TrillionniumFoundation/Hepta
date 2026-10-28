@@ -56,7 +56,7 @@ class RustupCompilerIdentityTests(unittest.TestCase):
         self.make_rustup(exit_code=1)
         with self.assertRaises(HeptaError) as failure:
             find_rustc(str(self.shim))
-        self.assertIn("E_TOOLCHAIN", str(failure.exception))
+        self.assertEqual(failure.exception.diagnostic.code, "E_TOOLCHAIN")
 
     def test_rustup_rejects_relative_or_multiline_compiler(self):
         for value in ("rustc", str(self.compiler) + "\n" + str(self.compiler)):
@@ -81,7 +81,7 @@ class RustupCompilerIdentityTests(unittest.TestCase):
         self.compiler.chmod(0o755)
         with self.assertRaises(HeptaError) as failure:
             toolchain_info(find_rustc(str(self.shim)))
-        self.assertIn("E_TOOLCHAIN_IDENTITY", str(failure.exception))
+        self.assertEqual(failure.exception.diagnostic.code, "E_TOOLCHAIN_IDENTITY")
 
     def test_direct_real_rustc_path_stays_unchanged(self):
         self.make_rustup()
