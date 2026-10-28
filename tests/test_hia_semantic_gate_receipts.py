@@ -36,7 +36,8 @@ class SemanticReceiptObservations(unittest.TestCase):
 
     def test_duplicate_and_nonfinite_raw_observations_are_rejected(self):
         self.assertEqual(intake._json(b'{"result":177}'), {"result": 177})
-        for raw in (b'{"result":1,"result":177}', b'{"x":NaN}', b'{"x":Infinity}'):
+        for raw in (b'{"result":1,"result":177}', b'{"x":NaN}', b'{"x":Infinity}',
+                    b'{"x":1e400}', b'{"x":-1e400}'):
             with self.assertRaises(ValueError):
                 intake._json(raw)
 
@@ -82,6 +83,87 @@ class SemanticReceiptObservations(unittest.TestCase):
         for mutation in ({"error": {"code": "heap"}}, {"values": [177]}, {"result": 177}):
             with self.assertRaises(ValueError):
                 validate(dict(report, **mutation))
+
+
+class PartialFiniteReceiptBounds(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        from hepta.hia_heap_bound import qualify_finite_entry_live_heap_budget
+        from hepta.hia_program import verify_core
+        from hepta.hia_program_runtime import execute_program
+        from hepta.hia_static_budget import analyze_static_budget
+        from tools.qualify_hia_partial_records import program
+
+        cls.program = verify_core(program())
+        cls.arguments = [0, 7, 73]
+        cls.receipt = qualify_finite_entry_live_heap_budget(
+            cls.program, "partial_case", cls.arguments, max_live_heap_bytes=16 * 1024 * 1024)
+        cls.static = next(row for row in analyze_static_budget(cls.program)["functions"]
+                          if row["function"] == "partial_case")
+        cls.observed = execute_program(cls.program, "partial_case", cls.arguments)
+
+    def validate(self, receipt, observed=None):
+        intake._partial_bound_observation(receipt, self.static,
+            self.observed if observed is None else observed,
+            core_sha=self.program.sha256, input_sha=self.program.input_sha256,
+            function="partial_case", arguments=self.arguments, limit_bytes=16 * 1024 * 1024)
+
+    @staticmethod
+    def reseal(receipt):
+        receipt["sha256"] = hashlib.sha256(intake._wire(
+            {key: value for key, value in receipt.items() if key != "sha256"})).hexdigest()
+        return receipt
+
+    def test_real_partial_execution_is_bounded_but_forged_observations_are_not(self):
+        self.validate(self.receipt)
+        self.assertEqual(self.observed["resources"]["peak_bytes"], 14)
+        mutations = (
+            lambda r: r.update(steps=self.receipt["max_vm_ticks"] + 1),
+            lambda r: r["resources"].update(peak_bytes=self.receipt["peak_bound_bytes"] + 1),
+            lambda r: r["resources"].update(allocation_attempts=self.receipt["max_allocator_interactions"] + 1),
+            lambda r: r.update(steps=True),
+            lambda r: r["resources"].update(peak_bytes=float(r["resources"]["peak_bytes"])),
+        )
+        for mutate in mutations:
+            changed = deepcopy(self.observed)
+            mutate(changed)
+            with self.assertRaises(ValueError):
+                self.validate(self.receipt, changed)
+        understated = deepcopy(self.receipt)
+        understated["peak_bound_bytes"] = self.observed["resources"]["peak_bytes"] - 1
+        with self.assertRaisesRegex(ValueError, "exceeds its invocation payload bound"):
+            self.validate(self.reseal(understated))
+
+    def test_valid_digest_cannot_rebind_core_arguments_policy_or_static_summary(self):
+        changes = (("core_sha256", "0" * 64), ("input_sha256", "0" * 64),
+                   ("function", "partial_task"), ("arguments", [0, 8, 73]),
+                   ("arguments", [False, 7, 73]), ("limit_bytes", 16 * 1024 * 1024 + 1),
+                   ("max_vm_ticks", self.receipt["max_vm_ticks"] + 1),
+                   ("max_allocator_interactions", float(self.receipt["max_allocator_interactions"])))
+        for key, value in changes:
+            with self.subTest(field=key, value=value):
+                changed = deepcopy(self.receipt)
+                changed[key] = value
+                with self.assertRaises(ValueError):
+                    self.validate(self.reseal(changed))
+
+    def test_digest_scope_and_analysis_work_cannot_be_relabelled(self):
+        changed = deepcopy(self.receipt)
+        changed["sha256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "content identity"):
+            self.validate(changed)
+        for field in ("all_function_input_extents_bounded", "cleanup_after_trap_or_budget_stop_proved",
+                      "process_rss_or_native_stack_bytes_bounded", "whole_language_soundness_proved"):
+            changed = deepcopy(self.receipt)
+            changed["claims"][field] = True
+            with self.assertRaisesRegex(ValueError, "scope differs"):
+                self.validate(self.reseal(changed))
+        for field, value in (("contexts", True), ("max_contexts", 1025),
+                             ("transfer_steps", 32769), ("peak_analysis_call_depth", 65)):
+            changed = deepcopy(self.receipt)
+            changed["analysis_work"][field] = value
+            with self.assertRaises(ValueError):
+                self.validate(self.reseal(changed))
 
 
 class SemanticReceiptProcesses(unittest.TestCase):

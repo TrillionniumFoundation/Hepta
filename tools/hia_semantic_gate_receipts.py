@@ -43,7 +43,12 @@ def _json(raw):
         return result
     def constant(_):
         raise ValueError("Partial-record receipt: nonfinite retained JSON number")
-    return json.loads(raw, object_pairs_hook=pairs, parse_constant=constant)
+    def finite_float(token):
+        value = float(token)
+        _require(math.isfinite(value), "nonfinite retained JSON number")
+        return value
+    return json.loads(raw, object_pairs_hook=pairs, parse_constant=constant,
+                      parse_float=finite_float)
 
 
 def _natural(value):
@@ -283,6 +288,66 @@ def _link(reader, index, *, name, clang, producer, normal=False):
                    reader.directory / (name + ".o"), *producer.WRAPS, "-o", reader.directory / name])
 
 
+def _partial_bound_observation(receipt, static_row, observed, *, core_sha,
+                               input_sha, function, arguments, limit_bytes):
+    """Compare a bound's exact invocation with an independently retained run.
+
+    Recomputing a producer's analysis alone does not establish that its actual
+    VM/allocator observations satisfy the certificate. This check also covers
+    interrupted prefixes, without treating a budget stop as completed cleanup.
+    """
+    _require(set(receipt) == {"schema", "profile", "status", "core_schema", "core_sha256",
+             "input_sha256", "function", "arguments", "limit_bytes", "peak_bound_bytes",
+             "max_vm_ticks", "max_allocator_interactions", "max_call_depth",
+             "static_budget_sha256", "analysis_work", "claims", "sha256"},
+             "invocation bound fields differ")
+    _equal(receipt["schema"], "hepta.hia.finite-entry-live-heap-admission.v1", "invocation bound schema differs")
+    _equal(receipt["profile"], "acyclic-byte-owner-transfer-v7", "invocation bound profile differs")
+    _equal(receipt["status"], "qualified_exact_scalar_invocation_requested_payload_only",
+           "invocation bound status differs")
+    _equal(receipt["claims"], {
+        "canonical_core_reverified": True, "whole_module_acyclic_byte_profile_checked": True,
+        "exact_scalar_invocation_only": True, "owned_call_transfer_accounted": True,
+        "external_borrow_payload_counted_in_caller": True,
+        "allocation_failure_and_stop_prefixes_in_bound": True,
+        "all_function_input_extents_bounded": False, "caller_supplied_resource_extents_trusted": False,
+        "branch_reachability_proved": False, "cleanup_after_trap_or_budget_stop_proved": False,
+        "recursive_chain_storage_bounded": False, "process_rss_or_native_stack_bytes_bounded": False,
+        "source_or_native_backend_refinement_proved": False, "whole_language_soundness_proved": False,
+    }, "invocation bound scope differs")
+    _equal(receipt["sha256"], hashlib.sha256(_wire({k: v for k, v in receipt.items() if k != "sha256"})).hexdigest(),
+           "invocation bound content identity differs")
+    work = receipt["analysis_work"]
+    _require(set(work) == {"contexts", "transfer_steps", "peak_analysis_call_depth",
+                          "max_contexts", "max_transfer_steps", "max_analysis_call_depth"},
+             "analysis work inventory differs")
+    for count, ceiling, limit in (("contexts", "max_contexts", 1024),
+                                   ("transfer_steps", "max_transfer_steps", 32768),
+                                   ("peak_analysis_call_depth", "max_analysis_call_depth", 64)):
+        _equal(work[ceiling], limit, "analysis work policy differs")
+        _require(type(work[count]) is int and 0 < work[count] <= limit,
+                 "analysis work exceeds its declared policy")
+    for key, expected in (("core_schema", "hepta.hia.program.v7"),
+                          ("core_sha256", core_sha), ("input_sha256", input_sha),
+                          ("function", function), ("arguments", arguments),
+                          ("limit_bytes", limit_bytes)):
+        _equal(receipt[key], expected, "invocation bound " + key + " differs")
+    for key in ("max_vm_ticks", "max_allocator_interactions", "max_call_depth"):
+        _require(type(receipt[key]) is int and receipt[key] >= 0, "invalid invocation bound count")
+        _equal(receipt[key], static_row[key], "invocation bound static summary differs")
+    peak = receipt["peak_bound_bytes"]
+    _require(type(peak) is int and 0 <= peak <= limit_bytes, "invalid invocation payload bound")
+    steps, resources = observed["steps"], observed["resources"]
+    _require(type(steps) is int and 0 <= steps <= receipt["max_vm_ticks"],
+             "retained execution exceeds its static tick bound")
+    for key in ("peak_bytes", "allocation_attempts", "frees"):
+        _require(type(resources[key]) is int and resources[key] >= 0,
+                 "invalid retained resource observation")
+    _require(resources["peak_bytes"] <= peak, "retained execution exceeds its invocation payload bound")
+    _require(resources["allocation_attempts"] + resources["frees"] <= receipt["max_allocator_interactions"],
+             "retained execution exceeds its allocator interaction bound")
+
+
 def validate_partial_records(report, directory):
     from hepta.hia_program import verify_core
     from hepta.hia_program_llvm import emit_program_llvm
@@ -321,6 +386,21 @@ def validate_partial_records(report, directory):
         _equal(report["core_sha256"], core.sha256, "Core identity differs")
         _equal(report["normalization_report"], nominal.normalization_report, "normalization report differs")
         _equal(report["analysis"], producer.analysis_receipts(nominal), "analysis differs")
+        finite = report["analysis"]["finite_invocations"]
+        _require(set(finite) == {"schema", "status", "core_sha256", "limit_bytes", "cases", "budgets"},
+                 "finite invocation inventory fields differ")
+        _equal(finite["schema"], "hepta.hia.partial-finite-invocations.v1", "finite invocation inventory schema differs")
+        _equal(finite["status"], "qualified", "finite invocation inventory did not qualify")
+        _equal(finite["core_sha256"], core.sha256, "finite invocation inventory Core differs")
+        _equal(finite["limit_bytes"], 16 * 1024 * 1024, "finite invocation inventory policy differs")
+        _require(type(finite["cases"]) is list and len(finite["cases"]) == len(actual_cases),
+                 "finite invocation case denominator differs")
+        _require(type(finite["budgets"]) is list and len(finite["budgets"]) == len(producer.budget_cases()),
+                 "finite invocation budget denominator differs")
+        static = report["analysis"]["static_budget"]
+        _equal(static["status"], "qualified", "static tick/allocator analysis did not qualify")
+        summaries = {row["function"]: row for row in static["receipt"]["functions"]}
+        _require(len(summaries) == len(static["receipt"]["functions"]), "duplicate static function summary")
         _equal(_json(reader.bytes("plan.json")), {
             "schema": "hepta.hia.partial-record-plan.v1", "cases": actual_cases,
             "expected": [producer.independent_spec(case) for case in actual_cases],
@@ -345,23 +425,40 @@ def validate_partial_records(report, directory):
             _equal(_json(raw), row["rust"], "raw Rust observation differs")
             expected = producer.independent_spec(case)
             _equal(row["independent_expected"], expected, "independent scenario differs")
+            bounded = finite["cases"][index]
+            _require(set(bounded) == {"case_index", "receipt"}, "finite case fields differ")
+            _equal(bounded["case_index"], index, "finite invocation case order differs")
+            _equal(bounded["receipt"]["static_budget_sha256"], static["receipt"]["sha256"],
+                   "finite invocation static budget identity differs")
             for name, input_sha in (("python_nominal", nominal.input_sha256), ("python_core", core.sha256), ("rust", None)):
                 _execution(row[name], rust=name == "rust", core_sha=core.sha256, input_sha=input_sha,
                            function=case["function"], options=options, returned=True, result=expected["result"])
                 _ledger(row[name]["resources"], returned=True, expected=expected)
+                _partial_bound_observation(bounded["receipt"], summaries[case["function"]], row[name],
+                    core_sha=core.sha256, input_sha=nominal.input_sha256,
+                    function=case["function"], arguments=case["arguments"], limit_bytes=finite["limit_bytes"])
             for field in ("status", "steps", "resources", "program_sha256", "values"):
                 _equal(row["python_nominal"][field], row["python_core"][field], "nominal/Core " + field + " differs")
                 _equal(row["python_core"][field], row["rust"][field], "Core/Rust " + field + " differs")
-        for options, row in zip(producer.budget_cases(), report["budgets"]):
+        for index, (options, row) in enumerate(zip(producer.budget_cases(), report["budgets"])):
             _equal(row["options"], options, "budget order differs")
             raw = reader.process(row["rust_process"], argv=producer.rust_argv(
                 rust_vm, "partial_case", [0, 7, 73], options), stdin=core_bytes)
             _equal(_json(raw), row["rust"], "raw budget observation differs")
             returned = options == {"max_steps": 60, "max_heap_bytes": 1024}
             error = None if returned else "steps" if options["max_steps"] < 100000 else "heap"
+            bounded = finite["budgets"][index]
+            _require(set(bounded) == {"budget_index", "options", "receipt"}, "finite budget fields differ")
+            _equal(bounded["budget_index"], index, "finite invocation budget order differs")
+            _equal(bounded["options"], options, "finite invocation budget policy differs")
+            _equal(bounded["receipt"]["static_budget_sha256"], static["receipt"]["sha256"],
+                   "finite budget static identity differs")
             for name in ("python", "rust"):
                 _execution(row[name], rust=name == "rust", core_sha=core.sha256, input_sha=core.sha256,
                            function="partial_case", options=options, returned=returned, result=177, error=error)
+                _partial_bound_observation(bounded["receipt"], summaries["partial_case"], row[name],
+                    core_sha=core.sha256, input_sha=nominal.input_sha256,
+                    function="partial_case", arguments=[0, 7, 73], limit_bytes=finite["limit_bytes"])
             for field in ("status", "steps", "resources", "program_sha256"):
                 _equal(row["python"][field], row["rust"][field], "budget " + field + " differs")
         _require(reader.bytes("observer.c") == producer.observer_source().encode(), "allocator observer differs")

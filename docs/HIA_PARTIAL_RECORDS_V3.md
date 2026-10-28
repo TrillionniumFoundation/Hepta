@@ -121,10 +121,74 @@ verifier, VM and existing returned-loan execution path are unchanged.
 The existing synchronous-call-depth analyzer reverifies the actual normalized
 Core and bounds its closed call graph. For the qualification corpus it finds
 two frames for `partial_case` and four for `partial_task` and
-`partial_pair_task`. Its receipt does not
-bound ticks, payload, process RSS or native stack bytes. Existing all-function
-static tick and live-payload analyzers still refuse this v7 profile; the
-qualification report preserves those unsupported analyses as `unknown`.
+`partial_pair_task`. Its receipt does not itself bound ticks, payload, process
+RSS or native stack bytes.
+
+## Finite byte-resource analysis
+
+The public `analyze_static_budget` path accepts independently verified,
+chain-free primitive v7 modules whose complete call graph and every function's
+CFG are acyclic. It returns `hepta.hia.static-budget.v3`, profile
+`acyclic-byte-owner-v7`, with per-function upper bounds on canonical VM ticks,
+allocator interactions and synchronous call depth. The byte-only opcode/type
+audit includes private and unused functions. A v7 chain, recursive call or CFG
+cycle remains unsupported; this profile does not inherit older scalar-loop or
+scoped-allocation-loop heap exceptions. Earlier schema profiles retain their
+existing meanings.
+
+The historical all-function live-heap analysis still reports `unknown` for this
+corpus and retains its v1-v6 schema boundary. A private owned parameter can
+have an externally unknown extent, and a public `usize` parameter can request
+arbitrary sizes; this extension does not prove a bound for those general
+inputs. The original result is retained as `analysis.live_heap`; it is not
+replaced by an invocation-specific result.
+
+`qualify_finite_entry_live_heap_budget(program, function, arguments,
+max_live_heap_bytes=...)` provides a separate public admission path. Its
+`hepta.hia.finite-entry-live-heap-admission.v1` receipt and
+`acyclic-byte-owner-transfer-v7` profile bind the reverified Core, exact scalar
+entry arguments, requested-payload policy, static certificate and analysis
+work. It snapshots the caller's argument container before validating the
+scalar values, so the certificate cannot be rebound by later caller mutation.
+Invalid scalar types/ranges reject before analysis. This is a bound on that
+invocation and possible allocation failures, not a bound for every input or a
+promise that it will return successfully.
+
+The existing interval/CFG transfer tracks owned argument and result extents
+through calls. A moved owner leaves its caller's live inventory before the
+callee peak is added. Payload retained by the caller, including the roots of
+borrowed arguments, stays charged there; an external borrowed extent remains
+unknown inside the callee and cannot be silently treated as zero. Scalar
+return intervals and owner-return maxima join conservatively. `buffer.len`
+uses `[0, upper]`, because a fallible allocation may create a real empty owner;
+the upper endpoint is never substituted as an exact runtime length. Both
+syntactic branch successors are analyzed. The receipt does not claim branch
+reachability, automatic cleanup, process RSS, native stack size or CPU time.
+
+An allocation request whose entire proved interval exceeds the canonical
+64-bit object-size limit follows the existing runtime guard: `buffer.try_new`
+produces an empty logical owner and `false` without an allocator attempt;
+`buffer.new` traps before creating an owner. The bound retains all live payload
+before this trap. Unknown extents and intervals crossing that limit reject.
+Unchecked assumptions about host allocation failure are never used to reduce
+the bound. Unqualified arithmetic still stays unknown or rejects, including
+exact checked-overflow expressions not covered by a separate trap summary.
+
+Context specialization memoizes identical abstract arguments and admits at
+most 1,024 contexts, 32,768 transfer steps and 64 analysis call levels. Exceeding
+any limit returns structured `E_HIA_BUDGET_LIMIT`, not a partial certificate.
+Normal, allocation-failure, explicit cleanup and VM budget-stop prefixes are
+covered by the requested-payload maximum. Zero-byte partial-record tokens still
+count as logical resources while contributing zero allocator bytes. A trap or
+budget stop can leave live owners; the certificate does not promise cleanup.
+
+The qualification report's separate `analysis.finite_invocations` inventory
+binds one receipt to each of the existing 121 scenarios and 11 budget options.
+It compares actual VM steps and allocator/live-byte observations with those
+bounds; native observations compare their allocator/live-byte fields without
+inventing VM ticks. These analysis receipts add no program-execution cases to
+the existing denominators. The corpus-wide inventory is `unknown` if any
+required invocation cannot be bounded.
 
 ## Planned independent execution qualification
 

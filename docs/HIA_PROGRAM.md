@@ -333,12 +333,13 @@ standalone ISA:
 
 | Producer | Current emitted program | Scope boundary |
 | --- | --- | --- |
-| `hia lower` / `hia_program_source.lower_source` / `lower_program` | Primitive v1 | Checked source scalars, closed specialization, scalarized records, byte owners and built-in `Result`; no source-to-chain, nominal/task or stored-lifetime-record lowering |
+| `hia lower` / `hia_program_source.lower_source` / `lower_program`, with the default `core_schema` | Primitive v1 | Checked source scalars, closed specialization, scalarized records, byte owners and built-in `Result`; immediate borrowed projection helpers are inlined; no source-to-chain, nominal/task or stored-lifetime-record lowering |
+| The same source entrypoints with `--core-schema hepta.hia.program.v8` / `core_schema="hepta.hia.program.v8"` | Primitive v8 | The same finite source layout profile, with real internal calls and `return_loans` for a borrowed byte-view result bound to one explicit incoming byte-view parameter; no stored-lifetime or public borrowed-result ABI |
 | `core.from_executable_core` / `from_scalar_core` | Primitive v1 | Explicit source-authenticated conversion of the admitted historical envelope subset |
 | `hia_program_source.lower_c_multi_owner` and the source migrations passed through `lower_program` | Primitive v1 | Their actual generated Hepta must fit the same source frontend; successful legacy C/C++ migration alone does not establish this |
 | `cpp_project_migrate` / `hia import-cpp-project` | Primitive v1 | Captured, actually instantiated scalar C++ template bodies and supported declarations, via the same checked source frontend |
 | Direct primitive JSON | The declared v1–v8 | Every operation, edge and resource obligation is independently checked |
-| Direct composite JSON | v1 → primitive v6; v2 → primitive v7 | Structural elaboration of the respective nominal grammar, followed by full primitive checking |
+| Direct composite JSON | v1 → primitive v6; v2/v3 → primitive v7 | Structural elaboration of the respective nominal grammar, including v3 initialized-field states, followed by full primitive checking; no implicit v8 upgrade |
 
 Version support by the verifier does not silently increase a producer's source
 language coverage. An explicit upgrade can change an existing primitive
@@ -367,12 +368,25 @@ instance. Recursion that continually grows its type arguments rejects when a
 budget is reached. These finite checks establish no theorem about all possible
 future substitutions or termination of the resulting program.
 
-Immediate borrowed-return helpers have a narrower rule: the body must be one
-explicit `return read ...` or `return mut ...` projection of an incoming
-borrowed parameter or its record fields. The adapter inlines that projection
-as checked borrow/reborrow operations and ends local loans after their use;
-reading a Copy field produces an independent scalar value. It does not emit
-an escaping loan as a function result or enable stored source references.
+With default primitive v1 lowering, immediate borrowed-return helpers have a
+narrower rule: the body must be one explicit `return read ...` or
+`return mut ...` projection of an incoming borrowed parameter or its record
+fields. The adapter inlines that projection as checked borrow/reborrow
+operations and ends local loans after their use; reading a Copy field produces
+an independent scalar value. This v1 route does not emit a borrowed function
+result.
+
+Explicit primitive v8 lowering retains borrowed helpers as actual Core
+functions and calls. Each borrowed result must have one declared incoming
+`read` or `mut` byte-buffer/slice parameter as its origin; the producer emits
+the canonical `return_loans` binding and the Core verifier checks the actual
+return paths, caller aliases and resource transitions. The helper body remains
+subject to the finite source profile. Stored lifetime returns, stored-reference
+layouts and borrowed results from an aggregate parameter are not admitted by
+this source adapter. Both source versions preserve the public scalar-entry
+eligibility recorded before scalarization; a flattened aggregate or borrowed
+signature does not acquire a public scalar C ABI. This explicit source choice
+does not change composite v3's primitive v7 normalization.
 
 The exact high-level source frontend scope is recorded by its rejection tests
 and current qualification report. The source adapter does not yet emit the

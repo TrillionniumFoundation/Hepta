@@ -13,8 +13,9 @@ import json
 
 
 SCHEMA = "hepta.hia.static-budget.v1"
-# The count of ticks and allocator events is versioned too: recursive owner
-# destruction in v7 can perform arbitrarily many of both inside one opcode.
+# Historical receipts retain their v1-v6 meaning. V7 byte-only programs need
+# the explicit operational audit below: recursive chain destruction can do
+# arbitrarily much work inside one owner.drop despite an acyclic instruction CFG.
 _ALLOWED_CORE_SCHEMAS = frozenset(f"hepta.hia.program.v{version}" for version in range(1, 7))
 _ALLOCATOR_OPS = frozenset({"buffer.new", "buffer.try_new", "owner.drop"})
 
@@ -24,6 +25,7 @@ _ALLOCATOR_OPS = frozenset({"buffer.new", "buffer.try_new", "owner.drop"})
 # payload allocation. Recursive chain destruction, however, can perform an
 # input-dependent number of ticks/frees inside one owner.drop.
 _V8_SCHEMA = "hepta.hia.program.v8"
+_V7_SCHEMA = "hepta.hia.program.v7"
 _V8_BYTE_TYPES = frozenset({
     "i8", "i16", "i32", "i64", "isize", "u8", "u16", "u32", "u64", "usize",
     "bool", "unit", "buffer", "readbuf", "mutbuf",
@@ -47,15 +49,15 @@ _V8_CHAIN_OPS = frozenset({
 })
 
 
-def _audit_v8_resource_profile(document: dict, *, allow_chain: bool) -> None:
+def _audit_resource_profile(document: dict, *, schema: str, allow_chain: bool) -> None:
     """Check the entire already-verified module against one reviewed domain.
 
     This never replaces Core's alias, origin, CFG or effect validation. The
     explicit inventory also covers uncalled private functions, declarations
     and outputs, so a dynamically sized chain cannot hide behind owner.drop.
     """
-    if document.get("schema") != _V8_SCHEMA:
-        _reject("E_HIA_BUDGET_PROFILE", "returned-loan resource profile requires primitive v8")
+    if document.get("schema") != schema:
+        _reject("E_HIA_BUDGET_PROFILE", f"resource profile requires {schema}")
     types = _V8_BYTE_TYPES | ({"chain"} if allow_chain else set())
     operations = _V8_BYTE_OPS | (_V8_CHAIN_OPS if allow_chain else set())
     for fn in document["functions"]:
@@ -63,15 +65,26 @@ def _audit_v8_resource_profile(document: dict, *, allow_chain: bool) -> None:
         for block in fn["blocks"]:
             declared.extend(p["type"] for p in block["params"])
             if block["term"]["op"] not in {"ret", "trap", "jump", "branch"}:
-                _reject("E_HIA_BUDGET_PROFILE", "unreviewed v8 terminator")
+                _reject("E_HIA_BUDGET_PROFILE", f"unreviewed {schema} terminator")
             for instruction in block["ops"]:
                 if instruction["op"] not in operations:
                     _reject("E_HIA_BUDGET_PROFILE",
-                            f"{fn['name']}: opcode lacks this v8 resource-event review")
+                            f"{fn['name']}: opcode lacks this {schema} resource-event review")
                 declared.extend(p["type"] for p in instruction["out"])
         if any(typ not in types for typ in declared):
             _reject("E_HIA_BUDGET_PROFILE",
-                    f"{fn['name']}: resource type lacks this v8 resource-event review")
+                    f"{fn['name']}: resource type lacks this {schema} resource-event review")
+
+
+def _audit_v8_resource_profile(document: dict, *, allow_chain: bool) -> None:
+    _audit_resource_profile(document, schema=_V8_SCHEMA, allow_chain=allow_chain)
+
+
+def _audit_v7_byte_resource_profile(document: dict) -> None:
+    # These v7 instructions have the same per-op tick and byte-owner events as
+    # the already reviewed v8 byte profile. No chain type or opcode, including
+    # in unused definitions or block parameters, can inherit that accounting.
+    _audit_resource_profile(document, schema=_V7_SCHEMA, allow_chain=False)
 
 
 class HIAStaticBudgetRejected(ValueError):
@@ -250,8 +263,11 @@ def analyze_static_budget(program, *, max_allocator_interactions=None,
     checked = verify_program(program)
     document = checked.as_dict()
     returned_loans = document["schema"] == _V8_SCHEMA
+    byte_v7 = document["schema"] == _V7_SCHEMA
     if returned_loans:
         _audit_v8_resource_profile(document, allow_chain=False)
+    elif byte_v7:
+        _audit_v7_byte_resource_profile(document)
     elif document["schema"] not in _ALLOWED_CORE_SCHEMAS:
         _reject("E_HIA_BUDGET_PROFILE", "this analyzer supports primitive v1..v6; recursive-chain budgets need separate invariants")
     functions = document["functions"]
@@ -305,6 +321,15 @@ def analyze_static_budget(program, *, max_allocator_interactions=None,
         result["core_schema"] = document["schema"]
         result["input_sha256"] = checked.input_sha256
         result["claims"]["canonical_return_origins_reverified"] = True
+        result["claims"]["recursive_chain_costs_bounded"] = False
+        result["claims"]["runtime_view_storage_or_native_stack_bounded"] = False
+    elif byte_v7:
+        result["schema"] = "hepta.hia.static-budget.v3"
+        result["profile"] = "acyclic-byte-owner-v7"
+        result["core_schema"] = document["schema"]
+        result["input_sha256"] = checked.input_sha256
+        result["claims"]["canonical_byte_only_resource_profile_reverified"] = True
+        result["claims"]["zero_length_owner_operations_counted"] = True
         result["claims"]["recursive_chain_costs_bounded"] = False
         result["claims"]["runtime_view_storage_or_native_stack_bounded"] = False
     if max_live_heap_bytes is not None:

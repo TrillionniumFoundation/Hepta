@@ -25,9 +25,17 @@ class PartialRecordScenarioTests(unittest.TestCase):
         self.assertEqual(bounds['partial_pair_task'], 4)
         self.assertFalse(frames['claims']['vm_ticks_bounded'])
         self.assertFalse(frames['claims']['process_rss_or_native_stack_bytes_bounded'])
-        self.assertEqual(analysis['static_budget']['status'], 'unknown')
-        self.assertEqual(analysis['static_budget']['code'], 'E_HIA_BUDGET_PROFILE')
+        self.assertEqual(analysis['static_budget']['status'], 'qualified')
+        static = analysis['static_budget']['receipt']
+        self.assertEqual(static['schema'], 'hepta.hia.static-budget.v3')
+        self.assertEqual(static['profile'], 'acyclic-byte-owner-v7')
+        self.assertEqual(static['core_sha256'], checked.sha256)
         self.assertEqual(analysis['live_heap']['status'], 'unknown')
+        finite = analysis['finite_invocations']
+        self.assertEqual(finite['status'], 'qualified')
+        self.assertEqual(finite['core_sha256'], checked.sha256)
+        self.assertEqual(len(finite['cases']), 121)
+        self.assertEqual(len(finite['budgets']), 11)
 
     def test_partial_v3_does_not_erase_a_v8_return_origin_contract(self):
         from tests.test_hia_returned_loans import helper, loan_program
@@ -42,6 +50,7 @@ class PartialRecordScenarioTests(unittest.TestCase):
 
     def test_all_fixed_scenarios_match_independent_values_and_allocator_counts(self):
         checked = verify_core(program())
+        finite = analysis_receipts(checked)['finite_invocations']['cases']
         for index, row in enumerate(cases()):
             with self.subTest(index=index, row=row):
                 options = {'allocation_fail_at': row['fail_at']} if row['fail_at'] else {}
@@ -56,6 +65,14 @@ class PartialRecordScenarioTests(unittest.TestCase):
                 self.assertEqual(ledger['owners_dropped'], expected['logical_owners'])
                 self.assertEqual(ledger['live_owners'], 0)
                 self.assertEqual(ledger['live_local_loans'], 0)
+                bound = finite[index]['receipt']
+                self.assertEqual(finite[index]['case_index'], index)
+                self.assertEqual((bound['core_sha256'], bound['function'], bound['arguments']),
+                                 (checked.sha256, row['function'], row['arguments']))
+                self.assertLessEqual(ledger['peak_bytes'], bound['peak_bound_bytes'])
+                self.assertLessEqual(observed['steps'], bound['max_vm_ticks'])
+                self.assertLessEqual(ledger['allocation_attempts'] + ledger['frees'],
+                                     bound['max_allocator_interactions'])
 
     def test_pending_partial_state_is_preserved_when_evaluator_budget_stops(self):
         checked = verify_core(program())

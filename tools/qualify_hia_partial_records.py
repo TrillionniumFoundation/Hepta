@@ -28,7 +28,8 @@ from hepta.hia_program_llvm import compile_program_llvm, emit_program_llvm
 from hepta.hia_program_runtime import HIAProgramBudgetExceeded, HIAProgramTrap, execute_program
 from hepta.hia_static_budget import (HIAStaticBudgetRejected, analyze_static_budget,
                                      qualify_vm_call_depth)
-from hepta.hia_heap_bound import HIAHeapBoundRejected, qualify_live_heap_budget
+from hepta.hia_heap_bound import (HIAHeapBoundRejected, qualify_live_heap_budget,
+                                   qualify_finite_entry_live_heap_budget)
 
 SCHEMA = 'hepta.hia.partial-record-qualification.v1'
 INPUT_SCHEMA = 'hepta.hia.composite.v3'
@@ -500,7 +501,45 @@ def analysis_receipts(program):
             result[name] = {'status': 'qualified', 'receipt': analyze()}
         except rejected as error:
             result[name] = {'status': 'unknown', 'code': error.code, 'message': str(error)}
+    # Owned helper parameters and arbitrary usize entry arguments still make
+    # the old all-function heap query unknown. Bind this separate certificate
+    # to each exact scalar invocation; allocation failure is NOT assumed away.
+    cache = {}
+
+    def finite(function, arguments):
+        key = (function, tuple(arguments))
+        if key not in cache:
+            cache[key] = qualify_finite_entry_live_heap_budget(
+                program, function, arguments, max_live_heap_bytes=16 * 1024 * 1024)
+        return cache[key]
+
+    try:
+        entries = [{'case_index': index, 'receipt': finite(row['function'], row['arguments'])}
+                   for index, row in enumerate(cases())]
+        budgets = [{'budget_index': index, 'options': dict(options),
+                    'receipt': finite('partial_case', [0, 7, 73])}
+                   for index, options in enumerate(budget_cases())]
+        result['finite_invocations'] = {
+            'schema': 'hepta.hia.partial-finite-invocations.v1', 'status': 'qualified',
+            'core_sha256': entries[0]['receipt']['core_sha256'],
+            'limit_bytes': 16 * 1024 * 1024, 'cases': entries, 'budgets': budgets,
+        }
+    except HIAHeapBoundRejected as error:
+        result['finite_invocations'] = {'status': 'unknown', 'code': error.code, 'message': str(error)}
     return result
+
+
+def require_observed_bound(receipt, *, function, arguments, core_sha256, resources, steps=None):
+    """Check the real retained prefix against its exact-input certificate."""
+    require(receipt['core_sha256'] == core_sha256 and receipt['function'] == function
+            and canonical(receipt['arguments']) == canonical(arguments),
+            'finite resource certificate is not bound to this actual invocation')
+    require(resources['peak_bytes'] <= receipt['peak_bound_bytes'],
+            'observed live payload exceeds finite invocation bound')
+    require(resources['allocation_attempts'] + resources['frees'] <= receipt['max_allocator_interactions'],
+            'observed allocator interactions exceed finite structural bound')
+    if steps is not None:
+        require(steps <= receipt['max_vm_ticks'], 'observed VM prefix exceeds finite tick bound')
 
 
 def descriptor(path):
@@ -613,6 +652,9 @@ def qualify(output_directory, clang, rust_vm):
         report.update(input_sha256=nominal.input_sha256, core_sha256=core.sha256,
                       normalization_report=nominal.normalization_report,
                       analysis=analysis_receipts(nominal))
+        require(report['analysis']['static_budget']['status'] == 'qualified'
+                and report['analysis']['finite_invocations']['status'] == 'qualified',
+                'declared partial corpus lacks its finite static/invocation resource bounds')
         for index, row in enumerate(cases()):
             options = {'max_steps': 100000, 'max_heap_bytes': 16 * 1024 * 1024}
             if row['fail_at']:
@@ -640,9 +682,12 @@ def qualify(output_directory, clang, rust_vm):
                     'returned program retains resources')
             require(ledger['owners_created'] == ledger['owners_dropped'] == expected['logical_owners'],
                     f'case {index}: independently specified logical Owner count differs')
+            require_observed_bound(report['analysis']['finite_invocations']['cases'][index]['receipt'],
+                function=row['function'], arguments=row['arguments'], core_sha256=core.sha256,
+                resources=ledger, steps=py_core['steps'])
 
         budget_case = {'function': 'partial_case', 'arguments': [0, 7, 73], 'fail_at': 0}
-        for options in budget_cases():
+        for budget_index, options in enumerate(budget_cases()):
             py = python_run(core, budget_case, options)
             process, raw = run(rust_argv(rust_vm, 'partial_case', [0, 7, 73], options),
                                input_text=core.canonical_bytes.decode())
@@ -652,6 +697,9 @@ def qualify(output_directory, clang, rust_vm):
                     'unknown Rust budget execution schema or profile')
             for field in ('status', 'steps', 'resources', 'program_sha256'):
                 require(canonical(py[field]) == canonical(rust[field]), f'budget {field} differs')
+            require_observed_bound(report['analysis']['finite_invocations']['budgets'][budget_index]['receipt'],
+                function='partial_case', arguments=[0, 7, 73], core_sha256=core.sha256,
+                resources=py['resources'], steps=py['steps'])
             if options == {'max_steps': 60, 'max_heap_bytes': 1024}:
                 require(py['status'] == 'returned' and py['values'] == rust['values'] == [177],
                         'upper-budget return control differs')
@@ -675,6 +723,10 @@ def qualify(output_directory, clang, rust_vm):
                 observed = json.loads(raw)
                 group['cases'].append({'index': index, 'process': executed, 'observed': observed})
                 require(canonical(observed) == canonical(native_spec(row)), f'{name} native case {index} differs')
+                require_observed_bound(report['analysis']['finite_invocations']['cases'][index]['receipt'],
+                    function=row['function'], arguments=row['arguments'], core_sha256=core.sha256,
+                    resources={'peak_bytes': observed['peak_bytes'], 'allocation_attempts': observed['attempts'],
+                               'frees': observed['frees']})
 
         selected = next(index for index, row in enumerate(cases()) if row == {
             'function': 'partial_case', 'arguments': [0, 7, 73], 'fail_at': 0})
