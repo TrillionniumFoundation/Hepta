@@ -256,6 +256,30 @@ def capture_fixture(work, flags):
     return database
 
 
+def retain_dependency_probes(work, flags, clang, records):
+    """Keep actual -M/-MM text even if subsequent capture fails before inventory.
+
+    These independent diagnostic observations grant no build authority. Normal
+    migration still captures and replays the compiler and every dependency hash.
+    """
+    compiler = shutil.which(clang)
+    if compiler is None:
+        raise ValueError("Capture Clang is unavailable")
+    for option, label in (("-M", "all"), ("-MM", "local")):
+        command = [compiler, "-std=c11", "-O2", *flags, option,
+                   "-MT", "hepta_dependencies", "implementation.c"]
+        row = {"argv": command, "cwd": str(work), "compiler_sha256": sha(compiler),
+               "scope": "diagnostic_probe_not_capture_authority"}
+        records.append(row)
+        observed = run_bounded(command, cwd=work, timeout=45)
+        stdout, stderr = work / f"dependencies-{label}.txt", work / f"dependencies-{label}.stderr.txt"
+        stdout.write_text(observed.stdout, encoding="utf-8", newline="\n")
+        stderr.write_text(observed.stderr, encoding="utf-8", newline="\n")
+        row.update(returncode=observed.returncode, stdout=str(stdout), stderr=str(stderr),
+                   stdout_sha256=sha(stdout), stderr_sha256=sha(stderr),
+                   text_normalization="UTF-8 with CRLF normalized to LF by the shared bounded capture")
+
+
 def compiler_identity(selected, family, work, processes, host):
     compiler = shutil.which(selected)
     if compiler is None:
@@ -347,8 +371,9 @@ def qualify(output, *, clang, rustc, cc, cc_family, additional_cc=None, hia_nati
         for name, flags in VARIANTS.items():
             work = output / name
             database = capture_fixture(work, flags)
-            item = {"name": name, "flags": flags, "executions": [], "traps": []}
+            item = {"name": name, "flags": flags, "executions": [], "traps": [], "dependency_probes": []}
             report["variants"].append(item)
+            retain_dependency_probes(work, flags, clang, item["dependency_probes"])
             migration = migrate_c_project(database, work / "translated", clang=clang)
             write(work / "migration.json", migration)
             item["migration"] = migration

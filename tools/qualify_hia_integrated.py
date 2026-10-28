@@ -61,7 +61,7 @@ CRITICAL_MODULES = {
                                  "test_hia_returned_loans"),
     "captured_c_source_and_component_migration": ("test_c_project_source_arguments",
         "test_c_project_semantic_flags", "test_c_array_declarator_guard", "test_c_cursor_control",
-        "test_c_scalar_control"),
+        "test_c_scalar_control", "test_c_project_dependencies"),
 }
 
 

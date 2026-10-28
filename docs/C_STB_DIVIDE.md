@@ -8,6 +8,29 @@ Linux x86-64 route, the standalone HIA verifier, interpreter and LLVM backend.
 Original C implementations appear only in the comparison caller executable.
 They are never linked into either generated target.
 
+## Native dependency capture
+
+The capture frontend decodes the fixed Clang `-M`/`-MM` Make rule directly.
+Ordinary Windows drive and UNC backslashes survive; spaces, hashes and doubled
+dollars follow Clang's filename encoding, while quotes remain filename data.
+Shell tokenization is not used for dependency output. The implementation follows
+[`PrintFilename` in Clang 20.1.8](https://github.com/llvm/llvm-project/blob/llvmorg-20.1.8/clang/lib/Frontend/DependencyFile.cpp).
+Other Make targets, variable expansion, comments, raw ambiguous whitespace and
+trailing-backslash filenames are outside this dependency profile.
+
+Every component variant retains independent raw dependency probes before normal
+migration, including command, compiler digest, working directory, stdout/stderr
+bytes and their digests. These probes are diagnostic records only. Migration
+still captures and replays all system and project dependency hashes, and a
+missing dependency names the exact rejected path. Neither failed capture nor a
+zero declaration inventory can satisfy the six-function component gate.
+
+The first `8b0fd11` seven-host execution passed five Linux/macOS jobs and rejected
+both Windows jobs before declaration inventory with `E_C_BUILD_CHANGED`.
+Its dependency stdout was not retained. Local tests of corrected dependency
+syntax and actual Clang escaped filenames do not convert that failed Windows
+run into a pass; each changed source still requires fresh actual-host evidence.
+
 ## Source, scope and human input
 
 The frozen official repository revision is
