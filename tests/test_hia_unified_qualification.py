@@ -23,6 +23,46 @@ SELECTED_TOOLS = dict(clang="/tools/clang", cc="/tools/gcc", rustc="/tools/rustc
 
 
 class UnifiedQualificationSummaryTests(unittest.TestCase):
+    def test_interruption_retains_completed_gate_and_final_incomplete_report(self):
+        def completed(argv, timeout=1800):
+            argv = list(map(str, argv))
+            if argv[0] == "interrupt-control":
+                raise KeyboardInterrupt("intentional retention control")
+            return {"argv": argv, "returncode": 0, "stdout": "a" * 40 + "\n" if "rev-parse" in argv else "",
+                    "stderr": "Ran 1 test in 0.010s\n\nOK\n" if argv[0] == "completed-control" else "", "seconds": .01}
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "candidate"
+            with patch("tools.qualify_hia_unified.qualification_plan", return_value=[
+                    ("first", ["completed-control"], None), ("second", ["interrupt-control"], None)]), \
+                    patch("tools.qualify_hia_unified.snapshot", return_value={"sha256": "source", "files": {}}), \
+                    patch("tools.qualify_hia_unified.compiler_hash", return_value="compiler"), \
+                    patch("tools.qualify_hia_unified._command", side_effect=completed), redirect_stdout(io.StringIO()):
+                environment = dict(os.environ)
+                with self.assertRaises(KeyboardInterrupt):
+                    qualify(output, **SELECTED_TOOLS)
+                self.assertEqual(dict(os.environ), environment)
+            report = json.loads((output / "qualification.json").read_text())
+            self.assertFalse(report["ok"])
+            self.assertEqual(report["completed_gates"], 1)
+            self.assertEqual(report["passed_gates"], 1)
+            self.assertEqual(report["interruption"]["type"], "KeyboardInterrupt")
+            self.assertTrue((output / "started.json").is_file())
+            self.assertTrue((output / "gate-01.json").is_file())
+            self.assertFalse(report["full_seven_deliverables_complete"])
+
+    def test_ignored_uncommitted_implementation_is_not_a_frozen_source(self):
+        def completed(argv, timeout=1800):
+            argv = list(map(str, argv))
+            return {"argv": argv, "returncode": 0, "stdout": "a" * 40 + "\n" if "rev-parse" in argv else "",
+                    "stderr": "", "seconds": .01}
+        with tempfile.TemporaryDirectory() as temporary, \
+                patch("tools.qualify_hia_unified.snapshot", return_value={"sha256": "source", "files": {"hepta/ignored.py": "a" * 64}}), \
+                patch("tools.qualify_hia_unified._command", side_effect=completed):
+            output = Path(temporary) / "candidate"
+            with self.assertRaisesRegex(ValueError, "uncommitted implementation"):
+                qualify(output, **SELECTED_TOOLS)
+            self.assertFalse(output.exists())
+
     def test_timeout_preserves_bounded_partial_logs_without_a_success_code(self):
         error = CaptureRejected("E_CAPTURE_TIMEOUT", "deadline")
         error.capture = CaptureFailure(("compiler",), -9, b"partial output\n", b"partial error\n", 100, 200)
@@ -125,7 +165,7 @@ class UnifiedQualificationSummaryTests(unittest.TestCase):
         gates = {row["name"]: row for row in report["gates"]}
         self.assertEqual(len(gates), len(plan))
         self.assertEqual(report["completed_gates"], len(plan))
-        self.assertEqual(len(invocations), len(plan) + 2)
+        self.assertEqual(len(invocations), len(plan) + 3)
         self.assertTrue(gates["rust_shadow_cargo"]["passed"])
         self.assertTrue(gates["rust_shadow_parity"]["passed"])
         self.assertTrue(gates["agent_query_semantics"]["passed"])
@@ -134,6 +174,7 @@ class UnifiedQualificationSummaryTests(unittest.TestCase):
             self.assertEqual(gates[name]["returncode"], 0)
         self.assertIn("evidence_error", gates["task_io_composition"])
         self.assertFalse(report["ok"])
+        self.assertEqual(report["schema"], "hepta.hia.unified-qualification.v4")
         self.assertFalse(report["full_seven_deliverables_complete"])
 
     def test_plan_keeps_hosted_denominators_compilers_and_timing_order_explicit(self):
@@ -146,6 +187,8 @@ class UnifiedQualificationSummaryTests(unittest.TestCase):
         reports = [str(path) for _, _, path in plan if path is not None]
         self.assertEqual(len(reports), len(set(reports)))
         self.assertIn("tests.test_hia_rust_owned_vm", commands["rust_shadow_parity"])
+        self.assertIn("tests.test_hia_rust_owned_chain", commands["rust_shadow_parity"])
+        self.assertEqual(commands["unit_regression"][1:4], ["tools/qualify_hia_unit.py", "--workers", "2"])
         for module in ("tests.test_hia_edit_query", "tests.test_hia_edit_batch",
                        "tests.test_hia_edit_control_context", "tests.test_hia_edit_batch_identity"):
             self.assertIn(module, commands["agent_query_semantics"])

@@ -194,7 +194,7 @@ class RustOwnedCfgParity(unittest.TestCase):
             self.assertEqual(rust["error"]["code"], python["error"]["code"])
         self.assertTrue(rust["claims"]["finite_byte_owner_execution"])
         self.assertTrue(rust["claims"]["byte_owner_cfg_and_calls"])
-        self.assertEqual(rust["profile"], "cfg-call-byte-owner-bulk-v3")
+        self.assertEqual(rust["profile"], "cfg-call-byte-owner-chain-v4")
         for claim in ("production_admission_authorized", "whole_language_soundness_proved",
                       "native_backend_refinement_proved", "general_resource_execution"):
             self.assertFalse(rust["claims"][claim])
@@ -250,7 +250,7 @@ class RustOwnedCfgParity(unittest.TestCase):
         for size in (0, 1, 4):
             self.assert_parity(document, "owned", [size, 97])
 
-    def test_uncalled_chain_signature_is_outside_execution_profile(self):
+    def test_uncalled_chain_signature_is_checked_without_exposing_handles(self):
         document = m(
             f("entry", [], [], [], [b("entry_block", [], [], ret())]),
             f("carry", [("value", "chain")], ["chain"], [], [
@@ -258,11 +258,15 @@ class RustOwnedCfgParity(unittest.TestCase):
             ]),
         )
         document["schema"] = "hepta.hia.program.v7"
-        verify_program(document)
-        result = self.rust_process(document, "entry", [])
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn(b"E_HIA_RUST_UNSUPPORTED", result.stderr)
-        self.assertEqual(result.stdout, b"")
+        result = self.assert_parity(document, "entry", [])
+        self.assertEqual(result["values"], [])
+        self.assertEqual(result["resources"]["chains_created"], 0)
+        # Adding the internal chain profile does not allow the external JSON
+        # caller to construct the capability needed by this identity helper.
+        refused = self.rust_process(document, "carry", [{"chain": 1}])
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertIn(b"E_HIA_INPUT", refused.stderr)
+        self.assertEqual(refused.stdout, b"")
 
     def test_existing_scalar_oracle_refuses_resource_program_new_oracle_executes_it(self):
         document = resource_program()

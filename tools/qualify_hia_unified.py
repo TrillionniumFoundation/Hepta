@@ -8,7 +8,9 @@ success never upgrades the seven-part research/production request to complete.
 from __future__ import annotations
 
 import argparse
+from contextlib import redirect_stdout
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -24,7 +26,7 @@ if str(ROOT) not in sys.path:
 
 from hepta.clang_capture import CaptureRejected, run_bounded
 from hepta.pipeline import compiler_hash
-from tools.release_check import _read_regular_evidence, require_collected_qualification, snapshot
+from tools.release_check import _read_regular_evidence, _strict_json, require_collected_qualification, snapshot
 
 
 # Reuse the existing producers' replay validators for imported native paths.
@@ -58,6 +60,21 @@ def write_new(path, data):
 
 def _command(argv, timeout=1800):
     started = time.monotonic()
+    if len(argv) > 1 and str(argv[1]) == "tools/qualify_hia_unit.py":
+        # The complete discovery has no aggregate 1800-second process kill.
+        # Each module owns bounded capture, exact IDs and its own receipt.
+        from tools.qualify_hia_unit import qualify as qualify_units
+        stream = io.StringIO()
+        error = ""
+        try:
+            with redirect_stdout(stream):
+                result = qualify_units(argv[argv.index("--output") + 1], python=argv[0],
+                                       workers=int(argv[argv.index("--workers") + 1]))
+        except Exception as exc:
+            result = {"ok": False}
+            error = type(exc).__name__ + ": " + str(exc)
+        return {"argv": list(map(str, argv)), "returncode": 0 if result["ok"] else 1,
+                "stdout": stream.getvalue(), "stderr": error, "seconds": time.monotonic() - started}
     try:
         value = run_bounded(list(map(str, argv)), timeout=timeout, stdin_limit=0,
                             stdout_limit=4 * 1024 * 1024, stderr_limit=8 * 1024 * 1024)
@@ -134,7 +151,8 @@ def qualification_plan(output, *, python, clang, cc, rustc, cargo, qemu_aarch64,
     """The complete declared candidate plan; no feature is selected by availability."""
     output = Path(output)
     return [
-        ("unit_regression", [python, "-m", "unittest", "discover", "-s", "tests", "-q"], None),
+        ("unit_regression", [python, "tools/qualify_hia_unit.py", "--workers", "2",
+                              "--output", output / "unit-regression"], output / "unit-regression/qualification.json"),
         ("rust_shadow_cargo", [cargo, "test", "--locked", "--offline", "--manifest-path",
                                "rust/hia-core-shadow/Cargo.toml"], None),
         ("rust_shadow_parity", [python, "-m", "unittest",
@@ -143,6 +161,7 @@ def qualification_plan(output, *, python, clang, cc, rustc, cargo, qemu_aarch64,
                                 "tests.test_hia_rust_scalar_vm", "tests.test_hia_rust_crosscheck",
                                 "tests.test_hia_rust_crosscheck_cli", "tests.test_hia_rust_owned_vm",
                                 "tests.test_hia_rust_owned_cfg", "tests.test_hia_rust_owned_bulk",
+                                "tests.test_hia_rust_owned_chain",
                                 "-v"], None),
         ("agent_query_semantics", [python, "-m", "unittest",
                                    "tests.test_hia_edit_query", "tests.test_hia_edit_batch",
@@ -247,15 +266,26 @@ def qualify(output, *, clang, cc, rustc, cargo, qemu_aarch64, qemu_riscv64,
         raise ValueError("output directory must be new")
     before = snapshot()
     commit = _command(["git", "-C", ROOT, "rev-parse", "HEAD"], 10)
-    dirty = _command(["git", "-C", ROOT, "status", "--porcelain", "--untracked-files=no"], 10)
+    dirty = _command(["git", "-C", ROOT, "status", "--porcelain", "--untracked-files=all"], 10)
     if commit["returncode"] != 0 or dirty["returncode"] != 0 or dirty["stdout"].strip():
-        raise ValueError("commit tracked implementation before running the qualification")
+        raise ValueError("commit the complete implementation and tests before running the qualification")
+    tracked = _command(["git", "-C", ROOT, "ls-files", "-z"], 10)
+    if tracked["returncode"] != 0:
+        raise ValueError("could not bind source inventory to Git")
+    extra = {name: value for name, value in before.get("files", {}).items()
+             if name not in set(tracked["stdout"].split("\0"))}
+    if any(name != "rust/hia-ndu-bridge/build-provenance.json"
+           and not name.startswith("rust/hia-ndu-bridge/upstream/") for name in extra):
+        raise ValueError("uncommitted implementation input in source snapshot")
     output.mkdir(parents=True)
     plan = qualification_plan(output, python=sys.executable, clang=clang, cc=cc, rustc=rustc, cargo=cargo,
                               qemu_aarch64=qemu_aarch64, qemu_riscv64=qemu_riscv64,
                               qemu_system_arm=qemu_system_arm, linker=linker, lean=lean, cxx=cxx)
-    report = {"schema": "hepta.hia.unified-qualification.v3", "git_commit": commit["stdout"].strip(),
+    report = {"schema": "hepta.hia.unified-qualification.v4", "git_commit": commit["stdout"].strip(),
         "compiler_tree_sha256": compiler_hash(), "source_snapshot_before": before,
+        "source_admission": {"implementation_and_tests_git_committed": True,
+                             "additional_ndu_dependency_inputs": extra,
+                             "dependency_input_scope": "separately inventoried local upstream export/build receipt; not files in the Hepta source commit"},
         "temporary_directory": tempfile.gettempdir(),
         "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "planned_gates": [name for name, _, _ in plan], "gates": [],
@@ -264,7 +294,7 @@ def qualify(output, *, clang, cc, rustc, cargo, qemu_aarch64, qemu_riscv64,
         "scope_limits": ["Dynamic recursive buffer chains are admitted; general recursive heap ADTs, escaping stored loans and background scheduling/channels remain outside the current core",
             "C/C++ migration covers declared finite profiles, not arbitrary historical libraries",
             "The upstream C resource matrix uses safe Hepta/Rust lowering; the upstream C++ library study is a bridge, while a separate bounded composed-owner profile rewrites implementations to native LLVM",
-            "Rust remains an opt-in shadow: verifier, scalar and finite cfg-call-byte-owner-bulk-v3 parity do not qualify general resource execution, native backend refinement or transfer production admission authority",
+            "Rust remains an opt-in shadow: verifier, scalar and finite cfg-call-byte-owner-chain-v4 parity do not qualify general resource execution, native backend refinement or transfer production admission authority",
             "Hosted concurrency, task/I/O, ABI and formal profiles retain their own finite scopes and do not become standalone Core guarantees",
             "Application measurements are sequential in-process ABI requests, not an external network service or service-level objective",
             "C++ noexcept termination observations do not establish allocation-failure recovery",
@@ -275,6 +305,7 @@ def qualify(output, *, clang, cc, rustc, cargo, qemu_aarch64, qemu_riscv64,
         "source_snapshot_sha256": before["sha256"],
         "commands": [{"name": name, "argv": list(map(str, argv))} for name, argv, _ in plan]},
         indent=2, sort_keys=True) + "\n").encode())
+    write_new(output / "started.json", (json.dumps(report, indent=2, sort_keys=True) + "\n").encode())
     previous_cwd = Path.cwd()
     environment = {"RUSTC": rustc, "CLANG": clang, "CC": cc, "LEAN": lean,
                    "HEPTA_LLD": linker,
@@ -283,6 +314,7 @@ def qualify(output, *, clang, cc, rustc, cargo, qemu_aarch64, qemu_riscv64,
                    "CARGO_TARGET_DIR": str(output / "rust-shadow-target"),
                    "CARGO_NET_OFFLINE": "true", "PYTHONDONTWRITEBYTECODE": "1"}
     old_environment = {name: os.environ.get(name) for name in (*environment, "PATH")}
+    interruption = None
     try:
         os.chdir(ROOT)
         with tempfile.TemporaryDirectory(prefix="hepta-hia-gate-tools-") as directory:
@@ -316,12 +348,19 @@ def qualify(output, *, clang, cc, rustc, cargo, qemu_aarch64, qemu_riscv64,
                 elif evidence.is_file() and not evidence.is_symlink():
                     try:
                         raw, _ = _read_regular_evidence(evidence)
-                        payload = json.loads(raw)
+                        payload = _strict_json(raw)
                         if type(payload) is not dict:
                             raise ValueError("gate evidence must be a JSON object")
                         row["evidence"] = {"path": str(evidence.relative_to(output)), "sha256": sha(raw),
                                            "status": payload.get("status"), "ok": payload.get("ok")}
-                        if name in IMPORTED_QUALIFICATION_NAMES:
+                        if name == "unit_regression":
+                            from tools.qualify_hia_unit import discover, validate_report
+                            _, expected_ids = discover(ROOT)
+                            row["tests_run"] = validate_report(payload, evidence.parent, expected_ids=expected_ids)
+                            row.update(skipped=0, failures=0, errors=0,
+                                       execution_mode="complete discovery, isolated module processes, two workers")
+                            scoped_ok = True
+                        elif name in IMPORTED_QUALIFICATION_NAMES:
                             # Existing producers have different success fields.
                             # Their shared validator owns that convention and
                             # the complete nested evidence requirements.
@@ -330,11 +369,19 @@ def qualify(output, *, clang, cc, rustc, cargo, qemu_aarch64, qemu_riscv64,
                         else:
                             scoped_ok = payload.get("ok") is True or (name == "legacy_cortex_m4_qemu" and payload.get("status") == "passed")
                         row["passed"] = executed["returncode"] == 0 and scoped_ok
-                    except (OSError, ValueError, TypeError) as exc:
+                    except (OSError, ValueError, TypeError, RecursionError) as exc:
                         row["evidence_error"] = {"type": type(exc).__name__, "message": str(exc)}
                 report["gates"].append(row)
+                # Immutable checkpoints preserve finished gates on interruption.
+                # Final qualification still requires every planned gate and the
+                # post-run source snapshot; a checkpoint is never a full pass.
+                write_new(output / ("gate-" + str(len(report["gates"])).zfill(2) + ".json"),
+                          (json.dumps(row, indent=2, sort_keys=True) + "\n").encode())
                 print(json.dumps({"gate": name, "passed": row["passed"], "seconds": row["seconds"],
                                   "returncode": row["returncode"]}), flush=True)
+    except BaseException as error:
+        interruption = error
+        report["interruption"] = {"type": type(error).__name__, "message": str(error)}
     finally:
         os.chdir(previous_cwd)
         for name, value in old_environment.items():
@@ -342,14 +389,20 @@ def qualify(output, *, clang, cc, rustc, cargo, qemu_aarch64, qemu_riscv64,
                 os.environ.pop(name, None)
             else:
                 os.environ[name] = value
-    report["source_snapshot_after"] = snapshot()
-    report["unchanged_source"] = before == report["source_snapshot_after"]
+    try:
+        report["source_snapshot_after"] = snapshot()
+        report["unchanged_source"] = before == report["source_snapshot_after"]
+    except Exception as error:
+        report["source_snapshot_error"] = {"type": type(error).__name__, "message": str(error)}
+        report["unchanged_source"] = False
     report["completed_gates"] = len(report["gates"])
     report["passed_gates"] = sum(row["passed"] for row in report["gates"])
-    report["ok"] = report["unchanged_source"] and report["completed_gates"] == len(plan) and all(row["passed"] for row in report["gates"])
+    report["ok"] = interruption is None and report["unchanged_source"] and report["completed_gates"] == len(plan) and all(row["passed"] for row in report["gates"])
     report["status"] = "all_scoped_gates_passed" if report["ok"] else "scoped_gates_not_all_qualified"
     report["finished_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     write_new(output / "qualification.json", (json.dumps(report, indent=2, sort_keys=True) + "\n").encode())
+    if interruption is not None:
+        raise interruption
     return report
 
 

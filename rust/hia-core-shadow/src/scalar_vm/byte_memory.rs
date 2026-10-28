@@ -12,9 +12,25 @@ struct Loan {
     external: bool,
 }
 
+// Explicit arena links avoid a host-stack-recursive destructor. Node storage
+// and payloads remain ordinary owners in the shared allocation ledger.
+struct ChainNode {
+    storage: u64,
+    payload: u64,
+    tail: Option<u64>,
+}
+
+const CHAIN_NODE_BYTES: u64 = 24;
+
 pub(super) struct ByteMemory {
     owners: BTreeMap<u64, Vec<u8>>,
     loans: BTreeMap<u64, Loan>,
+    chains: BTreeMap<u64, Option<u64>>,
+    nodes: BTreeMap<u64, ChainNode>,
+    chains_created: u64,
+    chains_consumed: u64,
+    chain_nodes_created: u64,
+    chain_nodes_dropped: u64,
     max_heap: u64,
     fail_at: Option<u64>,
     attempts: u64,
@@ -32,6 +48,9 @@ pub(super) struct ByteMemory {
 impl ByteMemory {
     pub(super) fn new(max_heap: u64, fail_at: Option<u64>) -> Self {
         Self { owners: BTreeMap::new(), loans: BTreeMap::new(), max_heap, fail_at,
+            chains: BTreeMap::new(), nodes: BTreeMap::new(),
+            chains_created: 0, chains_consumed: 0, chain_nodes_created: 0,
+            chain_nodes_dropped: 0,
             attempts: 0, allocations: 0, frees: 0, owners_created: 0,
             owners_dropped: 0, loans_started: 0, loans_ended: 0, next_loan_id: 0,
             live_bytes: 0, peak_bytes: 0 }
@@ -42,7 +61,9 @@ impl ByteMemory {
             "borrow.read" | "borrow.mut" | "loan.end" |
             "owner.move" | "owner.drop" | "buffer.load" | "buffer.store" |
             "buffer.fill" | "buffer.copy" | "buffer.move_within" |
-            "buffer.swap" | "buffer.copy_range" | "buffer.fill_range")
+            "buffer.swap" | "buffer.copy_range" | "buffer.fill_range" |
+            "chain.empty" | "chain.try_push" | "chain.pop" |
+            "chain.is_empty" | "chain.head_read" | "chain.head_mut")
     }
 
     pub(super) fn loan_type(&self, id: u64) -> Option<&'static str> {
@@ -113,6 +134,99 @@ impl ByteMemory {
         self.root(value)?;
         if self.loans.values().any(|loan| loan.root == *id) { return Err(Halt::Internal); }
         Ok(*id)
+    }
+
+    pub(super) fn free_owned(&self, value: &RuntimeValue) -> Exec<()> {
+        match value {
+            RuntimeValue::Owner(_) => { self.free_owner(value)?; }
+            RuntimeValue::Chain(_) => {
+                // A live chain exposes only its current head. Popping or
+                // transferring the chain is forbidden until all such loans
+                // (including their call-formal/reborrow descendants) end.
+                if let Some(head) = self.chain_head(value)? {
+                    let node = self.nodes.get(&head).ok_or(Halt::Internal)?;
+                    self.free_owner(&RuntimeValue::Owner(node.payload))?;
+                }
+            }
+            _ => return Err(Halt::Internal),
+        }
+        Ok(())
+    }
+
+    fn drop_owner(&mut self, value: &RuntimeValue) -> Exec<()> {
+        let id = self.free_owner(value)?;
+        let bytes = self.owners.remove(&id).ok_or(Halt::Internal)?;
+        self.owners_dropped += 1;
+        if !bytes.is_empty() { self.frees += 1; }
+        self.live_bytes -= bytes.len() as u64;
+        Ok(())
+    }
+
+    fn new_chain(&mut self, head: Option<u64>) -> RuntimeValue {
+        self.chains_created += 1;
+        self.chains.insert(self.chains_created, head);
+        RuntimeValue::Chain(self.chains_created)
+    }
+
+    fn chain_head(&self, value: &RuntimeValue) -> Exec<Option<u64>> {
+        let RuntimeValue::Chain(id) = value else { return Err(Halt::Internal); };
+        self.chains.get(id).copied().ok_or(Halt::Internal)
+    }
+
+    pub(super) fn consume_chain(&mut self, value: &RuntimeValue) -> Exec<Option<u64>> {
+        self.free_owned(value)?;
+        let RuntimeValue::Chain(id) = value else { return Err(Halt::Internal); };
+        let head = self.chains.remove(id).ok_or(Halt::Internal)?;
+        self.chains_consumed += 1;
+        Ok(head)
+    }
+
+    // The Machine charges one tick BEFORE each call. On a budget stop the
+    // chain has been consumed, but all unvisited nodes/owners stay in the
+    // stopped ledger. Host cleanup never masquerades as language destruction.
+    pub(super) fn drop_chain_node(&mut self, id: u64) -> Exec<Option<u64>> {
+        let node = self.nodes.remove(&id).ok_or(Halt::Internal)?;
+        self.drop_owner(&RuntimeValue::Owner(node.payload))?;
+        self.drop_owner(&RuntimeValue::Owner(node.storage))?;
+        self.chain_nodes_dropped += 1;
+        Ok(node.tail)
+    }
+
+    fn push_chain(&mut self, chain: &RuntimeValue, payload: &RuntimeValue)
+        -> Exec<Vec<RuntimeValue>> {
+        self.free_owned(chain)?;
+        let head = self.chain_head(chain)?;
+        let payload_id = self.free_owner(payload)?;
+        // Heap admission precedes failure injection, just as for buffers.
+        // On failure allocate() creates a logical empty owner; dispose that
+        // internal placeholder and return the original payload unchanged.
+        let (storage, success) = self.allocate(CHAIN_NODE_BYTES, true)?;
+        let (next_head, fallback) = if success {
+            let storage_id = self.free_owner(&storage)?;
+            self.chain_nodes_created += 1;
+            let id = self.chain_nodes_created;
+            self.nodes.insert(id, ChainNode { storage: storage_id, payload: payload_id, tail: head });
+            (Some(id), self.new_owner(Vec::new()))
+        } else {
+            self.drop_owner(&storage)?;
+            (head, payload.clone())
+        };
+        self.consume_chain(chain)?;
+        Ok(vec![self.new_chain(next_head), fallback, RuntimeValue::Scalar(json!(success))])
+    }
+
+    fn pop_chain(&mut self, chain: &RuntimeValue) -> Exec<Vec<RuntimeValue>> {
+        let head = self.consume_chain(chain)?;
+        if let Some(id) = head {
+            let node = self.nodes.remove(&id).ok_or(Halt::Internal)?;
+            self.drop_owner(&RuntimeValue::Owner(node.storage))?;
+            self.chain_nodes_dropped += 1;
+            Ok(vec![self.new_chain(node.tail), RuntimeValue::Owner(node.payload),
+                    RuntimeValue::Scalar(json!(true))])
+        } else {
+            Ok(vec![self.new_chain(None), self.new_owner(Vec::new()),
+                    RuntimeValue::Scalar(json!(false))])
+        }
     }
 
     fn borrow(&mut self, value: &RuntimeValue, mutable: bool) -> Exec<RuntimeValue> {
@@ -220,8 +334,21 @@ impl ByteMemory {
     }
 
     pub(super) fn operation(&mut self, op: &str, args: &[RuntimeValue]) -> Exec<Vec<RuntimeValue>> {
+        if op == "chain.empty" {
+            if !args.is_empty() { return Err(Halt::Internal); }
+            return Ok(vec![self.new_chain(None)]);
+        }
         let first = args.first().ok_or(Halt::Internal)?;
         match op {
+            "chain.try_push" => self.push_chain(first, args.get(1).ok_or(Halt::Internal)?),
+            "chain.pop" => self.pop_chain(first),
+            "chain.is_empty" => Ok(vec![RuntimeValue::Scalar(json!(self.chain_head(first)?.is_none()))]),
+            "chain.head_read" | "chain.head_mut" => {
+                let head = self.chain_head(first)?.ok_or(Halt::Trap("bounds"))?;
+                let node = self.nodes.get(&head).ok_or(Halt::Internal)?;
+                let payload = RuntimeValue::Owner(node.payload);
+                Ok(vec![self.borrow(&payload, op == "chain.head_mut")?])
+            }
             "buffer.new" | "buffer.try_new" => {
                 let (owner, success) = self.allocate(Self::unsigned(first)?, op == "buffer.try_new")?;
                 let mut result = vec![owner];
@@ -244,15 +371,13 @@ impl ByteMemory {
                 Ok(vec![])
             }
             "owner.move" => {
-                self.free_owner(first)?;
+                self.free_owned(first)?;
                 Ok(vec![first.clone()])
             }
             "owner.drop" => {
-                let id = self.free_owner(first)?;
-                let bytes = self.owners.remove(&id).ok_or(Halt::Internal)?;
-                self.owners_dropped += 1;
-                if !bytes.is_empty() { self.frees += 1; }
-                self.live_bytes -= bytes.len() as u64;
+                // Chain destruction is handled in Machine so each node is
+                // charged against the same global instruction-step budget.
+                self.drop_owner(first)?;
                 Ok(vec![])
             }
             "buffer.load" | "buffer.store" => {
@@ -323,7 +448,8 @@ impl ByteMemory {
     }
 
     pub(super) fn is_clean(&self) -> bool {
-        self.owners.is_empty() && self.loans.is_empty() && self.live_bytes == 0
+        self.owners.is_empty() && self.loans.is_empty() && self.chains.is_empty()
+            && self.nodes.is_empty() && self.live_bytes == 0
             && self.loans_started == self.loans_ended
     }
 
@@ -338,12 +464,12 @@ impl ByteMemory {
             "live_local_loans": self.loans.values().filter(|loan| !loan.external).count()
         });
         if v7 {
-            // The v7 Python ledger includes chain counters even in a program
-            // with no chain opcode. This execution profile never admits one.
-            for field in ["chains_created", "chains_consumed", "live_chains",
-                          "chain_nodes_created", "chain_nodes_dropped", "live_chain_nodes"] {
-                report[field] = json!(0);
-            }
+            report["chains_created"] = json!(self.chains_created);
+            report["chains_consumed"] = json!(self.chains_consumed);
+            report["live_chains"] = json!(self.chains.len());
+            report["chain_nodes_created"] = json!(self.chain_nodes_created);
+            report["chain_nodes_dropped"] = json!(self.chain_nodes_dropped);
+            report["live_chain_nodes"] = json!(self.nodes.len());
         }
         report
     }
@@ -390,5 +516,51 @@ mod tests {
         assert_eq!(memory.owners[&a], [1, 2, 3, 4]);
         assert_eq!(memory.owners[&untouched], [91, 92]);
         assert!(matches!(memory.copy(a, a, 0, 0, 0), Err(Halt::Internal)));
+    }
+
+    #[test]
+    fn chain_head_loans_block_consumption_until_all_descendants_end() {
+        let mut memory = ByteMemory::new(100, None);
+        let empty = memory.new_chain(None);
+        let payload = memory.new_owner(vec![1, 2]);
+        let pushed = memory.push_chain(&empty, &payload).unwrap_or_else(|_| panic!("push"));
+        let chain = &pushed[0];
+        memory.drop_owner(&pushed[1]).unwrap_or_else(|_| panic!("fallback"));
+        let parent = memory.operation("chain.head_mut", &[chain.clone()])
+            .unwrap_or_else(|_| panic!("head"))[0].clone();
+        let child = memory.borrow(&parent, false).unwrap_or_else(|_| panic!("child"));
+        assert!(matches!(memory.consume_chain(chain), Err(Halt::Internal)));
+        assert!(matches!(memory.pop_chain(chain), Err(Halt::Internal)));
+        assert!(matches!(memory.operation("loan.end", &[parent.clone()]), Err(Halt::Internal)));
+        memory.operation("loan.end", &[child]).unwrap_or_else(|_| panic!("end child"));
+        assert!(matches!(memory.consume_chain(chain), Err(Halt::Internal)));
+        memory.operation("loan.end", &[parent]).unwrap_or_else(|_| panic!("end parent"));
+        let head = memory.consume_chain(chain).unwrap_or_else(|_| panic!("consume"))
+            .unwrap_or_else(|| panic!("node"));
+        assert!(memory.drop_chain_node(head).unwrap_or_else(|_| panic!("drop")).is_none());
+        assert!(memory.is_clean());
+        assert_eq!(memory.report(true)["chain_nodes_dropped"], 1);
+    }
+
+    #[test]
+    fn failed_node_allocation_returns_same_payload_without_an_extra_allocation() {
+        let mut memory = ByteMemory::new(100, Some(2));
+        let (payload, _) = memory.allocate(3, false).unwrap_or_else(|_| panic!("payload"));
+        let payload_id = memory.free_owner(&payload).unwrap_or_else(|_| panic!("owner"));
+        memory.owners.get_mut(&payload_id).unwrap().copy_from_slice(&[9, 8, 7]);
+        let empty = memory.new_chain(None);
+        let pushed = memory.push_chain(&empty, &payload).unwrap_or_else(|_| panic!("push"));
+        assert!(matches!(pushed[1], RuntimeValue::Owner(id) if id == payload_id));
+        assert_eq!(pushed[2].scalar().unwrap_or_else(|_| panic!("status")), &json!(false));
+        assert_eq!(memory.owners[&payload_id], [9, 8, 7]);
+        let ledger = memory.report(true);
+        assert_eq!(ledger["allocation_attempts"], 2);
+        assert_eq!(ledger["allocations"], 1);
+        assert_eq!(ledger["owners_created"], 2);
+        assert_eq!(ledger["owners_dropped"], 1);
+        assert_eq!(ledger["chain_nodes_created"], 0);
+        assert!(memory.consume_chain(&pushed[0]).unwrap_or_else(|_| panic!("consume")).is_none());
+        memory.drop_owner(&pushed[1]).unwrap_or_else(|_| panic!("drop payload"));
+        assert!(memory.is_clean());
     }
 }

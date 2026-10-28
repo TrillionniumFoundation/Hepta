@@ -21,14 +21,17 @@ from .hia_program_runtime import HIAProgramBudgetExceeded, HIAProgramTrap, execu
 from .hia_schema import SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6
 from .hia_swap_opt import rewrite_byte_swap
 from .hia_fill_loop_opt import PASS_ID as FILL_LOOP_PASS_ID, rewrite_full_view_fill_loop
+from .hia_checked_reduction_opt import PASS_ID as REDUCTION_PASS_ID, rewrite_checked_unsigned_reduction
 from .native_tool_identity import digest_executable
 
 UPSTREAM_COMMIT = "f8c9419df6ddeb36ff8b522a50219981fb8d9345"
 PLAN_SCHEMA = "hepta.hia.ndu-plan.v1"
 PASS_ID = "byte-swap.v1"
 _REWRITES = MappingProxyType({PASS_ID: rewrite_byte_swap,
-                             FILL_LOOP_PASS_ID: rewrite_full_view_fill_loop})
-_CANDIDATE_IDS = MappingProxyType({PASS_ID: "byte_swap", FILL_LOOP_PASS_ID: "fill_loop"})
+                             FILL_LOOP_PASS_ID: rewrite_full_view_fill_loop,
+                             REDUCTION_PASS_ID: rewrite_checked_unsigned_reduction})
+_CANDIDATE_IDS = MappingProxyType({PASS_ID: "byte_swap", FILL_LOOP_PASS_ID: "fill_loop",
+                                 REDUCTION_PASS_ID: "checked_reduction"})
 REGISTERED_PASSES = tuple(_REWRITES)
 DECISION_RESERVE_NS = 2_000_000_000
 _SCHEMAS = {SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6}

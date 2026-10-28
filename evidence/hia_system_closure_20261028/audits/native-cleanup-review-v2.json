@@ -1,0 +1,158 @@
+{
+  "schema": "hepta.independent-native-cleanup-source-review.v2",
+  "reviewer": "/root/native_gain_candidate",
+  "independent_author_review": true,
+  "base_commit": "b92141483ca5084691f436d28d4cd0dcbefe4717",
+  "worktree": "/workspace/scratch/7e691a7ff65f/hepta-native-cleanup-fix",
+  "status": "reviewed_no_open_findings_within_declared_scope",
+  "scope": [
+    "Closure of v1 cleanup-exception masking finding in ordinary and diagnostic observers",
+    "Closure of v1 bounded-lock waiting finding including snapshot/admission-lock interaction",
+    "Dispatcher quarantine, idempotent call release and retained version lifetime",
+    "Positive call-accounting scope and retained source-bound regression evidence"
+  ],
+  "method": "Read-only source/diff/control-flow and retained evidence review. No repository code, tests, native child, compiler or timing experiment executed by reviewer. Only independent file hashing and git-diff comparison were performed.",
+  "source_hashes": {
+    "docs/HIA_NATIVE_VERSION_DISPATCH_20261027.md": "cfaf84572746f02e5d7615c00ab37d70b793caf78806213b4c70f9cee8add03b",
+    "hepta/hia_native_differential.py": "db28f38e78c50e47b0e4a33ff49d2403abea212dd0844b3252e07048cad70ecd",
+    "hepta/hia_native_loan_probe.py": "f95d6133238d1739cf8f6c07bbd121ba3181eedda4bfbd2a6d24f9fbca11a999",
+    "hepta/hia_native_version_dispatch.py": "9e7924b3ea6884b66a02f53168be8d4257609231eac650d9409aca41923e4086",
+    "tests/test_hia_native_cleanup_quarantine.py": "f8062abb6ee0e04d22e537d12b639721b50e6980c3d888ddaeba13556ad7100c",
+    "tests/test_hia_native_loan_probe.py": "b9bb9558d3e4017cab37421ae60562f8ed029d65e61277c9bee62bff5ba04027",
+    "tests/test_hia_native_loan_qualification.py": "2536d675a055721809cd2592355c221d14159d52ba818b9baa856ee42eb97dcf",
+    "tools/qualify_hia_native_loans.py": "010912a0c1fa4d0c26e3bc91b6ef605c7ea248210dd7262956a99086d6f12906"
+  },
+  "bindings": {
+    "all_eight_hashes_match_plan": true,
+    "all_eight_hashes_match_focused_run_before_after": true,
+    "patch_path": "/workspace/scratch/7e691a7ff65f/validation-native-cleanup-fix/native-cleanup-v2.patch",
+    "patch_sha256": "ed7e0f6eb2fd129a0e7c76566c744d26e19ccade80801b193d3560689f58e464",
+    "patch_bytes": 61035,
+    "patch_equals_exact_current_eight_file_git_diff": true,
+    "patch_plan_path": "/workspace/scratch/7e691a7ff65f/validation-native-cleanup-fix/patch-plan-v2.json",
+    "patch_plan_sha256": "e61f81fd9c395483f16f54a405dc236cfd3a3da73c13bd7a1006841981bb2ab1"
+  },
+  "prior_review": {
+    "path": "/workspace/scratch/7e691a7ff65f/validation-system-audits/native-cleanup-review-v1.json",
+    "sha256": "8da789a2c2bdcc348020e540bdbef71d6c0e7be0334e21daa668c1228a8bc83a",
+    "retained_unmodified": true
+  },
+  "issue_closures": [
+    {
+      "id": "cleanup-exception-masking",
+      "status": "closed_in_reviewed_scope",
+      "ordinary_path": "_observe_native keeps the actual cleanup owner outside TemporaryFile contexts. Its outermost finally checks cleanup.confirmed after context exits and restores NativeChildCleanupPending with bounded secondary diagnostics when reap remains unconfirmed.",
+      "diagnostic_path": "_observe attempts every tracked pipe close and retains bounded secondary errors. _run final ownership handling checks self._cleanup.confirmed regardless surviving exception type, clears a tentative result and quarantines instead of releasing an unconfirmed child.",
+      "regression_ids": [
+        "test_ordinary_temporary_close_error_cannot_mask_unconfirmed_reap",
+        "test_diagnostic_pipe_close_error_cannot_mask_unconfirmed_reap"
+      ],
+      "evidence": "Both actual-child controls errored on the initial draft; both pass in the repaired three-method and complete focused runs."
+    },
+    {
+      "id": "cleanup-lock-timeout-overrun",
+      "status": "closed_in_reviewed_scope",
+      "mechanism": "A separate reap-serialization lock uses nonblocking acquisition for zero timeout or a bounded acquisition otherwise. The deadline is established before acquisition and recomputed before Popen.wait. Short-held metadata locking covers only state; neither snapshots nor confirmed reads wait behind the OS process wait.",
+      "lock_order": "No process wait or reap-lock acquisition occurs while the metadata lock is held; no immediate cycle found with dispatcher/probe conditions. Dispatcher snapshots may read metadata while holding admission lock but no longer inherit the long reap wait.",
+      "regression_ids": [
+        "test_zero_timeout_retry_snapshot_and_short_close_do_not_wait_behind_another_reap"
+      ],
+      "evidence": "The actual-child concurrency control failed before repair and passes afterward. Its 0.5-second event deadline detects the prior two-second lock convoy; it does not prove exact 20-millisecond real-time scheduling."
+    }
+  ],
+  "boundary_resolution": {
+    "id": "standalone-observer-recovery",
+    "status": "documented_scope_boundary",
+    "detail": "Documentation now explicitly requires direct observers to retain exception.cleanup and retry until confirmed. The standalone differential runner may close its parent pin while propagating Pending; child-side inherited descriptor remains owned by that child. Dispatcher quarantine/drain claims require retaining the dispatcher. No global recovery registry or crash-durable recovery is claimed."
+  },
+  "reviewed_test_properties": [
+    "Withheld reap controls first observe actual child exit through WNOWAIT; the same original Popen wait later reaps it.",
+    "Parent-finalizer controls close the actual resource before injecting the extra error and assert that dispatch stays in-flight, not drained.",
+    "Concurrent recovery control blocks the real child wait path and checks zero-time retry, snapshot and short close without requiring a fabricated successful native result.",
+    "Old-code negative controls include fallback reap of tracked original child objects and inode-checked residual-pipe cleanup.",
+    "Source/version recovery is idempotent; earlier failed observations remain failed; no native re-execution is introduced."
+  ],
+  "retained_execution_evidence": [
+    {
+      "name": "review-negative-1",
+      "methods": 3,
+      "method_ok_rows": 0,
+      "summary": "FAILED (failures=1, errors=2)",
+      "returncode": 1,
+      "unittest_wall_seconds": 1.402,
+      "source_unchanged_reported": true,
+      "files": [
+        {
+          "path": "/workspace/scratch/7e691a7ff65f/validation-loan-next/cleanup-fix-development/review-negative-1.process.json",
+          "sha256": "3eb7800de48acbd49eb50355d27f4cb4c80c0ce1af4d3decc55f1bd2f951b7e0"
+        },
+        {
+          "path": "/workspace/scratch/7e691a7ff65f/validation-loan-next/cleanup-fix-development/review-negative-1.stdout.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/workspace/scratch/7e691a7ff65f/validation-loan-next/cleanup-fix-development/review-negative-1.stderr.log",
+          "sha256": "170a5230f34501fe07b5202c0445f9d070f012ff4a21137c208bdb74bd0423a5"
+        }
+      ],
+      "reviewer_action": "Read and rehashed retained author-run evidence; did not rerun it"
+    },
+    {
+      "name": "review-corrected-1",
+      "methods": 3,
+      "method_ok_rows": 3,
+      "summary": "OK",
+      "returncode": 0,
+      "unittest_wall_seconds": 3.129,
+      "source_unchanged_reported": true,
+      "files": [
+        {
+          "path": "/workspace/scratch/7e691a7ff65f/validation-loan-next/cleanup-fix-development/review-corrected-1.process.json",
+          "sha256": "63a623c30a479afc0887aa2ea952a3abedc1907cd4ca62409e35bd4d8b7d2127"
+        },
+        {
+          "path": "/workspace/scratch/7e691a7ff65f/validation-loan-next/cleanup-fix-development/review-corrected-1.stdout.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/workspace/scratch/7e691a7ff65f/validation-loan-next/cleanup-fix-development/review-corrected-1.stderr.log",
+          "sha256": "c1456ef9846f4377c7c0eb548669301632cda3981fa9a2f8abab0e1ad3fd4412"
+        }
+      ],
+      "reviewer_action": "Read and rehashed retained author-run evidence; did not rerun it"
+    },
+    {
+      "name": "run-2",
+      "methods": 43,
+      "method_ok_rows": 43,
+      "summary": "OK",
+      "returncode": 0,
+      "unittest_wall_seconds": 23.506,
+      "source_unchanged_reported": true,
+      "files": [
+        {
+          "path": "/workspace/scratch/7e691a7ff65f/validation-loan-next/cleanup-fix-development/run-2.process.json",
+          "sha256": "d0aa80caadc6ee5c0c3b788622b9bddff1a921221b4a0d8a749fd718f1ca468d"
+        },
+        {
+          "path": "/workspace/scratch/7e691a7ff65f/validation-loan-next/cleanup-fix-development/run-2.stdout.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/workspace/scratch/7e691a7ff65f/validation-loan-next/cleanup-fix-development/run-2.stderr.log",
+          "sha256": "d097ad1f5a86b9317944cc19a1ebb3da206d6fe621d27528832cbafabb64cd4c"
+        }
+      ],
+      "reviewer_action": "Read and rehashed retained author-run evidence; did not rerun it"
+    }
+  ],
+  "execution_count_note": "The three repaired regressions are included in the 43-method focused run; these overlapping runs are not additional independent tests. Eight tests in the new cleanup module plus one new pure producer negative make nine added methods.",
+  "open_issues": [],
+  "limitations": [
+    "Bounded application waits are not hard real-time scheduling or a guarantee that uninterruptible kernel state finishes promptly.",
+    "Source review and finite fault controls do not prove all interleavings or general native backend refinement.",
+    "No production P6, external-state migration, foreign callbacks, crash durability, performance gain or full P0-P7 closure claimed.",
+    "This audit is not an Agent productivity trial or a cryptographic signature."
+  ],
+  "recommendation": "The reviewed v2 patch can proceed to the parent integration step after the separate frozen baseline run; retain exact hashes and rerun only parent-required integration gates."
+}

@@ -1,0 +1,64 @@
+{
+  "cooperative_deadline": {
+    "asynchronous_signal": false,
+    "enforcement": "tool_poll_and_phase_boundary",
+    "hard_kill_deadline": false,
+    "seconds": 120
+  },
+  "horizon_calls": 100000000,
+  "input_files": [
+    {
+      "path": "examples/hia_ndu/checked_reduction.json",
+      "sha256": "7ca7b688ae237f6ceb95da9474fe0245c389488aecb91e4a5c380734a3ec8541"
+    },
+    {
+      "path": "examples/hia_ndu/checked_reduction_cases.json",
+      "sha256": "dd78a5e38e88acdffd96938c0aa75089c6cb1bab646e85de200a5b5242120eb9"
+    },
+    {
+      "path": "examples/hia_ndu/checked_reduction_negative_cases.json",
+      "sha256": "f7603b5756e9fb605aeb2eb9e7851de234b9e5d3c4b4388b40b00a77d76d91bd"
+    }
+  ],
+  "iterations": 50000,
+  "native_timed_calls": {
+    "per_reduction_search": 55800000
+  },
+  "repeats_until_pass": false,
+  "retain_native_artifacts": true,
+  "runs": [
+    {
+      "case_count": 18,
+      "cases": "examples/hia_ndu/checked_reduction_cases.json",
+      "entry": "reduction_probe",
+      "id": "checked-reduction-1",
+      "negative_cases": "examples/hia_ndu/checked_reduction_negative_cases.json",
+      "pass_id": "checked-unsigned-reduction.v1",
+      "program": "examples/hia_ndu/checked_reduction.json",
+      "timed_calls_budget": "per_reduction_search"
+    },
+    {
+      "case_count": 18,
+      "cases": "examples/hia_ndu/checked_reduction_cases.json",
+      "entry": "reduction_probe",
+      "id": "checked-reduction-2",
+      "negative_cases": "examples/hia_ndu/checked_reduction_negative_cases.json",
+      "pass_id": "checked-unsigned-reduction.v1",
+      "program": "examples/hia_ndu/checked_reduction.json",
+      "timed_calls_budget": "per_reduction_search"
+    }
+  ],
+  "samples": 31,
+  "schema": "hepta.hia.ndu-frozen-protocol.v1",
+  "selection_of_favorable_rounds": false,
+  "thresholds": {
+    "decision_reserve_ns": 2000000000,
+    "maximum_artifact_bytes": 67108864,
+    "maximum_live_bytes": 16777216,
+    "maximum_mad_ppm": 50000,
+    "maximum_search_ns": 60000000000,
+    "minimum_gain_ppm": 20000,
+    "require_different_native_artifacts": true
+  },
+  "workload_scope": "synthetic checked arithmetic mechanism; not an external real-application hot function"
+}

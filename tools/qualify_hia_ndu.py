@@ -61,7 +61,8 @@ def _cases(value, *, allow_empty=False):
 
 
 def qualify(program, plan, cases, *, negative_cases=(), bridge,
-            expected_bridge_sha256, clang="clang", samples=31, iterations=10_000):
+            expected_bridge_sha256, clang="clang", samples=31, iterations=10_000,
+            artifact_directory=None):
     started = perf_counter_ns()
     report = {"schema": "hepta.hia.ndu-qualification.v1", "ok": False,
               "status": "no_change", "decision": "no_change", "activated": False,
@@ -96,7 +97,8 @@ def qualify(program, plan, cases, *, negative_cases=(), bridge,
         if perf_counter_ns() - started + DECISION_RESERVE_NS > plan["objective"]["maximum_search_ns"]:
             raise ValueError("cost ceiling already exhausted before native measurement")
         measurement = measure_pair(prepared.baseline, prepared.candidate, plan["entry"], cases,
-                                   clang=clang, samples=samples, iterations=iterations)
+                                   clang=clang, samples=samples, iterations=iterations,
+                                   artifact_directory=artifact_directory)
         report["measurement"] = measurement
         check_capture_deadline()
         if not measurement["ok"]:
@@ -180,6 +182,8 @@ def main():
     parser.add_argument("--deadline-seconds", type=int, choices=range(1, 121),
                         help="optional cooperative deadline checked at tool polls and phase boundaries")
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--artifact-directory", type=Path,
+                        help="new directory retaining the actual compiled baseline, candidate and driver")
     args = parser.parse_args()
     # All source and case files are read before opening an exclusive new report.
     program_bytes = read_bounded(args.program)
@@ -201,7 +205,8 @@ def main():
             with cooperative_deadline(args.deadline_seconds) as deadline:
                 report = qualify(program, plan, cases, negative_cases=negative,
                                  bridge=args.bridge, expected_bridge_sha256=args.bridge_sha256,
-                                 clang=args.clang, samples=args.samples, iterations=args.iterations)
+                                 clang=args.clang, samples=args.samples, iterations=args.iterations,
+                                 artifact_directory=args.artifact_directory)
             report["cooperative_deadline"] = deadline
             if deadline["expired"]:
                 report.update(ok=False, status="failed_closed_no_change", decision="no_change", activated=False)

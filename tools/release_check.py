@@ -129,10 +129,16 @@ def snapshot():
     inventory. Generated qualification evidence remains excluded.
     """
     excluded = {".git", "__pycache__", "artifacts", "evidence", "build", ".venv"}
+    # These exact Cargo output roots are disposable build products, never
+    # source inputs. Do not exclude arbitrary directories named "target":
+    # project source and proof fixtures may legitimately use that name.
+    cargo_outputs = {("rust", "hia-core-shadow", "target"),
+                     ("rust", "hia-ndu-bridge", "target")}
     files = {}
     for p in sorted(ROOT.rglob("*")):
         relative = p.relative_to(ROOT)
-        if (excluded.intersection(relative.parts) or p.suffix in {".pyc", ".bundle"}
+        if (excluded.intersection(relative.parts) or relative.parts[:3] in cargo_outputs
+                or p.suffix in {".pyc", ".bundle"}
                 or p.name.endswith(".hepta-lock")):
             continue
         info = _evidence_state(p)

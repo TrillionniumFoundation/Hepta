@@ -17,11 +17,12 @@ import tempfile
 from threading import Condition, Thread
 from time import monotonic
 
-from .hia_native_differential import _observe_native, _pin_native_artifact
+from .hia_native_differential import (NativeChildCleanupPending,
+                                      _observe_native, _pin_native_artifact)
 from .hia_program import verify_program
 from .hia_program_llvm import compile_program_llvm, emit_program_llvm
 from .hia_schema import SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6
-from .hia_swap_opt import rewrite_byte_swap
+from .hia_ndu import PASS_ID, make_plan, prepare_candidate
 
 _SCHEMAS = frozenset((SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6))
 _WORDS = {"i32": (-2**31, 2**31 - 1), "u32": (0, 2**32 - 1)}
@@ -78,25 +79,33 @@ class _NativeVersion:
         return json.loads(self.native_receipt_json)
 
 
-def _build_version(core_bytes, clang):
+def _build_version(core_bytes, clang, *, diagnostic_loan_site=None):
     """Compile exact verified Core and transfer one sealed descriptor on success."""
     core, signatures = _checked(core_bytes)
-    ir = emit_program_llvm(core)
+    ir = emit_program_llvm(core) if diagnostic_loan_site is None else None
     fd = None
     try:
         with tempfile.TemporaryDirectory(prefix="hepta-native-version-") as directory:
             artifact = Path(directory) / "program.so"
-            receipt = compile_program_llvm(ir, program=core, output=artifact, clang=clang)
+            if diagnostic_loan_site is None:
+                receipt = compile_program_llvm(ir, program=core, output=artifact, clang=clang)
+                ir_sha256 = ir.sha256
+                expected_exports = sorted(name for name, _, _ in signatures)
+            else:
+                from .hia_native_loan_probe import CONFIGURE, compile_probe
+                probe_ir, receipt = compile_probe(core, diagnostic_loan_site, artifact, clang)
+                ir_sha256 = probe_ir["sha256"]
+                expected_exports = sorted([name for name, _, _ in signatures] + [CONFIGURE])
             raw, _identity, fd = _pin_native_artifact(artifact)
             digest = sha256(raw).hexdigest()
             if (receipt.get("ok") is not True
                     or receipt.get("status") != "native_compiled_not_executed"
                     or receipt.get("kind") != "shared"
                     or receipt.get("core_sha256") != core.sha256
-                    or receipt.get("llvm_ir_sha256") != ir.sha256
+                    or receipt.get("llvm_ir_sha256") != ir_sha256
                     or receipt.get("artifact_sha256") != digest
                     or receipt.get("artifact_bytes") != len(raw)
-                    or sorted(receipt.get("exports", [])) != sorted(name for name, _, _ in signatures)):
+                    or sorted(receipt.get("exports", [])) != expected_exports):
                 _reject("compiled Core, ABI or sealed artifact receipt mismatch")
             result = _NativeVersion(core.canonical_bytes, core.sha256, digest,
                                     len(raw), fd, signatures,
@@ -118,7 +127,7 @@ class NativeVersionDispatcher:
     Closed dispatchers reject new work while already admitted work drains.
     """
 
-    def __init__(self, baseline: bytes, *, clang="clang", max_in_flight=4):
+    def __init__(self, baseline: bytes, *, clang="clang", max_in_flight=4, diagnostic_loan_site=None):
         if platform.system() != "Linux" or platform.machine().lower() not in {"x86_64", "amd64"}:
             _reject("Linux x86-64 native observer required")
         if type(clang) is not str or not clang or len(clang) > 4096:
@@ -126,7 +135,11 @@ class NativeVersionDispatcher:
         if type(max_in_flight) is not int or not 1 <= max_in_flight <= 16:
             _reject("max_in_flight must be an integer in 1..16")
         checked, _ = _checked(baseline)
-        version = _build_version(checked.canonical_bytes, clang)
+        if diagnostic_loan_site is not None:
+            from .hia_native_loan_probe import checked_site
+            diagnostic_loan_site = checked_site(diagnostic_loan_site)
+        self._diagnostic_loan_site = diagnostic_loan_site
+        version = self._build(checked.canonical_bytes, clang)
         self._baseline = version
         self._clang = clang
         self._versions = {version.core_sha256: version}
@@ -135,6 +148,8 @@ class NativeVersionDispatcher:
         self._active = version.core_sha256
         self._generation = 0
         self._total_calls = 0
+        self._call_counter = 0
+        self._active_calls = {}
         self._max_in_flight = max_in_flight
         self._retired_versions = 0
         self._released_artifacts = 0
@@ -145,6 +160,12 @@ class NativeVersionDispatcher:
         self._worker = None
         self._condition = Condition()
         self._exports = {name: (word, arity) for name, word, arity in version.signatures}
+
+    def _build(self, core_bytes, clang):
+        # Preserve the ordinary two-argument boundary for existing build controls.
+        if self._diagnostic_loan_site is None:
+            return _build_version(core_bytes, clang)
+        return _build_version(core_bytes, clang, diagnostic_loan_site=self._diagnostic_loan_site)
 
     def _require_open(self):
         if self._closed:
@@ -174,14 +195,18 @@ class NativeVersionDispatcher:
         # The job contains only detached JSON data, never a Future, FD or code hook.
         return json.loads(json.dumps(self._job, sort_keys=True, allow_nan=False))
 
-    def stage_candidate_async(self, candidate: bytes):
+    def stage_candidate_async(self, candidate: bytes, *, pass_id=PASS_ID):
         checked, signatures = _checked(candidate)
         baseline, _ = _checked(self._baseline.core_bytes)
-        rewrite = rewrite_byte_swap(baseline)
+        plan = make_plan(baseline, entry=sorted(baseline.scalar_entrypoints)[0], pass_id=pass_id)
+        prepared = prepare_candidate(baseline, plan)
         if checked.canonical_bytes == baseline.canonical_bytes:
             relation = "baseline"
-        elif checked.canonical_bytes == rewrite.program.canonical_bytes:
-            relation = "reproduced_byte_swap"
+        elif checked.canonical_bytes == prepared.candidate.canonical_bytes:
+            # Replay again with the actual exchanged bytes; validity alone is
+            # never evidence that this is the declared transformation.
+            prepare_candidate(baseline, plan, candidate_bytes=checked.canonical_bytes)
+            relation = "reproduced_registered_rewrite"
         else:
             _reject("candidate is neither baseline nor its exact reproduced rewrite")
         if signatures != self._baseline.signatures:
@@ -193,9 +218,10 @@ class NativeVersionDispatcher:
             if checked.sha256 not in self._versions and len(self._versions) >= 2:
                 _reject("two-version inventory is full")
             self._job_counter += 1
-            job = {"schema": "hepta.hia.native-version-build.v1", "job_id": self._job_counter,
+            job = {"schema": "hepta.hia.native-version-build.v2", "job_id": self._job_counter,
                    "baseline_sha256": baseline.sha256, "candidate_sha256": checked.sha256,
-                   "relation": relation, "rewrite_replacements": rewrite.replacements,
+                   "relation": relation, "rewrite_replacements": prepared.replacements,
+                   "pass_id": pass_id, "plan_sha256": prepared.plan_sha256,
                    "generation_at_submission": self._generation, "status": "queued",
                    "cancel_requested": False, "activated": False,
                    "build_attempt_started": False, "native_artifact_built": False, "published": False}
@@ -227,7 +253,7 @@ class NativeVersionDispatcher:
                     job["status"] = "cancelled"
                     return
                 job.update(status="compiling", build_attempt_started=True)
-            built = _build_version(core_bytes, self._clang)
+            built = self._build(core_bytes, self._clang)
             receipt, baseline_receipt = built.receipt(), self._baseline.receipt()
             with self._condition:
                 job.update(native_artifact_built=True, artifact_sha256=built.artifact_sha256,
@@ -321,7 +347,7 @@ class NativeVersionDispatcher:
         with self._condition:
             return self._activate_locked(self._baseline.core_sha256, expected_generation)
 
-    def execute(self, function: str, arguments, *, timeout=3.0):
+    def _admit_call(self, function, arguments, timeout):
         if type(timeout) not in (int, float) or not 0 < timeout <= 10:
             _reject("native child timeout must be a finite number in (0,10]")
         if type(function) is not str or function not in self._exports or type(arguments) not in (list, tuple):
@@ -339,6 +365,84 @@ class NativeVersionDispatcher:
             generation = self._generation
             self._calls[version.core_sha256] += 1
             self._total_calls += 1
+            self._call_counter += 1
+            call_id = self._call_counter
+            self._active_calls[call_id] = {"version": version, "generation": generation,
+                                           "cleanup": None, "recovered": None}
+        return version, generation, word, arguments, call_id
+
+    def _release_call(self, call_id):
+        with self._condition:
+            record = self._active_calls.get(call_id)
+            if record is None:
+                return False
+            if record["cleanup"] is not None and not record["cleanup"].confirmed:
+                _reject("an unconfirmed child reap must remain quarantined")
+            self._active_calls.pop(call_id)
+            version = record["version"]
+            self._calls[version.core_sha256] -= 1
+            self._total_calls -= 1
+            self._retire_locked()
+            return True
+
+    def _quarantine_call(self, call_id, cleanup, recovered=None):
+        with self._condition:
+            record = self._active_calls.get(call_id)
+            if record is None or record["cleanup"] is not None:
+                _reject("unknown or already quarantined native call")
+            record["cleanup"] = cleanup
+            record["recovered"] = recovered
+            self._condition.notify_all()
+
+    def retry_cleanup(self, *, timeout=0.0):
+        """Try bounded direct-child reaps; retain all unconfirmed ownership.
+
+        Successful recovery releases each dispatch reference at most once.
+        Retrying never re-executes a native function or turns its earlier
+        failed observation into a successful result.
+        """
+        deadline = monotonic() + _seconds(timeout, zero=True)
+        with self._condition:
+            pending = [(call_id, row["cleanup"], row["recovered"])
+                       for call_id, row in self._active_calls.items() if row["cleanup"] is not None]
+        recovered_ids = []
+        for call_id, cleanup, callback in pending:
+            remaining = max(0.0, deadline - monotonic())
+            if cleanup.try_reap(timeout=min(2.0, remaining)) and self._release_call(call_id):
+                recovered_ids.append(call_id)
+                if callback is not None:
+                    callback()
+        with self._condition:
+            quarantined = [call_id for call_id, row in self._active_calls.items() if row["cleanup"] is not None]
+            return {"schema": "hepta.hia.native-cleanup-retry.v1", "recovered_call_ids": recovered_ids,
+                    "quarantined_call_ids": quarantined, "drained": self._drained_locked(),
+                    "native_calls_reexecuted": False}
+
+    def start_loan_probe(self, function: str, arguments, *, timeout=8.0):
+        """Start one diagnostic call, held at its first selected native loan.
+
+        The returned fixed-protocol handle has no executor callback API. It
+        keeps the same dispatch reference as an ordinary native call, including
+        during rollback or close. Unresumed calls retain the finite timeout.
+        """
+        if self._diagnostic_loan_site is None:
+            _reject("loan observation requires explicitly compiled diagnostic images")
+        version, generation, word, arguments, call_id = self._admit_call(function, arguments, timeout)
+        try:
+            from .hia_native_loan_probe import NativeLoanExecution
+            return NativeLoanExecution(version=version, generation=generation, function=function,
+                word=word, arguments=arguments, timeout=float(timeout),
+                release=lambda: self._release_call(call_id),
+                quarantine=lambda cleanup, recovered: self._quarantine_call(call_id, cleanup, recovered))
+        except BaseException:
+            self._release_call(call_id)
+            raise
+
+    def execute(self, function: str, arguments, *, timeout=3.0):
+        if self._diagnostic_loan_site is not None:
+            _reject("diagnostic images require start_loan_probe and an explicit acknowledgement")
+        version, generation, word, arguments, call_id = self._admit_call(function, arguments, timeout)
+        quarantined = False
         try:
             outcome, value = _observe_native(Path("/proc/self/fd/" + str(version.descriptor)),
                 function, word, list(arguments), timeout=float(timeout), pinned_fd=version.descriptor)
@@ -349,11 +453,13 @@ class NativeVersionDispatcher:
                     "claims": {"actual_native_child_executed": True, "sealed_image_used": True,
                                "native_trap_reason_proved": False, "external_state_migrated": False,
                                "general_backend_refinement_proved": False}}
+        except NativeChildCleanupPending as error:
+            self._quarantine_call(call_id, error.cleanup)
+            quarantined = True
+            raise
         finally:
-            with self._condition:
-                self._calls[version.core_sha256] -= 1
-                self._total_calls -= 1
-                self._retire_locked()
+            if not quarantined:
+                self._release_call(call_id)
 
     def _drained_locked(self):
         return not self._versions and self._worker is None and self._total_calls == 0
@@ -368,27 +474,47 @@ class NativeVersionDispatcher:
             if self._job is not None and self._job["status"] not in _FINISHED:
                 self._job["cancel_requested"] = True
             self._retire_locked()
-            while wait and not self._drained_locked():
+        while wait:
+            with self._condition:
+                if self._drained_locked():
+                    break
                 remaining = deadline - monotonic()
                 if remaining <= 0:
                     break
-                self._condition.wait(remaining)
+                has_quarantine = any(row["cleanup"] is not None for row in self._active_calls.values())
+            if has_quarantine:
+                # Do not hold the admission lock while waiting for OS reaps.
+                # If they remain unconfirmed, the references/images remain.
+                self.retry_cleanup(timeout=min(0.1, remaining))
+            with self._condition:
+                if not self._drained_locked():
+                    remaining = deadline - monotonic()
+                    if remaining > 0:
+                        self._condition.wait(min(0.1, remaining) if has_quarantine else remaining)
+        with self._condition:
             drained = self._drained_locked()
+            quarantined = sum(row["cleanup"] is not None for row in self._active_calls.values())
         # Join outside the lock; no compiler result or admitted native call is
         # abandoned when a caller chooses a non-waiting or timed-out close.
         if wait and drained and worker is not None:
             worker.join(max(0.0, deadline - monotonic()))
-        return {"schema": "hepta.hia.native-version-close.v1",
+        return {"schema": "hepta.hia.native-version-close.v2",
                 "status": "closed" if drained else "closing", "drained": drained,
+                "quarantined_calls": quarantined, "unconfirmed_child_reaps": quarantined,
                 "new_admission_disabled": True, "compiler_preempted": False}
 
     def snapshot(self):
         with self._condition:
-            return {"schema": "hepta.hia.native-version-snapshot.v1",
+            quarantine = [{"call_id": call_id, "program_sha256": row["version"].core_sha256,
+                           "generation": row["generation"], "cleanup": row["cleanup"].snapshot()}
+                          for call_id, row in self._active_calls.items() if row["cleanup"] is not None]
+            return {"schema": "hepta.hia.native-version-snapshot.v2",
                     "generation": self._generation, "baseline_sha256": self._baseline.core_sha256,
                     "active_sha256": self._active, "new_admission_disabled": self._closed,
                     "drained": self._drained_locked(), "in_flight": self._total_calls,
                     "max_in_flight": self._max_in_flight, "retired_versions": self._retired_versions,
+                    "quarantined_calls": quarantine,
+                    "unconfirmed_child_reaps": len(quarantine),
                     "released_artifacts": self._released_artifacts,
                     "discarded_build_artifacts": self._discarded_build_artifacts,
                     "background_build_active": self._worker is not None,
@@ -400,6 +526,7 @@ class NativeVersionDispatcher:
                                             "draining" if identity in self._draining else "staged")}
                                  for identity, version in sorted(self._versions.items())],
                     "claims": {"native_entry_version_dispatch": True,
+                               "diagnostic_loan_instrumentation": self._diagnostic_loan_site is not None,
                                "in_process_native_hot_patch": False, "foreign_callbacks_supported": False,
                                "shared_external_state_supported": False, "crash_durable": False,
                                "distributed_fencing": False, "production_p6_qualified": False}}

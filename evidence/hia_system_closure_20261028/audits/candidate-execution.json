@@ -1,0 +1,481 @@
+{
+  "schema": "hepta.checked-reduction-execution-audit.v1",
+  "reviewer": "/root/native_gain_candidate",
+  "reviewer_provenance": {
+    "candidate_transform_author": true,
+    "independent_author_review_of_transform": false,
+    "measurement_runner_author": false,
+    "agent_productivity_trial": false
+  },
+  "status": "retained_execution_evidence_consistent_no_qualified_gain",
+  "scope": "Exactly two preregistered checked-reduction attempts on frozen b921414. This audit independently recounts retained event streams, compares retained artifact bytes with pre-measurement receipts, checks hashes and recomputes fixed selection arithmetic. It does not execute, compile, tune or repeat the experiment.",
+  "frozen_source_commit": "b92141483ca5084691f436d28d4cd0dcbefe4717",
+  "source_was_committed_reported": true,
+  "source_unchanged_reported": true,
+  "tools_unchanged_reported": true,
+  "experiment_status": {
+    "status": "completed",
+    "ok": false,
+    "outer_returncode": 1,
+    "exact_attempt_count": 2,
+    "protocol_repeats_until_pass": false,
+    "protocol_selects_favorable_rounds": false
+  },
+  "protocol": {
+    "identity": {
+      "path": "/workspace/scratch/7e691a7ff65f/validation-system-frozen/ndu-reduction/protocol.json",
+      "bytes": 2205,
+      "sha256": "792118e03cd1c635159f23f9f30997216df55ade355241436ceb633f3e4a4bdf"
+    },
+    "planned_timed_calls_per_attempt": 55800000,
+    "planned_total_timed_calls_two_attempts": 111600000,
+    "cases": 18,
+    "iterations_per_case_per_backend_sample": 50000,
+    "paired_samples_per_attempt": 31,
+    "native_process_timeout_seconds": 30,
+    "cooperative_outer_deadline_seconds": 120,
+    "workload_scope": "synthetic checked arithmetic mechanism; not an external real-application hot function"
+  },
+  "trials": [
+    {
+      "id": "checked-reduction-1",
+      "qualification_status": "failed_closed_no_change",
+      "qualification_ok": false,
+      "decision": "no_change",
+      "activated": false,
+      "measurement_status": "measurement_failed",
+      "measurement_ok": false,
+      "measurement_complete": false,
+      "planned_counts": {
+        "cases": 18,
+        "paired_samples": 31,
+        "calls_per_sample": 900000,
+        "untimed_correctness_calls": 36,
+        "timed_calls_total": 55800000
+      },
+      "observed_denominator": {
+        "raw_event_count": 97,
+        "complete_sample_events": 60,
+        "complete_pairs": 30,
+        "complete_samples_per_backend": {
+          "baseline": 30,
+          "candidate": 30
+        },
+        "completed_timed_calls_in_complete_sample_records": 54000000,
+        "completed_timed_calls_per_backend": {
+          "baseline": 27000000,
+          "candidate": 27000000
+        },
+        "untimed_correctness_records": 36,
+        "all_untimed_case_results_equal": true,
+        "unreported_interrupted_sample_calls": null,
+        "exact_total_timed_call_count_available": false
+      },
+      "denominator_note": "counts/expected_counts are declared planned denominators, not proof that an interrupted run completed them. Native call count is inferred from complete driver sample records and its fixed 18x50000 loop. Partial unreported work is not counted.",
+      "native_process": {
+        "returncode": -9,
+        "timeout_seconds": 30,
+        "wall_ns": 30009938636,
+        "capture_error": "E_CAPTURE_TIMEOUT",
+        "captured_stdout_bytes": 12455,
+        "captured_stdout_sha256": "f42e6df06ca68dbfa071eff23aea268048c676d8c2d1fc4b0a8ba207d7248388",
+        "raw_events_match_captured_stdout": true,
+        "captured_stdout_is_complete_lines": true
+      },
+      "artifacts": [
+        {
+          "role": "baseline",
+          "path": "/workspace/scratch/7e691a7ff65f/validation-system-frozen/ndu-reduction/checked-reduction-1.artifacts/baseline.so",
+          "bytes": 15360,
+          "sha256": "0abb0f63a8ab24cfe0791bc845249d2cae10d97ac1b09224628a5546e835ae1e",
+          "matches_pre_measurement_receipt": true,
+          "matches_post_measurement_retention_list": null
+        },
+        {
+          "role": "candidate",
+          "path": "/workspace/scratch/7e691a7ff65f/validation-system-frozen/ndu-reduction/checked-reduction-1.artifacts/candidate.so",
+          "bytes": 15360,
+          "sha256": "adcfb63c5f0774dc086facf8a0020f5d1826e9d2cd6b2b221574ca4fb2e4bece",
+          "matches_pre_measurement_receipt": true,
+          "matches_post_measurement_retention_list": null
+        },
+        {
+          "role": "driver",
+          "path": "/workspace/scratch/7e691a7ff65f/validation-system-frozen/ndu-reduction/checked-reduction-1.artifacts/driver",
+          "bytes": 16800,
+          "sha256": "663cb861c4530142457d605d8106948ceeaedd66360fc0e32de05b29a2442251",
+          "matches_pre_measurement_receipt": true,
+          "matches_post_measurement_retention_list": null
+        },
+        {
+          "role": "driver_source",
+          "path": "/workspace/scratch/7e691a7ff65f/validation-system-frozen/ndu-reduction/checked-reduction-1.artifacts/driver.c",
+          "bytes": 5691,
+          "sha256": "f2776da85f9b3fdbfd2a5e72bbea9b72fd751e064268852caa25494e21bed2f4",
+          "matches_pre_measurement_receipt": true,
+          "matches_post_measurement_retention_list": null
+        }
+      ],
+      "retained_artifact_manifest_was_present": false,
+      "native_artifact_identity_changed": true,
+      "core_identities": {
+        "baseline": "b026c9b9aaaf20a6aa9c72ce42d57236189c3e0b7c14ec306dbcb5d9761c022b",
+        "candidate": "88df569537cad739f6c037ba7025ee3173177dc22e077b70f36771e6f7e20eea"
+      },
+      "llvm_ir_identities": {
+        "baseline": "a29e2fcaf6c28cd10e089911937f01990b3d8f2338a961bcb2b6bebeaa2b5616",
+        "candidate": "e74315d63087ba7d2d4e857ecc40c01be573120fd7f64fe4310bb3e4263d5e53"
+      },
+      "canonical_core_and_retained_llvm_strings_match_receipt_hashes": true,
+      "same_backend_flags": [
+        "--target=x86_64-unknown-linux-gnu",
+        "-x",
+        "ir",
+        "-O3",
+        "-fPIC",
+        "-shared"
+      ],
+      "same_toolchain_receipt": {
+        "default_target": "x86_64-pc-linux-gnu",
+        "path": "/usr/lib/llvm-20/bin/clang",
+        "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+        "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+      },
+      "semantic_validation": {
+        "ok": true,
+        "observation_rows": 48,
+        "compared": [
+          "returned_values",
+          "trap_code",
+          "full_resource_ledger"
+        ],
+        "scope": "retained finite Core observations; not reexecuted by audit"
+      },
+      "costs": {
+        "measurement_breakdown_ns": {
+          "baseline_compile_ns": 351759709,
+          "candidate_compile_ns": 220413786,
+          "driver_compile_ns": 177278832,
+          "measurement_ns": 30009963768,
+          "total_ns": 31353500669,
+          "validation_ns": 591772172
+        },
+        "qualification_costs_ns": {
+          "total_paid_wall_ns": 33002678969
+        },
+        "total_cli_wall_ns": 34530551280,
+        "child_cpu_user_seconds": 34.55234,
+        "child_cpu_system_seconds": 0.610453
+      },
+      "ndu_evaluator_executed": false,
+      "cooperative_deadline_expired": false,
+      "outer_force_kill_deadline": false,
+      "source_evidence": [
+        {
+          "path": "/workspace/scratch/7e691a7ff65f/validation-system-frozen/ndu-reduction/checked-reduction-1.json",
+          "bytes": 206137,
+          "sha256": "12a92c78aa79f8bb6f8c13257c2fdd1dff33d5408fff4dbbfc81242384ab90c4"
+        },
+        {
+          "path": "/workspace/scratch/7e691a7ff65f/validation-system-frozen/ndu-reduction/checked-reduction-1.process.json",
+          "bytes": 3299,
+          "sha256": "3c410191fe51c80380c6aa73b12c76117d21740f8a3928e6e58aa338a2d7fd57"
+        },
+        {
+          "path": "/workspace/scratch/7e691a7ff65f/validation-system-frozen/ndu-reduction/checked-reduction-1.stdout.log",
+          "bytes": 185,
+          "sha256": "3c0789a011f2385bbfd8b9a4dc245f4ffd0036370792d9b122764544079e077b"
+        },
+        {
+          "path": "/workspace/scratch/7e691a7ff65f/validation-system-frozen/ndu-reduction/checked-reduction-1.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "selection_reason": "Native measurement hit its fixed30-second subprocess bound; failed_closed_no_change. No assessment or NDU evaluator result exists.",
+      "partial_correctness_flag_note": "The failed measurement leaves finite_cases_agree=false even though its36 retained native case records match. Audit preserves the failed status and reports partial observations separately."
+    },
+    {
+      "id": "checked-reduction-2",
+      "qualification_status": "completed_no_change",
+      "qualification_ok": true,
+      "decision": "no_change",
+      "activated": false,
+      "measurement_status": "finite_pair_measured_no_selection_authority",
+      "measurement_ok": true,
+      "measurement_complete": true,
+      "planned_counts": {
+        "cases": 18,
+        "paired_samples": 31,
+        "calls_per_sample": 900000,
+        "untimed_correctness_calls": 36,
+        "timed_calls_total": 55800000
+      },
+      "observed_denominator": {
+        "raw_event_count": 99,
+        "complete_sample_events": 62,
+        "complete_pairs": 31,
+        "complete_samples_per_backend": {
+          "baseline": 31,
+          "candidate": 31
+        },
+        "completed_timed_calls_in_complete_sample_records": 55800000,
+        "completed_timed_calls_per_backend": {
+          "baseline": 27900000,
+          "candidate": 27900000
+        },
+        "untimed_correctness_records": 36,
+        "all_untimed_case_results_equal": true,
+        "unreported_interrupted_sample_calls": 0,
+        "exact_total_timed_call_count_available": true
+      },
+      "denominator_note": "Complete31 pairs account for the full planned55.8 million timed calls; warmup36 is separate.",
+      "native_process": {
+        "returncode": 0,
+        "timeout_seconds": 30,
+        "wall_ns": 16346201304,
+        "captured_stdout_bytes": 12723,
+        "captured_stdout_sha256": "18a2800974872d0eb14f00354518856902724c0459283addcf08b21ba80d01de",
+        "raw_events_match_captured_stdout": true,
+        "captured_stdout_is_complete_lines": true
+      },
+      "artifacts": [
+        {
+          "role": "baseline",
+          "path": "/workspace/scratch/7e691a7ff65f/validation-system-frozen/ndu-reduction/checked-reduction-2.artifacts/baseline.so",
+          "bytes": 15360,
+          "sha256": "0abb0f63a8ab24cfe0791bc845249d2cae10d97ac1b09224628a5546e835ae1e",
+          "matches_pre_measurement_receipt": true,
+          "matches_post_measurement_retention_list": true
+        },
+        {
+          "role": "candidate",
+          "path": "/workspace/scratch/7e691a7ff65f/validation-system-frozen/ndu-reduction/checked-reduction-2.artifacts/candidate.so",
+          "bytes": 15360,
+          "sha256": "adcfb63c5f0774dc086facf8a0020f5d1826e9d2cd6b2b221574ca4fb2e4bece",
+          "matches_pre_measurement_receipt": true,
+          "matches_post_measurement_retention_list": true
+        },
+        {
+          "role": "driver",
+          "path": "/workspace/scratch/7e691a7ff65f/validation-system-frozen/ndu-reduction/checked-reduction-2.artifacts/driver",
+          "bytes": 16800,
+          "sha256": "663cb861c4530142457d605d8106948ceeaedd66360fc0e32de05b29a2442251",
+          "matches_pre_measurement_receipt": true,
+          "matches_post_measurement_retention_list": true
+        },
+        {
+          "role": "driver_source",
+          "path": "/workspace/scratch/7e691a7ff65f/validation-system-frozen/ndu-reduction/checked-reduction-2.artifacts/driver.c",
+          "bytes": 5691,
+          "sha256": "f2776da85f9b3fdbfd2a5e72bbea9b72fd751e064268852caa25494e21bed2f4",
+          "matches_pre_measurement_receipt": true,
+          "matches_post_measurement_retention_list": null
+        }
+      ],
+      "retained_artifact_manifest_was_present": true,
+      "native_artifact_identity_changed": true,
+      "core_identities": {
+        "baseline": "b026c9b9aaaf20a6aa9c72ce42d57236189c3e0b7c14ec306dbcb5d9761c022b",
+        "candidate": "88df569537cad739f6c037ba7025ee3173177dc22e077b70f36771e6f7e20eea"
+      },
+      "llvm_ir_identities": {
+        "baseline": "a29e2fcaf6c28cd10e089911937f01990b3d8f2338a961bcb2b6bebeaa2b5616",
+        "candidate": "e74315d63087ba7d2d4e857ecc40c01be573120fd7f64fe4310bb3e4263d5e53"
+      },
+      "canonical_core_and_retained_llvm_strings_match_receipt_hashes": true,
+      "same_backend_flags": [
+        "--target=x86_64-unknown-linux-gnu",
+        "-x",
+        "ir",
+        "-O3",
+        "-fPIC",
+        "-shared"
+      ],
+      "same_toolchain_receipt": {
+        "default_target": "x86_64-pc-linux-gnu",
+        "path": "/usr/lib/llvm-20/bin/clang",
+        "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+        "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+      },
+      "semantic_validation": {
+        "ok": true,
+        "observation_rows": 48,
+        "compared": [
+          "returned_values",
+          "trap_code",
+          "full_resource_ledger"
+        ],
+        "scope": "retained finite Core observations; not reexecuted by audit"
+      },
+      "costs": {
+        "measurement_breakdown_ns": {
+          "baseline_compile_ns": 298716628,
+          "candidate_compile_ns": 454380860,
+          "driver_compile_ns": 367011267,
+          "measurement_ns": 16346220121,
+          "total_ns": 18633650077,
+          "validation_ns": 1159403332
+        },
+        "qualification_costs_ns": {
+          "search_before_decision_ns": 20863093406,
+          "selection_wall_ns": 21569316,
+          "total_paid_wall_ns": 20884716247
+        },
+        "total_cli_wall_ns": 21304591250,
+        "child_cpu_user_seconds": 20.779670000000003,
+        "child_cpu_system_seconds": 0.6228560000000001
+      },
+      "ndu_evaluator_executed": true,
+      "cooperative_deadline_expired": false,
+      "outer_force_kill_deadline": false,
+      "source_evidence": [
+        {
+          "path": "/workspace/scratch/7e691a7ff65f/validation-system-frozen/ndu-reduction/checked-reduction-2.json",
+          "bytes": 196275,
+          "sha256": "0477d3b77c83b9601dfca41b572c44dfc51c2679a38f73b7d9bece4aea278f43"
+        },
+        {
+          "path": "/workspace/scratch/7e691a7ff65f/validation-system-frozen/ndu-reduction/checked-reduction-2.process.json",
+          "bytes": 3374,
+          "sha256": "1fbbf0f8f353ff7749ef759574db7cfa55ccca71a775469dea0d61a907fb631f"
+        },
+        {
+          "path": "/workspace/scratch/7e691a7ff65f/validation-system-frozen/ndu-reduction/checked-reduction-2.stdout.log",
+          "bytes": 180,
+          "sha256": "9a3bd92eeac0b2a221d12c125e8176f9d88ca38d6e24b32f72aca0ed471c6b5f"
+        },
+        {
+          "path": "/workspace/scratch/7e691a7ff65f/validation-system-frozen/ndu-reduction/checked-reduction-2.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "assessment": {
+        "independently_recomputed_from_all31_pairs": true,
+        "samples_excluded": 0,
+        "raw_cpu_zero_increment_samples": 8,
+        "median_ns": {
+          "baseline": 444799755,
+          "candidate": 2990446
+        },
+        "mad_ns": {
+          "baseline": 27160818,
+          "candidate": 370038
+        },
+        "mad_ppm": {
+          "baseline": 61063.02374199824,
+          "candidate": 123740.07087905951
+        },
+        "threshold_mad_ppm": 50000,
+        "eligible": false,
+        "reasons": [
+          "baseline_timing_noise",
+          "candidate_timing_noise"
+        ],
+        "paired_saving_median_ns": 439090762,
+        "paired_saving_mad_ns": 25772069,
+        "projected_baseline_total_ns": 49422195000,
+        "projected_candidate_total_ns": 23195365184,
+        "projection_horizon_calls": 100000000,
+        "projection_is_workload_assumption": true,
+        "statistical_confidence_proved": false
+      },
+      "ndu": {
+        "binary_sha256": "ada753864ff3bcf03f56fbbc6cc0884259fdf513565bbf6499e19f1c6e93d3e8",
+        "elapsed_ns": 10942664,
+        "request_sha256": "b695b2461d938a601b985ee88677f6756ddf5f48ab00050e6094f75233ddba20",
+        "request_hash_recomputed": true,
+        "response_authority": "DENY_ALL",
+        "advisory_recommendation": "abstain",
+        "disposition": "InfeasibleExplicitAbstain",
+        "rejected": [
+          {
+            "id": "checked_reduction",
+            "reasons": [
+              "HardConstraintViolation"
+            ]
+          }
+        ],
+        "request_response_core_artifact_evidence_bindings_match": true,
+        "evidence_hashes_recomputed": {
+          "plan_sha256": "57bc9fa2f5ecf111d147957ce50d019812cc266b4c5485900c9148e986a22ec7",
+          "validation_sha256": "61679253f1823bc1196f95fa0a3778419e2fd7a98104c83c6c7fc1a2f430e45f",
+          "measurement_sha256": "81ec400d115c58cdd0f992cc87b35aff1e85e13c850577f115bbf0d3333105c1",
+          "assessment_sha256": "4efde765ca2578a38e148c87a1856f25747be37d9c2b36e78dfe2fdccb7bff55"
+        },
+        "source_attestation_claimed": false
+      },
+      "selection_reason": "Both frozen relative MAD gates reject the candidate. Real NDU evaluation sees the candidate infeasible and explicitly abstains; no_change and no activation remain correct."
+    }
+  ],
+  "aggregate": {
+    "completed_recorded_pairs": 61,
+    "completed_sample_records": 122,
+    "timed_calls_in_complete_sample_records": 109800000,
+    "completed_untimed_correctness_records": 72,
+    "exact_total_native_timed_calls_available": false,
+    "reason_exact_total_unavailable": "Attempt1 was interrupted during an unreported sample; its additional actual calls cannot be recovered from retained completed-event records.",
+    "evaluator_invocations": 1,
+    "accepted_candidates": 0,
+    "activations": 0,
+    "total_qualification_paid_wall_ns": 53887395216,
+    "total_attempt_cli_wall_ns": 55835142530,
+    "whole_protocol_process_wall_ns": 65648198148,
+    "whole_protocol_wall_minus_attempt_cli_ns": 9813055618,
+    "cost_scope_note": "Paid qualification wall, per-attempt CLI wall and whole-protocol process wall have different nested boundaries; do not add them together. Whole-protocol wall includes source/tool/protocol intake and finalization."
+  },
+  "artifact_rehash_scope": {
+    "native_and_driver_files": 8,
+    "total_bytes_rehashed": 106422,
+    "compiler_or_bridge_binary_rehashed": false,
+    "toolchain_scope": "Existing toolchain receipts compared for exact equality; no redundant large compiler/bridge rehash."
+  },
+  "coordinated_audit": {
+    "reviewer": "/root/chain_vm_closure",
+    "report": {
+      "path": "/workspace/scratch/7e691a7ff65f/validation-system-audits/collector-frozen-execution-final.json",
+      "bytes": 385135,
+      "sha256": "043ee5b0d347973d44d8b85a2de9f0c1d8aafcfbada3396c77a10da8540cfb55"
+    },
+    "division": "Collector audit binds report bytes/basic outcomes; this audit owns small retained native/driver artifacts, exact completed denominators, fixed policy arithmetic and paid/CLI costs."
+  },
+  "evidence_files": [
+    {
+      "path": "/workspace/scratch/7e691a7ff65f/validation-system-frozen/ndu-reduction/summary.json",
+      "bytes": 11888,
+      "sha256": "aabac530ff98cd68267a968488151c1d7c58d0c37802c8cf1338439cb22290be"
+    },
+    {
+      "path": "/workspace/scratch/7e691a7ff65f/validation-system-frozen/ndu_reduction.process.json",
+      "bytes": 1608,
+      "sha256": "022953e596ca644e339d54f8417763fbb1300dd6a0e25d2c44eef2562504916a"
+    },
+    {
+      "path": "/workspace/scratch/7e691a7ff65f/validation-system-frozen/ndu-reduction/command-plan.json",
+      "bytes": 3361,
+      "sha256": "f10366b5a15bc30ac57f7c435c21aae90a90697686b9a70c3e33a520769cc708"
+    }
+  ],
+  "claims": {
+    "native_artifact_changed": true,
+    "actual_application_hot_function": false,
+    "industrial_p4_closed": false,
+    "qualified_performance_gain": false,
+    "global_optimum_proved": false,
+    "native_backend_refinement_proved": false,
+    "measurements_rerun_by_audit": false,
+    "candidate_activated": false,
+    "corrected_source_remeasured": false
+  },
+  "limitations": [
+    "The 55.8M planned count in a failed receipt is not an actual completion count.",
+    "Complete sample records justify54M completed timed calls for attempt1, with additional interrupted work unknown.",
+    "Attempt1 retained files match pre-measurement receipts but had no successful post-measurement retention manifest; this read-only audit does not upgrade that failure to success.",
+    "Finite correctness and differing artifacts do not prove whole-language equivalence or reproducible net benefit.",
+    "Both native timing noise gates failed in attempt2; its favorable cost projection is a workload assumption and cannot authorize acceptance.",
+    "The host was not exclusively owned; zero CPU-clock increments are retained informational observations, not evidence of zero CPU cost.",
+    "This evidence belongs to b921414; later cleanup changes or a corrected full-suite run do not retroactively requalify this measurement."
+  ],
+  "issues": []
+}

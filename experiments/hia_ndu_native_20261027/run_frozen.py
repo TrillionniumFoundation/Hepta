@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Execute exactly the committed three-search protocol and preserve all results."""
+"""Execute exactly the selected committed protocol and preserve all results."""
 from __future__ import annotations
 
 import argparse
@@ -301,11 +301,35 @@ def run(row, output, *, protocol, spec, cases):
         result["qualification_report_missing"] = True
     result["protocol_check"] = check_report(report, protocol, spec, cases=cases,
                                             returncode=result["returncode"])
+    if protocol.get("retain_native_artifacts") is True and result["protocol_check"]["measurement_complete"]:
+        errors = []
+        measurement = report["measurement"]
+        retained = measurement.get("retained_artifacts")
+        directory = output / (row["id"] + ".artifacts")
+        roles = {"baseline": "baseline.so", "candidate": "candidate.so", "driver": "driver"}
+        if (measurement.get("claims", {}).get("binary_artifacts_retained") is not True
+                or type(retained) is not list or len(retained) != 3
+                or any(type(item) is not dict for item in retained)
+                or sorted(item.get("role", "") for item in retained) != sorted(roles)):
+            errors.append("missing retained measured artifacts")
+        else:
+            for item in retained:
+                expected_path = directory / roles[item["role"]]
+                expected = measurement["driver"] if item["role"] == "driver" else measurement["native"][item["role"]]
+                if (item.get("path") != str(expected_path) or not expected_path.is_file()
+                        or expected_path.is_symlink() or digest(expected_path) != item.get("sha256")
+                        or expected_path.stat().st_size != item.get("bytes")
+                        or item.get("sha256") != expected.get("artifact_sha256")):
+                    errors.append("retained " + item["role"] + " does not match the measured bytes")
+        result["retained_artifact_check"] = {"ok": not errors, "errors": errors}
+        if errors:
+            result["protocol_check"].update(complete=False, measurement_complete=False, stop_protocol=True)
+            result["protocol_check"]["errors"].extend({"code": "retained_artifact_mismatch", "message": error} for error in errors)
     save(output / (row["id"] + ".process.json"), result)
     return result
 
 
-def main():
+def main(*, protocol_path=PROTOCOL):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--clang", type=Path, required=True)
     parser.add_argument("--bridge", type=Path, required=True)
@@ -323,7 +347,8 @@ def main():
     tools_before = {name: tool(path) for name, path in selected.items()}
     if tools_before["bridge"]["sha256"] != args.bridge_sha256:
         parser.error("bridge bytes do not match the declared pinned executable")
-    protocol = json.loads(PROTOCOL.read_text())
+    protocol_path = Path(protocol_path)
+    protocol = json.loads(protocol_path.read_text())
     for item in protocol["input_files"]:
         if digest(ROOT / item["path"]) != item["sha256"]:
             parser.error("protocol input hash mismatch: " + item["path"])
@@ -348,6 +373,8 @@ def main():
         argv += ["--deadline-seconds", str(expected["cooperative_deadline"]["seconds"])]
         if spec.get("negative_cases"):
             argv += ["--negative-cases", spec["negative_cases"]]
+        if protocol.get("retain_native_artifacts") is True:
+            argv += ["--artifact-directory", str(output / (spec["id"] + ".artifacts"))]
         plan.append({"id": spec["id"], "argv": argv, "report": str(report),
                      "case_count": len(cases), "expected_counts": expected["counts"],
                      "cooperative_deadline": expected["cooperative_deadline"],
@@ -358,7 +385,7 @@ def main():
                "host": {"system": platform.system(), "machine": platform.machine(),
                         "release": platform.release(), "exclusive_host": False,
                         "dot_physical_host_identity_established": False},
-               "protocol_sha256": digest(PROTOCOL), "commands": plan, "results": [],
+               "protocol_sha256": digest(protocol_path), "commands": plan, "results": [],
                "claims": {"p4_closed": False, "p7_closed": False, "production_gain_proved": False,
                           "all_input_equivalence_proved": False, "code_activated": False,
                           "full_35_gate_qualification_executed": False}}

@@ -1,0 +1,345 @@
+{
+  "schema": "hepta.hia.program.v1",
+  "module": "ndu_checked_unsigned_reduction",
+  "functions": [
+    {
+      "name": "reduce",
+      "params": [
+        {
+          "name": "count",
+          "type": "usize"
+        },
+        {
+          "name": "value",
+          "type": "usize"
+        }
+      ],
+      "returns": [
+        "usize"
+      ],
+      "effects": [
+        "trap"
+      ],
+      "entry": "start",
+      "blocks": [
+        {
+          "id": "start",
+          "params": [
+            {
+              "name": "count",
+              "type": "usize"
+            },
+            {
+              "name": "value",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "zero",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "loop",
+            "args": [
+              "count",
+              "value",
+              "zero",
+              "zero"
+            ]
+          }
+        },
+        {
+          "id": "loop",
+          "params": [
+            {
+              "name": "ln",
+              "type": "usize"
+            },
+            {
+              "name": "lv",
+              "type": "usize"
+            },
+            {
+              "name": "index",
+              "type": "usize"
+            },
+            {
+              "name": "sum",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "compare.lt",
+              "args": [
+                "index",
+                "ln"
+              ],
+              "out": [
+                {
+                  "name": "more",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "more",
+            "then": {
+              "target": "body",
+              "args": [
+                "ln",
+                "lv",
+                "index",
+                "sum"
+              ]
+            },
+            "else": {
+              "target": "done",
+              "args": [
+                "sum"
+              ]
+            }
+          }
+        },
+        {
+          "id": "body",
+          "params": [
+            {
+              "name": "bn",
+              "type": "usize"
+            },
+            {
+              "name": "bv",
+              "type": "usize"
+            },
+            {
+              "name": "bi",
+              "type": "usize"
+            },
+            {
+              "name": "bs",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "one",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "int.add.checked",
+              "args": [
+                "bs",
+                "bv"
+              ],
+              "out": [
+                {
+                  "name": "next_sum",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.add.checked",
+              "args": [
+                "bi",
+                "one"
+              ],
+              "out": [
+                {
+                  "name": "next_index",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "loop",
+            "args": [
+              "bn",
+              "bv",
+              "next_index",
+              "next_sum"
+            ]
+          }
+        },
+        {
+          "id": "done",
+          "params": [
+            {
+              "name": "answer",
+              "type": "usize"
+            }
+          ],
+          "ops": [],
+          "term": {
+            "op": "ret",
+            "values": [
+              "answer"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "reduction_probe",
+      "params": [
+        {
+          "name": "count",
+          "type": "usize"
+        },
+        {
+          "name": "value",
+          "type": "usize"
+        },
+        {
+          "name": "offset",
+          "type": "usize"
+        },
+        {
+          "name": "mask",
+          "type": "usize"
+        }
+      ],
+      "returns": [
+        "u8"
+      ],
+      "effects": [
+        "trap"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "count",
+              "type": "usize"
+            },
+            {
+              "name": "value",
+              "type": "usize"
+            },
+            {
+              "name": "offset",
+              "type": "usize"
+            },
+            {
+              "name": "mask",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "int.cast",
+              "args": [
+                "mask"
+              ],
+              "out": [
+                {
+                  "name": "byte_mask",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "mode": "checked"
+              }
+            },
+            {
+              "op": "call",
+              "args": [
+                "count",
+                "value"
+              ],
+              "out": [
+                {
+                  "name": "total",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "function": "reduce"
+              }
+            },
+            {
+              "op": "int.add.checked",
+              "args": [
+                "total",
+                "offset"
+              ],
+              "out": [
+                {
+                  "name": "shifted",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.cast",
+              "args": [
+                "shifted"
+              ],
+              "out": [
+                {
+                  "name": "byte",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "mode": "wrap"
+              }
+            },
+            {
+              "op": "bit.xor",
+              "args": [
+                "byte",
+                "byte_mask"
+              ],
+              "out": [
+                {
+                  "name": "result",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "result"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

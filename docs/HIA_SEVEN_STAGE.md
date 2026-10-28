@@ -30,12 +30,31 @@ an absolute safety claim about all native programs.
 
 ## One frozen integration run
 
-Commit the complete source before invoking the v3 collector (35 scoped gates;
+Commit the implementation and tests before invoking the v4 collector (35 scoped gates;
 see [the current qualification plan](HIA_UNIFIED_QUALIFICATION_V3.md)). The collector writes
 a command plan, executes all gates against that exact source, retains stdout,
 stderr and per-gate reports, rejects skipped test runs as complete passes and
 compares source snapshots before and after. Native and formal reports bind
 their own selected tools/artifacts. Performance is the last functional gate.
+
+The `unit_regression` gate executes complete unittest discovery in separate
+module processes with two workers. Every expected ID must start and finish
+exactly once, and replay compares module receipts/logs with an independent
+source discovery. Skips, expected failures, incomplete modules and changed
+inventories prevent a pass. The collector preserves failed modules and does
+not retry them. A successful matrix is full discovered coverage in that
+partitioned mode; it is not a single-process unittest run. Module deadlines
+are cooperative at tool polls and test boundaries, with a separate outer
+process-group bound. Child-created sessions are outside that cleanup guarantee.
+
+The source snapshot excludes the exact generated Cargo roots
+`rust/hia-core-shadow/target/` and `rust/hia-ndu-bridge/target/`; arbitrary
+source directories named `target` remain included. The local NDU upstream
+export under `rust/hia-ndu-bridge/upstream/` and its `build-provenance.json`
+are separately inventoried dependency inputs, with their hashes included in
+before/after equality. They are not represented as files committed in Hepta.
+Compiler/evaluator output identity must still come from its selected-tool and
+execution evidence. The v4 report records this separation in `source_admission`.
 
 ```sh
 python tools/qualify_hia_unified.py \
@@ -51,25 +70,33 @@ python tools/qualify_hia_unified.py \
   --lean /absolute/path/to/lean --cxx /absolute/path/to/g++
 ```
 
-Cargo 1.90.0 and its locked dependencies must be available for the Rust
-shadow tests. Fetch the locked dependencies before the frozen run. The
-collector uses the selected `--cargo` and `--rustc` and places
+The checked-in toolchain lock specifies Cargo 1.90.0; each execution receipt
+must identify the actual selected Cargo/Rust compiler, including any wrapper
+and delegated executable. Fetch the locked dependencies before the frozen run.
+The collector uses the selected `--cargo` and `--rustc` and places
 `CARGO_TARGET_DIR` under the new evidence directory, outside the checkout
 in the example above.
 
 Within primitive v1–v7, the default Rust checker and `--scalar-run` accept
 only resource-free scalar programs. `--owned-shadow` statically checks the
 typed owner/loan CFG subset, including v7 chain transitions. `--owned-run`
-executes the finite `cfg-call-byte-owner-bulk-v3` profile: byte-owner/loan operations,
+executes the finite `cfg-call-byte-owner-chain-v4` profile: byte-owner/loan operations,
 CFG/loops, bounded internal resource calls and the six v2–v6 fill/copy/move/swap/range
-operations, with scalar public entry/results.
+operations, plus the six v7 chain operations and chain move/drop. Public entry
+arguments and results remain scalar. The shared execution limits are
+1,000,000 steps, 32 root-inclusive call frames and 16 MiB of language heap;
+node storage consumes the same heap/allocation-failure sequence as payloads,
+and each node's iterative destruction consumes a step.
 Python/Rust checks compare complete resource ledgers, steps, results and stop
 codes; selected LLVM/native allocator controls are separate execution evidence.
-Chain operations/types and direct nominal input remain outside
-this runtime profile. Python Core remains the standalone/native admission authority;
+Raw nominal/composite input remains outside the Rust decoder. Its canonical
+primitive normalization is separately reverified and executed by Rust; that
+comparison does not prove the nominal elaborator. General recursive ADTs and
+escaping borrows remain unsupported. Python Core remains the standalone/native admission authority;
 these scoped checks do not prove general resource safety or backend refinement.
 See the [consumer support table](HIA_PROGRAM.md) and
-[finite Rust execution profile](HIA_RUST_BYTE_OWNER_VM_20261027.md).
+[finite Rust execution profile](HIA_RUST_BYTE_OWNER_VM_20261027.md), including
+[the chain extension](HIA_RUST_CHAIN_VM_20261027.md).
 The static budget analyzer rejects v7 instead of counting a dynamic
 chain destructor as one constant-time/free event.
 

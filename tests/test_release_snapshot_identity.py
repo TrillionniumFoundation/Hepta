@@ -45,6 +45,22 @@ class SourceSnapshotIdentityTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "E_SOURCE_SNAPSHOT_UNSAFE"):
                 release_check.snapshot()
 
+    def test_only_the_two_declared_cargo_output_roots_are_excluded(self):
+        for crate in ("hia-core-shadow", "hia-ndu-bridge"):
+            path = self.root / "rust" / crate / "target" / "debug" / "generated"
+            path.parent.mkdir(parents=True)
+            path.write_bytes(b"reproducible compiler output")
+        source = self.root / "src" / "target" / "meaning.hepta"
+        source.parent.mkdir(parents=True)
+        source.write_bytes(b"language input")
+        contract = self.root / "rust" / "hia-ndu-bridge" / "build-provenance.json"
+        contract.write_bytes(b"external build identity remains inventoried")
+        with patch.object(release_check, "ROOT", self.root):
+            before = release_check.snapshot()
+            (self.root / "rust/hia-core-shadow/target/debug/generated").write_bytes(b"rebuilt")
+            self.assertEqual(before, release_check.snapshot())
+        self.assertEqual(set(before["files"]), {"src/target/meaning.hepta", "rust/hia-ndu-bridge/build-provenance.json"})
+
     @unittest.skipUnless(hasattr(os, "mkfifo"), "requires POSIX named pipe")
     def test_fifo_in_source_tree_is_refused_without_open(self):
         path = self.root / "fifo.hepta"
